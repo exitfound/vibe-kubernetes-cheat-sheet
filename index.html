@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kubernetes Cheat Sheet | Quick CLI Reference</title>
+  <meta name="description" content="Comprehensive Kubernetes CLI reference with kubectl and Helm commands for pods, deployments, services, volumes, networking, RBAC, and more. Searchable, filterable, with copy-to-clipboard.">
+  <meta name="keywords" content="kubernetes, kubectl, helm, cheat sheet, cli, commands, k8s, pods, deployments, services, rbac, reference">
+  <meta name="author" content="K8s Cheat Sheet">
+  <meta name="theme-color" content="#0a0d16">
+
+  <link rel="canonical" href="https://kube.how/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kube.how/">
+  <meta property="og:title" content="Kubernetes Cheat Sheet | Quick CLI Reference">
+  <meta property="og:description" content="Comprehensive kubectl and Helm reference for pods, deployments, services, volumes, networking, RBAC, and more.">
+  <meta property="og:image" content="https://kube.how/og-image.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Kubernetes Cheat Sheet | Quick CLI Reference">
+  <meta name="twitter:description" content="Comprehensive kubectl and Helm reference for pods, deployments, services, volumes, networking, RBAC, and more.">
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kubernetes cube logo">
+            <defs>
+              <!-- Top face: bright -->
+              <linearGradient id="ct" x1="10" y1="9" x2="30" y2="20" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#93caf7"/>
+                <stop offset="100%" stop-color="#d0b8ff"/>
+              </linearGradient>
+              <!-- Left face: medium -->
+              <linearGradient id="cl" x1="10" y1="14" x2="20" y2="33" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#5096d6"/>
+                <stop offset="100%" stop-color="#8a62cc"/>
+              </linearGradient>
+              <!-- Right face: darkest -->
+              <linearGradient id="cr" x1="20" y1="14" x2="30" y2="33" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#2c68a8"/>
+                <stop offset="100%" stop-color="#563ba0"/>
+              </linearGradient>
+              <!-- Top-face highlight -->
+              <linearGradient id="ch" x1="10" y1="9" x2="20" y2="15" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Left face -->
+            <polygon points="20,20 10,14.5 10,26.5 20,32" fill="url(#cl)"/>
+            <!-- Right face -->
+            <polygon points="20,20 30,14.5 30,26.5 20,32" fill="url(#cr)"/>
+            <!-- Top face -->
+            <polygon points="20,9 30,14.5 20,20 10,14.5" fill="url(#ct)"/>
+            <!-- Top-face glass highlight -->
+            <polygon points="20,9 30,14.5 20,20 10,14.5" fill="url(#ch)"/>
+
+            <!-- Edge lines -->
+            <polyline points="10,14.5 20,9 30,14.5"     fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="0.7"/>
+            <line x1="10" y1="14.5" x2="10" y2="26.5"  stroke="rgba(255,255,255,0.15)" stroke-width="0.7"/>
+            <line x1="30" y1="14.5" x2="30" y2="26.5"  stroke="rgba(0,0,0,0.25)"       stroke-width="0.7"/>
+            <line x1="20" y1="20"   x2="20" y2="32"     stroke="rgba(255,255,255,0.1)"  stroke-width="0.7"/>
+            <polyline points="10,26.5 20,32 30,26.5"     fill="none" stroke="rgba(0,0,0,0.2)"         stroke-width="0.7"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-text">Kubernetes Cheat Sheet</div>
+          <div class="logo-sub">Kubectl &amp; Helm reference</div>
+        </div>
+      </div>
+
+      <div class="search-container">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" class="search-input" id="searchInput" placeholder="Search commands, options, flags and so on..." autocomplete="off" spellcheck="false">
+        <span class="search-shortcut" id="searchShortcut">/</span>
+        <span class="search-count" id="searchCount"></span>
+      </div>
+
+
+    </div>
+  </header>
+
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <button class="nav-btn top-btn active" data-top="all">All</button>
+      <span class="nav-sep"></span>
+      <button class="nav-btn top-btn top-workloads"    data-top="workloads"    aria-expanded="false">Workloads</button>
+      <button class="nav-btn top-btn top-cluster"      data-top="cluster"      aria-expanded="false">Cluster</button>
+      <button class="nav-btn top-btn top-helm"         data-top="helm"         aria-expanded="false">Helm</button>
+      <button class="nav-btn top-btn top-k9s"         data-top="k9s"         aria-expanded="false">K9s</button>
+      <button class="nav-btn top-btn top-troubleshoot" data-top="troubleshoot" aria-expanded="false">Troubleshooting</button>
+    </div>
+  </nav>
+
+  <nav class="nav nav-sub" id="navSub" aria-label="Section navigation" hidden>
+    <div class="nav-inner" id="navSubInner"></div>
+  </nav>
+
+  <main class="main" id="main"></main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    Copied to clipboard
+  </div>
+
+  <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="18 15 12 9 6 15"/>
+    </svg>
+  </button>
+
+  <footer class="footer">
+    <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>
+    <p class="disclaimer">Not affiliated with <a href="https://docker.how/" target="_blank" rel="noopener">docker.how</a>, but inspired by it.</p>
+    <p>&copy; 2026 <a href="https://t.me/opengrad" target="_blank" rel="noopener">Opengrad</a></p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

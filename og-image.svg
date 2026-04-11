@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#0c1022"/>
+      <stop offset="50%"  stop-color="#110f1f"/>
+      <stop offset="100%" stop-color="#18091e"/>
+    </linearGradient>
+    <linearGradient id="gct" x1="80" y1="67" x2="140" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#93caf7"/>
+      <stop offset="100%" stop-color="#d0b8ff"/>
+    </linearGradient>
+    <linearGradient id="gcl" x1="80" y1="83" x2="110" y2="136" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#5096d6"/>
+      <stop offset="100%" stop-color="#8a62cc"/>
+    </linearGradient>
+    <linearGradient id="gcr" x1="110" y1="83" x2="140" y2="136" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#2c68a8"/>
+      <stop offset="100%" stop-color="#563ba0"/>
+    </linearGradient>
+    <clipPath id="card1clip"><rect x="60"  y="205" width="340" height="230" rx="10"/></clipPath>
+    <clipPath id="card2clip"><rect x="420" y="205" width="340" height="230" rx="10"/></clipPath>
+    <clipPath id="card3clip"><rect x="780" y="205" width="360" height="230" rx="10"/></clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Outer border -->
+  <rect x="1" y="1" width="1198" height="628" fill="none" stroke="#2e274e" stroke-width="1.5"/>
+
+  <!-- ── Logo cube (original 40×40 viewBox, scaled ×3, offset +50,+40) ── -->
+  <polygon points="110,100 80,83.5 80,119.5 110,136"   fill="url(#gcl)"/>
+  <polygon points="110,100 140,83.5 140,119.5 110,136" fill="url(#gcr)"/>
+  <polygon points="110,67 140,83.5 110,100 80,83.5"    fill="url(#gct)"/>
+  <polyline points="80,83.5 110,67 140,83.5"    fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <line x1="80"  y1="83.5"  x2="80"  y2="119.5" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+  <line x1="140" y1="83.5"  x2="140" y2="119.5" stroke="rgba(0,0,0,0.3)"        stroke-width="1"/>
+  <line x1="110" y1="100"   x2="110" y2="136"   stroke="rgba(255,255,255,0.1)"  stroke-width="1"/>
+  <polyline points="80,119.5 110,136 140,119.5"  fill="none" stroke="rgba(0,0,0,0.2)"         stroke-width="1"/>
+
+  <!-- ── Title ── -->
+  <text x="172" y="103" font-family="sans-serif" font-size="46" font-weight="700" fill="#f2f0fc" letter-spacing="-0.5">Kubernetes Cheat Sheet</text>
+  <text x="173" y="136" font-family="monospace"  font-size="19" fill="#5e587a">kubectl &amp; helm reference</text>
+
+  <!-- ── Divider ── -->
+  <rect x="60" y="178" width="1080" height="1" fill="#2e274e"/>
+
+  <!-- ══ Card 1 — Pods ══ -->
+  <rect x="60"  y="205" width="340" height="230" rx="10" fill="#16102b" stroke="#2e274e" stroke-width="1"/>
+  <!-- card title bar -->
+  <rect x="60" y="205" width="340" height="34" rx="10" fill="rgba(0,0,0,0.22)" clip-path="url(#card1clip)"/>
+  <rect x="60" y="225" width="340" height="14"          fill="rgba(0,0,0,0.22)" clip-path="url(#card1clip)"/>
+  <text x="74" y="228" font-family="sans-serif" font-size="11" font-weight="700" fill="#d5d2e8" letter-spacing="1">PODS</text>
+  <!-- separator line -->
+  <rect x="70" y="251" width="320" height="1" fill="rgba(123,158,245,0.25)"/>
+  <!-- commands -->
+  <text x="74" y="278" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">get</tspan> <tspan fill="#98c379">pods</tspan> <tspan fill="#56b6c2">-A</tspan></text>
+  <text x="74" y="314" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">logs</tspan> <tspan fill="#d19a66">&lt;pod&gt;</tspan> <tspan fill="#56b6c2">-f</tspan></text>
+  <text x="74" y="350" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">exec</tspan> <tspan fill="#56b6c2">-it</tspan> <tspan fill="#d19a66">&lt;pod&gt;</tspan> <tspan fill="#5a6475">--</tspan> <tspan fill="#8796aa">bash</tspan></text>
+  <text x="74" y="386" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">describe</tspan> <tspan fill="#98c379">pod</tspan> <tspan fill="#d19a66">&lt;name&gt;</tspan></text>
+  <text x="74" y="422" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">delete</tspan> <tspan fill="#98c379">pod</tspan> <tspan fill="#d19a66">&lt;name&gt;</tspan></text>
+
+  <!-- ══ Card 2 — Helm ══ -->
+  <rect x="420" y="205" width="340" height="230" rx="10" fill="#16102b" stroke="#2e274e" stroke-width="1"/>
+  <rect x="420" y="205" width="340" height="34" rx="10" fill="rgba(0,0,0,0.22)" clip-path="url(#card2clip)"/>
+  <rect x="420" y="225" width="340" height="14"          fill="rgba(0,0,0,0.22)" clip-path="url(#card2clip)"/>
+  <text x="434" y="228" font-family="sans-serif" font-size="11" font-weight="700" fill="#d5d2e8" letter-spacing="1">HELM</text>
+  <rect x="430" y="251" width="320" height="1" fill="rgba(240,200,238,0.25)"/>
+  <text x="434" y="278" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">helm</tspan> <tspan fill="#e5c07b">install</tspan> <tspan fill="#d19a66">&lt;release&gt;</tspan> <tspan fill="#d19a66">&lt;chart&gt;</tspan></text>
+  <text x="434" y="314" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">helm</tspan> <tspan fill="#e5c07b">upgrade</tspan> <tspan fill="#d19a66">&lt;release&gt;</tspan> <tspan fill="#d19a66">&lt;chart&gt;</tspan></text>
+  <text x="434" y="350" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">helm</tspan> <tspan fill="#e5c07b">rollback</tspan> <tspan fill="#d19a66">&lt;release&gt;</tspan></text>
+  <text x="434" y="386" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">helm</tspan> <tspan fill="#e5c07b">list</tspan> <tspan fill="#56b6c2">-A</tspan></text>
+  <text x="434" y="422" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">helm</tspan> <tspan fill="#e5c07b">uninstall</tspan> <tspan fill="#d19a66">&lt;release&gt;</tspan></text>
+
+  <!-- ══ Card 3 — Troubleshooting ══ -->
+  <rect x="780" y="205" width="360" height="230" rx="10" fill="#16102b" stroke="#2e274e" stroke-width="1"/>
+  <rect x="780" y="205" width="360" height="34" rx="10" fill="rgba(0,0,0,0.22)" clip-path="url(#card3clip)"/>
+  <rect x="780" y="225" width="360" height="14"          fill="rgba(0,0,0,0.22)" clip-path="url(#card3clip)"/>
+  <text x="794" y="228" font-family="sans-serif" font-size="11" font-weight="700" fill="#d5d2e8" letter-spacing="1">TROUBLESHOOTING</text>
+  <rect x="790" y="251" width="340" height="1" fill="rgba(240,168,74,0.25)"/>
+  <text x="794" y="278" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">get</tspan> <tspan fill="#98c379">events</tspan> <tspan fill="#56b6c2">--sort-by=</tspan><tspan fill="#e06c75">'.lastTimestamp'</tspan></text>
+  <text x="794" y="314" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">debug</tspan> <tspan fill="#d19a66">&lt;pod&gt;</tspan> <tspan fill="#56b6c2">--image=</tspan><tspan fill="#e06c75">netshoot</tspan></text>
+  <text x="794" y="350" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">logs</tspan> <tspan fill="#d19a66">&lt;pod&gt;</tspan> <tspan fill="#56b6c2">--previous</tspan></text>
+  <text x="794" y="386" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">top</tspan> <tspan fill="#98c379">pods</tspan> <tspan fill="#56b6c2">--sort-by=cpu</tspan> <tspan fill="#56b6c2">-A</tspan></text>
+  <text x="794" y="422" font-family="monospace" font-size="14" fill="#8796aa" xml:space="preserve"><tspan fill="#7b9ef5" font-weight="600">kubectl</tspan> <tspan fill="#e5c07b">exec</tspan> <tspan fill="#56b6c2">-it</tspan> <tspan fill="#d19a66">&lt;pod&gt;</tspan> <tspan fill="#56b6c2">-- nslookup</tspan> <tspan fill="#d19a66">&lt;svc&gt;</tspan></text>
+
+  <!-- ── Search bar mockup ── -->
+  <rect x="60" y="455" width="820" height="42" rx="10" fill="#1e1935" stroke="#2e274e" stroke-width="1"/>
+  <!-- search icon -->
+  <circle cx="90" cy="476" r="7" fill="none" stroke="#5e587a" stroke-width="1.5"/>
+  <line x1="95" y1="481" x2="100" y2="486" stroke="#5e587a" stroke-width="1.5"/>
+  <text x="112" y="482" font-family="monospace" font-size="15" fill="#3d3760">Search commands, flags, resources...</text>
+  <rect x="840" y="463" width="24" height="22" rx="4" fill="rgba(0,0,0,0.3)" stroke="#2e274e" stroke-width="1"/>
+  <text x="847" y="479" font-family="monospace" font-size="13" fill="#5e587a">/</text>
+
+  <!-- ── Stats ── -->
+  <text x="900" y="472" font-family="sans-serif" font-size="14" fill="#5e587a">300+ commands across</text>
+  <text x="900" y="491" font-family="sans-serif" font-size="14" fill="#5e587a">kubectl · helm · troubleshooting</text>
+
+  <!-- ── Bottom branding ── -->
+  <text x="60" y="590" font-family="monospace" font-size="13" fill="#3d3760">kube.how</text>
+
+  <!-- accent dots -->
+  <circle cx="1130" cy="587" r="4" fill="#ddcafa" opacity="0.5"/>
+  <circle cx="1148" cy="587" r="4" fill="#ddcafa" opacity="0.3"/>
+  <circle cx="1166" cy="587" r="4" fill="#ddcafa" opacity="0.15"/>
+</svg>

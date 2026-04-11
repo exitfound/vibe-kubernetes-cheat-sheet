@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0c1022"/>
+      <stop offset="100%" stop-color="#18091e"/>
+    </linearGradient>
+    <linearGradient id="fg" x1="3" y1="9" x2="28" y2="23" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#61afef"/>
+      <stop offset="100%" stop-color="#c4a8ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <!-- Border -->
+  <rect width="32" height="32" rx="7" fill="none" stroke="rgba(97,175,239,0.3)" stroke-width="0.8"/>
+
+  <!-- > chevron -->
+  <polyline points="3,9 13,16 3,23"
+    fill="none" stroke="url(#fg)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- _ underscore / cursor -->
+  <line x1="16" y1="23" x2="29" y2="23"
+    stroke="url(#fg)" stroke-width="3" stroke-linecap="round"/>
+</svg>
