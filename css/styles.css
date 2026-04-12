@@ -705,6 +705,7 @@ mark {
   .nav-inner { padding: 0 14px; }
   .main { padding: 18px 14px 80px; }
   .cards-grid { grid-template-columns: 1fr; }
+  html { background-attachment: scroll; }
 }
 
 @media (hover: none) {

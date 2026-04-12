@@ -407,10 +407,12 @@ window.addEventListener('hashchange', restoreFromHash);
 
 // ── Align logo icon center over "All" button center ───────────
 function alignLogo() {
+  const logo = document.querySelector('.logo');
+  if (!logo) return;
+  if (window.innerWidth <= 680) { logo.style.marginLeft = '0'; return; }
   const allBtn   = document.querySelector('[data-top="all"]');
   const logoIcon = document.querySelector('.logo-icon');
-  const logo     = document.querySelector('.logo');
-  if (!allBtn || !logoIcon || !logo) return;
+  if (!allBtn || !logoIcon) return;
   logo.style.marginLeft = '0';
   const allCenter  = allBtn.getBoundingClientRect().left  + allBtn.offsetWidth  / 2;
   const iconCenter = logoIcon.getBoundingClientRect().left + logoIcon.offsetWidth / 2;
