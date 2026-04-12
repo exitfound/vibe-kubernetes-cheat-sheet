@@ -6,4 +6,5 @@ README.md
 LICENSE
 CLAUDE.md
 Dockerfile
-og-image.svg
+configs/
+images/og-image.svg

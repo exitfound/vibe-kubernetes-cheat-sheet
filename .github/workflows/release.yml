@@ -1,0 +1,48 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate version
+        id: version
+        run: echo "VERSION=v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Generate release body
+        run: echo "# $(date +'%Y/%m/%d')" > release_body.txt
+
+      - name: Package source
+        run: |
+          zip -r kube-cheatsheet-${{ steps.version.outputs.VERSION }}.zip \
+            index.html \
+            css/ \
+            js/ \
+            images/ \
+            favicon.svg \
+            robots.txt \
+            CNAME \
+            Dockerfile \
+            configs/ \
+            .dockerignore
+
+      - name: Create Release on Github
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: exitfound/vibe-kubernetes-cheat-sheet
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: ${{ steps.version.outputs.VERSION }}
+          body_path: release_body.txt
+          files: kube-cheatsheet-${{ steps.version.outputs.VERSION }}.zip

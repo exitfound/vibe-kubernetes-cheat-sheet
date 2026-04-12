@@ -1,7 +1,9 @@
 FROM nginx:1.27-alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY . /usr/share/nginx/html/
+WORKDIR /usr/share/nginx/html
+
+COPY configs/nginx.conf /etc/nginx/conf.d/default.conf
+COPY . .
 
 EXPOSE 80
 

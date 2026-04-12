@@ -285,37 +285,6 @@ const SECTIONS = [
     ]
   },
 
-  // ── NAMESPACES ────────────────────────────────────────────
-  {
-    id: 'namespace', title: 'Namespaces', icon: ICONS.namespace, sub: 'Workloads',
-    groups: [
-      {
-        title: 'Manage',
-        desc: 'Create and remove namespaces from the cluster.',
-        cmds: [
-          { cmd: 'kubectl apply -f namespace.yaml',                                desc: 'Apply namespace from manifest' },
-          { cmd: 'kubectl create namespace <name>',                                desc: 'Create a new namespace' },
-          { cmd: 'kubectl delete namespace <name>',                                desc: 'Delete a namespace and all its resources' },
-        ]
-      },
-      {
-        title: 'List & Inspect',
-        desc: 'List namespaces and inspect their resources, quotas, and limits.',
-        cmds: [
-          { cmd: 'kubectl describe namespace <name>',                              desc: 'Namespace details and resource quotas' },
-          { cmd: 'kubectl describe resourcequota -n <namespace>',                  desc: 'Current quota usage vs limits' },
-          { cmd: 'kubectl get all --all-namespaces',                               desc: 'All resources across all namespaces' },
-          { cmd: 'kubectl get all -n <namespace>',                                 desc: 'All resources in a namespace' },
-          { cmd: 'kubectl get limitrange -n <namespace>',                          desc: 'Default CPU/memory limits for namespace' },
-          { cmd: 'kubectl get namespace <name> -o yaml',                           desc: 'Get namespace manifest as YAML' },
-          { cmd: 'kubectl get namespaces',                                         desc: 'List all namespaces' },
-          { cmd: 'kubectl get ns',                                                 desc: 'Short alias for get namespaces' },
-          { cmd: 'kubectl get resourcequota -n <namespace>',                       desc: 'Resource quotas for a namespace' },
-        ]
-      },
-    ]
-  },
-
   // ── CONFIGMAPS & SECRETS ─────────────────────────────────
   {
     id: 'config', title: 'ConfigMaps & Secrets', icon: ICONS.config, sub: 'Workloads',
@@ -611,6 +580,37 @@ const SECTIONS = [
     ]
   },
 
+  // ── NAMESPACES ────────────────────────────────────────────
+  {
+    id: 'namespace', title: 'Namespaces', icon: ICONS.namespace, sub: 'Workloads',
+    groups: [
+      {
+        title: 'Manage',
+        desc: 'Create and remove namespaces from the cluster.',
+        cmds: [
+          { cmd: 'kubectl apply -f namespace.yaml',                                desc: 'Apply namespace from manifest' },
+          { cmd: 'kubectl create namespace <name>',                                desc: 'Create a new namespace' },
+          { cmd: 'kubectl delete namespace <name>',                                desc: 'Delete a namespace and all its resources' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'List namespaces and inspect their resources, quotas, and limits.',
+        cmds: [
+          { cmd: 'kubectl describe namespace <name>',                              desc: 'Namespace details and resource quotas' },
+          { cmd: 'kubectl describe resourcequota -n <namespace>',                  desc: 'Current quota usage vs limits' },
+          { cmd: 'kubectl get all --all-namespaces',                               desc: 'All resources across all namespaces' },
+          { cmd: 'kubectl get all -n <namespace>',                                 desc: 'All resources in a namespace' },
+          { cmd: 'kubectl get limitrange -n <namespace>',                          desc: 'Default CPU/memory limits for namespace' },
+          { cmd: 'kubectl get namespace <name> -o yaml',                           desc: 'Get namespace manifest as YAML' },
+          { cmd: 'kubectl get namespaces',                                         desc: 'List all namespaces' },
+          { cmd: 'kubectl get ns',                                                 desc: 'Short alias for get namespaces' },
+          { cmd: 'kubectl get resourcequota -n <namespace>',                       desc: 'Resource quotas for a namespace' },
+        ]
+      },
+    ]
+  },
+
   // ── CLUSTER HEALTH ────────────────────────────────────────
   {
     id: 'cluster-health', title: 'Cluster Health', icon: ICONS['cluster-health'], sub: 'Cluster',
@@ -773,7 +773,7 @@ const SECTIONS = [
           { cmd: 'helm install <release> <chart> --version <ver>',                 desc: 'Install a specific chart version' },
           { cmd: 'helm install <release> <chart> -f values.yaml',                  desc: 'Install with custom values file' },
           { cmd: 'helm install <release> <chart> -n <namespace>',                  desc: 'Install into a specific namespace' },
-          { cmd: 'helm install <release> <chart> --atomic',                         desc: 'Install; rollback automatically on failure' },
+          { cmd: 'helm install <release> <chart> --atomic',                         desc: 'Install with automatic rollback on failure' },
           { cmd: 'helm install <release> <chart> -f values1.yaml -f values2.yaml', desc: 'Install with multiple values files (last wins)' },
           { cmd: 'helm install <release> <chart>',                                 desc: 'Install a chart' },
         ]
@@ -785,7 +785,7 @@ const SECTIONS = [
           { cmd: 'helm rollback <release> 0',                                      desc: 'Rollback to previous revision' },
           { cmd: 'helm rollback <release> <revision>',                             desc: 'Rollback to a specific revision' },
           { cmd: 'helm upgrade --install <release> <chart>',                       desc: 'Upgrade or install if not present' },
-          { cmd: 'helm upgrade <release> <chart> --atomic',                        desc: 'Upgrade; rollback automatically on failure' },
+          { cmd: 'helm upgrade <release> <chart> --atomic',                        desc: 'Upgrade with automatic rollback on failure' },
           { cmd: 'helm upgrade <release> <chart> --cleanup-on-fail',               desc: 'Delete new resources if upgrade fails' },
           { cmd: 'helm upgrade <release> <chart> --reset-values',                  desc: 'Reset values to chart defaults' },
           { cmd: 'helm upgrade <release> <chart> --reuse-values',                  desc: 'Reuse last release values, merge new ones' },

@@ -84,7 +84,7 @@ function applyMark(el, q) {
 
 // ── Navigation data ───────────────────────────────────────────
 const CATEGORIES = {
-  workloads:    ['pod','deployment','statefulset','daemonset','service','namespace','config','job','volume','network','rbac'],
+  workloads:    ['pod','deployment','statefulset','daemonset','service','config','job','volume','network','rbac','namespace'],
   cluster:      ['cluster-health','node','context'],
   helm:         ['helm-releases', 'helm-charts'],
   k9s:          ['k9s-cli', 'k9s-ui'],
@@ -319,14 +319,8 @@ function applySearch(query) {
 
   const countEl = document.getElementById('searchCount');
   if (countEl) {
-    if (q) {
-      const n = [...document.querySelectorAll('.cmd-item')].filter(i => !i.hidden).length;
-      countEl.textContent = n;
-      countEl.classList.add('active');
-    } else {
-      countEl.textContent = '';
-      countEl.classList.remove('active');
-    }
+    countEl.textContent = '';
+    countEl.classList.remove('active');
   }
 }
 
@@ -346,11 +340,12 @@ scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior:
 const TOP_KEYS  = { '1': 'all', '2': 'workloads', '3': 'cluster', '4': 'helm', '5': 'k9s', '6': 'troubleshoot' };
 const searchInput    = document.getElementById('searchInput');
 const searchShortcut = document.getElementById('searchShortcut');
+const searchClear    = document.getElementById('searchClear');
 
 document.addEventListener('keydown', e => {
   const typing = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
 
-  if (e.key === 'Escape' && typing) { searchInput.value = ''; searchInput.blur(); applySearch(''); return; }
+  if (e.key === 'Escape' && typing) { searchInput.value = ''; searchInput.blur(); applySearch(''); searchClear.classList.remove('visible'); return; }
   if (e.key === '/' && !typing) { e.preventDefault(); searchInput.focus(); searchInput.select(); return; }
   if (!typing && TOP_KEYS[e.key]) applyTop(TOP_KEYS[e.key]);
 });
@@ -360,7 +355,16 @@ searchInput.addEventListener('blur',  () => searchShortcut.style.opacity = '');
 let searchDebounce;
 searchInput.addEventListener('input', e => {
   clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(() => applySearch(e.target.value), SEARCH_DEBOUNCE);
+  const val = e.target.value;
+  searchClear.classList.toggle('visible', val.length > 0);
+  searchDebounce = setTimeout(() => applySearch(val), SEARCH_DEBOUNCE);
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  searchInput.focus();
+  applySearch('');
+  searchClear.classList.remove('visible');
 });
 
 // ── Event delegation ──────────────────────────────────────────
