@@ -4,7 +4,7 @@
 
 Available at [kube.how](https://kube.how/).
 
-![preview](og-image.png)
+![preview](images/og-image.png)
 
 ## Content
 
