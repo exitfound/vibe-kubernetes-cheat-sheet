@@ -17,6 +17,8 @@ docker build -t kube-cheatsheet .
 docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet
 ```
 
+nginx config lives in `configs/nginx.conf` and is copied into the image at build time. It is not served as a static file.
+
 ## Architecture
 
 Single-page app with no framework, no bundler, no dependencies except Google Fonts (Space Grotesk + JetBrains Mono).
@@ -79,12 +81,12 @@ Single-page app with no framework, no bundler, no dependencies except Google Fon
 | `statefulset` | StatefulSets | workloads |
 | `daemonset` | DaemonSets | workloads |
 | `service` | Services | workloads |
-| `namespace` | Namespaces | workloads |
 | `config` | ConfigMaps & Secrets | workloads |
 | `job` | Jobs & CronJobs | workloads |
 | `volume` | Volumes | workloads |
 | `network` | Networking | workloads |
 | `rbac` | RBAC | workloads |
+| `namespace` | Namespaces | workloads |
 | `cluster-health` | Cluster Health | cluster |
 | `node` | Nodes | cluster |
 | `context` | Contexts | cluster |
@@ -106,7 +108,7 @@ Physical order in the `SECTIONS` array controls display order in the "All" view.
 
 **Favicon** (`favicon.svg`): dark rounded square (`rx="7"`) with a `>_` terminal prompt symbol in a blue-to-purple gradient.
 
-**OG image** (`og-image.png`, source in `og-image.svg`): 1200x630 social preview in site style. Cube logo, title, command cards with syntax highlighting, search bar mockup. The `og:image` meta tag points to `https://kube.how/og-image.png`. When editing `og-image.svg`, export to PNG manually (no build step).
+**OG image** (`images/og-image.png`, source in `images/og-image.svg`): 1200x630 social preview in site style. Cube logo, title, command cards with syntax highlighting, search bar mockup. The `og:image` meta tag points to `https://kube.how/images/og-image.png`. When editing `images/og-image.svg`, export to PNG manually (no build step).
 
 ## Color system
 
@@ -123,7 +125,7 @@ All colors are CSS custom properties in `:root` in `styles.css`. Current values:
 --text-muted:    #847fa0
 --text-dim:      #9b95b8
 --text-nav:      #c9c6e0
---text-card-desc:#b1abc7
+--text-card-desc:#c4bedc
 --accent:        #e0cdff
 --accent-hover:  #ede0ff
 --accent-glow:   rgba(224, 205, 255, 0.16)
@@ -145,17 +147,24 @@ All colors are CSS custom properties in `:root` in `styles.css`. Current values:
 
 Hardcoded `rgba(...)` values in the file mirror the CSS vars. When changing a color variable, also update matching rgba values via grep.
 
+Workloads category color (separate from syntax highlighting):
+```
+--workloads-color: #8db9ff
+```
+
 Syntax highlighting colors:
 ```
---hl-cmd:  #7b9ef5   kubectl/helm/k9s binary
---hl-sub:  #e5c07b   subcommand (get, apply...)
---hl-res:  #98c379   resource type (pods...)
---hl-flag: #56b6c2   --flags
---hl-ph:   #d19a66   <placeholders>
+--hl-cmd:  #7aabff   kubectl/helm/k9s binary
+--hl-sub:  #f0c860   subcommand (get, apply...)
+--hl-res:  #89d468   resource type (pods...)
+--hl-flag: #3ecdd8   --flags
+--hl-ph:   #e89c50   <placeholders>
 --hl-val:  #8796aa   values
---hl-str:  #e06c75   'strings'/json
+--hl-str:  #f06878   'strings'/json
 --hl-sep:  #5a6475   -- | > >>
 ```
+
+`--workloads-color` drives section icons, sub labels, nav button active states, and hover borders for workloads. `--hl-cmd` is only for syntax highlighting of the kubectl/helm/k9s token in commands. They are intentionally separate.
 
 ## Category color system
 
@@ -163,7 +172,7 @@ Every section element has a `data-cat` attribute set by `renderSection()` based 
 
 | Element | workloads | cluster | helm | k9s | troubleshoot |
 |---|---|---|---|---|---|
-| Section icon | blue `#7b9ef5` | teal `#6ac4be` | pink `#f0c8ee` | yellow `#e8d44a` | orange `#f0a84a` |
+| Section icon | blue `#8db9ff` | teal `#6ac4be` | pink `#f0c8ee` | yellow `#e8d44a` | orange `#f0a84a` |
 | Section sub label | blue 75% | teal 75% | pink 75% | yellow 75% | orange 75% |
 | Section header underline | blue gradient | teal gradient | pink gradient | yellow gradient | orange gradient |
 | cmd-item hover border | blue | teal | pink | yellow | orange |
@@ -179,6 +188,7 @@ When adding a new category, add CSS custom properties in `:root` and apply rules
 ```css
 background: linear-gradient(135deg, #0c1022 0%, #110f1f 50%, #18091e 100%);
 ```
+On mobile (`≤680px`), `background-attachment: scroll` overrides `fixed` — iOS Safari does not support fixed attachment on the html element.
 Header and nav use matching hardcoded rgba: `rgba(17, 15, 31, 0.95)` / `rgba(17, 15, 31, 0.96)`.
 Scrollbar track uses `#110f1f`. Scrollbar thumb uses `#3a3260`.
 
@@ -204,7 +214,7 @@ Alternative variant kept as comment in `styles.css`:
 
 ## SEO
 
-`index.html` contains full OG and Twitter meta tags. Canonical URL and og:url point to `https://kube.how/`. og:image references `https://kube.how/og-image.png`.
+`index.html` contains full OG and Twitter meta tags. Canonical URL and og:url point to `https://kube.how/`. og:image references `https://kube.how/images/og-image.png`. `sitemap.xml` is present in the project root and referenced in `robots.txt`.
 
 ## Syntax highlighter
 
@@ -227,11 +237,14 @@ Uses `navigator.clipboard` when available (HTTPS/localhost), falls back to `exec
 - **Toast notification:** shown on copy (`#1e1438` background), auto-hides after 2s.
 - **Keyboard shortcuts:** `/` focuses search, `Esc` clears it, `1`-`6` switch top nav tabs (1=All, 2=Workloads, 3=Cluster, 4=Helm, 5=K9s, 6=Troubleshooting).
 - Shortcuts modal was removed and does not exist in HTML, CSS, or JS.
-- **Logo alignment:** `alignLogo()` runs on init and resize, sets `margin-left` on `.logo` so the SVG icon center sits directly above the center of the "All" button.
-- **Search count:** `#searchCount` shows number of matching commands when search is active.
+- **Logo alignment:** `alignLogo()` runs on init and resize, sets `margin-left` on `.logo` so the SVG icon center sits directly above the center of the "All" button. On mobile (`≤680px`) the calculation is skipped and margin is reset to `0` — otherwise the logo flies left when the nav is horizontally scrolled and search is focused.
+- **Logo link:** the `.logo` element is an `<a href="/">` — clicking the logo or title returns to the homepage.
+- **Search clear button:** `#searchClear` (×) appears inside the search input when text is present. Clicking it clears the input and calls `applySearch('')`. Hidden by default, shown via `.visible` class toggled on `input` event. `Esc` also hides it.
+- **Search count:** `#searchCount` element exists in the DOM but is not activated — the clear button replaced it as the right-side search indicator.
 - **URL hash / deep linking:** `restoreFromHash()` reads `location.hash` on load and `hashchange`. Top categories (`#workloads`, `#cluster`, `#helm`, `#k9s`) and sub-sections (`#rbac`, `#node`, `#k9s-ui`) both work.
 - **Mobile copy button:** `@media (hover: none)` shows copy button at 0.55 opacity (touch devices have no hover state).
 - **Sub-nav mobile fade:** `@media (max-width: 1024px)` adds a right-edge gradient on `.nav-sub` via `::after` to hint at horizontal scroll.
+- **Mobile header:** `@media (max-width: 680px)` switches to two-row layout — logo row + search row. `.search-container` becomes `position: relative; flex: 0 0 100%`. `.logo-sub` (Quick CLI Reference) stays visible at `font-size: 12px`. At `≤400px` logo-text shrinks to `15px`, icon to `26px`.
 - **Print stylesheet:** `@media print` hides nav/header/interactive elements, switches to white background, single-column layout, dark readable text.
 
 ## Troubleshooting section philosophy

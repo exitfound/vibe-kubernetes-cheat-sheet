@@ -1,10 +1,21 @@
 import { COPY_ICON, CHECK_ICON, SECTIONS } from './data.js';
 
+document.getElementById('year').textContent = new Date().getFullYear();
+
 // ── Constants ────────────────────────────────────────────────
 const SCROLL_THRESHOLD = 300;
 const TOAST_DURATION   = 2000;
 const COPY_RESET_DELAY = 1500;
 const SEARCH_DEBOUNCE  = 80;
+
+// ── HTML escape ───────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 // ── Syntax Highlighter ────────────────────────────────────────
 function hl(raw) {
@@ -84,11 +95,12 @@ function applyMark(el, q) {
 
 // ── Navigation data ───────────────────────────────────────────
 const CATEGORIES = {
-  workloads:    ['pod','deployment','statefulset','daemonset','service','config','job','volume','network','rbac','namespace'],
   cluster:      ['cluster-health','node','context'],
+  workloads:    ['pod','deployment','statefulset','daemonset','service','config','job','volume','network','rbac','namespace'],
   helm:         ['helm-releases', 'helm-charts'],
+  kustomize:    ['kustomize-build', 'kustomize-edit'],
   k9s:          ['k9s-cli', 'k9s-ui'],
-  troubleshoot: ['troubleshoot-kubectl','troubleshoot-helm','troubleshoot-k9s'],
+  troubleshoot: ['troubleshoot-kubectl','troubleshoot-helm','troubleshoot-kustomize','troubleshoot-k9s'],
 };
 
 const SUB_LABELS = Object.fromEntries(SECTIONS.map(s => [s.id, s.title]));
@@ -101,11 +113,11 @@ function renderSection(section) {
     .join('');
 
   return `
-    <section class="section" data-section="${section.id}" data-cat="${cat}">
+    <section class="section" data-section="${escapeHtml(section.id)}" data-cat="${cat}">
       <div class="section-header">
         <div class="section-icon">${section.icon}</div>
-        <h2 class="section-title">${section.title}</h2>
-        <span class="section-sub">${section.sub}</span>
+        <h2 class="section-title">${escapeHtml(section.title)}</h2>
+        <span class="section-sub">${escapeHtml(section.sub)}</span>
       </div>
       <div class="cards-grid">${groups}</div>
     </section>`;
@@ -123,23 +135,21 @@ function sortCmds(cmds) {
 }
 
 function renderCard(group, gi) {
-  const desc = group.desc ? `<div class="card-desc">${group.desc}</div>` : '';
+  const desc = group.desc ? `<div class="card-desc">${escapeHtml(group.desc)}</div>` : '';
   const cmds = sortCmds(group.cmds).map(c => renderCmd(c)).join('');
   return `
     <div class="card" data-card="${gi}">
-      <div class="card-title">${group.title}</div>
+      <div class="card-title">${escapeHtml(group.title)}</div>
       ${desc}
       <div class="cmd-list">${cmds}</div>
     </div>`;
 }
 
 function renderCmd(item) {
-  const safeCmd  = item.cmd.replace(/"/g, '&quot;');
-  const safeDesc = item.desc.replace(/"/g, '&quot;');
   return `
-    <div class="cmd-item" data-raw="${safeCmd}" data-desc="${safeDesc}">
+    <div class="cmd-item" data-raw="${escapeHtml(item.cmd)}" data-desc="${escapeHtml(item.desc)}">
       <div class="cmd-code">${hl(item.cmd)}</div>
-      <div class="cmd-desc">${item.desc}</div>
+      <div class="cmd-desc">${escapeHtml(item.desc)}</div>
       <button class="copy-btn" title="Copy command" aria-label="Copy command">${COPY_ICON}</button>
     </div>`;
 }
@@ -337,7 +347,7 @@ window.addEventListener('scroll', () => {
 scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 // ── Keyboard shortcuts ────────────────────────────────────────
-const TOP_KEYS  = { '1': 'all', '2': 'workloads', '3': 'cluster', '4': 'helm', '5': 'k9s', '6': 'troubleshoot' };
+const TOP_KEYS  = { '1': 'all', '2': 'cluster', '3': 'workloads', '4': 'helm', '5': 'kustomize', '6': 'k9s', '7': 'troubleshoot' };
 const searchInput    = document.getElementById('searchInput');
 const searchShortcut = document.getElementById('searchShortcut');
 const searchClear    = document.getElementById('searchClear');
@@ -413,10 +423,11 @@ function alignLogo() {
   const allBtn   = document.querySelector('[data-top="all"]');
   const logoIcon = document.querySelector('.logo-icon');
   if (!allBtn || !logoIcon) return;
-  logo.style.marginLeft = '0';
+  // Read phase first (before any writes) to avoid forced layout
+  const currentMargin = parseFloat(logo.style.marginLeft) || 0;
   const allCenter  = allBtn.getBoundingClientRect().left  + allBtn.offsetWidth  / 2;
   const iconCenter = logoIcon.getBoundingClientRect().left + logoIcon.offsetWidth / 2;
-  logo.style.marginLeft = (allCenter - iconCenter) + 'px';
+  logo.style.marginLeft = (currentMargin + allCenter - iconCenter) + 'px';
 }
 alignLogo();
 window.addEventListener('resize', alignLogo);

@@ -4,9 +4,21 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'index.html'
+      - 'css/**'
+      - 'js/**'
+      - 'images/**'
+      - 'favicon.svg'
+      - 'CNAME'
+      - 'configs/**'
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -32,6 +44,7 @@ jobs:
             images/ \
             favicon.svg \
             robots.txt \
+            sitemap.xml \
             CNAME \
             Dockerfile \
             configs/ \

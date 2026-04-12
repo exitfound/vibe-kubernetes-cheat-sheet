@@ -1,6 +1,6 @@
 # Kubernetes Cheat Sheet
 
-**Kubernetes Cheat Sheet** is a searchable web reference for kubectl, Helm, and K9s. The site covers the most commonly used commands across all typical day-to-day Kubernetes workflows: managing workloads, inspecting cluster state, working with Helm releases, navigating K9s, and diagnosing common issues. Each command has a short description and a copy button. No login, no ads, no install required — just open and use.
+**Kubernetes Cheat Sheet** is a searchable web reference for kubectl, Helm, Kustomize, and K9s. The site covers the most commonly used commands across all typical day-to-day Kubernetes workflows: managing workloads, inspecting cluster state, working with Helm releases, building and editing Kustomize overlays, navigating K9s, and diagnosing common issues. Each command has a short description and a copy button. No login, no ads, no install required — just open and use.
 
 Available at [kube.how](https://kube.how/).
 
@@ -8,13 +8,14 @@ Available at [kube.how](https://kube.how/).
 
 ## Content
 
-The reference is split into five categories:
+The reference is split into six categories:
 
-- **Workloads:** Pods, Deployments, StatefulSets, DaemonSets, Services, Namespaces, ConfigMaps & Secrets, Jobs & CronJobs, Volumes, Networking, RBAC
+- **Workloads:** Pods, Deployments, StatefulSets, DaemonSets, Services, ConfigMaps & Secrets, Jobs & CronJobs, Volumes, Networking, RBAC, Namespaces
 - **Cluster:** Cluster Health, Nodes, Contexts
 - **Helm:** Releases, Charts
+- **Kustomize:** Manage, Edit
 - **K9s:** CLI & Launch, UI Shortcuts
-- **Troubleshooting:** Kubectl, K9s, Helm
+- **Troubleshooting:** Kubectl, K9s, Kustomize, Helm
 
 550+ commands in total.
 

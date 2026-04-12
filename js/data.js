@@ -1,5 +1,5 @@
 // ============================================================
-//  K8s Cheat Sheet | app.js
+//  K8s Cheat Sheet | data.js
 // ============================================================
 
 // ── Icons ────────────────────────────────────────────────────
@@ -21,6 +21,13 @@ const ICONS = {
   troubleshoot: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
   'cluster-health': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
   k9s: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`,
+  'k9s-ui': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>`,
+  kustomize: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>`,
+  'kustomize-edit': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
+  'helm-charts': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+  'troubleshoot-k9s': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+  'troubleshoot-kustomize': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><polyline points="13.3 16.3 15 18"/></svg>`,
+  'troubleshoot-helm': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>`,
 };
 
 const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
@@ -28,6 +35,154 @@ const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" 
 
 // ── Data ──────────────────────────────────────────────────────
 const SECTIONS = [
+  // ── CLUSTER HEALTH ────────────────────────────────────────
+  {
+    id: 'cluster-health', title: 'Cluster Health', icon: ICONS['cluster-health'], sub: 'Cluster',
+    groups: [
+      {
+        title: 'API Discovery',
+        desc: 'Explore supported API resource types, versions, and field-level documentation.',
+        cmds: [
+          { cmd: 'kubectl api-resources',                                           desc: 'List all available resource types' },
+          { cmd: 'kubectl api-resources --namespaced=false',                        desc: 'Cluster-scoped resources only' },
+          { cmd: 'kubectl api-resources --namespaced=true',                         desc: 'Namespaced resources only' },
+          { cmd: 'kubectl api-versions',                                            desc: 'All API groups and versions supported' },
+          { cmd: 'kubectl explain <resource>',                                      desc: 'API documentation for a resource type' },
+          { cmd: 'kubectl explain <resource>.spec',                                 desc: 'Docs for a specific field path' },
+          { cmd: 'kubectl get crd',                                                 desc: 'List all custom resource definitions' },
+          { cmd: 'kubectl describe crd <name>',                                     desc: 'CRD details, versions, and schema' },
+        ]
+      },
+      {
+        title: 'Quotas & Limits',
+        desc: 'Inspect resource quotas, limit ranges, disruption budgets, and priority classes across the cluster.',
+        cmds: [
+          { cmd: 'kubectl describe limitrange <name> -n <namespace>',              desc: 'Limit range details and defaults' },
+          { cmd: 'kubectl describe pdb <name> -n <namespace>',                     desc: 'PDB details and disruption allowance' },
+          { cmd: 'kubectl describe resourcequota <name> -n <namespace>',           desc: 'Quota details and current usage' },
+          { cmd: 'kubectl get limitrange -A',                                      desc: 'Container and pod limit ranges' },
+          { cmd: 'kubectl get pdb -A',                                             desc: 'Pod disruption budgets cluster-wide' },
+          { cmd: 'kubectl get priorityclass',                                      desc: 'Pod priority classes' },
+          { cmd: 'kubectl get resourcequota -A',                                   desc: 'Resource quotas across all namespaces' },
+        ]
+      },
+      {
+        title: 'Admission Webhooks',
+        desc: 'List and inspect validating and mutating admission webhook configurations.',
+        cmds: [
+          { cmd: 'kubectl describe mutatingwebhookconfiguration <name>',            desc: 'Mutation rules, namespaces, and endpoint' },
+          { cmd: 'kubectl describe validatingwebhookconfiguration <name>',          desc: 'Validation rules, namespaces, and endpoint' },
+          { cmd: 'kubectl get mutatingwebhookconfigurations',                       desc: 'Mutating admission webhooks' },
+          { cmd: 'kubectl get validatingwebhookconfigurations',                     desc: 'Validating admission webhooks' },
+        ]
+      },
+    ]
+  },
+
+  // ── NODES ─────────────────────────────────────────────────
+  {
+    id: 'node', title: 'Nodes', icon: ICONS.node, sub: 'Cluster',
+    groups: [
+      {
+        title: 'Resource Usage',
+        desc: 'Monitor real-time CPU and memory consumption across nodes and pods.',
+        cmds: [
+          { cmd: 'kubectl top node <name>',                                         desc: 'CPU and memory usage for a specific node' },
+          { cmd: 'kubectl top nodes',                                              desc: 'CPU and memory usage per node' },
+          { cmd: 'kubectl top nodes --sort-by=cpu',                                desc: 'Nodes sorted by CPU usage' },
+          { cmd: 'kubectl top nodes --sort-by=memory',                             desc: 'Nodes sorted by memory usage' },
+          { cmd: 'kubectl top pods -A',                                            desc: 'CPU and memory for all pods' },
+          { cmd: 'kubectl top pods -n <namespace> --sort-by=cpu',                  desc: 'Pods sorted by CPU usage' },
+          { cmd: 'kubectl top pods -n <namespace> --sort-by=memory',               desc: 'Pods sorted by memory usage' },
+        ]
+      },
+      {
+        title: 'Scheduling',
+        desc: 'Control which nodes accept new workloads using cordon, uncordon, and drain.',
+        cmds: [
+          { cmd: 'kubectl cordon <node>',                                          desc: 'Mark node as unschedulable' },
+          { cmd: 'kubectl drain <node> --ignore-daemonsets --dry-run=client',      desc: 'Simulate drain without evicting any pods' },
+          { cmd: 'kubectl drain <node> --force --ignore-daemonsets',               desc: 'Force drain (removes unmanaged pods)' },
+          { cmd: 'kubectl drain <node> --ignore-daemonsets --delete-emptydir-data', desc: 'Drain including emptyDir pods' },
+          { cmd: 'kubectl drain <node> --ignore-daemonsets',                       desc: 'Evict all pods from a node' },
+          { cmd: 'kubectl uncordon <node>',                                        desc: 'Mark node as schedulable again' },
+          { cmd: 'kubectl wait --for=condition=Ready node/<name> --timeout=60s',   desc: 'Wait until node becomes Ready' },
+        ]
+      },
+      {
+        title: 'Taints, Labels & Annotations',
+        desc: 'Repel or attract pods using taints; organise nodes with labels and store metadata via annotations.',
+        cmds: [
+          { cmd: 'kubectl annotate node <node> <key>-',                            desc: 'Remove an annotation from a node' },
+          { cmd: 'kubectl annotate node <node> <key>=<value>',                     desc: 'Add or update a node annotation' },
+          { cmd: 'kubectl get nodes -l <key>=<value>',                             desc: 'Filter nodes by label' },
+          { cmd: 'kubectl label nodes <node> <key>-',                              desc: 'Remove a label from a node' },
+          { cmd: 'kubectl label nodes <node> <key>=<value>',                       desc: 'Add a label to a node' },
+          { cmd: 'kubectl taint nodes <node> <key>:NoSchedule-',                   desc: 'Remove a taint from node' },
+          { cmd: 'kubectl taint nodes <node> <key>=<value>:NoExecute',             desc: 'Add NoExecute taint to node' },
+          { cmd: 'kubectl taint nodes <node> <key>=<value>:NoSchedule',            desc: 'Add NoSchedule taint to node' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'View node details, status, internal IP, OS, and container runtime version.',
+        cmds: [
+          { cmd: 'kubectl describe node <name>',                                   desc: 'Node details, conditions, capacity' },
+          { cmd: 'kubectl get node <name> -o yaml',                                desc: 'Get node manifest as YAML' },
+          { cmd: 'kubectl get nodes -o custom-columns=NAME:.metadata.name,VER:.status.nodeInfo.kubeletVersion,OS:.status.nodeInfo.osImage', desc: 'Custom columns: name, version, and OS' },
+          { cmd: 'kubectl get nodes --show-labels',                                desc: 'Nodes with all their labels' },
+          { cmd: 'kubectl get nodes -o wide',                                      desc: 'Nodes with IP, OS, container runtime' },
+          { cmd: 'kubectl get nodes',                                              desc: 'List all nodes in the cluster' },
+        ]
+      },
+    ]
+  },
+
+  // ── CONTEXTS ──────────────────────────────────────────────
+  {
+    id: 'context', title: 'Contexts', icon: ICONS.context, sub: 'Cluster',
+    groups: [
+      {
+        title: 'Manage Contexts',
+        desc: 'Create, update, rename, switch, and delete contexts in kubeconfig.',
+        cmds: [
+          { cmd: 'kubectl config delete-context <name>',                           desc: 'Delete a context' },
+          { cmd: 'kubectl config rename-context <old> <new>',                      desc: 'Rename a context' },
+          { cmd: 'kubectl config set-context --current --cluster=<name>',           desc: 'Change cluster for current context' },
+          { cmd: 'kubectl config set-context --current --namespace=<ns>',          desc: 'Set default namespace for current context' },
+          { cmd: 'kubectl config set-context <name> --cluster=<cluster> --user=<user> --namespace=<ns>', desc: 'Create or update a context' },
+          { cmd: 'kubectl config unset contexts.<name>',                           desc: 'Remove a context entry from kubeconfig' },
+          { cmd: 'kubectl config use-context <name>',                              desc: 'Switch to a different context' },
+        ]
+      },
+      {
+        title: 'Clusters & Credentials',
+        desc: 'Add, update, and remove cluster endpoints and user credentials in kubeconfig.',
+        cmds: [
+          { cmd: 'kubectl config delete-cluster <name>',                           desc: 'Remove a cluster from kubeconfig' },
+          { cmd: 'kubectl config delete-user <name>',                              desc: 'Remove a user from kubeconfig' },
+          { cmd: 'kubectl config set-cluster <name> --server=<url>',               desc: 'Add or update a cluster endpoint' },
+          { cmd: 'kubectl config set-cluster <name> --insecure-skip-tls-verify=true', desc: 'Disable TLS verification for cluster' },
+          { cmd: 'kubectl config set-credentials <name> --client-certificate=<cert> --client-key=<key>', desc: 'Add certificate-based credentials' },
+          { cmd: 'kubectl config set-credentials <name> --token=<token>',          desc: 'Add token-based user credentials' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'Inspect kubeconfig, list available contexts, clusters, and users.',
+        cmds: [
+          { cmd: 'kubectl config current-context',                                 desc: 'Show active context' },
+          { cmd: 'kubectl config get-clusters',                                    desc: 'List all clusters in kubeconfig' },
+          { cmd: 'kubectl config get-contexts',                                    desc: 'List all kubeconfig contexts' },
+          { cmd: 'kubectl config get-users',                                       desc: 'List all users in kubeconfig' },
+          { cmd: 'kubectl config view --flatten',                                  desc: 'Flatten kubeconfig (useful for sharing)' },
+          { cmd: 'kubectl config view --minify',                                   desc: 'View current context config only' },
+          { cmd: 'kubectl config view',                                            desc: 'View full kubeconfig' },
+        ]
+      },
+    ]
+  },
+
   // ── PODS ──────────────────────────────────────────────────
   {
     id: 'pod', title: 'Pods', icon: ICONS.pod, sub: 'Workloads',
@@ -611,154 +766,6 @@ const SECTIONS = [
     ]
   },
 
-  // ── CLUSTER HEALTH ────────────────────────────────────────
-  {
-    id: 'cluster-health', title: 'Cluster Health', icon: ICONS['cluster-health'], sub: 'Cluster',
-    groups: [
-      {
-        title: 'API Discovery',
-        desc: 'Explore supported API resource types, versions, and field-level documentation.',
-        cmds: [
-          { cmd: 'kubectl api-resources',                                           desc: 'List all available resource types' },
-          { cmd: 'kubectl api-resources --namespaced=false',                        desc: 'Cluster-scoped resources only' },
-          { cmd: 'kubectl api-resources --namespaced=true',                         desc: 'Namespaced resources only' },
-          { cmd: 'kubectl api-versions',                                            desc: 'All API groups and versions supported' },
-          { cmd: 'kubectl explain <resource>',                                      desc: 'API documentation for a resource type' },
-          { cmd: 'kubectl explain <resource>.spec',                                 desc: 'Docs for a specific field path' },
-          { cmd: 'kubectl get crd',                                                 desc: 'List all custom resource definitions' },
-          { cmd: 'kubectl describe crd <name>',                                     desc: 'CRD details, versions, and schema' },
-        ]
-      },
-      {
-        title: 'Quotas & Limits',
-        desc: 'Inspect resource quotas, limit ranges, disruption budgets, and priority classes across the cluster.',
-        cmds: [
-          { cmd: 'kubectl describe limitrange <name> -n <namespace>',              desc: 'Limit range details and defaults' },
-          { cmd: 'kubectl describe pdb <name> -n <namespace>',                     desc: 'PDB details and disruption allowance' },
-          { cmd: 'kubectl describe resourcequota <name> -n <namespace>',           desc: 'Quota details and current usage' },
-          { cmd: 'kubectl get limitrange -A',                                      desc: 'Container and pod limit ranges' },
-          { cmd: 'kubectl get pdb -A',                                             desc: 'Pod disruption budgets cluster-wide' },
-          { cmd: 'kubectl get priorityclass',                                      desc: 'Pod priority classes' },
-          { cmd: 'kubectl get resourcequota -A',                                   desc: 'Resource quotas across all namespaces' },
-        ]
-      },
-      {
-        title: 'Admission Webhooks',
-        desc: 'List and inspect validating and mutating admission webhook configurations.',
-        cmds: [
-          { cmd: 'kubectl describe mutatingwebhookconfiguration <name>',            desc: 'Mutation rules, namespaces, and endpoint' },
-          { cmd: 'kubectl describe validatingwebhookconfiguration <name>',          desc: 'Validation rules, namespaces, and endpoint' },
-          { cmd: 'kubectl get mutatingwebhookconfigurations',                       desc: 'Mutating admission webhooks' },
-          { cmd: 'kubectl get validatingwebhookconfigurations',                     desc: 'Validating admission webhooks' },
-        ]
-      },
-    ]
-  },
-
-  // ── NODES ─────────────────────────────────────────────────
-  {
-    id: 'node', title: 'Nodes', icon: ICONS.node, sub: 'Cluster',
-    groups: [
-      {
-        title: 'Resource Usage',
-        desc: 'Monitor real-time CPU and memory consumption across nodes and pods.',
-        cmds: [
-          { cmd: 'kubectl top node <name>',                                         desc: 'CPU and memory usage for a specific node' },
-          { cmd: 'kubectl top nodes',                                              desc: 'CPU and memory usage per node' },
-          { cmd: 'kubectl top nodes --sort-by=cpu',                                desc: 'Nodes sorted by CPU usage' },
-          { cmd: 'kubectl top nodes --sort-by=memory',                             desc: 'Nodes sorted by memory usage' },
-          { cmd: 'kubectl top pods -A',                                            desc: 'CPU and memory for all pods' },
-          { cmd: 'kubectl top pods -n <namespace> --sort-by=cpu',                  desc: 'Pods sorted by CPU usage' },
-          { cmd: 'kubectl top pods -n <namespace> --sort-by=memory',               desc: 'Pods sorted by memory usage' },
-        ]
-      },
-      {
-        title: 'Scheduling',
-        desc: 'Control which nodes accept new workloads using cordon, uncordon, and drain.',
-        cmds: [
-          { cmd: 'kubectl cordon <node>',                                          desc: 'Mark node as unschedulable' },
-          { cmd: 'kubectl drain <node> --ignore-daemonsets --dry-run=client',      desc: 'Simulate drain without evicting any pods' },
-          { cmd: 'kubectl drain <node> --force --ignore-daemonsets',               desc: 'Force drain (removes unmanaged pods)' },
-          { cmd: 'kubectl drain <node> --ignore-daemonsets --delete-emptydir-data', desc: 'Drain including emptyDir pods' },
-          { cmd: 'kubectl drain <node> --ignore-daemonsets',                       desc: 'Evict all pods from a node' },
-          { cmd: 'kubectl uncordon <node>',                                        desc: 'Mark node as schedulable again' },
-          { cmd: 'kubectl wait --for=condition=Ready node/<name> --timeout=60s',   desc: 'Wait until node becomes Ready' },
-        ]
-      },
-      {
-        title: 'Taints, Labels & Annotations',
-        desc: 'Repel or attract pods using taints; organise nodes with labels and store metadata via annotations.',
-        cmds: [
-          { cmd: 'kubectl annotate node <node> <key>-',                            desc: 'Remove an annotation from a node' },
-          { cmd: 'kubectl annotate node <node> <key>=<value>',                     desc: 'Add or update a node annotation' },
-          { cmd: 'kubectl get nodes -l <key>=<value>',                             desc: 'Filter nodes by label' },
-          { cmd: 'kubectl label nodes <node> <key>-',                              desc: 'Remove a label from a node' },
-          { cmd: 'kubectl label nodes <node> <key>=<value>',                       desc: 'Add a label to a node' },
-          { cmd: 'kubectl taint nodes <node> <key>:NoSchedule-',                   desc: 'Remove a taint from node' },
-          { cmd: 'kubectl taint nodes <node> <key>=<value>:NoExecute',             desc: 'Add NoExecute taint to node' },
-          { cmd: 'kubectl taint nodes <node> <key>=<value>:NoSchedule',            desc: 'Add NoSchedule taint to node' },
-        ]
-      },
-      {
-        title: 'List & Inspect',
-        desc: 'View node details, status, internal IP, OS, and container runtime version.',
-        cmds: [
-          { cmd: 'kubectl describe node <name>',                                   desc: 'Node details, conditions, capacity' },
-          { cmd: 'kubectl get node <name> -o yaml',                                desc: 'Get node manifest as YAML' },
-          { cmd: 'kubectl get nodes -o custom-columns=NAME:.metadata.name,VER:.status.nodeInfo.kubeletVersion,OS:.status.nodeInfo.osImage', desc: 'Custom columns: name, version, and OS' },
-          { cmd: 'kubectl get nodes --show-labels',                                desc: 'Nodes with all their labels' },
-          { cmd: 'kubectl get nodes -o wide',                                      desc: 'Nodes with IP, OS, container runtime' },
-          { cmd: 'kubectl get nodes',                                              desc: 'List all nodes in the cluster' },
-        ]
-      },
-    ]
-  },
-
-  // ── CONTEXTS ──────────────────────────────────────────────
-  {
-    id: 'context', title: 'Contexts', icon: ICONS.context, sub: 'Cluster',
-    groups: [
-      {
-        title: 'Manage Contexts',
-        desc: 'Create, update, rename, switch, and delete contexts in kubeconfig.',
-        cmds: [
-          { cmd: 'kubectl config delete-context <name>',                           desc: 'Delete a context' },
-          { cmd: 'kubectl config rename-context <old> <new>',                      desc: 'Rename a context' },
-          { cmd: 'kubectl config set-context --current --cluster=<name>',           desc: 'Change cluster for current context' },
-          { cmd: 'kubectl config set-context --current --namespace=<ns>',          desc: 'Set default namespace for current context' },
-          { cmd: 'kubectl config set-context <name> --cluster=<cluster> --user=<user> --namespace=<ns>', desc: 'Create or update a context' },
-          { cmd: 'kubectl config unset contexts.<name>',                           desc: 'Remove a context entry from kubeconfig' },
-          { cmd: 'kubectl config use-context <name>',                              desc: 'Switch to a different context' },
-        ]
-      },
-      {
-        title: 'Clusters & Credentials',
-        desc: 'Add, update, and remove cluster endpoints and user credentials in kubeconfig.',
-        cmds: [
-          { cmd: 'kubectl config delete-cluster <name>',                           desc: 'Remove a cluster from kubeconfig' },
-          { cmd: 'kubectl config delete-user <name>',                              desc: 'Remove a user from kubeconfig' },
-          { cmd: 'kubectl config set-cluster <name> --server=<url>',               desc: 'Add or update a cluster endpoint' },
-          { cmd: 'kubectl config set-cluster <name> --insecure-skip-tls-verify=true', desc: 'Disable TLS verification for cluster' },
-          { cmd: 'kubectl config set-credentials <name> --client-certificate=<cert> --client-key=<key>', desc: 'Add certificate-based credentials' },
-          { cmd: 'kubectl config set-credentials <name> --token=<token>',          desc: 'Add token-based user credentials' },
-        ]
-      },
-      {
-        title: 'List & Inspect',
-        desc: 'Inspect kubeconfig, list available contexts, clusters, and users.',
-        cmds: [
-          { cmd: 'kubectl config current-context',                                 desc: 'Show active context' },
-          { cmd: 'kubectl config get-clusters',                                    desc: 'List all clusters in kubeconfig' },
-          { cmd: 'kubectl config get-contexts',                                    desc: 'List all kubeconfig contexts' },
-          { cmd: 'kubectl config get-users',                                       desc: 'List all users in kubeconfig' },
-          { cmd: 'kubectl config view --flatten',                                  desc: 'Flatten kubeconfig (useful for sharing)' },
-          { cmd: 'kubectl config view --minify',                                   desc: 'View current context config only' },
-          { cmd: 'kubectl config view',                                            desc: 'View full kubeconfig' },
-        ]
-      },
-    ]
-  },
-
   // ── HELM — RELEASES ───────────────────────────────────────
   {
     id: 'helm-releases', title: 'Releases', icon: ICONS.helm, sub: 'Helm',
@@ -814,7 +821,7 @@ const SECTIONS = [
 
   // ── HELM — CHARTS ─────────────────────────────────────────
   {
-    id: 'helm-charts', title: 'Charts', icon: ICONS.helm, sub: 'Helm',
+    id: 'helm-charts', title: 'Charts', icon: ICONS['helm-charts'], sub: 'Helm',
     groups: [
       {
         title: 'Repositories',
@@ -872,6 +879,90 @@ const SECTIONS = [
     ]
   },
 
+  // ── KUSTOMIZE — BUILD & APPLY ─────────────────────────────
+  {
+    id: 'kustomize-build', title: 'Manage', icon: ICONS.kustomize, sub: 'Kustomize',
+    groups: [
+      {
+        title: 'Install Kustomize',
+        desc: 'Kustomize customizes raw Kubernetes YAML without templates. It is built into kubectl (apply -k) and available as a standalone CLI.',
+        cmds: [
+          { cmd: 'brew install kustomize',                                                                                                     desc: 'Install via Homebrew (macOS / Linux with brew)' },
+          { cmd: 'curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash',              desc: 'Install via official script (Linux / macOS)' },
+          { cmd: 'kustomize version',                                                                                                          desc: 'Verify installation and show build info' },
+        ]
+      },
+      {
+        title: 'Manage',
+        desc: 'Render a kustomization overlay and apply it to the cluster. Use kubectl -k flags for the native built-in path, or pipe kustomize build for full control.',
+        cmds: [
+          { cmd: 'kustomize build <dir>',                                              desc: 'Render overlay to stdout' },
+          { cmd: 'kustomize build <dir> | kubectl apply -f -',                         desc: 'Render and apply to cluster' },
+          { cmd: 'kustomize build <dir> | kubectl apply --server-side -f -',           desc: 'Render and apply with server-side apply (avoids annotation size limits)' },
+          { cmd: 'kustomize build <dir> | kubectl delete -f -',                        desc: 'Render and delete from cluster' },
+          { cmd: 'kustomize build <dir> --enable-helm',                                desc: 'Render overlay with embedded Helm chart support' },
+          { cmd: 'kustomize build <dir> > output.yaml',                                desc: 'Write rendered manifests to a file' },
+          { cmd: 'kubectl apply -k <dir>',                                             desc: 'Apply overlay using kubectl built-in kustomize' },
+          { cmd: 'kubectl delete -k <dir>',                                            desc: 'Delete resources defined by overlay' },
+          { cmd: 'kubectl kustomize <dir> | kubectl apply -f -',                       desc: 'Render with kubectl built-in, then apply' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'Inspect rendered output, diff against the live cluster, and list resources managed by an overlay.',
+        cmds: [
+          { cmd: 'kubectl kustomize <dir>',                                            desc: 'Render overlay with kubectl built-in (no apply)' },
+          { cmd: 'kubectl diff -k <dir>',                                              desc: 'Diff overlay against live cluster state' },
+          { cmd: 'kubectl get -k <dir>',                                               desc: 'List resources managed by the overlay' },
+        ]
+      },
+    ]
+  },
+
+  // ── KUSTOMIZE — EDIT ──────────────────────────────────────
+  {
+    id: 'kustomize-edit', title: 'Edit', icon: ICONS['kustomize-edit'], sub: 'Kustomize',
+    groups: [
+      {
+        title: 'Resources & Patches',
+        desc: 'Add or remove resource files and strategic merge patches directly in kustomization.yaml.',
+        cmds: [
+          { cmd: 'kustomize edit add resource <file.yaml>',                            desc: 'Add a resource file to kustomization' },
+          { cmd: 'kustomize edit remove resource <file.yaml>',                         desc: 'Remove a resource from kustomization' },
+          { cmd: 'kustomize edit add patch --path <patch.yaml>',                       desc: 'Add a strategic merge patch' },
+          { cmd: 'kustomize edit add patch --path <patch.yaml> --kind <Kind>',         desc: 'Add a patch scoped to a specific resource kind' },
+          { cmd: 'kustomize edit remove patch --path <patch.yaml>',                    desc: 'Remove a patch from kustomization' },
+        ]
+      },
+      {
+        title: 'Images & Transformers',
+        desc: 'Override images, set namespace, add name prefix or suffix, and attach common labels and annotations.',
+        cmds: [
+          { cmd: 'kustomize edit set image <name>=<new-image>:<tag>',                  desc: 'Override image name and tag' },
+          { cmd: 'kustomize edit set image <name>:<tag>',                              desc: 'Override only the tag of an image' },
+          { cmd: 'kustomize edit set namespace <ns>',                                  desc: 'Set namespace for all resources' },
+          { cmd: 'kustomize edit set nameprefix <prefix>-',                            desc: 'Add prefix to all resource names' },
+          { cmd: 'kustomize edit set namesuffix -<suffix>',                            desc: 'Add suffix to all resource names' },
+          { cmd: 'kustomize edit add label <key>:<value>',                             desc: 'Add a common label to all resources' },
+          { cmd: 'kustomize edit add annotation <key>:<value>',                        desc: 'Add a common annotation to all resources' },
+        ]
+      },
+      {
+        title: 'Generators',
+        desc: 'Register ConfigMap and Secret generators that produce resources from literals, files, or env files.',
+        cmds: [
+          { cmd: 'kustomize edit add configmap <name> --from-literal=<key>=<value>',   desc: 'Add a ConfigMap generator from a literal value' },
+          { cmd: 'kustomize edit add configmap <name> --from-file=<file>',             desc: 'Add a ConfigMap generator from a file' },
+          { cmd: 'kustomize edit add configmap <name> --from-env-file=<file>',         desc: 'Add a ConfigMap generator from an env file' },
+          { cmd: 'kustomize edit add secret <name> --from-literal=<key>=<value>',      desc: 'Add a Secret generator from a literal value' },
+          { cmd: 'kustomize edit add secret <name> --from-file=<file>',               desc: 'Add a Secret generator from a file' },
+          { cmd: 'kustomize edit remove configmap <name>',                             desc: 'Remove a ConfigMap generator' },
+          { cmd: 'kustomize edit remove secret <name>',                               desc: 'Remove a Secret generator' },
+        ]
+      },
+    ]
+  },
+
   // ── K9S — CLI & LAUNCH ───────────────────────────────────
   {
     id: 'k9s-cli', title: 'CLI & Launch', icon: ICONS.k9s, sub: 'K9s',
@@ -907,7 +998,7 @@ const SECTIONS = [
 
   // ── K9S — UI SHORTCUTS ───────────────────────────────────
   {
-    id: 'k9s-ui', title: 'UI Shortcuts', icon: ICONS.k9s, sub: 'K9s',
+    id: 'k9s-ui', title: 'UI Shortcuts', icon: ICONS['k9s-ui'], sub: 'K9s',
     groups: [
       {
         title: 'Global Shortcuts',
@@ -1108,7 +1199,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — K9S ─────────────────────────────────
   {
-    id: 'troubleshoot-k9s', title: 'K9s', icon: ICONS.troubleshoot, sub: 'Troubleshooting',
+    id: 'troubleshoot-k9s', title: 'K9s', icon: ICONS['troubleshoot-k9s'], sub: 'Troubleshooting',
     groups: [
       {
         title: 'Diagnose K9s',
@@ -1143,9 +1234,38 @@ const SECTIONS = [
     ]
   },
 
+  // ── TROUBLESHOOTING — KUSTOMIZE ──────────────────────────
+  {
+    id: 'troubleshoot-kustomize', title: 'Kustomize', icon: ICONS['troubleshoot-kustomize'], sub: 'Troubleshooting',
+    groups: [
+      {
+        title: 'Debug Build',
+        desc: 'Diagnose render failures and validate the output of an overlay before applying it to the cluster.',
+        cmds: [
+          { cmd: 'kustomize build <dir>',                                              desc: 'Render overlay to see full output or error message' },
+          { cmd: 'kustomize build --load-restrictor=LoadRestrictionsNone <dir>',       desc: 'Allow files outside the kustomization root (common path error)' },
+          { cmd: 'kustomize build --enable-alpha-plugins <dir>',                       desc: 'Enable exec and KRM function plugins if they fail to load' },
+          { cmd: 'kubectl apply -k <dir> --dry-run=client',                            desc: 'Validate rendered manifests against local schema' },
+          { cmd: 'kubectl apply -k <dir> --dry-run=server',                            desc: 'Server-side dry-run for admission webhook checks' },
+        ]
+      },
+      {
+        title: 'Inspect & Diff',
+        desc: 'Compare rendered output against the live cluster state and verify specific fields like images and namespaces.',
+        cmds: [
+          { cmd: 'kubectl diff -k <dir>',                                              desc: 'Diff overlay against live cluster state' },
+          { cmd: 'kubectl get -k <dir>',                                               desc: 'List all resources the overlay manages' },
+          { cmd: 'kustomize build <dir> | grep \'image:\'',                            desc: 'Verify image substitutions in rendered output' },
+          { cmd: 'kustomize build <dir> | grep \'namespace:\'',                        desc: 'Check namespace assignments in rendered output' },
+          { cmd: 'kustomize build <dir> | grep -A5 \'kind: <Kind>\'',                  desc: 'Find a specific resource kind in rendered output' },
+        ]
+      },
+    ]
+  },
+
   // ── TROUBLESHOOTING — HELM ────────────────────────────────
   {
-    id: 'troubleshoot-helm', title: 'Helm', icon: ICONS.helm, sub: 'Troubleshooting',
+    id: 'troubleshoot-helm', title: 'Helm', icon: ICONS['troubleshoot-helm'], sub: 'Troubleshooting',
     groups: [
       {
         title: 'Failed Releases',
