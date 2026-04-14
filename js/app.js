@@ -101,7 +101,7 @@ const CATEGORIES = {
   kustomize:    ['kustomize-build', 'kustomize-edit'],
   k9s:          ['k9s-cli', 'k9s-ui'],
   local:        ['install-kubeadm','install-k3s','install-k3d','install-kind','install-minikube'],
-  troubleshoot: ['troubleshoot-kubectl','troubleshoot-helm','troubleshoot-kustomize','troubleshoot-k9s'],
+  troubleshoot: ['troubleshoot-local','troubleshoot-kubectl','troubleshoot-helm','troubleshoot-kustomize','troubleshoot-k9s'],
 };
 
 const SUB_LABELS = Object.fromEntries(SECTIONS.map(s => [s.id, s.title]));
