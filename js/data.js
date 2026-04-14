@@ -28,6 +28,12 @@ const ICONS = {
   'troubleshoot-k9s': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
   'troubleshoot-kustomize': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><polyline points="13.3 16.3 15 18"/></svg>`,
   'troubleshoot-helm': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>`,
+  'local-cluster': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>`,
+  kubeadm: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
+  k3s: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+  k3d: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  kind: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 22v-4"/><path d="M17 22v-4"/><rect x="5" y="6" width="6" height="6" rx="1"/><rect x="13" y="6" width="6" height="6" rx="1"/><rect x="9" y="14" width="6" height="4" rx="1"/></svg>`,
+  minikube: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>`,
 };
 
 const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
@@ -606,44 +612,84 @@ const SECTIONS = [
     id: 'network', title: 'Networking', icon: ICONS.network, sub: 'Workloads',
     groups: [
       {
-        title: 'Gateway API',
-        desc: 'Manage GatewayClasses and Gateways, the entry points for cluster traffic in the Gateway API model.',
+        title: 'GatewayClass',
+        desc: 'Manage GatewayClass resources that define which controller implements a Gateway.',
         cmds: [
-          { cmd: 'kubectl apply -f gateway.yaml',                                  desc: 'Apply Gateway from manifest' },
-          { cmd: 'kubectl delete gateway <name> -n <namespace>',                   desc: 'Delete a Gateway' },
-          { cmd: 'kubectl describe gateway <name> -n <namespace>',                 desc: 'Gateway details and listeners' },
-          { cmd: 'kubectl describe gatewayclass <name>',                           desc: 'GatewayClass details and controller' },
-          { cmd: 'kubectl edit gateway <name> -n <namespace>',                     desc: 'Edit Gateway in $EDITOR' },
-          { cmd: 'kubectl get gatewayclass',                                       desc: 'List GatewayClasses (cluster-wide)' },
-          { cmd: 'kubectl get gateways -A',                                        desc: 'All Gateways across namespaces' },
-          { cmd: 'kubectl get gateways -n <namespace>',                            desc: 'Gateways in a namespace' },
+          { cmd: 'kubectl delete gatewayclass <name>',                                          desc: 'Delete a GatewayClass' },
+          { cmd: 'kubectl describe gatewayclass <name>',                                        desc: 'GatewayClass details and controller' },
+          { cmd: 'kubectl get gatewayclass',                                                    desc: 'List all GatewayClasses (cluster-wide)' },
+          { cmd: 'kubectl get gatewayclass -o wide',                                            desc: 'List with controller and status columns' },
+          { cmd: 'kubectl get gatewayclass <name> -o yaml',                                     desc: 'Get GatewayClass manifest as YAML' },
+          { cmd: 'kubectl get gatewayclass <name> -o jsonpath=\'{.status.conditions}\'',        desc: 'Show acceptance conditions' },
+          { cmd: 'kubectl annotate gatewayclass <name> <key>=<value>',                          desc: 'Add or update an annotation' },
+        ]
+      },
+      {
+        title: 'Gateway API',
+        desc: 'Manage Gateways that define the entry points for cluster traffic in the Gateway API model.',
+        cmds: [
+          { cmd: 'kubectl apply -f gateway.yaml',                                               desc: 'Apply Gateway from manifest' },
+          { cmd: 'kubectl delete gateway <name> -n <namespace>',                                desc: 'Delete a Gateway' },
+          { cmd: 'kubectl describe gateway <name> -n <namespace>',                              desc: 'Gateway listeners, status, and attached routes' },
+          { cmd: 'kubectl edit gateway <name> -n <namespace>',                                  desc: 'Edit Gateway in $EDITOR' },
+          { cmd: 'kubectl get gateways -A',                                                     desc: 'All Gateways across namespaces' },
+          { cmd: 'kubectl get gateways -n <namespace>',                                         desc: 'Gateways in a namespace' },
+          { cmd: 'kubectl get gateways -o wide',                                                desc: 'List with class and address columns' },
+          { cmd: 'kubectl get gateway <name> -n <namespace> -o yaml',                           desc: 'Get Gateway manifest as YAML' },
+          { cmd: 'kubectl get gateway <name> -n <namespace> -o jsonpath=\'{.status.addresses}\'', desc: 'Show assigned addresses' },
+          { cmd: 'kubectl annotate gateway <name> -n <namespace> <key>=<value>',                desc: 'Add or update an annotation' },
         ]
       },
       {
         title: 'HTTPRoutes',
         desc: 'Manage HTTPRoutes and ReferenceGrants for routing traffic to services across namespaces.',
         cmds: [
-          { cmd: 'kubectl apply -f httproute.yaml',                                desc: 'Apply HTTPRoute from manifest' },
-          { cmd: 'kubectl delete httproute <name> -n <namespace>',                 desc: 'Delete an HTTPRoute' },
-          { cmd: 'kubectl describe httproute <name> -n <namespace>',               desc: 'HTTPRoute rules and parent refs' },
-          { cmd: 'kubectl edit httproute <name> -n <namespace>',                   desc: 'Edit HTTPRoute in $EDITOR' },
-          { cmd: 'kubectl get httproutes -A',                                      desc: 'All HTTPRoutes across namespaces' },
-          { cmd: 'kubectl get httproutes -n <namespace>',                          desc: 'HTTPRoutes in a namespace' },
-          { cmd: 'kubectl get referencegrants -n <namespace>',                     desc: 'ReferenceGrants for cross-namespace routing' },
+          { cmd: 'kubectl apply -f httproute.yaml',                                             desc: 'Apply HTTPRoute from manifest' },
+          { cmd: 'kubectl apply -f referencegrant.yaml',                                        desc: 'Apply ReferenceGrant from manifest' },
+          { cmd: 'kubectl delete httproute <name> -n <namespace>',                              desc: 'Delete an HTTPRoute' },
+          { cmd: 'kubectl delete referencegrant <name> -n <namespace>',                         desc: 'Delete a ReferenceGrant' },
+          { cmd: 'kubectl describe httproute <name> -n <namespace>',                            desc: 'HTTPRoute rules, parent refs, and status' },
+          { cmd: 'kubectl describe referencegrant <name> -n <namespace>',                       desc: 'ReferenceGrant allowed cross-namespace refs' },
+          { cmd: 'kubectl edit httproute <name> -n <namespace>',                                desc: 'Edit HTTPRoute in $EDITOR' },
+          { cmd: 'kubectl get httproutes -A',                                                   desc: 'All HTTPRoutes across namespaces' },
+          { cmd: 'kubectl get httproutes -n <namespace>',                                       desc: 'HTTPRoutes in a namespace' },
+          { cmd: 'kubectl get httproutes -o wide',                                              desc: 'List with hostnames and parent refs columns' },
+          { cmd: 'kubectl get httproute <name> -n <namespace> -o yaml',                         desc: 'Get HTTPRoute manifest as YAML' },
+          { cmd: 'kubectl get httproute <name> -n <namespace> -o jsonpath=\'{.spec.rules}\'',   desc: 'Show routing rules as JSON' },
+          { cmd: 'kubectl get referencegrants -n <namespace>',                                  desc: 'ReferenceGrants for cross-namespace routing' },
         ]
       },
       {
         title: 'Ingress',
         desc: 'Manage HTTP/HTTPS routing rules to expose services externally via an ingress controller.',
         cmds: [
-          { cmd: 'kubectl apply -f ingress.yaml',                                  desc: 'Apply Ingress from manifest' },
-          { cmd: 'kubectl delete ingress <name>',                                  desc: 'Delete an Ingress' },
-          { cmd: 'kubectl describe ingress <name>',                                desc: 'Ingress rules and backend details' },
-          { cmd: 'kubectl edit ingress <name>',                                    desc: 'Edit Ingress in $EDITOR' },
-          { cmd: 'kubectl get ing -A',                                             desc: 'All Ingresses across namespaces' },
-          { cmd: 'kubectl get ingress',                                            desc: 'List Ingresses in current namespace' },
-          { cmd: 'kubectl get ingress -n <namespace>',                             desc: 'Ingresses in a specific namespace' },
-          { cmd: 'kubectl get ingress <name> -o yaml',                             desc: 'Get Ingress manifest as YAML' },
+          { cmd: 'kubectl apply -f ingress.yaml',                                                             desc: 'Apply Ingress from manifest' },
+          { cmd: 'kubectl delete ingress <name>',                                                             desc: 'Delete an Ingress' },
+          { cmd: 'kubectl describe ingress <name>',                                                           desc: 'Ingress rules and backend details' },
+          { cmd: 'kubectl describe ingress <name> -n <namespace>',                                           desc: 'Ingress details in a specific namespace' },
+          { cmd: 'kubectl edit ingress <name>',                                                              desc: 'Edit Ingress in $EDITOR' },
+          { cmd: 'kubectl annotate ingress <name> <key>=<value>',                                            desc: 'Add or update an annotation' },
+          { cmd: 'kubectl annotate ingress <name> <key>-',                                                   desc: 'Remove an annotation' },
+          { cmd: 'kubectl get ing -A',                                                                       desc: 'All Ingresses across namespaces' },
+          { cmd: 'kubectl get ingress',                                                                      desc: 'List Ingresses in current namespace' },
+          { cmd: 'kubectl get ingress -n <namespace>',                                                       desc: 'Ingresses in a specific namespace' },
+          { cmd: 'kubectl get ingress -o wide',                                                              desc: 'List with hosts and address columns' },
+          { cmd: 'kubectl get ingress <name> -o yaml',                                                       desc: 'Get Ingress manifest as YAML' },
+          { cmd: 'kubectl get ingress <name> -o jsonpath=\'{.spec.rules}\'',                                 desc: 'Show routing rules as JSON' },
+          { cmd: 'kubectl patch ingress <name> --type=merge -p \'{"spec":{"ingressClassName":"<class>"}}\'', desc: 'Set IngressClass on an existing Ingress' },
+        ]
+      },
+      {
+        title: 'IngressClass',
+        desc: 'Manage IngressClass resources that define which controller handles a given Ingress.',
+        cmds: [
+          { cmd: 'kubectl delete ingressclass <name>',                                                                          desc: 'Delete an IngressClass' },
+          { cmd: 'kubectl describe ingressclass <name>',                                                                        desc: 'IngressClass details and controller' },
+          { cmd: 'kubectl get ingressclass',                                                                                    desc: 'List all IngressClasses' },
+          { cmd: 'kubectl get ingressclass -o wide',                                                                            desc: 'List with controller column' },
+          { cmd: 'kubectl get ingressclass <name> -o yaml',                                                                     desc: 'Get IngressClass manifest as YAML' },
+          { cmd: 'kubectl annotate ingressclass <name> ingressclass.kubernetes.io/is-default-class=true',                       desc: 'Mark IngressClass as cluster default' },
+          { cmd: 'kubectl annotate ingressclass <name> ingressclass.kubernetes.io/is-default-class-',                           desc: 'Remove default-class annotation' },
         ]
       },
       {
@@ -1100,6 +1146,320 @@ const SECTIONS = [
     ]
   },
 
+  // ── INSTALLATION — KUBEADM ──────────────────────────────────
+  {
+    id: 'install-kubeadm', title: 'Kubeadm', icon: ICONS.kubeadm, sub: 'Installation',
+    groups: [
+      {
+        title: 'Install',
+        desc: 'Install kubeadm, kubelet, and kubectl on each node. These steps are required before initializing or joining a cluster.',
+        cmds: [
+          { cmd: 'apt-get update && apt-get install -y apt-transport-https ca-certificates curl', desc: 'Install prerequisites on Debian/Ubuntu' },
+          { cmd: 'curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg', desc: 'Add the Kubernetes apt repository signing key' },
+          { cmd: 'echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list', desc: 'Add the Kubernetes apt repository' },
+          { cmd: 'apt-get update && apt-get install -y kubelet kubeadm kubectl',  desc: 'Install kubelet, kubeadm, and kubectl' },
+          { cmd: 'apt-mark hold kubelet kubeadm kubectl',                              desc: 'Prevent automatic upgrades of Kubernetes packages' },
+          { cmd: 'systemctl enable --now kubelet',                                      desc: 'Enable and start the kubelet service' },
+        ]
+      },
+      {
+        title: 'Manage',
+        desc: 'Initialize the control plane, join worker nodes, tear down clusters, and manage the upgrade lifecycle.',
+        cmds: [
+          { cmd: 'kubeadm init --pod-network-cidr=<cidr>',                            desc: 'Initialize the control plane with a pod network CIDR' },
+          { cmd: 'kubeadm init --control-plane-endpoint=<endpoint>',                  desc: 'Initialize with a shared load-balancer endpoint (HA)' },
+          { cmd: 'kubeadm init --kubernetes-version=<version>',                       desc: 'Initialize with a specific Kubernetes version' },
+          { cmd: 'kubeadm init --cri-socket /run/containerd/containerd.sock',         desc: 'Initialize with a specific CRI socket' },
+          { cmd: 'kubeadm token create --print-join-command',                               desc: 'Generate a new join command for worker nodes' },
+          { cmd: 'kubeadm join <control-plane-endpoint> --token <token> --discovery-token-ca-cert-hash sha256:<hash>', desc: 'Join a worker node to the cluster' },
+          { cmd: 'kubeadm join <control-plane-endpoint> --token <token> --discovery-token-ca-cert-hash sha256:<hash> --control-plane --certificate-key <key>', desc: 'Join a secondary control plane node (HA)' },
+          { cmd: 'kubeadm reset',                                                      desc: 'Revert changes made by init or join on this node' },
+          { cmd: 'kubeadm reset --force',                                              desc: 'Force reset without confirmation prompts' },
+          { cmd: 'kubeadm upgrade plan',                                               desc: 'Check which versions are available to upgrade to' },
+          { cmd: 'kubeadm upgrade apply v<version>',                                   desc: 'Upgrade the control plane to a new version' },
+          { cmd: 'kubeadm upgrade node',                                               desc: 'Upgrade a worker or secondary control plane node' },
+        ]
+      },
+      {
+        title: 'Configure',
+        desc: 'Upload configs, manage certificates, and generate kubeconfig files for cluster access.',
+        cmds: [
+          { cmd: 'mkdir -p $HOME/.kube && cp /etc/kubernetes/admin.conf $HOME/.kube/config && chown $(id -u):$(id -g) $HOME/.kube/config', desc: 'Set up kubeconfig for the admin user after init' },
+          { cmd: 'kubeadm config upload from-flags',                                        desc: 'Upload the configuration used by init to the cluster ConfigMap' },
+          { cmd: 'kubeadm config print init-defaults',                                      desc: 'Print default init configuration YAML' },
+          { cmd: 'kubeadm config print join-defaults',                                      desc: 'Print default join configuration YAML' },
+          { cmd: 'kubeadm certs certificate-key',                                      desc: 'Generate a certificate key for HA control plane join' },
+          { cmd: 'kubeadm certs renew all',                                            desc: 'Renew all control plane certificates' },
+          { cmd: 'kubeadm certs check-expiration',                                     desc: 'Check certificate expiration dates' },
+          { cmd: 'kubeadm init phase upload-certs --upload-certs',                     desc: 'Upload control plane certificates to the cluster for HA join' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'View tokens, node statuses, and cluster configuration details.',
+        cmds: [
+          { cmd: 'kubeadm token list',                                                      desc: 'List all bootstrap tokens' },
+          { cmd: 'kubeadm config view',                                                     desc: 'View the kubeadm configuration stored in the cluster' },
+          { cmd: 'kubectl get nodes',                                                        desc: 'List all nodes and their status' },
+          { cmd: 'kubectl get pods -n kube-system',                                         desc: 'List control plane pods' },
+        ]
+      },
+    ]
+  },
+
+  // ── INSTALLATION — K3S ──────────────────────────────────────
+  {
+    id: 'install-k3s', title: 'k3s', icon: ICONS.k3s, sub: 'Installation',
+    groups: [
+      {
+        title: 'Install',
+        desc: 'Install k3s as a single binary. The server (control plane) and agent (worker) modes are selected via subcommands.',
+        cmds: [
+          { cmd: 'curl -sfL https://get.k3s.io | sh -',                                      desc: 'Install k3s server (control plane + worker)' },
+          { cmd: 'curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=<version> sh -',       desc: 'Install a specific k3s version' },
+          { cmd: 'curl -sfL https://get.k3s.io | K3S_URL=https://<server>:6443 K3S_TOKEN=<token> sh -', desc: 'Install k3s agent and join an existing server' },
+          { cmd: 'curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --cluster-init" sh -', desc: 'Install server in HA mode with embedded etcd' },
+          { cmd: 'curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_START=true sh -',         desc: 'Install binary without starting the service' },
+          { cmd: 'brew install k3s',                                                          desc: 'Install k3s via Homebrew (macOS/Linux)' },
+        ]
+      },
+      {
+        title: 'Manage',
+        desc: 'Start, stop, and remove k3s services. Access the embedded kubectl and manage server/agent lifecycle.',
+        cmds: [
+          { cmd: 'systemctl start k3s',                                                 desc: 'Start the k3s server service' },
+          { cmd: 'systemctl stop k3s',                                                  desc: 'Stop the k3s server service' },
+          { cmd: 'systemctl restart k3s',                                               desc: 'Restart the k3s server service' },
+          { cmd: 'systemctl enable k3s',                                                desc: 'Enable k3s to start on boot' },
+          { cmd: 'systemctl disable k3s',                                               desc: 'Disable k3s from starting on boot' },
+          { cmd: '/usr/local/bin/k3s kubectl get nodes',                                     desc: 'Use the embedded kubectl binary' },
+          { cmd: 'k3s server --disable traefik',                                        desc: 'Start server with specific components disabled' },
+          { cmd: 'k3s server --disable-agent',                                          desc: 'Run as control plane only (no workloads on this node)' },
+          { cmd: '/usr/local/bin/k3s-uninstall.sh',                                          desc: 'Uninstall k3s server and all data' },
+          { cmd: '/usr/local/bin/k3s-agent-uninstall.sh',                                    desc: 'Uninstall k3s agent' },
+        ]
+      },
+      {
+        title: 'Configure',
+        desc: 'Access kubeconfig, retrieve the node token, and configure k3s via environment variables and config files.',
+        cmds: [
+          { cmd: 'cat /etc/rancher/k3s/k3s.yaml',                                      desc: 'Print the kubeconfig file' },
+          { cmd: 'mkdir -p $HOME/.kube && cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config && chown $(id -u):$(id -g) $HOME/.kube/config', desc: 'Copy kubeconfig for kubectl access' },
+          { cmd: 'cat /var/lib/rancher/k3s/server/node-token',                          desc: 'Print the node token (needed for agent join)' },
+          { cmd: 'cat /etc/rancher/k3s/config.yaml',                                   desc: 'View the k3s server config file' },
+          { cmd: 'curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --write-kubeconfig-mode 644" sh -', desc: 'Install with world-readable kubeconfig' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'Check k3s version, service status, and running processes.',
+        cmds: [
+          { cmd: 'k3s --version',                                                            desc: 'Print k3s version' },
+          { cmd: 'systemctl status k3s',                                                desc: 'Check k3s server service status' },
+          { cmd: 'journalctl -u k3s -f',                                               desc: 'Follow k3s server logs' },
+          { cmd: 'journalctl -u k3s-agent -f',                                         desc: 'Follow k3s agent logs' },
+        ]
+      },
+    ]
+  },
+
+  // ── INSTALLATION — K3D ──────────────────────────────────────
+  {
+    id: 'install-k3d', title: 'k3d', icon: ICONS.k3d, sub: 'Installation',
+    groups: [
+      {
+        title: 'Install',
+        desc: 'Install k3d, a lightweight wrapper that runs k3s clusters in Docker containers.',
+        cmds: [
+          { cmd: 'brew install k3d',                                                          desc: 'Install k3d via Homebrew' },
+          { cmd: 'curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash', desc: 'Install k3d via official script' },
+          { cmd: 'k3d version',                                                              desc: 'Print k3d version' },
+        ]
+      },
+      {
+        title: 'Manage',
+        desc: 'Create, start, stop, and delete lightweight Kubernetes clusters using k3d.',
+        cmds: [
+          { cmd: 'k3d cluster create <name>',                                                 desc: 'Create a k3d cluster' },
+          { cmd: 'k3d cluster create <name> --agents <n>',                                    desc: 'Create a multi-agent cluster' },
+          { cmd: 'k3d cluster create <name> --servers <n>',                                   desc: 'Create a multi-server (HA) cluster' },
+          { cmd: 'k3d cluster create <name> -p "8081:80@loadbalancer"',                       desc: 'Create cluster with port mapping' },
+          { cmd: 'k3d cluster create <name> --registry-create <registry-name>',               desc: 'Create cluster with a local registry' },
+          { cmd: 'k3d cluster create <name> --k3s-arg "--disable=traefik@server:0"',          desc: 'Create cluster with custom k3s args' },
+          { cmd: 'k3d cluster create <name> --image <image>',                                 desc: 'Create with a specific k3s image' },
+          { cmd: 'k3d cluster delete <name>',                                                 desc: 'Delete a k3d cluster' },
+          { cmd: 'k3d cluster delete --all',                                                  desc: 'Delete all k3d clusters' },
+          { cmd: 'k3d cluster start <name>',                                                  desc: 'Start a stopped k3d cluster' },
+          { cmd: 'k3d cluster stop <name>',                                                   desc: 'Stop a running k3d cluster' },
+        ]
+      },
+      {
+        title: 'Nodes & Registries',
+        desc: 'Manage individual k3d nodes and container registries for local image distribution.',
+        cmds: [
+          { cmd: 'k3d node create <name> --cluster <cluster>',                               desc: 'Add a node to an existing cluster' },
+          { cmd: 'k3d node delete <name>',                                                   desc: 'Delete a k3d node' },
+          { cmd: 'k3d node list',                                                             desc: 'List all k3d nodes' },
+          { cmd: 'k3d registry create <name> --port <port>',                                 desc: 'Create a local container registry' },
+          { cmd: 'k3d registry delete <name>',                                                desc: 'Delete a k3d registry' },
+          { cmd: 'k3d registry list',                                                          desc: 'List all k3d registries' },
+        ]
+      },
+      {
+        title: 'Images',
+        desc: 'Import local container images into k3d clusters for testing without a registry.',
+        cmds: [
+          { cmd: 'k3d image import <image> -c <cluster>',                                    desc: 'Import an image into a cluster' },
+          { cmd: 'k3d image import <image1> <image2> -c <cluster>',                         desc: 'Import multiple images' },
+          { cmd: 'k3d image import <tar> -c <cluster>',                                     desc: 'Import from a tar archive' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'List clusters, nodes, registries, and retrieve kubeconfig for cluster access.',
+        cmds: [
+          { cmd: 'k3d cluster list',                                                           desc: 'List all k3d clusters' },
+          { cmd: 'k3d node list',                                                             desc: 'List all k3d nodes' },
+          { cmd: 'k3d kubeconfig get <name>',                                                 desc: 'Get kubeconfig for a cluster' },
+          { cmd: 'k3d kubeconfig merge <name> --switch-context',                              desc: 'Merge kubeconfig and switch context' },
+        ]
+      },
+    ]
+  },
+
+  // ── INSTALLATION — KIND ─────────────────────────────────────
+  {
+    id: 'install-kind', title: 'KinD', icon: ICONS.kind, sub: 'Installation',
+    groups: [
+      {
+        title: 'Install',
+        desc: 'Install kind (Kubernetes IN Docker), a tool for running local Kubernetes clusters using Docker containers as nodes.',
+        cmds: [
+          { cmd: 'brew install kind',                                                          desc: 'Install kind via Homebrew' },
+          { cmd: 'curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/', desc: 'Install kind binary on Linux amd64' },
+          { cmd: 'kind version',                                                              desc: 'Print kind version' },
+        ]
+      },
+      {
+        title: 'Manage',
+        desc: 'Create and delete kind clusters, configure multi-node topologies, and manage cluster lifecycle.',
+        cmds: [
+          { cmd: 'kind create cluster --name <name>',                                          desc: 'Create a named kind cluster' },
+          { cmd: 'kind create cluster --config <kind.yaml>',                                   desc: 'Create cluster from config file (multi-node, HA)' },
+          { cmd: 'kind create cluster --image <node-image>',                                   desc: 'Create cluster with a specific node image' },
+          { cmd: 'kind create cluster --retain',                                               desc: 'Create cluster and retain nodes on failure for debugging' },
+          { cmd: 'kind delete cluster --name <name>',                                          desc: 'Delete a named kind cluster' },
+          { cmd: 'kind delete clusters <name1> <name2>',                                      desc: 'Delete multiple clusters' },
+        ]
+      },
+      {
+        title: 'Images & Logs',
+        desc: 'Load container images into kind nodes and export cluster logs for debugging.',
+        cmds: [
+          { cmd: 'kind load docker-image <image> --name <name>',                             desc: 'Load a Docker image into a cluster' },
+          { cmd: 'kind load docker-image <image> --name <name> --nodes <node1>,<node2>',     desc: 'Load image into specific nodes' },
+          { cmd: 'kind load image-archive <tar> --name <name>',                              desc: 'Load an image from a tar archive' },
+          { cmd: 'kind build node-image --image <tag>',                                      desc: 'Build a custom node image' },
+          { cmd: 'kind export logs --name <name>',                                           desc: 'Export cluster logs to a local directory' },
+          { cmd: 'kind export logs --name <name> --outdir <dir>',                            desc: 'Export logs to a specific directory' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'List clusters and retrieve kubeconfig for cluster access.',
+        cmds: [
+          { cmd: 'kind get clusters',                                                          desc: 'List all kind clusters' },
+          { cmd: 'kind get nodes --name <name>',                                              desc: 'List nodes in a kind cluster' },
+          { cmd: 'kind get kubeconfig --name <name>',                                          desc: 'Get kubeconfig for a specific cluster' },
+          { cmd: 'kind export kubeconfig --name <name>',                                       desc: 'Export kubeconfig and set current context' },
+        ]
+      },
+    ]
+  },
+
+  // ── INSTALLATION — MINIKUBE ─────────────────────────────────
+  {
+    id: 'install-minikube', title: 'Minikube', icon: ICONS.minikube, sub: 'Installation',
+    groups: [
+      {
+        title: 'Install',
+        desc: 'Install minikube, a tool that runs a single-node Kubernetes cluster locally using a VM or container runtime.',
+        cmds: [
+          { cmd: 'brew install minikube',                                                      desc: 'Install minikube via Homebrew' },
+          { cmd: 'curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && sudo install minikube-linux-amd64 /usr/local/bin/minikube', desc: 'Install minikube binary on Linux amd64' },
+          { cmd: 'minikube version',                                                          desc: 'Print minikube version' },
+        ]
+      },
+      {
+        title: 'Manage',
+        desc: 'Start, stop, delete, and manage minikube clusters with support for multiple profiles and drivers.',
+        cmds: [
+          { cmd: 'minikube start --driver docker',                                            desc: 'Start a cluster with the Docker driver' },
+          { cmd: 'minikube start --driver podman',                                            desc: 'Start a cluster with the Podman driver' },
+          { cmd: 'minikube start --driver virtualbox',                                        desc: 'Start a cluster with the VirtualBox driver' },
+          { cmd: 'minikube start --driver qemu2',                                             desc: 'Start a cluster with the QEMU driver (Linux)' },
+          { cmd: 'minikube start --driver hyperkit',                                          desc: 'Start a cluster with the HyperKit driver (macOS)' },
+          { cmd: 'minikube start --kubernetes-version <version>',                             desc: 'Start with a specific Kubernetes version' },
+          { cmd: 'minikube start -p <profile>',                                               desc: 'Start a named profile (multi-cluster)' },
+          { cmd: 'minikube start --nodes <n>',                                                desc: 'Start a multi-node cluster' },
+          { cmd: 'minikube start --cpus <n> --memory <mb>',                                   desc: 'Start with custom CPU and memory' },
+          { cmd: 'minikube start --container-runtime containerd',                             desc: 'Start with containerd runtime' },
+          { cmd: 'minikube stop',                                                              desc: 'Stop the current minikube cluster' },
+          { cmd: 'minikube stop -p <profile>',                                                desc: 'Stop a specific profile' },
+          { cmd: 'minikube delete',                                                            desc: 'Delete the current minikube cluster' },
+          { cmd: 'minikube delete -p <profile>',                                              desc: 'Delete a specific profile' },
+          { cmd: 'minikube delete --all',                                                     desc: 'Delete all profiles and purge config' },
+        ]
+      },
+      {
+        title: 'Addons & Access',
+        desc: 'Enable addons (ingress, dashboard, metrics-server), expose services, and open the dashboard.',
+        cmds: [
+          { cmd: 'minikube addons list',                                                      desc: 'List all addons and their status' },
+          { cmd: 'minikube addons enable ingress',                                            desc: 'Enable the NGINX ingress controller' },
+          { cmd: 'minikube addons enable metrics-server',                                     desc: 'Enable metrics-server for kubectl top' },
+          { cmd: 'minikube addons enable registry',                                           desc: 'Enable the local Docker registry addon' },
+          { cmd: 'minikube addons enable dashboard',                                          desc: 'Enable the Kubernetes dashboard' },
+          { cmd: 'minikube addons enable <addon>',                                            desc: 'Enable an addon' },
+          { cmd: 'minikube addons disable <addon>',                                           desc: 'Disable an addon' },
+          { cmd: 'minikube dashboard',                                                        desc: 'Open the Kubernetes dashboard in browser' },
+          { cmd: 'minikube dashboard --url',                                                  desc: 'Print dashboard URL without opening' },
+          { cmd: 'minikube service <service>',                                                desc: 'Open a service endpoint in browser' },
+          { cmd: 'minikube service <service> --url',                                          desc: 'Print service URL without opening' },
+          { cmd: 'minikube tunnel',                                                           desc: 'Create a network tunnel for LoadBalancer services' },
+        ]
+      },
+      {
+        title: 'Images & Files',
+        desc: 'Load local images into minikube, SSH into the node, copy files, and build images inside the cluster.',
+        cmds: [
+          { cmd: 'minikube image load <image>',                                               desc: 'Load a local image into minikube' },
+          { cmd: 'minikube image load <image> --overwrite',                                   desc: 'Load image, overwriting if it exists' },
+          { cmd: 'minikube image list',                                                       desc: 'List images in the minikube container runtime' },
+          { cmd: 'minikube image build -t <tag> <dir>',                                      desc: 'Build an image inside minikube' },
+          { cmd: 'minikube ssh',                                                              desc: 'SSH into the minikube node' },
+          { cmd: 'minikube ssh -- <command>',                                                 desc: 'Run a command on the minikube node' },
+          { cmd: 'minikube cp <src> <dest>',                                                  desc: 'Copy files to/from minikube node' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'Check cluster status, list profiles, view services, and manage persistent configuration.',
+        cmds: [
+          { cmd: 'minikube status',                                                            desc: 'Show cluster status and health' },
+          { cmd: 'minikube profile list',                                                      desc: 'List all minikube profiles' },
+          { cmd: 'minikube profile <name>',                                                   desc: 'Switch to a specific profile' },
+          { cmd: 'minikube service list',                                                     desc: 'List services and their URLs' },
+          { cmd: 'minikube addons list',                                                      desc: 'List all addons and their status' },
+          { cmd: 'minikube config view',                                                     desc: 'View all config values' },
+          { cmd: 'minikube config set driver <driver>',                                      desc: 'Set the default driver' },
+          { cmd: 'minikube config set memory <mb>',                                          desc: 'Set default memory in MB' },
+          { cmd: 'minikube config set cpus <n>',                                             desc: 'Set default CPU count' },
+        ]
+      },
+    ]
+  },
+
   // ── TROUBLESHOOTING — KUBECTL ─────────────────────────────
   {
     id: 'troubleshoot-kubectl', title: 'Kubectl', icon: ICONS.troubleshoot, sub: 'Troubleshooting',
@@ -1197,38 +1557,33 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — K9S ─────────────────────────────────
+  // ── TROUBLESHOOTING — HELM ────────────────────────────────
   {
-    id: 'troubleshoot-k9s', title: 'K9s', icon: ICONS['troubleshoot-k9s'], sub: 'Troubleshooting',
+    id: 'troubleshoot-helm', title: 'Helm', icon: ICONS['troubleshoot-helm'], sub: 'Troubleshooting',
     groups: [
       {
-        title: 'Diagnose K9s',
-        desc: 'Print K9s runtime paths and version, or enable debug logging to identify startup and connection issues.',
+        title: 'Failed Releases',
+        desc: 'List and inspect failed or stuck Helm releases to understand the cause before attempting a rollback or reinstall.',
         cmds: [
-          { cmd: 'k9s info',                                                         desc: 'Print config file path, log path, screen dump dir, and plugin dir' },
-          { cmd: 'k9s version',                                                       desc: 'Print K9s version and build info' },
-          { cmd: 'k9s --logLevel debug',                                             desc: 'Start K9s with debug logging enabled' },
-          { cmd: 'k9s --readonly',                                                    desc: 'Start in read-only mode, all mutating actions are disabled' },
+          { cmd: 'helm history <release>',                                         desc: 'Full revision history to spot failures' },
+          { cmd: 'helm list --all -A',                                             desc: 'All releases including failed/uninstalled' },
+          { cmd: 'helm list --failed -A',                                          desc: 'Failed releases across all namespaces' },
+          { cmd: 'helm list --failed',                                             desc: 'List failed releases in current namespace' },
+          { cmd: 'helm status <release>',                                          desc: 'Release status and last deploy info' },
         ]
       },
       {
-        title: 'K9s Logs',
-        desc: 'Tail the K9s log file to inspect errors, panics, and connection traces. The path depends on your OS.',
+        title: 'Inspect & Debug',
+        desc: 'Retrieve notes, hooks, rendered manifests, and run chart test suites to pinpoint issues in a deployed release.',
         cmds: [
-          { cmd: 'tail -f ~/.local/share/k9s/k9s.log',                              desc: 'Follow K9s log on Linux' },
-          { cmd: 'tail -f ~/Library/Logs/k9s/k9s.log',                              desc: 'Follow K9s log on macOS' },
-          { cmd: 'cat ~/.local/share/k9s/k9s.log | grep -i error',                  desc: 'Filter error lines from K9s log on Linux' },
-          { cmd: 'cat ~/Library/Logs/k9s/k9s.log | grep -i error',                  desc: 'Filter error lines from K9s log on macOS' },
-        ]
-      },
-      {
-        title: 'Permission Errors',
-        desc: 'K9s reflects cluster RBAC. Use these commands to verify what the current user or service account is allowed to do.',
-        cmds: [
-          { cmd: 'kubectl auth can-i list pods',                                      desc: 'Check if current user can list pods' },
-          { cmd: 'kubectl auth can-i --list',                                         desc: 'List all permissions for the current user' },
-          { cmd: 'kubectl auth can-i --list -n <namespace>',                          desc: 'List permissions in a specific namespace' },
-          { cmd: 'kubectl auth can-i get pods --as=system:serviceaccount:<ns>:<sa>',  desc: 'Check permissions as a specific service account' },
+          { cmd: 'helm get all <release>',                                         desc: 'All info: values, hooks, manifests, notes' },
+          { cmd: 'helm get hooks <release>',                                       desc: 'List hooks defined in the release' },
+          { cmd: 'helm get manifest <release>',                                    desc: 'Rendered Kubernetes manifests of release' },
+          { cmd: 'helm get notes <release>',                                       desc: 'Show NOTES.txt output of release' },
+          { cmd: 'helm install <release> <chart> --dry-run --debug',               desc: 'Simulate install and show debug output' },
+          { cmd: 'helm lint <chart-dir>',                                          desc: 'Check chart for errors and warnings' },
+          { cmd: 'helm template <release> <chart> --debug',                        desc: 'Render templates with debug output' },
+          { cmd: 'helm test <release>',                                            desc: 'Run chart test suite' },
         ]
       },
     ]
@@ -1263,33 +1618,38 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — HELM ────────────────────────────────
+  // ── TROUBLESHOOTING — K9S ─────────────────────────────────
   {
-    id: 'troubleshoot-helm', title: 'Helm', icon: ICONS['troubleshoot-helm'], sub: 'Troubleshooting',
+    id: 'troubleshoot-k9s', title: 'K9s', icon: ICONS['troubleshoot-k9s'], sub: 'Troubleshooting',
     groups: [
       {
-        title: 'Failed Releases',
-        desc: 'List and inspect failed or stuck Helm releases to understand the cause before attempting a rollback or reinstall.',
+        title: 'Diagnose K9s',
+        desc: 'Print K9s runtime paths and version, or enable debug logging to identify startup and connection issues.',
         cmds: [
-          { cmd: 'helm history <release>',                                         desc: 'Full revision history to spot failures' },
-          { cmd: 'helm list --all -A',                                             desc: 'All releases including failed/uninstalled' },
-          { cmd: 'helm list --failed -A',                                          desc: 'Failed releases across all namespaces' },
-          { cmd: 'helm list --failed',                                             desc: 'List failed releases in current namespace' },
-          { cmd: 'helm status <release>',                                          desc: 'Release status and last deploy info' },
+          { cmd: 'k9s info',                                                         desc: 'Print config file path, log path, screen dump dir, and plugin dir' },
+          { cmd: 'k9s version',                                                       desc: 'Print K9s version and build info' },
+          { cmd: 'k9s --logLevel debug',                                             desc: 'Start K9s with debug logging enabled' },
+          { cmd: 'k9s --readonly',                                                    desc: 'Start in read-only mode, all mutating actions are disabled' },
         ]
       },
       {
-        title: 'Inspect & Debug',
-        desc: 'Retrieve notes, hooks, rendered manifests, and run chart test suites to pinpoint issues in a deployed release.',
+        title: 'K9s Logs',
+        desc: 'Tail the K9s log file to inspect errors, panics, and connection traces. The path depends on your OS.',
         cmds: [
-          { cmd: 'helm get all <release>',                                         desc: 'All info: values, hooks, manifests, notes' },
-          { cmd: 'helm get hooks <release>',                                       desc: 'List hooks defined in the release' },
-          { cmd: 'helm get manifest <release>',                                    desc: 'Rendered Kubernetes manifests of release' },
-          { cmd: 'helm get notes <release>',                                       desc: 'Show NOTES.txt output of release' },
-          { cmd: 'helm install <release> <chart> --dry-run --debug',               desc: 'Simulate install and show debug output' },
-          { cmd: 'helm lint <chart-dir>',                                          desc: 'Check chart for errors and warnings' },
-          { cmd: 'helm template <release> <chart> --debug',                        desc: 'Render templates with debug output' },
-          { cmd: 'helm test <release>',                                            desc: 'Run chart test suite' },
+          { cmd: 'tail -f ~/.local/share/k9s/k9s.log',                              desc: 'Follow K9s log on Linux' },
+          { cmd: 'tail -f ~/Library/Logs/k9s/k9s.log',                              desc: 'Follow K9s log on macOS' },
+          { cmd: 'cat ~/.local/share/k9s/k9s.log | grep -i error',                  desc: 'Filter error lines from K9s log on Linux' },
+          { cmd: 'cat ~/Library/Logs/k9s/k9s.log | grep -i error',                  desc: 'Filter error lines from K9s log on macOS' },
+        ]
+      },
+      {
+        title: 'Permission Errors',
+        desc: 'K9s reflects cluster RBAC. Use these commands to verify what the current user or service account is allowed to do.',
+        cmds: [
+          { cmd: 'kubectl auth can-i list pods',                                      desc: 'Check if current user can list pods' },
+          { cmd: 'kubectl auth can-i --list',                                         desc: 'List all permissions for the current user' },
+          { cmd: 'kubectl auth can-i --list -n <namespace>',                          desc: 'List permissions in a specific namespace' },
+          { cmd: 'kubectl auth can-i get pods --as=system:serviceaccount:<ns>:<sa>',  desc: 'Check permissions as a specific service account' },
         ]
       },
     ]

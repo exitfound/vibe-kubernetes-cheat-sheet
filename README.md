@@ -10,14 +10,14 @@ Available at [kube.how](https://kube.how/).
 
 The reference is split into six categories:
 
-- **Workloads:** Pods, Deployments, StatefulSets, DaemonSets, Services, ConfigMaps & Secrets, Jobs & CronJobs, Volumes, Networking, RBAC, Namespaces
 - **Cluster:** Cluster Health, Nodes, Contexts
+- **Workloads:** Pods, Deployments, StatefulSets, DaemonSets, Services, ConfigMaps & Secrets, Jobs & CronJobs, Volumes, Networking (incl. Gateway API, GatewayClass, HTTPRoutes, Ingress, IngressClass, Network Policies), RBAC, Namespaces
 - **Helm:** Releases, Charts
 - **Kustomize:** Manage, Edit
 - **K9s:** CLI & Launch, UI Shortcuts
 - **Troubleshooting:** Kubectl, K9s, Kustomize, Helm
 
-550+ commands in total.
+600+ commands in total.
 
 ## Stack
 

@@ -100,6 +100,7 @@ const CATEGORIES = {
   helm:         ['helm-releases', 'helm-charts'],
   kustomize:    ['kustomize-build', 'kustomize-edit'],
   k9s:          ['k9s-cli', 'k9s-ui'],
+  local:        ['install-kubeadm','install-k3s','install-k3d','install-kind','install-minikube'],
   troubleshoot: ['troubleshoot-kubectl','troubleshoot-helm','troubleshoot-kustomize','troubleshoot-k9s'],
 };
 
@@ -347,7 +348,7 @@ window.addEventListener('scroll', () => {
 scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 // ── Keyboard shortcuts ────────────────────────────────────────
-const TOP_KEYS  = { '1': 'all', '2': 'cluster', '3': 'workloads', '4': 'helm', '5': 'kustomize', '6': 'k9s', '7': 'troubleshoot' };
+const TOP_KEYS  = { '1': 'all', '2': 'local', '3': 'cluster', '4': 'workloads', '5': 'helm', '6': 'kustomize', '7': 'k9s', '8': 'troubleshoot' };
 const searchInput    = document.getElementById('searchInput');
 const searchShortcut = document.getElementById('searchShortcut');
 const searchClear    = document.getElementById('searchClear');
