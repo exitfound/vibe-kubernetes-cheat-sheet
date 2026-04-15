@@ -95,13 +95,13 @@ function applyMark(el, q) {
 
 // ── Navigation data ───────────────────────────────────────────
 const CATEGORIES = {
-  cluster:      ['cluster-health','node','context'],
+  cluster:      ['cluster-health','node','context','crd'],
   workloads:    ['pod','deployment','statefulset','daemonset','service','config','job','volume','network','rbac','namespace'],
   helm:         ['helm-releases', 'helm-charts'],
-  kustomize:    ['kustomize-build', 'kustomize-edit'],
+  kustomize:    ['kustomize-manage', 'kustomize-edit'],
   k9s:          ['k9s-cli', 'k9s-ui'],
-  local:        ['install-kubeadm','install-k3s','install-k3d','install-kind','install-minikube'],
-  troubleshoot: ['troubleshoot-local','troubleshoot-kubectl','troubleshoot-helm','troubleshoot-kustomize','troubleshoot-k9s'],
+  installation: ['install-kubeadm','install-k3s','install-k3d','install-kind','install-minikube'],
+  troubleshooting: ['troubleshooting-installation','troubleshooting-kubectl','troubleshooting-helm','troubleshooting-kustomize','troubleshooting-k9s'],
 };
 
 const SUB_LABELS = Object.fromEntries(SECTIONS.map(s => [s.id, s.title]));
@@ -348,7 +348,7 @@ window.addEventListener('scroll', () => {
 scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 // ── Keyboard shortcuts ────────────────────────────────────────
-const TOP_KEYS  = { '1': 'all', '2': 'local', '3': 'cluster', '4': 'workloads', '5': 'helm', '6': 'kustomize', '7': 'k9s', '8': 'troubleshoot' };
+const TOP_KEYS  = { '1': 'all', '2': 'installation', '3': 'cluster', '4': 'workloads', '5': 'helm', '6': 'kustomize', '7': 'k9s', '8': 'troubleshooting' };
 const searchInput    = document.getElementById('searchInput');
 const searchShortcut = document.getElementById('searchShortcut');
 const searchClear    = document.getElementById('searchClear');

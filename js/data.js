@@ -13,28 +13,28 @@ const ICONS = {
   network: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
   rbac: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
   node: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>`,
-  helm: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="22" y2="12"/></svg>`,
+  'helm-releases': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="22" y2="12"/></svg>`,
   context: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
   job: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   statefulset: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/><line x1="6" y1="5.5" x2="6.01" y2="5.5"/><line x1="6" y1="12.5" x2="6.01" y2="12.5"/><line x1="6" y1="19.5" x2="6.01" y2="19.5"/></svg>`,
   daemonset: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>`,
-  troubleshoot: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+  'troubleshooting-kubectl': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
   'cluster-health': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
-  k9s: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`,
+  'k9s-cli': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`,
   'k9s-ui': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>`,
-  kustomize: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>`,
+  'kustomize-manage': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>`,
   'kustomize-edit': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
   'helm-charts': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
-  'troubleshoot-local': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="12" y1="7" x2="12" y2="10"/><circle cx="12" cy="13" r="1" fill="currentColor" stroke="none"/></svg>`,
-  'troubleshoot-k9s': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
-  'troubleshoot-kustomize': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><polyline points="13.3 16.3 15 18"/></svg>`,
-  'troubleshoot-helm': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>`,
-  'local-cluster': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>`,
+  'troubleshooting-installation': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="12" y1="7" x2="12" y2="10"/><circle cx="12" cy="13" r="1" fill="currentColor" stroke="none"/></svg>`,
+  'troubleshooting-k9s': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+  'troubleshooting-kustomize': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="14.5" r="2.5"/><polyline points="13.3 16.3 15 18"/></svg>`,
+  'troubleshooting-helm': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>`,
   kubeadm: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
   k3s: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
   k3d: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
   kind: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 22v-4"/><path d="M17 22v-4"/><rect x="5" y="6" width="6" height="6" rx="1"/><rect x="13" y="6" width="6" height="6" rx="1"/><rect x="9" y="14" width="6" height="4" rx="1"/></svg>`,
   minikube: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>`,
+  crd: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2"/><circle cx="5" cy="20" r="2"/><circle cx="19" cy="20" r="2"/><line x1="12" y1="6" x2="12" y2="13"/><polyline points="5 18 5 13 19 13 19 18"/></svg>`,
 };
 
 const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
@@ -398,6 +398,17 @@ const SECTIONS = [
           { cmd: 'kubectl get validatingwebhookconfigurations',                     desc: 'Validating admission webhooks' },
         ]
       },
+      {
+        title: 'Certificates',
+        desc: 'Manage certificate signing requests (CSRs). Nodes and users submit CSRs to obtain signed certificates; a cluster admin approves or denies them.',
+        cmds: [
+          { cmd: 'kubectl certificate approve <name>',                              desc: 'Approve a certificate signing request' },
+          { cmd: 'kubectl certificate deny <name>',                                 desc: 'Deny a certificate signing request' },
+          { cmd: 'kubectl delete csr <name>',                                       desc: 'Delete a processed CSR' },
+          { cmd: 'kubectl describe csr <name>',                                     desc: 'Inspect CSR details and requestor' },
+          { cmd: 'kubectl get csr',                                                 desc: 'List all certificate signing requests' },
+        ]
+      },
     ]
   },
 
@@ -505,6 +516,48 @@ const SECTIONS = [
     ]
   },
 
+  // ── CUSTOM RESOURCES ──────────────────────────────────────
+  {
+    id: 'crd', title: 'Custom Resources', icon: ICONS.crd, sub: 'Cluster',
+    groups: [
+      {
+        title: 'Manage',
+        desc: 'Install, update, and remove Custom Resource Definitions that extend the Kubernetes API with new resource types.',
+        cmds: [
+          { cmd: 'kubectl apply -f crd.yaml',                                        desc: 'Install or update a CRD' },
+          { cmd: 'kubectl delete crd <name>',                                        desc: 'Remove a CRD and all its custom resources' },
+          { cmd: 'kubectl edit crd <name>',                                          desc: 'Edit CRD in $EDITOR' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'List installed CRDs and inspect their versions, schema, and acceptance status.',
+        cmds: [
+          { cmd: 'kubectl describe crd <name>',                                      desc: 'Full CRD details, versions, schema, and conditions' },
+          { cmd: 'kubectl get crd',                                                  desc: 'List all Custom Resource Definitions' },
+          { cmd: 'kubectl get crd <name> -o jsonpath=\'{.spec.versions[*].name}\'', desc: 'List all API versions defined by a CRD' },
+          { cmd: 'kubectl get crd <name> -o yaml',                                  desc: 'Get full CRD manifest as YAML' },
+          { cmd: 'kubectl get <custom-resource> -A',                                desc: 'List all instances of a custom resource' },
+          { cmd: 'kubectl get <custom-resource> <name> -n <namespace> -o yaml',     desc: 'Get a custom resource instance as YAML' },
+        ]
+      },
+      {
+        title: 'API Discovery',
+        desc: 'Explore all available API resources and versions, and inspect resource field schemas directly from the API server.',
+        cmds: [
+          { cmd: 'kubectl api-resources',                                            desc: 'List all available API resources' },
+          { cmd: 'kubectl api-resources --api-group=<group>',                       desc: 'Resources in a specific API group' },
+          { cmd: 'kubectl api-resources --namespaced=false',                        desc: 'Cluster-scoped resources only' },
+          { cmd: 'kubectl api-resources --namespaced=true',                         desc: 'Namespace-scoped resources only' },
+          { cmd: 'kubectl api-versions',                                             desc: 'List all API versions in the cluster' },
+          { cmd: 'kubectl explain <resource>',                                       desc: 'Describe a resource and its top-level fields' },
+          { cmd: 'kubectl explain <resource> --recursive',                           desc: 'Show full nested field tree' },
+          { cmd: 'kubectl explain <resource>.spec.<field>',                          desc: 'Explain a specific nested field' },
+        ]
+      },
+    ]
+  },
+
   // ── PODS ──────────────────────────────────────────────────
   {
     id: 'pod', title: 'Pods', icon: ICONS.pod, sub: 'Workloads',
@@ -534,6 +587,8 @@ const SECTIONS = [
           { cmd: 'kubectl exec <pod> -- <command>',                                desc: 'Run a one-off command in pod' },
           { cmd: 'kubectl port-forward pod/<name> 8080:80',                        desc: 'Forward localhost:8080 → pod:80' },
           { cmd: 'kubectl port-forward pod/<name> <local>:<remote>',               desc: 'Forward local port to pod' },
+          { cmd: 'kubectl attach -it <pod>',                                         desc: 'Attach to a running process in a pod' },
+          { cmd: 'kubectl attach -it <pod> -c <container>',                        desc: 'Attach to a specific container' },
           { cmd: 'kubectl port-forward svc/<name> 8080:80',                        desc: 'Forward localhost:8080 → service:80' },
         ]
       },
@@ -573,6 +628,8 @@ const SECTIONS = [
           { cmd: 'kubectl get pod <name> -o yaml',                                 desc: 'Get pod manifest as YAML' },
           { cmd: 'kubectl top pod',                                                desc: 'CPU and memory usage for pods' },
           { cmd: 'kubectl top pod --sort-by=cpu',                                  desc: 'Sort pods by CPU usage' },
+          { cmd: 'kubectl wait --for=condition=Ready pod/<name> --timeout=60s',   desc: 'Wait until pod is Ready' },
+          { cmd: 'kubectl wait --for=condition=Ready pod -l <key>=<value>',       desc: 'Wait for all matching pods to be Ready' },
         ]
       },
     ]
@@ -620,7 +677,9 @@ const SECTIONS = [
           { cmd: 'kubectl rollout resume deploy/<name>',                           desc: 'Resume a paused rollout' },
           { cmd: 'kubectl rollout status deploy/<name>',                           desc: 'Watch rollout progress' },
           { cmd: 'kubectl rollout undo deploy/<name> --to-revision=<n>',           desc: 'Rollback to specific revision' },
+          { cmd: 'kubectl annotate deploy/<name> kubernetes.io/change-cause="<message>"', desc: 'Set change cause shown in rollout history' },
           { cmd: 'kubectl rollout undo deploy/<name>',                             desc: 'Rollback to previous revision' },
+          { cmd: 'kubectl wait --for=condition=Available deployment/<name>',       desc: 'Wait until deployment is Available' },
         ]
       },
       {
@@ -853,6 +912,8 @@ const SECTIONS = [
           { cmd: 'kubectl get jobs -n <namespace>',                                desc: 'Jobs in a specific namespace' },
           { cmd: 'kubectl get pods --selector=job-name=<name>',                   desc: 'Find all pods created by a job' },
           { cmd: 'kubectl logs -l job-name=<name>',                               desc: 'Logs from all pods of a job by label' },
+          { cmd: 'kubectl wait --for=condition=complete job/<name> --timeout=120s', desc: 'Wait until job completes successfully' },
+          { cmd: 'kubectl wait --for=condition=failed job/<name>',                desc: 'Wait until job fails (useful in CI to catch errors)' },
         ]
       },
       {
@@ -902,6 +963,7 @@ const SECTIONS = [
           { cmd: 'kubectl get pvc <name> -o yaml',                                 desc: 'Get PVC manifest as YAML' },
           { cmd: 'kubectl get pvc',                                                desc: 'List PVCs in current namespace' },
           { cmd: 'kubectl patch pvc <name> -p \'{"metadata":{"finalizers":null}}\'', desc: 'Remove finalizers to unblock stuck Terminating PVC' },
+          { cmd: 'kubectl patch pvc <name> -p \'{"spec":{"resources":{"requests":{"storage":"10Gi"}}}}\'', desc: 'Resize PVC to a new storage size' },
         ]
       },
       {
@@ -1058,6 +1120,8 @@ const SECTIONS = [
           { cmd: 'kubectl get sa -A',                                              desc: 'All ServiceAccounts across namespaces' },
           { cmd: 'kubectl get sa -n <namespace>',                                  desc: 'ServiceAccounts in a namespace' },
           { cmd: 'kubectl get sa <name> -o yaml',                                  desc: 'Get ServiceAccount manifest as YAML' },
+          { cmd: 'kubectl create token <name>',                                   desc: 'Create a short-lived API token for a ServiceAccount' },
+          { cmd: 'kubectl create token <name> --duration=24h',                    desc: 'Create a token with custom expiry' },
           { cmd: 'kubectl get serviceaccounts',                                    desc: 'List ServiceAccounts in namespace' },
         ]
       },
@@ -1108,6 +1172,8 @@ const SECTIONS = [
           { cmd: 'kubectl apply -f namespace.yaml',                                desc: 'Apply namespace from manifest' },
           { cmd: 'kubectl create namespace <name>',                                desc: 'Create a new namespace' },
           { cmd: 'kubectl delete namespace <name>',                                desc: 'Delete a namespace and all its resources' },
+          { cmd: 'kubectl label namespace <name> <key>=<value>',                  desc: 'Add or update a label on a namespace' },
+          { cmd: 'kubectl label namespace <name> <key>-',                         desc: 'Remove a label from a namespace' },
         ]
       },
       {
@@ -1130,11 +1196,20 @@ const SECTIONS = [
 
   // ── HELM — RELEASES ───────────────────────────────────────
   {
-    id: 'helm-releases', title: 'Releases', icon: ICONS.helm, sub: 'Helm',
+    id: 'helm-releases', title: 'Releases', icon: ICONS['helm-releases'], sub: 'Helm',
     groups: [
       {
-        title: 'Install',
-        desc: 'Deploy a Helm chart as a named release with custom values or dry-run mode.',
+        title: 'Install Helm',
+        desc: 'Helm is the Kubernetes package manager. Install the CLI via Homebrew or the official script, then verify with helm version.',
+        cmds: [
+          { cmd: 'brew install helm',                                                                              desc: 'Install via Homebrew (macOS / Linux with brew)' },
+          { cmd: 'curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash',              desc: 'Install via official script (Linux / macOS)' },
+          { cmd: 'helm version',                                                                                  desc: 'Verify installation and show build info' },
+        ]
+      },
+      {
+        title: 'Manage',
+        desc: 'Deploy, remove, and modify Helm releases using install and uninstall commands with common flags.',
         cmds: [
           { cmd: 'helm install <release> <chart> --create-namespace -n <namespace>', desc: 'Install and create namespace if missing' },
           { cmd: 'helm install <release> <chart> --dry-run',                        desc: 'Simulate install without applying resources' },
@@ -1145,6 +1220,8 @@ const SECTIONS = [
           { cmd: 'helm install <release> <chart> --atomic',                         desc: 'Install with automatic rollback on failure' },
           { cmd: 'helm install <release> <chart> -f values1.yaml -f values2.yaml', desc: 'Install with multiple values files (last wins)' },
           { cmd: 'helm install <release> <chart>',                                 desc: 'Install a chart' },
+          { cmd: 'helm uninstall <release> --keep-history',                        desc: 'Uninstall but keep release history' },
+          { cmd: 'helm uninstall <release>',                                       desc: 'Delete a release and all its resources' },
         ]
       },
       {
@@ -1165,8 +1242,8 @@ const SECTIONS = [
         ]
       },
       {
-        title: 'Manage Releases',
-        desc: 'List, inspect values and manifests, and remove deployed releases.',
+        title: 'List & Inspect',
+        desc: 'List deployed releases and inspect their rendered manifests and values.',
         cmds: [
           { cmd: 'helm get manifest <release>',                                    desc: 'Get rendered Kubernetes manifests' },
           { cmd: 'helm get values <release> --all',                                desc: 'Show all computed values (merged)' },
@@ -1174,8 +1251,6 @@ const SECTIONS = [
           { cmd: 'helm list -A',                                                   desc: 'List all releases across namespaces' },
           { cmd: 'helm list -n <namespace>',                                       desc: 'List releases in a namespace' },
           { cmd: 'helm list',                                                      desc: 'List releases in current namespace' },
-          { cmd: 'helm uninstall <release> --keep-history',                        desc: 'Uninstall but keep release history' },
-          { cmd: 'helm uninstall <release>',                                       desc: 'Delete a release and all its resources' },
         ]
       },
     ]
@@ -1243,7 +1318,7 @@ const SECTIONS = [
 
   // ── KUSTOMIZE — BUILD & APPLY ─────────────────────────────
   {
-    id: 'kustomize-build', title: 'Manage', icon: ICONS.kustomize, sub: 'Kustomize',
+    id: 'kustomize-manage', title: 'Manage', icon: ICONS['kustomize-manage'], sub: 'Kustomize',
     groups: [
       {
         title: 'Install Kustomize',
@@ -1327,7 +1402,7 @@ const SECTIONS = [
 
   // ── K9S — CLI & LAUNCH ───────────────────────────────────
   {
-    id: 'k9s-cli', title: 'CLI & Launch', icon: ICONS.k9s, sub: 'K9s',
+    id: 'k9s-cli', title: 'CLI & Launch', icon: ICONS['k9s-cli'], sub: 'K9s',
     groups: [
       {
         title: 'Install K9s',
@@ -1464,7 +1539,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — INSTALLATION ──────────────────────────
   {
-    id: 'troubleshoot-local', title: 'Installation', icon: ICONS['troubleshoot-local'], sub: 'Troubleshooting',
+    id: 'troubleshooting-installation', title: 'Installation', icon: ICONS['troubleshooting-installation'], sub: 'Troubleshooting',
     groups: [
       {
         title: 'Kubeadm',
@@ -1538,7 +1613,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — KUBECTL ─────────────────────────────
   {
-    id: 'troubleshoot-kubectl', title: 'Kubectl', icon: ICONS.troubleshoot, sub: 'Troubleshooting',
+    id: 'troubleshooting-kubectl', title: 'Kubectl', icon: ICONS['troubleshooting-kubectl'], sub: 'Troubleshooting',
     groups: [
       {
         title: 'Events',
@@ -1635,7 +1710,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — HELM ────────────────────────────────
   {
-    id: 'troubleshoot-helm', title: 'Helm', icon: ICONS['troubleshoot-helm'], sub: 'Troubleshooting',
+    id: 'troubleshooting-helm', title: 'Helm', icon: ICONS['troubleshooting-helm'], sub: 'Troubleshooting',
     groups: [
       {
         title: 'Failed Releases',
@@ -1667,7 +1742,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — KUSTOMIZE ──────────────────────────
   {
-    id: 'troubleshoot-kustomize', title: 'Kustomize', icon: ICONS['troubleshoot-kustomize'], sub: 'Troubleshooting',
+    id: 'troubleshooting-kustomize', title: 'Kustomize', icon: ICONS['troubleshooting-kustomize'], sub: 'Troubleshooting',
     groups: [
       {
         title: 'Debug Build',
@@ -1696,7 +1771,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — K9S ─────────────────────────────────
   {
-    id: 'troubleshoot-k9s', title: 'K9s', icon: ICONS['troubleshoot-k9s'], sub: 'Troubleshooting',
+    id: 'troubleshooting-k9s', title: 'K9s', icon: ICONS['troubleshooting-k9s'], sub: 'Troubleshooting',
     groups: [
       {
         title: 'Diagnose K9s',
