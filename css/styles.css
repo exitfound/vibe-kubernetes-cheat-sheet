@@ -198,7 +198,7 @@ body {
 
 .search-count {
   position: absolute;
-  right: 9px;
+  right: 36px;
   top: 50%;
   transform: translateY(-50%);
   font-family: 'JetBrains Mono', monospace;

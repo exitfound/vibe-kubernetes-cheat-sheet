@@ -95,7 +95,7 @@ function applyMark(el, q) {
 
 // ── Navigation data ───────────────────────────────────────────
 const CATEGORIES = {
-  cluster:      ['cluster-health','node','context','crd'],
+  cluster:      ['cluster-health','node','crd','context'],
   workloads:    ['pod','deployment','statefulset','daemonset','service','config','job','volume','network','rbac','namespace'],
   helm:         ['helm-releases', 'helm-charts'],
   kustomize:    ['kustomize-manage', 'kustomize-edit'],
@@ -330,8 +330,14 @@ function applySearch(query) {
 
   const countEl = document.getElementById('searchCount');
   if (countEl) {
-    countEl.textContent = '';
-    countEl.classList.remove('active');
+    if (q) {
+      const n = [...document.querySelectorAll('.cmd-item')].filter(el => !el.hidden).length;
+      countEl.textContent = n.toString();
+      countEl.classList.toggle('active', true);
+    } else {
+      countEl.textContent = '';
+      countEl.classList.remove('active');
+    }
   }
 }
 

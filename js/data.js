@@ -96,8 +96,6 @@ const SECTIONS = [
         cmds: [
           { cmd: 'kubeadm token list',                                                      desc: 'List all bootstrap tokens' },
           { cmd: 'kubeadm config view',                                                     desc: 'View the kubeadm configuration stored in the cluster' },
-          { cmd: 'kubectl get nodes',                                                        desc: 'List all nodes and their status' },
-          { cmd: 'kubectl get pods -n kube-system',                                         desc: 'List control plane pods' },
         ]
       },
     ]
@@ -346,7 +344,6 @@ const SECTIONS = [
           { cmd: 'minikube profile list',                                                      desc: 'List all minikube profiles' },
           { cmd: 'minikube profile <name>',                                                   desc: 'Switch to a specific profile' },
           { cmd: 'minikube service list',                                                     desc: 'List services and their URLs' },
-          { cmd: 'minikube addons list',                                                      desc: 'List all addons and their status' },
           { cmd: 'minikube config view',                                                     desc: 'View all config values' },
           { cmd: 'minikube config set driver <driver>',                                      desc: 'Set the default driver' },
           { cmd: 'minikube config set memory <mb>',                                          desc: 'Set default memory in MB' },
@@ -471,6 +468,48 @@ const SECTIONS = [
     ]
   },
 
+  // ── CUSTOM RESOURCES ──────────────────────────────────────
+  {
+    id: 'crd', title: 'Custom Resources', icon: ICONS.crd, sub: 'Cluster',
+    groups: [
+      {
+        title: 'Manage',
+        desc: 'Install, update, and remove Custom Resource Definitions that extend the Kubernetes API with new resource types.',
+        cmds: [
+          { cmd: 'kubectl apply -f crd.yaml',                                        desc: 'Install or update a CRD' },
+          { cmd: 'kubectl delete crd <name>',                                        desc: 'Remove a CRD and all its custom resources' },
+          { cmd: 'kubectl edit crd <name>',                                          desc: 'Edit CRD in $EDITOR' },
+        ]
+      },
+      {
+        title: 'List & Inspect',
+        desc: 'List installed CRDs and inspect their versions, schema, and acceptance status.',
+        cmds: [
+          { cmd: 'kubectl describe crd <name>',                                      desc: 'Full CRD details, versions, schema, and conditions' },
+          { cmd: 'kubectl get crd',                                                  desc: 'List all Custom Resource Definitions' },
+          { cmd: 'kubectl get crd <name> -o jsonpath=\'{.spec.versions[*].name}\'', desc: 'List all API versions defined by a CRD' },
+          { cmd: 'kubectl get crd <name> -o yaml',                                  desc: 'Get full CRD manifest as YAML' },
+          { cmd: 'kubectl get <custom-resource> -A',                                desc: 'List all instances of a custom resource' },
+          { cmd: 'kubectl get <custom-resource> <name> -n <namespace> -o yaml',     desc: 'Get a custom resource instance as YAML' },
+        ]
+      },
+      {
+        title: 'API Discovery',
+        desc: 'Explore all available API resources and versions, and inspect resource field schemas directly from the API server.',
+        cmds: [
+          { cmd: 'kubectl api-resources',                                            desc: 'List all available API resources' },
+          { cmd: 'kubectl api-resources --api-group=<group>',                       desc: 'Resources in a specific API group' },
+          { cmd: 'kubectl api-resources --namespaced=false',                        desc: 'Cluster-scoped resources only' },
+          { cmd: 'kubectl api-resources --namespaced=true',                         desc: 'Namespace-scoped resources only' },
+          { cmd: 'kubectl api-versions',                                             desc: 'List all API versions in the cluster' },
+          { cmd: 'kubectl explain <resource>',                                       desc: 'Describe a resource and its top-level fields' },
+          { cmd: 'kubectl explain <resource> --recursive',                           desc: 'Show full nested field tree' },
+          { cmd: 'kubectl explain <resource>.spec.<field>',                          desc: 'Explain a specific nested field' },
+        ]
+      },
+    ]
+  },
+
   // ── CONTEXTS ──────────────────────────────────────────────
   {
     id: 'context', title: 'Contexts', icon: ICONS.context, sub: 'Cluster',
@@ -511,48 +550,6 @@ const SECTIONS = [
           { cmd: 'kubectl config view --flatten',                                  desc: 'Flatten kubeconfig (useful for sharing)' },
           { cmd: 'kubectl config view --minify',                                   desc: 'View current context config only' },
           { cmd: 'kubectl config view',                                            desc: 'View full kubeconfig' },
-        ]
-      },
-    ]
-  },
-
-  // ── CUSTOM RESOURCES ──────────────────────────────────────
-  {
-    id: 'crd', title: 'Custom Resources', icon: ICONS.crd, sub: 'Cluster',
-    groups: [
-      {
-        title: 'Manage',
-        desc: 'Install, update, and remove Custom Resource Definitions that extend the Kubernetes API with new resource types.',
-        cmds: [
-          { cmd: 'kubectl apply -f crd.yaml',                                        desc: 'Install or update a CRD' },
-          { cmd: 'kubectl delete crd <name>',                                        desc: 'Remove a CRD and all its custom resources' },
-          { cmd: 'kubectl edit crd <name>',                                          desc: 'Edit CRD in $EDITOR' },
-        ]
-      },
-      {
-        title: 'List & Inspect',
-        desc: 'List installed CRDs and inspect their versions, schema, and acceptance status.',
-        cmds: [
-          { cmd: 'kubectl describe crd <name>',                                      desc: 'Full CRD details, versions, schema, and conditions' },
-          { cmd: 'kubectl get crd',                                                  desc: 'List all Custom Resource Definitions' },
-          { cmd: 'kubectl get crd <name> -o jsonpath=\'{.spec.versions[*].name}\'', desc: 'List all API versions defined by a CRD' },
-          { cmd: 'kubectl get crd <name> -o yaml',                                  desc: 'Get full CRD manifest as YAML' },
-          { cmd: 'kubectl get <custom-resource> -A',                                desc: 'List all instances of a custom resource' },
-          { cmd: 'kubectl get <custom-resource> <name> -n <namespace> -o yaml',     desc: 'Get a custom resource instance as YAML' },
-        ]
-      },
-      {
-        title: 'API Discovery',
-        desc: 'Explore all available API resources and versions, and inspect resource field schemas directly from the API server.',
-        cmds: [
-          { cmd: 'kubectl api-resources',                                            desc: 'List all available API resources' },
-          { cmd: 'kubectl api-resources --api-group=<group>',                       desc: 'Resources in a specific API group' },
-          { cmd: 'kubectl api-resources --namespaced=false',                        desc: 'Cluster-scoped resources only' },
-          { cmd: 'kubectl api-resources --namespaced=true',                         desc: 'Namespace-scoped resources only' },
-          { cmd: 'kubectl api-versions',                                             desc: 'List all API versions in the cluster' },
-          { cmd: 'kubectl explain <resource>',                                       desc: 'Describe a resource and its top-level fields' },
-          { cmd: 'kubectl explain <resource> --recursive',                           desc: 'Show full nested field tree' },
-          { cmd: 'kubectl explain <resource>.spec.<field>',                          desc: 'Explain a specific nested field' },
         ]
       },
     ]
@@ -912,8 +909,8 @@ const SECTIONS = [
           { cmd: 'kubectl get jobs -n <namespace>',                                desc: 'Jobs in a specific namespace' },
           { cmd: 'kubectl get pods --selector=job-name=<name>',                   desc: 'Find all pods created by a job' },
           { cmd: 'kubectl logs -l job-name=<name>',                               desc: 'Logs from all pods of a job by label' },
-          { cmd: 'kubectl wait --for=condition=complete job/<name> --timeout=120s', desc: 'Wait until job completes successfully' },
-          { cmd: 'kubectl wait --for=condition=failed job/<name>',                desc: 'Wait until job fails (useful in CI to catch errors)' },
+          { cmd: 'kubectl wait --for=condition=Complete job/<name> --timeout=120s', desc: 'Wait until job completes successfully' },
+          { cmd: 'kubectl wait --for=condition=Failed job/<name>',                desc: 'Wait until job fails (useful in CI to catch errors)' },
         ]
       },
       {
@@ -1182,7 +1179,7 @@ const SECTIONS = [
         cmds: [
           { cmd: 'kubectl describe namespace <name>',                              desc: 'Namespace details and resource quotas' },
           { cmd: 'kubectl describe resourcequota -n <namespace>',                  desc: 'Current quota usage vs limits' },
-          { cmd: 'kubectl get all --all-namespaces',                               desc: 'All resources across all namespaces' },
+          { cmd: 'kubectl get all -A',                                              desc: 'All resources across all namespaces' },
           { cmd: 'kubectl get all -n <namespace>',                                 desc: 'All resources in a namespace' },
           { cmd: 'kubectl get limitrange -n <namespace>',                          desc: 'Default CPU/memory limits for namespace' },
           { cmd: 'kubectl get namespace <name> -o yaml',                           desc: 'Get namespace manifest as YAML' },
@@ -1296,7 +1293,6 @@ const SECTIONS = [
           { cmd: 'helm show chart <chart>',                                        desc: 'Display chart metadata (Chart.yaml)' },
           { cmd: 'helm show readme <chart>',                                       desc: 'Display chart README' },
           { cmd: 'helm show values <chart>',                                       desc: 'Display chart default values' },
-          { cmd: 'helm version',                                                   desc: 'Show Helm client version' },
         ]
       },
       {
@@ -1778,9 +1774,7 @@ const SECTIONS = [
         desc: 'Print K9s runtime paths and version, or enable debug logging to identify startup and connection issues.',
         cmds: [
           { cmd: 'k9s info',                                                         desc: 'Print config file path, log path, screen dump dir, and plugin dir' },
-          { cmd: 'k9s version',                                                       desc: 'Print K9s version and build info' },
           { cmd: 'k9s --logLevel debug',                                             desc: 'Start K9s with debug logging enabled' },
-          { cmd: 'k9s --readonly',                                                    desc: 'Start in read-only mode, all mutating actions are disabled' },
         ]
       },
       {
