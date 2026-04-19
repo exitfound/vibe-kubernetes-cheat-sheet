@@ -334,7 +334,7 @@ body {
 }
 
 /* ===== SECTION ===== */
-.section { margin-bottom: 44px; }
+.section { margin-bottom: 44px; content-visibility: auto; contain-intrinsic-size: 0 700px; }
 .section[hidden] { display: none; }
 
 .section-header {

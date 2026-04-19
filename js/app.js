@@ -436,6 +436,6 @@ function alignLogo() {
   const iconCenter = logoIcon.getBoundingClientRect().left + logoIcon.offsetWidth / 2;
   logo.style.marginLeft = (currentMargin + allCenter - iconCenter) + 'px';
 }
-alignLogo();
+requestAnimationFrame(alignLogo);
 window.addEventListener('resize', alignLogo);
-document.fonts.ready.then(alignLogo);
+document.fonts.ready.then(() => requestAnimationFrame(alignLogo));
