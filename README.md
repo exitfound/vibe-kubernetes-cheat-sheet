@@ -31,6 +31,8 @@ Over 600 commands across seven categories, each with a short plain-English descr
 - **Search** filters across all commands and descriptions at once. Hit `/` to focus the search field from anywhere on the page, `Esc` to clear it.
 - **Keyboard shortcuts** `1`–`8` jump between top-level categories without touching the mouse.
 - **Deep links** work – the URL updates as you navigate, so you can bookmark or share a specific section directly (e.g. `kube.how/#helm`).
+- **Contacts** button in the header opens a dropdown with links to the community channels.
+- **Sponsor** button opens a dropdown with a donation link and crypto wallet addresses – click the copy icon next to any address to copy it in full.
 
 ---
 
@@ -38,13 +40,15 @@ Over 600 commands across seven categories, each with a short plain-English descr
 
 The project is intentionally dependency-free. There is no framework, no bundler, and no npm involved.
 
-- **HTML / CSS / JavaScript** – three files, plain ES6 modules, no build step
+- **HTML / CSS / JavaScript** – plain ES6 modules, no build step
 - **Google Fonts** – Space Grotesk for the UI, JetBrains Mono for commands
 - **nginx** – web server inside the Docker image, with gzip and static asset caching configured
 - **GitHub Actions** – automatic deployment to GitHub Pages on every push to `main`
 - **GitHub Pages + Cloudflare** – hosting with the custom domain `kube.how`, full SSL, and edge caching
 
 All content lives in `js/data.js` as a structured array. Adding or editing commands means touching that one file only – no templates, no CMS.
+
+Contacts and sponsor information lives in `js/contacts.js`. This file is optional – delete it to ship a build without the Contacts and Sponsor header buttons; the rest of the app is unaffected.
 
 ---
 
@@ -84,7 +88,11 @@ docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet
 
 ## Contributing
 
-Content edits go in `js/data.js` – each section is a plain JS object with a `groups` array, each group has a `title`, `desc`, and `cmds` list. Commands are sorted automatically on render, so order inside the array doesn't matter. If you spot a wrong flag, a missing command, or a broken description – pull requests are welcome.
+Content edits go in `js/data.js` – each section is a plain JS object with a `groups` array, each group has a `title`, `desc`, and `cmds` list. Commands are sorted automatically on render, so order inside the array doesn't matter.
+
+To update contacts or sponsor links, edit `js/contacts.js`. To remove the header buttons entirely, delete that file.
+
+If you spot a wrong flag, a missing command, or a broken description – pull requests are welcome.
 
 ---
 

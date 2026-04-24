@@ -20,16 +20,39 @@ Single-page app, no framework, no bundler. Dependencies: Google Fonts only (Spac
 
 **`data.js`** — all content: `SECTIONS` array, `ICONS` object, `COPY_ICON`/`CHECK_ICON` SVGs.
 
+**`contacts.js`** — optional file. Exports `CONTACTS` and `SPONSOR` config objects. Dynamically imported by `app.js` at runtime; if the file is absent the header renders without those buttons and everything else works normally. Delete to ship a build without Contacts/Sponsor.
+
 **`app.js`** — runtime logic:
 - `CATEGORIES` maps nav keys (`cluster`, `workloads`, `helm`, `kustomize`, `k9s`, `installation`, `troubleshooting`) to section ID arrays
 - `SUB_LABELS` is auto-derived from `SECTIONS` — no manual maintenance
 - `hl()` tokenizes commands into highlighted HTML spans
 - `sortCmds()` sorts commands by subcommand, then flag count, then full string
 - All content rendered into `<main id="main">` on `init()`
+- `renderHeaderActions(CONTACTS, SPONSOR)` renders Contacts and Sponsor dropdown buttons into `#headerActions` from `contacts.js` config
 
 **Navigation:** two levels. Top row: All | Installation | Cluster | Workloads | Helm | Kustomize | K9s | Troubleshooting. Sub-nav generated dynamically from `CATEGORIES` + `SUB_LABELS`.
 
 **Keyboard:** `1`–`8` switch top tabs, `/` focuses search, `Esc` clears.
+
+## Header actions
+
+Two optional ghost-style buttons on the right side of the header — **Contacts** and **Sponsor** — each opens a dropdown popover anchored below the button. Powered entirely by `contacts.js`; `index.html` and `app.js` need no changes to add or remove them.
+
+**`contacts.js` structure:**
+```js
+export const CONTACTS = {
+  enabled: true,          // false hides the button without deleting the file
+  links: [{ label, href, icon }],
+};
+
+export const SPONSOR = {
+  enabled: true,
+  donate: { label, href, icon },
+  wallets: [{ coin, net, addr }],  // addr is copied in full despite display truncation
+};
+```
+
+Dropdown behavior: click outside or `Esc` closes. Copy buttons on wallet rows reuse the existing `COPY_ICON`/`CHECK_ICON` pattern from `data.js`.
 
 ## Sections
 
@@ -87,6 +110,14 @@ The `sub` field on each section is the category label shown in the section heade
 5. Add `--<cat>-color`, `--<cat>-glow`, `--<cat>-border` vars in `:root` in `styles.css`
 6. Add `.top-<name>.active` + `.section[data-cat="<name>"]` color rules in `styles.css`
 7. Add `#navSub[data-cat="<name>"] .nav-btn.active` rule in `styles.css`
+
+## Responsive breakpoints
+
+- **≤900px** (tablets, iPads, phones in landscape) — header switches to two-row layout: logo fills row 1 full-width; search + action buttons share row 2. Button labels hidden, icon-only. `nav` sticks at `top: 113px`, `nav-sub` at `top: 157px`.
+- **≤680px** (phones) — cards grid collapses to single column; main padding tightened.
+- **≤400px** — logo icon and text shrink further; action buttons reduced to `height: 30px`.
+
+`alignLogo()` in `app.js` skips the logo-centering offset for viewports ≤900px.
 
 ## Conventions
 

@@ -426,7 +426,7 @@ window.addEventListener('hashchange', restoreFromHash);
 function alignLogo() {
   const logo = document.querySelector('.logo');
   if (!logo) return;
-  if (window.innerWidth <= 680) { logo.style.marginLeft = '0'; return; }
+  if (window.innerWidth <= 900) { logo.style.marginLeft = '0'; return; }
   const allBtn   = document.querySelector('[data-top="all"]');
   const logoIcon = document.querySelector('.logo-icon');
   if (!allBtn || !logoIcon) return;
@@ -439,3 +439,107 @@ function alignLogo() {
 requestAnimationFrame(alignLogo);
 window.addEventListener('resize', alignLogo);
 document.fonts.ready.then(() => requestAnimationFrame(alignLogo));
+
+// ── Header dropdowns ──────────────────────────────────────────
+const CONTACT_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+
+function renderHeaderActions(CONTACTS, SPONSOR) {
+  const container = document.getElementById('headerActions');
+  if (!container) return;
+
+  let html = '';
+
+  if (CONTACTS.enabled) {
+    const links = CONTACTS.links.map(l => `
+      <a class="dropdown-link" href="${escapeHtml(l.href)}" target="_blank" rel="noopener" role="menuitem">
+        ${l.icon} ${escapeHtml(l.label)}
+      </a>`).join('');
+    html += `
+      <div class="action-wrap">
+        <button class="action-btn" aria-expanded="false" aria-haspopup="true">
+          ${CONTACT_ICON}<span class="action-btn-label">Contacts</span>
+        </button>
+        <div class="action-dropdown" role="menu">${links}</div>
+      </div>`;
+  }
+
+  if (SPONSOR.enabled) {
+    const donate = `
+      <a class="dropdown-link" href="${escapeHtml(SPONSOR.donate.href)}" target="_blank" rel="noopener" role="menuitem">
+        ${SPONSOR.donate.icon} ${escapeHtml(SPONSOR.donate.label)}
+      </a>`;
+    const wallets = SPONSOR.wallets.map(w => `
+      <div class="dropdown-copy-row">
+        <span class="dropdown-coin">${escapeHtml(w.coin)}<span class="dropdown-net">${escapeHtml(w.net)}</span></span>
+        <span class="dropdown-addr" data-addr="${escapeHtml(w.addr)}">${escapeHtml(w.addr)}</span>
+        <button class="dropdown-copy-btn" aria-label="Copy ${escapeHtml(w.coin)} address">${COPY_ICON}</button>
+      </div>`).join('');
+    html += `
+      <div class="action-wrap">
+        <button class="action-btn" aria-expanded="false" aria-haspopup="true">
+          ${SPONSOR_ICON}<span class="action-btn-label">Sponsor</span>
+        </button>
+        <div class="action-dropdown" role="menu">
+          ${donate}
+          <div class="dropdown-divider"></div>
+          ${wallets}
+        </div>
+      </div>`;
+  }
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.action-wrap').forEach(wrap => {
+    wrap.querySelector('.action-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      const isOpen = wrap.classList.contains('open');
+      closeAllDropdowns();
+      if (!isOpen) {
+        wrap.classList.add('open');
+        wrap.querySelector('.action-btn').setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  container.querySelectorAll('.dropdown-copy-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const addr = btn.closest('.dropdown-copy-row').querySelector('.dropdown-addr').dataset.addr;
+      const finish = () => {
+        clearTimeout(copyTimer);
+        btn.innerHTML = CHECK_ICON;
+        btn.classList.add('copied');
+        copyTimer = setTimeout(() => {
+          btn.innerHTML = COPY_ICON;
+          btn.classList.remove('copied');
+        }, COPY_RESET_DELAY);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(addr).then(finish).catch(() => fallbackCopy(addr, finish));
+      } else {
+        fallbackCopy(addr, finish);
+      }
+    });
+  });
+}
+
+function closeAllDropdowns() {
+  document.querySelectorAll('#headerActions .action-wrap').forEach(w => {
+    w.classList.remove('open');
+    w.querySelector('.action-btn').setAttribute('aria-expanded', 'false');
+  });
+}
+
+document.addEventListener('click', closeAllDropdowns);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.querySelector('#headerActions .action-wrap.open')) {
+    e.stopPropagation();
+    closeAllDropdowns();
+  }
+});
+
+try {
+  const { CONTACTS, SPONSOR } = await import('./contacts.js');
+  renderHeaderActions(CONTACTS, SPONSOR);
+} catch (_) {}
