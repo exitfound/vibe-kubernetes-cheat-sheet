@@ -8,40 +8,40 @@
   --border-subtle:  #1e1935;
 
   --text:           #ece9ff;
-  --text-bright:    #f2f0fc;
+  --text-bright:    #f9f8ff;
   --text-muted:     #8d8e96;
   --text-dim:       #9b95b8;
   --text-nav:       #e8e4ff;
-  --text-card-desc: #e1ddff;
+  --text-card-desc: #c7c2ed;
 
   --accent:         #e0cdff;
   --accent-hover:   #ede0ff;
   --accent-glow:    rgba(224, 205, 255, 0.16);
   --accent-border:  rgba(224, 205, 255, 0.28);
 
-  --helm-color:     #7e83ff;
-  --helm-glow:      rgba(126, 131, 255, 0.12);
-  --helm-border:    rgba(126, 131, 255, 0.25);
+  --helm-color:     #9498ff;
+  --helm-glow:      rgba(150, 153, 255, 0.12);
+  --helm-border:    rgba(151, 154, 255, 0.25);
 
-  --cluster-color:  #c0bcff;
-  --cluster-glow:   rgba(192, 188, 255, 0.14);
-  --cluster-border: rgba(192, 188, 255, 0.28);
+  --cluster-color:  #c5bcff;
+  --cluster-glow:   rgba(202, 188, 255, 0.14);
+  --cluster-border: rgba(198, 188, 255, 0.28);
 
-  --troubleshooting-color:  #ff7c61;
-  --troubleshooting-glow:   rgba(255, 124, 97, 0.10);
-  --troubleshooting-border: rgba(255, 124, 97, 0.28);
+  --troubleshooting-color:  #ff6b61;
+  --troubleshooting-glow:   rgba(255, 113, 97, 0.1);
+  --troubleshooting-border: rgba(255, 107, 97, 0.28);
 
   --kustomize-color:  #c0ff8d;
   --kustomize-glow:   rgba(192, 255, 141, 0.12);
   --kustomize-border: rgba(192, 255, 141, 0.25);
 
-  --k9s-color:  #ffc27c;
-  --k9s-glow:   rgba(255, 194, 124, 0.12);
-  --k9s-border: rgba(255, 194, 124, 0.25);
+  --k9s-color:  #ffad6a;
+  --k9s-glow:   rgba(255, 174, 124, 0.193);
+  --k9s-border: rgba(255, 179, 124, 0.227);
 
-  --workloads-color:  #79acff;
-  --workloads-glow:   rgba(121, 172, 255, 0.10);
-  --workloads-border: rgba(121, 172, 255, 0.25);
+  --workloads-color:  #79bcff;
+  --workloads-glow:   rgba(121, 184, 255, 0.1);
+  --workloads-border: rgba(121, 184, 255, 0.25);
 
   --installation-color:  #63ffdd;
   --installation-glow:   rgba(99, 255, 221, 0.12);
@@ -121,7 +121,7 @@ body {
 .logo-icon svg { width: 100%; height: 100%; }
 
 .logo-text {
-  font-size: 27px;
+  font-size: 25px;
   font-weight: 700;
   color: var(--text-bright);
   letter-spacing: -0.4px;
@@ -129,7 +129,7 @@ body {
 }
 
 .logo-sub {
-  font-size: 15px;
+  font-size: 13px;
   color: var(--text-muted);
   letter-spacing: 0.2px;
   font-family: 'JetBrains Mono', monospace;
@@ -323,7 +323,7 @@ body {
 
 .search-input {
   width: 100%;
-  height: 40px;
+  height: 37px;
   background: var(--border-subtle);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -891,7 +891,7 @@ mark {
   }
   .logo { margin-top: 0; flex: 0 0 100%; }
   .logo-icon { width: 44px; height: 44px; }
-  .logo-text { font-size: 25px; }
+  .logo-text { font-size: 23px; }
   .search-container {
     position: relative;
     transform: none;
@@ -901,9 +901,9 @@ mark {
     max-width: none;
     min-width: 0;
   }
-  .search-input { height: 36px; font-size: 13.5px; }
-  .nav { top: 113px; }
-  .nav-sub { top: 157px; }
+  .search-input { height: 37px; font-size: 13.5px; }
+  .nav { top: 110px; }
+  .nav-sub { top: 154px; }
   .header-actions { gap: 4px; margin-left: 0; }
   .action-btn-label { display: none; }
   .action-btn { padding: 0 9px; gap: 0; }
