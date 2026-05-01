@@ -18,7 +18,11 @@ const ICONS = {
   job: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   statefulset: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/><line x1="6" y1="5.5" x2="6.01" y2="5.5"/><line x1="6" y1="12.5" x2="6.01" y2="12.5"/><line x1="6" y1="19.5" x2="6.01" y2="19.5"/></svg>`,
   daemonset: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>`,
-  'troubleshooting-kubectl': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+  'troubleshooting-cluster': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+  'troubleshooting-network': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`,
+  'troubleshooting-storage': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg>`,
+  'troubleshooting-resources': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  'troubleshooting-scheduling': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
   'cluster-health': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
   'k9s-cli': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`,
   'k9s-ui': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>`,
@@ -39,6 +43,8 @@ const ICONS = {
 
 const COPY_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+const CONTACT_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
 
 // ── Data ──────────────────────────────────────────────────────
 const SECTIONS = [
@@ -560,7 +566,7 @@ const SECTIONS = [
     id: 'pod', title: 'Pods', icon: ICONS.pod, sub: 'Workloads',
     groups: [
       {
-        title: 'Create & Delete',
+        title: 'Manage',
         desc: 'Apply manifests, run standalone pods imperatively, and remove them by name, file, or label.',
         cmds: [
           { cmd: 'kubectl apply -f <pod.yaml>',                                    desc: 'Create or update pod from manifest' },
@@ -1607,16 +1613,17 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — KUBECTL ─────────────────────────────
+  // ── TROUBLESHOOTING — CLUSTER ─────────────────────────────
   {
-    id: 'troubleshooting-kubectl', title: 'Kubectl', icon: ICONS['troubleshooting-kubectl'], sub: 'Troubleshooting',
+    id: 'troubleshooting-cluster', title: 'Cluster', icon: ICONS['troubleshooting-cluster'], sub: 'Troubleshooting',
     groups: [
       {
         title: 'Events',
-        desc: 'Inspect cluster events to understand what happened to resources: warnings, restarts, and scheduling failures.',
+        desc: 'Inspect cluster events to understand what happened to resources: warnings, restarts, scheduling failures.',
         cmds: [
+          { cmd: 'kubectl events --watch --types=Warning',                         desc: 'Stream warning events live (kubectl 1.27+)' },
           { cmd: 'kubectl events -n <namespace> --types=Warning',                  desc: 'Modern events CLI: filter by Warning type' },
-          { cmd: 'kubectl get events --field-selector=involvedObject.name=<pod>',  desc: 'Events for a specific object' },
+          { cmd: 'kubectl get events --field-selector=involvedObject.name=<name>', desc: 'Events for a specific object' },
           { cmd: 'kubectl get events --field-selector=type=Warning',               desc: 'Only Warning events' },
           { cmd: "kubectl get events -A --sort-by='.lastTimestamp'",               desc: 'All events sorted by time' },
           { cmd: 'kubectl get events -n <namespace> --watch',                      desc: 'Stream events in real time' },
@@ -1624,81 +1631,215 @@ const SECTIONS = [
         ]
       },
       {
-        title: 'Debug Pods',
-        desc: 'Diagnose crashing or misbehaving pods by inspecting their state, logs, and spawning ephemeral debug containers.',
+        title: 'Live Debug',
+        desc: 'Spawn ephemeral containers, debug copies of pods, or get a privileged shell on a node without modifying the original workload.',
         cmds: [
-          { cmd: 'kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container>', desc: 'Ephemeral debug sidecar that shares target PID and net namespace, ideal for distroless images' },
-          { cmd: 'kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod>', desc: 'Debug copy of a pod (when ephemeral containers are not available)' },
+          { cmd: 'kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod> --share-processes', desc: 'Debug copy with shared PID namespace between debug and target containers' },
+          { cmd: 'kubectl debug <pod> -it --image=busybox --copy-to=<debug-pod>', desc: 'Debug copy of a pod (when ephemeral containers are not supported)' },
+          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=baseline',     desc: 'Default safe profile (no extra capabilities)' },
+          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=netadmin',     desc: 'Debug with NET_ADMIN capability profile' },
+          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=restricted',   desc: 'Most restrictive profile' },
+          { cmd: 'kubectl debug -it <pod> --image=alpine --profile=sysadmin',     desc: 'Debug with SYS_ADMIN capability profile' },
+          { cmd: 'kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container>', desc: 'Ephemeral sidecar sharing target PID and net namespace, ideal for distroless images' },
           { cmd: 'kubectl debug node/<node> -it --image=busybox',                 desc: 'Interactive shell on a node via privileged pod' },
-          { cmd: 'kubectl describe pod <name>',                                    desc: 'State, conditions and events of pod' },
-          { cmd: 'kubectl get pod <name> --watch',                                 desc: 'Watch pod status changes in real time' },
-          { cmd: "kubectl get pod <name> -o jsonpath='{.status.containerStatuses[*].lastState}'", desc: 'Last state, including exit code and reason (OOMKilled, Error, etc.)' },
-          { cmd: "kubectl get pod <name> -o jsonpath='{.status.containerStatuses[*].restartCount}'", desc: 'Restart count per container' },
-          { cmd: 'kubectl logs <pod> --previous',                                  desc: 'Logs from a crashed/previous container' },
-          { cmd: 'kubectl logs <pod> -f --all-containers=true',                    desc: 'Stream logs from all containers in pod' },
-          { cmd: 'kubectl run netshoot --rm -it --image=nicolaka/netshoot -- bash', desc: 'Standalone debug pod with full network toolset (curl, dig, nc, ss, tcpdump…)' },
-          { cmd: 'kubectl wait --for=condition=Ready pod/<name> --timeout=60s',    desc: 'Wait until pod is Ready, useful in CI and scripts' },
-        ]
-      },
-      {
-        title: 'Network & DNS',
-        desc: 'Test in-cluster DNS resolution, service reachability, and inspect listening ports and socket state from inside a pod.',
-        cmds: [
-          { cmd: 'kubectl exec -it <pod> -- cat /etc/resolv.conf',                desc: 'Inspect DNS config inside pod' },
-          { cmd: 'kubectl exec -it <pod> -- curl -I http://<service>',             desc: 'HTTP HEAD to check status code and headers only' },
-          { cmd: 'kubectl exec -it <pod> -- curl -v http://<service>:<port>',      desc: 'Verbose HTTP to see full request and response headers' },
-          { cmd: 'kubectl exec -it <pod> -- curl http://<service>:<port>',        desc: 'Test HTTP connectivity to service' },
-          { cmd: 'kubectl exec -it <pod> -- nc -zv <host> <port>',               desc: 'Test TCP port reachability' },
-          { cmd: 'kubectl exec -it <pod> -- netstat -tlnp',                        desc: 'Listening TCP ports inside the container' },
-          { cmd: 'kubectl exec -it <pod> -- nslookup <svc>.<ns>.svc.cluster.local', desc: 'Resolve a service FQDN' },
-          { cmd: 'kubectl exec -it <pod> -- nslookup kubernetes.default',         desc: 'Test in-cluster DNS resolution' },
-          { cmd: 'kubectl exec -it <pod> -- ss -tlnp',                             desc: 'Socket stats as a modern alternative to netstat' },
-          { cmd: 'kubectl exec -it <pod> -- wget -qO- http://<service>',          desc: 'HTTP request with wget from pod' },
-        ]
-      },
-      {
-        title: 'Container Internals',
-        desc: 'Inspect running processes, memory limits, environment variables, volume mounts, and disk usage from inside a container.',
-        cmds: [
-          { cmd: 'kubectl exec -it <pod> -- cat /proc/meminfo',                    desc: 'Detailed memory stats from inside container' },
-          { cmd: 'kubectl exec -it <pod> -- cat /proc/mounts',                     desc: 'Full mount table inside the container' },
-          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory/memory.limit_in_bytes', desc: 'Actual memory limit set for the container' },
-          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory/memory.usage_in_bytes', desc: 'Current memory usage by the container' },
-          { cmd: 'kubectl exec -it <pod> -- df -h',                                desc: 'Disk space on all mounts to spot full volumes' },
-          { cmd: 'kubectl exec -it <pod> -- env',                                  desc: 'Check env vars to verify secrets and configs are injected' },
-          { cmd: 'kubectl exec -it <pod> -- ls -la <mount-path>',                  desc: 'List mount path contents and permissions' },
-          { cmd: 'kubectl exec -it <pod> -- mount | grep <vol>',                   desc: 'Verify a specific volume is mounted' },
-          { cmd: 'kubectl exec -it <pod> -- ps aux',                               desc: 'List all running processes inside the container' },
-          { cmd: 'kubectl exec -it <pod> -- top',                                  desc: 'Live CPU and memory usage by process' },
-          { cmd: 'kubectl top pod -A --sort-by=memory',                            desc: 'Find memory-heavy pods across all namespaces' },
-          { cmd: 'kubectl top pod <name> --containers',                            desc: 'Per-container CPU/memory breakdown within a pod' },
         ]
       },
       {
         title: 'Cluster Health',
-        desc: 'Check API server reachability, component statuses, and client/server version compatibility.',
+        desc: 'Check API server reachability, control plane component statuses, and version compatibility.',
         cmds: [
           { cmd: 'kubectl cluster-info dump',                                      desc: 'Full cluster state dump to stdout' },
           { cmd: 'kubectl cluster-info',                                           desc: 'Show API server and DNS endpoints' },
+          { cmd: 'kubectl get apiservices',                                        desc: 'APIService resources and their availability state' },
           { cmd: 'kubectl get componentstatuses',                                  desc: 'Health of core components (etcd, scheduler, controller-manager)' },
-          { cmd: 'kubectl get pods -n kube-system',                               desc: 'Status of all control plane component pods' },
-          { cmd: 'kubectl logs -n kube-system <pod>',                             desc: 'Logs of a control plane component (apiserver, scheduler…)' },
-          { cmd: 'kubectl logs -n kube-system <pod> --previous',                  desc: 'Logs from a crashed control plane container' },
+          { cmd: 'kubectl get pods -A | grep -v Running',                          desc: 'Show all non-Running pods cluster-wide' },
+          { cmd: "kubectl get pods -A --sort-by='.metadata.creationTimestamp'",    desc: 'All pods sorted by creation time' },
+          { cmd: 'kubectl get pods -n kube-system',                                desc: 'Status of all control plane component pods' },
+          { cmd: 'kubectl logs -n kube-system <pod> --previous',                   desc: 'Logs from a crashed control plane container' },
+          { cmd: 'kubectl logs -n kube-system <pod>',                              desc: 'Logs of a control plane component (apiserver, scheduler…)' },
           { cmd: 'kubectl version',                                                desc: 'Client and server versions' },
         ]
       },
       {
-        title: 'Pod Queries',
-        desc: 'Frequently used one-liners to quickly surface stuck, failed, or newly created workloads across the cluster.',
+        title: 'API Discovery',
+        desc: 'Discover what resources the cluster exposes and inspect their schemas. Mirrored from Cluster Health for in-flow debugging.',
         cmds: [
-          { cmd: 'kubectl get all -n <namespace>',                                 desc: 'All resources in a namespace' },
-          { cmd: 'kubectl get job <name> -o jsonpath=\'{.status}\'',              desc: 'Machine-readable job status: succeeded/failed/active counts' },
+          { cmd: 'kubectl api-resources --api-group=<group>',                      desc: 'Resources in a specific API group' },
+          { cmd: 'kubectl api-resources --namespaced=false',                       desc: 'Cluster-scoped resources only' },
+          { cmd: 'kubectl api-resources --namespaced=true',                        desc: 'Namespace-scoped resources only' },
+          { cmd: 'kubectl api-resources',                                          desc: 'List all available API resources' },
+          { cmd: 'kubectl explain <resource> --recursive',                         desc: 'Show full nested field tree' },
+          { cmd: 'kubectl explain <resource>.spec.<field>',                        desc: 'Explain a specific nested field' },
+          { cmd: 'kubectl explain <resource>',                                     desc: 'Describe a resource and its top-level fields' },
+        ]
+      },
+    ]
+  },
+
+  // ── TROUBLESHOOTING — NETWORK ─────────────────────────────
+  {
+    id: 'troubleshooting-network', title: 'Network', icon: ICONS['troubleshooting-network'], sub: 'Troubleshooting',
+    groups: [
+      {
+        title: 'DNS Resolution',
+        desc: 'Verify cluster DNS is working from inside a pod, find the right name for a service, and inspect CoreDNS state.',
+        cmds: [
+          { cmd: 'kubectl exec -it <pod> -- cat /etc/resolv.conf',                 desc: 'Inspect DNS config inside pod (search domains, nameservers)' },
+          { cmd: 'kubectl exec -it <pod> -- dig +short <svc>.<ns>.svc.cluster.local', desc: 'Compact DNS lookup using dig' },
+          { cmd: 'kubectl exec -it <pod> -- nslookup <svc>.<ns>.svc.cluster.local', desc: 'Resolve a service FQDN' },
+          { cmd: 'kubectl exec -it <pod> -- nslookup kubernetes.default',          desc: 'Test in-cluster DNS resolution' },
+          { cmd: 'kubectl get configmap coredns -n kube-system -o yaml',           desc: 'Inspect CoreDNS Corefile config' },
+          { cmd: 'kubectl get pods -n kube-system -l k8s-app=kube-dns',            desc: 'List CoreDNS pods serving cluster DNS' },
+          { cmd: 'kubectl logs -n kube-system -l k8s-app=kube-dns --tail=100',     desc: 'Recent CoreDNS logs (resolution errors, NXDOMAIN)' },
+        ]
+      },
+      {
+        title: 'Service Probes',
+        desc: 'Probe services from inside a pod and verify the service has actual ready backends.',
+        cmds: [
+          { cmd: 'kubectl exec -it <pod> -- curl -I http://<service>',             desc: 'HTTP HEAD to check status code and headers only' },
+          { cmd: 'kubectl exec -it <pod> -- curl -v http://<service>:<port>',      desc: 'Verbose HTTP to see full request and response headers' },
+          { cmd: 'kubectl exec -it <pod> -- curl http://<service>:<port>',         desc: 'Test HTTP connectivity to service' },
+          { cmd: 'kubectl exec -it <pod> -- nc -zv <host> <port>',                 desc: 'Test TCP port reachability' },
+          { cmd: 'kubectl exec -it <pod> -- wget -qO- http://<service>',           desc: 'HTTP request with wget from pod (alpine images)' },
+          { cmd: 'kubectl get endpointslices -l kubernetes.io/service-name=<service>', desc: 'Modern endpoint slices, replaces the Endpoints API' },
+          { cmd: "kubectl get service <name> -o jsonpath='{.spec.selector}'",      desc: 'Service selector (must match pod labels for endpoints to populate)' },
+          { cmd: 'kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller --tail=100', desc: 'Recent ingress-nginx controller logs' },
+        ]
+      },
+      {
+        title: 'Live Capture',
+        desc: 'Spawn a debug pod or attach an ephemeral container that shares the target pod network namespace, then capture or inspect traffic.',
+        cmds: [
+          { cmd: 'kubectl debug -it <pod> --image=nicolaka/netshoot --target=<container>', desc: 'Ephemeral container in the target net namespace, lets netshoot tcpdump/ss/curl see traffic from the pods perspective' },
+          { cmd: 'kubectl exec -it <pod> -- netstat -tlnp',                        desc: 'Listening TCP ports inside the container' },
+          { cmd: 'kubectl exec -it <pod> -- ss -tlnp',                             desc: 'Socket stats as a modern alternative to netstat' },
+          { cmd: 'kubectl run netshoot --rm -it --image=nicolaka/netshoot -- bash', desc: 'Standalone debug pod with full network toolset (curl, dig, nc, ss, tcpdump…)' },
+          { cmd: 'kubectl run netshoot --rm -it --image=nicolaka/netshoot -- tcpdump -i any port <port>', desc: 'Live packet capture from a debug pod' },
+        ]
+      },
+    ]
+  },
+
+  // ── TROUBLESHOOTING — STORAGE ─────────────────────────────
+  {
+    id: 'troubleshooting-storage', title: 'Storage', icon: ICONS['troubleshooting-storage'], sub: 'Troubleshooting',
+    groups: [
+      {
+        title: 'PV and PVC State',
+        desc: 'Find PVCs stuck Pending/Lost and trace how PVs map to claims and StorageClasses.',
+        cmds: [
+          { cmd: 'kubectl get pvc -A | grep -v Bound',                             desc: 'Find non-Bound PVCs across the cluster' },
+          { cmd: 'kubectl get pv -o jsonpath=\'{range .items[*]}{.metadata.name}{"\\t"}{.status.phase}{"\\t"}{.spec.claimRef.name}{"\\n"}{end}\'', desc: 'Tab-separated mapping PV → claim → phase' },
+          { cmd: 'kubectl get storageclass -o jsonpath=\'{.items[?(@.metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class=="true")].metadata.name}\'', desc: 'Find the default StorageClass name' },
+        ]
+      },
+      {
+        title: 'Mount Verification',
+        desc: 'Verify a volume is actually mounted inside the container with the right size, contents and write permission.',
+        cmds: [
+          { cmd: 'kubectl exec -it <pod> -- cat /proc/mounts',                     desc: 'Full mount table inside the container' },
+          { cmd: 'kubectl exec -it <pod> -- df -h',                                desc: 'Disk space on all mounts to spot full volumes' },
+          { cmd: 'kubectl exec -it <pod> -- ls -la <mount-path>',                  desc: 'List mount path contents and permissions' },
+          { cmd: 'kubectl exec -it <pod> -- mount | grep <vol>',                   desc: 'Verify a specific volume is mounted' },
+          { cmd: 'kubectl exec -it <pod> -- stat <mount-path>',                    desc: 'Inode and ownership details for a path' },
+          { cmd: 'kubectl exec -it <pod> -- touch <mount-path>/.write-test && rm <mount-path>/.write-test', desc: 'Verify write permission to a mounted volume' },
+        ]
+      },
+      {
+        title: 'Provisioner Debug',
+        desc: 'Look at CSI driver pods and provisioning events when PVCs do not get bound.',
+        cmds: [
+          { cmd: 'kubectl get events --field-selector=reason=ProvisioningFailed -A', desc: 'Provisioning failure events across all namespaces' },
+          { cmd: 'kubectl get pods -n kube-system -l app=csi',                     desc: 'CSI driver pods (label selector varies by CSI implementation)' },
+          { cmd: 'kubectl logs -n kube-system <csi-pod> -c csi-provisioner --tail=100', desc: 'Provisioner sidecar logs (NotFound, Quota, Auth errors)' },
+        ]
+      },
+    ]
+  },
+
+  // ── TROUBLESHOOTING — RESOURCES ───────────────────────────
+  {
+    id: 'troubleshooting-resources', title: 'Resources', icon: ICONS['troubleshooting-resources'], sub: 'Troubleshooting',
+    groups: [
+      {
+        title: 'Crash Forensics',
+        desc: 'Read the last terminated state of a container to learn why it died, plus inspect previous logs.',
+        cmds: [
+          { cmd: "kubectl get pod <name> -o jsonpath='{.status.containerStatuses[*].lastState.terminated.exitCode}'", desc: 'Exit code from last termination' },
+          { cmd: "kubectl get pod <name> -o jsonpath='{.status.containerStatuses[*].lastState.terminated.reason}'", desc: 'Termination reason (OOMKilled, Error, Completed)' },
+          { cmd: "kubectl get pod <name> -o jsonpath='{.status.containerStatuses[*].restartCount}'", desc: 'Restart count per container' },
+          { cmd: "kubectl get pods -A --sort-by='.status.containerStatuses[0].restartCount'", desc: 'Pods sorted by restart count to spot flappers' },
           { cmd: 'kubectl get pods --field-selector=status.phase=Failed',          desc: 'Find all Failed pods' },
-          { cmd: 'kubectl get pods --field-selector=status.phase=Pending',         desc: 'Find all Pending pods' },
-          { cmd: "kubectl get pods -A --sort-by='.metadata.creationTimestamp'",    desc: 'All pods sorted by creation time' },
-          { cmd: "kubectl get pods -A --sort-by='.status.containerStatuses[0].restartCount'", desc: 'Pods sorted by restart count' },
-          { cmd: 'kubectl get pods -A | grep -v Running',                          desc: 'Show all non-Running pods' },
-          { cmd: "kubectl get pods -o wide --sort-by='{.spec.nodeName}'",          desc: 'Pods sorted by node name' },
+          { cmd: 'kubectl logs <pod> --previous',                                  desc: 'Logs from a crashed/previous container' },
+          { cmd: 'kubectl logs <pod> -p -c <container>',                           desc: 'Previous logs for a specific container in a multi-container pod' },
+        ]
+      },
+      {
+        title: 'Live Resource Usage',
+        desc: 'Real-time CPU and memory usage per pod, container and process. Requires metrics-server for kubectl top.',
+        cmds: [
+          { cmd: 'kubectl exec -it <pod> -- top',                                  desc: 'Live CPU and memory usage by process inside the container' },
+          { cmd: 'kubectl top pod -A --sort-by=cpu',                               desc: 'CPU-heavy pods across all namespaces' },
+          { cmd: 'kubectl top pod -A --sort-by=memory',                            desc: 'Memory-heavy pods across all namespaces' },
+          { cmd: 'kubectl top pod <name> --containers',                            desc: 'Per-container CPU/memory breakdown within a pod' },
+        ]
+      },
+      {
+        title: 'Container Limits',
+        desc: 'Verify the actual cgroup limits set on a container vs what the spec declared.',
+        cmds: [
+          { cmd: 'kubectl exec -it <pod> -- cat /proc/meminfo',                    desc: 'Detailed memory stats from inside the container' },
+          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory.max',        desc: 'Memory limit on cgroup v2' },
+          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory/memory.limit_in_bytes', desc: 'Memory limit on cgroup v1' },
+          { cmd: 'kubectl exec -it <pod> -- cat /sys/fs/cgroup/memory/memory.usage_in_bytes', desc: 'Current memory usage on cgroup v1' },
+          { cmd: "kubectl get pod <name> -o jsonpath='{.spec.containers[*].resources}'", desc: 'Declared requests and limits from the pod spec' },
+        ]
+      },
+      {
+        title: 'Eviction and Pressure',
+        desc: 'Find evicted pods and node pressure conditions that caused them.',
+        cmds: [
+          { cmd: 'kubectl get events --field-selector=reason=Evicted -A',          desc: 'All eviction events cluster-wide' },
+          { cmd: 'kubectl get events --field-selector=reason=FailedToCreatePodSandbox', desc: 'Pod sandbox creation failures' },
+          { cmd: 'kubectl get nodes -o jsonpath=\'{range .items[*]}{.metadata.name}{"\\t"}{.status.conditions[?(@.type=="MemoryPressure")].status}{"\\n"}{end}\'', desc: 'MemoryPressure condition per node' },
+          { cmd: 'kubectl get pods -A --field-selector=status.phase=Failed -o wide | grep Evicted', desc: 'List evicted pods across the cluster' },
+        ]
+      },
+    ]
+  },
+
+  // ── TROUBLESHOOTING — SCHEDULING ──────────────────────────
+  {
+    id: 'troubleshooting-scheduling', title: 'Scheduling', icon: ICONS['troubleshooting-scheduling'], sub: 'Troubleshooting',
+    groups: [
+      {
+        title: 'Pending Pods',
+        desc: 'Find pods stuck Pending and read scheduler events that explain why they cannot be placed.',
+        cmds: [
+          { cmd: "kubectl get events --field-selector=reason=FailedScheduling -A --sort-by='.lastTimestamp'", desc: 'Recent scheduling failures cluster-wide' },
+          { cmd: 'kubectl get events --field-selector=reason=FailedScheduling',    desc: 'Scheduling failure events in current namespace' },
+          { cmd: 'kubectl get pods --field-selector=status.phase=Pending -A',      desc: 'Pending pods across all namespaces' },
+          { cmd: 'kubectl get pods --field-selector=status.phase=Pending',         desc: 'Find Pending pods in current namespace' },
+        ]
+      },
+      {
+        title: 'Constraints Inspection',
+        desc: 'Read taints on nodes and tolerations, nodeSelector and affinity rules on pods to spot mismatches.',
+        cmds: [
+          { cmd: 'kubectl get nodes -o jsonpath=\'{range .items[*]}{.metadata.name}{"\\t"}{.spec.taints}{"\\n"}{end}\'', desc: 'Tab-separated taints per node' },
+          { cmd: "kubectl get pod <name> -o jsonpath='{.spec.affinity}'",          desc: 'Pod affinity / anti-affinity rules' },
+          { cmd: "kubectl get pod <name> -o jsonpath='{.spec.nodeSelector}'",      desc: 'Pod nodeSelector keys/values' },
+          { cmd: "kubectl get pod <name> -o jsonpath='{.spec.tolerations}'",       desc: 'Tolerations the pod is willing to accept' },
+        ]
+      },
+      {
+        title: 'Pod Placement',
+        desc: 'See where pods actually run and find uneven placement or unexpected nodes.',
+        cmds: [
+          { cmd: 'kubectl get pods -A -o wide --field-selector=spec.nodeName=<node>', desc: 'All pods on a node across all namespaces' },
+          { cmd: 'kubectl get pods -o wide --field-selector=spec.nodeName=<node>', desc: 'All pods on a specific node in current namespace' },
+          { cmd: "kubectl get pods -o wide --sort-by='{.spec.nodeName}'",          desc: 'Pods sorted by node name to spot uneven placement' },
         ]
       },
     ]
@@ -1802,4 +1943,4 @@ const SECTIONS = [
 
 ];
 
-export { COPY_ICON, CHECK_ICON, SECTIONS };
+export { COPY_ICON, CHECK_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS };

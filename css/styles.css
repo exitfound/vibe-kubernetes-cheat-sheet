@@ -19,33 +19,52 @@
   --accent-glow:    rgba(224, 205, 255, 0.16);
   --accent-border:  rgba(224, 205, 255, 0.28);
 
-  --helm-color:     #9498ff;
-  --helm-glow:      rgba(150, 153, 255, 0.12);
-  --helm-border:    rgba(151, 154, 255, 0.25);
+  /* Group: Kubernetes — cool blue family */
+  --kubernetes-color:  #7dbcff;
+  --kubernetes-glow:   rgba(125, 188, 255, 0.12);
+  --kubernetes-border: rgba(125, 188, 255, 0.28);
 
-  --cluster-color:  #c5bcff;
-  --cluster-glow:   rgba(202, 188, 255, 0.14);
-  --cluster-border: rgba(198, 188, 255, 0.28);
+  --installation-color:  #5cd9ff;
+  --installation-glow:   rgba(92, 217, 255, 0.12);
+  --installation-border: rgba(92, 217, 255, 0.28);
 
-  --troubleshooting-color:  #ff6b61;
-  --troubleshooting-glow:   rgba(255, 113, 97, 0.1);
-  --troubleshooting-border: rgba(255, 107, 97, 0.28);
+  --cluster-color:  #8e94ff;
+  --cluster-glow:   rgba(142, 148, 255, 0.13);
+  --cluster-border: rgba(142, 148, 255, 0.28);
 
-  --kustomize-color:  #c0ff8d;
-  --kustomize-glow:   rgba(192, 255, 141, 0.12);
-  --kustomize-border: rgba(192, 255, 141, 0.25);
+  --workloads-color:  #5fb4ff;
+  --workloads-glow:   rgba(95, 180, 255, 0.12);
+  --workloads-border: rgba(95, 180, 255, 0.26);
 
-  --k9s-color:  #ffad6a;
-  --k9s-glow:   rgba(255, 174, 124, 0.193);
-  --k9s-border: rgba(255, 179, 124, 0.227);
+  /* Group: Tools — green family */
+  --tools-color:  #71dc78;
+  --tools-glow:   rgba(113, 220, 120, 0.12);
+  --tools-border: rgba(113, 220, 120, 0.28);
 
-  --workloads-color:  #79bcff;
-  --workloads-glow:   rgba(121, 184, 255, 0.1);
-  --workloads-border: rgba(121, 184, 255, 0.25);
+  --helm-color:  #4dd6b1;
+  --helm-glow:   rgba(77, 214, 177, 0.12);
+  --helm-border: rgba(77, 214, 177, 0.26);
 
-  --installation-color:  #63ffdd;
-  --installation-glow:   rgba(99, 255, 221, 0.12);
-  --installation-border: rgba(99, 255, 221, 0.25);
+  --kustomize-color:  #b8e35a;
+  --kustomize-glow:   rgba(184, 227, 90, 0.13);
+  --kustomize-border: rgba(184, 227, 90, 0.28);
+
+  --k9s-color:  #5ed87a;
+  --k9s-glow:   rgba(94, 216, 122, 0.13);
+  --k9s-border: rgba(94, 216, 122, 0.26);
+
+  /* Group: Troubleshooting — warm red/coral family */
+  --troubleshooting-color:  #ff7e6e;
+  --troubleshooting-glow:   rgba(255, 126, 110, 0.12);
+  --troubleshooting-border: rgba(255, 126, 110, 0.28);
+
+  --ts-kubernetes-color:  #ff6b61;
+  --ts-kubernetes-glow:   rgba(255, 107, 97, 0.12);
+  --ts-kubernetes-border: rgba(255, 107, 97, 0.28);
+
+  --ts-tools-color:  #ff9171;
+  --ts-tools-glow:   rgba(255, 145, 113, 0.13);
+  --ts-tools-border: rgba(255, 145, 113, 0.28);
 
   --success-color:  #5cb85c;
 
@@ -70,6 +89,15 @@ html {
   font-size: 16px;
   background: linear-gradient(135deg, #0c1022 0%, #110f1f 50%, #18091e 100%);
   background-attachment: fixed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 body {
@@ -139,9 +167,9 @@ body {
 .header-actions {
   display: flex;
   gap: 6px;
-  margin-left: auto;
   flex-shrink: 0;
   align-items: center;
+  margin-left: auto;
 }
 
 .action-wrap {
@@ -340,6 +368,11 @@ body {
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+.search-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .search-input::placeholder { color: var(--text-muted); }
 
 .search-shortcut {
@@ -398,14 +431,33 @@ body {
 .search-clear.visible { display: flex; }
 
 /* ===== NAV ===== */
+/* No border-bottom — through its 0.07 alpha the page bg used to peek between rows on scroll.
+   Instead each nav extends its bg 1px downward via box-shadow (gap filler against sub-pixel
+   rendering), and a soft lavender gradient ::before draws the separator like under the
+   section header / card title in cards. */
 .nav {
   position: sticky;
-  top: 68px;
+  top: 69px;
   z-index: 90;
   background: rgba(17, 15, 31, 0.96);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: none;
+  box-shadow: 0 1px 0 0 rgba(17, 15, 31, 0.96);
+}
+
+/* Soft lavender separator at the bottom edge of nav-top and nav-mid (echoes card-desc::after).
+   Sits inside the nav so it stays visible at sticky stack boundaries. */
+.nav-top::before,
+.nav-mid::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(221, 202, 250, 0.2) 30%, rgba(221, 202, 250, 0.2) 70%, transparent);
+  pointer-events: none;
 }
 
 .nav-inner {
@@ -422,6 +474,11 @@ body {
 
 .nav-inner::-webkit-scrollbar { display: none; }
 
+/* Three-row nav: top groups (prominent) → mid categories (medium) → sub sections (whisper dropdown) */
+.nav-top .nav-inner { height: 41px; }
+.nav-mid .nav-inner { height: 38px; gap: 4px; }
+.nav-sub .nav-inner { height: 32px; gap: 4px; }
+
 .nav-btn {
   flex-shrink: 0;
   height: 32px;
@@ -434,9 +491,27 @@ body {
   font-size: 15.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, opacity 0.12s;
   white-space: nowrap;
 }
+
+/* Top row: prominent group buttons (padding matches cat-btn so the box snugness is consistent) */
+.top-btn { height: 33px; padding: 0 13px; font-size: 16px; font-weight: 600; border-radius: 8px; letter-spacing: -0.1px; }
+
+/* Mid row: category buttons (medium) */
+.cat-btn { height: 29px; padding: 0 13px; font-size: 15px; font-weight: 500; border-radius: 7px; opacity: 0.85; }
+.cat-btn:hover,
+.cat-btn.active { opacity: 1; }
+
+/* Anchor "All" buttons in top and mid rows to identical width — aligns the nav-sep that follows.
+   Padding overridden so both fit text snugly at the smaller width. */
+.top-btn[data-group="all"],
+.cat-btn[data-cat="all"] { min-width: 56px; padding-left: 12px; padding-right: 12px; justify-content: center; }
+
+/* Sub row: section chips — readable, slightly subdued vs. category buttons */
+.sec-btn { height: 24px; padding: 0 10px; font-size: 14px; font-weight: 500; border-radius: 6px; letter-spacing: 0.1px; opacity: 0.7; color: var(--text-nav); }
+.sec-btn:hover { opacity: 1; color: #fff; background: rgba(255,255,255,0.05); }
+.sec-btn.active { opacity: 1; }
 
 .nav-btn:hover {
   color: #fff;
@@ -454,16 +529,41 @@ body {
   border-color: var(--accent-border);
 }
 
-/* Top-level category buttons */
-.top-workloads.active    { color: var(--workloads-color);  background: var(--workloads-glow); border-color: var(--workloads-border); }
-.top-cluster.active      { color: var(--cluster-color);   background: var(--cluster-glow);    border-color: var(--cluster-border); }
-.top-helm.active         { color: var(--helm-color);      background: var(--helm-glow);       border-color: var(--helm-border); }
-.top-kustomize.active    { color: var(--kustomize-color);    background: var(--kustomize-glow);  border-color: var(--kustomize-border); }
-.top-troubleshooting.active { color: var(--troubleshooting-color); background: var(--troubleshooting-glow); border-color: var(--troubleshooting-border); }
-.top-k9s.active          { color: var(--k9s-color);          background: var(--k9s-glow);        border-color: var(--k9s-border); }
-.top-installation.active { color: var(--installation-color);        background: var(--installation-glow);      border-color: var(--installation-border); }
+/* Top-level group buttons stay monotone (lavender accent) by default.
+   When a category is selected, the active top-btn inherits that category's colour
+   via [data-cat="..."] applied by JS — so the top row mirrors the picked sub-section. */
+.top-btn.active[data-cat="installation"] { color: var(--installation-color);    background: var(--installation-glow);    border-color: var(--installation-border); }
+.top-btn.active[data-cat="cluster"]      { color: var(--cluster-color);         background: var(--cluster-glow);         border-color: var(--cluster-border); }
+.top-btn.active[data-cat="workloads"]    { color: var(--workloads-color);       background: var(--workloads-glow);       border-color: var(--workloads-border); }
+.top-btn.active[data-cat="helm"]         { color: var(--helm-color);            background: var(--helm-glow);            border-color: var(--helm-border); }
+.top-btn.active[data-cat="kustomize"]    { color: var(--kustomize-color);       background: var(--kustomize-glow);       border-color: var(--kustomize-border); }
+.top-btn.active[data-cat="k9s"]          { color: var(--k9s-color);             background: var(--k9s-glow);             border-color: var(--k9s-border); }
+.top-btn.active[data-cat="troubleshooting-kubernetes"] { color: var(--ts-kubernetes-color); background: var(--ts-kubernetes-glow); border-color: var(--ts-kubernetes-border); }
+.top-btn.active[data-cat="troubleshooting-tools"]      { color: var(--ts-tools-color);      background: var(--ts-tools-glow);      border-color: var(--ts-tools-border); }
 
-/* Nav separator */
+/* Mid row: category buttons (active) — per-category color */
+.cat-btn.active[data-cat="installation"] { color: var(--installation-color);    background: var(--installation-glow);    border-color: var(--installation-border); }
+.cat-btn.active[data-cat="cluster"]      { color: var(--cluster-color);         background: var(--cluster-glow);         border-color: var(--cluster-border); }
+.cat-btn.active[data-cat="workloads"]    { color: var(--workloads-color);       background: var(--workloads-glow);       border-color: var(--workloads-border); }
+.cat-btn.active[data-cat="helm"]         { color: var(--helm-color);            background: var(--helm-glow);            border-color: var(--helm-border); }
+.cat-btn.active[data-cat="kustomize"]    { color: var(--kustomize-color);       background: var(--kustomize-glow);       border-color: var(--kustomize-border); }
+.cat-btn.active[data-cat="k9s"]          { color: var(--k9s-color);             background: var(--k9s-glow);             border-color: var(--k9s-border); }
+.cat-btn.active[data-cat="troubleshooting-kubernetes"] { color: var(--ts-kubernetes-color); background: var(--ts-kubernetes-glow); border-color: var(--ts-kubernetes-border); }
+.cat-btn.active[data-cat="troubleshooting-tools"]      { color: var(--ts-tools-color);      background: var(--ts-tools-glow);      border-color: var(--ts-tools-border); }
+
+/* Sub row: section buttons (active) — inherit category color via [data-cat] on navSub */
+#navSub[data-cat="installation"]              .sec-btn.active { color: var(--installation-color);    background: var(--installation-glow);    border-color: var(--installation-border); }
+#navSub[data-cat="cluster"]                   .sec-btn.active { color: var(--cluster-color);         background: var(--cluster-glow);         border-color: var(--cluster-border); }
+#navSub[data-cat="workloads"]                 .sec-btn.active { color: var(--workloads-color);       background: var(--workloads-glow);       border-color: var(--workloads-border); }
+#navSub[data-cat="helm"]                      .sec-btn.active { color: var(--helm-color);            background: var(--helm-glow);            border-color: var(--helm-border); }
+#navSub[data-cat="kustomize"]                 .sec-btn.active { color: var(--kustomize-color);       background: var(--kustomize-glow);       border-color: var(--kustomize-border); }
+#navSub[data-cat="k9s"]                       .sec-btn.active { color: var(--k9s-color);             background: var(--k9s-glow);             border-color: var(--k9s-border); }
+#navSub[data-cat="troubleshooting-kubernetes"] .sec-btn.active { color: var(--ts-kubernetes-color);  background: var(--ts-kubernetes-glow);   border-color: var(--ts-kubernetes-border); }
+#navSub[data-cat="troubleshooting-tools"]      .sec-btn.active { color: var(--ts-tools-color);       background: var(--ts-tools-glow);        border-color: var(--ts-tools-border); }
+
+/* nav-mid keeps the default subtle border-bottom — no group tint to avoid a coloured seam between rows */
+
+/* Nav separator (between "All" and group buttons) */
 .nav-sep {
   width: 1px;
   height: 18px;
@@ -472,44 +572,40 @@ body {
   margin: 0 4px;
 }
 
-/* Sub-nav row */
+/* Mid-nav row sticky position (nav-top top 69 + inner 41, no border) */
+.nav-mid {
+  top: 110px;
+}
+
+/* Sub-nav row — appears when a category is active.
+   Semi-transparent so it reads as a softer "whisper" layer below the main nav rows.
+   Filler shadow and right-edge fade are tuned to its own alpha for visual consistency. */
 .nav-sub {
-  top: 112px;
+  top: 148px;
+  background: rgba(17, 15, 31, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 0 rgba(17, 15, 31, 0.55);
 }
-
-.nav-sub .nav-btn.active {
-  color: var(--accent);
-  background: rgba(221, 202, 250, 0.1);
-  border-color: var(--accent-border);
-}
-
-/* Sub-nav active button — matches active top category color */
-#navSub[data-cat="workloads"]    .nav-btn.active { color: var(--workloads-color);  background: var(--workloads-glow); border-color: var(--workloads-border); }
-#navSub[data-cat="cluster"]      .nav-btn.active { color: var(--cluster-color);   background: var(--cluster-glow);    border-color: var(--cluster-border); }
-#navSub[data-cat="helm"]         .nav-btn.active { color: var(--helm-color);      background: var(--helm-glow);       border-color: var(--helm-border); }
-#navSub[data-cat="kustomize"]    .nav-btn.active { color: var(--kustomize-color);    background: var(--kustomize-glow);  border-color: var(--kustomize-border); }
-#navSub[data-cat="troubleshooting"] .nav-btn.active { color: var(--troubleshooting-color); background: var(--troubleshooting-glow); border-color: var(--troubleshooting-border); }
-#navSub[data-cat="k9s"]          .nav-btn.active { color: var(--k9s-color);          background: var(--k9s-glow);        border-color: var(--k9s-border); }
-#navSub[data-cat="installation"]        .nav-btn.active { color: var(--installation-color);        background: var(--installation-glow);      border-color: var(--installation-border); }
 
 /* ===== MAIN ===== */
 .main {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 28px 12px 80px;
+  padding: 20px 12px 80px;
   min-height: 80vh;
 }
 
 /* ===== SECTION ===== */
-.section { margin-bottom: 44px; content-visibility: auto; contain-intrinsic-size: 0 700px; }
+.section { margin-bottom: 44px; content-visibility: auto; contain-intrinsic-size: 0 700px; scroll-margin-top: 192px; }
 .section[hidden] { display: none; }
 
 .section-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
   position: relative;
 }
 
@@ -524,13 +620,14 @@ body {
 }
 
 /* Category-colored header underlines */
-.section[data-cat="workloads"]    .section-header::after { background: linear-gradient(90deg, rgba(121,172,255,0.45) 0%, rgba(121,172,255,0.15) 55%, transparent 100%); }
-.section[data-cat="cluster"]      .section-header::after { background: linear-gradient(90deg, rgba(192,188,255,0.45)  0%, rgba(192,188,255,0.15)  55%, transparent 100%); }
-.section[data-cat="helm"]         .section-header::after { background: linear-gradient(90deg, rgba(126,131,255,0.45) 0%, rgba(126,131,255,0.15) 55%, transparent 100%); }
-.section[data-cat="kustomize"]    .section-header::after { background: linear-gradient(90deg, rgba(192,255,141,0.45) 0%, rgba(192,255,141,0.15) 55%, transparent 100%); }
-.section[data-cat="troubleshooting"] .section-header::after { background: linear-gradient(90deg, rgba(255,124,97,0.45)  0%, rgba(255,124,97,0.15)  55%, transparent 100%); }
-.section[data-cat="k9s"]          .section-header::after { background: linear-gradient(90deg, rgba(255,194,124,0.45)  0%, rgba(255,194,124,0.15)  55%, transparent 100%); }
-.section[data-cat="installation"]        .section-header::after { background: linear-gradient(90deg, rgba(99,255,221,0.45)  0%, rgba(99,255,221,0.15)  55%, transparent 100%); }
+.section[data-cat="installation"] .section-header::after { background: linear-gradient(90deg, rgba(92,217,255,0.45)  0%, rgba(92,217,255,0.15)  55%, transparent 100%); }
+.section[data-cat="cluster"]      .section-header::after { background: linear-gradient(90deg, rgba(142,148,255,0.45) 0%, rgba(142,148,255,0.15) 55%, transparent 100%); }
+.section[data-cat="workloads"]    .section-header::after { background: linear-gradient(90deg, rgba(95,180,255,0.45)  0%, rgba(95,180,255,0.15)  55%, transparent 100%); }
+.section[data-cat="helm"]         .section-header::after { background: linear-gradient(90deg, rgba(77,214,177,0.45)  0%, rgba(77,214,177,0.15)  55%, transparent 100%); }
+.section[data-cat="kustomize"]    .section-header::after { background: linear-gradient(90deg, rgba(184,227,90,0.45)  0%, rgba(184,227,90,0.15)  55%, transparent 100%); }
+.section[data-cat="k9s"]          .section-header::after { background: linear-gradient(90deg, rgba(94,216,122,0.45)  0%, rgba(94,216,122,0.15)  55%, transparent 100%); }
+.section[data-cat="troubleshooting-kubernetes"] .section-header::after { background: linear-gradient(90deg, rgba(255,107,97,0.45)  0%, rgba(255,107,97,0.15)  55%, transparent 100%); }
+.section[data-cat="troubleshooting-tools"]      .section-header::after { background: linear-gradient(90deg, rgba(255,145,113,0.45) 0%, rgba(255,145,113,0.15) 55%, transparent 100%); }
 
 .section-icon {
   width: 28px;
@@ -546,13 +643,14 @@ body {
 }
 
 /* Category-colored icons */
-.section[data-cat="workloads"]    .section-icon { background: var(--workloads-glow); border-color: var(--workloads-border); color: var(--workloads-color); }
-.section[data-cat="cluster"]      .section-icon { background: var(--cluster-glow);     border-color: var(--cluster-border);  color: var(--cluster-color); }
-.section[data-cat="helm"]         .section-icon { background: var(--helm-glow);        border-color: var(--helm-border);     color: var(--helm-color); }
-.section[data-cat="kustomize"]    .section-icon { background: var(--kustomize-glow);  border-color: var(--kustomize-border); color: var(--kustomize-color); }
-.section[data-cat="troubleshooting"] .section-icon { background: var(--troubleshooting-glow);   border-color: var(--troubleshooting-border);  color: var(--troubleshooting-color); }
-.section[data-cat="k9s"]          .section-icon { background: var(--k9s-glow);         border-color: var(--k9s-border);      color: var(--k9s-color); }
-.section[data-cat="installation"]        .section-icon { background: var(--installation-glow);       border-color: var(--installation-border);    color: var(--installation-color); }
+.section[data-cat="installation"] .section-icon { background: var(--installation-glow);  border-color: var(--installation-border);  color: var(--installation-color); }
+.section[data-cat="cluster"]      .section-icon { background: var(--cluster-glow);       border-color: var(--cluster-border);       color: var(--cluster-color); }
+.section[data-cat="workloads"]    .section-icon { background: var(--workloads-glow);     border-color: var(--workloads-border);     color: var(--workloads-color); }
+.section[data-cat="helm"]         .section-icon { background: var(--helm-glow);          border-color: var(--helm-border);          color: var(--helm-color); }
+.section[data-cat="kustomize"]    .section-icon { background: var(--kustomize-glow);     border-color: var(--kustomize-border);     color: var(--kustomize-color); }
+.section[data-cat="k9s"]          .section-icon { background: var(--k9s-glow);           border-color: var(--k9s-border);           color: var(--k9s-color); }
+.section[data-cat="troubleshooting-kubernetes"] .section-icon { background: var(--ts-kubernetes-glow); border-color: var(--ts-kubernetes-border); color: var(--ts-kubernetes-color); }
+.section[data-cat="troubleshooting-tools"]      .section-icon { background: var(--ts-tools-glow);      border-color: var(--ts-tools-border);      color: var(--ts-tools-color); }
 
 .section-title {
   font-size: 20px;
@@ -569,13 +667,14 @@ body {
 }
 
 /* Category-colored sub labels */
-.section[data-cat="workloads"]    .section-sub { color: var(--workloads-color);   opacity: 0.75; }
-.section[data-cat="cluster"]      .section-sub { color: var(--cluster-color);    opacity: 0.75; }
-.section[data-cat="helm"]         .section-sub { color: var(--helm-color);        opacity: 0.75; }
-.section[data-cat="kustomize"]    .section-sub { color: var(--kustomize-color);    opacity: 0.75; }
-.section[data-cat="troubleshooting"] .section-sub { color: var(--troubleshooting-color); opacity: 0.75; }
-.section[data-cat="k9s"]          .section-sub { color: var(--k9s-color);          opacity: 0.75; }
-.section[data-cat="installation"]        .section-sub { color: var(--installation-color);        opacity: 0.75; }
+.section[data-cat="installation"] .section-sub { color: var(--installation-color);  opacity: 0.75; }
+.section[data-cat="cluster"]      .section-sub { color: var(--cluster-color);       opacity: 0.75; }
+.section[data-cat="workloads"]    .section-sub { color: var(--workloads-color);     opacity: 0.75; }
+.section[data-cat="helm"]         .section-sub { color: var(--helm-color);          opacity: 0.75; }
+.section[data-cat="kustomize"]    .section-sub { color: var(--kustomize-color);     opacity: 0.75; }
+.section[data-cat="k9s"]          .section-sub { color: var(--k9s-color);           opacity: 0.75; }
+.section[data-cat="troubleshooting-kubernetes"] .section-sub { color: var(--ts-kubernetes-color); opacity: 0.75; }
+.section[data-cat="troubleshooting-tools"]      .section-sub { color: var(--ts-tools-color);      opacity: 0.75; }
 
 /* ===== CARDS GRID ===== */
 .cards-grid {
@@ -600,13 +699,14 @@ body {
 .card:hover {
   transform: translateY(-2px);
 }
-.section[data-cat="workloads"] .card:hover { border-color: var(--workloads-color); }
-.section[data-cat="cluster"] .card:hover { border-color: var(--cluster-color); }
-.section[data-cat="helm"] .card:hover { border-color: var(--helm-color); }
-.section[data-cat="kustomize"] .card:hover { border-color: var(--kustomize-color); }
-.section[data-cat="k9s"] .card:hover { border-color: var(--k9s-color); }
 .section[data-cat="installation"] .card:hover { border-color: var(--installation-color); }
-.section[data-cat="troubleshooting"] .card:hover { border-color: var(--troubleshooting-color); }
+.section[data-cat="cluster"]      .card:hover { border-color: var(--cluster-color); }
+.section[data-cat="workloads"]    .card:hover { border-color: var(--workloads-color); }
+.section[data-cat="helm"]         .card:hover { border-color: var(--helm-color); }
+.section[data-cat="kustomize"]    .card:hover { border-color: var(--kustomize-color); }
+.section[data-cat="k9s"]          .card:hover { border-color: var(--k9s-color); }
+.section[data-cat="troubleshooting-kubernetes"] .card:hover { border-color: var(--ts-kubernetes-color); }
+.section[data-cat="troubleshooting-tools"]      .card:hover { border-color: var(--ts-tools-color); }
 .card[hidden] { display: none; }
 
 .card-title {
@@ -638,13 +738,14 @@ body {
 }
 
 /* Category-colored card separators */
-.section[data-cat="workloads"]    .card-desc::after { background: linear-gradient(90deg, transparent, var(--workloads-border) 30%, var(--workloads-border) 70%, transparent); }
-.section[data-cat="cluster"]      .card-desc::after { background: linear-gradient(90deg, transparent, rgba(192,188,255,0.25)  30%, rgba(192,188,255,0.25)  70%, transparent); }
-.section[data-cat="helm"]         .card-desc::after { background: linear-gradient(90deg, transparent, rgba(126,131,255,0.25) 30%, rgba(126,131,255,0.25) 70%, transparent); }
-.section[data-cat="kustomize"]    .card-desc::after { background: linear-gradient(90deg, transparent, rgba(192,255,141,0.22) 30%, rgba(192,255,141,0.22) 70%, transparent); }
-.section[data-cat="troubleshooting"] .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,124,97,0.20)  30%, rgba(255,124,97,0.20)  70%, transparent); }
-.section[data-cat="k9s"]          .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,194,124,0.22)  30%, rgba(255,194,124,0.22)  70%, transparent); }
-.section[data-cat="installation"]        .card-desc::after { background: linear-gradient(90deg, transparent, rgba(99,255,221,0.22)  30%, rgba(99,255,221,0.22)  70%, transparent); }
+.section[data-cat="installation"] .card-desc::after { background: linear-gradient(90deg, transparent, rgba(92,217,255,0.24)  30%, rgba(92,217,255,0.24)  70%, transparent); }
+.section[data-cat="cluster"]      .card-desc::after { background: linear-gradient(90deg, transparent, rgba(142,148,255,0.25) 30%, rgba(142,148,255,0.25) 70%, transparent); }
+.section[data-cat="workloads"]    .card-desc::after { background: linear-gradient(90deg, transparent, rgba(95,180,255,0.24)  30%, rgba(95,180,255,0.24)  70%, transparent); }
+.section[data-cat="helm"]         .card-desc::after { background: linear-gradient(90deg, transparent, rgba(77,214,177,0.24)  30%, rgba(77,214,177,0.24)  70%, transparent); }
+.section[data-cat="kustomize"]    .card-desc::after { background: linear-gradient(90deg, transparent, rgba(184,227,90,0.25)  30%, rgba(184,227,90,0.25)  70%, transparent); }
+.section[data-cat="k9s"]          .card-desc::after { background: linear-gradient(90deg, transparent, rgba(94,216,122,0.25)  30%, rgba(94,216,122,0.25)  70%, transparent); }
+.section[data-cat="troubleshooting-kubernetes"] .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,107,97,0.22)  30%, rgba(255,107,97,0.22)  70%, transparent); }
+.section[data-cat="troubleshooting-tools"]      .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,145,113,0.22) 30%, rgba(255,145,113,0.22) 70%, transparent); }
 
 /* ===== COMMAND LIST ===== */
 .cmd-list { padding: 4px 0; }
@@ -666,13 +767,14 @@ body {
 }
 
 /* Category-colored hover accent stripe */
-.section[data-cat="workloads"]    .cmd-item:hover { border-left-color: var(--workloads-color); }
+.section[data-cat="installation"] .cmd-item:hover { border-left-color: var(--installation-color); }
 .section[data-cat="cluster"]      .cmd-item:hover { border-left-color: var(--cluster-color); }
+.section[data-cat="workloads"]    .cmd-item:hover { border-left-color: var(--workloads-color); }
 .section[data-cat="helm"]         .cmd-item:hover { border-left-color: var(--helm-color); }
 .section[data-cat="kustomize"]    .cmd-item:hover { border-left-color: var(--kustomize-color); }
-.section[data-cat="troubleshooting"] .cmd-item:hover { border-left-color: var(--troubleshooting-color); }
 .section[data-cat="k9s"]          .cmd-item:hover { border-left-color: var(--k9s-color); }
-.section[data-cat="installation"]        .cmd-item:hover { border-left-color: var(--installation-color); }
+.section[data-cat="troubleshooting-kubernetes"] .cmd-item:hover { border-left-color: var(--ts-kubernetes-color); }
+.section[data-cat="troubleshooting-tools"]      .cmd-item:hover { border-left-color: var(--ts-tools-color); }
 
 .cmd-item[hidden] { display: none; }
 
@@ -706,7 +808,7 @@ body {
   border-radius: 5px;
   color: var(--text-muted);
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.4;
   transition: opacity 0.1s, color 0.1s, border-color 0.1s, background 0.1s;
   flex-shrink: 0;
 }
@@ -867,6 +969,7 @@ mark {
 @media (max-width: 1024px) {
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 
+  .nav-mid::after,
   .nav-sub::after {
     content: '';
     position: absolute;
@@ -878,6 +981,7 @@ mark {
     pointer-events: none;
     z-index: 1;
   }
+  .nav-sub::after { background: linear-gradient(to right, transparent, rgba(17, 15, 31, 0.55)); }
 }
 
 @media (max-width: 900px) {
@@ -903,7 +1007,9 @@ mark {
   }
   .search-input { height: 37px; font-size: 13.5px; }
   .nav { top: 110px; }
-  .nav-sub { top: 154px; }
+  .nav-mid { top: 151px; }
+  .nav-sub { top: 189px; }
+  .section { scroll-margin-top: 233px; }
   .header-actions { gap: 4px; margin-left: 0; }
   .action-btn-label { display: none; }
   .action-btn { padding: 0 9px; gap: 0; }
@@ -918,14 +1024,22 @@ mark {
 }
 
 @media (hover: none) {
-  .copy-btn { opacity: 0.7; }
+  .copy-btn { opacity: 0.7; min-width: 44px; min-height: 44px; }
+  /* Touch screens: per-element minimums so context row doesn't overflow */
+  .top-btn { min-height: 40px; }
+  .cat-btn { min-height: 34px; }
+  .sec-btn { min-height: 28px; }
+  .scroll-top-btn { min-width: 44px; min-height: 44px; }
 }
 
 @media (max-width: 400px) {
   .logo-text { font-size: 18px; }
   .logo-icon { width: 26px; height: 26px; }
   .nav { top: 97px; }
+  .nav-mid { top: 138px; }
+  .nav-sub { top: 176px; }
   .action-btn { height: 30px; }
+  .section { scroll-margin-top: 220px; }
 }
 
 /* ===== PRINT ===== */

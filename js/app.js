@@ -1,4 +1,4 @@
-import { COPY_ICON, CHECK_ICON, SECTIONS } from './data.js';
+import { COPY_ICON, CHECK_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
 
 document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -94,27 +94,61 @@ function applyMark(el, q) {
 }
 
 // ── Navigation data ───────────────────────────────────────────
+const GROUPS = {
+  kubernetes:      ['installation', 'cluster', 'workloads'],
+  tools:           ['helm', 'kustomize', 'k9s'],
+  troubleshooting: ['troubleshooting-kubernetes', 'troubleshooting-tools'],
+};
+
 const CATEGORIES = {
+  installation: ['install-kubeadm','install-k3s','install-k3d','install-kind','install-minikube'],
   cluster:      ['cluster-health','node','crd','context'],
   workloads:    ['pod','deployment','statefulset','daemonset','service','config','job','volume','network','rbac','namespace'],
   helm:         ['helm-releases', 'helm-charts'],
   kustomize:    ['kustomize-manage', 'kustomize-edit'],
   k9s:          ['k9s-cli', 'k9s-ui'],
-  installation: ['install-kubeadm','install-k3s','install-k3d','install-kind','install-minikube'],
-  troubleshooting: ['troubleshooting-installation','troubleshooting-kubectl','troubleshooting-helm','troubleshooting-kustomize','troubleshooting-k9s'],
+  'troubleshooting-kubernetes': ['troubleshooting-installation','troubleshooting-cluster','troubleshooting-network','troubleshooting-storage','troubleshooting-resources','troubleshooting-scheduling'],
+  'troubleshooting-tools':      ['troubleshooting-helm','troubleshooting-kustomize','troubleshooting-k9s'],
+};
+
+const GROUP_LABELS = {
+  kubernetes:      'Kubernetes',
+  tools:           'Tools',
+  troubleshooting: 'Troubleshooting',
+};
+
+const CATEGORY_LABELS = {
+  installation: 'Installation',
+  cluster:      'Cluster',
+  workloads:    'Workloads',
+  helm:         'Helm',
+  kustomize:    'Kustomize',
+  k9s:          'K9s',
+  'troubleshooting-kubernetes': 'Kubernetes',
+  'troubleshooting-tools':      'Tools',
 };
 
 const SUB_LABELS = Object.fromEntries(SECTIONS.map(s => [s.id, s.title]));
 
+function groupOfCategory(cat) {
+  for (const [g, cats] of Object.entries(GROUPS)) if (cats.includes(cat)) return g;
+  return null;
+}
+function categoryOfSection(id) {
+  for (const [c, ids] of Object.entries(CATEGORIES)) if (ids.includes(id)) return c;
+  return null;
+}
+
 // ── Rendering ─────────────────────────────────────────────────
 function renderSection(section) {
-  const cat = Object.entries(CATEGORIES).find(([, ids]) => ids.includes(section.id))?.[0] ?? 'all';
+  const cat   = categoryOfSection(section.id) ?? 'all';
+  const group = groupOfCategory(cat) ?? 'all';
   const groups = section.groups
     .map((g, gi) => renderCard(g, gi))
     .join('');
 
   return `
-    <section class="section" data-section="${escapeHtml(section.id)}" data-cat="${cat}">
+    <section class="section" data-section="${escapeHtml(section.id)}" data-cat="${cat}" data-group="${group}">
       <div class="section-header">
         <div class="section-icon">${section.icon}</div>
         <h2 class="section-title">${escapeHtml(section.title)}</h2>
@@ -199,72 +233,157 @@ function fallbackCopy(text, callback) {
   document.body.removeChild(ta);
 }
 
-// ── Two-level navigation ─────────────────────────────────────
-let activeTop = 'all';
-let activeSub = 'all';
+// ── Three-level navigation ───────────────────────────────────
+let activeGroup    = 'all';
+let activeCategory = 'all';
+let activeSub      = 'all';
 
 function sectionInScope(id) {
-  if (activeTop === 'all') return true;
-  const ids = CATEGORIES[activeTop] || [];
-  if (!ids.includes(id)) return false;
+  if (activeGroup === 'all') return true;
+  const cat = categoryOfSection(id);
+  if (!cat || !GROUPS[activeGroup].includes(cat)) return false;
+  if (activeCategory !== 'all' && cat !== activeCategory) return false;
   return activeSub === 'all' || activeSub === id;
 }
 
-function updateSectionVisibility() {
-  document.querySelectorAll('.section').forEach(sec => {
-    sec.hidden = !sectionInScope(sec.dataset.section);
+function renderMidNav(group) {
+  const navMid = document.getElementById('navMid');
+  const inner  = document.getElementById('navMidInner');
+  const cats   = GROUPS[group] || [];
+
+  if (!cats.length) { navMid.hidden = true; return; }
+
+  navMid.dataset.group = group;
+
+  // Mid row: leading "All" + separator (mirrors top row), then category buttons.
+  const isAllActive = activeCategory === 'all';
+  const parts = [
+    `<button class="nav-btn cat-btn${isAllActive ? ' active' : ''}" data-cat="all" type="button">All</button>`,
+    `<span class="nav-sep"></span>`,
+    ...cats.map(c => {
+      const isActive = c === activeCategory;
+      return `<button class="nav-btn cat-btn${isActive ? ' active' : ''}" data-cat="${c}" type="button">${escapeHtml(CATEGORY_LABELS[c] || c)}</button>`;
+    })
+  ];
+  inner.innerHTML = parts.join('');
+
+  inner.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyCategory(btn.dataset.cat));
   });
+
+  navMid.hidden = false;
 }
 
-function renderSubNav(top) {
-  const navSub  = document.getElementById('navSub');
-  const inner   = document.getElementById('navSubInner');
-  const ids     = CATEGORIES[top] || [];
+function renderSubNav(cat) {
+  const navSub = document.getElementById('navSub');
+  const inner  = document.getElementById('navSubInner');
+  const ids    = CATEGORIES[cat] || [];
 
   if (!ids.length) { navSub.hidden = true; return; }
 
-  navSub.dataset.cat = top;
-  inner.innerHTML =
-    `<button class="nav-btn sub-btn active" data-sub="all">All</button>` +
-    ids.map(id => `<button class="nav-btn sub-btn" data-sub="${id}">${SUB_LABELS[id]}</button>`).join('');
+  navSub.dataset.cat = cat;
+  inner.innerHTML = ids.map(id => {
+    const isActive = id === activeSub;
+    return `<button class="nav-btn sec-btn${isActive ? ' active' : ''}" data-sub="${id}" type="button">${escapeHtml(SUB_LABELS[id] || id)}</button>`;
+  }).join('');
 
-  inner.querySelectorAll('.sub-btn').forEach(btn => {
+  inner.querySelectorAll('.sec-btn').forEach(btn => {
     btn.addEventListener('click', () => applySub(btn.dataset.sub));
   });
 
   navSub.hidden = false;
+  // Align sub-row content with the active category button on the row above
+  requestAnimationFrame(alignSubNav);
 }
 
-function applyTop(top) {
-  activeTop = top;
-  activeSub = 'all';
+/** Indent navSubInner so its first chip lines up under the FIRST category button.
+   The reference is fixed (first cat) so the sub row's left edge stays constant
+   regardless of which category is active — sub items always sit under the same X. */
+function alignSubNav() {
+  const navSub      = document.getElementById('navSub');
+  const navMidInner = document.getElementById('navMidInner');
+  const navSubInner = document.getElementById('navSubInner');
+  if (!navSub || navSub.hidden || !navMidInner || !navSubInner) return;
+  const firstCat = navMidInner.querySelector('.cat-btn:not([data-cat="all"])');
+  if (!firstCat) { navSubInner.style.paddingLeft = ''; return; }
+
+  const catRect   = firstCat.getBoundingClientRect();
+  const innerRect = navMidInner.getBoundingClientRect();
+  const SUB_NUDGE = 6; // small extra indent so sub chips don't sit flush with cat-btn left edge
+  const offset    = Math.max(0, catRect.left - innerRect.left + SUB_NUDGE);
+  navSubInner.style.paddingLeft = offset + 'px';
+}
+window.addEventListener('resize', alignSubNav);
+
+function applyGroup(group) {
+  activeGroup    = group;
+  activeCategory = 'all';
+  activeSub      = 'all';
 
   document.querySelectorAll('.top-btn').forEach(btn => {
-    const isActive = btn.dataset.top === top;
+    const isActive = btn.dataset.group === group;
     btn.classList.toggle('active', isActive);
-    if (btn.dataset.top !== 'all') btn.setAttribute('aria-expanded', isActive);
+    if (btn.dataset.group !== 'all') btn.setAttribute('aria-expanded', isActive);
+    // Switching groups resets the category, so clear any inherited cat tint
+    delete btn.dataset.cat;
   });
 
+  const navMid = document.getElementById('navMid');
   const navSub = document.getElementById('navSub');
-  if (top !== 'all') {
-    renderSubNav(top);
+  if (group !== 'all') {
+    renderMidNav(group);
   } else {
-    navSub.hidden = true;
+    navMid.hidden = true;
+    navMid.removeAttribute('data-group');
+  }
+  navSub.hidden = true;
+  navSub.removeAttribute('data-cat');
+
+  applySearch(searchInput.value);
+  history.replaceState(null, '', group === 'all' ? location.pathname : `#${group}`);
+}
+
+function applyCategory(cat) {
+  // Clicking the active category collapses back to "all of group" (closes sub row)
+  if (cat === activeCategory && cat !== 'all') cat = 'all';
+  activeCategory = cat;
+  activeSub      = 'all';
+
+  document.querySelectorAll('.cat-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.cat === cat)
+  );
+
+  // Propagate active category color onto the active top-btn (lavender ↔ category tint)
+  const activeTopBtn = document.querySelector('.top-btn.active');
+  if (activeTopBtn) {
+    if (cat !== 'all') activeTopBtn.dataset.cat = cat;
+    else delete activeTopBtn.dataset.cat;
   }
 
-  searchInput.value = '';
-  applySearch('');
-  history.replaceState(null, '', top === 'all' ? location.pathname : `#${top}`);
+  const navSub = document.getElementById('navSub');
+  if (cat !== 'all') {
+    renderSubNav(cat);
+  } else {
+    navSub.hidden = true;
+    navSub.removeAttribute('data-cat');
+  }
+
+  applySearch(searchInput.value);
+  history.replaceState(null, '', cat === 'all' ? `#${activeGroup}` : `#${cat}`);
 }
 
 function applySub(sub) {
+  // Clicking the active section collapses back to "all of category"
+  if (sub === activeSub && sub !== 'all') sub = 'all';
   activeSub = sub;
-  document.querySelectorAll('.sub-btn').forEach(btn =>
+
+  document.querySelectorAll('.sec-btn').forEach(btn =>
     btn.classList.toggle('active', btn.dataset.sub === sub)
   );
-  searchInput.value = '';
-  applySearch('');
-  history.replaceState(null, '', sub === 'all' ? `#${activeTop}` : `#${sub}`);
+
+  applySearch(searchInput.value);
+  const fallback = activeCategory !== 'all' ? activeCategory : activeGroup;
+  history.replaceState(null, '', sub === 'all' ? `#${fallback}` : `#${sub}`);
 }
 
 // ── Search ────────────────────────────────────────────────────
@@ -323,7 +442,11 @@ function applySearch(query) {
         <p>Try a different keyword or clear the search.</p>`;
       main.appendChild(emptyEl);
     }
-    emptyEl.querySelector('h3').textContent = `No results for \u201c${query}\u201d`;
+    const scopeName = activeCategory !== 'all'
+      ? CATEGORY_LABELS[activeCategory]
+      : (activeGroup !== 'all' ? GROUP_LABELS[activeGroup] : '');
+    const scopeLabel = scopeName ? ` in ${scopeName}` : '';
+    emptyEl.querySelector('h3').textContent = `No results for \u201c${query}\u201d${scopeLabel}`;
   } else {
     clearEmptyState();
   }
@@ -353,8 +476,8 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-// ── Keyboard shortcuts ────────────────────────────────────────
-const TOP_KEYS  = { '1': 'all', '2': 'installation', '3': 'cluster', '4': 'workloads', '5': 'helm', '6': 'kustomize', '7': 'k9s', '8': 'troubleshooting' };
+// ── Key bindings ──────────────────────────────────────────────
+const TOP_KEYS  = { '1': 'all', '2': 'kubernetes', '3': 'tools', '4': 'troubleshooting' };
 const searchInput    = document.getElementById('searchInput');
 const searchShortcut = document.getElementById('searchShortcut');
 const searchClear    = document.getElementById('searchClear');
@@ -362,9 +485,16 @@ const searchClear    = document.getElementById('searchClear');
 document.addEventListener('keydown', e => {
   const typing = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
 
-  if (e.key === 'Escape' && typing) { searchInput.value = ''; searchInput.blur(); applySearch(''); searchClear.classList.remove('visible'); return; }
+  if (e.key === 'Escape' && (typing || searchInput.value)) {
+    clearTimeout(searchDebounce);
+    searchInput.value = '';
+    if (typing) searchInput.blur();
+    applySearch('');
+    searchClear.classList.remove('visible');
+    return;
+  }
   if (e.key === '/' && !typing) { e.preventDefault(); searchInput.focus(); searchInput.select(); return; }
-  if (!typing && TOP_KEYS[e.key]) applyTop(TOP_KEYS[e.key]);
+  if (!typing && TOP_KEYS[e.key]) applyGroup(TOP_KEYS[e.key]);
 });
 
 searchInput.addEventListener('focus', () => searchShortcut.style.opacity = '0');
@@ -393,7 +523,7 @@ main.addEventListener('click', e => {
 });
 
 document.querySelectorAll('.top-btn').forEach(btn => {
-  btn.addEventListener('click', () => applyTop(btn.dataset.top));
+  btn.addEventListener('click', () => applyGroup(btn.dataset.group));
 });
 
 // ── Init ──────────────────────────────────────────────────────
@@ -404,20 +534,19 @@ function init() {
 init();
 
 // ── URL hash navigation ───────────────────────────────────────
+const HASH_REDIRECTS = {
+  'troubleshooting-kubectl': 'troubleshooting-cluster',
+};
+
 function restoreFromHash() {
-  const hash = location.hash.slice(1);
+  let hash = location.hash.slice(1);
   if (!hash) return;
-  if (CATEGORIES[hash]) {
-    applyTop(hash);
-    return;
-  }
-  for (const [cat, ids] of Object.entries(CATEGORIES)) {
-    if (ids.includes(hash)) {
-      applyTop(cat);
-      applySub(hash);
-      return;
-    }
-  }
+  if (HASH_REDIRECTS[hash]) hash = HASH_REDIRECTS[hash];
+
+  if (GROUPS[hash])     { applyGroup(hash); return; }
+  if (CATEGORIES[hash]) { applyGroup(groupOfCategory(hash)); applyCategory(hash); return; }
+  const cat = categoryOfSection(hash);
+  if (cat)              { applyGroup(groupOfCategory(cat)); applyCategory(cat); applySub(hash); return; }
 }
 restoreFromHash();
 window.addEventListener('hashchange', restoreFromHash);
@@ -427,7 +556,7 @@ function alignLogo() {
   const logo = document.querySelector('.logo');
   if (!logo) return;
   if (window.innerWidth <= 900) { logo.style.marginLeft = '0'; return; }
-  const allBtn   = document.querySelector('[data-top="all"]');
+  const allBtn   = document.querySelector('[data-group="all"]');
   const logoIcon = document.querySelector('.logo-icon');
   if (!allBtn || !logoIcon) return;
   // Read phase first (before any writes) to avoid forced layout
@@ -441,9 +570,6 @@ window.addEventListener('resize', alignLogo);
 document.fonts.ready.then(() => requestAnimationFrame(alignLogo));
 
 // ── Header dropdowns ──────────────────────────────────────────
-const CONTACT_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
-const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
-
 function renderHeaderActions(CONTACTS, SPONSOR) {
   const container = document.getElementById('headerActions');
   if (!container) return;
