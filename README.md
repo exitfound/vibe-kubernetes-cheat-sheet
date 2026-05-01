@@ -10,7 +10,7 @@ A fast, searchable web reference for everyone who works with Kubernetes day to d
 
 ## What it covers
 
-Over 600 commands across seven categories, each with a short plain-English description and a one-click copy button.
+Over 600 commands across eight categories, each with a short plain-English description, a one-click copy button, and a star to save personal favourites. Every section header shows its total command count.
 
 | Category | Sections |
 |---|---|
@@ -20,19 +20,20 @@ Over 600 commands across seven categories, each with a short plain-English descr
 | **Helm** | Releases, Charts |
 | **Kustomize** | Manage, Edit |
 | **K9s** | CLI & Launch, UI Shortcuts |
-| **Troubleshooting** | Installation, Kubectl, Helm, Kustomize, K9s |
+| **Debug K8s** | Installation, Cluster, Network, Storage, Resources, Scheduling |
+| **Debug Tools** | Helm, Kustomize, K9s |
 
 ---
 
 ## How to use it
 
 - **Click any command** to copy it to the clipboard instantly.
-- **Top navigation** switches between categories. Sub-navigation narrows it down to a specific section.
-- **Search** filters across all commands and descriptions at once. Hit `/` to focus the search field from anywhere on the page, `Esc` to clear it.
-- **Keyboard shortcuts** `1`–`8` jump between top-level categories without touching the mouse.
-- **Deep links** work – the URL updates as you navigate, so you can bookmark or share a specific section directly (e.g. `kube.how/#helm`).
-- **Contacts** button in the header opens a dropdown with links to the community channels.
-- **Sponsor** button opens a dropdown with a donation link and crypto wallet addresses – click the copy icon next to any address to copy it in full.
+- **Star a command** with the icon left of the copy button to save it to your personal Starred view (top-right of the nav). Stars persist across reloads in your browser only — nothing leaves the page.
+- **Top navigation** switches between groups. Mid- and sub-navigation narrow it down to a specific category and section.
+- **Section headers** show the total command count on the right.
+- **Search** filters across all commands and descriptions at once. `Esc` clears the field. Search continues to work inside the Starred view, narrowing the favourites list further.
+- **Deep links** work – the URL updates as you navigate, so you can bookmark or share a specific section directly (e.g. `kube.how/#helm` or `kube.how/#starred`).
+- **GitHub**, **Contacts**, and **Sponsor** buttons in the header link to the project repository, the community channels, and a donation page with crypto wallet addresses respectively.
 
 ---
 

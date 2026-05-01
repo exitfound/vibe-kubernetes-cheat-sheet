@@ -20,38 +20,38 @@ docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet
 
 Single-page app, no framework, no bundler. Dependencies: Google Fonts only (Space Grotesk + JetBrains Mono). All scripts are ES modules loaded directly by the browser via `<script type="module">`.
 
-**`js/data.js`** — all content: `SECTIONS` array, `ICONS` object, `COPY_ICON`/`CHECK_ICON` SVGs.
+**`js/data.js`** — all content: `SECTIONS` array, `ICONS` object, `COPY_ICON`/`CHECK_ICON`/`STAR_ICON`/`CONTACT_ICON`/`SPONSOR_ICON` SVGs.
 
-**`js/contacts.js`** — optional file. Exports `CONTACTS` and `SPONSOR` config objects. Dynamically imported by `app.js` at runtime; if the file is absent the header renders without those buttons and everything else works normally. Delete to ship a build without Contacts/Sponsor.
+**`js/contacts.js`** — optional file. Exports `CONTACTS`, `SPONSOR`, and `GITHUB` config objects. Dynamically imported by `app.js` at runtime; if the file is absent the header renders without those buttons and everything else works normally. Delete to ship a build without GitHub/Contacts/Sponsor.
 
 **`js/app.js`** — runtime logic:
-- `GROUPS` maps top-level group keys (`kubernetes`, `tools`, `troubleshooting`) to arrays of category keys.
+- `GROUPS` maps top-level group keys (`kubernetes`, `tools`, `troubleshooting`, `starred`) to arrays of category keys. `starred` is a pseudo-group with an empty array — it carries no categories of its own and is filtered per-command via the in-memory `starred` Set.
 - `CATEGORIES` maps category keys (`installation`, `cluster`, `workloads`, `helm`, `kustomize`, `k9s`, `troubleshooting-kubernetes`, `troubleshooting-tools`) to section ID arrays. Order inside a category array = order in the sub-nav.
 - `GROUP_LABELS` / `CATEGORY_LABELS` provide display names; helpers `groupOfCategory(cat)` and `categoryOfSection(id)` do reverse lookups.
 - `SUB_LABELS` is auto-derived from `SECTIONS` — no manual maintenance
 - `hl()` tokenizes commands into highlighted HTML spans (HTML-escaped, XSS-safe)
 - `sortCmds()` sorts commands by subcommand, then flag count, then full string
-- All content rendered into `<main id="main">` on `init()`; copy clicks handled by event delegation on `main`
+- All content rendered into `<main id="main">` on `init()`; copy and star clicks handled by event delegation on `main` (star wins over copy when both are clicked)
 - Search input is debounced (~80ms) and re-runs `hl()` plus `<mark>` highlighting on each keystroke
-- `renderHeaderActions(CONTACTS, SPONSOR)` renders Contacts and Sponsor dropdown buttons into `#headerActions` from `contacts.js` config
+- `renderHeaderActions(CONTACTS, SPONSOR, GITHUB)` renders the GitHub link plus Contacts and Sponsor dropdown buttons into `#headerActions` from `contacts.js` config
 - `alignSubNav()` runs after `renderSubNav()` and on resize, computing the X position of the first cat-btn in mid row and applying matching `padding-left` to `navSubInner` (plus a 6px nudge constant). The sub row's leftmost chip thus always starts at the same X regardless of which category is active.
 
 **Navigation:** three sticky rows.
-- **Top (`#navTop`)** — always visible: All | Kubernetes | Tools | Troubleshooting (groups). `.top-btn` 33px tall, 16px @ 600, padding 0 13. Both "All" buttons (top and mid) anchored to `min-width: 56px` with padding 0 12 so their right edges align and the trailing `nav-sep` lines up across rows.
-- **Mid (`#navMid`)** — visible when a group is selected. Mirrors top: leading "All" + nav-sep + category buttons (`.cat-btn` 29px tall, 15px @ 500, padding 0 13, opacity 0.85 idle / 1 active+hover). Inner row 38px. Carries `data-group="<group>"`.
-- **Sub (`#navSub`)** — visible only when a category is selected. Compact section chips (`.sec-btn` 24px tall, 14px @ 500, opacity 0.7 idle / 1 active+hover). Inner row 32px. Semi-transparent: `background: rgba(17,15,31,0.55)` + `backdrop-filter: blur(14px)` so it reads as a softer "whisper" layer below the main rows. No "All" button — default state is "all sections of category". Carries `data-cat="<category>"` so active chip and chevron inherit the category color.
+- **Top (`#navTop`)** — always visible: All | Kubernetes | Tools | Troubleshooting | … | Starred. `.top-btn` 33px tall, 16px @ 600, padding 0 13. Both "All" buttons (top and mid) anchored to `min-width: 48px` with padding 0 10 so their right edges align and the trailing `nav-sep` lines up across rows. The Starred button is pushed to the far right via `margin-left: auto` so it visually parks in a "personal zone" away from the group buttons.
+- **Mid (`#navMid`)** — visible when a normal group is selected (hidden in Starred mode). Mirrors top: leading "All" + nav-sep + category buttons (`.cat-btn` 29px tall, 15px @ 500, padding 0 13, opacity 0.9 idle / 1 active+hover). Inner row 38px. Carries `data-group="<group>"`.
+- **Sub (`#navSub`)** — visible only when a category is selected. Compact section chips (`.sec-btn` 24px tall, 14px @ 500, opacity 0.75 idle / 1 active+hover). Inner row 32px. Semi-transparent: `background: rgba(17,15,31,0.55)` + `backdrop-filter: blur(14px)` so it reads as a softer "whisper" layer below the main rows. No "All" button — default state is "all sections of category". Carries `data-cat="<category>"` so active chip and chevron inherit the category color.
 
 Each row is sticky-positioned and presents as one continuous block with no visible 1px borders. Visual separation comes from a soft lavender gradient `::before` at the bottom of `nav-top` and `nav-mid` (`rgba(221,202,250,0.2)` peak, transparent edges — echoes `card-desc::after`). A `box-shadow: 0 1px 0 0 <bg>` drop on every `.nav` extends each row's bg 1px downward to fill any sub-pixel gap between sticky rows on scroll, so content never peeks through and the rows don't "jump" between scroll states. `nav-sub` overrides both bg and shadow at 0.55 alpha to keep its softer feel.
 
-**Color flow.** Top buttons stay monotone (lavender `--accent`) by default — they're "global navigation". When a category is selected, JS sets `data-cat="<category>"` on the active top-btn and CSS `.top-btn.active[data-cat="..."]` rules tint it with the category's color. Switching groups (`applyGroup`) clears `data-cat` from every top-btn, so the tint resets cleanly.
+**Color flow.** Top buttons stay monotone (lavender `--accent`) by default — they're "global navigation". When a category is selected, JS sets `data-cat="<category>"` on the active top-btn and CSS `.top-btn.active[data-cat="..."]` rules tint it with the category's color. Switching groups (`applyGroup`) clears `data-cat` from every top-btn, so the tint resets cleanly. The Starred button is intentionally exempt: it has no category and no `.top-btn.active[data-group="starred"]` rule, so it stays lavender like All when active.
 
 Re-clicking the active category collapses the sub row (back to all-of-group, top-btn lavender). Re-clicking the active section deselects (back to all-of-category). Each section in `<main>` carries `data-cat="<category>"` and `data-group="<group>"` so CSS can theme by either.
 
-`renderMidNav()` and `renderSubNav()` are separate rendering entries. `applyGroup` clears both, `applyCategory` opens/closes the sub row and propagates the category tint to the active top-btn, `applySub` only toggles `.active` on existing chips. `applyCategory` and `applySub` are toggles: clicking the active item deselects it.
+`renderMidNav()` and `renderSubNav()` are separate rendering entries. `applyGroup` clears both (and skips `renderMidNav` entirely for `starred`), `applyCategory` opens/closes the sub row and propagates the category tint to the active top-btn, `applySub` only toggles `.active` on existing chips. `applyCategory` and `applySub` are toggles: clicking the active item deselects it.
 
-**URL hash routing:** `applyGroup`/`applyCategory`/`applySub` write to `history.replaceState`. `restoreFromHash()` resolves any `#hash` to its level: group keys, category keys, and section IDs are all unique. Deep links like `kube.how/#pod` (section), `kube.how/#workloads` (category), and `kube.how/#kubernetes` (group) all work and auto-select parent levels.
+**URL hash routing:** `applyGroup`/`applyCategory`/`applySub` write to `history.replaceState`. `restoreFromHash()` resolves any `#hash` to its level: group keys, category keys, and section IDs are all unique. Deep links like `kube.how/#pod` (section), `kube.how/#workloads` (category), `kube.how/#kubernetes` (group), and `kube.how/#starred` (favourites view) all work and auto-select parent levels.
 
-**Keyboard:** `1`–`4` switch top groups (All, Kubernetes, Tools, Troubleshooting), `/` focuses search, `Esc` clears the search field. There is no in-app shortcuts modal — the bindings are intentionally invisible utility.
+**Keyboard:** `Esc` clears the search field. No other key bindings — earlier `1`–`4` and `/` shortcuts were removed; the only utility key left is intentionally invisible.
 
 ## Deployment
 
@@ -63,13 +63,20 @@ Any push to `main` ships immediately. There is no staging environment.
 
 ## Header actions
 
-Two optional ghost-style buttons on the right side of the header — **Contacts** and **Sponsor** — each opens a dropdown popover anchored below the button. Powered entirely by `contacts.js`; `index.html` and `app.js` need no changes to add or remove them. `.header-actions` carries `margin-left: auto` so it parks at the right edge of the header even when there are no other elements between it and the logo.
+Three optional ghost-style buttons on the right side of the header — **GitHub** (plain link), **Contacts**, and **Sponsor** (each opens a dropdown popover anchored below the button). Powered entirely by `contacts.js`; `index.html` and `app.js` need no changes to add or remove them. `.header-actions` carries `margin-left: auto` so it parks at the right edge of the header even when there are no other elements between it and the logo.
 
 **`contacts.js` structure:**
 ```js
 export const CONTACTS = {
   enabled: true,          // false hides the button without deleting the file
   links: [{ label, href, icon }],
+};
+
+export const GITHUB = {
+  enabled: true,
+  label: 'GitHub',
+  href:  'https://github.com/...',
+  icon:  `<svg ...>...</svg>`,
 };
 
 export const SPONSOR = {
@@ -79,7 +86,23 @@ export const SPONSOR = {
 };
 ```
 
-Dropdown behavior: click outside or `Esc` closes. Copy buttons on wallet rows reuse the existing `COPY_ICON`/`CHECK_ICON` pattern from `data.js`.
+Dropdown behavior (Contacts/Sponsor): click outside or `Esc` closes. GitHub is a plain `<a class="action-btn action-btn-link">` — no dropdown. Copy buttons on wallet rows reuse the existing `COPY_ICON`/`CHECK_ICON` pattern from `data.js`.
+
+## Starred commands
+
+A 4th top-row button **Starred** (rightmost via `margin-left: auto`) hosts a personal favourites view. Each command card carries a `.star-btn` left of `.copy-btn`; clicking toggles a star. State persists in `localStorage` under `kube-how:starred:v1` (JSON array of raw command strings), loaded into an in-memory `Set` at boot and written back on every toggle (try/catch — degrades to session-only if storage is blocked).
+
+Starred mode is a **filter, not a separate render path**. `applyGroup('starred')` adds `body.starred-mode`, hides nav-mid/nav-sub, and `applySearch()` ANDs in a `starred.has(rawCmd)` predicate so only flagged commands stay visible. The existing card-empty / section-empty roll-up logic then collapses everything that becomes empty for free. Search continues to work inside Starred mode (further narrowing the favourites). `#starred` deep-links work because `starred: []` is registered in `GROUPS` and `'Starred'` in `GROUP_LABELS` (via `restoreFromHash`); `sectionInScope` short-circuits to `true` for `activeGroup === 'starred'`.
+
+Identity key is the **raw command string**. Commands that appear in two sections (e.g. duplicate `kubectl debug -it ... netshoot ...` per the duplicate-policy exceptions) toggle in lockstep — `toggleStar()` finds every `.cmd-item[data-raw="..."]` in the DOM and updates them all so visual state stays in sync. The CSS attribute selector is built via `escapeAttr()` (escapes `\` and `"`).
+
+The active Starred top-btn stays **lavender** like All — there is no `.top-btn.active[data-group="starred"]` rule. The cyan `--starred-color` is reserved for the inline star icon: `.star-btn` is a low-opacity gray hollow star by default; `.star-btn.starred` swaps `fill-opacity` to 1 and applies the cyan tint plus a soft `drop-shadow` glow. On touch screens the star button enlarges to 44×44 like the copy button, and `.cmd-item` padding-right grows to match.
+
+Empty state: when Starred mode is active and no commands match (zero stars, or a search that filters them all out), `#emptyState` swaps to a star-icon variant with the copy "No starred commands yet…". The same element is reused for "No results for …" in non-starred mode.
+
+## Section count badge
+
+Each `.section-header` carries a right-aligned `.section-count` chip showing `N commands` (`N command` for n=1). Computed in `renderSection()` by summing `g.cmds.length` across `section.groups`. Rectangular (`border-radius: 0`), JetBrains Mono 13px @ 600. Background and text use the section's category colour tokens; falls back to lavender `--accent` for sections with no category. The chip is purely informational — it shows the section's **total**, not the visible-after-filter count, so it doesn't react to search or Starred mode.
 
 ## Sections
 
@@ -145,11 +168,10 @@ The `sub` field on each section is the category label shown in the section heade
 **Adding a new top-level group:**
 1. Define categories first (see above), then add a new key + array to `GROUPS` in `js/app.js`
 2. Add label to `GROUP_LABELS` in `js/app.js`
-3. Add keyboard shortcut to `TOP_KEYS` in `js/app.js`
-4. Add `<button class="nav-btn top-btn top-<group>" data-group="<group>" aria-controls="navMid" aria-expanded="false">` in `index.html`
-5. Add `--<group>-color`, `--<group>-glow`, `--<group>-border` vars in `:root` in `css/styles.css` — currently only used as a colour anchor for the family; the top-btn itself stays monotone. Categories under the group should be shades of these values.
+3. Add `<button class="nav-btn top-btn top-<group>" data-group="<group>" aria-controls="navMid" aria-expanded="false">` in `index.html`
+4. Add `--<group>-color`, `--<group>-glow`, `--<group>-border` vars in `:root` in `css/styles.css` — currently only used as a colour anchor for the family; the top-btn itself stays monotone. Categories under the group should be shades of these values.
 
-No `.top-<group>.active` rule needed (top buttons are intentionally monotone). No nav-mid border tint either (the lavender `::before` separator handles visual flow). No shortcuts-modal row to update — that feature has been removed.
+No `.top-<group>.active` rule needed (top buttons are intentionally monotone). No nav-mid border tint either (the lavender `::before` separator handles visual flow). No keyboard shortcut to add — those bindings were removed.
 
 ## Responsive breakpoints
 
@@ -186,11 +208,12 @@ When changing a color, update all three vars AND grep for hardcoded rgba values 
 
 **Final palette** (canonical values live in `css/styles.css`, mirrored here):
 
-- Kubernetes group `#7dbcff` — Installation `#5cd9ff` (cyan-azure), Cluster `#8e94ff` (indigo), Workloads `#5fb4ff` (sky)
-- Tools group `#71dc78` — Helm `#4dd6b1` (mint-teal), Kustomize `#b8e35a` (lime), K9s `#5ed87a` (emerald)
-- Troubleshooting group `#ff7e6e` — TS-Kubernetes `#ff6b61` (red), TS-Tools `#ff9171` (coral)
+- Kubernetes — Installation `#7d86ff` (indigo), Cluster `#5cb1ff` (sky-blue), Workloads `#4fe5ff` (cyan)
+- Tools — Helm `#fffb7a` (yellow), Kustomize `#ffd15c` (amber), K9s `#ffa04d` (orange)
+- Troubleshooting — TS-Kubernetes `#ff5757` (red), TS-Tools `#ff668c` (pink-coral)
+- Extra: `--starred-color` `#5cd9ff` (sky cyan) — used **only** for the inline `.star-btn` icon when active. The Starred top-button itself stays lavender.
 
-**Brightness ladder.** Top-row text at `opacity: 1`, mid-row text at `opacity: 0.85`, sub-row text at `opacity: 0.7` — fades from bright to dim down the stack. Hover and `.active` always restore opacity to 1 so the picked item is fully readable.
+**Brightness ladder.** Top-row text at `opacity: 1`, mid-row text at `opacity: 0.9`, sub-row text at `opacity: 0.75` — fades from bright to dim down the stack. Hover and `.active` always restore opacity to 1 so the picked item is fully readable.
 
 **Row separators.** No `border-bottom` on any `.nav` (was the source of through-bleed gaps on scroll). Visible separators come from `.nav-top::before` and `.nav-mid::before` pseudo-elements: a soft lavender gradient (`rgba(221,202,250,0.2)` peak, transparent edges) absolutely positioned at the bottom 1px of the row, sits inside the box so it survives sticky stack boundaries. Beneath that, every `.nav` has `box-shadow: 0 1px 0 0 rgba(17,15,31,0.96)` (drop) to extend the row's bg one pixel downward and fill any sub-pixel gap with the next row. `.nav-sub` overrides both the bg and the shadow at `0.55` alpha to keep its softer feel. The header keeps its own `--border-subtle` border-bottom.
 

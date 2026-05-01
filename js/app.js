@@ -1,4 +1,4 @@
-import { COPY_ICON, CHECK_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
+import { COPY_ICON, CHECK_ICON, STAR_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
 
 document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -7,6 +7,21 @@ const SCROLL_THRESHOLD = 300;
 const TOAST_DURATION   = 2000;
 const COPY_RESET_DELAY = 1500;
 const SEARCH_DEBOUNCE  = 80;
+const STARRED_KEY      = 'kube-how:starred:v1';
+
+// ── Starred commands (persisted) ─────────────────────────────
+const starred = (() => {
+  try {
+    const raw = localStorage.getItem(STARRED_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (_) { return new Set(); }
+})();
+
+function persistStarred() {
+  try { localStorage.setItem(STARRED_KEY, JSON.stringify([...starred])); } catch (_) {}
+}
+
+function isStarred(cmd) { return starred.has(cmd); }
 
 // ── HTML escape ───────────────────────────────────────────────
 function escapeHtml(s) {
@@ -98,6 +113,7 @@ const GROUPS = {
   kubernetes:      ['installation', 'cluster', 'workloads'],
   tools:           ['helm', 'kustomize', 'k9s'],
   troubleshooting: ['troubleshooting-kubernetes', 'troubleshooting-tools'],
+  starred:         [], // pseudo-group: no categories, filtered per-command
 };
 
 const CATEGORIES = {
@@ -115,6 +131,7 @@ const GROUP_LABELS = {
   kubernetes:      'Kubernetes',
   tools:           'Tools',
   troubleshooting: 'Troubleshooting',
+  starred:         'Starred',
 };
 
 const CATEGORY_LABELS = {
@@ -124,8 +141,8 @@ const CATEGORY_LABELS = {
   helm:         'Helm',
   kustomize:    'Kustomize',
   k9s:          'K9s',
-  'troubleshooting-kubernetes': 'Kubernetes',
-  'troubleshooting-tools':      'Tools',
+  'troubleshooting-kubernetes': 'Debug K8s',
+  'troubleshooting-tools':      'Debug Tools',
 };
 
 const SUB_LABELS = Object.fromEntries(SECTIONS.map(s => [s.id, s.title]));
@@ -146,6 +163,8 @@ function renderSection(section) {
   const groups = section.groups
     .map((g, gi) => renderCard(g, gi))
     .join('');
+  const total = section.groups.reduce((n, g) => n + g.cmds.length, 0);
+  const label = total === 1 ? 'command' : 'commands';
 
   return `
     <section class="section" data-section="${escapeHtml(section.id)}" data-cat="${cat}" data-group="${group}">
@@ -153,6 +172,7 @@ function renderSection(section) {
         <div class="section-icon">${section.icon}</div>
         <h2 class="section-title">${escapeHtml(section.title)}</h2>
         <span class="section-sub">${escapeHtml(section.sub)}</span>
+        <span class="section-count">${total} ${label}</span>
       </div>
       <div class="cards-grid">${groups}</div>
     </section>`;
@@ -181,10 +201,12 @@ function renderCard(group, gi) {
 }
 
 function renderCmd(item) {
+  const starredCls = isStarred(item.cmd) ? ' starred' : '';
   return `
     <div class="cmd-item" data-raw="${escapeHtml(item.cmd)}" data-desc="${escapeHtml(item.desc)}">
       <div class="cmd-code">${hl(item.cmd)}</div>
       <div class="cmd-desc">${escapeHtml(item.desc)}</div>
+      <button class="star-btn${starredCls}" title="Toggle star" aria-label="Toggle star" aria-pressed="${isStarred(item.cmd)}">${STAR_ICON}</button>
       <button class="copy-btn" title="Copy command" aria-label="Copy command">${COPY_ICON}</button>
     </div>`;
 }
@@ -239,7 +261,7 @@ let activeCategory = 'all';
 let activeSub      = 'all';
 
 function sectionInScope(id) {
-  if (activeGroup === 'all') return true;
+  if (activeGroup === 'all' || activeGroup === 'starred') return true;
   const cat = categoryOfSection(id);
   if (!cat || !GROUPS[activeGroup].includes(cat)) return false;
   if (activeCategory !== 'all' && cat !== activeCategory) return false;
@@ -320,17 +342,21 @@ function applyGroup(group) {
   activeCategory = 'all';
   activeSub      = 'all';
 
+  document.body.classList.toggle('starred-mode', group === 'starred');
+
   document.querySelectorAll('.top-btn').forEach(btn => {
     const isActive = btn.dataset.group === group;
     btn.classList.toggle('active', isActive);
-    if (btn.dataset.group !== 'all') btn.setAttribute('aria-expanded', isActive);
+    if (btn.dataset.group !== 'all' && btn.hasAttribute('aria-controls')) {
+      btn.setAttribute('aria-expanded', isActive);
+    }
     // Switching groups resets the category, so clear any inherited cat tint
     delete btn.dataset.cat;
   });
 
   const navMid = document.getElementById('navMid');
   const navSub = document.getElementById('navSub');
-  if (group !== 'all') {
+  if (group !== 'all' && group !== 'starred') {
     renderMidNav(group);
   } else {
     navMid.hidden = true;
@@ -389,11 +415,12 @@ function applySub(sub) {
 // ── Search ────────────────────────────────────────────────────
 function applySearch(query) {
   const q = query.trim().toLowerCase();
+  const inStarredMode = activeGroup === 'starred';
 
   document.querySelectorAll('.section').forEach(sec => {
     if (!sectionInScope(sec.dataset.section)) { sec.hidden = true; return; }
 
-    if (!q) {
+    if (!q && !inStarredMode) {
       sec.hidden = false;
       sec.querySelectorAll('.card').forEach(c => { c.hidden = false; });
       sec.querySelectorAll('.cmd-item').forEach(item => {
@@ -408,17 +435,23 @@ function applySearch(query) {
     sec.querySelectorAll('.card').forEach(card => {
       let cardMatch = false;
       card.querySelectorAll('.cmd-item').forEach(item => {
-        const hit = item.dataset.raw.toLowerCase().includes(q)
-                 || item.dataset.desc.toLowerCase().includes(q);
-        item.hidden = !hit;
-        if (hit) {
+        const raw = item.dataset.raw;
+        const matchesText = !q
+          || raw.toLowerCase().includes(q)
+          || item.dataset.desc.toLowerCase().includes(q);
+        const matchesStar = !inStarredMode || starred.has(raw);
+        const visible = matchesText && matchesStar;
+        item.hidden = !visible;
+        if (visible) {
           cardMatch = true;
           const codeEl = item.querySelector('.cmd-code');
           const descEl = item.querySelector('.cmd-desc');
-          codeEl.innerHTML = hl(item.dataset.raw);
+          codeEl.innerHTML = hl(raw);
           descEl.textContent = item.dataset.desc;
-          applyMark(codeEl, q);
-          applyMark(descEl, q);
+          if (q) {
+            applyMark(codeEl, q);
+            applyMark(descEl, q);
+          }
         }
       });
       card.hidden = !cardMatch;
@@ -429,24 +462,35 @@ function applySearch(query) {
 
   const anyVisible = [...document.querySelectorAll('.section')].some(s => !s.hidden);
   let emptyEl = document.getElementById('emptyState');
-  if (!anyVisible && q) {
+  if (!anyVisible && (q || inStarredMode)) {
     if (!emptyEl) {
       emptyEl = document.createElement('div');
       emptyEl.id = 'emptyState';
       emptyEl.className = 'empty-state';
+      main.appendChild(emptyEl);
+    }
+    if (inStarredMode && !q) {
+      emptyEl.innerHTML = `
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <h3>No starred commands yet</h3>
+        <p>Click the star icon next to a command to save it here.</p>`;
+    } else {
       emptyEl.innerHTML = `
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <h3></h3>
         <p>Try a different keyword or clear the search.</p>`;
-      main.appendChild(emptyEl);
+      const scopeName = inStarredMode
+        ? 'starred'
+        : (activeCategory !== 'all'
+            ? CATEGORY_LABELS[activeCategory]
+            : (activeGroup !== 'all' ? GROUP_LABELS[activeGroup] : ''));
+      const scopeLabel = scopeName ? ` in ${scopeName}` : '';
+      emptyEl.querySelector('h3').textContent = `No results for \u201c${query}\u201d${scopeLabel}`;
     }
-    const scopeName = activeCategory !== 'all'
-      ? CATEGORY_LABELS[activeCategory]
-      : (activeGroup !== 'all' ? GROUP_LABELS[activeGroup] : '');
-    const scopeLabel = scopeName ? ` in ${scopeName}` : '';
-    emptyEl.querySelector('h3').textContent = `No results for \u201c${query}\u201d${scopeLabel}`;
   } else {
     clearEmptyState();
   }
@@ -477,28 +521,20 @@ window.addEventListener('scroll', () => {
 scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 // ── Key bindings ──────────────────────────────────────────────
-const TOP_KEYS  = { '1': 'all', '2': 'kubernetes', '3': 'tools', '4': 'troubleshooting' };
-const searchInput    = document.getElementById('searchInput');
-const searchShortcut = document.getElementById('searchShortcut');
-const searchClear    = document.getElementById('searchClear');
+const searchInput = document.getElementById('searchInput');
+const searchClear = document.getElementById('searchClear');
 
 document.addEventListener('keydown', e => {
   const typing = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
-
   if (e.key === 'Escape' && (typing || searchInput.value)) {
     clearTimeout(searchDebounce);
     searchInput.value = '';
     if (typing) searchInput.blur();
     applySearch('');
     searchClear.classList.remove('visible');
-    return;
   }
-  if (e.key === '/' && !typing) { e.preventDefault(); searchInput.focus(); searchInput.select(); return; }
-  if (!typing && TOP_KEYS[e.key]) applyGroup(TOP_KEYS[e.key]);
 });
 
-searchInput.addEventListener('focus', () => searchShortcut.style.opacity = '0');
-searchInput.addEventListener('blur',  () => searchShortcut.style.opacity = '');
 let searchDebounce;
 searchInput.addEventListener('input', e => {
   clearTimeout(searchDebounce);
@@ -518,9 +554,33 @@ searchClear.addEventListener('click', () => {
 const main = document.getElementById('main');
 
 main.addEventListener('click', e => {
+  const starBtn = e.target.closest('.star-btn');
+  if (starBtn) {
+    const item = starBtn.closest('.cmd-item');
+    if (item) toggleStar(item.dataset.raw);
+    return;
+  }
   const item = e.target.closest('.cmd-item');
   if (item) copyCmd(item);
 });
+
+function toggleStar(rawCmd) {
+  const nowOn = !starred.has(rawCmd);
+  if (nowOn) starred.add(rawCmd); else starred.delete(rawCmd);
+  persistStarred();
+  // Sync visual state on every cmd-item with this command (duplicates across sections)
+  const sel = `.cmd-item[data-raw="${escapeAttr(rawCmd)}"] .star-btn`;
+  document.querySelectorAll(sel).forEach(btn => {
+    btn.classList.toggle('starred', nowOn);
+    btn.setAttribute('aria-pressed', nowOn);
+  });
+  // In Starred mode, an unstar should immediately drop the row from view
+  if (activeGroup === 'starred') applySearch(searchInput.value);
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
 
 document.querySelectorAll('.top-btn').forEach(btn => {
   btn.addEventListener('click', () => applyGroup(btn.dataset.group));
@@ -570,11 +630,18 @@ window.addEventListener('resize', alignLogo);
 document.fonts.ready.then(() => requestAnimationFrame(alignLogo));
 
 // ── Header dropdowns ──────────────────────────────────────────
-function renderHeaderActions(CONTACTS, SPONSOR) {
+function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
   const container = document.getElementById('headerActions');
   if (!container) return;
 
   let html = '';
+
+  if (GITHUB && GITHUB.enabled) {
+    html += `
+      <a class="action-btn action-btn-link" href="${escapeHtml(GITHUB.href)}" target="_blank" rel="noopener" aria-label="${escapeHtml(GITHUB.label)}">
+        ${GITHUB.icon}<span class="action-btn-label">${escapeHtml(GITHUB.label)}</span>
+      </a>`;
+  }
 
   if (CONTACTS.enabled) {
     const links = CONTACTS.links.map(l => `
@@ -666,6 +733,6 @@ document.addEventListener('keydown', e => {
 });
 
 try {
-  const { CONTACTS, SPONSOR } = await import('./contacts.js');
-  renderHeaderActions(CONTACTS, SPONSOR);
+  const { CONTACTS, SPONSOR, GITHUB } = await import('./contacts.js');
+  renderHeaderActions(CONTACTS, SPONSOR, GITHUB);
 } catch (_) {}

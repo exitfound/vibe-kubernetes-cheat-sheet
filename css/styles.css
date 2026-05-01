@@ -1,9 +1,7 @@
 /* ===== VARIABLES ===== */
 :root {
-  --bg:             #110f1f;
   --bg-card:        #1a1538;
   --bg-card-hover:  #1e1a38;
-  --bg-nav:         #110f1f;
   --border:         #2e274e;
   --border-subtle:  #1e1935;
 
@@ -15,56 +13,48 @@
   --text-card-desc: #c7c2ed;
 
   --accent:         #e0cdff;
-  --accent-hover:   #ede0ff;
   --accent-glow:    rgba(224, 205, 255, 0.16);
   --accent-border:  rgba(224, 205, 255, 0.28);
 
   /* Group: Kubernetes — cool blue family */
-  --kubernetes-color:  #7dbcff;
-  --kubernetes-glow:   rgba(125, 188, 255, 0.12);
-  --kubernetes-border: rgba(125, 188, 255, 0.28);
+  --installation-color:  #7d86ff;
+  --installation-glow:   rgba(125, 134, 255, 0.13);
+  --installation-border: rgba(125, 134, 255, 0.28);
 
-  --installation-color:  #5cd9ff;
-  --installation-glow:   rgba(92, 217, 255, 0.12);
-  --installation-border: rgba(92, 217, 255, 0.28);
+  --cluster-color:  #5cb1ff;
+  --cluster-glow:   rgba(92, 177, 255, 0.12);
+  --cluster-border: rgba(92, 177, 255, 0.26);
 
-  --cluster-color:  #8e94ff;
-  --cluster-glow:   rgba(142, 148, 255, 0.13);
-  --cluster-border: rgba(142, 148, 255, 0.28);
+  --workloads-color:  #4fe5ff;
+  --workloads-glow:   rgba(79, 229, 255, 0.12);
+  --workloads-border: rgba(79, 229, 255, 0.28);
 
-  --workloads-color:  #5fb4ff;
-  --workloads-glow:   rgba(95, 180, 255, 0.12);
-  --workloads-border: rgba(95, 180, 255, 0.26);
+  /* Group: Tools — gold/amber family */
+  --helm-color:  #fffb7a;
+  --helm-glow:   rgba(255, 251, 122, 0.12);
+  --helm-border: rgba(255, 251, 122, 0.26);
 
-  /* Group: Tools — green family */
-  --tools-color:  #71dc78;
-  --tools-glow:   rgba(113, 220, 120, 0.12);
-  --tools-border: rgba(113, 220, 120, 0.28);
+  --kustomize-color:  #ffd15c;
+  --kustomize-glow:   rgba(255, 209, 92, 0.13);
+  --kustomize-border: rgba(255, 209, 92, 0.28);
 
-  --helm-color:  #4dd6b1;
-  --helm-glow:   rgba(77, 214, 177, 0.12);
-  --helm-border: rgba(77, 214, 177, 0.26);
+  --k9s-color:  #ffa04d;
+  --k9s-glow:   rgba(255, 160, 77, 0.13);
+  --k9s-border: rgba(255, 160, 77, 0.26);
 
-  --kustomize-color:  #b8e35a;
-  --kustomize-glow:   rgba(184, 227, 90, 0.13);
-  --kustomize-border: rgba(184, 227, 90, 0.28);
+  /* Group: Troubleshooting — cool red family */
+  --ts-kubernetes-color:  #ff5757;
+  --ts-kubernetes-glow:   rgba(255, 87, 87, 0.12);
+  --ts-kubernetes-border: rgba(255, 87, 87, 0.28);
 
-  --k9s-color:  #5ed87a;
-  --k9s-glow:   rgba(94, 216, 122, 0.13);
-  --k9s-border: rgba(94, 216, 122, 0.26);
+  --ts-tools-color:  #ff668c;
+  --ts-tools-glow:   rgba(255, 102, 140, 0.13);
+  --ts-tools-border: rgba(255, 102, 140, 0.28);
 
-  /* Group: Troubleshooting — warm red/coral family */
-  --troubleshooting-color:  #ff7e6e;
-  --troubleshooting-glow:   rgba(255, 126, 110, 0.12);
-  --troubleshooting-border: rgba(255, 126, 110, 0.28);
-
-  --ts-kubernetes-color:  #ff6b61;
-  --ts-kubernetes-glow:   rgba(255, 107, 97, 0.12);
-  --ts-kubernetes-border: rgba(255, 107, 97, 0.28);
-
-  --ts-tools-color:  #ff9171;
-  --ts-tools-glow:   rgba(255, 145, 113, 0.13);
-  --ts-tools-border: rgba(255, 145, 113, 0.28);
+  /* Starred — sky cyan, distinct from category palette */
+  --starred-color:  #5cd9ff;
+  --starred-glow:   rgba(92, 217, 255, 0.13);
+  --starred-border: rgba(92, 217, 255, 0.30);
 
   --success-color:  #5cb85c;
 
@@ -191,6 +181,7 @@ body {
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
   transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
 
@@ -375,27 +366,6 @@ body {
 
 .search-input::placeholder { color: var(--text-muted); }
 
-.search-shortcut {
-  position: absolute;
-  right: 9px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  color: var(--text-muted);
-  background: rgba(0,0,0,0.3);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1px 6px;
-  pointer-events: none;
-  transition: opacity 0.1s;
-}
-
-.search-input:focus ~ .search-shortcut,
-.search-input:not(:placeholder-shown) ~ .search-shortcut {
-  opacity: 0;
-}
-
 .search-count {
   position: absolute;
   right: 36px;
@@ -499,17 +469,17 @@ body {
 .top-btn { height: 33px; padding: 0 13px; font-size: 16px; font-weight: 600; border-radius: 8px; letter-spacing: -0.1px; }
 
 /* Mid row: category buttons (medium) */
-.cat-btn { height: 29px; padding: 0 13px; font-size: 15px; font-weight: 500; border-radius: 7px; opacity: 0.85; }
+.cat-btn { height: 29px; padding: 0 13px; font-size: 15px; font-weight: 500; border-radius: 7px; opacity: 0.9; }
 .cat-btn:hover,
 .cat-btn.active { opacity: 1; }
 
 /* Anchor "All" buttons in top and mid rows to identical width — aligns the nav-sep that follows.
    Padding overridden so both fit text snugly at the smaller width. */
 .top-btn[data-group="all"],
-.cat-btn[data-cat="all"] { min-width: 56px; padding-left: 12px; padding-right: 12px; justify-content: center; }
+.cat-btn[data-cat="all"] { min-width: 48px; padding-left: 10px; padding-right: 10px; justify-content: center; }
 
 /* Sub row: section chips — readable, slightly subdued vs. category buttons */
-.sec-btn { height: 24px; padding: 0 10px; font-size: 14px; font-weight: 500; border-radius: 6px; letter-spacing: 0.1px; opacity: 0.7; color: var(--text-nav); }
+.sec-btn { height: 24px; padding: 0 10px; font-size: 14px; font-weight: 500; border-radius: 6px; letter-spacing: 0.1px; opacity: 0.75; color: var(--text-nav); }
 .sec-btn:hover { opacity: 1; color: #fff; background: rgba(255,255,255,0.05); }
 .sec-btn.active { opacity: 1; }
 
@@ -541,6 +511,9 @@ body {
 .top-btn.active[data-cat="troubleshooting-kubernetes"] { color: var(--ts-kubernetes-color); background: var(--ts-kubernetes-glow); border-color: var(--ts-kubernetes-border); }
 .top-btn.active[data-cat="troubleshooting-tools"]      { color: var(--ts-tools-color);      background: var(--ts-tools-glow);      border-color: var(--ts-tools-border); }
 
+/* Starred top-btn lives on the far right of the row (visual "personal" zone, separated from group nav) */
+.top-btn.top-starred { margin-left: auto; }
+
 /* Mid row: category buttons (active) — per-category color */
 .cat-btn.active[data-cat="installation"] { color: var(--installation-color);    background: var(--installation-glow);    border-color: var(--installation-border); }
 .cat-btn.active[data-cat="cluster"]      { color: var(--cluster-color);         background: var(--cluster-glow);         border-color: var(--cluster-border); }
@@ -560,8 +533,6 @@ body {
 #navSub[data-cat="k9s"]                       .sec-btn.active { color: var(--k9s-color);             background: var(--k9s-glow);             border-color: var(--k9s-border); }
 #navSub[data-cat="troubleshooting-kubernetes"] .sec-btn.active { color: var(--ts-kubernetes-color);  background: var(--ts-kubernetes-glow);   border-color: var(--ts-kubernetes-border); }
 #navSub[data-cat="troubleshooting-tools"]      .sec-btn.active { color: var(--ts-tools-color);       background: var(--ts-tools-glow);        border-color: var(--ts-tools-border); }
-
-/* nav-mid keeps the default subtle border-bottom — no group tint to avoid a coloured seam between rows */
 
 /* Nav separator (between "All" and group buttons) */
 .nav-sep {
@@ -620,14 +591,14 @@ body {
 }
 
 /* Category-colored header underlines */
-.section[data-cat="installation"] .section-header::after { background: linear-gradient(90deg, rgba(92,217,255,0.45)  0%, rgba(92,217,255,0.15)  55%, transparent 100%); }
-.section[data-cat="cluster"]      .section-header::after { background: linear-gradient(90deg, rgba(142,148,255,0.45) 0%, rgba(142,148,255,0.15) 55%, transparent 100%); }
-.section[data-cat="workloads"]    .section-header::after { background: linear-gradient(90deg, rgba(95,180,255,0.45)  0%, rgba(95,180,255,0.15)  55%, transparent 100%); }
-.section[data-cat="helm"]         .section-header::after { background: linear-gradient(90deg, rgba(77,214,177,0.45)  0%, rgba(77,214,177,0.15)  55%, transparent 100%); }
-.section[data-cat="kustomize"]    .section-header::after { background: linear-gradient(90deg, rgba(184,227,90,0.45)  0%, rgba(184,227,90,0.15)  55%, transparent 100%); }
-.section[data-cat="k9s"]          .section-header::after { background: linear-gradient(90deg, rgba(94,216,122,0.45)  0%, rgba(94,216,122,0.15)  55%, transparent 100%); }
-.section[data-cat="troubleshooting-kubernetes"] .section-header::after { background: linear-gradient(90deg, rgba(255,107,97,0.45)  0%, rgba(255,107,97,0.15)  55%, transparent 100%); }
-.section[data-cat="troubleshooting-tools"]      .section-header::after { background: linear-gradient(90deg, rgba(255,145,113,0.45) 0%, rgba(255,145,113,0.15) 55%, transparent 100%); }
+.section[data-cat="installation"] .section-header::after { background: linear-gradient(90deg, rgba(125,134,255,0.70) 0%, rgba(125,134,255,0.50) 50%, rgba(125,134,255,0.28) 80%, transparent 100%); }
+.section[data-cat="cluster"]      .section-header::after { background: linear-gradient(90deg, rgba(92,177,255,0.70)  0%, rgba(92,177,255,0.50)  50%, rgba(92,177,255,0.28)  80%, transparent 100%); }
+.section[data-cat="workloads"]    .section-header::after { background: linear-gradient(90deg, rgba(79,229,255,0.70)  0%, rgba(79,229,255,0.50)  50%, rgba(79,229,255,0.28)  80%, transparent 100%); }
+.section[data-cat="helm"]         .section-header::after { background: linear-gradient(90deg, rgba(255,251,122,0.70) 0%, rgba(255,251,122,0.50) 50%, rgba(255,251,122,0.28) 80%, transparent 100%); }
+.section[data-cat="kustomize"]    .section-header::after { background: linear-gradient(90deg, rgba(255,209,92,0.70)  0%, rgba(255,209,92,0.50)  50%, rgba(255,209,92,0.28)  80%, transparent 100%); }
+.section[data-cat="k9s"]          .section-header::after { background: linear-gradient(90deg, rgba(255,160,77,0.70)  0%, rgba(255,160,77,0.50)  50%, rgba(255,160,77,0.28)  80%, transparent 100%); }
+.section[data-cat="troubleshooting-kubernetes"] .section-header::after { background: linear-gradient(90deg, rgba(255,87,87,0.70)   0%, rgba(255,87,87,0.50)   50%, rgba(255,87,87,0.28)   80%, transparent 100%); }
+.section[data-cat="troubleshooting-tools"]      .section-header::after { background: linear-gradient(90deg, rgba(255,102,140,0.70) 0%, rgba(255,102,140,0.50) 50%, rgba(255,102,140,0.28) 80%, transparent 100%); }
 
 .section-icon {
   width: 28px;
@@ -665,6 +636,32 @@ body {
   color: var(--text-muted);
   margin-left: 2px;
 }
+
+/* Section command counter — pushed to the far right of the header */
+.section-count {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.2px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-radius: 0;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.section[data-cat="installation"] .section-count { color: var(--installation-color);    background: var(--installation-glow);    border-color: var(--installation-border); }
+.section[data-cat="cluster"]      .section-count { color: var(--cluster-color);         background: var(--cluster-glow);         border-color: var(--cluster-border); }
+.section[data-cat="workloads"]    .section-count { color: var(--workloads-color);       background: var(--workloads-glow);       border-color: var(--workloads-border); }
+.section[data-cat="helm"]         .section-count { color: var(--helm-color);            background: var(--helm-glow);            border-color: var(--helm-border); }
+.section[data-cat="kustomize"]    .section-count { color: var(--kustomize-color);       background: var(--kustomize-glow);       border-color: var(--kustomize-border); }
+.section[data-cat="k9s"]          .section-count { color: var(--k9s-color);             background: var(--k9s-glow);             border-color: var(--k9s-border); }
+.section[data-cat="troubleshooting-kubernetes"] .section-count { color: var(--ts-kubernetes-color); background: var(--ts-kubernetes-glow); border-color: var(--ts-kubernetes-border); }
+.section[data-cat="troubleshooting-tools"]      .section-count { color: var(--ts-tools-color);      background: var(--ts-tools-glow);      border-color: var(--ts-tools-border); }
 
 /* Category-colored sub labels */
 .section[data-cat="installation"] .section-sub { color: var(--installation-color);  opacity: 0.75; }
@@ -738,21 +735,21 @@ body {
 }
 
 /* Category-colored card separators */
-.section[data-cat="installation"] .card-desc::after { background: linear-gradient(90deg, transparent, rgba(92,217,255,0.24)  30%, rgba(92,217,255,0.24)  70%, transparent); }
-.section[data-cat="cluster"]      .card-desc::after { background: linear-gradient(90deg, transparent, rgba(142,148,255,0.25) 30%, rgba(142,148,255,0.25) 70%, transparent); }
-.section[data-cat="workloads"]    .card-desc::after { background: linear-gradient(90deg, transparent, rgba(95,180,255,0.24)  30%, rgba(95,180,255,0.24)  70%, transparent); }
-.section[data-cat="helm"]         .card-desc::after { background: linear-gradient(90deg, transparent, rgba(77,214,177,0.24)  30%, rgba(77,214,177,0.24)  70%, transparent); }
-.section[data-cat="kustomize"]    .card-desc::after { background: linear-gradient(90deg, transparent, rgba(184,227,90,0.25)  30%, rgba(184,227,90,0.25)  70%, transparent); }
-.section[data-cat="k9s"]          .card-desc::after { background: linear-gradient(90deg, transparent, rgba(94,216,122,0.25)  30%, rgba(94,216,122,0.25)  70%, transparent); }
-.section[data-cat="troubleshooting-kubernetes"] .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,107,97,0.22)  30%, rgba(255,107,97,0.22)  70%, transparent); }
-.section[data-cat="troubleshooting-tools"]      .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,145,113,0.22) 30%, rgba(255,145,113,0.22) 70%, transparent); }
+.section[data-cat="installation"] .card-desc::after { background: linear-gradient(90deg, transparent, rgba(125,134,255,0.25) 30%, rgba(125,134,255,0.25) 70%, transparent); }
+.section[data-cat="cluster"]      .card-desc::after { background: linear-gradient(90deg, transparent, rgba(92,177,255,0.24)  30%, rgba(92,177,255,0.24)  70%, transparent); }
+.section[data-cat="workloads"]    .card-desc::after { background: linear-gradient(90deg, transparent, rgba(79,229,255,0.24)  30%, rgba(79,229,255,0.24)  70%, transparent); }
+.section[data-cat="helm"]         .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,251,122,0.24) 30%, rgba(255,251,122,0.24) 70%, transparent); }
+.section[data-cat="kustomize"]    .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,209,92,0.25)  30%, rgba(255,209,92,0.25)  70%, transparent); }
+.section[data-cat="k9s"]          .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,160,77,0.25)  30%, rgba(255,160,77,0.25)  70%, transparent); }
+.section[data-cat="troubleshooting-kubernetes"] .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,87,87,0.22)   30%, rgba(255,87,87,0.22)   70%, transparent); }
+.section[data-cat="troubleshooting-tools"]      .card-desc::after { background: linear-gradient(90deg, transparent, rgba(255,102,140,0.22) 30%, rgba(255,102,140,0.22) 70%, transparent); }
 
 /* ===== COMMAND LIST ===== */
 .cmd-list { padding: 4px 0; }
 
 .cmd-item {
   position: relative;
-  padding: 8px 40px 8px 14px;
+  padding: 8px 76px 8px 14px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -777,6 +774,9 @@ body {
 .section[data-cat="troubleshooting-tools"]      .cmd-item:hover { border-left-color: var(--ts-tools-color); }
 
 .cmd-item[hidden] { display: none; }
+
+body.starred-mode .nav-mid,
+body.starred-mode .nav-sub { display: none !important; }
 
 .cmd-code {
   font-family: 'JetBrains Mono', monospace;
@@ -832,6 +832,52 @@ body {
   border-color: rgba(92, 184, 92, 0.3);
   background: rgba(92, 184, 92, 0.08);
   opacity: 1;
+}
+
+/* ===== STAR BUTTON ===== */
+.star-btn {
+  position: absolute;
+  right: 42px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.32);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.1s, color 0.1s, border-color 0.1s, background 0.1s, filter 0.15s;
+  flex-shrink: 0;
+}
+.star-btn svg { fill-opacity: 0; }
+.cmd-item:hover .star-btn { opacity: 1; }
+
+.star-btn:hover {
+  color: var(--starred-color);
+  border-color: var(--starred-border);
+  background: var(--starred-glow);
+}
+
+.star-btn:focus-visible {
+  outline: 2px solid var(--starred-color);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+.star-btn.starred {
+  opacity: 1;
+  color: var(--starred-color);
+  filter: drop-shadow(0 0 5px var(--starred-glow));
+}
+.star-btn.starred svg { fill-opacity: 1; }
+.star-btn.starred:hover {
+  background: var(--starred-glow);
+  border-color: var(--starred-border);
 }
 
 /* ===== SYNTAX HIGHLIGHTING ===== */
@@ -1025,6 +1071,8 @@ mark {
 
 @media (hover: none) {
   .copy-btn { opacity: 0.7; min-width: 44px; min-height: 44px; }
+  .star-btn { opacity: 0.85; min-width: 44px; min-height: 44px; right: 50px; }
+  .cmd-item { padding-right: 96px; }
   /* Touch screens: per-element minimums so context row doesn't overflow */
   .top-btn { min-height: 40px; }
   .cat-btn { min-height: 34px; }
@@ -1047,7 +1095,7 @@ mark {
   html { background: white; }
   body { color: #111; }
 
-  .header, .nav, .scroll-top-btn, .toast, .copy-btn { display: none !important; }
+  .header, .nav, .scroll-top-btn, .toast, .copy-btn, .star-btn { display: none !important; }
 
   .main { padding: 0; max-width: 100%; min-height: 0; }
   .section { margin-bottom: 24px; }
