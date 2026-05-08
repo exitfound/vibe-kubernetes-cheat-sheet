@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kubernetes Schemes | Animated Architecture Reference</title>
+  <meta name="description" content="Interactive animated diagrams of Kubernetes architecture: pod-to-pod networking, services, scheduling, control plane flow, storage, scaling. Step through each scheme at your own pace.">
+  <meta name="keywords" content="kubernetes, k8s, architecture, diagram, animation, networking, control plane, storage, scaling, scheme, visualization">
+  <meta name="author" content="kube.how">
+  <meta name="theme-color" content="#110f1f">
+  <meta name="color-scheme" content="dark">
+  <style>html,body{background:#110f1f;color:#ece9ff}</style>
+
+  <link rel="canonical" href="https://scheme.kube.how/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://scheme.kube.how/">
+  <meta property="og:title" content="Kubernetes Schemes | Animated Architecture Reference">
+  <meta property="og:description" content="Interactive animated diagrams of Kubernetes architecture: networking, control plane flow, storage, scaling and more.">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Kubernetes Schemes | Animated Architecture Reference">
+  <meta name="twitter:description" content="Interactive animated diagrams of Kubernetes architecture: networking, control plane flow, storage, scaling and more.">
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"></noscript>
+
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Kubernetes Schemes",
+    "description": "Interactive animated diagrams of Kubernetes architecture",
+    "url": "https://scheme.kube.how",
+    "applicationCategory": "DeveloperApplication",
+    "offers": { "@type": "Offer", "price": "0" }
+  }
+  </script>
+</head>
+<body>
+  <aside class="sidebar" aria-label="Site switcher">
+    <a class="side-btn" id="sideCli" data-tooltip="K8s Commands" aria-label="K8s Commands" href="#">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+    </a>
+    <a class="side-btn active" id="sideScheme" data-tooltip="K8s Schemes" aria-label="K8s Schemes" aria-current="page" href="./">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
+    </a>
+    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+  </aside>
+  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+  </button>
+
+  <header class="header">
+    <div class="header-inner">
+      <a class="logo" href="./" aria-label="Go to homepage">
+        <div class="logo-icon">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scheme network logo">
+            <defs>
+              <linearGradient id="schemeFg" x1="4" y1="6" x2="28" y2="26" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#4fe5ff"/>
+                <stop offset="100%" stop-color="#c4a8ff"/>
+              </linearGradient>
+            </defs>
+            <rect x="4"  y="9"  width="9" height="9" rx="2" fill="none" stroke="url(#schemeFg)" stroke-width="1.6"/>
+            <rect x="19" y="14" width="9" height="9" rx="2" fill="none" stroke="url(#schemeFg)" stroke-width="1.6"/>
+            <line x1="13" y1="13.5" x2="19" y2="18.5" stroke="url(#schemeFg)" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="1.8" fill="#4fe5ff"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-text">Kubernetes Schemes</div>
+          <div class="logo-sub">Animated Architecture</div>
+        </div>
+      </a>
+
+      <div class="search-container">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search schemes by title, category, description..." aria-label="Search schemes" autocomplete="off" spellcheck="false">
+        <button class="search-clear" id="searchClear" aria-label="Clear search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="header-actions" id="headerActions"></div>
+    </div>
+  </header>
+
+  <nav class="cat-nav" aria-label="Category navigation">
+    <div class="cat-nav-inner" id="catNavInner"></div>
+  </nav>
+
+  <nav class="cat-nav cat-nav-sub" id="catNavSub" aria-label="Sub-category navigation" hidden>
+    <div class="cat-nav-inner" id="catNavSubInner"></div>
+  </nav>
+
+  <main class="main" id="main">
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <footer class="footer">
+    <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>
+    <p class="disclaimer">Not affiliated with <a href="https://docker.how/" target="_blank" rel="noopener">docker.how</a>, but inspired by it.</p>
+    <p>&copy; <span id="year"></span> <a id="footerHomeLink" href="#">kube.how</a></p>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6857fc54268445e1993933588b29845a"}'></script>
+</body>
+</html>

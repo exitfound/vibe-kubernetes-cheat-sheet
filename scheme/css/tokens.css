@@ -1,0 +1,61 @@
+:root {
+  --bg-card:        #1a1538;
+  --bg-card-hover:  #1e1a38;
+  --border:         #2e274e;
+  --border-subtle:  #1e1935;
+
+  --text:           #ece9ff;
+  --text-bright:    #f9f8ff;
+  --text-muted:     #8d8e96;
+  --text-dim:       #9b95b8;
+  --text-nav:       #e8e4ff;
+  --text-card-desc: #c7c2ed;
+
+  --accent:         #e0cdff;
+  --accent-glow:    rgba(224, 205, 255, 0.16);
+  --accent-border:  rgba(224, 205, 255, 0.28);
+
+  --success-color:  #5cb85c;
+  --toast-bg:       #1e1438;
+  --toast-text:     #c4a8ff;
+
+  /* Scheme categories — built atop main palette */
+  --network-color:    #4fe5ff;
+  --network-glow:     rgba(79, 229, 255, 0.13);
+  --network-border:   rgba(79, 229, 255, 0.28);
+
+  --storage-color:    #4fd5a3;
+  --storage-glow:     rgba(79, 213, 163, 0.13);
+  --storage-border:   rgba(79, 213, 163, 0.28);
+
+  --workloads-color:  #5cb1ff;
+  --workloads-glow:   rgba(92, 177, 255, 0.13);
+  --workloads-border: rgba(92, 177, 255, 0.28);
+
+  --scaling-color:    #ffa04d;
+  --scaling-glow:     rgba(255, 160, 77, 0.13);
+  --scaling-border:   rgba(255, 160, 77, 0.28);
+
+  --control-color:    #7d86ff;
+  --control-glow:     rgba(125, 134, 255, 0.13);
+  --control-border:   rgba(125, 134, 255, 0.28);
+
+  --security-color:   #ff5757;
+  --security-glow:    rgba(255, 87, 87, 0.13);
+  --security-border:  rgba(255, 87, 87, 0.28);
+
+  --lifecycle-color:  #ff668c;
+  --lifecycle-glow:   rgba(255, 102, 140, 0.13);
+  --lifecycle-border: rgba(255, 102, 140, 0.28);
+
+  /* Diagram-specific tokens */
+  --diag-stroke:       #b3a8e0;
+  --diag-stroke-soft:  rgba(179, 168, 224, 0.4);
+  --diag-fill-soft:    rgba(40, 32, 72, 0.65);
+  --diag-node-fill:    rgba(28, 22, 56, 0.7);
+  --diag-node-stroke:  rgba(155, 149, 184, 0.45);
+  --diag-text:         #e8e4ff;
+  --diag-text-dim:     #c7c2ed;
+  --diag-arrow:        #c7c2ed;
+  --diag-arrow-dim:    rgba(199, 194, 237, 0.45);
+}

@@ -1,0 +1,226 @@
+/* ===== DIAGRAM PRIMITIVES ===== */
+
+svg.diagram {
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--diag-text);
+  width: 100%;
+  height: 100%;
+}
+
+.scheme-pod-rect,
+.scheme-box-rect,
+.scheme-cylinder-body,
+.scheme-cylinder-cap,
+.scheme-node-rect,
+.scheme-chip-rect,
+.scheme-pod-container {
+  transition: fill 0.3s, stroke 0.3s, filter 0.3s, opacity 0.3s;
+}
+
+/* Pod */
+.scheme-pod-rect {
+  fill: var(--diag-fill-soft);
+  stroke: var(--workloads-color);
+  stroke-width: 1.6;
+}
+.scheme-pod[data-cat="control"] .scheme-pod-rect { stroke: var(--control-color); }
+.scheme-pod[data-cat="storage"] .scheme-pod-rect { stroke: var(--storage-color); }
+.scheme-pod-label {
+  fill: var(--diag-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.scheme-pod-sublabel {
+  fill: var(--diag-text-dim);
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.scheme-pod-container {
+  fill: rgba(79, 229, 255, 0.2);
+  stroke: var(--workloads-color);
+  stroke-width: 0.8;
+  opacity: 0.8;
+}
+.scheme-pod[data-cat="control"] .scheme-pod-container {
+  fill: rgba(125, 134, 255, 0.18);
+  stroke: var(--control-color);
+}
+.scheme-pod[data-cat="storage"] .scheme-pod-container {
+  fill: rgba(79, 213, 163, 0.2);
+  stroke: var(--storage-color);
+}
+
+/* Highlight a pod */
+.scheme-pod.highlight .scheme-pod-rect {
+  filter: drop-shadow(0 0 8px var(--workloads-color));
+  stroke-width: 2;
+}
+.scheme-pod[data-cat="control"].highlight .scheme-pod-rect {
+  filter: drop-shadow(0 0 8px var(--control-color));
+}
+.scheme-pod[data-cat="storage"].highlight .scheme-pod-rect {
+  filter: drop-shadow(0 0 8px var(--storage-color));
+}
+
+/* Generic box (apiserver, scheduler, kube-proxy etc.) */
+.scheme-box-rect {
+  fill: var(--diag-fill-soft);
+  stroke: var(--diag-stroke);
+  stroke-width: 1.4;
+}
+.scheme-box[data-cat="control"]   .scheme-box-rect { stroke: var(--control-color); }
+.scheme-box[data-cat="network"]   .scheme-box-rect { stroke: var(--network-color); }
+.scheme-box[data-cat="workloads"] .scheme-box-rect { stroke: var(--workloads-color); }
+.scheme-box[data-cat="storage"]   .scheme-box-rect { stroke: var(--storage-color); }
+.scheme-box[data-cat="security"]  .scheme-box-rect { stroke: var(--security-color); }
+.scheme-box-label {
+  fill: var(--diag-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.scheme-box-sublabel {
+  fill: var(--diag-text-dim);
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.scheme-box.highlight .scheme-box-rect {
+  filter: drop-shadow(0 0 7px currentColor);
+  stroke-width: 2;
+}
+.scheme-box[data-cat="control"].highlight   { color: var(--control-color); }
+.scheme-box[data-cat="network"].highlight   { color: var(--network-color); }
+.scheme-box[data-cat="workloads"].highlight { color: var(--workloads-color); }
+.scheme-box[data-cat="storage"].highlight   { color: var(--storage-color); }
+.scheme-box[data-cat="security"].highlight  { color: var(--security-color); }
+
+/* Node */
+.scheme-node-rect {
+  fill: var(--diag-node-fill);
+  stroke: var(--diag-node-stroke);
+  stroke-width: 1.2;
+  stroke-dasharray: 6 4;
+}
+.scheme-node-label {
+  fill: var(--text-dim);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Cylinder (etcd, PV, volume) */
+.scheme-cylinder-body {
+  fill: var(--diag-fill-soft);
+  stroke: var(--storage-color);
+  stroke-width: 1.4;
+}
+.scheme-cylinder-cap {
+  fill: rgba(79, 213, 163, 0.25);
+  stroke: var(--storage-color);
+  stroke-width: 1.4;
+}
+.scheme-cylinder[data-cat="control"] .scheme-cylinder-body { stroke: var(--control-color); }
+.scheme-cylinder[data-cat="control"] .scheme-cylinder-cap  { stroke: var(--control-color); fill: rgba(125, 134, 255, 0.2); }
+.scheme-cylinder-label {
+  fill: var(--diag-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.scheme-cylinder.highlight .scheme-cylinder-body,
+.scheme-cylinder.highlight .scheme-cylinder-cap {
+  filter: drop-shadow(0 0 7px currentColor);
+}
+.scheme-cylinder[data-cat="storage"].highlight { color: var(--storage-color); }
+.scheme-cylinder[data-cat="control"].highlight { color: var(--control-color); }
+
+/* Arrows */
+.scheme-arrow {
+  stroke: var(--diag-arrow);
+  stroke-width: 1.6;
+  fill: none;
+}
+.scheme-arrow-dim { stroke: var(--diag-arrow-dim); stroke-width: 1.4; }
+.scheme-arrow-dashed { stroke-dasharray: 5 5; }
+.scheme-arrow-network { stroke: var(--network-color); }
+.scheme-arrow-storage { stroke: var(--storage-color); }
+.scheme-arrow-control { stroke: var(--control-color); }
+.scheme-arrow.flowing {
+  stroke-width: 2;
+}
+
+/* Packet */
+.scheme-packet {
+  fill: var(--network-color);
+  filter: drop-shadow(0 0 6px var(--network-color));
+}
+.scheme-packet[data-cat="storage"] {
+  fill: var(--storage-color);
+  filter: drop-shadow(0 0 6px var(--storage-color));
+}
+.scheme-packet[data-cat="control"] {
+  fill: var(--control-color);
+  filter: drop-shadow(0 0 6px var(--control-color));
+}
+
+/* Label */
+.scheme-label {
+  fill: var(--diag-text);
+  font-size: 12px;
+}
+.scheme-label.dim { fill: var(--diag-text-dim); }
+.scheme-label.code { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+/* Chip */
+.scheme-chip-rect {
+  fill: var(--diag-fill-soft);
+  stroke: var(--diag-stroke-soft);
+  stroke-width: 1;
+}
+.scheme-chip[data-cat="network"]  .scheme-chip-rect { stroke: var(--network-color); }
+.scheme-chip[data-cat="workloads"] .scheme-chip-rect { stroke: var(--workloads-color); }
+.scheme-chip[data-cat="control"]  .scheme-chip-rect { stroke: var(--control-color); }
+.scheme-chip[data-cat="storage"]  .scheme-chip-rect { stroke: var(--storage-color); }
+.scheme-chip-text {
+  fill: var(--diag-text);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.scheme-chip.highlight .scheme-chip-rect {
+  filter: drop-shadow(0 0 6px currentColor);
+  stroke-width: 1.8;
+}
+.scheme-chip[data-cat="network"].highlight   { color: var(--network-color); }
+.scheme-chip[data-cat="control"].highlight   { color: var(--control-color); }
+.scheme-chip[data-cat="storage"].highlight   { color: var(--storage-color); }
+.scheme-chip[data-cat="workloads"].highlight { color: var(--workloads-color); }
+
+/* Outline highlight variant — thin dim baseline, bright clean border on active.
+   Opt in per-scheme by adding data-style="outline" on the root <svg>. */
+svg.diagram[data-style="outline"] .scheme-box-rect,
+svg.diagram[data-style="outline"] .scheme-cylinder-body,
+svg.diagram[data-style="outline"] .scheme-cylinder-cap,
+svg.diagram[data-style="outline"] .scheme-chip-rect,
+svg.diagram[data-style="outline"] .scheme-pod-rect {
+  stroke-width: 1.2;
+  stroke-opacity: 0.65;
+}
+
+svg.diagram[data-style="outline"] .scheme-box.highlight .scheme-box-rect,
+svg.diagram[data-style="outline"] .scheme-cylinder.highlight .scheme-cylinder-body,
+svg.diagram[data-style="outline"] .scheme-cylinder.highlight .scheme-cylinder-cap,
+svg.diagram[data-style="outline"] .scheme-chip.highlight .scheme-chip-rect,
+svg.diagram[data-style="outline"] .scheme-pod.highlight .scheme-pod-rect {
+  filter: none;
+  stroke-width: 2.4;
+  stroke-opacity: 1;
+}
+
+/* Generic dim/active states */
+.scheme-dim { opacity: 0.35; }
+.scheme-hidden { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scheme-pod-rect, .scheme-box-rect, .scheme-cylinder-body, .scheme-cylinder-cap, .scheme-node-rect, .scheme-chip-rect, .scheme-pod-container {
+    transition: none;
+  }
+}
