@@ -1,12 +1,7 @@
 import { COPY_ICON, CHECK_ICON, STAR_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
-import { schemeUrl } from './lib/env.js';
 import { setupSidebar } from './lib/sidebar.js';
 
-{
-  const sideScheme = document.getElementById('sideScheme');
-  if (sideScheme) sideScheme.href = schemeUrl();
-  setupSidebar();
-}
+setupSidebar();
 
 document.getElementById('year').textContent = new Date().getFullYear();
 

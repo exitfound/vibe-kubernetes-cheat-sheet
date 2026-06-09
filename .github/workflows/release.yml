@@ -6,8 +6,8 @@ on:
       - main
     paths:
       - 'index.html'
-      - 'css/**'
-      - 'js/**'
+      - 'cli/**'
+      - 'scheme/**'
       - 'images/**'
       - 'favicon.svg'
       - 'CNAME'
@@ -39,8 +39,8 @@ jobs:
         run: |
           zip -r kube-cheatsheet-${{ steps.version.outputs.VERSION }}.zip \
             index.html \
-            css/ \
-            js/ \
+            cli/ \
+            scheme/ \
             images/ \
             favicon.svg \
             robots.txt \
@@ -48,7 +48,8 @@ jobs:
             CNAME \
             Dockerfile \
             configs/ \
-            .dockerignore
+            .dockerignore \
+            -x "scheme/tools/*" "scheme/README.md"
 
       - name: Create Release on Github
         uses: softprops/action-gh-release@v2

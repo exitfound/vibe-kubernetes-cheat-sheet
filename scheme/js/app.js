@@ -1,19 +1,10 @@
 import { SCHEMES, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_SUB, SUBCATEGORIES } from './data.js';
 import { POSTERS } from './posters.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
-import { mainUrl } from './lib/env.js';
 import { setupSidebar } from './lib/sidebar.js';
 import { isInspectActive, attachInspector } from './lib/inspector.js';
 
-const MAIN_URL = mainUrl();
-
-{
-  const sideCli = document.getElementById('sideCli');
-  if (sideCli) sideCli.href = MAIN_URL;
-  const footerHomeLink = document.getElementById('footerHomeLink');
-  if (footerHomeLink) footerHomeLink.href = MAIN_URL;
-  setupSidebar();
-}
+setupSidebar();
 
 const COPY_ICON    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 const CHECK_ICON   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;

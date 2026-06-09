@@ -2,11 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function () {
+      var h = location.hash;
+      if (!h) return;
+      location.replace((h.indexOf('#scheme=') === 0 ? '/scheme/' : '/cli/') + h);
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kubernetes Cheat Sheet | Quick CLI Reference</title>
-  <meta name="description" content="Searchable Kubernetes CLI reference covering kubectl, Helm, Kustomize, K9s, and troubleshooting. Copy any command in one click.">
-  <meta name="keywords" content="kubernetes, kubectl, helm, kustomize, k9s, cheat sheet, cli, commands, k8s, pods, deployments, services, rbac, reference">
-  <meta name="author" content="K8s Cheat Sheet">
+  <title>kube.how | Kubernetes Commands and Schemes</title>
+  <meta name="description" content="Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.">
+  <meta name="keywords" content="kubernetes, k8s, kubectl, helm, kustomize, k9s, cheat sheet, commands, architecture, diagrams, schemes, reference">
+  <meta name="author" content="kube.how">
   <meta name="theme-color" content="#110f1f">
   <meta name="color-scheme" content="dark">
   <style>html,body{background:#110f1f;color:#ece9ff}</style>
@@ -15,140 +22,368 @@
 
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://kube.how/">
-  <meta property="og:title" content="Kubernetes Cheat Sheet | Quick CLI Reference">
-  <meta property="og:description" content="Searchable Kubernetes CLI reference covering kubectl, Helm, Kustomize, K9s, and troubleshooting. Copy any command in one click.">
+  <meta property="og:title" content="kube.how | Kubernetes Commands and Schemes">
+  <meta property="og:description" content="Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.">
   <meta property="og:image" content="https://kube.how/images/og-image.png">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Kubernetes Cheat Sheet | Quick CLI Reference">
-  <meta name="twitter:description" content="Searchable Kubernetes CLI reference covering kubectl, Helm, Kustomize, K9s, and troubleshooting. Copy any command in one click.">
+  <meta name="twitter:title" content="kube.how | Kubernetes Commands and Schemes">
+  <meta name="twitter:description" content="Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.">
   <meta name="twitter:image" content="https://kube.how/images/og-image.png">
 
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"></noscript>
-  <link rel="stylesheet" href="css/styles.css">
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "Kubernetes Cheat Sheet",
-    "description": "Searchable Kubernetes CLI reference covering kubectl, Helm, Kustomize, K9s, and troubleshooting. Copy any command in one click.",
-    "url": "https://kube.how",
-    "applicationCategory": "DeveloperApplication",
-    "offers": { "@type": "Offer", "price": "0" }
+    "@type": "WebSite",
+    "name": "kube.how",
+    "description": "Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.",
+    "url": "https://kube.how/"
   }
   </script>
+
+  <style>
+    :root {
+      --bg-card:        #1a1538;
+      --border:         #2e274e;
+      --border-subtle:  #1e1935;
+      --text:           #ece9ff;
+      --text-bright:    #f9f8ff;
+      --text-muted:     #8d8e96;
+      --text-dim:       #9b95b8;
+      --text-nav:       #e8e4ff;
+      --text-card-desc: #c7c2ed;
+      --accent:         #e0cdff;
+      --accent-border:  rgba(224, 205, 255, 0.28);
+      --cli-color:      #4fe5ff;
+      --cli-glow:       rgba(79, 229, 255, 0.12);
+      --cli-border:     rgba(79, 229, 255, 0.28);
+      --scheme-color:   #c4a8ff;
+      --scheme-glow:    rgba(196, 168, 255, 0.13);
+      --scheme-border:  rgba(196, 168, 255, 0.30);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      background: linear-gradient(135deg, #0c1022 0%, #110f1f 50%, #18091e 100%);
+      background-attachment: fixed;
+      overflow-y: scroll;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #110f1f; }
+    ::-webkit-scrollbar-thumb { background: #3a3260; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    * { scrollbar-width: thin; scrollbar-color: #3a3260 #110f1f; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .hub-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 13px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-icon { width: 38px; height: 38px; flex-shrink: 0; }
+    .logo-icon svg { width: 100%; height: 100%; display: block; }
+
+    .logo-text {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text-bright);
+      line-height: 1.2;
+    }
+
+    .logo-sub {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      letter-spacing: 0.03em;
+    }
+
+    .gh-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-nav);
+      text-decoration: none;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .gh-link:hover { border-color: var(--accent-border); color: var(--accent); }
+    .gh-link svg { flex-shrink: 0; }
+
+    .hub-split {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .hub-panel {
+      position: relative;
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 56px 36px;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      overflow: hidden;
+    }
+
+    .hub-panel + .hub-panel { border-left: 1px solid var(--border-subtle); }
+
+    .hub-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0.45;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .hub-panel-cli::before {
+      background: radial-gradient(ellipse 75% 60% at 50% 42%, var(--cli-glow), transparent 70%);
+    }
+
+    .hub-panel-scheme::before {
+      background: radial-gradient(ellipse 75% 60% at 50% 42%, var(--scheme-glow), transparent 70%);
+    }
+
+    .hub-panel:hover::before, .hub-panel:focus-visible::before { opacity: 1; }
+
+    .hub-panel:focus-visible {
+      outline: 1px solid var(--accent-border);
+      outline-offset: -1px;
+    }
+
+    .hub-panel > * { position: relative; }
+
+    .hub-icon {
+      width: 72px;
+      height: 72px;
+      color: var(--text-dim);
+      transition: color 0.3s ease, transform 0.3s ease, filter 0.3s ease;
+    }
+
+    .hub-icon svg { width: 100%; height: 100%; display: block; }
+
+    .hub-panel-cli:hover .hub-icon, .hub-panel-cli:focus-visible .hub-icon {
+      color: var(--cli-color);
+      transform: translateY(-3px);
+      filter: drop-shadow(0 0 14px var(--cli-glow));
+    }
+
+    .hub-panel-scheme:hover .hub-icon, .hub-panel-scheme:focus-visible .hub-icon {
+      color: var(--scheme-color);
+      transform: translateY(-3px);
+      filter: drop-shadow(0 0 14px var(--scheme-glow));
+    }
+
+    .hub-panel h2 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--text-bright);
+    }
+
+    .hub-panel p {
+      max-width: 380px;
+      font-size: 15.5px;
+      line-height: 1.55;
+      color: var(--text-card-desc);
+      text-wrap: balance;
+    }
+
+    .hub-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-top: 10px;
+      padding: 9px 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-nav);
+      transition: border-color 0.25s ease, color 0.25s ease, background 0.25s ease;
+    }
+
+    .hub-cta svg { transition: transform 0.25s ease; }
+
+    .hub-panel-cli:hover .hub-cta, .hub-panel-cli:focus-visible .hub-cta {
+      border-color: var(--cli-border);
+      color: var(--cli-color);
+      background: var(--cli-glow);
+    }
+
+    .hub-panel-scheme:hover .hub-cta, .hub-panel-scheme:focus-visible .hub-cta {
+      border-color: var(--scheme-border);
+      color: var(--scheme-color);
+      background: var(--scheme-glow);
+    }
+
+    .hub-panel:hover .hub-cta svg, .hub-panel:focus-visible .hub-cta svg { transform: translateX(3px); }
+
+    .hub-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 22px 24px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .hub-footer a { color: var(--accent); text-decoration: none; }
+    .hub-footer a:hover { text-decoration: underline; }
+    .hub-footer p + p { margin-top: 4px; }
+    .disclaimer { font-size: 13px; }
+
+    @media (hover: none) {
+      .hub-panel::before { opacity: 0.75; }
+      .hub-panel-cli .hub-icon { color: var(--cli-color); }
+      .hub-panel-scheme .hub-icon { color: var(--scheme-color); }
+      .hub-panel-cli .hub-cta { border-color: var(--cli-border); color: var(--cli-color); }
+      .hub-panel-scheme .hub-cta { border-color: var(--scheme-border); color: var(--scheme-color); }
+    }
+
+    @media (max-width: 900px) {
+      .hub-split { flex-direction: column; }
+      .hub-panel { padding: 44px 28px; min-height: 320px; }
+      .hub-panel + .hub-panel { border-left: none; border-top: 1px solid var(--border-subtle); }
+    }
+
+    @media (max-width: 400px) {
+      .hub-header { padding: 11px 16px; }
+      .logo-icon { width: 32px; height: 32px; }
+      .logo-text { font-size: 15px; }
+      .logo-sub { font-size: 11.5px; }
+      .gh-link { height: 30px; padding: 0 10px; }
+      .gh-link span { display: none; }
+      .hub-panel { padding: 36px 20px; min-height: 280px; }
+      .hub-panel h2 { font-size: 25px; }
+      .hub-icon { width: 60px; height: 60px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition: none !important;
+        transform: none !important;
+      }
+      html { background-attachment: scroll; }
+    }
+  </style>
 </head>
 <body>
 
-  <aside class="sidebar" aria-label="Site switcher">
-    <a class="side-btn active" id="sideCli" data-tooltip="K8s Commands" aria-label="K8s Commands" aria-current="page" href="/">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-    </a>
-    <a class="side-btn" id="sideScheme" data-tooltip="K8s Schemes" aria-label="K8s Schemes" href="#">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
-    </a>
-    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-  </aside>
-  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-  </button>
+  <h1 class="sr-only">kube.how, the Kubernetes reference hub with CLI commands and animated architecture schemes</h1>
 
-  <header class="header">
-    <div class="header-inner">
-
-      <a class="logo" href="/" aria-label="Go to homepage">
-        <div class="logo-icon">
-          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CLI terminal logo">
-            <defs>
-              <linearGradient id="cliFg" x1="4" y1="6" x2="28" y2="26" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#4fe5ff"/>
-                <stop offset="100%" stop-color="#c4a8ff"/>
-              </linearGradient>
-            </defs>
-            <rect x="4" y="6" width="24" height="20" rx="2.5" fill="none" stroke="url(#cliFg)" stroke-width="1.6"/>
-            <polyline points="9 13 13 16 9 19" fill="none" stroke="url(#cliFg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="16" y1="19" x2="22" y2="19" stroke="url(#cliFg)" stroke-width="1.8" stroke-linecap="round"/>
-            <circle cx="24.2" cy="19" r="1.5" fill="#4fe5ff"/>
-          </svg>
-        </div>
-        <div>
-          <div class="logo-text">Kubernetes Cheat Sheet</div>
-          <div class="logo-sub">Quick CLI Reference</div>
-        </div>
-      </a>
-
-      <div class="search-container">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.35-4.35"/>
+  <header class="hub-header">
+    <a class="logo" href="/" aria-label="kube.how home">
+      <div class="logo-icon">
+        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="kube.how logo">
+          <defs>
+            <linearGradient id="hubFg" x1="4" y1="6" x2="28" y2="26" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#4fe5ff"/>
+              <stop offset="100%" stop-color="#c4a8ff"/>
+            </linearGradient>
+          </defs>
+          <rect x="4" y="6" width="24" height="20" rx="2.5" fill="none" stroke="url(#hubFg)" stroke-width="1.6"/>
+          <polyline points="8.5 13 12 16 8.5 19" fill="none" stroke="url(#hubFg)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="16.5" y="11.5" width="4.6" height="3.8" rx="1" fill="none" stroke="url(#hubFg)" stroke-width="1.4"/>
+          <rect x="22.5" y="17.5" width="4.6" height="3.8" rx="1" fill="none" stroke="url(#hubFg)" stroke-width="1.4"/>
+          <line x1="21.1" y1="15.3" x2="22.5" y2="17.5" stroke="url(#hubFg)" stroke-width="1.4" stroke-linecap="round"/>
         </svg>
-        <input type="text" class="search-input" id="searchInput" placeholder="Search commands, options, flags and so on..." aria-label="Search commands" autocomplete="off" spellcheck="false">
-        <span class="search-count" id="searchCount"></span>
-        <button class="search-clear" id="searchClear" aria-label="Clear search">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
       </div>
-
-      <div class="header-actions" id="headerActions"></div>
-
-    </div>
+      <div>
+        <div class="logo-text">kube.how</div>
+        <div class="logo-sub">Kubernetes Reference Hub</div>
+      </div>
+    </a>
+    <a class="gh-link" href="https://github.com/exitfound/vibe-kubernetes-cheat-sheet" target="_blank" rel="noopener" aria-label="GitHub repository">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span>GitHub</span>
+    </a>
   </header>
 
-  <nav class="nav nav-top" id="navTop" aria-label="Group navigation">
-    <div class="nav-inner">
-      <button class="nav-btn top-btn active" data-group="all">All</button>
-      <span class="nav-sep"></span>
-      <button class="nav-btn top-btn top-kubernetes"      data-group="kubernetes"      aria-controls="navMid" aria-expanded="false">Kubernetes</button>
-      <button class="nav-btn top-btn top-tools"           data-group="tools"           aria-controls="navMid" aria-expanded="false">Tools</button>
-      <button class="nav-btn top-btn top-troubleshooting" data-group="troubleshooting" aria-controls="navMid" aria-expanded="false">Troubleshooting</button>
-      <button class="nav-btn top-btn top-starred"        data-group="starred">Starred</button>
-    </div>
-  </nav>
+  <main class="hub-split">
 
-  <nav class="nav nav-mid" id="navMid" aria-label="Category navigation" hidden>
-    <div class="nav-inner" id="navMidInner"></div>
-  </nav>
+    <a class="hub-panel hub-panel-cli" href="/cli/">
+      <div class="hub-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      </div>
+      <h2>Commands</h2>
+      <p>Searchable cheat sheet for kubectl, Helm, Kustomize and K9s. Copy any command in one click.</p>
+      <span class="hub-cta">
+        kube.how/cli
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </span>
+    </a>
 
-  <nav class="nav nav-sub" id="navSub" aria-label="Section navigation" hidden>
-    <div class="nav-inner" id="navSubInner"></div>
-  </nav>
+    <a class="hub-panel hub-panel-scheme" href="/scheme/">
+      <div class="hub-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <h2>Schemes</h2>
+      <p>Animated diagrams of Kubernetes architecture. Step through control plane, networking, storage and scaling flows at your own pace.</p>
+      <span class="hub-cta">
+        kube.how/scheme
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </span>
+    </a>
 
-  <main class="main" id="main"></main>
+  </main>
 
-  <div class="toast" id="toast" role="status" aria-live="polite">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-    Copied to clipboard
-  </div>
-
-  <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <polyline points="18 15 12 9 6 15"/>
-    </svg>
-  </button>
-
-  <footer class="footer">
+  <footer class="hub-footer">
     <p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p>
-    <p class="disclaimer">Not affiliated with <a href="https://docker.how/" target="_blank" rel="noopener">docker.how</a>, but inspired by it.</p>
-    <p>&copy; <span id="year"></span> <a href="/">kube.how</a></p>
+    <p>&copy; <span id="year"></span> kube.how</p>
   </footer>
 
-  <script type="module" src="js/app.js"></script>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 
-  <!-- Cloudflare Web Analytics -->
-  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6857fc54268445e1993933588b29845a"}'></script>
-  <!-- End Cloudflare Web Analytics -->
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6857fc54268445e1993933588b29845a"}'></script>
 </body>
 </html>
