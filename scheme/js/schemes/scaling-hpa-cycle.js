@@ -71,7 +71,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1400,
-    narration: 'Two replicas serve modest traffic. Average CPU sits at 35%, well under the HPA target of 60%. desired equals current, no action.',
+    narration: 'Two replicas serve modest traffic. Average CPU sits at 35%, well under the HPA target of 60%, so desired equals current and no action is taken.',
     enter(s) {
       clearHL(s);
       setVal(s.refs.depChip, '2');
@@ -85,7 +85,7 @@ const STEPS = [
   {
     id: 'spike',
     duration: 1700,
-    narration: 'Traffic spike. kubelet cAdvisor reports per-Pod CPU, metrics-server aggregates and exposes /apis/metrics.k8s.io. Average climbs to 85%.',
+    narration: 'Traffic spike: kubelet cAdvisor reports per-Pod CPU, metrics-server aggregates and exposes /apis/metrics.k8s.io. Average climbs to 85%.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.cpuGauge, '85%');
@@ -97,7 +97,7 @@ const STEPS = [
   {
     id: 'compute',
     duration: 1700,
-    narration: 'HPA controller reads metrics every syncPeriod. desired = ceil(currentReplicas * currentCPU / targetCPU) = ceil(2 * 85 / 60) = 3, but stabilization window allows up to 4 for headroom.',
+    narration: 'HPA controller reads metrics every syncPeriod and computes desired = ceil(currentReplicas * currentCPU / targetCPU) = ceil(2 * 85 / 60) = 3, but the stabilization window allows up to 4 for headroom.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.cpuGauge, '85%');

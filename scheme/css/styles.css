@@ -520,7 +520,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .cat-btn.active[data-cat="scaling"]   { color: var(--scaling-color);   background: var(--scaling-glow);   border-color: var(--scaling-border); }
 .cat-btn.active[data-cat="control"]   { color: var(--control-color);   background: var(--control-glow);   border-color: var(--control-border); }
 .cat-btn.active[data-cat="security"]  { color: var(--security-color);  background: var(--security-glow);  border-color: var(--security-border); }
-.cat-btn.active[data-cat="lifecycle"] { color: var(--lifecycle-color); background: var(--lifecycle-glow); border-color: var(--lifecycle-border); }
 
 /* ===== SUB-CATEGORY NAV (mirrors CLI mid-row coordinates) ===== */
 .cat-nav-sub {
@@ -568,7 +567,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .cat-nav-sub[data-cat="scaling"]   .subcat-btn.active { color: var(--scaling-color);   background: var(--scaling-glow);   border-color: var(--scaling-border); }
 .cat-nav-sub[data-cat="control"]   .subcat-btn.active { color: var(--control-color);   background: var(--control-glow);   border-color: var(--control-border); }
 .cat-nav-sub[data-cat="security"]  .subcat-btn.active { color: var(--security-color);  background: var(--security-glow);  border-color: var(--security-border); }
-.cat-nav-sub[data-cat="lifecycle"] .subcat-btn.active { color: var(--lifecycle-color); background: var(--lifecycle-glow); border-color: var(--lifecycle-border); }
 
 /* ===== MAIN GRID ===== */
 .main {
@@ -602,12 +600,11 @@ body.sidebar-collapsed .side-expand { display: grid; }
 
 /* Category-colored header underlines */
 .section[data-cat="network"]   .section-header::after { background: linear-gradient(90deg, rgba(79,229,255,0.70)  0%, rgba(79,229,255,0.50)  50%, rgba(79,229,255,0.28)  80%, transparent 100%); }
-.section[data-cat="workloads"] .section-header::after { background: linear-gradient(90deg, rgba(92,177,255,0.70)  0%, rgba(92,177,255,0.50)  50%, rgba(92,177,255,0.28)  80%, transparent 100%); }
+.section[data-cat="workloads"] .section-header::after { background: linear-gradient(90deg, rgba(61,160,255,0.70)  0%, rgba(61,160,255,0.50)  50%, rgba(61,160,255,0.28)  80%, transparent 100%); }
 .section[data-cat="storage"]   .section-header::after { background: linear-gradient(90deg, rgba(79,213,163,0.70)  0%, rgba(79,213,163,0.50)  50%, rgba(79,213,163,0.28)  80%, transparent 100%); }
 .section[data-cat="control"]   .section-header::after { background: linear-gradient(90deg, rgba(125,134,255,0.70) 0%, rgba(125,134,255,0.50) 50%, rgba(125,134,255,0.28) 80%, transparent 100%); }
 .section[data-cat="scaling"]   .section-header::after { background: linear-gradient(90deg, rgba(255,160,77,0.70)  0%, rgba(255,160,77,0.50)  50%, rgba(255,160,77,0.28)  80%, transparent 100%); }
 .section[data-cat="security"]  .section-header::after { background: linear-gradient(90deg, rgba(255,87,87,0.70)   0%, rgba(255,87,87,0.50)   50%, rgba(255,87,87,0.28)   80%, transparent 100%); }
-.section[data-cat="lifecycle"] .section-header::after { background: linear-gradient(90deg, rgba(255,102,140,0.70) 0%, rgba(255,102,140,0.50) 50%, rgba(255,102,140,0.28) 80%, transparent 100%); }
 
 .section-icon {
   width: 28px;
@@ -627,7 +624,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .section[data-cat="control"]   .section-icon { background: var(--control-glow);   border-color: var(--control-border);   color: var(--control-color); }
 .section[data-cat="scaling"]   .section-icon { background: var(--scaling-glow);   border-color: var(--scaling-border);   color: var(--scaling-color); }
 .section[data-cat="security"]  .section-icon { background: var(--security-glow);  border-color: var(--security-border);  color: var(--security-color); }
-.section[data-cat="lifecycle"] .section-icon { background: var(--lifecycle-glow); border-color: var(--lifecycle-border); color: var(--lifecycle-color); }
 
 .section-title {
   font-size: 20px;
@@ -648,7 +644,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .section[data-cat="control"]   .section-sub { color: var(--control-color);   opacity: 0.75; }
 .section[data-cat="scaling"]   .section-sub { color: var(--scaling-color);   opacity: 0.75; }
 .section[data-cat="security"]  .section-sub { color: var(--security-color);  opacity: 0.75; }
-.section[data-cat="lifecycle"] .section-sub { color: var(--lifecycle-color); opacity: 0.75; }
 
 .section-count {
   margin-left: auto;
@@ -671,7 +666,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .section[data-cat="control"]   .section-count { color: var(--control-color);   background: var(--control-glow);   border-color: var(--control-border); }
 .section[data-cat="scaling"]   .section-count { color: var(--scaling-color);   background: var(--scaling-glow);   border-color: var(--scaling-border); }
 .section[data-cat="security"]  .section-count { color: var(--security-color);  background: var(--security-glow);  border-color: var(--security-border); }
-.section[data-cat="lifecycle"] .section-count { color: var(--lifecycle-color); background: var(--lifecycle-glow); border-color: var(--lifecycle-border); }
 
 .cards-grid {
   display: grid;
@@ -701,7 +695,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .card[data-cat="scaling"]:hover   { border-color: var(--scaling-color); }
 .card[data-cat="control"]:hover   { border-color: var(--control-color); }
 .card[data-cat="security"]:hover  { border-color: var(--security-color); }
-.card[data-cat="lifecycle"]:hover { border-color: var(--lifecycle-color); }
 
 .card-poster {
   aspect-ratio: 16 / 9;
@@ -766,8 +759,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="control"]   .card-cat { background: var(--control-glow);   color: var(--control-color);   border-color: var(--control-border); }
 .card[data-cat="security"]  .card-cat,
 .scheme-dialog[data-cat="security"]  .card-cat { background: var(--security-glow);  color: var(--security-color);  border-color: var(--security-border); }
-.card[data-cat="lifecycle"] .card-cat,
-.scheme-dialog[data-cat="lifecycle"] .card-cat { background: var(--lifecycle-glow); color: var(--lifecycle-color); border-color: var(--lifecycle-border); }
 .card-version {
   font-size: 11px;
   font-family: 'JetBrains Mono', monospace;
@@ -814,7 +805,139 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="scaling"]   { border-top: 3px solid var(--scaling-color); }
 .scheme-dialog[data-cat="control"]   { border-top: 3px solid var(--control-color); }
 .scheme-dialog[data-cat="security"]  { border-top: 3px solid var(--security-color); }
-.scheme-dialog[data-cat="lifecycle"] { border-top: 3px solid var(--lifecycle-color); }
+
+/* ===== TINTED DIALOG =====
+   The whole modal collapses onto one category's colour ramp. Each category
+   supplies a literal 3-stop ramp (deep / base / bright) plus glow, border and
+   surface values. The generic rule then remaps every category token, the
+   accent trio, the diagram stroke/arrow tokens and the dialog surface onto
+   that ramp. Literal hex values are used on purpose: a var() chain back to the
+   category tokens is what made the previous version cyclic and invalid, and
+   color-mix is avoided so resolution is fully deterministic everywhere. */
+.scheme-dialog[data-tinted="true"][data-cat="workloads"] {
+  --tint-deep:      #3f5d8a;
+  --tint-base:      #5bb8ff;
+  --tint-bright:    #8ec6f7;
+  --tint-glow:      rgba(91, 168, 236, 0.15);
+  --tint-border:    rgba(142, 198, 247, 0.42);
+  --tint-active:    rgba(142, 198, 247, 0.28);
+  --tint-edge:      rgba(63, 93, 138, 0.5);
+  --tint-surface:   #18263f;
+  --tint-canvas:    #0a1022;
+  --tint-chrome:    #101a30;
+  --tint-fill:      rgba(22, 34, 66, 0.72);
+  --tint-fill-node: rgba(13, 21, 44, 0.62);
+}
+.scheme-dialog[data-tinted="true"][data-cat="control"] {
+  --tint-deep:      #4c4f92;
+  --tint-base:      #7d86ff;
+  --tint-bright:    #abb0f5;
+  --tint-glow:      rgba(125, 134, 255, 0.15);
+  --tint-border:    rgba(171, 176, 245, 0.42);
+  --tint-active:    rgba(171, 176, 245, 0.28);
+  --tint-edge:      rgba(76, 79, 146, 0.5);
+  --tint-surface:   #14122c;
+  --tint-canvas:    #100d24;
+  --tint-fill:      rgba(31, 29, 64, 0.72);
+  --tint-fill-node: rgba(20, 18, 44, 0.62);
+}
+.scheme-dialog[data-tinted="true"][data-cat="network"] {
+  --tint-deep:      #357d8c;
+  --tint-base:      #4fe5ff;
+  --tint-bright:    #9eeaf7;
+  --tint-glow:      rgba(79, 229, 255, 0.15);
+  --tint-border:    rgba(158, 234, 247, 0.42);
+  --tint-active:    rgba(158, 234, 247, 0.28);
+  --tint-edge:      rgba(53, 125, 140, 0.5);
+  --tint-surface:   #0a1a20;
+  --tint-canvas:    #071319;
+  --tint-fill:      rgba(14, 38, 46, 0.72);
+  --tint-fill-node: rgba(9, 26, 32, 0.62);
+}
+.scheme-dialog[data-tinted="true"][data-cat="storage"] {
+  --tint-deep:      #357d66;
+  --tint-base:      #4fd5a3;
+  --tint-bright:    #9ce4cb;
+  --tint-glow:      rgba(79, 213, 163, 0.15);
+  --tint-border:    rgba(156, 228, 203, 0.42);
+  --tint-active:    rgba(156, 228, 203, 0.28);
+  --tint-edge:      rgba(53, 125, 102, 0.5);
+  --tint-surface:   #0a1c17;
+  --tint-canvas:    #071511;
+  --tint-fill:      rgba(14, 40, 33, 0.72);
+  --tint-fill-node: rgba(9, 28, 23, 0.62);
+}
+.scheme-dialog[data-tinted="true"][data-cat="scaling"] {
+  --tint-deep:      #8c6438;
+  --tint-base:      #ffa04d;
+  --tint-bright:    #f5c694;
+  --tint-glow:      rgba(255, 160, 77, 0.15);
+  --tint-border:    rgba(245, 198, 148, 0.42);
+  --tint-active:    rgba(245, 198, 148, 0.28);
+  --tint-edge:      rgba(140, 100, 56, 0.5);
+  --tint-surface:   #1f1609;
+  --tint-canvas:    #181006;
+  --tint-fill:      rgba(48, 33, 15, 0.72);
+  --tint-fill-node: rgba(34, 23, 10, 0.62);
+}
+.scheme-dialog[data-tinted="true"][data-cat="security"] {
+  --tint-deep:      #8c4444;
+  --tint-base:      #ff5757;
+  --tint-bright:    #f59b9b;
+  --tint-glow:      rgba(255, 87, 87, 0.15);
+  --tint-border:    rgba(245, 155, 155, 0.42);
+  --tint-active:    rgba(245, 155, 155, 0.28);
+  --tint-edge:      rgba(140, 68, 68, 0.5);
+  --tint-surface:   #201013;
+  --tint-canvas:    #190b0d;
+  --tint-fill:      rgba(48, 21, 23, 0.72);
+  --tint-fill-node: rgba(34, 14, 16, 0.62);
+}
+.scheme-dialog[data-tinted="true"] {
+  --accent:        var(--tint-bright);
+  --accent-glow:   var(--tint-glow);
+  --accent-border: var(--tint-border);
+
+  --control-color:   var(--tint-base); --control-glow:   var(--tint-glow); --control-border:   var(--tint-border);
+  --network-color:   var(--tint-base); --network-glow:   var(--tint-glow); --network-border:   var(--tint-border);
+  --workloads-color: var(--tint-base); --workloads-glow: var(--tint-glow); --workloads-border: var(--tint-border);
+  --storage-color:   var(--tint-base); --storage-glow:   var(--tint-glow); --storage-border:   var(--tint-border);
+  --scaling-color:   var(--tint-base); --scaling-glow:   var(--tint-glow); --scaling-border:   var(--tint-border);
+  --security-color:  var(--tint-base); --security-glow:  var(--tint-glow); --security-border:  var(--tint-border);
+
+  --diag-stroke:      var(--tint-base);
+  --diag-arrow:       var(--tint-base);
+  --diag-arrow-dim:   var(--tint-deep);
+  --diag-stroke-soft: var(--tint-deep);
+  --diag-node-stroke: var(--tint-deep);
+  --diag-fill-soft:   var(--tint-fill);
+  --diag-node-fill:   var(--tint-fill-node);
+
+  --bg-card: var(--tint-surface);
+  --border:  var(--tint-deep);
+}
+.scheme-dialog[data-tinted="true"] .dialog-canvas {
+  background-color: var(--tint-canvas);
+  background-image: none;
+}
+.scheme-dialog[data-tinted="true"] .dialog-header {
+  border-bottom-color: var(--tint-border);
+}
+/* Player-chrome gradation: the modal reads as a three-step ramp instead of one
+   flat tone. The canvas (--tint-canvas) is darkest, the controls bar
+   (--tint-chrome) is the mid tone, the header and step-dots strip (--bg-card,
+   from --tint-surface) are lightest. --tint-chrome falls back to the old
+   --tint-fill-node for any category that has not defined it. */
+.scheme-dialog[data-tinted="true"] .dialog-controls {
+  background: var(--tint-chrome, var(--tint-fill-node));
+  border-top-color: var(--tint-border);
+}
+.scheme-dialog[data-tinted="true"] .narration-overlay {
+  background: rgba(10, 16, 36, 0.86);
+  border-color: var(--tint-border);
+  border-left-color: var(--tint-bright);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
 
 .dialog-inner {
   display: grid;
@@ -916,7 +1039,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="control"]   .narration-overlay { border-left-color: var(--control-color); }
 .scheme-dialog[data-cat="scaling"]   .narration-overlay { border-left-color: var(--scaling-color); }
 .scheme-dialog[data-cat="security"]  .narration-overlay { border-left-color: var(--security-color); }
-.scheme-dialog[data-cat="lifecycle"] .narration-overlay { border-left-color: var(--lifecycle-color); }
 .narration-overlay .narration-step {
   font-size: 11px;
   color: var(--text-dim);
@@ -951,7 +1073,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="control"]   .dialog-progress-fill { background: var(--control-color); }
 .scheme-dialog[data-cat="scaling"]   .dialog-progress-fill { background: var(--scaling-color); }
 .scheme-dialog[data-cat="security"]  .dialog-progress-fill { background: var(--security-color); }
-.scheme-dialog[data-cat="lifecycle"] .dialog-progress-fill { background: var(--lifecycle-color); }
 
 .dialog-step-dots {
   display: flex;
@@ -1001,15 +1122,80 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="scaling"]   .step-dot.active { background: var(--scaling-color); }
 .scheme-dialog[data-cat="security"]  .step-dot.passed,
 .scheme-dialog[data-cat="security"]  .step-dot.active { background: var(--security-color); }
-.scheme-dialog[data-cat="lifecycle"] .step-dot.passed,
-.scheme-dialog[data-cat="lifecycle"] .step-dot.active { background: var(--lifecycle-color); }
 .scheme-dialog[data-cat="network"]   .step-dot.passed,
 .scheme-dialog[data-cat="workloads"] .step-dot.passed,
 .scheme-dialog[data-cat="storage"]   .step-dot.passed,
 .scheme-dialog[data-cat="control"]   .step-dot.passed,
 .scheme-dialog[data-cat="scaling"]   .step-dot.passed,
-.scheme-dialog[data-cat="security"]  .step-dot.passed,
-.scheme-dialog[data-cat="lifecycle"] .step-dot.passed { opacity: 0.5; }
+.scheme-dialog[data-cat="security"]  .step-dot.passed { opacity: 0.5; }
+
+/* Tinted dialog, bright end of the ramp. Highlighted diagram elements, moving
+   packets and the player progress/dots lift to --tint-bright, so the
+   foreground reads lighter than the base-tone blocks and the deep-tone
+   structure. These rules sit after the per-category ones so they win the
+   equal-specificity tie. */
+.scheme-dialog[data-tinted="true"] .scheme-box.highlight .scheme-box-rect,
+.scheme-dialog[data-tinted="true"] .scheme-chip.highlight .scheme-chip-rect,
+.scheme-dialog[data-tinted="true"] .scheme-pod.highlight .scheme-pod-rect,
+.scheme-dialog[data-tinted="true"] .scheme-cylinder.highlight .scheme-cylinder-body,
+.scheme-dialog[data-tinted="true"] .scheme-cylinder.highlight .scheme-cylinder-cap {
+  stroke: var(--tint-bright);
+}
+.scheme-dialog[data-tinted="true"] .scheme-packet {
+  fill: var(--tint-bright);
+  filter: drop-shadow(0 0 6px var(--tint-bright));
+}
+/* Inner fills: the container glyph and cylinder cap carry literal rgba in
+   diagrams.css (not tokens), so they need an explicit tinted override. */
+.scheme-dialog[data-tinted="true"] .scheme-pod-container {
+  fill: var(--tint-glow);
+  stroke: var(--tint-base);
+}
+.scheme-dialog[data-tinted="true"] .scheme-cylinder-cap {
+  fill: var(--tint-glow);
+}
+
+/* Player chrome, mirrored from the non-tinted cluster cards but with a wider
+   gap between the two states. Idle controls blend into the panel: same fill as
+   the controls bar, a barely-there border, calm light icon. The active Play,
+   pressed Loop, hovered button and selected speed take a clear accent: a lit
+   --tint-active fill, bright border and bright icon. The idle chip recedes,
+   the active chip plainly stands out. */
+.scheme-dialog[data-tinted="true"] .ctl-btn,
+.scheme-dialog[data-tinted="true"] .ctl-speed {
+  border-color: var(--tint-edge);
+}
+.scheme-dialog[data-tinted="true"] .ctl-btn {
+  background: var(--tint-chrome, var(--tint-fill-node));
+}
+.scheme-dialog[data-tinted="true"] .ctl-btn:hover:not(:disabled),
+.scheme-dialog[data-tinted="true"] .ctl-btn.primary,
+.scheme-dialog[data-tinted="true"] .ctl-btn[aria-pressed="true"] {
+  border-color: var(--tint-bright);
+  background: var(--tint-active);
+  color: var(--tint-bright);
+}
+/* Disabled control (Prev on step 0, Next on the last step): keep the full chip
+   so it stays uniform with its neighbours, only the icon dims to the deep
+   tone. The base rule's blunt opacity: 0.4 made the whole button look broken. */
+.scheme-dialog[data-tinted="true"] .ctl-btn:disabled {
+  opacity: 1;
+  color: var(--tint-deep);
+}
+.scheme-dialog[data-tinted="true"] .ctl-speed button.active {
+  background: var(--tint-active);
+  color: var(--tint-bright);
+}
+/* Progress fill and the active/passed step dots drop from the bright tone to
+   the base tone, a touch darker, as requested. The track and idle dots keep
+   the faint glow. */
+.scheme-dialog[data-tinted="true"] .dialog-progress { background: var(--tint-glow); }
+.scheme-dialog[data-tinted="true"] .step-dot { background: var(--tint-glow); }
+.scheme-dialog[data-tinted="true"] .dialog-progress-fill,
+.scheme-dialog[data-tinted="true"] .step-dot.passed,
+.scheme-dialog[data-tinted="true"] .step-dot.active {
+  background: var(--tint-base);
+}
 
 .dialog-controls {
   padding: 12px 18px 14px;

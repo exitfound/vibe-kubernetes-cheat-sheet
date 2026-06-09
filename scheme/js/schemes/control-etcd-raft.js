@@ -28,38 +28,49 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
+    const content = g({ transform: 'translate(60, 23) scale(0.9)' });
+
     const e1 = cylinder({ x: 420, y: 40, w: 160, h: 160, label: 'ETCD-1', cat: 'control' });
     const e2 = cylinder({ x: 600, y: 40, w: 160, h: 160, label: 'ETCD-2', cat: 'control' });
     const e3 = cylinder({ x: 780, y: 40, w: 160, h: 160, label: 'ETCD-3', cat: 'control' });
-    root.appendChild(e1); root.appendChild(e2); root.appendChild(e3);
+    content.appendChild(e1); content.appendChild(e2); content.appendChild(e3);
 
     const termChip   = valChip({ x: 960, y: 40,  w: 220, h: 40, name: 'term',             value: '4' });
     const acksChip   = valChip({ x: 960, y: 90,  w: 220, h: 40, name: 'acks (entry 9)', value: 'idle' });
     const quorumChip = valChip({ x: 960, y: 140, w: 220, h: 40, name: 'quorum',           value: '2 of 3' });
-    root.appendChild(termChip); root.appendChild(acksChip); root.appendChild(quorumChip);
+    content.appendChild(termChip); content.appendChild(acksChip); content.appendChild(quorumChip);
 
     const r1 = valChip({ x: 420, y: 220, w: 160, name: 'role', value: 'Leader' });
     const r2 = valChip({ x: 600, y: 220, w: 160, name: 'role', value: 'Follower' });
     const r3 = valChip({ x: 780, y: 220, w: 160, name: 'role', value: 'Follower' });
-    root.appendChild(r1); root.appendChild(r2); root.appendChild(r3);
+    content.appendChild(r1); content.appendChild(r2); content.appendChild(r3);
 
     const l1 = valChip({ x: 420, y: 260, w: 160, name: 'log/commit', value: '8 / 8' });
     const l2 = valChip({ x: 600, y: 260, w: 160, name: 'log/commit', value: '8 / 8' });
     const l3 = valChip({ x: 780, y: 260, w: 160, name: 'log/commit', value: '8 / 8' });
-    root.appendChild(l1); root.appendChild(l2); root.appendChild(l3);
+    content.appendChild(l1); content.appendChild(l2); content.appendChild(l3);
 
     const api = box({ x: 40, y: 320, w: 180, h: 120, label: 'ApiServer', cat: 'control' });
-    root.appendChild(api);
+    content.appendChild(api);
 
-    root.appendChild(pathArrow({ points: [[220, 380], [300, 380], [300, 120], [420, 120]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 120, x2: 600, y2: 120, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: [[500, 40], [500, 8], [860, 8], [860, 40]], dim: true, dashed: true, color: 'control' }));
+    content.appendChild(pathArrow({ points: [[220, 380], [300, 380], [300, 120], [420, 120]], dim: true, dashed: true, color: 'control' }));
+    content.appendChild(arrow({ x1: 580, y1: 120, x2: 600, y2: 120, dim: true, dashed: true, color: 'control' }));
+    content.appendChild(pathArrow({ points: [[500, 40], [500, 8], [860, 8], [860, 40]], dim: true, dashed: true, color: 'control' }));
+
+    const wireProposal  = text({ class: 'scheme-label code dim', x: 0, y: -6, 'text-anchor': 'middle', transform: 'translate(300, 250) rotate(-90)' }, [' ']);
+    const wireReplicate = text({ class: 'scheme-label code dim', x: 680, y: 26,  'text-anchor': 'middle' }, [' ']);
+    content.appendChild(wireProposal); content.appendChild(wireReplicate);
 
     const packetLayer = g({ id: 'packetLayer' });
-    root.appendChild(packetLayer);
+    content.appendChild(packetLayer);
 
+    root.appendChild(content);
     this.host.appendChild(root);
-    this.refs = { svg: root, api, e1, e2, e3, r1, r2, r3, l1, l2, l3, termChip, acksChip, quorumChip, packetLayer };
+    this.refs = {
+      svg: root, api, e1, e2, e3, r1, r2, r3, l1, l2, l3, termChip, acksChip, quorumChip,
+      wires: { proposal: wireProposal, replicate: wireReplicate },
+      packetLayer,
+    };
   }
 
   reset() { this.build(); }
@@ -70,6 +81,15 @@ function clearHL(s) {
     .forEach(k => s.refs[k].classList.remove('highlight'));
 }
 
+function clearWires(s) {
+  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
+}
+
+function setWire(s, key, txt) {
+  clearWires(s);
+  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
+}
+
 const STEPS = [
   {
     id: 'idle',
@@ -77,6 +97,7 @@ const STEPS = [
     narration: 'Three ETCD replicas form the cluster: one Leader, two Followers, all on term 4. All logs hold the same 8 entries. Quorum is 2 of 3.',
     enter(s) {
       clearHL(s);
+      clearWires(s);
       s.refs.packetLayer.replaceChildren();
       setVal(s.refs.r1, 'Leader');
       setVal(s.refs.r2, 'Follower');
@@ -87,7 +108,6 @@ const STEPS = [
       setVal(s.refs.termChip, '4');
       setVal(s.refs.acksChip, 'idle');
       setVal(s.refs.quorumChip, '2 of 3');
-      s.refs.e1.classList.add('highlight');
     },
   },
   {
@@ -99,13 +119,12 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       s.refs.api.classList.add('highlight');
       s.refs.e1.classList.add('highlight');
+      setWire(s, 'proposal', 'write Pod · via Leader');
+      if (ctx.reduced) return;
       const p = packet({ x: 220, y: 380, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(420px, 120px)';
-      } else {
-        ctx.register(animateAlong(p, [[220, 380], [300, 380], [300, 120], [420, 120]], { duration: 1700 }));
-      }
+      ctx.register(animateAlong(p, [[220, 380], [300, 380], [300, 120], [420, 120]], { duration: 1700 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1700, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -114,12 +133,12 @@ const STEPS = [
     narration: 'The Leader appends entry 9 to its local log. The entry is not committed yet, so the new key is still invisible to clients.',
     enter(s, ctx) {
       clearHL(s);
+      clearWires(s);
       s.refs.packetLayer.replaceChildren();
       setVal(s.refs.l1, '9 / 8');
       setVal(s.refs.acksChip, '0');
       s.refs.e1.classList.add('highlight');
       s.refs.l1.classList.add('highlight');
-      if (!ctx.reduced) ctx.register(pulse(s.refs.l1, { duration: 800, iterations: 1 }));
     },
   },
   {
@@ -132,22 +151,21 @@ const STEPS = [
       setVal(s.refs.l2, '9 / 8');
       setVal(s.refs.l3, '9 / 8');
       setVal(s.refs.acksChip, '1 (then 2)');
+      setWire(s, 'replicate', 'AppendEntries · entry 9');
       s.refs.e1.classList.add('highlight');
       s.refs.e2.classList.add('highlight');
       s.refs.e3.classList.add('highlight');
       s.refs.l2.classList.add('highlight');
       s.refs.l3.classList.add('highlight');
+      if (ctx.reduced) return;
       const p1 = packet({ x: 580, y: 120, cat: 'control' });
       const p2 = packet({ x: 500, y: 40, cat: 'control' });
       s.refs.packetLayer.appendChild(p1);
       s.refs.packetLayer.appendChild(p2);
-      if (ctx.reduced) {
-        p1.style.transform = 'translate(600px, 120px)';
-        p2.style.transform = 'translate(860px, 40px)';
-      } else {
-        ctx.register(animateAlong(p1, [[580, 120], [600, 120]], { duration: 1500 }));
-        ctx.register(animateAlong(p2, [[500, 40], [500, 8], [860, 8], [860, 40]], { duration: 1900 }));
-      }
+      ctx.register(animateAlong(p1, [[580, 120], [600, 120]], { duration: 1500 }));
+      ctx.register(p1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1500, fill: 'forwards', easing: 'ease-in' }));
+      ctx.register(animateAlong(p2, [[500, 40], [500, 8], [860, 8], [860, 40]], { duration: 1900 }));
+      ctx.register(p2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1900, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -156,6 +174,7 @@ const STEPS = [
     narration: 'The Leader counts replicas that hold entry 9: itself plus at least one Follower equals 2 of 3, the quorum. Entry 9 is now committed, and the Leader advances commitIndex to 9.',
     enter(s, ctx) {
       clearHL(s);
+      clearWires(s);
       s.refs.packetLayer.replaceChildren();
       setVal(s.refs.l1, '9 / 9');
       setVal(s.refs.acksChip, '2 / 3 ✓');
@@ -164,8 +183,6 @@ const STEPS = [
       s.refs.acksChip.classList.add('highlight');
       s.refs.quorumChip.classList.add('highlight');
       if (!ctx.reduced) {
-        ctx.register(pulse(s.refs.l1, { duration: 800, iterations: 1 }));
-        ctx.register(pulse(s.refs.acksChip, { duration: 800, iterations: 2 }));
       }
     },
   },
@@ -175,6 +192,7 @@ const STEPS = [
     narration: 'On the next heartbeat, the Leader broadcasts the new commitIndex. Each Follower applies entry 9 to its state machine. All three replicas now hold the Pod at index 9, and subsequent reads return it.',
     enter(s, ctx) {
       clearHL(s);
+      clearWires(s);
       s.refs.packetLayer.replaceChildren();
       setVal(s.refs.l2, '9 / 9');
       setVal(s.refs.l3, '9 / 9');
@@ -185,8 +203,6 @@ const STEPS = [
       s.refs.l2.classList.add('highlight');
       s.refs.l3.classList.add('highlight');
       if (!ctx.reduced) {
-        ctx.register(pulse(s.refs.l2, { duration: 800, iterations: 1 }));
-        ctx.register(pulse(s.refs.l3, { duration: 800, iterations: 1 }));
       }
     },
   },

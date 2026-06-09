@@ -111,7 +111,7 @@ const STEPS = [
   {
     id: 'mount',
     duration: 1700,
-    narration: 'apiserver returns a signed, audience-bound JWT. kubelet writes it as /var/run/secrets/kubernetes.io/serviceaccount/token via an atomic symlink swap on tmpfs.',
+    narration: 'ApiServer returns a signed, audience-bound JWT. Kubelet writes it as /var/run/secrets/kubernetes.io/serviceaccount/token via an atomic symlink swap on tmpfs.',
     enter(s, ctx) {
       clearHL(s);
       s.refs.packetLayer.replaceChildren();
@@ -128,7 +128,7 @@ const STEPS = [
   {
     id: 'workload-call',
     duration: 1900,
-    narration: 'App container reads the token and calls the apiserver with Authorization: Bearer <jwt>. apiserver validates: signature, expiry, and audience all match.',
+    narration: 'App container reads the token and calls ApiServer with Authorization: Bearer <jwt>. ApiServer validates: signature, expiry, and audience all match.',
     enter(s, ctx) {
       clearHL(s);
       s.refs.packetLayer.replaceChildren();

@@ -92,7 +92,7 @@ const STEPS = [
   {
     id: 'proxy',
     duration: 1700,
-    narration: 'kube-proxy iptables rules DNAT the query to one of the CoreDNS Pods. pod-1 receives it on port 53.',
+    narration: 'kube-proxy iptables rules DNAT the query to one of the CoreDNS Pods. Pod-1 receives it on port 53.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -110,7 +110,7 @@ const STEPS = [
   {
     id: 'plugins',
     duration: 2200,
-    narration: 'CoreDNS runs its plugin chain. cache plugin misses, kubernetes plugin queries the apiserver, and the chain returns service-x ClusterIP 10.96.7.42.',
+    narration: 'CoreDNS runs its plugin chain. The cache plugin misses, the kubernetes plugin queries ApiServer, and the chain returns service-x ClusterIP 10.96.7.42.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

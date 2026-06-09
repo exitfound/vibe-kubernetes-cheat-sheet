@@ -67,7 +67,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'App Pod is sized at 200m CPU but really wants ~360m. metrics-server collects per-container usage, and the VPA recommender feeds on it.',
+    narration: 'App Pod is sized at 200m CPU but really wants ~360m. Metrics-server collects per-container usage, and the VPA recommender feeds on it.',
     enter(s) {
       clearHL(s);
       setVal(s.refs.reqChip, '200m');
@@ -81,7 +81,7 @@ const STEPS = [
   {
     id: 'recommend',
     duration: 1900,
-    narration: 'Every minute the recommender writes status.recommendation. cpu=400m, memory=300Mi. The Pod is untouched: the recommendation is just a number on the VPA object.',
+    narration: 'Every minute the recommender writes status.recommendation with cpu=400m and memory=300Mi. The Pod is untouched: the recommendation is just a number on the VPA object.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.recommendChip, 'cpu=400m  memory=300Mi');
@@ -116,7 +116,7 @@ const STEPS = [
   {
     id: 'evict-restart',
     duration: 2100,
-    narration: 'updater evicts the Pod (respects PDB). admission webhook intercepts the new Pod creation and patches requests to cpu=400m. Pod restarts with the right size.',
+    narration: 'Updater evicts the Pod (respects PDB). Admission webhook intercepts the new Pod creation and patches requests to cpu=400m. Pod restarts with the right size.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.eventChip, 'evicted → admission rewrote requests');

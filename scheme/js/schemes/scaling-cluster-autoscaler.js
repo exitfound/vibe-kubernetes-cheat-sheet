@@ -86,7 +86,7 @@ const STEPS = [
   {
     id: 'pending',
     duration: 1700,
-    narration: 'Scheduler tries every node, none has 3 free CPU. Pod stays Pending with reason Unschedulable. cluster-autoscaler watches for exactly this signal.',
+    narration: 'Scheduler tries every node, none has 3 free CPU. Pod stays Pending with reason Unschedulable. Cluster Autoscaler watches for exactly this signal.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.statusChip, 'Pending: Unschedulable');
@@ -120,7 +120,7 @@ const STEPS = [
   {
     id: 'join',
     duration: 2000,
-    narration: 'New VM boots and runs kubelet bootstrap. kubelet registers with apiserver, joins the cluster. node-3 appears in `kubectl get nodes`.',
+    narration: 'New VM boots and runs kubelet bootstrap. Kubelet registers with ApiServer and joins the cluster. Node-3 appears in `kubectl get nodes`.',
     enter(s, ctx) {
       clearHL(s);
       s.refs.node3.style.opacity = '1';
@@ -134,7 +134,7 @@ const STEPS = [
   {
     id: 'schedule',
     duration: 1900,
-    narration: 'Scheduler re-runs across all nodes. node-3 now has 4 free CPU. The Pending Pod is bound, kubelet starts containers, and the pod becomes Running.',
+    narration: 'Scheduler re-runs across all nodes. Node-3 now has 4 free CPU. The Pending Pod is bound, kubelet starts containers, and the pod becomes Running.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.statusChip, 'Running on node-3');

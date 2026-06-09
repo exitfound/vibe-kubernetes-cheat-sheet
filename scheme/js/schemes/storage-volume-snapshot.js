@@ -91,7 +91,7 @@ const STEPS = [
   {
     id: 'create-snap',
     duration: 1700,
-    narration: 'User creates a VolumeSnapshot CR pointing at PVC src. external-snapshotter sidecar watches the apiserver and notices the new object.',
+    narration: 'User creates a VolumeSnapshot CR pointing at PVC src. The external-snapshotter sidecar watches ApiServer and notices the new object.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.readyChip, 'false');
@@ -103,7 +103,7 @@ const STEPS = [
   {
     id: 'driver-call',
     duration: 1900,
-    narration: 'snapshotter calls driver CreateSnapshot RPC. The driver asks the cloud to take a snapshot of the underlying volume and returns a snapshot handle.',
+    narration: 'Snapshotter calls driver CreateSnapshot RPC. The driver asks the cloud to take a snapshot of the underlying volume and returns a snapshot handle.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.readyChip, 'false');
@@ -119,7 +119,7 @@ const STEPS = [
   {
     id: 'bound',
     duration: 1700,
-    narration: 'VolumeSnapshotContent is created with the snapshot handle. snapshotter binds VolumeSnapshot ↔ VolumeSnapshotContent and flips readyToUse=true.',
+    narration: 'VolumeSnapshotContent is created with the snapshot handle. The snapshotter binds VolumeSnapshot ↔ VolumeSnapshotContent and flips readyToUse=true.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.readyChip, 'true');

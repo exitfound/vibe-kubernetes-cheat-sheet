@@ -35,15 +35,23 @@ class Scene {
     const nodeEl = node({ x: 50, y: 410, w: 900, h: 190, label: 'Node-1' });
     root.appendChild(nodeEl);
 
-    const kubelet = box({ x: 90, y: 460, w: 200, h: 80, label: 'Kubelet', cat: 'control' });
+    const kubelet = box({ x: 90, y: 465, w: 200, h: 80, label: 'Kubelet', cat: 'control' });
     root.appendChild(kubelet);
 
-    const placedPod = pod({ x: 530, y: 460, w: 150, h: 80, label: 'Pod', sublabel: 'nginx:1.27', containers: 1, cat: 'workloads' });
-    const placedPodRect = placedPod.querySelector('.scheme-pod-rect');
-    if (placedPodRect) placedPodRect.style.fill = 'rgba(40, 32, 72, 0.92)';
+    const placedPodShell = pod({ x: 530, y: 452, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    placedPodShell.style.setProperty('--workloads-color', '#c0b0ff');
+    const placedPodShellRect = placedPodShell.querySelector('.scheme-pod-rect');
+    if (placedPodShellRect) placedPodShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+
+    const placedPodBox = box({ x: 560, y: 480, w: 156, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', cat: 'workloads' });
+    placedPodBox.style.setProperty('--workloads-color', '#c0b0ff');
+
+    const placedPod = g({ id: 'placedPod' });
+    placedPod.appendChild(placedPodShell);
+    placedPod.appendChild(placedPodBox);
     root.appendChild(placedPod);
 
-    const kubeletPodArrow = arrow({ x1: 290, y1: 500, x2: 530, y2: 500, dashed: true, color: 'control' });
+    const kubeletPodArrow = arrow({ x1: 290, y1: 505, x2: 530, y2: 505, dashed: true, color: 'control' });
     root.appendChild(kubeletPodArrow);
 
     root.appendChild(arrow({ x1: 260, y1: 100, x2: 390, y2: 100, dim: true, dashed: true, color: 'control' }));
@@ -53,7 +61,7 @@ class Scene {
     root.appendChild(pathArrow({ points: [[440, 140], [440, 200], [260, 200], [260, 240]], dim: true, dashed: true, color: 'control' }));
     root.appendChild(pathArrow({ points: [[530, 140], [530, 195], [760, 195], [760, 240]], dim: true, dashed: true, color: 'control' }));
     root.appendChild(pathArrow({ points: [[640, 280], [590, 280], [590, 140]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: [[500, 140], [500, 380], [190, 380], [190, 460]], dim: true, dashed: true, color: 'control' }));
+    root.appendChild(pathArrow({ points: [[500, 140], [500, 380], [190, 380], [190, 465]], dim: true, dashed: true, color: 'control' }));
 
     const wireDelete       = text({ class: 'scheme-label code dim', x: 325, y: 46,  'text-anchor': 'middle' }, [' ']);
     const wirePersist      = text({ class: 'scheme-label code dim', x: 680, y: 46,  'text-anchor': 'middle' }, [' ']);
@@ -62,7 +70,7 @@ class Scene {
     const wireController   = text({ class: 'scheme-label code dim', x: 325, y: 178, 'text-anchor': 'middle' }, [' ']);
     const wireGc           = text({ class: 'scheme-label code dim', x: 685, y: 178, 'text-anchor': 'middle' }, [' ']);
     const wireKubeletWatch = text({ class: 'scheme-label code dim', x: 345, y: 370, 'text-anchor': 'middle' }, [' ']);
-    const wireStopPod      = text({ class: 'scheme-label code dim', x: 410, y: 488, 'text-anchor': 'middle' }, [' ']);
+    const wireStopPod      = text({ class: 'scheme-label code dim', x: 410, y: 493, 'text-anchor': 'middle' }, [' ']);
     [wireDelete, wirePersist, wireEtcdAck, wireApiAck, wireController, wireGc, wireKubeletWatch, wireStopPod].forEach(t => root.appendChild(t));
 
     const packetLayer = g({ id: 'packetLayer' });
@@ -70,7 +78,7 @@ class Scene {
 
     this.host.appendChild(root);
     this.refs = {
-      svg: root, client, apisrv, etcd, cm, gc, kubelet, placedPod, kubeletPodArrow,
+      svg: root, client, apisrv, etcd, cm, gc, kubelet, placedPod, placedPodBox, kubeletPodArrow,
       wires: {
         delete:          wireDelete,
         persist:         wirePersist,
@@ -90,7 +98,7 @@ class Scene {
 
 function clearHL(s) {
   ['client','apisrv','etcd','cm','gc','kubelet'].forEach(k => s.refs[k].classList.remove('highlight'));
-  if (s.refs.placedPod) s.refs.placedPod.classList.remove('highlight');
+  if (s.refs.placedPodBox) s.refs.placedPodBox.classList.remove('highlight');
 }
 
 function clearWires(s) {
@@ -125,13 +133,11 @@ const STEPS = [
       s.refs.client.classList.add('highlight');
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'delete', 'DELETE /apis/apps/v1/.../deployments/my-app');
+      if (ctx.reduced) return;
       const p = packet({ x: 260, y: 100, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(390px, 100px)';
-      } else {
-        ctx.register(animateAlong(p, [[260, 100], [325, 100], [390, 100]], { duration: 1400 }));
-      }
+      ctx.register(animateAlong(p, [[260, 100], [325, 100], [390, 100]], { duration: 1400 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1400, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -144,14 +150,11 @@ const STEPS = [
       s.refs.apisrv.classList.add('highlight');
       s.refs.etcd.classList.add('highlight');
       setWire(s, 'persist', 'patch deletionTimestamp · rv=843');
+      if (ctx.reduced) return;
       const p = packet({ x: 610, y: 100, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(750px, 100px)';
-      } else {
-        ctx.register(animateAlong(p, [[610, 100], [680, 100], [750, 100]], { duration: 1100 }));
-        ctx.register(pulse(s.refs.etcd, { duration: 800, iterations: 1 }));
-      }
+      ctx.register(animateAlong(p, [[610, 100], [680, 100], [750, 100]], { duration: 1100 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -172,6 +175,7 @@ const STEPS = [
       const p1 = packet({ x: 750, y: 130, cat: 'control' });
       s.refs.packetLayer.appendChild(p1);
       ctx.register(animateAlong(p1, [[750, 130], [680, 130], [610, 130]], { duration: 900 }));
+      ctx.register(p1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 900, fill: 'forwards', easing: 'ease-in' }));
 
       const p2 = packet({ x: 390, y: 130, cat: 'control' });
       p2.style.opacity = '0';
@@ -187,6 +191,7 @@ const STEPS = [
         ],
         { duration: 900, delay: 800, fill: 'forwards', easing: 'ease-in-out' }
       ));
+      ctx.register(p2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1700, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -204,28 +209,20 @@ const STEPS = [
       s.refs.wires['gc'].textContent         = 'PATCH replicasets · pods';
       if (ctx.reduced) return;
 
-      // Phase 1 (0–1100ms): ApiServer fans the MODIFIED event out to all watchers in parallel.
-      // To GC (enters at top-center):
       const p1 = packet({ x: 530, y: 140, cat: 'control' });
       s.refs.packetLayer.appendChild(p1);
       ctx.register(animateAlong(p1, [[530, 140], [530, 195], [760, 195], [760, 240]], { duration: 1100 }));
+      ctx.register(p1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
       // To CM (left), for Deployment/ReplicaSet controllers:
       const pCm = packet({ x: 440, y: 140, cat: 'control' });
       s.refs.packetLayer.appendChild(pCm);
       ctx.register(animateAlong(pCm, [[440, 140], [440, 200], [260, 200], [260, 240]], { duration: 1100 }));
+      ctx.register(pCm.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
 
-      // Phase 2 (1100–1700ms): GC processes the event (walks ownerReferences) — pulse only after p1 lands
-      ctx.register(s.refs.gc.animate(
-        [
-          { filter: 'brightness(1)' },
-          { filter: 'brightness(1.45)' },
-          { filter: 'brightness(1)' },
-        ],
-        { duration: 600, delay: 1100, iterations: 1, easing: 'ease-in-out', fill: 'none' }
-      ));
+      // GC is already lit at entry via the auto-delta pulse, so no separate arrival brightness
+      // (which would double-blink against the entry pulse). The MODIFIED-event packet reaching
+      // GC carries the beat, then the PATCH-back packet leaves below.
 
-      // Phase 3 (1800–3000ms): GC initiates its own PATCH back to ApiServer along the up arrow.
-      // Up arrow exits GC from the left side at mid-height, goes left, then up to API.
       const p2 = packet({ x: 640, y: 280, cat: 'control' });
       p2.style.opacity = '0';
       s.refs.packetLayer.appendChild(p2);
@@ -241,6 +238,7 @@ const STEPS = [
         ],
         { duration: 1200, delay: 1800, fill: 'forwards', easing: 'ease-in-out' }
       ));
+      ctx.register(p2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 3000, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -253,13 +251,11 @@ const STEPS = [
       s.refs.apisrv.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
       setWire(s, 'kubelet-watch', 'watch MODIFIED · Pod');
+      if (ctx.reduced) return;
       const p = packet({ x: 500, y: 140, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(190px, 460px)';
-      } else {
-        ctx.register(animateAlong(p, [[500, 140], [500, 380], [190, 380], [190, 460]], { duration: 1700 }));
-      }
+      ctx.register(animateAlong(p, [[500, 140], [500, 380], [190, 380], [190, 465]], { duration: 1700 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1700, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -270,19 +266,19 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       s.refs.kubelet.classList.add('highlight');
-      s.refs.placedPod.classList.add('highlight');
+      s.refs.placedPodBox.classList.add('highlight');
       setWire(s, 'stop-pod', 'SIGTERM · grace 30s');
       // Pin final state inline so cancel between steps doesn't flash to default opacity.
       s.refs.placedPod.style.opacity = '0.4';
       if (ctx.reduced) return;
       // SIGTERM packet flies from Kubelet to Pod first.
-      const sigPacket = packet({ x: 290, y: 500, cat: 'control' });
+      const sigPacket = packet({ x: 290, y: 505, cat: 'control' });
       s.refs.packetLayer.appendChild(sigPacket);
-      ctx.register(animateAlong(sigPacket, [[290, 500], [410, 500], [530, 500]], { duration: 1000 }));
-      // Pod fades only after the signal lands, so the cause-effect order reads naturally.
+      ctx.register(animateAlong(sigPacket, [[290, 505], [410, 505], [530, 505]], { duration: 1000 }));
+      ctx.register(sigPacket.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1000, fill: 'forwards', easing: 'ease-in' }));
       ctx.register(s.refs.placedPod.animate(
         [{ opacity: 1 }, { opacity: 0.4 }],
-        { duration: 1300, delay: 1000, fill: 'forwards', easing: 'ease-in' }
+        { duration: 1300, delay: 1000, fill: 'both', easing: 'ease-in' }
       ));
     },
   },
@@ -308,10 +304,10 @@ const STEPS = [
         [{ opacity: 1 }, { opacity: 0 }],
         { duration: 800, fill: 'forwards', easing: 'ease-out' }
       ));
-      ctx.register(pulse(s.refs.etcd, { duration: 800, iterations: 1 }));
       const p = packet({ x: 610, y: 100, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
       ctx.register(animateAlong(p, [[610, 100], [680, 100], [750, 100]], { duration: 1200 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1200, fill: 'forwards', easing: 'ease-in' }));
     },
   },
 ];

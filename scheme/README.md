@@ -70,7 +70,7 @@ scheme/
     └── schemes/
         ├── network-pod-to-pod-same-node.js
         ├── service-cluster-ip.js
-        ├── deployment-rolling-update.js
+        ├── workloads-rolling-update.js
         ├── volume-pvc-binding.js
         └── control-plane-apply-flow.js
 ```
@@ -240,7 +240,7 @@ The shared collapse/expand wiring lives in `js/lib/sidebar.js` (and its scheme c
 - 5 MVP scheme modules:
   1. `network-pod-to-pod-same-node` (4 steps) — packet through CNI bridge via veth pairs
   2. `service-cluster-ip` (5 steps) — selector → endpoints → kube-proxy DNAT
-  3. `deployment-rolling-update` (6 steps) — maxSurge / maxUnavailable cycle
+  3. `workloads-rolling-update` (6 steps) — maxSurge / maxUnavailable cycle
   4. `volume-pvc-binding` (5 steps) — PVC → CSI provisioner → PV → bind → mount
   5. `control-plane-apply-flow` (6 steps) — kubectl → apiserver → etcd → controller → scheduler → kubelet
 - Vertical site-switcher sidebar (CLI ↔ Schemes) on both sites, with collapse/expand button and `localStorage` persistence

@@ -1,17 +1,8 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, box, cylinder, arrow, fadeIn, pulse } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, makeInit } from '../lib/scheme-kit.js';
 
-function statusChip({ x, y, w, h = 30, name, value, cat = 'workloads' }) {
-  const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
-  grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
-  grp.appendChild(text({ class: 'scheme-chip-text', x: 12, y: h / 2 + 4, 'text-anchor': 'start' }, [name]));
-  const valueT = text({ class: 'scheme-chip-text', x: w - 12, y: h / 2 + 4, 'text-anchor': 'end' }, [value]);
-  grp.appendChild(valueT);
-  grp.valueText = valueT;
-  return grp;
-}
-function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
+// valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -21,186 +12,252 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1100 540',
+      viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'StatefulSet ordered rollout',
+      'aria-label': 'StatefulSet ordered rollout: pods start one at a time in ordinal order, each gets a sticky hostname and PVC',
+      'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const sset = box({ x: 280, y: 20, w: 320, h: 60, label: 'StatefulSet web', sublabel: 'replicas=3, volumeClaimTemplate', cat: 'workloads' });
-    root.appendChild(sset);
+    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'StatefulSet', sublabel: 'serial scale-up', cat: 'control' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer',       sublabel: 'PVC + Pod CRUD',     cat: 'control' });
+    const svc        = box({ x: 840, y: 40, w: 220, h: 80, label: 'Service web',     sublabel: 'clusterIP=None (headless)', cat: 'control' });
 
-    const svc = box({ x: 660, y: 20, w: 280, h: 60, label: 'Service web', sublabel: 'clusterIP=None (headless)', cat: 'network' });
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 800, y1: 80, x2: 840, y2: 80, dim: true, dashed: true, color: 'control' }));
+
+    const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireSvc = text({ class: 'scheme-label code dim', x: 820, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    [wireReq, wireSvc].forEach(t => root.appendChild(t));
+
+    const web0Chip = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'web-0',  value: 'pending' });
+    const web1Chip = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'web-1',  value: 'not created' });
+    const web2Chip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'web-2',  value: 'not created' });
+    const focusChip= valChip({ x: 830, y: 346, w: 350, h: 32, name: 'focus',  value: 'none' });
+    [web0Chip, web1Chip, web2Chip, focusChip].forEach(c => root.appendChild(c));
+
+    const chain = chainList({
+      x: 320, y: 220, w: 480, rowH: 32, gap: 10,
+      items: [
+        '1. spec       ·  replicas=3, volumeClaimTemplate: data',
+        '2. ordinal 0  ·  PVC data-web-0 bound, web-0 created',
+        '3. ordering   ·  ordinal N+1 blocked until N is Ready',
+        '4. ordinal 1  ·  PVC data-web-1, web-1 after web-0 Ready',
+        '5. ordinal 2  ·  PVC data-web-2, web-2 after web-1 Ready',
+      ],
+      cat: 'control',
+    });
+
+    const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
+
+    const POD_NAMES = ['web-0', 'web-1', 'web-2'];
+    const POD_PVCS  = ['data-web-0', 'data-web-1', 'data-web-2'];
+    const POD_XS    = [386, 642, 898];
+    const podBoxes = [];
+    const podWrappers = POD_XS.map((px, i) => {
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, cat: 'workloads' });
+      const shellRect = shell.querySelector('.scheme-pod-rect');
+      if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+
+      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'pvc: ' + POD_PVCS[i], cat: 'workloads' });
+
+      const wrap = g({ id: `pod${i}` });
+      wrap.style.opacity = '0';
+      wrap.appendChild(shell);
+      wrap.appendChild(innerBox);
+      podBoxes.push(innerBox);
+      return wrap;
+    });
+    const [pod0, pod1, pod2] = podWrappers;
+    const [pod0Box, pod1Box, pod2Box] = podBoxes;
+
+    const connector = pathArrow({
+      points: [[320, 80], [280, 80], [280, 550], [320, 550]],
+      dim: true, dashed: true, color: 'control',
+    });
+    root.appendChild(connector);
+
+    const packetLayer = g({ id: 'packetLayer' });
+    root.appendChild(packetLayer);
+
+    root.appendChild(chain);
+    root.appendChild(nodeEl);
+    [pod0, pod1, pod2].forEach(p => root.appendChild(p));
     root.appendChild(svc);
-
-    const p0 = pod({ x: 80,  y: 180, w: 200, h: 90, label: 'web-0', sublabel: 'web-0.web', cat: 'workloads' });
-    const p1 = pod({ x: 380, y: 180, w: 200, h: 90, label: 'web-1', sublabel: 'web-1.web', cat: 'workloads' });
-    const p2 = pod({ x: 680, y: 180, w: 200, h: 90, label: 'web-2', sublabel: 'web-2.web', cat: 'workloads' });
-    p0.style.opacity = '0';
-    p1.style.opacity = '0';
-    p2.style.opacity = '0';
-    root.appendChild(p0); root.appendChild(p1); root.appendChild(p2);
-
-    const v0 = cylinder({ x: 120, y: 310, w: 120, h: 70, label: 'data-web-0', cat: 'storage' });
-    const v1 = cylinder({ x: 420, y: 310, w: 120, h: 70, label: 'data-web-1', cat: 'storage' });
-    const v2 = cylinder({ x: 720, y: 310, w: 120, h: 70, label: 'data-web-2', cat: 'storage' });
-    v0.style.opacity = '0';
-    v1.style.opacity = '0';
-    v2.style.opacity = '0';
-    root.appendChild(v0); root.appendChild(v1); root.appendChild(v2);
-
-    const s0 = statusChip({ x: 80,  y: 410, w: 200, name: 'web-0', value: 'pending' });
-    const s1 = statusChip({ x: 380, y: 410, w: 200, name: 'web-1', value: 'gated' });
-    const s2 = statusChip({ x: 680, y: 410, w: 200, name: 'web-2', value: 'gated' });
-    root.appendChild(s0); root.appendChild(s1); root.appendChild(s2);
-
-    root.appendChild(arrow({ x1: 180, y1: 270, x2: 180, y2: 310, dim: true, color: 'storage' }));
-    root.appendChild(arrow({ x1: 480, y1: 270, x2: 480, y2: 310, dim: true, color: 'storage' }));
-    root.appendChild(arrow({ x1: 780, y1: 270, x2: 780, y2: 310, dim: true, color: 'storage' }));
+    root.appendChild(apiserver);
+    root.appendChild(controller);
 
     this.host.appendChild(root);
-    this.refs = { svg: root, sset, svc, p0, p1, p2, v0, v1, v2, s0, s1, s2 };
+    this.refs = {
+      svg: root,
+      controller, apiserver, svc, chain, nodeEl, connector,
+      web0Chip, web1Chip, web2Chip, focusChip,
+      pod0, pod1, pod2, pod0Box, pod1Box, pod2Box,
+      packetLayer,
+      wires: { req: wireReq, svc: wireSvc },
+    };
   }
 
   reset() { this.build(); }
 }
 
 function clearHL(s) {
-  ['sset','svc','p0','p1','p2','v0','v1','v2','s0','s1','s2'].forEach(k => s.refs[k].classList.remove('highlight'));
+  ['controller','apiserver','svc','web0Chip','web1Chip','web2Chip','focusChip','pod0Box','pod1Box','pod2Box']
+    .forEach(k => s.refs[k].classList.remove('highlight'));
+  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
+  ['pod0','pod1','pod2'].forEach(k => clearPodHighlight(s.refs[k]));
 }
+function clearWires(s) { Object.values(s.refs.wires).forEach(t => { t.textContent = ''; }); }
+function setWire(s, key, txt) { if (s.refs.wires[key]) s.refs.wires[key].textContent = txt; }
+
+// pulsePod / clearPodHighlight / connectorPacket are imported from ../lib/scheme-kit.js
 
 const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'StatefulSet declares replicas=3 with a volumeClaimTemplate. The headless Service web gives each Pod a stable DNS name web-N.web.',
+    narration: 'A StatefulSet web is declared with replicas=3 and a volumeClaimTemplate named data. No Pods exist yet. The headless Service web (clusterIP=None) will publish per-Pod DNS names web-N.web once Pods are created.',
     enter(s) {
+      s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.p0.style.opacity = '0';
-      s.refs.p1.style.opacity = '0';
-      s.refs.p2.style.opacity = '0';
-      s.refs.v0.style.opacity = '0';
-      s.refs.v1.style.opacity = '0';
-      s.refs.v2.style.opacity = '0';
-      setVal(s.refs.s0, 'pending');
-      setVal(s.refs.s1, 'gated');
-      setVal(s.refs.s2, 'gated');
-      s.refs.sset.classList.add('highlight');
+      clearWires(s);
+      s.refs.pod0.style.opacity = '0';
+      s.refs.pod1.style.opacity = '0';
+      s.refs.pod2.style.opacity = '0';
+      setVal(s.refs.web0Chip, 'pending');
+      setVal(s.refs.web1Chip, 'not created');
+      setVal(s.refs.web2Chip, 'not created');
+      setVal(s.refs.focusChip, 'none');
+      setChainActive(s.refs.chain, -1);
     },
   },
   {
     id: 'pod-0',
-    duration: 1900,
-    narration: 'Index 0 starts first. PVC data-web-0 is provisioned (sticky to ordinal 0). web-0 binds it, gets stable hostname web-0.web, becomes Ready.',
+    duration: 2300,
+    narration: 'Controller picks ordinal 0 first. ApiServer creates PVC data-web-0 (sticky to ordinal 0 by name, never recycled), the binding controller pairs it with a fresh PV, then a Pod web-0 is created with spec.hostname=web-0 and spec.subdomain=web. Once readinessProbe passes, web-0 is Ready and gets registered as web-0.web in the headless Service EndpointSlice.',
     enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.sset.classList.add('highlight');
-      s.refs.p0.style.opacity = '1';
-      s.refs.v0.style.opacity = '1';
-      s.refs.p0.classList.add('highlight');
-      s.refs.v0.classList.add('highlight');
-      setVal(s.refs.s0, 'Running');
-      setVal(s.refs.s1, 'gated');
-      setVal(s.refs.s2, 'gated');
-      if (!ctx.reduced) {
-        ctx.register(fadeIn(s.refs.p0, { duration: 700 }));
-        ctx.register(fadeIn(s.refs.v0, { duration: 700 }));
-        ctx.register(pulse(s.refs.p0, { duration: 700, iterations: 1 }));
-      }
+      clearWires(s);
+      s.refs.pod0.style.opacity = '1';
+      s.refs.pod1.style.opacity = '0';
+      s.refs.pod2.style.opacity = '0';
+      setVal(s.refs.web0Chip, 'Ready · web-0.web');
+      setVal(s.refs.web1Chip, 'not created');
+      setVal(s.refs.web2Chip, 'not created');
+      setVal(s.refs.focusChip, 'PVC data-web-0 bound');
+      setWire(s, 'req', 'Create PVC data-web-0 · Create Pod web-0');
+      setWire(s, 'svc', 'register web-0.web');
+      s.refs.controller.classList.add('highlight');
+      s.refs.apiserver.classList.add('highlight');
+      s.refs.svc.classList.add('highlight');
+      s.refs.web0Chip.classList.add('highlight');
+      s.refs.focusChip.classList.add('highlight');
+      setChainActive(s.refs.chain, 1);
+      if (ctx.reduced) { s.refs.pod0Box.classList.add('highlight'); return; }
+      // Controller asks ApiServer to create the PVC and Pod, then the Pod is created
+      // on the node. web-0 materializes and pulses when the create reaches the node.
+      const pTop = packet({ x: 540, y: 65, cat: 'control' });
+      s.refs.packetLayer.appendChild(pTop);
+      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
+      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
+      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
+      ctx.register(s.refs.pod0.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 1900, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod0, ctx, 1900);
+    },
+  },
+  {
+    id: 'gate',
+    duration: 1900,
+    narration: 'spec.podManagementPolicy defaults to OrderedReady. The controller will not create web-1 while web-0 is not Ready, will not create web-2 while web-1 is not Ready, and so on. A stuck ordinal stalls every subsequent one. Setting podManagementPolicy=Parallel lifts this gate at the cost of ordering guarantees during scale-up and scale-down.',
+    enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
+      s.refs.pod0.style.opacity = '1';
+      s.refs.pod1.style.opacity = '0';
+      s.refs.pod2.style.opacity = '0';
+      setVal(s.refs.web0Chip, 'Ready · web-0.web');
+      setVal(s.refs.web1Chip, 'waits for web-0 Ready');
+      setVal(s.refs.web2Chip, 'waits for web-1 Ready');
+      setVal(s.refs.focusChip, 'podManagementPolicy: OrderedReady');
+      s.refs.controller.classList.add('highlight');
+      s.refs.web1Chip.classList.add('highlight');
+      s.refs.web2Chip.classList.add('highlight');
+      s.refs.focusChip.classList.add('highlight');
+      setChainActive(s.refs.chain, 2);
+      if (ctx.reduced) return;
     },
   },
   {
     id: 'pod-1',
-    duration: 1800,
-    narration: 'Controller waits for web-0 Ready. Only then does it provision data-web-1 and start web-1. Hostnames and PVCs stay paired with the ordinal.',
+    duration: 2300,
+    narration: 'web-0 cleared the gate. Controller creates PVC data-web-1 and Pod web-1 with spec.hostname=web-1, served as DNS web-1.web by the headless Service. Same flow as ordinal 0. Pod web-1 reaches Ready and the headless Service EndpointSlice now lists two backends: web-0.web and web-1.web.',
     enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.sset.classList.add('highlight');
-      s.refs.p0.style.opacity = '1';
-      s.refs.p1.style.opacity = '1';
-      s.refs.v0.style.opacity = '1';
-      s.refs.v1.style.opacity = '1';
-      s.refs.p1.classList.add('highlight');
-      s.refs.v1.classList.add('highlight');
-      setVal(s.refs.s0, 'Running');
-      setVal(s.refs.s1, 'Running');
-      setVal(s.refs.s2, 'gated');
-      if (!ctx.reduced) {
-        ctx.register(fadeIn(s.refs.p1, { duration: 700 }));
-        ctx.register(fadeIn(s.refs.v1, { duration: 700 }));
-        ctx.register(pulse(s.refs.p1, { duration: 700, iterations: 1 }));
-      }
+      clearWires(s);
+      s.refs.pod0.style.opacity = '1';
+      s.refs.pod1.style.opacity = '1';
+      s.refs.pod2.style.opacity = '0';
+      setVal(s.refs.web0Chip, 'Ready · web-0.web');
+      setVal(s.refs.web1Chip, 'Ready · web-1.web');
+      setVal(s.refs.web2Chip, 'not created');
+      setVal(s.refs.focusChip, 'PVC data-web-1 bound');
+      setWire(s, 'req', 'Create PVC data-web-1 · Create Pod web-1');
+      setWire(s, 'svc', 'register web-1.web');
+      s.refs.controller.classList.add('highlight');
+      s.refs.apiserver.classList.add('highlight');
+      s.refs.svc.classList.add('highlight');
+      s.refs.web1Chip.classList.add('highlight');
+      s.refs.focusChip.classList.add('highlight');
+      setChainActive(s.refs.chain, 3);
+      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
+      // Same create flow as ordinal 0. web-1 materializes and pulses on arrival.
+      const pTop = packet({ x: 540, y: 65, cat: 'control' });
+      s.refs.packetLayer.appendChild(pTop);
+      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
+      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
+      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
+      ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 1900, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod1, ctx, 1900);
     },
   },
   {
     id: 'pod-2',
-    duration: 1800,
-    narration: 'After web-1 Ready, web-2 follows. PVC data-web-2 binds. The controller never starts ordinal N+1 before N is Ready.',
+    duration: 2300,
+    narration: 'web-1 reached Ready, the gate unlocks for ordinal 2. PVC data-web-2 is provisioned and Pod web-2 starts with spec.hostname=web-2, served as DNS web-2.web. Once Ready, all three replicas are alive with sticky identities. Termination on scale-down runs in reverse order (web-2 first, then web-1, then web-0).',
     enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.sset.classList.add('highlight');
-      s.refs.p0.style.opacity = '1';
-      s.refs.p1.style.opacity = '1';
-      s.refs.p2.style.opacity = '1';
-      s.refs.v0.style.opacity = '1';
-      s.refs.v1.style.opacity = '1';
-      s.refs.v2.style.opacity = '1';
-      s.refs.p2.classList.add('highlight');
-      s.refs.v2.classList.add('highlight');
-      setVal(s.refs.s0, 'Running');
-      setVal(s.refs.s1, 'Running');
-      setVal(s.refs.s2, 'Running');
-      if (!ctx.reduced) {
-        ctx.register(fadeIn(s.refs.p2, { duration: 700 }));
-        ctx.register(fadeIn(s.refs.v2, { duration: 700 }));
-        ctx.register(pulse(s.refs.p2, { duration: 700, iterations: 1 }));
-      }
-    },
-  },
-  {
-    id: 'settled',
-    duration: 1900,
-    narration: 'All three Pods are Running with stable identities. If web-0 dies and reschedules, the new Pod still gets the same hostname and reattaches data-web-0.',
-    enter(s, ctx) {
-      clearHL(s);
-      s.refs.p0.style.opacity = '1';
-      s.refs.p1.style.opacity = '1';
-      s.refs.p2.style.opacity = '1';
-      s.refs.v0.style.opacity = '1';
-      s.refs.v1.style.opacity = '1';
-      s.refs.v2.style.opacity = '1';
+      clearWires(s);
+      s.refs.pod0.style.opacity = '1';
+      s.refs.pod1.style.opacity = '1';
+      s.refs.pod2.style.opacity = '1';
+      setVal(s.refs.web0Chip, 'Ready · web-0.web');
+      setVal(s.refs.web1Chip, 'Ready · web-1.web');
+      setVal(s.refs.web2Chip, 'Ready · web-2.web');
+      setVal(s.refs.focusChip, 'all 3 ordinals Ready');
+      setWire(s, 'req', 'Create PVC data-web-2 · Create Pod web-2');
+      setWire(s, 'svc', 'register web-2.web');
+      s.refs.controller.classList.add('highlight');
+      s.refs.apiserver.classList.add('highlight');
       s.refs.svc.classList.add('highlight');
-      s.refs.p0.classList.add('highlight');
-      s.refs.p1.classList.add('highlight');
-      s.refs.p2.classList.add('highlight');
-      setVal(s.refs.s0, 'Running');
-      setVal(s.refs.s1, 'Running');
-      setVal(s.refs.s2, 'Running');
-      if (!ctx.reduced) ctx.register(pulse(s.refs.svc, { duration: 800, iterations: 1 }));
+      s.refs.web2Chip.classList.add('highlight');
+      s.refs.focusChip.classList.add('highlight');
+      setChainActive(s.refs.chain, 4);
+      if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
+      // Final ordinal. web-2 materializes and pulses on arrival, all three are Ready.
+      const pTop = packet({ x: 540, y: 65, cat: 'control' });
+      s.refs.packetLayer.appendChild(pTop);
+      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
+      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
+      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
+      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 1900, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod2, ctx, 1900);
     },
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

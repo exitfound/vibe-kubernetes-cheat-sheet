@@ -1,8 +1,3 @@
-// ============================================================
-//  K8s Cheat Sheet | contacts.js
-//  Delete this file to build without Contacts & Sponsor.
-// ============================================================
-
 export const CONTACTS = {
   enabled: true,
   links: [

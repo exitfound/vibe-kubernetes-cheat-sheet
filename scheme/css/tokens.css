@@ -28,9 +28,9 @@
   --storage-glow:     rgba(79, 213, 163, 0.13);
   --storage-border:   rgba(79, 213, 163, 0.28);
 
-  --workloads-color:  #5cb1ff;
-  --workloads-glow:   rgba(92, 177, 255, 0.13);
-  --workloads-border: rgba(92, 177, 255, 0.28);
+  --workloads-color:  #5bb8ff;
+  --workloads-glow:   rgba(75, 168, 255, 0.13);
+  --workloads-border: rgba(55, 158, 255, 0.28);
 
   --scaling-color:    #ffa04d;
   --scaling-glow:     rgba(255, 160, 77, 0.13);
@@ -43,10 +43,6 @@
   --security-color:   #ff5757;
   --security-glow:    rgba(255, 87, 87, 0.13);
   --security-border:  rgba(255, 87, 87, 0.28);
-
-  --lifecycle-color:  #ff668c;
-  --lifecycle-glow:   rgba(255, 102, 140, 0.13);
-  --lifecycle-border: rgba(255, 102, 140, 0.28);
 
   /* Diagram-specific tokens */
   --diag-stroke:       #b3a8e0;

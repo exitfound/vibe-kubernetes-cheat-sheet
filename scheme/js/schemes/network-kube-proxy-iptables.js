@@ -77,7 +77,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1400,
-    narration: 'A packet wants ClusterIP 10.96.7.42:80. kube-proxy has already programmed iptables NAT rules on every node.',
+    narration: 'A packet wants ClusterIP 10.96.7.42:80, and kube-proxy has already programmed iptables NAT rules on every node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -128,7 +128,7 @@ const STEPS = [
   {
     id: 'dnat',
     duration: 1700,
-    narration: 'KUBE-SEP-A holds the DNAT rule. dst is rewritten from ClusterIP 10.96.7.42:80 to backing Pod IP 10.244.1.5:8080.',
+    narration: 'KUBE-SEP-A holds the DNAT rule that rewrites dst from ClusterIP 10.96.7.42:80 to backing Pod IP 10.244.1.5:8080.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

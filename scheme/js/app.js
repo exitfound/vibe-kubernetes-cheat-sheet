@@ -3,6 +3,7 @@ import { POSTERS } from './posters.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
 import { mainUrl } from './lib/env.js';
 import { setupSidebar } from './lib/sidebar.js';
+import { isInspectActive, attachInspector } from './lib/inspector.js';
 
 const MAIN_URL = mainUrl();
 
@@ -403,11 +404,10 @@ function renderGrid() {
 const POSTER_COLORS = {
   network:   '#4fe5ff',
   storage:   '#4fd5a3',
-  workloads: '#5cb1ff',
+  workloads: '#3da0ff',
   scaling:   '#ffa04d',
   control:   '#7d86ff',
   security:  '#ff5757',
-  lifecycle: '#ff668c',
 };
 
 const FALLBACK_POSTER = `
@@ -437,7 +437,23 @@ function renderPoster(scheme) {
   `;
 }
 
+// Old scheme ids from before the workloads flat-rename still resolve, so existing
+// deep links, bookmarks and indexed sitemap URLs keep opening the right card.
+const SCHEME_ALIASES = {
+  'lifecycle-pod-phase-machine': 'workloads-pod-phase-machine',
+  'lifecycle-restart-policy': 'workloads-restart-policy',
+  'lifecycle-hooks': 'workloads-hooks',
+  'lifecycle-probes': 'workloads-probes',
+  'lifecycle-container-states': 'workloads-container-states',
+  'lifecycle-crashloopbackoff': 'workloads-crashloopbackoff',
+  'lifecycle-graceful-shutdown': 'workloads-graceful-shutdown',
+  'lifecycle-force-deletion': 'workloads-force-deletion',
+  'deployment-rolling-update': 'workloads-rolling-update',
+  'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',
+};
+
 async function openScheme(id, initialStep = null) {
+  id = SCHEME_ALIASES[id] || id;
   const scheme = SCHEMES.find(s => s.id === id);
   if (!scheme) return;
   if (activeController || activeDialogScheme || document.querySelector('dialog.scheme-dialog')) {
@@ -449,6 +465,9 @@ async function openScheme(id, initialStep = null) {
     dialog.showModal();
   } else {
     dialog.setAttribute('open', '');
+  }
+  if (isInspectActive()) {
+    dialog._inspectCleanup = attachInspector(dialog);
   }
   activeDialogScheme = scheme;
   const baseHash = `#scheme=${id}`;
@@ -479,6 +498,10 @@ async function openScheme(id, initialStep = null) {
     onPlayingChange: (playing) => updatePlayBtn(dialog, playing),
   });
   activeController = ctrl;
+  if (isInspectActive()) {
+    window.__schemeCtl = ctrl;
+    window.__schemeId = scheme.id;
+  }
 
   ctrl.setSpeed(getSavedSpeed());
   ctrl.setLoop(getSavedLoop());
@@ -499,6 +522,8 @@ function buildDialog(scheme) {
   const dlg = document.createElement('dialog');
   dlg.className = 'scheme-dialog';
   dlg.setAttribute('data-cat', scheme.category);
+  dlg.setAttribute('data-scheme', scheme.id);
+  if (scheme.tinted) dlg.setAttribute('data-tinted', 'true');
   dlg.setAttribute('aria-labelledby', 'dialogTitle');
   const sourceLink = scheme.sources && scheme.sources[0]
     ? `<span class="ctl-source">Source: <a href="${escapeHtml(scheme.sources[0].href)}" target="_blank" rel="noopener">${escapeHtml(scheme.sources[0].label)}</a></span>`
@@ -634,8 +659,12 @@ function closeDialog({ updateHash = true } = {}) {
     try { activeController.destroy(); } catch (_) {}
     activeController = null;
   }
+  if (window.__schemeCtl) { try { delete window.__schemeCtl; } catch (_) { window.__schemeCtl = null; } }
   activeDialogScheme = null;
   if (dlg) {
+    if (typeof dlg._inspectCleanup === 'function') {
+      try { dlg._inspectCleanup(); } catch (_) {}
+    }
     if (typeof dlg.close === 'function') {
       try { dlg.close(); } catch (_) {}
     }

@@ -13,3 +13,12 @@ Thumbs.db
 
 # Local dev
 *.log
+
+# Playwright MCP scratch + smoke screenshots (project root)
+.playwright-mcp/
+smoke-*.png
+
+# Scheme dev tools (Node deps + captured outputs)
+scheme/tools/node_modules/
+scheme/tools/output/
+scheme/tools/baselines/

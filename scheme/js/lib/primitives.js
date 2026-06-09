@@ -166,7 +166,7 @@ export function setChainActive(chainEl, idx) {
 }
 
 export function stateNode({ id = '', label = '', x = 0, y = 0, w = 140, h = 60, cat = 'lifecycle', cls = '' } = {}) {
-  const grp = g({ class: ('scheme-state ' + cls).trim(), 'data-cat': cat || null, 'data-state-id': id, transform: `translate(${x},${y})` });
+  const grp = g({ class: ('scheme-box scheme-state ' + cls).trim(), 'data-cat': cat || null, 'data-state-id': id, transform: `translate(${x},${y})` });
   grp.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: w, height: h, rx: 10, ry: 10 }));
   grp.appendChild(text({ class: 'scheme-box-label', x: w / 2, y: h / 2 + 5, 'text-anchor': 'middle' }, [label]));
   return grp;
@@ -213,6 +213,7 @@ export function animateAlong(packetEl, points, options = {}) {
   const iterations = options.iterations || 1;
   const easing = options.easing || 'ease-in-out';
   const fill = options.fill || 'forwards';
+  const delay = options.delay || 0;
   const lengths = [];
   let total = 0;
   for (let i = 1; i < points.length; i++) {
@@ -226,7 +227,7 @@ export function animateAlong(packetEl, points, options = {}) {
     if (i > 0) acc += lengths[i - 1];
     return { offset: Math.min(1, acc / total), transform: `translate(${p[0]}px, ${p[1]}px)` };
   });
-  return packetEl.animate(keyframes, { duration, iterations, easing, fill });
+  return packetEl.animate(keyframes, { duration, iterations, easing, fill, delay });
 }
 
 export function pulse(elNode, options = {}) {

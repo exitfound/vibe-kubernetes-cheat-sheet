@@ -80,7 +80,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'alice sends GET /api/v1/namespaces/default/pods. apiserver must decide whether she may read pods in the default namespace.',
+    narration: 'User alice sends GET /api/v1/namespaces/default/pods. ApiServer must decide whether she may read pods in the default namespace.',
     enter(s) {
       clearHL(s);
       setVal(s.refs.authnChip, 'pending');
@@ -94,7 +94,7 @@ const STEPS = [
   {
     id: 'authn',
     duration: 1700,
-    narration: 'authn modules (x509 / token / OIDC) verify the credential. apiserver attaches identity (user, groups) to the request context.',
+    narration: 'Authn modules (x509, token, OIDC) verify the credential. ApiServer attaches identity (user, groups) to the request context.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.authnChip, 'verified');
@@ -108,7 +108,7 @@ const STEPS = [
   {
     id: 'sar',
     duration: 1900,
-    narration: 'authz modules run in order. RBAC builds a SubjectAccessReview: can user=alice perform verb=get on resource=pods in namespace=default?',
+    narration: 'Authz modules run in order. RBAC builds a SubjectAccessReview: can user=alice perform verb=get on resource=pods in namespace=default?',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.authnChip, 'verified');
@@ -122,7 +122,7 @@ const STEPS = [
   {
     id: 'match',
     duration: 1900,
-    narration: 'RBAC walks all RoleBindings and ClusterRoleBindings. The first match: pod-reader binding gives alice get/list on pods in default. Rule matches.',
+    narration: 'RBAC walks all RoleBindings and ClusterRoleBindings. The first match: the pod-reader binding gives alice get/list on pods in default. Rule matches.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.authnChip, 'verified');
@@ -136,7 +136,7 @@ const STEPS = [
   {
     id: 'allow',
     duration: 1900,
-    narration: 'Decision: ALLOW. Request proceeds to admission. audit logs the decision (verb, user, resource, decision, reason).',
+    narration: 'Decision: ALLOW. Request proceeds to admission, and the audit log records the decision (verb, user, resource, decision, reason).',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.authnChip, 'verified');

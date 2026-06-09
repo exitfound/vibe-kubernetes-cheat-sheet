@@ -1,17 +1,8 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, box, queueLane, setSlotState, pulse, fadeIn, fadeOut } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, makeInit } from '../lib/scheme-kit.js';
 
-function valChip({ x, y, w, h = 32, name, value, cat = 'workloads' }) {
-  const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
-  grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
-  grp.appendChild(text({ class: 'scheme-chip-text', x: 12, y: h / 2 + 4, 'text-anchor': 'start' }, [name]));
-  const valueT = text({ class: 'scheme-chip-text', x: w - 12, y: h / 2 + 4, 'text-anchor': 'end' }, [value]);
-  grp.appendChild(valueT);
-  grp.valueText = valueT;
-  return grp;
-}
-function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
+// valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -21,180 +12,274 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1100 520',
+      viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Job parallelism and completions',
+      'aria-label': 'Job parallelism and completions: at most parallelism workers run concurrently, until completions successful runs are recorded',
+      'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const jobBox = box({ x: 80, y: 20, w: 460, h: 60, label: 'Job process-batch', sublabel: 'parallelism=3 · completions=6', cat: 'workloads' });
-    root.appendChild(jobBox);
+    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Job', sublabel: 'spawn + count', cat: 'control' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer', sublabel: 'create Pod · watch exit', cat: 'control' });
 
-    const counters = valChip({ x: 580, y: 28, w: 460, h: 44, name: 'succeeded / failed', value: '0 / 0' });
-    root.appendChild(counters);
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
 
-    const lane = queueLane({
-      x: 80, y: 120, slotW: 70, slotH: 60, gap: 12,
-      items: ['queued','queued','queued','queued','queued','queued'],
-      cat: 'workloads',
+    const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    root.appendChild(wireReq);
+
+    const parChip       = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'parallelism',  value: '3' });
+    const compChip      = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'completions', value: '6' });
+    const succChip      = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'succeeded',   value: '0' });
+    const failChip      = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'failed',      value: '0' });
+    [parChip, compChip, succChip, failChip].forEach(c => root.appendChild(c));
+
+    const chain = chainList({
+      x: 320, y: 220, w: 480, rowH: 32, gap: 10,
+      items: [
+        '1. spec     ·  parallelism=3, completions=6',
+        '2. spawn    ·  controller creates Pods up to parallelism',
+        '3. progress ·  exit 0 → succeeded++ · then start next',
+        '4. retry    ·  exit != 0 → failed++ · respawn (backoffLimit)',
+        '5. complete ·  succeeded == completions · Complete=True',
+      ],
+      cat: 'control',
     });
-    root.appendChild(lane);
-    for (let i = 0; i < 6; i++) setSlotState(lane, i, 'queued');
 
-    const p1 = pod({ x: 80,  y: 240, w: 220, h: 80, label: 'pod-1', sublabel: 'worker', cat: 'workloads' });
-    const p2 = pod({ x: 320, y: 240, w: 220, h: 80, label: 'pod-2', sublabel: 'worker', cat: 'workloads' });
-    const p3 = pod({ x: 560, y: 240, w: 220, h: 80, label: 'pod-3', sublabel: 'worker', cat: 'workloads' });
-    p1.style.opacity = '0';
-    p2.style.opacity = '0';
-    p3.style.opacity = '0';
-    root.appendChild(p1); root.appendChild(p2); root.appendChild(p3);
-
-    const p1Status = valChip({ x: 80,  y: 340, w: 220, name: 'pod-1', value: 'idle' });
-    const p2Status = valChip({ x: 320, y: 340, w: 220, name: 'pod-2', value: 'idle' });
-    const p3Status = valChip({ x: 560, y: 340, w: 220, name: 'pod-3', value: 'idle' });
-    root.appendChild(p1Status); root.appendChild(p2Status); root.appendChild(p3Status);
-
-    const phaseChip = valChip({ x: 80, y: 420, w: 700, h: 36, name: 'job phase', value: 'Pending' });
+    // State chip for the Job status: aligned below the pipeline.
+    const phaseChip = valChip({ x: 830, y: 410, w: 350, h: 32, name: 'job status', value: '0 active' });
     root.appendChild(phaseChip);
 
+    const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
+
+    const POD_NAMES = ['worker-1', 'worker-2', 'worker-3'];
+    const POD_XS    = [386, 642, 898];
+    const podBoxes = [];
+    const podWrappers = POD_XS.map((px, i) => {
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, cat: 'workloads' });
+      const shellRect = shell.querySelector('.scheme-pod-rect');
+      if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+
+      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'idle', cat: 'workloads' });
+
+      const wrap = g({ id: `pod${i + 1}` });
+      wrap.style.opacity = '0';
+      wrap.appendChild(shell);
+      wrap.appendChild(innerBox);
+      podBoxes.push(innerBox);
+      return wrap;
+    });
+    const [pod1, pod2, pod3] = podWrappers;
+    const [pod1Box, pod2Box, pod3Box] = podBoxes;
+
+    const connector = pathArrow({
+      points: [[320, 80], [280, 80], [280, 550], [320, 550]],
+      dim: true, dashed: true, color: 'control',
+    });
+    root.appendChild(connector);
+
+    const packetLayer = g({ id: 'packetLayer' });
+    root.appendChild(packetLayer);
+
+    root.appendChild(chain);
+    root.appendChild(nodeEl);
+    [pod1, pod2, pod3].forEach(p => root.appendChild(p));
+    root.appendChild(apiserver);
+    root.appendChild(controller);
+
     this.host.appendChild(root);
-    this.refs = { svg: root, jobBox, counters, lane, p1, p2, p3, p1Status, p2Status, p3Status, phaseChip };
+    this.refs = {
+      svg: root,
+      controller, apiserver, chain, nodeEl, connector,
+      parChip, compChip, succChip, failChip, phaseChip,
+      pod1, pod2, pod3, pod1Box, pod2Box, pod3Box,
+      packetLayer,
+      wires: { req: wireReq },
+    };
   }
 
   reset() { this.build(); }
 }
 
 function clearHL(s) {
-  ['jobBox','counters','p1','p2','p3','p1Status','p2Status','p3Status','phaseChip'].forEach(k => s.refs[k].classList.remove('highlight'));
+  ['controller','apiserver','parChip','compChip','succChip','failChip','phaseChip','pod1Box','pod2Box','pod3Box']
+    .forEach(k => s.refs[k].classList.remove('highlight'));
+  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
+  ['pod1','pod2','pod3'].forEach(k => clearPodHighlight(s.refs[k]));
 }
+function clearWires(s) { Object.values(s.refs.wires).forEach(t => { t.textContent = ''; }); }
+function setWire(s, key, txt) { if (s.refs.wires[key]) s.refs.wires[key].textContent = txt; }
+function setUnits(s, a, b, c) {
+  setBoxSublabel(s.refs.pod1Box, a);
+  setBoxSublabel(s.refs.pod2Box, b);
+  setBoxSublabel(s.refs.pod3Box, c);
+}
+
+// pulsePod / clearPodHighlight / connectorPacket are imported from ../lib/scheme-kit.js
 
 const STEPS = [
   {
     id: 'idle',
-    duration: 1400,
-    narration: 'Job declares parallelism=3 (max running pods) and completions=6 (total successful runs needed). 6 work units sit in the queue.',
+    duration: 1500,
+    narration: 'A Job named process-batch declares spec.parallelism=3 (max Pods running at once) and spec.completions=6 (target number of successful exits). The Job controller auto-generates a selector on the batch.kubernetes.io/controller-uid label and stamps the same label plus an ownerReference onto each spawned Pod. A Job has no phase field like a Pod does, its state lives in the active, succeeded and failed counts plus a Complete or Failed condition. So far .status.active is 0, no Pods created yet.',
     enter(s) {
+      s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      setVal(s.refs.counters, '0 / 0');
-      setVal(s.refs.p1Status, 'idle');
-      setVal(s.refs.p2Status, 'idle');
-      setVal(s.refs.p3Status, 'idle');
-      setVal(s.refs.phaseChip, 'Pending');
-      s.refs.p1.style.opacity = '0';
-      s.refs.p2.style.opacity = '0';
-      s.refs.p3.style.opacity = '0';
-      for (let i = 0; i < 6; i++) setSlotState(s.refs.lane, i, 'queued');
-      s.refs.jobBox.classList.add('highlight');
+      clearWires(s);
+      setUnits(s, 'idle', 'idle', 'idle');
+      setVal(s.refs.parChip, '3');
+      setVal(s.refs.compChip, '6');
+      setVal(s.refs.succChip, '0');
+      setVal(s.refs.failChip, '0');
+      setVal(s.refs.phaseChip, '0 active');
+      s.refs.pod1.style.opacity = '0';
+      s.refs.pod2.style.opacity = '0';
+      s.refs.pod3.style.opacity = '0';
+      setChainActive(s.refs.chain, -1);
     },
   },
   {
-    id: 'start-3',
-    duration: 1900,
-    narration: 'Job controller spawns 3 worker Pods (parallelism cap). Each picks an unfinished slot and starts processing.',
+    id: 'spawn',
+    duration: 2600,
+    narration: 'Job controller observes 0 live Pods against a parallelism of 3, so it creates 3 Pods to fill the cap. They all run the same Pod template. How they divide work is up to the app (pull from an external queue, or, with completionMode=Indexed, read JOB_COMPLETION_INDEX from the env). With three Pods now running, .status.active becomes 3.',
     enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      setVal(s.refs.counters, '0 / 0');
-      setVal(s.refs.p1Status, 'unit-1');
-      setVal(s.refs.p2Status, 'unit-2');
-      setVal(s.refs.p3Status, 'unit-3');
-      setVal(s.refs.phaseChip, 'Running · 3 pods active');
-      s.refs.p1.style.opacity = '1';
-      s.refs.p2.style.opacity = '1';
-      s.refs.p3.style.opacity = '1';
-      setSlotState(s.refs.lane, 0, 'in-flight');
-      setSlotState(s.refs.lane, 1, 'in-flight');
-      setSlotState(s.refs.lane, 2, 'in-flight');
-      if (!ctx.reduced) {
-        ctx.register(fadeIn(s.refs.p1, { duration: 600 }));
-        ctx.register(fadeIn(s.refs.p2, { duration: 600 }));
-        ctx.register(fadeIn(s.refs.p3, { duration: 600 }));
-      }
+      clearWires(s);
+      setUnits(s, 'running · unit-1', 'running · unit-2', 'running · unit-3');
+      setVal(s.refs.succChip, '0');
+      setVal(s.refs.failChip, '0');
+      setVal(s.refs.phaseChip, 'Running · 3 active');
+      setWire(s, 'req', 'Create 3 Pods (parallelism cap)');
+      s.refs.controller.classList.add('highlight');
+      s.refs.apiserver.classList.add('highlight');
+      s.refs.phaseChip.classList.add('highlight');
+      setChainActive(s.refs.chain, 1);
+      // Pin final opacities inline so a step change (which cancels the fade-in
+      // animations) leaves the Pods visible instead of reverting to the built 0.
+      s.refs.pod1.style.opacity = '1';
+      s.refs.pod2.style.opacity = '1';
+      s.refs.pod3.style.opacity = '1';
+      if (ctx.reduced) return;
+      const pTop = packet({ x: 540, y: 65, cat: 'control' });
+      s.refs.packetLayer.appendChild(pTop);
+      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
+      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
+      // Create travels controller -> ApiServer -> Node. The 3 Pods materialize and pulse
+      // together when the create reaches the node (parallelism=3 starts them simultaneously).
+      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
+      const ARRIVAL = 1900;
+      ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.pod3.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod1, ctx, ARRIVAL);
+      pulsePod(s.refs.pod2, ctx, ARRIVAL);
+      pulsePod(s.refs.pod3, ctx, ARRIVAL);
     },
   },
   {
     id: 'partial',
-    duration: 2000,
-    narration: 'pod-1 and pod-2 finish their units (status 0). pod-3 fails (non-zero exit). Job records 2 succeeded / 1 failed and creates a replacement pod for unit-3.',
+    duration: 2400,
+    narration: 'worker-1 and worker-2 exit 0, so .status.succeeded increments to 2. worker-3 exits with code 1, .status.failed becomes 1. The failed Pod is retained in Failed phase as a tombstone (visible in kubectl get pods until the Job is garbage-collected), so the post-mortem stays inspectable. A replacement still needs to run to reach completions=6.',
     enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      setVal(s.refs.counters, '2 / 1');
-      setVal(s.refs.p1Status, 'unit-1 done');
-      setVal(s.refs.p2Status, 'unit-2 done');
-      setVal(s.refs.p3Status, 'unit-3 FAILED');
-      setVal(s.refs.phaseChip, 'Running · backoff retry');
-      s.refs.p3Status.classList.add('highlight');
-      setSlotState(s.refs.lane, 0, 'done');
-      setSlotState(s.refs.lane, 1, 'done');
-      setSlotState(s.refs.lane, 2, 'queued');
-      s.refs.p3.style.opacity = '0';
-      if (!ctx.reduced) {
-        ctx.register(fadeOut(s.refs.p3, { duration: 600 }));
-        ctx.register(pulse(s.refs.p3Status, { duration: 800, iterations: 2 }));
-      }
-    },
-  },
-  {
-    id: 'retry-progress',
-    duration: 2000,
-    narration: 'Replacement pod-3 picks up unit-3. pod-1 and pod-2 grab the next units 4 and 5. Three workers, three live units again.',
-    enter(s, ctx) {
-      clearHL(s);
-      setVal(s.refs.counters, '2 / 1');
-      setVal(s.refs.p1Status, 'unit-4');
-      setVal(s.refs.p2Status, 'unit-5');
-      setVal(s.refs.p3Status, 'unit-3 (retry)');
-      setVal(s.refs.phaseChip, 'Running · 3 pods active');
-      s.refs.p3.style.opacity = '1';
-      setSlotState(s.refs.lane, 2, 'in-flight');
-      setSlotState(s.refs.lane, 3, 'in-flight');
-      setSlotState(s.refs.lane, 4, 'in-flight');
-      if (!ctx.reduced) {
-        ctx.register(fadeIn(s.refs.p3, { duration: 600 }));
-        ctx.register(pulse(s.refs.p3, { duration: 800, iterations: 1 }));
-      }
-    },
-  },
-  {
-    id: 'all-done',
-    duration: 1900,
-    narration: 'All 6 work units have a successful pod. Job records succeeded=6, sets condition Complete=True, and stops creating new pods.',
-    enter(s, ctx) {
-      clearHL(s);
-      setVal(s.refs.counters, '6 / 1');
-      setVal(s.refs.p1Status, 'unit-6 done');
-      setVal(s.refs.p2Status, 'idle');
-      setVal(s.refs.p3Status, 'idle');
-      setVal(s.refs.phaseChip, 'Complete');
-      for (let i = 0; i < 6; i++) setSlotState(s.refs.lane, i, 'done');
-      s.refs.jobBox.classList.add('highlight');
+      clearWires(s);
+      setUnits(s, 'unit-1 done · exit 0', 'unit-2 done · exit 0', 'unit-3 FAILED · exit 1');
+      setVal(s.refs.succChip, '2');
+      setVal(s.refs.failChip, '1');
+      setVal(s.refs.phaseChip, 'Running · 1 failed');
+      setWire(s, 'req', 'Watch Pod exits · 2 exit 0 · 1 exit 1');
+      s.refs.controller.classList.add('highlight');
+      s.refs.apiserver.classList.add('highlight');
+      s.refs.succChip.classList.add('highlight');
+      s.refs.failChip.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
-      if (!ctx.reduced) {
-        ctx.register(pulse(s.refs.phaseChip, { duration: 800, iterations: 2 }));
-      }
+      setChainActive(s.refs.chain, 2);
+      // Pin final opacities inline (worker-3 failed and dims to 0.4) so a cancel
+      // does not drop worker-1 and worker-2 back to the built 0.
+      s.refs.pod1.style.opacity = '1';
+      s.refs.pod2.style.opacity = '1';
+      s.refs.pod3.style.opacity = '0.4';
+      if (ctx.reduced) return;
+      // Controller reconciles the observed exits down to the node state. On arrival the
+      // three Pods react together: worker-1 and worker-2 settle as succeeded (stay lit),
+      // worker-3 pulses then dims to show it failed.
+      connectorPacket(s, ctx, { delay: 0, dur: 1100 });
+      const ARRIVAL = 1100;
+      pulsePod(s.refs.pod1, ctx, ARRIVAL);
+      pulsePod(s.refs.pod2, ctx, ARRIVAL);
+      pulsePod(s.refs.pod3, ctx, ARRIVAL);
+      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 700, delay: ARRIVAL, fill: 'both', easing: 'ease-in' }));
+    },
+  },
+  {
+    id: 'retry',
+    duration: 2600,
+    narration: 'Per spec.backoffLimit (default 6, total failures across the Job), the controller respawns a replacement Pod for the failed unit, gated by an exponential backoff that starts at 10s. Meanwhile worker-1 and worker-2 have finished, so fresh Pods take their slots for units 4 and 5 (each completion is its own Pod run, Pods are never reused). Three Pods active again, the parallelism cap respected.',
+    enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
+      setUnits(s, 'running · unit-4', 'running · unit-5', 'running · unit-3 (retry)');
+      setVal(s.refs.succChip, '2');
+      setVal(s.refs.failChip, '1');
+      setVal(s.refs.phaseChip, 'Running · 3 active');
+      setWire(s, 'req', 'Create Pods · units 4, 5 + unit-3 retry');
+      s.refs.controller.classList.add('highlight');
+      s.refs.apiserver.classList.add('highlight');
+      s.refs.phaseChip.classList.add('highlight');
+      setChainActive(s.refs.chain, 3);
+      // Pin final opacities inline (worker-3 replacement back to 1) so a cancel
+      // does not drop the three live Pods back to the built 0.
+      s.refs.pod1.style.opacity = '1';
+      s.refs.pod2.style.opacity = '1';
+      s.refs.pod3.style.opacity = '1';
+      if (ctx.reduced) return;
+      const pTop = packet({ x: 540, y: 65, cat: 'control' });
+      s.refs.packetLayer.appendChild(pTop);
+      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
+      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
+      // Replacement create travels controller -> ApiServer -> Node. worker-3 already runs
+      // its retry here at full opacity (the dim belonged to the previous step), all three
+      // live Pods pulse together on arrival (parallelism=3).
+      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
+      const ARRIVAL = 1900;
+      pulsePod(s.refs.pod1, ctx, ARRIVAL);
+      pulsePod(s.refs.pod2, ctx, ARRIVAL);
+      pulsePod(s.refs.pod3, ctx, ARRIVAL);
+    },
+  },
+  {
+    id: 'complete',
+    duration: 2400,
+    narration: 'Between them the three workers have completed all 6 units, the last one (unit-6) just finishing on worker-1. .status.succeeded now equals .spec.completions (6), so the controller sets condition Complete=True and stops creating Pods. The earlier single failure stays counted in .status.failed, and the terminated Pods are retained until ttlSecondsAfterFinished elapses (Job auto-cleanup) or until kubectl delete job is issued.',
+    enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
+      setUnits(s, 'unit-6 done · exit 0', 'unit-5 done · exit 0', 'unit-3 done · exit 0');
+      setVal(s.refs.succChip, '6');
+      setVal(s.refs.failChip, '1');
+      setVal(s.refs.phaseChip, 'Complete · 6/6 succeeded');
+      setWire(s, 'req', 'Watch final exit · succeeded == completions');
+      s.refs.controller.classList.add('highlight');
+      s.refs.phaseChip.classList.add('highlight');
+      s.refs.succChip.classList.add('highlight');
+      setChainActive(s.refs.chain, 4);
+      // Pin final opacities inline so the three Pods stay visible after a cancel.
+      s.refs.pod1.style.opacity = '1';
+      s.refs.pod2.style.opacity = '1';
+      s.refs.pod3.style.opacity = '1';
+      if (ctx.reduced) return;
+      // Final reconcile reaches the node. The three workers settle to their completed
+      // units and pulse together as the Job reaches completions=6 (Complete=True).
+      connectorPacket(s, ctx, { delay: 0, dur: 1100 });
+      pulsePod(s.refs.pod1, ctx, 1100);
+      pulsePod(s.refs.pod2, ctx, 1100);
+      pulsePod(s.refs.pod3, ctx, 1100);
     },
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

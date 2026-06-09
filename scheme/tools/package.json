@@ -1,0 +1,16 @@
+{
+  "name": "scheme-tools",
+  "private": true,
+  "type": "module",
+  "description": "Local dev tools for the scheme/ subsite (frame-strip, visual-regression). Not shipped to GitHub Pages.",
+  "scripts": {
+    "frame-strip": "node frame-strip.mjs",
+    "vr": "node visual-regression.mjs",
+    "vr:update": "node visual-regression.mjs --update"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0",
+    "pngjs": "^7.0.0",
+    "pixelmatch": "^6.0.0"
+  }
+}

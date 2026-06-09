@@ -1,4 +1,4 @@
-import { svg, g } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, node, cylinder, arrow, pathArrow, packet, animateAlong, pulse } from '../lib/primitives.js';
 import { Timeline } from '../lib/timeline.js';
 
@@ -18,7 +18,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const apisrv = box({ x: 480, y: 80, w: 240, h: 80, label: 'ApiServer',         cat: 'control' });
-    const etcdC  = cylinder({ x: 820, y: 70, w: 130, h: 110, label: 'ETCD',         cat: 'control' });
+    const etcdC  = cylinder({ x: 940, y: 70, w: 130, h: 110, label: 'ETCD',         cat: 'control' });
     root.appendChild(apisrv);
     root.appendChild(etcdC);
 
@@ -37,17 +37,34 @@ class Scene {
     root.appendChild(runtime);
     root.appendChild(kproxy);
 
-    root.appendChild(arrow({ x1: 720, y1: 110, x2: 820, y2: 110, dim: true, dashed: true,  color: 'control' }));
-    root.appendChild(arrow({ x1: 820, y1: 130, x2: 720, y2: 130, dim: true, dashed: true,  color: 'control' }));
+    root.appendChild(arrow({ x1: 720, y1: 110, x2: 940, y2: 110, dim: true, dashed: true,  color: 'control' }));
+    root.appendChild(arrow({ x1: 940, y1: 130, x2: 720, y2: 130, dim: true, dashed: true,  color: 'control' }));
     root.appendChild(pathArrow({ points: [[540, 160], [540, 210], [200, 210], [200, 240]], dim: true, dashed: true, color: 'control' }));
     root.appendChild(pathArrow({ points: [[660, 160], [660, 210], [840, 210], [840, 240]], dim: true, dashed: true, color: 'control' }));
     root.appendChild(pathArrow({ points: [[600, 160], [600, 380], [260, 380], [260, 480]], dim: true, dashed: true, color: 'control' }));
+
+    const wireEtcdWrite  = text({ class: 'scheme-label code dim', x: 830, y: 98,  'text-anchor': 'middle' }, [' ']);
+    const wireEtcdRead   = text({ class: 'scheme-label code dim', x: 830, y: 152, 'text-anchor': 'middle' }, [' ']);
+    const wireControllers = text({ class: 'scheme-label code dim', x: 370, y: 200, 'text-anchor': 'middle' }, [' ']);
+    const wireScheduler  = text({ class: 'scheme-label code dim', x: 750, y: 200, 'text-anchor': 'middle' }, [' ']);
+    const wireNode       = text({ class: 'scheme-label code dim', x: 430, y: 370, 'text-anchor': 'middle' }, [' ']);
+    [wireEtcdWrite, wireEtcdRead, wireControllers, wireScheduler, wireNode].forEach(t => root.appendChild(t));
 
     const packetLayer = g({ id: 'packetLayer' });
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
-    this.refs = { svg: root, apisrv, etcdC, ctrlMgr, sched, nodeEl, kubelet, runtime, kproxy, packetLayer };
+    this.refs = {
+      svg: root, apisrv, etcdC, ctrlMgr, sched, nodeEl, kubelet, runtime, kproxy,
+      wires: {
+        'etcd-write':  wireEtcdWrite,
+        'etcd-read':   wireEtcdRead,
+        controllers:   wireControllers,
+        scheduler:     wireScheduler,
+        node:          wireNode,
+      },
+      packetLayer,
+    };
   }
 
   reset() { this.build(); }
@@ -58,6 +75,15 @@ function clearHL(s) {
     .forEach(k => s.refs[k].classList.remove('highlight'));
 }
 
+function clearWires(s) {
+  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
+}
+
+function setWire(s, key, txt) {
+  clearWires(s);
+  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
+}
+
 const STEPS = [
   {
     id: 'Overview',
@@ -66,6 +92,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
     },
   },
   {
@@ -75,8 +102,8 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
-      if (!ctx.reduced) ctx.register(pulse(s.refs.apisrv, { duration: 800, iterations: 2 }));
     },
   },
   {
@@ -88,14 +115,12 @@ const STEPS = [
       clearHL(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.etcdC.classList.add('highlight');
+      setWire(s, 'etcd-write', 'write · Raft quorum commit');
+      if (ctx.reduced) return;
       const p = packet({ x: 720, y: 110, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(820px, 110px)';
-      } else {
-        ctx.register(animateAlong(p, [[720, 110], [770, 110], [820, 110]], { duration: 1200 }));
-        ctx.register(pulse(s.refs.etcdC, { duration: 800, iterations: 1 }));
-      }
+      ctx.register(animateAlong(p, [[720, 110], [830, 110], [940, 110]], { duration: 1200 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1200, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -107,14 +132,12 @@ const STEPS = [
       clearHL(s);
       s.refs.etcdC.classList.add('highlight');
       s.refs.apisrv.classList.add('highlight');
-      const p = packet({ x: 820, y: 130, cat: 'control' });
+      setWire(s, 'etcd-read', 'read · watch stream open');
+      if (ctx.reduced) return;
+      const p = packet({ x: 940, y: 130, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(720px, 130px)';
-      } else {
-        ctx.register(animateAlong(p, [[820, 130], [770, 130], [720, 130]], { duration: 1200 }));
-        ctx.register(pulse(s.refs.apisrv, { duration: 800, iterations: 1 }));
-      }
+      ctx.register(animateAlong(p, [[940, 130], [830, 130], [720, 130]], { duration: 1200 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1200, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
@@ -126,36 +149,34 @@ const STEPS = [
       clearHL(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.ctrlMgr.classList.add('highlight');
+      setWire(s, 'controllers', 'watch · reconcile loop');
+      if (ctx.reduced) return;
       const p = packet({ x: 540, y: 160, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(200px, 240px)';
-      } else {
-        ctx.register(animateAlong(p, [[540, 160], [540, 210], [200, 210], [200, 240]], { duration: 1700 }));
-      }
+      ctx.register(animateAlong(p, [[540, 160], [540, 210], [200, 210], [200, 240]], { duration: 1700 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1700, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
     id: 'scheduler',
-    duration: 1700,
+    duration: 1900,
     narration: 'The Scheduler watches Pods that don\'t yet have a node assignment, filters and scores the candidates, then posts a Binding back to the ApiServer. That single write is its entire job. The Kubelet on the chosen node takes it from there.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.sched.classList.add('highlight');
+      setWire(s, 'scheduler', 'watch Pods · post Binding');
+      if (ctx.reduced) return;
       const p = packet({ x: 660, y: 160, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(840px, 240px)';
-      } else {
-        ctx.register(animateAlong(p, [[660, 160], [660, 210], [840, 210], [840, 240]], { duration: 1700 }));
-      }
+      ctx.register(animateAlong(p, [[660, 160], [660, 210], [840, 210], [840, 240]], { duration: 1700 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1700, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
     id: 'node-side',
-    duration: 2000,
+    duration: 2200,
     narration: 'On a worker node, the Kubelet watches the ApiServer for Pods assigned to it and drives the Runtime to start their containers. KubeProxy installs the local rules that steer Service traffic.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -164,14 +185,12 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.runtime.classList.add('highlight');
       s.refs.kproxy.classList.add('highlight');
+      setWire(s, 'node', 'watch Pods · spec.nodeName=node');
+      if (ctx.reduced) return;
       const p = packet({ x: 600, y: 160, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(260px, 480px)';
-      } else {
-        ctx.register(animateAlong(p, [[600, 160], [600, 380], [260, 380], [260, 480]], { duration: 1900 }));
-        ctx.register(pulse(s.refs.kubelet, { duration: 800, iterations: 1 }));
-      }
+      ctx.register(animateAlong(p, [[600, 160], [600, 380], [260, 380], [260, 480]], { duration: 1900 }));
+      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1900, fill: 'forwards', easing: 'ease-in' }));
     },
   },
 ];

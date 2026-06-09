@@ -99,7 +99,7 @@ const STEPS = [
   {
     id: 'reschedule',
     duration: 1900,
-    narration: 'Both Pods are rescheduled to node-B. emptyDir gets a fresh, empty tmpfs on the new host. The PV reattaches to the new node, exposing the same disk.',
+    narration: 'Both Pods are rescheduled to node-B. The emptyDir volume gets a fresh, empty tmpfs on the new host. The PV reattaches to the new node, exposing the same disk.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.dataA, 'empty');

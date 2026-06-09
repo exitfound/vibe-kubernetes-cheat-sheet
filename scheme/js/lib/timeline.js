@@ -68,16 +68,62 @@ export class Timeline {
     this._clearTimer();
     const step = this.steps[idx];
     if (!step) return;
+
+    const svgRoot = this._sceneSvg();
+    const prevHighlights = svgRoot ? new Set(svgRoot.querySelectorAll('.highlight')) : new Set();
+
     try { step.enter && step.enter(this.scene, this._ctx(reduced)); }
     catch (e) { console.error('Timeline step enter:', e); }
+
+    if (!reduced && svgRoot) {
+      const curr = svgRoot.querySelectorAll('.highlight');
+      for (const el of curr) {
+        if (prevHighlights.has(el)) continue;
+        try {
+          const a = el.animate(
+            [
+              { filter: 'brightness(1)' },
+              { filter: 'brightness(1.55)' },
+              { filter: 'brightness(1)' },
+            ],
+            { duration: 600, iterations: 1, easing: 'ease-out' }
+          );
+          a.playbackRate = this.speed;
+          this._anims.push(a);
+        } catch (_) {}
+      }
+    }
+
     this.idx = idx;
     this._notifyChange();
     if (opts.withTimer && !reduced) {
-      this._stepDur1x = step.duration || this._defaultDuration;
+      const baseDur = step.duration || this._defaultDuration;
+      let maxAnimEnd = 0;
+      for (const a of this._anims) {
+        try {
+          const t = a.effect && a.effect.getTiming();
+          if (!t) continue;
+          // Skip infinite-iteration animations (e.g. flowDash idle loops).
+          if (!isFinite(t.iterations)) continue;
+          const iters = t.iterations || 1;
+          const dur   = t.duration   || 0;
+          const delay = t.delay      || 0;
+          const end   = delay + dur * iters + (t.endDelay || 0);
+          if (isFinite(end) && end > maxAnimEnd) maxAnimEnd = end;
+        } catch (_) {}
+      }
+      this._stepDur1x = Math.max(baseDur, maxAnimEnd + 60);
       this._stepConsumed1x = 0;
       this._stepResumeAt = performance.now();
       this._scheduleAdvance();
     }
+  }
+
+  _sceneSvg() {
+    if (!this.scene) return null;
+    return this.scene.refs?.svg
+      || (this.scene.host && this.scene.host.querySelector('svg'))
+      || null;
   }
 
   _scheduleAdvance() {

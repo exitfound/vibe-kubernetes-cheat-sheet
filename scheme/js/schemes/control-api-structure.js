@@ -46,15 +46,9 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    // Top row: three actors (client, apiserver, etcd). Client is shifted right to clear the narration overlay zone.
     const client = box({ x: 290, y: 60, w: 130, h: 80, label: 'Client', sublabel: 'client-go controller', cat: 'control' });
-    root.appendChild(client);
-
     const api = box({ x: 460, y: 60, w: 300, h: 80, label: 'ApiServer', sublabel: 'discovery: /api · /apis', cat: 'control' });
-    root.appendChild(api);
-
     const etcdC = cylinder({ x: 800, y: 50, w: 140, h: 100, label: 'ETCD', cat: 'control' });
-    root.appendChild(etcdC);
 
     // State chips, stacked to the right of etcd.
     const rvChip    = valChip({ x: 960, y: 60,  w: 220, h: 32, name: 'resourceVersion', value: '—' });
@@ -62,9 +56,6 @@ class Scene {
     const cacheChip = valChip({ x: 960, y: 136, w: 220, h: 32, name: 'cache size',      value: '0' });
     root.appendChild(rvChip); root.appendChild(watchChip); root.appendChild(cacheChip);
 
-    // Mid row: informer (under client column), GVR catalogue (under apiserver column).
-    // Note: informer is appended at the very end of build() so it renders on top of
-    // the packet layer — the event packet visually passes UNDER informer, not over it.
     const informer = box({ x: 290, y: 240, w: 180, h: 70, label: 'Informer', sublabel: 'shared list-watch', cat: 'control' });
 
     const gvr = chainList({
@@ -122,8 +113,9 @@ class Scene {
     const packetLayer = g({ id: 'packetLayer' });
     root.appendChild(packetLayer);
 
-    // Informer is appended LAST so it renders on top of packetLayer — packets passing
-    // through informer's y-range visually go under the block (z-order trick).
+    root.appendChild(client);
+    root.appendChild(api);
+    root.appendChild(etcdC);
     root.appendChild(informer);
 
     this.host.appendChild(root);
@@ -155,9 +147,6 @@ function clearHL(s) {
   s.refs.slots.forEach(slot => slot.classList.remove('highlight'));
 }
 
-// flowDash sets inline strokeDasharray on watchArrow. Cancelling the animation
-// leaves that inline style behind, so the arrow renders half-empty in later
-// steps. Reset to CSS-driven dash pattern at the start of every step.
 function resetWatchArrow(s) {
   if (s.refs.watchArrow) {
     s.refs.watchArrow.style.strokeDasharray = '';
@@ -193,10 +182,6 @@ const STEPS = [
       setVal(s.refs.cacheChip, '0');
       setWire(s, 'req', 'GET /api  +  GET /apis');
       setWire(s, 'gvr', 'GVR catalogue');
-      s.refs.client.classList.add('highlight');
-      s.refs.api.classList.add('highlight');
-      s.refs.gvr.querySelectorAll('.scheme-chip').forEach((r, i) => { if (i < 3) r.classList.add('highlight'); });
-      if (!ctx.reduced) ctx.register(pulse(s.refs.api, { duration: 800, iterations: 1 }));
     },
   },
   {
@@ -246,8 +231,6 @@ const STEPS = [
       s.refs.watchChip.classList.add('highlight');
       s.refs.slots.slice(0, 3).forEach(slot => { slot.style.opacity = '1'; });
       if (ctx.reduced) return;
-      // Single packet run along watchArrow — conveys the watch event arriving
-      // once, matching the cadence of the other steps' packets.
       const pStream = packet({ x: 540, y: 140, cat: 'control' });
       s.refs.packetLayer.appendChild(pStream);
       ctx.register(animateAlong(pStream, [[540, 140], [540, 200], [380, 200], [380, 240]], {
@@ -293,17 +276,26 @@ const STEPS = [
         ],
         { duration: 2000, fill: 'forwards', easing: 'linear' }
       ));
-      // Slot fades in around when the event reaches the informer (~1620ms in).
-      ctx.register(fadeIn(fourth, { duration: 500, delay: 1500 }));
-      // Indexer pulses when the packet lands on it (~1900ms in).
-      ctx.register(s.refs.cache.animate(
+      ctx.register(p.animate(
         [
-          { filter: 'brightness(1)' },
-          { filter: 'brightness(1.45)' },
-          { filter: 'brightness(1)' },
+          { opacity: 1, offset: 0 },
+          { opacity: 1, offset: 0.05 },
+          { opacity: 0, offset: 0.07 },
+          { opacity: 0, offset: 0.40 },
+          { opacity: 1, offset: 0.42 },
+          { opacity: 1, offset: 0.80 },
+          { opacity: 0, offset: 0.82 },
+          { opacity: 0, offset: 0.91 },
+          { opacity: 1, offset: 0.93 },
+          { opacity: 1, offset: 1 },
         ],
-        { duration: 700, delay: 1900, iterations: 1, easing: 'ease-in-out' }
+        { duration: 2000, fill: 'forwards', easing: 'linear' }
       ));
+      // Slot fades in when the event reaches the informer. fill:'both' back-fills opacity 0
+      // through the delay so it stays hidden until then (no flicker), inline 1 is the
+      // cancel/reduced final. The Indexer is already lit at entry (auto-delta pulse), so no
+      // separate arrival brightness is needed (which would double-blink).
+      ctx.register(fourth.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 1500, fill: 'both', easing: 'ease-out' }));
     },
   },
   {
@@ -330,7 +322,6 @@ const STEPS = [
       const p = packet({ x: 460, y: 130, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
       ctx.register(animateAlong(p, [[460, 130], [420, 130]], { duration: 800 }));
-      ctx.register(pulse(s.refs.watchChip, { duration: 800, iterations: 2 }));
     },
   },
   {

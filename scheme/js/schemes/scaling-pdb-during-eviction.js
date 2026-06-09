@@ -96,7 +96,7 @@ const STEPS = [
   {
     id: 'evict-2-blocked',
     duration: 2100,
-    narration: 'Right after, drain tries to evict pod-2. ready=4, and granting would drop to 3 (< minAvailable). API returns 429 Too Many Requests, eviction is rejected.',
+    narration: 'Right after, drain tries to evict pod-2 while ready=4, and granting would drop to 3 (< minAvailable). API returns 429 Too Many Requests, eviction is rejected.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.readyChip, '4 / 5');
@@ -114,7 +114,7 @@ const STEPS = [
   {
     id: 'retry',
     duration: 2000,
-    narration: 'ReplicaSet has spawned a replacement for pod-1 and it became Ready. ready=5 again. Drain retries pod-2, and this time PDB lets it through.',
+    narration: 'ReplicaSet has spawned a replacement for pod-1 and it became Ready, so ready=5 again. Drain retries pod-2, and this time PDB lets it through.',
     enter(s, ctx) {
       clearHL(s);
       setVal(s.refs.readyChip, '5 / 5 → 4 / 5');

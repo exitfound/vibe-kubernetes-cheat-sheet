@@ -69,7 +69,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A NodePort or LoadBalancer Service backs a Pod that lives on node-2. node-1 has no backend pod. The cloud LB or external client may hit either node.',
+    narration: 'A NodePort or LoadBalancer Service backs a Pod that lives on node-2. Node-1 has no backend pod. The cloud LB or external client may hit either node.',
     enter(s) {
       clearHL(s);
       s.refs.packetLayer.replaceChildren();
@@ -82,7 +82,7 @@ const STEPS = [
   {
     id: 'cluster-snat',
     duration: 2000,
-    narration: 'Cluster mode: traffic to any node is fine. node-1 has no local backend, so kube-proxy SNATs the packet (src=node-1 IP) and forwards across the cluster network to node-2.',
+    narration: 'Cluster mode: traffic to any node is fine. Node-1 has no local backend, so kube-proxy SNATs the packet (src=node-1 IP) and forwards across the cluster network to node-2.',
     enter(s, ctx) {
       clearHL(s);
       s.refs.packetLayer.replaceChildren();
@@ -117,7 +117,7 @@ const STEPS = [
   {
     id: 'local-loss',
     duration: 1900,
-    narration: 'Local mode: kube-proxy only forwards to local backends. node-1 has no backend pod for this Service, so traffic that hits node-1 is dropped.',
+    narration: 'Local mode: kube-proxy only forwards to local backends. Node-1 has no backend pod for this Service, so traffic that hits node-1 is dropped.',
     enter(s, ctx) {
       clearHL(s);
       s.refs.packetLayer.replaceChildren();
