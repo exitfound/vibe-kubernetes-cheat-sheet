@@ -1,17 +1,6 @@
-import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong, pulse } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
-
-function valChip({ x, y, w, h = 32, name, value, cat = 'control' }) {
-  const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
-  grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
-  grp.appendChild(text({ class: 'scheme-chip-text', x: 12, y: h / 2 + 4, 'text-anchor': 'start' }, [name]));
-  const valueT = text({ class: 'scheme-chip-text', x: w - 12, y: h / 2 + 4, 'text-anchor': 'end' }, [value]);
-  grp.appendChild(valueT);
-  grp.valueText = valueT;
-  return grp;
-}
-function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
+import { svg, g, text } from '../lib/svg.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
+import { valChip, setVal, makeInit } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -303,26 +292,4 @@ const STEPS = [
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

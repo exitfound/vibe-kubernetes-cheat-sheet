@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, node, cylinder, arrow, pathArrow, packet, animateAlong, pulse } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
+import { arrowDefs, box, node, cylinder, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
+import { makeInit } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -80,7 +80,6 @@ function clearWires(s) {
 }
 
 function setWire(s, key, txt) {
-  clearWires(s);
   if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 
@@ -98,7 +97,7 @@ const STEPS = [
   {
     id: 'ApiServer',
     duration: 1700,
-    narration: 'The ApiServer is the cluster\'s only entry point. Every read and every write passes through it. Replicas are stateless and require no coordination, so the layer scales horizontally.',
+    narration: 'The ApiServer is the only entry point to the cluster. Every read and every write passes through it. Replicas are stateless and require no coordination, so the layer scales horizontally.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -109,10 +108,11 @@ const STEPS = [
   {
     id: 'etcd',
     duration: 1700,
-    narration: 'ETCD is the cluster\'s only durable store, and the ApiServer is its only client. Every change is replicated through Raft, where a quorum of replicas must agree before the write is committed.',
+    narration: 'ETCD is the only durable store in the cluster, and the ApiServer is its only client. Every change is replicated through Raft, where a quorum of replicas must agree before the write is committed.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.etcdC.classList.add('highlight');
       setWire(s, 'etcd-write', 'write · Raft quorum commit');
@@ -130,6 +130,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.etcdC.classList.add('highlight');
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'etcd-read', 'read · watch stream open');
@@ -147,6 +148,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.ctrlMgr.classList.add('highlight');
       setWire(s, 'controllers', 'watch · reconcile loop');
@@ -160,10 +162,11 @@ const STEPS = [
   {
     id: 'scheduler',
     duration: 1900,
-    narration: 'The Scheduler watches Pods that don\'t yet have a node assignment, filters and scores the candidates, then posts a Binding back to the ApiServer. That single write is its entire job. The Kubelet on the chosen node takes it from there.',
+    narration: 'The Scheduler watches Pods that have no node assignment yet, filters and scores the candidates, then posts a Binding back to the ApiServer. That single write is its entire job. The Kubelet on the chosen node takes it from there.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.sched.classList.add('highlight');
       setWire(s, 'scheduler', 'watch Pods · post Binding');
@@ -181,6 +184,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
       s.refs.runtime.classList.add('highlight');
@@ -195,26 +199,4 @@ const STEPS = [
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

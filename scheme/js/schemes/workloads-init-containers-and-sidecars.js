@@ -1,4 +1,4 @@
-import { svg, g, rect, text } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
 import { valChip, setVal, pulseBoxOnArrival, makeInit } from '../lib/scheme-kit.js';
 

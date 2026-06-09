@@ -440,6 +440,7 @@ function renderPoster(scheme) {
 // Old scheme ids from before the workloads flat-rename still resolve, so existing
 // deep links, bookmarks and indexed sitemap URLs keep opening the right card.
 const SCHEME_ALIASES = {
+  'lifecycle-node-drain': 'control-node-drain',
   'lifecycle-pod-phase-machine': 'workloads-pod-phase-machine',
   'lifecycle-restart-policy': 'workloads-restart-policy',
   'lifecycle-hooks': 'workloads-hooks',

@@ -65,7 +65,7 @@ export const POSTERS = {
     <circle cx="160" cy="90" r="3.5" fill="currentColor"/>
   `,
 
-  'lifecycle-node-drain': `
+  'control-node-drain': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22" y="38" width="120" height="104" rx="8" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 3"/>
       <rect x="40" y="48"  width="84" height="22" rx="4" fill="rgba(255,255,255,0.02)" opacity="0.3" stroke-dasharray="3 2"/>

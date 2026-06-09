@@ -1,24 +1,6 @@
-import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong, pulse } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
-
-function valChip({ x, y, w, h = 32, name, value, cat = 'control' }) {
-  const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
-  grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
-  grp.appendChild(text({ class: 'scheme-chip-text', x: 12, y: h / 2 + 4, 'text-anchor': 'start' }, [name]));
-  const valueT = text({ class: 'scheme-chip-text', x: w - 12, y: h / 2 + 4, 'text-anchor': 'end' }, [value]);
-  grp.appendChild(valueT);
-  grp.valueText = valueT;
-  return grp;
-}
-function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
-
-// Drives the text inside the container block so a pulse always coincides with a
-// visible change there (memory climbing, OOMKilled, fresh after restart).
-function setBoxSublabel(boxEl, txt) {
-  const sub = boxEl.querySelector('.scheme-box-sublabel');
-  if (sub) sub.textContent = txt;
-}
+import { svg, g, text } from '../lib/svg.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, packetAlong, wirePacket, makeInit } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -112,7 +94,7 @@ function clearHL(s) {
   ['kubelet','kernel','memChip','oomScoreChip','terminationChip','restartChip']
     .forEach(k => s.refs[k].classList.remove('highlight'));
   s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s, s.refs.podGroup);
+  clearPodHighlight(s.refs.podGroup);
 }
 function clearWires(s) {
   Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
@@ -121,66 +103,10 @@ function setWire(s, key, txt) {
   if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 
-// Pod is recoloured violet (--workloads-color #c0b0ff), so the pulse tint matches it.
-const TINT_BASE   = 'rgb(192, 176, 255)';
-const TINT_BRIGHT = 'rgb(224, 214, 255)';
-function pulsePod(s, ctx, podGroup, delay, { persist = false } = {}) {
-  if (!podGroup) return;
-  const podShellRect     = podGroup.querySelector('.scheme-pod-rect');
-  const containerBoxRect = podGroup.querySelector('.scheme-box-rect');
-  const targets = [podShellRect, containerBoxRect].filter(Boolean);
-  const PULSE = 900, RAMP = PULSE / 2;
-  for (const el of targets) {
-    el.style.transition = 'none';
-    const up = el.animate([
-      { stroke: TINT_BASE,   strokeOpacity: 0.65, strokeWidth: 1.2 },
-      { stroke: TINT_BRIGHT, strokeOpacity: 1,    strokeWidth: 2.4 },
-    ], { duration: RAMP, delay, fill: 'forwards', easing: 'ease-in-out' });
-    ctx.register(up);
-    if (persist) {
-      up.onfinish = () => { el.style.stroke = TINT_BRIGHT; el.style.strokeOpacity = '1'; el.style.strokeWidth = '2.4'; };
-    } else {
-      ctx.register(el.animate([
-        { stroke: TINT_BRIGHT, strokeOpacity: 1,    strokeWidth: 2.4 },
-        { stroke: TINT_BASE,   strokeOpacity: 0.65, strokeWidth: 1.2 },
-      ], { duration: RAMP, delay: delay + RAMP, fill: 'forwards', easing: 'ease-in-out' }));
-    }
-  }
-  const BRIGHTNESS_FRAMES = [
-    { filter: 'brightness(1)' }, { filter: 'brightness(1.4)' }, { filter: 'brightness(1)' },
-  ];
-  const podShell     = podGroup.querySelector('.scheme-pod');
-  const containerBox = podGroup.querySelector('.scheme-box');
-  if (podShell)     ctx.register(podShell.animate(BRIGHTNESS_FRAMES, { duration: PULSE, delay, fill: 'forwards', easing: 'ease-in-out' }));
-  if (containerBox) ctx.register(containerBox.animate(BRIGHTNESS_FRAMES, { duration: PULSE, delay, fill: 'forwards', easing: 'ease-in-out' }));
-}
-function clearPodHighlight(s, podGroup) {
-  if (!podGroup) return;
-  const targets = [
-    podGroup.querySelector('.scheme-pod-rect'),
-    podGroup.querySelector('.scheme-box-rect'),
-  ].filter(Boolean);
-  for (const el of targets) {
-    el.style.stroke = ''; el.style.strokeOpacity = ''; el.style.strokeWidth = ''; el.style.transition = '';
-  }
-}
-// Kubelet -> Node connector (kubelet acting on the container on the node).
+const NODE_CONNECTOR = [[320, 80], [260, 80], [260, 550], [320, 550]];
+// Kubelet to Node connector (kubelet acting on the container on the node).
 function connectorPacket(s, ctx, { delay = 0, dur = 1100 } = {}) {
-  const pts = [[320, 80], [260, 80], [260, 550], [320, 550]];
-  const p = packet({ x: pts[0][0], y: pts[0][1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  const fadeInDelay = Math.max(0, delay - 200);
-  ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: fadeInDelay, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(p, pts, { duration: dur, delay }));
-  ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }));
-}
-// Short packet along one of the kubelet <-> kernel arrows.
-function wirePacket(s, ctx, from, to, { delay = 0, dur = 700 } = {}) {
-  const p = packet({ x: from[0], y: from[1], cat: 'control' });
-  s.refs.packetLayer.appendChild(p);
-  ctx.register(animateAlong(p, [from, to], { duration: dur, delay }));
-  ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }));
+  return packetAlong(s.refs.packetLayer, ctx, NODE_CONNECTOR, { delay, dur });
 }
 
 const STEPS = [
@@ -217,7 +143,7 @@ const STEPS = [
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
       // Pulse marks the new reading the container block just showed (220Mi).
-      pulsePod(s, ctx, s.refs.podGroup, 0);
+      pulsePod(s.refs.podGroup, ctx, 0);
     },
   },
   {
@@ -237,7 +163,7 @@ const STEPS = [
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
       // Pulse marks the container block hitting the cap (256Mi of 256Mi).
-      pulsePod(s, ctx, s.refs.podGroup, 0);
+      pulsePod(s.refs.podGroup, ctx, 0);
     },
   },
   {
@@ -257,7 +183,7 @@ const STEPS = [
       s.refs.containerBox.style.opacity = '0.4';
       if (ctx.reduced) return;
       // The container flinches (pulse) then goes dark (SIGKILL). The shell/sandbox stays lit.
-      pulsePod(s, ctx, s.refs.podGroup, 200);
+      pulsePod(s.refs.podGroup, ctx, 200);
       ctx.register(s.refs.containerBox.animate(
         [{ opacity: 1 }, { opacity: 0.4 }],
         { duration: 800, delay: 700, fill: 'both', easing: 'ease-in' }
@@ -309,7 +235,7 @@ const STEPS = [
       // (top arrow to the kernel). The container pulses and re-materialises on arrival.
       connectorPacket(s, ctx, { dur: 1100 });
       wirePacket(s, ctx, [540, 65], [580, 65], { delay: 200, dur: 700 });
-      pulsePod(s, ctx, s.refs.podGroup, 1100);
+      pulsePod(s.refs.podGroup, ctx, 1100);
       ctx.register(s.refs.containerBox.animate(
         [{ opacity: 0.4 }, { opacity: 1 }],
         { duration: 800, delay: 1100, fill: 'both', easing: 'ease-out' }
@@ -318,26 +244,4 @@ const STEPS = [
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

@@ -174,7 +174,7 @@ const STEPS = [
   {
     id: 'declared',
     duration: 1900,
-    narration: 'The Pod spec carries two per-container handlers. lifecycle.postStart will fire concurrently with the ENTRYPOINT the moment the container is created, with no ordering guarantee between the two. lifecycle.preStop will run synchronously on delete, before any signal, and eats into terminationGracePeriodSeconds while it runs. Each handler is one of exec (a command inside the container), httpGet (an HTTP request kubelet issues against the Pod IP), or sleep (a fixed-duration pause, GA in 1.32). The legacy tcpSocket action also still works but has been deprecated.',
+    narration: 'The Pod spec carries two per-container handlers. lifecycle.postStart will fire concurrently with the ENTRYPOINT the moment the container is created, with no ordering guarantee between the two. lifecycle.preStop will run synchronously on delete, before any signal, and eats into terminationGracePeriodSeconds while it runs. Each handler is one of exec (a command inside the container), httpGet (an HTTP request kubelet issues against the Pod IP), or sleep (a fixed-duration pause, GA in 1.34). A tcpSocket field also exists in the API but is not honored for lifecycle hooks.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

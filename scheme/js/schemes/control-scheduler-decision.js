@@ -1,39 +1,6 @@
-import { svg, g, rect, text, line } from '../lib/svg.js';
-import { arrowDefs, pod, box, cylinder, chainList, arrow, packet, pulse, fadeIn } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
-
-function valChip({ x, y, w, h = 32, name, value, cat = 'control' }) {
-  const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
-  grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
-  grp.appendChild(text({ class: 'scheme-chip-text', x: 12, y: h / 2 + 4, 'text-anchor': 'start' }, [name]));
-  const valueT = text({ class: 'scheme-chip-text', x: w - 12, y: h / 2 + 4, 'text-anchor': 'end' }, [value]);
-  grp.appendChild(valueT);
-  grp.valueText = valueT;
-  return grp;
-}
-function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
-
-// Helper: a packet visible only while travelling along a single arrow segment.
-function arrowPacket(s, ctx, { from, to, delay = 0, dur = 500, fadeIn: fIn = 80, fadeOut: fOut = 120 }) {
-  const p = packet({ x: from[0], y: from[1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  ctx.register(p.animate(
-    [{ opacity: 0 }, { opacity: 1 }],
-    { duration: fIn, delay, fill: 'forwards', easing: 'linear' }
-  ));
-  ctx.register(p.animate(
-    [
-      { transform: `translate(${from[0]}px, ${from[1]}px)` },
-      { transform: `translate(${to[0]}px, ${to[1]}px)` },
-    ],
-    { duration: dur, delay, fill: 'forwards', easing: 'linear' }
-  ));
-  ctx.register(p.animate(
-    [{ opacity: 1 }, { opacity: 0 }],
-    { duration: fOut, delay: delay + dur, fill: 'forwards', easing: 'linear' }
-  ));
-}
+import { svg, g, text, line } from '../lib/svg.js';
+import { arrowDefs, pod, box, cylinder, chainList, arrow, pulse, fadeIn } from '../lib/primitives.js';
+import { valChip, setVal, arrowPacket, makeInit } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -128,7 +95,6 @@ class Scene {
     placedPod.appendChild(placedPodBox);
     root.appendChild(placedPod);
 
-    // Packet layer.
     const packetLayer = g({ id: 'packetLayer' });
     root.appendChild(packetLayer);
 
@@ -332,26 +298,4 @@ const STEPS = [
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

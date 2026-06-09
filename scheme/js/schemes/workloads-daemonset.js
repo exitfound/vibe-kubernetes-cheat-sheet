@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, topPacket, makeInit } from '../lib/scheme-kit.js';
 
 // valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js

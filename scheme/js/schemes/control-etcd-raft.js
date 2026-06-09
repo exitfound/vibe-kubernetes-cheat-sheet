@@ -1,17 +1,6 @@
-import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, box, cylinder, arrow, pathArrow, packet, animateAlong, pulse } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
-
-function valChip({ x, y, w, h = 32, name, value, cat = 'control' }) {
-  const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
-  grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
-  grp.appendChild(text({ class: 'scheme-chip-text', x: 12, y: h / 2 + 4, 'text-anchor': 'start' }, [name]));
-  const valueT = text({ class: 'scheme-chip-text', x: w - 12, y: h / 2 + 4, 'text-anchor': 'end' }, [value]);
-  grp.appendChild(valueT);
-  grp.valueText = valueT;
-  return grp;
-}
-function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
+import { svg, g, text } from '../lib/svg.js';
+import { arrowDefs, box, cylinder, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
+import { valChip, setVal, makeInit } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -86,7 +75,6 @@ function clearWires(s) {
 }
 
 function setWire(s, key, txt) {
-  clearWires(s);
   if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 
@@ -116,6 +104,7 @@ const STEPS = [
     narration: 'The ApiServer issues a write for a new Pod to ETCD. All writes go through the Leader. A request that lands on a Follower is forwarded to the Leader internally.',
     enter(s, ctx) {
       clearHL(s);
+      clearWires(s);
       s.refs.packetLayer.replaceChildren();
       s.refs.api.classList.add('highlight');
       s.refs.e1.classList.add('highlight');
@@ -147,6 +136,7 @@ const STEPS = [
     narration: 'The Leader sends an AppendEntries RPC to both Followers in parallel. Each Follower checks term and log consistency, appends entry 9 to its own log, and acks back.',
     enter(s, ctx) {
       clearHL(s);
+      clearWires(s);
       s.refs.packetLayer.replaceChildren();
       setVal(s.refs.l2, '9 / 8');
       setVal(s.refs.l3, '9 / 8');
@@ -172,7 +162,7 @@ const STEPS = [
     id: 'quorum',
     duration: 1900,
     narration: 'The Leader counts replicas that hold entry 9: itself plus at least one Follower equals 2 of 3, the quorum. Entry 9 is now committed, and the Leader advances commitIndex to 9.',
-    enter(s, ctx) {
+    enter(s) {
       clearHL(s);
       clearWires(s);
       s.refs.packetLayer.replaceChildren();
@@ -182,15 +172,13 @@ const STEPS = [
       s.refs.l1.classList.add('highlight');
       s.refs.acksChip.classList.add('highlight');
       s.refs.quorumChip.classList.add('highlight');
-      if (!ctx.reduced) {
-      }
     },
   },
   {
     id: 'apply',
     duration: 1900,
     narration: 'On the next heartbeat, the Leader broadcasts the new commitIndex. Each Follower applies entry 9 to its state machine. All three replicas now hold the Pod at index 9, and subsequent reads return it.',
-    enter(s, ctx) {
+    enter(s) {
       clearHL(s);
       clearWires(s);
       s.refs.packetLayer.replaceChildren();
@@ -202,32 +190,8 @@ const STEPS = [
       s.refs.l1.classList.add('highlight');
       s.refs.l2.classList.add('highlight');
       s.refs.l3.classList.add('highlight');
-      if (!ctx.reduced) {
-      }
     },
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

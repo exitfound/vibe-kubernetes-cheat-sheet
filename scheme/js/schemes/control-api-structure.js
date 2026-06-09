@@ -1,17 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, box, cylinder, chainList, arrow, pathArrow, packet, animateAlong, pulse, fadeIn, flowDash } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
-
-function valChip({ x, y, w, h = 32, name, value, cat = 'control' }) {
-  const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
-  grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
-  grp.appendChild(text({ class: 'scheme-chip-text', x: 12, y: h / 2 + 4, 'text-anchor': 'start' }, [name]));
-  const valueT = text({ class: 'scheme-chip-text', x: w - 12, y: h / 2 + 4, 'text-anchor': 'end' }, [value]);
-  grp.appendChild(valueT);
-  grp.valueText = valueT;
-  return grp;
-}
-function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
+import { arrowDefs, box, cylinder, chainList, arrow, pathArrow, packet, animateAlong, fadeIn } from '../lib/primitives.js';
+import { valChip, setVal, makeInit } from '../lib/control-kit.js';
 
 function eventSlot({ x, y, w = 140, h = 44, cat = 'control' }) {
   const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
@@ -93,7 +82,7 @@ class Scene {
     root.appendChild(arrow({ x1: 760, y1: 100, x2: 800, y2: 100, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 800, y1: 130, x2: 760, y2: 130, dim: true, dashed: true, color: 'control' }));
 
-    // L-bent: apiserver → informer (watch stream); flowDash animates this in step 'watch'.
+    // L-bent apiserver to informer: the watch stream path.
     const watchArrow = pathArrow({ points: [[540, 140], [540, 200], [380, 200], [380, 240]], dim: true, dashed: true, color: 'control' });
     root.appendChild(watchArrow);
 
@@ -301,7 +290,7 @@ const STEPS = [
   {
     id: 'relist-on-410',
     duration: 1900,
-    narration: 'If the apiserver has compacted history past the informer\'s resourceVersion, the next watch chunk returns HTTP 410 Gone. The informer drops its watch, re-LISTs to a fresh resourceVersion, and resumes the watch.',
+    narration: 'If the apiserver has compacted history past the resourceVersion the informer holds, the next watch chunk returns HTTP 410 Gone. The informer drops its watch, re-LISTs to a fresh resourceVersion, and resumes the watch.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);
@@ -347,26 +336,4 @@ const STEPS = [
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

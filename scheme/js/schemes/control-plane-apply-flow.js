@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, cylinder, arrow, pathArrow, packet, animateAlong, pulse } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
+import { arrowDefs, pod, node, box, cylinder, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
+import { makeInit } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -107,7 +107,6 @@ function clearWires(s) {
 }
 
 function setWire(s, key, txt) {
-  clearWires(s);
   if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 
@@ -131,6 +130,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.client.classList.add('highlight');
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'post', 'POST /apis/apps/v1/namespaces/default/deployments');
@@ -148,6 +148,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.etcd.classList.add('highlight');
       setWire(s, 'persist', 'write committed · rv=842');
@@ -202,6 +203,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.cm.classList.add('highlight');
       setWire(s, 'controller', 'watch ADDED Deployment my-app');
@@ -219,6 +221,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.sched.classList.add('highlight');
       setWire(s, 'schedule', 'POST .../binding · node=Node-1');
@@ -236,6 +239,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
       setWire(s, 'kubelet-watch', 'watch ADDED my-app-7d4-abc');
@@ -253,6 +257,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.kubelet.classList.add('highlight');
       s.refs.placedPodBox.classList.add('highlight');
       setWire(s, 'create-pod', 'pull nginx:1.27 · start container');
@@ -276,26 +281,4 @@ const STEPS = [
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);

@@ -1,17 +1,6 @@
-import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong, pulse } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
-
-function valChip({ x, y, w, h = 32, name, value, cat = 'control' }) {
-  const grp = g({ class: 'scheme-chip', 'data-cat': cat, transform: `translate(${x},${y})` });
-  grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
-  grp.appendChild(text({ class: 'scheme-chip-text', x: 12, y: h / 2 + 4, 'text-anchor': 'start' }, [name]));
-  const valueT = text({ class: 'scheme-chip-text', x: w - 12, y: h / 2 + 4, 'text-anchor': 'end' }, [value]);
-  grp.appendChild(valueT);
-  grp.valueText = valueT;
-  return grp;
-}
-function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
+import { svg, g, text } from '../lib/svg.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, clearPodHighlight, pulseActiveBlocks, makeInit } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -115,9 +104,9 @@ function clearHL(s) {
   ['systemd','kubelet','lockChip','gpChip','gpCritChip','phaseChip']
     .forEach(k => s.refs[k].classList.remove('highlight'));
   s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s, s.refs.pod1);
-  clearPodHighlight(s, s.refs.pod2);
-  clearPodHighlight(s, s.refs.pod3);
+  clearPodHighlight(s.refs.pod1);
+  clearPodHighlight(s.refs.pod2);
+  clearPodHighlight(s.refs.pod3);
 }
 
 function clearWires(s) {
@@ -132,59 +121,8 @@ function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
 }
 
-// Pulse every highlighted top block / chip this step. Timeline auto-pulses only blocks
-// highlighted for the first time, so blocks that stay highlighted across consecutive steps
-// (kubelet, the phase chip) would otherwise sit still. Pods are excepted (pulsePod).
-function pulseActiveBlocks(s, ctx) {
-  const FRAMES = [
-    { filter: 'brightness(1)' }, { filter: 'brightness(1.55)' }, { filter: 'brightness(1)' },
-  ];
-  ['kubelet', 'systemd', 'lockChip', 'gpChip', 'gpCritChip', 'phaseChip'].forEach(k => {
-    const el = s.refs[k];
-    if (el && el.classList.contains('highlight')) {
-      ctx.register(el.animate(FRAMES, { duration: 600, iterations: 1, easing: 'ease-out' }));
-    }
-  });
-}
-
-// Pods are recoloured violet (--workloads-color #c0b0ff), so the pulse tint matches them.
-const TINT_BASE   = 'rgb(192, 176, 255)';
-const TINT_BRIGHT = 'rgb(224, 214, 255)';
-function pulsePod(s, ctx, podGroup, delay, { persist = false } = {}) {
-  if (!podGroup) return;
-  const podShellRect     = podGroup.querySelector('.scheme-pod-rect');
-  const containerBoxRect = podGroup.querySelector('.scheme-box-rect');
-  const targets = [podShellRect, containerBoxRect].filter(Boolean);
-  const PULSE = 900, RAMP = PULSE / 2;
-  for (const el of targets) {
-    el.style.transition = 'none';
-    const up = el.animate([
-      { stroke: TINT_BASE,   strokeOpacity: 0.65, strokeWidth: 1.2 },
-      { stroke: TINT_BRIGHT, strokeOpacity: 1,    strokeWidth: 2.4 },
-    ], { duration: RAMP, delay, fill: 'forwards', easing: 'ease-in-out' });
-    ctx.register(up);
-    if (persist) {
-      up.onfinish = () => { el.style.stroke = TINT_BRIGHT; el.style.strokeOpacity = '1'; el.style.strokeWidth = '2.4'; };
-    } else {
-      ctx.register(el.animate([
-        { stroke: TINT_BRIGHT, strokeOpacity: 1,    strokeWidth: 2.4 },
-        { stroke: TINT_BASE,   strokeOpacity: 0.65, strokeWidth: 1.2 },
-      ], { duration: RAMP, delay: delay + RAMP, fill: 'forwards', easing: 'ease-in-out' }));
-    }
-  }
-  const BRIGHTNESS_FRAMES = [
-    { filter: 'brightness(1)' }, { filter: 'brightness(1.4)' }, { filter: 'brightness(1)' },
-  ];
-  for (const el of podGroup.querySelectorAll('.scheme-pod, .scheme-box')) {
-    ctx.register(el.animate(BRIGHTNESS_FRAMES, { duration: PULSE, delay, fill: 'forwards', easing: 'ease-in-out' }));
-  }
-}
-function clearPodHighlight(s, podGroup) {
-  if (!podGroup) return;
-  for (const el of podGroup.querySelectorAll('.scheme-pod-rect, .scheme-box-rect')) {
-    el.style.stroke = ''; el.style.strokeOpacity = ''; el.style.strokeWidth = ''; el.style.transition = '';
-  }
-}
+// Top blocks/chips that stay highlighted across steps and so need an explicit pulse.
+const ACTIVE_KEYS = ['kubelet', 'systemd', 'lockChip', 'gpChip', 'gpCritChip', 'phaseChip'];
 
 const STEPS = [
   {
@@ -220,7 +158,7 @@ const STEPS = [
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx);
+      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
       const p = packet({ x: 580, y: 65, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
       ctx.register(animateAlong(p, [[580, 65], [540, 65]], { duration: 800 }));
@@ -241,7 +179,7 @@ const STEPS = [
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx);
+      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
     },
   },
   {
@@ -262,14 +200,14 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx);
+      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
       const p = packet({ x: 320, y: 80, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
       ctx.register(animateAlong(p, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100 }));
       ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
       // SIGTERM reaches the node: the non-critical Pods flinch (pulse) then terminate (fade).
-      pulsePod(s, ctx, s.refs.pod1, 1100);
-      pulsePod(s, ctx, s.refs.pod2, 1100);
+      pulsePod(s.refs.pod1, ctx, 1100);
+      pulsePod(s.refs.pod2, ctx, 1100);
       ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: 1300, fill: 'both', easing: 'ease-in' }));
       ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: 1300, fill: 'both', easing: 'ease-in' }));
     },
@@ -292,13 +230,13 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx);
+      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
       const p = packet({ x: 320, y: 80, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
       ctx.register(animateAlong(p, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100 }));
       ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
       // SIGTERM reaches the node: the critical Pod flinches (pulse) then terminates (fade).
-      pulsePod(s, ctx, s.refs.pod3, 1100);
+      pulsePod(s.refs.pod3, ctx, 1100);
       ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: 1300, fill: 'both', easing: 'ease-in' }));
     },
   },
@@ -323,7 +261,7 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx);
+      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
       const p = packet({ x: 540, y: 95, cat: 'control' });
       s.refs.packetLayer.appendChild(p);
       ctx.register(animateAlong(p, [[540, 95], [580, 95]], { duration: 800 }));
@@ -332,26 +270,4 @@ const STEPS = [
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS);
