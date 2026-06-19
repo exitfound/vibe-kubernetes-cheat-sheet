@@ -1,16 +1,14 @@
 // Headless smoke test: open every scheme, build its SVG, step through all steps,
-// and report any console errors / page exceptions. Proves comment removal didn't
-// break runtime behaviour. Requires the Docker container up on :8080.
-import { chromium } from 'playwright';
+// and report any console errors / page exceptions. The cheap half of the gate
+// (alongside check-canon). Requires the dev server up on :8080.
+import { launch, setInspect, stepCount, DEFAULT_BASE } from './_shared.mjs';
 
-const BASE = process.env.BASE || 'http://localhost:8080';
-const EXE = process.env.PLAYWRIGHT_CHROMIUM ||
-  '/home/medoed/.cache/ms-playwright/chromium-1223/chrome-linux64/chrome';
+const BASE = DEFAULT_BASE;
 
-const browser = await chromium.launch({ executablePath: EXE });
+const browser = await launch();
 const ctx = await browser.newContext({ reducedMotion: 'reduce' });
 const page = await ctx.newPage();
-await page.addInitScript(() => localStorage.setItem('scheme:inspect', 'expose'));
+await page.addInitScript(setInspect, 'expose');
 
 // Discover scheme ids from the grid.
 await page.goto(`${BASE}/scheme/`, { waitUntil: 'networkidle' });
@@ -33,7 +31,7 @@ for (const id of ids) {
     await page.goto(`${BASE}/scheme/#scheme=${id}`, { waitUntil: 'networkidle' });
     await page.waitForSelector('dialog.scheme-dialog svg.diagram', { timeout: 8000 });
     const built = await page.$eval('dialog.scheme-dialog svg.diagram', s => s.childElementCount);
-    const total = await page.$$eval('dialog.scheme-dialog .dialog-step-dots > *', d => d.length);
+    const total = await stepCount(page);
     // step through every step via the exposed controller
     for (let i = 0; i < total; i++) {
       await page.evaluate(n => window.__schemeCtl && window.__schemeCtl.gotoStep(n), i);

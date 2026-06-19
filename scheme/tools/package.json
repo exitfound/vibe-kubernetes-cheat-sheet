@@ -2,15 +2,16 @@
   "name": "scheme-tools",
   "private": true,
   "type": "module",
-  "description": "Local dev tools for the scheme/ subsite (frame-strip, visual-regression). Not shipped to GitHub Pages.",
+  "description": "Local dev tools for the scheme/ subsite (gate = canon + smoke). Not shipped to GitHub Pages. Needs a server at http://localhost:8080.",
   "scripts": {
     "frame-strip": "node frame-strip.mjs",
-    "vr": "node visual-regression.mjs",
-    "vr:update": "node visual-regression.mjs --update"
+    "dump": "node anim-dump.mjs",
+    "canon": "node check-canon.mjs",
+    "smoke": "node smoke-all.mjs",
+    "gate": "node check-canon.mjs && node smoke-all.mjs"
   },
   "devDependencies": {
     "playwright": "^1.47.0",
-    "pngjs": "^7.0.0",
-    "pixelmatch": "^6.0.0"
+    "pngjs": "^7.0.0"
   }
 }
