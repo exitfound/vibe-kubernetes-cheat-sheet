@@ -1,6 +1,6 @@
-import { svg, g, text, line } from '../lib/svg.js';
-import { arrowDefs, box, cylinder, chainList, arrow, pulse } from '../lib/primitives.js';
-import { valChip, setVal, arrowPacket, makeInit } from '../lib/control-kit.js';
+import { svg, g, text } from '../lib/svg.js';
+import { arrowDefs, box, cylinder, chainList, arrow } from '../lib/primitives.js';
+import { valChip, setVal, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,51 +10,55 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1200 540',
+      viewBox: '0 -50 1200 620',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Admission chain: six stages from API request to etcd',
+      'aria-label': 'Admission chain: six stages from Api request to ETCD',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const kubectl = box({ x: 240, y: 60, w: 140, h: 80, label: 'Kubectl', sublabel: 'POST /api/v1/...', cat: 'control' });
-    const api     = box({ x: 460, y: 60, w: 300, h: 80, label: 'ApiServer', sublabel: 'admission pipeline', cat: 'control' });
-    const etcdC   = cylinder({ x: 850, y: 50, w: 140, h: 100, label: 'ETCD', cat: 'control' });
+    // Top row: even 80px gaps, Api centred on x=600. The flanks (Kubectl/ETCD) are both 140 wide,
+    // so a centred Api with equal gaps self-centres the whole row.
+    const kubectl = box({ x: 230, y: 60, w: 140, h: 80, label: 'Kubectl', sublabel: 'POST /api/v1/...', cat: 'control' });
+    const api     = box({ x: 450, y: 60, w: 300, h: 80, label: 'Api', sublabel: 'admission pipeline', cat: 'control' });
+    const etcdC   = cylinder({ x: 830, y: 50, w: 140, h: 100, label: 'ETCD', cat: 'control' });
+    // Centre the cylinder label optically: the default h/2 baseline reads high under the cap,
+    // and a full nudge to the body-below-cap centre reads low. y=60 (glyph centre ~106) balances both.
+    const etcdLbl = etcdC.querySelector('.scheme-cylinder-label');
+    if (etcdLbl) etcdLbl.setAttribute('y', 60);
 
     const chain = chainList({
-      x: 410, y: 220, w: 400, rowH: 32, gap: 12,
+      x: 400, y: 220, w: 400, rowH: 32, gap: 12,
       items: [
         '1. authn      ·  identity from x509 / token / OIDC',
         '2. authz      ·  RBAC + Node + Webhook chain',
         '3. mutating   ·  webhooks may rewrite the object',
         '4. schema     ·  validate against OpenAPI schema',
         '5. validating ·  webhooks may reject the request',
-        '6. persist    ·  write final object to etcd',
+        '6. persist    ·  write final object to ETCD',
       ],
       cat: 'control',
     });
 
-    const objChip       = valChip({ x: 820, y: 220, w: 350, h: 32, name: 'Pod object',    value: '{cpu=100m}' });
-    const failurePolicy = valChip({ x: 820, y: 264, w: 350, h: 32, name: 'failurePolicy', value: '—' });
+    // Chip column: left edge aligned under ETCD so the right side reads as one ETCD → chips column.
+    const objChip       = valChip({ x: 830, y: 220, w: 330, h: 32, name: 'Pod object',    value: '{cpu=100m}' });
+    const failurePolicy = valChip({ x: 830, y: 264, w: 330, h: 32, name: 'failurePolicy', value: '—' });
 
     root.appendChild(objChip);
     root.appendChild(failurePolicy);
 
-    root.appendChild(arrow({ x1: 380, y1: 100, x2: 460, y2: 100, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 460, y1: 130, x2: 380, y2: 130, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 760, y1: 100, x2: 850, y2: 100, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 850, y1: 130, x2: 760, y2: 130, dim: true, dashed: true, color: 'control' }));
+    // Out (request) at y=85, return (response) at y=115: the pair straddles the block centre (y=100)
+    // symmetrically instead of riding low. Boxes span y=60..140 → equal 25px margins top and bottom.
+    root.appendChild(arrow({ x1: 370, y1: 85,  x2: 450, y2: 85,  dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 450, y1: 115, x2: 370, y2: 115, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 750, y1: 85,  x2: 830, y2: 85,  dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 830, y1: 115, x2: 750, y2: 115, dim: true, dashed: true, color: 'control' }));
 
-    root.appendChild(arrow({ x1: 610, y1: 140, x2: 610, y2: 218, dim: true, dashed: true, color: 'control' }));
+    // Connector Api.bottom → pipeline.top (x=600 spine).
+    root.appendChild(arrow({ x1: 600, y1: 140, x2: 600, y2: 218, dim: true, dashed: true, color: 'control' }));
 
-    // Solid colour-monotone connection line ETCD to chip column: a binding, not flow.
-    root.appendChild(line({
-      class: 'scheme-arrow scheme-arrow-control',
-      x1: 920, y1: 154, x2: 920, y2: 220,
-    }));
-
-    const wireReq  = text({ class: 'scheme-label code dim', x: 420, y: 46,  'text-anchor': 'middle' }, [' ']);
-    const wireResp = text({ class: 'scheme-label code dim', x: 420, y: 158, 'text-anchor': 'middle' }, [' ']);
+    const wireReq  = text({ class: 'scheme-label code dim', x: 410, y: 46,  'text-anchor': 'middle' }, [' ']);
+    const wireResp = text({ class: 'scheme-label code dim', x: 410, y: 158, 'text-anchor': 'middle' }, [' ']);
     [wireReq, wireResp].forEach(t => root.appendChild(t));
 
     const packetLayer = g({ id: 'packetLayer' });
@@ -81,17 +85,7 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubectl','api','etcdC','objChip','failurePolicy']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-}
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
+  clearHighlights(s, ['kubectl','api','etcdC','objChip','failurePolicy']);
 }
 
 const ROW_Y = [236, 280, 324, 368, 412, 456];
@@ -100,7 +94,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Six stages stand between an API request and etcd. Built-in stages always run, webhook stages run only when configurations exist.',
+    narration: 'Six stages stand between an Api request and ETCD. Built-in stages always run, webhook stages run only when configurations exist.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -125,10 +119,9 @@ const STEPS = [
       if (rows[0]) rows[0].classList.add('highlight');
       if (rows[1]) rows[1].classList.add('highlight');
       if (ctx.reduced) return;
-      // Two arrow segments: top arrow Kubectl→ApiServer, then down-connector ApiServer→pipeline.
-      arrowPacket(s, ctx, { from: [380, 100], to: [460, 100], delay: 0,    dur: 600 });
-      arrowPacket(s, ctx, { from: [610, 140], to: [610, 218], delay: 900,  dur: 600 });
-      ctx.register(pulse(rows[0], { duration: 700, iterations: 1 }));
+      // Two arrow segments: top arrow Kubectl→Api, then down-connector Api→pipeline.
+      const req = segmentPacket(s, ctx, { from: [370, 85], to: [450, 85] });
+      segmentPacket(s, ctx, { from: [600, 140], to: [600, 218], delay: req.arrivalMs + BEAT.afterHop });
     },
   },
   {
@@ -145,13 +138,13 @@ const STEPS = [
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
       s.refs.objChip.classList.add('highlight');
       s.refs.failurePolicy.classList.add('highlight');
-      if (ctx.reduced) return;
-      ctx.register(pulse(rows[2], { duration: 800, iterations: 1 }));
+      // Mutating webhooks rewrite the object in place; the new values settle on the
+      // statically highlighted chips, no block flash.
     },
   },
   {
     id: 'schema',
-    duration: 1500,
+    duration: 1700,
     narration: 'Built-in. The mutated object is validated against the OpenAPI schema for its resource. Type errors and required-field violations are caught here, before validating webhooks run.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -160,8 +153,9 @@ const STEPS = [
       setVal(s.refs.failurePolicy, '—');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[3]) rows[3].classList.add('highlight');
-      if (ctx.reduced) return;
-      ctx.register(pulse(rows[3], { duration: 800, iterations: 1 }));
+      // Schema validation happens inside the Api; the object under check stays statically
+      // highlighted, no block flash.
+      s.refs.objChip.classList.add('highlight');
     },
   },
   {
@@ -176,14 +170,14 @@ const STEPS = [
       if (rows[4]) rows[4].classList.add('highlight');
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
       s.refs.failurePolicy.classList.add('highlight');
-      if (ctx.reduced) return;
-      ctx.register(pulse(rows[4], { duration: 800, iterations: 1 }));
+      // Validating webhooks may only allow or deny; the policy chip stays statically
+      // highlighted, no block flash.
     },
   },
   {
     id: 'persist',
     duration: 2400,
-    narration: 'Built-in. The apiserver writes the final object to etcd via Raft. Once ETCD commits, the apiserver returns HTTP 201 Created to the client and every open watch receives an ADDED event so informers can update their caches.',
+    narration: 'Built-in. The Api writes the final object to ETCD via Raft. Once ETCD commits, the Api returns HTTP 201 Created to the client and every open watch receives an ADDED event so informers can update their caches.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -197,12 +191,11 @@ const STEPS = [
       s.refs.etcdC.classList.add('highlight');
       if (ctx.reduced) return;
       // Three arrow segments, sequenced. Each packet is visible only on its own arrow.
-      arrowPacket(s, ctx, { from: [760, 100], to: [850, 100], delay: 0,    dur: 600 });
-      arrowPacket(s, ctx, { from: [850, 130], to: [760, 130], delay: 900,  dur: 600 });
-      arrowPacket(s, ctx, { from: [460, 130], to: [380, 130], delay: 1800, dur: 600 });
-      ctx.register(pulse(rows[5], { duration: 800, iterations: 1 }));
+      const write = segmentPacket(s, ctx, { from: [750, 85], to: [830, 85] });
+      const commit = segmentPacket(s, ctx, { from: [830, 115], to: [750, 115], delay: write.arrivalMs + BEAT.afterHop });
+      segmentPacket(s, ctx, { from: [450, 115], to: [370, 115], delay: commit.arrivalMs + BEAT.afterHop });
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

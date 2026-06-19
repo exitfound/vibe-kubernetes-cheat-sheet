@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, topPacket, makeInit } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 function setSublabels(s, a, b, c) {
   setBoxSublabel(s.refs.pod1Box, a);
@@ -18,16 +18,16 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod QoS classes: ApiServer derives qosClass from requests vs limits at admission, kubelet applies cgroup config and oom_score_adj by tier',
+      'aria-label': 'Pod QoS classes: Api derives qosClass from requests vs limits at admission, Kubelet applies cgroup config and oom_score_adj by tier',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
     // Kubelet is the node-facing actor (places Pods after binding, writes cgroups, evicts), so it
     // sits on the left where the connector to the node is anchored, matching the other controller
-    // cards (left actor → node, ApiServer on the right). Every connector packet leaves Kubelet.
+    // cards (left actor → node, Api on the right). Every connector packet leaves Kubelet.
     const kubelet   = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet',   sublabel: 'cgroups + eviction',            cat: 'control' });
-    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer', sublabel: 'admission · qosClass · binding', cat: 'control' });
+    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'admission · qosClass · binding', cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
@@ -45,9 +45,9 @@ class Scene {
       x: 320, y: 220, w: 480, rowH: 32, gap: 10,
       items: [
         '1. spec      ·  3 Pods, different resource shapes',
-        '2. classify  ·  ApiServer derives qosClass at admission',
+        '2. classify  ·  Api derives qosClass at admission',
         '3. schedule  ·  scheduler bins by requests only',
-        '4. cgroups   ·  kubelet sets memory.max + oom_score_adj',
+        '4. cgroups   ·  Kubelet sets memory.max + oom_score_adj',
         '5. tiers     ·  evict: BestEffort → Burstable → Guaranteed',
       ],
       cat: 'control',
@@ -105,26 +105,19 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['apiserver','kubelet','pod1Chip','pod2Chip','pod3Chip','focusChip','pod1Box','pod2Box','pod3Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  ['pod1','pod2','pod3'].forEach(k => clearPodHighlight(s.refs[k]));
-}
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
+  clearHighlights(s,
+    ['apiserver','kubelet','pod1Chip','pod2Chip','pod3Chip','focusChip','pod1Box','pod2Box','pod3Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
 }
 function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
-}
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 
 const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Three new Pods arrive at the API server. Each has a different shape of the resources block: Pod A leaves it empty, Pod B sets requests only, Pod C sets requests equal to limits. From this shape K8s derives a QoS class for each Pod, which later decides how aggressively the kernel and kubelet protect or evict it under memory pressure.',
+    narration: 'Three new Pods arrive at the Api. Each has a different shape of the resources block: Pod A leaves it empty, Pod B sets requests only, Pod C sets requests equal to limits. From this shape K8s derives a QoS class for each Pod, which later decides how aggressively the kernel and Kubelet protect or evict it under memory pressure.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -156,13 +149,14 @@ const STEPS = [
       s.refs.apiserver.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
-      if (ctx.reduced) return;
+      // The rule is read inside the Api, nothing travels: the focus chip takes the
+      // static highlight only, no flash (info chips do not pulse).
     },
   },
   {
     id: 'classify',
     duration: 2100,
-    narration: 'ApiServer applies the rule and tags each Pod with its class on status.qosClass. Pod A becomes BestEffort (empty resources). Pod B becomes Burstable (requests only, no limits). Pod C becomes Guaranteed (requests equal limits everywhere). This tag is set once at creation and never changes for the rest of the Pod life.',
+    narration: 'Api applies the rule and tags each Pod with its class on status.qosClass. Pod A becomes BestEffort (empty resources). Pod B becomes Burstable (requests only, no limits). Pod C becomes Guaranteed (requests equal limits everywhere). This tag is set once at creation and never changes for the rest of the Pod life.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -181,7 +175,7 @@ const STEPS = [
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      // ApiServer tags all three Pods with their qosClass at once: they pulse together.
+      // Api tags all three Pods with their qosClass at once: they pulse together.
       pulsePod(s.refs.pod1, ctx, 0);
       pulsePod(s.refs.pod2, ctx, 0);
       pulsePod(s.refs.pod3, ctx, 0);
@@ -189,7 +183,7 @@ const STEPS = [
   },
   {
     id: 'schedule',
-    duration: 2400,
+    duration: 2600,
     narration: 'Scheduler picks a node for each Pod. It looks only at requests, ignoring both limits and the QoS class. Pod A asks for nothing and fits anywhere. Pod B competes for 500m CPU and 256Mi memory. Pod C competes for 1 CPU and 1Gi memory. Once a node passes the checks, the Pod is bound to it via POST .../pods/{name}/binding.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -207,13 +201,13 @@ const STEPS = [
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      // ApiServer writes the binding, the kubelet observes it and places each Pod on the node.
-      // Top packet ApiServer -> Kubelet (binding delivered), then the connector ball Kubelet -> node.
-      topPacket(s, ctx, { from: 580, to: 540, y: 95 });
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1900);
-      pulsePod(s.refs.pod2, ctx, 1900);
-      pulsePod(s.refs.pod3, ctx, 1900);
+      // Api writes the binding, the kubelet observes it and places each Pod on the node.
+      // Top packet Api -> Kubelet (binding delivered), then the connector ball Kubelet -> node.
+      const bind = topPacket(s, ctx, { from: 580, to: 540, y: 95 });
+      const place = connectorPacket(s, ctx, { delay: bind.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.pod1, ctx, place.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, place.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, place.arrivalMs);
     },
   },
   {
@@ -236,16 +230,16 @@ const STEPS = [
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
       // Kubelet pushes cgroup config down to the node, each Pod pulses as it is written.
-      connectorPacket(s, ctx, { dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1100);
-      pulsePod(s.refs.pod2, ctx, 1100);
-      pulsePod(s.refs.pod3, ctx, 1100);
+      const cg = connectorPacket(s, ctx);
+      pulsePod(s.refs.pod1, ctx, cg.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, cg.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, cg.arrivalMs);
     },
   },
   {
     id: 'tiers',
     duration: 2200,
-    narration: 'When the node runs low on memory, kubelet picks victims by QoS class. Pod A (BestEffort) is killed first regardless of how much memory it actually uses. Pod B (Burstable) is next, ordered by how much it consumed above its request. Pod C (Guaranteed) survives last and is only touched by the kernel OOMKiller in extreme cases. This is QoS-based eviction, a separate mechanism from priority-based preemption (which is covered in its own card).',
+    narration: 'When the node runs low on memory, Kubelet picks victims by QoS class. Pod A (BestEffort) is killed first regardless of how much memory it actually uses. Pod B (Burstable) is next, ordered by how much it consumed above its request. Pod C (Guaranteed) survives last and is only touched by the kernel OOMKiller in extreme cases. This is QoS-based eviction, a separate mechanism from priority-based preemption (which is covered in its own card).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -271,14 +265,14 @@ const STEPS = [
       // Kubelet's eviction travels down the connector to the node, the same Kubelet → node
       // delivery the cgroups step uses. On arrival all three pulse together (the memory-pressure
       // event), then A and B fade out as they are evicted while C (Guaranteed) stays full.
-      connectorPacket(s, ctx, { dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1100);
-      pulsePod(s.refs.pod2, ctx, 1100);
-      pulsePod(s.refs.pod3, ctx, 1100);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 700, delay: 1100, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 700, delay: 1100, fill: 'both', easing: 'ease-in' }));
+      const evict = connectorPacket(s, ctx);
+      pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, evict.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, evict.arrivalMs);
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

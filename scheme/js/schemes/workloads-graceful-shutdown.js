@@ -1,56 +1,10 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, clearPodHighlight, setConnectorDir, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 
 const CONNECTOR_DOWN = [[690, 120], [690, 185], [280, 185], [280, 550], [320, 550]];
 const CONNECTOR_UP   = [[320, 550], [280, 550], [280, 185], [690, 185], [690, 120]];
-
-function connectorPacket(s, ctx, pts, { delay = 0, dur = 1300 } = {}) {
-  const seg = [];
-  let total = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-    seg.push(d);
-    total += d;
-  }
-  let acc = 0;
-  const frames = pts.map((pt, i) => {
-    if (i > 0) acc += seg[i - 1];
-    return { transform: `translate(${pt[0]}px, ${pt[1]}px)`, offset: total ? acc / total : 0 };
-  });
-  const p = packet({ x: pts[0][0], y: pts[0][1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  // Pre-move fade-in so the packet appears AT source BEFORE travelling.
-  const fadeInDelayMain = Math.max(0, delay - 200);
-  ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: fadeInDelayMain, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(p.animate(frames, { duration: dur, delay, fill: 'forwards', easing: 'linear' }));
-  ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }));
-}
-
-// A short packet on the kubectl -> apiserver request arrow.
-function arrowPacket(s, ctx, { from, to, delay = 0, dur = 500 }) {
-  const p = packet({ x: from[0], y: from[1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  const fadeInDelay = Math.max(0, delay - 200);
-  ctx.register(p.animate(
-    [{ opacity: 0 }, { opacity: 1 }],
-    { duration: 200, delay: fadeInDelay, fill: 'forwards', easing: 'ease-out' }
-  ));
-  ctx.register(p.animate(
-    [
-      { transform: `translate(${from[0]}px, ${from[1]}px)` },
-      { transform: `translate(${to[0]}px, ${to[1]}px)` },
-    ],
-    { duration: dur, delay, fill: 'forwards', easing: 'linear' }
-  ));
-  ctx.register(p.animate(
-    [{ opacity: 1 }, { opacity: 0 }],
-    { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }
-  ));
-}
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -67,8 +21,8 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubectl = box({ x: 320, y: 40, w: 220, h: 80, label: 'kubectl', sublabel: 'delete pod app-pod', cat: 'control' });
-    const api     = box({ x: 580, y: 40, w: 220, h: 80, label: 'kube-apiserver', sublabel: 'sets deletionTimestamp', cat: 'control' });
+    const kubectl = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl', sublabel: 'delete pod app-pod', cat: 'control' });
+    const api     = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'sets deletionTimestamp', cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
@@ -88,7 +42,7 @@ class Scene {
       items: [
         '1. running   ·  Pod IP serving traffic',
         '2. delete    ·  deletionTimestamp, drop from EndpointSlice',
-        '3. preStop   ·  kubelet runs hook synchronously',
+        '3. preStop   ·  Kubelet runs hook synchronously',
         '4. SIGTERM   ·  signal PID 1, drain in-flight work',
         '5. countdown ·  terminationGracePeriodSeconds ticks',
         '6. SIGKILL   ·  force-kill, remove Pod from etcd',
@@ -141,23 +95,10 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubectl','api','preStopChip','sigChip','graceChip','statusChip','sliceChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s.refs.podGroup);
+  clearHighlights(s,
+    ['kubectl','api','preStopChip','sigChip','graceChip','statusChip','sliceChip'],
+    [s.refs.podGroup]);
 }
-
-
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
-}
-
-// Show the connector copy whose arrowhead matches the packet direction.
 
 const STEPS = [
   {
@@ -176,13 +117,13 @@ const STEPS = [
       // Serving traffic: full opacity. Nothing is lit at step 0.
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, -1);
+      setChainActive(s.refs.chain, 0);
     },
   },
   {
     id: 'delete',
-    duration: 2400,
-    narration: 'kubectl delete reaches the apiserver, which stamps metadata.deletionTimestamp on the Pod. That field is what makes kubectl report the Pod as Terminating, while status.phase itself stays Running. In parallel the endpoint controller drops 10.244.1.7 from the EndpointSlice, so kube-proxy stops sending new connections while the kubelet termination sequence begins.',
+    duration: 3300,
+    narration: 'Kubectl delete reaches the Api, which stamps metadata.deletionTimestamp on the Pod. That field is what makes Kubectl report the Pod as Terminating, while status.phase itself stays Running. In parallel the endpoint controller drops 10.244.1.7 from the EndpointSlice, so kube-proxy stops sending new connections while the Kubelet termination sequence begins.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -201,15 +142,17 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      arrowPacket(s, ctx, { from: [540, 65], to: [580, 65], delay: 0, dur: 600 });
-      connectorPacket(s, ctx, CONNECTOR_DOWN, { delay: 700, dur: 1300 });
-      pulsePod(s.refs.podGroup, ctx, 2000);
+      // DELETE hits the apiserver (top hop), then the termination order travels
+      // down to the kubelet side and the Pod pulses on arrival.
+      const req = topPacket(s, ctx);
+      const order = routePacket(s, ctx, CONNECTOR_DOWN, { delay: req.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.podGroup, ctx, order.arrivalMs);
     },
   },
   {
     id: 'prestop',
     duration: 2000,
-    narration: 'The kubelet runs the container preStop hook synchronously, before any signal is sent. A common pattern is a short sleep, which holds the process alive long enough for load balancers and kube-proxy to finish deregistering the endpoint. New requests stop arriving while in-flight ones still complete.',
+    narration: 'The Kubelet runs the container preStop hook synchronously, before any signal is sent. A common pattern is a short sleep, which holds the process alive long enough for load balancers and kube-proxy to finish deregistering the endpoint. New requests stop arriving while in-flight ones still complete.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -224,12 +167,15 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
+      // The hook runs inside the container: the Pod pulses (the hook chip lights via
+      // the static highlight only, no chip pulse).
+      pulsePod(s.refs.podGroup, ctx, 0);
     },
   },
   {
     id: 'sigterm',
     duration: 2000,
-    narration: 'Once preStop returns, the kubelet sends SIGTERM to PID 1. A well-behaved app traps this signal, stops accepting new work, drains in-flight requests and closes its connections and pools. The time the preStop hook consumed is already gone from the same grace budget.',
+    narration: 'Once preStop returns, the Kubelet sends SIGTERM to PID 1. A well-behaved app traps this signal, stops accepting new work, drains in-flight requests and closes its connections and pools. The time the preStop hook consumed is already gone from the same grace budget.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -245,13 +191,16 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
+      // SIGTERM lands on PID 1: the Pod pulses (the signal chips light via the
+      // static highlight only, no chip pulse).
+      pulsePod(s.refs.podGroup, ctx, 0);
     },
   },
   {
     id: 'countdown',
     duration: 2100,
-    narration: 'terminationGracePeriodSeconds, 30 by default, counts down from the moment of deletion. The preStop hook and the SIGTERM drain both spend this single shared budget. Most applications exit well before the timer reaches zero, and the kubelet then proceeds straight to cleanup.',
-    enter(s, ctx) {
+    narration: 'terminationGracePeriodSeconds, 30 by default, counts down from the moment of deletion. The preStop hook and the SIGTERM drain both spend this single shared budget. Most applications exit well before the timer reaches zero, and the Kubelet then proceeds straight to cleanup.',
+    enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
@@ -264,13 +213,14 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 4);
-      if (ctx.reduced) return;
+      // Pure timer step, nothing travels and the Pod is untouched: the ticking grace
+      // budget shows via the static highlight only (no chip pulse).
     },
   },
   {
     id: 'sigkill',
-    duration: 2400,
-    narration: 'If the container is still alive when the grace timer reaches 0, the kubelet sends SIGKILL, which the kernel delivers unconditionally to PID 1. Once the process is gone the kubelet reports the terminated container, and the apiserver removes the Pod object from etcd.',
+    duration: 3100,
+    narration: 'If the container is still alive when the grace timer reaches 0, the Kubelet sends SIGKILL, which the kernel delivers unconditionally to PID 1. Once the process is gone the Kubelet reports the terminated container, and the Api removes the Pod object from etcd.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -293,12 +243,12 @@ const STEPS = [
       pulsePod(s.refs.podGroup, ctx, 0);
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
-        { duration: 700, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, fill: 'both', easing: 'ease-in' }
       ));
       // After the process is gone, the kubelet reports up to the apiserver.
-      connectorPacket(s, ctx, CONNECTOR_UP, { delay: 700, dur: 1300 });
+      routePacket(s, ctx, CONNECTOR_UP, { delay: BEAT.afterPulse });
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, clearPodHighlight, pulseActiveBlocks, makeInit } from '../lib/control-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,9 +10,9 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1200 640',
+      viewBox: '0 20 1200 620',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Graceful node shutdown: systemd inhibitor lock, priority-ordered Pod termination',
+      'aria-label': 'Graceful Node shutdown: systemd inhibitor lock, priority-ordered Pod termination',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -27,7 +27,7 @@ class Scene {
     const wireSig = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireSig);
 
-    const lockChip     = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'inhibitor lock',                   value: 'held by kubelet' });
+    const lockChip     = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'inhibitor lock',                   value: 'held by Kubelet' });
     const gpChip       = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'shutdownGracePeriod',              value: '60s' });
     const gpCritChip   = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'shutdownGracePeriodCriticalPods', value: '20s' });
     const phaseChip    = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'phase',                            value: 'normal' });
@@ -101,40 +101,26 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['systemd','kubelet','lockChip','gpChip','gpCritChip','phaseChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s.refs.pod1);
-  clearPodHighlight(s.refs.pod2);
-  clearPodHighlight(s.refs.pod3);
-}
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
+  clearHighlights(s,
+    ['systemd','kubelet','lockChip','gpChip','gpCritChip','phaseChip'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
 }
 
 function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
 }
 
-// Top blocks/chips that stay highlighted across steps and so need an explicit pulse.
-const ACTIVE_KEYS = ['kubelet', 'systemd', 'lockChip', 'gpChip', 'gpCritChip', 'phaseChip'];
-
 const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Node-1 runs three Pods: two non-critical workloads and one critical Pod (PriorityClass system-cluster-critical or system-node-critical, e.g. kube-proxy or a CNI agent). The feature is off by default. Here Kubelet is configured with shutdownGracePeriod=60s and shutdownGracePeriodCriticalPods=20s, so it holds a systemd inhibitor lock while the node runs normally.',
+    narration: 'Node-1 runs three Pods: two non-critical workloads and one critical Pod (PriorityClass system-cluster-critical or system-node-critical, e.g. kube-proxy or a CNI agent). The feature is off by default. Here Kubelet is configured with shutdownGracePeriod=60s and shutdownGracePeriodCriticalPods=20s, so it holds a systemd inhibitor lock while the Node runs normally.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setVal(s.refs.lockChip, 'held by kubelet');
+      setVal(s.refs.lockChip, 'held by Kubelet');
       setVal(s.refs.gpChip, '60s');
       setVal(s.refs.gpCritChip, '20s');
       setVal(s.refs.phaseChip, 'normal');
@@ -145,7 +131,7 @@ const STEPS = [
   {
     id: 'signal',
     duration: 2000,
-    narration: 'systemd is about to shut down the node (poweroff, reboot, or hibernate) and emits PrepareForShutdown over D-Bus. Kubelet catches the signal via its logind subscription. Its delay-type inhibitor lock makes systemd pause the actual shutdown, so Kubelet can enter shutdown mode rather than let the OS kill processes outright.',
+    narration: 'systemd is about to shut down the Node (poweroff, reboot, or hibernate) and emits PrepareForShutdown over D-Bus. Kubelet catches the signal via its logind subscription. Its delay-type inhibitor lock makes systemd pause the actual shutdown, so Kubelet can enter shutdown mode rather than let the OS kill processes outright.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -158,18 +144,14 @@ const STEPS = [
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
-      const p = packet({ x: 580, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[580, 65], [540, 65]], { duration: 800 }));
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 800, fill: 'forwards', easing: 'ease-in' }));
+      topPacket(s, ctx, { from: 580, to: 540 });
     },
   },
   {
     id: 'cordon',
     duration: 1900,
-    narration: 'Kubelet flips its admission state and rejects any new Pod assignments from ApiServer. Existing Pods are listed and bucketed by priority: those at or above the system-cluster-critical threshold (2,000,000,000) form the critical bucket, and the rest are non-critical.',
-    enter(s, ctx) {
+    narration: 'Kubelet flips its admission state and rejects any new Pod assignments from Api. Existing Pods are listed and bucketed by priority: those at or above the system-cluster-critical threshold (2,000,000,000) form the critical bucket, and the rest are non-critical.',
+    enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
@@ -178,8 +160,8 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
+      // Kubelet flips admission state internally: nothing travels and no block
+      // flashes, the phase value change carries the step.
     },
   },
   {
@@ -200,16 +182,13 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
-      const p = packet({ x: 320, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100 }));
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
+      const sig = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]]);
       // SIGTERM reaches the node: the non-critical Pods flinch (pulse) then terminate (fade).
-      pulsePod(s.refs.pod1, ctx, 1100);
-      pulsePod(s.refs.pod2, ctx, 1100);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: 1300, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: 1300, fill: 'both', easing: 'ease-in' }));
+      pulsePod(s.refs.pod1, ctx, sig.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, sig.arrivalMs);
+      // Narrative-slow 1200ms fade: the grace-period drain reads as a long dim, not a snap.
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -230,20 +209,17 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
-      const p = packet({ x: 320, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100 }));
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
+      const sig = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]]);
       // SIGTERM reaches the node: the critical Pod flinches (pulse) then terminates (fade).
-      pulsePod(s.refs.pod3, ctx, 1100);
-      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: 1300, fill: 'both', easing: 'ease-in' }));
+      pulsePod(s.refs.pod3, ctx, sig.arrivalMs);
+      // Narrative-slow 1200ms fade: the grace-period drain reads as a long dim, not a snap.
+      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
     id: 'release',
     duration: 2200,
-    narration: 'All Pods are gone or their grace expired. Kubelet releases the inhibitor lock, and systemd resumes the shutdown sequence. While the node is down, the Lease in kube-node-lease grows stale, so the cluster marks it NotReady until kubelet boots back up and resumes renewals.',
+    narration: 'All Pods are gone or their grace expired. Kubelet releases the inhibitor lock, and systemd resumes the shutdown sequence. While the Node is down, the Lease in kube-node-lease grows stale, so the cluster marks it NotReady until Kubelet boots back up and resumes renewals.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -261,13 +237,9 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
-      const p = packet({ x: 540, y: 95, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[540, 95], [580, 95]], { duration: 800 }));
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 800, fill: 'forwards', easing: 'ease-in' }));
+      topPacket(s, ctx, { y: 95 });
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

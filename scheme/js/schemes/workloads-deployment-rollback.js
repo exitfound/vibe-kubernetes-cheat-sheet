@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, topPacket, makeInit } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -18,7 +18,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Deployment', sublabel: 'owns RS revisions', cat: 'control' });
-    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer',  sublabel: 'PATCH .scale + Pod CRUD', cat: 'control' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'PATCH .scale + Pod CRUD', cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
@@ -96,13 +96,10 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['controller','apiserver','rs1Chip','rs2Chip','condChip','revChip','pod1Box','pod2Box','pod3Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  ['pod1','pod2','pod3'].forEach(k => clearPodHighlight(s.refs[k]));
+  clearHighlights(s,
+    ['controller','apiserver','rs1Chip','rs2Chip','condChip','revChip','pod1Box','pod2Box','pod3Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
 }
-function clearWires(s) { Object.values(s.refs.wires).forEach(t => { t.textContent = ''; }); }
-function setWire(s, key, txt) { if (s.refs.wires[key]) s.refs.wires[key].textContent = txt; }
 function setVersions(s, a, b, c) {
   setBoxSublabel(s.refs.pod1Box, a);
   setBoxSublabel(s.refs.pod2Box, b);
@@ -111,8 +108,6 @@ function setVersions(s, a, b, c) {
 function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
 }
-
-// pulsePod / clearPodHighlight / connectorPacket / topPacket are imported from ../lib/scheme-kit.js
 
 const STEPS = [
   {
@@ -129,13 +124,13 @@ const STEPS = [
       setVal(s.refs.rs2Chip, '0 / 0');
       setVal(s.refs.condChip, 'Available=True');
       setVal(s.refs.revChip, 'stable @ rev 1');
-      setChainActive(s.refs.chain, -1);
+      setChainActive(s.refs.chain, 0);
     },
   },
   {
     id: 'rollout',
-    duration: 2200,
-    narration: 'kubectl set image deployment/web app=v2.0 PATCHes the Pod template. The new template hash differs, so the Deployment controller creates ReplicaSet RS-v2 as revision 2 and starts the rollout, surging a v2 Pod under the RollingUpdate strategy while the old Pods keep serving.',
+    duration: 2600,
+    narration: 'Kubectl set image deployment/web app=v2.0 PATCHes the Pod template. The new template hash differs, so the Deployment controller creates ReplicaSet RS-v2 as revision 2 and starts the rollout, surging a v2 Pod under the RollingUpdate strategy while the old Pods keep serving.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -151,11 +146,13 @@ const STEPS = [
       s.refs.apiserver.classList.add('highlight');
       s.refs.rs2Chip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 0);
+      setChainActive(s.refs.chain, 1);
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
-      topPacket(s, ctx);
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1900);
+      // The PATCH hits the Api, then the surge order travels down the
+      // connector and the surging Pod pulses on arrival.
+      const req = topPacket(s, ctx);
+      const surge = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.pod1, ctx, surge.arrivalMs);
     },
   },
   {
@@ -183,15 +180,15 @@ const STEPS = [
       if (ctx.reduced) return;
       // The failed status reaches the controller over the connector. The v2 Pod
       // pulses then dims to show it is crash-looping, the v1 Pods are untouched.
-      connectorPacket(s, ctx, { delay: 0, dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1100);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 700, delay: 1100, fill: 'both', easing: 'ease-in' }));
+      const status = connectorPacket(s, ctx);
+      pulsePod(s.refs.pod1, ctx, status.arrivalMs);
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: status.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
     id: 'stuck',
     duration: 2300,
-    narration: 'After progressDeadlineSeconds (600 by default), the Deployment sets the condition Progressing=False with reason ProgressDeadlineExceeded. The rollout is wedged: RS-v2 cannot reach its count and RS-v1 is held below the original three. The app runs degraded until someone steps in.',
+    narration: 'After progressDeadlineSeconds (600 by default), the Deployment sets the condition Progressing=False with reason ProgressDeadlineExceeded. The rollout is wedged: RS-v2 cannot reach its count, while RS-v1 keeps all three v1.0 Pods serving, so traffic stays healthy on the old version until someone steps in.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -210,13 +207,14 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) return;
+      // The deadline lapses with nothing moving and the Pods are untouched: the wedged
+      // conditions show via the static highlight only (no chip pulse).
     },
   },
   {
     id: 'undo',
-    duration: 2400,
-    narration: 'kubectl rollout undo deployment/web rolls back to the previous good revision. The controller scales RS-v1 back up to three and scales RS-v2 down to zero. The broken v2 Pod is deleted and the v1 Pod is recreated in its slot, so all three serving Pods are on v1.0 again.',
+    duration: 2600,
+    narration: 'Kubectl rollout undo deployment/web rolls back to the previous good revision. The controller scales RS-v1 back up to three and scales RS-v2 down to zero. The broken v2 Pod is deleted and the v1 Pod is recreated in its slot, so all three serving Pods are on v1.0 again.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -238,12 +236,12 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
-      topPacket(s, ctx);
+      const req = topPacket(s, ctx);
       // The undo reaches the node. The recreated v1 Pod lifts from the dim broken
       // state back to full opacity and pulses on arrival.
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      ctx.register(s.refs.pod1.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 700, delay: 1900, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod1, ctx, 1900);
+      const undo = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod1.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: FADE.in, delay: undo.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod1, ctx, undo.arrivalMs);
     },
   },
   {
@@ -272,4 +270,4 @@ const STEPS = [
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

@@ -938,6 +938,11 @@ body.sidebar-collapsed .side-expand { display: grid; }
   border-left-color: var(--tint-bright);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
+/* Networking panel reads in its own teal tint instead of the shared navy default
+   (same darkness, derived from the network --tint-canvas #071319). */
+.scheme-dialog[data-tinted="true"][data-cat="network"] .narration-overlay {
+  background: rgba(7, 21, 27, 0.86);
+}
 
 .dialog-inner {
   display: grid;
@@ -1032,6 +1037,12 @@ body.sidebar-collapsed .side-expand { display: grid; }
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+/* Initial hidden state while the card module loads, so the box never flashes empty.
+   updateNarration removes it the instant the first step's text is set (no fade, 0ms). */
+.narration-overlay.is-poster {
+  opacity: 0;
+  visibility: hidden;
 }
 .scheme-dialog[data-cat="network"]   .narration-overlay { border-left-color: var(--network-color); }
 .scheme-dialog[data-cat="workloads"] .narration-overlay { border-left-color: var(--workloads-color); }
@@ -1144,6 +1155,17 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-tinted="true"] .scheme-packet {
   fill: var(--tint-bright);
   filter: drop-shadow(0 0 6px var(--tint-bright));
+}
+/* Network --tint-bright is a pale cyan (#9eeaf7), which washes the ball out. The
+   saturated network cyan reads far more vividly, so pin packet + ripple to it for
+   network dialogs only (higher specificity than the generic tinted rule above). */
+.scheme-dialog[data-cat="network"][data-tinted="true"] .scheme-packet {
+  fill: #4fe5ff;
+  filter: drop-shadow(0 0 6px #4fe5ff);
+}
+.scheme-dialog[data-cat="network"][data-tinted="true"] .scheme-ripple {
+  stroke: #4fe5ff;
+  filter: drop-shadow(0 0 4px #4fe5ff);
 }
 /* Inner fills: the container glyph and cylinder cap carry literal rgba in
    diagrams.css (not tokens), so they need an explicit tinted override. */

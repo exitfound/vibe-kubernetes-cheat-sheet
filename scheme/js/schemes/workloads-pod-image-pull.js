@@ -1,6 +1,6 @@
 import { svg, g, rect, path, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, clearPodHighlight, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, pulsePodDim, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 
 class Scene {
@@ -98,18 +98,10 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','registry','cloud','imageChip','policyChip','layersChip','statusChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s.refs.podGroup);
+  clearHighlights(s,
+    ['kubelet','registry','cloud','imageChip','policyChip','layersChip','statusChip'],
+    [s.refs.podGroup]);
 }
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
-}
-
 
 const STEPS = [
   {
@@ -145,7 +137,8 @@ const STEPS = [
       s.refs.policyChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '0.55';
       setChainActive(s.refs.chain, 0);
-      if (ctx.reduced) return;
+      // Policy resolution is a local Kubelet read, nothing travels: the resolved chips
+      // and Kubelet take the static highlight only, no flash (info blocks do not pulse).
     },
   },
   {
@@ -164,7 +157,8 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.podGroup.style.opacity = '0.55';
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
+      // Credential lookup happens inside the Kubelet, nothing travels: the Kubelet
+      // takes the static highlight only, no flash (info blocks do not pulse).
     },
   },
   {
@@ -185,16 +179,9 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '0.55';
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      const pCache = packet({ x: 320, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(pCache);
-      ctx.register(animateAlong(pCache, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100 }));
-      ctx.register(pCache.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
       // Pod stays dim while the probe travels, then blinks when it reaches the node.
-      pulsePod(s.refs.podGroup, ctx, 1100);
-      ctx.register(s.refs.podGroup.animate(
-        [{ opacity: 0.55 }, { opacity: 0.8 }, { opacity: 0.55 }],
-        { duration: 900, delay: 1100, fill: 'both', easing: 'ease-in-out' }
-      ));
+      const probe = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]]);
+      pulsePodDim(s.refs.podGroup, ctx, probe.arrivalMs);
     },
   },
   {
@@ -217,16 +204,9 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '0.55';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      const pOut = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pOut);
-      ctx.register(animateAlong(pOut, [[540, 65], [580, 65]], { duration: 700 }));
-      ctx.register(pOut.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
-      const pBack = packet({ x: 580, y: 95, cat: 'control' });
-      pBack.style.opacity = '0';
-      s.refs.packetLayer.appendChild(pBack);
-      ctx.register(pBack.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 600, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(animateAlong(pBack, [[580, 95], [540, 95]], { duration: 700, delay: 800 }));
-      ctx.register(pBack.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1500, fill: 'forwards', easing: 'ease-in' }));
+      // Blob GET reaches the registry, the 200 with the layers hops back after it lands.
+      const get = topPacket(s, ctx);
+      topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: get.arrivalMs + BEAT.afterHop });
     },
   },
   {
@@ -248,18 +228,15 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      const pCon = packet({ x: 320, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(pCon);
-      ctx.register(animateAlong(pCon, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100 }));
-      ctx.register(pCon.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
+      const start = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]]);
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.55 }, { opacity: 1 }],
-        { duration: 700, delay: 1100, fill: 'both', easing: 'ease-out' }
+        { duration: FADE.in, delay: start.arrivalMs, fill: 'both', easing: 'ease-out' }
       ));
       // Container created and started: the Pod lights up and pulses on arrival.
-      pulsePod(s.refs.podGroup, ctx, 1100);
+      pulsePod(s.refs.podGroup, ctx, start.arrivalMs);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

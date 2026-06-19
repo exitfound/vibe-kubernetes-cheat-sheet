@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet } from '../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, topPacket, makeInit } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 // valChip / setVal / setBoxLabel / setBoxSublabel are imported from ../lib/scheme-kit.js
 // Set a Pod slot in one call: label (the app= label), sublabel (owner state) and opacity.
@@ -28,7 +28,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const rs  = box({ x: 320, y: 40, w: 220, h: 80, label: 'ReplicaSet', sublabel: 'owned by Deployment web', cat: 'control' });
-    const api = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer',  sublabel: 'Pod create · delete · watch', cat: 'control' });
+    const api = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'Pod create · delete · watch', cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
@@ -113,15 +113,10 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['rs','api','selectorChip','desiredChip','observedChip','actionChip','pod1Box','pod2Box','pod3Box','pod4Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  ['pod1','pod2','pod3','pod4'].forEach(k => clearPodHighlight(s.refs[k]));
+  clearHighlights(s,
+    ['rs','api','selectorChip','desiredChip','observedChip','actionChip','pod1Box','pod2Box','pod3Box','pod4Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
 }
-function clearWires(s) { Object.values(s.refs.wires).forEach(t => { t.textContent = ''; }); }
-function setWire(s, key, txt) { if (s.refs.wires[key]) s.refs.wires[key].textContent = txt; }
-
-// pulsePod / clearPodHighlight / connectorPacket / topPacket are imported from ../lib/scheme-kit.js
 
 const STEPS = [
   {
@@ -145,7 +140,7 @@ const STEPS = [
   },
   {
     id: 'own',
-    duration: 2400,
+    duration: 2600,
     narration: 'Every Pod the ReplicaSet manages carries a metadata.ownerReferences entry pointing back to it, with controller=true. That link is what lets garbage collection clean up the Pods when the ReplicaSet is deleted. The ownership is a chain: a Deployment owns this ReplicaSet, and the ReplicaSet owns the Pods. You scale the Deployment, it updates the ReplicaSet spec.replicas, and the ReplicaSet is what actually creates and deletes Pods.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -164,10 +159,10 @@ const STEPS = [
       if (ctx.reduced) return;
       // Declaration: a packet runs from the ReplicaSet down the connector to the node, and the
       // three Pods pulse on arrival, announcing they exist and belong to the RS by ownerReference.
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1900);
-      pulsePod(s.refs.pod2, ctx, 1900);
-      pulsePod(s.refs.pod3, ctx, 1900);
+      const decl = connectorPacket(s, ctx, { delay: BEAT.lead });
+      pulsePod(s.refs.pod1, ctx, decl.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, decl.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, decl.arrivalMs);
     },
   },
   {
@@ -190,12 +185,13 @@ const STEPS = [
       s.refs.observedChip.classList.add('highlight');
       s.refs.actionChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
+      // No packet moves on a no-op reconcile and the Pods are untouched: the compared
+      // values show via the static highlight only (no chip pulse).
     },
   },
   {
     id: 'self-heal',
-    duration: 2700,
+    duration: 3300,
     narration: 'One Pod is lost, its node failed or the Pod was deleted. The controller sees the observed count drop to 2 below the desired 3 through its Pod watch, and immediately creates a replacement Pod to restore the count. This self-healing is the whole point of a controller. A bare Pod created on its own has no owner watching it, so once gone it stays gone.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -214,17 +210,18 @@ const STEPS = [
       s.refs.actionChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
-      // web-b2 dies, then the controller creates a replacement that lands on arrival.
-      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, delay: 0, fill: 'forwards', easing: 'ease-in' }));
-      topPacket(s, ctx, { delay: 700 });
-      connectorPacket(s, ctx, { delay: 900, dur: 1000 });
-      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 1900, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod2, ctx, 1900);
+      // web-b2 dies, the controller issues the create (top hop), then the new Pod
+      // travels down the connector and lands on arrival.
+      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: 0, fill: 'forwards', easing: 'ease-in' }));
+      const req = topPacket(s, ctx, { delay: FADE.out + BEAT.afterHop });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod2, ctx, create.arrivalMs);
     },
   },
   {
     id: 'adopt',
-    duration: 2400,
+    duration: 2600,
     narration: 'A standalone Pod is created with the label app=web and no controller ownerReference. The ReplicaSet matches Pods by selector, not by who created them, so it adopts this orphan: it PATCHes the Pod metadata.ownerReferences to point at itself. The Pod was already running, adoption only restamps its owner, and it now joins the set on the node as the fourth replica. The observed count is now 4.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -247,15 +244,15 @@ const STEPS = [
       // down the connector and the adopted Pod materializes in the node block on arrival,
       // showing the fourth replica joining the managed set.
       s.refs.pod4.style.opacity = '0';
-      topPacket(s, ctx);
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 1900, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod4, ctx, 1900);
+      const patch = topPacket(s, ctx);
+      const join = connectorPacket(s, ctx, { delay: patch.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: join.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod4, ctx, join.arrivalMs);
     },
   },
   {
     id: 'converge',
-    duration: 2500,
+    duration: 2600,
     narration: 'Adoption pushed the count to 4, one above spec.replicas. The same reconcile loop now deletes one Pod to return to exactly 3. A ReplicaSet never runs more than its desired count, no matter where the extra Pod came from. When it has to pick a victim it ranks candidates (unscheduled and not-ready Pods first, then by the controller.kubernetes.io/pod-deletion-cost annotation), then issues a delete.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -276,10 +273,10 @@ const STEPS = [
       if (ctx.reduced) return;
       // The DELETE travels to the node, the surplus Pod pulses then is removed on arrival.
       s.refs.pod4.style.opacity = '1';
-      topPacket(s, ctx);
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      pulsePod(s.refs.pod4, ctx, 1900);
-      ctx.register(s.refs.pod4.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 1900, fill: 'both', easing: 'ease-in' }));
+      const del = topPacket(s, ctx);
+      const evict = connectorPacket(s, ctx, { delay: del.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.pod4, ctx, evict.arrivalMs);
+      ctx.register(s.refs.pod4.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -307,14 +304,14 @@ const STEPS = [
       if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); return; }
       // pod3 fades to its dim released state, the RS removes its ownerReference (top PATCH),
       // then creates a replacement that materializes in the free slot on arrival.
-      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0.45 }], { duration: 600, delay: 0, fill: 'both', easing: 'ease-in' }));
-      topPacket(s, ctx);
+      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0.45 }], { duration: FADE.out, delay: 0, fill: 'both', easing: 'ease-in' }));
+      const release = topPacket(s, ctx);
       s.refs.pod4.style.opacity = '0';
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 1900, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod4, ctx, 1900);
+      const replace = connectorPacket(s, ctx, { delay: release.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: replace.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod4, ctx, replace.arrivalMs);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

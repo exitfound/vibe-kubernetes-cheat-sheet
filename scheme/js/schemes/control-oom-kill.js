@@ -1,6 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, packetAlong, wirePacket, makeInit } from '../lib/control-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/control-kit.js';
+
+// Kubelet->Node left-margin connector, shared by the static pathArrow and the packet route.
+const NODE_CONNECTOR = [[320, 80], [260, 80], [260, 550], [320, 550]];
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,9 +13,9 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1200 640',
+      viewBox: '0 20 1200 620',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Container OOMKill: cgroup memory.max, kernel cgroup OOM killer, kubelet observation via PLEG, restart',
+      'aria-label': 'Container OOMKill: cgroup memory.max, kernel cgroup OOM killer, Kubelet observation via PLEG, restart',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -35,12 +38,11 @@ class Scene {
     const chain = chainList({
       x: 320, y: 220, w: 460, rowH: 32, gap: 10,
       items: [
-        '1. running  ·  memory.current < memory.max',
-        '2. allocate ·  workload pushes memory.current up',
-        '3. cgroup   ·  usage hits memory.max, kernel notified',
-        '4. OOMKill  ·  cgroup OOM killer SIGKILLs the container',
-        '5. observe  ·  PLEG sees terminated, PATCH Pod status',
-        '6. restart  ·  same sandbox, new container, count++',
+        '1. allocate ·  workload pushes memory.current up',
+        '2. cgroup   ·  usage hits memory.max, kernel notified',
+        '3. OOMKill  ·  cgroup OOM killer SIGKILLs the container',
+        '4. observe  ·  PLEG sees terminated, PATCH Pod status',
+        '5. restart  ·  same sandbox, new container, count++',
       ],
       cat: 'control',
     });
@@ -62,20 +64,21 @@ class Scene {
     podGroup.appendChild(containerBox);
 
     const connector = pathArrow({
-      points: [[320, 80], [260, 80], [260, 550], [320, 550]],
+      points: NODE_CONNECTOR,
       dim: true, dashed: true, color: 'control',
     });
     root.appendChild(connector);
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order: chain, node, pod, then top-row blocks, then packetLayer last.
+    // Z-order canon: packetLayer first (under the blocks) so a packet tucks under
+    // its destination on arrival; then chain, node, pod, then top-row blocks last.
+    root.appendChild(packetLayer);
     root.appendChild(chain);
     root.appendChild(nodeEl);
     root.appendChild(podGroup);
     root.appendChild(kubelet);
     root.appendChild(kernel);
-    root.appendChild(packetLayer);
 
     this.host.appendChild(root);
     this.refs = {
@@ -91,22 +94,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','kernel','memChip','oomScoreChip','terminationChip','restartChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s.refs.podGroup);
-}
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
-}
-
-const NODE_CONNECTOR = [[320, 80], [260, 80], [260, 550], [320, 550]];
-// Kubelet to Node connector (kubelet acting on the container on the node).
-function connectorPacket(s, ctx, { delay = 0, dur = 1100 } = {}) {
-  return packetAlong(s.refs.packetLayer, ctx, NODE_CONNECTOR, { delay, dur });
+  clearHighlights(s,
+    ['kubelet','kernel','memChip','oomScoreChip','terminationChip','restartChip'],
+    [s.refs.podGroup]);
 }
 
 const STEPS = [
@@ -140,7 +130,7 @@ const STEPS = [
       setVal(s.refs.memChip, '220Mi / 256Mi · climbing');
       setWire(s, 'kernel', 'memory.current rising · charged to the cgroup');
       s.refs.memChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 1);
+      setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
       // Pulse marks the new reading the container block just showed (220Mi).
       pulsePod(s.refs.podGroup, ctx, 0);
@@ -149,7 +139,7 @@ const STEPS = [
   {
     id: 'cgroup',
     duration: 2000,
-    narration: 'memory.current reaches memory.max. The cgroup memory controller cannot reclaim enough (swap is disabled on most Kubernetes nodes), so the kernel raises an out-of-memory event scoped to this one cgroup.',
+    narration: 'memory.current reaches memory.max. The cgroup memory controller cannot reclaim enough (swap is disabled on most Kubernetes Nodes), so the kernel raises an out-of-memory event scoped to this one cgroup.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -160,7 +150,7 @@ const STEPS = [
       setWire(s, 'kernel', 'memory.current == memory.max · cgroup OOM event');
       s.refs.memChip.classList.add('highlight');
       s.refs.kernel.classList.add('highlight');
-      setChainActive(s.refs.chain, 2);
+      setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
       // Pulse marks the container block hitting the cap (256Mi of 256Mi).
       pulsePod(s.refs.podGroup, ctx, 0);
@@ -177,16 +167,17 @@ const STEPS = [
       setWire(s, 'kernel', 'cgroup OOM killer · SIGKILL to the container');
       s.refs.kernel.classList.add('highlight');
       s.refs.oomScoreChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 3);
+      setChainActive(s.refs.chain, 2);
       // Pin final state inline so cancel between steps does not flash to default.
       setBoxSublabel(s.refs.containerBox, 'OOMKilled · SIGKILL');
       s.refs.containerBox.style.opacity = '0.4';
       if (ctx.reduced) return;
-      // The container flinches (pulse) then goes dark (SIGKILL). The shell/sandbox stays lit.
+      // OOM is an in-place kernel event, nothing travels: the container flinches (pulse a
+      // beat in) then goes dark (dissolve, a beat after the flinch). The shell/sandbox stays lit.
       pulsePod(s.refs.podGroup, ctx, 200);
       ctx.register(s.refs.containerBox.animate(
         [{ opacity: 1 }, { opacity: 0.4 }],
-        { duration: 800, delay: 700, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, delay: 700, fill: 'both', easing: 'ease-in' }
       ));
     },
   },
@@ -204,10 +195,11 @@ const STEPS = [
       setWire(s, 'kernel', 'container exited 137 · PLEG relist · PATCH status');
       s.refs.terminationChip.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
-      setChainActive(s.refs.chain, 4);
+      s.refs.kernel.classList.add('highlight');
+      setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
       // The exit status surfaces from the kernel/runtime up to kubelet (bottom arrow).
-      wirePacket(s, ctx, [580, 95], [540, 95], { dur: 700 });
+      topPacket(s, ctx, { from: 580, to: 540, y: 95 });
     },
   },
   {
@@ -224,24 +216,26 @@ const STEPS = [
       setVal(s.refs.restartChip, '1');
       setWire(s, 'kernel', 'new container · write memory.max + oom_score_adj');
       s.refs.kubelet.classList.add('highlight');
+      s.refs.kernel.classList.add('highlight');
       s.refs.memChip.classList.add('highlight');
       s.refs.terminationChip.classList.add('highlight');
       s.refs.restartChip.classList.add('highlight');
       // Pin final state inline.
       s.refs.containerBox.style.opacity = '1';
-      setChainActive(s.refs.chain, 5);
+      setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
       // Kubelet creates the new container on the node (connector) and rewrites its cgroup
-      // (top arrow to the kernel). The container pulses and re-materialises on arrival.
-      connectorPacket(s, ctx, { dur: 1100 });
-      wirePacket(s, ctx, [540, 65], [580, 65], { delay: 200, dur: 700 });
-      pulsePod(s.refs.podGroup, ctx, 1100);
+      // (top arrow to the kernel, a beat after so the two signals read as near-simultaneous,
+      // not chained). The container pulses and re-materialises on arrival.
+      const create = routePacket(s, ctx, NODE_CONNECTOR);
+      topPacket(s, ctx, { delay: 200 });
+      pulsePod(s.refs.podGroup, ctx, create.arrivalMs);
       ctx.register(s.refs.containerBox.animate(
         [{ opacity: 0.4 }, { opacity: 1 }],
-        { duration: 800, delay: 1100, fill: 'both', easing: 'ease-out' }
+        { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }
       ));
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

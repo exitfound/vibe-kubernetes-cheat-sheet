@@ -1,6 +1,6 @@
-import { svg, g, text, line } from '../lib/svg.js';
-import { arrowDefs, pod, box, cylinder, chainList, arrow, pulse, fadeIn } from '../lib/primitives.js';
-import { valChip, setVal, arrowPacket, makeInit } from '../lib/control-kit.js';
+import { svg, g, text } from '../lib/svg.js';
+import { arrowDefs, pod, box, cylinder, chainList, arrow } from '../lib/primitives.js';
+import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,56 +10,56 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1200 620',
+      viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
       'aria-label': 'Scheduler decision cycle: queue, filter, score, bind',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const sched = box({ x: 200, y: 60, w: 200, h: 80, label: 'Scheduler', sublabel: 'watch unscheduled Pods', cat: 'control' });
-    const api   = box({ x: 460, y: 60, w: 320, h: 80, label: 'ApiServer', sublabel: 'pods + binding subresource', cat: 'control' });
-    const etcdC = cylinder({ x: 850, y: 50, w: 140, h: 100, label: 'ETCD', cat: 'control' });
+    // Top row: even 60px gaps, Api centred on x=600 so its downward spine lands on the pipeline.
+    const sched = box({ x: 180, y: 60, w: 200, h: 80, label: 'Scheduler', sublabel: 'watch unscheduled Pods', cat: 'control' });
+    const api   = box({ x: 440, y: 60, w: 320, h: 80, label: 'Api', sublabel: 'pods + binding subresource', cat: 'control' });
+    const etcdC = cylinder({ x: 820, y: 50, w: 140, h: 100, label: 'ETCD', cat: 'control' });
+    // Centre the cylinder label optically: the default h/2 baseline reads high under the cap,
+    // and a full nudge to the body-below-cap centre reads low. y=60 (glyph centre ~106) balances both.
+    const etcdLbl = etcdC.querySelector('.scheme-cylinder-label');
+    if (etcdLbl) etcdLbl.setAttribute('y', 60);
 
-    // Pipeline chain centred under ApiServer, w=400 so it never reaches into the chip column.
+    // Pipeline chain centred under Api (cx=600), w=400 so it never reaches into the chip column.
     const chain = chainList({
       x: 400, y: 220, w: 400, rowH: 32, gap: 12,
       items: [
         '1. queue   ·  Pod dequeued from SchedulingQueue',
-        '2. filter  ·  plugins drop nodes that fail predicates',
+        '2. filter  ·  plugins drop Nodes that fail predicates',
         '3. score   ·  plugins rank survivors 0 to 100',
         '4. bind    ·  POST .../pods/{name}/binding',
       ],
       cat: 'control',
     });
 
-    // State chips column. Three chips, top-aligned with the first three chain rows.
-    const queueChip  = valChip({ x: 820, y: 220, w: 360, h: 32, name: 'queued pod', value: '—' });
-    const candChip   = valChip({ x: 820, y: 264, w: 360, h: 32, name: 'candidates', value: '—' });
-    const winnerChip = valChip({ x: 820, y: 308, w: 360, h: 32, name: 'winner',     value: '—' });
+    // State chips column. Three chips, top-aligned with the first three chain rows and
+    // right-aligned with node-4 + the placed Pod so the whole right edge reads as one column.
+    const queueChip  = valChip({ x: 900, y: 220, w: 240, h: 32, name: 'queued pod', value: '—' });
+    const candChip   = valChip({ x: 900, y: 264, w: 240, h: 32, name: 'candidates', value: '—' });
+    const winnerChip = valChip({ x: 900, y: 308, w: 240, h: 32, name: 'winner',     value: '—' });
     root.appendChild(queueChip);
     root.appendChild(candChip);
     root.appendChild(winnerChip);
 
     // Top-row arrows (out at y=100, return at y=130) — all dashed.
-    root.appendChild(arrow({ x1: 400, y1: 100, x2: 460, y2: 100, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 460, y1: 130, x2: 400, y2: 130, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 780, y1: 100, x2: 850, y2: 100, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 850, y1: 130, x2: 780, y2: 130, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 380, y1: 85,  x2: 440, y2: 85,  dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 440, y1: 115, x2: 380, y2: 115, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 760, y1: 85,  x2: 820, y2: 85,  dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 820, y1: 115, x2: 760, y2: 115, dim: true, dashed: true, color: 'control' }));
 
-    // Connector ApiServer.bottom → pipeline.top.
-    root.appendChild(arrow({ x1: 620, y1: 140, x2: 620, y2: 218, dim: true, dashed: true, color: 'control' }));
-
-    // Solid colour-monotone connection line ETCD → chip column. No arrowhead, not dashed.
-    root.appendChild(line({
-      class: 'scheme-arrow scheme-arrow-control',
-      x1: 920, y1: 154, x2: 920, y2: 220,
-    }));
+    // Connector Api.bottom → pipeline.top (x=600 spine).
+    root.appendChild(arrow({ x1: 600, y1: 140, x2: 600, y2: 218, dim: true, dashed: true, color: 'control' }));
 
     // Wire labels at fixed positions, populated per step.
-    const wireReq     = text({ class: 'scheme-label code dim', x: 430, y: 46,  'text-anchor': 'middle' }, [' ']);
-    const wireResp    = text({ class: 'scheme-label code dim', x: 430, y: 158, 'text-anchor': 'middle' }, [' ']);
-    const wirePersist = text({ class: 'scheme-label code dim', x: 815, y: 46,  'text-anchor': 'middle' }, [' ']);
+    const wireReq     = text({ class: 'scheme-label code dim', x: 410, y: 46,  'text-anchor': 'middle' }, [' ']);
+    const wireResp    = text({ class: 'scheme-label code dim', x: 410, y: 158, 'text-anchor': 'middle' }, [' ']);
+    const wirePersist = text({ class: 'scheme-label code dim', x: 790, y: 46,  'text-anchor': 'middle' }, [' ']);
     [wireReq, wireResp, wirePersist].forEach(t => root.appendChild(t));
 
     // Bottom row: 4 candidate nodes side-by-side.
@@ -67,7 +67,7 @@ class Scene {
     const nodeH = 130;
     const nodeW = 240;
     const nx = [60, 340, 620, 900];
-    const nLabels = ['node-1', 'node-2', 'node-3', 'node-4'];
+    const nLabels = ['Node-1', 'Node-2', 'Node-3', 'Node-4'];
     const nSubs = [
       'taint dedicated=db:NoSchedule',
       'mem free 200Mi (req 800Mi)',
@@ -86,7 +86,8 @@ class Scene {
     const placedPodShellRect = placedPodShell.querySelector('.scheme-pod-rect');
     if (placedPodShellRect) placedPodShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const placedPodBox = box({ x: 942, y: 450, w: 156, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', cat: 'workloads' });
+    // Inner box matches the workloads canon for a 216-wide shell: 10px side insets (w=196).
+    const placedPodBox = box({ x: 922, y: 450, w: 196, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', cat: 'workloads' });
     placedPodBox.style.setProperty('--workloads-color', '#c0b0ff');
 
     const placedPod = g({ id: 'placedPod' });
@@ -121,9 +122,8 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['sched','api','etcdC','queueChip','candChip','winnerChip','n1','n2','n3','n4','v1','v2','v3','v4','placedPodBox']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
+  clearHighlights(s,
+    ['sched','api','etcdC','queueChip','candChip','winnerChip','n1','n2','n3','n4','v1','v2','v3','v4','placedPodBox']);
 }
 
 function setN4TextOpacity(s, op) {
@@ -131,14 +131,6 @@ function setN4TextOpacity(s, op) {
   const sub = s.refs.n4.querySelector('.scheme-box-sublabel');
   if (lbl) lbl.style.opacity = op;
   if (sub) sub.style.opacity = op;
-}
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 
 function resetNodeOpacity(s) {
@@ -153,7 +145,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Kube-scheduler runs on the Control Plane and watches the ApiServer for unscheduled Pods. For each one it owns the placement decision through four discrete stages.',
+    narration: 'Kube-scheduler runs on the Control Plane and watches the Api for unscheduled Pods. For each one it owns the placement decision through four discrete stages.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -186,16 +178,15 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[0]) rows[0].classList.add('highlight');
       if (ctx.reduced) return;
-      // Watch event flows ApiServer → Scheduler (return arrow at y=130), then drops to pipeline row 1.
-      arrowPacket(s, ctx, { from: [460, 130], to: [400, 130], delay: 0,    dur: 600 });
-      arrowPacket(s, ctx, { from: [620, 140], to: [620, 218], delay: 900,  dur: 600 });
-      ctx.register(pulse(rows[0], { duration: 700, iterations: 1 }));
+      // Watch event flows Api → Scheduler (return arrow at y=130), then drops to pipeline row 1.
+      const watch = segmentPacket(s, ctx, { from: [440, 115], to: [380, 115] });
+      segmentPacket(s, ctx, { from: [600, 140], to: [600, 218], delay: watch.arrivalMs + BEAT.afterHop });
     },
   },
   {
     id: 'filter',
     duration: 2300,
-    narration: 'Filter plugins evaluate every node against the Pod requirements. Node-1 carries a NoSchedule taint without a matching toleration, node-2 lacks the requested memory. Both are dropped before scoring.',
+    narration: 'Filter plugins evaluate every Node against the Pod requirements. Node-1 carries a NoSchedule taint without a matching toleration, Node-2 lacks the requested memory. Both are dropped before scoring.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -205,7 +196,8 @@ const STEPS = [
       setVal(s.refs.v2, 'filtered · resources');
       setVal(s.refs.v3, '—');
       setVal(s.refs.v4, '—');
-      s.refs.api.classList.add('highlight');
+      // Filtering is the Scheduler's own work (the Api is not involved), so the Scheduler lights up.
+      s.refs.sched.classList.add('highlight');
       s.refs.candChip.classList.add('highlight');
       s.refs.v1.classList.add('highlight');
       s.refs.v2.classList.add('highlight');
@@ -217,15 +209,14 @@ const STEPS = [
       s.refs.n3.style.opacity = '1';
       s.refs.n4.style.opacity = '1';
       if (ctx.reduced) return;
-      ctx.register(s.refs.n1.animate([{ opacity: 1 }, { opacity: 0.35 }], { duration: 600, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(s.refs.n2.animate([{ opacity: 1 }, { opacity: 0.35 }], { duration: 600, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(pulse(rows[1], { duration: 800, iterations: 1 }));
+      ctx.register(s.refs.n1.animate([{ opacity: 1 }, { opacity: 0.35 }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
+      ctx.register(s.refs.n2.animate([{ opacity: 1 }, { opacity: 0.35 }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
     id: 'score',
-    duration: 2200,
-    narration: 'Surviving nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity, and PodTopologySpread. Each plugin returns 0 to 100 and the values are weighted-summed: node-3 scores 78, node-4 scores 92.',
+    duration: 1400,
+    narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity, and PodTopologySpread. Each plugin returns 0 to 100 and the values are weighted-summed: Node-3 scores 78, Node-4 scores 92.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -240,21 +231,21 @@ const STEPS = [
       s.refs.v4.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[2]) rows[2].classList.add('highlight');
-      if (ctx.reduced) return;
-      ctx.register(pulse(rows[2], { duration: 800, iterations: 1 }));
+      // Scoring is computed inside the Scheduler, nothing travels and nothing pulses:
+      // the score verdicts just settle on v3/v4 via the static highlight.
     },
   },
   {
     id: 'bind',
     duration: 2400,
-    narration: 'Highest score wins, ties broken at random. The Scheduler does not patch the Pod itself. It POSTs a Binding to the binding subresource, and the ApiServer writes spec.nodeName=node-4 into ETCD via Raft.',
+    narration: 'Highest score wins, ties broken at random. The Scheduler does not patch the Pod itself. It POSTs a Binding to the binding subresource, and the Api writes spec.nodeName=Node-4 into ETCD via Raft.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.winnerChip, 'node-4 · 92');
+      setVal(s.refs.winnerChip, 'Node-4 · 92');
       setWire(s, 'req', 'POST .../pods/my-app-7d4-abc/binding');
-      setWire(s, 'persist', 'spec.nodeName=node-4 · rv=903');
+      setWire(s, 'persist', 'spec.nodeName=Node-4 · rv=903');
       s.refs.n1.style.opacity = '0.35';
       s.refs.n2.style.opacity = '0.35';
       s.refs.sched.classList.add('highlight');
@@ -265,25 +256,20 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[3]) rows[3].classList.add('highlight');
       if (ctx.reduced) return;
-      // Two arrow segments: Scheduler → ApiServer (binding POST), then ApiServer → ETCD (persist).
-      arrowPacket(s, ctx, { from: [400, 100], to: [460, 100], delay: 0,    dur: 600 });
-      arrowPacket(s, ctx, { from: [780, 100], to: [850, 100], delay: 900,  dur: 600 });
-      ctx.register(pulse(rows[3], { duration: 800, iterations: 1 }));
-      ctx.register(s.refs.etcdC.animate(
-        [{ filter: 'brightness(1)' }, { filter: 'brightness(1.45)' }, { filter: 'brightness(1)' }],
-        { duration: 600, delay: 1500, iterations: 1, easing: 'ease-in-out' }
-      ));
+      // Two arrow segments: Scheduler → Api (binding POST), then Api → ETCD (persist).
+      const post = segmentPacket(s, ctx, { from: [380, 85], to: [440, 85] });
+      segmentPacket(s, ctx, { from: [760, 85], to: [820, 85], delay: post.arrivalMs + BEAT.afterHop });
     },
   },
   {
     id: 'placed',
     duration: 2200,
-    narration: 'The Kubelet on node-4 has a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=node-4. The MODIFIED event arrives, Kubelet pulls the image, and the Pod transitions to Running.',
+    narration: 'The Kubelet on Node-4 has a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-4. The MODIFIED event arrives, Kubelet pulls the image, and the Pod transitions to Running.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.winnerChip, 'node-4 · 92');
+      setVal(s.refs.winnerChip, 'Node-4 · 92');
       s.refs.n1.style.opacity = '0.35';
       s.refs.n2.style.opacity = '0.35';
       s.refs.n4.classList.add('highlight');
@@ -293,9 +279,12 @@ const STEPS = [
       // Pin final state inline so cancel returns to the right value, not default.
       s.refs.placedPod.style.opacity = '1';
       if (ctx.reduced) return;
-      ctx.register(fadeIn(s.refs.placedPod, { duration: 700 }));
+      // The placed Pod fades in and pulses together (shared delay), matching the
+      // workloads pod-pulse canon, instead of pulsing a beat after the fade.
+      ctx.register(s.refs.placedPod.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.placedPod, ctx, 0);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

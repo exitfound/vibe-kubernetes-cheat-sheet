@@ -158,9 +158,33 @@ svg.diagram {
   filter: drop-shadow(0 0 6px var(--storage-color));
 }
 .scheme-packet[data-cat="control"] {
-  fill: var(--control-color);
-  filter: drop-shadow(0 0 6px var(--control-color));
+  /* Brighter than the base --control-color #7d86ff so the ball reads as vividly
+     as the workloads (tinted) packet does. Same indigo hue, just lighter: this is
+     the control-family bright stop (matches --tint-bright for a tinted control
+     card). Tinted dialogs override this with --tint-bright at higher specificity. */
+  fill: #abb0f5;
+  filter: drop-shadow(0 0 6px #abb0f5);
 }
+.scheme-packet[data-cat="network"] {
+  /* The tinted dialog maps --network-color to the pale tint stop, which made the
+     ball read as washed-out. Pin it to the saturated network cyan so the packet
+     pops against the paler pod-pulse tint. */
+  fill: #4fe5ff;
+  filter: drop-shadow(0 0 6px #4fe5ff);
+}
+
+/* Arrival ripple: one-shot expanding ring at a packet's destination (see packetAlong). */
+.scheme-ripple {
+  fill: none;
+  stroke: var(--network-color);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px var(--network-color));
+  pointer-events: none;
+}
+.scheme-ripple[data-cat="storage"] { stroke: var(--storage-color); filter: drop-shadow(0 0 4px var(--storage-color)); }
+.scheme-ripple[data-cat="control"] { stroke: #abb0f5; filter: drop-shadow(0 0 4px #abb0f5); }
+.scheme-ripple[data-cat="network"] { stroke: #4fe5ff; filter: drop-shadow(0 0 4px #4fe5ff); }
 
 /* Label */
 .scheme-label {

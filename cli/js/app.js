@@ -3,6 +3,10 @@ import { setupSidebar } from './lib/sidebar.js';
 
 setupSidebar();
 
+// Yield one painted frame before building the heavy command list below, so
+// navigation shows the dark shell instantly instead of a blank canvas flash.
+await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+
 document.getElementById('year').textContent = new Date().getFullYear();
 
 // ── Constants ────────────────────────────────────────────────

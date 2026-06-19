@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulseBoxOnArrival, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, flashChips, BEAT } from '../lib/scheme-kit.js';
 
 
 class Scene {
@@ -19,7 +19,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet', sublabel: 'container orchestrator', cat: 'control' });
-    const runtime = box({ x: 580, y: 40, w: 220, h: 80, label: 'Runtime', sublabel: 'containerd · CRI',       cat: 'control' });
+    const runtime = box({ x: 580, y: 40, w: 220, h: 80, label: 'Runtime', sublabel: 'Containerd · CRI',       cat: 'control' });
 
     // Top-row arrows: Kubelet → Runtime (CRI request) at y=65, Runtime → Kubelet (PLEG event) at y=95.
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
@@ -89,28 +89,17 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','runtime','waitDbChip','migrateChip','sidecarChip','mainChip',
-   'containerWaitDb','containerMigrate','containerSidecar','containerMain']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
+  clearHighlights(s,
+    ['kubelet','runtime','waitDbChip','migrateChip','sidecarChip','mainChip',
+     'containerWaitDb','containerMigrate','containerSidecar','containerMain'],
+    [s.refs.containerWaitDb, s.refs.containerMigrate, s.refs.containerSidecar, s.refs.containerMain]);
 }
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
-}
-
-// Light up a Node container box and pulse it exactly when the connector packet
-// reaches the node, instead of at step entry (the framework auto-delta). The
-// class toggle rides a registered no-op animation so a step change cancels it
-// (a cancelled animation fires oncancel, not onfinish, so the class is not added).
 
 const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod spec declares two init containers (wait-for-db, migrate-schema), one native sidecar (an initContainer with restartPolicy=Always, GA since 1.29) and the main app container. Kubelet has received the spec via SyncPod and is about to run the containers in the order the spec demands. Pod phase stays Pending for the whole bootstrap, while the kubectl STATUS column moves from Init:0/2 to PodInitializing as the containers progress.',
+    narration: 'A Pod spec declares two init containers (wait-for-db, migrate-schema), one native sidecar (an initContainer with restartPolicy=Always, on by default since 1.29 and GA since 1.33) and the main app container. Kubelet has received the spec via SyncPod and is about to run the containers in the order the spec demands. Pod phase stays Pending for the whole bootstrap, while the Kubectl STATUS column moves from Init:0/2 to PodInitializing as the containers progress.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -124,8 +113,8 @@ const STEPS = [
   },
   {
     id: 'wait-for-db',
-    duration: 1900,
-    narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: each one must exit with code 0 before the next can start. A non-zero exit keeps the Pod in Init:0/2 with a kubelet restart-backoff (respecting Pod.spec.restartPolicy).',
+    duration: 2600,
+    narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: each one must exit with code 0 before the next can start. A non-zero exit keeps the Pod in Init:0/2 with a Kubelet restart-backoff (respecting Pod.spec.restartPolicy).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -140,22 +129,16 @@ const STEPS = [
       s.refs.waitDbChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) { s.refs.containerWaitDb.classList.add('highlight'); return; }
-      const pTop = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pTop);
-      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
-      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
-      const pCon = packet({ x: 320, y: 80, cat: 'control' });
-      pCon.style.opacity = '0';
-      s.refs.packetLayer.appendChild(pCon);
-      ctx.register(pCon.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 300, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(animateAlong(pCon, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100, delay: 500 }));
-      ctx.register(pCon.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1600, fill: 'forwards', easing: 'ease-in' }));
-      pulseBoxOnArrival(s.refs.containerWaitDb, ctx, 1600);
+      // CRI request hits the runtime (top hop), then the create travels down to
+      // the node and the container box lights up on arrival.
+      const req = topPacket(s, ctx);
+      const create = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true });
+      pulsePod(s.refs.containerWaitDb, ctx, create.arrivalMs);
     },
   },
   {
     id: 'migrate-schema',
-    duration: 1900,
+    duration: 3400,
     narration: 'wait-for-db exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and immediately creates migrate-schema. The same rule applies, it must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -171,29 +154,17 @@ const STEPS = [
       s.refs.migrateChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) { s.refs.containerMigrate.classList.add('highlight'); return; }
-      // pBack: Runtime -> Kubelet PLEG callback, no delay.
-      const pBack = packet({ x: 580, y: 95, cat: 'control' });
-      s.refs.packetLayer.appendChild(pBack);
-      ctx.register(animateAlong(pBack, [[580, 95], [540, 95]], { duration: 600 }));
-      ctx.register(pBack.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 600, fill: 'forwards', easing: 'ease-in' }));
-      const pTop = packet({ x: 540, y: 65, cat: 'control' });
-      pTop.style.opacity = '0';
-      s.refs.packetLayer.appendChild(pTop);
-      ctx.register(pTop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 500, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 600, delay: 700 }));
-      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1300, fill: 'forwards', easing: 'ease-in' }));
-      const pCon = packet({ x: 320, y: 80, cat: 'control' });
-      pCon.style.opacity = '0';
-      s.refs.packetLayer.appendChild(pCon);
-      ctx.register(pCon.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 900, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(animateAlong(pCon, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1000, delay: 1100 }));
-      ctx.register(pCon.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 2100, fill: 'forwards', easing: 'ease-in' }));
-      pulseBoxOnArrival(s.refs.containerMigrate, ctx, 2100);
+      // PLEG callback Runtime -> Kubelet, then the next CRI request Kubelet -> Runtime,
+      // then the create travels down to the node, each hop chained on the previous arrival.
+      const pleg = topPacket(s, ctx, { from: 580, to: 540, y: 95 });
+      const req = topPacket(s, ctx, { delay: pleg.arrivalMs + BEAT.afterHop });
+      const create = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true });
+      pulsePod(s.refs.containerMigrate, ctx, create.arrivalMs);
     },
   },
   {
     id: 'sidecar-start',
-    duration: 2100,
+    duration: 2600,
     narration: 'Both regular init containers exited 0. The sidecar (declared as an initContainer with restartPolicy=Always since 1.29) is started next, allowed to run for the full lifetime of the Pod. Once it reports Started (its startupProbe succeeded, or immediately if no probe is set), Kubelet treats the bootstrap phase as complete and unblocks the main container.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -209,22 +180,15 @@ const STEPS = [
       s.refs.sidecarChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.containerSidecar.classList.add('highlight'); return; }
-      const pTop = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pTop);
-      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
-      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
-      const pCon = packet({ x: 320, y: 80, cat: 'control' });
-      pCon.style.opacity = '0';
-      s.refs.packetLayer.appendChild(pCon);
-      ctx.register(pCon.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 400, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(animateAlong(pCon, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100, delay: 600 }));
-      ctx.register(pCon.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1700, fill: 'forwards', easing: 'ease-in' }));
-      pulseBoxOnArrival(s.refs.containerSidecar, ctx, 1700);
+      // CRI request hop, then the sidecar create lands on the node on arrival.
+      const req = topPacket(s, ctx);
+      const create = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true });
+      pulsePod(s.refs.containerSidecar, ctx, create.arrivalMs);
     },
   },
   {
     id: 'main-start',
-    duration: 1900,
+    duration: 2600,
     narration: 'As soon as the sidecar Started flag flips true, Kubelet creates and starts the main container. From here both run in parallel. Pod phase flips from Pending to Running once the main container has started.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -240,17 +204,10 @@ const STEPS = [
       s.refs.mainChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.containerMain.classList.add('highlight'); return; }
-      const pTop = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pTop);
-      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
-      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
-      const pCon = packet({ x: 320, y: 80, cat: 'control' });
-      pCon.style.opacity = '0';
-      s.refs.packetLayer.appendChild(pCon);
-      ctx.register(pCon.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 300, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(animateAlong(pCon, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100, delay: 500 }));
-      ctx.register(pCon.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1600, fill: 'forwards', easing: 'ease-in' }));
-      pulseBoxOnArrival(s.refs.containerMain, ctx, 1600);
+      // CRI request hop, then the main create lands on the node on arrival.
+      const req = topPacket(s, ctx);
+      const create = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true });
+      pulsePod(s.refs.containerMain, ctx, create.arrivalMs);
     },
   },
   {
@@ -272,8 +229,10 @@ const STEPS = [
       s.refs.containerMain.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
+      // Steady parallel run, nothing travels: the two settled state chips flash.
+      flashChips(s, ctx, ['sidecarChip', 'mainChip']);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

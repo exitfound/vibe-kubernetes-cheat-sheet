@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, clearPodHighlight, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 
 class Scene {
@@ -13,12 +13,12 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod restartPolicy: Always, OnFailure and Never decide whether kubelet restarts a container after it exits',
+      'aria-label': 'Pod restartPolicy: Always, OnFailure and Never decide whether Kubelet restarts a container after it exits',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const apiserver = box({ x: 320, y: 40, w: 220, h: 80, label: 'ApiServer', sublabel: 'stores spec.restartPolicy', cat: 'control' });
+    const apiserver = box({ x: 320, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'stores spec.restartPolicy', cat: 'control' });
     const kubelet   = box({ x: 580, y: 40, w: 220, h: 80, label: 'Kubelet',   sublabel: 'restart enforcer',        cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
@@ -98,21 +98,12 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['apiserver','kubelet','pod1Chip','pod2Chip','pod3Chip','focusChip','pod1Box','pod2Box','pod3Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  ['pod1','pod2','pod3'].forEach(k => clearPodHighlight(s.refs[k]));
-}
-
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
+  clearHighlights(s,
+    ['apiserver','kubelet','pod1Chip','pod2Chip','pod3Chip','focusChip','pod1Box','pod2Box','pod3Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
 }
 function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
-}
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 // Set all three Pod chips plus the focus line in one call.
 function setChips(s, { a, b, c, focus }) {
@@ -123,17 +114,14 @@ function setChips(s, { a, b, c, focus }) {
 }
 
 function bouncePacket(s, ctx, { delay = 0 } = {}) {
-  const pTop = packet({ x: 540, y: 65, cat: 'control' });
-  s.refs.packetLayer.appendChild(pTop);
-  ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700, delay }));
-  ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + 700, fill: 'forwards', easing: 'ease-in' }));
-  const pBack = packet({ x: 580, y: 95, cat: 'control' });
-  pBack.style.opacity = '0';
-  s.refs.packetLayer.appendChild(pBack);
-  ctx.register(pBack.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: delay + 600, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(pBack, [[580, 95], [540, 95]], { duration: 700, delay: delay + 800 }));
-  ctx.register(pBack.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + 1500, fill: 'forwards', easing: 'ease-in' }));
+  // Request up to the apiserver, then the response hop back (y=95) once it returns.
+  const req = topPacket(s, ctx, { delay });
+  return topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: req.arrivalMs + BEAT.afterHop });
 }
+
+// The container exit is an in-place event with no packet to anchor to: the Pods
+// react this many ms into the step (pulse, plus a fade for the ones that stop).
+const REACT_MS = 400;
 
 const STEPS = [
   {
@@ -151,7 +139,7 @@ const STEPS = [
   },
   {
     id: 'policy',
-    duration: 1900,
+    duration: 2000,
     narration: 'restartPolicy is a Pod-level field. A single value covers every main container in the Pod and is immutable once the Pod is created. The default is Always. Init containers may override it with their own restartPolicy (the native sidecar pattern, GA since 1.29). Kubelet reads the field from the Pod spec and applies it each time a container terminates.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -193,15 +181,15 @@ const STEPS = [
       bouncePacket(s, ctx);
       ctx.register(s.refs.pod2.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
-        { duration: 800, delay: 400, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, delay: REACT_MS, fill: 'both', easing: 'ease-in' }
       ));
       ctx.register(s.refs.pod3.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
-        { duration: 800, delay: 400, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, delay: REACT_MS, fill: 'both', easing: 'ease-in' }
       ));
-      pulsePod(s.refs.pod1, ctx, 400);
-      pulsePod(s.refs.pod2, ctx, 400);
-      pulsePod(s.refs.pod3, ctx, 400);
+      pulsePod(s.refs.pod1, ctx, REACT_MS);
+      pulsePod(s.refs.pod2, ctx, REACT_MS);
+      pulsePod(s.refs.pod3, ctx, REACT_MS);
     },
   },
   {
@@ -229,11 +217,11 @@ const STEPS = [
       bouncePacket(s, ctx);
       ctx.register(s.refs.pod3.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
-        { duration: 800, delay: 400, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, delay: REACT_MS, fill: 'both', easing: 'ease-in' }
       ));
-      pulsePod(s.refs.pod1, ctx, 400);
-      pulsePod(s.refs.pod2, ctx, 400);
-      pulsePod(s.refs.pod3, ctx, 400);
+      pulsePod(s.refs.pod1, ctx, REACT_MS);
+      pulsePod(s.refs.pod2, ctx, REACT_MS);
+      pulsePod(s.refs.pod3, ctx, REACT_MS);
     },
   },
   {
@@ -261,15 +249,15 @@ const STEPS = [
       bouncePacket(s, ctx);
       ctx.register(s.refs.pod1.animate(
         [{ opacity: 1 }, { opacity: 0.5 }],
-        { duration: 800, delay: 300, fill: 'both', easing: 'ease-in-out' }
+        { duration: FADE.out, delay: REACT_MS, fill: 'both', easing: 'ease-in' }
       ));
       ctx.register(s.refs.pod2.animate(
         [{ opacity: 1 }, { opacity: 0.5 }],
-        { duration: 800, delay: 300, fill: 'both', easing: 'ease-in-out' }
+        { duration: FADE.out, delay: REACT_MS, fill: 'both', easing: 'ease-in' }
       ));
-      pulsePod(s.refs.pod1, ctx, 300);
-      pulsePod(s.refs.pod2, ctx, 300);
-      pulsePod(s.refs.pod3, ctx, 300);
+      pulsePod(s.refs.pod1, ctx, REACT_MS);
+      pulsePod(s.refs.pod2, ctx, REACT_MS);
+      pulsePod(s.refs.pod3, ctx, REACT_MS);
     },
   },
   {
@@ -292,17 +280,17 @@ const STEPS = [
       if (ctx.reduced) return;
       ctx.register(s.refs.pod2.animate(
         [{ opacity: 1 }, { opacity: 0.45 }],
-        { duration: 800, delay: 400, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, delay: REACT_MS, fill: 'both', easing: 'ease-in' }
       ));
       ctx.register(s.refs.pod3.animate(
         [{ opacity: 1 }, { opacity: 0.45 }],
-        { duration: 800, delay: 400, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, delay: REACT_MS, fill: 'both', easing: 'ease-in' }
       ));
-      pulsePod(s.refs.pod1, ctx, 400);
-      pulsePod(s.refs.pod2, ctx, 400);
-      pulsePod(s.refs.pod3, ctx, 400);
+      pulsePod(s.refs.pod1, ctx, REACT_MS);
+      pulsePod(s.refs.pod2, ctx, REACT_MS);
+      pulsePod(s.refs.pod3, ctx, REACT_MS);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

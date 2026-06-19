@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, clearPodHighlight, pulseActiveBlocks, packetAlong, wirePacket, makeInit } from '../lib/control-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,7 +10,7 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1200 640',
+      viewBox: '0 20 1200 620',
       preserveAspectRatio: 'xMidYMid meet',
       'aria-label': 'Pod sandbox via CRI: RunPodSandbox creates the pause container, CNI attaches the network, PullImage, CreateContainer and StartContainer launch the workload inside the sandbox',
       'data-style': 'outline',
@@ -18,7 +18,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: 300, y: 40, w: 200, h: 80, label: 'Kubelet',    sublabel: 'CRI client',      cat: 'control' });
-    const runtime = box({ x: 560, y: 40, w: 280, h: 80, label: 'containerd', sublabel: 'CRI gRPC server', cat: 'control' });
+    const runtime = box({ x: 560, y: 40, w: 280, h: 80, label: 'Containerd', sublabel: 'CRI gRPC server', cat: 'control' });
     const cni     = box({ x: 900, y: 40, w: 200, h: 80, label: 'CNI plugin', sublabel: 'veth + IPAM',     cat: 'control' });
 
     // Top arrows, symmetric about each box centre (y=80, so +/-15 -> 65 and 95).
@@ -49,7 +49,7 @@ class Scene {
     const lastOpChip  = valChip({ x: 800, y: 322, w: 380, h: 32, name: 'last op',    value: 'none' });
     [sandboxChip, ipChip, statusChip, lastOpChip].forEach(c => root.appendChild(c));
 
-    // Node centred under containerd (centre x=700) so the connector drops straight in.
+    // Node centred under Containerd (centre x=700) so the connector drops straight in.
     const nodeEl = node({ x: 320, y: 460, w: 760, h: 160, label: 'Node-1' });
 
     // The Pod sandbox: shell holds the pause container (created at RunPodSandbox)
@@ -79,7 +79,11 @@ class Scene {
     });
     root.appendChild(connector);
 
+    // Z-order canon: packetLayer rides above the static wires but below the
+    // blocks, so the ball reads on its connector and arrival is told by the pulse
+    // (matches every other node card; the center connector travels in open space).
     const packetLayer = g({ id: 'packetLayer' });
+    root.appendChild(packetLayer);
 
     root.appendChild(chain);
     root.appendChild(nodeEl);
@@ -88,7 +92,6 @@ class Scene {
     root.appendChild(kubelet);
     root.appendChild(runtime);
     root.appendChild(cni);
-    root.appendChild(packetLayer);
 
     this.host.appendChild(root);
     this.refs = {
@@ -105,26 +108,12 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','runtime','cni','sandboxChip','ipChip','statusChip','lastOpChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s.refs.sandboxGroup);
-  clearPodHighlight(s.refs.appGroup);
-}
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
+  clearHighlights(s,
+    ['kubelet','runtime','cni','sandboxChip','ipChip','statusChip','lastOpChip'],
+    [s.refs.sandboxGroup, s.refs.appGroup]);
 }
 
-// Top blocks/chips that stay highlighted across steps and so need an explicit pulse.
-const ACTIVE_KEYS = ['kubelet', 'runtime', 'cni', 'sandboxChip', 'ipChip', 'statusChip', 'lastOpChip'];
 const SANDBOX_CONNECTOR = [[700, 120], [700, 460]];
-// Runtime (containerd) acting on the Pod on the node, down the vertical connector.
-function connectorPacket(s, ctx, { delay = 0, dur = 1000 } = {}) {
-  return packetAlong(s.refs.packetLayer, ctx, SANDBOX_CONNECTOR, { delay, dur });
-}
 
 const STEPS = [
   {
@@ -168,12 +157,11 @@ const STEPS = [
       // Pin final state inline so cancel does not flash to default.
       s.refs.sandboxGroup.style.opacity = '1';
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
       // gRPC to the runtime, then the runtime materialises the sandbox on the node.
-      wirePacket(s, ctx, [500, 65], [560, 65], { dur: 700 });
-      connectorPacket(s, ctx, { delay: 700, dur: 900 });
-      ctx.register(s.refs.sandboxGroup.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 1600, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.sandboxGroup, ctx, 1600);
+      const grpc = topPacket(s, ctx, { from: 500, to: 560 });
+      const run = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: grpc.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.sandboxGroup.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: run.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.sandboxGroup, ctx, run.arrivalMs);
     },
   },
   {
@@ -196,17 +184,16 @@ const STEPS = [
       setChainActive(s.refs.chain, 1);
       s.refs.sandboxGroup.style.opacity = '1';
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
       // Runtime execs CNI (right arrow), then the netns config lands on the sandbox.
-      wirePacket(s, ctx, [840, 65], [900, 65], { dur: 700 });
-      connectorPacket(s, ctx, { delay: 700, dur: 900 });
-      pulsePod(s.refs.sandboxGroup, ctx, 1600);
+      const exec = topPacket(s, ctx, { from: 840, to: 900 });
+      const conf = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: exec.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.sandboxGroup, ctx, conf.arrivalMs);
     },
   },
   {
     id: 'image',
     duration: 1900,
-    narration: 'Kubelet calls PullImage for each container in the Pod, respecting imagePullPolicy and imagePullSecrets. The runtime fetches the image from the registry into the node image store, or reuses a cached layer set if it is already local. No container exists yet.',
+    narration: 'Kubelet calls PullImage for each container in the Pod, respecting imagePullPolicy and imagePullSecrets. The runtime fetches the image from the registry into the Node image store, or reuses a cached layer set if it is already local. No container exists yet.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -221,9 +208,8 @@ const STEPS = [
       setChainActive(s.refs.chain, 2);
       s.refs.sandboxGroup.style.opacity = '1';
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
       // Image fetch is a kubelet -> runtime gRPC only. The Pod does not change yet.
-      wirePacket(s, ctx, [500, 65], [560, 65], { dur: 700 });
+      topPacket(s, ctx, { from: 500, to: 560 });
     },
   },
   {
@@ -246,11 +232,11 @@ const STEPS = [
       // Pinned dim: the container exists but is not running.
       s.refs.appGroup.style.opacity = '0.45';
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
-      wirePacket(s, ctx, [500, 65], [560, 65], { dur: 700 });
-      connectorPacket(s, ctx, { delay: 700, dur: 900 });
-      ctx.register(s.refs.appGroup.animate([{ opacity: 0 }, { opacity: 0.45 }], { duration: 500, delay: 1600, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.appGroup, ctx, 1600);
+      // gRPC to the runtime, then the created (not started) container lands dim.
+      const grpc = topPacket(s, ctx, { from: 500, to: 560 });
+      const create = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: grpc.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.appGroup.animate([{ opacity: 0 }, { opacity: 0.45 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.appGroup, ctx, create.arrivalMs);
     },
   },
   {
@@ -274,13 +260,13 @@ const STEPS = [
       // Pinned full: the container is running.
       s.refs.appGroup.style.opacity = '1';
       if (ctx.reduced) return;
-      pulseActiveBlocks(s, ctx, ACTIVE_KEYS);
-      wirePacket(s, ctx, [500, 65], [560, 65], { dur: 700 });
-      connectorPacket(s, ctx, { delay: 700, dur: 900 });
-      ctx.register(s.refs.appGroup.animate([{ opacity: 0.45 }, { opacity: 1 }], { duration: 600, delay: 1600, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.appGroup, ctx, 1600);
+      // gRPC to the runtime, then the ENTRYPOINT forks and the container brightens.
+      const grpc = topPacket(s, ctx, { from: 500, to: 560 });
+      const start = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: grpc.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.appGroup.animate([{ opacity: 0.45 }, { opacity: 1 }], { duration: FADE.in, delay: start.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.appGroup, ctx, start.arrivalMs);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

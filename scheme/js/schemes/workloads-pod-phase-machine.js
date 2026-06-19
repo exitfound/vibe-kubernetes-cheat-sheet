@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow, packet, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/scheme-kit.js';
 
 
 class Scene {
@@ -13,7 +13,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod lifecycle phases: kubelet reconciles status.phase through Pending, Running and a terminal Succeeded or Failed, with CrashLoopBackOff sitting inside Running as a container waiting reason',
+      'aria-label': 'Pod lifecycle phases: Kubelet reconciles status.phase through Pending, Running and a terminal Succeeded or Failed, with CrashLoopBackOff sitting inside Running as a container waiting reason',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -87,17 +87,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','phaseChip','cStateChip','restartChip','policyChip','podShell','containerBox']
-    .forEach(k => s.refs[k] && s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  // Reset any inline persistent-pulse styles committed by pulsePod(..., {persist:true}).
-  clearPodHighlight(s.refs.podGroup);
-}
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
+  clearHighlights(s,
+    ['kubelet','phaseChip','cStateChip','restartChip','policyChip','podShell','containerBox'],
+    [s.refs.podGroup]);
 }
 function setChips(s, { phase, cstate, restart, policy = 'OnFailure' }) {
   setVal(s.refs.phaseChip, phase);
@@ -106,25 +98,21 @@ function setChips(s, { phase, cstate, restart, policy = 'OnFailure' }) {
   setVal(s.refs.policyChip, policy);
 }
 
-
-
-
-function syncPacket(s, ctx, { delay = 0, dur = 1100 } = {}) {
+function syncPacket(s, ctx, { delay = 0 } = {}) {
   const pts = [[320, 80], [280, 80], [280, 550], [320, 550]];
-  const p = packet({ x: pts[0][0], y: pts[0][1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  const fadeInDelay = Math.max(0, delay - 200);
-  ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: fadeInDelay, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(p, pts, { duration: dur, delay }));
-  ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }));
+  return routePacket(s, ctx, pts, { delay, fadeIn: true });
 }
+
+// Phase transitions cross-fade the Pod opacity between states (0.35 dim / 0.7 / 1).
+// This is a state machine, not a materialize/dissolve, so it keeps its own fade timing
+// rather than the FADE tokens. The delay starts the cross-fade a beat into the step.
+const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;
 
 const STEPS = [
   {
     id: 'admit',
     duration: 1500,
-    narration: 'The Pod object has been persisted in etcd through the apiserver, but spec.nodeName is empty so the scheduler has not yet bound it to a node. status.phase reports Pending and no container exists. Kubelet is unaware of the Pod, since each kubelet only watches its own node.',
+    narration: 'The Pod object has been persisted in etcd through the Api, but spec.nodeName is empty so the scheduler has not yet bound it to a node. status.phase reports Pending and no container exists. Kubelet is unaware of the Pod, since each Kubelet only watches its own node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -133,12 +121,13 @@ const STEPS = [
       setBoxSublabel(s.refs.containerBox, 'no container yet');
       setWire(s, 'req', 'spec.nodeName not set · Waiting for scheduler');
       s.refs.podGroup.style.opacity = '0.35';
+      setChainActive(s.refs.chain, 0);
     },
   },
   {
     id: 'schedule',
     duration: 2000,
-    narration: 'The scheduler has bound the Pod to Node-1, so spec.nodeName is set and kubelet picks the Pod up via its watch. Kubelet pulls images, creates the Pod sandbox and the container is in Waiting with reason ContainerCreating. status.phase is still Pending until at least one container has started.',
+    narration: 'The scheduler has bound the Pod to Node-1, so spec.nodeName is set and Kubelet picks the Pod up via its watch. Kubelet pulls images, creates the Pod sandbox and the container is in Waiting with reason ContainerCreating. status.phase is still Pending until at least one container has started.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -153,7 +142,7 @@ const STEPS = [
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
       syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: 0.35 }, { opacity: 0.7 }], { duration: 700, delay: 400, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.podGroup.animate([{ opacity: 0.35 }, { opacity: 0.7 }], { duration: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }));
     },
   },
   {
@@ -173,15 +162,15 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: 0.7 }, { opacity: 1 }], { duration: 700, delay: 400, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.podGroup, ctx, 1100);
+      const sync = syncPacket(s, ctx);
+      ctx.register(s.refs.podGroup.animate([{ opacity: 0.7 }, { opacity: 1 }], { duration: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.podGroup, ctx, sync.arrivalMs);
     },
   },
   {
     id: 'crashloop',
     duration: 2400,
-    narration: 'The container exits with a non-zero code. With restartPolicy OnFailure kubelet restarts it inside the same sandbox, but repeated fast failures trigger an exponential backoff: the delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s). The container sits in Waiting with reason=CrashLoopBackOff while the timer ticks. status.phase stays Running the whole time, because CrashLoopBackOff is a container-level waiting reason, never a phase of its own.',
+    narration: 'The container exits with a non-zero code. With restartPolicy OnFailure Kubelet restarts it inside the same sandbox, but repeated fast failures trigger an exponential backoff: the delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s). The container sits in Waiting with reason=CrashLoopBackOff while the timer ticks. status.phase stays Running the whole time, because CrashLoopBackOff is a container-level waiting reason, never a phase of its own.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -196,13 +185,13 @@ const STEPS = [
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
       syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: 1 }, { opacity: 0.7 }], { duration: 700, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.podGroup.animate([{ opacity: 1 }, { opacity: 0.7 }], { duration: PHASE_FADE_MS, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
     id: 'recover',
     duration: 2000,
-    narration: 'The backoff timer elapses and kubelet retries the container. This time it starts cleanly and runs to its next reconcile, so the container state returns to Running and restartCount records how many times the container was restarted. status.phase was Running through the whole episode, only the container-level state moved.',
+    narration: 'The backoff timer elapses and Kubelet retries the container. This time it starts cleanly and runs to its next reconcile, so the container state returns to Running and restartCount records how many times the container was restarted. status.phase was Running through the whole episode, only the container-level state moved.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -216,15 +205,15 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: 0.7 }, { opacity: 1 }], { duration: 700, delay: 400, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.podGroup, ctx, 1100);
+      const sync = syncPacket(s, ctx);
+      ctx.register(s.refs.podGroup.animate([{ opacity: 0.7 }, { opacity: 1 }], { duration: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.podGroup, ctx, sync.arrivalMs);
     },
   },
   {
     id: 'terminal',
     duration: 2400,
-    narration: 'The container finally exits 0. restartPolicy OnFailure does not restart a success, so every container is Terminated and status.phase becomes Succeeded, a terminal state common for Jobs. Under restartPolicy=Never a non-zero exit is not restarted either and ends at Failed instead. Both are terminal, the Pod will not run again. If the node hosting the Pod becomes unreachable, the apiserver does not set a new phase (the Unknown phase is deprecated since 1.21), the node-lifecycle controller instead marks the Pod for eviction via the NodeLost condition.',
+    narration: 'The container finally exits 0. restartPolicy OnFailure does not restart a success, so every container is Terminated and status.phase becomes Succeeded, a terminal state common for Jobs. Under restartPolicy=Never a non-zero exit is not restarted either and ends at Failed instead. Both are terminal, the Pod will not run again. If the node hosting the Pod becomes unreachable, the Api does not set a new phase (the Unknown phase is deprecated since 1.21), the node-lifecycle controller instead marks the Pod for eviction via the NodeLost condition.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -239,9 +228,9 @@ const STEPS = [
       setChainActive(s.refs.chain, 5);
       if (ctx.reduced) return;
       syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: 1 }, { opacity: 0.35 }], { duration: 700, delay: 400, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.podGroup.animate([{ opacity: 1 }, { opacity: 0.35 }], { duration: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-in' }));
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

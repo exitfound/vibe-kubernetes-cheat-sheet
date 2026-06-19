@@ -1,33 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chip, chainList, setChainActive, pathArrow, packet } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, clearPodHighlight, setConnectorDir, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chip, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, setConnectorDir, connectorPacketDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
-
-function connectorPacket(s, ctx, dir, { delay = 0, dur = 1100 } = {}) {
-  const pts = dir === 'up'
-    ? [[320, 550], [280, 550], [280, 80], [320, 80]]
-    : [[320, 80], [280, 80], [280, 550], [320, 550]];
-  const seg = [];
-  let total = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-    seg.push(d);
-    total += d;
-  }
-  let acc = 0;
-  const frames = pts.map((pt, i) => {
-    if (i > 0) acc += seg[i - 1];
-    return { transform: `translate(${pt[0]}px, ${pt[1]}px)`, offset: total ? acc / total : 0 };
-  });
-  const p = packet({ x: pts[0][0], y: pts[0][1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  // Pre-move fade-in: packet appears AT source block BEFORE travelling.
-  const fadeInDelay = Math.max(0, delay - 200);
-  ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: fadeInDelay, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(p.animate(frames, { duration: dur, delay, fill: 'forwards', easing: 'linear' }));
-  ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }));
-}
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -39,7 +13,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CrashLoopBackOff: kubelet inserts an exponentially growing delay before each container restart',
+      'aria-label': 'CrashLoopBackOff: Kubelet inserts an exponentially growing delay before each container restart',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -67,7 +41,7 @@ class Scene {
       x: 320, y: 220, w: 480, rowH: 32, gap: 10,
       items: [
         '1. running    ·  container healthy, no backoff active',
-        '2. exit       ·  process exits non-zero, kubelet sees it',
+        '2. exit       ·  process exits non-zero, Kubelet sees it',
         '3. waiting    ·  state Waiting, reason CrashLoopBackOff',
         '4. backoff    ·  delay doubles each crash, 40s 80s 160s',
         '5. cap        ·  delay clamped at the 300s ceiling',
@@ -130,24 +104,11 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','stateChip','reasonChip','restartChip','delayChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
+  clearHighlights(s,
+    ['kubelet','stateChip','reasonChip','restartChip','delayChip'],
+    [s.refs.podGroup]);
   s.refs.ladderChips.forEach(c => c.classList.remove('highlight'));
-  clearPodHighlight(s.refs.podGroup);
 }
-
-
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
-}
-
-// Show the connector copy whose arrowhead matches the packet direction.
 
 function setLadder(s, idx) {
   s.refs.ladderChips.forEach((c, i) => c.classList.toggle('highlight', i <= idx));
@@ -168,13 +129,13 @@ const STEPS = [
       setVal(s.refs.restartChip, '0');
       setVal(s.refs.delayChip, '0s');
       setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, -1);
+      setChainActive(s.refs.chain, 0);
     },
   },
   {
     id: 'first-crash',
-    duration: 2000,
-    narration: 'The container process exits with a non-zero code and kubelet observes the termination. With restartPolicy Always, kubelet schedules a restart after the 10s base delay. Once the new container starts, restartCount becomes 1.',
+    duration: 2600,
+    narration: 'The container process exits with a non-zero code and Kubelet observes the termination. With restartPolicy Always, Kubelet schedules a restart after the 10s base delay. Once the new container starts, restartCount becomes 1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -196,13 +157,13 @@ const STEPS = [
       // Pod blinks first (the container just crashed), then the Node reports the
       // exit up the connector to Kubelet.
       pulsePod(s.refs.podGroup, ctx, 0);
-      connectorPacket(s, ctx, 'up', { dur: 1000, delay: 800 });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
     },
   },
   {
     id: 'backoff-named',
     duration: 2200,
-    narration: 'The fresh container crashes again almost immediately. Kubelet doubles the wait from 10s to 20s. While kubelet holds off the restart the container state is Waiting with reason CrashLoopBackOff, which surfaces in kubectl get pods.',
+    narration: 'The fresh container crashes again almost immediately. Kubelet doubles the wait from 10s to 20s. While Kubelet holds off the restart the container state is Waiting with reason CrashLoopBackOff, which surfaces in kubectl get pods.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -224,7 +185,7 @@ const STEPS = [
       pulsePod(s.refs.podGroup, ctx, 0);
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
-        { duration: 600, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, fill: 'both', easing: 'ease-in' }
       ));
     },
   },
@@ -232,7 +193,7 @@ const STEPS = [
     id: 'doubling',
     duration: 2300,
     narration: 'The crashes keep coming and the backoff delay doubles with each failure, climbing 40s then 80s then 160s. restartCount keeps incrementing on every attempt. The exponential growth is per container, so a hot-looping process cannot saturate the node.',
-    enter(s, ctx) {
+    enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
@@ -249,14 +210,16 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 3);
       setLadder(s, 4);
-      if (ctx.reduced) return;
+      // Kubelet only waits between attempts, nothing travels and the Pod is untouched.
+      // The climbing backoff shows via the ladder filling and the static chip highlight
+      // (no chip pulse).
     },
   },
   {
     id: 'cap',
     duration: 2200,
     narration: 'The next doubling would exceed 300s, so the delay is clamped at the 300s ceiling and stays there. Kubelet now retries the container at most once every 5 minutes for as long as it keeps failing. restartCount continues to climb at this slow cadence.',
-    enter(s, ctx) {
+    enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
@@ -272,13 +235,14 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 4);
       setLadder(s, 5);
-      if (ctx.reduced) return;
+      // The cap holds: the clamped 300s ceiling shows via the full ladder and the
+      // static chip highlight (no chip pulse).
     },
   },
   {
     id: 'reset',
-    duration: 2400,
-    narration: 'The bug is fixed and the new container runs stably. After a sustained healthy run kubelet resets the backoff counter, so the next crash would start over from the 10s base rather than the 300s cap. The container state returns to Running and the CrashLoopBackOff reason clears.',
+    duration: 2600,
+    narration: 'The bug is fixed and the new container runs stably. After a sustained healthy run Kubelet resets the backoff counter, so the next crash would start over from the 10s base rather than the 300s cap. The container state returns to Running and the CrashLoopBackOff reason clears.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -302,11 +266,11 @@ const STEPS = [
       pulsePod(s.refs.podGroup, ctx, 0);
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.3 }, { opacity: 1 }],
-        { duration: 500, delay: 0, fill: 'both', easing: 'ease-out' }
+        { duration: FADE.in, fill: 'both', easing: 'ease-out' }
       ));
-      connectorPacket(s, ctx, 'up', { dur: 1100, delay: 800 });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

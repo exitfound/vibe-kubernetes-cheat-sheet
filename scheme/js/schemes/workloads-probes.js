@@ -1,25 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow, packet } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, clearPodHighlight, setConnectorDir, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, pulsePodDim, setConnectorDir, connectorPacketDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
-
-function connectorPacket(s, ctx, dir, { delay = 0, dur = 1100 } = {}) {
-  const pts = dir === 'up'
-    ? [[320, 550], [280, 550], [280, 80], [320, 80]]
-    : [[320, 80], [280, 80], [280, 550], [320, 550]];
-  const offs = [0, 0.15, 0.85, 1];
-  const p = packet({ x: pts[0][0], y: pts[0][1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  // Pre-move fade-in: packet appears AT source block BEFORE moving.
-  const fadeInDelay = Math.max(0, delay - 200);
-  ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: fadeInDelay, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(p.animate(
-    pts.map((pt, i) => ({ transform: `translate(${pt[0]}px, ${pt[1]}px)`, offset: offs[i] })),
-    { duration: dur, delay, fill: 'forwards', easing: 'linear' }
-  ));
-  ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }));
-}
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -56,12 +38,11 @@ class Scene {
     const chain = chainList({
       x: 320, y: 220, w: 480, rowH: 32, gap: 10,
       items: [
-        '1. starting   ·  container booting, startup gates the rest',
-        '2. startup    ·  probe retries up to failureThreshold',
-        '3. released   ·  startup passes, liveness + readiness run',
-        '4. ready      ·  readiness passes, Pod IP joins endpoints',
-        '5. liveness   ·  failure restarts container, readiness drops IP',
-        '6. recovery   ·  fresh container starts, readiness rejoins',
+        '1. startup   ·  container boots, startupProbe gates the rest',
+        '2. released  ·  startup passes, liveness + readiness run',
+        '3. ready     ·  readiness passes, Pod IP joins endpoints',
+        '4. liveness  ·  failure restarts container, readiness drops IP',
+        '5. recovery  ·  fresh container starts, readiness rejoins',
       ],
       cat: 'control',
     });
@@ -109,23 +90,10 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','startupChip','livenessChip','readinessChip','restartChip','endpointChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s.refs.podGroup);
+  clearHighlights(s,
+    ['kubelet','startupChip','livenessChip','readinessChip','restartChip','endpointChip'],
+    [s.refs.podGroup]);
 }
-
-
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
-}
-
-// Show the connector copy whose arrowhead matches the packet direction.
 
 const STEPS = [
   {
@@ -141,10 +109,11 @@ const STEPS = [
       setVal(s.refs.readinessChip, 'not running');
       setVal(s.refs.restartChip, '0');
       setVal(s.refs.endpointChip, 'empty');
-      // Booting, not Ready: the Pod sits dim. Nothing is lit at step 0.
+      // Booting, not Ready: the Pod sits dim. The poster carries the startup row,
+      // so chain row 0 is lit on the rest frame to match the booting state.
       s.refs.podGroup.style.opacity = '0.55';
       setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, -1);
+      setChainActive(s.refs.chain, 0);
     },
   },
   {
@@ -165,20 +134,16 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.podGroup.style.opacity = '0.55';
       setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 1);
+      setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
-      connectorPacket(s, ctx, 'down');
-      pulsePod(s.refs.podGroup, ctx, 1000);
-      // Pod is still booting (dim 0.55), so flash its opacity on probe arrival so the blink shows.
-      ctx.register(s.refs.podGroup.animate(
-        [{ opacity: 0.55 }, { opacity: 0.8 }, { opacity: 0.55 }],
-        { duration: 900, delay: 1000, fill: 'both', easing: 'ease-in-out' }
-      ));
+      const probe = connectorPacketDir(s, ctx, 'down');
+      // Pod is still booting (dim), so flash its opacity on probe arrival so the blink shows.
+      pulsePodDim(s.refs.podGroup, ctx, probe.arrivalMs);
     },
   },
   {
     id: 'startup-success',
-    duration: 2000,
+    duration: 2600,
     narration: 'startupProbe passes once. Kubelet retires it permanently for the lifetime of this container instance and never runs it again. livenessProbe and readinessProbe are released and now execute on their own periodSeconds.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -196,21 +161,18 @@ const STEPS = [
       s.refs.readinessChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '0.55';
       setConnectorDir(s, 'up');
-      setChainActive(s.refs.chain, 2);
+      setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      pulsePod(s.refs.podGroup, ctx, 0);
-      // Pod flashes brighter so the blink is clearly visible, then settles back
-      // to its dim not-yet-Ready state. Only after that does the packet leave.
-      ctx.register(s.refs.podGroup.animate(
-        [{ opacity: 0.55 }, { opacity: 1 }, { opacity: 0.55 }],
-        { duration: 900, delay: 0, fill: 'both', easing: 'ease-in-out' }
-      ));
-      connectorPacket(s, ctx, 'up', { delay: 800 });
+      // Startup passed but readiness has not, so the Pod is not Ready yet: it blinks
+      // to its partial (not full) opacity and settles back to dim. Full opacity is
+      // reserved for the ready step. Only after the blink does the packet leave.
+      pulsePodDim(s.refs.podGroup, ctx, 0);
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
     },
   },
   {
     id: 'ready',
-    duration: 2100,
+    duration: 2600,
     narration: 'readinessProbe passes successThreshold consecutive times. Kubelet flips the Pod Ready condition to True, and the EndpointSlice controller adds the Pod IP to the Service EndpointSlice. The Pod now receives traffic.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -228,20 +190,20 @@ const STEPS = [
       // readiness passed: the Pod becomes Ready and lifts to full opacity.
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'up');
-      setChainActive(s.refs.chain, 3);
+      setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
       pulsePod(s.refs.podGroup, ctx, 0);
       // Pod lights up to Ready first (the visible blink), then reports up to Kubelet.
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.55 }, { opacity: 1 }],
-        { duration: 500, delay: 0, fill: 'both', easing: 'ease-out' }
+        { duration: FADE.in, delay: 0, fill: 'both', easing: 'ease-out' }
       ));
-      connectorPacket(s, ctx, 'up', { delay: 800 });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
     },
   },
   {
     id: 'liveness-fail',
-    duration: 2300,
+    duration: 2600,
     narration: 'livenessProbe fails failureThreshold consecutive times. Kubelet kills the container and restarts it per restartPolicy, so restartCount becomes 1. readinessProbe fails too, which drops the Pod IP from the EndpointSlice at once, without waiting for the restart.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -261,15 +223,15 @@ const STEPS = [
       // Container killed: the Pod drops to its dimmest state.
       s.refs.podGroup.style.opacity = '0.3';
       setConnectorDir(s, 'up');
-      setChainActive(s.refs.chain, 4);
+      setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
       // Pod is still bright here, so the pulse blink reads clearly. Ball leaves
       // after the blink, then the container is killed and the Pod dims.
       pulsePod(s.refs.podGroup, ctx, 0);
-      connectorPacket(s, ctx, 'up', { delay: 800 });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
-        { duration: 700, delay: 900, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, delay: BEAT.afterPulse + BEAT.afterHop, fill: 'both', easing: 'ease-in' }
       ));
     },
   },
@@ -295,16 +257,16 @@ const STEPS = [
       // Replacement container is Ready: the Pod returns to full opacity.
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 5);
+      setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      connectorPacket(s, ctx, 'down');
+      const probe = connectorPacketDir(s, ctx, 'down');
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.3 }, { opacity: 1 }],
-        { duration: 800, delay: 1000, fill: 'both', easing: 'ease-out' }
+        { duration: FADE.in, delay: probe.arrivalMs, fill: 'both', easing: 'ease-out' }
       ));
-      pulsePod(s.refs.podGroup, ctx, 1000);
+      pulsePod(s.refs.podGroup, ctx, probe.arrivalMs);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

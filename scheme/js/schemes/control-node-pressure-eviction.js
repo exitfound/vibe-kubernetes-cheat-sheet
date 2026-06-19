@@ -1,6 +1,8 @@
 import { svg, g } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow, packet, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, makeInit } from '../lib/control-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, FADE } from '../lib/control-kit.js';
+
+const CONNECTOR = [[320, 80], [280, 80], [280, 550], [320, 550]];
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,7 +12,7 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1200 640',
+      viewBox: '0 20 1200 620',
       preserveAspectRatio: 'xMidYMid meet',
       'aria-label': 'Node-pressure eviction: detect, condition, rank, evict, relieve',
       'data-style': 'outline',
@@ -96,9 +98,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','memChip','thresholdChip','pressureChip','victimChip','pod1Box','pod2Box','pod3Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
+  clearHighlights(s,
+    ['kubelet','memChip','thresholdChip','pressureChip','victimChip','pod1Box','pod2Box','pod3Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
 }
 
 function resetPodOpacity(s) {
@@ -125,7 +127,7 @@ const STEPS = [
     id: 'detect',
     duration: 2000,
     narration: 'cAdvisor reports memory.available has dropped to 500Mi. Eviction manager polls these stats every 10s in its own synchronize loop (separate from cAdvisor housekeeping) and compares against the --eviction-hard signals. The threshold is breached.',
-    enter(s, ctx) {
+    enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       resetPodOpacity(s);
@@ -136,14 +138,15 @@ const STEPS = [
       s.refs.memChip.classList.add('highlight');
       s.refs.thresholdChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
-      if (ctx.reduced) return;
+      // Local stats comparison: nothing travels and no block flashes, the
+      // changed memory.available reading and lit threshold carry the step.
     },
   },
   {
     id: 'condition',
     duration: 2000,
     narration: 'Kubelet PATCHes Node.status.conditions: MemoryPressure flips from False to True. TaintNodesByCondition controller translates this into a NoSchedule taint (node.kubernetes.io/memory-pressure), so Pods that do not tolerate it can no longer be scheduled here. By default BestEffort and Burstable workloads carry no such toleration.',
-    enter(s, ctx) {
+    enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       resetPodOpacity(s);
@@ -152,7 +155,8 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.pressureChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
+      // The condition flip is a status PATCH with no node-side effect yet:
+      // nothing travels and no block flashes, the MemoryPressure value carries it.
     },
   },
   {
@@ -165,16 +169,17 @@ const STEPS = [
       resetPodOpacity(s);
       setVal(s.refs.victimChip, 'BestEffort Pod selected');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.pod1Box.classList.add('highlight');
       s.refs.victimChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
+      // The ranking lands on the BestEffort Pod: mark the victim with a pulse.
+      pulsePod(s.refs.pod1, ctx, 400);
     },
   },
   {
     id: 'evict',
     duration: 2500,
-    narration: 'Kubelet evicts the BestEffort Pod. For hard thresholds the grace period is forced to 0 (immediate SIGKILL), unlike normal Pod termination which gives 30s after SIGTERM before SIGKILL. The Pod is removed locally and its status is reported to ApiServer.',
+    narration: 'Kubelet evicts the BestEffort Pod. For hard thresholds the grace period is forced to 0 (immediate SIGKILL), unlike normal Pod termination which gives 30s after SIGTERM before SIGKILL. The Pod is removed locally and its status is reported to Api.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -187,11 +192,11 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      const p = packet({ x: 320, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100 }));
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1100, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, delay: 1100, fill: 'both', easing: 'ease-in' }));
+      // SIGKILL travels to the node, the victim reacts only on arrival. delay 0 means
+      // routePacket starts the ball visible (fadeIn is delay-gated), matching the old call.
+      const kill = routePacket(s, ctx, CONNECTOR);
+      pulsePod(s.refs.pod1, ctx, kill.arrivalMs);
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: kill.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -212,8 +217,11 @@ const STEPS = [
       s.refs.pressureChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
+      // Pressure cleared: the survivors pulse together.
+      pulsePod(s.refs.pod2, ctx, 0);
+      pulsePod(s.refs.pod3, ctx, 0);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

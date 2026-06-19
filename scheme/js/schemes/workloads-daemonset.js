@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, topPacket, makeInit } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 // valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js
 
@@ -20,7 +20,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const daemonset = box({ x: 320, y: 40, w: 220, h: 80, label: 'DaemonSet', sublabel: '', cat: 'control' });
-    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer', sublabel: 'watch Nodes · Pod CRUD', cat: 'control' });
+    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'watch Nodes · Pod CRUD', cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
@@ -46,12 +46,12 @@ class Scene {
       cat: 'control',
     });
 
-    // Four node slots across the bottom band. node-4 starts hidden and joins in step 3.
+    // Four node slots across the bottom band. Node-4 starts hidden and joins in step 3.
     const NODE_DEFS = [
-      { key: 'node1El', x: 320, label: 'node-1' },
-      { key: 'node2El', x: 538, label: 'node-2' },
-      { key: 'node3El', x: 756, label: 'node-3' },
-      { key: 'node4El', x: 974, label: 'node-4' },
+      { key: 'node1El', x: 320, label: 'Node-1' },
+      { key: 'node2El', x: 538, label: 'Node-2' },
+      { key: 'node3El', x: 756, label: 'Node-3' },
+      { key: 'node4El', x: 974, label: 'Node-4' },
     ];
     const nodeEls = {};
     NODE_DEFS.forEach(d => { nodeEls[d.key] = node({ x: d.x, y: 468, w: 206, h: 162, label: d.label }); });
@@ -108,15 +108,10 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['daemonset','apiserver','desiredChip','currentChip','readyChip','focusChip','pod1Box','pod2Box','pod3Box','pod4Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  ['pod1','pod2','pod3','pod4'].forEach(k => clearPodHighlight(s.refs[k]));
+  clearHighlights(s,
+    ['daemonset','apiserver','desiredChip','currentChip','readyChip','focusChip','pod1Box','pod2Box','pod3Box','pod4Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
 }
-function clearWires(s) { Object.values(s.refs.wires).forEach(t => { t.textContent = ''; }); }
-function setWire(s, key, txt) { if (s.refs.wires[key]) s.refs.wires[key].textContent = txt; }
-
-// pulsePod / clearPodHighlight / connectorPacket / topPacket are imported from ../lib/scheme-kit.js
 
 const STEPS = [
   {
@@ -137,13 +132,13 @@ const STEPS = [
       setVal(s.refs.currentChip, '0');
       setVal(s.refs.readyChip, '0');
       setVal(s.refs.focusChip, 'selector: app=fluentd');
-      setChainActive(s.refs.chain, -1);
+      setChainActive(s.refs.chain, 0);
     },
   },
   {
     id: 'place',
-    duration: 2500,
-    narration: 'The controller sees three matching nodes and zero Pods, so it creates one Pod on each through the apiserver and the local kubelet starts it. A DaemonSet places exactly one Pod per node, never a second, so the count follows the nodes themselves rather than a fixed replica number you set.',
+    duration: 2600,
+    narration: 'The controller sees three matching nodes and zero Pods, so it creates one Pod on each through the Api and the local Kubelet starts it. A DaemonSet places exactly one Pod per node, never a second, so the count follows the nodes themselves rather than a fixed replica number you set.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -165,22 +160,21 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) { ['pod1Box','pod2Box','pod3Box'].forEach(k => s.refs[k].classList.add('highlight')); return; }
-      topPacket(s, ctx);
+      const req = topPacket(s, ctx);
       // Create reaches the node band, the three Pods materialize and pulse together.
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      const ARRIVAL = 1900;
-      ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
-      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
-      ctx.register(s.refs.pod3.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod1, ctx, ARRIVAL);
-      pulsePod(s.refs.pod2, ctx, ARRIVAL);
-      pulsePod(s.refs.pod3, ctx, ARRIVAL);
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.pod3.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod1, ctx, create.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, create.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, create.arrivalMs);
     },
   },
   {
     id: 'node-join',
-    duration: 2400,
-    narration: 'A new worker node-4 joins the cluster and turns Ready. The DaemonSet controller watches Node objects, recomputes desiredNumberScheduled to four, and creates a Pod on node-4 alone. No other node is disturbed. Automatic per-node placement is the whole reason a DaemonSet exists.',
+    duration: 2600,
+    narration: 'A new worker Node-4 joins the cluster and turns Ready. The DaemonSet controller watches Node objects, recomputes desiredNumberScheduled to four, and creates a Pod on Node-4 alone. No other node is disturbed. Automatic per-node placement is the whole reason a DaemonSet exists.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -188,14 +182,14 @@ const STEPS = [
       setVal(s.refs.desiredChip, '4');
       setVal(s.refs.currentChip, '4');
       setVal(s.refs.readyChip, '4');
-      setVal(s.refs.focusChip, 'node-4 joined, Pod added');
+      setVal(s.refs.focusChip, 'Node-4 joined, Pod added');
       setWire(s, 'req', 'Watch Node added · desiredNumberScheduled 3 to 4');
       s.refs.daemonset.classList.add('highlight');
       s.refs.apiserver.classList.add('highlight');
       s.refs.desiredChip.classList.add('highlight');
       s.refs.currentChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      // Pin final: the three existing Pods plus node-4 and its new Pod are present.
+      // Pin final: the three existing Pods plus Node-4 and its new Pod are present.
       s.refs.pod1.style.opacity = '1';
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
@@ -206,16 +200,16 @@ const STEPS = [
       // on it, which materializes and pulses when the create reaches the node.
       s.refs.node4El.style.opacity = '0';
       s.refs.pod4.style.opacity = '0';
-      ctx.register(s.refs.node4El.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 200, fill: 'both', easing: 'ease-out' }));
-      topPacket(s, ctx);
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 1900, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod4, ctx, 1900);
+      ctx.register(s.refs.node4El.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: 200, fill: 'both', easing: 'ease-out' }));
+      const req = topPacket(s, ctx);
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod4, ctx, create.arrivalMs);
     },
   },
   {
     id: 'update',
-    duration: 2300,
+    duration: 2600,
     narration: 'The image is bumped from fluentd v1 to v2. The RollingUpdate strategy with maxUnavailable=1 deletes and recreates the Pods one node at a time, never taking more than one down at once, so log collection keeps running on the rest. The OnDelete strategy would instead wait until you delete each Pod by hand.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -230,26 +224,26 @@ const STEPS = [
       s.refs.readyChip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
-      // All four Pods stay placed, node-4 stays present.
+      // All four Pods stay placed, Node-4 stays present.
       s.refs.pod1.style.opacity = '1';
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       s.refs.pod4.style.opacity = '1';
       s.refs.node4El.style.opacity = '1';
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
-      // One node at a time: the update travels controller -> ApiServer -> node-1 down the
-      // dashed connector, and only when it arrives does node-1 react. pod1 pulses as its
+      // One node at a time: the update travels controller -> Api -> Node-1 down the
+      // dashed connector, and only when it arrives does Node-1 react. pod1 pulses as its
       // Pod is recreated on the new version, while the rest keep serving. Mirrors the
       // surge step of workloads-rolling-update (ball first, pulse on arrival).
-      topPacket(s, ctx);
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1900);
+      const req = topPacket(s, ctx);
+      const update = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.pod1, ctx, update.arrivalMs);
     },
   },
   {
     id: 'drain',
     duration: 2400,
-    narration: 'node-2 is drained and leaves the cluster. Its DaemonSet Pod is deleted and, unlike a Deployment replica, it is not recreated on another node. A DaemonSet keeps exactly one Pod per node and every surviving node already has one, so desiredNumberScheduled simply drops back to three.',
+    narration: 'Node-2 is drained and leaves the cluster. Its DaemonSet Pod is deleted and, unlike a Deployment replica, it is not recreated on another node. A DaemonSet keeps exactly one Pod per node and every surviving node already has one, so desiredNumberScheduled simply drops back to three.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -257,12 +251,12 @@ const STEPS = [
       setVal(s.refs.desiredChip, '3');
       setVal(s.refs.currentChip, '3');
       setVal(s.refs.readyChip, '3');
-      setVal(s.refs.focusChip, 'node-2 gone, Pod not rescheduled');
+      setVal(s.refs.focusChip, 'Node-2 gone, Pod not rescheduled');
       setWire(s, 'req', 'Node-2 removed · delete its Pod · no reschedule');
       s.refs.daemonset.classList.add('highlight');
       s.refs.desiredChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
-      // Pin final: node-2 and its Pod are gone, the other three Pods and node-4 remain.
+      // Pin final: Node-2 and its Pod are gone, the other three Pods and Node-4 remain.
       s.refs.pod1.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       s.refs.pod4.style.opacity = '1';
@@ -270,16 +264,16 @@ const STEPS = [
       s.refs.pod2.style.opacity = '0';
       s.refs.node2El.style.opacity = '0.4';
       if (ctx.reduced) return;
-      // The delete reaches node-2 over the connector. pod2 pulses then fades out and
-      // node-2 dims as it leaves the cluster.
+      // The delete reaches Node-2 over the connector. pod2 pulses then fades out and
+      // Node-2 dims as it leaves the cluster.
       s.refs.pod2.style.opacity = '1';
       s.refs.node2El.style.opacity = '1';
-      connectorPacket(s, ctx, { delay: 0, dur: 1100 });
-      pulsePod(s.refs.pod2, ctx, 1100);
-      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 1100, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.node2El.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 700, delay: 1100, fill: 'both', easing: 'ease-in' }));
+      const del = connectorPacket(s, ctx);
+      pulsePod(s.refs.pod2, ctx, del.arrivalMs);
+      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.node2El.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

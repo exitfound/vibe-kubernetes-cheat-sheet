@@ -9,14 +9,14 @@
       location.replace((h.indexOf('#scheme=') === 0 ? '/scheme/' : '/cli/') + h);
     })();
   </script>
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#110f1f">
+  <style>:root{color-scheme:dark}html,body{background:#110f1f;color:#ece9ff}</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>kube.how | Kubernetes Commands and Schemes</title>
   <meta name="description" content="Kubernetes reference hub: a searchable CLI cheat sheet and interactive animated architecture schemes.">
   <meta name="keywords" content="kubernetes, k8s, kubectl, helm, kustomize, k9s, cheat sheet, commands, architecture, diagrams, schemes, reference">
   <meta name="author" content="kube.how">
-  <meta name="theme-color" content="#110f1f">
-  <meta name="color-scheme" content="dark">
-  <style>html,body{background:#110f1f;color:#ece9ff}</style>
 
   <link rel="canonical" href="https://kube.how/">
 
@@ -84,10 +84,113 @@
     }
     .hub-ruler .nav { position: static; box-shadow: none; }
 
+    /* Brighter separators on the hub. The header border goes transparent so
+       its height matches the cli and scheme pages exactly, and a spacer strip
+       below extends the header background downward to give the text some calm
+       room before the animated graph starts. The strip carries the line. */
+    .header { border-bottom-color: transparent; }
+
+    .hub-headpad {
+      position: relative;
+      height: 5px;
+      background: rgba(17, 15, 31, 0.95);
+    }
+
+    .hub-headpad::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: linear-gradient(to right, rgba(221, 202, 250, 0.06), rgba(221, 202, 250, 0.32) 50%, rgba(221, 202, 250, 0.06));
+      pointer-events: none;
+    }
+
+    .footer { position: relative; border-top-color: transparent; }
+    .footer::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 2px;
+      background: linear-gradient(to right, rgba(221, 202, 250, 0.06), rgba(221, 202, 250, 0.32) 50%, rgba(221, 202, 250, 0.06));
+      pointer-events: none;
+    }
+
     .hub-split {
+      position: relative;
       flex: 1;
       display: flex;
       align-items: stretch;
+    }
+
+    .hub-graph {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Aurora layer: huge soft colour blobs drifting very slowly under the graph.
+       Pre-blurred radial gradients, transform-only animation, no filters. */
+    .hub-aurora {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .hub-aurora i {
+      position: absolute;
+      width: 65vmax;
+      height: 65vmax;
+      border-radius: 50%;
+      will-change: transform;
+    }
+
+    /* Cyan: from the centre of the Commands half toward the top-right corner
+       of that half. Lavender: from the top-right corner of the screen toward
+       the bottom centre. Different periods plus phase offsets keep them out
+       of sync. */
+    .hub-aurora i:nth-child(1) {
+      left: calc(25% - 32.5vmax);
+      top: calc(50% - 32.5vmax);
+      background: radial-gradient(circle, rgba(79, 229, 255, 0.10), transparent 62%);
+      animation: hubAur1 38s ease-in-out infinite alternate;
+    }
+
+    .hub-aurora i:nth-child(2) {
+      left: calc(100% - 32.5vmax);
+      top: -32.5vmax;
+      background: radial-gradient(circle, rgba(196, 168, 255, 0.11), transparent 62%);
+      animation: hubAur2 46s ease-in-out infinite alternate;
+      animation-delay: -19s;
+    }
+
+    .hub-aurora i:nth-child(3) {
+      left: 30%;
+      top: -20vmax;
+      background: radial-gradient(circle, rgba(125, 134, 255, 0.08), transparent 60%);
+      animation: hubAur3 52s ease-in-out infinite alternate;
+      animation-delay: -27s;
+    }
+
+    @keyframes hubAur1 {
+      from { transform: translate3d(0, 0, 0) scale(1); }
+      to   { transform: translate3d(25vw, -42vh, 0) scale(1.12); }
+    }
+
+    @keyframes hubAur2 {
+      from { transform: translate3d(0, 0, 0) scale(1.08); }
+      to   { transform: translate3d(-25vw, 86vh, 0) scale(0.95); }
+    }
+
+    @keyframes hubAur3 {
+      from { transform: translate3d(0, 0, 0) scale(0.95); }
+      to   { transform: translate3d(8vmax, 9vmax, 0) scale(1.15); }
     }
 
     .hub-panel {
@@ -105,26 +208,16 @@
       overflow: hidden;
     }
 
-    .hub-panel + .hub-panel { border-left: 1px solid var(--border-subtle); }
-
-    .hub-panel::before {
+    .hub-panel + .hub-panel::after {
       content: '';
       position: absolute;
-      inset: 0;
-      opacity: 0.45;
-      transition: opacity 0.3s ease;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, rgba(221, 202, 250, 0.06), rgba(221, 202, 250, 0.32) 50%, rgba(221, 202, 250, 0.06));
       pointer-events: none;
     }
-
-    .hub-panel-cli::before {
-      background: radial-gradient(ellipse 75% 60% at 50% 42%, var(--workloads-glow), transparent 70%);
-    }
-
-    .hub-panel-scheme::before {
-      background: radial-gradient(ellipse 75% 60% at 50% 42%, var(--hub-scheme-glow), transparent 70%);
-    }
-
-    .hub-panel:hover::before, .hub-panel:focus-visible::before { opacity: 1; }
 
     .hub-panel:focus-visible {
       outline: 1px solid var(--accent-border);
@@ -201,7 +294,6 @@
     .hub-panel:hover .hub-cta svg, .hub-panel:focus-visible .hub-cta svg { transform: translateX(3px); }
 
     @media (hover: none) {
-      .hub-panel::before { opacity: 0.75; }
       .hub-panel-cli .hub-icon { color: var(--workloads-color); }
       .hub-panel-scheme .hub-icon { color: var(--hub-scheme-color); }
       .hub-panel-cli .hub-cta { border-color: var(--workloads-border); color: var(--workloads-color); }
@@ -212,7 +304,13 @@
       .header-actions { margin-left: auto; }
       .hub-split { flex-direction: column; }
       .hub-panel { padding: 44px 28px; min-height: 320px; }
-      .hub-panel + .hub-panel { border-left: none; border-top: 1px solid var(--border-subtle); }
+      .hub-panel + .hub-panel::after {
+        bottom: auto;
+        right: 0;
+        width: auto;
+        height: 2px;
+        background: linear-gradient(to right, rgba(221, 202, 250, 0.06), rgba(221, 202, 250, 0.32) 50%, rgba(221, 202, 250, 0.06));
+      }
     }
 
     @media (max-width: 400px) {
@@ -227,7 +325,7 @@
   <h1 class="sr-only">kube.how, the Kubernetes reference hub with CLI commands and animated architecture schemes</h1>
 
   <aside class="sidebar" aria-label="Site switcher">
-    <a class="side-btn active" id="sideHome" data-tooltip="Home" aria-label="Home" aria-current="page" href="/">
+    <a class="side-btn active" id="sideHome" data-tooltip="K8s Home" aria-label="K8s Home" aria-current="page" href="/">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2"/><path d="M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8"/></svg>
     </a>
     <a class="side-btn" id="sideCli" data-tooltip="K8s Commands" aria-label="K8s Commands" href="/cli/">
@@ -256,15 +354,23 @@
                 <stop offset="100%" stop-color="#c4a8ff"/>
               </linearGradient>
             </defs>
-            <rect x="4" y="6" width="24" height="20" rx="2.5" fill="none" stroke="url(#hubFg)" stroke-width="1.6"/>
-            <polyline points="8.5 13 12 16 8.5 19" fill="none" stroke="url(#hubFg)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="16.5" y="11.5" width="4.6" height="3.8" rx="1" fill="none" stroke="url(#hubFg)" stroke-width="1.4"/>
-            <rect x="22.5" y="17.5" width="4.6" height="3.8" rx="1" fill="none" stroke="url(#hubFg)" stroke-width="1.4"/>
-            <line x1="21.1" y1="15.3" x2="22.5" y2="17.5" stroke="url(#hubFg)" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="9" fill="none" stroke="url(#hubFg)" stroke-width="1.6"/>
+            <circle cx="16" cy="16" r="2.8" fill="none" stroke="url(#hubFg)" stroke-width="1.5"/>
+            <g stroke="url(#hubFg)" stroke-width="1.6" stroke-linecap="round">
+              <line x1="16" y1="11.4" x2="16" y2="3.4"/>
+              <line x1="19.25" y1="12.75" x2="24.91" y2="7.09"/>
+              <line x1="20.6" y1="16" x2="28.6" y2="16"/>
+              <line x1="19.25" y1="19.25" x2="24.91" y2="24.91"/>
+              <line x1="16" y1="20.6" x2="16" y2="28.6"/>
+              <line x1="12.75" y1="19.25" x2="7.09" y2="24.91"/>
+              <line x1="11.4" y1="16" x2="3.4" y2="16"/>
+              <line x1="12.75" y1="12.75" x2="7.09" y2="7.09"/>
+            </g>
+            <circle cx="16" cy="16" r="1.2" fill="#4fe5ff"/>
           </svg>
         </div>
         <div>
-          <div class="logo-text">Kubernetes Reference</div>
+          <div class="logo-text">Kubernetes Reference Hub</div>
           <div class="logo-sub">Commands &amp; Schemes</div>
         </div>
       </a>
@@ -274,11 +380,17 @@
     </div>
   </header>
 
+  <div class="hub-headpad" aria-hidden="true"></div>
+
   <div class="hub-ruler" aria-hidden="true">
     <nav class="nav nav-top"><div class="nav-inner"><button class="nav-btn top-btn" data-group="all" tabindex="-1">All</button></div></nav>
   </div>
 
   <main class="hub-split">
+
+    <div class="hub-aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <canvas class="hub-graph" id="hubGraph" aria-hidden="true"></canvas>
 
     <a class="hub-panel hub-panel-cli" href="/cli/">
       <div class="hub-icon">
@@ -464,6 +576,198 @@
       const mod = await import('/cli/js/contacts.js');
       renderHeaderActions(mod.CONTACTS, mod.SPONSOR, mod.GITHUB);
     } catch (_) {}
+
+    // Animated node graph background: drifting cluster nodes, soft links,
+    // and occasional packets running along the edges.
+    (function () {
+      const canvas = document.getElementById('hubGraph');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const CYAN = [79, 229, 255];
+      const LAV  = [196, 168, 255];
+      const LINK = 170;
+      const PACKET_SPAWN = LINK * 0.55;
+      const PACKET_DROP  = LINK * 0.8;
+      let nodes = [], packets = [], raf = 0, w = 0, h = 0, lastW = 0, lastH = 0;
+      let lastTs = 0, lastField = -1e9;
+
+      const mixArr = t => {
+        const k = Math.max(0, Math.min(1, t));
+        return CYAN.map((v, i) => v + (LAV[i] - v) * k);
+      };
+
+      // Sample the live aurora blob positions so every dot, link and packet
+      // takes the colour of the glow it is currently flying over. The blobs
+      // drift over tens of seconds, so resampling a few times per second is
+      // visually identical and avoids per-frame layout reads.
+      const auroraBlobs = Array.from(document.querySelectorAll('.hub-aurora i')).map((el, i) => ({
+        el,
+        rgb: [CYAN, LAV, [125, 134, 255]][i] || LAV,
+      }));
+      let field = [];
+
+      function sampleField() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        field = auroraBlobs.map(b => {
+          const r = b.el.getBoundingClientRect();
+          return {
+            cx: r.left + r.width / 2 - rect.left,
+            cy: r.top + r.height / 2 - rect.top,
+            rad: r.width * 0.31,
+            rgb: b.rgb,
+          };
+        });
+      }
+
+      const colorAt = (x, y) => {
+        let cr = 0, cg = 0, cb = 0, wsum = 0;
+        for (const b of field) {
+          const wgt = Math.max(0, 1 - Math.hypot(x - b.cx, y - b.cy) / b.rad);
+          if (wgt <= 0) continue;
+          cr += b.rgb[0] * wgt;
+          cg += b.rgb[1] * wgt;
+          cb += b.rgb[2] * wgt;
+          wsum += wgt;
+        }
+        const base = mixArr(x / w);
+        if (!wsum) return base.map(Math.round).join(', ');
+        const k = Math.min(1, wsum);
+        return [cr / wsum, cg / wsum, cb / wsum]
+          .map((v, i) => Math.round(base[i] + (v - base[i]) * k))
+          .join(', ');
+      };
+
+      function seed() {
+        const count = Math.max(16, Math.min(110, Math.round((w * h) / 15000)));
+        nodes = Array.from({ length: count }, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.36,
+          vy: (Math.random() - 0.5) * 0.36,
+          r: 1.2 + Math.random(),
+        }));
+        packets = [];
+      }
+
+      function resize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = rect.width;
+        h = rect.height;
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (!nodes.length || Math.abs(w - lastW) > 40 || Math.abs(h - lastH) > 40) {
+          lastW = w;
+          lastH = h;
+          seed();
+        }
+      }
+
+      function spawnPacket() {
+        if (packets.length >= 4) return;
+        for (let tries = 0; tries < 12; tries++) {
+          const a = nodes[(Math.random() * nodes.length) | 0];
+          const b = nodes[(Math.random() * nodes.length) | 0];
+          if (a === b) continue;
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          if (d > 30 && d < PACKET_SPAWN) { packets.push({ a, b, t: 0 }); return; }
+        }
+      }
+
+      // scale = elapsed time in 60fps-frame units (0 for a static frame), so
+      // motion speed stays identical on 60, 120 and 144Hz displays.
+      function drawFrame(scale, now) {
+        if (now - lastField > 150) {
+          lastField = now;
+          sampleField();
+        }
+        ctx.clearRect(0, 0, w, h);
+        if (scale) {
+          for (const n of nodes) {
+            n.x += n.vx * scale;
+            n.y += n.vy * scale;
+            if (n.x < -10) n.x = w + 10; else if (n.x > w + 10) n.x = -10;
+            if (n.y < -10) n.y = h + 10; else if (n.y > h + 10) n.y = -10;
+          }
+        }
+        ctx.lineWidth = 1;
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i], b = nodes[j];
+            const d = Math.hypot(a.x - b.x, a.y - b.y);
+            if (d >= LINK) continue;
+            ctx.strokeStyle = `rgba(${colorAt((a.x + b.x) / 2, (a.y + b.y) / 2)}, ${(1 - d / LINK) * 0.2})`;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+        for (const n of nodes) {
+          ctx.fillStyle = `rgba(${colorAt(n.x, n.y)}, 0.55)`;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (!scale) return;
+        for (let i = packets.length - 1; i >= 0; i--) {
+          const p = packets[i];
+          p.t += 0.014 * scale;
+          const d = Math.hypot(p.a.x - p.b.x, p.a.y - p.b.y);
+          if (p.t >= 1 || d >= PACKET_DROP) { packets.splice(i, 1); continue; }
+          const x = p.a.x + (p.b.x - p.a.x) * p.t;
+          const y = p.a.y + (p.b.y - p.a.y) * p.t;
+          const rgb = colorAt(x, y);
+          ctx.strokeStyle = `rgba(${rgb}, 0.12)`;
+          ctx.beginPath();
+          ctx.moveTo(p.a.x, p.a.y);
+          ctx.lineTo(p.b.x, p.b.y);
+          ctx.stroke();
+          ctx.save();
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = `rgba(${rgb}, 0.9)`;
+          ctx.fillStyle = `rgba(${rgb}, 0.95)`;
+          ctx.beginPath();
+          ctx.arc(x, y, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        if (Math.random() < 0.03 * scale) spawnPacket();
+      }
+
+      function loop(ts) {
+        if (!lastTs) lastTs = ts;
+        const dt = Math.min(50, ts - lastTs);
+        lastTs = ts;
+        drawFrame(dt / 16.667, ts);
+        raf = requestAnimationFrame(loop);
+      }
+
+      function start() {
+        cancelAnimationFrame(raf);
+        lastTs = 0;
+        if (reduced.matches || document.hidden) {
+          lastField = -1e9;
+          drawFrame(0, performance.now());
+          return;
+        }
+        raf = requestAnimationFrame(loop);
+      }
+
+      // ResizeObserver also catches the sidebar collapse, which shifts the
+      // split by 38px without firing a window resize.
+      if (window.ResizeObserver) {
+        new ResizeObserver(() => { resize(); start(); }).observe(canvas.parentElement);
+      } else {
+        window.addEventListener('resize', () => { resize(); start(); });
+      }
+      document.addEventListener('visibilitychange', start);
+      if (reduced.addEventListener) reduced.addEventListener('change', start);
+      resize();
+      start();
+    })();
   </script>
 
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "6857fc54268445e1993933588b29845a"}'></script>

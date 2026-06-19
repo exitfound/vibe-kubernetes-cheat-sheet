@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 // valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js
 
@@ -20,7 +20,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Job', sublabel: 'spawn + count', cat: 'control' });
-    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer', sublabel: 'create Pod · watch exit', cat: 'control' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'create Pod · watch exit', cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
@@ -102,20 +102,15 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['controller','apiserver','parChip','compChip','succChip','failChip','phaseChip','pod1Box','pod2Box','pod3Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  ['pod1','pod2','pod3'].forEach(k => clearPodHighlight(s.refs[k]));
+  clearHighlights(s,
+    ['controller','apiserver','parChip','compChip','succChip','failChip','phaseChip','pod1Box','pod2Box','pod3Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
 }
-function clearWires(s) { Object.values(s.refs.wires).forEach(t => { t.textContent = ''; }); }
-function setWire(s, key, txt) { if (s.refs.wires[key]) s.refs.wires[key].textContent = txt; }
 function setUnits(s, a, b, c) {
   setBoxSublabel(s.refs.pod1Box, a);
   setBoxSublabel(s.refs.pod2Box, b);
   setBoxSublabel(s.refs.pod3Box, c);
 }
-
-// pulsePod / clearPodHighlight / connectorPacket are imported from ../lib/scheme-kit.js
 
 const STEPS = [
   {
@@ -135,7 +130,7 @@ const STEPS = [
       s.refs.pod1.style.opacity = '0';
       s.refs.pod2.style.opacity = '0';
       s.refs.pod3.style.opacity = '0';
-      setChainActive(s.refs.chain, -1);
+      setChainActive(s.refs.chain, 0);
     },
   },
   {
@@ -161,20 +156,16 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) return;
-      const pTop = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pTop);
-      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
-      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
-      // Create travels controller -> ApiServer -> Node. The 3 Pods materialize and pulse
+      // Create travels controller -> Api -> Node. The 3 Pods materialize and pulse
       // together when the create reaches the node (parallelism=3 starts them simultaneously).
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      const ARRIVAL = 1900;
-      ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
-      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
-      ctx.register(s.refs.pod3.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: ARRIVAL, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod1, ctx, ARRIVAL);
-      pulsePod(s.refs.pod2, ctx, ARRIVAL);
-      pulsePod(s.refs.pod3, ctx, ARRIVAL);
+      const req = topPacket(s, ctx);
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.pod3.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod1, ctx, create.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, create.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, create.arrivalMs);
     },
   },
   {
@@ -205,12 +196,11 @@ const STEPS = [
       // Controller reconciles the observed exits down to the node state. On arrival the
       // three Pods react together: worker-1 and worker-2 settle as succeeded (stay lit),
       // worker-3 pulses then dims to show it failed.
-      connectorPacket(s, ctx, { delay: 0, dur: 1100 });
-      const ARRIVAL = 1100;
-      pulsePod(s.refs.pod1, ctx, ARRIVAL);
-      pulsePod(s.refs.pod2, ctx, ARRIVAL);
-      pulsePod(s.refs.pod3, ctx, ARRIVAL);
-      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 700, delay: ARRIVAL, fill: 'both', easing: 'ease-in' }));
+      const recon = connectorPacket(s, ctx);
+      pulsePod(s.refs.pod1, ctx, recon.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, recon.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, recon.arrivalMs);
+      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: recon.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -236,18 +226,14 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) return;
-      const pTop = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pTop);
-      ctx.register(animateAlong(pTop, [[540, 65], [580, 65]], { duration: 700 }));
-      ctx.register(pTop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
-      // Replacement create travels controller -> ApiServer -> Node. worker-3 already runs
+      // Replacement create travels controller -> Api -> Node. worker-3 already runs
       // its retry here at full opacity (the dim belonged to the previous step), all three
       // live Pods pulse together on arrival (parallelism=3).
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      const ARRIVAL = 1900;
-      pulsePod(s.refs.pod1, ctx, ARRIVAL);
-      pulsePod(s.refs.pod2, ctx, ARRIVAL);
-      pulsePod(s.refs.pod3, ctx, ARRIVAL);
+      const req = topPacket(s, ctx);
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.pod1, ctx, create.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, create.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, create.arrivalMs);
     },
   },
   {
@@ -274,12 +260,12 @@ const STEPS = [
       if (ctx.reduced) return;
       // Final reconcile reaches the node. The three workers settle to their completed
       // units and pulse together as the Job reaches completions=6 (Complete=True).
-      connectorPacket(s, ctx, { delay: 0, dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1100);
-      pulsePod(s.refs.pod2, ctx, 1100);
-      pulsePod(s.refs.pod3, ctx, 1100);
+      const fin = connectorPacket(s, ctx);
+      pulsePod(s.refs.pod1, ctx, fin.arrivalMs);
+      pulsePod(s.refs.pod2, ctx, fin.arrivalMs);
+      pulsePod(s.refs.pod3, ctx, fin.arrivalMs);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

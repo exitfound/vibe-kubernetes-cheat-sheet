@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chip, chainList, setChainActive, arrow, pathArrow, packet } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, clearPodHighlight, connectorPacket, topPacket, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chip, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
 // valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js
 
@@ -20,7 +20,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const cronjob   = box({ x: 320, y: 40, w: 220, h: 80, label: 'CronJob',   sublabel: 'schedule evaluator',      cat: 'control' });
-    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer', sublabel: 'create Job · prune history', cat: 'control' });
+    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'create Job · prune history', cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
@@ -123,22 +123,17 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['cronjob','apiserver','scheduleChip','concChip','activeChip','lastChip','eventChip','pod1Box','pod2Box','pod3Box','pod4Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
+  clearHighlights(s,
+    ['cronjob','apiserver','scheduleChip','concChip','activeChip','lastChip','eventChip','pod1Box','pod2Box','pod3Box','pod4Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
   s.refs.tickChips.forEach(c => c.classList.remove('highlight'));
-  ['pod1','pod2','pod3','pod4'].forEach(k => clearPodHighlight(s.refs[k]));
 }
-function clearWires(s) { Object.values(s.refs.wires).forEach(t => { t.textContent = ''; }); }
-function setWire(s, key, txt) { if (s.refs.wires[key]) s.refs.wires[key].textContent = txt; }
 // Light the schedule ticks at which a Job actually fired (cumulative). Ticks skipped by
 // concurrencyPolicy or missed during downtime stay dark, so the gaps in the ladder are real.
 // Newly-lit ticks auto-pulse via the Timeline delta, drawing the eye to the fresh run.
 function setTicks(s, lit) {
   s.refs.tickChips.forEach((c, i) => c.classList.toggle('highlight', lit.includes(i)));
 }
-
-// pulsePod / clearPodHighlight / connectorPacket / topPacket are imported from ../lib/scheme-kit.js
 
 const STEPS = [
   {
@@ -164,8 +159,8 @@ const STEPS = [
   },
   {
     id: 'create',
-    duration: 2500,
-    narration: 'At 12:00 the wall clock matches the schedule. The controller creates one Job, backup-28394400, from spec.jobTemplate through the apiserver, and that Job in turn creates its own Pod. The path is always CronJob then Job then Pod, never CronJob straight to Pod. The numeric suffix is derived from the scheduled time, so a single tick can only ever produce one Job, which keeps creation idempotent. status.active becomes 1 and lastScheduleTime records 12:00.',
+    duration: 2600,
+    narration: 'At 12:00 the wall clock matches the schedule. The controller creates one Job, backup-28394400, from spec.jobTemplate through the Api, and that Job in turn creates its own Pod. The path is always CronJob then Job then Pod, never CronJob straight to Pod. The numeric suffix is derived from the scheduled time, so a single tick can only ever produce one Job, which keeps creation idempotent. status.active becomes 1 and lastScheduleTime records 12:00.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -189,11 +184,11 @@ const STEPS = [
       s.refs.pod4.style.opacity = '0';
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       s.refs.pod1.style.opacity = '0';
-      topPacket(s, ctx);
+      const req = topPacket(s, ctx);
       // Create reaches the node, the Job Pod materializes and pulses on arrival.
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 1900, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod1, ctx, 1900);
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod1, ctx, create.arrivalMs);
     },
   },
   {
@@ -220,12 +215,13 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0';
       s.refs.pod4.style.opacity = '0';
       // No connector packet: nothing reaches the node because creation is skipped.
-      if (ctx.reduced) return;
+      // The tick is skipped in place, nothing travels: the policy consulted and the
+      // recorded event show via the static highlight only (no chip pulse).
     },
   },
   {
     id: 'next',
-    duration: 2500,
+    duration: 2600,
     narration: 'By 12:10 the 12:00 run has finished with exit 0, so status.active drops to 0. Now the 12:10 tick has no overlap to forbid, the controller creates Job backup-28394410 and its Pod starts. Each tick is a separate Job and a separate Pod, runs are never reused. The completed 12:00 Job is kept for now as part of the history.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -251,16 +247,16 @@ const STEPS = [
       s.refs.pod4.style.opacity = '0';
       if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
       s.refs.pod2.style.opacity = '0';
-      topPacket(s, ctx);
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 1900, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod2, ctx, 1900);
+      const req = topPacket(s, ctx);
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      pulsePod(s.refs.pod2, ctx, create.arrivalMs);
     },
   },
   {
     id: 'history',
-    duration: 2400,
-    narration: 'Over the following ticks more runs complete and finished Jobs pile up. The controller caps how many it keeps with successfulJobsHistoryLimit (default 3) and failedJobsHistoryLimit (default 1). Once a fourth successful Job exists it prunes the oldest, here backup-28394400, deleting that Job object and its Pod through the apiserver. Trimming history is why kubectl get jobs shows only the most recent runs.',
+    duration: 2600,
+    narration: 'Over the following ticks more runs complete and finished Jobs pile up. The controller caps how many it keeps with successfulJobsHistoryLimit (default 3) and failedJobsHistoryLimit (default 1). Once a fourth successful Job exists it prunes the oldest, here backup-28394400, deleting that Job object and its Pod through the Api. Trimming history is why kubectl get jobs shows only the most recent runs.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -285,10 +281,10 @@ const STEPS = [
       if (ctx.reduced) return;
       // The DELETE reaches the node, the oldest Job pulses then its Pod is removed.
       s.refs.pod1.style.opacity = '1';
-      topPacket(s, ctx);
-      connectorPacket(s, ctx, { delay: 800, dur: 1100 });
-      pulsePod(s.refs.pod1, ctx, 1900);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 1900, fill: 'both', easing: 'ease-in' }));
+      const req = topPacket(s, ctx);
+      const prune = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.pod1, ctx, prune.arrivalMs);
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: prune.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -313,7 +309,8 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       s.refs.pod4.style.opacity = '1';
       // No connector packet: the missed tick produces no Job.
-      if (ctx.reduced) return;
+      // Nothing is created for the missed tick: the recorded miss shows via the
+      // static highlight only (no chip pulse).
     },
   },
   {
@@ -337,9 +334,10 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       s.refs.pod4.style.opacity = '1';
-      if (ctx.reduced) return;
+      // Suspension is a spec flag, nothing travels: the paused state shows via the
+      // static highlight only (no chip pulse).
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

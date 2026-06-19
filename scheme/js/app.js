@@ -442,6 +442,8 @@ const SCHEME_ALIASES = {
   'lifecycle-force-deletion': 'workloads-force-deletion',
   'deployment-rolling-update': 'workloads-rolling-update',
   'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',
+  'service-cluster-ip': 'network-service-clusterip',
+  'network-kube-proxy-iptables': 'network-kube-proxy-modes',
 };
 
 async function openScheme(id, initialStep = null) {
@@ -480,8 +482,8 @@ async function openScheme(id, initialStep = null) {
   const root = dialog.querySelector('.dialog-canvas');
   root.replaceChildren();
   const ctrl = mod.init(root, {
-    onStepChange: (idx, step, total) => {
-      updateNarration(dialog, idx, step, total);
+    onStepChange: (idx, step, total, meta) => {
+      updateNarration(dialog, idx, step, total, meta);
       if (activeDialogScheme && activeDialogScheme.id === scheme.id) {
         const newHash = `#scheme=${scheme.id}&step=${idx + 1}`;
         if (location.hash !== newHash) history.replaceState(null, '', newHash);
@@ -503,9 +505,14 @@ async function openScheme(id, initialStep = null) {
   } else {
     ctrl.gotoStep(0);
     if (!reducedMotion()) {
-      setTimeout(() => {
-        if (activeController === ctrl) ctrl.play();
-      }, 500);
+      const dwell = ctrl.posterFirst ? 1000 : 500;
+      // Cancellable dwell when the controller supports it (any manual interaction or
+      // closing the dialog stops it); fall back to a plain timer for older cards.
+      if (ctrl.autoPlay) {
+        ctrl.autoPlay(dwell);
+      } else {
+        setTimeout(() => { if (activeController === ctrl) ctrl.play(); }, dwell);
+      }
     }
   }
 }
@@ -536,9 +543,9 @@ function buildDialog(scheme) {
       <div class="dialog-body">
         <div class="dialog-stage">
           <div class="dialog-canvas" aria-live="polite"></div>
-          <aside class="narration-overlay" aria-live="polite">
-            <div class="narration-step">Loading…</div>
-            <div class="narration-text">Loading scheme…</div>
+          <aside class="narration-overlay is-poster" aria-live="polite">
+            <div class="narration-step"></div>
+            <div class="narration-text"></div>
           </aside>
         </div>
         <div class="reduced-notice">Reduced motion is on. Use the ◀ ▶ Step buttons to advance manually.</div>
@@ -597,39 +604,63 @@ function buildDialog(scheme) {
   return dlg;
 }
 
-function updateNarration(dialog, idx, step, total) {
+function updateNarration(dialog, idx, step, total, meta) {
+  const overlay = dialog.querySelector('.narration-overlay');
   const stepEl = dialog.querySelector('.narration-step');
   const textEl = dialog.querySelector('.narration-text');
-  if (!step) { stepEl.textContent = ''; textEl.textContent = ''; return; }
-  stepEl.textContent = `Step ${idx + 1}${total ? ' / ' + total : ''}`;
-  textEl.textContent = step.narration || '';
   const prevBtn = dialog.querySelector('[data-act="prev"]');
   const nextBtn = dialog.querySelector('[data-act="next"]');
-  prevBtn.disabled = idx <= 0;
-  nextBtn.disabled = total ? idx >= total - 1 : false;
   const fill = dialog.querySelector('.dialog-progress-fill');
-  if (fill && total) {
-    const pct = total > 1 ? (idx / (total - 1)) * 100 : 100;
+  const dotsWrap = dialog.querySelector('.dialog-step-dots');
+
+  // With a poster, step 0 is the rest frame and the narrated steps are 1..N
+  // (N = total-1); without it every step is narrated (1..total).
+  const posterFirst = !!(meta && meta.posterFirst);
+  const onPoster = posterFirst && idx === 0;
+  const dotCount   = posterFirst ? Math.max(0, total - 1) : total;
+  const displayTot = posterFirst ? total - 1 : total;
+  // The poster previews the FIRST action step: its text shows immediately on open so
+  // the box is never empty/dull, only the diagram animation waits for the dwell.
+  const displayStep = onPoster ? 1 : (posterFirst ? idx : idx + 1);
+  const activeDot   = onPoster ? 0 : (posterFirst ? idx - 1 : idx);
+  const narration   = onPoster ? ((meta && meta.posterText) || '') : (step ? (step.narration || '') : '');
+
+  if (overlay) overlay.classList.remove('is-poster');  // text is always present now
+  if (!step && !onPoster) {
+    stepEl.textContent = '';
+    textEl.textContent = '';
+  } else {
+    stepEl.textContent = `Step ${displayStep}${displayTot ? ' / ' + displayTot : ''}`;
+    textEl.textContent = narration;
+  }
+
+  prevBtn.disabled = idx <= 0;
+  // With a poster, Next wraps the last step back to the poster, so it is never disabled.
+  nextBtn.disabled = posterFirst ? false : (total ? idx >= total - 1 : false);
+
+  if (fill) {
+    const pct = displayTot ? (displayTot > 1 ? (activeDot / (displayTot - 1)) * 100 : 100) : 0;
     fill.style.width = pct + '%';
   }
-  const dotsWrap = dialog.querySelector('.dialog-step-dots');
-  if (dotsWrap && total) {
-    if (dotsWrap.children.length !== total) {
+
+  if (dotsWrap && dotCount) {
+    if (dotsWrap.children.length !== dotCount) {
       let html = '';
-      for (let i = 0; i < total; i++) {
-        html += `<button class="step-dot" data-step="${i}" aria-label="Go to step ${i + 1}"></button>`;
+      for (let i = 0; i < dotCount; i++) {
+        const target = posterFirst ? i + 1 : i;
+        html += `<button class="step-dot" data-step="${target}" aria-label="Go to step ${i + 1}"></button>`;
       }
       dotsWrap.innerHTML = html;
       dotsWrap.querySelectorAll('.step-dot').forEach(dot => {
         dot.addEventListener('click', () => {
-          const target = parseInt(dot.dataset.step, 10);
-          if (activeController && activeController.gotoStep) activeController.gotoStep(target);
+          const t = parseInt(dot.dataset.step, 10);
+          if (activeController && activeController.gotoStep) activeController.gotoStep(t);
         });
       });
     }
     dotsWrap.querySelectorAll('.step-dot').forEach((dot, i) => {
-      dot.classList.toggle('active', i === idx);
-      dot.classList.toggle('passed', i < idx);
+      dot.classList.toggle('active', i === activeDot);
+      dot.classList.toggle('passed', i < activeDot);
     });
   }
 }
@@ -641,6 +672,8 @@ function updatePlayBtn(dialog, playing) {
 }
 
 function showLoadError(dialog) {
+  const overlay = dialog.querySelector('.narration-overlay');
+  if (overlay) overlay.classList.remove('is-poster');
   const text = dialog.querySelector('.narration-text');
   text.textContent = 'Failed to load this scheme. Check the console for details.';
 }

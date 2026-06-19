@@ -1,0 +1,258 @@
+import { svg, g, text, path, rect } from '../lib/svg.js';
+import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/network-kit.js';
+
+// Layout (viewBox 1200x640). The host stack and the Pod namespace line up so the veth reads as a
+// straight cross-namespace link landing dead on eth0, and the host block is vertically centered on
+// the Pod netns block.
+//
+//   Host netns ╌╌veth╌╌> [ Pod netns ]   the dashed veth plugs into the Pod namespace boundary.
+//
+// Inside the Pod netns shell every block plugs into ONE shared stack, drawn as a dashed rail (a bus)
+// that runs across the stack band. The two interfaces of that single stack hang off the rail: eth0
+// (the external door, in-Pod end of the veth) and lo (loopback). The two tenant containers (app,
+// sidecar) tap the same rail from above. So app, sidecar, eth0 and lo are all peers on one stack,
+// not wired one-to-one.
+//
+// Connector convention (matches network-model / network-cni-invocation): every dashed line, the veth
+// and all five interior taps, is drawn ONCE in the same constant dim-dashed style and its opacity is
+// never changed per step. Progression is shown only by which blocks get .highlight and by the packets
+// that ride the connectors, never by fading wires in and out.
+//
+// Choreography (motion follows the steps, blocks light via .highlight, only the Pod shell pulses):
+//   fresh  - only lo is live: lo lights and flashes, nothing flows yet.
+//   veth   - a packet crosses the veth, eth0 lights on arrival, the pod pulses.
+//   shared - app, sidecar and eth0 all light, a localhost packet rides app -> rail -> sidecar, lo lights.
+//   isolation - host, eth0 and lo stay lit (the live host link), the whole shared stack pulses as one
+//               private unit that lives and dies together.
+const POD_TOP = 160;      // Pod netns shell top
+const POD_H = 304;        // Pod netns shell height
+const POD_CY = POD_TOP + POD_H / 2;   // 312: Pod netns vertical center, the host block centers on this
+const AXIS_Y = POD_CY;    // 312: veth axis = the shared center of the host and Pod blocks, so the cable runs dead level between them
+const HOST_EDGE = 410;    // host stack right edge (veth start)
+const HOST_H = 150;       // host block height
+const HOST_Y = POD_CY - HOST_H / 2;   // 237: host block top, vertically centered on the Pod netns block
+const POD_LEFT = 600;     // Pod netns shell left edge (veth end): the cable stops at the namespace
+const POD_W = 448;        // Pod netns shell width
+const POD_CX = POD_LEFT + POD_W / 2;  // 824: Pod netns horizontal center, the interior content + labels center on this
+const COL_SPREAD = 113;   // half the gap between the two interior columns
+const COL_L = POD_CX - COL_SPREAD;    // 711: left column center (app over eth0)
+const COL_R = POD_CX + COL_SPREAD;    // 937: right column center (sidecar over lo)
+const ROW_TOP = 196;      // container row top
+const ROW_TOP_H = 60;
+const ROW_TOP_BOT = ROW_TOP + ROW_TOP_H;   // container row bottom (256)
+const IFACE_H = 60;       // interface box height (eth0 / lo)
+const ROW_BOT = 330;      // stack-interface row top: pushed well below the containers so they do not touch
+const RAIL_Y = 293;       // shared-stack rail (bus), midway in the gap between the two rows
+const BAND_CX = POD_CX;   // 824: shared-stack band center = Pod center, so the band + its label sit centered
+
+// The localhost path: app drops to the shared rail, rides it across, and climbs to the sidecar. This
+// is the in-Pod loopback path, so it touches both container taps and the rail in one motion.
+const LOCAL_PATH = [[COL_L, ROW_TOP_BOT], [COL_L, RAIL_Y], [COL_R, RAIL_Y], [COL_R, ROW_TOP_BOT]];
+
+// One interior connector style: a constant dashed dim line, no arrowhead (direction is carried by the
+// packet). Drawn once and never re-styled per step, so all five taps and the veth read identically.
+function dashLink(x1, y1, x2, y2) {
+  return path({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim', d: `M ${x1} ${y1} L ${x2} ${y2}`, fill: 'none' });
+}
+
+// Light a box (add .highlight) at a delay, so an interface brightens when the packet reaches it.
+function lightBoxAt(boxEl, ctx, delay = 0) {
+  if (!boxEl) return;
+  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
+  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = () => boxEl.classList.add('highlight');
+  ctx.register(a);
+}
+
+class Scene {
+  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+
+  build() {
+    this.host.replaceChildren();
+    this.refs = {};
+    const root = svg({
+      class: 'diagram',
+      viewBox: '0 0 1200 640',
+      preserveAspectRatio: 'xMidYMid meet',
+      'aria-label': 'Network namespaces: the pause container holds one isolated network stack with its own interfaces, routing table and ports, every container in the Pod shares it and reaches the others over localhost, and a veth pair is the only link between the Pod namespace and the host namespace',
+      'data-style': 'outline',
+    });
+    root.appendChild(arrowDefs());
+
+    const host = box({ x: 150, y: HOST_Y, w: 260, h: HOST_H, label: 'Host NETNS', sublabel: 'node NICs · routes · iptables', cat: 'network' });
+
+    const shell = pod({ x: POD_LEFT, y: POD_TOP, w: POD_W, h: POD_H, label: 'Pod NETNS', sublabel: 'isolated stack · 10.244.1.5', containers: 0, cat: 'network' });
+    const shellRect = shell.querySelector('.scheme-pod-rect');
+    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+
+    // Containers (tenants) on top, the shared stack (eth0 + lo) on the row below.
+    const app  = box({ x: COL_L - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'app',     sublabel: 'container', cat: 'network' });
+    const side = box({ x: COL_R - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'sidecar', sublabel: 'container', cat: 'network' });
+    const eth0 = box({ x: COL_L - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'eth0', sublabel: '10.244.1.5', cat: 'network' });
+    const lo   = box({ x: COL_R - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'lo',   sublabel: '127.0.0.1',  cat: 'network' });
+
+    // The shared network stack: a faint band, and inside it a dashed rail (the bus). app + sidecar tap
+    // the rail from above, eth0 + lo from below, so all four are peers on ONE stack. The band, rail and
+    // taps live in podGroup so they pulse as one unit with the pod.
+    const band = rect({ class: 'netns-stack-band', x: BAND_CX - 204, y: 276, w: 408, h: 122, rx: 10,
+      style: 'fill:rgba(79,229,255,0.035);stroke:rgba(79,229,255,0.28);stroke-width:1' });
+    const bandLabel = text({ class: 'scheme-label code dim', x: BAND_CX, y: 420, 'text-anchor': 'middle', 'font-size': 11 }, ['shared network stack']);
+    const rail   = dashLink(COL_L, RAIL_Y, COL_R, RAIL_Y);        // the shared stack bus
+    const tapApp = dashLink(COL_L, ROW_TOP_BOT, COL_L, RAIL_Y);   // app     -> rail
+    const tapSide= dashLink(COL_R, ROW_TOP_BOT, COL_R, RAIL_Y);   // sidecar -> rail
+    const tapEth = dashLink(COL_L, ROW_BOT, COL_L, RAIL_Y);       // eth0    -> rail
+    const tapLo  = dashLink(COL_R, ROW_BOT, COL_R, RAIL_Y);       // lo      -> rail
+    const podGroup = g({});
+    [shell, band, bandLabel, rail, tapApp, tapSide, tapEth, tapLo].forEach(el => podGroup.appendChild(el));
+
+    // veth pair host stack -> Pod namespace: the only cross-namespace link, a single dashed cable
+    // that plugs into the Pod netns boundary (its in-Pod end is eth0, just inside).
+    const vethWire  = arrow({ x1: HOST_EDGE, y1: AXIS_Y, x2: POD_LEFT, y2: AXIS_Y, dashed: true, dim: true, color: 'network' });
+    const vethLabel = text({ class: 'scheme-label code dim', x: 505, y: AXIS_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const localLabel = text({ class: 'scheme-label code dim', x: BAND_CX, y: RAIL_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+
+    // Info chips centered under the diagram: the row spans exactly host-left (150) to Pod-right (1048).
+    const scopeChip = valChip({ x: 150, y: 500, w: 210, h: 34, name: 'namespace', value: 'host', cat: 'network' });
+    const ifaceChip = valChip({ x: 376, y: 500, w: 205, h: 34, name: 'interfaces', value: 'lo', cat: 'network' });
+    const portChip  = valChip({ x: 597, y: 500, w: 180, h: 34, name: 'ports', value: 'private', cat: 'network' });
+    const reachChip = valChip({ x: 793, y: 500, w: 255, h: 34, name: 'reach', value: 'isolated', cat: 'network' });
+
+    const packetLayer = g({ id: 'packetLayer' });
+
+    // Z-order: host stack, then pod shell + band + rail/taps, then the interface/container boxes over
+    // the rail, then the veth cable + wire labels, then chips, then the packet layer on top.
+    root.appendChild(host);
+    root.appendChild(podGroup);
+    [eth0, lo, app, side].forEach(el => root.appendChild(el));
+    [vethWire, vethLabel, localLabel].forEach(el => root.appendChild(el));
+    [scopeChip, ifaceChip, portChip, reachChip].forEach(c => root.appendChild(c));
+    root.appendChild(packetLayer);
+
+    this.host.appendChild(root);
+    this.refs = {
+      svg: root, host, podGroup, app, side, lo, eth0,
+      rail, tapApp, tapSide, tapEth, tapLo, vethWire,
+      scopeChip, ifaceChip, portChip, reachChip,
+      packetLayer, wires: { local: localLabel, veth: vethLabel },
+    };
+  }
+
+  reset() { this.build(); }
+}
+
+function clearHL(s) {
+  clearHighlights(s, ['host', 'app', 'side', 'lo', 'eth0', 'scopeChip', 'ifaceChip', 'portChip', 'reachChip'], [s.refs.podGroup]);
+}
+
+const STEPS = [
+  {
+    id: 'idle',
+    duration: 1500,
+    narration: 'A network namespace is a private copy of the Linux network stack: its own interfaces, routing table, iptables rules and socket ports. The host has one, and each Pod gets its own. This is the boundary that makes a Pod IP feel like a tiny separate machine.',
+    enter(s) {
+      s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
+      setVal(s.refs.scopeChip, 'host');
+      setVal(s.refs.ifaceChip, 'lo');
+      setVal(s.refs.portChip, 'private');
+      setVal(s.refs.reachChip, 'isolated');
+    },
+  },
+  {
+    id: 'fresh',
+    duration: 2200,
+    narration: 'When the Pod sandbox starts, the pause container is handed a brand new network namespace. At first it holds only a loopback device and nothing else, fully cut off from the host stack and from every other Pod. It cannot yet reach anything outside itself.',
+    enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
+      // Only lo is live yet: every block and wire is drawn, but lo is the one that lights.
+      s.refs.lo.classList.add('highlight');
+      s.refs.ifaceChip.classList.add('highlight');
+      s.refs.reachChip.classList.add('highlight');
+      setVal(s.refs.scopeChip, 'pod');
+      setVal(s.refs.ifaceChip, 'lo only');
+      setVal(s.refs.reachChip, 'isolated');
+      // Nothing flows in or out yet: lo simply holds its highlight outline, no flash.
+    },
+  },
+  {
+    id: 'veth',
+    duration: 2400,
+    narration: 'CNI then adds a veth pair: one end becomes eth0 inside the Pod namespace with the Pod IP, the peer stays in the host namespace attached to the bridge. That single cable is the only path between the two stacks, so all Pod traffic to the node and beyond crosses it.',
+    enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
+      setWire(s, 'veth', 'veth pair');
+      // The host link comes alive: the host stack lights, and the packet that rides the veth lights eth0.
+      s.refs.host.classList.add('highlight');
+      s.refs.ifaceChip.classList.add('highlight');
+      s.refs.reachChip.classList.add('highlight');
+      setVal(s.refs.scopeChip, 'pod');
+      setVal(s.refs.ifaceChip, 'lo + eth0');
+      setVal(s.refs.reachChip, 'node + beyond');
+      if (ctx.reduced) { s.refs.eth0.classList.add('highlight'); return; }
+      // Down-arrow: the packet crosses the veth from the host side into eth0, which lights on arrival,
+      // then the pod shell pulses as the namespace gains reach.
+      const hop = segmentPacket(s, ctx, { from: [HOST_EDGE, AXIS_Y], to: [POD_LEFT, AXIS_Y], cat: 'network' });
+      lightBoxAt(s.refs.eth0, ctx, hop.arrivalMs);
+      pulsePod(s.refs.podGroup, ctx, hop.arrivalMs);
+    },
+  },
+  {
+    id: 'shared',
+    duration: 2600,
+    narration: 'Every container in the Pod joins this same namespace, so app and sidecar share one eth0 and one set of ports. They reach each other over 127.0.0.1 with no network hop, which is why two containers in a Pod cannot both bind the same port.',
+    enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
+      setWire(s, 'local', 'localhost');
+      // Every container now shares the one stack: app, sidecar and eth0 all light, lo lights on arrival.
+      s.refs.app.classList.add('highlight');
+      s.refs.side.classList.add('highlight');
+      s.refs.eth0.classList.add('highlight');
+      s.refs.portChip.classList.add('highlight');
+      setVal(s.refs.scopeChip, 'pod');
+      setVal(s.refs.portChip, 'shared');
+      if (ctx.reduced) { s.refs.lo.classList.add('highlight'); return; }
+      // One localhost packet rides app -> rail -> sidecar over the shared stack: it drops down the app
+      // tap, crosses the rail and climbs the sidecar tap, so it traces both joins and the localhost
+      // hop in a single motion. lo (the loopback that serves it) lights on arrival.
+      const hop = routePacket(s, ctx, LOCAL_PATH, { cat: 'network' });
+      lightBoxAt(s.refs.lo, ctx, hop.arrivalMs);
+    },
+  },
+  {
+    id: 'isolation',
+    duration: 2600,
+    narration: 'Because the stack is private, the Pod has its own routing table, its own iptables and its own port space, all separate from the host and from other Pods. Delete the Pod and the namespace is torn down, releasing the veth and the IP in one move.',
+    enter(s, ctx) {
+      s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
+      // The veth still links the two stacks here, so keep the host lit and the cable bright instead of
+      // letting it read as a dead line: this is the contrast the step is about (pod-private vs host).
+      s.refs.host.classList.add('highlight');
+      setWire(s, 'veth', 'veth pair');
+      s.refs.eth0.classList.add('highlight');
+      s.refs.lo.classList.add('highlight');
+      s.refs.scopeChip.classList.add('highlight');
+      s.refs.portChip.classList.add('highlight');
+      s.refs.reachChip.classList.add('highlight');
+      setVal(s.refs.scopeChip, 'pod · private');
+      setVal(s.refs.ifaceChip, 'lo + eth0');
+      setVal(s.refs.portChip, 'own space');
+      setVal(s.refs.reachChip, 'torn down on delete');
+      if (ctx.reduced) return;
+      // No new traffic: the whole shared stack (shell + band + rail) pulses to mark the isolated
+      // stack as the unit that lives and dies as one.
+      pulsePod(s.refs.podGroup, ctx, 0);
+    },
+  },
+];
+
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

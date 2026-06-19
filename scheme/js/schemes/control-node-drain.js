@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, makeInit } from '../lib/control-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, flashChips, FADE, BEAT } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,15 +10,15 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1200 640',
+      viewBox: '0 20 1200 620',
       preserveAspectRatio: 'xMidYMid meet',
       'aria-label': 'Node drain: cordon, list-and-skip, eviction API with PDB gating',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const kubectl   = box({ x: 320, y: 40, w: 220, h: 80, label: 'kubectl',   sublabel: 'drain node-1',    cat: 'control' });
-    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'ApiServer', sublabel: 'eviction gateway', cat: 'control' });
+    const kubectl   = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl',   sublabel: 'drain Node-1',    cat: 'control' });
+    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'eviction gateway', cat: 'control' });
 
     // Top-row arrows: kubectl → apiserver (request) at y=65, apiserver → kubectl (response) at y=95.
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
@@ -42,7 +42,7 @@ class Scene {
         '1. cordon   ·  PATCH Node spec.unschedulable=true',
         '2. list     ·  enumerate Pods, skip DaemonSet / mirror',
         '3. evict    ·  POST .../pods/{name}/eviction',
-        '4. PDB gate ·  ApiServer checks minAvailable, 200 or 429',
+        '4. PDB gate ·  Api checks minAvailable, 200 or 429',
         '5. drained  ·  app Pods gone, DaemonSet stays',
       ],
       cat: 'control',
@@ -106,17 +106,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubectl','apiserver','cordonChip','pdbChip','healthyChip','lastChip','pod1Box','pod2Box','pod3Box']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-}
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
+  clearHighlights(s,
+    ['kubectl','apiserver','cordonChip','pdbChip','healthyChip','lastChip','pod1Box','pod2Box','pod3Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
 }
 
 function resetPodOpacity(s) {
@@ -127,7 +119,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Node-1 runs two Deployment-backed app Pods (web-1, web-2) and one Fluentd Pod from a DaemonSet. The Deployment has a PodDisruptionBudget with minAvailable=1, so at most one of the two web replicas may be Unavailable at any moment. The operator is about to run kubectl drain node-1. Drain is kubectl-side orchestration of a cordon plus per-Pod eviction calls, there is no server-side drain verb.',
+    narration: 'Node-1 runs two Deployment-backed app Pods (web-1, web-2) and one Fluentd Pod from a DaemonSet. The Deployment has a PodDisruptionBudget with minAvailable=1, so at most one of the two web replicas may be Unavailable at any moment. The operator is about to run kubectl drain Node-1. Drain is kubectl-side orchestration of a cordon plus per-Pod eviction calls, there is no server-side drain verb.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -143,50 +135,48 @@ const STEPS = [
   {
     id: 'cordon',
     duration: 2000,
-    narration: 'kubectl PATCHes Node-1 with spec.unschedulable=true. The Scheduler stops placing new Pods on this node, and the status shows SchedulingDisabled. Already-running Pods stay put for now. Cordon is also exposed as a separate verb (kubectl cordon node-1), drain just bundles it with the eviction loop.',
+    narration: 'Kubectl PATCHes Node-1 with spec.unschedulable=true. The Scheduler stops placing new Pods on this Node, and the status shows SchedulingDisabled. Already-running Pods stay put for now. Cordon is also exposed as a separate verb (kubectl cordon Node-1), drain just bundles it with the eviction loop.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
       setVal(s.refs.cordonChip, 'true · SchedulingDisabled');
-      setWire(s, 'req', 'PATCH /api/v1/nodes/node-1 · spec.unschedulable=true');
+      setWire(s, 'req', 'PATCH /api/v1/nodes/Node-1 · spec.unschedulable=true');
       s.refs.kubectl.classList.add('highlight');
       s.refs.apiserver.classList.add('highlight');
       s.refs.cordonChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
-      const p = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[540, 65], [580, 65]], { duration: 800 }));
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 800, fill: 'forwards', easing: 'ease-in' }));
+      // kubectl, apiserver and cordonChip are all newly highlighted here, so the
+      // Timeline auto-delta already pulses them. The PATCH rides the top hop.
+      topPacket(s, ctx);
     },
   },
   {
     id: 'list',
     duration: 1900,
-    narration: 'kubectl lists Pods on Node-1 via fieldSelector=spec.nodeName=node-1 and buckets each one. DaemonSet-owned Pods need --ignore-daemonsets (kubectl refuses to proceed without it when DS Pods are present). Mirror Pods (the API representation of static Pods) are skipped because Kubelet would recreate them immediately. Pods with emptyDir volumes need --delete-emptydir-data or they are also refused. The remaining set, two Deployment-backed Pods here, queues for the Eviction API.',
+    narration: 'Kubectl lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. DaemonSet-owned Pods need --ignore-daemonsets (Kubectl refuses to proceed without it when DS Pods are present). Mirror Pods (the API representation of static Pods) are skipped because Kubelet would recreate them immediately. Pods with emptyDir volumes need --delete-emptydir-data or they are also refused. The remaining set, two Deployment-backed Pods here, queues for the Eviction API.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setWire(s, 'req', 'GET /api/v1/pods · fieldSelector=spec.nodeName=node-1');
+      setWire(s, 'req', 'GET /api/v1/pods · fieldSelector=spec.nodeName=Node-1');
       s.refs.kubectl.classList.add('highlight');
       s.refs.apiserver.classList.add('highlight');
-      s.refs.pod3Box.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      const p = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[540, 65], [580, 65]], { duration: 800 }));
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 800, fill: 'forwards', easing: 'ease-in' }));
+      // Listing is a read against Api: only the kubectl <-> apiserver hop
+      // moves. No packet reaches the node, so no Pod reacts (the bucketing is
+      // shown by the chain advancing, not by blinking a Pod the GET never touches).
+      topPacket(s, ctx);
     },
   },
   {
     id: 'evict-A',
-    duration: 2500,
-    narration: 'kubectl POSTs to /api/v1/namespaces/default/pods/web-1/eviction. ApiServer reads the matching PDB, finds currentHealthy=2 and minAvailable=1, so disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed atomically decrements to 0 (via optimistic concurrency on the PDB status), and the Pod is deleted with the standard grace period. The owning ReplicaSet observes the deletion and creates a replacement, which the Scheduler places on another Ready node, covered in the Deployment rolling update card.',
+    duration: 2600,
+    narration: 'Kubectl POSTs to /api/v1/namespaces/default/pods/web-1/eviction. Api reads the matching PDB, finds currentHealthy=2 and minAvailable=1, so disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed atomically decrements to 0 (via optimistic concurrency on the PDB status), and the Pod is deleted with the standard grace period. The owning ReplicaSet observes the deletion and creates a replacement, which the Scheduler places on another Ready Node, covered in the Deployment rolling update card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -200,30 +190,24 @@ const STEPS = [
       s.refs.pdbChip.classList.add('highlight');
       s.refs.healthyChip.classList.add('highlight');
       s.refs.lastChip.classList.add('highlight');
-      s.refs.pod1Box.classList.add('highlight');
       // Pin final state so cancel between steps does not flash to default.
       s.refs.pod1.style.opacity = '0';
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) return;
-      // Top packet: kubectl → apiserver (POST eviction).
-      const pReq = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pReq);
-      ctx.register(animateAlong(pReq, [[540, 65], [580, 65]], { duration: 700 }));
-      ctx.register(pReq.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
-      // Connector packet: ApiServer instructs Kubelet to delete the Pod.
-      const pDel = packet({ x: 320, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(pDel);
-      ctx.register(animateAlong(pDel, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 1100, delay: 600 }));
-      ctx.register(pDel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1700, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 1700, fill: 'both', easing: 'ease-in' }));
+      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
+      // Top packet: kubectl → apiserver (POST eviction), then the delete flows
+      // down the connector. The Pod reacts only when the ball reaches the node.
+      const req = topPacket(s, ctx);
+      const evict = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
     id: 'evict-B-retry',
-    duration: 3200,
-    narration: 'kubectl POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so the PDB returns 429 Too Many Requests and the request is denied. kubectl retries the eviction on a backoff. Once the replacement web-1 turns Ready elsewhere, currentHealthy bumps back to 2 and the next retry returns 200 OK, freeing web-2 to be evicted.',
+    duration: 4200,
+    narration: 'Kubectl POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so the PDB returns 429 Too Many Requests and the request is denied. Kubectl retries the eviction on a backoff. Once the replacement web-1 turns Ready elsewhere, currentHealthy bumps back to 2 and the next retry returns 200 OK, freeing web-2 to be evicted.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -237,39 +221,26 @@ const STEPS = [
       s.refs.pdbChip.classList.add('highlight');
       s.refs.healthyChip.classList.add('highlight');
       s.refs.lastChip.classList.add('highlight');
-      s.refs.pod2Box.classList.add('highlight');
       // Pin final state.
       s.refs.pod1.style.opacity = '0';
       s.refs.pod2.style.opacity = '0';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) return;
-      // First attempt: blocked. Top packet out and back (no connector follow-up).
-      const pTry1 = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pTry1);
-      ctx.register(animateAlong(pTry1, [[540, 65], [580, 65]], { duration: 600 }));
-      ctx.register(pTry1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 600, fill: 'forwards', easing: 'ease-in' }));
-      // Response 429 flows back apiserver → kubectl at y=95.
-      const p429 = packet({ x: 580, y: 95, cat: 'control' });
-      s.refs.packetLayer.appendChild(p429);
-      ctx.register(animateAlong(p429, [[580, 95], [540, 95]], { duration: 600, delay: 700 }));
-      ctx.register(p429.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 1300, fill: 'forwards', easing: 'ease-in' }));
-      // Retry: kubectl → apiserver → connector → pod fade.
-      const pTry2 = packet({ x: 540, y: 65, cat: 'control' });
-      s.refs.packetLayer.appendChild(pTry2);
-      ctx.register(animateAlong(pTry2, [[540, 65], [580, 65]], { duration: 600, delay: 1500 }));
-      ctx.register(pTry2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 2100, fill: 'forwards', easing: 'ease-in' }));
-      const pDel = packet({ x: 320, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(pDel);
-      ctx.register(animateAlong(pDel, [[320, 80], [280, 80], [280, 550], [320, 550]], { duration: 900, delay: 2000 }));
-      ctx.register(pDel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 2900, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 2900, fill: 'both', easing: 'ease-in' }));
+      if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
+      // First attempt: blocked. Top packet out, 429 response back, no connector follow-up.
+      const attempt = topPacket(s, ctx);
+      const denied = topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: attempt.arrivalMs + BEAT.afterHop });
+      // Retry: kubectl → apiserver → connector → the Pod reacts on arrival.
+      const retry = topPacket(s, ctx, { delay: denied.arrivalMs + BEAT.afterHop });
+      const evict = connectorPacket(s, ctx, { delay: retry.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.pod2, ctx, evict.arrivalMs);
+      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
     id: 'drained',
     duration: 2200,
-    narration: 'Node-1 carries only the DaemonSet Pod now. Application traffic runs on the replacement web-1 and web-2 elsewhere. The node is safe for kernel patch, reboot, or removal. To bring it back, kubectl uncordon node-1 flips spec.unschedulable=false and the Scheduler can place new Pods on it again.',
+    narration: 'Node-1 carries only the DaemonSet Pod now. Application traffic runs on the replacement web-1 and web-2 elsewhere. The Node is safe for kernel patch, reboot, or removal. To bring it back, kubectl uncordon Node-1 flips spec.unschedulable=false and the Scheduler can place new Pods on it again.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -277,19 +248,23 @@ const STEPS = [
       resetPodOpacity(s);
       setVal(s.refs.healthyChip, '2 of 2');
       setVal(s.refs.lastChip, '2 evicted · DS retained');
-      setWire(s, 'req', 'drain complete · node safe for maintenance');
+      setWire(s, 'req', 'drain complete · Node safe for maintenance');
       s.refs.kubectl.classList.add('highlight');
       s.refs.cordonChip.classList.add('highlight');
       s.refs.lastChip.classList.add('highlight');
-      s.refs.pod3Box.classList.add('highlight');
       // Pin final state.
       s.refs.pod1.style.opacity = '0';
       s.refs.pod2.style.opacity = '0';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
+      // Nothing travels at the wrap-up: the recorded drain result flashes.
+      flashChips(s, ctx, ['lastChip']);
+      // fluentd (the DaemonSet Pod) is the lone survivor on Node-1: pulse it once
+      // to call out that it is the only workload that stays after the drain.
+      pulsePod(s.refs.pod3, ctx, 0);
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

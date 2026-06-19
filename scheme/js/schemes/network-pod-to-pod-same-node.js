@@ -1,6 +1,37 @@
-import { svg, g, text, line } from '../lib/svg.js';
-import { arrowDefs, pod, node, chip, packet, animateAlong, pulse } from '../lib/primitives.js';
-import { Timeline } from '../lib/timeline.js';
+import { svg, g, text } from '../lib/svg.js';
+import { arrowDefs, box, pod, node, arrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+
+// Layout zones (viewBox 1200x640):
+//   - top band y<255 is reserved for the narration overlay; nothing essential lives there.
+//   - topology band y255..505 carries the Node, both Pods (shell + eth0 box) and the cni0 bridge.
+//   - value-chip strip sits at y540, below everything and clear of the overlay.
+// Each Pod is the canonical shell+inner-box block (matches the workloads/control cards):
+// a translucent pod shell holds an eth0 container box, so the whole group pulses as one.
+// The veth pair is drawn as TWO directional lanes, symmetric about the block centre:
+//   - top lane  (TOP_Y) carries the forward direction A -> B (ARP request + data frame)
+//   - bottom lane (BOT_Y) carries the return direction B -> A (the ARP reply)
+// Every packet rides exactly along its lane's arrow (segmentPacket endpoints == arrow
+// endpoints == block edges, no overshoot into a box).
+const POD_MID = 380;          // vertical centre of the pod / cni0 blocks
+const LANE = 12;              // half-gap between the two veth lanes
+const TOP_Y = POD_MID - LANE; // 368 — forward lane (A -> B)
+const BOT_Y = POD_MID + LANE; // 392 — return lane (B -> A)
+const HOP = 800;              // ball travel per veth hop, a touch slower than the 700ms
+                              // floor so the direction of each hop reads clearly
+
+// Build one Pod as a shell (translucent outer) wrapping an eth0 container box, in a
+// group so pulsePod animates both rects together. Returns { group, innerBox }.
+function podBlock({ x, label, ip }) {
+  const shell = pod({ x, y: 315, w: 200, h: 130, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shellRect = shell.querySelector('.scheme-pod-rect');
+  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const innerBox = box({ x: x + 20, y: 352, w: 160, h: 56, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const group = g({});
+  group.appendChild(shell);
+  group.appendChild(innerBox);
+  return { group, innerBox };
+}
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,126 +41,145 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1000 460',
+      viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod to pod networking on the same node',
+      'aria-label': 'Pod-to-Pod traffic on the same node: Pod A reaches Pod B through the cni0 bridge over a pair of veth links, with no NAT and no encapsulation',
+      'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const n = node({ x: 40, y: 60, w: 920, h: 360, label: 'node-1 · cluster' });
-    root.appendChild(n);
+    const nodeEl = node({ x: 80, y: 255, w: 1040, h: 250, label: 'Node-1   ·   10.244.1.0/24' });
 
-    const podA = pod({ x: 120, y: 180, label: 'Pod A', sublabel: '10.244.1.2', containers: 1, cat: 'workloads' });
-    podA.id = 'podA';
-    root.appendChild(podA);
+    const a = podBlock({ x: 150, label: 'Pod A', ip: '10.244.1.5' });
+    const b = podBlock({ x: 850, label: 'Pod B', ip: '10.244.1.6' });
+    const cni0 = box({ x: 505, y: 345, w: 170, h: 70, label: 'cni0', sublabel: 'L2 bridge', cat: 'network' });
 
-    const podB = pod({ x: 760, y: 180, label: 'Pod B', sublabel: '10.244.1.5', containers: 1, cat: 'workloads' });
-    podB.id = 'podB';
-    root.appendChild(podB);
+    // veth pair as two directional lanes. Dim dashed wires carry the actual frame;
+    // the bright ball travels exactly along the matching lane.
+    const vethA  = arrow({ x1: 350, y1: TOP_Y, x2: 505, y2: TOP_Y, dashed: true, dim: true }); // A  -> cni0
+    const vethB  = arrow({ x1: 675, y1: TOP_Y, x2: 850, y2: TOP_Y, dashed: true, dim: true }); // cni0 -> B
+    const vethBr = arrow({ x1: 850, y1: BOT_Y, x2: 675, y2: BOT_Y, dashed: true, dim: true }); // B  -> cni0 (reply)
+    const vethAr = arrow({ x1: 505, y1: BOT_Y, x2: 350, y2: BOT_Y, dashed: true, dim: true }); // cni0 -> A (reply)
+    const wireA = text({ class: 'scheme-label code dim', x: 427, y: TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const wireB = text({ class: 'scheme-label code dim', x: 762, y: TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const bridge = chip({ x: 440, y: 215, w: 120, h: 38, label: 'cni0 bridge', cat: 'network' });
-    bridge.id = 'bridge';
-    root.appendChild(bridge);
+    const srcChip  = valChip({ x: 80,  y: 540, w: 250, h: 34, name: 'src',      value: '10.244.1.5', cat: 'network' });
+    const dstChip  = valChip({ x: 350, y: 540, w: 250, h: 34, name: 'dst',      value: '10.244.1.6', cat: 'network' });
+    const pathChip = valChip({ x: 620, y: 540, w: 250, h: 34, name: 'datapath', value: 'L2 bridge',  cat: 'network' });
+    const natChip  = valChip({ x: 890, y: 540, w: 230, h: 34, name: 'NAT',      value: 'none',       cat: 'network' });
+    [srcChip, dstChip, pathChip, natChip].forEach(c => root.appendChild(c));
 
-    // veth labels + lines
-    root.appendChild(line({ class: 'scheme-arrow scheme-arrow-dim', x1: 240, y1: 234, x2: 440, y2: 234 }));
-    root.appendChild(line({ class: 'scheme-arrow scheme-arrow-dim', x1: 560, y1: 234, x2: 760, y2: 234 }));
-    root.appendChild(text({ class: 'scheme-label code dim', x: 340, y: 224, 'text-anchor': 'middle' }, ['veth_a']));
-    root.appendChild(text({ class: 'scheme-label code dim', x: 660, y: 224, 'text-anchor': 'middle' }, ['veth_b']));
-
-    // packet layer (cleared between steps)
     const packetLayer = g({ id: 'packetLayer' });
+
+    root.appendChild(nodeEl);
+    root.appendChild(cni0);
+    root.appendChild(a.group);
+    root.appendChild(b.group);
+    // veth wires + their labels sit ABOVE the blocks: the dim arrows read clearly and
+    // the wire text stays selectable instead of being trapped under the node rect.
+    [vethA, vethB, vethBr, vethAr].forEach(el => root.appendChild(el));
+    [wireA, wireB].forEach(t => root.appendChild(t));
+    // packets ride on the very top.
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
-    this.refs = { svg: root, podA, podB, bridge, packetLayer };
+    this.refs = {
+      svg: root, nodeEl, podA: a.group, podABox: a.innerBox, podB: b.group, podBBox: b.innerBox, cni0,
+      srcChip, dstChip, pathChip, natChip,
+      packetLayer,
+      wires: { a: wireA, b: wireB },
+    };
   }
 
   reset() { this.build(); }
 }
 
+function clearHL(s) {
+  clearHighlights(s, ['cni0', 'podABox', 'podBBox', 'srcChip', 'dstChip', 'pathChip', 'natChip'], [s.refs.podA, s.refs.podB]);
+}
+
 const STEPS = [
   {
     id: 'idle',
-    duration: 1400,
-    narration: 'Both Pod A and Pod B live on node-1. The kubelet wired each pod\'s eth0 to a host-side veth peer plugged into the cni0 bridge.',
+    duration: 1500,
+    narration: 'Pod A and Pod B sit on the same Node, both holding an IP out of that Node pod CIDR 10.244.1.0/24. Because the two addresses share one subnet, A reaches B directly with no router and no gateway in the path.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
-      s.refs.podB.classList.remove('highlight');
-      s.refs.bridge.classList.remove('highlight');
-      s.refs.podA.classList.add('highlight');
+      clearHL(s);
+      clearWires(s);
+      setVal(s.refs.pathChip, 'L2 bridge');
+      setVal(s.refs.natChip, 'none');
     },
   },
   {
-    id: 'emit',
-    duration: 1700,
-    narration: 'Pod A writes to its eth0 — the kernel forwards the frame across the veth pair into the cni0 bridge.',
+    id: 'arp',
+    duration: 4400,
+    narration: 'A does not yet know the MAC behind 10.244.1.6, so it broadcasts an ARP request out eth0. The veth peer hands it to cni0, the Node Linux bridge, which floods it out every other port. B sees its own IP and unicasts an ARP reply with its MAC back to A, and from that reply the bridge learns which port B sits on.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      s.refs.podA.classList.add('highlight');
-      s.refs.podB.classList.remove('highlight');
-      s.refs.bridge.classList.remove('highlight');
-      const p = packet({ x: 240, y: 234 });
-      s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(440px, 234px)';
-      } else {
-        ctx.register(animateAlong(p, [[240, 234], [340, 234], [440, 234]], { duration: 1500 }));
-      }
+      clearHL(s);
+      clearWires(s);
+      setWire(s, 'a', 'veth · eth0');
+      setWire(s, 'b', 'veth · eth0');
+      s.refs.cni0.classList.add('highlight'); // bridge stays highlighted, never pulses
+      setVal(s.refs.pathChip, 'ARP who-has .6');
+      s.refs.pathChip.classList.add('highlight');
+      if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
+      // A pulses FIRST and fully; the request ball departs only once that blink has
+      // landed (BEAT.afterPulse), per the up-arrow choreography. The ARP exchange is a
+      // round trip: request floods A -> bridge -> B on the top lane, then B unicasts its
+      // reply B -> bridge -> A on the bottom lane.
+      pulsePod(s.refs.podA, ctx, 0);                // A broadcasts the request (blink first)
+      const req1 = segmentPacket(s, ctx, { from: [350, TOP_Y], to: [505, TOP_Y], delay: BEAT.afterPulse, dur: HOP, cat: 'network' });
+      const req2 = segmentPacket(s, ctx, { from: [675, TOP_Y], to: [850, TOP_Y], delay: req1.arrivalMs + BEAT.afterHop, dur: HOP, cat: 'network' });
+      const rep1 = segmentPacket(s, ctx, { from: [850, BOT_Y], to: [675, BOT_Y], delay: req2.arrivalMs + BEAT.afterHop, dur: HOP, cat: 'network' });
+      const rep2 = segmentPacket(s, ctx, { from: [505, BOT_Y], to: [350, BOT_Y], delay: rep1.arrivalMs + BEAT.afterHop, dur: HOP, cat: 'network' });
+      pulsePod(s.refs.podB, ctx, req2.arrivalMs);   // B receives the flood and replies
+      pulsePod(s.refs.podA, ctx, rep2.arrivalMs);   // A gets B MAC from the reply
     },
   },
   {
-    id: 'route',
-    duration: 1700,
-    narration: 'cni0 looks up Pod B\'s MAC in its FDB and forwards out the veth_b leg.',
+    id: 'forward',
+    duration: 2900,
+    narration: 'With the MAC for B resolved and its bridge port learned, A sends the actual data frame as a unicast. It crosses the veth onto cni0, which switches it straight out the veth peer to B eth0. This is plain layer 2 forwarding inside the Node, so the packet never touches the physical NIC.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      s.refs.podA.classList.remove('highlight');
-      s.refs.bridge.classList.add('highlight');
-      s.refs.podB.classList.remove('highlight');
-      const p = packet({ x: 560, y: 234 });
-      s.refs.packetLayer.appendChild(p);
-      if (ctx.reduced) {
-        p.style.transform = 'translate(760px, 234px)';
-      } else {
-        ctx.register(animateAlong(p, [[560, 234], [660, 234], [760, 234]], { duration: 1500 }));
-        ctx.register(pulse(s.refs.bridge, { duration: 800 }));
-      }
+      clearHL(s);
+      clearWires(s);
+      setWire(s, 'a', 'veth · eth0');
+      setWire(s, 'b', 'veth · eth0');
+      s.refs.cni0.classList.add('highlight'); // bridge stays highlighted, never pulses
+      setVal(s.refs.pathChip, 'L2 bridge');
+      s.refs.pathChip.classList.add('highlight');
+      if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
+      // A pulses FIRST and fully; the data frame departs only after that blink lands
+      // (BEAT.afterPulse). It then rides the forward (top) lane A -> bridge -> B in two hops.
+      pulsePod(s.refs.podA, ctx, 0);
+      const hop1 = segmentPacket(s, ctx, { from: [350, TOP_Y], to: [505, TOP_Y], delay: BEAT.afterPulse, dur: HOP, cat: 'network' });
+      const hop2 = segmentPacket(s, ctx, { from: [675, TOP_Y], to: [850, TOP_Y], delay: hop1.arrivalMs + BEAT.afterHop, dur: HOP, cat: 'network' });
+      pulsePod(s.refs.podB, ctx, hop2.arrivalMs);
     },
   },
   {
-    id: 'arrive',
-    duration: 1500,
-    narration: 'Pod B\'s eth0 receives the packet. No NAT, no encapsulation — same L2 segment.',
+    id: 'no-nat',
+    duration: 2100,
+    narration: 'B receives the packet with A real source IP intact. Same-node Pod-to-Pod traffic is never rewritten: there is no SNAT, no DNAT and no overlay encapsulation, just one bridge hop between two veth ports. Every Pod IP is routable inside the cluster, which is the flat-network promise of the Kubernetes model.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      s.refs.bridge.classList.remove('highlight');
-      s.refs.podB.classList.add('highlight');
-      if (!ctx.reduced) ctx.register(pulse(s.refs.podB, { duration: 700, iterations: 2 }));
+      clearHL(s);
+      clearWires(s);
+      setWire(s, 'b', 'veth · eth0');
+      s.refs.srcChip.classList.add('highlight');
+      s.refs.dstChip.classList.add('highlight');
+      s.refs.natChip.classList.add('highlight');
+      setVal(s.refs.srcChip, '10.244.1.5');
+      setVal(s.refs.dstChip, '10.244.1.6');
+      setVal(s.refs.natChip, 'none · src preserved');
+      if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); return; }
+      // Info chips get the strict static highlight only, no flash. Just the pod pulses.
+      pulsePod(s.refs.podB, ctx, 0);
     },
   },
 ];
 
-export function init(root, callbacks = {}) {
-  const scene = new Scene(root);
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: callbacks.onStepChange,
-    onPlayingChange: callbacks.onPlayingChange,
-  });
-  return {
-    play: () => tl.play(),
-    pause: () => tl.pause(),
-    reset: () => tl.reset(),
-    restart: () => tl.restart(),
-    gotoStep: (i) => tl.gotoStep(i),
-    setLoop: (b) => tl.setLoop(b),
-    isLooping: () => tl.isLooping(),
-    step: (dir) => tl.step(dir),
-    setSpeed: (r) => tl.setSpeed(r),
-    isPlaying: () => tl.isPlaying(),
-    destroy: () => { tl.destroy(); root.replaceChildren(); },
-  };
-}
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

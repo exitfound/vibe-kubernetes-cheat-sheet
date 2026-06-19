@@ -1,31 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, clearPodHighlight, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, connectorPacket, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
-
-function connectorPacket(s, ctx, { delay = 0, dur = 1100 } = {}) {
-  const pts = [[320, 80], [280, 80], [280, 550], [320, 550]];
-  const seg = [];
-  let total = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-    seg.push(d);
-    total += d;
-  }
-  let acc = 0;
-  const frames = pts.map((pt, i) => {
-    if (i > 0) acc += seg[i - 1];
-    return { transform: `translate(${pt[0]}px, ${pt[1]}px)`, offset: total ? acc / total : 0 };
-  });
-  const p = packet({ x: pts[0][0], y: pts[0][1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  // Pre-move fade-in: packet appears AT source block BEFORE travelling.
-  const fadeInDelay = Math.max(0, delay - 200);
-  ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: fadeInDelay, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(p.animate(frames, { duration: dur, delay, fill: 'forwards', easing: 'linear' }));
-  ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }));
-}
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -43,7 +19,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet', sublabel: 'lifecycle handler', cat: 'control' });
-    const runtime = box({ x: 580, y: 40, w: 220, h: 80, label: 'Runtime', sublabel: 'CRI runc / containerd', cat: 'control' });
+    const runtime = box({ x: 580, y: 40, w: 220, h: 80, label: 'Runtime', sublabel: 'CRI runc / Containerd', cat: 'control' });
 
     root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
     root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
@@ -114,50 +90,16 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','runtime','postStartChip','entrypointChip','preStopChip','stateChip','graceChip','podShell','containerBox']
-    .forEach(k => s.refs[k] && s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  // Reset any inline persistent-pulse styles committed by pulsePod(..., {persist:true}).
-  clearPodHighlight(s.refs.podGroup);
-}
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
-}
-
-
-
-function arrowPacket(s, ctx, { from, to, delay = 0, dur = 500 }) {
-  const p = packet({ x: from[0], y: from[1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  const fadeInDelay = Math.max(0, delay - 200);
-  ctx.register(p.animate(
-    [{ opacity: 0 }, { opacity: 1 }],
-    { duration: 200, delay: fadeInDelay, fill: 'forwards', easing: 'ease-out' }
-  ));
-  ctx.register(p.animate(
-    [
-      { transform: `translate(${from[0]}px, ${from[1]}px)` },
-      { transform: `translate(${to[0]}px, ${to[1]}px)` },
-    ],
-    { duration: dur, delay, fill: 'forwards', easing: 'linear' }
-  ));
-  ctx.register(p.animate(
-    [{ opacity: 1 }, { opacity: 0 }],
-    { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }
-  ));
+  clearHighlights(s,
+    ['kubelet','runtime','postStartChip','entrypointChip','preStopChip','stateChip','graceChip','podShell','containerBox'],
+    [s.refs.podGroup]);
 }
 
 const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod with two lifecycle hooks defined in its spec, sitting before kubelet has touched it. This card walks through the start-up race between postStart and the ENTRYPOINT, then the graceful termination handled by preStop before SIGTERM.',
+    narration: 'A Pod with two lifecycle hooks defined in its spec, sitting before Kubelet has touched it. This card walks through the start-up race between postStart and the ENTRYPOINT, then the graceful termination handled by preStop before SIGTERM.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -174,8 +116,8 @@ const STEPS = [
   {
     id: 'declared',
     duration: 1900,
-    narration: 'The Pod spec carries two per-container handlers. lifecycle.postStart will fire concurrently with the ENTRYPOINT the moment the container is created, with no ordering guarantee between the two. lifecycle.preStop will run synchronously on delete, before any signal, and eats into terminationGracePeriodSeconds while it runs. Each handler is one of exec (a command inside the container), httpGet (an HTTP request kubelet issues against the Pod IP), or sleep (a fixed-duration pause, GA in 1.34). A tcpSocket field also exists in the API but is not honored for lifecycle hooks.',
-    enter(s) {
+    narration: 'The Pod spec carries two per-container handlers. lifecycle.postStart will fire concurrently with the ENTRYPOINT the moment the container is created, with no ordering guarantee between the two. lifecycle.preStop will run synchronously on delete, before any signal, and eats into terminationGracePeriodSeconds while it runs. Each handler is one of exec (a command inside the container), httpGet (an HTTP request Kubelet issues against the Pod IP), or sleep (a fixed-duration pause, GA in 1.34). A tcpSocket field also exists in the API but is not honored for lifecycle hooks.',
+    enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
@@ -189,12 +131,14 @@ const STEPS = [
       s.refs.postStartChip.classList.add('highlight');
       s.refs.preStopChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
+      // Declaration only, nothing travels. The two declared hooks light up via the
+      // static highlight outline; pulsing is reserved for the Pod blocks, so no chip flash.
     },
   },
   {
     id: 'created',
     duration: 1800,
-    narration: 'The runtime creates the container from the image and starts the ENTRYPOINT process as PID 1. The kubelet has issued the CreateContainer and StartContainer calls over the CRI socket, so the container has just been started and is moving into the Running state.',
+    narration: 'The runtime creates the container from the image and starts the ENTRYPOINT process as PID 1. The Kubelet has issued the CreateContainer and StartContainer calls over the CRI socket, so the container has just been started and is moving into the Running state.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -208,18 +152,20 @@ const STEPS = [
       s.refs.entrypointChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      arrowPacket(s, ctx, { from: [540, 65], to: [580, 65], delay: 0,   dur: 600 });
-      arrowPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: 700, dur: 600 });
+      // The CRI calls hop to the runtime, the OK hops back, and the container
+      // materializes once the start call lands.
+      const req = topPacket(s, ctx);
+      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.4 }, { opacity: 1 }],
-        { duration: 700, delay: 400, fill: 'both', easing: 'ease-out' }
+        { duration: FADE.in, delay: req.arrivalMs, fill: 'both', easing: 'ease-out' }
       ));
     },
   },
   {
     id: 'poststart',
     duration: 2100,
-    narration: 'Kubelet fires the postStart hook the moment the container is created, concurrently with the ENTRYPOINT. There is no guarantee which one finishes first. Exec handlers run inside the container over CRI ExecSync, httpGet handlers are issued by kubelet directly against the Pod IP. If the handler exits non-zero or times out, kubelet kills the container (subject to the Pod restartPolicy).',
+    narration: 'Kubelet fires the postStart hook the moment the container is created, concurrently with the ENTRYPOINT. There is no guarantee which one finishes first. Exec handlers run inside the container over CRI ExecSync, httpGet handlers are issued by Kubelet directly against the Pod IP. If the handler exits non-zero or times out, Kubelet kills the container (subject to the Pod restartPolicy).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -235,8 +181,8 @@ const STEPS = [
       s.refs.entrypointChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      arrowPacket(s, ctx, { from: [540, 65], to: [580, 65], delay: 0,   dur: 600 });
-      arrowPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: 700, dur: 600 });
+      const req = topPacket(s, ctx);
+      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
     },
   },
   {
@@ -259,18 +205,14 @@ const STEPS = [
       s.refs.stateChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      arrowPacket(s, ctx, { from: [540, 65], to: [580, 65], delay: 0,   dur: 600 });
-      arrowPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: 700, dur: 600 });
-      ctx.register(s.refs.postStartChip.animate(
-        [{ filter: 'brightness(1)' }, { filter: 'brightness(1.4)' }, { filter: 'brightness(1)' }],
-        { duration: 900, iterations: 1, easing: 'ease-in-out' }
-      ));
+      const req = topPacket(s, ctx);
+      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
     },
   },
   {
     id: 'prestop',
-    duration: 2800,
-    narration: 'A delete arrives and the container is about to be stopped. Before sending any signal, kubelet runs the preStop hook synchronously and waits for it to return. The ENTRYPOINT is still Running here. The hook executes inside the terminationGracePeriodSeconds budget, so its runtime is subtracted from the 30s window.',
+    duration: 3800,
+    narration: 'A delete arrives and the container is about to be stopped. Before sending any signal, Kubelet runs the preStop hook synchronously and waits for it to return. The ENTRYPOINT is still Running here. The hook executes inside the terminationGracePeriodSeconds budget, so its runtime is subtracted from the 30s window.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -286,16 +228,19 @@ const STEPS = [
       s.refs.graceChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      arrowPacket(s, ctx, { from: [540, 65], to: [580, 65], delay: 0,   dur: 600 });
-      arrowPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: 700, dur: 600 });
-      connectorPacket(s, ctx, { delay: 600, dur: 1100 });
-      pulsePod(s.refs.podGroup, ctx, 1700);
+      // ExecSync hops to the runtime and acks back; once that ack lands at the
+      // kubelet the exec order travels down to the Pod, which pulses as the hook
+      // starts running inside it.
+      const req = topPacket(s, ctx);
+      const ack = segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
+      const exec = connectorPacket(s, ctx, { delay: ack.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.podGroup, ctx, exec.arrivalMs);
     },
   },
   {
     id: 'sigterm',
     duration: 4000,
-    narration: 'Once preStop returns, kubelet asks the runtime to stop the container via CRI StopContainer. The runtime delivers SIGTERM to the ENTRYPOINT process inside the Pod. The grace timer keeps counting down from where preStop left off. If the process is still alive when it reaches 0, the runtime escalates to SIGKILL. The container then exits and the Pod object is removed from the apiserver.',
+    narration: 'Once preStop returns, Kubelet asks the runtime to stop the container via CRI StopContainer. The runtime delivers SIGTERM to the ENTRYPOINT process inside the Pod. The grace timer keeps counting down from where preStop left off. If the process is still alive when it reaches 0, the runtime escalates to SIGKILL. The container then exits and the Pod object is removed from the Api.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -313,16 +258,19 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '0.3';
       setChainActive(s.refs.chain, 5);
       if (ctx.reduced) return;
-      arrowPacket(s, ctx, { from: [540, 65], to: [580, 65], delay: 0,   dur: 600 });
-      arrowPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: 700, dur: 600 });
-      connectorPacket(s, ctx, { delay: 600, dur: 1100 });
-      pulsePod(s.refs.podGroup, ctx, 1700);
+      // StopContainer hops to the runtime and acks back; once that ack lands at
+      // the kubelet the SIGTERM order travels down to the Pod, which pulses then
+      // dims out as the process exits.
+      const req = topPacket(s, ctx);
+      const ack = segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
+      const stop = connectorPacket(s, ctx, { delay: ack.arrivalMs + BEAT.afterHop });
+      pulsePod(s.refs.podGroup, ctx, stop.arrivalMs);
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
-        { duration: 800, delay: 2300, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, delay: stop.arrivalMs, fill: 'both', easing: 'ease-in' }
       ));
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

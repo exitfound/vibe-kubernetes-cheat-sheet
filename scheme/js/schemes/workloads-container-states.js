@@ -1,32 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow, packet } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, clearPodHighlight, setConnectorDir, makeInit } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, setConnectorDir, connectorPacketDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
 
-
-function connectorPacket(s, ctx, dir, { delay = 0, dur = 1100 } = {}) {
-  const pts = dir === 'up'
-    ? [[320, 550], [280, 550], [280, 80], [320, 80]]
-    : [[320, 80], [280, 80], [280, 550], [320, 550]];
-  const seg = [];
-  let total = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-    seg.push(d);
-    total += d;
-  }
-  let acc = 0;
-  const frames = pts.map((pt, i) => {
-    if (i > 0) acc += seg[i - 1];
-    return { transform: `translate(${pt[0]}px, ${pt[1]}px)`, offset: total ? acc / total : 0 };
-  });
-  const p = packet({ x: pts[0][0], y: pts[0][1], cat: 'control' });
-  p.style.opacity = '0';
-  s.refs.packetLayer.appendChild(p);
-  const fadeInDelay = Math.max(0, delay - 200);
-  ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: fadeInDelay, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(p.animate(frames, { duration: dur, delay, fill: 'forwards', easing: 'linear' }));
-  ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur, fill: 'forwards', easing: 'ease-in' }));
-}
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -38,7 +13,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Container restarts and lastState: kubelet preserves the previous termination record so a restart can be debugged',
+      'aria-label': 'Container restarts and lastState: Kubelet preserves the previous termination record so a restart can be debugged',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -70,7 +45,7 @@ class Scene {
         '3. restart    ·  the Terminated record rolls into lastState',
         '4. lastState  ·  the prior-death record, read it to debug',
         '5. exitCode   ·  decode the number into a cause of death',
-        '6. describe   ·  kubectl shows State and Last State',
+        '6. describe   ·  Kubectl shows State and Last State',
       ],
       cat: 'control',
     });
@@ -118,23 +93,10 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['kubelet','stateChip','detailChip','lastChip','restartChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-  clearPodHighlight(s.refs.podGroup);
+  clearHighlights(s,
+    ['kubelet','stateChip','detailChip','lastChip','restartChip'],
+    [s.refs.podGroup]);
 }
-
-
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
-}
-
-// Show the connector copy whose arrowhead matches the packet direction.
 
 // Set all four status chips in one call so every step pins the full record.
 function setChips(s, { state, detail, last, restart }) {
@@ -159,12 +121,12 @@ const STEPS = [
       setChips(s, { state: 'Running', detail: 'startedAt 09:20:14Z', last: PRIOR, restart: '2' });
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, -1);
+      setChainActive(s.refs.chain, 0);
     },
   },
   {
     id: 'crash',
-    duration: 2000,
+    duration: 2600,
     narration: 'The process hits its memory limit and the kernel kills it. Kubelet sets state to Terminated, a record carrying exitCode, reason, startedAt and finishedAt. Here exitCode is 137 and reason is OOMKilled. This live Terminated record exists only for an instant.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -184,9 +146,9 @@ const STEPS = [
       pulsePod(s.refs.podGroup, ctx, 0);
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
-        { duration: 600, fill: 'both', easing: 'ease-in' }
+        { duration: FADE.out, fill: 'both', easing: 'ease-in' }
       ));
-      connectorPacket(s, ctx, 'up', { delay: 800 });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
     },
   },
   {
@@ -208,12 +170,14 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      connectorPacket(s, ctx, 'down');
+      // The restart order travels down to the node, the fresh container comes up
+      // and the Pod pulses on arrival.
+      const restart = connectorPacketDir(s, ctx, 'down');
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.3 }, { opacity: 1 }],
-        { duration: 700, delay: 900, fill: 'both', easing: 'ease-out' }
+        { duration: FADE.in, delay: restart.arrivalMs, fill: 'both', easing: 'ease-out' }
       ));
-      pulsePod(s.refs.podGroup, ctx, 900);
+      pulsePod(s.refs.podGroup, ctx, restart.arrivalMs);
     },
   },
   {
@@ -230,6 +194,8 @@ const STEPS = [
       s.refs.lastChip.classList.add('highlight');
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 3);
+      // Reading status is local, nothing travels and the Pod is untouched, so the
+      // fields you read light up via the static highlight only (no chip pulse).
     },
   },
   {
@@ -245,12 +211,14 @@ const STEPS = [
       s.refs.lastChip.classList.add('highlight');
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 4);
+      // Decoding the code is a local lookup, nothing travels and the Pod is untouched,
+      // so the record being read lights up via the static highlight only (no chip pulse).
     },
   },
   {
     id: 'describe',
     duration: 2100,
-    narration: 'kubectl describe pod surfaces both records, State for the live instance and Last State for the prior one. Together with restartCount, which counts every restart, these three fields are what you read to diagnose a container that has been restarting.',
+    narration: 'Kubectl describe pod surfaces both records, State for the live instance and Last State for the prior one. Together with restartCount, which counts every restart, these three fields are what you read to diagnose a container that has been restarting.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -262,8 +230,10 @@ const STEPS = [
       s.refs.restartChip.classList.add('highlight');
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 5);
+      // kubectl only reads, nothing travels and the Pod is untouched, so the three
+      // diagnostic fields light up via the static highlight only (no chip pulse).
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });

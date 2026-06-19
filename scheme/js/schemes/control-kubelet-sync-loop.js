@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, chainList, arrow, packet, animateAlong, pulse } from '../lib/primitives.js';
-import { valChip, setVal, makeInit } from '../lib/control-kit.js';
+import { arrowDefs, box, chainList, arrow } from '../lib/primitives.js';
+import { valChip, setVal, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, flashChips, BEAT } from '../lib/control-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -10,23 +10,24 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 0 1200 460',
+      viewBox: '150 -90 1200 620',
       preserveAspectRatio: 'xMidYMid meet',
       'aria-label': 'Kubelet sync loop: watch, PLEG, SyncPod, CRI, status',
       'data-style': 'outline',
     });
-    const content = g({ transform: 'translate(60, 23) scale(0.9)' });
+    const content = g({ transform: 'translate(0, 0)' });
     content.appendChild(arrowDefs());
 
-    const api     = box({ x: 320, y: 40, w: 220, h: 80, label: 'ApiServer',  sublabel: 'spec source',  cat: 'control' });
+    const api     = box({ x: 320, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'spec source',  cat: 'control' });
     const kubelet = box({ x: 620, y: 40, w: 220, h: 80, label: 'Kubelet',    sublabel: 'on Node-1',    cat: 'control' });
-    const runtime = box({ x: 920, y: 40, w: 240, h: 80, label: 'containerd', sublabel: 'CRI gRPC',     cat: 'control' });
+    const runtime = box({ x: 920, y: 40, w: 240, h: 80, label: 'Containerd', sublabel: 'CRI gRPC',     cat: 'control' });
 
-    // Top arrows: ApiServer ↔ Kubelet (watch + status PATCH), Kubelet ↔ Runtime (CRI calls).
-    content.appendChild(arrow({ x1: 540, y1: 80,  x2: 620, y2: 80,  dim: true, dashed: true, color: 'control' }));
-    content.appendChild(arrow({ x1: 620, y1: 110, x2: 540, y2: 110, dim: true, dashed: true, color: 'control' }));
-    content.appendChild(arrow({ x1: 840, y1: 80,  x2: 920, y2: 80,  dim: true, dashed: true, color: 'control' }));
-    content.appendChild(arrow({ x1: 920, y1: 110, x2: 840, y2: 110, dim: true, dashed: true, color: 'control' }));
+    // Top arrows, symmetric about each box centre (y=80, so +/-15 -> 65 and 95):
+    // Api <-> Kubelet (watch + status PATCH), Kubelet <-> Runtime (CRI calls).
+    content.appendChild(arrow({ x1: 540, y1: 65, x2: 620, y2: 65, dim: true, dashed: true, color: 'control' }));
+    content.appendChild(arrow({ x1: 620, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    content.appendChild(arrow({ x1: 840, y1: 65, x2: 920, y2: 65, dim: true, dashed: true, color: 'control' }));
+    content.appendChild(arrow({ x1: 920, y1: 95, x2: 840, y2: 95, dim: true, dashed: true, color: 'control' }));
 
     // Wire labels (font-size: 9) in the gap between top row and pipeline.
     const wireApi = text({ class: 'scheme-label code dim', x: 580, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
@@ -37,7 +38,7 @@ class Scene {
     const chain = chainList({
       x: 320, y: 200, w: 460, rowH: 32, gap: 10,
       items: [
-        '1. watch     ·  pod specs from ApiServer',
+        '1. watch     ·  pod specs from Api',
         '2. PLEG      ·  observe containers via list-containers',
         '3. SyncPod   ·  reconcile desired vs observed',
         '4. CRI       ·  Create/Start container gRPC',
@@ -80,24 +81,14 @@ class Scene {
 }
 
 function clearHL(s) {
-  ['api','kubelet','runtime','podChip','desiredChip','observedChip','lastOpChip']
-    .forEach(k => s.refs[k].classList.remove('highlight'));
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
-}
-
-function clearWires(s) {
-  Object.values(s.refs.wires).forEach(t => { t.textContent = ''; });
-}
-
-function setWire(s, key, txt) {
-  if (s.refs.wires[key]) s.refs.wires[key].textContent = txt;
+  clearHighlights(s, ['api','kubelet','runtime','podChip','desiredChip','observedChip','lastOpChip']);
 }
 
 const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Kubelet on Node-1 runs a continuous reconciliation loop. Pod specs come in from sources (mainly ApiServer), and observed container state comes from the runtime via PLEG. SyncPod compares the two and issues CRI calls to converge.',
+    narration: 'Kubelet on Node-1 runs a continuous reconciliation loop. Pod specs come in from sources (mainly Api), and observed container state comes from the runtime via PLEG. SyncPod compares the two and issues CRI calls to converge.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -111,7 +102,7 @@ const STEPS = [
   {
     id: 'watch',
     duration: 1900,
-    narration: 'ApiServer streams an ADDED event for Pod my-app-7d4-abc bound to Node-1. The Kubelet source dispatcher routes the spec into podManager as desired state.',
+    narration: 'Api streams an ADDED event for Pod my-app-7d4-abc bound to Node-1. The Kubelet source dispatcher routes the spec into podManager as desired state.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -128,12 +119,7 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[0]) rows[0].classList.add('highlight');
       if (ctx.reduced) return;
-      const p = packet({ x: 540, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[540, 80], [620, 80]], { duration: 900 }));
-      // Fade out AFTER the packet has fully arrived at the destination block.
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 900, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(pulse(rows[0], { duration: 700, iterations: 1 }));
+      topPacket(s, ctx, { from: 540, to: 620 });
     },
   },
   {
@@ -154,20 +140,9 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[1]) rows[1].classList.add('highlight');
       if (ctx.reduced) return;
-      const p1 = packet({ x: 840, y: 80, cat: 'control' });
-      s.refs.packetLayer.appendChild(p1);
-      ctx.register(animateAlong(p1, [[840, 80], [920, 80]], { duration: 700 }));
-      ctx.register(p1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 700, fill: 'forwards', easing: 'ease-in' }));
-      const p2 = packet({ x: 920, y: 110, cat: 'control' });
-      p2.style.opacity = '0';
-      s.refs.packetLayer.appendChild(p2);
-      ctx.register(p2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, delay: 800, fill: 'forwards' }));
-      ctx.register(p2.animate(
-        [{ transform: 'translate(920px, 110px)' }, { transform: 'translate(840px, 110px)' }],
-        { duration: 700, delay: 800, fill: 'forwards', easing: 'ease-in-out' }
-      ));
-      ctx.register(p2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 800 + 700, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(pulse(rows[1], { duration: 700, iterations: 1 }));
+      // ListContainers request out, the container list answers once it lands.
+      const req = topPacket(s, ctx, { from: 840, to: 920 });
+      topPacket(s, ctx, { from: 920, to: 840, y: 95, delay: req.arrivalMs + BEAT.afterHop });
     },
   },
   {
@@ -184,7 +159,8 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[2]) rows[2].classList.add('highlight');
       if (ctx.reduced) return;
-      ctx.register(pulse(rows[2], { duration: 800, iterations: 1 }));
+      // No packet moves on the in-memory diff: the compared values flash.
+      flashChips(s, ctx, ['desiredChip', 'observedChip']);
     },
   },
   {
@@ -204,24 +180,15 @@ const STEPS = [
       if (rows[3]) rows[3].classList.add('highlight');
       if (ctx.reduced) return;
       // Three packets sequenced for RunPodSandbox, CreateContainer, StartContainer.
-      [0, 700, 1400].forEach(delay => {
-        const p = packet({ x: 840, y: 80, cat: 'control' });
-        p.style.opacity = '0';
-        s.refs.packetLayer.appendChild(p);
-        ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 80, delay, fill: 'forwards' }));
-        ctx.register(p.animate(
-          [{ transform: 'translate(840px, 80px)' }, { transform: 'translate(920px, 80px)' }],
-          { duration: 600, delay, fill: 'forwards', easing: 'linear' }
-        ));
-        ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, delay: delay + 600, fill: 'forwards' }));
-      });
-      ctx.register(pulse(rows[3], { duration: 800, iterations: 1 }));
+      const sandbox = segmentPacket(s, ctx, { from: [840, 65], to: [920, 65] });
+      const create = segmentPacket(s, ctx, { from: [840, 65], to: [920, 65], delay: sandbox.arrivalMs + BEAT.afterHop });
+      segmentPacket(s, ctx, { from: [840, 65], to: [920, 65], delay: create.arrivalMs + BEAT.afterHop });
     },
   },
   {
     id: 'status',
     duration: 2000,
-    narration: 'Next PLEG cycle observes the running container, observed state catches up to desired state, and SyncPod issues no new CRI calls. Kubelet PATCHes Pod status (containerStatuses) back to ApiServer. The loop is ready for the next change.',
+    narration: 'Next PLEG cycle observes the running container, observed state catches up to desired state, and SyncPod issues no new CRI calls. Kubelet PATCHes Pod status (containerStatuses) back to Api. The loop is ready for the next change.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -235,14 +202,9 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[4]) rows[4].classList.add('highlight');
       if (ctx.reduced) return;
-      const p = packet({ x: 620, y: 110, cat: 'control' });
-      s.refs.packetLayer.appendChild(p);
-      ctx.register(animateAlong(p, [[620, 110], [540, 110]], { duration: 900 }));
-      // Fade out AFTER the packet has fully arrived at the destination block.
-      ctx.register(p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 900, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(pulse(rows[4], { duration: 800, iterations: 1 }));
+      topPacket(s, ctx, { from: 620, to: 540, y: 95 });
     },
   },
 ];
 
-export const init = makeInit(Scene, STEPS);
+export const init = makeInit(Scene, STEPS, { posterFirst: true });
