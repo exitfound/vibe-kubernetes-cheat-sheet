@@ -282,10 +282,14 @@ const STEPS = [
   {
     id: 'same-node',
     duration: 2400,
-    narration: 'Same address space on one Node too. Pod 10.244.1.5 reaches its neighbour 10.244.1.6, both on Node-1, with the same flat addressing and no NAT. The traffic stays on the Node over a local bridge, but to the Pods it is the very same model, no special case to reason about.',
+    narration: 'Same address space on one Node too. Pod 10.244.1.5 reaches its neighbour 10.244.1.6, both on Node-1, with the same flat addressing and no NAT. The traffic never leaves the Node, but to the Pods it is the very same model, no special case to reason about.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      // NAT still applies on the same-Node path: the src arrives unchanged, so the chip stays
+      // highlighted and current, not dropped while its neighbour stays lit.
+      s.refs.natChip.classList.add('highlight');
+      setVal(s.refs.natChip, 'none, src 10.244.1.5');
       s.refs.reachChip.classList.add('highlight');
       setVal(s.refs.reachChip, 'same-Node direct');
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); return; }
@@ -309,7 +313,9 @@ const STEPS = [
       s.refs.reachChip.classList.add('highlight');
       setVal(s.refs.reachChip, 'agent to local Pod');
       // The src tag belonged to the Pod-to-Pod steps. The agent path is not a Pod source, so
-      // clear it rather than leaving a stale 10.244.1.5.
+      // clear it rather than leaving a stale 10.244.1.5. The value changes here, so the chip
+      // stays highlighted as a participant rather than going dim beside its lit neighbour.
+      s.refs.natChip.classList.add('highlight');
       setVal(s.refs.natChip, 'none');
       // Local scope: the kubelet on Node-2 reaches only its Node-2 Pod (C). Fade the other Nodes
       // out so the guarantee reads as local-only, not the any-to-any of rule two.

@@ -48,9 +48,9 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = box({ x: 70, y: 276, w: 200, h: 72, label: 'client', sublabel: 'browser · https', cat: 'network' });
-    const secret = box({ x: 470, y: 150, w: 240, h: 56, label: 'tls Secret', sublabel: 'cert + private key', cat: 'network' });
-    const ingress = box({ x: ING_LEFT, y: 276, w: 240, h: 72, label: 'Ingress controller', sublabel: 'TLS terminate', cat: 'network' });
+    const client = box({ x: 70, y: 276, w: 200, h: 72, label: 'Client', sublabel: 'browser · https', cat: 'network' });
+    const secret = box({ x: 470, y: 150, w: 240, h: 56, label: 'TLS Secret', sublabel: 'cert + private key', cat: 'network' });
+    const ingress = box({ x: ING_LEFT, y: 276, w: 240, h: 72, label: 'Ingress Controller', sublabel: 'TLS terminate', cat: 'network' });
     const podX = podBlock({ x: 910, y: 252, w: 210, h: 120, label: 'Pod web', ip: '10.244.2.7' });
 
     const cWire = arrow({ x1: CLIENT_EDGE, y1: FLOW_Y, x2: ING_LEFT, y2: FLOW_Y, dashed: true, dim: true, color: 'network' });
@@ -59,10 +59,10 @@ class Scene {
     const cLabel = text({ class: 'scheme-label code dim', x: 370, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const pLabel = text({ class: 'scheme-label code dim', x: 810, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const schemeChip = valChip({ x: 80,  y: 560, w: 250, h: 34, name: 'wire', value: 'idle', cat: 'network' });
-    const tlsChip    = valChip({ x: 350, y: 560, w: 250, h: 34, name: 'TLS', value: 'none', cat: 'network' });
-    const certChip   = valChip({ x: 620, y: 560, w: 250, h: 34, name: 'cert', value: 'in Secret', cat: 'network' });
-    const backChip   = valChip({ x: 890, y: 560, w: 230, h: 34, name: 'to backend', value: 'none', cat: 'network' });
+    const schemeChip = valChip({ x: 70,  y: 440, w: 210, h: 34, name: 'wire', value: 'idle', cat: 'network' });
+    const tlsChip    = valChip({ x: 300, y: 440, w: 340, h: 34, name: 'TLS', value: 'none', cat: 'network' });
+    const certChip   = valChip({ x: 660, y: 440, w: 180, h: 34, name: 'cert', value: 'in Secret', cat: 'network' });
+    const backChip   = valChip({ x: 860, y: 440, w: 260, h: 34, name: 'to backend', value: 'none', cat: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -88,16 +88,6 @@ class Scene {
 
 function clearHL(s) {
   clearHighlights(s, ['client', 'secret', 'ingress', 'schemeChip', 'tlsChip', 'certChip', 'backChip'], [s.refs.podX]);
-}
-
-function flashBox(s, ctx, key) {
-  if (ctx.reduced) return;
-  const el = s.refs[key];
-  if (!el) return;
-  ctx.register(el.animate(
-    [{ filter: 'brightness(1)' }, { filter: 'brightness(1.5)' }, { filter: 'brightness(1)' }],
-    { duration: 600, easing: 'ease-out' }
-  ));
 }
 
 const STEPS = [
@@ -152,8 +142,8 @@ const STEPS = [
       s.refs.schemeChip.classList.add('highlight');
       setVal(s.refs.tlsChip, 'terminated');
       setVal(s.refs.schemeChip, 'now http');
-      // Packet-less, pod-less: flash the Ingress box where decryption happens. Chips light only.
-      flashBox(s, ctx, 'ingress');
+      // Decryption happens inside the highlighted Ingress. The box lights via .highlight, it does not
+      // flash, so this step reads as the calm termination point rather than a blink.
     },
   },
   {
@@ -186,7 +176,7 @@ const STEPS = [
       clearWires(s);
       s.refs.ingress.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
-      setVal(s.refs.tlsChip, 'terminate / re-encrypt / passthrough');
+      setVal(s.refs.tlsChip, 'terminate / re-encrypt / passthru');
       setVal(s.refs.schemeChip, 'http or https');
       setVal(s.refs.backChip, 'Pod :8080');
       if (ctx.reduced) return;

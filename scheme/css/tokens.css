@@ -24,9 +24,9 @@
   --network-glow:     rgba(79, 229, 255, 0.13);
   --network-border:   rgba(79, 229, 255, 0.28);
 
-  --storage-color:    #4fd5a3;
-  --storage-glow:     rgba(79, 213, 163, 0.13);
-  --storage-border:   rgba(79, 213, 163, 0.28);
+  --storage-color:    #5eca94;
+  --storage-glow:     rgba(94, 202, 148, 0.13);
+  --storage-border:   rgba(94, 202, 148, 0.28);
 
   --workloads-color:  #5bb8ff;
   --workloads-glow:   rgba(75, 168, 255, 0.13);

@@ -601,7 +601,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 /* Category-colored header underlines */
 .section[data-cat="network"]   .section-header::after { background: linear-gradient(90deg, rgba(79,229,255,0.70)  0%, rgba(79,229,255,0.50)  50%, rgba(79,229,255,0.28)  80%, transparent 100%); }
 .section[data-cat="workloads"] .section-header::after { background: linear-gradient(90deg, rgba(61,160,255,0.70)  0%, rgba(61,160,255,0.50)  50%, rgba(61,160,255,0.28)  80%, transparent 100%); }
-.section[data-cat="storage"]   .section-header::after { background: linear-gradient(90deg, rgba(79,213,163,0.70)  0%, rgba(79,213,163,0.50)  50%, rgba(79,213,163,0.28)  80%, transparent 100%); }
+.section[data-cat="storage"]   .section-header::after { background: linear-gradient(90deg, rgba(94,202,148,0.70)  0%, rgba(94,202,148,0.50)  50%, rgba(94,202,148,0.28)  80%, transparent 100%); }
 .section[data-cat="control"]   .section-header::after { background: linear-gradient(90deg, rgba(125,134,255,0.70) 0%, rgba(125,134,255,0.50) 50%, rgba(125,134,255,0.28) 80%, transparent 100%); }
 .section[data-cat="scaling"]   .section-header::after { background: linear-gradient(90deg, rgba(255,160,77,0.70)  0%, rgba(255,160,77,0.50)  50%, rgba(255,160,77,0.28)  80%, transparent 100%); }
 .section[data-cat="security"]  .section-header::after { background: linear-gradient(90deg, rgba(255,87,87,0.70)   0%, rgba(255,87,87,0.50)   50%, rgba(255,87,87,0.28)   80%, transparent 100%); }
@@ -855,17 +855,17 @@ body.sidebar-collapsed .side-expand { display: grid; }
   --tint-fill-node: rgba(9, 26, 32, 0.62);
 }
 .scheme-dialog[data-tinted="true"][data-cat="storage"] {
-  --tint-deep:      #357d66;
-  --tint-base:      #4fd5a3;
-  --tint-bright:    #9ce4cb;
-  --tint-glow:      rgba(79, 213, 163, 0.15);
-  --tint-border:    rgba(156, 228, 203, 0.42);
-  --tint-active:    rgba(156, 228, 203, 0.28);
-  --tint-edge:      rgba(53, 125, 102, 0.5);
-  --tint-surface:   #0a1c17;
-  --tint-canvas:    #071511;
-  --tint-fill:      rgba(14, 40, 33, 0.72);
-  --tint-fill-node: rgba(9, 28, 23, 0.62);
+  --tint-deep:      #356e52;
+  --tint-base:      #5eca94;
+  --tint-bright:    #aee0c7;
+  --tint-glow:      rgba(94, 202, 148, 0.15);
+  --tint-border:    rgba(174, 224, 199, 0.42);
+  --tint-active:    rgba(174, 224, 199, 0.28);
+  --tint-edge:      rgba(53, 110, 82, 0.5);
+  --tint-surface:   #101c17;
+  --tint-canvas:    #0b1410;
+  --tint-fill:      rgba(20, 40, 32, 0.72);
+  --tint-fill-node: rgba(13, 28, 22, 0.62);
 }
 .scheme-dialog[data-tinted="true"][data-cat="scaling"] {
   --tint-deep:      #8c6438;
@@ -942,6 +942,10 @@ body.sidebar-collapsed .side-expand { display: grid; }
    (same darkness, derived from the network --tint-canvas #071319). */
 .scheme-dialog[data-tinted="true"][data-cat="network"] .narration-overlay {
   background: rgba(7, 21, 27, 0.86);
+}
+/* Storage does the same in jade, derived from the storage --tint-canvas #0b1410. */
+.scheme-dialog[data-tinted="true"][data-cat="storage"] .narration-overlay {
+  background: rgba(11, 20, 16, 0.86);
 }
 
 .dialog-inner {

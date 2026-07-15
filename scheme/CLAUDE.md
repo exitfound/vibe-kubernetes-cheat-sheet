@@ -39,7 +39,7 @@ scheme/
 
 ## Catalog and categories
 
-`js/data.js` exports `SCHEMES` (currently 77 entries), plus `CATEGORIES`, `CATEGORY_ICONS`, `CATEGORY_SUB`, and `SUBCATEGORIES` (per-category sub-tab keys + labels). Six active categories (label / key / color token in `css/tokens.css`):
+`js/data.js` exports `SCHEMES` (currently 84 entries), plus `CATEGORIES`, `CATEGORY_ICONS`, `CATEGORY_SUB`, and `SUBCATEGORIES` (per-category sub-tab keys + labels). Six active categories (label / key / color token in `css/tokens.css`):
 
 | Label | key | color | subcategories (`key` -> label) |
 |---|---|---|---|
@@ -50,7 +50,7 @@ scheme/
 | Scaling | `scaling` | `#ffa04d` orange | |
 | Security | `security` | `#ff5757` red | |
 
-Rough scheme counts: network 30, workloads 20, control 15, scaling 4, security 4, storage 4. The retired Lifecycle category (coral `#ff668c`) is reserved in `tokens.css`, not active. To activate a reserved category, add a `{ key, label, sub, icon }` entry to `CATEGORIES`; the `[data-cat="<key>"]` CSS already exists.
+Rough scheme counts: network 37, workloads 20, control 15, scaling 4, security 4, storage 4. The retired Lifecycle category (coral `#ff668c`) is reserved in `tokens.css`, not active. To activate a reserved category, add a `{ key, label, sub, icon }` entry to `CATEGORIES`; the `[data-cat="<key>"]` CSS already exists.
 
 Each `SCHEMES` entry: `id`, `title`, `category`, optional `subcategory`, `desc`, `k8sVersion`, `module`, `tinted: true`, `sources: [{ label, href }]`.
 
@@ -121,17 +121,22 @@ What **varies by card / category** (do not try to unify these):
 
 - Which kit is imported, and the pod tint: workloads blue (`#5bb8ff`), control violet (pods recolored to `#c0b0ff` via `--workloads-color`), network cyan (`#4fe5ff`). The pulse `base` must equal the pod's resting stroke.
 - The `cat` / `data-cat` passed to pods, chips, and packets (`'control' | 'workloads' | 'network'`).
-- Diagram geometry, step count, and the connector style: a vertical down/up connector with `setConnectorDir` (workloads-probes), a top-row request/persist arrow strip (control-scheduler-decision), or a horizontal flow lane plus a right-angle fan (network-service-clusterip).
+- Diagram geometry, step count, and the connector style: a vertical down/up connector with `setConnectorDir` (workloads-probes), a top-row request/persist arrow strip (control-scheduler-decision), or parallel forward/return flow lanes plus a right-angle fan (network-service-clusterip).
 
 Pre-flight checklist before declaring a card done (these are the recurring mistakes the checks below catch):
 
 - [ ] Every `enter()` opens with `replaceChildren` + `clearHL` + `clearWires`, and all per-step state is set above the `ctx.reduced` guard.
+- [ ] Every `enter()` repaints **every** chip, not only the ones this step talks about (see "Chips" below).
 - [ ] All motion is `ctx.register`-ed; nothing animates that is not also pinned statically.
 - [ ] No block or value chip pulses; only pods. Block flash only on a packet-less, pod-less step.
 - [ ] Pulse/packet ordering matches the up/down arrow rule, timed off `arrivalMs` + `BEAT.*`.
+- [ ] Every pulsed pod is a **wrapping `g`**, never a bare `pod()` (see "The `pulsePod` descendant trap" below).
+- [ ] Every ball rides a **drawn wire**, and return traffic has its **own** lane (see "Wires" below).
+- [ ] `anim-dump`'s `span=` for each step is **less than that step's `duration`** (see "Duration" below).
 - [ ] Pod tint base equals the resting stroke for the category (no settling on a paler color).
 - [ ] No apostrophes or semicolons in `narration` / `wire` / `chain` strings; no em-dashes anywhere.
-- [ ] `npm run gate` is green (run from `scheme/tools/`, needs a server at `http://localhost:8080`). It chains, stopping on the first failure: `check-canon` (source lint, covers workloads/control/network) then `smoke-all` (no console errors / animation leaks across all 77 cards). The gate is intentionally cheap and baseline-free for the active-redesign phase; the pixel/packet baseline tools were retired.
+- [ ] A `ridingLabel` passes the **same easing** as the ball it rides (see "Riding labels" below).
+- [ ] `npm run gate` is green (run from `scheme/tools/`, needs a server at `http://localhost:8080`). It chains, stopping on the first failure: `check-canon` (source lint, covers workloads/control/network) then `smoke-all` (no console errors / animation leaks across all 84 cards). The gate is intentionally cheap and baseline-free for the active-redesign phase; the pixel/packet baseline tools were retired.
 
 ## Adding a scheme
 
@@ -158,8 +163,42 @@ Idle = static poster. After ~1s the card auto-plays step 1 via the cancellable `
 - **Packets use WAAPI `transform: translate(Xpx, Ypx)`** on a `cx=0, cy=0` circle. Never animate SVG `cx`/`cy` directly (Safari support is uneven). Each packet must represent literal traffic the step narrates, not decoration on a connector.
 - **Packet vs pod-pulse ordering**: up-arrow = pod blinks FIRST, packet at `BEAT.afterPulse`; down-arrow = packet first, pulse at `pkt.arrivalMs`; chained hops via `arrivalMs` + `BEAT.afterHop`. Dim pods need an opacity flash so the blink is visible.
 - **Motion canon**: routes glide at `routeDur` speed (`PKT_SPEED` 0.45, no explicit dur); hops = `topPacket` (eased) + `segmentPacket` (linear); ripple always (no flag); wrappers return `arrivalMs`; `BEAT`/`FADE` tokens; the ball-on-top exception is kept for 3 control-plane flow cards.
-- **Narration safe-zone**: keep essential scheme content out of the viewBox top-left panel (x<=380 & y<=300), where the narration overlay sits.
+- **Narration safe-zone**: keep essential scheme content out of the viewBox top-left panel (x<=380 & y<=300), where the narration overlay sits. This is a **worst case** sized for the longest narration in the catalog, not a measurement of any one card: see "Recurring traps" for how to measure a specific card's real overlay when a layout needs the room.
 - **Posters use literal hex colors**, not `var(--token)`. SVG presentation attributes do not reliably resolve CSS variables in some browsers.
+
+### Riding labels and `lightBoxAt` (networking cards)
+
+Two helpers recur across the networking family. Both are **local to each card, deliberately not hoisted into `network-kit.js`** (the geometry and copy differ per card). Copy them from `network-service-clusterip.js`, which carries the canonical signature.
+
+- **`ridingLabel(s, ctx, txt, points, { delay, dur, easing })`** paints an address tag that travels along with the ball instead of sitting as static wire text, so the packet visibly carries `dst 10.96.0.10:80` in and `src 10.244.2.7` back out. It lives in the packet layer but is **not** a `.scheme-packet`, so the tools do not count it as a packet. 20 cards use it.
+
+  **The easing must match the ball it rides.** `segmentPacket` is `linear`; `routePacket` and the connector wrappers are eased. `animateAlong` defaults to `ease-in-out`, so a label riding a **linear** hop must pass `easing: 'linear'` explicitly. Get this wrong and the tag drifts off the ball mid-flight, rejoining it only at the endpoints and the midpoint, which is exactly why a static screenshot will not catch it. Confirm with `anim-dump` and compare the ball's and the label's `easing` column, not with frames.
+
+  Whenever a ball uses an explicit `dur`, its riding label must be passed the **same** `dur` or the two desync the same way.
+
+- **`lightBoxAt(boxEl, ctx, delay)`** adds `.highlight` to an infrastructure box **on packet arrival** (`pkt.arrivalMs`) rather than at step entry, via a zero-effect 1ms animation whose `onfinish` sets the class. Under `ctx.reduced` (or `delay <= 0`) it applies the class immediately, which keeps the reduced-motion static end-state correct. 26 cards use it. It is how a box "receives" a packet without pulsing, honoring the rule that only Pods pulse.
+
+`ridingLabel` is the reason `check-canon`'s `ALLOW_EXPLICIT_DUR` allowlist exists: 4 of its 5 entries deliberately slow a route so the tag stays legible. When adding a card that slows a route, add a `<file>.js:routePacket` entry there with the reason, or the lint fails.
+
+### Recurring traps (each of these shipped in more than one card)
+
+None of these are caught by the gate. All of them were found by `anim-dump` or by looking at a rendered frame, never by reading the source, which is why they survived review.
+
+**The `pulsePod` descendant trap.** `pulsePod` finds its targets with `podEl.querySelectorAll('.scheme-pod, .scheme-box')`, and `querySelectorAll` matches **descendants only, never the element itself**. So a pod passed in as a bare `pod()` element matches its own `.scheme-pod-rect` child (the stroke half of the pulse) but never itself (the brightness half), and the pulse silently fires at half strength. Same bug if the inner box is appended to the root as a *sibling* of the shell instead of into the group. Always wrap: `const g = g({}); g.appendChild(shell); g.appendChild(innerBox);` and pulse the group. Bit `network-dns-coredns`, `network-dns-ndots` and `network-nodelocal-dnscache`. Symptom in `anim-dump`: the pod has `strokeOpacity` rows but no `filter` row.
+
+**Every ball rides a drawn wire, and return traffic gets its own lane.** Two separate failures, both common:
+- A ball animated to a target that has no wire under it. It flies over blank canvas. Draw one wire per destination: if a step can send a ball to any of N blocks, draw N wires. Build the wire and the ball from the **same points array** so they cannot drift.
+- A return ball re-using the outbound arrow. It reads as the query bouncing, not as an answer coming home. Give each direction of each hop its own lane, offset by `LANE_DY` (12) around the flow line. Bit `network-dns-records`, `network-nodelocal-dnscache` and `network-headless-service`.
+
+A static wire with **no** ball is fine (it is a relationship, not a route), but then it must have **no arrowhead** either, or it reads as traffic. `arrow()` always attaches a marker, so draw those as a bare dashed `path` (see the Service-to-CoreDNS line in `network-headless-service`).
+
+**A step's `duration` must outlast its own motion.** `anim-dump` prints `span=<ms>` per step: that is when the last animation of the step finishes, pulses included. If `span > duration`, auto-advance cuts the step off mid-flight and the card silently under-shows what it narrates (a four-query walk that only ever plays two). Check every step, not just the one you edited: adding a pulse-on-arrival to the last hop pushes `span` out by `PULSE_POD.ms` (900).
+
+**Chips.** Two rules, both about not lying to the reader:
+- Every `enter()` must set **every** chip, not only the ones the step narrates. A chip left unset keeps the previous step's value, which is how a card came to display `conntrack: no entry` on the exact step where it opens a DNAT-ed connection. Give the card one `setChips(s, {...})` helper that writes all of them, and call it from every step.
+- A chip must always mean what its name says. A chip labelled `DNS answer` showing `connect 10.244.3.4 direct` is not a DNS answer. If a step needs to report something else, that is a second chip, not a reused one.
+
+**The narration safe-zone is a worst case, not a measurement.** The blanket rule (keep content out of `x<=380 & y<=300`) is sized for the longest narration in the catalog. A given card is usually far under it, so if a layout needs the vertical room, measure that card's real overlay instead of assuming: step through every step with `_enterStep(i, {reduced: true})` and read `.narration-overlay`'s `getBoundingClientRect().bottom`, mapped back into viewBox units. Measured bottoms have come out at 143 and 163 against the 300 the rule reserves. If you rely on a measurement, say so in the card's header comment **and** note that a longer narration invalidates it.
 
 ## Writing rules (scheme strings)
 
@@ -171,7 +210,7 @@ Idle = static poster. After ~1s the card auto-plays step 1 via the cancellable `
 
 Own `package.json` (Playwright + pngjs). Stripped from the deploy and release artifacts. Verify animation changes with these rather than eyeballed screenshots. When refactoring a card's animation, lead with `anim-dump` (motion as data) and `frame-strip` (motion as frames), then the gate. Browser is auto-resolved by Playwright (no hardcoded path); set `PLAYWRIGHT_CHROMIUM` only to point at a system browser, `BASE` to override the `:8080` dev server.
 
-- `check-canon.mjs`: source lint for the packet-motion canon over workloads/control/network cards (no explicit `dur` on multi-point routes, no removed symbols). No browser, no baselines. storage/scaling/security/volume are excluded on purpose (dead cards, pending rebuild); add them to its `COVERED` regex once rebuilt.
+- `check-canon.mjs`: source lint for the packet-motion canon over workloads/control/network cards (`COVERED = /^(workloads|control|network)-.*\.js$/`). No browser, no baselines. Three rules: (1) no explicit `dur` on the multi-point route wrappers `routePacket` / `connectorPacket` / `connectorPacketDir`, barring an `ALLOW_EXPLICIT_DUR` allowlist of cards that deliberately slow a route so a riding src-IP tag stays legible (`segmentPacket` and `topPacket` are not linted, an explicit `dur` there is fine); (2) no removed symbols (`arrowPacket`, `wirePacket`, `pulseActiveBlocks`); (3) no per-call `ripple:` option, since ripple is unconditional. It does **not** check `makeInit` / `posterFirst`, kit-vs-`scheme-kit` imports, the `clearHL` prologue, or `ctx.reduced` guard placement: those are convention, enforced by review. storage/scaling/security/volume are excluded on purpose (dead cards, pending rebuild); add them to its `COVERED` regex once rebuilt.
 - `smoke-all.mjs`: loads every scheme, steps through all steps, asserts no console errors / page exceptions / animation leaks.
 - `anim-dump.mjs`: dump a card's motion AS DATA per step (target, animated props, dur/delay/easing, and transform/opacity sampled at fixed progress %), plus DOM facts (packet count, ball-on-top z-order, highlights, narration). `node anim-dump.mjs <id> [step] [--samples=0,25,50,75,100] [--json]`. Best tool for "is this packet/pulse doing what the narration says" since motion-as-text reads far better than pixels. Diffing two dumps partly replaces the retired play-probe.
 - `frame-strip.mjs`: capture N frames per step and stitch them into one PNG. Frames are DETERMINISTIC (each step's play-path is entered with no auto-advance, then every WAAPI animation is frozen at an exact logical time via `currentTime` seeking, not wall-clock sampling). `node frame-strip.mjs <id> [step] [--frames=N] [--contact] [--inspect]`; `--contact` writes one labelled contact sheet (rows = steps, narration in a left gutter). Output under `output/`, gitignored. Manual aid, not in the gate.

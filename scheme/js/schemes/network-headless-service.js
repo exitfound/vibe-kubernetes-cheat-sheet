@@ -1,26 +1,55 @@
-import { svg, g } from '../lib/svg.js';
-import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
+import { svg, g, path } from '../lib/svg.js';
+import { arrowDefs, box, pod, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
 
-// Layout zones (viewBox 1200x640): the top-left band (x<=380, y<=300) is reserved for the
-// narration overlay, so the client Pod sits low-left at y420 and CoreDNS sits at x430. A headless
-// Service has clusterIP None, so there is no VIP hop: DNS returns the backing Pod IPs and the
-// client connects to a Pod directly. The three backends are a StatefulSet (web-0..web-2) to make
-// the stable per-Pod name point land.
-// Standard contract: only Pods pulse, boxes light via .highlight, packet routes match the wires.
-const COREDNS = [680, 189];        // CoreDNS right-edge anchor
-const W0 = 168, W1 = 320, W2 = 472; // backend Pod centre rows
-const POD_X = 880;                  // backend Pods left edge
-const CLIENT = [290, 440];          // client Pod right-edge anchor (DNS lane)
+// Headless Service (viewBox 1200x640). clusterIP None means there is no VIP hop: DNS hands back the
+// backing Pod IPs and the client connects to a Pod itself. The three backends are a StatefulSet
+// (web-0..web-2) so the stable per-Pod name lands.
+//
+// Geometry, all of it symmetric about the canvas centre line CY=320:
+//   - The three Pods are a column on the right, centred on CY (web-1 sits ON it, web-0/web-2 mirror).
+//   - CoreDNS is centred on CY too, so its fan to the three Pods is symmetric: a trunk out of its right
+//     edge, a vertical bus at FAN_X, then a horizontal leg entering each Pod square-on at its left edge.
+//   - The client sits low-left. Its DNS lane leaves the TOP of the Pod, rises, and turns into CoreDNS
+//     at 90 degrees. Query and answer ride SEPARATE lanes (20px apart) so the answer never retraces the
+//     query arrow.
+//   - The data path leaves the client's RIGHT edge, runs under everything at y=520, and rises on its own
+//     bus at DATA_X to enter a Pod square-on. It is drawn to ALL THREE Pods, because a headless client
+//     may pick any of them, and every ball in this card rides one of these drawn wires.
+// Content spans x 80..1120 (centre 600) so it is centred on the canvas.
+//
+// Narration safe-zone: every element left of x=380 sits at y>=310, so nothing can slide under the
+// overlay (x<=380, y<=300). That is why the DNS lane turns at 310/330 rather than higher up.
+const CY = 320;                      // canvas centre line: Pods column + CoreDNS are centred on it
+const W0 = 168, W1 = CY, W2 = 472;   // backend Pod centre rows (W0/W2 mirror about CY)
+const POD_X = 880;                   // backend Pods left edge
+const CORE_LEFT = 430, CORE_RIGHT = 680;
+const FAN_X = 760;                   // vertical bus for the CoreDNS -> Pods endpoint fan
+const DATA_X = 820;                  // vertical bus for the client -> Pod direct data path
+const CLIENT_TOP = 420, CLIENT_RIGHT = 290;
+const DATA_Y = 520;                  // the data trunk runs below CoreDNS and the Service box
 
-// client <-> CoreDNS DNS lane (up from the client, across, into CoreDNS). The vertical rise is at
-// x400 so the wire and its packet clear the narration overlay band (x<=380 & y<=300).
-const QUERY = [[290, 440], [400, 440], [400, 189], [430, 189]];
-const ANSWER = [[430, 189], [400, 189], [400, 440], [290, 440]];
-// client -> a chosen Pod, direct (no proxy). Two routes: web-1 for the round-robin connect, web-0
-// for the stable-name connect.
-const TO_W1 = [[290, 500], [770, 500], [770, W1], [POD_X, W1]];
-const TO_W0 = [[290, 460], [806, 460], [806, W0], [POD_X, W0]];
+// DNS lane: up out of the client's TOP edge, then square into CoreDNS's left edge. Two lanes, 20px
+// apart, so the answer comes home on its own wire instead of running back up the query arrow.
+const QUERY = [[175, CLIENT_TOP], [175, 310], [CORE_LEFT, 310]];
+const ANSWER = [[CORE_LEFT, 330], [195, 330], [195, CLIENT_TOP]];
+
+// Direct data path to each backend. Same array draws the wire and flies the ball.
+const toPod = (cy) => [[CLIENT_RIGHT, DATA_Y], [DATA_X, DATA_Y], [DATA_X, cy], [POD_X, cy]];
+const TO_W0 = toPod(W0);
+const TO_W1 = toPod(W1);
+const TO_W2 = toPod(W2);
+
+// CoreDNS endpoint fan: trunk, bus, then square-on into each Pod's left edge.
+const fanTo = (cy) => [[CORE_RIGHT, CY], [FAN_X, CY], [FAN_X, cy], [POD_X, cy]];
+
+function lightBoxAt(boxEl, ctx, delay = 0) {
+  if (!boxEl) return;
+  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
+  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = () => boxEl.classList.add('highlight');
+  ctx.register(a);
+}
 
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
@@ -43,31 +72,44 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Headless Service: with clusterIP None there is no virtual IP, so DNS returns the backing Pod IPs directly and the client connects to a Pod itself, and a StatefulSet gives each Pod its own stable name',
+      'aria-label': 'Headless Service: with clusterIP None there is no virtual IP, so DNS returns one A record per ready backing Pod and the client connects to a Pod itself, and a StatefulSet gives each Pod its own stable name',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const client = podBlock({ x: 80, y: 420, w: 210, h: 130, label: 'client Pod', ip: '10.244.1.5' });
-    const coredns = box({ x: 430, y: 150, w: 250, h: 78, label: 'CoreDNS', sublabel: 'kube-dns . 10.96.0.10', cat: 'network' });
-    const svc = box({ x: 430, y: 300, w: 250, h: 70, label: 'Service web', sublabel: 'clusterIP: None', cat: 'network' });
+    const client = podBlock({ x: 80, y: CLIENT_TOP, w: 210, h: 130, label: 'Client Pod', ip: '10.244.1.5' });
+    const coredns = box({ x: CORE_LEFT, y: CY - 39, w: 250, h: 78, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', cat: 'network' });
+    const svc = box({ x: CORE_LEFT, y: 430, w: 250, h: 70, label: 'Service web', sublabel: 'clusterIP: None', cat: 'network' });
 
-    const w0 = podBlock({ x: POD_X, y: 110, w: 240, h: 116, label: 'web-0', ip: '10.244.2.7' });
-    const w1 = podBlock({ x: POD_X, y: 262, w: 240, h: 116, label: 'web-1', ip: '10.244.3.4' });
-    const w2 = podBlock({ x: POD_X, y: 414, w: 240, h: 116, label: 'web-2', ip: '10.244.1.9' });
+    const w0 = podBlock({ x: POD_X, y: W0 - 58, w: 240, h: 116, label: 'web-0', ip: '10.244.2.7' });
+    const w1 = podBlock({ x: POD_X, y: W1 - 58, w: 240, h: 116, label: 'web-1', ip: '10.244.3.4' });
+    const w2 = podBlock({ x: POD_X, y: W2 - 58, w: 240, h: 116, label: 'web-2', ip: '10.244.1.9' });
 
-    // Dim dashed wires. CoreDNS knows the three endpoints (fan to each Pod), the Service feeds
-    // CoreDNS, plus the DNS lane and the direct data path. The data-path wires sit under the
-    // packet routes so the bright ball reads on top.
-    const wSvc = arrow({ x1: 555, y1: 300, x2: 555, y2: 228, dashed: true, dim: true });
-    const f0 = arrow({ x1: COREDNS[0], y1: 189, x2: POD_X, y2: W0, dashed: true, dim: true });
-    const f1 = arrow({ x1: COREDNS[0], y1: 189, x2: POD_X, y2: W1, dashed: true, dim: true });
-    const f2 = arrow({ x1: COREDNS[0], y1: 189, x2: POD_X, y2: W2, dashed: true, dim: true });
+    // Service <-> CoreDNS is a plain dashed line with NO arrowhead: it is not a packet route, it is the
+    // static fact that this Service backs those records. An arrowhead here would read as traffic, and no
+    // ball ever rides it. Drawn as a bare path because arrow() always attaches a marker.
+    const wSvc = path({
+      class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim',
+      d: `M 555 430 L 555 ${CY + 39}`,
+      'stroke-dasharray': '5 5',
+      fill: 'none',
+    });
+    // Endpoint fan and data fan. Both are drawn from the exact arrays their balls fly.
+    const fans = [W0, W1, W2].map(cy => pathArrow({ points: fanTo(cy), dashed: true, dim: true }));
+    const dataWires = [TO_W0, TO_W1, TO_W2].map(points => pathArrow({ points, dashed: true, dim: true }));
     const wQuery = pathArrow({ points: QUERY, dashed: true, dim: true });
-    const wData = pathArrow({ points: TO_W1, dashed: true, dim: true });
+    const wAnswer = pathArrow({ points: ANSWER, dashed: true, dim: true });
 
-    const vipChip = valChip({ x: 300, y: 592, w: 180, h: 34, name: 'clusterIP', value: 'None', cat: 'network' });
-    const dnsChip = valChip({ x: 494, y: 592, w: 360, h: 34, name: 'DNS answer', value: 'pending', cat: 'network' });
+    // Three readouts, each of which always means exactly what its name says. The old card showed
+    // `connect 10.244.3.4 direct` under a chip labelled `DNS answer`, which is not a DNS answer.
+    //
+    // Each chip sits directly UNDER the column it reports on and shares that column's exact x and width:
+    // clusterIP under the client (80..290), the DNS answer under CoreDNS and the Service (430..680), the
+    // connection under the Pods (880..1120). So the footer spans the diagram end to end and every chip
+    // edge lines up vertically with the blocks above it.
+    const vipChip = valChip({ x: 80, y: 575, w: 210, h: 34, name: 'clusterIP', value: 'None', cat: 'network' });
+    const dnsChip = valChip({ x: CORE_LEFT, y: 575, w: 250, h: 34, name: 'A records', value: 'pending', cat: 'network' });
+    const connChip = valChip({ x: POD_X, y: 575, w: 240, h: 34, name: 'connection', value: 'none', cat: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -76,8 +118,8 @@ class Scene {
     root.appendChild(svc);
     root.appendChild(client.group);
     [w0, w1, w2].forEach(p => root.appendChild(p.group));
-    [wSvc, f0, f1, f2, wQuery, wData].forEach(el => root.appendChild(el));
-    [vipChip, dnsChip].forEach(c => root.appendChild(c));
+    [wSvc, ...fans, ...dataWires, wQuery, wAnswer].forEach(el => root.appendChild(el));
+    [vipChip, dnsChip, connChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
@@ -85,7 +127,7 @@ class Scene {
       svg: root, coredns, svc,
       client: client.group, clientBox: client.innerBox,
       w0: w0.group, w0Box: w0.innerBox, w1: w1.group, w1Box: w1.innerBox, w2: w2.group, w2Box: w2.innerBox,
-      vipChip, dnsChip, packetLayer, wires: {},
+      vipChip, dnsChip, connChip, packetLayer, wires: {},
     };
   }
 
@@ -93,8 +135,16 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['coredns', 'svc', 'vipChip', 'dnsChip', 'w0Box', 'w1Box', 'w2Box'],
+  clearHighlights(s, ['coredns', 'svc', 'vipChip', 'dnsChip', 'connChip', 'clientBox', 'w0Box', 'w1Box', 'w2Box'],
     [s.refs.client, s.refs.w0, s.refs.w1, s.refs.w2]);
+}
+
+// Every step repaints all three readouts, so no value can survive from the previous step.
+function setChips(s, { vip, dns, conn }, lit = []) {
+  setVal(s.refs.vipChip, vip);
+  setVal(s.refs.dnsChip, dns);
+  setVal(s.refs.connChip, conn);
+  lit.forEach(k => s.refs[k].classList.add('highlight'));
 }
 
 const STEPS = [
@@ -105,35 +155,30 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      setVal(s.refs.vipChip, 'None');
-      setVal(s.refs.dnsChip, 'pending');
+      setChips(s, { vip: 'None', dns: 'pending', conn: 'none' });
     },
   },
   {
     id: 'query',
-    duration: 2200,
+    duration: 2600,
     narration: 'The client looks up the Service by name, web.default.svc.cluster.local. Because there is no ClusterIP, the answer cannot be a single virtual address, so this query has to resolve to the Pods themselves.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.vipChip.classList.add('highlight');
-      setVal(s.refs.dnsChip, 'query web.default.svc');
+      s.refs.svc.classList.add('highlight');
+      setChips(s, { vip: 'None', dns: 'pending', conn: 'none' }, ['vipChip']);
       if (ctx.reduced) { s.refs.coredns.classList.add('highlight'); return; }
-      // Up-arrow: the client pulses first, the query leaves at BEAT.afterPulse and lands at CoreDNS.
+      // Up-arrow: the client pulses first, the query leaves at BEAT.afterPulse and lands at CoreDNS,
+      // which lights on arrival.
       pulsePod(s.refs.client, ctx, 0);
       const q = routePacket(s, ctx, QUERY, { delay: BEAT.afterPulse, cat: 'network' });
-      const light = q.arrivalMs;
-      if (!ctx.reduced) {
-        const a = s.refs.coredns.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay: light });
-        a.onfinish = () => s.refs.coredns.classList.add('highlight');
-        ctx.register(a);
-      }
+      lightBoxAt(s.refs.coredns, ctx, q.arrivalMs);
     },
   },
   {
     id: 'answer-all',
-    duration: 2600,
-    narration: 'CoreDNS reads the ready endpoints and returns one A record for every backing Pod, three addresses in this answer rather than a single VIP. The client receives the whole set of Pod IPs and gets to choose among them itself.',
+    duration: 3000,
+    narration: 'CoreDNS reads the ready endpoints and returns one A record for every backing Pod, three addresses in this answer rather than a single VIP. The client receives the whole set of Pod IPs and picks one itself, which is why a headless Service does no load balancing of its own.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -141,21 +186,21 @@ const STEPS = [
       s.refs.w0Box.classList.add('highlight');
       s.refs.w1Box.classList.add('highlight');
       s.refs.w2Box.classList.add('highlight');
-      setVal(s.refs.dnsChip, '3 A records: .2.7 .3.4 .1.9');
+      setChips(s, { vip: 'None', dns: '.2.7 .3.4 .1.9', conn: 'none' }, ['dnsChip']);
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
-      // Down-arrow: the answer rides back to the client, which pulses on arrival.
+      // Down-arrow: the answer comes home on its OWN lane and the client pulses on arrival.
       const ans = routePacket(s, ctx, ANSWER, { cat: 'network' });
       pulsePod(s.refs.client, ctx, ans.arrivalMs);
     },
   },
   {
     id: 'direct',
-    duration: 2500,
-    narration: 'The client opens the connection straight to one of those Pod IPs, here web-1 at 10.244.3.4. There is no ClusterIP in the path and kube-proxy does no DNAT, the traffic goes directly Pod to Pod.',
+    duration: 3600,
+    narration: 'The client opens the connection straight to one of those Pod IPs, here web-1 at 10.244.3.4. There is no ClusterIP in the path and kube-proxy does no DNAT, so the traffic goes directly Pod to Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      setVal(s.refs.dnsChip, 'connect 10.244.3.4 direct');
+      setChips(s, { vip: 'None', dns: '.2.7 .3.4 .1.9', conn: '10.244.3.4' }, ['connChip']);
       if (ctx.reduced) { s.refs.w1Box.classList.add('highlight'); return; }
       // Up-arrow: client pulses first, the connection leaves and the chosen Pod pulses on arrival.
       pulsePod(s.refs.client, ctx, 0);
@@ -165,12 +210,14 @@ const STEPS = [
   },
   {
     id: 'stable-name',
-    duration: 2600,
-    narration: 'A headless Service also gives each StatefulSet Pod its own stable name, so web-0.web.default.svc.cluster.local always resolves to that exact Pod. That is how a client can address one specific replica, which is what stateful systems with a known primary depend on.',
+    // The route to web-0 is the longest on the card (it climbs the full column), so its ball runs
+    // ~3.8s. The step must outlast its own motion or auto-advance clips the ball in mid-flight.
+    duration: 4200,
+    narration: 'A headless Service also gives each StatefulSet Pod its own stable name, so web-0.web.default.svc.cluster.local resolves to that one Pod and nothing else. That is how a client addresses one specific replica, which is what stateful systems with a known primary depend on.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      setVal(s.refs.dnsChip, 'web-0.web.default.svc');
+      setChips(s, { vip: 'None', dns: 'web-0 only: .2.7', conn: '10.244.2.7' }, ['dnsChip', 'connChip']);
       if (ctx.reduced) { s.refs.w0Box.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const hop = routePacket(s, ctx, TO_W0, { delay: BEAT.afterPulse, cat: 'network' });

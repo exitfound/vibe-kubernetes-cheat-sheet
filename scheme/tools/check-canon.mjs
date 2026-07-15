@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// check-canon.mjs: static guard for the workloads + control + network packet-motion canon.
+// check-canon.mjs: static guard for the workloads + control + network + storage packet-motion canon.
 //
 // smoke-all runs the cards under reduced motion (no console errors), but neither it
 // nor any runtime check catches a card drifting BACK to the patterns the 2026-06-11
 // harmonization removed. This is a pure source lint over
-// scheme/js/schemes/{workloads,control,network}-*.js, all of which are on the shared
-// kit. It intentionally does NOT touch storage/scaling/security/volume:
-// those cards are dead and will be rebuilt from scratch onto the kit, at which point
-// add them to the COVERED regex below.
+// scheme/js/schemes/{workloads,control,network,storage}-*.js, all of which are on the
+// shared kit. It intentionally does NOT touch scaling/security: those cards are dead
+// and will be rebuilt from scratch onto the kit, at which point add them to the
+// COVERED regex below.
 //
 // Fails (exit 1) if a card:
 //   1. passes an explicit dur to a MULTI-POINT route wrapper (routePacket /
@@ -34,6 +34,20 @@ const ALLOW_EXPLICIT_DUR = new Set([
   // short centre path and the long side paths all land on their node.spec.podCIDR at the
   // same instant (the centre just moves slower). Synchronized arrival, by design.
   'network-ipam-pod-cidr.js:routePacket',
+  // The kube-proxy -> Pod fan is deliberately slowed (routeDur * FAN_SLOW) so the src-IP tag
+  // riding the ball stays legible. Speed stays distance-normalized (one shared multiplier), the
+  // riding label uses the same dur so it stays locked to the packet.
+  'network-traffic-distribution.js:routePacket',
+  // The deliver hop is slowed to DELIVER_DUR so the src-IP tag riding the ball stays legible. The
+  // riding label uses the same dur so it stays locked to the packet.
+  'network-ebpf-dataplane.js:routePacket',
+  // The opening range-split is slowed to SPLIT_DUR and both packets share it, so the divide into a
+  // static and a dynamic band is easy to follow and the two bands light up together.
+  'network-service-cidr.js:routePacket',
+  // Every packet glides at routeDur * SLOWMO (10% slower than canon) so the src/dst-IP tag riding
+  // the ball on both round trips stays legible. Speed stays distance-normalized (one shared
+  // multiplier), and each riding label uses the same slowDur so it stays locked to the packet.
+  'network-service-clusterip.js:routePacket',
 ]);
 
 const ROUTE_WRAPPERS = ['routePacket', 'connectorPacket', 'connectorPacketDir'];
@@ -53,7 +67,7 @@ function callArgs(src, open) {
 // Categories on the shared kit and thus held to the canon. storage/scaling/security/
 // volume are deliberately absent (dead cards, pending a full rebuild); add them here
 // once rebuilt.
-const COVERED = /^(workloads|control|network)-.*\.js$/;
+const COVERED = /^(workloads|control|network|storage)-.*\.js$/;
 const files = (await readdir(SCHEMES))
   .filter(f => COVERED.test(f))
   .sort();
@@ -94,4 +108,4 @@ if (violations.length) {
   for (const v of violations) console.error('  ' + v);
   process.exit(1);
 }
-console.log(`canon check OK: ${files.length} workloads+control+network cards clean`);
+console.log(`canon check OK: ${files.length} workloads+control+network+storage cards clean`);

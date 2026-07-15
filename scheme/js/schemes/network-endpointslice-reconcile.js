@@ -1,14 +1,30 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, arrow, animateAlong } from '../lib/primitives.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
 
 // Service / EndpointSlice reconciliation (viewBox 1200x640). This is a control-plane pipeline, not
 // a traffic flow. Read it bottom to top and then right:
 //   Pods (the live source)  --watched by-->  EndpointSlice controller  --writes-->  EndpointSlice
 //   (the derived Ready-only address list)  --read by-->  kube-proxy.
 // The Service sits on top: it owns the selector and NAMES the slice, but stores no addresses.
+//
+// Layout zones (top-left band x<=380 y<=300 kept clear for the narration overlay: the Service, the
+// slice rows and the controller are all centred at x600, well right of it). The slice is three
+// valChip rows stacked between the Service and the controller. The controller sits below them and
+// writes UP into the slice, kube-proxy sits to the RIGHT of the slice and reads it, the live Pods
+// sit along the BOTTOM and are watched from above.
+//
 // Standard contract: Pods are shell + inner box and pulse as one; the controller / kube-proxy
-// boxes light but never pulse; value chips (the endpoints) never flash, they just light.
+// boxes light but never pulse; value chips (the endpoints) never flash, they just light via
+// lightBoxAt on packet arrival. The endpoint rows are the durable state (setVal + .highlight),
+// they hold the addresses. What MOVES rides on the ball: the controller write hop carries the
+// endpoint address it is committing, the kube-proxy read hop carries a short read tag, each via
+// ridingLabel so there is no static inline wire text to collide with the boxes.
+const CTLR_TOP = 350;                       // top edge of the controller box
+const SLICE_BOTTOM = 290;                   // bottom edge of the lowest endpoint row
+const WRITE_PATH = [[600, CTLR_TOP], [600, SLICE_BOTTOM]];   // controller -> slice, straight up
+const SLICE_RIGHT = 790, KPROXY_LEFT = 840; // slice right edge, kube-proxy left edge
+const READ_PATH = [[SLICE_RIGHT, 222], [KPROXY_LEFT, 222]];  // slice -> kube-proxy, straight right
 
 function lightBoxAt(boxEl, ctx, delay = 0) {
   if (!boxEl) return;
@@ -17,6 +33,23 @@ function lightBoxAt(boxEl, ctx, delay = 0) {
   a.onfinish = () => boxEl.classList.add('highlight');
   ctx.register(a);
 }
+
+// A small label that rides ALONG with the ball on the same path, timing and easing, tagging it with
+// the concrete value the step narrates (the endpoint being written, or the read). It lives in the
+// packet layer but is not a .scheme-packet, so it does not count as a packet to the tools. dur
+// omitted => routeDur(points), matching a ball that also omits dur. Pass easing:'linear' for the
+// straight segmentPacket hops so the tag stays locked to the linear ball.
+function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
+  if (ctx.reduced) return;
+  const d = dur == null ? routeDur(points) : dur;
+  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
+  lbl.style.opacity = '0';
+  s.refs.packetLayer.appendChild(lbl);
+  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
+  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
+  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
+}
+
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
@@ -47,7 +80,6 @@ class Scene {
     const service = box({ x: 410, y: 52, w: 380, h: 70, label: 'Service: web', sublabel: 'selector app=web · holds no addresses', cat: 'network' });
 
     // Centre: the EndpointSlice (the derived list). One row per matching Pod.
-    const sliceLabel = text({ class: 'scheme-label code dim', x: 600, y: 142, 'text-anchor': 'middle', 'font-size': 11 }, ['EndpointSlice web-xyz']);
     const ep1 = valChip({ x: 410, y: 152, w: 380, h: 42, name: 'endpoint', value: '(empty)', cat: 'network' });
     const ep2 = valChip({ x: 410, y: 200, w: 380, h: 42, name: 'endpoint', value: '(empty)', cat: 'network' });
     const ep3 = valChip({ x: 410, y: 248, w: 380, h: 42, name: 'endpoint', value: '(empty)', cat: 'network' });
@@ -64,12 +96,11 @@ class Scene {
     const c = podBlock({ x: 860, y: 488, w: 250, h: 128, label: 'Pod app=web', ip: '10.244.3.9 · notReady' });
 
     // Wires: Service names the slice (down), controller writes the slice (up), slice is read by
-    // kube-proxy (right), and the controller watches the Pod set (down, labelled).
+    // kube-proxy (right), and the controller watches the Pod set (down).
     const declWire  = arrow({ x1: 600, y1: 122, x2: 600, y2: 152, dashed: true, dim: true, color: 'network' });
-    const writeWire = arrow({ x1: 600, y1: 350, x2: 600, y2: 290, dashed: true, dim: true, color: 'network' });
-    const readWire  = arrow({ x1: 790, y1: 222, x2: 840, y2: 222, dashed: true, dim: true, color: 'network' });
+    const writeWire = arrow({ x1: WRITE_PATH[0][0], y1: WRITE_PATH[0][1], x2: WRITE_PATH[1][0], y2: WRITE_PATH[1][1], dashed: true, dim: true, color: 'network' });
+    const readWire  = arrow({ x1: READ_PATH[0][0], y1: READ_PATH[0][1], x2: READ_PATH[1][0], y2: READ_PATH[1][1], dashed: true, dim: true, color: 'network' });
     const watchWire = arrow({ x1: 600, y1: 440, x2: 600, y2: 484, dashed: true, dim: true, color: 'network' });
-    const watchLabel = text({ class: 'scheme-label code dim', x: 600, y: 466, 'text-anchor': 'middle', 'font-size': 10 }, ['watch app=web']);
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -79,8 +110,8 @@ class Scene {
     root.appendChild(a.group);
     root.appendChild(b.group);
     root.appendChild(c.group);
-    [sliceLabel, ep1, ep2, ep3].forEach(el => root.appendChild(el));
-    [declWire, writeWire, readWire, watchWire, watchLabel].forEach(el => root.appendChild(el));
+    [ep1, ep2, ep3].forEach(el => root.appendChild(el));
+    [declWire, writeWire, readWire, watchWire].forEach(el => root.appendChild(el));
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
@@ -96,7 +127,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['service', 'ctlr', 'kproxy', 'ep1', 'ep2', 'ep3'], [s.refs.podA, s.refs.podB, s.refs.podC]);
+  // The inner pod boxes (podABox etc.) light in the reduced-motion end-states, so they must be
+  // cleared here too or a replayed prior step leaks its .highlight into the next one.
+  clearHighlights(s, ['service', 'ctlr', 'kproxy', 'ep1', 'ep2', 'ep3', 'podABox', 'podBBox', 'podCBox'], [s.refs.podA, s.refs.podB, s.refs.podC]);
   s.refs.podB.style.opacity = '1';
 }
 
@@ -124,9 +157,9 @@ const STEPS = [
       s.refs.podC.style.opacity = '0.4';
       s.refs.service.classList.add('highlight');
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
-      // The Ready candidates pulse so the selector match reads clearly.
+      // The Ready candidates pulse together so the selector match reads clearly.
       pulsePod(s.refs.podA, ctx, 0);
-      pulsePod(s.refs.podB, ctx, BEAT.afterHop);
+      pulsePod(s.refs.podB, ctx, 0);
     },
   },
   {
@@ -142,13 +175,17 @@ const STEPS = [
       setVal(s.refs.ep2, '10.244.2.7:8080 · ready');
       setVal(s.refs.ep3, '10.244.3.9 · notReady');
       if (ctx.reduced) { s.refs.ep1.classList.add('highlight'); s.refs.ep2.classList.add('highlight'); return; }
-      // The Ready Pods are observed (they pulse), then the controller writes the slice: one packet
-      // up from the controller, and the two Ready endpoint rows light as it lands.
+      // The Ready Pods are observed (they pulse together), then the controller writes the slice: one
+      // packet up from the controller carrying the endpoint address it commits, and the two Ready
+      // endpoint rows light together as it lands.
       pulsePod(s.refs.podA, ctx, 0);
-      pulsePod(s.refs.podB, ctx, BEAT.afterHop);
-      const write = segmentPacket(s, ctx, { from: [600, 350], to: [600, 290], delay: BEAT.afterPulse, cat: 'network' });
+      pulsePod(s.refs.podB, ctx, 0);
+      const write = segmentPacket(s, ctx, { from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, cat: 'network' });
+      // Both Ready endpoints are committed in this write and light together, so the tag names the
+      // set it commits rather than a single address.
+      ridingLabel(s, ctx, 'ready endpoints', WRITE_PATH, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.ep1, ctx, write.arrivalMs);
-      lightBoxAt(s.refs.ep2, ctx, write.arrivalMs + BEAT.afterHop);
+      lightBoxAt(s.refs.ep2, ctx, write.arrivalMs);
     },
   },
   {
@@ -169,7 +206,8 @@ const STEPS = [
       // slice (one packet up), and the dropped endpoint lights to show the change.
       s.refs.podB.style.opacity = '0.4';
       pulsePod(s.refs.podB, ctx, 0);
-      const upd = segmentPacket(s, ctx, { from: [600, 350], to: [600, 290], delay: BEAT.afterPulse, cat: 'network' });
+      const upd = segmentPacket(s, ctx, { from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, cat: 'network' });
+      ridingLabel(s, ctx, '10.244.2.7 notReady', WRITE_PATH, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.ep2, ctx, upd.arrivalMs);
     },
   },
@@ -187,8 +225,10 @@ const STEPS = [
       setVal(s.refs.ep2, '10.244.2.7 · dropped (notReady)');
       setVal(s.refs.ep3, '10.244.3.9 · notReady');
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); return; }
-      // kube-proxy reads the slice (one clean hop) and lights on arrival.
-      const read = segmentPacket(s, ctx, { from: [790, 222], to: [840, 222], cat: 'network' });
+      // kube-proxy reads the slice (one clean hop) and lights on arrival. The ball carries a short
+      // read tag so the direction of the pull reads clearly.
+      const read = segmentPacket(s, ctx, { from: READ_PATH[0], to: READ_PATH[1], cat: 'network' });
+      ridingLabel(s, ctx, 'reads slice', READ_PATH, { easing: 'linear' });
       lightBoxAt(s.refs.kproxy, ctx, read.arrivalMs);
     },
   },

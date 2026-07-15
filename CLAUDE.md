@@ -36,8 +36,8 @@ Rebuild after edits: `docker rm -f kube-cheatsheet && docker build -t kube-cheat
 ## Deployment
 
 Two GitHub Actions run on every push to `main`:
-- **`deploy.yml`** stages `index.html`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, plus the `images/`, `cli/`, and `scheme/` directories, then strips `scheme/tools/` and every `CLAUDE.md` before publishing to GitHub Pages. `configs/` and `Dockerfile` are intentionally excluded (Docker-only).
-- **`release.yml`** zips the shippable tree (`index.html`, `cli/`, `scheme/`, `images/`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, `Dockerfile`, `configs/`, minus `scheme/tools/` and the nested `CLAUDE.md` files) into a tagged Release `vYYYY.MM.DD-<sha>`. Path-filtered to skip docs-only commits.
+- **`deploy.yml`** stages `index.html`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, plus the `images/`, `cli/`, and `scheme/` directories, then strips `scheme/tools/` and every `CLAUDE.md` before publishing to GitHub Pages. `configs/`, `Dockerfile`, and `.dockerignore` are intentionally excluded (Docker-only).
+- **`release.yml`** zips the shippable tree (`index.html`, `cli/`, `scheme/`, `images/`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, `Dockerfile`, `configs/`, `.dockerignore`, minus `scheme/tools/` and the nested `CLAUDE.md` files) into a tagged Release `vYYYY.MM.DD-<sha>`. Its `paths:` trigger matches that artifact list so any shippable change cuts a release while docs-only commits are skipped.
 
 Internal docs (`CLAUDE.md` anywhere, `scheme/tools/`) never reach production. Any push to `main` ships immediately; there is no staging environment. Hosting is GitHub Pages + Cloudflare (custom domain, SSL, edge cache).
 

@@ -2,14 +2,33 @@ import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, chainList } from '../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
 
-// Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. The client
-// Pod sits low-left with its resolv.conf, CoreDNS sits low-right, and the search-list ladder of
-// candidate FQDNs sits up high in the middle (clear of the query lane at y420). A query hops pod
-// -> CoreDNS along that lane. CoreDNS is infra (lights, never pulses); only the Pod pulses. The
-// ladder rows light to show how many names a short lookup has to try.
-const LANE_Y = 420;
-const POD_EDGE = 270;
-const DNS_LEFT = 900;
+// Search domains and ndots (viewBox 1200x640). Everything hangs off one flow line (FLOW_Y): the client
+// Pod on the left, CoreDNS close beside it (the lane is deliberately SHORT, this card is about how MANY
+// queries are sent, not how far they travel), and the candidate ladder to the right. Content spans
+// x 70..1130, so it is centred on the 1200-wide canvas.
+//
+// Forward (query) and return (answer) traffic ride SEPARATE lanes around the line, because the whole
+// point of the card is the cost of a ROUND TRIP: a miss is not just a packet out, it is a packet out
+// and an NXDOMAIN back, four times over.
+//
+// The resolv.conf is drawn as its own chips (search + options) under the Pod, exactly as in
+// network-dns-coredns, rather than as a box whose sublabel repeats a chip that sits next to it.
+// FLOW_Y sits 90px higher than the obvious "safe" value, which centres the content vertically on the
+// canvas (ladder top 182, chips bottom 482, midpoint 332 against a canvas midpoint of 320). The blanket
+// narration safe-zone (x<=380, y<=300) is a worst-case rule: measured against this card's LONGEST step
+// the overlay actually ends at y=143, so the Pod top at 225 still clears it by ~80px. If a narration
+// here ever grows by another three lines, re-measure before raising this further.
+const FLOW_Y = 290;
+const LANE_DY = 12;
+const FWD_Y = FLOW_Y - LANE_DY;   // 278: Pod -> CoreDNS query lane
+const RET_Y = FLOW_Y + LANE_DY;   // 302: CoreDNS -> Pod answer lane
+const POD_EDGE = 270;             // client Pod right edge
+const DNS_LEFT = 460;             // CoreDNS left edge
+const ROWS_Y = FLOW_Y - 108;      // ladder top, so its 4 rows are symmetric about FLOW_Y
+
+// The real search list for a Pod in namespace ns is `ns.svc.cluster.local svc.cluster.local
+// cluster.local`, so a short name is tried against each in turn and only then as it was written.
+// Four candidates, so four round trips per address family.
 const CANDIDATES = ['api.ns.svc.cluster.local', 'api.svc.cluster.local', 'api.cluster.local', 'api'];
 
 function lightBoxAt(boxEl, ctx, delay = 0) {
@@ -20,11 +39,17 @@ function lightBoxAt(boxEl, ctx, delay = 0) {
   ctx.register(a);
 }
 
-function lightRows(s, upto) {
-  if (!s.refs.chain) return;
-  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => {
-    if (Number(r.getAttribute('data-idx')) <= upto) r.classList.add('highlight');
-  });
+// Run fn at a point in the step, or immediately under reduced replay so the static end-state is right.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.chain.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
+
+function lightRow(s, i) {
+  const row = s.refs.chain && s.refs.chain.querySelector(`[data-idx="${i}"]`);
+  if (row) row.classList.add('highlight');
 }
 
 class Scene {
@@ -37,49 +62,62 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Search domains and ndots: a Pod resolv.conf lists search domains and ndots, so a short name with fewer dots than ndots is tried against each search domain in turn before being tried as is, costing several DNS queries, while an absolute name ending in a dot skips the search list entirely',
+      'aria-label': 'Search domains and ndots: a Pod resolv.conf lists search domains and ndots, so a short name with fewer dots than ndots is tried against each search domain in turn before being tried as is, costing one round trip per candidate, while an absolute name ending in a dot skips the search list entirely',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const shell = pod({ x: 70, y: 350, w: 200, h: 120, label: 'client Pod', sublabel: 'curl api', containers: 0, cat: 'network' });
+    // Client Pod and CoreDNS both centred on FLOW_Y, so the two lanes meet each at its middle.
+    const shell = pod({ x: 70, y: FLOW_Y - 65, w: 200, h: 130, label: 'Client Pod', sublabel: 'curl api', containers: 0, cat: 'network' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    // The resolver box lives INSIDE podGroup: pulsePod walks descendants, so a box appended to the root
+    // beside the shell would be left out of the pulse and the Pod would blink with a dead centre.
+    const podBox = box({ x: 90, y: FLOW_Y - 29, w: 160, h: 52, label: 'resolver', sublabel: 'getaddrinfo', cat: 'network' });
     const podGroup = g({});
     podGroup.appendChild(shell);
-    const podBox = box({ x: 90, y: 384, w: 160, h: 52, label: 'resolver', sublabel: 'eth0', cat: 'network' });
+    podGroup.appendChild(podBox);
 
-    const resolv = box({ x: 70, y: 496, w: 200, h: 58, label: 'resolv.conf', sublabel: 'ndots: 5', cat: 'network' });
-    const dns = box({ x: 900, y: 384, w: 220, h: 72, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', cat: 'network' });
+    const dns = box({ x: DNS_LEFT, y: FLOW_Y - 48, w: 220, h: 96, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', cat: 'network' });
 
-    const chain = chainList({ x: 410, y: 150, w: 400, rowH: 34, gap: 6, items: CANDIDATES, activeIdx: -1, cat: 'network' });
+    // The candidate ladder: every name this one lookup may have to ask for, in the order tried.
+    const chain = chainList({ x: 740, y: ROWS_Y, w: 390, rowH: 48, gap: 8, items: CANDIDATES, activeIdx: -1, cat: 'network' });
 
-    const qWire = arrow({ x1: POD_EDGE, y1: LANE_Y, x2: DNS_LEFT, y2: LANE_Y, dashed: true, dim: true, color: 'network' });
-    const qLabel = text({ class: 'scheme-label code dim', x: 585, y: LANE_Y - 12, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
+    const qWire = arrow({ x1: POD_EDGE, y1: FWD_Y, x2: DNS_LEFT, y2: FWD_Y, dashed: true, dim: true, color: 'network' });
+    const aWire = arrow({ x1: DNS_LEFT, y1: RET_Y, x2: POD_EDGE, y2: RET_Y, dashed: true, dim: true, color: 'network' });
+    // font-size 10 and no `A? ` prefix: the lane is only 190px wide and a full FQDN at 11px overruns it
+    // onto the CoreDNS box. The longest name here, api.ns.svc.cluster.local, is ~144px at this size.
+    const qLabel = text({ class: 'scheme-label code dim', x: 365, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const aLabel = text({ class: 'scheme-label code dim', x: 365, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const searchChip  = valChip({ x: 80,  y: 578, w: 300, h: 34, name: 'search', value: 'svc.cluster.local ...', cat: 'network' });
-    const ndotsChip   = valChip({ x: 400, y: 578, w: 200, h: 34, name: 'ndots', value: '5', cat: 'network' });
-    const queriesChip = valChip({ x: 620, y: 578, w: 230, h: 34, name: 'queries', value: '0', cat: 'network' });
-    const answerChip  = valChip({ x: 870, y: 578, w: 250, h: 34, name: 'answer', value: 'none', cat: 'network' });
+    // resolv.conf, drawn as the file it is: the two lines that decide everything on this card.
+    const rcLabel = text({ class: 'scheme-label code dim', x: 235, y: FLOW_Y + 108, 'text-anchor': 'middle', 'font-size': 11 }, ['/etc/resolv.conf']);
+    const rcSearch = valChip({ x: 70, y: FLOW_Y + 120, w: 330, h: 32, name: 'search', value: 'ns.svc / svc / cluster.local', cat: 'network' });
+    const rcNdots = valChip({ x: 70, y: FLOW_Y + 160, w: 330, h: 32, name: 'options', value: 'ndots:5', cat: 'network' });
+
+    // The live cost readout. It counts NAMES TRIED, not DNS messages: getaddrinfo asks for A and AAAA in
+    // parallel, so each name costs two queries on the wire. Calling this chip `queries` and showing 1 for
+    // a hit would contradict the walk step, which tells the reader the IPv4 plus IPv6 total doubles.
+    // The answer is the real DNS rcode, so NOERROR and NXDOMAIN read as the pair they are.
+    const namesChip = valChip({ x: 740, y: FLOW_Y + 160, w: 185, h: 32, name: 'names tried', value: '0', cat: 'network' });
+    const answerChip = valChip({ x: 945, y: FLOW_Y + 160, w: 185, h: 32, name: 'rcode', value: 'none', cat: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order: Pod + resolver + resolv.conf + CoreDNS + ladder, then query wire + label above,
-    // then chips, then the packet layer on top.
+    // Z-order: Pod + resolver + CoreDNS + ladder, then the lanes and their labels above, then chips,
+    // then the packet layer on top.
     root.appendChild(podGroup);
-    root.appendChild(podBox);
-    root.appendChild(resolv);
     root.appendChild(dns);
     root.appendChild(chain);
-    [qWire, qLabel].forEach(el => root.appendChild(el));
-    [searchChip, ndotsChip, queriesChip, answerChip].forEach(c => root.appendChild(c));
+    [qWire, aWire, qLabel, aLabel].forEach(el => root.appendChild(el));
+    [rcLabel, rcSearch, rcNdots, namesChip, answerChip].forEach(el => root.appendChild(el));
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
     this.refs = {
-      svg: root, podGroup, podBox, resolv, dns, chain,
-      searchChip, ndotsChip, queriesChip, answerChip,
-      packetLayer, wires: { q: qLabel },
+      svg: root, podGroup, podBox, dns, chain,
+      rcSearch, rcNdots, namesChip, answerChip,
+      packetLayer, wires: { q: qLabel, a: aLabel },
     };
   }
 
@@ -87,17 +125,31 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['podBox', 'resolv', 'dns', 'searchChip', 'ndotsChip', 'queriesChip', 'answerChip'], [s.refs.podGroup]);
+  clearHighlights(s, ['podBox', 'dns', 'rcSearch', 'rcNdots', 'namesChip', 'answerChip'], [s.refs.podGroup]);
+  s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
 }
 
-function flashBox(s, ctx, key) {
-  if (ctx.reduced) return;
-  const el = s.refs[key];
-  if (!el) return;
-  ctx.register(el.animate(
-    [{ filter: 'brightness(1)' }, { filter: 'brightness(1.5)' }, { filter: 'brightness(1)' }],
-    { duration: 600, easing: 'ease-out' }
-  ));
+// One query as a full ROUND TRIP: the Pod pulses, the question goes out on the forward lane, CoreDNS
+// lights on arrival, and the reply comes back on the return lane. Returns the ms at which the reply
+// lands, so the caller can chain the next attempt onto it. `lead` is the pause before the question
+// leaves: the canon BEAT.afterPulse for a fresh lookup, tighter for the retries of a search-list walk,
+// which the resolver fires back to back.
+function roundTrip(s, ctx, { start, lead, name, result, row = -1, pulseOnSend = true }) {
+  // Up-arrow: the Pod pulses BEFORE its question leaves. `pulseOnSend` is false only for the retries of
+  // a search-list walk, where the Pod has just pulsed on the NXDOMAIN landing 300ms earlier and a second
+  // pulse on top of it would smear into one long blink rather than read as two beats.
+  if (pulseOnSend) pulsePod(s.refs.podGroup, ctx, start);
+  // The name and its ladder row appear as the question DEPARTS, so it is always readable which
+  // candidate is currently in flight, rather than only being told after the reply is back.
+  at(s, ctx, start + lead, () => { setWire(s, 'q', name); if (row >= 0) lightRow(s, row); });
+  const q = segmentPacket(s, ctx, { from: [POD_EDGE, FWD_Y], to: [DNS_LEFT, FWD_Y], delay: start + lead, cat: 'network' });
+  lightBoxAt(s.refs.dns, ctx, q.arrivalMs);
+  const a = segmentPacket(s, ctx, { from: [DNS_LEFT, RET_Y], to: [POD_EDGE, RET_Y], delay: q.arrivalMs + BEAT.afterHop, cat: 'network' });
+  // Down-arrow: the reply lands and the Pod pulses ON ARRIVAL, the same beat it pulsed with on the way
+  // out. Without this the answer just dissolves at the Pod edge and nothing acknowledges receiving it.
+  pulsePod(s.refs.podGroup, ctx, a.arrivalMs);
+  at(s, ctx, a.arrivalMs, () => setWire(s, 'a', result));
+  return a.arrivalMs;
 }
 
 const STEPS = [
@@ -109,9 +161,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.searchChip, 'svc.cluster.local ...');
-      setVal(s.refs.ndotsChip, '5');
-      setVal(s.refs.queriesChip, '0');
+      setVal(s.refs.namesChip, '0');
       setVal(s.refs.answerChip, 'none');
     },
   },
@@ -123,71 +173,93 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      s.refs.resolv.classList.add('highlight');
-      s.refs.searchChip.classList.add('highlight');
-      s.refs.ndotsChip.classList.add('highlight');
-      setVal(s.refs.searchChip, 'ns.svc / svc / cluster.local');
-      setVal(s.refs.ndotsChip, '5');
-      // Packet-less, pod-less: flash the resolv.conf box that holds these settings.
-      flashBox(s, ctx, 'resolv');
+      s.refs.rcSearch.classList.add('highlight');
+      s.refs.rcNdots.classList.add('highlight');
+      setVal(s.refs.namesChip, '0');
+      setVal(s.refs.answerChip, 'none');
+      if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); return; }
+      // No query yet: the Pod is reading its own resolv.conf, so the Pod is what moves. The chips light
+      // but never blink, since a blinking block would read as traffic that has not been sent.
+      pulsePod(s.refs.podGroup, ctx, 0);
     },
   },
   {
     id: 'append',
-    duration: 2600,
-    narration: 'The name api has zero dots, well under ndots 5, so the resolver does not send it as is. It appends the first search domain and queries api.ns.svc.cluster.local. Here that name exists, CoreDNS answers, and the lookup is done in one query.',
+    duration: 3400,
+    narration: 'The name api has zero dots, well under ndots 5, so the resolver does not send it as is. It appends the first search domain and asks for api.ns.svc.cluster.local. Here that name exists, CoreDNS answers, and the lookup is done in a single round trip.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setWire(s, 'q', 'api.ns.svc.cluster.local');
-      lightRows(s, 0);
-      s.refs.queriesChip.classList.add('highlight');
-      setVal(s.refs.queriesChip, '1');
-      setVal(s.refs.answerChip, 'hit');
+      lightRow(s, 0);
+      s.refs.namesChip.classList.add('highlight');
+      s.refs.answerChip.classList.add('highlight');
+      setVal(s.refs.namesChip, '1');
+      setVal(s.refs.answerChip, 'NOERROR');
       if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); s.refs.dns.classList.add('highlight'); return; }
-      // Up-arrow: the Pod pulses first, the query leaves at BEAT.afterPulse and reaches CoreDNS,
-      // which lights on arrival.
-      pulsePod(s.refs.podGroup, ctx, 0);
-      const q = segmentPacket(s, ctx, { from: [POD_EDGE, LANE_Y], to: [DNS_LEFT, LANE_Y], delay: BEAT.afterPulse, cat: 'network' });
-      lightBoxAt(s.refs.dns, ctx, q.arrivalMs);
+      roundTrip(s, ctx, { start: 0, lead: BEAT.afterPulse, name: CANDIDATES[0], result: 'A 10.96.0.42', row: 0 });
     },
   },
   {
     id: 'walk',
-    duration: 2600,
-    narration: 'But if the first guess misses, the resolver walks the whole list: api.svc.cluster.local, then api.cluster.local, then finally api on its own. A name that does not exist can cost four round trips, and with IPv4 plus IPv6 lookups that doubles again.',
+    // Four full round trips at the house hop speed run ~8.7s, and the last NXDOMAIN pulse rings on until
+    // ~9.1s. The step must outlast its own motion, or auto-advance clips the walk halfway and the card
+    // silently under-counts the very cost it teaches.
+    duration: 9200,
+    narration: 'But if that first guess misses, the resolver does not give up, it walks the whole list: api.svc.cluster.local, then api.cluster.local, then finally api on its own. Every miss is a full round trip that ends in NXDOMAIN, so one name that does not exist costs four of them, and because the resolver asks for IPv4 and IPv6 the real total doubles again.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      lightRows(s, 3);
-      s.refs.queriesChip.classList.add('highlight');
+      s.refs.namesChip.classList.add('highlight');
       s.refs.answerChip.classList.add('highlight');
-      setVal(s.refs.queriesChip, 'up to 4');
-      setVal(s.refs.answerChip, 'miss -> walk list');
-      // Packet-less, pod-less: flash CoreDNS to mark the repeated round trips the ladder counts.
-      flashBox(s, ctx, 'dns');
+      if (ctx.reduced) {
+        CANDIDATES.forEach((_, i) => lightRow(s, i));
+        s.refs.podBox.classList.add('highlight');
+        s.refs.dns.classList.add('highlight');
+        setVal(s.refs.namesChip, '4');
+        setVal(s.refs.answerChip, 'NXDOMAIN x4');
+        return;
+      }
+      setVal(s.refs.namesChip, '0');
+      setVal(s.refs.answerChip, 'none');
+      // The four candidates fired back to back, each a real round trip. The row lights and the counter
+      // ticks as each NXDOMAIN lands, so the cost is counted on screen rather than asserted in text.
+      let t = 0;
+      CANDIDATES.forEach((name, i) => {
+        const landed = roundTrip(s, ctx, {
+          start: t,
+          lead: i === 0 ? BEAT.afterPulse : 300,
+          name,
+          result: 'NXDOMAIN',
+          row: i,
+          pulseOnSend: i === 0,
+        });
+        at(s, ctx, landed, () => {
+          setVal(s.refs.namesChip, String(i + 1));
+          setVal(s.refs.answerChip, i === CANDIDATES.length - 1 ? 'NXDOMAIN x4' : 'NXDOMAIN');
+        });
+        t = landed + 160;
+      });
     },
   },
   {
     id: 'fqdn',
-    duration: 2600,
-    narration: 'End the name with a dot, api.ns.svc.cluster.local. with a trailing dot, and it counts as absolute. The resolver skips the search list and sends exactly one query. Fully qualifying hot names, or lowering ndots, is the usual fix for noisy cluster DNS.',
+    duration: 3400,
+    narration: 'End the name with a dot, api.ns.svc.cluster.local. with a trailing dot, and it counts as absolute no matter what ndots says. The resolver skips the search list entirely, so not one candidate below is tried and the name is asked for exactly once. Fully qualifying hot names, or lowering ndots, is the usual fix for noisy cluster DNS.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setWire(s, 'q', 'absolute · trailing dot');
-      lightRows(s, 0);
-      s.refs.queriesChip.classList.add('highlight');
-      setVal(s.refs.queriesChip, '1');
-      setVal(s.refs.answerChip, 'hit');
+      // Deliberately NO ladder row lights here: an absolute name never touches the search list, and
+      // lighting the first candidate would say the opposite of what the step is about.
+      s.refs.namesChip.classList.add('highlight');
+      s.refs.answerChip.classList.add('highlight');
+      setVal(s.refs.namesChip, '1');
+      setVal(s.refs.answerChip, 'NOERROR');
       if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); s.refs.dns.classList.add('highlight'); return; }
-      // Up-arrow: a single absolute query, Pod pulses first then one hop to CoreDNS.
-      pulsePod(s.refs.podGroup, ctx, 0);
-      const q = segmentPacket(s, ctx, { from: [POD_EDGE, LANE_Y], to: [DNS_LEFT, LANE_Y], delay: BEAT.afterPulse, cat: 'network' });
-      lightBoxAt(s.refs.dns, ctx, q.arrivalMs);
+      // The trailing dot is the entire point, so the name is shown with it and no row is lit.
+      roundTrip(s, ctx, { start: 0, lead: BEAT.afterPulse, name: 'api.ns.svc.cluster.local.', result: 'A 10.96.0.42' });
     },
   },
 ];

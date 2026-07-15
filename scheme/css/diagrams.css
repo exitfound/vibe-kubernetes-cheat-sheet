@@ -46,7 +46,7 @@ svg.diagram {
   stroke: var(--control-color);
 }
 .scheme-pod[data-cat="storage"] .scheme-pod-container {
-  fill: rgba(79, 213, 163, 0.2);
+  fill: rgba(94, 202, 148, 0.2);
   stroke: var(--storage-color);
 }
 
@@ -115,7 +115,7 @@ svg.diagram {
   stroke-width: 1.4;
 }
 .scheme-cylinder-cap {
-  fill: rgba(79, 213, 163, 0.25);
+  fill: rgba(94, 202, 148, 0.25);
   stroke: var(--storage-color);
   stroke-width: 1.4;
 }

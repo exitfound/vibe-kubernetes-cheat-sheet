@@ -1,17 +1,26 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, arrow, animateAlong } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
 
-// Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. The flow
-// runs left to right along y312, client -> Service -> backend Pod. The port translation happens
-// INSIDE the Service box (kube-proxy DNATs port -> targetPort), so the ball fades at one edge and
-// re-emerges at the far edge. The Service is infrastructure: it lights, it never pulses. Only
-// Pods pulse.
-const FLOW_Y = 312;
-const CLIENT_EDGE = 260;
-const SVC_LEFT = 450;
-const SVC_RIGHT = 690;
-const POD_LEFT = 900;
+// Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. One straight
+// left-to-right flow along FLOW_Y, client Pod -> Service -> backend Pod, so every hop is a crisp
+// horizontal segmentPacket (linear). The port translation happens INSIDE the Service box: kube-proxy
+// DNATs port -> targetPort, so the ball fades in at the Service left edge on the dial hop, the map
+// step flashes the box where the rewrite lives, then the ball re-emerges from the Service right edge
+// on the deliver hop. The Service is infrastructure: it lights on packet arrival (lightBoxAt), it
+// never pulses. Only Pods pulse. This card is a one-way flow (no reply is shown), so there is no
+// return lane. The two values that travel do not sit as static wire text: they ride ON the ball
+// (ridingLabel). The client dials web:80 on the dial hop, and the named-port resolution http -> 8080
+// rides on the deliver hop. The chip strip below tracks the four port numbers as fixed facts.
+const FLOW_Y = 312;                 // shared vertical center of both Pods and the Service box
+const CLIENT_EDGE = 270;            // right edge of the Client Pod shell
+const SVC_LEFT = 470;               // Service centered between the two Pods: equal 200px hops each side
+const SVC_RIGHT = 710;
+const POD_LEFT = 910;               // left edge of the backend Pod shell
+// Each hop is a two-point straight path. The same array feeds both the ball and its riding label so
+// the tag stays locked to the ball. Both ends sit at block edges so the ball never travels under a box.
+const DIAL_PATH = [[CLIENT_EDGE, FLOW_Y], [SVC_LEFT, FLOW_Y]];      // client -> Service (up-arrow)
+const DELIVER_PATH = [[SVC_RIGHT, FLOW_Y], [POD_LEFT, FLOW_Y]];     // Service -> backend Pod (down-arrow)
 
 function lightBoxAt(boxEl, ctx, delay = 0) {
   if (!boxEl) return;
@@ -19,6 +28,22 @@ function lightBoxAt(boxEl, ctx, delay = 0) {
   const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
   a.onfinish = () => boxEl.classList.add('highlight');
   ctx.register(a);
+}
+
+// A small label that rides ALONG with the ball on the same path, timing and easing, tagging it with
+// the port value the step narrates. It lives in the packet layer but is not a .scheme-packet, so it
+// does not count as a packet to the tools. dur omitted => routeDur(points), matching a ball that also
+// omits dur. Pass easing:'linear' for straight segmentPacket hops so the tag stays locked to the
+// linear ball.
+function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
+  if (ctx.reduced) return;
+  const d = dur == null ? routeDur(points) : dur;
+  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
+  lbl.style.opacity = '0';
+  s.refs.packetLayer.appendChild(lbl);
+  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
+  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
+  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
 }
 
 function podBlock({ x, y, w, h, label, ip, container, port }) {
@@ -47,14 +72,12 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = podBlock({ x: 70, y: 252, w: 190, h: 120, label: 'client Pod', ip: '10.244.1.5', container: 'curl', port: 'web:80' });
+    const client = podBlock({ x: 80, y: 252, w: 190, h: 120, label: 'Client Pod', ip: '10.244.1.5', container: 'curl', port: 'web:80' });
     const svc = box({ x: SVC_LEFT, y: 276, w: 240, h: 72, label: 'Service web', sublabel: 'port 80 -> targetPort http', cat: 'network' });
-    const podX = podBlock({ x: 900, y: 252, w: 210, h: 120, label: 'Pod web', ip: '10.244.2.7', container: 'http', port: 'containerPort 8080' });
+    const podX = podBlock({ x: POD_LEFT, y: 252, w: 210, h: 120, label: 'Pod web', ip: '10.244.2.7', container: 'http', port: 'containerPort 8080' });
 
     const cWire = arrow({ x1: CLIENT_EDGE, y1: FLOW_Y, x2: SVC_LEFT, y2: FLOW_Y, dashed: true, dim: true, color: 'network' });
     const pWire = arrow({ x1: SVC_RIGHT, y1: FLOW_Y, x2: POD_LEFT, y2: FLOW_Y, dashed: true, dim: true, color: 'network' });
-    const cLabel = text({ class: 'scheme-label code dim', x: 355, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const pLabel = text({ class: 'scheme-label code dim', x: 795, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
     const dialChip   = valChip({ x: 80,  y: 560, w: 250, h: 34, name: 'client dials', value: 'web:80', cat: 'network' });
     const portChip   = valChip({ x: 350, y: 560, w: 250, h: 34, name: 'port', value: '80', cat: 'network' });
@@ -63,11 +86,12 @@ class Scene {
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order: pods + Service box, then wires + labels above, then chips, then packet layer.
+    // Z-order: pods + Service box, then the dashed wires above them, then chips, then the packet
+    // layer (ball + riding label) on top.
     root.appendChild(svc);
     root.appendChild(client.group);
     root.appendChild(podX.group);
-    [cWire, pWire, cLabel, pLabel].forEach(el => root.appendChild(el));
+    [cWire, pWire].forEach(el => root.appendChild(el));
     [dialChip, portChip, targetChip, contChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
 
@@ -75,7 +99,7 @@ class Scene {
     this.refs = {
       svg: root, svc, client: client.group, clientBox: client.innerBox, podX: podX.group, podXBox: podX.innerBox,
       dialChip, portChip, targetChip, contChip,
-      packetLayer, wires: { c: cLabel, p: pLabel },
+      packetLayer,
     };
   }
 
@@ -83,7 +107,7 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['svc', 'dialChip', 'portChip', 'targetChip', 'contChip'], [s.refs.client, s.refs.podX]);
+  clearHighlights(s, ['svc', 'clientBox', 'podXBox', 'dialChip', 'portChip', 'targetChip', 'contChip'], [s.refs.client, s.refs.podX]);
 }
 
 const STEPS = [
@@ -94,7 +118,6 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      clearWires(s);
       setVal(s.refs.dialChip, 'web:80');
       setVal(s.refs.portChip, '80');
       setVal(s.refs.targetChip, 'http');
@@ -108,16 +131,15 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      clearWires(s);
-      setWire(s, 'c', 'web:80');
       s.refs.dialChip.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
       setVal(s.refs.portChip, '80');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.svc.classList.add('highlight'); return; }
-      // Up-arrow: the client pulses first, the packet leaves at BEAT.afterPulse and reaches the
-      // Service, which lights on arrival.
+      // Up-arrow: the client pulses first, the packet leaves at BEAT.afterPulse and rides one straight
+      // hop into the Service, which lights on arrival. The dialed address web:80 rides with the ball.
       pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: [CLIENT_EDGE, FLOW_Y], to: [SVC_LEFT, FLOW_Y], delay: BEAT.afterPulse, cat: 'network' });
+      const send = segmentPacket(s, ctx, { from: DIAL_PATH[0], to: DIAL_PATH[1], delay: BEAT.afterPulse, cat: 'network' });
+      ridingLabel(s, ctx, 'dst web:80', DIAL_PATH, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.svc, ctx, send.arrivalMs);
     },
   },
@@ -125,18 +147,16 @@ const STEPS = [
     id: 'map',
     duration: 2400,
     narration: 'The Service definition maps port 80 to its targetPort. kube-proxy uses that mapping to rewrite the destination port as it DNATs the packet to a backend Pod IP. The port the client used and the port the container listens on are now two independent values joined only by this rule.',
-    enter(s, ctx) {
+    enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      clearWires(s);
+      // Packet-less, pod-less: the Service box lights via .highlight where the port translation lives.
+      // Blocks light, they never blink. Only Pods pulse.
       s.refs.svc.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
       s.refs.targetChip.classList.add('highlight');
       setVal(s.refs.portChip, '80');
       setVal(s.refs.targetChip, 'http');
-      // Packet-less, pod-less: flash the Service box where the port translation lives. Chips light
-      // only, they never blink.
-      flashBox(s, ctx, 'svc');
     },
   },
   {
@@ -146,27 +166,26 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      clearWires(s);
-      setWire(s, 'p', 'http -> 8080');
       s.refs.targetChip.classList.add('highlight');
       s.refs.contChip.classList.add('highlight');
       setVal(s.refs.targetChip, 'http');
       setVal(s.refs.contChip, '8080');
       if (ctx.reduced) { s.refs.podXBox.classList.add('highlight'); return; }
-      // The packet emerges from the Service (DNAT done inside) and is delivered to the backend Pod,
-      // which pulses on arrival.
-      const give = segmentPacket(s, ctx, { from: [SVC_RIGHT, FLOW_Y], to: [POD_LEFT, FLOW_Y], cat: 'network' });
+      // Down-arrow: the packet re-emerges from the Service right edge (DNAT done inside) and is
+      // delivered to the backend Pod, which pulses on arrival. The resolved named port http -> 8080
+      // rides with the ball.
+      const give = segmentPacket(s, ctx, { from: DELIVER_PATH[0], to: DELIVER_PATH[1], cat: 'network' });
+      ridingLabel(s, ctx, 'http -> 8080', DELIVER_PATH, { easing: 'linear' });
       pulsePod(s.refs.podX, ctx, give.arrivalMs);
     },
   },
   {
     id: 'recap',
     duration: 2400,
-    narration: 'So the client dials 80, the container listens on 8080, and the Service quietly bridges the two. Change the container port and you only update targetPort, every client keeps dialing the same stable Service port.',
+    narration: 'So the client dials 80, the container listens on 8080, and the Service quietly bridges the two. The container port can move behind the Service without the client noticing, because it always keeps dialing the same stable Service port.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      clearWires(s);
       s.refs.dialChip.classList.add('highlight');
       s.refs.contChip.classList.add('highlight');
       setVal(s.refs.dialChip, 'web:80');
@@ -177,15 +196,5 @@ const STEPS = [
     },
   },
 ];
-
-function flashBox(s, ctx, key) {
-  if (ctx.reduced) return;
-  const el = s.refs[key];
-  if (!el) return;
-  ctx.register(el.animate(
-    [{ filter: 'brightness(1)' }, { filter: 'brightness(1.5)' }, { filter: 'brightness(1)' }],
-    { duration: 600, easing: 'ease-out' }
-  ));
-}
 
 export const init = makeInit(Scene, STEPS, { posterFirst: true });

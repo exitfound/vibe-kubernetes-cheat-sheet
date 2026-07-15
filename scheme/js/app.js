@@ -394,7 +394,7 @@ function renderGrid() {
 
 const POSTER_COLORS = {
   network:   '#4fe5ff',
-  storage:   '#4fd5a3',
+  storage:   '#5eca94',
   workloads: '#3da0ff',
   scaling:   '#ffa04d',
   control:   '#7d86ff',

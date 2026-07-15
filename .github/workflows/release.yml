@@ -10,8 +10,12 @@ on:
       - 'scheme/**'
       - 'images/**'
       - 'favicon.svg'
+      - 'robots.txt'
+      - 'sitemap.xml'
       - 'CNAME'
+      - 'Dockerfile'
       - 'configs/**'
+      - '.dockerignore'
 
 permissions:
   contents: write
