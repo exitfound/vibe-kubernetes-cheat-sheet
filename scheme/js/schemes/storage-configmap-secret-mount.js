@@ -1,58 +1,78 @@
-import { svg, g, text, line } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, pathArrow, animateAlong } from '../lib/primitives.js';
 import {
   valChip, setVal, pulsePod, routePacket, routeDur,
   makeInit, clearHighlights, clearWires, setWire, BEAT,
 } from '../lib/storage-kit.js';
 
-// ConfigMap and Secret as Files. The consumer Pod is top-right, the mounted /etc/config directory is
-// the centre of the card, and the ConfigMap and Secret sources plus kubelet sit on the left.
+// ConfigMap and Secret as Files. Storage grammar as a VERTICAL STACK, symmetric about x=600, in
+// family with volume-model and emptydir: the consumer Pod on top, the mounted /etc/config volume
+// in the middle, and the source row at the bottom, ConfigMap on the left feeding kubelet in the
+// center fed by Secret on the right. Reading the card bottom to top IS the mechanism: a source
+// object becomes files via kubelet, the files resolve through the ..data symlink, the app reads
+// the result.
 //
 // The mechanism the card teaches is the ATOMIC SYMLINK SWAP. kubelet writes the keys into a
-// timestamped directory and points a ..data symlink at it, and the visible files are symlinks into
-// ..data. On update kubelet writes a brand new timestamped dir, then flips the single ..data symlink
-// in one step, so a reader never sees a half-written config. Updates land on the kubelet sync period
-// (up to about a minute) and the app must re-read the file itself. A subPath mount pins one file and
-// opts OUT of the swap, so it never updates. A Secret uses the same machinery but on tmpfs.
+// timestamped directory and points a ..data symlink at it. On update kubelet writes a brand new
+// timestamped dir, then flips the single ..data symlink in one step, so a reader never sees a
+// half-written config. Updates land on the kubelet sync period (up to about a minute) and the app
+// must re-read the file itself. A subPath mount pins one file and opts OUT of the swap, so it
+// never updates. A Secret uses the same machinery but on tmpfs.
 //
-// Symlink pointers are bare dashed lines with NO arrowhead (a reference, not traffic). Only the Pod
-// pulses. kubelet and the dirs are infrastructure: they light. The overlay owns x<=380 & y<=300.
-const POD_X = 760, POD_Y = 55, POD_W = 340, POD_H = 140;
-const POD_BOTTOM = POD_Y + POD_H;                     // 195
+// GEOMETRY. Every traffic lane is ONE straight segment (no zigzags): the two source lanes mirror
+// each other on the bottom row, the two write lanes rise vertically into the dir slots at x=460
+// and x=740 (symmetric about the spine), the read lane rides the spine itself (x=600, ..data up
+// to the Pod), and the subPath lane is the read lane's parallel at x=460, rising STRAIGHT from
+// the v1 dir and bypassing ..data, which is exactly its meaning. The v2 dir slot and its write
+// lane stay empty until the update step creates them. Symlink pointers are dashed right-angle Ls
+// out of the sides of ..data, each dropping into the dir slot it points at (bare, no arrowheads),
+// so the slot columns read kubelet -> dir -> ..data top to bottom.
+//
+// The narration overlay owns the top-left corner: the Pod starts at x=330, y=56, clear of the
+// overlay measured on the family cards ((300, 163) on a comfortable 1600px viewport). On narrow
+// windows the overlay may brush the Pod corner, the accepted family trade. A longer narration
+// invalidates this.
+//
+// PULSE MODEL (canon): the Pod SHELL pulses as one unit (shellWrap holds only the shell), the
+// inner app box takes a static .highlight only. HIGHLIGHTS ARE STEP-STATIC: every block a step
+// uses lights at step entry, above the reduced guard, never on packet arrival.
+const POD_X = 330, POD_Y = 56, POD_W = 540, POD_H = 120;        // 330..870, center 600
+const POD_BOTTOM = POD_Y + POD_H;                               // 176
+const APP_BX = 470, APP_BY = 90, APP_BW = 260, APP_BH = 56;     // inner app box, centered in the Pod
 
-const KUBE_X = 430, KUBE_Y = 250, KUBE_W = 200, KUBE_H = 90;
-const KUBE_RIGHT = KUBE_X + KUBE_W, KUBE_BOTTOM = KUBE_Y + KUBE_H; // 630 / 340
+const VOL_X = 330, VOL_Y = 268, VOL_W = 540, VOL_H = 194;       // 330..870, bottom 462
+const DATA_X = 510, DATA_Y = 300, DATA_W = 180, DATA_H = 48;    // ..data, center 600, bottom 348
+const DATA_CX = 600;
+const SYM_Y = DATA_Y + DATA_H / 2;                              // 324, the symlink pointer height
 
-const CM_X = 430, CM_Y = 390, CM_W = 200, CM_H = 70;  // ConfigMap source
-const SEC_X = 430, SEC_Y = 486, SEC_W = 200, SEC_H = 64; // Secret source, hidden until its step
+const DIR_Y = 380, DIR_W = 200, DIR_H = 64;                     // dir slot row, bottom 444
+const DIR_BOTTOM = DIR_Y + DIR_H;
+const OLD_X = 360, OLD_CX = 460;                                // v1 slot, 360..560
+const NEW_X = 640, NEW_CX = 740;                                // v2 slot, 640..840
 
-const DATA_X = 720, DATA_Y = 288, DATA_W = 180, DATA_H = 48; // ..data symlink
-const DATA_CX = DATA_X + DATA_W / 2, DATA_BOTTOM = DATA_Y + DATA_H; // 810 / 336
+const KUBE_X = 430, KUBE_Y = 500, KUBE_W = 340, KUBE_H = 64;    // 430..770, center 600
+const CM_X = 110, SEC_X = 890, SRC_Y = 500, SRC_W = 200, SRC_H = 64; // mirrored about 600
+const SRC_MY = SRC_Y + SRC_H / 2;                               // 532, the source lane height
 
-const OLD_X = 720, OLD_Y = 384, OLD_W = 180, OLD_H = 64; // old timestamped dir (v1)
-const OLD_CX = OLD_X + OLD_W / 2, OLD_TOP = OLD_Y, OLD_MY = OLD_Y + 32; // 810 / 384 / 416
+const CHIPS_Y = 594;
 
-const NEW_X = 945, NEW_Y = 384, NEW_W = 180, NEW_H = 64; // new timestamped dir (v2)
-const NEW_CX = NEW_X + NEW_W / 2, NEW_TOP = NEW_Y;    // 1035 / 384
+// Each static wire and its ball share one array. Every lane is a single straight segment.
+const W_CM_READ   = [[CM_X + SRC_W, SRC_MY], [KUBE_X, SRC_MY]];          // ConfigMap -> kubelet
+const W_SEC_READ  = [[SEC_X, SRC_MY], [KUBE_X + KUBE_W, SRC_MY]];        // Secret -> kubelet
+const W_WRITE_OLD = [[OLD_CX, KUBE_Y], [OLD_CX, DIR_BOTTOM]];            // kubelet -> v1 dir
+const W_WRITE_NEW = [[NEW_CX, KUBE_Y], [NEW_CX, DIR_BOTTOM]];            // kubelet -> v2 dir
+const W_APP_READ  = [[DATA_CX, VOL_Y], [DATA_CX, POD_BOTTOM]];           // volume -> Pod (the spine)
+const W_SUBPATH   = [[OLD_CX, DIR_Y], [OLD_CX, POD_BOTTOM]];             // v1 dir -> Pod, bypassing ..data
 
-const CHIPS_Y = 590;
+// Symlink pointers: strict right-angle Ls with an arrowhead at the directory they point at. Each
+// exits the SIDE of ..data at its mid height, turns 90 degrees over its dir slot and drops into
+// the slot top, mirroring the write lane below the slot so the column reads kubelet -> dir -> ..data.
+const SYM_OLD = [[DATA_X, SYM_Y], [OLD_CX, SYM_Y], [OLD_CX, DIR_Y]];
+const SYM_NEW = [[DATA_X + DATA_W, SYM_Y], [NEW_CX, SYM_Y], [NEW_CX, DIR_Y]];
 
-// Each static wire and its ball share one array. Every endpoint is a block edge.
-const W_CM_READ    = [[530, CM_Y], [530, KUBE_BOTTOM]];
-const W_WRITE_OLD  = [[KUBE_RIGHT, 300], [660, 300], [660, OLD_MY], [OLD_X, OLD_MY]];
-const W_WRITE_NEW  = [[KUBE_RIGHT, 272], [NEW_CX, 272], [NEW_CX, NEW_TOP]];
-const W_APP_READ   = [[850, DATA_Y], [850, 250], [900, 250], [900, POD_BOTTOM]];
-const W_SUBPATH    = [[790, OLD_TOP], [790, 230], [960, 230], [960, POD_BOTTOM]];
-const W_SEC_READ   = [[430, 512], [400, 512], [400, 300], [KUBE_X, 300]];
-
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
+// A tag that rides ALONG with the ball on the same path, timing and easing. Balls are routePacket
+// (eased), so the label defaults to the same ease-in-out and the same routeDur, or it would drift
+// off the ball mid-flight.
 function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
   if (ctx.reduced) return;
   const d = dur == null ? routeDur(points) : dur;
@@ -63,17 +83,6 @@ function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'eas
   ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
   ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
   ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
-
-function podBlock({ x, y, w, h, label, sublabel }) {
-  const shell = pod({ x, y, w, h, label, sublabel, containers: 0, cat: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 24, y: y + 46, w: w - 48, h: 58, label: 'app', sublabel: 'reads /etc/config/app.conf', cat: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
 }
 
 class Scene {
@@ -91,56 +100,81 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const podB = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'mounts /etc/config' });
+    // The pod shell lives alone in shellWrap so the pod pulse (which queries .scheme-pod
+    // descendants) reaches ONLY the shell, never the inner app box.
+    const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'mounts /etc/config', containers: 0, cat: 'storage' });
+    const shellRect = shell.querySelector('.scheme-pod-rect');
+    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    // Nudge the mounts /etc/config sublabel up 2px off the pod bottom edge.
+    const shellSub = shell.querySelector('.scheme-pod-sublabel');
+    if (shellSub) shellSub.setAttribute('y', String(POD_H - 10));
+    const shellWrap = g({});
+    shellWrap.appendChild(shell);
+    const appBox = box({ x: APP_BX, y: APP_BY, w: APP_BW, h: APP_BH, label: 'App', sublabel: 'reads /etc/config/app.conf', cat: 'storage' });
+    const podGroup = g({});
+    [shellWrap, appBox].forEach(el => podGroup.appendChild(el));
 
-    const kubelet = box({ x: KUBE_X, y: KUBE_Y, w: KUBE_W, h: KUBE_H, label: 'kubelet', sublabel: 'sync loop', cat: 'storage' });
-    const cm  = box({ x: CM_X, y: CM_Y, w: CM_W, h: CM_H, label: 'ConfigMap app', sublabel: 'key: app.conf', cat: 'storage' });
-    const sec = box({ x: SEC_X, y: SEC_Y, w: SEC_W, h: SEC_H, label: 'Secret tls', sublabel: 'on tmpfs', cat: 'storage' });
-    sec.style.opacity = '0';
-
-    const dirBox = box({ x: 680, y: 245, w: 470, h: 235, label: '', sublabel: '', cat: 'storage' });
-    dirBox.querySelector('.scheme-box-rect').style.fill = 'rgba(255, 255, 255, 0.02)';
-    const dirLbl = text({ class: 'scheme-label code dim', x: 692, y: 268, 'text-anchor': 'start' }, ['/etc/config (mounted volume)']);
+    // The mounted volume directory, named by a title centered on its top band. The title sits
+    // between the two inner lanes (x=460 and x=600 never cross it) and above ..data.
+    const volBox = box({ x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: '', sublabel: '', cat: 'storage' });
+    volBox.querySelector('.scheme-box-rect').style.fill = 'rgba(255, 255, 255, 0.02)';
+    const volLbl = text({ class: 'scheme-label code', x: 600, y: VOL_Y + 22, 'text-anchor': 'middle' }, ['Volume /etc/config']);
+    // Corner tag naming what this block is: the kubelet-managed volume dir on the node. The path
+    // holds for both sources (the Secret tmpfs is mounted at the same location).
+    const nodeTag = text({ class: 'scheme-label code dim', x: VOL_X + 12, y: VOL_Y + 22, 'text-anchor': 'start' }, ['/var/lib/kubelet/pods/…']);
 
     const dataLink = box({ x: DATA_X, y: DATA_Y, w: DATA_W, h: DATA_H, label: '..data', sublabel: 'symlink', cat: 'storage' });
-    const dirOld = box({ x: OLD_X, y: OLD_Y, w: OLD_W, h: OLD_H, label: '..2026_07_10', sublabel: 'app.conf v1', cat: 'storage' });
-    const dirNew = box({ x: NEW_X, y: NEW_Y, w: NEW_W, h: NEW_H, label: '..2026_07_15', sublabel: 'app.conf v2', cat: 'storage' });
+    const dirOld = box({ x: OLD_X, y: DIR_Y, w: DIR_W, h: DIR_H, label: '..2026_07_10', sublabel: 'app.conf v1', cat: 'storage' });
+    const dirNew = box({ x: NEW_X, y: DIR_Y, w: DIR_W, h: DIR_H, label: '..2026_07_15', sublabel: 'app.conf v2', cat: 'storage' });
     dirNew.style.opacity = '0';
 
-    // Symlink pointers: bare dashed lines with no arrowhead, because a symlink is a reference.
-    const symOld = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', x1: DATA_CX, y1: DATA_BOTTOM, x2: OLD_CX, y2: OLD_TOP, 'stroke-dasharray': '5 5', fill: 'none' });
-    const symNew = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-storage', x1: DATA_CX, y1: DATA_BOTTOM, x2: NEW_CX, y2: NEW_TOP, 'stroke-dasharray': '5 5', fill: 'none' });
+    // Symlink pointers: bare dashed right-angle Ls into the dir slot each points at (no arrowheads,
+    // they are relationships, not traffic). Only one is ever visible at a time, that is the whole flip.
+    const symOld = pathArrow({ points: SYM_OLD, dashed: true, color: 'storage' });
+    const symNew = pathArrow({ points: SYM_NEW, dashed: true, color: 'storage' });
+    symOld.removeAttribute('marker-end');
+    symNew.removeAttribute('marker-end');
     symNew.style.opacity = '0';
 
+    // The source row: kubelet centered, fed from both sides.
+    const kubelet = box({ x: KUBE_X, y: KUBE_Y, w: KUBE_W, h: KUBE_H, label: 'Kubelet', sublabel: 'sync loop', cat: 'storage' });
+    const cm  = box({ x: CM_X,  y: SRC_Y, w: SRC_W, h: SRC_H, label: 'ConfigMap App', sublabel: 'key: app.conf', cat: 'storage' });
+    const sec = box({ x: SEC_X, y: SRC_Y, w: SRC_W, h: SRC_H, label: 'Secret TLS', sublabel: 'on tmpfs', cat: 'storage' });
+    sec.style.opacity = '0.45';
+
     const wCmRead   = pathArrow({ points: W_CM_READ,   dashed: true, dim: true, color: 'storage' });
+    const wSecRead  = pathArrow({ points: W_SEC_READ,  dashed: true, dim: true, color: 'storage' });
     const wWriteOld = pathArrow({ points: W_WRITE_OLD, dashed: true, dim: true, color: 'storage' });
     const wWriteNew = pathArrow({ points: W_WRITE_NEW, dashed: true, dim: true, color: 'storage' });
+    wWriteNew.style.opacity = '0';
     const wAppRead  = pathArrow({ points: W_APP_READ,  dashed: true, dim: true, color: 'storage' });
     const wSubpath  = pathArrow({ points: W_SUBPATH,   dashed: true, dim: true, color: 'storage' });
     wSubpath.style.opacity = '0';
-    const wSecRead  = pathArrow({ points: W_SEC_READ,  dashed: true, dim: true, color: 'storage' });
-    wSecRead.style.opacity = '0';
 
-    const clockLbl = text({ class: 'scheme-label code dim', x: 900, y: 520, 'text-anchor': 'middle' }, [' ']);
+    // The sync-period note sits right of the spine, vertically centered in the Pod-to-volume gap
+    // (176..268, center 222, baseline compensated for the 11px font).
+    const clockLbl = text({ class: 'scheme-label code dim', x: 618, y: 226, 'text-anchor': 'start' }, [' ']);
 
-    const modeChip  = valChip({ x: 90,  y: CHIPS_Y, w: 300, h: 34, name: 'source', value: 'ConfigMap', cat: 'storage' });
-    const swapChip  = valChip({ x: 410, y: CHIPS_Y, w: 360, h: 34, name: 'update', value: 'symlink to v1', cat: 'storage' });
-    const valueChip = valChip({ x: 790, y: CHIPS_Y, w: 300, h: 34, name: 'app reads', value: 'app.conf v1', cat: 'storage' });
+    // Uniform chip strip: three chips of one size, centered on the scheme axis.
+    const modeChip  = valChip({ x: 100, y: CHIPS_Y, w: 320, h: 34, name: 'source',    value: 'ConfigMap', cat: 'storage' });
+    const swapChip  = valChip({ x: 440, y: CHIPS_Y, w: 320, h: 34, name: 'update',    value: 'symlink to v1', cat: 'storage' });
+    const valueChip = valChip({ x: 780, y: CHIPS_Y, w: 320, h: 34, name: 'app reads', value: 'app.conf v1', cat: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order (bottom -> top): the dir container, then blocks, then symlink lines and wires and
+    // Z-order (bottom -> top): the volume container, then blocks, then symlink lines and wires and
     // labels above them, then the chip strip, then the packet layer so every ball rides above.
-    root.appendChild(dirBox);
-    [podB.group, kubelet, cm, sec, dataLink, dirOld, dirNew].forEach(el => root.appendChild(el));
-    [symOld, symNew, wCmRead, wWriteOld, wWriteNew, wAppRead, wSubpath, wSecRead, dirLbl, clockLbl].forEach(el => root.appendChild(el));
+    root.appendChild(volBox);
+    [podGroup, dataLink, dirOld, dirNew, kubelet, cm, sec].forEach(el => root.appendChild(el));
+    [symOld, symNew, wCmRead, wSecRead, wWriteOld, wWriteNew, wAppRead, wSubpath, volLbl, nodeTag, clockLbl].forEach(el => root.appendChild(el));
     [modeChip, swapChip, valueChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
     this.refs = {
-      svg: root, pod: podB.group, podBox: podB.innerBox,
-      kubelet, cm, sec, dataLink, dirOld, dirNew, symOld, symNew, wSubpath, wSecRead,
+      svg: root, pod: podGroup, shellWrap, appBox,
+      kubelet, cm, sec, dataLink, dirOld, dirNew, symOld, symNew,
+      wWriteNew, wSubpath,
       modeChip, swapChip, valueChip,
       wires: { clock: clockLbl },
       packetLayer,
@@ -150,25 +184,35 @@ class Scene {
   reset() { this.build(); }
 }
 
+// Sets each chip and statically highlights the ones whose value CHANGES on this step (the family
+// standard): a chip that changes glows for the step, a chip that stays the same does not.
+function setChip(chip, val) {
+  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
+  setVal(chip, val);
+  if (changed) chip.classList.add('highlight');
+}
 function setChips(s, { mode, swap, value }) {
-  setVal(s.refs.modeChip, mode);
-  setVal(s.refs.swapChip, swap);
-  setVal(s.refs.valueChip, value);
+  setChip(s.refs.modeChip, mode);
+  setChip(s.refs.swapChip, swap);
+  setChip(s.refs.valueChip, value);
 }
 
-// Sets the visibility of every toggled element, so no step can leak another step's state.
-function setStage(s, { symOld = 1, symNew = 0, dirNew = 0, sec = 0, subpath = 0, secRead = 0 }) {
+// Sets the visibility of every toggled element, so no step can leak another step's state. The v2
+// dir, its symlink pointer and its write lane exist only from the atomic step on, the subPath lane
+// only on its step, and the Secret sits dim until its step brightens it.
+function setStage(s, { symOld = 1, symNew = 0, dirNew = 0, writeNew = 0, subpath = 0, sec = 0.45 } = {}) {
   s.refs.symOld.style.opacity = String(symOld);
   s.refs.symNew.style.opacity = String(symNew);
   s.refs.dirNew.style.opacity = String(dirNew);
-  s.refs.sec.style.opacity = String(sec);
+  s.refs.wWriteNew.style.opacity = String(writeNew);
   s.refs.wSubpath.style.opacity = String(subpath);
-  s.refs.wSecRead.style.opacity = String(secRead);
+  s.refs.sec.style.opacity = String(sec);
 }
+const STAGE_FLIPPED = { symOld: 0, symNew: 1, dirNew: 1, writeNew: 1 };
 
 function clearHL(s) {
-  clearHighlights(s, ['kubelet', 'cm', 'sec', 'dataLink', 'dirOld', 'dirNew', 'podBox', 'modeChip', 'swapChip', 'valueChip'],
-    [s.refs.pod]);
+  clearHighlights(s, ['kubelet', 'cm', 'sec', 'dataLink', 'dirOld', 'dirNew', 'appBox', 'modeChip', 'swapChip', 'valueChip'],
+    [s.refs.shellWrap]);
   s.refs.pod.style.opacity = '1';
 }
 
@@ -193,16 +237,16 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { mode: 'ConfigMap', swap: 'symlink to v1', value: 'app.conf v1' });
+      setChips(s, { mode: 'ConfigMap', swap: 'v1 written to disk', value: 'app.conf v1' });
       setStage(s, {});
       s.refs.cm.classList.add('highlight');
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); s.refs.dirOld.classList.add('highlight'); return; }
+      s.refs.kubelet.classList.add('highlight');
+      s.refs.dirOld.classList.add('highlight');
+      if (ctx.reduced) return;
       const read = routePacket(s, ctx, W_CM_READ, { cat: 'storage' });
       ridingLabel(s, ctx, 'app.conf', W_CM_READ);
-      lightBoxAt(s.refs.kubelet, ctx, read.arrivalMs);
       const write = routePacket(s, ctx, W_WRITE_OLD, { delay: read.arrivalMs + BEAT.afterHop, cat: 'storage' });
       ridingLabel(s, ctx, 'write v1', W_WRITE_OLD, { delay: read.arrivalMs + BEAT.afterHop });
-      lightBoxAt(s.refs.dirOld, ctx, write.arrivalMs);
     },
   },
   {
@@ -217,12 +261,13 @@ const STEPS = [
       setStage(s, {});
       s.refs.dataLink.classList.add('highlight');
       s.refs.dirOld.classList.add('highlight');
+      s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) return;
       // The app reads through ..data (infra to Pod, a down-arrow): the ball leaves first, the Pod
       // pulses on arrival.
       const read = routePacket(s, ctx, W_APP_READ, { cat: 'storage' });
       ridingLabel(s, ctx, 'resolves v1', W_APP_READ);
-      pulsePod(s.refs.pod, ctx, read.arrivalMs);
+      pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
     },
   },
   {
@@ -233,19 +278,24 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { mode: 'ConfigMap', swap: 'atomic symlink flip', value: 'v2 staged' });
+      setChips(s, { mode: 'ConfigMap', swap: 'atomic symlink flip', value: 'v2 on next read' });
       // After the flip: the new dir exists and ..data points at it. That is the static end-state.
-      setStage(s, { symOld: 0, symNew: 1, dirNew: 1 });
+      setStage(s, STAGE_FLIPPED);
       s.refs.cm.classList.add('highlight');
+      s.refs.kubelet.classList.add('highlight');
+      s.refs.dataLink.classList.add('highlight');
       s.refs.dirNew.classList.add('highlight');
       if (ctx.reduced) return;
-      // Re-set the pre-flip state below the guard, then write the new dir and flip the pointer.
-      setStage(s, { symOld: 1, symNew: 0, dirNew: 0 });
-      s.refs.dirNew.style.opacity = '0';
-      ctx.register(s.refs.dirNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, fill: 'forwards', easing: 'ease-out' }));
-      const write = routePacket(s, ctx, W_WRITE_NEW, { cat: 'storage' });
-      ridingLabel(s, ctx, 'write v2', W_WRITE_NEW);
-      lightBoxAt(s.refs.dirNew, ctx, write.arrivalMs);
+      // Re-set the pre-flip state below the guard: the updated ConfigMap reaches kubelet first,
+      // then kubelet writes the new dir and flips the pointer.
+      setStage(s, {});
+      const read = routePacket(s, ctx, W_CM_READ, { cat: 'storage' });
+      ridingLabel(s, ctx, 'app.conf v2', W_CM_READ);
+      const writeAt = read.arrivalMs + BEAT.afterHop;
+      ctx.register(s.refs.dirNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: writeAt, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.wWriteNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: writeAt, fill: 'forwards', easing: 'ease-out' }));
+      const write = routePacket(s, ctx, W_WRITE_NEW, { delay: writeAt, cat: 'storage' });
+      ridingLabel(s, ctx, 'write v2', W_WRITE_NEW, { delay: writeAt });
       // The flip happens the instant the new dir is complete: old pointer out, new pointer in.
       ctx.register(s.refs.symOld.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, delay: write.arrivalMs, fill: 'forwards', easing: 'ease-in' }));
       ctx.register(s.refs.symNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, delay: write.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
@@ -260,14 +310,15 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { mode: 'ConfigMap', swap: 'up to 60s to propagate', value: 'app.conf v2' });
-      setStage(s, { symOld: 0, symNew: 1, dirNew: 1 });
+      setStage(s, STAGE_FLIPPED);
       s.refs.dirNew.classList.add('highlight');
+      s.refs.appBox.classList.add('highlight');
       setWire(s, 'clock', 'kubelet sync period, then the app re-reads');
       if (ctx.reduced) return;
       // After the sync delay the app re-reads, and ..data now resolves to v2.
       const read = routePacket(s, ctx, W_APP_READ, { delay: 900, cat: 'storage' });
       ridingLabel(s, ctx, 'resolves v2', W_APP_READ, { delay: 900 });
-      pulsePod(s.refs.pod, ctx, read.arrivalMs);
+      pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
     },
   },
   {
@@ -278,14 +329,14 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { mode: 'ConfigMap', swap: 'subPath opts out', value: 'subPath stuck at v1' });
-      setStage(s, { symOld: 0, symNew: 1, dirNew: 1, subpath: 1 });
+      setChips(s, { mode: 'ConfigMap', swap: 'subPath opts out', value: 'app.conf v1 forever' });
+      setStage(s, { ...STAGE_FLIPPED, subpath: 1 });
       s.refs.dirOld.classList.add('highlight');
       if (ctx.reduced) return;
-      // The subPath read points straight at the old dir, so it delivers v1 even after the flip.
+      // The subPath read rises straight from the old dir, visibly missing ..data on its way up.
       const read = routePacket(s, ctx, W_SUBPATH, { cat: 'storage' });
       ridingLabel(s, ctx, 'v1 forever', W_SUBPATH);
-      pulsePod(s.refs.pod, ctx, read.arrivalMs);
+      pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
     },
   },
   {
@@ -296,13 +347,13 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { mode: 'Secret (tmpfs)', swap: 'same symlink swap', value: 'never on disk' });
-      setStage(s, { symOld: 0, symNew: 1, dirNew: 1, sec: 1, secRead: 1 });
+      setChips(s, { mode: 'Secret (tmpfs)', swap: 'same symlink swap', value: 'tls.crt from RAM' });
+      setStage(s, { ...STAGE_FLIPPED, sec: 1 });
       s.refs.sec.classList.add('highlight');
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
+      s.refs.kubelet.classList.add('highlight');
+      if (ctx.reduced) return;
       const read = routePacket(s, ctx, W_SEC_READ, { cat: 'storage' });
       ridingLabel(s, ctx, 'tls.crt in RAM', W_SEC_READ);
-      lightBoxAt(s.refs.kubelet, ctx, read.arrivalMs);
     },
   },
 ];

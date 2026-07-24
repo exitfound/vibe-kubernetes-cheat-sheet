@@ -20,7 +20,7 @@
 // Needs the dev server up (default :8080) and runs under inspect mode so
 // window.__schemeCtl is exposed.
 
-import { launch, setInspect, stepCount, enterStep, stepSpan } from './_shared.mjs';
+import { launch, setInspect, stepCount, enterStep, stepSpan, DEFAULT_BASE } from './_shared.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(
@@ -32,7 +32,10 @@ const flags = Object.fromEntries(
 const positional = args.filter(a => !a.startsWith('--'));
 const schemeId = positional[0];
 const stepArg = positional[1];
-const baseUrl = (flags.base || 'http://localhost:8080').replace(/\/$/, '');
+// --base= wins, else BASE= from the env via _shared's DEFAULT_BASE. Hardcoding the :8080 default
+// here made the env var silently inert, so a run against a live dev server kept dumping whatever
+// the Docker container held: stale motion presented as current.
+const baseUrl = (flags.base || DEFAULT_BASE).replace(/\/$/, '');
 const asJson = !!flags.json;
 let sampleOffsets = String(flags.samples || '0,50,100')
   .split(',').map(s => parseInt(s, 10))

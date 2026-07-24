@@ -34,6 +34,11 @@ const ALLOW_EXPLICIT_DUR = new Set([
   // short centre path and the long side paths all land on their node.spec.podCIDR at the
   // same instant (the centre just moves slower). Synchronized arrival, by design.
   'network-ipam-pod-cidr.js:routePacket',
+  // The cap step fires one report ball per node into a single CSINode box. The flank paths carry a
+  // 90 degree turn into the side walls and run 136 units against 48 up the spine, so a shared dur is
+  // what makes all three LAND together instead of the centre arriving first. The riding labels take
+  // the same dur so they stay locked to their balls.
+  'storage-volume-attach-limits.js:routePacket',
   // The kube-proxy -> Pod fan is deliberately slowed (routeDur * FAN_SLOW) so the src-IP tag
   // riding the ball stays legible. Speed stays distance-normalized (one shared multiplier), the
   // riding label uses the same dur so it stays locked to the packet.
@@ -67,7 +72,7 @@ function callArgs(src, open) {
 // Categories on the shared kit and thus held to the canon. storage/scaling/security/
 // volume are deliberately absent (dead cards, pending a full rebuild); add them here
 // once rebuilt.
-const COVERED = /^(workloads|control|network|storage)-.*\.js$/;
+const COVERED = /^(workloads|control|network|storage|scaling)-.*\.js$/;
 const files = (await readdir(SCHEMES))
   .filter(f => COVERED.test(f))
   .sort();

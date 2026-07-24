@@ -1,4 +1,4 @@
-import { svg, g, text, line } from '../lib/svg.js';
+import { svg, g, text, path } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
 import {
   valChip, setVal, setCylinderLabel, pulsePod, routePacket, routeDur,
@@ -8,43 +8,61 @@ import {
 // emptyDir Lifecycle. Storage grammar as a VERTICAL STACK, but the whole thing lives INSIDE one
 // node boundary, because that is the point of an emptyDir: it is born on the node, lives on the node
 // disk, and dies when the Pod leaves the node. The Pod (two containers) sits at the top of the node,
-// the emptyDir disk sits on the shelf below it, and the IDENTITY COLUMN at x=760 (bare dashed, no
-// arrowhead) marks that the directory is owned by this one Pod.
+// the emptyDir disk sits on the shelf below it, and the IDENTITY SPINE at x=600 (bare dashed, dim,
+// no arrowhead) marks that the directory is owned by this one Pod.
 //
-// The heart of the card is one rule: an emptyDir SURVIVES a container crash but NOT a Pod deletion.
-// Two later steps cover the mediums, medium Memory (a tmpfs that counts against the memory limit and
-// can OOM-kill the Pod) and sizeLimit (exceeding it evicts the Pod). Only the Pod containers pulse.
-// The disk is infrastructure: it lights, it never pulses. The overlay owns x<=380 & y<=300.
-const NODE_X = 420, NODE_Y = 45, NODE_W = 720, NODE_H = 490;
+// GEOMETRY. The whole composition (node, Pod, disk, chip strip) is centered on x=600 and lifted as
+// high as the narration overlay allows so it reads vertically centered: the overlay was measured at
+// every step and reaches (300, 163) on a comfortable 1600px viewport, so the node top sits at 170,
+// flush under the panel (on narrower windows the overlay grows to (399, 223) and may brush the
+// node's top-left corner, an accepted trade). A longer narration invalidates the measurement. The
+// node keeps extra background below the disk so the inner blocks do not crowd it, and the chip
+// strip spans exactly the node width (180..1020).
+//
+// PULSE MODEL (canon, per the volume-model anchor card): the Pod is one unit. The Pod SHELL pulses
+// as a whole (shellWrap holds only the shell so the pulse never reaches the inner containers). The
+// containers are internal parts: they only take a static .highlight, never a pulse, never a crash
+// flicker. HIGHLIGHTS ARE STEP-STATIC: every block a step uses lights at step entry, above the
+// reduced guard, and the shell pulse fires at the same instant, one beat, no arrival delays.
+//
+// FADES exist for exactly one meaning: an object CEASING TO EXIST. The dies step ghosts the Pod and
+// its directory in one simultaneous fade (Pod deleted, directory deleted with it), the sizeLimit
+// step ghosts the Pod once the over-limit write lands (kubelet evicts it). Nothing else fades.
+//
+// WIRES are the volume-model grammar: the dim center spine (ownership, no traffic) plus one
+// L-shaped directed lane per container, dropping from the container and entering the cylinder
+// through its SIDE. Traffic here is one-way per container (the app only writes, the worker only
+// reads), so each side carries a SINGLE lane with an arrowhead for its one direction: the app lane
+// points into the cylinder, the worker lane points into the container. The containers are pushed
+// toward the Pod edges so their centers land outside the cylinder span, symmetric about the spine.
+const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550
 
-const POD_X = 480, POD_Y = 95, POD_W = 560, POD_H = 150;
+const POD_X = 300, POD_Y = 186, POD_W = 600, POD_H = 170;       // 300..900, center 600
+const POD_BOTTOM = POD_Y + POD_H;                               // 356
 
-const APP_X = 520, APP_Y = 140, APP_W = 230, APP_H = 90;
-const APP_CX = APP_X + APP_W / 2, APP_BOTTOM = APP_Y + APP_H;    // 635 / 230
+const C_Y = 232, C_W = 190, C_H = 84;                           // container row (volume-model grid)
+const C_BOTTOM = C_Y + C_H;                                     // 316
+const APP_X = 330,  APP_CX = APP_X + C_W / 2;                   // 330..520, center 425
+const SIDE_X = 680, SIDE_CX = SIDE_X + C_W / 2;                 // 680..870, center 775
 
-const SIDE_X = 770, SIDE_Y = 140, SIDE_W = 230, SIDE_H = 90;
-const SIDE_CX = SIDE_X + SIDE_W / 2, SIDE_BOTTOM = SIDE_Y + SIDE_H; // 885 / 230
+// The disk is the volume-model cylinder verbatim (260x104 centered on 600) so the two foundation
+// cards read as one family.
+const ED_X = 470, ED_Y = 408, ED_W = 260, ED_H = 104;           // 470..730, center 600, bottom 512
+const ED_TOP = ED_Y;
+const ED_MY = ED_Y + ED_H / 2;                                  // 460, where the lanes meet the sides
 
-const ED_X = 650, ED_Y = 380, ED_W = 220, ED_H = 110;
-const ED_TOP = ED_Y, ED_CX = ED_X + ED_W / 2;                   // 380 / 760
+const SPINE_X = 600;
+const DISK_LBL_Y = 530;
+const CHIPS_Y = 566;
 
-const SPINE_X = 760;
-const CHIPS_Y = 588;
+// Each lane is one L-shaped polyline shared by its static pathArrow and its ball, written in its
+// one traffic direction so the arrowhead lands at the receiving end.
+const LANE_WRITE = [[APP_CX, C_BOTTOM], [APP_CX, ED_MY], [ED_X, ED_MY]];              // app -> disk
+const LANE_READ  = [[ED_X + ED_W, ED_MY], [SIDE_CX, ED_MY], [SIDE_CX, C_BOTTOM]];     // disk -> worker
 
-// Each static wire and its ball share one array. The write descends to the emptyDir, the mounts rise
-// back into the containers on their own lanes.
-const W_WRITE      = [[APP_CX, APP_BOTTOM], [APP_CX, 300], [720, 300], [720, ED_TOP]];
-const W_MOUNT_APP  = [[700, ED_TOP], [700, 320], [APP_CX, 320], [APP_CX, APP_BOTTOM]];
-const W_MOUNT_SIDE = [[820, ED_TOP], [820, 320], [SIDE_CX, 320], [SIDE_CX, SIDE_BOTTOM]];
-
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
+// A tag that rides ALONG with the ball on the same path, timing and easing. Balls are routePacket
+// (eased), so the label defaults to the same ease-in-out and the same routeDur, or it would drift
+// off the ball mid-flight.
 function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
   if (ctx.reduced) return;
   const d = dur == null ? routeDur(points) : dur;
@@ -64,6 +82,12 @@ function containerBlock({ x, y, w, h, label, sublabel }) {
   return { wrap, box: b };
 }
 
+function laneWire(points, { dim = false } = {}) {
+  const cls = 'scheme-arrow scheme-arrow-dashed scheme-arrow-storage' + (dim ? ' scheme-arrow-dim' : '');
+  const d = 'M ' + points.map(p => p.join(' ')).join(' L ');
+  return path({ class: cls, d, 'stroke-dasharray': '5 5', fill: 'none' });
+}
+
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
 
@@ -79,45 +103,56 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const nd = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-a' });
+    const nd = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
-    const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod build-1', sublabel: 'volumes: scratch (emptyDir)', containers: 0, cat: 'storage' });
+    // The pod shell lives alone in shellWrap so the pod pulse (which queries .scheme-pod
+    // descendants) reaches ONLY the shell, never the inner container boxes.
+    const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: scratch (emptyDir)', containers: 0, cat: 'storage' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-    const app  = containerBlock({ x: APP_X, y: APP_Y, w: APP_W, h: APP_H, label: 'app', sublabel: 'writes /cache' });
-    const side = containerBlock({ x: SIDE_X, y: SIDE_Y, w: SIDE_W, h: SIDE_H, label: 'worker', sublabel: 'reads /cache' });
+    const shellWrap = g({});
+    shellWrap.appendChild(shell);
+
+    const app  = containerBlock({ x: APP_X,  y: C_Y, w: C_W, h: C_H, label: 'App',    sublabel: 'writes /cache' });
+    const side = containerBlock({ x: SIDE_X, y: C_Y, w: C_W, h: C_H, label: 'Worker', sublabel: 'reads /cache' });
     const podGroup = g({});
-    [shell, app.wrap, side.wrap].forEach(el => podGroup.appendChild(el));
+    [shellWrap, app.wrap, side.wrap].forEach(el => podGroup.appendChild(el));
 
     const ed = cylinder({ x: ED_X, y: ED_Y, w: ED_W, h: ED_H, label: 'emptyDir', cat: 'storage' });
-    ed.style.opacity = '0';
+    // Label re-centered on the visible front face (below the cap ellipse), the family standard
+    // shared with volume-model and container-filesystem.
+    const edLbl = ed.querySelector('.scheme-cylinder-label');
+    if (edLbl) edLbl.setAttribute('y', 64);
 
-    const spine = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', x1: SPINE_X, y1: POD_Y + POD_H, x2: SPINE_X, y2: ED_TOP, 'stroke-dasharray': '5 5', fill: 'none' });
+    // The identity spine: the directory is owned by this Pod. Nothing travels it, so dim, no head.
+    const spine = laneWire([[SPINE_X, POD_BOTTOM], [SPINE_X, ED_TOP]], { dim: true });
+    // One directed lane per container, each with an arrowhead for its one direction: the app
+    // writes into the cylinder side, the worker reads out of the far side.
+    const wWrite = pathArrow({ points: LANE_WRITE, dashed: true, dim: true, color: 'storage' });
+    const wRead  = pathArrow({ points: LANE_READ,  dashed: true, dim: true, color: 'storage' });
 
-    const wWrite     = pathArrow({ points: W_WRITE,      dashed: true, dim: true, color: 'storage' });
-    const wMountApp  = pathArrow({ points: W_MOUNT_APP,  dashed: true, dim: true, color: 'storage' });
-    const wMountSide = pathArrow({ points: W_MOUNT_SIDE, dashed: true, dim: true, color: 'storage' });
+    const diskLbl = text({ class: 'scheme-label code dim', x: 600, y: DISK_LBL_Y, 'text-anchor': 'middle' }, ['on the node disk']);
 
-    const diskLbl = text({ class: 'scheme-label code dim', x: ED_CX, y: 520, 'text-anchor': 'middle' }, ['on the node disk']);
-
-    const edChip     = valChip({ x: 90,  y: CHIPS_Y, w: 300, h: 34, name: 'emptyDir', value: 'not created', cat: 'storage' });
-    const mediumChip = valChip({ x: 410, y: CHIPS_Y, w: 280, h: 34, name: 'medium',   value: 'node disk',   cat: 'storage' });
-    const limitChip  = valChip({ x: 710, y: CHIPS_Y, w: 350, h: 34, name: 'sizeLimit', value: 'none',       cat: 'storage' });
+    // The chip strip spans exactly the node width (180..1020) so the column reads as one block,
+    // and all three chips share one size: 3x270 + 2x15 = 840.
+    const edChip     = valChip({ x: 180, y: CHIPS_Y, w: 270, h: 34, name: 'emptyDir',  value: 'empty', cat: 'storage' });
+    const mediumChip = valChip({ x: 465, y: CHIPS_Y, w: 270, h: 34, name: 'medium',    value: 'node disk',   cat: 'storage' });
+    const limitChip  = valChip({ x: 750, y: CHIPS_Y, w: 270, h: 34, name: 'sizeLimit', value: 'none',        cat: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order (bottom -> top): node, then blocks, then spine and wires and the disk label above them,
-    // then the chip strip, then the packet layer so every ball rides above everything.
+    // Z-order (bottom -> top): node, then blocks, then spine and lanes and the disk label above
+    // them, then the chip strip, then the packet layer so every ball rides above everything.
     root.appendChild(nd);
     [podGroup, ed].forEach(el => root.appendChild(el));
-    [spine, wWrite, wMountApp, wMountSide, diskLbl].forEach(el => root.appendChild(el));
+    [spine, wWrite, wRead, diskLbl].forEach(el => root.appendChild(el));
     [edChip, mediumChip, limitChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
     this.refs = {
-      svg: root, pod: podGroup, appC: app.wrap, appBox: app.box, sideC: side.wrap, sideBox: side.box,
-      ed, spine,
+      svg: root, pod: podGroup, shellWrap, appC: app.wrap, appBox: app.box, sideC: side.wrap, sideBox: side.box,
+      ed, spine, wWrite, wRead, diskLbl,
       edChip, mediumChip, limitChip,
       wires: {},
       packetLayer,
@@ -127,18 +162,31 @@ class Scene {
   reset() { this.build(); }
 }
 
+// Sets each chip and statically highlights the ones whose value CHANGES on this step (the standard
+// set by the volume-model anchor): a chip that changes glows for the step, a chip that stays the
+// same does not. Steps are always entered in order, so the diff is deterministic.
+function setChip(chip, val) {
+  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
+  setVal(chip, val);
+  if (changed) chip.classList.add('highlight');
+}
 function setChips(s, { ed, medium, limit }) {
-  setVal(s.refs.edChip, ed);
-  setVal(s.refs.mediumChip, medium);
-  setVal(s.refs.limitChip, limit);
+  setChip(s.refs.edChip, ed);
+  setChip(s.refs.mediumChip, medium);
+  setChip(s.refs.limitChip, limit);
 }
 
 function clearHL(s) {
   clearHighlights(s, ['appBox', 'sideBox', 'ed', 'edChip', 'mediumChip', 'limitChip'],
-    [s.refs.pod, s.refs.appC, s.refs.sideC]);
+    [s.refs.shellWrap, s.refs.appC, s.refs.sideC]);
   s.refs.pod.style.opacity = '1';
   s.refs.appC.style.opacity = '1';
   s.refs.sideC.style.opacity = '1';
+  // The dies step ghosts the spine, lanes and disk label with the Pod, so every step restores them.
+  [s.refs.spine, s.refs.wWrite, s.refs.wRead, s.refs.diskLbl]
+    .forEach(el => { el.style.opacity = '1'; });
+  // The memory step rewrites both the cylinder label and the disk label, so restore both.
+  s.refs.diskLbl.textContent = 'on the node disk';
   setCylinderLabel(s.refs.ed, 'emptyDir');
 }
 
@@ -151,85 +199,71 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { ed: 'not created', medium: 'node disk', limit: 'none' });
-      s.refs.ed.style.opacity = '0';
+      // The cylinder is visible from idle (deliberate), and the Pod is already on the node, so the
+      // truthful idle state is an existing empty directory. The create step then narrates how it
+      // came to be, flipping the chip to created empty.
+      setChips(s, { ed: 'empty', medium: 'node disk', limit: 'none' });
     },
   },
   {
     id: 'create',
     duration: 2400,
-    narration: 'The moment the scheduler places the Pod on node-a, kubelet creates an empty directory for it on the node disk. There is nothing to provision and nothing to bind, the directory simply appears, owned by this one Pod.',
+    narration: 'The moment the scheduler places the Pod on Node-1, kubelet creates an empty directory for it on the node disk. There is nothing to provision and nothing to bind, the directory simply appears, owned by this one Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { ed: 'empty on node disk', medium: 'node disk', limit: 'none' });
+      setChips(s, { ed: 'created empty', medium: 'node disk', limit: 'none' });
+      // The step is told by the highlight and the chips: the disk lights as the thing kubelet
+      // just created, the shell pulses in the same beat. No materialize animation.
       s.refs.ed.classList.add('highlight');
-      // The directory exists by the end of the step, so full opacity is the static end-state.
-      s.refs.ed.style.opacity = '1';
       if (ctx.reduced) return;
-      // The Pod was just assigned to the node, so the Pod pulses, and the empty directory materializes.
-      s.refs.ed.style.opacity = '0';
-      ctx.register(s.refs.ed.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
-      pulsePod(s.refs.pod, ctx, 0);
+      pulsePod(s.refs.shellWrap, ctx, 0);
     },
   },
   {
     id: 'shared',
     duration: 3800,
-    narration: 'Every container in the Pod mounts the same emptyDir, so it is a shared scratch space. The app writes a chunk under /cache and the worker reads it straight back. It is the classic way two containers in one Pod hand work to each other.',
+    narration: 'Every container in the Pod mounts the same emptyDir, so it is a shared scratch space. The app writes a chunk under /cache and the worker reads it straight back. And because the directory is tied to the Pod rather than to a container, a container crash and restart leaves it untouched.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { ed: 'shared scratch', medium: 'node disk', limit: 'none' });
       s.refs.ed.style.opacity = '1';
+      // Both containers and the disk are in use this whole step: all three light at step entry,
+      // and the shell pulse fires at the same instant, one beat.
       s.refs.ed.classList.add('highlight');
+      s.refs.appBox.classList.add('highlight');
+      s.refs.sideBox.classList.add('highlight');
       if (ctx.reduced) return;
-      pulsePod(s.refs.appC, ctx, 0);
-      const write = routePacket(s, ctx, W_WRITE, { delay: BEAT.afterPulse, cat: 'storage' });
-      ridingLabel(s, ctx, 'write /cache', W_WRITE, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.ed, ctx, write.arrivalMs);
-      const read = routePacket(s, ctx, W_MOUNT_SIDE, { delay: write.arrivalMs + BEAT.afterHop, cat: 'storage' });
-      ridingLabel(s, ctx, 'read /cache', W_MOUNT_SIDE, { delay: write.arrivalMs + BEAT.afterHop });
-      pulsePod(s.refs.sideC, ctx, read.arrivalMs);
-    },
-  },
-  {
-    id: 'survives',
-    duration: 3400,
-    narration: 'The directory is tied to the Pod, not to a container. When the app container crashes and restarts, the emptyDir and everything in it is still there, because it lives on the node disk and the Pod never left the node.',
-    enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
-      setChips(s, { ed: 'intact after crash', medium: 'node disk', limit: 'none' });
-      s.refs.ed.style.opacity = '1';
-      s.refs.ed.classList.add('highlight');
-      if (ctx.reduced) return;
-      ctx.register(s.refs.appC.animate([{ opacity: 1 }, { opacity: 0.3 }], { duration: 500, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(s.refs.appC.animate([{ opacity: 0.3 }, { opacity: 1 }], { duration: 400, delay: 700, fill: 'forwards', easing: 'ease-out' }));
-      const reread = routePacket(s, ctx, W_MOUNT_APP, { delay: 1200, cat: 'storage' });
-      ridingLabel(s, ctx, 'still here', W_MOUNT_APP, { delay: 1200 });
-      pulsePod(s.refs.appC, ctx, reread.arrivalMs);
+      pulsePod(s.refs.shellWrap, ctx, 0);
+      // The app writes down its lane into the cylinder side, then the worker reads the same bytes
+      // out of the far side and up its own lane: two mirrored one-way hops.
+      const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, cat: 'storage' });
+      ridingLabel(s, ctx, 'write /cache', LANE_WRITE, { delay: BEAT.afterPulse });
+      routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, cat: 'storage' });
+      ridingLabel(s, ctx, 'read /cache', LANE_READ, { delay: write.arrivalMs + BEAT.afterHop });
     },
   },
   {
     id: 'dies',
     duration: 2600,
-    narration: 'When the Pod is removed from the node the emptyDir is deleted forever, with no way to get it back. A container crash it survives, a Pod deletion it does not. That single rule is the whole lifecycle of an emptyDir.',
+    narration: 'When the Pod is removed from the node the emptyDir is deleted forever, and the diagram dims them out together: nothing of the Pod or its directory stays on the node. A container crash it survives, a Pod deletion it does not. That single rule is the whole lifecycle of an emptyDir.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { ed: 'deleted forever', medium: 'node disk', limit: 'none' });
-      s.refs.pod.style.opacity = '0.25';
-      s.refs.ed.style.opacity = '0.25';
+      // The Pod and its directory are gone. One simultaneous ghost fade for everything that
+      // belonged to the Pod, so the delete reads as a single event. Ghost opacities are pinned
+      // statically so reduced motion and a mid-step cancel land on the dimmed state.
+      const GONE = [s.refs.pod, s.refs.ed, s.refs.spine, s.refs.wWrite, s.refs.wRead, s.refs.diskLbl];
+      GONE.forEach(el => { el.style.opacity = '0.22'; });
       if (ctx.reduced) return;
-      s.refs.pod.style.opacity = '1';
-      s.refs.ed.style.opacity = '1';
-      ctx.register(s.refs.pod.animate([{ opacity: 1 }, { opacity: 0.25 }], { duration: 700, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(s.refs.ed.animate([{ opacity: 1 }, { opacity: 0.25 }], { duration: 700, delay: 450, fill: 'forwards', easing: 'ease-in' }));
+      GONE.forEach(el => {
+        ctx.register(el.animate([{ opacity: 1 }, { opacity: 0.22 }], { duration: 900, easing: 'ease-in' }));
+      });
     },
   },
   {
@@ -240,15 +274,20 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { ed: 'backed by RAM', medium: 'Memory, counts vs mem limit', limit: 'caps tmpfs size' });
+      // No sizeLimit is set in this scenario, so that chip stays none: chips report state, not
+      // trivia. The 512Mi cap belongs to the next step only.
+      setChips(s, { ed: 'backed by RAM', medium: 'Memory (tmpfs)', limit: 'none' });
       s.refs.ed.style.opacity = '1';
       setCylinderLabel(s.refs.ed, 'emptyDir tmpfs');
+      // With medium Memory the directory is NOT on the node disk, the shelf label must not lie.
+      s.refs.diskLbl.textContent = 'tmpfs in RAM';
+      // The app writes and the tmpfs receives: both light at entry, the shell pulses same beat.
       s.refs.ed.classList.add('highlight');
+      s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) return;
-      pulsePod(s.refs.appC, ctx, 0);
-      const write = routePacket(s, ctx, W_WRITE, { delay: BEAT.afterPulse, cat: 'storage' });
-      ridingLabel(s, ctx, 'held in RAM', W_WRITE, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.ed, ctx, write.arrivalMs);
+      pulsePod(s.refs.shellWrap, ctx, 0);
+      routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, cat: 'storage' });
+      ridingLabel(s, ctx, 'held in RAM', LANE_WRITE, { delay: BEAT.afterPulse });
     },
   },
   {
@@ -259,19 +298,16 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { ed: 'over limit', medium: 'node disk', limit: '512Mi exceeded, evicted' });
+      setChips(s, { ed: 'over limit', medium: 'node disk', limit: '512Mi, evicted' });
       s.refs.ed.style.opacity = '1';
+      // The app writes past the cap into the disk: both light at entry, the shell pulses same
+      // beat. The eviction itself is told by the chips (512Mi, evicted), no fade on this step.
       s.refs.ed.classList.add('highlight');
-      // The Pod is evicted by the end of the step, so terminal opacity is the static end-state.
-      s.refs.pod.style.opacity = '0.25';
+      s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) return;
-      s.refs.pod.style.opacity = '1';
-      pulsePod(s.refs.appC, ctx, 0);
-      const write = routePacket(s, ctx, W_WRITE, { delay: BEAT.afterPulse, cat: 'storage' });
-      ridingLabel(s, ctx, 'over 512Mi', W_WRITE, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.ed, ctx, write.arrivalMs);
-      // Once the write pushes past the cap, kubelet evicts the Pod: it fades to terminal.
-      ctx.register(s.refs.pod.animate([{ opacity: 1 }, { opacity: 0.25 }], { duration: 600, delay: write.arrivalMs + 200, fill: 'forwards', easing: 'ease-in' }));
+      pulsePod(s.refs.shellWrap, ctx, 0);
+      routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, cat: 'storage' });
+      ridingLabel(s, ctx, 'over 512Mi', LANE_WRITE, { delay: BEAT.afterPulse });
     },
   },
 ];

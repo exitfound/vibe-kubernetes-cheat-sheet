@@ -1,36 +1,71 @@
-import { svg, g, text, line } from '../lib/svg.js';
+import { svg, g, text, path } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
 import {
-  valChip, setVal, setBoxSublabel, routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, setWire, BEAT,
+  valChip, setVal, setBoxSublabel, pulsePod, routePacket, routeDur,
+  makeInit, clearHighlights, clearWires, setWire, BEAT, FADE,
 } from '../lib/storage-kit.js';
 
 // StatefulSet PVC Retention. persistentVolumeClaimRetentionPolicy has two independent knobs,
-// whenScaled and whenDeleted, each Retain or Delete. The layout is the storage vertical stack
-// repeated per ordinal: Pod on top, its PVC in the middle, its PV on the disk shelf below, joined by
-// the identity column. The policy object sits top-right and issues Delete requests DOWN a bus on the
-// far right (clear of the Pods) to the claims it is told to remove. Retain leaves the claim and its
-// disk in place, which is safe but silently leaks storage. The narration overlay owns x<=380 &
-// y<=300, so every block is x>=430.
-const SS_X = 430, SS_Y = 40, SS_W = 300, SS_H = 64;
+// whenScaled and whenDeleted, each Retain or Delete. Retain leaves the claim and its disk in place,
+// which is safe but silently leaks storage. Delete reclaims both, at the cost of the data.
+//
+// ---- Layout: the SAME grammar as its sibling storage-volumeclaimtemplates ----
+// Three ordinal ROWS, one per replica, each a straight triad centred on the canvas spine x=CX
+//
+//        Pod web-N   ->   PVC data-web-N   ->   pv-web-N
+//        (consumer)         (the claim)         (the disk)
+//
+// with the Pod flanking the claim on the left and its disk on the right, mirrored about the spine.
+// Every connector is a dashed, arrow-headed lane exactly like the sibling, and every one carries a
+// ball on some step (a relationship with no ball would read as traffic that never runs). The sibling
+// flows CREATION down the spine and up into the Pods, this card flows the policy the other way:
+//   - policy step: the one policy reaches every claim, a governance ball cascades DOWN the spine and
+//     each claim lights as it lands (the spine is hidden except on this step, as in the sibling).
+//   - a Delete: a reclaim ball sweeps straight across the row Pod -> PVC -> PV, and the claim, then the
+//     disk, fade AS THE BALL REACHES THEM, taking the lanes in its wake. One clear ball-driven fade.
+//   - a Retain: only the Pod fades. The claim and disk stay, shown by opacity plus their labels.
+// Nothing is ever highlighted before a ball reaches it, and nothing fades without a ball or a Pod
+// removal behind it.
+//
+// ---- Narration overlay ----
+// The overlay covers only the top-left band (measured bottom ~173, right ~397 worst case). The policy
+// box spans x 430..770, clear of the x<=397 band, and the first Pod row starts at y=195, below the
+// overlay. A much longer narration than the ones below would invalidate this.
+//
+// PULSE MODEL: only Pods pulse, and only as they are removed. A Pod about to be scaled or deleted
+// away pulses once, then fades. The claims and disks are infrastructure which lights via .highlight
+// on ball arrival and never pulses.
+const CX = 600;
 
-const POLICY_X = 760, POLICY_Y = 40, POLICY_W = 320, POLICY_H = 64;
-const POLICY_CX = POLICY_X + POLICY_W / 2, POLICY_BOTTOM = POLICY_Y + POLICY_H; // 920 / 104
+const SRC_W = 340, SRC_H = 64, SRC_X = CX - SRC_W / 2, SRC_Y = 52;   // 430..770
+const SRC_BOTTOM = SRC_Y + SRC_H;                                   // 116
 
-const C0 = 490, C1 = 720, C2 = 950;
-const COLS = [C0, C1, C2];
+// The three ordinal rows. Row centres are the y midline of every block in the row, so the ownership
+// and reclaim runs stay dead level and the spine segments sit in the gaps between the stacked claims.
+const ROW_CY = [245, 385, 525];
 
-const POD_W = 118, POD_H = 86, POD_Y = 168, POD_BOTTOM = POD_Y + POD_H; // 254
-const PVC_W = 172, PVC_H = 60, PVC_Y = 312, PVC_BOTTOM = PVC_Y + PVC_H; // 372
-const PV_W = 148, PV_H = 90, PV_Y = 450, PV_TOP = PV_Y;                 // 450
+const POD_W = 150, POD_H = 100;
+const PVC_W = 200, PVC_H = 56;
+const PV_W = 150, PV_H = 76;
 
-const DEL_BUS_Y = 284;   // the delete bus, below the Pods and above the PVCs
-const DEL_DESCENT_X = 1050;
-const CHIPS_Y = 588;
+// Flank offset: Pod centre and disk centre are mirror images about the spine, so the row is symmetric.
+const FLANK = 295;
+const POD_CX = CX - FLANK, PV_CX = CX + FLANK;                      // 305 / 895
+const POD_X = POD_CX - POD_W / 2, POD_RIGHT = POD_X + POD_W;        // 230 / 380
+const PVC_X = CX - PVC_W / 2, PVC_RIGHT = PVC_X + PVC_W;            // 500 / 700
+const PV_X = PV_CX - PV_W / 2, PV_RIGHT = PV_X + PV_W;              // 820 / 970
 
-// The Delete route: policy drops down the far-right lane, runs along the bus, drops into the PVC top.
-function wDel(c) { return [[DEL_DESCENT_X, POLICY_BOTTOM], [DEL_DESCENT_X, DEL_BUS_Y], [c, DEL_BUS_Y], [c, PVC_Y]]; }
+const CHIPS_Y = 600;
 
+// Straight axis runs, every array shared by the static wire and the ball that rides it, arrowheads at
+// the RECEIVER: the governance into each claim top, the reclaim into the claim then into the disk.
+const spineSeg = i => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [CX, ROW_CY[i] - PVC_H / 2]];
+const ownPts = i => [[POD_RIGHT, ROW_CY[i]], [PVC_X, ROW_CY[i]]];        // Pod -> claim
+const reclaimPts = i => [[PVC_RIGHT, ROW_CY[i]], [PV_X, ROW_CY[i]]];     // claim -> disk
+
+// Lights an infrastructure block ON BALL ARRIVAL rather than at step entry, via a zero-effect
+// animation whose onfinish sets the class. Under reduced motion it applies immediately so the static
+// end-state stays correct. This is how a box receives a packet without pulsing.
 function lightBoxAt(boxEl, ctx, delay = 0) {
   if (!boxEl) return;
   if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
@@ -39,17 +74,21 @@ function lightBoxAt(boxEl, ctx, delay = 0) {
   ctx.register(a);
 }
 
-// Fades a claim or disk away exactly when the delete that removes it lands.
-function vanishAt(el, ctx, delay = 0, to = 0.1) {
+// Fades a claim, disk or lane away exactly when the reclaim that removes it reaches it.
+const GONE = 0.1;
+function vanishAt(el, ctx, delay = 0, to = GONE) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); return; }
-  ctx.register(el.animate([{ opacity: 1 }, { opacity: to }], { duration: 500, delay, fill: 'forwards', easing: 'ease-in' }));
+  ctx.register(el.animate([{ opacity: 1 }, { opacity: to }], { duration: FADE.out, delay, fill: 'forwards', easing: 'ease-in' }));
 }
 
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
+// A tag that rides ALONG with the ball on the same path, timing and easing, so the packet visibly
+// carries what the step narrates. Balls are routePacket (eased), so the label defaults to the same
+// ease-in-out and the same routeDur, or it would drift off the ball mid-flight.
+function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out', dy = -16 } = {}) {
   if (ctx.reduced) return;
   const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
+  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: dy, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
   lbl.style.opacity = '0';
   lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
   s.refs.packetLayer.appendChild(lbl);
@@ -58,17 +97,22 @@ function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'eas
   ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
 }
 
-function podBlock({ c, label }) {
-  const x = c - POD_W / 2;
-  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: ' ', containers: 0, cat: 'storage' });
+// A full Pod window like the rest of the storage cards: the ordinal name on top, a real container box
+// on the Pod centre line, and the mount path as the Pod sublabel at the bottom. The wrapping g keeps
+// the shape uniform with the family even though no Pod on this card ever pulses.
+function podBlock({ cy, label }) {
+  const y = cy - POD_H / 2;
+  const shell = pod({ x: POD_X, y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, cat: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 16, y: POD_Y + 40, w: POD_W - 32, h: 36, label: 'app', cat: 'storage' });
+  const innerBox = box({ x: POD_X + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'read/write', cat: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
   return { group, innerBox };
 }
+
+const lane = points => pathArrow({ points, dashed: true, dim: true, color: 'storage' });
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -85,40 +129,61 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const ss     = box({ x: SS_X, y: SS_Y, w: SS_W, h: SS_H, label: 'StatefulSet web', sublabel: 'replicas: 3', cat: 'storage' });
-    const policy = box({ x: POLICY_X, y: POLICY_Y, w: POLICY_W, h: POLICY_H, label: 'retentionPolicy', sublabel: 'whenScaled and whenDeleted', cat: 'storage' });
+    const src = box({
+      x: SRC_X, y: SRC_Y, w: SRC_W, h: SRC_H,
+      label: 'StatefulSet Web', sublabel: 'persistentVolumeClaimRetentionPolicy', cat: 'storage',
+    });
 
-    const pods = COLS.map((c, i) => podBlock({ c, label: `web-${i}` }));
-    const pvcs = COLS.map((c, i) => box({ x: c - PVC_W / 2, y: PVC_Y, w: PVC_W, h: PVC_H, label: `PVC data-web-${i}`, sublabel: 'Bound', cat: 'storage' }));
-    const pvs  = COLS.map((c, i) => cylinder({ x: c - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: `pv-web-${i}`, cat: 'storage' }));
+    const pods = ROW_CY.map((cy, i) => podBlock({ cy, label: `web-${i}` }));
+    const pvcs = ROW_CY.map((cy, i) => box({ x: PVC_X, y: cy - PVC_H / 2, w: PVC_W, h: PVC_H, label: `PVC data-web-${i}`, sublabel: 'Bound', cat: 'storage' }));
+    const pvs = ROW_CY.map((cy, i) => {
+      const c = cylinder({ x: PV_X, y: cy - PV_H / 2, w: PV_W, h: PV_H, label: `pv-web-${i}`, cat: 'storage' });
+      // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
+      // is not part of the visible front face. Re-centre on the face, derived from the height.
+      const l = c.querySelector('.scheme-cylinder-label');
+      if (l) l.setAttribute('y', PV_H / 2 + 10);
+      return c;
+    });
 
-    const refLinks = COLS.map(c => line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', x1: c, y1: POD_BOTTOM, x2: c, y2: PVC_Y, 'stroke-dasharray': '5 5', fill: 'none' }));
-    const boundLinks = COLS.map(c => line({ class: 'scheme-arrow scheme-arrow-storage', x1: c, y1: PVC_BOTTOM, x2: c, y2: PV_TOP, fill: 'none' }));
+    // The central governance spine (hidden until the policy step, exactly like the sibling's mint
+    // trunk), and the two horizontal lanes per row that carry the reclaim ball. All dashed, arrowed.
+    const spineW = ROW_CY.map((_, i) => lane(spineSeg(i)));
+    spineW.forEach(w => { w.style.opacity = '0'; });
+    const ownW = ROW_CY.map((_, i) => lane(ownPts(i)));
+    const reclaimW = ROW_CY.map((_, i) => lane(reclaimPts(i)));
 
-    const delWires = COLS.map(c => pathArrow({ points: wDel(c), dashed: true, dim: true, color: 'storage' }));
+    // Per-row verdict, parked in the free space to the right of the disk (the L-shaped safe zone),
+    // filled per step with retained / reclaimed.
+    const verdictLbls = ROW_CY.map(cy => text({ class: 'scheme-label code dim', x: PV_RIGHT + 20, y: cy + 5, 'text-anchor': 'start' }, [' ']));
 
-    const verdictLbls = COLS.map(c => text({ class: 'scheme-label code dim', x: c, y: PV_Y - 12, 'text-anchor': 'middle' }, [' ']));
-
-    const replChip = valChip({ x: 110, y: CHIPS_Y, w: 190, h: 34, name: 'replicas', value: '3', cat: 'storage' });
-    const wsChip   = valChip({ x: 320, y: CHIPS_Y, w: 270, h: 34, name: 'whenScaled', value: 'Retain', cat: 'storage' });
-    const wdChip   = valChip({ x: 610, y: CHIPS_Y, w: 270, h: 34, name: 'whenDeleted', value: 'Retain', cat: 'storage' });
-    const diskChip = valChip({ x: 900, y: CHIPS_Y, w: 190, h: 34, name: 'disks', value: '3 kept', cat: 'storage' });
+    // CHIP_W 232 is the storage family default. Worst case here is 'disks' + '3 kept, 1 leaks' at 20
+    // characters, and .scheme-chip-text runs 6.89 viewBox units per character, so 20 * 6.89 + 24 of
+    // padding is 162 against the 232 available.
+    const CHIP_W = 232, CHIP_GAP = 16;
+    const CHIPS_W = CHIP_W * 4 + CHIP_GAP * 3;                  // 976
+    const CHIPS_X = CX - CHIPS_W / 2;                           // 112, so the strip centres on CX
+    const chipX = i => CHIPS_X + i * (CHIP_W + CHIP_GAP);
+    const replChip = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'replicas',    value: '3',      cat: 'storage' });
+    const wsChip   = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'whenScaled',  value: 'Retain', cat: 'storage' });
+    const wdChip   = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'whenDeleted', value: 'Retain', cat: 'storage' });
+    const diskChip = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'disks',       value: '3 kept', cat: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order: blocks, then wires and their labels above them, then the chip strip, then the packet
-    // layer on top so every ball rides above everything.
-    [ss, policy, ...pvs, ...pvcs, ...pods.map(p => p.group)].forEach(el => root.appendChild(el));
-    [...refLinks, ...boundLinks, ...delWires, ...verdictLbls].forEach(el => root.appendChild(el));
+    // Z-order (bottom -> top): blocks, then the spine and lanes and verdict captions above them, then
+    // the chip strip, then the packet layer so every ball rides above everything.
+    [src, ...pvs, ...pvcs, ...pods.map(p => p.group)].forEach(el => root.appendChild(el));
+    [...spineW, ...ownW, ...reclaimW, ...verdictLbls].forEach(el => root.appendChild(el));
     [replChip, wsChip, wdChip, diskChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
     this.refs = {
-      svg: root, ss, policy,
+      svg: root, src,
       p0: pods[0].group, p1: pods[1].group, p2: pods[2].group,
       v0: pvcs[0], v1: pvcs[1], v2: pvcs[2],
       d0: pvs[0], d1: pvs[1], d2: pvs[2],
+      spineW, ownW, reclaimW,
       replChip, wsChip, wdChip, diskChip,
       wires: { g0: verdictLbls[0], g1: verdictLbls[1], g2: verdictLbls[2] },
       packetLayer,
@@ -128,22 +193,77 @@ class Scene {
   reset() { this.build(); }
 }
 
+// A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
+// holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
+// always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
+function setChip(chip, val) {
+  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
+  setVal(chip, val);
+  if (changed) chip.classList.add('highlight');
+}
+
+// Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how a
+// card comes to report the old knob setting on the step that just changed it.
 function setChips(s, { repl, ws, wd, disks }) {
-  setVal(s.refs.replChip, repl);
-  setVal(s.refs.wsChip, ws);
-  setVal(s.refs.wdChip, wd);
-  setVal(s.refs.diskChip, disks);
+  setChip(s.refs.replChip, repl);
+  setChip(s.refs.wsChip, ws);
+  setChip(s.refs.wdChip, wd);
+  setChip(s.refs.diskChip, disks);
+}
+
+// Pins the visibility of EVERY element that is removed mid-story, exactly as setChips pins every chip.
+// Lane opacities are DERIVED from the block they point AT (the ownership lane and the spine from the
+// claim, the reclaim lane from the disk), so a reclaimed claim or disk takes its own lanes with it and
+// no arrow is ever left pointing at a ghost. The spine only shows on the governance step.
+function setStage(s, { pods = [1, 1, 1], claims = [1, 1, 1], disks = [1, 1, 1], govern = false } = {}) {
+  [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => { p.style.opacity = String(pods[i]); });
+  [s.refs.v0, s.refs.v1, s.refs.v2].forEach((v, i) => { v.style.opacity = String(claims[i]); });
+  [s.refs.d0, s.refs.d1, s.refs.d2].forEach((d, i) => { d.style.opacity = String(disks[i]); });
+  s.refs.ownW.forEach((o, i) => { o.style.opacity = String(claims[i]); });
+  s.refs.reclaimW.forEach((r, i) => { r.style.opacity = String(disks[i]); });
+  s.refs.spineW.forEach((t, i) => { t.style.opacity = govern ? String(claims[i]) : '0'; });
+}
+
+function setClaimLabels(s, labels) {
+  [s.refs.v0, s.refs.v1, s.refs.v2].forEach((v, i) => setBoxSublabel(v, labels[i]));
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['ss', 'policy', 'v0', 'v1', 'v2', 'd0', 'd1', 'd2',
+  clearHighlights(s, ['src', 'v0', 'v1', 'v2', 'd0', 'd1', 'd2',
     'replChip', 'wsChip', 'wdChip', 'diskChip'], [s.refs.p0, s.refs.p1, s.refs.p2]);
 }
 
-function showAll(s) {
-  [s.refs.p0, s.refs.p1, s.refs.p2].forEach(p => { p.style.opacity = '1'; });
-  [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => { v.style.opacity = '1'; setBoxSublabel(v, 'Bound'); });
-  [s.refs.d0, s.refs.d1, s.refs.d2].forEach(d => { d.style.opacity = '1'; });
+const BOUND = ['Bound', 'Bound', 'Bound'];
+
+// A Pod being removed: it pulses once (the last thing it does), then fades to a ghost. The pulse is
+// the only Pod motion on the card and marks the removal. Returns when the Pod has fully faded.
+function removePod(s, ctx, i, { delay = 0 } = {}) {
+  pulsePod(s.refs[`p${i}`], ctx, delay);
+  const fadeAt = delay + BEAT.afterPulse;
+  ctx.register(s.refs[`p${i}`].animate([{ opacity: 1 }, { opacity: 0.12 }], { duration: FADE.out, delay: fadeAt, fill: 'forwards', easing: 'ease-in' }));
+  return fadeAt + FADE.out;
+}
+
+// How long a reclaimed block stays lit after the ball lands on it, before it fades: long enough to
+// read the highlight, so the ball visibly REACHES the block before it is taken.
+const LIGHT_HOLD = 260;
+
+// One ordinal reclaimed: a ball sweeps straight across the row Pod -> PVC -> PV. Each block LIGHTS as
+// the ball lands on it, holds a beat, then fades (with its lane) as the ball moves on: the claim goes
+// first because the PVC is deleted first, the disk follows when the reclaim reaches it. Every light
+// and every fade is tied to the ball, nothing fades on its own. The spine is not touched here (it
+// only exists on the policy step, so animating it would wrongly flash a segment into view).
+function reclaimRow(s, ctx, i, { delay = 0, tag = null } = {}) {
+  const h1 = routePacket(s, ctx, ownPts(i), { delay, cat: 'storage' });
+  if (tag) ridingLabel(s, ctx, tag, ownPts(i), { delay });
+  lightBoxAt(s.refs[`v${i}`], ctx, h1.arrivalMs);
+  vanishAt(s.refs[`v${i}`], ctx, h1.arrivalMs + LIGHT_HOLD);
+  vanishAt(s.refs.ownW[i], ctx, h1.arrivalMs + LIGHT_HOLD);
+  const h2 = routePacket(s, ctx, reclaimPts(i), { delay: h1.arrivalMs + BEAT.afterHop, cat: 'storage' });
+  lightBoxAt(s.refs[`d${i}`], ctx, h2.arrivalMs);
+  vanishAt(s.refs[`d${i}`], ctx, h2.arrivalMs + LIGHT_HOLD);
+  vanishAt(s.refs.reclaimW[i], ctx, h2.arrivalMs + LIGHT_HOLD);
+  return h2.arrivalMs + LIGHT_HOLD + FADE.out;
 }
 
 const STEPS = [
@@ -156,24 +276,35 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '3', ws: 'Retain', wd: 'Retain', disks: '3 kept' });
-      showAll(s);
+      setStage(s);
+      setClaimLabels(s, BOUND);
     },
   },
   {
     id: 'policy',
-    duration: 2400,
-    narration: 'The policy has two independent knobs. whenScaled decides the fate of a claim when its replica is scaled away, and whenDeleted decides it when the entire StatefulSet is deleted. Each is set to Retain or Delete on its own, so the two cases can behave differently.',
+    duration: 3900,
+    narration: 'One policy governs all three claims. It has two independent knobs: whenScaled decides the fate of a claim when its replica is scaled away, and whenDeleted decides it when the entire StatefulSet is deleted. Each is set to Retain or Delete on its own.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '3', ws: 'Retain', wd: 'Retain', disks: '3 kept' });
-      showAll(s);
-      s.refs.policy.classList.add('highlight');
-      if (ctx.reduced) return;
-      ctx.register(s.refs.policy.animate(
-        [{ filter: 'brightness(1)' }, { filter: 'brightness(1.5)' }, { filter: 'brightness(1)' }],
-        { duration: 600, delay: 200, easing: 'ease-out' }));
+      setStage(s, { govern: true });
+      setClaimLabels(s, BOUND);
+      // The policy is the source of the governance signal, so it lights at step entry.
+      s.refs.src.classList.add('highlight');
+      if (ctx.reduced) {
+        [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => v.classList.add('highlight'));
+        return;
+      }
+      // The one policy reaches every claim: a governance ball cascades down the spine and each claim
+      // lights as it lands, exactly as the sibling mints each claim down the same spine.
+      let at = BEAT.lead;
+      ROW_CY.forEach((_, i) => {
+        const gov = routePacket(s, ctx, spineSeg(i), { delay: at, cat: 'storage' });
+        lightBoxAt(s.refs[`v${i}`], ctx, gov.arrivalMs);
+        at = gov.arrivalMs + BEAT.afterHop;
+      });
     },
   },
   {
@@ -185,37 +316,32 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '2', ws: 'Retain', wd: 'Retain', disks: '3 kept, 1 leaks' });
-      showAll(s);
-      setBoxSublabel(s.refs.v2, 'kept, no Pod');
-      s.refs.v2.classList.add('highlight');
-      s.refs.d2.classList.add('highlight');
+      setStage(s, { pods: [1, 1, 0.12] });
+      setClaimLabels(s, ['Bound', 'Bound', 'kept, no Pod']);
       setWire(s, 'g2', 'retained');
-      if (ctx.reduced) { s.refs.p2.style.opacity = '0.12'; return; }
-      ctx.register(s.refs.p2.animate([{ opacity: 1 }, { opacity: 0.12 }], { duration: 650, delay: 250, fill: 'forwards', easing: 'ease-in' }));
+      if (ctx.reduced) return;
+      // web-2 is scaled away, the claim and disk simply stay behind. The only motion is the Pod fade.
+      setStage(s, { pods: [1, 1, 1] });
+      removePod(s, ctx, 2, { delay: BEAT.afterHop });
     },
   },
   {
     id: 'scaled-delete',
-    duration: 3200,
+    duration: 4600,
     narration: 'Flip whenScaled to Delete and scale down again. Now removing web-2 also removes claim data-web-2, and its disk is reclaimed by the storage backend. No orphan is left behind, which is what most people actually want, at the cost of that data being gone for good.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '2', ws: 'Delete', wd: 'Retain', disks: '2 kept' });
-      s.refs.p0.style.opacity = '1';
-      s.refs.p1.style.opacity = '1';
-      s.refs.p2.style.opacity = '0.12';
-      s.refs.v0.style.opacity = '1'; s.refs.v1.style.opacity = '1';
-      s.refs.d0.style.opacity = '1'; s.refs.d1.style.opacity = '1';
-      s.refs.policy.classList.add('highlight');
+      setStage(s, { pods: [1, 1, 0.12], claims: [1, 1, GONE], disks: [1, 1, GONE] });
+      setClaimLabels(s, BOUND);
       setWire(s, 'g2', 'reclaimed');
-      if (ctx.reduced) { s.refs.v2.style.opacity = '0.1'; s.refs.d2.style.opacity = '0.1'; return; }
-      s.refs.v2.style.opacity = '1'; s.refs.d2.style.opacity = '1';
-      const del = routePacket(s, ctx, wDel(C2), { cat: 'storage' });
-      ridingLabel(s, ctx, 'delete data-web-2', wDel(C2));
-      vanishAt(s.refs.v2, ctx, del.arrivalMs);
-      vanishAt(s.refs.d2, ctx, del.arrivalMs + BEAT.afterHop + 300);
+      if (ctx.reduced) return;
+      // web-2 pulses and is scaled away, then whenScaled=Delete sweeps its claim and disk in one run.
+      setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1], disks: [1, 1, 1] });
+      const gone = removePod(s, ctx, 2, { delay: BEAT.afterHop });
+      reclaimRow(s, ctx, 2, { delay: gone + BEAT.afterHop, tag: 'delete data-web-2' });
     },
   },
   {
@@ -227,42 +353,35 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '0', ws: 'Delete', wd: 'Retain', disks: '3 kept' });
-      [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => { v.style.opacity = '1'; setBoxSublabel(v, 'kept, no owner'); v.classList.add('highlight'); });
-      [s.refs.d0, s.refs.d1, s.refs.d2].forEach(d => { d.style.opacity = '1'; d.classList.add('highlight'); });
-      COLS.forEach((c, i) => setWire(s, `g${i}`, 'retained'));
-      s.refs.ss.classList.add('highlight');
-      if (ctx.reduced) { [s.refs.p0, s.refs.p1, s.refs.p2].forEach(p => { p.style.opacity = '0.12'; }); return; }
-      [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => {
-        ctx.register(p.animate([{ opacity: 1 }, { opacity: 0.12 }], { duration: 600, delay: 200 + i * 130, fill: 'forwards', easing: 'ease-in' }));
-      });
+      setStage(s, { pods: [0.12, 0.12, 0.12] });
+      setClaimLabels(s, ['kept, no owner', 'kept, no owner', 'kept, no owner']);
+      ROW_CY.forEach((_, i) => setWire(s, `g${i}`, 'retained'));
+      if (ctx.reduced) return;
+      // The three Pods go together, on one beat: the StatefulSet was deleted once, not three times.
+      setStage(s, { pods: [1, 1, 1] });
+      ROW_CY.forEach((_, i) => removePod(s, ctx, i, { delay: BEAT.afterHop }));
     },
   },
   {
     id: 'deleted-delete',
-    duration: 3400,
+    duration: 4600,
     narration: 'With whenDeleted set to Delete, removing the StatefulSet garbage-collects all three claims and every disk goes with them. This is the clean teardown, and the reason Retain on both knobs is the conservative default: deleting data is irreversible, so Kubernetes will not do it unless you ask.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '0', ws: 'Delete', wd: 'Delete', disks: '0 kept' });
-      [s.refs.p0, s.refs.p1, s.refs.p2].forEach(p => { p.style.opacity = '0.12'; });
-      s.refs.policy.classList.add('highlight');
-      COLS.forEach((c, i) => setWire(s, `g${i}`, 'reclaimed'));
-      if (ctx.reduced) {
-        [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => { v.style.opacity = '0.1'; });
-        [s.refs.d0, s.refs.d1, s.refs.d2].forEach(d => { d.style.opacity = '0.1'; });
-        return;
-      }
-      [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => { v.style.opacity = '1'; });
-      [s.refs.d0, s.refs.d1, s.refs.d2].forEach(d => { d.style.opacity = '1'; });
-      const vrefs = [s.refs.v0, s.refs.v1, s.refs.v2];
-      const drefs = [s.refs.d0, s.refs.d1, s.refs.d2];
-      COLS.forEach((c, i) => {
-        const del = routePacket(s, ctx, wDel(c), { delay: i * 160, cat: 'storage' });
-        vanishAt(vrefs[i], ctx, del.arrivalMs);
-        vanishAt(drefs[i], ctx, del.arrivalMs + BEAT.afterHop + 250);
-      });
+      setStage(s, { pods: [0.12, 0.12, 0.12], claims: [GONE, GONE, GONE], disks: [GONE, GONE, GONE] });
+      setClaimLabels(s, BOUND);
+      ROW_CY.forEach((_, i) => setWire(s, `g${i}`, 'reclaimed'));
+      if (ctx.reduced) return;
+      // The whole set pulses and is deleted (all Pods on one beat), then whenDeleted=Delete sweeps
+      // every row together once the Pods are gone.
+      setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1], disks: [1, 1, 1] });
+      const gone = removePod(s, ctx, 0, { delay: BEAT.afterHop });
+      removePod(s, ctx, 1, { delay: BEAT.afterHop });
+      removePod(s, ctx, 2, { delay: BEAT.afterHop });
+      ROW_CY.forEach((_, i) => reclaimRow(s, ctx, i, { delay: gone + BEAT.afterHop }));
     },
   },
 ];

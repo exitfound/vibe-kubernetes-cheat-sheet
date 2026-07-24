@@ -905,7 +905,7 @@ export const POSTERS = {
       <line x1="152" y1="114" x2="152" y2="122"/>
       <line x1="120" y1="90" x2="128" y2="90"/>
       <line x1="176" y1="90" x2="184" y2="90"/>
-      <line x1="178" y1="90" x2="216" y2="90" stroke-dasharray="4 3"/>
+      <line x1="178" y1="90" x2="228" y2="90" stroke-dasharray="4 3"/>
       <g stroke-dasharray="5 4">
         <ellipse cx="264" cy="62" rx="36" ry="8" fill="rgba(255,255,255,0.04)"/>
         <line x1="228" y1="62" x2="228" y2="118"/>
@@ -913,415 +913,784 @@ export const POSTERS = {
         <path d="M 228 118 A 36 8 0 0 0 300 118" fill="rgba(255,255,255,0.04)"/>
       </g>
     </g>
-    <circle cx="216" cy="90" r="3.5" fill="currentColor"/>
   `,
 
-  // One volume owned by the Pod, mounted into two containers at once.
+  // One volume owned by the Pod, mounted into two containers by straight vertical lanes.
   'storage-volume-model': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="70" y="20" width="180" height="60" rx="8" fill="rgba(255,255,255,0.05)"/>
-      <rect x="86" y="34" width="70" height="34" rx="4" fill="rgba(255,255,255,0.07)"/>
-      <rect x="164" y="34" width="70" height="34" rx="4" fill="rgba(255,255,255,0.07)"/>
-      <ellipse cx="160" cy="118" rx="44" ry="8" fill="rgba(255,255,255,0.06)"/>
-      <line x1="116" y1="118" x2="116" y2="150"/>
-      <line x1="204" y1="118" x2="204" y2="150"/>
-      <path d="M 116 150 A 44 8 0 0 0 204 150" fill="rgba(255,255,255,0.06)"/>
-      <line x1="121" y1="110" x2="121" y2="68" stroke-dasharray="4 3"/>
-      <line x1="199" y1="110" x2="199" y2="68" stroke-dasharray="4 3"/>
-      <line x1="160" y1="80" x2="160" y2="110" stroke-dasharray="4 3"/>
+      <rect x="60" y="18" width="200" height="60" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <rect x="76" y="32" width="76" height="34" rx="4" fill="rgba(255,255,255,0.07)"/>
+      <rect x="168" y="32" width="76" height="34" rx="4" fill="rgba(255,255,255,0.07)"/>
+      <ellipse cx="160" cy="118" rx="60" ry="9" fill="rgba(255,255,255,0.06)"/>
+      <line x1="100" y1="118" x2="100" y2="150"/>
+      <line x1="220" y1="118" x2="220" y2="150"/>
+      <path d="M 100 150 A 60 9 0 0 0 220 150" fill="rgba(255,255,255,0.06)"/>
+      <line x1="114" y1="112" x2="114" y2="78" stroke-dasharray="4 3"/>
+      <line x1="206" y1="112" x2="206" y2="78" stroke-dasharray="4 3"/>
+      <line x1="160" y1="78" x2="160" y2="109" stroke-dasharray="4 3" opacity="0.5"/>
     </g>
-    <circle cx="121" cy="92" r="3.5" fill="currentColor"/>
   `,
 
-  // Read-only image layers plus one writable layer, and a volume that bypasses it.
+  // Container on top, one writable layer over dim RO image layers, the volume centered below,
+  // and the bypass wire zigzagging around the stack from the container side down to the disk.
   'storage-container-filesystem': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="60" y="30" width="150" height="24" rx="4" fill="rgba(255,255,255,0.09)"/>
+      <rect x="100" y="16" width="120" height="36" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="110" y="64" width="100" height="14" rx="3" fill="rgba(255,255,255,0.09)"/>
       <g opacity="0.45">
-        <rect x="60" y="62" width="150" height="22" rx="4" fill="rgba(255,255,255,0.04)"/>
-        <rect x="60" y="90" width="150" height="22" rx="4" fill="rgba(255,255,255,0.04)"/>
-        <rect x="60" y="118" width="150" height="22" rx="4" fill="rgba(255,255,255,0.04)"/>
+        <rect x="110" y="84" width="100" height="14" rx="3" fill="rgba(255,255,255,0.04)"/>
+        <rect x="110" y="104" width="100" height="14" rx="3" fill="rgba(255,255,255,0.04)"/>
+        <rect x="110" y="124" width="100" height="14" rx="3" fill="rgba(255,255,255,0.04)"/>
       </g>
-      <ellipse cx="268" cy="96" rx="30" ry="6" fill="rgba(255,255,255,0.06)"/>
-      <line x1="238" y1="96" x2="238" y2="140"/>
-      <line x1="298" y1="96" x2="298" y2="140"/>
-      <path d="M 238 140 A 30 6 0 0 0 298 140" fill="rgba(255,255,255,0.06)"/>
-      <line x1="210" y1="42" x2="238" y2="90" stroke-dasharray="4 3"/>
+      <ellipse cx="160" cy="152" rx="32" ry="6" fill="rgba(255,255,255,0.06)"/>
+      <line x1="128" y1="152" x2="128" y2="166"/>
+      <line x1="192" y1="152" x2="192" y2="166"/>
+      <path d="M 128 166 A 32 6 0 0 0 192 166" fill="rgba(255,255,255,0.06)"/>
+      <path d="M 220 34 L 250 34 L 250 159 L 196 159" stroke-dasharray="4 3"/>
     </g>
-    <circle cx="224" cy="66" r="3.5" fill="currentColor"/>
   `,
 
-  // A scratch directory on the node disk, shared, wiped when the Pod leaves.
+  // The card in miniature: one node boundary holding the Pod (two containers) over a dashed,
+  // ephemeral scratch cylinder. The signature side-entry L-lanes with chevrons tell the story in
+  // one frame: the left container writes INTO the disk, the right container reads OUT of it.
   'storage-emptydir': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="40" y="20" width="240" height="140" rx="10" fill="rgba(255,255,255,0.03)"/>
-      <rect x="70" y="42" width="180" height="46" rx="8" fill="rgba(255,255,255,0.06)"/>
-      <ellipse cx="160" cy="118" rx="40" ry="7" fill="rgba(255,255,255,0.05)"/>
-      <line x1="120" y1="118" x2="120" y2="146"/>
-      <line x1="200" y1="118" x2="200" y2="146"/>
-      <path d="M 120 146 A 40 7 0 0 0 200 146" fill="rgba(255,255,255,0.05)"/>
-      <line x1="160" y1="88" x2="160" y2="111" stroke-dasharray="4 3"/>
+      <rect x="32" y="12" width="256" height="156" rx="10" fill="rgba(255,255,255,0.03)"/>
+      <rect x="64" y="28" width="192" height="54" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <rect x="78" y="40" width="56" height="30" rx="4" fill="rgba(255,255,255,0.07)"/>
+      <rect x="186" y="40" width="56" height="30" rx="4" fill="rgba(255,255,255,0.07)"/>
+      <g stroke-dasharray="5 4">
+        <ellipse cx="160" cy="124" rx="28" ry="6" fill="rgba(255,255,255,0.04)"/>
+        <line x1="132" y1="124" x2="132" y2="146"/>
+        <line x1="188" y1="124" x2="188" y2="146"/>
+        <path d="M 132 146 A 28 6 0 0 0 188 146" fill="rgba(255,255,255,0.04)"/>
+      </g>
+      <g stroke-dasharray="4 3">
+        <polyline points="106,82 106,135 122,135"/>
+        <polyline points="198,135 214,135 214,92"/>
+      </g>
+      <path d="M 122 130.5 L 127 135 L 122 139.5"/>
+      <path d="M 209.5 92 L 214 87 L 218.5 92"/>
     </g>
-    <circle cx="160" cy="100" r="3.5" fill="currentColor"/>
   `,
 
-  // Same Pod on a new node: the emptyDir resets, the PVC keeps its disk.
+  // Pair to the emptyDir poster, same node + Pod + side-entry L-lanes, but the backing cylinder is
+  // SOLID, not dashed: a hostPath is a raw window onto a real directory that already lives on the
+  // node, not ephemeral scratch. The left container writes INTO it, the right reads OUT.
+  'storage-hostpath': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="32" y="12" width="256" height="156" rx="10" fill="rgba(255,255,255,0.03)"/>
+      <rect x="64" y="28" width="192" height="54" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <rect x="78" y="40" width="56" height="30" rx="4" fill="rgba(255,255,255,0.07)"/>
+      <rect x="186" y="40" width="56" height="30" rx="4" fill="rgba(255,255,255,0.07)"/>
+      <ellipse cx="160" cy="124" rx="28" ry="6" fill="rgba(255,255,255,0.08)"/>
+      <line x1="132" y1="124" x2="132" y2="146"/>
+      <line x1="188" y1="124" x2="188" y2="146"/>
+      <path d="M 132 146 A 28 6 0 0 0 188 146" fill="rgba(255,255,255,0.08)"/>
+      <g stroke-dasharray="4 3">
+        <polyline points="106,82 106,135 122,135"/>
+        <polyline points="198,135 214,135 214,92"/>
+      </g>
+      <path d="M 122 130.5 L 127 135 L 122 139.5"/>
+      <path d="M 209.5 92 L 214 87 L 218.5 92"/>
+    </g>
+  `,
+
+  // One Pod, two volumes, one split down the middle: after a reschedule the ephemeral emptyDir (left,
+  // dashed and faded) comes back WIPED EMPTY, while the persistent PVC/PV (right, solid) reattaches
+  // the very same disk with its data rows INTACT. The empty-vs-full contrast is the whole card.
   'storage-ephemeral-vs-persistent': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="60" y="18" width="200" height="40" rx="8" fill="rgba(255,255,255,0.05)"/>
-      <line x1="160" y1="70" x2="160" y2="164" stroke-dasharray="4 6" opacity="0.45"/>
-      <g opacity="0.45">
-        <ellipse cx="100" cy="108" rx="30" ry="6" fill="rgba(255,255,255,0.03)"/>
-        <line x1="70" y1="108" x2="70" y2="150"/>
-        <line x1="130" y1="108" x2="130" y2="150"/>
-        <path d="M 70 150 A 30 6 0 0 0 130 150" fill="rgba(255,255,255,0.03)"/>
-        <line x1="100" y1="58" x2="100" y2="102" stroke-dasharray="4 3"/>
+      <rect x="64" y="24" width="192" height="36" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <line x1="160" y1="66" x2="160" y2="158" stroke-dasharray="4 6" opacity="0.4"/>
+      <g opacity="0.5" stroke-dasharray="4 3">
+        <line x1="92" y1="60" x2="92" y2="94"/>
+        <ellipse cx="92" cy="100" rx="34" ry="7"/>
+        <line x1="58" y1="100" x2="58" y2="150"/>
+        <line x1="126" y1="100" x2="126" y2="150"/>
+        <path d="M 58 150 A 34 7 0 0 0 126 150"/>
       </g>
-      <ellipse cx="220" cy="108" rx="30" ry="6" fill="rgba(255,255,255,0.08)"/>
-      <line x1="190" y1="108" x2="190" y2="150"/>
-      <line x1="250" y1="108" x2="250" y2="150"/>
-      <path d="M 190 150 A 30 6 0 0 0 250 150" fill="rgba(255,255,255,0.08)"/>
-      <line x1="220" y1="58" x2="220" y2="102" stroke-dasharray="4 3"/>
+      <line x1="228" y1="60" x2="228" y2="94"/>
+      <path d="M 194 100 A 34 7 0 0 0 262 100 L 262 150 A 34 7 0 0 1 194 150 Z" fill="rgba(255,255,255,0.08)" stroke="none"/>
+      <ellipse cx="228" cy="100" rx="34" ry="7"/>
+      <line x1="194" y1="100" x2="194" y2="150"/>
+      <line x1="262" y1="100" x2="262" y2="150"/>
+      <path d="M 194 150 A 34 7 0 0 0 262 150"/>
+      <line x1="204" y1="118" x2="252" y2="118"/>
+      <line x1="204" y1="130" x2="242" y2="130"/>
+      <line x1="204" y1="142" x2="248" y2="142"/>
     </g>
-    <circle cx="220" cy="80" r="3.5" fill="currentColor"/>
   `,
 
-  // kubelet flips one ..data symlink between timestamped dirs, atomically.
+  // The card in miniature: the app reads down the spine through ..data, whose bare right-angle
+  // pointer (no arrowheads, as on the card) has flipped off the dim v1 dir onto the fresh v2 dir.
+  // The short lines inside each dir are the keys sitting as files.
   'storage-configmap-secret-mount': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="122" y="24" width="76" height="34" rx="5" fill="rgba(255,255,255,0.08)"/>
+      <rect x="104" y="12" width="112" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="134" y="19" width="52" height="16" rx="3" fill="rgba(255,255,255,0.07)"/>
+      <line x1="160" y1="42" x2="160" y2="72" stroke-dasharray="4 3"/>
+      <rect x="130" y="72" width="60" height="26" rx="4" fill="rgba(255,255,255,0.09)"/>
       <g opacity="0.45">
-        <rect x="60" y="120" width="90" height="40" rx="5" fill="rgba(255,255,255,0.03)"/>
-        <line x1="150" y1="58" x2="95" y2="120" stroke-dasharray="4 3"/>
+        <polyline points="130,85 92,85 92,118" stroke-dasharray="4 3"/>
+        <rect x="50" y="118" width="84" height="42" rx="5" fill="rgba(255,255,255,0.03)"/>
+        <line x1="62" y1="132" x2="104" y2="132"/>
+        <line x1="62" y1="144" x2="90" y2="144"/>
       </g>
-      <rect x="188" y="120" width="90" height="40" rx="5" fill="rgba(255,255,255,0.06)"/>
-      <line x1="176" y1="58" x2="228" y2="120" stroke-dasharray="4 3"/>
+      <polyline points="190,85 228,85 228,118" stroke-dasharray="4 3"/>
+      <rect x="186" y="118" width="84" height="42" rx="5" fill="rgba(255,255,255,0.07)"/>
+      <line x1="198" y1="132" x2="240" y2="132"/>
+      <line x1="198" y1="144" x2="226" y2="144"/>
     </g>
-    <circle cx="202" cy="89" r="3.5" fill="currentColor"/>
   `,
 
-  // Several sources projected into one directory, the token rotated in place.
+  // The essence, not the layout: four scattered sources converge fan-wise on ONE mount point at
+  // the folder edge, inside it the keys sit as even file lines, and the token thread (bottom
+  // source, its lane, its file line) burns brighter than the rest.
   'storage-projected-volume': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="196" y="50" width="88" height="80" rx="8" fill="rgba(255,255,255,0.04)"/>
       <g opacity="0.45">
-        <rect x="30" y="26" width="70" height="24" rx="4" fill="rgba(255,255,255,0.04)"/>
-        <rect x="30" y="62" width="70" height="24" rx="4" fill="rgba(255,255,255,0.04)"/>
-        <rect x="30" y="98" width="70" height="24" rx="4" fill="rgba(255,255,255,0.04)"/>
+        <rect x="56" y="28" width="26" height="18" rx="4" fill="rgba(255,255,255,0.04)"/>
+        <rect x="42" y="68" width="26" height="18" rx="4" fill="rgba(255,255,255,0.04)"/>
+        <rect x="42" y="108" width="26" height="18" rx="4" fill="rgba(255,255,255,0.04)"/>
+        <line x1="82" y1="37" x2="196" y2="90" stroke-dasharray="4 3"/>
+        <line x1="68" y1="77" x2="196" y2="90" stroke-dasharray="4 3"/>
+        <line x1="68" y1="117" x2="196" y2="90" stroke-dasharray="4 3"/>
+        <line x1="212" y1="68" x2="266" y2="68"/>
+        <line x1="212" y1="84" x2="266" y2="84"/>
+        <line x1="212" y1="100" x2="266" y2="100"/>
       </g>
-      <rect x="30" y="134" width="70" height="24" rx="4" fill="rgba(255,255,255,0.08)"/>
-      <rect x="180" y="34" width="110" height="116" rx="6" fill="rgba(255,255,255,0.04)"/>
-      <line x1="100" y1="38" x2="180" y2="60" stroke-dasharray="4 3" opacity="0.45"/>
-      <line x1="100" y1="74" x2="180" y2="86" stroke-dasharray="4 3" opacity="0.45"/>
-      <line x1="100" y1="110" x2="180" y2="112" stroke-dasharray="4 3" opacity="0.45"/>
-      <line x1="100" y1="146" x2="180" y2="138" stroke-dasharray="4 3"/>
+      <rect x="56" y="148" width="26" height="18" rx="4" fill="rgba(255,255,255,0.08)"/>
+      <line x1="82" y1="157" x2="196" y2="90" stroke-dasharray="4 3"/>
+      <line x1="212" y1="116" x2="266" y2="116"/>
     </g>
-    <circle cx="140" cy="142" r="3.5" fill="currentColor"/>
+    <circle cx="196" cy="90" r="3.5" fill="currentColor"/>
   `,
 
-  // Usage fills the node disk past its threshold, and Pods get evicted by QoS.
+  // The node holds a low nodefs disk (clean outline, no fill) with its three ephemeral contributors
+  // (writable + emptyDir + logs) raised just above it and tied down to the disk top by short lines,
+  // linked by a dashed line to the Pod that draws on it. Everything sits inside the one node boundary.
   'storage-ephemeral-storage-eviction': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <ellipse cx="120" cy="52" rx="52" ry="9" fill="rgba(255,255,255,0.05)"/>
-      <line x1="68" y1="52" x2="68" y2="140"/>
-      <line x1="172" y1="52" x2="172" y2="140"/>
-      <path d="M 68 140 A 52 9 0 0 0 172 140" fill="rgba(255,255,255,0.05)"/>
-      <rect x="68" y="98" width="104" height="42" fill="rgba(255,255,255,0.08)" stroke="none"/>
-      <line x1="60" y1="90" x2="182" y2="90" stroke-dasharray="4 3"/>
-      <g opacity="0.45">
-        <rect x="214" y="36" width="82" height="30" rx="5" fill="rgba(255,255,255,0.03)"/>
-        <rect x="214" y="82" width="82" height="30" rx="5" fill="rgba(255,255,255,0.03)"/>
-      </g>
-      <line x1="214" y1="98" x2="182" y2="96" stroke-dasharray="4 3"/>
+      <rect x="34" y="26" width="252" height="128" rx="12" fill="rgba(255,255,255,0.02)"/>
+      <rect x="62"  y="38" width="24" height="14" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="92"  y="38" width="24" height="14" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="122" y="38" width="24" height="14" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <line x1="74"  y1="52" x2="74"  y2="62"/>
+      <line x1="104" y1="52" x2="104" y2="62"/>
+      <line x1="134" y1="52" x2="134" y2="62"/>
+      <ellipse cx="104" cy="68" rx="50" ry="8"/>
+      <line x1="54"  y1="68" x2="54"  y2="126"/>
+      <line x1="154" y1="68" x2="154" y2="126"/>
+      <path d="M 54 126 A 50 8 0 0 0 154 126"/>
+      <line x1="154" y1="99" x2="196" y2="99" stroke-dasharray="4 3"/>
+      <rect x="196" y="76" width="66" height="46" rx="8" fill="rgba(255,255,255,0.05)"/>
     </g>
-    <circle cx="120" cy="112" r="3.5" fill="currentColor"/>
   `,
 
-  // Abstract, not the literal diagram: three would-be mounters over one disk, two joined by solid
-  // lines (allowed) and one by a dim dashed line (refused). The one-volume many-claimants gate.
+  // Abstract, not the literal diagram, and built around the one thing the card is actually about:
+  // the access mode is a GATE, and the gate answers per node rather than per Pod. So the poster is
+  // three tiers, the same descent the diagram uses: two node enclosures on top, one full-width gate
+  // band across the middle, one disk below. Three Pods ask, two lanes come out the bottom of the
+  // band and converge into a single disk, the third stops dead ON the band under an X and never
+  // re-emerges. The surprise is carried by the left node: BOTH of its Pods pass, because the gate
+  // grants a node, not a Pod. The refused lane is dashed and its node is dim, but the X itself is
+  // drawn at full strength, since a dim refusal reads as an unfinished drawing rather than a denial.
+  // All three lanes ARRIVE at the band as arrows, landing on its top edge rather than crossing it:
+  // every attach is a request made TO the gate, and a line drawn straight through would say the
+  // gate is scenery the traffic ignores. The granted pair then re-emerges from the bottom edge, the
+  // same enters-one-edge-leaves-another idiom the card itself uses for the driver.
+  // Below the band ONE lane leaves, straight down the disk column, and it does not trace back to
+  // either Pod: two requests go in and a single attachment comes out, which is exactly what "the
+  // mode grants a node, not a Pod" means. Two lanes out would have said each Pod got its own.
+  // Node widths stay close on purpose, so the difference reads as "which node holds it", never size.
   'storage-access-modes': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="36" y="28" width="58" height="34" rx="5" fill="rgba(255,255,255,0.06)"/>
-      <rect x="104" y="28" width="58" height="34" rx="5" fill="rgba(255,255,255,0.06)"/>
-      <rect x="226" y="28" width="58" height="34" rx="5" fill="rgba(255,255,255,0.04)" opacity="0.45"/>
-      <line x1="65" y1="62" x2="150" y2="110"/>
-      <line x1="133" y1="62" x2="160" y2="110"/>
-      <line x1="255" y1="62" x2="180" y2="110" stroke-dasharray="4 3" opacity="0.45"/>
-      <ellipse cx="160" cy="112" rx="46" ry="9" fill="rgba(255,255,255,0.06)"/>
-      <line x1="114" y1="112" x2="114" y2="150"/>
-      <line x1="206" y1="112" x2="206" y2="150"/>
-      <path d="M 114 150 A 46 9 0 0 0 206 150" fill="rgba(255,255,255,0.06)"/>
+      <rect x="16" y="14" width="140" height="52" rx="10" fill="rgba(255,255,255,0.03)"/>
+      <rect x="28" y="26" width="54" height="26" rx="5" fill="rgba(255,255,255,0.08)"/>
+      <rect x="90" y="26" width="54" height="26" rx="5" fill="rgba(255,255,255,0.08)"/>
+      <g opacity="0.45">
+        <rect x="176" y="14" width="128" height="52" rx="10" fill="rgba(255,255,255,0.03)"/>
+        <rect x="214" y="26" width="54" height="26" rx="5" fill="rgba(255,255,255,0.03)"/>
+      </g>
+      <rect x="16" y="84" width="288" height="20" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <line x1="55" y1="52" x2="55" y2="84"/>
+      <path d="M 51 78 L 55 84 L 59 78"/>
+      <line x1="117" y1="52" x2="117" y2="84"/>
+      <path d="M 113 78 L 117 84 L 121 78"/>
+      <g opacity="0.6">
+        <line x1="241" y1="52" x2="241" y2="84" stroke-dasharray="4 3"/>
+        <path d="M 237 78 L 241 84 L 245 78"/>
+      </g>
+      <line x1="236" y1="89" x2="246" y2="99"/>
+      <line x1="246" y1="89" x2="236" y2="99"/>
+      <line x1="160" y1="104" x2="160" y2="119"/>
+      <path d="M 156 113 L 160 119 L 164 113"/>
+      <ellipse cx="160" cy="128" rx="44" ry="9" fill="rgba(255,255,255,0.10)"/>
+      <line x1="116" y1="128" x2="116" y2="160"/>
+      <line x1="204" y1="128" x2="204" y2="160"/>
+      <path d="M 116 160 A 44 9 0 0 0 204 160" fill="rgba(255,255,255,0.10)"/>
     </g>
-    <circle cx="142" cy="79" r="3.5" fill="currentColor"/>
   `,
 
-  // Abstract, not the literal diagram: one claim being deleted (dashed) forks into two fates, a disk
-  // that dissolves away (Delete) and a disk kept solid but locked by a stale ref (Retain).
+  // Two columns, one difference. The whole poster is an ASYMMETRY between two otherwise identical
+  // stacks: same container on top, same disk at the bottom, and the only thing that differs is what
+  // happens on the way down. The left lane is interrupted by a gate (the mkfs the node service runs)
+  // and its disk carries file lines, because there is a filesystem in it now. The right lane runs
+  // straight through, dashed and unbroken because nothing acts on it, and its disk is left empty.
+  // Not a fork out of one object: these are two separate claims, so drawing them as one splitting
+  // would say the wrong thing (and would also collide with the reclaim-policy poster below, which
+  // IS a fork). The empty right-hand disk is load-bearing: the point of Block is the absence.
+  // File lines are inset inside the cylinder FACE (below the cap rim at 118, above the bottom arc
+  // at 160), not centered on the bounding box, or they ride up over the rim.
+  // Column centers are 88 and 232, not the 70 and 250 this first shipped at. At the wider spacing
+  // the two stacks sat against the left and right edges with a dead 96 unit corridor between them,
+  // so the poster read as two unrelated drawings rather than one comparison. Pulled in to a 60 unit
+  // gap against 46 unit outer margins, which puts more air outside the pair than inside it and
+  // makes them read as a pair. The asymmetry between the columns is the content, so the spacing
+  // has to stay symmetric or it competes with it.
+  'storage-volume-mode': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="46"  y="12" width="84" height="32" rx="7" fill="rgba(255,255,255,0.04)"/>
+      <rect x="190" y="12" width="84" height="32" rx="7" fill="rgba(255,255,255,0.04)"/>
+      <line x1="88" y1="44" x2="88" y2="62"/>
+      <rect x="62" y="62" width="52" height="22" rx="4" fill="rgba(255,255,255,0.07)"/>
+      <line x1="88" y1="84" x2="88" y2="110"/>
+      <path d="M 84 104 L 88 110 L 92 104"/>
+      <line x1="232" y1="44" x2="232" y2="110" stroke-dasharray="4 3"/>
+      <path d="M 228 104 L 232 110 L 236 104"/>
+      <ellipse cx="88" cy="118" rx="42" ry="8" fill="rgba(255,255,255,0.10)"/>
+      <line x1="46" y1="118" x2="46" y2="160"/>
+      <line x1="130" y1="118" x2="130" y2="160"/>
+      <path d="M 46 160 A 42 8 0 0 0 130 160" fill="rgba(255,255,255,0.10)"/>
+      <g opacity="0.55">
+        <line x1="60" y1="132" x2="116" y2="132"/>
+        <line x1="60" y1="142" x2="104" y2="142"/>
+        <line x1="60" y1="152" x2="110" y2="152"/>
+      </g>
+      <ellipse cx="232" cy="118" rx="42" ry="8" fill="rgba(255,255,255,0.10)"/>
+      <line x1="190" y1="118" x2="190" y2="160"/>
+      <line x1="274" y1="118" x2="274" y2="160"/>
+      <path d="M 190 160 A 42 8 0 0 0 274 160" fill="rgba(255,255,255,0.10)"/>
+    </g>
+  `,
+
+  // Abstract, not the literal diagram, and built on the sentence the card opens with: you delete a
+  // claim and the disk full of data disappears, or it does not. So the poster is ONE deleted claim
+  // (dashed, because it is on its way out) dropping into ONE controller band, and two fates leaving
+  // the other side of that band. The band is the whole point and is the reason this is not just a
+  // fork: the two outcomes are not chance, they are one field being read by one controller.
+  // Left, Delete: the disk is dashed and faint, mid-dissolve. Right, Retain: the disk is solid and
+  // filled, and carries a padlock, because Retain does not hand the data back either. It survives
+  // and stays locked behind a stale claimRef until a human clears it, and a poster that showed only
+  // "kept" would promise a happy ending the card spends three steps taking away.
+  // The two lanes are symmetric about the claim above them, so neither outcome reads as the default.
+  // The padlock is centered on the cylinder FACE (the band between the bottom of the cap at 122 and
+  // the bottom arc at 160, so 141), not on the shape's bounding box: the cap is drawn as a rim seen
+  // edge-on, and a glyph centered on the box sits visibly high inside the body you actually see.
   'storage-reclaim-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="128" y="20" width="64" height="30" rx="5" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 3" opacity="0.55"/>
-      <line x1="160" y1="50" x2="90" y2="78" stroke-dasharray="4 3"/>
-      <line x1="160" y1="50" x2="230" y2="78" stroke-dasharray="4 3"/>
-      <g opacity="0.45" stroke-dasharray="4 3">
-        <ellipse cx="90" cy="96" rx="36" ry="7" fill="rgba(255,255,255,0.03)"/>
-        <line x1="54" y1="96" x2="54" y2="140"/>
-        <line x1="126" y1="96" x2="126" y2="140"/>
-        <path d="M 54 140 A 36 7 0 0 0 126 140" fill="none"/>
+      <rect x="128" y="14" width="64" height="26" rx="5" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.55"/>
+      <line x1="160" y1="40" x2="160" y2="60" stroke-dasharray="4 3"/>
+      <path d="M 156 54 L 160 60 L 164 54"/>
+      <rect x="44" y="60" width="232" height="26" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <line x1="100" y1="86" x2="100" y2="106" stroke-dasharray="4 3"/>
+      <path d="M 96 100 L 100 106 L 104 100"/>
+      <line x1="220" y1="86" x2="220" y2="106" stroke-dasharray="4 3"/>
+      <path d="M 216 100 L 220 106 L 224 100"/>
+      <g opacity="0.4" stroke-dasharray="3 3">
+        <ellipse cx="100" cy="114" rx="40" ry="8" fill="rgba(255,255,255,0.02)"/>
+        <line x1="60" y1="114" x2="60" y2="152"/>
+        <line x1="140" y1="114" x2="140" y2="152"/>
+        <path d="M 60 152 A 40 8 0 0 0 140 152"/>
       </g>
-      <ellipse cx="230" cy="96" rx="36" ry="7" fill="rgba(255,255,255,0.08)"/>
-      <line x1="194" y1="96" x2="194" y2="140"/>
-      <line x1="266" y1="96" x2="266" y2="140"/>
-      <path d="M 194 140 A 36 7 0 0 0 266 140" fill="rgba(255,255,255,0.08)"/>
-      <circle cx="230" cy="116" r="9"/>
+      <ellipse cx="220" cy="114" rx="40" ry="8" fill="rgba(255,255,255,0.10)"/>
+      <line x1="180" y1="114" x2="180" y2="152"/>
+      <line x1="260" y1="114" x2="260" y2="152"/>
+      <path d="M 180 152 A 40 8 0 0 0 260 152" fill="rgba(255,255,255,0.10)"/>
+      <rect x="213" y="137" width="14" height="11" rx="2"/>
+      <path d="M 216 137 A 4 4 0 0 1 224 137"/>
     </g>
-    <circle cx="200" cy="66" r="3.5" fill="currentColor"/>
   `,
 
   // Abstract, not the literal diagram: four phase cells in a row with one lit, an event dot arriving
   // at it, and a dashed back-arc for the manual return. A state machine distilled to a lit node.
+  // Abstract, not the literal diagram: the machine drawn as a RING that does not close by itself.
+  // Available, Bound and Released sit on the cycle. The two forward edges are solid because the
+  // control plane walks them unasked, and the closing edge back up to Available is dashed because
+  // that is the one hop nothing performs on its own.
+  //
+  // Failed is deliberately NOT here, though it is a real phase and the card teaches it. It only ever
+  // fitted as a faint satellite hung outside the ring, and that cost more than it paid: it was the
+  // one thing keeping the composition off-centre, since a dim shape on one side pads the bounding box
+  // without carrying any visual weight, so the geometry read as centred while the picture read as
+  // shifted. Dropping it makes the ring symmetric about x=160 by construction, and lets it grow into
+  // the freed space instead of floating in an empty canvas. The poster is a hook, not an index, and
+  // the dialog covers Failed properly.
+  //
+  // The point of the ring is that the eye completes it and the drawing does not, so the dashed
+  // quarter reads as a gap in a circle rather than as one more arrow. The previous poster was the
+  // diagram in miniature, four cells in a row with a back-arc, which said state machine but not what
+  // is interesting about this one.
+  //
+  // TWO dots, and the difference between them is the whole idea. The filled one rides the first solid
+  // edge, a hop the control plane is making right now. The hollow one sits on the dashed edge, a hop
+  // that is possible and is not happening, because nothing takes it without a person. Reading them as
+  // a pair says more than either says alone, which is why the second one earns its place on a poster
+  // this small. The dashed edge is drawn as TWO arc segments with a gap where that hollow dot sits:
+  // run as one path it passes straight through the dot and renders it as a struck-out circle, and
+  // sitting the dot in a break reads better anyway, since the break is the point.
+  //
+  // The nodes are drawn as concentric cells rather than plain circles: at poster scale three empty
+  // outlines went thin and washed out, and a core gives each one weight without adding a shape the
+  // reader has to decode. Available carries the heavier stroke and the brighter fill because it is
+  // where the volume is at rest.
+  //
+  // Geometry: ring centered on (160, 99) with R=62 and r=18 nodes, and the three node angles at -90,
+  // 30 and 150 make it symmetric about x=160 by construction. The 99 is not a typo for 90: the top
+  // node sticks a full node radius above the ring while the bottom of the ring is bare arc, so the
+  // circle has to sit low for the drawn bounding box to land on the canvas center. It measures out at
+  // 87.3px of margin on both sides and a vertical center of 89.9 against 90.
   'storage-pv-lifecycle-phases': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="20" y="74" width="56" height="32" rx="6" fill="rgba(255,255,255,0.05)"/>
-      <rect x="98" y="74" width="56" height="32" rx="6" fill="rgba(255,255,255,0.10)"/>
-      <rect x="176" y="74" width="56" height="32" rx="6" fill="rgba(255,255,255,0.05)"/>
-      <rect x="254" y="74" width="56" height="32" rx="6" fill="rgba(255,255,255,0.04)" opacity="0.45"/>
-      <line x1="76" y1="90" x2="98" y2="90"/>
-      <line x1="154" y1="90" x2="176" y2="90"/>
-      <line x1="232" y1="90" x2="254" y2="90" stroke-dasharray="4 3" opacity="0.45"/>
-      <path d="M 204 106 Q 140 150 76 106" stroke-dasharray="4 3" opacity="0.45"/>
+      <path d="M 183 42 A 62 62 0 0 1 221 108"/>
+      <path d="M 198 148 A 62 62 0 0 1 122 148"/>
+      <path d="M 99 108 A 62 62 0 0 1 101 81" stroke-dasharray="4 3" opacity="0.6"/>
+      <path d="M 115 57 A 62 62 0 0 1 137 42" stroke-dasharray="4 3" opacity="0.6"/>
+      <circle cx="160" cy="37" r="18" fill="rgba(255,255,255,0.15)" stroke-width="2"/>
+      <circle cx="160" cy="37" r="8"/>
+      <circle cx="214" cy="130" r="18" fill="rgba(255,255,255,0.07)"/>
+      <circle cx="214" cy="130" r="8" opacity="0.55"/>
+      <circle cx="106" cy="130" r="18" fill="rgba(255,255,255,0.07)"/>
+      <circle cx="106" cy="130" r="8" opacity="0.55"/>
+      <circle cx="106" cy="68" r="4.5" opacity="0.55"/>
     </g>
-    <circle cx="87" cy="90" r="3.5" fill="currentColor"/>
+    <circle cx="214" cy="68" r="4.5" fill="currentColor"/>
   `,
 
-  // Abstract, not the literal diagram: an object marked for deletion (dashed X) but pinned open from
-  // below by a finalizer, while a consumer still links in from above. The delete that cannot complete.
+  // Abstract, not the literal diagram: the claim is MARKED for deletion (dashed outline) and yet
+  // still whole (its content rows are intact on both sides), because a closed padlock sits dead
+  // center on it. The lock is the finalizer, and the live mount dropping in from the consumer above
+  // is why it stays shut. Consumer on top, claim in the middle, disk below, so the poster carries the
+  // same centered vertical stack as the card.
+  //
+  // Two things it deliberately does NOT draw. No X across the object: an X reads as deleted, which is
+  // the exact opposite of the card, where the delete is the thing that has NOT happened. And no
+  // side clamps, an earlier cut of this, which read as two brackets parked near the object rather
+  // than as anything holding it. The object is locked in place, not struck out and not squeezed.
+  // Vertical rhythm: BOTH gaps are 18, and the disk's gap is measured from the top of its ELLIPSE
+  // (cy - ry = 131), not from cy. Measuring to cy is what made the lower gap look bigger than the
+  // upper one in an earlier cut: the numbers read 16 and 19 while the two connectors were drawn the
+  // same length, because the ellipse bulges ry=6 up past the point the connector stopped at. The
+  // stack therefore runs 15..164 (24 + 18 + 56 + 18 + 33), which is 149 tall and centered in the 180
+  // canvas with 15 and 16 of margin. Move any tier and the two 18s have to be re-derived.
   'storage-pvc-protection': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="134" y="18" width="52" height="26" rx="5" fill="rgba(255,255,255,0.05)"/>
-      <line x1="160" y1="44" x2="160" y2="66"/>
-      <rect x="116" y="66" width="88" height="46" rx="6" fill="rgba(255,255,255,0.06)"/>
-      <g opacity="0.5" stroke-dasharray="4 3">
-        <line x1="126" y1="74" x2="194" y2="104"/>
-        <line x1="194" y1="74" x2="126" y2="104"/>
+      <rect x="128" y="15" width="64" height="24" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <line x1="160" y1="39" x2="160" y2="57" stroke-dasharray="4 3"/>
+      <path d="M 155 45 L 160 39 L 165 45"/>
+      <rect x="60" y="57" width="200" height="56" rx="9" fill="rgba(255,255,255,0.07)" stroke-dasharray="5 4"/>
+      <g opacity="0.4">
+        <line x1="76" y1="76" x2="142" y2="76"/>
+        <line x1="76" y1="94" x2="122" y2="94"/>
+        <line x1="178" y1="76" x2="244" y2="76"/>
+        <line x1="178" y1="94" x2="228" y2="94"/>
       </g>
-      <line x1="160" y1="112" x2="160" y2="132"/>
-      <circle cx="160" cy="140" r="7" fill="rgba(255,255,255,0.06)"/>
+      <line x1="160" y1="113" x2="160" y2="131" stroke-dasharray="4 3" opacity="0.5"/>
+      <g opacity="0.5">
+        <ellipse cx="160" cy="137" rx="30" ry="6" fill="rgba(255,255,255,0.05)"/>
+        <line x1="130" y1="137" x2="130" y2="158"/>
+        <line x1="190" y1="137" x2="190" y2="158"/>
+        <path d="M 130 158 A 30 6 0 0 0 190 158" fill="rgba(255,255,255,0.05)"/>
+      </g>
     </g>
-    <circle cx="160" cy="55" r="3.5" fill="currentColor"/>
+    <g stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 153.5 83 L 153.5 79 A 6.5 6.5 0 0 1 166.5 79 L 166.5 83"/>
+      <rect x="149" y="83" width="22" height="14" rx="3" fill="rgba(94,202,148,0.18)"/>
+    </g>
+    <circle cx="160" cy="90" r="1.7" fill="currentColor"/>
   `,
 
-  // Abstract, not the literal diagram: a target capacity (dashed outer bar), the disk grown to fill it
-  // (light), and the filesystem catching up from the left (bright) with a dot at the growth frontier.
   'storage-volume-expansion': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="40" y="70" width="240" height="40" rx="6" stroke-dasharray="4 3" opacity="0.6"/>
-      <rect x="40" y="70" width="240" height="40" rx="6" fill="rgba(255,255,255,0.04)"/>
-      <rect x="40" y="70" width="150" height="40" rx="6" fill="rgba(255,255,255,0.10)"/>
-      <line x1="190" y1="70" x2="190" y2="110"/>
-      <line x1="70" y1="52" x2="118" y2="52" opacity="0.45"/>
-      <line x1="150" y1="52" x2="198" y2="52" stroke-dasharray="4 3" opacity="0.45"/>
+      <ellipse cx="160" cy="35" rx="54" ry="12"/>
+      <line x1="106" y1="35" x2="106" y2="145"/>
+      <line x1="214" y1="35" x2="214" y2="145"/>
+      <path d="M 106 145 A 54 12 0 0 0 214 145"/>
+      <g opacity="0.5">
+        <line x1="160" y1="83" x2="160" y2="57" stroke-dasharray="4 3"/>
+        <path d="M 155 63 L 160 57 L 165 63"/>
+      </g>
     </g>
-    <circle cx="190" cy="90" r="3.5" fill="currentColor"/>
+    <path d="M 106 95 L 106 145 A 54 12 0 0 0 214 145 L 214 95" fill="rgba(94,202,148,0.16)" stroke="none"/>
+    <ellipse cx="160" cy="95" rx="54" ry="12" fill="rgba(94,202,148,0.20)" stroke="currentColor" stroke-width="2.4"/>
   `,
 
-  // Two halves bridged by sidecars: a vendor-agnostic core (left) whose objects are translated by a
-  // row of sidecars into one driver call reaching the cloud. The bridge, distilled.
   'storage-csi-architecture': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="18" y="78" width="40" height="30" rx="5" fill="rgba(255,255,255,0.04)"/>
-      <rect x="96" y="30" width="150" height="52" rx="7" fill="rgba(255,255,255,0.03)"/>
-      <rect x="104" y="42" width="28" height="28" rx="4" fill="rgba(255,255,255,0.06)"/>
-      <rect x="138" y="42" width="28" height="28" rx="4" fill="rgba(255,255,255,0.05)"/>
-      <rect x="172" y="42" width="28" height="28" rx="4" fill="rgba(255,255,255,0.05)"/>
-      <rect x="206" y="42" width="28" height="28" rx="4" fill="rgba(255,255,255,0.05)"/>
-      <rect x="128" y="100" width="86" height="30" rx="5" fill="rgba(255,255,255,0.06)"/>
-      <rect x="96" y="108" width="150" height="52" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.45"/>
-      <rect x="262" y="96" width="42" height="34" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="64"  y="10"  width="192" height="74" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <rect x="76"  y="20"  width="36"  height="20" rx="4" fill="rgba(255,255,255,0.06)"/>
+      <rect x="120" y="20"  width="36"  height="20" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="164" y="20"  width="36"  height="20" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="208" y="20"  width="36"  height="20" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="120" y="56"  width="80"  height="20" rx="4" fill="rgba(255,255,255,0.07)"/>
+      <rect x="14"  y="96"  width="52"  height="24" rx="5" fill="rgba(255,255,255,0.05)"/>
+      <rect x="254" y="96"  width="52"  height="24" rx="5" fill="rgba(255,255,255,0.05)"/>
+      <rect x="84"  y="132" width="152" height="40" rx="8" fill="rgba(255,255,255,0.03)"/>
+      <rect x="94"  y="140" width="66"  height="24" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="168" y="140" width="58"  height="24" rx="4" fill="rgba(255,255,255,0.06)"/>
+      <rect x="14"  y="140" width="52"  height="24" rx="5" fill="rgba(255,255,255,0.05)"/>
+      <path d="M 254 138 A 26 6 0 0 1 306 138 L 306 166 A 26 6 0 0 1 254 166 Z" fill="rgba(255,255,255,0.04)"/>
+      <ellipse cx="280" cy="138" rx="26" ry="6"/>
+      <line x1="94"  y1="48" x2="226" y2="48"/>
+      <line x1="94"  y1="40" x2="94"  y2="48"/>
+      <line x1="138" y1="40" x2="138" y2="48"/>
+      <line x1="182" y1="40" x2="182" y2="48"/>
+      <line x1="226" y1="40" x2="226" y2="48"/>
+      <line x1="160" y1="48" x2="160" y2="56"/>
       <g stroke-dasharray="4 3">
-        <line x1="58" y1="93" x2="96" y2="70"/>
-        <line x1="171" y1="82" x2="171" y2="100"/>
-        <line x1="214" y1="115" x2="262" y2="113"/>
+        <path d="M 66 108 L 86 108 L 86 40"/>
+        <path d="M 160 76 L 160 108 L 254 108"/>
+        <line x1="94"  y1="152" x2="66"  y2="152"/>
+        <line x1="226" y1="152" x2="254" y2="152"/>
       </g>
     </g>
-    <circle cx="171" cy="91" r="3.5" fill="currentColor"/>
   `,
 
-  // The four-call descent: a ladder of gRPC rungs, one lit, resolving down to a single disk.
   'storage-csi-attach-mount': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="40" y="26" width="150" height="22" rx="4" fill="rgba(255,255,255,0.05)"/>
-      <rect x="40" y="60" width="150" height="22" rx="4" fill="rgba(255,255,255,0.05)"/>
-      <rect x="40" y="94" width="150" height="22" rx="4" fill="rgba(255,255,255,0.09)"/>
-      <rect x="40" y="128" width="150" height="22" rx="4" fill="rgba(255,255,255,0.04)" opacity="0.45"/>
-      <path d="M 240 40 A 26 8 0 0 1 292 40 L 292 92 A 26 8 0 0 1 240 92 Z" fill="rgba(255,255,255,0.03)"/>
-      <ellipse cx="266" cy="40" rx="26" ry="8"/>
+      <rect x="20" y="31"  width="150" height="22" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="20" y="63"  width="150" height="22" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="20" y="95"  width="150" height="22" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="20" y="127" width="150" height="22" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <path d="M 240 61 A 30 9 0 0 1 300 61 L 300 119 A 30 9 0 0 1 240 119 Z" fill="rgba(255,255,255,0.04)"/>
+      <ellipse cx="270" cy="61" rx="30" ry="9"/>
+      <line x1="170" y1="42"  x2="190" y2="42"/>
+      <line x1="170" y1="74"  x2="190" y2="74"/>
+      <line x1="170" y1="106" x2="190" y2="106"/>
+      <line x1="170" y1="138" x2="190" y2="138"/>
+      <line x1="190" y1="42"  x2="190" y2="138"/>
       <g stroke-dasharray="4 3">
-        <line x1="190" y1="105" x2="240" y2="70"/>
+        <line x1="190" y1="90" x2="240" y2="90"/>
       </g>
     </g>
-    <circle cx="115" cy="105" r="3.5" fill="currentColor"/>
   `,
 
-  // One object is the record: a controller writes it, an attacher reads it, and a kubelet mount waits
-  // on its one status field.
   'storage-volumeattachment': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="120" y="70" width="80" height="40" rx="6" fill="rgba(255,255,255,0.08)"/>
-      <rect x="132" y="18" width="56" height="30" rx="6" fill="rgba(255,255,255,0.04)"/>
-      <rect x="132" y="132" width="56" height="30" rx="6" fill="rgba(255,255,255,0.04)" opacity="0.45"/>
-      <rect x="238" y="74" width="60" height="32" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="18"  y="58" width="74" height="64" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <rect x="30"  y="78" width="50" height="24" rx="5" fill="rgba(255,255,255,0.06)"/>
+      <rect x="120" y="52" width="96" height="76" rx="9" fill="rgba(255,255,255,0.08)"/>
+      <rect x="132" y="68" width="72" height="10" rx="2" fill="rgba(255,255,255,0.05)"/>
+      <rect x="132" y="92" width="33" height="18" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="171" y="92" width="33" height="18" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <path d="M 244 62 A 31 6 0 0 1 306 62 L 306 118 A 31 6 0 0 1 244 118 Z" fill="rgba(255,255,255,0.04)"/>
+      <ellipse cx="275" cy="62" rx="31" ry="6"/>
       <g stroke-dasharray="4 3">
-        <line x1="160" y1="48" x2="160" y2="70"/>
-        <line x1="200" y1="90" x2="238" y2="90"/>
-        <line x1="160" y1="110" x2="160" y2="132"/>
+        <line x1="92"  y1="90" x2="120" y2="90"/>
+        <line x1="216" y1="90" x2="244" y2="90"/>
       </g>
     </g>
-    <circle cx="219" cy="90" r="3.5" fill="currentColor"/>
   `,
 
   // One staged device, two doorways: a single disk mounts once, then bind-mounts fan to two Pods.
+  // Every link is a straight vertical drop, never a diagonal, and every one of the three is the same
+  // 26 units long: the staging band spans exactly the outer edges of the two bind mounts above it,
+  // so each drop lands on a block centre and the whole thing is symmetric about x=160. The disk link
+  // runs edge to edge, from the top of the cap at 127 to the bottom of the band at 101, rather than
+  // disappearing into the cap the way the earlier version did. Content sits 15..165 in a 180 tall
+  // box, so the margin above and below matches. No packet dot: a poster is a standing statement, and
+  // a ball frozen on a wire reads as a paused animation.
   'storage-mount-path-chain': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <path d="M 130 128 A 30 8 0 0 1 190 128 L 190 160 A 30 8 0 0 1 130 160 Z" fill="rgba(255,255,255,0.03)"/>
-      <ellipse cx="160" cy="128" rx="30" ry="8"/>
-      <rect x="118" y="86" width="84" height="26" rx="5" fill="rgba(255,255,255,0.07)"/>
-      <rect x="54" y="30" width="70" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
-      <rect x="196" y="30" width="70" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <path d="M 130 135 A 30 8 0 0 1 190 135 L 190 157 A 30 8 0 0 1 130 157 Z" fill="rgba(255,255,255,0.03)"/>
+      <ellipse cx="160" cy="135" rx="30" ry="8"/>
+      <rect x="60" y="71" width="200" height="30" rx="5" fill="rgba(255,255,255,0.07)"/>
+      <rect x="60" y="15" width="70" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="190" y="15" width="70" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
       <g stroke-dasharray="4 3">
-        <line x1="160" y1="128" x2="160" y2="112"/>
-        <line x1="140" y1="86" x2="89" y2="60"/>
-        <line x1="180" y1="86" x2="231" y2="60"/>
+        <line x1="160" y1="127" x2="160" y2="101"/>
+        <line x1="95"  y1="71"  x2="95"  y2="45"/>
+        <line x1="225" y1="71"  x2="225" y2="45"/>
       </g>
     </g>
-    <circle cx="114" cy="73" r="3.5" fill="currentColor"/>
   `,
 
-  // One RWO disk, one lock: attached to a live node (solid) while a second node is refused (dim, dashed).
-  'storage-multi-attach-error': `
+  // A request that branches looking for somewhere to go, and a rack of sockets with nothing free at
+  // the end of every branch. The shape is a scheduling decision, which is what makes this card
+  // different from its six siblings: they all start with a Pod that already has a node.
+  //
+  // The sockets are drawn DARK (0.03) rather than as bright cells. They are holes, not contents, and
+  // a rack of dark recesses in a barely-lit frame reads as hardware at a glance, where the earlier
+  // 0.20 fill read as eight grey tiles and flattened the whole lower half into a keypad. Dropping
+  // them also frees the brightest fill for the block that the sentence is actually about: the request
+  // at the top, the one thing here that wants something and cannot have it.
+  //
+  // The branch is the original part and it is doing real work: one request forks into two candidates,
+  // and both wires run the full way down to the rack, meeting its top edge at x=112 and x=208, so the
+  // decision layer above is fully wired to the hardware below. Everything above the rack is the
+  // decision, everything below it is the machines, and the four dashed wires connect them at one
+  // weight so the whole path from request to socket reads as continuous.
+  //
+  // Content sits 13..167 in a 180 tall box, so the canvas margins agree at 13, and it is symmetric
+  // about x=160: rack side margins agree at 15, socket rows and columns are both gapped at 6, and the
+  // sockets clear the rack by 9 above and below. No packet dot: a ball frozen on a wire reads as a
+  // paused animation.
+  'storage-volume-attach-limits': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <path d="M 132 96 A 28 8 0 0 1 188 96 L 188 132 A 28 8 0 0 1 132 132 Z" fill="rgba(255,255,255,0.03)"/>
-      <ellipse cx="160" cy="96" rx="28" ry="8"/>
-      <rect x="30" y="34" width="76" height="44" rx="7" fill="rgba(255,255,255,0.06)"/>
-      <rect x="214" y="34" width="76" height="44" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.45"/>
-      <line x1="140" y1="96" x2="98" y2="78"/>
-      <g stroke-dasharray="4 3" opacity="0.45">
-        <line x1="180" y1="96" x2="222" y2="78"/>
+      <rect x="134" y="13" width="52" height="24" rx="5" fill="rgba(255,255,255,0.09)"/>
+      <g stroke-dasharray="4 3">
+        <path d="M 160 37 L 160 51 M 112 51 L 208 51 M 112 51 L 112 65 M 208 51 L 208 65"/>
       </g>
+      <rect x="86"  y="65" width="52" height="24" rx="5" fill="rgba(255,255,255,0.05)"/>
+      <rect x="182" y="65" width="52" height="24" rx="5" fill="rgba(255,255,255,0.05)"/>
+      <g stroke-dasharray="4 3">
+        <path d="M 112 89 L 112 113 M 208 89 L 208 113"/>
+      </g>
+      <rect x="80" y="113" width="160" height="54" rx="7" fill="rgba(255,255,255,0.02)"/>
+      <rect x="95"  y="122" width="28" height="15" rx="3" fill="rgba(255,255,255,0.03)"/>
+      <rect x="129" y="122" width="28" height="15" rx="3" fill="rgba(255,255,255,0.03)"/>
+      <rect x="163" y="122" width="28" height="15" rx="3" fill="rgba(255,255,255,0.03)"/>
+      <rect x="197" y="122" width="28" height="15" rx="3" fill="rgba(255,255,255,0.03)"/>
+      <rect x="95"  y="143" width="28" height="15" rx="3" fill="rgba(255,255,255,0.03)"/>
+      <rect x="129" y="143" width="28" height="15" rx="3" fill="rgba(255,255,255,0.03)"/>
+      <rect x="163" y="143" width="28" height="15" rx="3" fill="rgba(255,255,255,0.03)"/>
+      <rect x="197" y="143" width="28" height="15" rx="3" fill="rgba(255,255,255,0.03)"/>
     </g>
-    <circle cx="205" cy="87" r="3.5" fill="currentColor" opacity="0.55"/>
+  `,
+
+  // The disk locked inside a closed circuit of waiting. The card's real subject after the rewrite is
+  // not that a node died, it is that nothing is broken at all: the controller will not delete the
+  // attachment while the old Pod runs, and the rollout will not delete that Pod until the new one is
+  // ready, which it cannot be without the disk. That is a CYCLE, and a cycle is a shape, so the
+  // poster draws it literally: a continuous dashed track with the volume sitting inside it, unable
+  // to leave.
+  //
+  // Two devices are deliberately REFUSED here. The obvious one, one solid claim against one dashed
+  // one, was drawn first and thrown away: it is the same picture as half the catalog, it says only
+  // 'one is denied', and it puts the emphasis on a rejection when the interesting part is that both
+  // claimants are legitimate and alive. So the two blocks on the ring are IDENTICAL, at equal
+  // weight, because neither of them is the problem. The other refusal is a break in the track: an
+  // opening would promise a way out, and the whole point is that there is not one until something
+  // outside the loop (Recreate) cuts it.
+  //
+  // The loop is drawn as two ARCS BETWEEN the blocks, not as one continuous track with the blocks
+  // laid over it. That was the first attempt and it failed in a way only a render shows: a rounded
+  // rect passing behind a translucent box still shows its dashes straight through the fill, so the
+  // line read as crossing the block rather than as arriving at it, which looks like a mistake. Arcs
+  // that START and END on the block edges make the two blocks stations ON the cycle, and the circuit
+  // closes through them: block, arc, block, arc, back again. Nothing overlaps anything.
+  //
+  // The two chevrons are what turn a pair of arcs into a circuit. Top points right, bottom points
+  // left, which resolves to clockwise and gives the eye a direction to travel and never finish. They
+  // sit at the arc apexes, the two points furthest from everything else on the canvas.
+  //
+  // Both arcs RUN TO THE CENTER OF EACH BLOCK, (60, 90) and (260, 90), and the track is masked by the
+  // two block rectangles so the part that lies inside a block is not drawn. That is the whole trick,
+  // and it cannot be done with z-order: the blocks are filled in translucent white over the poster
+  // background, so a dashed line painted underneath one still shows straight through the fill, which
+  // is what read as the arc crossing the block. A mask removes those spans outright.
+  //
+  // The visible arc therefore leaves each block through its TOP edge at x=64, four units off the
+  // block center, and the bottom arc leaves through the bottom edge at the same x. So the line meets
+  // the middle of the block and disappears under it, which is what makes the two blocks read as
+  // stations ON the circuit rather than as boxes parked beside it. Geometry: one ellipse, rx 100,
+  // ry 59, centered on (160, 90), so the two apexes land on 31 and 149 and the chevrons sit on them
+  // without moving.
+  //
+  // Brightness: the disk carries 0.04, the fill the rest of the storage posters give a cylinder body
+  // (0.03 to 0.04). It sat at 0.14 and read as a different material from every sibling poster in the
+  // grid. Content sits 25..155 in a 180 tall box, symmetric about x=160 and about y=90. No packet
+  // dot: a ball frozen on a wire reads as a paused animation.
+  'storage-multi-attach-error': `
+    <defs>
+      <mask id="mae-track" maskUnits="userSpaceOnUse" x="0" y="0" width="320" height="180">
+        <rect x="0" y="0" width="320" height="180" fill="#fff"/>
+        <rect x="24" y="73" width="72" height="34" rx="7" fill="#000"/>
+        <rect x="224" y="73" width="72" height="34" rx="7" fill="#000"/>
+      </mask>
+    </defs>
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <g stroke-dasharray="5 4" mask="url(#mae-track)">
+        <path d="M 60 90 A 100 59 0 0 1 260 90"/>
+        <path d="M 260 90 A 100 59 0 0 1 60 90"/>
+      </g>
+      <path d="M 154 25 L 160 31 L 154 37"/>
+      <path d="M 166 143 L 160 149 L 166 155"/>
+      <path d="M 130 72 A 30 8 0 0 1 190 72 L 190 104 A 30 8 0 0 1 130 104 Z" fill="rgba(255,255,255,0.04)"/>
+      <ellipse cx="160" cy="72" rx="30" ry="8"/>
+      <rect x="24" y="73" width="72" height="34" rx="7" fill="rgba(255,255,255,0.06)"/>
+      <rect x="224" y="73" width="72" height="34" rx="7" fill="rgba(255,255,255,0.06)"/>
+    </g>
   `,
 
   // Ownership of a tree: a non-root Pod cannot touch a row of root-owned files until a sweep re-owns
   // them, entry by entry.
+  // Kubelet reaches one directory listing and it is the TOP row that decides everything: under
+  // OnRootMismatch that row alone is read, and if its ownership already matches, nothing below it is
+  // touched. So the poster is the listing, and the owner cells step DOWN a gradient, 0.20 / 0.13 /
+  // 0.07, rather than being one bright cell over two identical dim ones. The ramp says the same
+  // thing the flat pair did, that attention belongs at the top, but it reads as a deliberate scale
+  // instead of as one odd cell out. Only the small cells carry the ramp: the three row rectangles
+  // behind them stay identical, because the rows themselves are peers. Redrawn when
+  // the card moved off its old side-by-side shelf: the previous version showed a kubelet box over
+  // five blank glyphs swept left to right, which is a layout the card no longer has and a sentence
+  // it never made, since nothing in it depicted ownership at all. Content sits 17..163 in a 180 tall
+  // box, symmetric about x=160. No packet dot: a ball frozen on a wire reads as a paused animation.
   'storage-fsgroup-ownership': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="128" y="22" width="64" height="34" rx="7" fill="rgba(255,255,255,0.05)"/>
-      <rect x="44" y="118" width="30" height="34" rx="4" fill="rgba(255,255,255,0.09)"/>
-      <rect x="90" y="118" width="30" height="34" rx="4" fill="rgba(255,255,255,0.06)"/>
-      <rect x="136" y="118" width="30" height="34" rx="4" fill="rgba(255,255,255,0.04)" opacity="0.45"/>
-      <rect x="182" y="118" width="30" height="34" rx="4" fill="rgba(255,255,255,0.04)" opacity="0.45"/>
-      <rect x="228" y="118" width="30" height="34" rx="4" fill="rgba(255,255,255,0.04)" opacity="0.45"/>
+      <rect x="110" y="17" width="100" height="30" rx="6" fill="rgba(255,255,255,0.06)"/>
+      <rect x="60" y="73" width="200" height="90" rx="7" fill="rgba(255,255,255,0.03)"/>
+      <rect x="74" y="85" width="172" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="74" y="111" width="172" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="74" y="137" width="172" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="196" y="90" width="40" height="10" rx="2" fill="rgba(255,255,255,0.20)"/>
+      <rect x="196" y="116" width="40" height="10" rx="2" fill="rgba(255,255,255,0.13)"/>
+      <rect x="196" y="142" width="40" height="10" rx="2" fill="rgba(255,255,255,0.07)"/>
       <g stroke-dasharray="4 3">
-        <line x1="160" y1="56" x2="160" y2="112"/>
-        <line x1="59" y1="135" x2="258" y2="135"/>
+        <line x1="160" y1="47" x2="160" y2="73"/>
       </g>
     </g>
-    <circle cx="140" cy="135" r="3.5" fill="currentColor"/>
   `,
 
-  // The safety wait: a disk stays locked to a failed node (dim) across a long dashed timeout before
-  // it can reach the new node.
+  // A technical diagram, curated to one sentence: a live VolumeAttachment still binds the volume to a
+  // DEAD node, and the move to the live node is gated by a timeout. Two machine frames stand left and
+  // right: the left one is dim with a dark status LED (failed, kubelet silent), the right one is lit
+  // with its Pod still dashed (pending, waiting on the disk). The volume sits between them with the
+  // faint 0.04 body fill the rest of the poster cylinders use, so it reads by its jade rim, not as a
+  // grey slab. Both wires LEAVE THE CYLINDER HORIZONTALLY and are identically dashed, then turn up into
+  // the node above: only the badge versus the clock, and the dim versus the lit node, tell the two
+  // sides apart. A small badge carrying an attached:true check rides the left wire to the dead node,
+  // the attachment that has not been deleted, and a CLOCK sits on the right wire to the live node, the
+  // roughly six minute force-detach wait that has to elapse first. The clock is the signature: the
+  // whole card is that a healthy-looking cluster still waits out a timer. Both wires break cleanly
+  // around the badge and the clock so nothing draws through them. Content spans y=28..158, centred.
   'storage-volume-detach-on-node-loss': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="24" y="40" width="72" height="44" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.45"/>
-      <rect x="224" y="40" width="72" height="44" rx="7" fill="rgba(255,255,255,0.05)"/>
-      <path d="M 134 104 A 26 8 0 0 1 186 104 L 186 140 A 26 8 0 0 1 134 140 Z" fill="rgba(255,255,255,0.03)"/>
-      <ellipse cx="160" cy="104" rx="26" ry="8"/>
-      <g stroke-dasharray="4 3" opacity="0.45">
-        <line x1="96" y1="66" x2="140" y2="104"/>
+      <g opacity="0.45">
+        <rect x="22" y="28" width="82" height="64" rx="8" fill="rgba(255,255,255,0.03)"/>
+        <line x1="22" y1="43" x2="104" y2="43"/>
+        <circle cx="95" cy="35.5" r="2.6"/>
+        <rect x="40" y="55" width="46" height="28" rx="5" fill="rgba(255,255,255,0.03)"/>
+        <rect x="48" y="61" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+        <rect x="59" y="61" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+        <rect x="70" y="61" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
       </g>
-      <g stroke-dasharray="4 3">
-        <line x1="180" y1="104" x2="224" y2="70"/>
-      </g>
+      <rect x="216" y="28" width="82" height="64" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <line x1="216" y1="43" x2="298" y2="43"/>
+      <circle cx="289" cy="35.5" r="2.6" fill="currentColor"/>
+      <rect x="234" y="55" width="46" height="28" rx="5" stroke-dasharray="4 3"/>
+      <path d="M 130 108 A 30 8 0 0 1 190 108 L 190 158 A 30 8 0 0 1 130 158 Z" fill="rgba(255,255,255,0.04)"/>
+      <ellipse cx="160" cy="108" rx="30" ry="8"/>
+      <path d="M 130 120 L 110 120" stroke-dasharray="4 3" opacity="0.6"/>
+      <path d="M 82 120 L 63 120 L 63 92" stroke-dasharray="4 3" opacity="0.6"/>
+      <rect x="82" y="112.5" width="28" height="15" rx="3" fill="rgba(255,255,255,0.08)"/>
+      <path d="M 89 120 l 3 3 l 7 -8" stroke-width="1.5"/>
+      <path d="M 190 120 L 213 120" stroke-dasharray="4 3" opacity="0.6"/>
+      <path d="M 233 120 L 257 120 L 257 92" stroke-dasharray="4 3" opacity="0.6"/>
+      <circle cx="223" cy="120" r="10"/>
+      <line x1="223" y1="120" x2="223" y2="112.5" stroke-width="1.3"/>
+      <line x1="223" y1="120" x2="228" y2="122" stroke-width="1.3"/>
     </g>
-    <circle cx="200" cy="88" r="3.5" fill="currentColor" opacity="0.6"/>
   `,
 
-  // Abstract, not the literal diagram: one claim "document" on top, a shelf of three disks below,
-  // and a single solid line dropping into the one that fits. The two that do not fit sit dim and
-  // unconnected. The one-of-many match, distilled to a spine and a shelf.
+  // Abstract, not the literal diagram. The whole point of binding is that it is TWO-WAY and it is
+  // EXCLUSIVE, so both are drawn: the claim document and the one disk that fits are joined by a pair
+  // of opposed lanes (volumeName going down, claimRef coming back up), and a dashed capsule closes
+  // around just those two, sealing them off as a pair. The two disks that lost sit outside the
+  // capsule, dim and unconnected. The two rejected disks are deliberately IDENTICAL in size: making
+  // them differ read as an accidental mismatch rather than as meaningful, and the eye should be
+  // spending its attention on the pair inside the capsule. All three disks share one baseline
+  // (y=146) and near-identical tops, so the center one stands out by width and fill, not by height.
   'storage-pvc-binding': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="122" y="18" width="76" height="46" rx="6" fill="rgba(255,255,255,0.05)"/>
-      <line x1="136" y1="36" x2="184" y2="36"/>
-      <line x1="136" y1="48" x2="168" y2="48"/>
-      <line x1="160" y1="64" x2="160" y2="99"/>
-      <ellipse cx="160" cy="106" rx="36" ry="7" fill="rgba(255,255,255,0.06)"/>
-      <line x1="124" y1="106" x2="124" y2="150"/>
-      <line x1="196" y1="106" x2="196" y2="150"/>
-      <path d="M 124 150 A 36 7 0 0 0 196 150" fill="rgba(255,255,255,0.06)"/>
-      <g opacity="0.45">
-        <ellipse cx="50" cy="118" rx="26" ry="6" fill="rgba(255,255,255,0.03)"/>
-        <line x1="24" y1="118" x2="24" y2="150"/>
-        <line x1="76" y1="118" x2="76" y2="150"/>
-        <path d="M 24 150 A 26 6 0 0 0 76 150" fill="rgba(255,255,255,0.03)"/>
-        <ellipse cx="270" cy="118" rx="26" ry="6" fill="rgba(255,255,255,0.03)"/>
-        <line x1="244" y1="118" x2="244" y2="150"/>
-        <line x1="296" y1="118" x2="296" y2="150"/>
-        <path d="M 244 150 A 26 6 0 0 0 296 150" fill="rgba(255,255,255,0.03)"/>
+      <rect x="104" y="14" width="112" height="150" rx="14" fill="rgba(255,255,255,0.02)" stroke-dasharray="5 4" opacity="0.5"/>
+      <rect x="118" y="26" width="84" height="32" rx="6" fill="rgba(255,255,255,0.07)"/>
+      <line x1="132" y1="40" x2="188" y2="40"/>
+      <line x1="132" y1="49" x2="172" y2="49"/>
+      <g stroke-dasharray="4 3">
+        <line x1="150" y1="58" x2="150" y2="94"/>
+        <line x1="170" y1="94" x2="170" y2="58"/>
+      </g>
+      <path d="M 145 87 L 150 93 L 155 87"/>
+      <path d="M 165 65 L 170 59 L 175 65"/>
+      <ellipse cx="160" cy="100" rx="42" ry="9" fill="rgba(255,255,255,0.10)"/>
+      <line x1="118" y1="100" x2="118" y2="146"/>
+      <line x1="202" y1="100" x2="202" y2="146"/>
+      <path d="M 118 146 A 42 9 0 0 0 202 146" fill="rgba(255,255,255,0.10)"/>
+      <g opacity="0.4">
+        <ellipse cx="48" cy="104" rx="26" ry="6" fill="rgba(255,255,255,0.03)"/>
+        <line x1="22" y1="104" x2="22" y2="146"/>
+        <line x1="74" y1="104" x2="74" y2="146"/>
+        <path d="M 22 146 A 26 6 0 0 0 74 146" fill="rgba(255,255,255,0.03)"/>
+        <ellipse cx="272" cy="104" rx="26" ry="6" fill="rgba(255,255,255,0.03)"/>
+        <line x1="246" y1="104" x2="246" y2="146"/>
+        <line x1="298" y1="104" x2="298" y2="146"/>
+        <path d="M 246 146 A 26 6 0 0 0 298 146" fill="rgba(255,255,255,0.03)"/>
       </g>
     </g>
-    <circle cx="160" cy="84" r="3.5" fill="currentColor"/>
   `,
 
-  // One template stamping out one deterministically named claim per ordinal, each with its own
-  // disk, versus a Deployment's single shared one: a spine per ordinal, never a shelf they fight over.
+  // volumeClaimTemplates: one template stamps a DEDICATED disk per ordinal, and the point is that each
+  // replica gets its OWN stable disk rather than sharing one the way a Deployment would. So the poster is
+  // a template box up top and three IDENTICAL ordinal columns below it, each a Pod wired straight down to
+  // its own cylinder. The fan-out is orthogonal, matching the card, which mints every claim straight down
+  // an axis: one vertical drop out of the template into a horizontal bus, then one 90 degree drop into
+  // each column, so the branch reads as deliberate wiring rather than a spray of diagonals. It is
+  // symmetric about x=160 with columns on 60 / 160 / 260. The three solid vertical spines are the
+  // signature (a spine per ordinal, never a shelf they fight over): the fan is dashed because the
+  // template is minting instances, the spines are solid because each Pod OWNS its disk. The small dashed
+  // rect inside the template box is the claim template itself. No packet dot: a ball frozen on a wire
+  // reads as a paused animation. Content spans y=18..158, centred.
   'storage-volumeclaimtemplates': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="116" y="14" width="88" height="30" rx="5" fill="rgba(255,255,255,0.06)"/>
-      <g opacity="0.45">
-        <line x1="160" y1="44" x2="60" y2="72" stroke-dasharray="4 3"/>
-        <line x1="160" y1="44" x2="260" y2="72" stroke-dasharray="4 3"/>
+      <rect x="112" y="18" width="96" height="30" rx="6" fill="rgba(255,255,255,0.07)"/>
+      <rect x="146" y="26" width="28" height="14" rx="3" fill="rgba(255,255,255,0.03)" stroke-dasharray="3 2"/>
+      <g stroke-dasharray="4 3" opacity="0.7">
+        <path d="M 160 48 L 160 74 M 60 60 L 260 60 M 60 60 L 60 74 M 260 60 L 260 74"/>
       </g>
-      <line x1="160" y1="44" x2="160" y2="72" stroke-dasharray="4 3"/>
-      <rect x="38" y="72" width="44" height="20" rx="4" fill="rgba(255,255,255,0.04)"/>
-      <rect x="138" y="72" width="44" height="20" rx="4" fill="rgba(255,255,255,0.07)"/>
-      <rect x="238" y="72" width="44" height="20" rx="4" fill="rgba(255,255,255,0.04)"/>
-      <line x1="60" y1="92" x2="60" y2="120"/>
-      <line x1="160" y1="92" x2="160" y2="120"/>
-      <line x1="260" y1="92" x2="260" y2="120"/>
-      <ellipse cx="60" cy="124" rx="24" ry="5" fill="rgba(255,255,255,0.05)"/>
-      <line x1="36" y1="124" x2="36" y2="156"/><line x1="84" y1="124" x2="84" y2="156"/>
-      <path d="M 36 156 A 24 5 0 0 0 84 156" fill="rgba(255,255,255,0.05)"/>
-      <ellipse cx="160" cy="124" rx="24" ry="5" fill="rgba(255,255,255,0.05)"/>
-      <line x1="136" y1="124" x2="136" y2="156"/><line x1="184" y1="124" x2="184" y2="156"/>
-      <path d="M 136 156 A 24 5 0 0 0 184 156" fill="rgba(255,255,255,0.05)"/>
-      <ellipse cx="260" cy="124" rx="24" ry="5" fill="rgba(255,255,255,0.05)"/>
-      <line x1="236" y1="124" x2="236" y2="156"/><line x1="284" y1="124" x2="284" y2="156"/>
-      <path d="M 236 156 A 24 5 0 0 0 284 156" fill="rgba(255,255,255,0.05)"/>
+      <rect x="37" y="74" width="46" height="22" rx="5" fill="rgba(255,255,255,0.04)"/>
+      <rect x="46" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="56.5" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="67" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="137" y="74" width="46" height="22" rx="5" fill="rgba(255,255,255,0.04)"/>
+      <rect x="146" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="156.5" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="167" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="237" y="74" width="46" height="22" rx="5" fill="rgba(255,255,255,0.04)"/>
+      <rect x="246" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="256.5" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <rect x="267" y="81" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.10)"/>
+      <path d="M 60 96 L 60 110 M 160 96 L 160 110 M 260 96 L 260 110" stroke-width="1.5"/>
+      <path d="M 38 110 A 22 6 0 0 1 82 110 L 82 158 A 22 6 0 0 1 38 158 Z" fill="rgba(255,255,255,0.04)"/>
+      <ellipse cx="60" cy="110" rx="22" ry="6"/>
+      <path d="M 138 110 A 22 6 0 0 1 182 110 L 182 158 A 22 6 0 0 1 138 158 Z" fill="rgba(255,255,255,0.04)"/>
+      <ellipse cx="160" cy="110" rx="22" ry="6"/>
+      <path d="M 238 110 A 22 6 0 0 1 282 110 L 282 158 A 22 6 0 0 1 238 158 Z" fill="rgba(255,255,255,0.04)"/>
+      <ellipse cx="260" cy="110" rx="22" ry="6"/>
     </g>
-    <circle cx="160" cy="58" r="3.5" fill="currentColor"/>
   `,
 
-  // Two knobs deciding a disk's fate on scale-down: one disk kept solid, one reclaimed and fading.
-  // Retain leaves storage standing, Delete takes it with the workload.
+  // One policy, two knobs, forking to two fates. A dashed fork drops from the policy box (its two knob
+  // cells one solid, one hollow) to two disks: left stands whole and bright (Retain kept it), right is
+  // dashed and faded (Delete reclaimed it). Echoes the volumeClaimTemplates sibling's top-box + fork
+  // grammar, but diverges to two outcomes instead of stamping three copies.
   'storage-pvc-retention-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="112" y="16" width="96" height="34" rx="5" fill="rgba(255,255,255,0.06)"/>
-      <rect x="124" y="26" width="30" height="14" rx="3" fill="rgba(255,255,255,0.10)"/>
-      <rect x="166" y="26" width="30" height="14" rx="3" fill="rgba(255,255,255,0.03)"/>
-      <line x1="94" y1="50" x2="94" y2="112" stroke-dasharray="4 3"/>
-      <line x1="226" y1="50" x2="226" y2="112" stroke-dasharray="4 3"/>
-      <ellipse cx="94" cy="118" rx="28" ry="6" fill="rgba(255,255,255,0.06)"/>
-      <line x1="66" y1="118" x2="66" y2="156"/><line x1="122" y1="118" x2="122" y2="156"/>
-      <path d="M 66 156 A 28 6 0 0 0 122 156" fill="rgba(255,255,255,0.06)"/>
-      <g opacity="0.45">
-        <ellipse cx="226" cy="118" rx="28" ry="6" fill="rgba(255,255,255,0.02)" stroke-dasharray="3 3"/>
-        <line x1="198" y1="118" x2="198" y2="156" stroke-dasharray="3 3"/>
-        <line x1="254" y1="118" x2="254" y2="156" stroke-dasharray="3 3"/>
-        <path d="M 198 156 A 28 6 0 0 0 254 156" stroke-dasharray="3 3"/>
+      <rect x="104" y="14" width="112" height="34" rx="6" fill="rgba(255,255,255,0.06)"/>
+      <rect x="114" y="24" width="42" height="14" rx="3" fill="rgba(255,255,255,0.11)"/>
+      <rect x="164" y="24" width="42" height="14" rx="3" fill="rgba(255,255,255,0.03)" stroke-dasharray="3 2"/>
+      <g stroke-dasharray="4 3" opacity="0.7">
+        <path d="M 160 48 L 160 62 M 90 62 L 230 62 M 90 62 L 90 90 M 230 62 L 230 90"/>
+      </g>
+      <path d="M 66 96 A 24 6 0 0 1 114 96 L 114 150 A 24 6 0 0 1 66 150 Z" fill="rgba(255,255,255,0.08)"/>
+      <ellipse cx="90" cy="96" rx="24" ry="6"/>
+      <g opacity="0.4">
+        <path d="M 206 96 A 24 6 0 0 1 254 96 L 254 150 A 24 6 0 0 1 206 150 Z" fill="rgba(255,255,255,0.02)" stroke-dasharray="4 3"/>
+        <ellipse cx="230" cy="96" rx="24" ry="6" stroke-dasharray="4 3"/>
       </g>
     </g>
-    <circle cx="94" cy="84" r="3.5" fill="currentColor"/>
   `,
 
   // Two zones: on the left the Pod and its disk land in different zones and the mount cannot cross
@@ -1667,16 +2036,322 @@ export const POSTERS = {
     </g>
   `,
 
-  // One pod scales out to a fan of three replicas.
-  'scaling-hpa-cycle': `
+  // A controller grows its row of replica Pods sideways; the bright Pod is the one just added.
+  'scaling-dimensions': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="40"  y="74"  width="42" height="42" rx="6" fill="rgba(255,255,255,0.04)"/>
-      <rect x="204" y="42"  width="42" height="38" rx="6" fill="rgba(255,255,255,0.04)" opacity="0.55"/>
-      <rect x="226" y="80"  width="42" height="38" rx="6" fill="rgba(255,255,255,0.04)" opacity="0.85"/>
-      <rect x="248" y="118" width="42" height="38" rx="6" fill="rgba(255,255,255,0.04)"/>
-      <line x1="92" y1="95" x2="190" y2="95" stroke-dasharray="5 4"/>
+      <rect x="118" y="18" width="84" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <line x1="160" y1="48" x2="160" y2="74" stroke-dasharray="4 3"/>
+      <line x1="60" y1="74" x2="260" y2="74"/>
+      <rect x="40"  y="98" width="40" height="52" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="96"  y="98" width="40" height="52" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="152" y="98" width="40" height="52" rx="6" fill="rgba(255,255,255,0.18)"/>
+      <rect x="208" y="98" width="40" height="52" rx="6" fill="rgba(255,255,255,0.04)" stroke-dasharray="3 2" opacity="0.5"/>
+      <line x1="60"  y1="74" x2="60"  y2="98"/>
+      <line x1="116" y1="74" x2="116" y2="98"/>
+      <line x1="172" y1="74" x2="172" y2="98"/>
+      <line x1="228" y1="74" x2="228" y2="98" stroke-dasharray="3 2" opacity="0.5"/>
     </g>
-    <circle cx="184" cy="95" r="3.5" fill="currentColor"/>
+    <circle cx="172" cy="86" r="3" fill="currentColor"/>
+  `,
+
+  // One narrow /scale door, driven by two writers (kubectl and the HPA).
+  'scaling-scale-subresource': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="116" y="66" width="92" height="66" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <rect x="196" y="84" width="46" height="30" rx="4" fill="rgba(255,255,255,0.20)"/>
+      <rect x="24" y="30" width="74" height="30" rx="6" fill="rgba(255,255,255,0.04)"/>
+      <rect x="24" y="120" width="74" height="30" rx="6" fill="rgba(255,255,255,0.04)"/>
+      <path d="M 98 46 L 200 92" stroke-dasharray="4 3"/>
+      <path d="M 98 134 L 200 106" stroke-dasharray="4 3"/>
+    </g>
+    <circle cx="150" cy="70" r="3" fill="currentColor"/>
+  `,
+
+  // Usage over request equals a percent; the request is the denominator.
+  'scaling-requests-utilization': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="40" y="44" width="120" height="92" rx="10" fill="rgba(255,255,255,0.05)"/>
+      <rect x="60" y="104" width="80" height="18" rx="3" fill="rgba(255,255,255,0.08)"/>
+      <rect x="60" y="74"  width="80" height="18" rx="3" fill="rgba(255,255,255,0.20)"/>
+      <line x1="196" y1="90" x2="230" y2="90" stroke-dasharray="4 3"/>
+      <rect x="234" y="66" width="56" height="48" rx="8" fill="rgba(255,255,255,0.05)"/>
+    </g>
+    <text x="262" y="96" text-anchor="middle" fill="currentColor" font-size="17" font-family="'JetBrains Mono', monospace">80%</text>
+  `,
+
+  // Kubelets at the bottom get scraped upward into one metrics-server.
+  'scaling-metrics-server': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="106" y="20" width="108" height="34" rx="6" fill="rgba(255,255,255,0.18)"/>
+      <rect x="34"  y="120" width="86" height="40" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="200" y="120" width="86" height="40" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <path d="M 77 120 L 140 54" stroke-dasharray="4 3"/>
+      <path d="M 243 120 L 180 54" stroke-dasharray="4 3"/>
+    </g>
+    <circle cx="112" cy="78" r="3" fill="currentColor"/>
+    <circle cx="208" cy="78" r="3" fill="currentColor"/>
+  `,
+
+  // One HPA reads from three metrics APIs.
+  'scaling-metrics-apis': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="126" y="120" width="68" height="38" rx="8" fill="rgba(255,255,255,0.18)"/>
+      <rect x="18"  y="26" width="80" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="120" y="26" width="80" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="222" y="26" width="80" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <path d="M 58 56 L 150 120" stroke-dasharray="4 3"/>
+      <path d="M 160 56 L 160 120" stroke-dasharray="4 3"/>
+      <path d="M 262 56 L 170 120" stroke-dasharray="4 3"/>
+    </g>
+  `,
+
+  // A control loop: metric in, decision out, replicas grow, repeat.
+  'scaling-hpa-control-loop': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="40" y="70" width="80" height="44" rx="8" fill="rgba(255,255,255,0.18)"/>
+      <rect x="200" y="70" width="80" height="44" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <path d="M 120 82 L 200 82" stroke-dasharray="4 3"/>
+      <path d="M 200 102 L 120 102" stroke-dasharray="4 3"/>
+      <path d="M 240 114 C 240 150 80 150 80 114"/>
+    </g>
+    <circle cx="168" cy="82" r="3" fill="currentColor"/>
+    <circle cx="152" cy="102" r="3" fill="currentColor"/>
+  `,
+
+  // The ratio formula rounds up to the replica count.
+  'scaling-hpa-algorithm': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="30" y="60" width="180" height="60" rx="10" fill="rgba(255,255,255,0.05)"/>
+      <rect x="244" y="66" width="46" height="48" rx="8" fill="rgba(255,255,255,0.20)"/>
+    </g>
+    <text x="120" y="96" text-anchor="middle" fill="currentColor" font-size="15" font-family="'JetBrains Mono', monospace">ceil(3x90/50)</text>
+    <text x="267" y="97" text-anchor="middle" fill="currentColor" font-size="18" font-family="'JetBrains Mono', monospace">6</text>
+  `,
+
+  // Two metrics each propose a count; the larger wins.
+  'scaling-hpa-multiple-metrics': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="24" y="30" width="80" height="34" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="24" y="116" width="80" height="34" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="196" y="70" width="96" height="40" rx="8" fill="rgba(255,255,255,0.18)"/>
+      <path d="M 104 47 L 196 82" stroke-dasharray="4 3"/>
+      <path d="M 104 133 L 196 98" stroke-dasharray="4 3"/>
+    </g>
+    <text x="64" y="52"  text-anchor="middle" fill="currentColor" font-size="13" font-family="'JetBrains Mono', monospace">7</text>
+    <text x="64" y="138" text-anchor="middle" fill="currentColor" font-size="13" font-family="'JetBrains Mono', monospace">5</text>
+    <text x="244" y="95" text-anchor="middle" fill="currentColor" font-size="15" font-family="'JetBrains Mono', monospace">max 7</text>
+  `,
+
+  // A row of replicas with the not-ready ones dashed out of the count.
+  'scaling-hpa-missing-unready': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="24"  y="66" width="46" height="58" rx="6" fill="rgba(255,255,255,0.14)"/>
+      <rect x="86"  y="66" width="46" height="58" rx="6" fill="rgba(255,255,255,0.14)"/>
+      <rect x="148" y="66" width="46" height="58" rx="6" fill="rgba(255,255,255,0.14)"/>
+      <rect x="210" y="66" width="46" height="58" rx="6" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.5"/>
+      <rect x="272" y="66" width="34" height="58" rx="6" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.5"/>
+    </g>
+  `,
+
+  // Beyond cpu: a per-pod metric, an object metric, and an external queue.
+  'scaling-hpa-custom-metrics': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="18"  y="30" width="78" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="18"  y="74" width="78" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="18"  y="118" width="78" height="30" rx="6" fill="rgba(255,255,255,0.20)"/>
+      <rect x="196" y="66" width="96" height="46" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <path d="M 96 45  L 196 82" stroke-dasharray="4 3"/>
+      <path d="M 96 89  L 196 89" stroke-dasharray="4 3"/>
+      <path d="M 96 133 L 196 96" stroke-dasharray="4 3"/>
+    </g>
+  `,
+
+  // The manifest replicas is struck out; the HPA is the sole writer.
+  'scaling-hpa-owns-replicas': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="30" y="58" width="120" height="64" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <line x1="46" y1="78" x2="120" y2="78"/>
+      <line x1="46" y1="100" x2="134" y2="100" opacity="0.55"/>
+      <rect x="214" y="66" width="76" height="48" rx="8" fill="rgba(255,255,255,0.18)"/>
+      <path d="M 214 90 L 150 90" stroke-dasharray="4 3"/>
+    </g>
+    <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <line x1="42" y1="94" x2="138" y2="106"/>
+    </g>
+  `,
+
+  // A dead band around target; the needle sits inside, no action.
+  'scaling-hpa-tolerance': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="30" y="80" width="260" height="24" rx="12" fill="rgba(255,255,255,0.04)"/>
+      <rect x="128" y="80" width="64" height="24" rx="0" fill="rgba(255,255,255,0.18)"/>
+      <line x1="160" y1="66" x2="160" y2="118"/>
+    </g>
+    <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="150" y1="60" x2="150" y2="124"/>
+    </g>
+  `,
+
+  // Recent recommendations over time; scale down holds the highest.
+  'scaling-stabilization-window': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="40"  y="60" width="34" height="80" rx="3" fill="rgba(255,255,255,0.18)"/>
+      <rect x="90"  y="60" width="34" height="80" rx="3" fill="rgba(255,255,255,0.18)"/>
+      <rect x="140" y="104" width="34" height="36" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="190" y="60" width="34" height="80" rx="3" fill="rgba(255,255,255,0.18)"/>
+      <line x1="30" y1="52" x2="266" y2="52" stroke-dasharray="4 3"/>
+    </g>
+    <text x="250" y="48" text-anchor="middle" fill="currentColor" font-size="12" font-family="'JetBrains Mono', monospace">max</text>
+  `,
+
+  // A big desired jump is capped into a bounded step.
+  'scaling-scale-policies': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="30" y="30" width="200" height="110" rx="8" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.5"/>
+      <rect x="30" y="86" width="96" height="54" rx="8" fill="rgba(255,255,255,0.18)"/>
+    </g>
+    <text x="220" y="46" text-anchor="middle" fill="currentColor" font-size="12" font-family="'JetBrains Mono', monospace">want 20</text>
+    <text x="78" y="118" text-anchor="middle" fill="currentColor" font-size="15" font-family="'JetBrains Mono', monospace">+4/60s</text>
+  `,
+
+  // A jittery signal is smoothed into a steady line.
+  'scaling-thrashing': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <path d="M 24 60 L 52 44 L 80 76 L 108 40 L 136 72 L 164 46 L 192 68" opacity="0.5" stroke-dasharray="3 2"/>
+      <path d="M 24 120 L 100 120 L 108 104 L 200 104 L 208 118 L 296 118"/>
+    </g>
+    <circle cx="296" cy="118" r="3" fill="currentColor"/>
+  `,
+
+  // A running pod grows its request in place, no restart.
+  'scaling-in-place-resize': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="100" y="40" width="120" height="100" rx="12" fill="rgba(255,255,255,0.05)"/>
+      <rect x="130" y="96" width="60" height="30" rx="3" fill="rgba(255,255,255,0.08)"/>
+      <rect x="130" y="58" width="60" height="38" rx="3" fill="rgba(255,255,255,0.20)"/>
+    </g>
+    <g stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 240 76 l 8 -8 l 8 8"/>
+      <line x1="248" y1="68" x2="248" y2="112"/>
+    </g>
+  `,
+
+  // Cpu applies live; memory needs a container restart.
+  'scaling-resize-policies': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="30" y="40" width="120" height="46" rx="8" fill="rgba(255,255,255,0.18)"/>
+      <rect x="30" y="98" width="120" height="46" rx="8" fill="rgba(255,255,255,0.05)"/>
+    </g>
+    <text x="90" y="68"  text-anchor="middle" fill="currentColor" font-size="12" font-family="'JetBrains Mono', monospace">cpu live</text>
+    <text x="82" y="126" text-anchor="middle" fill="currentColor" font-size="12" font-family="'JetBrains Mono', monospace">mem</text>
+    <g stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 210 108 a 18 18 0 1 1 -6 -13"/>
+      <path d="M 204 88 l 2 10 l -10 -1"/>
+    </g>
+  `,
+
+  // Cpu over the limit throttles; memory over the limit is killed.
+  'scaling-cpu-vs-memory': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="30" y="46" width="120" height="40" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="30" y="46" width="90" height="40" rx="6" fill="rgba(255,255,255,0.18)"/>
+      <line x1="120" y1="40" x2="120" y2="92" stroke-dasharray="3 2"/>
+      <rect x="30" y="104" width="120" height="40" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <line x1="150" y1="98" x2="150" y2="150" stroke-dasharray="3 2"/>
+    </g>
+    <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <line x1="196" y1="112" x2="216" y2="136"/>
+      <line x1="216" y1="112" x2="196" y2="136"/>
+    </g>
+    <text x="176" y="72" text-anchor="middle" fill="currentColor" font-size="11" font-family="'JetBrains Mono', monospace">throttle</text>
+  `,
+
+  // A pod passes an admission gate that fills a default or rejects it.
+  'scaling-limitrange': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="120" y="34" width="80" height="112" rx="8" fill="rgba(255,255,255,0.04)"/>
+      <rect x="30" y="70" width="54" height="44" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="236" y="70" width="54" height="44" rx="6" fill="rgba(255,255,255,0.18)"/>
+      <path d="M 84 92 L 120 92" stroke-dasharray="4 3"/>
+      <path d="M 200 92 L 236 92" stroke-dasharray="4 3"/>
+    </g>
+    <text x="160" y="96" text-anchor="middle" fill="currentColor" font-size="10" font-family="'JetBrains Mono', monospace">LimitRange</text>
+  `,
+
+  // A namespace budget fills to its cap and refuses the next pod.
+  'scaling-resourcequota': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="40" y="70" width="220" height="40" rx="8" fill="rgba(255,255,255,0.04)"/>
+      <rect x="40" y="70" width="176" height="40" rx="8" fill="rgba(255,255,255,0.18)"/>
+      <line x1="216" y1="62" x2="216" y2="118"/>
+      <rect x="266" y="72" width="34" height="36" rx="5" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.5"/>
+    </g>
+    <text x="128" y="96" text-anchor="middle" fill="currentColor" font-size="12" font-family="'JetBrains Mono', monospace">used 3.75 / 4</text>
+  `,
+
+  // Nodes are full, a pod stays Pending, adding nodes is off the edge.
+  'scaling-pending-and-capacity': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="24"  y="60" width="90" height="60" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <rect x="126" y="60" width="90" height="60" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <rect x="34"  y="74" width="30" height="34" rx="4" fill="rgba(255,255,255,0.12)"/>
+      <rect x="72"  y="74" width="30" height="34" rx="4" fill="rgba(255,255,255,0.12)"/>
+      <rect x="136" y="74" width="30" height="34" rx="4" fill="rgba(255,255,255,0.12)"/>
+      <rect x="174" y="74" width="30" height="34" rx="4" fill="rgba(255,255,255,0.12)"/>
+      <rect x="234" y="74" width="34" height="34" rx="4" fill="rgba(255,255,255,0.03)" stroke-dasharray="3 2" opacity="0.6"/>
+      <path d="M 278 90 L 306 90" stroke-dasharray="4 3" opacity="0.5"/>
+    </g>
+    <text x="251" y="128" text-anchor="middle" fill="currentColor" font-size="10" font-family="'JetBrains Mono', monospace" opacity="0.7">Pending</text>
+  `,
+
+  // A budget keeps a minimum of the pods alive; one leaves.
+  'scaling-pdb-basics': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="30"  y="66" width="46" height="58" rx="6" fill="rgba(255,255,255,0.14)"/>
+      <rect x="92"  y="66" width="46" height="58" rx="6" fill="rgba(255,255,255,0.14)"/>
+      <rect x="154" y="66" width="46" height="58" rx="6" fill="rgba(255,255,255,0.14)"/>
+      <rect x="216" y="66" width="46" height="58" rx="6" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.45"/>
+    </g>
+    <text x="146" y="40" text-anchor="middle" fill="currentColor" font-size="12" font-family="'JetBrains Mono', monospace">minAvailable 3</text>
+  `,
+
+  // The eviction path is budget-checked and can bounce a 429.
+  'scaling-eviction-api': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="120" y="66" width="88" height="56" rx="8" fill="rgba(255,255,255,0.05)"/>
+      <rect x="26" y="40" width="70" height="30" rx="6" fill="rgba(255,255,255,0.18)"/>
+      <rect x="26" y="118" width="70" height="30" rx="6" fill="rgba(255,255,255,0.04)"/>
+      <path d="M 96 55 L 120 82" stroke-dasharray="4 3"/>
+      <path d="M 120 100 L 96 128" stroke-dasharray="4 3"/>
+    </g>
+    <text x="164" y="98" text-anchor="middle" fill="currentColor" font-size="11" font-family="'JetBrains Mono', monospace">PDB</text>
+    <text x="112" y="150" text-anchor="middle" fill="currentColor" font-size="11" font-family="'JetBrains Mono', monospace" opacity="0.7">429</text>
+  `,
+
+  // A drain empties a node one out, one in, keeping the budget.
+  'scaling-pdb-during-scaledown': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="24" y="50" width="120" height="90" rx="8" fill="rgba(255,255,255,0.04)"/>
+      <rect x="38" y="70" width="42" height="52" rx="6" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.5"/>
+      <rect x="90" y="70" width="42" height="52" rx="6" fill="rgba(255,255,255,0.12)"/>
+      <rect x="230" y="70" width="52" height="56" rx="6" fill="rgba(255,255,255,0.20)"/>
+      <path d="M 144 96 L 230 96" stroke-dasharray="4 3"/>
+    </g>
+    <circle cx="188" cy="96" r="3" fill="currentColor"/>
+  `,
+
+  // On scale down the lowest deletion-cost replica is the one removed.
+  'scaling-pod-deletion-cost': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="24"  y="60" width="50" height="60" rx="6" fill="rgba(255,255,255,0.14)"/>
+      <rect x="86"  y="60" width="50" height="60" rx="6" fill="rgba(255,255,255,0.14)"/>
+      <rect x="148" y="60" width="50" height="60" rx="6" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.45"/>
+      <rect x="210" y="60" width="50" height="60" rx="6" fill="rgba(255,255,255,0.14)"/>
+    </g>
+    <text x="49"  y="140" text-anchor="middle" fill="currentColor" font-size="11" font-family="'JetBrains Mono', monospace">100</text>
+    <text x="111" y="140" text-anchor="middle" fill="currentColor" font-size="11" font-family="'JetBrains Mono', monospace">50</text>
+    <text x="173" y="140" text-anchor="middle" fill="currentColor" font-size="11" font-family="'JetBrains Mono', monospace" opacity="0.7">0</text>
+    <text x="235" y="140" text-anchor="middle" fill="currentColor" font-size="11" font-family="'JetBrains Mono', monospace">80</text>
   `,
 
   // Subject (head + shoulders) → role rules → resource with a check.

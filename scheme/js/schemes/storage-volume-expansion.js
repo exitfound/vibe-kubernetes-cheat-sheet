@@ -1,43 +1,99 @@
-import { svg, g, text, line } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
 import {
   valChip, setVal, setBoxSublabel, pulsePod, routePacket, routeDur,
   makeInit, clearHighlights, clearWires, setWire, BEAT,
 } from '../lib/storage-kit.js';
 
-// Layout (viewBox 1200x640). Storage grammar: the consumer Pod on top, its claim in the middle, the
-// real disk on the shelf below, all sharing the identity column at x=525 (the mount reference above
-// the claim, the Bound link below it, both arrowhead-free relations). The machinery that grows the
-// volume is a stack on the right: kubectl edits the request, the StorageClass gates it with
-// allowVolumeExpansion, the external-resizer grows the real disk, and kubelet grows the filesystem.
-// Expansion is deliberately TWO PHASE and the card shows the split: the disk grows first (controller
-// side), the filesystem inside it grows second (node side), and only then does the Pod see the space.
-// Only the Pod pulses. The narration overlay owns x<=380 & y<=300, so every block starts at x>=400.
-const POD_X = 420, POD_Y = 55, POD_W = 210, POD_H = 120;
-const POD_CX = POD_X + POD_W / 2, POD_BOTTOM = POD_Y + POD_H; // 525 / 175
+// ---- What this card has to get RIGHT ----
+//
+// The allowVolumeExpansion gate is enforced by the API SERVER on the edit, not by the external-resizer
+// afterwards. Raising the request on a claim whose StorageClass does not allow expansion is refused at
+// admission with "only dynamically provisioned pvc can be resized and the storageclass that provisions
+// the pvc must support resize", so the resizer never sees such a request at all. An earlier cut of this
+// card had the resizer consult the class before acting, which puts the gate one component too far
+// downstream and makes a rejected edit look like a resize that quietly declined to run.
+//
+// The second phase is for FILESYSTEM volumes only. A raw block volume has no filesystem to grow, so
+// NodeExpandVolume does not apply and the bigger device is visible as soon as phase one lands. The
+// node-expand narration says so rather than implying every volume needs both halves.
+//
+// Shrinking: the API refuses a request below the size already provisioned. What newer clusters do
+// allow is walking a request back DOWN while an expansion is still pending, which cancels a grow that
+// has not happened yet. That is not shrinking a volume and the narration is worded not to promise it.
+//
+// ---- Layout (viewBox 1200x640) ----
+// Storage grammar, the centered vertical stack: Pod on top, its claim under it, the real disk on the
+// shelf below, all three on ONE axis at the canvas center CX=600. Tier heights and block footprints
+// are the same numbers as storage-pvc-protection, so the two cards in this subcategory read as one
+// family. The spine is the mount ascent (disk -> claim -> Pod, upward) and balls travel it, so its
+// arrowheads are earned. There are no headless relationship lines.
+//
+// The vertical pitch is TIER=162 again: 108, 270, 432. What differs from the sibling card is that this
+// one has FOUR actors, and they are placed so that not one lane needs more than a single turn:
+//
+//   - Slot A, top right at 108, is shared by Kubectl Patch and the StorageClass. They are never on
+//     stage together (Kubectl acts on the edit and the shrink steps, the class only on the gate step),
+//     so they occupy one slot and send their ball down ONE lane into the claim. Whoever is acting on
+//     the claim this step stands in slot A.
+//   - The external-resizer sits right at 432, dead level with the disk, so ControllerExpandVolume is a
+//     STRAIGHT horizontal into the disk's right edge.
+//   - Kubelet sits LEFT at 432, mirrored about the spine (its box is the exact reflection of the
+//     resizer's), so NodeExpandVolume is a straight horizontal into the disk's left edge.
+//
+// The two phases therefore arrive at the disk from opposite sides at the same height, which is the
+// composition stating the thing the card is about: the control plane grows the device from one side,
+// the node grows the filesystem from the other, and the disk between them is the one object both
+// touch. The 234..306 band in the right column is deliberately left empty so the claim lane can drop
+// through it without crossing anybody.
+//
+// Narration overlay: the blanket rule reserves x<=380 AND y<=300. Kubelet sits at x=130 but at y=396,
+// far under the y half of that rule, so it never meets the overlay at any width.
+//
+// The one element placed on a MEASUREMENT is the verdict caption left of the claim, anchored end at
+// x=464, y=274, reaching back to about x=273 on its longest string. This card's own overlay was
+// measured across viewport widths 1920 down to 900: right peaks at 399 and bottom peaks at 231, both
+// at the narrow end. The caption clears that bottom by 43 units. Note this card runs 30 units LOWER
+// than storage-pvc-protection, whose same caption measured 201, purely because the node-expand
+// narration is longer: the bottom is driven by the text, so it is a per-card number and copying a
+// sibling's is not safe. LENGTHENING ANY NARRATION HERE INVALIDATES THE 231: re-measure, or move the
+// caption back to the right of the axis. Nothing else in the card depends on the measurement.
+const CX = 600;
+const TIER = 162;
 
-const PVC_X = 420, PVC_Y = 250, PVC_W = 210, PVC_H = 90;
-const PVC_CX = PVC_X + PVC_W / 2, PVC_RIGHT = PVC_X + PVC_W;  // 525 / 630
-const PVC_TOP = PVC_Y, PVC_BOTTOM = PVC_Y + PVC_H;           // 250 / 340
+const POD_W = 240, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;
+const POD_BOTTOM = POD_Y + POD_H;                              // 160
 
-const KUBECTL_X = 740, KUBECTL_Y = 50, KUBECTL_W = 300, KUBECTL_H = 60;
-const CLASS_X = 740, CLASS_Y = 145, CLASS_W = 300, CLASS_H = 70;
-const CLASS_CX = CLASS_X + CLASS_W / 2, CLASS_BOTTOM = CLASS_Y + CLASS_H; // 890 / 215
-const RESIZER_X = 740, RESIZER_Y = 270, RESIZER_W = 300, RESIZER_H = 85;
-const RESIZER_LEFT = RESIZER_X, RESIZER_TOP = RESIZER_Y, RESIZER_CX = RESIZER_X + RESIZER_W / 2; // 740 / 270 / 890
-const KUBELET_X = 740, KUBELET_Y = 390, KUBELET_W = 300, KUBELET_H = 65;
-const KUBELET_LEFT = KUBELET_X;                             // 740
+const PVC_W = 240, PVC_H = 68, PVC_X = CX - PVC_W / 2, PVC_Y = 236;
+const PVC_BOTTOM = PVC_Y + PVC_H, PVC_MID = PVC_Y + PVC_H / 2, PVC_RIGHT = PVC_X + PVC_W; // 304 / 270 / 720
 
-const DISK_CX = 525, DISK_Y = 455, DISK_H = 95, DISK_TOP = DISK_Y; // 455
-const SPEC_Y = DISK_Y + 62;                                 // 517
-const CHIPS_Y = 585;
-const SPINE_X = 525;
+const DISK_W = 230, DISK_H = 86, DISK_Y = 389;
+const DISK_TOP = DISK_Y, DISK_MID = DISK_Y + DISK_H / 2;       // 389 / 432
+const DISK_LEFT = CX - DISK_W / 2, DISK_RIGHT = CX + DISK_W / 2;  // 485 / 715
 
-const W_EDIT     = [[KUBECTL_X, 80], [680, 80], [680, 285], [PVC_RIGHT, 285]];
-const W_GATE     = [[RESIZER_CX, RESIZER_TOP], [RESIZER_CX, CLASS_BOTTOM]];
-const W_CTRL_EXP = [[RESIZER_LEFT, 312], [680, 312], [680, 435], [DISK_CX, 435], [DISK_CX, DISK_TOP]];
-const W_NODE_EXP = [[KUBELET_LEFT, 422], [700, 422], [700, 445], [DISK_CX + 35, 445], [DISK_CX + 35, DISK_TOP]];
-const W_FS_UP    = [[SPINE_X, PVC_TOP], [SPINE_X, POD_BOTTOM]];
+// One actor footprint for all four, and the left column is the exact mirror of the right about CX.
+const ACT_W = 220, ACT_H = 72;
+const ACT_R_X = 850, ACT_R_CX = ACT_R_X + ACT_W / 2;           // 850 / 960
+const ACT_L_X = 1200 - ACT_R_X - ACT_W, ACT_L_RIGHT = ACT_L_X + ACT_W;  // 130 / 350
+const SLOT_A_Y = POD_Y + POD_H / 2 - ACT_H / 2;                // 72, centered on the Pod tier
+const SLOT_A_BOTTOM = SLOT_A_Y + ACT_H;                        // 144
+const BOTTOM_ACT_Y = DISK_MID - ACT_H / 2;                     // 396
+
+const MOUNT_LBL_X = CX + 16, MOUNT_LBL_Y = 204;
+const VERDICT_LBL_X = PVC_X - 16, VERDICT_LBL_Y = PVC_MID + 4; // 464 / 274, anchored end
+// cylinder() draws its own name on the baseline h/2+5, so the capacity line goes 14 below it.
+const CAP_LBL_Y = DISK_Y + DISK_H / 2 + 5 + 14;                // 451
+const CHIP_Y = 545, CHIP_H = 34;                               // strip ends at 579
+
+// Each lane and its ball share one points array. Every endpoint sits on a block edge, and every lane
+// is either a straight run or a single right angle. Nothing turns twice.
+const W_MOUNT_LOW  = [[CX, DISK_TOP], [CX, PVC_BOTTOM]];       // disk -> claim, upward
+const W_MOUNT_HIGH = [[CX, PVC_Y], [CX, POD_BOTTOM]];          // claim -> Pod, upward
+// Slot A to the claim: one turn, landing dead center on the claim's right edge.
+const W_TO_PVC = [[ACT_R_CX, SLOT_A_BOTTOM], [ACT_R_CX, PVC_MID], [PVC_RIGHT, PVC_MID]];
+// The two phases, straight in from opposite sides at the disk's own midline.
+const W_CTRL_EXP = [[ACT_R_X, DISK_MID], [DISK_RIGHT, DISK_MID]];
+const W_NODE_EXP = [[ACT_L_RIGHT, DISK_MID], [DISK_LEFT, DISK_MID]];
 
 function lightBoxAt(boxEl, ctx, delay = 0) {
   if (!boxEl) return;
@@ -47,6 +103,9 @@ function lightBoxAt(boxEl, ctx, delay = 0) {
   ctx.register(a);
 }
 
+// A tag that rides ALONG with the ball on the same path, timing and easing, so the packet visibly
+// carries what the step narrates. It lives in the packet layer but is not a .scheme-packet, so the
+// tools do not count it as one. dur omitted => routeDur(points), matching a ball that also omits it.
 function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
   if (ctx.reduced) return;
   const d = dur == null ? routeDur(points) : dur;
@@ -59,15 +118,23 @@ function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'eas
   ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
 }
 
+// A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
+// matches descendants only, so pulsing a bare pod() would fire at half strength.
 function podBlock() {
-  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'df sees the volume', containers: 0, cat: 'storage' });
+  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'df reads the mount', containers: 0, cat: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: POD_X + 22, y: POD_Y + 44, w: POD_W - 44, h: 48, label: 'app', sublabel: 'writes to /data', cat: 'storage' });
+  const innerBox = box({ x: POD_X + 20, y: POD_Y + (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'App', sublabel: 'writes to /data', cat: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
   return { group, innerBox };
+}
+
+// Every lane in this card is a ROUTE: something travels all of them, so they are all dashed, all
+// carry a head, and all are built from the same points array as their ball.
+function lane(points) {
+  return pathArrow({ points, dashed: true, dim: true, color: 'storage' });
 }
 
 class Scene {
@@ -80,59 +147,65 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Online volume expansion is a two phase operation. You raise the storage request on the claim, the StorageClass must have allowVolumeExpansion set to true, then the external-resizer calls ControllerExpandVolume to grow the real disk, and kubelet calls NodeExpandVolume to grow the filesystem inside the running Pod. The disk grows first and the filesystem grows second, and only after both does the Pod see the extra space. Shrinking a volume is not allowed.',
+      'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. You raise the storage request on the claim, and the API server accepts that edit only because the StorageClass behind it has allowVolumeExpansion set to true. Then the external-resizer calls ControllerExpandVolume and the backend grows the real block device, which is phase one. Then kubelet calls NodeExpandVolume on the node where the Pod runs and the filesystem grows to fill the bigger device, which is phase two. Only after both does the extra space appear inside the container, with no restart. Going the other way is refused: a request below the size already provisioned is rejected.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
     const web = podBlock();
     const pvc = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'requests 5Gi', cat: 'storage' });
-    const kubectl = box({ x: KUBECTL_X, y: KUBECTL_Y, w: KUBECTL_W, h: KUBECTL_H, label: 'kubectl patch pvc', sublabel: 'raises the request', cat: 'storage' });
-    const klass = box({ x: CLASS_X, y: CLASS_Y, w: CLASS_W, h: CLASS_H, label: 'StorageClass gp3', sublabel: 'allowVolumeExpansion: true', cat: 'storage' });
-    const resizer = box({ x: RESIZER_X, y: RESIZER_Y, w: RESIZER_W, h: RESIZER_H, label: 'external-resizer', sublabel: 'ControllerExpandVolume', cat: 'storage' });
-    const kubelet = box({ x: KUBELET_X, y: KUBELET_Y, w: KUBELET_W, h: KUBELET_H, label: 'kubelet', sublabel: 'NodeExpandVolume', cat: 'storage' });
-    const disk = cylinder({ x: DISK_CX - 105, y: DISK_Y, w: 210, h: DISK_H, label: 'pv-data', cat: 'storage' });
+    // Slot A holds whoever acts on the claim this step. The two never share a step, so they share the
+    // slot and the lane out of it.
+    const kubectl = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'Kubectl Patch', sublabel: 'raises the request', cat: 'storage' });
+    const klass = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'StorageClass gp3', sublabel: 'allowVolumeExpansion', cat: 'storage' });
+    const resizer = box({ x: ACT_R_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'External Resizer', sublabel: 'ControllerExpandVolume', cat: 'storage' });
+    const kubelet = box({ x: ACT_L_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'Kubelet', sublabel: 'NodeExpandVolume', cat: 'storage' });
+    const disk = cylinder({ x: DISK_LEFT, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'PV data-vol', cat: 'storage' });
+    [kubectl, klass, resizer, kubelet].forEach(el => { el.style.opacity = '0'; });
 
-    const refLink   = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', x1: SPINE_X, y1: POD_BOTTOM, x2: SPINE_X, y2: PVC_TOP, 'stroke-dasharray': '5 5', fill: 'none' });
-    const boundLink = line({ class: 'scheme-arrow scheme-arrow-storage', x1: SPINE_X, y1: PVC_BOTTOM, x2: SPINE_X, y2: DISK_TOP, fill: 'none' });
+    const lMountLow = lane(W_MOUNT_LOW);
+    const lMountHigh = lane(W_MOUNT_HIGH);
+    const lToPvc = lane(W_TO_PVC);
+    const lCtrlExp = lane(W_CTRL_EXP);
+    const lNodeExp = lane(W_NODE_EXP);
+    [lToPvc, lCtrlExp, lNodeExp].forEach(el => { el.style.opacity = '0'; });
 
-    const wEdit    = pathArrow({ points: W_EDIT, dashed: true, dim: true, color: 'storage' });
-    const wGate    = pathArrow({ points: W_GATE, dashed: true, dim: true, color: 'storage' });
-    const wCtrlExp = pathArrow({ points: W_CTRL_EXP, dashed: true, dim: true, color: 'storage' });
-    const wNodeExp = pathArrow({ points: W_NODE_EXP, dashed: true, dim: true, color: 'storage' });
-    const wFsUp    = pathArrow({ points: W_FS_UP, dashed: true, dim: true, color: 'storage' });
-    wEdit.style.opacity = '0';
-    wGate.style.opacity = '0';
-    wCtrlExp.style.opacity = '0';
-    wNodeExp.style.opacity = '0';
-    wFsUp.style.opacity = '0';
+    // Lane captions, blank at build and filled per step by setWire. The verdict slot reports the state
+    // of the CLAIM, which changes kind across the card, so it is named for its job rather than for a
+    // lane, and it sits hard against the claim instead of beside a lane it does not describe.
+    const mountLbl = text({ class: 'scheme-label code dim', x: MOUNT_LBL_X, y: MOUNT_LBL_Y, 'text-anchor': 'start' }, [' ']);
+    const verdictLbl = text({ class: 'scheme-label code dim', x: VERDICT_LBL_X, y: VERDICT_LBL_Y, 'text-anchor': 'end' }, [' ']);
+    const capLbl = text({ class: 'scheme-label code dim', x: CX, y: CAP_LBL_Y, 'text-anchor': 'middle' }, [' ']);
 
-    const capLbl  = text({ class: 'scheme-label code dim', x: DISK_CX, y: SPEC_Y, 'text-anchor': 'middle' }, [' ']);
-    const noteLbl = text({ class: 'scheme-label code dim', x: SPINE_X, y: 372, 'text-anchor': 'middle' }, [' ']);
-
-    const reqChip   = valChip({ x: 90,  y: CHIPS_Y, w: 250, h: 34, name: 'requests', value: '5Gi', cat: 'storage' });
-    const diskChip  = valChip({ x: 360, y: CHIPS_Y, w: 210, h: 34, name: 'real disk', value: '5Gi', cat: 'storage' });
-    const fsChip    = valChip({ x: 590, y: CHIPS_Y, w: 260, h: 34, name: 'filesystem', value: '5Gi', cat: 'storage' });
-    const seesChip  = valChip({ x: 870, y: CHIPS_Y, w: 240, h: 34, name: 'Pod sees', value: '5Gi', cat: 'storage' });
+    // A centered four-chip strip, derived rather than hand-placed. These four are the whole lesson:
+    // they hold the same number at the start, then change ONE AT A TIME in order, so the staggered
+    // highlight walking left to right IS the two phase story.
+    const CHIP_W = 252, CHIP_GAP = 24;
+    const chipX = i => (1200 - (CHIP_W * 4 + CHIP_GAP * 3)) / 2 + i * (CHIP_W + CHIP_GAP);  // 60 / 336 / 612 / 888
+    const reqChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'requests', value: '5Gi', cat: 'storage' });
+    const diskChip = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'real disk', value: '5Gi', cat: 'storage' });
+    const fsChip = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'filesystem', value: '5Gi', cat: 'storage' });
+    const seesChip = valChip({ x: chipX(3), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'Pod sees', value: '5Gi', cat: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order (bottom -> top): blocks and disk, then the identity links and route wires and labels
-    // above them, then the Pod so it sits above its links, then the chip strip, then the packet layer.
+    // Z-order (bottom -> top): the blocks and the disk, then every lane above them, then the lane
+    // captions, then the Pod so it sits above the axis that ends on its edge, then the chip strip,
+    // then the packet layer so every ball rides above everything.
     [pvc, kubectl, klass, resizer, kubelet, disk].forEach(el => root.appendChild(el));
-    [refLink, boundLink, wEdit, wGate, wCtrlExp, wNodeExp, wFsUp].forEach(el => root.appendChild(el));
+    [lMountLow, lMountHigh, lToPvc, lCtrlExp, lNodeExp].forEach(el => root.appendChild(el));
+    [mountLbl, verdictLbl, capLbl].forEach(el => root.appendChild(el));
     root.appendChild(web.group);
-    [capLbl, noteLbl].forEach(el => root.appendChild(el));
     [reqChip, diskChip, fsChip, seesChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
 
     this.host.appendChild(root);
     this.refs = {
       svg: root, web: web.group, app: web.innerBox,
-      pvc, kubectl, klass, resizer, kubelet, disk, refLink, boundLink,
-      wEdit, wGate, wCtrlExp, wNodeExp, wFsUp,
+      pvc, kubectl, klass, resizer, kubelet, disk,
+      lMountLow, lMountHigh, lToPvc, lCtrlExp, lNodeExp,
       reqChip, diskChip, fsChip, seesChip,
-      wires: { cap: capLbl, note: noteLbl },
+      wires: { mount: mountLbl, verdict: verdictLbl, cap: capLbl },
       packetLayer,
     };
   }
@@ -140,93 +213,118 @@ class Scene {
   reset() { this.build(); }
 }
 
+// A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
+// holds the previous step value at call time (clearHL clears the class, not the text) and steps are
+// always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
+function setChip(chip, val) {
+  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
+  setVal(chip, val);
+  if (changed) chip.classList.add('highlight');
+}
 function setChips(s, { req, disk, fs, sees }) {
-  setVal(s.refs.reqChip, req);
-  setVal(s.refs.diskChip, disk);
-  setVal(s.refs.fsChip, fs);
-  setVal(s.refs.seesChip, sees);
+  setChip(s.refs.reqChip, req);
+  setChip(s.refs.diskChip, disk);
+  setChip(s.refs.fsChip, fs);
+  setChip(s.refs.seesChip, sees);
 }
 
+// Every step pins EVERY opacity that any step can change, so a step can never inherit a stale one and
+// a cancel mid-flight always lands on this step's own end state.
+function setStage(s, { kubectl, klass, resizer, kubelet, toPvc, ctrlExp, nodeExp }) {
+  s.refs.kubectl.style.opacity = String(kubectl);
+  s.refs.klass.style.opacity = String(klass);
+  s.refs.resizer.style.opacity = String(resizer);
+  s.refs.kubelet.style.opacity = String(kubelet);
+  s.refs.lToPvc.style.opacity = String(toPvc);
+  s.refs.lCtrlExp.style.opacity = String(ctrlExp);
+  s.refs.lNodeExp.style.opacity = String(nodeExp);
+}
+
+// app is listed so its .highlight is cleared every step: without it a highlight set during a reduced
+// replay would leak forward, since replay never runs the motion path that would re-clear it.
 function clearHL(s) {
   clearHighlights(s, ['pvc', 'kubectl', 'klass', 'resizer', 'kubelet', 'disk', 'app',
     'reqChip', 'diskChip', 'fsChip', 'seesChip'], [s.refs.web]);
-  s.refs.web.style.opacity = '1';
 }
 
 const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pod web-0 runs on a volume of 5Gi. The claim requests 5Gi, the real disk is 5Gi, and the filesystem inside it is 5Gi, so df in the Pod reads 5Gi. The workload has filled it up and needs more room, without going offline.',
+    narration: 'Pod web-0 runs on a 5Gi volume, and every number agrees: the claim requests 5Gi, the block device behind it is 5Gi, the filesystem on that device is 5Gi, so df inside the container reads 5Gi. The workload has filled it and needs more room without going offline.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { req: '5Gi', disk: '5Gi', fs: '5Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'requests 5Gi');
+      setStage(s, { kubectl: 0, klass: 0, resizer: 0, kubelet: 0, toPvc: 0, ctrlExp: 0, nodeExp: 0 });
       setWire(s, 'cap', 'capacity 5Gi');
-      s.refs.refLink.style.opacity = '1';
-      s.refs.boundLink.style.opacity = '1';
-      ['wEdit', 'wGate', 'wCtrlExp', 'wNodeExp', 'wFsUp'].forEach(k => { s.refs[k].style.opacity = '0'; });
     },
   },
   {
     id: 'edit',
-    duration: 2800,
-    narration: 'You edit the claim and raise spec.resources.requests.storage from 5Gi to 20Gi. That is the only thing you change by hand. The requested size is now 20Gi but nothing physical has moved yet: the disk and the filesystem are both still 5Gi.',
+    duration: 3200,
+    narration: 'You raise spec.resources.requests.storage on the claim from 5Gi to 20Gi. That single field is the only thing anybody changes by hand in this whole card. The request now says 20Gi and nothing physical has moved: the device and the filesystem are both still 5Gi.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { req: '20Gi', disk: '5Gi', fs: '5Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'requests 20Gi');
+      setStage(s, { kubectl: 1, klass: 0, resizer: 0, kubelet: 0, toPvc: 1, ctrlExp: 0, nodeExp: 0 });
       setWire(s, 'cap', 'capacity 5Gi');
-      s.refs.refLink.style.opacity = '1';
-      s.refs.boundLink.style.opacity = '1';
-      s.refs.wEdit.style.opacity = '1';
-      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); return; }
-      const edit = routePacket(s, ctx, W_EDIT, { cat: 'storage' });
-      ridingLabel(s, ctx, 'requests: 20Gi', W_EDIT);
+      setWire(s, 'verdict', 'request raised, nothing moved');
+      s.refs.kubectl.classList.add('highlight');
+      s.refs.pvc.classList.add('highlight');
+      if (ctx.reduced) return;
+      // Kubectl sends the ball, so only kubectl is lit at entry and the claim waits for it to land.
+      s.refs.pvc.classList.remove('highlight');
+      const edit = routePacket(s, ctx, W_TO_PVC, { cat: 'storage' });
+      ridingLabel(s, ctx, 'requests: 20Gi', W_TO_PVC);
       lightBoxAt(s.refs.pvc, ctx, edit.arrivalMs);
     },
   },
   {
     id: 'gate',
-    duration: 2600,
-    narration: 'The external-resizer watches for this. Before it does anything it checks the StorageClass, because expansion only proceeds when allowVolumeExpansion is true. If that flag were false the request would just be rejected. Here it is true, so the resize is allowed to start.',
+    duration: 3200,
+    narration: 'That edit was accepted only because of one field on the StorageClass the claim was provisioned from: allowVolumeExpansion is true. The check runs at admission, on the API server, so with the flag false or absent the edit itself is rejected and no resizer ever hears about it. The gate is on the way in, not further down.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { req: '20Gi', disk: '5Gi', fs: '5Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'requests 20Gi');
+      setStage(s, { kubectl: 0, klass: 1, resizer: 0, kubelet: 0, toPvc: 1, ctrlExp: 0, nodeExp: 0 });
       setWire(s, 'cap', 'capacity 5Gi');
-      s.refs.refLink.style.opacity = '1';
-      s.refs.boundLink.style.opacity = '1';
-      s.refs.resizer.classList.add('highlight');
-      s.refs.wGate.style.opacity = '1';
-      if (ctx.reduced) { s.refs.klass.classList.add('highlight'); return; }
-      const gate = routePacket(s, ctx, W_GATE, { cat: 'storage' });
-      ridingLabel(s, ctx, 'allowVolumeExpansion?', W_GATE);
-      lightBoxAt(s.refs.klass, ctx, gate.arrivalMs);
+      setWire(s, 'verdict', 'expansion allowed');
+      s.refs.klass.classList.add('highlight');
+      s.refs.pvc.classList.add('highlight');
+      if (ctx.reduced) return;
+      s.refs.pvc.classList.remove('highlight');
+      const gate = routePacket(s, ctx, W_TO_PVC, { cat: 'storage' });
+      ridingLabel(s, ctx, 'allowVolumeExpansion: true', W_TO_PVC);
+      lightBoxAt(s.refs.pvc, ctx, gate.arrivalMs);
     },
   },
   {
     id: 'controller-expand',
-    duration: 2800,
-    narration: 'Phase one happens on the controller side. The external-resizer calls ControllerExpandVolume on the driver, which asks the backend to grow the real disk from 5Gi to 20Gi. The block device is now bigger. The filesystem laid on top of it, though, has no idea and is still 5Gi.',
+    duration: 3200,
+    narration: 'Phase one runs on the control plane side. The external-resizer sees the accepted request and calls ControllerExpandVolume on the driver, which tells the backend to grow the real block device from 5Gi to 20Gi. The device is now bigger and the PV capacity follows it. The filesystem sitting on that device has no idea and is still 5Gi.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { req: '20Gi', disk: '20Gi', fs: '5Gi, resize pending', sees: '5Gi' });
+      setChips(s, { req: '20Gi', disk: '20Gi', fs: '5Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'FileSystemResizePending');
+      setStage(s, { kubectl: 0, klass: 0, resizer: 1, kubelet: 0, toPvc: 0, ctrlExp: 1, nodeExp: 0 });
       setWire(s, 'cap', 'capacity 20Gi');
-      s.refs.refLink.style.opacity = '1';
-      s.refs.boundLink.style.opacity = '1';
+      setWire(s, 'verdict', 'device grown, fs pending');
       s.refs.resizer.classList.add('highlight');
-      s.refs.wCtrlExp.style.opacity = '1';
-      if (ctx.reduced) { s.refs.disk.classList.add('highlight'); return; }
+      s.refs.disk.classList.add('highlight');
+      if (ctx.reduced) return;
+      // The resizer sends the ball, so the disk earns its light when the call lands on it.
+      s.refs.disk.classList.remove('highlight');
       const exp = routePacket(s, ctx, W_CTRL_EXP, { cat: 'storage' });
       ridingLabel(s, ctx, 'ControllerExpandVolume', W_CTRL_EXP);
       lightBoxAt(s.refs.disk, ctx, exp.arrivalMs);
@@ -234,20 +332,21 @@ const STEPS = [
   },
   {
     id: 'node-expand',
-    duration: 2800,
-    narration: 'Phase two happens on the node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device to fill the larger disk. This is the step that can only run on the node where the Pod is, because the filesystem is only writable where it is actually mounted.',
+    duration: 3200,
+    narration: 'Phase two runs on the node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device until it fills the larger disk. This half can only happen where the Pod actually is, because a filesystem is only growable where it is mounted. A raw block volume has no filesystem at all, so it skips this phase entirely.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { req: '20Gi', disk: '20Gi', fs: '20Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'filesystem resized');
+      setStage(s, { kubectl: 0, klass: 0, resizer: 0, kubelet: 1, toPvc: 0, ctrlExp: 0, nodeExp: 1 });
       setWire(s, 'cap', 'capacity 20Gi');
-      s.refs.refLink.style.opacity = '1';
-      s.refs.boundLink.style.opacity = '1';
+      setWire(s, 'verdict', 'filesystem grown');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.wNodeExp.style.opacity = '1';
-      if (ctx.reduced) { s.refs.disk.classList.add('highlight'); return; }
+      s.refs.disk.classList.add('highlight');
+      if (ctx.reduced) return;
+      s.refs.disk.classList.remove('highlight');
       const exp = routePacket(s, ctx, W_NODE_EXP, { cat: 'storage' });
       ridingLabel(s, ctx, 'NodeExpandVolume', W_NODE_EXP);
       lightBoxAt(s.refs.disk, ctx, exp.arrivalMs);
@@ -255,43 +354,52 @@ const STEPS = [
   },
   {
     id: 'pod-sees',
-    duration: 2800,
-    narration: 'Only now does the Pod see the space. The disk grew, then the filesystem grew, and the extra room becomes visible inside the running container with no restart. df in web-0 finally reads 20Gi. The two phase order is the whole point: the filesystem can never grow before the disk under it does.',
+    duration: 3400,
+    narration: 'Only now does the space reach the workload. The device grew, then the filesystem grew, and the extra room shows up inside the running container with no restart, so df in web-0 finally reads 20Gi. The order is the whole point: a filesystem can never grow past the device underneath it.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { req: '20Gi', disk: '20Gi', fs: '20Gi', sees: '20Gi' });
       setBoxSublabel(s.refs.pvc, 'Bound, 20Gi');
+      setStage(s, { kubectl: 0, klass: 0, resizer: 0, kubelet: 0, toPvc: 0, ctrlExp: 0, nodeExp: 0 });
       setWire(s, 'cap', 'capacity 20Gi');
-      s.refs.refLink.style.opacity = '1';
-      s.refs.boundLink.style.opacity = '1';
-      s.refs.wFsUp.style.opacity = '1';
-      if (ctx.reduced) { s.refs.app.classList.add('highlight'); return; }
-      const up = routePacket(s, ctx, W_FS_UP, { cat: 'storage' });
-      ridingLabel(s, ctx, 'now 20Gi', W_FS_UP);
-      pulsePod(s.refs.web, ctx, up.arrivalMs);
-      lightBoxAt(s.refs.app, ctx, up.arrivalMs);
+      setWire(s, 'mount', 'now 20Gi at /data');
+      setWire(s, 'verdict', 'Bound, 20Gi');
+      s.refs.disk.classList.add('highlight');
+      s.refs.pvc.classList.add('highlight');
+      s.refs.app.classList.add('highlight');
+      if (ctx.reduced) return;
+      // The new room rises the same axis the volume always did: disk to claim, claim to Pod.
+      s.refs.pvc.classList.remove('highlight');
+      s.refs.app.classList.remove('highlight');
+      const hop1 = routePacket(s, ctx, W_MOUNT_LOW, { cat: 'storage' });
+      lightBoxAt(s.refs.pvc, ctx, hop1.arrivalMs);
+      const hop2 = routePacket(s, ctx, W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop, cat: 'storage' });
+      ridingLabel(s, ctx, 'now 20Gi', W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop });
+      lightBoxAt(s.refs.app, ctx, hop2.arrivalMs);
+      pulsePod(s.refs.web, ctx, hop2.arrivalMs);
     },
   },
   {
     id: 'no-shrink',
-    duration: 2600,
-    narration: 'Growing works, shrinking does not. If you try to lower the request back below the current size, the Api rejects it outright. There is no safe general way to shrink a filesystem that has data on it, so Kubernetes refuses the edit rather than risk losing bytes.',
+    duration: 3200,
+    narration: 'Growing works, going back does not. Ask for less than the volume already has and the Api refuses the edit, because there is no safe general way to shrink a filesystem with live data on it. Walking a request back down while an expansion is still pending is a different thing: that cancels a grow that has not happened, it does not make any volume smaller.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { req: '20Gi', disk: '20Gi', fs: '20Gi', sees: '20Gi' });
-      setBoxSublabel(s.refs.pvc, 'shrink rejected');
+      setBoxSublabel(s.refs.pvc, 'shrink refused');
+      setStage(s, { kubectl: 1, klass: 0, resizer: 0, kubelet: 0, toPvc: 1, ctrlExp: 0, nodeExp: 0 });
       setWire(s, 'cap', 'capacity 20Gi');
-      setWire(s, 'note', 'shrinking is not allowed');
-      s.refs.refLink.style.opacity = '1';
-      s.refs.boundLink.style.opacity = '1';
-      s.refs.wEdit.style.opacity = '1';
-      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); return; }
-      const shrink = routePacket(s, ctx, W_EDIT, { cat: 'storage' });
-      ridingLabel(s, ctx, 'requests: 5Gi', W_EDIT);
+      setWire(s, 'verdict', 'request stays 20Gi');
+      s.refs.kubectl.classList.add('highlight');
+      s.refs.pvc.classList.add('highlight');
+      if (ctx.reduced) return;
+      s.refs.pvc.classList.remove('highlight');
+      const shrink = routePacket(s, ctx, W_TO_PVC, { cat: 'storage' });
+      ridingLabel(s, ctx, 'requests: 5Gi rejected', W_TO_PVC);
       lightBoxAt(s.refs.pvc, ctx, shrink.arrivalMs);
     },
   },

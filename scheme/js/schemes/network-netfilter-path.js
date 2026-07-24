@@ -2,7 +2,7 @@ import { svg, g, text, line } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
 
-// The netfilter path a packet takes (viewBox 1200x640). Every other Core Networking card names an
+// The netfilter path a packet takes (viewBox 1200x640). Every other Network Foundations card names an
 // OPERATION on a packet (kube-proxy DNATs, conntrack pins the flow, egress MASQUERADEs) without ever
 // saying WHERE in the kernel it runs. This card is that missing floor: the hooks, in order, with the
 // packet walking them. The order is the lesson, so the whole composition is one left-to-right chain and

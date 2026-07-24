@@ -4,44 +4,90 @@ import {
   valChip, setVal, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT,
 } from '../lib/storage-kit.js';
 
-// Layout (viewBox 1200x640). Same storage grammar as storage-pvc-binding: the IDENTITY COLUMN at
-// x=470 is the spine (PVC on top, the PV that ends up bound to it directly below), and the machinery
-// sits in a column to the RIGHT. The difference from the binding card is that here the disk does not
+// Layout (viewBox 1200x640). Same storage grammar as storage-pvc-binding: the IDENTITY COLUMN is the
+// spine (PVC on top, the PV that ends up bound to it directly below, both the same width and x), and
+// the machinery sits in a column to the RIGHT. The difference from the binding card is that here the disk does not
 // exist yet: the cylinder is invisible until CreateVolume returns, and the Bound link is drawn only
 // once the PV object has been written. The descent is provisioner -> backend (CreateVolume) and the
 // ascent is the volume handle coming back, on SEPARATE lanes so the round trip reads as a loop.
 // Cylinders and boxes are infrastructure: they light, they never pulse. This card has no Pod at all,
-// so nothing pulses, which is exactly why the packet-less first step uses a chip-free box flash.
-// The narration overlay owns x<=380 & y<=300, so every block starts at x>=400.
-const PVC_X = 400, PVC_Y = 70, PVC_W = 230, PVC_H = 80;
-const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 630 / 150
+// so NOTHING in it pulses or blinks: the packet-less first step is fully static by design and its
+// read is carried by the .highlight outline alone.
+//
+// ---- Horizontal composition, derived rather than hand-placed ----
+// Every tier (the two columns and the chip strip) shares ONE center, CONTENT_CX, instead of each
+// carrying its own hand-typed margins. That shared center is NOT the canvas center, and it cannot be:
+// the narration overlay permanently occupies the top left and the top row sits inside its band.
+//
+// Do not "improve" this by measuring the overlay at your own window size and sliding LEFT_X leftward.
+// The overlay is HTML laid over the SVG, so the NARROWER the window, the MORE viewBox units it eats.
+// Measured right edge by viewport: 185 at 1920 wide, 275 at 1600, 322 at 1400, 342 at 1280, 379 at
+// 1100 and below. The blanket x<=380 rule is that worst case, not a pessimistic guess, so LEFT_X 400
+// keeps a real margin at every window size. A left edge picked from a single wide-window measurement
+// looks centered on the machine it was tuned on and slides under the overlay on a laptop.
+const LEFT_X = 400;                                   // leftmost the TOP ROW may go, all viewports
+const CONTENT_W = 520;
+const RIGHT_END = LEFT_X + CONTENT_W;                 // 920
+const CONTENT_CX = LEFT_X + CONTENT_W / 2;            // 660: the one center every tier uses
 
-const SC_X = 740, SC_Y = 70, SC_W = 300, SC_H = 80;
-const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;                 // 740 / 150
-const SC_CX = SC_X + SC_W / 2;                                 // 890
+const COL_L_W = 200;                                  // identity column: the claim and its volume
+const COL_R_W = 240;                                  // machinery column: class, provisioner, backend
+const COL_R_X = RIGHT_END - COL_R_W;                  // 620
+const COL_GAP = COL_R_X - (LEFT_X + COL_L_W);         // 80: the elbow channel lives in here
 
-const PROV_X = 740, PROV_Y = 250, PROV_W = 300, PROV_H = 90;
-const PROV_LEFT = PROV_X, PROV_TOP = PROV_Y, PROV_BOTTOM = PROV_Y + PROV_H; // 740 / 250 / 340
+const PVC_X = LEFT_X, PVC_Y = 70, PVC_W = COL_L_W, PVC_H = 80;
+const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 540 / 150
 
-const CLOUD_X = 740, CLOUD_Y = 440, CLOUD_W = 300, CLOUD_H = 90;
+const SC_X = COL_R_X, SC_Y = 70, SC_W = COL_R_W, SC_H = 80;
+const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;                 // 620 / 150
+const SC_CX = SC_X + SC_W / 2;                                 // 740
+
+const PROV_X = COL_R_X, PROV_Y = 250, PROV_W = COL_R_W, PROV_H = 90;
+const PROV_LEFT = PROV_X, PROV_TOP = PROV_Y, PROV_BOTTOM = PROV_Y + PROV_H; // 620 / 250 / 340
+
+const CLOUD_X = COL_R_X, CLOUD_Y = 440, CLOUD_W = COL_R_W, CLOUD_H = 90;
 const CLOUD_TOP = CLOUD_Y;                                     // 440
 
-const PV_X = 420, PV_Y = 430, PV_W = 220, PV_H = 110;
+// The cylinder sits exactly under the claim, same width and same x, so the identity column reads as
+// one stack rather than two blocks that happen to be near each other.
+const PV_X = LEFT_X, PV_Y = 430, PV_W = COL_L_W, PV_H = 110;
 const PV_TOP = PV_Y;                                           // 430
+const PV_CX = PV_X + PV_W / 2;                                 // 440
 
-const SPINE_X = 470;    // the identity column: PVC -> PV
+// The identity spine and the PV write BOTH run down the center of the identity column. They can share
+// that x because they are never on screen together: the write arrow shows only while the PV is being
+// created, the spine only once it is bound. Any other arrangement puts one of them off center.
+const SPINE_X = PV_CX;  // 440
 const LANE_DY = 15;     // half-gap between the CreateVolume lane and the handle-return lane
-const DOWN_X = SC_CX + LANE_DY;  // 905: provisioner -> backend
-const UP_X = SC_CX - LANE_DY;    // 875: backend -> provisioner
+const DOWN_X = SC_CX + LANE_DY;  // 755: provisioner -> backend
+const UP_X = SC_CX - LANE_DY;    // 725: backend -> provisioner
 const CHIPS_Y = 585;
+
+// Chip widths keep their hand-tuned values (each is sized for its longest value, PV holds
+// 'PV-a7f2 created'), but the x positions are DERIVED so the strip is centered on CANVAS_CX.
+const CHIP_W = [210, 250, 240, 230];
+const CHIP_GAP = 20;
+const CHIPS_W = CHIP_W.reduce((a, b) => a + b, 0) + CHIP_GAP * (CHIP_W.length - 1);   // 990
+const CHIPS_X0 = CHIP_W.reduce((acc, w, i) => {
+  acc.push(i === 0 ? CONTENT_CX - CHIPS_W / 2 : acc[i - 1] + CHIP_W[i - 1] + CHIP_GAP);
+  return acc;
+}, []);                                                                               // 105 / 335 / 605 / 865
+
+// The ONE vertical channel in the gap between the PVC column and the provisioner column. Both the
+// claim descending into the provisioner and the PV write leaving it turn on this x, and their
+// vertical runs do not overlap in y (130..282 above, 312..396 below), so sharing the channel reads
+// as one clean lane. They used to sit at 686 and 690: a 4px offset, far too small to register as a
+// deliberate lane split (those use LANE_DY, 15) and so it just looked like a misalignment. Derived
+// from the gap so it stays centered in it if either column is ever resized.
+const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 580
 
 // Each static wire and its ball share one array, so they cannot drift. Every endpoint is a block edge.
 const W_SC_REF     = [[PVC_RIGHT, 100], [SC_LEFT, 100]];                                  // reference, no ball
-const W_PVC_TO_PROV = [[PVC_RIGHT, 130], [686, 130], [686, 282], [PROV_LEFT, 282]];
+const W_PVC_TO_PROV = [[PVC_RIGHT, 130], [ELBOW_X, 130], [ELBOW_X, 282], [PROV_LEFT, 282]];
 const W_SC_TO_PROV  = [[SC_CX, SC_BOTTOM], [SC_CX, PROV_TOP]];
 const W_PROV_TO_CLOUD = [[DOWN_X, PROV_BOTTOM], [DOWN_X, CLOUD_TOP]];
 const W_CLOUD_TO_PROV = [[UP_X, CLOUD_TOP], [UP_X, PROV_BOTTOM]];
-const W_PROV_TO_PV  = [[PROV_LEFT, 312], [690, 312], [690, 396], [560, 396], [560, PV_TOP]];
+const W_PROV_TO_PV  = [[PROV_LEFT, 312], [ELBOW_X, 312], [ELBOW_X, 396], [PV_CX, 396], [PV_CX, PV_TOP]];
 const W_BOUND       = [[SPINE_X, PVC_BOTTOM], [SPINE_X, PV_TOP]];
 
 function lightBoxAt(boxEl, ctx, delay = 0) {
@@ -58,16 +104,6 @@ function revealAt(el, ctx, delay = 0) {
   if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
   el.style.opacity = '0';
   ctx.register(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay, fill: 'forwards', easing: 'ease-out' }));
-}
-
-// The only sanctioned block blink, and only on a step with no packet and no Pod, so the card does
-// not read frozen. Value chips never blink, so this takes boxes only.
-function flashBox(el, ctx, delay = 0) {
-  if (!el || ctx.reduced) return;
-  ctx.register(el.animate(
-    [{ filter: 'brightness(1)' }, { filter: 'brightness(1.55)' }, { filter: 'brightness(1)' }],
-    { duration: 600, delay, easing: 'ease-out' },
-  ));
 }
 
 function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
@@ -99,33 +135,54 @@ class Scene {
 
     const pvc   = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'wants 5Gi, class gp3', cat: 'storage' });
     const sc    = box({ x: SC_X, y: SC_Y, w: SC_W, h: SC_H, label: 'StorageClass gp3', sublabel: 'provisioner: ebs.csi.aws.com', cat: 'storage' });
-    const prov  = box({ x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'external-provisioner', sublabel: 'CSI controller sidecar', cat: 'storage' });
-    const cloud = box({ x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'storage backend', sublabel: 'the real disk lives here', cat: 'storage' });
+    const prov  = box({ x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'External-provisioner', sublabel: 'CSI controller sidecar', cat: 'storage' });
+    // Sublabel names the CSI driver because the narration says CreateVolume is called ON the driver,
+    // and the driver has no box of its own: the ball lands here, so this box has to admit it is the
+    // driver plus the backend behind it, or the text names an actor the picture does not have.
+    const cloud = box({ x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage Backend', sublabel: 'reached via the CSI driver', cat: 'storage' });
 
     // The volume does not exist until CreateVolume returns, so it starts invisible.
-    const pv = cylinder({ x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-a7f2', cat: 'storage' });
+    const pv = cylinder({ x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-a7f2', cat: 'storage' });
     pv.style.opacity = '0';
 
     // The claim NAMES its class. Nothing travels this line, so it carries no arrowhead: arrow()
     // always attaches a marker, which would read as a wire missing its ball.
-    const scRef = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', x1: PVC_RIGHT, y1: 100, x2: SC_LEFT, y2: 100, 'stroke-dasharray': '5 5', fill: 'none' });
-    const boundLink = line({ class: 'scheme-arrow scheme-arrow-storage', x1: SPINE_X, y1: PVC_BOTTOM, x2: SPINE_X, y2: PV_TOP, fill: 'none' });
+    // Both of these are driven FROM their points arrays, not from repeated literals. They used to be
+    // built from hand-copied coordinates while W_SC_REF and W_BOUND sat unused, so editing either
+    // constant moved nothing and the two could silently drift apart.
+    const [[scRefX1, scRefY1], [scRefX2, scRefY2]] = W_SC_REF;
+    const [[bndX1, bndY1], [bndX2, bndY2]] = W_BOUND;
+    const scRef = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', x1: scRefX1, y1: scRefY1, x2: scRefX2, y2: scRefY2, 'stroke-dasharray': '5 5', fill: 'none' });
+    const boundLink = line({ class: 'scheme-arrow scheme-arrow-storage', x1: bndX1, y1: bndY1, x2: bndX2, y2: bndY2, fill: 'none' });
     boundLink.style.opacity = '0';
 
     const wPvcToProv   = pathArrow({ points: W_PVC_TO_PROV, dashed: true, dim: true, color: 'storage' });
     const wScToProv    = pathArrow({ points: W_SC_TO_PROV, dashed: true, dim: true, color: 'storage' });
     const wProvToCloud = pathArrow({ points: W_PROV_TO_CLOUD, dashed: true, dim: true, color: 'storage' });
     const wCloudToProv = pathArrow({ points: W_CLOUD_TO_PROV, dashed: true, dim: true, color: 'storage' });
+    // Hidden until the step that writes the PV. This wire points AT the cylinder, and the cylinder
+    // does not exist until CreateVolume has returned, so drawing it from step 0 was an arrow aimed
+    // at blank canvas. It appears at the ENTRY of the createpv step (the ball has to have a wire to
+    // ride) while the cylinder itself still appears later, on that ball landing.
     const wProvToPv    = pathArrow({ points: W_PROV_TO_PV, dashed: true, dim: true, color: 'storage' });
+    wProvToPv.style.opacity = '0';
 
-    const boundLbl = text({ class: 'scheme-label code dim', x: SPINE_X - 25, y: 296, 'text-anchor': 'end' }, [' ']);
+    // Anchored to the RIGHT of the spine, growing away from the overlay. Left-anchored it reaches back
+    // to x=286 at its current length, and the overlay drops to y=342 on a small window (measured at
+    // 900x650), which puts this label at y=296 squarely underneath it. It only looked safe on a wide
+    // window, where the overlay stops at y=172.
+    const boundLbl = text({ class: 'scheme-label code dim', x: SPINE_X + 22, y: 296, 'text-anchor': 'start' }, [' ']);
     const callLbl  = text({ class: 'scheme-label code dim', x: DOWN_X + 22, y: 396, 'text-anchor': 'start' }, [' ']);
     const pvLbl    = text({ class: 'scheme-label code dim', x: PV_X + PV_W / 2, y: 566, 'text-anchor': 'middle' }, [' ']);
 
-    const pvcChip  = valChip({ x: 90,  y: CHIPS_Y, w: 210, h: 34, name: 'PVC',   value: 'Pending', cat: 'storage' });
-    const scChip   = valChip({ x: 320, y: CHIPS_Y, w: 250, h: 34, name: 'class', value: 'gp3',     cat: 'storage' });
-    const diskChip = valChip({ x: 590, y: CHIPS_Y, w: 240, h: 34, name: 'disk',  value: 'none',    cat: 'storage' });
-    const pvChip   = valChip({ x: 850, y: CHIPS_Y, w: 230, h: 34, name: 'PV',    value: 'none',    cat: 'storage' });
+    // The strip is laid out from its own total width so it centers on CANVAS_CX, the same center the
+    // blocks above use. Hand-placed x values had it spanning 90..1080, a center of 585, so the whole
+    // bottom row sat 15px left of the diagram it belongs to.
+    const chipX = CHIPS_X0;
+    const pvcChip  = valChip({ x: chipX[0], y: CHIPS_Y, w: CHIP_W[0], h: 34, name: 'PVC',   value: 'Pending', cat: 'storage' });
+    const scChip   = valChip({ x: chipX[1], y: CHIPS_Y, w: CHIP_W[1], h: 34, name: 'class', value: 'gp3',     cat: 'storage' });
+    const diskChip = valChip({ x: chipX[2], y: CHIPS_Y, w: CHIP_W[2], h: 34, name: 'disk',  value: 'none',    cat: 'storage' });
+    const pvChip   = valChip({ x: chipX[3], y: CHIPS_Y, w: CHIP_W[3], h: 34, name: 'PV',    value: 'none',    cat: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -139,7 +196,7 @@ class Scene {
 
     this.host.appendChild(root);
     this.refs = {
-      svg: root, pvc, sc, prov, cloud, pv, boundLink,
+      svg: root, pvc, sc, prov, cloud, pv, boundLink, wProvToPv,
       pvcChip, scChip, diskChip, pvChip,
       wires: { bound: boundLbl, call: callLbl, pv: pvLbl },
       packetLayer,
@@ -149,11 +206,20 @@ class Scene {
   reset() { this.build(); }
 }
 
+// A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
+// holds the previous step's text at call time (clearHL clears the highlight class, not the text), and
+// steps are always entered in order (gotoStep rebuilds then replays 0..target), so the diff is
+// deterministic. Same helper as storage-pvc-binding, this is the catalog-wide chip pattern.
+function setChip(chip, val) {
+  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
+  setVal(chip, val);
+  if (changed) chip.classList.add('highlight');
+}
 function setChips(s, { pvc, sc, disk, pv }) {
-  setVal(s.refs.pvcChip, pvc);
-  setVal(s.refs.scChip, sc);
-  setVal(s.refs.diskChip, disk);
-  setVal(s.refs.pvChip, pv);
+  setChip(s.refs.pvcChip, pvc);
+  setChip(s.refs.scChip, sc);
+  setChip(s.refs.diskChip, disk);
+  setChip(s.refs.pvChip, pv);
 }
 
 function clearHL(s) {
@@ -171,24 +237,27 @@ const STEPS = [
       clearWires(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'none', pv: 'none' });
       s.refs.pv.style.opacity = '0';
+      s.refs.wProvToPv.style.opacity = '0';
       s.refs.boundLink.style.opacity = '0';
     },
   },
   {
     id: 'nomatch',
     duration: 2100,
-    // Packet-less and Pod-less, so a box flash is the sanctioned way to keep it from reading frozen.
+    // Deliberately motionless. A box flash would be canon-legal here (packet-less and Pod-less) but
+    // was tried and rejected: the StorageClass is being READ in this step, not acting, and a blink
+    // reads as the block doing something. The static .highlight outline carries it.
     narration: 'With static provisioning an administrator has to create the volume by hand before anyone can claim it. Here nobody did, so there is no candidate to bind to. What saves the claim is the class it names, because that class knows who can build a volume on demand.',
-    enter(s, ctx) {
+    enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'none', pv: 'none' });
       s.refs.pv.style.opacity = '0';
+      s.refs.wProvToPv.style.opacity = '0';
       s.refs.boundLink.style.opacity = '0';
       s.refs.pvc.classList.add('highlight');
       s.refs.sc.classList.add('highlight');
-      flashBox(s.refs.sc, ctx, 0);
     },
   },
   {
@@ -201,6 +270,7 @@ const STEPS = [
       clearWires(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'none', pv: 'none' });
       s.refs.pv.style.opacity = '0';
+      s.refs.wProvToPv.style.opacity = '0';
       s.refs.boundLink.style.opacity = '0';
       s.refs.pvc.classList.add('highlight');
       s.refs.sc.classList.add('highlight');
@@ -222,6 +292,7 @@ const STEPS = [
       clearWires(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'vol-0abc123', pv: 'none' });
       s.refs.pv.style.opacity = '0';
+      s.refs.wProvToPv.style.opacity = '0';
       s.refs.boundLink.style.opacity = '0';
       s.refs.prov.classList.add('highlight');
       s.refs.cloud.classList.add('highlight');
@@ -244,7 +315,8 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'vol-0abc123', pv: 'pv-a7f2 created' });
+      setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'vol-0abc123', pv: 'PV-a7f2 created' });
+      s.refs.wProvToPv.style.opacity = '1';
       s.refs.boundLink.style.opacity = '0';
       s.refs.prov.classList.add('highlight');
       s.refs.cloud.classList.add('highlight');
@@ -253,7 +325,7 @@ const STEPS = [
       s.refs.pv.style.opacity = '1';
       if (ctx.reduced) { s.refs.pv.classList.add('highlight'); return; }
       const write = routePacket(s, ctx, W_PROV_TO_PV, { cat: 'storage' });
-      ridingLabel(s, ctx, 'PV pv-a7f2', W_PROV_TO_PV);
+      ridingLabel(s, ctx, 'PV PV-a7f2', W_PROV_TO_PV);
       revealAt(s.refs.pv, ctx, write.arrivalMs);
       lightBoxAt(s.refs.pv, ctx, write.arrivalMs);
     },
@@ -261,7 +333,7 @@ const STEPS = [
   {
     id: 'bind',
     duration: 2600,
-    narration: 'The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back. The binding controller sees a matching pair and both turn Bound. Nothing was reused and nothing was picked from a shelf, the volume was made to order.',
+    narration: 'The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back at the claim. There is nothing to search for and no shelf to pick from, so the pair goes straight to Bound. The volume was made to order.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -270,12 +342,17 @@ const STEPS = [
       s.refs.pv.style.opacity = '1';
       s.refs.pvc.classList.add('highlight');
       s.refs.pv.classList.add('highlight');
-      setWire(s, 'bound', 'Bound');
+      setWire(s, 'bound', 'claimRef: data-claim');
       setWire(s, 'pv', 'backed by vol-0abc123');
+      // The write arrow is retired here: it shares the identity column center with the spine, so the
+      // two must never be on screen at once. It has also done its job, this step is about the pairing.
+      s.refs.wProvToPv.style.opacity = '0';
       s.refs.boundLink.style.opacity = '1';
       if (ctx.reduced) return;
       s.refs.boundLink.style.opacity = '0';
-      ctx.register(s.refs.boundLink.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 200, fill: 'forwards', easing: 'ease-out' }));
+      // delay 0, not 200: the claimRef wire label is static (set above the guard) so it is on screen
+      // from the first frame. Any delay here leaves it captioning a link that does not exist yet.
+      ctx.register(s.refs.boundLink.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 0, fill: 'forwards', easing: 'ease-out' }));
     },
   },
 ];

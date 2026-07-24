@@ -23,7 +23,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launch, setInspect, stepCount, enterStep, seekStep, stepSpan } from './_shared.mjs';
+import { launch, setInspect, stepCount, enterStep, seekStep, stepSpan, DEFAULT_BASE } from './_shared.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_ROOT = join(__dirname, 'output');
@@ -41,7 +41,10 @@ const schemeId = positional[0];
 const stepArg  = positional[1];
 const contact  = !!flags.contact;
 const frames   = Math.max(1, parseInt(flags.frames || (contact ? '5' : '8'), 10) || 1);
-const baseUrl  = (flags.base || 'http://localhost:8080').replace(/\/$/, '');
+// --base= wins, else BASE= from the env via _shared's DEFAULT_BASE. Same drift anim-dump had: a
+// hardcoded default made the documented env var inert, so frames silently came from whatever the
+// Docker container held instead of the dev server under test.
+const baseUrl  = (flags.base || DEFAULT_BASE).replace(/\/$/, '');
 const showGrid = !!flags.inspect;
 
 if (!schemeId) {

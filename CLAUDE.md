@@ -9,7 +9,7 @@ One static, dependency-free site deployed to `kube.how`, made of three path-base
 | Path | Sub-app | What it is | Deep docs |
 |---|---|---|---|
 | `/` | **Hub** | One-viewport landing page: two entry panels (Commands, Schemes) over an aurora + canvas packet-graph background | this file (Hub section below) |
-| `/cli/` | **Commands** | Searchable `kubectl`/Helm/Kustomize/K9s cheat sheet, 600+ commands, copy + star | `cli/CLAUDE.md` |
+| `/cli/` | **Commands** | Searchable `kubectl`/Helm/Kustomize/K9s cheat sheet, 890 commands, copy + star | `cli/CLAUDE.md` |
 | `/scheme/` | **Schemes** | Card grid of animated SVG Kubernetes architecture diagrams (click a card, a `<dialog>` plays a step-by-step animation) | `scheme/CLAUDE.md` |
 
 Each sub-app has its own nested `CLAUDE.md` with the full detail; Claude Code auto-loads it when you work inside that folder. This file stays an overview: the repo shape, how to run and ship, and the chrome shared across all three pages.
@@ -52,6 +52,22 @@ Internal docs (`CLAUDE.md` anywhere, `scheme/tools/`) never reach production. An
 **First-paint flash handling.** Every page's `<head>` puts `color-scheme: dark` hints and a `background:#110f1f;color:#ece9ff` inline style first, before any other CSS, to kill the white flash on dark systems. `cli/js/app.js` additionally awaits one painted frame (`requestAnimationFrame` + `setTimeout(0)`) before building the heavy command list so the dark shell paints instantly. Do not reorder or remove these.
 
 **Project-wide writing rules.** No em-dashes anywhere (rephrase, use colons/parentheses instead). No semicolons or apostrophes in `scheme/` narration/wire strings (they are single-quoted JS; an apostrophe breaks module load). These apply to all user-visible text.
+
+## Working discipline (cross-cutting)
+
+These encode recurring friction from past sessions. They apply to all three sub-apps.
+
+**Scope discipline.** Make ONLY the change asked for. Do not recolor, re-trim descriptions, restructure elements, or "improve" adjacent things that were not mentioned. Concrete traps that caused reverts: "darken" is not "recolor purple", "remove the flash/pulse" is not "remove all highlighting", "slow the ball glide" is not "slow the whole card". When matching a sibling card, match it exactly and do not over-trim. If a change seems to need touching more than the ask, stop and say so first rather than expanding silently.
+
+**File safety.** Never overwrite or delete an untracked or user-authored file (helper `*.mjs` scripts, scratch files). Before `Write`-ing to a path that may already exist, check `git status` / read it first: an untracked file has no recovery path once overwritten.
+
+**Verify before claiming done.** For any visual/animation change, confirm the specific issue is actually gone via a browser render or `anim-dump`, not by assumption, before reporting success. Measure DOM only after fonts have loaded. "I fixed the flicker" is only true after you have looked. See `scheme/CLAUDE.md` for the gate and the motion tools.
+
+**Posters need concept sign-off.** Posters are the single biggest source of rework. Before rendering a full poster, describe the intended abstract technical-diagram concept in one line and get approval. No literal copies of the card diagram, no reused two-box layouts, no plain "dumb circles". (Full poster construction canon lives in `scheme/CLAUDE.md`.)
+
+**Docs sync.** After adding or removing cards, update the `SCHEMES` count and category counts in `scheme/CLAUDE.md` to match `scheme/js/data.js` exactly, and verify they align. Only sync docs on an explicit request or at the end of a completed unit of work, not mid-refactor.
+
+**Commit cadence.** Long sessions with no commit leave hard-won work exposed (an over-reaching edit or an accidental overwrite then has no cheap revert). After each approved, gate-green card or refactor, offer to stage and commit it with a concise conventional-commit message. Do not commit without the user's go-ahead.
 
 ---
 

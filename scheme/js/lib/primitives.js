@@ -11,6 +11,7 @@ export function arrowDefs() {
     mk('arrowhead-net',     'var(--network-color)'),
     mk('arrowhead-storage', 'var(--storage-color)'),
     mk('arrowhead-control', 'var(--control-color)'),
+    mk('arrowhead-scaling', 'var(--scaling-color)'),
   ]);
 }
 
@@ -70,6 +71,7 @@ export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, color = '',
   if (color === 'network')  markerId = 'arrowhead-net';
   if (color === 'storage')  markerId = 'arrowhead-storage';
   if (color === 'control')  markerId = 'arrowhead-control';
+  if (color === 'scaling')  markerId = 'arrowhead-scaling';
   const klass = ['scheme-arrow', dashed && 'scheme-arrow-dashed', dim && 'scheme-arrow-dim', color && `scheme-arrow-${color}`, cls].filter(Boolean).join(' ');
   return path({
     class: klass,
@@ -87,6 +89,7 @@ export function pathArrow({ points = [], dashed = false, dim = false, color = ''
   if (color === 'network')  markerId = 'arrowhead-net';
   if (color === 'storage')  markerId = 'arrowhead-storage';
   if (color === 'control')  markerId = 'arrowhead-control';
+  if (color === 'scaling')  markerId = 'arrowhead-scaling';
   const klass = ['scheme-arrow', dashed && 'scheme-arrow-dashed', dim && 'scheme-arrow-dim', color && `scheme-arrow-${color}`, cls].filter(Boolean).join(' ');
   const d = points.map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`)).join(' ');
   return path({
@@ -111,6 +114,7 @@ export function curveArrow({ x1, y1, x2, y2, curve = 0.25, dashed = false, dim =
   if (color === 'network')  markerId = 'arrowhead-net';
   if (color === 'storage')  markerId = 'arrowhead-storage';
   if (color === 'control')  markerId = 'arrowhead-control';
+  if (color === 'scaling')  markerId = 'arrowhead-scaling';
   const klass = ['scheme-arrow', dashed && 'scheme-arrow-dashed', dim && 'scheme-arrow-dim', color && `scheme-arrow-${color}`, cls].filter(Boolean).join(' ');
   return path({
     class: klass,

@@ -5,39 +5,53 @@ import {
   makeInit, clearHighlights, clearWires, setWire, BEAT,
 } from '../lib/storage-kit.js';
 
-// Projected Volumes. One directory assembled from several sources at once. The consumer Pod is
-// top-right, the four sources are a column on the left, and the projected directory sits in the
-// middle with one file row per source. The gesture is a FAN-IN: four lanes converge on the one dir.
+// Projected Volumes. One directory assembled from several sources at once. The layout is TWO
+// ALIGNED COLUMNS under one wide Pod: the four sources on the left, the projected directory with
+// one file row per source on the right, and EVERY source mid-height equals its file row mid-height,
+// so all four fan-in lanes are pure horizontal segments. The gesture is a FAN-IN: four parallel
+// lanes converge on the one dir.
 //
 // The card leads to the serviceAccountToken source, the one that matters. Unlike the old forever
 // valid Secret-based token, a projected token is short-lived and audience-bound, and kubelet ROTATES
 // it in place before it expires, rewriting the same file with a fresh token and no restart. The
 // rotation is the beat the card builds to.
 //
+// GEOMETRY. Every lane is ONE straight segment, zero corners anywhere: the four source lanes run
+// horizontally on shared mid-heights, the Pod metadata drops vertically from the Pod bottom into
+// downwardAPI (which sits FIRST in the column exactly so that drop crosses nothing), and the app
+// read rides vertically from the dir top into the Pod. The Pod spans both columns, FLUSH with the
+// outer edges of both (its left edge is the source column left edge, its right edge is the dir
+// right edge), so both vertical lanes start under it and the stack reads as one aligned unit.
+//
 // Only the Pod pulses (it is the source of downwardAPI metadata and the reader of the token). Sources
-// and file rows are infrastructure: they light. The narration overlay owns x<=380 & y<=300, so every
-// block starts to the right of it.
-const POD_X = 760, POD_Y = 55, POD_W = 340, POD_H = 140;
-const POD_BOTTOM = POD_Y + POD_H;                     // 195
+// and file rows are infrastructure: they light. The narration overlay owns the top-left corner:
+// blocks start at x=330, clear of the overlay measured on the family cards ((300, 163) on a
+// comfortable 1600px viewport). A longer narration invalidates this.
+const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;  // 330..970, flush over both columns
+const POD_BOTTOM = POD_Y + POD_H;                         // 176
 
-const SRC_X = 400, SRC_W = 200, SRC_RIGHT = 600;      // left source column
-const CM_Y = 250, SEC_Y = 316, DOWN_Y = 382, TOK_Y = 448, SRC_H = 54;
-const DOWN_MY = DOWN_Y + 27;                          // 409
+const SRC_X = 330, SRC_W = 220, SRC_RIGHT = SRC_X + SRC_W; // 330..550, left source column
+const SRC_CX = SRC_X + SRC_W / 2;                          // 440, the metadata drop lane
+const SRC_H = 54;
+const DOWN_Y = 264, CM_Y = 336, SEC_Y = 408, TOK_Y = 480;  // downwardAPI first: the drop crosses nothing
+const midOf = y => y + SRC_H / 2;                          // 291 / 363 / 435 / 507
 
-const DIR_X = 650, DIR_Y = 245, DIR_W = 300, DIR_H = 255;
-const ROW_X = 680, ROW_W = 240, ROW_H = 40;
-const R_CFG_Y = 300, R_PWD_Y = 350, R_LBL_Y = 400, R_TOK_Y = 450;
+const DIR_X = 630, DIR_Y = 225, DIR_W = 340, DIR_H = 333;  // 630..970, 225..558
+const DIR_CX = DIR_X + DIR_W / 2;                          // 800, the read lane
+const ROW_X = 660, ROW_W = 280, ROW_H = 44;
+const R_LBL_Y = 269, R_CFG_Y = 341, R_PWD_Y = 413, R_TOK_Y = 485; // row mids == source mids
 
-const CHIPS_Y = 590;
+const CHIPS_Y = 594;
 
-// Each static wire and its ball share one array. The four source lanes fan into the file rows, the
-// Pod feeds downwardAPI its own metadata, and the app reads a file back out.
-const W_CM   = [[SRC_RIGHT, CM_Y + 27],  [ROW_X, R_CFG_Y + 20]];
-const W_SEC  = [[SRC_RIGHT, SEC_Y + 27], [ROW_X, R_PWD_Y + 20]];
-const W_DOWN = [[SRC_RIGHT, DOWN_MY],    [ROW_X, R_LBL_Y + 20]];
-const W_TOK  = [[SRC_RIGHT, TOK_Y + 27], [ROW_X, R_TOK_Y + 20]];
-const W_POD_META = [[830, POD_BOTTOM], [830, 235], [630, 235], [630, DOWN_MY], [SRC_RIGHT, DOWN_MY]];
-const W_READ = [[900, R_CFG_Y], [900, 225], [955, 225], [955, POD_BOTTOM]];
+// Each static wire and its ball share one array. Every lane is a single straight segment: the four
+// source lanes fan into the file rows on shared mid-heights, the Pod drops its own metadata into
+// downwardAPI, and the app reads a file back out up the dir spine.
+const W_DOWN = [[SRC_RIGHT, midOf(DOWN_Y)], [ROW_X, midOf(DOWN_Y)]];
+const W_CM   = [[SRC_RIGHT, midOf(CM_Y)],   [ROW_X, midOf(CM_Y)]];
+const W_SEC  = [[SRC_RIGHT, midOf(SEC_Y)],  [ROW_X, midOf(SEC_Y)]];
+const W_TOK  = [[SRC_RIGHT, midOf(TOK_Y)],  [ROW_X, midOf(TOK_Y)]];
+const W_POD_META = [[SRC_CX, POD_BOTTOM], [SRC_CX, DOWN_Y]];
+const W_READ = [[DIR_CX, DIR_Y], [DIR_CX, POD_BOTTOM]];
 
 function lightBoxAt(boxEl, ctx, delay = 0) {
   if (!boxEl) return;
@@ -63,7 +77,7 @@ function podBlock({ x, y, w, h, label, sublabel }) {
   const shell = pod({ x, y, w, h, label, sublabel, containers: 0, cat: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 24, y: y + 46, w: w - 48, h: 58, label: 'app', sublabel: 'reads /var/run/secrets', cat: 'storage' });
+  const innerBox = box({ x: x + (w - 260) / 2, y: y + 34, w: 260, h: 56, label: 'App', sublabel: 'reads /var/run/secrets', cat: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -91,18 +105,20 @@ class Scene {
 
     const podB = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'projected volume' });
 
+    // Column order top to bottom: downwardAPI first (the metadata drop from the Pod bottom lands on
+    // its top edge without crossing anything), then the plain sources, the token source last.
+    const srcDown = box({ x: SRC_X, y: DOWN_Y, w: SRC_W, h: SRC_H, label: 'downwardAPI', sublabel: 'Pod labels, name', cat: 'storage' });
     const srcCM   = box({ x: SRC_X, y: CM_Y,   w: SRC_W, h: SRC_H, label: 'ConfigMap', sublabel: 'key: config.yaml', cat: 'storage' });
     const srcSec  = box({ x: SRC_X, y: SEC_Y,  w: SRC_W, h: SRC_H, label: 'Secret', sublabel: 'key: password', cat: 'storage' });
-    const srcDown = box({ x: SRC_X, y: DOWN_Y, w: SRC_W, h: SRC_H, label: 'downwardAPI', sublabel: 'Pod labels, name', cat: 'storage' });
     const srcTok  = box({ x: SRC_X, y: TOK_Y,  w: SRC_W, h: SRC_H, label: 'serviceAccountToken', sublabel: 'audience-bound', cat: 'storage' });
 
     const dirBox = box({ x: DIR_X, y: DIR_Y, w: DIR_W, h: DIR_H, label: '', sublabel: '', cat: 'storage' });
     dirBox.querySelector('.scheme-box-rect').style.fill = 'rgba(255, 255, 255, 0.02)';
-    const dirLbl = text({ class: 'scheme-label code dim', x: DIR_X + 12, y: 270, 'text-anchor': 'start' }, ['/var/run/secrets (projected)']);
+    const dirLbl = text({ class: 'scheme-label code', x: DIR_CX, y: DIR_Y + 27, 'text-anchor': 'middle' }, ['/var/run/secrets (projected)']);
 
+    const rowLbl = fileRow(R_LBL_Y, 'labels');
     const rowCfg = fileRow(R_CFG_Y, 'config.yaml');
     const rowPwd = fileRow(R_PWD_Y, 'password');
-    const rowLbl = fileRow(R_LBL_Y, 'labels');
     const rowTok = fileRow(R_TOK_Y, 'token');
 
     const wCm   = pathArrow({ points: W_CM,   dashed: true, dim: true, color: 'storage' });
@@ -112,18 +128,20 @@ class Scene {
     const wPodMeta = pathArrow({ points: W_POD_META, dashed: true, dim: true, color: 'storage' });
     const wRead = pathArrow({ points: W_READ, dashed: true, dim: true, color: 'storage' });
 
-    const clockLbl = text({ class: 'scheme-label code dim', x: 800, y: 526, 'text-anchor': 'middle' }, [' ']);
+    const clockLbl = text({ class: 'scheme-label code dim', x: DIR_CX, y: 580, 'text-anchor': 'middle' }, [' ']);
 
-    const srcChip  = valChip({ x: 90,  y: CHIPS_Y, w: 320, h: 34, name: 'sources', value: '4 into one dir', cat: 'storage' });
-    const tokChip  = valChip({ x: 430, y: CHIPS_Y, w: 360, h: 34, name: 'SA token', value: 'audience-bound', cat: 'storage' });
-    const expChip  = valChip({ x: 810, y: CHIPS_Y, w: 280, h: 34, name: 'expiry', value: 'short-lived', cat: 'storage' });
+    // Uniform chip strip: three chips of one size on one 20px pitch, centered under the diagram
+    // (its center is 650, so the 1000px strip runs 150..1150).
+    const srcChip  = valChip({ x: 150, y: CHIPS_Y, w: 320, h: 34, name: 'sources', value: '4 into one dir', cat: 'storage' });
+    const tokChip  = valChip({ x: 490, y: CHIPS_Y, w: 320, h: 34, name: 'SA token', value: 'audience-bound', cat: 'storage' });
+    const expChip  = valChip({ x: 830, y: CHIPS_Y, w: 320, h: 34, name: 'expiry', value: 'short-lived', cat: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
     // Z-order (bottom -> top): dir container, then blocks and file rows, then wires and labels above
     // them, then the chip strip, then the packet layer so every ball rides above everything.
     root.appendChild(dirBox);
-    [podB.group, srcCM, srcSec, srcDown, srcTok, rowCfg, rowPwd, rowLbl, rowTok].forEach(el => root.appendChild(el));
+    [podB.group, srcDown, srcCM, srcSec, srcTok, rowLbl, rowCfg, rowPwd, rowTok].forEach(el => root.appendChild(el));
     [wCm, wSec, wDown, wTok, wPodMeta, wRead, dirLbl, clockLbl].forEach(el => root.appendChild(el));
     [srcChip, tokChip, expChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
@@ -175,6 +193,8 @@ const STEPS = [
       clearWires(s);
       setChips(s, { src: '4 into one dir', tok: 'audience-bound', exp: 'short-lived' });
       s.refs.dir.classList.add('highlight');
+      // The four sources are the actors of this step: they light at entry, their balls depart.
+      ['srcDown', 'srcCM', 'srcSec', 'srcTok'].forEach(k => s.refs[k].classList.add('highlight'));
       if (ctx.reduced) {
         ['rowCfg', 'rowPwd', 'rowLbl', 'rowTok'].forEach(k => s.refs[k].classList.add('highlight'));
         return;
@@ -222,7 +242,6 @@ const STEPS = [
       pulsePod(s.refs.pod, ctx, 0);
       const meta = routePacket(s, ctx, W_POD_META, { delay: BEAT.afterPulse, cat: 'storage' });
       ridingLabel(s, ctx, 'labels, name', W_POD_META, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.srcDown, ctx, meta.arrivalMs);
       const d = routePacket(s, ctx, W_DOWN, { delay: meta.arrivalMs + BEAT.afterHop, cat: 'storage' });
       lightBoxAt(s.refs.rowLbl, ctx, d.arrivalMs);
     },
@@ -258,7 +277,6 @@ const STEPS = [
       if (ctx.reduced) return;
       const t = routePacket(s, ctx, W_TOK, { cat: 'storage' });
       ridingLabel(s, ctx, 'fresh token', W_TOK);
-      lightBoxAt(s.refs.rowTok, ctx, t.arrivalMs);
     },
   },
   {
