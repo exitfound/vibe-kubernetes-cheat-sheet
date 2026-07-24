@@ -5,9 +5,8 @@
 // nor any runtime check catches a card drifting BACK to the patterns the 2026-06-11
 // harmonization removed. This is a pure source lint over
 // scheme/js/schemes/{workloads,control,network,storage}-*.js, all of which are on the
-// shared kit. It intentionally does NOT touch scaling/security: those cards are dead
-// and will be rebuilt from scratch onto the kit, at which point add them to the
-// COVERED regex below.
+// shared kit. Every card in the catalog is covered: a new category joins the COVERED
+// regex below as soon as its cards land on the kit.
 //
 // Fails (exit 1) if a card:
 //   1. passes an explicit dur to a MULTI-POINT route wrapper (routePacket /
@@ -53,6 +52,10 @@ const ALLOW_EXPLICIT_DUR = new Set([
   // the ball on both round trips stays legible. Speed stays distance-normalized (one shared
   // multiplier), and each riding label uses the same slowDur so it stays locked to the packet.
   'network-service-clusterip.js:routePacket',
+  // The scheduler-decision walk (decide -> Pod pulse -> bind) is paced with explicit DECIDE_DUR /
+  // BIND_DUR, deliberately slower than routeDur, so the ball glides in, the Pod takes its full pulse,
+  // and the bind ball leaves only after it. The riding labels take the same dur so they stay locked.
+  'storage-csi-capacity-tracking.js:routePacket',
 ]);
 
 const ROUTE_WRAPPERS = ['routePacket', 'connectorPacket', 'connectorPacketDir'];
@@ -69,10 +72,9 @@ function callArgs(src, open) {
   return src.slice(open + 1);
 }
 
-// Categories on the shared kit and thus held to the canon. storage/scaling/security/
-// volume are deliberately absent (dead cards, pending a full rebuild); add them here
-// once rebuilt.
-const COVERED = /^(workloads|control|network|storage|scaling)-.*\.js$/;
+// Categories on the shared kit and thus held to the canon: currently the whole
+// catalog. Add a new category here once its cards are on the kit.
+const COVERED = /^(workloads|control|network|storage)-.*\.js$/;
 const files = (await readdir(SCHEMES))
   .filter(f => COVERED.test(f))
   .sort();

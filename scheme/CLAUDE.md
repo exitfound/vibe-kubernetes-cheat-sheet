@@ -40,7 +40,7 @@ scheme/
 
 ## Catalog and categories
 
-`js/data.js` exports `SCHEMES` (currently 110 entries), plus `CATEGORIES`, `CATEGORY_ICONS`, `CATEGORY_SUB`, and `SUBCATEGORIES` (per-category sub-tab keys + labels). Six active categories (label / key / color token in `css/tokens.css`):
+`js/data.js` exports `SCHEMES` (currently 103 entries), plus `CATEGORIES`, `CATEGORY_ICONS`, `CATEGORY_SUB`, and `SUBCATEGORIES` (per-category sub-tab keys + labels). Four active categories (label / key / color token in `css/tokens.css`):
 
 | Label | key | color | subcategories (`key` -> label) |
 |---|---|---|---|
@@ -48,10 +48,8 @@ scheme/
 | Workloads | `workloads` | `#5bb8ff` sky blue | `pods-bootstrap` Pods Bootstrap, `pods-lifecycle` Pods Lifecycle, `controllers` Controllers |
 | Networking | `network` | `#4fe5ff` cyan | `foundations` Network Foundations, `pod-networking` Pod Networking, `service-networking` Services & Endpoints, `external-traffic` External Traffic, `dns` DNS & Service Discovery |
 | Storage | `storage` | `#5eca94` jade | `foundations` Volume Foundations, `pv-pvc` Volumes & Claims, `csi` CSI & Mount Path, `stateful-data` Stateful Data |
-| Scaling | `scaling` | `#ffa04d` orange | |
-| Security | `security` | `#ff5757` red | |
 
-Rough scheme counts: network 37, storage 30, workloads 20, control 15, scaling 4, security 4. The retired Lifecycle category (coral `#ff668c`) is reserved in `tokens.css`, not active. To activate a reserved category, add a `{ key, label, sub, icon }` entry to `CATEGORIES`; the `[data-cat="<key>"]` CSS already exists.
+Scheme counts: network 37, storage 31, workloads 20, control 15. The retired Lifecycle category (coral `#ff668c`) is reserved in `tokens.css`, not active. To activate a reserved category, add a `{ key, label, sub, icon }` entry to `CATEGORIES`; the `[data-cat="<key>"]` CSS already exists.
 
 Each `SCHEMES` entry: `id`, `title`, `category`, optional `subcategory`, `desc`, `k8sVersion`, `module`, `tinted: true`, `sources: [{ label, href }]`.
 
@@ -139,7 +137,7 @@ Pre-flight checklist before declaring a card done (these are the recurring mista
 - [ ] Pod tint base equals the resting stroke for the category (no settling on a paler color).
 - [ ] No apostrophes or semicolons in `narration` / `wire` / `chain` strings; no em-dashes anywhere.
 - [ ] A `ridingLabel` passes the **same easing** as the ball it rides (see "Riding labels" below).
-- [ ] `npm run gate` is green (run from `scheme/tools/`, needs a server at `http://localhost:8080`). It chains, stopping on the first failure: `check-canon` (source lint, covers workloads/control/network/storage) then `smoke-all` (no console errors / animation leaks across all 110 cards). The gate is intentionally cheap and baseline-free for the active-redesign phase; the pixel/packet baseline tools were retired.
+- [ ] `npm run gate` is green (run from `scheme/tools/`, needs a server at `http://localhost:8080`). It chains, stopping on the first failure: `check-canon` (source lint, covers workloads/control/network/storage) then `smoke-all` (no console errors / animation leaks across all 103 cards). The gate is intentionally cheap and baseline-free for the active-redesign phase; the pixel/packet baseline tools were retired.
 
 ## Adding a scheme
 
@@ -220,7 +218,7 @@ A static wire with **no** ball is fine (it is a relationship, not a route), but 
 
 Own `package.json` (Playwright + pngjs). Stripped from the deploy and release artifacts. Verify animation changes with these rather than eyeballed screenshots. When refactoring a card's animation, lead with `anim-dump` (motion as data) and `frame-strip` (motion as frames), then the gate. Browser is auto-resolved by Playwright (no hardcoded path); set `PLAYWRIGHT_CHROMIUM` only to point at a system browser, `BASE` to override the `:8080` dev server.
 
-- `check-canon.mjs`: source lint for the packet-motion canon over workloads/control/network/storage cards (`COVERED = /^(workloads|control|network|storage)-.*\.js$/`). No browser, no baselines. Three rules: (1) no explicit `dur` on the multi-point route wrappers `routePacket` / `connectorPacket` / `connectorPacketDir`, barring an `ALLOW_EXPLICIT_DUR` allowlist of cards that deliberately slow a route so a riding src-IP tag stays legible (`segmentPacket` and `topPacket` are not linted, an explicit `dur` there is fine); (2) no removed symbols (`arrowPacket`, `wirePacket`, `pulseActiveBlocks`); (3) no per-call `ripple:` option, since ripple is unconditional. It does **not** check `makeInit` / `posterFirst`, kit-vs-`scheme-kit` imports, the `clearHL` prologue, or `ctx.reduced` guard placement: those are convention, enforced by review. scaling/security are excluded on purpose (still on the old non-kit cards, pending rebuild); add them to its `COVERED` regex once rebuilt.
+- `check-canon.mjs`: source lint for the packet-motion canon over workloads/control/network/storage cards (`COVERED = /^(workloads|control|network|storage)-.*\.js$/`). No browser, no baselines. Three rules: (1) no explicit `dur` on the multi-point route wrappers `routePacket` / `connectorPacket` / `connectorPacketDir`, barring an `ALLOW_EXPLICIT_DUR` allowlist of cards that deliberately slow a route so a riding src-IP tag stays legible (`segmentPacket` and `topPacket` are not linted, an explicit `dur` there is fine); (2) no removed symbols (`arrowPacket`, `wirePacket`, `pulseActiveBlocks`); (3) no per-call `ripple:` option, since ripple is unconditional. It does **not** check `makeInit` / `posterFirst`, kit-vs-`scheme-kit` imports, the `clearHL` prologue, or `ctx.reduced` guard placement: those are convention, enforced by review. It covers the whole catalog; a new category joins the `COVERED` regex once its cards are on the kit.
 - `smoke-all.mjs`: loads every scheme, steps through all steps, asserts no console errors / page exceptions / animation leaks.
 - `anim-dump.mjs`: dump a card's motion AS DATA per step (target, animated props, dur/delay/easing, and transform/opacity sampled at fixed progress %), plus DOM facts (packet count, ball-on-top z-order, highlights, narration). `node anim-dump.mjs <id> [step] [--samples=0,25,50,75,100] [--json]`. Best tool for "is this packet/pulse doing what the narration says" since motion-as-text reads far better than pixels. Diffing two dumps partly replaces the retired play-probe.
 - `frame-strip.mjs`: capture N frames per step and stitch them into one PNG. Frames are DETERMINISTIC (each step's play-path is entered with no auto-advance, then every WAAPI animation is frozen at an exact logical time via `currentTime` seeking, not wall-clock sampling). `node frame-strip.mjs <id> [step] [--frames=N] [--contact] [--inspect]`; `--contact` writes one labelled contact sheet (rows = steps, narration in a left gutter). Output under `output/`, gitignored. Manual aid, not in the gate.

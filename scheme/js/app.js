@@ -396,9 +396,7 @@ const POSTER_COLORS = {
   network:   '#4fe5ff',
   storage:   '#5eca94',
   workloads: '#3da0ff',
-  scaling:   '#ffa04d',
   control:   '#7d86ff',
-  security:  '#ff5757',
 };
 
 const FALLBACK_POSTER = `
@@ -444,10 +442,6 @@ const SCHEME_ALIASES = {
   'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',
   'service-cluster-ip': 'network-service-clusterip',
   'network-kube-proxy-iptables': 'network-kube-proxy-modes',
-  'scaling-hpa-cycle': 'scaling-hpa-control-loop',
-  'scaling-cluster-autoscaler': 'scaling-pending-and-capacity',
-  'scaling-vpa-recommend-vs-auto': 'scaling-in-place-resize',
-  'scaling-pdb-during-eviction': 'scaling-pdb-during-scaledown',
 };
 
 async function openScheme(id, initialStep = null) {

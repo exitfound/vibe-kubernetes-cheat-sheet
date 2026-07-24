@@ -47,18 +47,16 @@ One static site made of three path-based sub-apps that share the same visual chr
 
 ## Schemes (`/scheme/`)
 
-109 animated diagrams of how Kubernetes actually works internally. Each card opens a dialog that plays the mechanism step by step, with a narration panel explaining what moves and why.
+103 animated diagrams of how Kubernetes actually works internally. Each card opens a dialog that plays the mechanism step by step, with a narration panel explaining what moves and why.
 
 | Category | Cards | Subcategories |
 |---|---|---|
 | **Cluster** | 15 | Control Plane, Worker Nodes |
 | **Workloads** | 20 | Pods Bootstrap, Pods Lifecycle, Controllers |
 | **Networking** | 37 | Network Foundations, Pod Networking, Services & Endpoints, External Traffic, DNS & Service Discovery |
-| **Storage** | 29 | Volume Foundations, Volumes & Claims, CSI & Mount Path, Stateful Data |
-| **Scaling** | 4 | – |
-| **Security** | 4 | – |
+| **Storage** | 31 | Volume Foundations, Volumes & Claims, CSI & Mount Path, Stateful Data |
 
-Every category carries its own accent colour, so the palette tells you where you are: indigo for Cluster, sky blue for Workloads, cyan for Networking, jade for Storage, orange for Scaling, red for Security.
+Every category carries its own accent colour, so the palette tells you where you are: indigo for Cluster, sky blue for Workloads, cyan for Networking, jade for Storage.
 
 **How to use it**
 

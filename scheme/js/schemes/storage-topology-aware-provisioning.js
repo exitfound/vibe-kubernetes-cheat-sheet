@@ -7,10 +7,11 @@ import {
 
 // WaitForFirstConsumer. Two zones side by side, each a worker node with its own zonal disk on the
 // shelf below it. volumeBindingMode: Immediate provisions the disk the instant the claim exists, in
-// whatever zone the provisioner happens to pick, and the scheduler then places the Pod independently,
-// so the two can land in different zones and the Pod hangs forever because a zonal disk cannot be
-// attached across zones. WaitForFirstConsumer inverts the order: the scheduler picks the node first,
-// and only then is the volume provisioned in that same topology.
+// whatever zone the provisioner happens to pick. The scheduler then honors that already-bound disk,
+// but if the Pod only fits the other zone on capacity and affinity, no node satisfies both the Pod and
+// its zonal disk, so the Pod stays Pending forever with a volume node affinity conflict. It is never
+// scheduled and never reaches ContainerCreating. WaitForFirstConsumer inverts the order: the scheduler
+// picks the node first, and only then is the volume provisioned in that same topology.
 //
 // ---- Horizontal composition ----
 // The two zones are mirrored about the canvas centre, so the picture is symmetric and neither zone
@@ -41,7 +42,8 @@ import {
 // outer margin clear of both zones, runs a bus UNDER the whole disk shelf and rises into the chosen
 // disk through its BOTTOM. That keeps it out of every block and lets one route shape serve either
 // zone. The doomed cross-zone reach uses its own corridor in the gap between the node frames and the
-// shelf, and it is a bare dashed relationship with NO arrowhead because no traffic ever crosses it.
+// shelf, drawn as a bare dashed line the Pod aims at its stranded disk, entering it dead centre on the
+// top edge. It has no arrowhead because the attach never actually succeeds.
 const CX = 600;
 
 const SC_X = 400, SC_Y = 36, SC_W = 400, SC_H = 64;
@@ -59,37 +61,35 @@ const SPREAD = (NODE_W + NODE_GAP) / 2;                                         
 const NODE_CX = [CX - SPREAD, CX + SPREAD];                                        // 355 / 845
 const NODE_X = NODE_CX.map(cx => cx - NODE_W / 2);                                 // 140 / 630
 
-const POD_W = 160, POD_H = 92;
-const POD_Y = NODE_Y + (NODE_H - POD_H) / 2, POD_BOTTOM = POD_Y + POD_H;           // 260 / 352
+const POD_W = 160, POD_H = 100;
+const POD_Y = NODE_Y + (NODE_H - POD_H) / 2;                                       // 256
 
 const DISK_W = 190, DISK_H = 90, DISK_Y = 444;
-const DISK_TOP = DISK_Y, DISK_BOTTOM = DISK_Y + DISK_H;                            // 444 / 534
+const DISK_TOP = DISK_Y;                                                           // 444
 const DISK_MY = DISK_Y + DISK_H / 2;                                               // 489
 
 const CROSS_Y = (NODE_BOTTOM + DISK_TOP) / 2;      // 410, centred in the gap it crosses
-const PROV_BUS_Y = 560;                            // under the shelf, clear of the chip strip
 const PROV_WRAP_X = 1120;                          // outer margin, right of node-2 (ends 1060)
 const CAPTION_Y = DISK_TOP - 14;
 const CHIPS_Y = 588;
 
-// The mount lane and the cross-zone reach both leave the Pod bottom, so they are offset either side
-// of the Pod centre line. 12 is the family value for a narrow single-column lane pair.
-const LANE = 12;
-
 // Each static wire and its ball share ONE points array, so they cannot drift apart. Every endpoint is
-// a block edge midpoint.
-// Both provisioning routes leave the StorageClass through its RIGHT edge midpoint and wrap down the
-// same outer margin, because a left wrap would run the lane and its ball straight through the
-// narration overlay. From there they differ, and each takes the shortest path that crosses nothing:
-// zone-b is reached by turning in at the shelf midline and entering its disk through the near SIDE,
-// while zone-a has to continue below the shelf and rise into its disk from underneath, since a
-// horizontal run at the midline would have been drawn through the zone-b disk on the way.
+// a block edge midpoint. Both provisioning routes leave the StorageClass through its RIGHT edge
+// midpoint and wrap down the same outer margin (a left wrap would run the lane and its ball straight
+// through the narration overlay), then turn in along the shelf midline and enter their disk through
+// the near RIGHT SIDE with two right-angle turns. zone-a simply runs further left than zone-b along
+// that midline: it passes over where the zone-b disk sits, but that disk is invisible during the
+// zone-a provisioning step, so nothing is crossed on screen.
 const W_PROV_B = [[SC_RIGHT, SC_MY], [PROV_WRAP_X, SC_MY], [PROV_WRAP_X, DISK_MY], [NODE_CX[1] + DISK_W / 2, DISK_MY]];
-const W_PROV_A = [[SC_RIGHT, SC_MY], [PROV_WRAP_X, SC_MY], [PROV_WRAP_X, PROV_BUS_Y], [NODE_CX[0], PROV_BUS_Y], [NODE_CX[0], DISK_BOTTOM]];
+const W_PROV_A = [[SC_RIGHT, SC_MY], [PROV_WRAP_X, SC_MY], [PROV_WRAP_X, DISK_MY], [NODE_CX[0] + DISK_W / 2, DISK_MY]];
 const wProv = i => (i === 0 ? W_PROV_A : W_PROV_B);
-const W_MOUNT_B = [[NODE_CX[1] - LANE, DISK_TOP], [NODE_CX[1] - LANE, POD_BOTTOM]];
-// The doomed reach: the Pod in zone-b would have to cross into zone-a for its disk.
-const W_CROSS = [[NODE_CX[1] + LANE, POD_BOTTOM], [NODE_CX[1] + LANE, CROSS_Y], [NODE_CX[0], CROSS_Y], [NODE_CX[0], DISK_TOP]];
+// The mount lane and the cross-zone reach both meet the node-2 frame at its bottom edge (the line
+// enters the NODE, not the Pod sitting inside it), and they are never drawn in the same step, so each
+// runs straight down the node centre line and enters its disk dead centre.
+const W_MOUNT_B = [[NODE_CX[1], DISK_TOP], [NODE_CX[1], NODE_BOTTOM]];
+// The doomed reach: node-2 would have to cross into zone-a for its disk. It leaves the node-2 frame
+// bottom centre and enters the zone-a disk through its top centre.
+const W_CROSS = [[NODE_CX[1], NODE_BOTTOM], [NODE_CX[1], CROSS_Y], [NODE_CX[0], CROSS_Y], [NODE_CX[0], DISK_TOP]];
 
 // Lights an infrastructure block ON PACKET ARRIVAL rather than at step entry, via a zero-effect
 // animation whose onfinish sets the class. Under reduced motion it applies immediately so the static
@@ -135,10 +135,11 @@ function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'eas
 // .scheme-pod-rect child but not the group, and the pulse would silently fire at half strength.
 function podBlock() {
   const x = NODE_CX[1] - POD_W / 2;
-  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: ' ', containers: 0, cat: 'storage' });
+  const cy = POD_Y + POD_H / 2;
+  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'mounts /data', containers: 0, cat: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: POD_Y + 40, w: POD_W - 40, h: 34, label: 'app', cat: 'storage' });
+  const innerBox = box({ x: x + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'read/write', cat: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -157,7 +158,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists and the scheduler may then place the Pod in a different zone where the disk cannot be attached, leaving the Pod stuck forever, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
+      'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and the scheduler then finds no node that both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -172,7 +173,7 @@ class Scene {
     const zoneLbls = NODE_X.map((x, i) => text({ class: 'scheme-label code dim', x: x + NODE_W - 12, y: NODE_Y + 18, 'text-anchor': 'end' }, [i === 0 ? 'zone-a' : 'zone-b']));
 
     const disks = NODE_CX.map((cx, i) => {
-      const c = cylinder({ x: cx - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: i === 0 ? 'disk zone-a' : 'disk zone-b', cat: 'storage' });
+      const c = cylinder({ x: cx - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: i === 0 ? 'Disk zone-a' : 'Disk zone-b', cat: 'storage' });
       // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
       // is not part of the visible front face. Re-centre on the face, derived from the height.
       const l = c.querySelector('.scheme-cylinder-label');
@@ -193,7 +194,8 @@ class Scene {
     const wProvA = lane(wProv(0));
     const wProvB = lane(wProv(1));
     const wMountB = lane(W_MOUNT_B);
-    // The doomed cross-zone reach carries no ball ever, so it has no arrowhead.
+    // The doomed cross-zone reach: a bare dashed line the Pod aims at its stranded disk, entering the
+    // zone-a disk dead centre on its top edge. No arrowhead, since the attach never actually succeeds.
     const crossLink = lane(W_CROSS);
     crossLink.removeAttribute('marker-end');
     // Lanes are pinned per step by setStage. Left permanently visible, the zone-a provisioning lane
@@ -257,16 +259,20 @@ function setChips(s, { mode, pvc, pod, zones }) {
   setChip(s.refs.zoneChip, zones);
 }
 
-// The Pod is dim until it actually reaches Running: it is scheduled long before it can mount.
+// The Pod is dim until it actually reaches Running: while it is only Pending it sits at this dim rest.
 const POD_DIM = 0.55;
+// A node the scheduler filters out for this Pod dims to here, the storage-family filtered value.
+const NODE_FILTERED = 0.4;
 
 // Pins the visibility of EVERY element that is born mid-story, exactly as setChips pins every chip,
 // so a step can never silently inherit a disk or a Pod from the step before it.
-function setStage(s, { diskA = 0, diskB = 0, podOn = 0, cross = 0, mode = 'Immediate', pvcState = 'Pending', lanes = [] } = {}) {
+function setStage(s, { diskA = 0, diskB = 0, podOn = 0, cross = 0, nodeA = 1, nodeB = 1, mode = 'Immediate', pvcState = 'Pending', lanes = [] } = {}) {
   s.refs.diskA.style.opacity = String(diskA);
   s.refs.diskB.style.opacity = String(diskB);
   s.refs.podB.style.opacity = String(podOn);
   s.refs.crossLink.style.opacity = String(cross);
+  s.refs.nodeA.style.opacity = String(nodeA);
+  s.refs.nodeB.style.opacity = String(nodeB);
   ['wProvA', 'wProvB', 'wMountB'].forEach(k => { s.refs[k].style.opacity = lanes.includes(k) ? '1' : '0'; });
   setBoxSublabel(s.refs.sc, `volumeBindingMode: ${mode}`);
   setBoxSublabel(s.refs.pvc, pvcState);
@@ -281,7 +287,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A claim asks for a disk from a StorageClass whose volumeBindingMode is Immediate. There are two zones, each a node with its own zonal disk. A zonal disk can only ever be attached to a node in its own zone, and that single fact is the whole story here.',
+    narration: 'A claim asks for a disk from a StorageClass whose volumeBindingMode is Immediate. There are two zones, each a node that gets its own zonal disk on the shelf below. A zonal disk can only ever be attached to a node in its own zone, and that single fact is the whole story here.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -292,10 +298,10 @@ const STEPS = [
   },
   {
     id: 'imm-provision',
-    // 4400, not 3600: the provisioning route wraps the outer margin and runs the full width of the
-    // shelf bus before rising into zone-a, which anim-dump puts at a 3960ms span.
+    // 4400, not 3600: the provisioning route wraps the outer margin and runs the shelf midline into
+    // the zone-a disk from the right, which anim-dump puts at a 3960ms span (ball plus its ripple).
     duration: 4400,
-    narration: 'With Immediate the volume is provisioned the moment the claim appears, long before any Pod is scheduled. The provisioner has no Pod to guide it, so it just picks a zone. Here it lands in zone-a, and the claim is Bound to a disk that now physically lives on node-1.',
+    narration: 'With Immediate the volume is provisioned the moment the claim appears, long before any Pod is scheduled. The provisioner has no Pod to guide it, so it just picks a zone. Here it lands in zone-a, and the claim is Bound to a disk that now physically lives in zone-a, reachable only by node-1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -303,34 +309,37 @@ const STEPS = [
       setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'Pending', zones: 'disk in zone-a' });
       setStage(s, { diskA: 1, pvcState: 'Bound', lanes: ['wProvA'] });
       // The class is where the ball departs from, so it is lit at step entry. The disk is the receiver
-      // and earns its highlight on arrival.
+      // and earns its highlight only once the CreateVolume ball reaches it, not before.
       s.refs.sc.classList.add('highlight');
-      s.refs.diskA.classList.add('highlight');
       setWire(s, 'za', 'provisioned here');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.diskA.classList.add('highlight'); return; }
       setStage(s, { diskA: PLACEHOLDER, pvcState: 'Bound', lanes: ['wProvA'] });
       const pts = wProv(0);
       const prov = routePacket(s, ctx, pts, { delay: BEAT.lead, cat: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', pts, { delay: BEAT.lead });
+      // lightBoxAt is registered before revealAt so the reveal fade owns the disk opacity, and the
+      // highlight class lands exactly on the ball's arrival.
+      lightBoxAt(s.refs.diskA, ctx, prov.arrivalMs);
       revealAt(s.refs.diskA, ctx, prov.arrivalMs, PLACEHOLDER);
     },
   },
   {
     id: 'imm-schedule',
     duration: 3000,
-    narration: 'Only now does the scheduler place the Pod, and it knows nothing about where the disk went. Free capacity, taints and affinity push it onto node-2 in zone-b. The Pod and its disk are now in different zones, and neither component ever agreed to check.',
+    narration: 'Only now is the Pod created, and the scheduler must place it around a disk that already lives in zone-a. This Pod fits node-2 in zone-b on capacity and affinity, but a zone-a disk cannot attach to a node in zone-b. The scheduler does read volume topology, so it rejects node-2, while node-1 in zone-a has no room for the Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'node-2 zone-b', zones: 'disk a, Pod b' });
-      setStage(s, { diskA: 1, podOn: POD_DIM, pvcState: 'Bound' });
+      setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'Pending', zones: 'no node fits' });
+      // node-1 is filtered out (no room), node-2 is reachable but wrong zone for the disk. The Pod is
+      // admitted to neither, so it stays a Pending Pod hovering at node-2, the only node it fits on cpu.
+      setStage(s, { diskA: 1, podOn: POD_DIM, cross: 1, nodeA: NODE_FILTERED, pvcState: 'Bound' });
       s.refs.diskA.classList.add('highlight');
-      s.refs.nodeB.classList.add('highlight');
-      setWire(s, 'za', 'disk is here');
-      setWire(s, 'zb', 'Pod is here');
+      setWire(s, 'za', 'disk in zone-a');
+      setWire(s, 'fail', 'wrong zone for this disk');
       if (ctx.reduced) return;
-      // The Pod is placed, not yet running, so it arrives at its dim resting opacity.
+      // The Pod is created but never admitted, so it arrives at its dim Pending opacity.
       s.refs.podB.style.opacity = '0';
       ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: POD_DIM }], { duration: FADE.in, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-out' }));
     },
@@ -338,18 +347,20 @@ const STEPS = [
   {
     id: 'imm-fail',
     duration: 3200,
-    narration: 'The Pod on node-2 needs its disk, but the disk is in zone-a and cannot be attached across the zone boundary. There is no fix from here: the Pod sits in ContainerCreating forever, and the disk sits stranded in the wrong zone. This is the single most common multi-zone storage bug.',
+    narration: 'No node satisfies both the Pod and its zone-a disk, so the Pod is never scheduled at all. It stays Pending forever with the event node(s) had volume node affinity conflict, the disk healthy but unreachable in zone-a. This is the single most common multi-zone storage bug, and its one-line fix is next.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'stuck forever', zones: 'zone mismatch' });
-      setStage(s, { diskA: 1, podOn: POD_DIM, cross: 1, pvcState: 'Bound' });
+      setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'unschedulable', zones: 'affinity conflict' });
+      setStage(s, { diskA: 1, podOn: POD_DIM, cross: 1, nodeA: NODE_FILTERED, pvcState: 'Bound' });
       s.refs.diskA.classList.add('highlight');
-      setWire(s, 'fail', 'cannot attach across zones');
+      setWire(s, 'za', 'healthy but stranded');
+      setWire(s, 'fail', 'volume node affinity conflict');
       if (ctx.reduced) return;
-      // The Pod is the actor, trying and failing to mount, so it blinks. It never went Ready, so it
-      // stays dim and needs the dim variant with an opacity lift or the blink is invisible.
+      // The scheduler keeps re-queuing the Pending Pod and rejecting it, so the Pod blinks. It never
+      // went Ready, so it stays dim and needs the dim variant with an opacity lift or the blink is
+      // invisible against the 0.55 it sits at.
       pulsePodDim(s.refs.podB, ctx, BEAT.lead, { from: POD_DIM, peak: 0.95 });
     },
   },
@@ -386,13 +397,14 @@ const STEPS = [
       setStage(s, { diskB: 1, podOn: 1, mode: 'WaitForFirstConsumer', pvcState: 'Bound', lanes: ['wProvB', 'wMountB'] });
       s.refs.sc.classList.add('highlight');
       s.refs.nodeB.classList.add('highlight');
-      s.refs.diskB.classList.add('highlight');
       setWire(s, 'zb', 'provisioned in topology');
-      if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.diskB.classList.add('highlight'); s.refs.podBox.classList.add('highlight'); return; }
       setStage(s, { diskB: PLACEHOLDER, podOn: POD_DIM, mode: 'WaitForFirstConsumer', pvcState: 'Bound', lanes: ['wProvB', 'wMountB'] });
       const provPts = wProv(1);
       const prov = routePacket(s, ctx, provPts, { delay: BEAT.lead, cat: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', provPts, { delay: BEAT.lead });
+      // The disk earns its highlight on the ball's arrival, not at step entry.
+      lightBoxAt(s.refs.diskB, ctx, prov.arrivalMs);
       revealAt(s.refs.diskB, ctx, prov.arrivalMs, PLACEHOLDER);
       // Down-arrow into the Pod, so the ball leads and the pulse lands on its arrival.
       const mountAt = prov.arrivalMs + LAND_MS + BEAT.afterHop;

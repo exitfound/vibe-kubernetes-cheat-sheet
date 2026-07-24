@@ -32,17 +32,9 @@
   --workloads-glow:   rgba(75, 168, 255, 0.13);
   --workloads-border: rgba(55, 158, 255, 0.28);
 
-  --scaling-color:    #ffa04d;
-  --scaling-glow:     rgba(255, 160, 77, 0.13);
-  --scaling-border:   rgba(255, 160, 77, 0.28);
-
   --control-color:    #7d86ff;
   --control-glow:     rgba(125, 134, 255, 0.13);
   --control-border:   rgba(125, 134, 255, 0.28);
-
-  --security-color:   #ff5757;
-  --security-glow:    rgba(255, 87, 87, 0.13);
-  --security-border:  rgba(255, 87, 87, 0.28);
 
   /* Diagram-specific tokens */
   --diag-stroke:       #b3a8e0;
