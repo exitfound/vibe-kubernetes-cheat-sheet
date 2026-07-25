@@ -1,6 +1,8 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, flashChips, FADE, BEAT } from '../lib/control-kit.js';
+import { valChip, setVal, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, flashChips, FADE, BEAT } from '../lib/cluster-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#cluster-node-drain
+
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -17,22 +19,22 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubectl   = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl',   sublabel: 'drain Node-1',    cat: 'control' });
-    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'eviction gateway', cat: 'control' });
+    const kubectl   = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl',   sublabel: 'drain Node-1',    role: 'cluster' });
+    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'eviction gateway', role: 'cluster' });
 
     // Top-row arrows: kubectl → apiserver (request) at y=65, apiserver → kubectl (response) at y=95.
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     // Wire label centred in the 40px gap below the top row.
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
     // State chips column on the right. 350 wide, 4 rows at y=40,82,124,166.
-    const cordonChip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'spec.unschedulable',     value: 'false' });
-    const pdbChip     = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'web-pdb · minAvailable', value: '1' });
-    const healthyChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'currentHealthy',         value: '2 of 2' });
-    const lastChip    = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'last eviction',          value: '—' });
+    const cordonChip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'spec.unschedulable',     value: 'false', role: 'cluster' });
+    const pdbChip     = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'web-pdb · minAvailable', value: '1', role: 'cluster' });
+    const healthyChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'currentHealthy',         value: '2 of 2', role: 'cluster' });
+    const lastChip    = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'last eviction',          value: 'none', role: 'cluster' });
     [cordonChip, pdbChip, healthyChip, lastChip].forEach(c => root.appendChild(c));
 
     // Pipeline chain on the left, 5 stages of the drain sequence.
@@ -45,7 +47,7 @@ class Scene {
         '4. PDB gate ·  Api checks minAvailable, 200 or 429',
         '5. drained  ·  app Pods gone, DaemonSet stays',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // Bottom: Node-1 with 3 Pods: web-1, web-2 (Deployment), fluentd (DaemonSet).
@@ -56,12 +58,12 @@ class Scene {
     const POD_XS    = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
       shell.style.setProperty('--workloads-color', '#c0b0ff');
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 30, y: 525, w: 156, h: 52, label: POD_NAMES[i], sublabel: POD_OWNER[i], cat: 'workloads' });
+      const innerBox = box({ x: px + 30, y: 525, w: 156, h: 52, label: POD_NAMES[i], sublabel: POD_OWNER[i], role: 'workloads' });
       innerBox.style.setProperty('--workloads-color', '#c0b0ff');
 
       const wrap = g({ id: `pod${i + 1}` });
@@ -75,7 +77,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -128,7 +130,7 @@ const STEPS = [
       setVal(s.refs.cordonChip, 'false');
       setVal(s.refs.pdbChip, '1');
       setVal(s.refs.healthyChip, '2 of 2');
-      setVal(s.refs.lastChip, '—');
+      setVal(s.refs.lastChip, 'none');
       setChainActive(s.refs.chain, -1);
     },
   },
@@ -150,7 +152,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // kubectl, apiserver and cordonChip are all newly highlighted here, so the
       // Timeline auto-delta already pulses them. The PATCH rides the top hop.
-      topPacket(s, ctx);
+      topPacket(s, ctx, { role: 'cluster' });
     },
   },
   {
@@ -167,10 +169,7 @@ const STEPS = [
       s.refs.apiserver.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      // Listing is a read against Api: only the kubectl <-> apiserver hop
-      // moves. No packet reaches the node, so no Pod reacts (the bucketing is
-      // shown by the chain advancing, not by blinking a Pod the GET never touches).
-      topPacket(s, ctx);
+      topPacket(s, ctx, { role: 'cluster' });
     },
   },
   {
@@ -198,8 +197,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       // Top packet: kubectl → apiserver (POST eviction), then the delete flows
       // down the connector. The Pod reacts only when the ball reaches the node.
-      const req = topPacket(s, ctx);
-      const evict = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'cluster' });
+      const evict = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
       ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
@@ -228,11 +227,11 @@ const STEPS = [
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
       // First attempt: blocked. Top packet out, 429 response back, no connector follow-up.
-      const attempt = topPacket(s, ctx);
-      const denied = topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: attempt.arrivalMs + BEAT.afterHop });
+      const attempt = topPacket(s, ctx, { role: 'cluster' });
+      const denied = topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: attempt.arrivalMs + BEAT.afterHop, role: 'cluster' });
       // Retry: kubectl → apiserver → connector → the Pod reacts on arrival.
-      const retry = topPacket(s, ctx, { delay: denied.arrivalMs + BEAT.afterHop });
-      const evict = connectorPacket(s, ctx, { delay: retry.arrivalMs + BEAT.afterHop });
+      const retry = topPacket(s, ctx, { delay: denied.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      const evict = connectorPacket(s, ctx, { delay: retry.arrivalMs + BEAT.afterHop, role: 'cluster' });
       pulsePod(s.refs.pod2, ctx, evict.arrivalMs);
       ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },

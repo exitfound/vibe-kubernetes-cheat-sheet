@@ -1,28 +1,9 @@
 import { svg, g, text, line } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-ingress-routing
 
-// Ingress controller routing (viewBox 1200x640). External LB -> controller Pod -> matched Service
-// -> backend Pod, left to right. The card runs BOTH rules: the / request is proxied to Service web,
-// then a second /api request is proxied to Service api, so each branch carries real traffic.
-// Standard contract: controller and backends are shell + inner box; only Pods pulse; value chips
-// never flash; packets ride the wires and stop at block edges.
-//
-// GEOMETRY. Every wire below is derived from a block edge, never hand-typed, so a block and the
-// packet that rides to it can never drift apart. The Ingress Controller Pod is a standard podBlock
-// (POD_W x POD_H, the same shell used by the web and api backends) rather than an oversized box.
-//
-// Vertical: everything hangs off FLOW_Y, the midpoint between the rules panel bottom (RULE_BOTTOM)
-// and the chip strip top (CHIP_Y). The web and api branches are exact mirrors at FLOW_Y -/+ ROW_DY,
-// so each fan leg, Service and backend Pod share one row.
-//
-// Horizontal: the rules panel is centred ON THE CONTROLLER (RULE_CX == CTRL_CX), since the rules are
-// what that Pod watches, and the ownership wire rises straight up from the controller top centre.
-// The narration overlay really covers user-space x 0..399, y 0..190, and the panel lives at y<190,
-// so it must start past 399. Centring a panel on the controller therefore FORCES the controller
-// rightward: at CTRL_CX 485 the widest overlay-clearing centred panel is 150, and the rule chips
-// need 234. CTRL_CX 545 admits a 260-wide panel (415..675) with 16 to spare. The four columns then
-// span LB_X..POD_RIGHT = 40..1160, so the scheme still centres in the 1200-wide viewBox.
+
 const FLOW_Y = 343;                  // (RULE_BOTTOM + CHIP_Y) / 2, the spine of the left-to-right flow
 const ROW_DY = 70;                   // web branch sits this far above FLOW_Y, api the same below
 const WEB_Y = FLOW_Y - ROW_DY;       // 273
@@ -58,10 +39,10 @@ const API_HOP = [[SVC_RIGHT, API_Y], [POD_X, API_Y]];
 const DIM = '0.45';
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -84,44 +65,33 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const ruleTitle = text({ class: 'scheme-label code dim', x: RULE_CX, y: 56, 'text-anchor': 'middle', 'font-size': 11 }, ['Ingress "shop" · ingressClassName nginx']);
-    const ruleA = valChip({ x: RULE_X, y: 66,  w: RULE_W, h: 36, name: 'shop.io/', value: '-> Service web:80', cat: 'network' });
-    const ruleB = valChip({ x: RULE_X, y: 110, w: RULE_W, h: 36, name: 'shop.io/api', value: '-> Service api:80', cat: 'network' });
+    const ruleA = valChip({ x: RULE_X, y: 66,  w: RULE_W, h: 36, name: 'shop.io/', value: '-> Service web:80', role: 'network' });
+    const ruleB = valChip({ x: RULE_X, y: 110, w: RULE_W, h: 36, name: 'shop.io/api', value: '-> Service api:80', role: 'network' });
 
     // Every block is centred on its own row: extLB and the controller on FLOW_Y, each Service on the
     // same row as the backend Pod it fronts, so no wire ever meets a block off-centre.
-    const extLB = box({ x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'external LB', sublabel: 'or NodePort', cat: 'network' });
+    const extLB = box({ x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'external LB', sublabel: 'or NodePort', role: 'network' });
     const ctrl  = podBlock({ x: CTRL_X, y: CTRL_TOP, w: CTRL_W, h: CTRL_H, label: 'Ingress Controller Pod', ip: 'watches Ingress' });
 
-    const svcWeb = box({ x: SVC_X, y: WEB_Y - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: '', cat: 'network' });
-    const svcApi = box({ x: SVC_X, y: API_Y - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service api', sublabel: '', cat: 'network' });
+    const svcWeb = box({ x: SVC_X, y: WEB_Y - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: '', role: 'network' });
+    const svcApi = box({ x: SVC_X, y: API_Y - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service api', sublabel: '', role: 'network' });
     const podWeb = podBlock({ x: POD_X, y: WEB_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.5' });
     const podApi = podBlock({ x: POD_X, y: API_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod api', ip: '10.244.2.7' });
 
-    const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, color: 'network' });
-    // Ownership marker, NOT a traffic path: the controller watches these rules. No packet ever travels
-    // it, so it is a plain dashed line with NO arrowhead, to read as an association rather than a wire
-    // missing its ball. It rises from the controller top centre into the panel centre, so the two read
-    // as one column.
+    const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, role: 'network' });
     const rulesWire = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: CTRL_CX, y1: CTRL_TOP, x2: CTRL_CX, y2: RULE_BOTTOM, 'stroke-dasharray': '5 5', fill: 'none' });
-    const fanWeb = pathArrow({ points: TO_WEB, dashed: true, dim: true, color: 'network' });
-    const fanApi = pathArrow({ points: TO_API, dashed: true, dim: true, color: 'network' });
-    const podWebWire = arrow({ x1: WEB_HOP[0][0], y1: WEB_HOP[0][1], x2: WEB_HOP[1][0], y2: WEB_HOP[1][1], dashed: true, dim: true, color: 'network' });
-    const podApiWire = arrow({ x1: API_HOP[0][0], y1: API_HOP[0][1], x2: API_HOP[1][0], y2: API_HOP[1][1], dashed: true, dim: true, color: 'network' });
+    const fanWeb = pathArrow({ points: TO_WEB, dashed: true, dim: true, role: 'network' });
+    const fanApi = pathArrow({ points: TO_API, dashed: true, dim: true, role: 'network' });
+    const podWebWire = arrow({ x1: WEB_HOP[0][0], y1: WEB_HOP[0][1], x2: WEB_HOP[1][0], y2: WEB_HOP[1][1], dashed: true, dim: true, role: 'network' });
+    const podApiWire = arrow({ x1: API_HOP[0][0], y1: API_HOP[0][1], x2: API_HOP[1][0], y2: API_HOP[1][1], dashed: true, dim: true, role: 'network' });
 
-    // Three wire labels: the request line rides above the entry hop, and each branch carries the proxy
-    // target the controller chose. The branch labels sit clear of the Service box they name (above the
-    // web one, below the api one, mirrored) rather than in the FAN_X..SVC_X gap, which is only 40 wide
-    // and would put the text straight through the Service border. Blank at build, filled per step.
     const entryLabel = text({ class: 'scheme-label code dim', x: (LB_RIGHT + CTRL_X) / 2, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const webLabel = text({ class: 'scheme-label code dim', x: SVC_X + SVC_W / 2, y: WEB_Y - SVC_H / 2 - 10, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const apiLabel = text({ class: 'scheme-label code dim', x: SVC_X + SVC_W / 2, y: API_Y + SVC_H / 2 + 18, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    // The three chips span the scheme 1:1, from the extLB left edge to the backend Pod right edge,
-    // with even 20px gaps. Widths are tuned to their content (TLS carries the longest value).
-    // Host and path are properties of the REQUEST being served, so they read none until one arrives.
-    const hostChip = valChip({ x: LB_X, y: CHIP_Y, w: 310, h: 34, name: 'Host', value: 'none', cat: 'network' });
-    const pathChip = valChip({ x: 370,  y: CHIP_Y, w: 290, h: 34, name: 'path', value: 'none', cat: 'network' });
-    const tlsChip  = valChip({ x: 680,  y: CHIP_Y, w: POD_RIGHT - 680, h: 34, name: 'TLS', value: 'terminated at controller', cat: 'network' });
+    const hostChip = valChip({ x: LB_X, y: CHIP_Y, w: 310, h: 34, name: 'Host', value: 'none', role: 'network' });
+    const pathChip = valChip({ x: 370,  y: CHIP_Y, w: 290, h: 34, name: 'path', value: 'none', role: 'network' });
+    const tlsChip  = valChip({ x: 680,  y: CHIP_Y, w: POD_RIGHT - 680, h: 34, name: 'TLS', value: 'terminated at controller', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -148,10 +118,6 @@ class Scene {
 }
 
 function clearHL(s) {
-  // The inner app boxes (ctrlBox/podWebBox/podApiBox) are listed so their .highlight is cleared every
-  // step: clearPodHighlight only resets inline strokes, so without them a highlight set in a
-  // reduced-replay block leaks into later steps, since reduced replay never runs the forward motion
-  // path that would otherwise re-clear them.
   clearHighlights(s, ['extLB', 'ruleA', 'ruleB', 'svcWeb', 'svcApi', 'hostChip', 'pathChip', 'tlsChip', 'ctrlBox', 'podWebBox', 'podApiBox'], [s.refs.ctrl, s.refs.podWeb, s.refs.podApi]);
   // Both branches back to full: each step re-dims the one it is not using, so a dim never leaks.
   ['svcWeb', 'podWeb', 'svcApi', 'podApi'].forEach(k => { s.refs[k].style.opacity = '1'; });
@@ -205,16 +171,13 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setWire(s, 'w', 'GET shop.io/');
-      // The request is now on the wire, so its Host and path are known. They are not highlighted yet:
-      // the controller reads them in the next step, this one only terminates TLS. No rule has matched,
-      // so both branches stay neutral.
       setVal(s.refs.hostChip, 'shop.io');
       setVal(s.refs.pathChip, '/');
       s.refs.extLB.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); return; }
       // Down-arrow: the request arrives at the controller (one hop), which pulses on arrival.
-      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], cat: 'network' });
+      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], role: 'network' });
       pulsePod(s.refs.ctrl, ctx, inb.arrivalMs);
     },
   },
@@ -237,12 +200,9 @@ const STEPS = [
       setVal(s.refs.hostChip, 'shop.io');
       setVal(s.refs.pathChip, '/');
       if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); s.refs.podWebBox.classList.add('highlight'); return; }
-      // Up-arrow, the controller is the sender: it pulses FIRST as it matches the rule, and only then
-      // does the proxied request leave, at BEAT.afterPulse. The ball rides the right-angle fan to
-      // Service web and hops on to the backend Pod, which pulses on arrival.
       pulsePod(s.refs.ctrl, ctx, 0);
-      const toSvc = routePacket(s, ctx, TO_WEB, { delay: BEAT.afterPulse, cat: 'network' });
-      const toPod = segmentPacket(s, ctx, { from: WEB_HOP[0], to: WEB_HOP[1], delay: toSvc.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const toSvc = routePacket(s, ctx, TO_WEB, { delay: BEAT.afterPulse, role: 'network' });
+      const toPod = segmentPacket(s, ctx, { from: WEB_HOP[0], to: WEB_HOP[1], delay: toSvc.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podWeb, ctx, toPod.arrivalMs);
     },
   },
@@ -264,7 +224,7 @@ const STEPS = [
       s.refs.tlsChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); return; }
       // Down-arrow: the request arrives at the controller (one hop), which pulses on arrival.
-      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], cat: 'network' });
+      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], role: 'network' });
       pulsePod(s.refs.ctrl, ctx, inb.arrivalMs);
     },
   },
@@ -291,8 +251,8 @@ const STEPS = [
       // Exact mirror of match-proxy on the lower fan: the controller pulses first as the sender, the
       // ball leaves at BEAT.afterPulse, and the api backend Pod pulses on arrival.
       pulsePod(s.refs.ctrl, ctx, 0);
-      const toSvc = routePacket(s, ctx, TO_API, { delay: BEAT.afterPulse, cat: 'network' });
-      const toPod = segmentPacket(s, ctx, { from: API_HOP[0], to: API_HOP[1], delay: toSvc.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const toSvc = routePacket(s, ctx, TO_API, { delay: BEAT.afterPulse, role: 'network' });
+      const toPod = segmentPacket(s, ctx, { from: API_HOP[0], to: API_HOP[1], delay: toSvc.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podApi, ctx, toPod.arrivalMs);
     },
   },

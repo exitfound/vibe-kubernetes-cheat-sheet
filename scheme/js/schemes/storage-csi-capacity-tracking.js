@@ -1,47 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
-import {
-  valChip, setVal, setBoxSublabel, pulsePod, pulsePodDim, routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, setWire, BEAT, FADE,
-} from '../lib/storage-kit.js';
+import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#storage-csi-capacity-tracking
 
-// CSI Storage Capacity. With local or topology-constrained storage the scheduler can pick a node whose
-// storage pool is already full. Provisioning of the volume then fails there, and because the Pod cannot
-// bind until its volume does, it never schedules and stays Pending forever. CSIStorageCapacity objects,
-// published by the driver per topology segment, let the scheduler SEE the free capacity and filter out
-// the nodes that cannot fit the claim before it commits.
-//
-// ---- Horizontal composition ----
-// Two nodes mirrored about the canvas centre: NODE_CX = [CX - SPREAD, CX + SPREAD] with CX = 600,
-// derived from the node width and gap rather than typed. Each frame HOLDS its capacity object and its
-// pool, so the frames carry content instead of framing empty canvas. Content spans 195..1005, margins
-// 195 a side. The earlier pass ran 400..1150, centre 775.
-//
-// The scheduler and the pending Pod stack on the centre line above the nodes, because there is one
-// scheduler and one Pod and the whole question is which of the two symmetric nodes they pick.
-//
-// ---- Narration overlay ----
-// Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
-//   1920x900  right 102  bottom 183
-//   1600x1000 right 291  bottom 143
-//   1280x900  right 378  bottom 173
-//   1100x900  right 397  bottom 149
-// Worst case x <= 397 and y <= 183. The scheduler (y 36) and the Pod (y 136) both sit inside that y
-// band, so both start at x >= 400. Everything from the node row down (y >= 300) clears the overlay
-// entirely. A longer narration than the ones below would invalidate this measurement.
-//
-// PULSE MODEL: only the Pod pulses, and it is a wrapping g. The scheduler, the node frames, the
-// capacity objects and the pools are infrastructure: they light via .highlight on packet arrival and
-// never pulse. On the failure step the Pod never went Ready, so it takes pulsePodDim with an opacity
-// lift or the blink is invisible against the dim it sits at.
-//
-// WIRES: the card has ZERO wire crossings. Each capacity read leaves the node frame through its TOP
-// edge at the node centre, rises straight up and enters the scheduler through the side midpoint facing
-// it. The read and the bind lane never appear in the same step, so sharing the node-centre column is
-// fine, and the reads clear the Pod on the centre line, so the two are exact mirrors that cross nothing. The publish lane rises from the pool to the
-// object on the column axis (offset by LANE so it meets the object beside its Bound centre rather than
-// on it), while the provision lane drops down the inner margin at PROV_INSET, outboard of the capacity
-// object, and enters the pool through its side face, so the two never share a segment.
+
 const CX = 600;
 
 const SCHED_X = 400, SCHED_Y = 36, SCHED_W = 400, SCHED_H = 68;
@@ -57,16 +19,6 @@ const SPREAD = (NODE_W + NODE_GAP) / 2;                                      // 
 const NODE_CX = [CX - SPREAD, CX + SPREAD];                                  // 330 / 870
 const NODE_X = NODE_CX.map(cx => cx - NODE_W / 2);                           // 150 / 690
 
-// The pool and the capacity object both live INSIDE their node frame, the pool above and the object
-// below it. An earlier pass hung the pools outside and below the frames, which left each frame a
-// mostly empty 400 by 180 box with one small block floating at its bottom, and the emptiness read as
-// a missing element rather than as a boundary.
-//
-// The pool sits ABOVE the object rather than below it so that BOTH lanes inside a node can run down
-// the column centre line: bind arrives at the node top, provisioning drops straight into the pool,
-// and the pool publishes straight down into the object. With the object on top, provisioning had to
-// detour around it and met the node frame 170 units off its edge midpoint, which reads as a lane
-// stopping at a random point on an edge rather than as an arrival.
 const POOL_W = 168, POOL_H = 84, POOL_Y = 336;
 const POOL_TOP = POOL_Y, POOL_BOTTOM = POOL_Y + POOL_H;                      // 336 / 420
 
@@ -79,9 +31,6 @@ const CHIPS_Y = 588;
 // Each static wire and its ball share ONE points array, so they cannot drift apart. Every endpoint is
 // a block edge midpoint.
 const W_DECIDE = [[CX, SCHED_BOTTOM], [CX, POD_Y]];
-// The bind leaves the Pod through its SIDE (left edge for the left node, right edge for the right one),
-// runs out to the node centre line and drops into the node top. So the arrow exits the Pod on the side
-// facing its node rather than from underneath.
 const wBind = (cx) => {
   const side = cx < CX ? POD_X : POD_X + POD_W;
   return [[side, POD_MY], [cx, POD_MY], [cx, NODE_TOP]];
@@ -94,17 +43,6 @@ function wRead(i) {
   const topX = NODE_CX[i];
   const schedEdge = i === 0 ? SCHED_LEFT : SCHED_RIGHT;
   return [[topX, NODE_TOP], [topX, SCHED_MY], [schedEdge, SCHED_MY]];
-}
-
-// Lights an infrastructure block ON PACKET ARRIVAL rather than at step entry, via a zero-effect
-// animation whose onfinish sets the class. Under reduced motion it applies immediately so the static
-// end-state stays correct. This is how a box receives a packet without pulsing.
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
 }
 
 // A capacity object materialises when the publish that creates it lands, so no arrowhead is ever
@@ -129,37 +67,22 @@ function dimAt(el, ctx, delay = 0, to = FILTERED) {
   ctx.register(a);
 }
 
-// A tag that rides ALONG with the ball on the same path, timing and easing, so the packet visibly
-// carries what the step narrates. Balls are routePacket (eased), so the label defaults to the same
-// ease-in-out and the same routeDur, or it would drift off the ball mid-flight.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'storage' });
 
-// The wrapping g is not optional. pulsePod finds its targets with querySelectorAll, which matches
-// descendants only and never the element itself, so pulsing a bare pod() would catch its
-// .scheme-pod-rect child but not the group, and the pulse would silently fire at half strength.
 function podBlock() {
   const cy = POD_Y + POD_H / 2;
-  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'needs 20Gi', containers: 0, cat: 'storage' });
+  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'needs 20Gi', containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: POD_X + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'local disk', cat: 'storage' });
+  const innerBox = box({ x: POD_X + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'local disk', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
   return { group, innerBox };
 }
 
-const lane = points => pathArrow({ points, dashed: true, dim: true, color: 'storage' });
+const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'storage' });
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -176,7 +99,7 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const sched = box({ x: SCHED_X, y: SCHED_Y, w: SCHED_W, h: SCHED_H, label: 'Kube-scheduler', sublabel: 'filter and score', cat: 'storage' });
+    const sched = box({ x: SCHED_X, y: SCHED_Y, w: SCHED_W, h: SCHED_H, label: 'Kube-scheduler', sublabel: 'filter and score', role: 'storage' });
     const podB = podBlock();
 
     const nodes = NODE_X.map((x, i) => node({ x, y: NODE_Y, w: NODE_W, h: NODE_H, label: `node-${i + 1}` }));
@@ -184,14 +107,14 @@ class Scene {
     const caps = NODE_CX.map((cx, i) => {
       const b = box({
         x: cx - CAP_W / 2, y: CAP_Y, w: CAP_W, h: CAP_H,
-        label: 'CSIStorageCapacity', sublabel: i === 0 ? 'node-1: 5Gi' : 'node-2: 50Gi', cat: 'storage',
+        label: 'CSIStorageCapacity', sublabel: i === 0 ? 'node-1: 5Gi' : 'node-2: 50Gi', role: 'storage',
       });
       b.style.opacity = '0';   // no capacity object exists until the driver publishes one
       return b;
     });
 
     const pools = NODE_CX.map((cx, i) => {
-      const c = cylinder({ x: cx - POOL_W / 2, y: POOL_Y, w: POOL_W, h: POOL_H, label: i === 0 ? 'Pool 5Gi free' : 'Pool 50Gi free', cat: 'storage' });
+      const c = cylinder({ x: cx - POOL_W / 2, y: POOL_Y, w: POOL_W, h: POOL_H, label: i === 0 ? 'Pool 5Gi free' : 'Pool 50Gi free', role: 'storage' });
       // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
       // is not part of the visible front face. Re-centre on the face, derived from the height.
       const l = c.querySelector('.scheme-cylinder-label');
@@ -208,23 +131,17 @@ class Scene {
 
     const poolLbls = NODE_CX.map(cx => text({ class: 'scheme-label code dim', x: cx, y: CAPTION_Y, 'text-anchor': 'middle' }, [' ']));
 
-    // CHIP_W 232 is the storage family default. Worst case here is 'result' + 'scheduled and mounted'
-    // at 27 characters, and .scheme-chip-text runs 6.89 viewBox units per character, so 27 * 6.89 + 24
-    // of padding is 210 against the 232 available.
     const CHIP_W = 232, CHIP_GAP = 16;
     const CHIPS_W = CHIP_W * 4 + CHIP_GAP * 3;                  // 976
     const CHIPS_X = CX - CHIPS_W / 2;                           // 112, so the strip centres on CX
     const chipX = i => CHIPS_X + i * (CHIP_W + CHIP_GAP);
-    const podChip   = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'Pod',            value: 'Pending',      cat: 'storage' });
-    const needChip  = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'claim',          value: 'needs 20Gi',   cat: 'storage' });
-    const awareChip = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'capacity-aware', value: 'no',           cat: 'storage' });
-    const resChip   = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'result',         value: 'unscheduled',  cat: 'storage' });
+    const podChip   = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'Pod',            value: 'Pending',      role: 'storage' });
+    const needChip  = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'claim',          value: 'needs 20Gi',   role: 'storage' });
+    const awareChip = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'capacity-aware', value: 'no',           role: 'storage' });
+    const resChip   = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'result',         value: 'unscheduled',  role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order (bottom -> top): the node frames, then the scheduler and pools and capacity objects,
-    // then the Pod, then the lanes and their captions, then the chip strip, then the packet layer so
-    // every ball rides above everything.
     [...nodes, sched, ...pools, ...caps, podB.group].forEach(el => root.appendChild(el));
     [wDecide, ...bindWires, ...provWires, ...pubWires, ...readWires, ...poolLbls].forEach(el => root.appendChild(el));
     [podChip, needChip, awareChip, resChip].forEach(c => root.appendChild(c));
@@ -246,9 +163,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-// holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-// always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 function setChip(chip, val) {
   const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
   setVal(chip, val);
@@ -267,16 +181,8 @@ function setChips(s, { pod, need, aware, res }) {
 // The Pod is dim until it actually reaches Running.
 const POD_DIM = 0.55;
 
-// The scheduler-decision walk (decide ball -> Pod pulse -> bind ball) is paced deliberately slower than
-// routeDur would pick, so the beat reads clearly: the ball glides in, the Pod takes its full pulse, and
-// only then does the bind ball leave (it departs BEAT.afterPulse later, after the 900ms blink lands).
-// These explicit durs are why this card sits on the check-canon ALLOW_EXPLICIT_DUR list. READ_DUR
-// likewise slows the capacity-read balls up from the node tops so the reported numbers read calmly.
 const DECIDE_DUR = 850, BIND_DUR = 1000, READ_DUR = 1000;
 
-// Pins the visibility of EVERY element born or dimmed mid-story, and of every lane, exactly as
-// setChips pins every chip. A lane into an object that does not exist points at nothing, so lanes are
-// pinned to 0 rather than left at whatever the previous step set.
 function setStage(s, { caps = [0, 0], nodes = [1, 1], pools = [1, 1], lanes = [] } = {}) {
   s.refs.cap1.style.opacity = String(caps[0]);
   s.refs.cap2.style.opacity = String(caps[1]);
@@ -322,15 +228,12 @@ const STEPS = [
       // leave an unlit block or it reads as coming from nowhere. node-1 is the receiver.
       s.refs.sched.classList.add('highlight');
       if (ctx.reduced) { s.refs.node1.classList.add('highlight'); return; }
-      const decide = routePacket(s, ctx, W_DECIDE, { delay: BEAT.lead, dur: DECIDE_DUR, cat: 'storage' });
-      // The scheduler's decision lands ON the Pod (down-arrow), so the Pod takes its full pulse on
-      // arrival. It is only being scheduled, not Running, so it stays dim and needs the dim variant with
-      // an opacity lift or the blink is invisible against the 0.55 it sits at.
+      const decide = routePacket(s, ctx, W_DECIDE, { delay: BEAT.lead, dur: DECIDE_DUR, role: 'storage' });
       pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: POD_DIM, peak: 0.9 });
       // The bind ball leaves only AFTER that pulse has played out (BEAT.afterPulse), never mid-blink.
       const pts = wBind(NODE_CX[0]);
       const bindAt = decide.arrivalMs + BEAT.afterPulse;
-      const bind = routePacket(s, ctx, pts, { delay: bindAt, dur: BIND_DUR, cat: 'storage' });
+      const bind = routePacket(s, ctx, pts, { delay: bindAt, dur: BIND_DUR, role: 'storage' });
       // The tag rides the BIND hop, and shares its dur so it stays locked to the ball.
       ridingLabel(s, ctx, 'assign app-0 to node-1', pts, { delay: bindAt, dur: BIND_DUR });
       lightBoxAt(s.refs.node1, ctx, bind.arrivalMs);
@@ -351,7 +254,7 @@ const STEPS = [
       setWire(s, 'n1', '5Gi against 20Gi');
       if (ctx.reduced) { s.refs.pool1.classList.add('highlight'); return; }
       const pts = wProv(NODE_CX[0]);
-      const prov = routePacket(s, ctx, pts, { delay: BEAT.lead, cat: 'storage' });
+      const prov = routePacket(s, ctx, pts, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'provision fails', pts, { delay: BEAT.lead });
       lightBoxAt(s.refs.pool1, ctx, prov.arrivalMs);
       // The Pod never went Ready, so it stays dim and needs the dim variant with an opacity lift or
@@ -378,7 +281,7 @@ const STEPS = [
       // Both drivers publish independently and simultaneously, so the two balls leave on one beat.
       [0, 1].forEach(i => {
         const pts = wPub(NODE_CX[i]);
-        const pub = routePacket(s, ctx, pts, { delay: BEAT.lead, cat: 'storage' });
+        const pub = routePacket(s, ctx, pts, { delay: BEAT.lead, role: 'storage' });
         ridingLabel(s, ctx, i === 0 ? '5Gi free' : '50Gi free', pts, { delay: BEAT.lead });
         revealAt(s.refs[`cap${i + 1}`], ctx, pub.arrivalMs);
         lightBoxAt(s.refs[`cap${i + 1}`], ctx, pub.arrivalMs);
@@ -406,7 +309,7 @@ const STEPS = [
       // subtree dims on its read arrival and cap1 loses its glow (dimAt clears the highlight on finish).
       setStage(s, { caps: [1, 1], nodes: [1, 1], pools: [1, 1], lanes: ['read1', 'read2'] });
       s.refs.cap1.classList.add('highlight');
-      const reads = [0, 1].map(i => routePacket(s, ctx, wRead(i), { delay: BEAT.lead, dur: READ_DUR, cat: 'storage' }));
+      const reads = [0, 1].map(i => routePacket(s, ctx, wRead(i), { delay: BEAT.lead, dur: READ_DUR, role: 'storage' }));
       ridingLabel(s, ctx, 'only 5Gi', wRead(0), { delay: BEAT.lead, dur: READ_DUR });
       ridingLabel(s, ctx, '50Gi free', wRead(1), { delay: BEAT.lead, dur: READ_DUR });
       lightBoxAt(s.refs.sched, ctx, Math.max(reads[0].arrivalMs, reads[1].arrivalMs));
@@ -431,17 +334,17 @@ const STEPS = [
       s.refs.podB.style.opacity = '1';
       if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); s.refs.pool2.classList.add('highlight'); return; }
       s.refs.podB.style.opacity = String(POD_DIM);
-      const decide = routePacket(s, ctx, W_DECIDE, { delay: BEAT.lead, dur: DECIDE_DUR, cat: 'storage' });
+      const decide = routePacket(s, ctx, W_DECIDE, { delay: BEAT.lead, dur: DECIDE_DUR, role: 'storage' });
       // Same scheduling beat as step 1: the decision lands on the Pod, the Pod takes its full pulse (dim,
       // since it is only scheduled here), and the bind ball leaves only after the pulse plays out.
       pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: POD_DIM, peak: 0.9 });
       const bindAt = decide.arrivalMs + BEAT.afterPulse;
       const bindPts = wBind(NODE_CX[1]);
-      const bind = routePacket(s, ctx, bindPts, { delay: bindAt, dur: BIND_DUR, cat: 'storage' });
+      const bind = routePacket(s, ctx, bindPts, { delay: bindAt, dur: BIND_DUR, role: 'storage' });
       ridingLabel(s, ctx, 'assign app-0 to node-2', bindPts, { delay: bindAt, dur: BIND_DUR });
       const provPts = wProv(NODE_CX[1]);
       const provAt = bind.arrivalMs + BEAT.afterHop;
-      const prov = routePacket(s, ctx, provPts, { delay: provAt, cat: 'storage' });
+      const prov = routePacket(s, ctx, provPts, { delay: provAt, role: 'storage' });
       ridingLabel(s, ctx, 'provision ok', provPts, { delay: provAt });
       lightBoxAt(s.refs.pool2, ctx, prov.arrivalMs);
       ctx.register(s.refs.podB.animate([{ opacity: POD_DIM }, { opacity: 1 }], { duration: FADE.in, delay: prov.arrivalMs, fill: 'forwards', easing: 'ease-out' }));

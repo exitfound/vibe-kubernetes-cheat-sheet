@@ -1,23 +1,14 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-nodeport-loadbalancer
 
-// NodePort and LoadBalancer (viewBox 1200x640). External client sits above the LB (top-left is the
-// narration zone), the LB fans down to every Node through a right-angle bus, and the chosen Node
-// DNATs to a backing Pod. Standard contract: Pods are shell + inner box; only Pods pulse; value
-// chips never flash; a packet-less pod-less step gets one box flash. Packets stop at block edges.
+
 const FAN_BUS_Y = 286;
 const TO_N1 = [[600, 230], [600, FAN_BUS_Y], [230, FAN_BUS_Y], [230, 320]];
 const TO_N2 = [[600, 230], [600, 320]];
 const TO_N3 = [[600, 230], [600, FAN_BUS_Y], [970, FAN_BUS_Y], [970, 320]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
 function flashBox(s, ctx, key) {
   if (ctx.reduced) return;
   const el = s.refs[key];
@@ -27,31 +18,13 @@ function flashBox(s, ctx, key) {
     { duration: 600, easing: 'ease-out' }
   ));
 }
-// A small label that rides ALONG with the ball on the same path, timing and easing, so the
-// destination address travels with the packet instead of sitting inline. Lives in the packet layer
-// but is not a .scheme-packet, so the tools do not count it as a packet. dur omitted => routeDur.
-// It is pre-positioned at the path start and fades in FROM there (not the SVG origin) and fades out
-// on arrival, so a delayed hop emerges cleanly out of the block it leaves and vanishes into the next
-// one instead of ever sliding its text across an intermediate block.
-// emerge delays only the opacity ramp (not the motion): the label keeps riding the ball but stays
-// invisible until it has fully cleared the block it is leaving, so the text never pokes into a block
-// as it exits (the label sits 14px above the ball, so a downward exit needs this lead).
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out', emerge = 0 } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: delay + emerge, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 170, delay: delay + d, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -73,32 +46,32 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = box({ x: 480, y: 36, w: 240, h: 64, label: 'External Client', sublabel: '', cat: 'network' });
-    const lb     = box({ x: 450, y: 150, w: 300, h: 80, label: 'Cloud LoadBalancer', sublabel: 'VIP 203.0.113.7', cat: 'network' });
-    const ccm    = box({ x: 800, y: 152, w: 290, h: 76, label: 'cloud-controller-manager', sublabel: 'provisions the LB', cat: 'network' });
+    const client = box({ x: 480, y: 36, w: 240, h: 64, label: 'External Client', sublabel: '', role: 'network' });
+    const lb     = box({ x: 450, y: 150, w: 300, h: 80, label: 'Cloud LoadBalancer', sublabel: 'VIP 203.0.113.7', role: 'network' });
+    const ccm    = box({ x: 800, y: 152, w: 290, h: 76, label: 'cloud-controller-manager', sublabel: 'provisions the LB', role: 'network' });
 
-    const cWire = arrow({ x1: 600, y1: 100, x2: 600, y2: 150, dashed: true, dim: true, color: 'network' });
-    const provWire = arrow({ x1: 800, y1: 190, x2: 750, y2: 190, dashed: true, dim: true, color: 'network' });
-    const fan1 = pathArrow({ points: TO_N1, dashed: true, dim: true, color: 'network' });
-    const fan2 = pathArrow({ points: TO_N2, dashed: true, dim: true, color: 'network' });
-    const fan3 = pathArrow({ points: TO_N3, dashed: true, dim: true, color: 'network' });
-    const dnatWire = arrow({ x1: 230, y1: 384, x2: 230, y2: 410, dashed: true, dim: true, color: 'network' });
+    const cWire = arrow({ x1: 600, y1: 100, x2: 600, y2: 150, dashed: true, dim: true, role: 'network' });
+    const provWire = arrow({ x1: 800, y1: 190, x2: 750, y2: 190, dashed: true, dim: true, role: 'network' });
+    const fan1 = pathArrow({ points: TO_N1, dashed: true, dim: true, role: 'network' });
+    const fan2 = pathArrow({ points: TO_N2, dashed: true, dim: true, role: 'network' });
+    const fan3 = pathArrow({ points: TO_N3, dashed: true, dim: true, role: 'network' });
+    const dnatWire = arrow({ x1: 230, y1: 384, x2: 230, y2: 410, dashed: true, dim: true, role: 'network' });
     const cWireLabel = text({ class: 'scheme-label code dim', x: 660, y: 138, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
     const node1 = node({ x: 80,  y: 320, w: 300, h: 232, label: 'Node-1' });
     const node2 = node({ x: 450, y: 320, w: 300, h: 232, label: 'Node-2' });
     const node3 = node({ x: 820, y: 320, w: 300, h: 232, label: 'Node-3' });
 
-    const np1 = valChip({ x: 100, y: 352, w: 260, h: 32, name: 'nodePort', value: ':31000', cat: 'network' });
-    const np2 = valChip({ x: 470, y: 352, w: 260, h: 32, name: 'nodePort', value: ':31000', cat: 'network' });
-    const np3 = valChip({ x: 840, y: 352, w: 260, h: 32, name: 'nodePort', value: ':31000', cat: 'network' });
+    const np1 = valChip({ x: 100, y: 352, w: 260, h: 32, name: 'nodePort', value: ':31000', role: 'network' });
+    const np2 = valChip({ x: 470, y: 352, w: 260, h: 32, name: 'nodePort', value: ':31000', role: 'network' });
+    const np3 = valChip({ x: 840, y: 352, w: 260, h: 32, name: 'nodePort', value: ':31000', role: 'network' });
 
     const p1 = podBlock({ x: 130, y: 410, w: 200, h: 118, label: 'Pod web', ip: '10.244.1.5' });
     const p2 = podBlock({ x: 500, y: 410, w: 200, h: 118, label: 'Pod web', ip: '10.244.2.7' });
 
-    const rangeChip = valChip({ x: 80,  y: 570, w: 300, h: 34, name: 'port range', value: '30000-32767', cat: 'network' });
-    const vipChip   = valChip({ x: 450, y: 570, w: 300, h: 34, name: 'status.loadBalancer', value: 'pending', cat: 'network' });
-    const chainChip = valChip({ x: 820, y: 570, w: 300, h: 34, name: 'chain', value: 'KUBE-NODEPORTS', cat: 'network' });
+    const rangeChip = valChip({ x: 80,  y: 570, w: 300, h: 34, name: 'port range', value: '30000-32767', role: 'network' });
+    const vipChip   = valChip({ x: 450, y: 570, w: 300, h: 34, name: 'status.loadBalancer', value: 'pending', role: 'network' });
+    const chainChip = valChip({ x: 820, y: 570, w: 300, h: 34, name: 'chain', value: 'KUBE-NODEPORTS', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -171,7 +144,7 @@ const STEPS = [
       setVal(s.refs.vipChip, '203.0.113.7');
       if (ctx.reduced) { s.refs.lb.classList.add('highlight'); return; }
       // ccm provisions the LB: one clean hop, the LB lights on arrival.
-      const prov = segmentPacket(s, ctx, { from: [800, 190], to: [750, 190], cat: 'network' });
+      const prov = segmentPacket(s, ctx, { from: [800, 190], to: [750, 190], role: 'network' });
       lightBoxAt(s.refs.lb, ctx, prov.arrivalMs);
     },
   },
@@ -187,14 +160,10 @@ const STEPS = [
       s.refs.lb.classList.add('highlight');
       s.refs.np1.classList.add('highlight');
       if (ctx.reduced) return;
-      // client -> LB (down), then LB picks Node-1 along the right-angle fan; the nodePort lights.
-      // The VIP address rides the ball the whole way: it emerges from the client into the first gap,
-      // vanishes into the LB, then re-emerges out of the LB bottom and rides the fan to the Node. Each
-      // leg only shows the text in the open gap between blocks, never sliding it over the LB itself.
-      const toLb = segmentPacket(s, ctx, { from: [600, 100], to: [600, 150], cat: 'network' });
+      const toLb = segmentPacket(s, ctx, { from: [600, 100], to: [600, 150], role: 'network' });
       ridingLabel(s, ctx, 'to 203.0.113.7', [[600, 100], [600, 150]], { easing: 'linear' });
       const fanDelay = toLb.arrivalMs + BEAT.afterHop;
-      const toNode = routePacket(s, ctx, TO_N1, { delay: fanDelay, cat: 'network' });
+      const toNode = routePacket(s, ctx, TO_N1, { delay: fanDelay, role: 'network' });
       ridingLabel(s, ctx, 'to 203.0.113.7', TO_N1, { delay: fanDelay, emerge: 150 });
       lightBoxAt(s.refs.np1, ctx, toNode.arrivalMs);
     },
@@ -210,7 +179,7 @@ const STEPS = [
       s.refs.np1.classList.add('highlight');
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       // nodePort DNATs to the local backend Pod (one hop), which pulses on arrival.
-      const toPod = segmentPacket(s, ctx, { from: [230, 384], to: [230, 410], cat: 'network' });
+      const toPod = segmentPacket(s, ctx, { from: [230, 384], to: [230, 410], role: 'network' });
       pulsePod(s.refs.pod1, ctx, toPod.arrivalMs);
     },
   },

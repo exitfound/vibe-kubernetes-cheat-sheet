@@ -1,17 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt} from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-nodelocal-dnscache
 
-// NodeLocal DNSCache (viewBox 1200x640). A Node box holds the client Pod and the node-local-dns agent,
-// with the upstream CoreDNS outside it on the right. Everything is centred on one flow line (FLOW_Y).
-//
-// There are TWO hops, and each has its OWN pair of lanes: query out on FWD_Y, answer back on RET_Y.
-// A single shared wire would force the returning ball to retrace the outbound arrow, which reads as the
-// query bouncing rather than as an answer coming home. Every ball rides the wire that was drawn for it.
-//
-// Content spans x 70..1120 (centre 595) and y 200..484, so it sits centred on the canvas. It cannot go
-// higher: the Node box starts at x=70, under the narration overlay, whose longest step here reaches
-// y=163 (measured, not assumed). 200 leaves ~37px of clearance.
+
 const FLOW_Y = 300;
 const LANE_DY = 12;
 const FWD_Y = FLOW_Y - LANE_DY;   // 288: query lanes (Pod -> agent, agent -> CoreDNS)
@@ -20,14 +12,6 @@ const POD_EDGE = 290;
 const AGENT_LEFT = 430;
 const AGENT_RIGHT = 630;
 const DNS_LEFT = 880;
-
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
 
 // Run fn at a point in the step, or immediately under reduced replay so the static end-state is right.
 function at(s, ctx, delay, fn) {
@@ -54,35 +38,35 @@ class Scene {
 
     const theNode = node({ x: 70, y: 200, w: 620, h: 220, label: 'Node   ·   192.168.1.20' });
 
-    const shell = pod({ x: 110, y: FLOW_Y - 60, w: 180, h: 120, label: 'Client Pod', sublabel: 'curl api', containers: 0, cat: 'network' });
+    const shell = pod({ x: 110, y: FLOW_Y - 60, w: 180, h: 120, label: 'Client Pod', sublabel: 'curl api', containers: 0, role: 'network' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     // The resolver box lives INSIDE podGroup: pulsePod walks descendants, so a box appended beside the
     // shell would be left out of the pulse and the Pod would blink with a dead centre.
-    const podBox = box({ x: 130, y: FLOW_Y - 26, w: 140, h: 52, label: 'resolver', sublabel: 'getaddrinfo', cat: 'network' });
+    const podBox = box({ x: 130, y: FLOW_Y - 26, w: 140, h: 52, label: 'resolver', sublabel: 'getaddrinfo', role: 'network' });
     const podGroup = g({});
     podGroup.appendChild(shell);
     podGroup.appendChild(podBox);
 
-    const agent = box({ x: AGENT_LEFT, y: FLOW_Y - 31, w: 200, h: 62, label: 'node-local-dns', sublabel: '169.254.20.10', cat: 'network' });
-    const dns = box({ x: DNS_LEFT, y: FLOW_Y - 31, w: 240, h: 62, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', cat: 'network' });
+    const agent = box({ x: AGENT_LEFT, y: FLOW_Y - 31, w: 200, h: 62, label: 'node-local-dns', sublabel: '169.254.20.10', role: 'network' });
+    const dns = box({ x: DNS_LEFT, y: FLOW_Y - 31, w: 240, h: 62, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', role: 'network' });
 
     // One wire per direction per hop. The same endpoints feed the balls, so no ball ever travels over a
     // line that was drawn pointing the other way.
-    const qWire = arrow({ x1: POD_EDGE, y1: FWD_Y, x2: AGENT_LEFT, y2: FWD_Y, dashed: true, dim: true, color: 'network' });
-    const aWire = arrow({ x1: AGENT_LEFT, y1: RET_Y, x2: POD_EDGE, y2: RET_Y, dashed: true, dim: true, color: 'network' });
-    const uWire = arrow({ x1: AGENT_RIGHT, y1: FWD_Y, x2: DNS_LEFT, y2: FWD_Y, dashed: true, dim: true, color: 'network' });
-    const dWire = arrow({ x1: DNS_LEFT, y1: RET_Y, x2: AGENT_RIGHT, y2: RET_Y, dashed: true, dim: true, color: 'network' });
+    const qWire = arrow({ x1: POD_EDGE, y1: FWD_Y, x2: AGENT_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });
+    const aWire = arrow({ x1: AGENT_LEFT, y1: RET_Y, x2: POD_EDGE, y2: RET_Y, dashed: true, dim: true, role: 'network' });
+    const uWire = arrow({ x1: AGENT_RIGHT, y1: FWD_Y, x2: DNS_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });
+    const dWire = arrow({ x1: DNS_LEFT, y1: RET_Y, x2: AGENT_RIGHT, y2: RET_Y, dashed: true, dim: true, role: 'network' });
 
     const qLabel = text({ class: 'scheme-label code dim', x: 360, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const aLabel = text({ class: 'scheme-label code dim', x: 360, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const uLabel = text({ class: 'scheme-label code dim', x: 755, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const dLabel = text({ class: 'scheme-label code dim', x: 755, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const pathChip = valChip({ x: 80, y: 450, w: 250, h: 34, name: 'query path', value: 'idle', cat: 'network' });
-    const cacheChip = valChip({ x: 350, y: 450, w: 250, h: 34, name: 'cache', value: 'empty', cat: 'network' });
-    const upChip = valChip({ x: 620, y: 450, w: 230, h: 34, name: 'upstream', value: 'none', cat: 'network' });
-    const ctChip = valChip({ x: 870, y: 450, w: 250, h: 34, name: 'conntrack', value: 'none', cat: 'network' });
+    const pathChip = valChip({ x: 80, y: 450, w: 250, h: 34, name: 'query path', value: 'idle', role: 'network' });
+    const cacheChip = valChip({ x: 350, y: 450, w: 250, h: 34, name: 'cache', value: 'empty', role: 'network' });
+    const upChip = valChip({ x: 620, y: 450, w: 230, h: 34, name: 'upstream', value: 'none', role: 'network' });
+    const ctChip = valChip({ x: 870, y: 450, w: 250, h: 34, name: 'conntrack', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -111,9 +95,6 @@ function clearHL(s) {
   clearHighlights(s, ['podBox', 'agent', 'dns', 'pathChip', 'cacheChip', 'upChip', 'ctChip'], [s.refs.podGroup]);
 }
 
-// Every step repaints ALL four readouts. Setting only the chips a step talks about leaves the others
-// showing the previous step: that is how the miss step came to claim `conntrack: no entry` while it was
-// busy opening a DNAT-ed TCP connection to the kube-dns ClusterIP, which does create one.
 function setChips(s, { path, cache, up, ct }, lit = []) {
   setVal(s.refs.pathChip, path);
   setVal(s.refs.cacheChip, cache);
@@ -126,7 +107,7 @@ function setChips(s, { path, cache, up, ct }, lit = []) {
 function ask(s, ctx, { start = 0, label } = {}) {
   pulsePod(s.refs.podGroup, ctx, start);
   at(s, ctx, start + BEAT.afterPulse, () => setWire(s, 'q', label));
-  const q = segmentPacket(s, ctx, { from: [POD_EDGE, FWD_Y], to: [AGENT_LEFT, FWD_Y], delay: start + BEAT.afterPulse, cat: 'network' });
+  const q = segmentPacket(s, ctx, { from: [POD_EDGE, FWD_Y], to: [AGENT_LEFT, FWD_Y], delay: start + BEAT.afterPulse, role: 'network' });
   lightBoxAt(s.refs.agent, ctx, q.arrivalMs);
   return q.arrivalMs;
 }
@@ -134,7 +115,7 @@ function ask(s, ctx, { start = 0, label } = {}) {
 // The agent answers the Pod on the RETURN lane, and the Pod pulses as it receives.
 function answer(s, ctx, { start, label } = {}) {
   at(s, ctx, start, () => setWire(s, 'a', label));
-  const a = segmentPacket(s, ctx, { from: [AGENT_LEFT, RET_Y], to: [POD_EDGE, RET_Y], delay: start, cat: 'network' });
+  const a = segmentPacket(s, ctx, { from: [AGENT_LEFT, RET_Y], to: [POD_EDGE, RET_Y], delay: start, role: 'network' });
   pulsePod(s.refs.podGroup, ctx, a.arrivalMs);
   return a.arrivalMs;
 }
@@ -200,9 +181,6 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      // conntrack is NOT `no entry` here: the upstream leg is a real connection to the kube-dns
-      // ClusterIP, so kube-proxy DNATs it and it is tracked. The win is that it is ONE long-lived entry
-      // reused by every miss, not one fresh UDP entry per lookup.
       setChips(s, { path: 'agent -> CoreDNS', cache: 'miss -> fill', up: 'TCP keep-alive', ct: '1 long-lived' }, ['cacheChip', 'upChip', 'ctChip']);
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
@@ -214,15 +192,12 @@ const STEPS = [
         setWire(s, 'a', 'answer to Pod');
         return;
       }
-      // Four hops, because the narration promises all four: the Pod asks, the agent misses and forwards
-      // upstream, CoreDNS answers back to the agent, and only then does the agent answer the Pod. The
-      // old version stopped at the upstream query, so the answer it claimed to cache never arrived.
       const asked = ask(s, ctx, { start: 0, label: 'dst 169.254.20.10' });
       at(s, ctx, asked, () => setWire(s, 'u', 'TCP to CoreDNS'));
-      const fwd = segmentPacket(s, ctx, { from: [AGENT_RIGHT, FWD_Y], to: [DNS_LEFT, FWD_Y], delay: asked + BEAT.afterHop, cat: 'network' });
+      const fwd = segmentPacket(s, ctx, { from: [AGENT_RIGHT, FWD_Y], to: [DNS_LEFT, FWD_Y], delay: asked + BEAT.afterHop, role: 'network' });
       lightBoxAt(s.refs.dns, ctx, fwd.arrivalMs);
       at(s, ctx, fwd.arrivalMs, () => setWire(s, 'd', 'answer cached'));
-      const back = segmentPacket(s, ctx, { from: [DNS_LEFT, RET_Y], to: [AGENT_RIGHT, RET_Y], delay: fwd.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const back = segmentPacket(s, ctx, { from: [DNS_LEFT, RET_Y], to: [AGENT_RIGHT, RET_Y], delay: fwd.arrivalMs + BEAT.afterHop, role: 'network' });
       answer(s, ctx, { start: back.arrivalMs + BEAT.afterHop, label: 'answer to Pod' });
     },
   },

@@ -1,16 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, arrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel} from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-pod-localhost
 
-// Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. The two blocks
-// positioned over the chip strip below: the client Pod is centred over the leftmost chip (path),
-// centre x205, and the Pod shell spans the two rightmost chips (bind + Pod IP), x620 to x1120.
-// They share one vertical centre (y334), so the external lane between them is a straight,
-// centred horizontal hop. Inside the shell a symmetric 2x2 grid holds the two containers up top
-// (app, sidecar) and the two shared interfaces down low (eth0, lo). Two lanes: the localhost lane
-// (app <-> sidecar, y262) never leaves the Pod and is served by lo, and the external lane carries
-// outside traffic across the gap to the shared eth0. The Pod is the unit that pulses, the containers
-// and interface boxes are infrastructure that light.
+
 const SHELL_X = 620, SHELL_Y = 174, SHELL_W = 500, SHELL_H = 320;  // [620..1120] spans the bind + Pod IP chips
 const SHELL_CY = SHELL_Y + SHELL_H / 2;                            // 334
 const CLIENT_W = 180, CLIENT_H = 124;
@@ -28,36 +21,16 @@ const APP_EDGE = COL_L + BW;                                       // 975, app r
 const SIDE_LEFT = COL_R;                                           // 1015, sidecar left edge
 const GRID_MID_X = (COL_L + COL_R + BW) / 2;                       // 995, midpoint of the app/sidecar pair
 
-// External lane: one straight, centred horizontal hop across the gap, at the shared vertical centre
-// of both Pods. The destination address rides ON the moving ball (ridingLabel), so there is no
-// static inline label to collide with anything.
 const EXT_PATH = [[CLIENT_EDGE, SHELL_CY], [SHELL_X, SHELL_CY]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A small label that rides ALONG with the packet on the same route and timing, tagging the ball
-// with the destination it carries. Lives in the packet layer but is not a .scheme-packet.
-function ridingLabel(s, ctx, txt, points, { delay, dur }) {
-  if (ctx.reduced) return;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -15, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: Math.max(0, delay - 160), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: dur, delay }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur + 260, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'client', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'client', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -81,27 +54,27 @@ class Scene {
 
     const client = podBlock({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.4.2' });
 
-    const shell = pod({ x: SHELL_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod', sublabel: 'one netns · 10.244.1.5', containers: 0, cat: 'network' });
+    const shell = pod({ x: SHELL_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod', sublabel: 'one netns · 10.244.1.5', containers: 0, role: 'network' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     const podGroup = g({});
     podGroup.appendChild(shell);
 
-    const app  = box({ x: COL_L, y: ROW_TOP, w: BW, h: BH, label: 'app',     sublabel: ':8080',       cat: 'network' });
-    const side = box({ x: COL_R, y: ROW_TOP, w: BW, h: BH, label: 'sidecar', sublabel: 'proxy :15001', cat: 'network' });
-    const eth0 = box({ x: COL_L, y: ROW_BOT, w: BW, h: BH, label: 'eth0', sublabel: '10.244.1.5', cat: 'network' });
-    const lo   = box({ x: COL_R, y: ROW_BOT, w: BW, h: BH, label: 'lo',   sublabel: '127.0.0.1',  cat: 'network' });
+    const app  = box({ x: COL_L, y: ROW_TOP, w: BW, h: BH, label: 'app',     sublabel: ':8080',       role: 'network' });
+    const side = box({ x: COL_R, y: ROW_TOP, w: BW, h: BH, label: 'sidecar', sublabel: 'proxy :15001', role: 'network' });
+    const eth0 = box({ x: COL_L, y: ROW_BOT, w: BW, h: BH, label: 'eth0', sublabel: '10.244.1.5', role: 'network' });
+    const lo   = box({ x: COL_R, y: ROW_BOT, w: BW, h: BH, label: 'lo',   sublabel: '127.0.0.1',  role: 'network' });
 
-    const localWire = arrow({ x1: APP_EDGE, y1: LOCAL_Y, x2: SIDE_LEFT, y2: LOCAL_Y, dashed: true, dim: true, color: 'network' });
-    const extWire   = arrow({ x1: CLIENT_EDGE, y1: SHELL_CY, x2: SHELL_X, y2: SHELL_CY, dashed: true, dim: true, color: 'network' });
+    const localWire = arrow({ x1: APP_EDGE, y1: LOCAL_Y, x2: SIDE_LEFT, y2: LOCAL_Y, dashed: true, dim: true, role: 'network' });
+    const extWire   = arrow({ x1: CLIENT_EDGE, y1: SHELL_CY, x2: SHELL_X, y2: SHELL_CY, dashed: true, dim: true, role: 'network' });
     // localhost label rides ABOVE the two containers (the 40px lane between them is too narrow for
     // the full address), so it never overlaps app or sidecar. The external dst rides on the ball.
     const localLabel = text({ class: 'scheme-label code dim', x: GRID_MID_X, y: ROW_TOP - 18, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const pathChip = valChip({ x: 80,  y: 530, w: 250, h: 34, name: 'path', value: 'idle', cat: 'network' });
-    const portChip = valChip({ x: 350, y: 530, w: 250, h: 34, name: 'ports', value: 'shared', cat: 'network' });
-    const bindChip = valChip({ x: 620, y: 530, w: 230, h: 34, name: 'bind', value: 'free', cat: 'network' });
-    const ipChip   = valChip({ x: 870, y: 530, w: 250, h: 34, name: 'Pod IP', value: '10.244.1.5', cat: 'network' });
+    const pathChip = valChip({ x: 80,  y: 530, w: 250, h: 34, name: 'path', value: 'idle', role: 'network' });
+    const portChip = valChip({ x: 350, y: 530, w: 250, h: 34, name: 'ports', value: 'shared', role: 'network' });
+    const bindChip = valChip({ x: 620, y: 530, w: 230, h: 34, name: 'bind', value: 'free', role: 'network' });
+    const ipChip   = valChip({ x: 870, y: 530, w: 250, h: 34, name: 'Pod IP', value: '10.244.1.5', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -159,7 +132,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.side.classList.add('highlight'); s.refs.lo.classList.add('highlight'); return; }
       // localhost hop app -> sidecar, served entirely through loopback, so lo and the sidecar
       // light on arrival.
-      const hop = segmentPacket(s, ctx, { from: [APP_EDGE, LOCAL_Y], to: [SIDE_LEFT, LOCAL_Y], cat: 'network' });
+      const hop = segmentPacket(s, ctx, { from: [APP_EDGE, LOCAL_Y], to: [SIDE_LEFT, LOCAL_Y], role: 'network' });
       lightBoxAt(s.refs.side, ctx, hop.arrivalMs);
       lightBoxAt(s.refs.lo, ctx, hop.arrivalMs);
     },
@@ -194,13 +167,9 @@ const STEPS = [
       setVal(s.refs.pathChip, 'eth0');
       setVal(s.refs.bindChip, 'app :8080');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.eth0.classList.add('highlight'); s.refs.app.classList.add('highlight'); return; }
-      // Pod to Pod: the sending client pulses first, the packet leaves at BEAT.afterPulse and rides
-      // one straight hop to the shared eth0, carrying its dst address as a riding label. On arrival
-      // the receiving Pod pulses to acknowledge the packet, and the shared eth0 plus the answering
-      // app light.
       pulsePod(s.refs.client, ctx, 0);
       const dur = routeDur(EXT_PATH);
-      const hop = routePacket(s, ctx, EXT_PATH, { delay: BEAT.afterPulse, cat: 'network' });
+      const hop = routePacket(s, ctx, EXT_PATH, { delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.1.5:8080', EXT_PATH, { delay: BEAT.afterPulse, dur });
       pulsePod(s.refs.podGroup, ctx, hop.arrivalMs);
       lightBoxAt(s.refs.eth0, ctx, hop.arrivalMs);

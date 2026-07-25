@@ -1,6 +1,8 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, arrow, pathArrow } from '../lib/primitives.js';
-import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/control-kit.js';
+import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/cluster-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#cluster-apply-flow
+
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -11,7 +13,7 @@ class Scene {
     const root = svg({
       class: 'diagram',
       // x=-10 centres the content (union bbox centre x=590) in the dialog window,
-      // padL=padR=110 — the same self-centring the sibling Delete Flow card uses.
+      // padL=padR=110, the same self-centring the sibling Delete Flow card uses.
       viewBox: '-10 0 1200 620',
       preserveAspectRatio: 'xMidYMid meet',
       'aria-label': 'Kubectl apply flow through the control plane',
@@ -19,21 +21,17 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    // Top row: Kubectl (left) -> Api (centre, x-centre 600) <-> ETCD (top-right). Kubectl is the
-    // narrow 130x80 box used in the Delete Flow card; its right edge stays at x=400 so the
-    // Kubectl<->Api lanes and packets are unchanged. The flanking blocks are pulled in toward the
-    // Api spine to keep the row compact and symmetric about the centre.
-    const client = box({ x: 270, y: 80, w: 130, h: 80, label: 'Kubectl',   cat: 'control' });
-    const apisrv = box({ x: 490, y: 80, w: 220, h: 80, label: 'Api', cat: 'control' });
-    const etcd   = cylinder({ x: 900, y: 70, w: 130, h: 110, label: 'ETCD', cat: 'control' });
+    const client = box({ x: 270, y: 80, w: 130, h: 80, label: 'Kubectl',   role: 'cluster' });
+    const apisrv = box({ x: 490, y: 80, w: 220, h: 80, label: 'Api', role: 'cluster' });
+    const etcd   = cylinder({ x: 900, y: 70, w: 130, h: 110, label: 'ETCD', role: 'cluster' });
     root.appendChild(client);
     root.appendChild(apisrv);
     root.appendChild(etcd);
 
     // Middle row: ControllerManager (left, centre 340) and Scheduler (right, centre 860),
     // mirrored about the spine and pulled in toward the Api.
-    const cm    = box({ x: 230, y: 240, w: 220, h: 80, label: 'ControllerManager', cat: 'control' });
-    const sched = box({ x: 750, y: 240, w: 220, h: 80, label: 'Scheduler',         cat: 'control' });
+    const cm    = box({ x: 230, y: 240, w: 220, h: 80, label: 'ControllerManager', role: 'cluster' });
+    const sched = box({ x: 750, y: 240, w: 220, h: 80, label: 'Scheduler',         role: 'cluster' });
     root.appendChild(cm);
     root.appendChild(sched);
 
@@ -41,16 +39,16 @@ class Scene {
     const nodeEl = node({ x: 100, y: 420, w: 980, h: 180, label: 'Node-1' });
     root.appendChild(nodeEl);
 
-    const kubelet = box({ x: 125, y: 480, w: 220, h: 80, label: 'Kubelet', cat: 'control' });
+    const kubelet = box({ x: 125, y: 480, w: 220, h: 80, label: 'Kubelet', role: 'cluster' });
     root.appendChild(kubelet);
 
     // The placed Pod (violet workloads tint) appears inside the node once the Kubelet starts it.
-    const placedPodShell = pod({ x: 710, y: 462, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const placedPodShell = pod({ x: 710, y: 462, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     placedPodShell.style.setProperty('--workloads-color', '#c0b0ff');
     const placedPodShellRect = placedPodShell.querySelector('.scheme-pod-rect');
     if (placedPodShellRect) placedPodShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const placedPodBox = box({ x: 740, y: 490, w: 156, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', cat: 'workloads' });
+    const placedPodBox = box({ x: 740, y: 490, w: 156, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', role: 'workloads' });
     placedPodBox.style.setProperty('--workloads-color', '#c0b0ff');
 
     const placedPod = g({ id: 'placedPod' });
@@ -59,28 +57,22 @@ class Scene {
     placedPod.appendChild(placedPodBox);
     root.appendChild(placedPod);
 
-    const kubeletPodArrow = arrow({ x1: 345, y1: 515, x2: 710, y2: 515, dashed: true, color: 'control' });
+    const kubeletPodArrow = arrow({ x1: 345, y1: 515, x2: 710, y2: 515, dashed: true, role: 'cluster' });
     kubeletPodArrow.style.opacity = '0';
     root.appendChild(kubeletPodArrow);
 
     // Top-row lanes straddle the Api centre (y=110 out, y=130 back) on both sides.
-    root.appendChild(arrow({ x1: 400, y1: 110, x2: 490, y2: 110, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 490, y1: 130, x2: 400, y2: 130, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 710, y1: 110, x2: 900, y2: 110, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 900, y1: 130, x2: 710, y2: 130, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 400, y1: 110, x2: 490, y2: 110, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 490, y1: 130, x2: 400, y2: 130, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 710, y1: 110, x2: 900, y2: 110, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 900, y1: 130, x2: 710, y2: 130, dim: true, dashed: true, role: 'cluster' }));
     // Api -> ControllerManager and Api -> Scheduler, mirrored about the spine.
-    root.appendChild(pathArrow({ points: [[540, 160], [540, 200], [340, 200], [340, 240]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: [[660, 160], [660, 200], [870, 200], [870, 240]], dim: true, dashed: true, color: 'control' }));
-    // Scheduler -> Api return lane (the Binding POST). Nested inside-and-below the watch-pickup
-    // arrow (exits left of its centre entry, lower lane y=220) so the two never cross, the same
-    // out/back layout the Control Plane Architecture card uses.
-    root.appendChild(pathArrow({ points: [[850, 240], [850, 220], [640, 220], [640, 160]], dim: true, dashed: true, color: 'control' }));
+    root.appendChild(pathArrow({ points: [[540, 160], [540, 200], [340, 200], [340, 240]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[660, 160], [660, 200], [870, 200], [870, 240]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[850, 240], [850, 220], [640, 220], [640, 160]], dim: true, dashed: true, role: 'cluster' }));
     // Api -> Kubelet: straight down the spine, then into the Kubelet inside the node.
-    root.appendChild(pathArrow({ points: [[600, 160], [600, 390], [235, 390], [235, 480]], dim: true, dashed: true, color: 'control' }));
+    root.appendChild(pathArrow({ points: [[600, 160], [600, 390], [235, 390], [235, 480]], dim: true, dashed: true, role: 'cluster' }));
 
-    // POST is the one long label, so it rides above the top row (y=68, a small gap above the box
-    // tops at y=80). Its midpoint sits on the Kubectl->Api arrows (gap centre x=445) so the line is
-    // centred over the wire it describes.
     const wirePost          = text({ class: 'scheme-label code dim', x: 445, y: 68,  'text-anchor': 'middle' }, [' ']);
     // HTTP 201 ack rides below the top row (y=180) so its ends clear the Kubectl/Api corners.
     const wireApiAck        = text({ class: 'scheme-label code dim', x: 445, y: 180, 'text-anchor': 'middle' }, [' ']);
@@ -142,7 +134,7 @@ const STEPS = [
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'post', 'POST /apis/apps/v1/namespaces/default/deployments');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[400, 110], [445, 110], [490, 110]]);
+      routePacket(s, ctx, [[400, 110], [445, 110], [490, 110]], { role: 'cluster' });
     },
   },
   {
@@ -157,7 +149,7 @@ const STEPS = [
       s.refs.etcd.classList.add('highlight');
       setWire(s, 'persist', 'write committed · rv=842');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[710, 110], [805, 110], [900, 110]]);
+      routePacket(s, ctx, [[710, 110], [805, 110], [900, 110]], { role: 'cluster' });
     },
   },
   {
@@ -175,8 +167,8 @@ const STEPS = [
       s.refs.wires['api-ack'].textContent  = 'HTTP 201 Created';
       if (ctx.reduced) return;
 
-      const ack = routePacket(s, ctx, [[900, 130], [805, 130], [710, 130]]);
-      routePacket(s, ctx, [[490, 130], [445, 130], [400, 130]], { delay: ack.arrivalMs + BEAT.afterHop });
+      const ack = routePacket(s, ctx, [[900, 130], [805, 130], [710, 130]], { role: 'cluster' });
+      routePacket(s, ctx, [[490, 130], [445, 130], [400, 130]], { delay: ack.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -191,7 +183,7 @@ const STEPS = [
       s.refs.cm.classList.add('highlight');
       setWire(s, 'controller', 'watch ADDED Deployment my-app');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[540, 160], [540, 200], [340, 200], [340, 240]]);
+      routePacket(s, ctx, [[540, 160], [540, 200], [340, 200], [340, 240]], { role: 'cluster' });
     },
   },
   {
@@ -208,8 +200,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // The Scheduler picks up the unscheduled Pod on its watch (Api -> Scheduler), then posts the
       // Binding back to the Api on the return lane (Scheduler -> Api) that pins it to Node-1.
-      const pickup = routePacket(s, ctx, [[660, 160], [660, 200], [870, 200], [870, 240]]);
-      routePacket(s, ctx, [[850, 240], [850, 220], [640, 220], [640, 160]], { delay: pickup.arrivalMs + BEAT.afterHop });
+      const pickup = routePacket(s, ctx, [[660, 160], [660, 200], [870, 200], [870, 240]], { role: 'cluster' });
+      routePacket(s, ctx, [[850, 240], [850, 220], [640, 220], [640, 160]], { delay: pickup.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -224,7 +216,7 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       setWire(s, 'kubelet-watch', 'watch ADDED my-app-7d4-abc');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[600, 160], [600, 390], [235, 390], [235, 480]]);
+      routePacket(s, ctx, [[600, 160], [600, 390], [235, 390], [235, 480]], { role: 'cluster' });
     },
   },
   {
@@ -245,9 +237,6 @@ const STEPS = [
         s.refs.placedPodBox.classList.add('highlight');
         return;
       }
-      // The arrow and the Pod fade in together in their resting outline; the pulse waits
-      // for the start-container packet to land (the Pod lives inside Node-1, so it keeps
-      // the pod pulse).
       ctx.register(s.refs.kubeletPodArrow.animate(
         [{ opacity: 0 }, { opacity: 1 }],
         { duration: 400, fill: 'forwards', easing: 'ease-out' }
@@ -256,10 +245,7 @@ const STEPS = [
         [{ opacity: 0 }, { opacity: 1 }],
         { duration: 400, fill: 'forwards', easing: 'ease-out' }
       ));
-      const start = routePacket(s, ctx, [[345, 515], [528, 515], [710, 515]]);
-      // The whole Pod pulses once when the start-container packet lands: the shell AND the inner
-      // box brighten together and both ease straight back to their normal outline, in sync, the
-      // same way a workloads Pod pulses. Nothing is left pinned bright afterwards.
+      const start = routePacket(s, ctx, [[345, 515], [528, 515], [710, 515]], { role: 'cluster' });
       pulsePod(s.refs.placedPod, ctx, start.arrivalMs);
     },
   },

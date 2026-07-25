@@ -8,3 +8,5 @@ LICENSE
 Dockerfile
 images/og-image.svg
 scheme/tools
+scheme/docs
+SCHEME-REVIEW.md

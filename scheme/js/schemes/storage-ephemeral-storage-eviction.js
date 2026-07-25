@@ -1,29 +1,9 @@
 import { svg, g, text, line } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
-import {
-  valChip, setVal, pulsePod, routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, setWire, BEAT,
-} from '../lib/storage-kit.js';
+import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#storage-ephemeral-storage-eviction
 
-// Ephemeral Storage Limits. The whole scene is one node, CANVAS-CENTERED (210..990, center 600).
-// Inside it the main column (the focus Pod, the three things that make up its ephemeral usage, the
-// nodefs disk) is a VERTICAL STACK symmetric about x=480: the Pod centered over the contributor
-// row, the row centered over the disk. The other Pods, which matter only for the node-wide path,
-// are a right-hand column inside the node (they cannot leave it: DiskPressure on THIS node is what
-// evicts them), top-aligned with the focus Pod. The node carries equal 40px inner padding on both
-// sides, and the chip strip below spans exactly the node width.
-//
-// The card must keep TWO eviction paths distinct. Path A is per-Pod: writable + emptyDir + logs going
-// over limits.ephemeral-storage evicts THIS Pod at once, regardless of node health. Path B is
-// node-wide: nodefs usage crossing the eviction threshold taints the node DiskPressure, and kubelet
-// then evicts Pods ranked by QoS class and by how far each is over its request, which can hit a Pod
-// that was within its own limit. Only Pods pulse. The disk and contributor boxes light.
-//
-// GEOMETRY. Every lane is ONE straight vertical segment: the disk is wide enough (300..660) that
-// all three contributor centers drop straight onto its top, no corners anywhere. Centering the node
-// puts its top-left corner (and the node tag on narrow viewports) under the narration overlay
-// (measured (300, 163) on the family cards on a comfortable 1600px viewport), the accepted price
-// of the centering. Every content block stays clear of the measured overlay.
+
 const NODE_X = 210, NODE_Y = 45, NODE_W = 780, NODE_H = 485; // 210..990, canvas-centered
 
 const POD_X = 335, POD_Y = 85, POD_W = 290, POD_H = 150; // centered on 480
@@ -49,31 +29,14 @@ const W_WD = [[WR_CX, CB_BOTTOM], [WR_CX, DISK_TOP]];
 const W_ED = [[ED_CX, CB_BOTTOM], [ED_CX, DISK_TOP]];
 const W_LD = [[LG_CX, CB_BOTTOM], [LG_CX, DISK_TOP]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock({ x, y, w, h, label, sublabel }) {
-  const shell = pod({ x, y, w, h, label, sublabel, containers: 0, cat: 'storage' });
+  const shell = pod({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 22, y: y + 46, w: w - 44, h: 58, label: 'App', sublabel: 'writes logs and temp', cat: 'storage' });
+  const innerBox = box({ x: x + 22, y: y + 46, w: w - 44, h: 58, label: 'App', sublabel: 'writes logs and temp', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -99,21 +62,21 @@ class Scene {
 
     const podB = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'QoS Guaranteed' });
 
-    const bWrite = box({ x: WR_X, y: CB_Y, w: CB_W, h: CB_H, label: 'Writable', sublabel: 'layer', cat: 'storage' });
-    const bEmpty = box({ x: ED_X, y: CB_Y, w: CB_W, h: CB_H, label: 'emptyDir', sublabel: 'scratch', cat: 'storage' });
-    const bLogs  = box({ x: LG_X, y: CB_Y, w: CB_W, h: CB_H, label: 'Logs', sublabel: 'stdout', cat: 'storage' });
+    const bWrite = box({ x: WR_X, y: CB_Y, w: CB_W, h: CB_H, label: 'Writable', sublabel: 'layer', role: 'storage' });
+    const bEmpty = box({ x: ED_X, y: CB_Y, w: CB_W, h: CB_H, label: 'emptyDir', sublabel: 'scratch', role: 'storage' });
+    const bLogs  = box({ x: LG_X, y: CB_Y, w: CB_W, h: CB_H, label: 'Logs', sublabel: 'stdout', role: 'storage' });
 
     // The block and its chip are both titled NodeFS, matching the cylinder in storage-csi-architecture,
     // so the same object is never named two ways across the storage set.
-    const disk = cylinder({ x: DISK_X, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'NodeFS', cat: 'storage' });
+    const disk = cylinder({ x: DISK_X, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'NodeFS', role: 'storage' });
 
     const threshLine = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', x1: DISK_X + 10, y1: THRESH_Y, x2: DISK_X + DISK_W - 10, y2: THRESH_Y, 'stroke-dasharray': '4 4', fill: 'none' });
     const threshLbl = text({ class: 'scheme-label code dim', x: DISK_X + DISK_W + 8, y: THRESH_Y + 4, 'text-anchor': 'start' }, ['eviction threshold']);
 
     // Each neighbour pod gets a wrapping g so pulsePod reaches the pod element itself (the
     // descendant trap: a bare pod() would pulse at half strength).
-    const otherB = pod({ x: PB_X, y: PB_Y, w: OP_W, h: OP_H, label: 'pod-b', sublabel: 'QoS BestEffort', containers: 0, cat: 'storage' });
-    const otherC = pod({ x: PB_X, y: PC_Y, w: OP_W, h: OP_H, label: 'pod-c', sublabel: 'QoS Burstable', containers: 0, cat: 'storage' });
+    const otherB = pod({ x: PB_X, y: PB_Y, w: OP_W, h: OP_H, label: 'pod-b', sublabel: 'QoS BestEffort', containers: 0, role: 'storage' });
+    const otherC = pod({ x: PB_X, y: PC_Y, w: OP_W, h: OP_H, label: 'pod-c', sublabel: 'QoS Burstable', containers: 0, role: 'storage' });
     const otherBG = g({}); otherBG.appendChild(otherB);
     const otherCG = g({}); otherCG.appendChild(otherC);
     // The eviction-order note under the neighbour column, filled on the rank step.
@@ -123,15 +86,15 @@ class Scene {
     // the Pod top (the top-right corner belongs to the node tag).
     const taintLbl = text({ class: 'scheme-label code dim', x: ED_CX, y: 72, 'text-anchor': 'middle' }, [' ']);
 
-    const wWd = pathArrow({ points: W_WD, dashed: true, dim: true, color: 'storage' });
-    const wEd = pathArrow({ points: W_ED, dashed: true, dim: true, color: 'storage' });
-    const wLd = pathArrow({ points: W_LD, dashed: true, dim: true, color: 'storage' });
+    const wWd = pathArrow({ points: W_WD, dashed: true, dim: true, role: 'storage' });
+    const wEd = pathArrow({ points: W_ED, dashed: true, dim: true, role: 'storage' });
+    const wLd = pathArrow({ points: W_LD, dashed: true, dim: true, role: 'storage' });
 
     // Uniform chip strip: three 250px chips on a 15px pitch spanning exactly the node width
     // (210..990), so the strip lines up with the node block above it.
-    const usageChip = valChip({ x: 210, y: CHIPS_Y, w: 250, h: 34, name: 'usage', value: 'writable + emptyDir + logs', cat: 'storage' });
-    const limitChip = valChip({ x: 475, y: CHIPS_Y, w: 250, h: 34, name: 'limit', value: '1Gi', cat: 'storage' });
-    const nodeChip  = valChip({ x: 740, y: CHIPS_Y, w: 250, h: 34, name: 'NodeFS', value: 'below threshold', cat: 'storage' });
+    const usageChip = valChip({ x: 210, y: CHIPS_Y, w: 250, h: 34, name: 'usage', value: 'writable + emptyDir + logs', role: 'storage' });
+    const limitChip = valChip({ x: 475, y: CHIPS_Y, w: 250, h: 34, name: 'limit', value: '1Gi', role: 'storage' });
+    const nodeChip  = valChip({ x: 740, y: CHIPS_Y, w: 250, h: 34, name: 'NodeFS', value: 'below threshold', role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -198,9 +161,9 @@ const STEPS = [
       // The container is doing the writing, so the Pod pulses first, then all three contributors
       // land on the node disk.
       pulsePod(s.refs.focusPod, ctx, 0);
-      const wd = routePacket(s, ctx, W_WD, { delay: BEAT.afterPulse, cat: 'storage' });
-      const ed = routePacket(s, ctx, W_ED, { delay: BEAT.afterPulse, cat: 'storage' });
-      const ld = routePacket(s, ctx, W_LD, { delay: BEAT.afterPulse, cat: 'storage' });
+      const wd = routePacket(s, ctx, W_WD, { delay: BEAT.afterPulse, role: 'storage' });
+      const ed = routePacket(s, ctx, W_ED, { delay: BEAT.afterPulse, role: 'storage' });
+      const ld = routePacket(s, ctx, W_LD, { delay: BEAT.afterPulse, role: 'storage' });
       lightBoxAt(s.refs.disk, ctx, Math.max(wd.arrivalMs, ed.arrivalMs, ld.arrivalMs));
     },
   },
@@ -237,9 +200,9 @@ const STEPS = [
       if (ctx.reduced) { s.refs.disk.classList.add('highlight'); return; }
       s.refs.focusPod.style.opacity = '1';
       pulsePod(s.refs.focusPod, ctx, 0);
-      const wd = routePacket(s, ctx, W_WD, { delay: BEAT.afterPulse, cat: 'storage' });
-      const ed = routePacket(s, ctx, W_ED, { delay: BEAT.afterPulse, cat: 'storage' });
-      const ld = routePacket(s, ctx, W_LD, { delay: BEAT.afterPulse, cat: 'storage' });
+      const wd = routePacket(s, ctx, W_WD, { delay: BEAT.afterPulse, role: 'storage' });
+      const ed = routePacket(s, ctx, W_ED, { delay: BEAT.afterPulse, role: 'storage' });
+      const ld = routePacket(s, ctx, W_LD, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'over limit', W_ED, { delay: BEAT.afterPulse });
       const arrival = Math.max(wd.arrivalMs, ed.arrivalMs, ld.arrivalMs);
       lightBoxAt(s.refs.disk, ctx, arrival);

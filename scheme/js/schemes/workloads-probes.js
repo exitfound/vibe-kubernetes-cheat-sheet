@@ -1,6 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, pulsePodDim, setConnectorDir, connectorPacketDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, pulsePodDim, setConnectorDir, connectorPacketDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-probes
 
 
 class Scene {
@@ -18,15 +19,15 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: 320, y: 40, w: 280, h: 80, label: 'Kubelet', sublabel: 'prober + probeManager', cat: 'control' });
+    const kubelet = box({ x: 320, y: 40, w: 280, h: 80, label: 'Kubelet', sublabel: 'prober + probeManager', role: 'cluster' });
 
     const connectorDown = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     const connectorUp = pathArrow({
       points: [[320, 550], [280, 550], [280, 80], [320, 80]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     connectorUp.style.opacity = '0';
     root.appendChild(connectorDown);
@@ -44,24 +45,24 @@ class Scene {
         '4. liveness  ·  failure restarts container, readiness drops IP',
         '5. recovery  ·  fresh container starts, readiness rejoins',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // State chips column on the right.
-    const startupChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'startupProbe',   value: 'pending' });
-    const livenessChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'livenessProbe',  value: 'not running' });
-    const readinessChip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'readinessProbe', value: 'not running' });
-    const restartChip   = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'restartCount',   value: '0' });
-    const endpointChip  = valChip({ x: 830, y: 388, w: 350, h: 32, name: 'EndpointSlice',  value: 'empty' });
+    const startupChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'startupProbe',   value: 'pending', role: 'workloads' });
+    const livenessChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'livenessProbe',  value: 'not running', role: 'workloads' });
+    const readinessChip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'readinessProbe', value: 'not running', role: 'workloads' });
+    const restartChip   = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'restartCount',   value: '0', role: 'workloads' });
+    const endpointChip  = valChip({ x: 830, y: 388, w: 350, h: 32, name: 'EndpointSlice',  value: 'empty', role: 'workloads' });
     [startupChip, livenessChip, readinessChip, restartChip, endpointChip].forEach(c => root.appendChild(c));
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
 
-    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'container', cat: 'workloads' });
+    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'container', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
     podGroup.appendChild(podShell);
@@ -136,7 +137,7 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
-      const probe = connectorPacketDir(s, ctx, 'down');
+      const probe = connectorPacketDir(s, ctx, 'down', { role: 'workloads' });
       // Pod is still booting (dim), so flash its opacity on probe arrival so the blink shows.
       pulsePodDim(s.refs.podGroup, ctx, probe.arrivalMs);
     },
@@ -163,11 +164,8 @@ const STEPS = [
       setConnectorDir(s, 'up');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      // Startup passed but readiness has not, so the Pod is not Ready yet: it blinks
-      // to its partial (not full) opacity and settles back to dim. Full opacity is
-      // reserved for the ready step. Only after the blink does the packet leave.
       pulsePodDim(s.refs.podGroup, ctx, 0);
-      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse, role: 'workloads' });
     },
   },
   {
@@ -198,7 +196,7 @@ const STEPS = [
         [{ opacity: 0.55 }, { opacity: 1 }],
         { duration: FADE.in, delay: 0, fill: 'both', easing: 'ease-out' }
       ));
-      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse, role: 'workloads' });
     },
   },
   {
@@ -228,7 +226,7 @@ const STEPS = [
       // Pod is still bright here, so the pulse blink reads clearly. Ball leaves
       // after the blink, then the container is killed and the Pod dims.
       pulsePod(s.refs.podGroup, ctx, 0);
-      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse, role: 'workloads' });
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],
         { duration: FADE.out, delay: BEAT.afterPulse + BEAT.afterHop, fill: 'both', easing: 'ease-in' }
@@ -259,7 +257,7 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      const probe = connectorPacketDir(s, ctx, 'down');
+      const probe = connectorPacketDir(s, ctx, 'down', { role: 'workloads' });
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.3 }, { opacity: 1 }],
         { duration: FADE.in, delay: probe.arrivalMs, fill: 'both', easing: 'ease-out' }

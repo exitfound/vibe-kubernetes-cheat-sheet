@@ -1,26 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-loadbalancer-bare-metal
 
-// LoadBalancer on bare metal (viewBox 1200x640). The question the card answers is not how a packet is
-// balanced inside the cluster, it is how the external address becomes REACHABLE at all when no cloud
-// provisions anything. So the top of the scheme is the upstream router, and the three Nodes below it
-// are candidates for the address: in L2 mode exactly one of them answers ARP for it, in BGP mode all
-// three advertise it and the router hashes flows across them.
-//
-// Standard contract: Pods are shell + inner box; only Pods pulse; the client and the router are
-// infrastructure and only light; value chips never flash; packets stop at block edges. Traffic is
-// delivered TO A NODE, never drawn as entering the Pod: a ball stops on the Node top edge and the Pod
-// inside pulses to show it was served, so no ball ever crosses a Node border.
-//
-// GEOMETRY. Every wire and every packet is derived from a block edge, never hand-typed.
-//
-// Vertical: client, router, the fan bus, the Node row, the chip strip. The narration overlay really
-// covers x 0..399, y 0..300, so the Node row starts at 310 and the client and router (the only blocks
-// above 300) sit at x >= 450, clear of it.
-//
-// Horizontal: the three Nodes are the widest row, mirrored about MID_X, so the scheme spans
-// SCHEME_LEFT..SCHEME_RIGHT = 50..1150 and centres on 600. The chip strip spans that same extent 1:1.
+
 const MID_X = 600;
 
 const CLIENT_W = 240, CLIENT_H = 58, CLIENT_Y = 40;
@@ -62,37 +45,14 @@ const FANS = [TO_N1, TO_N2, TO_N3];
 
 const DIM = '0.4';
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A tag that rides ALONG with the ball on the same path, timing and easing, so the destination address
-// travels with the packet instead of sitting inline. It lives in the packet layer but is not a
-// .scheme-packet, so the tools do not count it as a packet. dur omitted => routeDur, matching a ball
-// that also omits dur, and routePacket legs keep the default ease-in-out so the tag stays locked to it.
-// `emerge` delays only the opacity ramp: a fan leg LEAVES the router bottom edge, and a tag sitting 14
-// above the ball would otherwise paint over the router sublabel before the ball has cleared the box.
-function ridingLabel(s, ctx, txt, points, { delay = 0, easing = 'ease-in-out', emerge = 0 } = {}) {
-  if (ctx.reduced) return;
-  const d = routeDur(points);
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: delay + emerge, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 170, delay: delay + d, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -121,13 +81,13 @@ class Scene {
     const pod2 = podBlock({ x: POD2_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.2.7' });
     const pod3 = podBlock({ x: POD3_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.3.9' });
 
-    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Clients', sublabel: 'internet', cat: 'network' });
-    const router = box({ x: ROUTER_X, y: ROUTER_Y, w: ROUTER_W, h: ROUTER_H, label: 'Upstream Router', sublabel: 'route to 203.0.113.9', cat: 'network' });
+    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Clients', sublabel: 'internet', role: 'network' });
+    const router = box({ x: ROUTER_X, y: ROUTER_Y, w: ROUTER_W, h: ROUTER_H, label: 'Upstream Router', sublabel: 'route to 203.0.113.9', role: 'network' });
 
-    const cWire = arrow({ x1: C_WIRE[0][0], y1: C_WIRE[0][1], x2: C_WIRE[1][0], y2: C_WIRE[1][1], dashed: true, dim: true, color: 'network' });
-    const fan1 = pathArrow({ points: TO_N1, dashed: true, dim: true, color: 'network' });
-    const fan2 = pathArrow({ points: TO_N2, dashed: true, dim: true, color: 'network' });
-    const fan3 = pathArrow({ points: TO_N3, dashed: true, dim: true, color: 'network' });
+    const cWire = arrow({ x1: C_WIRE[0][0], y1: C_WIRE[0][1], x2: C_WIRE[1][0], y2: C_WIRE[1][1], dashed: true, dim: true, role: 'network' });
+    const fan1 = pathArrow({ points: TO_N1, dashed: true, dim: true, role: 'network' });
+    const fan2 = pathArrow({ points: TO_N2, dashed: true, dim: true, role: 'network' });
+    const fan3 = pathArrow({ points: TO_N3, dashed: true, dim: true, role: 'network' });
 
     // What each Node announces for the address. All three sit on the same baseline so they read as a
     // row, low enough to clear the Pod above (its bottom edge is 460) and to stay inside the Node.
@@ -135,13 +95,10 @@ class Scene {
     const n2Note = text({ class: 'scheme-label code dim', x: N2_CX, y: 482, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
     const n3Note = text({ class: 'scheme-label code dim', x: N3_CX, y: 482, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
 
-    // The four chips span the scheme 1:1, from the Node-1 left edge to the Node-3 right edge, with even
-    // 20px gaps. The pool is declared by the operator but means nothing until an implementation exists,
-    // and the mode and the path are outcomes of announcing, so all three read none at the start.
-    const statusChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 300, h: CHIP_H, name: 'status.loadBalancer', value: 'pending', cat: 'network' });
-    const poolChip   = valChip({ x: 370, y: CHIP_Y, w: 260, h: CHIP_H, name: 'address pool', value: 'none', cat: 'network' });
-    const modeChip   = valChip({ x: 650, y: CHIP_Y, w: 250, h: CHIP_H, name: 'announce mode', value: 'none', cat: 'network' });
-    const pathChip   = valChip({ x: 920, y: CHIP_Y, w: SCHEME_RIGHT - 920, h: CHIP_H, name: 'ingress path', value: 'none', cat: 'network' });
+    const statusChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 300, h: CHIP_H, name: 'status.loadBalancer', value: 'pending', role: 'network' });
+    const poolChip   = valChip({ x: 370, y: CHIP_Y, w: 260, h: CHIP_H, name: 'address pool', value: 'none', role: 'network' });
+    const modeChip   = valChip({ x: 650, y: CHIP_Y, w: 250, h: CHIP_H, name: 'announce mode', value: 'none', role: 'network' });
+    const pathChip   = valChip({ x: 920, y: CHIP_Y, w: SCHEME_RIGHT - 920, h: CHIP_H, name: 'ingress path', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -169,9 +126,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// The inner app boxes are listed by key so the .highlight a reduced replay puts on them is cleared too:
-// clearPodHighlight only resets inline strokes. Every Node and Pod opacity goes back to full so the dim
-// the failover step puts on Node-1 cannot leak into a later step.
 function clearHL(s) {
   clearHighlights(s, ['client', 'router', 'statusChip', 'poolChip', 'modeChip', 'pathChip', 'pod1Box', 'pod2Box', 'pod3Box'], [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
   ['node1', 'node2', 'node3', 'pod1', 'pod2', 'pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
@@ -208,9 +162,6 @@ const STEPS = [
       setVal(s.refs.pathChip, 'none');
       s.refs.statusChip.classList.add('highlight');
       s.refs.poolChip.classList.add('highlight');
-      // An address is allocated by a write, not by a packet: nothing travels here, so nothing moves and
-      // nothing flashes. The two chips it fills simply light. Same reading as a declarative object being
-      // installed.
     },
   },
   {
@@ -236,10 +187,10 @@ const STEPS = [
       if (ctx.reduced) { s.refs.router.classList.add('highlight'); s.refs.pod1Box.classList.add('highlight'); return; }
       // Down-arrow all the way: the request reaches the router, which lights on arrival, then rides the
       // fan to the one Node that claimed the address, and the Pod inside it pulses as it is served.
-      const inb = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], cat: 'network' });
+      const inb = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
       lightBoxAt(s.refs.router, ctx, inb.arrivalMs);
       const fanDelay = inb.arrivalMs + BEAT.afterHop;
-      const toN1 = routePacket(s, ctx, TO_N1, { delay: fanDelay, cat: 'network' });
+      const toN1 = routePacket(s, ctx, TO_N1, { delay: fanDelay, role: 'network' });
       ridingLabel(s, ctx, 'dst 203.0.113.9', TO_N1, { delay: fanDelay, emerge: 150 });
       pulsePod(s.refs.pod1, ctx, toN1.arrivalMs);
     },
@@ -265,10 +216,10 @@ const STEPS = [
       if (ctx.reduced) { s.refs.router.classList.add('highlight'); s.refs.pod2Box.classList.add('highlight'); return; }
       // Same down-arrow as before, but the fan now lands on the Node that took the address over, and its
       // local Pod pulses as it serves the request.
-      const inb = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], cat: 'network' });
+      const inb = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
       lightBoxAt(s.refs.router, ctx, inb.arrivalMs);
       const fanDelay = inb.arrivalMs + BEAT.afterHop;
-      const toN2 = routePacket(s, ctx, TO_N2, { delay: fanDelay, cat: 'network' });
+      const toN2 = routePacket(s, ctx, TO_N2, { delay: fanDelay, role: 'network' });
       ridingLabel(s, ctx, 'dst 203.0.113.9', TO_N2, { delay: fanDelay, emerge: 150 });
       pulsePod(s.refs.pod2, ctx, toN2.arrivalMs);
     },
@@ -298,16 +249,11 @@ const STEPS = [
         ['pod1Box', 'pod2Box', 'pod3Box'].forEach(k => s.refs[k].classList.add('highlight'));
         return;
       }
-      // Three separate client flows, staggered so they read as three, each hashed by the router onto a
-      // different Node. Every flow is literal traffic: it runs the client wire, the router lights as the
-      // first one lands, and each flow then rides its own fan to the Node it hashed to, whose Pod pulses
-      // on arrival. No riding tags here: all three carry the same destination, and three copies of it
-      // sweeping over the router at once would be noise rather than information.
       FANS.forEach((fan, i) => {
         const start = i * 180;
-        const inb = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], delay: start, cat: 'network' });
+        const inb = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], delay: start, role: 'network' });
         if (i === 0) lightBoxAt(s.refs.router, ctx, inb.arrivalMs);
-        const out = routePacket(s, ctx, fan, { delay: inb.arrivalMs + BEAT.afterHop, cat: 'network' });
+        const out = routePacket(s, ctx, fan, { delay: inb.arrivalMs + BEAT.afterHop, role: 'network' });
         pulsePod(pods(s)[i], ctx, out.arrivalMs);
       });
     },

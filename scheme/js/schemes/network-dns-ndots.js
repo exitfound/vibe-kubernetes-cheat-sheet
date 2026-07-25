@@ -1,23 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, chainList } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt} from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-dns-ndots
 
-// Search domains and ndots (viewBox 1200x640). Everything hangs off one flow line (FLOW_Y): the client
-// Pod on the left, CoreDNS close beside it (the lane is deliberately SHORT, this card is about how MANY
-// queries are sent, not how far they travel), and the candidate ladder to the right. Content spans
-// x 70..1130, so it is centred on the 1200-wide canvas.
-//
-// Forward (query) and return (answer) traffic ride SEPARATE lanes around the line, because the whole
-// point of the card is the cost of a ROUND TRIP: a miss is not just a packet out, it is a packet out
-// and an NXDOMAIN back, four times over.
-//
-// The resolv.conf is drawn as its own chips (search + options) under the Pod, exactly as in
-// network-dns-coredns, rather than as a box whose sublabel repeats a chip that sits next to it.
-// FLOW_Y sits 90px higher than the obvious "safe" value, which centres the content vertically on the
-// canvas (ladder top 182, chips bottom 482, midpoint 332 against a canvas midpoint of 320). The blanket
-// narration safe-zone (x<=380, y<=300) is a worst-case rule: measured against this card's LONGEST step
-// the overlay actually ends at y=143, so the Pod top at 225 still clears it by ~80px. If a narration
-// here ever grows by another three lines, re-measure before raising this further.
+
 const FLOW_Y = 290;
 const LANE_DY = 12;
 const FWD_Y = FLOW_Y - LANE_DY;   // 278: Pod -> CoreDNS query lane
@@ -26,18 +12,7 @@ const POD_EDGE = 270;             // client Pod right edge
 const DNS_LEFT = 460;             // CoreDNS left edge
 const ROWS_Y = FLOW_Y - 108;      // ladder top, so its 4 rows are symmetric about FLOW_Y
 
-// The real search list for a Pod in namespace ns is `ns.svc.cluster.local svc.cluster.local
-// cluster.local`, so a short name is tried against each in turn and only then as it was written.
-// Four candidates, so four round trips per address family.
 const CANDIDATES = ['api.ns.svc.cluster.local', 'api.svc.cluster.local', 'api.cluster.local', 'api'];
-
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
 
 // Run fn at a point in the step, or immediately under reduced replay so the static end-state is right.
 function at(s, ctx, delay, fn) {
@@ -68,23 +43,23 @@ class Scene {
     root.appendChild(arrowDefs());
 
     // Client Pod and CoreDNS both centred on FLOW_Y, so the two lanes meet each at its middle.
-    const shell = pod({ x: 70, y: FLOW_Y - 65, w: 200, h: 130, label: 'Client Pod', sublabel: 'curl api', containers: 0, cat: 'network' });
+    const shell = pod({ x: 70, y: FLOW_Y - 65, w: 200, h: 130, label: 'Client Pod', sublabel: 'curl api', containers: 0, role: 'network' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     // The resolver box lives INSIDE podGroup: pulsePod walks descendants, so a box appended to the root
     // beside the shell would be left out of the pulse and the Pod would blink with a dead centre.
-    const podBox = box({ x: 90, y: FLOW_Y - 29, w: 160, h: 52, label: 'resolver', sublabel: 'getaddrinfo', cat: 'network' });
+    const podBox = box({ x: 90, y: FLOW_Y - 29, w: 160, h: 52, label: 'resolver', sublabel: 'getaddrinfo', role: 'network' });
     const podGroup = g({});
     podGroup.appendChild(shell);
     podGroup.appendChild(podBox);
 
-    const dns = box({ x: DNS_LEFT, y: FLOW_Y - 48, w: 220, h: 96, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', cat: 'network' });
+    const dns = box({ x: DNS_LEFT, y: FLOW_Y - 48, w: 220, h: 96, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', role: 'network' });
 
     // The candidate ladder: every name this one lookup may have to ask for, in the order tried.
-    const chain = chainList({ x: 740, y: ROWS_Y, w: 390, rowH: 48, gap: 8, items: CANDIDATES, activeIdx: -1, cat: 'network' });
+    const chain = chainList({ x: 740, y: ROWS_Y, w: 390, rowH: 48, gap: 8, items: CANDIDATES, activeIdx: -1, role: 'network' });
 
-    const qWire = arrow({ x1: POD_EDGE, y1: FWD_Y, x2: DNS_LEFT, y2: FWD_Y, dashed: true, dim: true, color: 'network' });
-    const aWire = arrow({ x1: DNS_LEFT, y1: RET_Y, x2: POD_EDGE, y2: RET_Y, dashed: true, dim: true, color: 'network' });
+    const qWire = arrow({ x1: POD_EDGE, y1: FWD_Y, x2: DNS_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });
+    const aWire = arrow({ x1: DNS_LEFT, y1: RET_Y, x2: POD_EDGE, y2: RET_Y, dashed: true, dim: true, role: 'network' });
     // font-size 10 and no `A? ` prefix: the lane is only 190px wide and a full FQDN at 11px overruns it
     // onto the CoreDNS box. The longest name here, api.ns.svc.cluster.local, is ~144px at this size.
     const qLabel = text({ class: 'scheme-label code dim', x: 365, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
@@ -92,15 +67,11 @@ class Scene {
 
     // resolv.conf, drawn as the file it is: the two lines that decide everything on this card.
     const rcLabel = text({ class: 'scheme-label code dim', x: 235, y: FLOW_Y + 108, 'text-anchor': 'middle', 'font-size': 11 }, ['/etc/resolv.conf']);
-    const rcSearch = valChip({ x: 70, y: FLOW_Y + 120, w: 330, h: 32, name: 'search', value: 'ns.svc / svc / cluster.local', cat: 'network' });
-    const rcNdots = valChip({ x: 70, y: FLOW_Y + 160, w: 330, h: 32, name: 'options', value: 'ndots:5', cat: 'network' });
+    const rcSearch = valChip({ x: 70, y: FLOW_Y + 120, w: 330, h: 32, name: 'search', value: 'ns.svc / svc / cluster.local', role: 'network' });
+    const rcNdots = valChip({ x: 70, y: FLOW_Y + 160, w: 330, h: 32, name: 'options', value: 'ndots:5', role: 'network' });
 
-    // The live cost readout. It counts NAMES TRIED, not DNS messages: getaddrinfo asks for A and AAAA in
-    // parallel, so each name costs two queries on the wire. Calling this chip `queries` and showing 1 for
-    // a hit would contradict the walk step, which tells the reader the IPv4 plus IPv6 total doubles.
-    // The answer is the real DNS rcode, so NOERROR and NXDOMAIN read as the pair they are.
-    const namesChip = valChip({ x: 740, y: FLOW_Y + 160, w: 185, h: 32, name: 'names tried', value: '0', cat: 'network' });
-    const answerChip = valChip({ x: 945, y: FLOW_Y + 160, w: 185, h: 32, name: 'rcode', value: 'none', cat: 'network' });
+    const namesChip = valChip({ x: 740, y: FLOW_Y + 160, w: 185, h: 32, name: 'names tried', value: '0', role: 'network' });
+    const answerChip = valChip({ x: 945, y: FLOW_Y + 160, w: 185, h: 32, name: 'rcode', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -129,22 +100,14 @@ function clearHL(s) {
   s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
 }
 
-// One query as a full ROUND TRIP: the Pod pulses, the question goes out on the forward lane, CoreDNS
-// lights on arrival, and the reply comes back on the return lane. Returns the ms at which the reply
-// lands, so the caller can chain the next attempt onto it. `lead` is the pause before the question
-// leaves: the canon BEAT.afterPulse for a fresh lookup, tighter for the retries of a search-list walk,
-// which the resolver fires back to back.
 function roundTrip(s, ctx, { start, lead, name, result, row = -1, pulseOnSend = true }) {
-  // Up-arrow: the Pod pulses BEFORE its question leaves. `pulseOnSend` is false only for the retries of
-  // a search-list walk, where the Pod has just pulsed on the NXDOMAIN landing 300ms earlier and a second
-  // pulse on top of it would smear into one long blink rather than read as two beats.
   if (pulseOnSend) pulsePod(s.refs.podGroup, ctx, start);
   // The name and its ladder row appear as the question DEPARTS, so it is always readable which
   // candidate is currently in flight, rather than only being told after the reply is back.
   at(s, ctx, start + lead, () => { setWire(s, 'q', name); if (row >= 0) lightRow(s, row); });
-  const q = segmentPacket(s, ctx, { from: [POD_EDGE, FWD_Y], to: [DNS_LEFT, FWD_Y], delay: start + lead, cat: 'network' });
+  const q = segmentPacket(s, ctx, { from: [POD_EDGE, FWD_Y], to: [DNS_LEFT, FWD_Y], delay: start + lead, role: 'network' });
   lightBoxAt(s.refs.dns, ctx, q.arrivalMs);
-  const a = segmentPacket(s, ctx, { from: [DNS_LEFT, RET_Y], to: [POD_EDGE, RET_Y], delay: q.arrivalMs + BEAT.afterHop, cat: 'network' });
+  const a = segmentPacket(s, ctx, { from: [DNS_LEFT, RET_Y], to: [POD_EDGE, RET_Y], delay: q.arrivalMs + BEAT.afterHop, role: 'network' });
   // Down-arrow: the reply lands and the Pod pulses ON ARRIVAL, the same beat it pulsed with on the way
   // out. Without this the answer just dissolves at the Pod edge and nothing acknowledges receiving it.
   pulsePod(s.refs.podGroup, ctx, a.arrivalMs);
@@ -202,9 +165,6 @@ const STEPS = [
   },
   {
     id: 'walk',
-    // Four full round trips at the house hop speed run ~8.7s, and the last NXDOMAIN pulse rings on until
-    // ~9.1s. The step must outlast its own motion, or auto-advance clips the walk halfway and the card
-    // silently under-counts the very cost it teaches.
     duration: 9200,
     narration: 'But if that first guess misses, the resolver does not give up, it walks the whole list: api.svc.cluster.local, then api.cluster.local, then finally api on its own. Every miss is a full round trip that ends in NXDOMAIN, so one name that does not exist costs four of them, and because the resolver asks for IPv4 and IPv6 the real total doubles again.',
     enter(s, ctx) {

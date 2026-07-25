@@ -1,20 +1,9 @@
-import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, BEAT, FADE } from '../lib/network-kit.js';
+import { svg, g } from '../lib/svg.js';
+import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, FADE, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-service-terminating-endpoints
 
-// Terminating endpoints and connection draining during a rollout (viewBox 1200x640). This is the
-// story of the few seconds while a backing Pod shuts down, and why a clean rollout drops nothing.
-// Layout: the Client sits left on the center line facing kube-proxy in the middle, and two backend
-// Pods sit on the right, web-a (stays Ready, top) and web-c (the one being retired, bottom). Two
-// right-angle fans run from kube-proxy to each Pod (entering the Pod at 90). The bottom chip strip is the endpoint state that
-// actually drives routing: web-c endpoint conditions (ready / serving / terminating), where new
-// connections are allowed to land, and the grace-period window.
-//
-// Standard contract: Pods are shell + inner box and pulse as one, kube-proxy is infrastructure (it
-// lights, never pulses), value chips never flash (they light via lightBoxAt or carry .highlight as
-// durable state). What MOVES rides on the ball: each hop tags itself new conn or in-flight via
-// ridingLabel, so there is no inline wire text to collide with the boxes. web-c dims as it leaves
-// the serving set but keeps a serving flow during the drain window.
+
 const FLOW_Y = 326;                     // center line: client and kube-proxy are centred on it
 const CLIENT_EDGE = 255;                // right edge of the client Pod shell
 const KP_LEFT = 440, KP_RIGHT = 660;    // kube-proxy box left / right edges
@@ -26,41 +15,18 @@ const BUS_X = 770;                       // shared vertical bus: the fans turn h
                                          // its Pod horizontally, a right-angle approach not a diagonal
 const PULSE_MS = 900;                    // PULSE_POD.ms: web-c fades only after its pulse completes
 const DIM = 0.5;                         // single dim level for web-c once it is terminating: one shade
-                                         // across every step so the fade never reads as a new state
-// Each static wire and its moving ball share the exact same array. The fans are right-angle routes:
-// out of kube-proxy horizontally, up or down the shared bus, then straight into the Pod left edge at 90.
 const LANE  = [[CLIENT_EDGE, FLOW_Y], [KP_LEFT, FLOW_Y]];                                              // client -> kube-proxy
 const FAN_A = [[KP_RIGHT, FLOW_Y - 14], [BUS_X, FLOW_Y - 14], [BUS_X, PODA_CY], [POD_LEFT, PODA_CY]];  // kube-proxy -> web-a
 const FAN_C = [[KP_RIGHT, FLOW_Y + 14], [BUS_X, FLOW_Y + 14], [BUS_X, PODC_CY], [POD_LEFT, PODC_CY]];  // kube-proxy -> web-c
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A small label that rides ALONG with the ball on the same path, timing and easing, tagging it with
-// the flow class the step narrates (new conn or in-flight). It lives in the packet layer but is not a
-// .scheme-packet, so it does not count as a packet to the tools. dur omitted => routeDur(points),
-// matching a ball that also omits dur. Pass easing:'linear' so the tag stays locked to the linear ball.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'linear' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -83,19 +49,19 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: 70, y: 270, w: 185, h: 112, label: 'Client Pod', ip: '10.244.1.5' });
-    const kproxy = box({ x: KP_LEFT, y: 286, w: KP_RIGHT - KP_LEFT, h: 80, label: 'kube-proxy', sublabel: 'routes new connections', cat: 'network' });
+    const kproxy = box({ x: KP_LEFT, y: 286, w: KP_RIGHT - KP_LEFT, h: 80, label: 'kube-proxy', sublabel: 'routes new connections', role: 'network' });
     const podA = podBlock({ x: POD_LEFT, y: PODA_CY - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web-a', ip: '10.244.1.5 · ready' });
     const podC = podBlock({ x: POD_LEFT, y: PODC_CY - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web-c', ip: '10.244.3.9 · ready' });
 
-    const laneWire = arrow({ x1: LANE[0][0], y1: LANE[0][1], x2: LANE[1][0], y2: LANE[1][1], dashed: true, dim: true, color: 'network' });
-    const fanAWire = pathArrow({ points: FAN_A, dashed: true, dim: true, color: 'network' });
-    const fanCWire = pathArrow({ points: FAN_C, dashed: true, dim: true, color: 'network' });
+    const laneWire = arrow({ x1: LANE[0][0], y1: LANE[0][1], x2: LANE[1][0], y2: LANE[1][1], dashed: true, dim: true, role: 'network' });
+    const fanAWire = pathArrow({ points: FAN_A, dashed: true, dim: true, role: 'network' });
+    const fanCWire = pathArrow({ points: FAN_C, dashed: true, dim: true, role: 'network' });
 
     // The three chips span the block width: web-c endpoint conditions (the state that drives routing),
     // where new connections may land, and the grace-period window.
-    const condChip  = valChip({ x: 70,  y: 566, w: 340, h: 34, name: 'endpoint web-c', value: 'ready · serving', cat: 'network' });
-    const newChip   = valChip({ x: 430, y: 566, w: 290, h: 34, name: 'new conns', value: 'web-a and web-c', cat: 'network' });
-    const graceChip = valChip({ x: 740, y: 566, w: 390, h: 34, name: 'grace period', value: 'not draining', cat: 'network' });
+    const condChip  = valChip({ x: 70,  y: 566, w: 340, h: 34, name: 'endpoint web-c', value: 'ready · serving', role: 'network' });
+    const newChip   = valChip({ x: 430, y: 566, w: 290, h: 34, name: 'new conns', value: 'web-a and web-c', role: 'network' });
+    const graceChip = valChip({ x: 740, y: 566, w: 390, h: 34, name: 'grace period', value: 'not draining', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -157,10 +123,10 @@ const STEPS = [
       // Up-arrow: the client pulses, one packet runs the lane to kube-proxy, then both fans fire so the
       // two backends light together and the balancing across both endpoints reads clearly.
       pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, cat: 'network' });
+      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
-      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, cat: 'network' });
-      const giveC = routePacket(s, ctx, FAN_C, { delay: send.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
+      const giveC = routePacket(s, ctx, FAN_C, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
       pulsePod(s.refs.podC, ctx, giveC.arrivalMs);
     },
@@ -204,9 +170,9 @@ const STEPS = [
       // A new connection now lands on web-a only: client pulses, packet runs the lane then the web-a
       // fan, and web-a pulses on arrival. No ball goes to web-c, which is the whole point.
       pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, cat: 'network' });
+      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
-      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'to web-a', FAN_A, { delay: send.arrivalMs + BEAT.afterHop, easing: 'ease-in-out' });
       pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
     },
@@ -225,17 +191,14 @@ const STEPS = [
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
       s.refs.podC.style.opacity = String(DIM);
       if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
-      // Two flows at once. The in-flight connection keeps draining to web-c (a packet on the web-c fan,
-      // web-c pulses through its dimmed state on arrival). As it lands, a fresh connection starts from
-      // the client, runs the lane and the web-a fan, and web-a pulses. New and in-flight, side by side.
-      const drain = routePacket(s, ctx, FAN_C, { delay: 0, cat: 'network' });
+      const drain = routePacket(s, ctx, FAN_C, { delay: 0, role: 'network' });
       ridingLabel(s, ctx, 'in-flight', FAN_C, { delay: 0, easing: 'ease-in-out' });
       pulsePod(s.refs.podC, ctx, drain.arrivalMs);
       const startNew = drain.arrivalMs + BEAT.afterHop;
       pulsePod(s.refs.client, ctx, startNew);
-      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: startNew + BEAT.afterPulse, cat: 'network' });
+      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: startNew + BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'new conn', LANE, { delay: startNew + BEAT.afterPulse });
-      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'to web-a', FAN_A, { delay: send.arrivalMs + BEAT.afterHop, easing: 'ease-in-out' });
       pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
     },
@@ -258,9 +221,9 @@ const STEPS = [
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
       // Service carries on: a new connection lands on web-a and it pulses on arrival.
       pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, cat: 'network' });
+      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
-      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
     },
   },

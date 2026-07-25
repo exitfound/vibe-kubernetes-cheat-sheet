@@ -1,15 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt} from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-conntrack-nat
 
-// Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. The flow
-// runs client -> netfilter (NAT + conntrack) -> server Pod and back, on TWO stacked lanes so the
-// ball always has a matching arrow: the request lane (REQ_Y, arrows point right) carries the
-// outbound packet, the reply lane (REP_Y, arrows point left) carries the return. The NAT rewrite
-// happens INSIDE the netfilter box, so the ball fades at one edge and re-emerges at the far edge,
-// never sliding over it. netfilter is infrastructure: it lights, it never pulses. Only Pods pulse.
-// The four state chips sit in one plane under the block each describes: orig dst under the client,
-// ct state + reply under netfilter, translated (the backend address) under the server.
+
 const FLOW_Y = 312;     // mid-line, where the per-gap wire label sits between the two lanes
 const REQ_Y = 300;      // request lane (left -> right)
 const REP_Y = 324;      // reply lane (right -> left)
@@ -18,19 +12,11 @@ const NF_LEFT = 470;
 const NF_RIGHT = 710;
 const SERVER_LEFT = 910;
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -53,26 +39,22 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: 70, y: 252, w: 190, h: 120, label: 'client Pod', ip: '10.244.1.5' });
-    const nf = box({ x: NF_LEFT, y: 276, w: 240, h: 72, label: 'netfilter', sublabel: 'NAT + conntrack', cat: 'network' });
+    const nf = box({ x: NF_LEFT, y: 276, w: 240, h: 72, label: 'netfilter', sublabel: 'NAT + conntrack', role: 'network' });
     const server = podBlock({ x: 910, y: 252, w: 200, h: 120, label: 'server Pod', ip: '10.244.2.7:8080' });
 
     // Two lanes per gap: request (top, ->) and reply (bottom, <-). The reply arrows are the reverse
     // direction the ball travels on the reply step, so the motion always has a matching arrow.
-    const cReq = arrow({ x1: CLIENT_EDGE, y1: REQ_Y, x2: NF_LEFT,     y2: REQ_Y, dashed: true, dim: true, color: 'network' });
-    const cRep = arrow({ x1: NF_LEFT,     y1: REP_Y, x2: CLIENT_EDGE, y2: REP_Y, dashed: true, dim: true, color: 'network' });
-    const sReq = arrow({ x1: NF_RIGHT,    y1: REQ_Y, x2: SERVER_LEFT, y2: REQ_Y, dashed: true, dim: true, color: 'network' });
-    const sRep = arrow({ x1: SERVER_LEFT, y1: REP_Y, x2: NF_RIGHT,    y2: REP_Y, dashed: true, dim: true, color: 'network' });
+    const cReq = arrow({ x1: CLIENT_EDGE, y1: REQ_Y, x2: NF_LEFT,     y2: REQ_Y, dashed: true, dim: true, role: 'network' });
+    const cRep = arrow({ x1: NF_LEFT,     y1: REP_Y, x2: CLIENT_EDGE, y2: REP_Y, dashed: true, dim: true, role: 'network' });
+    const sReq = arrow({ x1: NF_RIGHT,    y1: REQ_Y, x2: SERVER_LEFT, y2: REQ_Y, dashed: true, dim: true, role: 'network' });
+    const sRep = arrow({ x1: SERVER_LEFT, y1: REP_Y, x2: NF_RIGHT,    y2: REP_Y, dashed: true, dim: true, role: 'network' });
     const cLabel = text({ class: 'scheme-label code dim', x: 365, y: FLOW_Y + 3, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const sLabel = text({ class: 'scheme-label code dim', x: 810, y: FLOW_Y + 3, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    // Chips sit in one plane with the blocks above. The outer two are flush with the pod footprints:
-    // orig dst left edge = client Pod left edge (70), translated right edge = server Pod right edge
-    // (1110). ct state + reply stay centred under netfilter (590). orig dst -> client, conntrack
-    // bookkeeping -> netfilter, translated (the backend address) -> server.
-    const origChip  = valChip({ x: 70,  y: 530, w: 250, h: 34, name: 'orig dst',   value: '10.96.0.10:80', cat: 'network' });
-    const stateChip = valChip({ x: 368, y: 530, w: 215, h: 34, name: 'ct state',   value: 'none',          cat: 'network' });
-    const dirChip   = valChip({ x: 597, y: 530, w: 215, h: 34, name: 'reply',      value: 'none',          cat: 'network' });
-    const natChip   = valChip({ x: 860, y: 530, w: 250, h: 34, name: 'translated', value: 'none',          cat: 'network' });
+    const origChip  = valChip({ x: 70,  y: 530, w: 250, h: 34, name: 'orig dst',   value: '10.96.0.10:80', role: 'network' });
+    const stateChip = valChip({ x: 368, y: 530, w: 215, h: 34, name: 'ct state',   value: 'none',          role: 'network' });
+    const dirChip   = valChip({ x: 597, y: 530, w: 215, h: 34, name: 'reply',      value: 'none',          role: 'network' });
+    const natChip   = valChip({ x: 860, y: 530, w: 250, h: 34, name: 'translated', value: 'none',          role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -129,7 +111,7 @@ const STEPS = [
       // Up-arrow: client pulses first, the packet leaves on the request lane at BEAT.afterPulse and
       // reaches netfilter.
       pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: [CLIENT_EDGE, REQ_Y], to: [NF_LEFT, REQ_Y], delay: BEAT.afterPulse, cat: 'network' });
+      const send = segmentPacket(s, ctx, { from: [CLIENT_EDGE, REQ_Y], to: [NF_LEFT, REQ_Y], delay: BEAT.afterPulse, role: 'network' });
       lightBoxAt(s.refs.nf, ctx, send.arrivalMs);
     },
   },
@@ -150,7 +132,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.serverBox.classList.add('highlight'); return; }
       // The rewritten packet emerges from netfilter (the DNAT happened inside) on the request lane
       // and is delivered to the server, which pulses on arrival.
-      const give = segmentPacket(s, ctx, { from: [NF_RIGHT, REQ_Y], to: [SERVER_LEFT, REQ_Y], cat: 'network' });
+      const give = segmentPacket(s, ctx, { from: [NF_RIGHT, REQ_Y], to: [SERVER_LEFT, REQ_Y], role: 'network' });
       pulsePod(s.refs.server, ctx, give.arrivalMs);
     },
   },
@@ -171,8 +153,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
       // Reply rides the reply lane: server -> netfilter (reverse NAT inside, ball hidden across the
       // box) -> client, which pulses on arrival.
-      const h1 = segmentPacket(s, ctx, { from: [SERVER_LEFT, REP_Y], to: [NF_RIGHT, REP_Y], cat: 'network' });
-      const h2 = segmentPacket(s, ctx, { from: [NF_LEFT, REP_Y], to: [CLIENT_EDGE, REP_Y], delay: h1.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const h1 = segmentPacket(s, ctx, { from: [SERVER_LEFT, REP_Y], to: [NF_RIGHT, REP_Y], role: 'network' });
+      const h2 = segmentPacket(s, ctx, { from: [NF_LEFT, REP_Y], to: [CLIENT_EDGE, REP_Y], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.client, ctx, h2.arrivalMs);
     },
   },
@@ -197,8 +179,8 @@ const STEPS = [
       // A later packet takes the fast path: client pulses, then the ball runs straight through on the
       // request lane (translated inside netfilter, no pause for a rule walk) to the server.
       pulsePod(s.refs.client, ctx, 0);
-      const h1 = segmentPacket(s, ctx, { from: [CLIENT_EDGE, REQ_Y], to: [NF_LEFT, REQ_Y], delay: BEAT.afterPulse, cat: 'network' });
-      const h2 = segmentPacket(s, ctx, { from: [NF_RIGHT, REQ_Y], to: [SERVER_LEFT, REQ_Y], delay: h1.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const h1 = segmentPacket(s, ctx, { from: [CLIENT_EDGE, REQ_Y], to: [NF_LEFT, REQ_Y], delay: BEAT.afterPulse, role: 'network' });
+      const h2 = segmentPacket(s, ctx, { from: [NF_RIGHT, REQ_Y], to: [SERVER_LEFT, REQ_Y], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.server, ctx, h2.arrivalMs);
     },
   },

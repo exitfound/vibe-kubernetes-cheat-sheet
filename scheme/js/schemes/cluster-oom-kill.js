@@ -1,6 +1,8 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/control-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/cluster-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#cluster-oom-kill
+
 
 // Kubelet->Node left-margin connector, shared by the static pathArrow and the packet route.
 const NODE_CONNECTOR = [[320, 80], [260, 80], [260, 550], [320, 550]];
@@ -20,19 +22,19 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet',      sublabel: 'PLEG + status patch', cat: 'control' });
-    const kernel  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Linux kernel', sublabel: 'cgroup OOM killer',    cat: 'control' });
+    const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet',      sublabel: 'PLEG + status patch', role: 'cluster' });
+    const kernel  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Linux kernel', sublabel: 'cgroup OOM killer',    role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireKernel = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireKernel);
 
-    const memChip         = valChip({ x: 820, y: 40,  w: 360, h: 32, name: 'memory.current / max', value: '100Mi / 256Mi' });
-    const oomScoreChip    = valChip({ x: 820, y: 82,  w: 360, h: 32, name: 'oom_score_adj',         value: '900 (Burstable)' });
-    const terminationChip = valChip({ x: 820, y: 124, w: 360, h: 32, name: 'termination',           value: 'Running' });
-    const restartChip     = valChip({ x: 820, y: 166, w: 360, h: 32, name: 'restartCount',          value: '0' });
+    const memChip         = valChip({ x: 820, y: 40,  w: 360, h: 32, name: 'memory.current / max', value: '100Mi / 256Mi', role: 'cluster' });
+    const oomScoreChip    = valChip({ x: 820, y: 82,  w: 360, h: 32, name: 'oom_score_adj',         value: '900 (Burstable)', role: 'cluster' });
+    const terminationChip = valChip({ x: 820, y: 124, w: 360, h: 32, name: 'termination',           value: 'Running', role: 'cluster' });
+    const restartChip     = valChip({ x: 820, y: 166, w: 360, h: 32, name: 'restartCount',          value: '0', role: 'cluster' });
     [memChip, oomScoreChip, terminationChip, restartChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -44,17 +46,17 @@ class Scene {
         '4. observe  ·  PLEG sees terminated, PATCH Pod status',
         '5. restart  ·  same sandbox, new container, count++',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
 
-    const podShell = pod({ x: 510, y: 500, w: 480, h: 110, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const podShell = pod({ x: 510, y: 500, w: 480, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     podShell.style.setProperty('--workloads-color', '#c0b0ff');
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'using 100Mi of 256Mi', cat: 'workloads' });
+    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'using 100Mi of 256Mi', role: 'workloads' });
     containerBox.style.setProperty('--workloads-color', '#c0b0ff');
 
     // Grouped for z-order and shared pulse. The shell (the Pod sandbox) keeps full opacity
@@ -65,7 +67,7 @@ class Scene {
 
     const connector = pathArrow({
       points: NODE_CONNECTOR,
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -199,7 +201,7 @@ const STEPS = [
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
       // The exit status surfaces from the kernel/runtime up to kubelet (bottom arrow).
-      topPacket(s, ctx, { from: 580, to: 540, y: 95 });
+      topPacket(s, ctx, { from: 580, to: 540, y: 95, role: 'cluster' });
     },
   },
   {
@@ -224,11 +226,8 @@ const STEPS = [
       s.refs.containerBox.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      // Kubelet creates the new container on the node (connector) and rewrites its cgroup
-      // (top arrow to the kernel, a beat after so the two signals read as near-simultaneous,
-      // not chained). The container pulses and re-materialises on arrival.
-      const create = routePacket(s, ctx, NODE_CONNECTOR);
-      topPacket(s, ctx, { delay: 200 });
+      const create = routePacket(s, ctx, NODE_CONNECTOR, { role: 'cluster' });
+      topPacket(s, ctx, { delay: 200, role: 'cluster' });
       pulsePod(s.refs.podGroup, ctx, create.arrivalMs);
       ctx.register(s.refs.containerBox.animate(
         [{ opacity: 0.4 }, { opacity: 1 }],

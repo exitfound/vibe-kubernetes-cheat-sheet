@@ -16,7 +16,7 @@ One static site made of three path-based sub-apps that share the same visual chr
 |---|---|---|
 | `/` | **Hub** | One-viewport landing page: two entry panels over an aurora background and a canvas packet graph |
 | `/cli/` | **Commands** | Searchable `kubectl` / Helm / Kustomize / K9s cheat sheet, 890 commands, copy + star |
-| `/scheme/` | **Schemes** | Grid of 109 animated SVG diagrams: click a card and a step-by-step animation explains the mechanism |
+| `/scheme/` | **Schemes** | Grid of 103 animated SVG diagrams: click a card and a step-by-step animation explains the mechanism |
 
 ---
 

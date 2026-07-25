@@ -1,25 +1,9 @@
 import { svg, g, path } from '../lib/svg.js';
 import { arrowDefs, box, pod, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt} from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-headless-service
 
-// Headless Service (viewBox 1200x640). clusterIP None means there is no VIP hop: DNS hands back the
-// backing Pod IPs and the client connects to a Pod itself. The three backends are a StatefulSet
-// (web-0..web-2) so the stable per-Pod name lands.
-//
-// Geometry, all of it symmetric about the canvas centre line CY=320:
-//   - The three Pods are a column on the right, centred on CY (web-1 sits ON it, web-0/web-2 mirror).
-//   - CoreDNS is centred on CY too, so its fan to the three Pods is symmetric: a trunk out of its right
-//     edge, a vertical bus at FAN_X, then a horizontal leg entering each Pod square-on at its left edge.
-//   - The client sits low-left. Its DNS lane leaves the TOP of the Pod, rises, and turns into CoreDNS
-//     at 90 degrees. Query and answer ride SEPARATE lanes (20px apart) so the answer never retraces the
-//     query arrow.
-//   - The data path leaves the client's RIGHT edge, runs under everything at y=520, and rises on its own
-//     bus at DATA_X to enter a Pod square-on. It is drawn to ALL THREE Pods, because a headless client
-//     may pick any of them, and every ball in this card rides one of these drawn wires.
-// Content spans x 80..1120 (centre 600) so it is centred on the canvas.
-//
-// Narration safe-zone: every element left of x=380 sits at y>=310, so nothing can slide under the
-// overlay (x<=380, y<=300). That is why the DNS lane turns at 310/330 rather than higher up.
+
 const CY = 320;                      // canvas centre line: Pods column + CoreDNS are centred on it
 const W0 = 168, W1 = CY, W2 = 472;   // backend Pod centre rows (W0/W2 mirror about CY)
 const POD_X = 880;                   // backend Pods left edge
@@ -43,19 +27,11 @@ const TO_W2 = toPod(W2);
 // CoreDNS endpoint fan: trunk, bus, then square-on into each Pod's left edge.
 const fanTo = (cy) => [[CORE_RIGHT, CY], [FAN_X, CY], [FAN_X, cy], [POD_X, cy]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -78,16 +54,13 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: 80, y: CLIENT_TOP, w: 210, h: 130, label: 'Client Pod', ip: '10.244.1.5' });
-    const coredns = box({ x: CORE_LEFT, y: CY - 39, w: 250, h: 78, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', cat: 'network' });
-    const svc = box({ x: CORE_LEFT, y: 430, w: 250, h: 70, label: 'Service web', sublabel: 'clusterIP: None', cat: 'network' });
+    const coredns = box({ x: CORE_LEFT, y: CY - 39, w: 250, h: 78, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', role: 'network' });
+    const svc = box({ x: CORE_LEFT, y: 430, w: 250, h: 70, label: 'Service web', sublabel: 'clusterIP: None', role: 'network' });
 
     const w0 = podBlock({ x: POD_X, y: W0 - 58, w: 240, h: 116, label: 'web-0', ip: '10.244.2.7' });
     const w1 = podBlock({ x: POD_X, y: W1 - 58, w: 240, h: 116, label: 'web-1', ip: '10.244.3.4' });
     const w2 = podBlock({ x: POD_X, y: W2 - 58, w: 240, h: 116, label: 'web-2', ip: '10.244.1.9' });
 
-    // Service <-> CoreDNS is a plain dashed line with NO arrowhead: it is not a packet route, it is the
-    // static fact that this Service backs those records. An arrowhead here would read as traffic, and no
-    // ball ever rides it. Drawn as a bare path because arrow() always attaches a marker.
     const wSvc = path({
       class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim',
       d: `M 555 430 L 555 ${CY + 39}`,
@@ -100,16 +73,9 @@ class Scene {
     const wQuery = pathArrow({ points: QUERY, dashed: true, dim: true });
     const wAnswer = pathArrow({ points: ANSWER, dashed: true, dim: true });
 
-    // Three readouts, each of which always means exactly what its name says. The old card showed
-    // `connect 10.244.3.4 direct` under a chip labelled `DNS answer`, which is not a DNS answer.
-    //
-    // Each chip sits directly UNDER the column it reports on and shares that column's exact x and width:
-    // clusterIP under the client (80..290), the DNS answer under CoreDNS and the Service (430..680), the
-    // connection under the Pods (880..1120). So the footer spans the diagram end to end and every chip
-    // edge lines up vertically with the blocks above it.
-    const vipChip = valChip({ x: 80, y: 575, w: 210, h: 34, name: 'clusterIP', value: 'None', cat: 'network' });
-    const dnsChip = valChip({ x: CORE_LEFT, y: 575, w: 250, h: 34, name: 'A records', value: 'pending', cat: 'network' });
-    const connChip = valChip({ x: POD_X, y: 575, w: 240, h: 34, name: 'connection', value: 'none', cat: 'network' });
+    const vipChip = valChip({ x: 80, y: 575, w: 210, h: 34, name: 'clusterIP', value: 'None', role: 'network' });
+    const dnsChip = valChip({ x: CORE_LEFT, y: 575, w: 250, h: 34, name: 'A records', value: 'pending', role: 'network' });
+    const connChip = valChip({ x: POD_X, y: 575, w: 240, h: 34, name: 'connection', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -171,7 +137,7 @@ const STEPS = [
       // Up-arrow: the client pulses first, the query leaves at BEAT.afterPulse and lands at CoreDNS,
       // which lights on arrival.
       pulsePod(s.refs.client, ctx, 0);
-      const q = routePacket(s, ctx, QUERY, { delay: BEAT.afterPulse, cat: 'network' });
+      const q = routePacket(s, ctx, QUERY, { delay: BEAT.afterPulse, role: 'network' });
       lightBoxAt(s.refs.coredns, ctx, q.arrivalMs);
     },
   },
@@ -189,7 +155,7 @@ const STEPS = [
       setChips(s, { vip: 'None', dns: '.2.7 .3.4 .1.9', conn: 'none' }, ['dnsChip']);
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
       // Down-arrow: the answer comes home on its OWN lane and the client pulses on arrival.
-      const ans = routePacket(s, ctx, ANSWER, { cat: 'network' });
+      const ans = routePacket(s, ctx, ANSWER, { role: 'network' });
       pulsePod(s.refs.client, ctx, ans.arrivalMs);
     },
   },
@@ -204,7 +170,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.w1Box.classList.add('highlight'); return; }
       // Up-arrow: client pulses first, the connection leaves and the chosen Pod pulses on arrival.
       pulsePod(s.refs.client, ctx, 0);
-      const hop = routePacket(s, ctx, TO_W1, { delay: BEAT.afterPulse, cat: 'network' });
+      const hop = routePacket(s, ctx, TO_W1, { delay: BEAT.afterPulse, role: 'network' });
       pulsePod(s.refs.w1, ctx, hop.arrivalMs);
     },
   },
@@ -220,7 +186,7 @@ const STEPS = [
       setChips(s, { vip: 'None', dns: 'web-0 only: .2.7', conn: '10.244.2.7' }, ['dnsChip', 'connChip']);
       if (ctx.reduced) { s.refs.w0Box.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
-      const hop = routePacket(s, ctx, TO_W0, { delay: BEAT.afterPulse, cat: 'network' });
+      const hop = routePacket(s, ctx, TO_W0, { delay: BEAT.afterPulse, role: 'network' });
       pulsePod(s.refs.w0, ctx, hop.arrivalMs);
     },
   },

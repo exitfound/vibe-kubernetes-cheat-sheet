@@ -1,4 +1,4 @@
-import { SCHEMES, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_SUB, SUBCATEGORIES } from './data.js';
+import { SCHEMES, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE, SUBCATEGORIES } from './data.js';
 import { POSTERS } from './posters.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
 import { setupSidebar } from './lib/sidebar.js';
@@ -308,7 +308,7 @@ function renderCard(s) {
 }
 
 function renderSection(unit) {
-  const { catKey, subKey, label, sub, schemes } = unit;
+  const { catKey, subKey, label, tagline, schemes } = unit;
   const icon = CATEGORY_ICONS[catKey] || '';
   const total = schemes.length;
   const word = total === 1 ? 'scheme' : 'schemes';
@@ -318,7 +318,7 @@ function renderSection(unit) {
       <div class="section-header">
         <div class="section-icon">${icon}</div>
         <h2 class="section-title">${escapeHtml(label)}</h2>
-        <span class="section-sub">${escapeHtml(sub)}</span>
+        <span class="section-sub">${escapeHtml(tagline)}</span>
         <span class="section-count">${total} ${word}</span>
       </div>
       <div class="cards-grid">${schemes.map(renderCard).join('')}</div>
@@ -340,7 +340,9 @@ function buildUnits(list) {
           catKey,
           subKey: sc.key,
           label:  sc.label,
-          sub:    sc.sub || CATEGORY_LABEL[catKey] || catKey,
+          // A subcategory row is titled by the subcategory and subtitled by its
+          // category. Subcategories carry no tagline of their own.
+          tagline: CATEGORY_LABEL[catKey] || catKey,
           schemes: subSchemes,
         });
       }
@@ -350,7 +352,7 @@ function buildUnits(list) {
           catKey,
           subKey: '_other',
           label:  CATEGORY_LABEL[catKey] || catKey,
-          sub:    CATEGORY_SUB[catKey] || '',
+          tagline: CATEGORY_TAGLINE[catKey] || '',
           schemes: orphans,
         });
       }
@@ -359,7 +361,7 @@ function buildUnits(list) {
         catKey,
         subKey: null,
         label:  CATEGORY_LABEL[catKey] || catKey,
-        sub:    CATEGORY_SUB[catKey] || '',
+        tagline: CATEGORY_TAGLINE[catKey] || '',
         schemes: catSchemes,
       });
     }
@@ -396,7 +398,7 @@ const POSTER_COLORS = {
   network:   '#4fe5ff',
   storage:   '#5eca94',
   workloads: '#3da0ff',
-  control:   '#7d86ff',
+  cluster:   '#7d86ff',
 };
 
 const FALLBACK_POSTER = `
@@ -429,7 +431,24 @@ function renderPoster(scheme) {
 // Old scheme ids from before the workloads flat-rename still resolve, so existing
 // deep links, bookmarks and indexed sitemap URLs keep opening the right card.
 const SCHEME_ALIASES = {
-  'lifecycle-node-drain': 'control-node-drain',
+  // The Cluster category was keyed `control` until the code was aligned with its
+  // user-facing label. Every old id still resolves.
+  'control-plane-architecture': 'cluster-architecture',
+  'control-plane-apply-flow': 'cluster-apply-flow',
+  'control-plane-delete-flow': 'cluster-delete-flow',
+  'control-etcd-raft': 'cluster-etcd-raft',
+  'control-leader-election': 'cluster-leader-election',
+  'control-scheduler-decision': 'cluster-scheduler-decision',
+  'control-admission-webhooks': 'cluster-admission-webhooks',
+  'control-api-structure': 'cluster-api-structure',
+  'control-node-drain': 'cluster-node-drain',
+  'control-kubelet-sync-loop': 'cluster-kubelet-sync-loop',
+  'control-node-pressure-eviction': 'cluster-node-pressure-eviction',
+  'control-graceful-node-shutdown': 'cluster-graceful-node-shutdown',
+  'control-node-failure': 'cluster-node-failure',
+  'control-pod-sandbox-cri': 'cluster-pod-sandbox-cri',
+  'control-oom-kill': 'cluster-oom-kill',
+  'lifecycle-node-drain': 'cluster-node-drain',
   'lifecycle-pod-phase-machine': 'workloads-pod-phase-machine',
   'lifecycle-restart-policy': 'workloads-restart-policy',
   'lifecycle-hooks': 'workloads-hooks',

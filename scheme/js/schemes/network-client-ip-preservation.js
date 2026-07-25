@@ -1,28 +1,9 @@
 import { svg, g, text, line } from '../lib/svg.js';
-import { arrowDefs, box, pod, arrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, BEAT, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-client-ip-preservation
 
-// Preserving the client IP (viewBox 1200x640). The card answers one question: the backend Pod sees the
-// proxy address on its socket, so where did the client go, and how does it come back. The flow is a
-// straight left-to-right line, client -> edge proxy Pod -> backend Pod, with a header panel hanging
-// above the proxy holding the two headers the edge writes. What each hop actually CARRIES is the whole
-// point, so every ball wears a riding tag: the true source on the way in, the proxy source on the way
-// out, then the header, then the PROXY protocol preamble.
-//
-// Standard contract: both Pods are shell + inner box; only Pods pulse; the client is infrastructure and
-// only lights; value chips never flash; packets stop at block edges.
-//
-// GEOMETRY. Every wire and every packet is derived from a block edge, never hand-typed, so a block and
-// the ball that rides to it cannot drift apart.
-//
-// Vertical: one spine, FLOW_Y, low enough that the client block (the only block on the left) clears the
-// narration overlay, which really covers x 0..399, y 0..300. The client top edge is FLOW_Y - CLIENT_H/2
-// = 334. The header panel is the only thing above y 300 and it lives at x >= 415, so it clears too.
-//
-// Horizontal: the panel is centred ON THE PROXY, since those headers are what that Pod writes, and the
-// ownership line rises straight up from the proxy top centre. A 260-wide panel centred on PROXY_CX 545
-// spans 415..675, clear of the overlay with 16 to spare, exactly as in the Ingress card. The row then
-// spans CLIENT_X..POD_RIGHT = 40..1110 and the chip strip spans the same extent 1:1.
+
 const FLOW_Y = 372;
 
 const CLIENT_X = 40, CLIENT_W = 230, CLIENT_H = 76;
@@ -47,35 +28,16 @@ const CHIP_Y = 552;
 const ENTRY = [[CLIENT_RIGHT, FLOW_Y], [PROXY_X, FLOW_Y]];
 const DELIVER = [[PROXY_RIGHT, FLOW_Y], [POD_X, FLOW_Y]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A tag that rides ALONG with the ball on the same path, timing and easing, saying what that leg
-// actually carries. It lives in the packet layer but is not a .scheme-packet, so the tools do not count
-// it as a packet. Every ball on this card is a segmentPacket, which is always linear, so the tag is
-// linear too or it would drift off the ball mid-flight.
-function ridingLabel(s, ctx, txt, points, { delay = 0 } = {}) {
-  if (ctx.reduced) return;
-  const d = routeDur(points);
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing: 'linear' }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 140, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+// Every ball on this card is a linear segmentPacket, so the tag rides linear too:
+// with the eased default it drifted off its ball mid-flight and rejoined at the ends.
+const ridingLabel = makeRidingLabel({ role: 'network', hold: 140, easing: 'linear' });
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -98,28 +60,21 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const panelTitle = text({ class: 'scheme-label code dim', x: PROXY_CX, y: 100, 'text-anchor': 'middle', 'font-size': 11 }, ['headers written by the edge']);
-    const xffChip = valChip({ x: PANEL_X, y: 110, w: PANEL_W, h: 36, name: 'X-Forwarded-For', value: 'none', cat: 'network' });
-    const fwdChip = valChip({ x: PANEL_X, y: 154, w: PANEL_W, h: 36, name: 'Forwarded', value: 'none', cat: 'network' });
+    const xffChip = valChip({ x: PANEL_X, y: 110, w: PANEL_W, h: 36, name: 'X-Forwarded-For', value: 'none', role: 'network' });
+    const fwdChip = valChip({ x: PANEL_X, y: 154, w: PANEL_W, h: 36, name: 'Forwarded', value: 'none', role: 'network' });
 
-    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: '198.51.100.9', cat: 'network' });
+    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: '198.51.100.9', role: 'network' });
     const proxy = podBlock({ x: PROXY_X, y: PROXY_TOP, w: PROXY_W, h: PROXY_H, label: 'Edge proxy Pod', ip: '10.244.0.9' });
     const podW = podBlock({ x: POD_X, y: POD_TOP, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.2.7' });
 
-    const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, color: 'network' });
-    const deliverWire = arrow({ x1: DELIVER[0][0], y1: DELIVER[0][1], x2: DELIVER[1][0], y2: DELIVER[1][1], dashed: true, dim: true, color: 'network' });
-    // Ownership marker, NOT a traffic path: the proxy is what writes these headers. No packet ever
-    // travels it, so it is a plain dashed line with NO arrowhead, to read as an association rather than
-    // a wire missing its ball.
+    const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, role: 'network' });
+    const deliverWire = arrow({ x1: DELIVER[0][0], y1: DELIVER[0][1], x2: DELIVER[1][0], y2: DELIVER[1][1], dashed: true, dim: true, role: 'network' });
     const panelWire = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: PROXY_CX, y1: PROXY_TOP, x2: PROXY_CX, y2: PANEL_BOTTOM, 'stroke-dasharray': '5 5', fill: 'none' });
 
-    // The four chips span the scheme 1:1, from the Client left edge to the backend Pod right edge, with
-    // even 20px gaps. Widths are tuned to their content. What the backend sees is an OUTCOME of a
-    // request, so those three read none until traffic actually flows. The edge mode is a property of the
-    // setup, so it is true from the start.
-    const srcChip   = valChip({ x: CLIENT_X, y: CHIP_Y, w: 300, h: 34, name: 'src at backend', value: 'none', cat: 'network' });
-    const readsChip = valChip({ x: 360, y: CHIP_Y, w: 220, h: 34, name: 'app reads', value: 'none', cat: 'network' });
-    const modeChip  = valChip({ x: 600, y: CHIP_Y, w: 260, h: 34, name: 'edge mode', value: 'L7 proxy', cat: 'network' });
-    const ipChip    = valChip({ x: 880, y: CHIP_Y, w: POD_RIGHT - 880, h: 34, name: 'client IP', value: 'unknown', cat: 'network' });
+    const srcChip   = valChip({ x: CLIENT_X, y: CHIP_Y, w: 300, h: 34, name: 'src at backend', value: 'none', role: 'network' });
+    const readsChip = valChip({ x: 360, y: CHIP_Y, w: 220, h: 34, name: 'app reads', value: 'none', role: 'network' });
+    const modeChip  = valChip({ x: 600, y: CHIP_Y, w: 260, h: 34, name: 'edge mode', value: 'L7 proxy', role: 'network' });
+    const ipChip    = valChip({ x: 880, y: CHIP_Y, w: POD_RIGHT - 880, h: 34, name: 'client IP', value: 'unknown', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -144,9 +99,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// The inner app boxes (proxyBox/podWBox) are listed so their .highlight is cleared every step:
-// clearPodHighlight only resets inline strokes, so without them a highlight set in a reduced-replay
-// block leaks into later steps, since reduced replay never runs the forward motion path.
 function clearHL(s) {
   clearHighlights(s, ['client', 'xffChip', 'fwdChip', 'srcChip', 'readsChip', 'modeChip', 'ipChip', 'proxyBox', 'podWBox'], [s.refs.proxy, s.refs.podW]);
 }
@@ -185,7 +137,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.proxyBox.classList.add('highlight'); return; }
       // Down-arrow: the request arrives at the proxy Pod, which pulses on arrival. The true source
       // rides with the ball, because that is what this leg still carries.
-      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], cat: 'network' });
+      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], role: 'network' });
       ridingLabel(s, ctx, 'src 198.51.100.9', ENTRY);
       pulsePod(s.refs.proxy, ctx, inb.arrivalMs);
     },
@@ -207,11 +159,8 @@ const STEPS = [
       s.refs.readsChip.classList.add('highlight');
       s.refs.ipChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.podWBox.classList.add('highlight'); return; }
-      // Up-arrow, the proxy is the sender: it pulses FIRST as it opens the new connection, and only then
-      // does the proxied request leave, carrying the proxy address as its source. The backend pulses on
-      // arrival.
       pulsePod(s.refs.proxy, ctx, 0);
-      const out = segmentPacket(s, ctx, { from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, cat: 'network' });
+      const out = segmentPacket(s, ctx, { from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'src 10.244.0.9 (proxy)', DELIVER, { delay: BEAT.afterPulse });
       pulsePod(s.refs.podW, ctx, out.arrivalMs);
     },
@@ -237,7 +186,7 @@ const STEPS = [
       // Same up-arrow as the previous step, but now the request the proxy sends carries the header, so
       // that is what rides the ball. The backend pulses on arrival.
       pulsePod(s.refs.proxy, ctx, 0);
-      const out = segmentPacket(s, ctx, { from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, cat: 'network' });
+      const out = segmentPacket(s, ctx, { from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'X-Forwarded-For: 198.51.100.9', DELIVER, { delay: BEAT.afterPulse });
       pulsePod(s.refs.podW, ctx, out.arrivalMs);
     },
@@ -263,7 +212,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.proxyBox.classList.add('highlight'); return; }
       // Down-arrow: the client sends its own forged header, and the proxy pulses as it receives it and
       // overwrites the value. The forged claim is what rides the ball, so the spoof is literal traffic.
-      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], cat: 'network' });
+      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], role: 'network' });
       ridingLabel(s, ctx, 'X-Forwarded-For: 1.2.3.4', ENTRY);
       pulsePod(s.refs.proxy, ctx, inb.arrivalMs);
     },
@@ -290,7 +239,7 @@ const STEPS = [
       // Up-arrow again: the proxy pulses as it prepends the preamble, then the stream leaves carrying it
       // and the backend pulses on arrival.
       pulsePod(s.refs.proxy, ctx, 0);
-      const out = segmentPacket(s, ctx, { from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, cat: 'network' });
+      const out = segmentPacket(s, ctx, { from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'PROXY TCP4 198.51.100.9', DELIVER, { delay: BEAT.afterPulse });
       pulsePod(s.refs.podW, ctx, out.arrivalMs);
     },

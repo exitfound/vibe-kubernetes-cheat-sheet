@@ -1,3 +1,4 @@
+/* Design notes: scheme/docs/INTERNALS.md#schemecssdiagramscss */
 /* ===== DIAGRAM PRIMITIVES ===== */
 
 svg.diagram {
@@ -23,8 +24,8 @@ svg.diagram {
   stroke: var(--workloads-color);
   stroke-width: 1.6;
 }
-.scheme-pod[data-cat="control"] .scheme-pod-rect { stroke: var(--control-color); }
-.scheme-pod[data-cat="storage"] .scheme-pod-rect { stroke: var(--storage-color); }
+.scheme-pod[data-role="cluster"] .scheme-pod-rect { stroke: var(--cluster-color); }
+.scheme-pod[data-role="storage"] .scheme-pod-rect { stroke: var(--storage-color); }
 .scheme-pod-label {
   fill: var(--diag-text);
   font-size: 12px;
@@ -41,11 +42,11 @@ svg.diagram {
   stroke-width: 0.8;
   opacity: 0.8;
 }
-.scheme-pod[data-cat="control"] .scheme-pod-container {
+.scheme-pod[data-role="cluster"] .scheme-pod-container {
   fill: rgba(125, 134, 255, 0.18);
-  stroke: var(--control-color);
+  stroke: var(--cluster-color);
 }
-.scheme-pod[data-cat="storage"] .scheme-pod-container {
+.scheme-pod[data-role="storage"] .scheme-pod-container {
   fill: rgba(94, 202, 148, 0.2);
   stroke: var(--storage-color);
 }
@@ -55,10 +56,10 @@ svg.diagram {
   filter: drop-shadow(0 0 8px var(--workloads-color));
   stroke-width: 2;
 }
-.scheme-pod[data-cat="control"].highlight .scheme-pod-rect {
-  filter: drop-shadow(0 0 8px var(--control-color));
+.scheme-pod[data-role="cluster"].highlight .scheme-pod-rect {
+  filter: drop-shadow(0 0 8px var(--cluster-color));
 }
-.scheme-pod[data-cat="storage"].highlight .scheme-pod-rect {
+.scheme-pod[data-role="storage"].highlight .scheme-pod-rect {
   filter: drop-shadow(0 0 8px var(--storage-color));
 }
 
@@ -68,10 +69,10 @@ svg.diagram {
   stroke: var(--diag-stroke);
   stroke-width: 1.4;
 }
-.scheme-box[data-cat="control"]   .scheme-box-rect { stroke: var(--control-color); }
-.scheme-box[data-cat="network"]   .scheme-box-rect { stroke: var(--network-color); }
-.scheme-box[data-cat="workloads"] .scheme-box-rect { stroke: var(--workloads-color); }
-.scheme-box[data-cat="storage"]   .scheme-box-rect { stroke: var(--storage-color); }
+.scheme-box[data-role="cluster"]   .scheme-box-rect { stroke: var(--cluster-color); }
+.scheme-box[data-role="network"]   .scheme-box-rect { stroke: var(--network-color); }
+.scheme-box[data-role="workloads"] .scheme-box-rect { stroke: var(--workloads-color); }
+.scheme-box[data-role="storage"]   .scheme-box-rect { stroke: var(--storage-color); }
 .scheme-box-label {
   fill: var(--diag-text);
   font-size: 12px;
@@ -86,10 +87,10 @@ svg.diagram {
   filter: drop-shadow(0 0 7px currentColor);
   stroke-width: 2;
 }
-.scheme-box[data-cat="control"].highlight   { color: var(--control-color); }
-.scheme-box[data-cat="network"].highlight   { color: var(--network-color); }
-.scheme-box[data-cat="workloads"].highlight { color: var(--workloads-color); }
-.scheme-box[data-cat="storage"].highlight   { color: var(--storage-color); }
+.scheme-box[data-role="cluster"].highlight   { color: var(--cluster-color); }
+.scheme-box[data-role="network"].highlight   { color: var(--network-color); }
+.scheme-box[data-role="workloads"].highlight { color: var(--workloads-color); }
+.scheme-box[data-role="storage"].highlight   { color: var(--storage-color); }
 
 /* Node */
 .scheme-node-rect {
@@ -117,8 +118,8 @@ svg.diagram {
   stroke: var(--storage-color);
   stroke-width: 1.4;
 }
-.scheme-cylinder[data-cat="control"] .scheme-cylinder-body { stroke: var(--control-color); }
-.scheme-cylinder[data-cat="control"] .scheme-cylinder-cap  { stroke: var(--control-color); fill: rgba(125, 134, 255, 0.2); }
+.scheme-cylinder[data-role="cluster"] .scheme-cylinder-body { stroke: var(--cluster-color); }
+.scheme-cylinder[data-role="cluster"] .scheme-cylinder-cap  { stroke: var(--cluster-color); fill: rgba(125, 134, 255, 0.2); }
 .scheme-cylinder-label {
   fill: var(--diag-text);
   font-size: 12px;
@@ -128,8 +129,8 @@ svg.diagram {
 .scheme-cylinder.highlight .scheme-cylinder-cap {
   filter: drop-shadow(0 0 7px currentColor);
 }
-.scheme-cylinder[data-cat="storage"].highlight { color: var(--storage-color); }
-.scheme-cylinder[data-cat="control"].highlight { color: var(--control-color); }
+.scheme-cylinder[data-role="storage"].highlight { color: var(--storage-color); }
+.scheme-cylinder[data-role="cluster"].highlight { color: var(--cluster-color); }
 
 /* Arrows */
 .scheme-arrow {
@@ -141,7 +142,7 @@ svg.diagram {
 .scheme-arrow-dashed { stroke-dasharray: 5 5; }
 .scheme-arrow-network { stroke: var(--network-color); }
 .scheme-arrow-storage { stroke: var(--storage-color); }
-.scheme-arrow-control { stroke: var(--control-color); }
+.scheme-arrow-cluster { stroke: var(--cluster-color); }
 .scheme-arrow.flowing {
   stroke-width: 2;
 }
@@ -151,22 +152,15 @@ svg.diagram {
   fill: var(--network-color);
   filter: drop-shadow(0 0 6px var(--network-color));
 }
-.scheme-packet[data-cat="storage"] {
+.scheme-packet[data-role="storage"] {
   fill: var(--storage-color);
   filter: drop-shadow(0 0 6px var(--storage-color));
 }
-.scheme-packet[data-cat="control"] {
-  /* Brighter than the base --control-color #7d86ff so the ball reads as vividly
-     as the workloads (tinted) packet does. Same indigo hue, just lighter: this is
-     the control-family bright stop (matches --tint-bright for a tinted control
-     card). Tinted dialogs override this with --tint-bright at higher specificity. */
+.scheme-packet[data-role="cluster"] {
   fill: #abb0f5;
   filter: drop-shadow(0 0 6px #abb0f5);
 }
-.scheme-packet[data-cat="network"] {
-  /* The tinted dialog maps --network-color to the pale tint stop, which made the
-     ball read as washed-out. Pin it to the saturated network cyan so the packet
-     pops against the paler pod-pulse tint. */
+.scheme-packet[data-role="network"] {
   fill: #4fe5ff;
   filter: drop-shadow(0 0 6px #4fe5ff);
 }
@@ -180,9 +174,9 @@ svg.diagram {
   filter: drop-shadow(0 0 4px var(--network-color));
   pointer-events: none;
 }
-.scheme-ripple[data-cat="storage"] { stroke: var(--storage-color); filter: drop-shadow(0 0 4px var(--storage-color)); }
-.scheme-ripple[data-cat="control"] { stroke: #abb0f5; filter: drop-shadow(0 0 4px #abb0f5); }
-.scheme-ripple[data-cat="network"] { stroke: #4fe5ff; filter: drop-shadow(0 0 4px #4fe5ff); }
+.scheme-ripple[data-role="storage"] { stroke: var(--storage-color); filter: drop-shadow(0 0 4px var(--storage-color)); }
+.scheme-ripple[data-role="cluster"] { stroke: #abb0f5; filter: drop-shadow(0 0 4px #abb0f5); }
+.scheme-ripple[data-role="network"] { stroke: #4fe5ff; filter: drop-shadow(0 0 4px #4fe5ff); }
 
 /* Label */
 .scheme-label {
@@ -198,10 +192,10 @@ svg.diagram {
   stroke: var(--diag-stroke-soft);
   stroke-width: 1;
 }
-.scheme-chip[data-cat="network"]  .scheme-chip-rect { stroke: var(--network-color); }
-.scheme-chip[data-cat="workloads"] .scheme-chip-rect { stroke: var(--workloads-color); }
-.scheme-chip[data-cat="control"]  .scheme-chip-rect { stroke: var(--control-color); }
-.scheme-chip[data-cat="storage"]  .scheme-chip-rect { stroke: var(--storage-color); }
+.scheme-chip[data-role="network"]  .scheme-chip-rect { stroke: var(--network-color); }
+.scheme-chip[data-role="workloads"] .scheme-chip-rect { stroke: var(--workloads-color); }
+.scheme-chip[data-role="cluster"]  .scheme-chip-rect { stroke: var(--cluster-color); }
+.scheme-chip[data-role="storage"]  .scheme-chip-rect { stroke: var(--storage-color); }
 .scheme-chip-text {
   fill: var(--diag-text);
   font-size: 11px;
@@ -211,10 +205,10 @@ svg.diagram {
   filter: drop-shadow(0 0 6px currentColor);
   stroke-width: 1.8;
 }
-.scheme-chip[data-cat="network"].highlight   { color: var(--network-color); }
-.scheme-chip[data-cat="control"].highlight   { color: var(--control-color); }
-.scheme-chip[data-cat="storage"].highlight   { color: var(--storage-color); }
-.scheme-chip[data-cat="workloads"].highlight { color: var(--workloads-color); }
+.scheme-chip[data-role="network"].highlight   { color: var(--network-color); }
+.scheme-chip[data-role="cluster"].highlight   { color: var(--cluster-color); }
+.scheme-chip[data-role="storage"].highlight   { color: var(--storage-color); }
+.scheme-chip[data-role="workloads"].highlight { color: var(--workloads-color); }
 
 /* Outline highlight variant — thin dim baseline, bright clean border on active.
    Opt in per-scheme by adding data-style="outline" on the root <svg>. */

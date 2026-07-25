@@ -1,8 +1,10 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-daemonset
 
-// valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js
+
+// valChip / setVal / setBoxSublabel are imported from ../lib/workloads-kit.js
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -19,19 +21,19 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const daemonset = box({ x: 320, y: 40, w: 220, h: 80, label: 'DaemonSet', sublabel: '', cat: 'control' });
-    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'watch Nodes · Pod CRUD', cat: 'control' });
+    const daemonset = box({ x: 320, y: 40, w: 220, h: 80, label: 'DaemonSet', sublabel: '', role: 'cluster' });
+    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'watch Nodes · Pod CRUD', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const desiredChip = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'desiredNumberScheduled', value: '3' });
-    const currentChip = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'currentNumberScheduled', value: '0' });
-    const readyChip   = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'numberReady',            value: '0' });
-    const focusChip   = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'focus',                  value: 'selector: app=fluentd' });
+    const desiredChip = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'desiredNumberScheduled', value: '3', role: 'workloads' });
+    const currentChip = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'currentNumberScheduled', value: '0', role: 'workloads' });
+    const readyChip   = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'numberReady',            value: '0', role: 'workloads' });
+    const focusChip   = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'focus',                  value: 'selector: app=fluentd', role: 'workloads' });
     [desiredChip, currentChip, readyChip, focusChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -43,7 +45,7 @@ class Scene {
         '4. update    ·  RollingUpdate maxUnavailable=1, one by one',
         '5. drain     ·  node gone, its Pod deleted, not rescheduled',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // Four node slots across the bottom band. Node-4 starts hidden and joins in step 3.
@@ -61,11 +63,11 @@ class Scene {
     const podWrappers = [];
     const podBoxes = [];
     POD_XS.forEach((nx, i) => {
-      const shell = pod({ x: nx + 12, y: 506, w: 182, h: 106, label: 'fluentd', sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: nx + 12, y: 506, w: 182, h: 106, label: 'fluentd', sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: nx + 22, y: 534, w: 162, h: 52, label: 'fluentd', sublabel: 'log agent', cat: 'workloads' });
+      const innerBox = box({ x: nx + 22, y: 534, w: 162, h: 52, label: 'fluentd', sublabel: 'log agent', role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.style.opacity = '0';
@@ -79,7 +81,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -160,9 +162,9 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) { ['pod1Box','pod2Box','pod3Box'].forEach(k => s.refs[k].classList.add('highlight')); return; }
-      const req = topPacket(s, ctx);
+      const req = topPacket(s, ctx, { role: 'workloads' });
       // Create reaches the node band, the three Pods materialize and pulse together.
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       ctx.register(s.refs.pod3.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
@@ -201,8 +203,8 @@ const STEPS = [
       s.refs.node4El.style.opacity = '0';
       s.refs.pod4.style.opacity = '0';
       ctx.register(s.refs.node4El.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: 200, fill: 'both', easing: 'ease-out' }));
-      const req = topPacket(s, ctx);
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod4, ctx, create.arrivalMs);
     },
@@ -231,12 +233,8 @@ const STEPS = [
       s.refs.pod4.style.opacity = '1';
       s.refs.node4El.style.opacity = '1';
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
-      // One node at a time: the update travels controller -> Api -> Node-1 down the
-      // dashed connector, and only when it arrives does Node-1 react. pod1 pulses as its
-      // Pod is recreated on the new version, while the rest keep serving. Mirrors the
-      // surge step of workloads-rolling-update (ball first, pulse on arrival).
-      const req = topPacket(s, ctx);
-      const update = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const update = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, update.arrivalMs);
     },
   },
@@ -268,7 +266,7 @@ const STEPS = [
       // Node-2 dims as it leaves the cluster.
       s.refs.pod2.style.opacity = '1';
       s.refs.node2El.style.opacity = '1';
-      const del = connectorPacket(s, ctx);
+      const del = connectorPacket(s, ctx, { role: 'workloads' });
       pulsePod(s.refs.pod2, ctx, del.arrivalMs);
       ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));
       ctx.register(s.refs.node2El.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));

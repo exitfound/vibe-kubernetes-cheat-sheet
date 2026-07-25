@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -17,19 +17,19 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Deployment', sublabel: 'owns RS revisions', cat: 'control' });
-    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'PATCH .scale + Pod CRUD', cat: 'control' });
+    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Deployment', sublabel: 'owns RS revisions', role: 'cluster' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'PATCH .scale + Pod CRUD', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const rs1Chip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'RS-v1 (rev 1) · Ready', value: '3 / 3' });
-    const rs2Chip  = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'RS-v2 (rev 2) · Ready', value: '0 / 0' });
-    const condChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'condition', value: 'Available=True' });
-    const revChip  = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'rollout',   value: 'stable @ rev 1' });
+    const rs1Chip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'RS-v1 (rev 1) · Ready', value: '3 / 3', role: 'workloads' });
+    const rs2Chip  = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'RS-v2 (rev 2) · Ready', value: '0 / 0', role: 'workloads' });
+    const condChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'condition', value: 'Available=True', role: 'workloads' });
+    const revChip  = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'rollout',   value: 'stable @ rev 1', role: 'workloads' });
     [rs1Chip, rs2Chip, condChip, revChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -42,7 +42,7 @@ class Scene {
         '5. undo     ·  rollout undo, RS-v1 up, RS-v2 to 0',
         '6. restored ·  rev 3 copies rev 1, Available=True',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -51,11 +51,11 @@ class Scene {
     const POD_XS    = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'v1.0', cat: 'workloads' });
+      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'v1.0', role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.appendChild(shell);
@@ -68,7 +68,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -150,8 +150,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       // The PATCH hits the Api, then the surge order travels down the
       // connector and the surging Pod pulses on arrival.
-      const req = topPacket(s, ctx);
-      const surge = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const surge = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, surge.arrivalMs);
     },
   },
@@ -180,7 +180,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // The failed status reaches the controller over the connector. The v2 Pod
       // pulses then dims to show it is crash-looping, the v1 Pods are untouched.
-      const status = connectorPacket(s, ctx);
+      const status = connectorPacket(s, ctx, { role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, status.arrivalMs);
       ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: status.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
@@ -236,10 +236,10 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
-      const req = topPacket(s, ctx);
+      const req = topPacket(s, ctx, { role: 'workloads' });
       // The undo reaches the node. The recreated v1 Pod lifts from the dim broken
       // state back to full opacity and pulses on arrival.
-      const undo = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const undo = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod1.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: FADE.in, delay: undo.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod1, ctx, undo.arrivalMs);
     },

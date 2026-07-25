@@ -1,3 +1,4 @@
+// Design notes: scheme/docs/CARDS.md, one "### poster" subsection per card id.
 export const POSTERS = {
   // One flat network band with three Pods hanging off it, a packet riding the band.
   'network-model': `
@@ -13,9 +14,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Host netns on the left, one centered dashed veth crossing into the Pod netns box. Inside, app +
-  // sidecar on top and eth0 + lo below are all joined by one H-shaped shared-stack rail. Symmetric
-  // about the Pod centre.
   'network-namespaces': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="16"  y="66"  width="60"  height="48"  rx="8"  fill="rgba(255,255,255,0.04)"/>
@@ -33,10 +31,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The scheme in miniature, vertically centred: client Pod -> netfilter (holding a 2x2 conntrack
-  // table mapping the original tuple to the translated one) -> server Pod. Two lanes carry the flow
-  // with explicit chevrons: the request runs left to right on the top lane, the reply runs right to
-  // left on the bottom lane, each with its own packet.
   'network-conntrack-nat': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="14" y="57" width="64" height="66" rx="11" fill="rgba(255,255,255,0.03)"/>
@@ -59,10 +53,6 @@ export const POSTERS = {
     <circle cx="97" cy="71" r="3.2" fill="currentColor"/><circle cx="223" cy="109" r="3.2" fill="currentColor"/>
   `,
 
-  // A Node wrapping a client Pod (outer shell + inner app) and a MASQUERADE box, with the Internet as
-  // a small globe off to the right. Two dashed lanes cross the SNAT boundary as a round trip: the
-  // request runs left to right on the top lane, the reply runs right to left on the bottom lane,
-  // chevrons mark the direction. Pod, masq and internet share one centre row.
   'network-pod-egress-snat': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="12"  y="40"  width="188" height="100" rx="12" fill="rgba(255,255,255,0.03)"/>
@@ -86,9 +76,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // One Pod box with two containers linked over a short localhost lane.
-  // Two containers side by side, both wired into one shared loopback node (lo, 127.0.0.1) in the
-  // middle: they share localhost and one network stack. Sub-blocks centred inside the Pod.
   'network-pod-localhost': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="46" y="36" width="228" height="108" rx="12" fill="rgba(255,255,255,0.03)"/>
@@ -101,10 +88,6 @@ export const POSTERS = {
     <circle cx="160" cy="90" r="8"  fill="none" stroke="currentColor" stroke-width="1.2"/>
   `,
 
-  // Abstract, not the literal diagram: the client-facing port lives on one level and the container
-  // targetPort on another. Traffic enters the Service high on the front-door plane and leaves low on
-  // the container plane, and the vertical step through the box is the port -> targetPort remap. A ring
-  // centred on each dashed hop marks the port on that plane: the front-door port and the container port.
   'network-service-ports': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22"  y="56" width="46" height="32" rx="7" fill="rgba(255,255,255,0.04)"/>
@@ -118,12 +101,6 @@ export const POSTERS = {
     <circle cx="217.5" cy="108" r="6" fill="none" stroke="currentColor" stroke-width="1.4"/>
   `,
 
-  // Abstract, not the literal diagram: two balanced lanes share one client column (left) and one
-  // external-target column (right), crossing one dashed cluster edge. The whole contrast is hollow
-  // vs solid. Top lane (type ExternalName) is a pure DNS alias: hollow client ring to a hollow
-  // resolver ring to a hollow external host, no ClusterIP and no proxy anywhere on the path. Bottom
-  // lane (no-selector ClusterIP) is machinery: a lit cyan VIP straight into a kube-proxy box, on to a
-  // hand-attached EndpointSlice (dashed chip), then a DNAT hop across the edge to a lit cyan endpoint.
   'network-externalname': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <line x1="78"  y1="56" x2="132" y2="56" stroke-dasharray="4 3"/>
@@ -143,10 +120,6 @@ export const POSTERS = {
     <rect x="144" y="119" width="40" height="9"  rx="2" fill="rgba(79,229,255,0.30)"/>
   `,
 
-  // Client to kube-proxy, which fans at right angles to two symmetric backends: web-a (Ready, top,
-  // solid, neutral endpoint bar) takes new connections, while web-c (Terminating, bottom, dashed) is
-  // still serving one in-flight flow, shown by the cyan drain lane and its cyan serving bar. The solid
-  // vs dashed pair is the whole idea: one healthy backend and one that is draining before it leaves.
   'network-service-terminating-endpoints': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <line x1="66" y1="90" x2="104" y2="90" stroke-dasharray="4 3"/>
@@ -162,9 +135,6 @@ export const POSTERS = {
     <rect x="244" y="123" width="50" height="10" rx="3" fill="rgba(79,229,255,0.30)"/>
   `,
 
-  // Client -> Ingress (the termination point, fed by a TLS Secret) -> backend Pod. Abstraction: a
-  // CLOSED padlock rides the inbound leg (encrypted https) and an OPEN padlock rides the outbound leg
-  // (decrypted plain http), so the poster reads the encrypted-to-plaintext handoff at a glance.
   'network-tls-termination': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22"  y="78" width="54" height="42" rx="8" fill="rgba(255,255,255,0.04)"/>
@@ -187,14 +157,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Client and cloud LB outside a full-height cluster edge, kube-proxy + conntrack + Pod inside the
-  // Node. Two lanes (request above, reply below) make the round trip read as a loop, not a retrace.
-  // North-south = crossing the cluster boundary and coming straight back. Two faint framed regions
-  // (outside | Node) separated by a gap that IS the boundary: a request packet crosses it left to right
-  // on the top lane, the reply crosses right to left on the bottom lane. Inside the outside region a
-  // client square feeds a LB pill, inside the Node a kube-proxy pill hands off to the backend Pod while
-  // a 2x2 conntrack/NAT table sits under it. Abstracted from the dialog so it reads as a boundary
-  // crossing and a round trip, not a row of boxes.
   'network-north-south-path': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="10"  y="44"  width="118" height="92" rx="11" fill="rgba(255,255,255,0.025)"/>
@@ -224,11 +186,6 @@ export const POSTERS = {
     <circle cx="139" cy="96" r="3.2" fill="currentColor"/>
   `,
 
-  // The staircase of guesses. A short name is not asked once: the resolver walks the search list, and
-  // each attempt drops one suffix, so the candidate names get SHORTER row by row until only the bare
-  // name is left. The rows are a descending staircase, the dashed rail on the left is the walk down it,
-  // and the dot trailing each row is the query that attempt costs. The staircase IS the cost, which is
-  // the whole point of ndots, so the poster spends everything on that one shape and draws no topology.
   'network-dns-ndots': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="54"  y="20"  width="44" height="28" rx="5" fill="rgba(255,255,255,0.04)"/>
@@ -255,11 +212,6 @@ export const POSTERS = {
     <circle cx="130" cy="148" r="2.6" fill="currentColor"/>
   `,
 
-  // Near traffic and far traffic. Everything the Pods ask stays on one short rail inside the Node,
-  // where the local agent answers it, and a single thin thread climbs OUT of the Node to the cluster
-  // resolver: that is the miss, and it is the only lookup that pays for the trip. The meaning is in the
-  // distances, not the topology, so the poster keeps the Node boundary (the line the thread has to
-  // cross) and drops everything else the card already draws, packet dots included.
   'network-nodelocal-dnscache': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="196" y="14"  width="76"  height="32" rx="6"  fill="rgba(255,255,255,0.04)"/>
@@ -276,10 +228,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A stack of Service-type rows fanning into one shared backend block.
-  // The scheme in miniature, centred: five service-type rows on the left point STRAIGHT ACROSS to
-  // their targets. The three proxy types (top) share one dashed backend node holding two Pods, while
-  // ExternalName and Headless each get their own box.
   'network-service-types': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="18" y="26"  width="96" height="18" rx="4" fill="rgba(255,255,255,0.04)"/>
@@ -302,11 +250,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Where a normal Service keeps a VIP, headless keeps an ANSWER. The middle of the path is not a box
-  // that rewrites the destination (there is none to rewrite: clusterIP None, so kube-proxy programs
-  // nothing) but the DNS reply itself, a sheet of three A records. Each record leaves on its own leg to
-  // its own Pod, so the record count and the Pod count are visibly the same number, which IS headless:
-  // one record per ready Pod, and the client dials the Pod IP straight.
   'network-headless-service': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20"  y="74"  width="60" height="32" rx="6" fill="rgba(255,255,255,0.04)"/>
@@ -346,10 +289,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The scheme in miniature, workloads/cluster style (brightness hierarchy + one bright accent):
-  // the Pod netns holds pause (bright, the netns owner) and app (dim), a single bright IP bar spans
-  // both (one address, shared), and the hero is the veth pair: two lit end-nodes (eth0 in the Pod
-  // and its host-side peer) joined by a dashed link out to the cni0 host bridge.
   'network-pod-ip-and-veth': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22"  y="46" width="148" height="90" rx="12" fill="rgba(255,255,255,0.03)"/>
@@ -387,11 +326,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Two nodes joined by an underlay carrying an encapsulated packet.
-  // The hero is encapsulation itself: Pod A on Node-1 to Pod B on Node-2, and mid-gap the packet is
-  // a packet-in-packet, a bright inner Pod frame wrapped inside an outer Node header. Source Pod is
-  // bright, dest dim, the wrapped packet crosses the inter-Node gap on a dashed flow. Nesting reads
-  // as the Pod frame carried between Nodes inside an outer envelope (VXLAN, or bare when routed).
   'network-pod-to-pod-cross-node': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="14"  y="54" width="84" height="72" rx="9" fill="rgba(255,255,255,0.03)"/>
@@ -431,9 +365,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The scheme abstracted to its essence: live Pods on the left (the source, the notReady one
-  // dimmed) are reconciled into the EndpointSlice on the right (the derived list, one endpoint row
-  // per Pod, notReady dimmed). Straight horizontal wires carry the one-row-per-Pod mapping.
   'network-endpointslice-reconcile': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="28"  y="35"  width="86"  height="34" rx="6"  fill="rgba(255,255,255,0.05)"/>
@@ -451,9 +382,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Abstract, not the literal diagram: a client feeds a dashed virtual ClusterIP ring (it owns no
-  // interface), which kube-proxy intercepts at a solid pivot and fans to two symmetric backends, one
-  // chosen (lit) and one alternative (dim). The one-of-many DNAT, distilled to a hub and a fan.
   'network-service-clusterip': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22" y="72" width="42" height="36" rx="8" fill="rgba(255,255,255,0.04)"/>
@@ -537,13 +465,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A name goes in, an address comes out: the whole poster is one left-to-right transform on the flow
-  // line y=90. A NAME is one unbroken bar (a single string), an ADDRESS is four short segments split by
-  // dots (a quad), so the two ends read as different kinds of thing at a glance. Between them the
-  // CoreDNS chain: three plugin bars, cache and forward dimmed to 0.45 and kubernetes brightened,
-  // because that is the one that answers. Deliberately no Pod boxes: the siblings already open with a box-and-dashed-line row,
-  // and the subject here is the transform, not the topology. The lanes carry no packet dots, so the
-  // only circles left are the three tiny ones separating the address segments.
   'network-dns-coredns': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="16"  y="80"  width="76" height="20" rx="4" fill="rgba(255,255,255,0.04)"/>
@@ -565,11 +486,6 @@ export const POSTERS = {
     <circle cx="292" cy="90" r="1.3" fill="currentColor"/>
   `,
 
-  // One name, several shapes of answer. The FQDN is a band of four identical segments joined by the
-  // dots of the name itself, and it forks into three identical record chips. The ONLY difference the
-  // poster draws is the answer count: the middle chip carries three dots (headless: one record per
-  // Pod), the others carry one. No resolver box and no record ladder: the card already draws those,
-  // and the poster only has to say what the card is ABOUT.
   'network-dns-records': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="31"  y="40"  width="60" height="28" rx="5" fill="rgba(255,255,255,0.04)"/>
@@ -597,9 +513,6 @@ export const POSTERS = {
     <circle cx="256" cy="139" r="2.4" fill="currentColor"/>
   `,
 
-  // Client to LB, fanning out to node ports across three nodes.
-  // External client on top -> cloud LoadBalancer (ccm provisioning it from the right) -> a right-angle
-  // fan down to three Nodes, backend Pods only under two of them (the third Node runs no Pod).
   'network-nodeport-loadbalancer': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="128" y="16"  width="64" height="24" rx="4" fill="rgba(255,255,255,0.05)"/>
@@ -622,23 +535,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Mirrors the diagram: a Pod above the Node, and inside it the netfilter chain as one left-to-right row
-  // of hooks ending at the wire, with the conntrack table docked under the hooks it belongs to. The row IS
-  // the card (the order of the hooks is the lesson), so the poster is that chain and nothing else. No ball
-  // rides it: where the packet gets rewritten is what the steps answer.
-  // Geometry, same rules as the diagram: every dash starts and ends on a shape edge, and the entry only
-  // turns left once it is inside the Node.
-  // Three shapes on the way in, one band on the way back, nothing else. The two NAT hooks are the boxes,
-  // and each carries the same rewrite glyph, one address chip becoming another: the destination on the way
-  // in, the source on the way out. Between them the routing decision is a diamond, the only shape that is
-  // not a box because it is the only one that CHOOSES, and it sits AFTER the first rewrite, which is the
-  // whole reason the order matters: routing only ever sees the already rewritten address. The reply walks
-  // none of it: the conntrack band under the rail IS the way back, unattached to any hook because it skips
-  // them all, the reply riding it right to left. Walk the chain one way, ride the memory back.
-  // FORWARD, the filter hook and the Node frame are left out on purpose: the card draws the full chain, the
-  // poster only has to say why its ORDER is the point.
-  // Geometry: the rail on y=65 symmetric about the diamond at x=160, the band under it, every dash starting
-  // and ending on a shape edge.
   'network-netfilter-path': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="34"  y="44" width="72" height="42" rx="6" fill="rgba(255,255,255,0.06)"/>
@@ -666,16 +562,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // One Node seen from the LAN, in the same composition language as its siblings: a client bar on top, the
-  // Node frame under it, the NIC as the hub inside, and the blocks hanging off the NIC in a three column
-  // grid. Left column is the hostPort path, and it is the FULL ordinary wiring: the portmap rule that maps
-  // the Node port onto the Pod, plus the cni0 bridge and the veth that actually deliver into it, so the Pod
-  // there is a shell with its own container box, its own namespace, its own IP. Right column is the
-  // hostNetwork Pod, wired to the NIC by ONE straight line and nothing else: no rule, no bridge, no veth,
-  // because it has no namespace to be wired into. That missing wiring, next to the wiring drawn in full, is
-  // the whole card.
-  // Geometry: columns at cx 60 / 160 / 262, the NIC is the only block the client lands on, and every dash
-  // starts and ends on a shape edge.
   'network-hostnetwork-hostport': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="130" y="8"   width="60"  height="18" rx="4"  fill="rgba(255,255,255,0.04)"/>
@@ -698,17 +584,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A diptych: the same little scene twice, and the ONLY thing the policy changes is the Node border.
-  // Left is Cluster, so the border is a faint dashed hint: the call reaches the backend inside the Node,
-  // and it also climbs out over that border to the one outside. Right is Local, so the same border is
-  // drawn solid, as a wall: the leg that would leave the Node is cut short and crossed out at the wall,
-  // and the outside backend with its would-be path fade to a ghost, leaving only the short leg that stays
-  // home. Same caller, same two backends, one boundary that either lets traffic through or does not. No
-  // kube-proxy box, no endpoint list and no packets: the card draws those, the poster only has to say
-  // what the switch DOES.
-  // Geometry: two 128-wide Node frames mirrored about the centre divider (16..144 and 176..304), caller
-  // and local backend on one row inside each, the remote backend directly above the local one and outside
-  // the frame, and every leg starting and ending on a shape edge.
   'network-internal-traffic-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <line x1="160" y1="24" x2="160" y2="156" stroke-dasharray="4 3"/>
@@ -737,12 +612,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Mirrors the diagram: clients above an upstream router, which fans down to three Nodes that each
-  // hold a backend Pod. All three Pods carry the same tint and no ball rides the fan: the poster states
-  // the composition, and which Node actually owns the address is what the steps go on to answer.
-  // Geometry, same rules as the diagram: client and router centred on x=160, the three Nodes mirrored
-  // about it, each Pod centred inside its Node, and every fan leg leaving the router bottom edge and
-  // landing on a Node top edge without ever crossing one.
   'network-loadbalancer-bare-metal': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="130" y="18"  width="60" height="20" rx="5" fill="rgba(255,255,255,0.04)"/>
@@ -762,14 +631,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A routing junction, not another box-and-line row: one request enters a square decision node, which
-  // splits it into two CURVED paths sweeping out to a pair of rounded backend pills. The Ingress rule
-  // table (two bars, the shorter one the more specific rule) docks above the junction and feeds it.
-  // Curves + pills keep this poster from reading like the rectangle rows of its siblings.
-  // Geometry: the junction sits on the flow line y=100, the two pills mirror it at -/+34 (66 and 134),
-  // and every path starts and ends exactly on a shape edge, as everywhere else in this project: the
-  // entry dash meets the square left edge (96), both curves leave its right edge (128), and the rule
-  // table drops onto its top edge (84).
   'network-ingress-routing': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="84" y="28" width="56" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -787,12 +648,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Mirrors the diagram: client above an LB that fans down to two Nodes, only Node-1 holding a backend,
-  // plus the underlay lane that carries the Cluster-mode second hop from Node-2 back to Node-1. That
-  // lane is the whole point of the card, so the poster shows it.
-  // Geometry, same rules as the diagram: client and LB centred on x=160, the two Nodes mirrored about it,
-  // the Pod centred BOTH ways inside Node-1 (cx 81, cy 124), the fan leaving the LB bottom edge and
-  // landing on each Node top, and the underlay running Node edge to Node edge without ever crossing one.
   'network-externaltrafficpolicy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="130" y="12" width="60"  height="22" rx="5" fill="rgba(255,255,255,0.04)"/>
@@ -809,11 +664,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Mirrors the diagram: client, edge proxy Pod, backend Pod on one line, with the two header bars the
-  // edge writes docked above the proxy. No ball rides the legs: the poster states the composition, and
-  // what each leg actually carries is what the steps go on to answer.
-  // Geometry: everything is centred on the flow line y=118, the panel is centred on the proxy (cx 160)
-  // and its link drops onto the proxy top edge, and every dash starts and ends on a shape edge.
   'network-client-ip-preservation': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="116" y="30"  width="88" height="16" rx="4" fill="rgba(255,255,255,0.05)"/>
@@ -852,11 +702,6 @@ export const POSTERS = {
     <circle cx="157" cy="83" r="3.4" fill="currentColor"/>
   `,
 
-  // Two pods on the same node, bridged through cni0.
-  // Same shape as the cross-node card but wholly inside ONE big Node block (both Pods share it): Pod
-  // A (bright source) and Pod B (dim dest) flank the cni0 bridge, joined by clean dashed veths (no
-  // packet dots). The hero is the bright frame sitting BARE inside the bridge, no outer wrapper,
-  // which is the same-node point: switched at layer 2 with no NAT and no encapsulation.
   'network-pod-to-pod-same-node': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="16"  y="42" width="288" height="96" rx="12" fill="rgba(255,255,255,0.03)"/>
@@ -890,9 +735,6 @@ export const POSTERS = {
     <rect x="220" y="122" width="48" height="6" rx="1" fill="currentColor"/>
   `,
 
-  // Abstract, not the literal diagram: a claim on the left, a class "gear" in the middle, and a disk
-  // being drawn into existence on the right (dashed outline, not yet solid). Made to order, not picked
-  // off a shelf, so the shelf is absent entirely.
   'storage-dynamic-provisioning': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20" y="62" width="66" height="56" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -950,9 +792,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The card in miniature: one node boundary holding the Pod (two containers) over a dashed,
-  // ephemeral scratch cylinder. The signature side-entry L-lanes with chevrons tell the story in
-  // one frame: the left container writes INTO the disk, the right container reads OUT of it.
   'storage-emptydir': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="32" y="12" width="256" height="156" rx="10" fill="rgba(255,255,255,0.03)"/>
@@ -974,9 +813,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Pair to the emptyDir poster, same node + Pod + side-entry L-lanes, but the backing cylinder is
-  // SOLID, not dashed: a hostPath is a raw window onto a real directory that already lives on the
-  // node, not ephemeral scratch. The left container writes INTO it, the right reads OUT.
   'storage-hostpath': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="32" y="12" width="256" height="156" rx="10" fill="rgba(255,255,255,0.03)"/>
@@ -996,9 +832,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // One Pod, two volumes, one split down the middle: after a reschedule the ephemeral emptyDir (left,
-  // dashed and faded) comes back WIPED EMPTY, while the persistent PVC/PV (right, solid) reattaches
-  // the very same disk with its data rows INTACT. The empty-vs-full contrast is the whole card.
   'storage-ephemeral-vs-persistent': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="64" y="24" width="192" height="36" rx="8" fill="rgba(255,255,255,0.05)"/>
@@ -1022,9 +855,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The card in miniature: the app reads down the spine through ..data, whose bare right-angle
-  // pointer (no arrowheads, as on the card) has flipped off the dim v1 dir onto the fresh v2 dir.
-  // The short lines inside each dir are the keys sitting as files.
   'storage-configmap-secret-mount': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="104" y="12" width="112" height="30" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -1044,9 +874,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The essence, not the layout: four scattered sources converge fan-wise on ONE mount point at
-  // the folder edge, inside it the keys sit as even file lines, and the token thread (bottom
-  // source, its lane, its file line) burns brighter than the rest.
   'storage-projected-volume': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="196" y="50" width="88" height="80" rx="8" fill="rgba(255,255,255,0.04)"/>
@@ -1068,9 +895,6 @@ export const POSTERS = {
     <circle cx="196" cy="90" r="3.5" fill="currentColor"/>
   `,
 
-  // The node holds a low nodefs disk (clean outline, no fill) with its three ephemeral contributors
-  // (writable + emptyDir + logs) raised just above it and tied down to the disk top by short lines,
-  // linked by a dashed line to the Pod that draws on it. Everything sits inside the one node boundary.
   'storage-ephemeral-storage-eviction': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="34" y="26" width="252" height="128" rx="12" fill="rgba(255,255,255,0.02)"/>
@@ -1089,22 +913,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Abstract, not the literal diagram, and built around the one thing the card is actually about:
-  // the access mode is a GATE, and the gate answers per node rather than per Pod. So the poster is
-  // three tiers, the same descent the diagram uses: two node enclosures on top, one full-width gate
-  // band across the middle, one disk below. Three Pods ask, two lanes come out the bottom of the
-  // band and converge into a single disk, the third stops dead ON the band under an X and never
-  // re-emerges. The surprise is carried by the left node: BOTH of its Pods pass, because the gate
-  // grants a node, not a Pod. The refused lane is dashed and its node is dim, but the X itself is
-  // drawn at full strength, since a dim refusal reads as an unfinished drawing rather than a denial.
-  // All three lanes ARRIVE at the band as arrows, landing on its top edge rather than crossing it:
-  // every attach is a request made TO the gate, and a line drawn straight through would say the
-  // gate is scenery the traffic ignores. The granted pair then re-emerges from the bottom edge, the
-  // same enters-one-edge-leaves-another idiom the card itself uses for the driver.
-  // Below the band ONE lane leaves, straight down the disk column, and it does not trace back to
-  // either Pod: two requests go in and a single attachment comes out, which is exactly what "the
-  // mode grants a node, not a Pod" means. Two lanes out would have said each Pod got its own.
-  // Node widths stay close on purpose, so the difference reads as "which node holds it", never size.
   'storage-access-modes': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="16" y="14" width="140" height="52" rx="10" fill="rgba(255,255,255,0.03)"/>
@@ -1134,22 +942,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Two columns, one difference. The whole poster is an ASYMMETRY between two otherwise identical
-  // stacks: same container on top, same disk at the bottom, and the only thing that differs is what
-  // happens on the way down. The left lane is interrupted by a gate (the mkfs the node service runs)
-  // and its disk carries file lines, because there is a filesystem in it now. The right lane runs
-  // straight through, dashed and unbroken because nothing acts on it, and its disk is left empty.
-  // Not a fork out of one object: these are two separate claims, so drawing them as one splitting
-  // would say the wrong thing (and would also collide with the reclaim-policy poster below, which
-  // IS a fork). The empty right-hand disk is load-bearing: the point of Block is the absence.
-  // File lines are inset inside the cylinder FACE (below the cap rim at 118, above the bottom arc
-  // at 160), not centered on the bounding box, or they ride up over the rim.
-  // Column centers are 88 and 232, not the 70 and 250 this first shipped at. At the wider spacing
-  // the two stacks sat against the left and right edges with a dead 96 unit corridor between them,
-  // so the poster read as two unrelated drawings rather than one comparison. Pulled in to a 60 unit
-  // gap against 46 unit outer margins, which puts more air outside the pair than inside it and
-  // makes them read as a pair. The asymmetry between the columns is the content, so the spacing
-  // has to stay symmetric or it competes with it.
   'storage-volume-mode': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="46"  y="12" width="84" height="32" rx="7" fill="rgba(255,255,255,0.04)"/>
@@ -1176,19 +968,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Abstract, not the literal diagram, and built on the sentence the card opens with: you delete a
-  // claim and the disk full of data disappears, or it does not. So the poster is ONE deleted claim
-  // (dashed, because it is on its way out) dropping into ONE controller band, and two fates leaving
-  // the other side of that band. The band is the whole point and is the reason this is not just a
-  // fork: the two outcomes are not chance, they are one field being read by one controller.
-  // Left, Delete: the disk is dashed and faint, mid-dissolve. Right, Retain: the disk is solid and
-  // filled, and carries a padlock, because Retain does not hand the data back either. It survives
-  // and stays locked behind a stale claimRef until a human clears it, and a poster that showed only
-  // "kept" would promise a happy ending the card spends three steps taking away.
-  // The two lanes are symmetric about the claim above them, so neither outcome reads as the default.
-  // The padlock is centered on the cylinder FACE (the band between the bottom of the cap at 122 and
-  // the bottom arc at 160, so 141), not on the shape's bounding box: the cap is drawn as a rim seen
-  // edge-on, and a glyph centered on the box sits visibly high inside the body you actually see.
   'storage-reclaim-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="128" y="14" width="64" height="26" rx="5" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3" opacity="0.55"/>
@@ -1214,44 +993,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Abstract, not the literal diagram: four phase cells in a row with one lit, an event dot arriving
-  // at it, and a dashed back-arc for the manual return. A state machine distilled to a lit node.
-  // Abstract, not the literal diagram: the machine drawn as a RING that does not close by itself.
-  // Available, Bound and Released sit on the cycle. The two forward edges are solid because the
-  // control plane walks them unasked, and the closing edge back up to Available is dashed because
-  // that is the one hop nothing performs on its own.
-  //
-  // Failed is deliberately NOT here, though it is a real phase and the card teaches it. It only ever
-  // fitted as a faint satellite hung outside the ring, and that cost more than it paid: it was the
-  // one thing keeping the composition off-centre, since a dim shape on one side pads the bounding box
-  // without carrying any visual weight, so the geometry read as centred while the picture read as
-  // shifted. Dropping it makes the ring symmetric about x=160 by construction, and lets it grow into
-  // the freed space instead of floating in an empty canvas. The poster is a hook, not an index, and
-  // the dialog covers Failed properly.
-  //
-  // The point of the ring is that the eye completes it and the drawing does not, so the dashed
-  // quarter reads as a gap in a circle rather than as one more arrow. The previous poster was the
-  // diagram in miniature, four cells in a row with a back-arc, which said state machine but not what
-  // is interesting about this one.
-  //
-  // TWO dots, and the difference between them is the whole idea. The filled one rides the first solid
-  // edge, a hop the control plane is making right now. The hollow one sits on the dashed edge, a hop
-  // that is possible and is not happening, because nothing takes it without a person. Reading them as
-  // a pair says more than either says alone, which is why the second one earns its place on a poster
-  // this small. The dashed edge is drawn as TWO arc segments with a gap where that hollow dot sits:
-  // run as one path it passes straight through the dot and renders it as a struck-out circle, and
-  // sitting the dot in a break reads better anyway, since the break is the point.
-  //
-  // The nodes are drawn as concentric cells rather than plain circles: at poster scale three empty
-  // outlines went thin and washed out, and a core gives each one weight without adding a shape the
-  // reader has to decode. Available carries the heavier stroke and the brighter fill because it is
-  // where the volume is at rest.
-  //
-  // Geometry: ring centered on (160, 99) with R=62 and r=18 nodes, and the three node angles at -90,
-  // 30 and 150 make it symmetric about x=160 by construction. The 99 is not a typo for 90: the top
-  // node sticks a full node radius above the ring while the bottom of the ring is bare arc, so the
-  // circle has to sit low for the drawn bounding box to land on the canvas center. It measures out at
-  // 87.3px of margin on both sides and a vertical center of 89.9 against 90.
   'storage-pv-lifecycle-phases': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <path d="M 183 42 A 62 62 0 0 1 221 108"/>
@@ -1269,22 +1010,6 @@ export const POSTERS = {
     <circle cx="214" cy="68" r="4.5" fill="currentColor"/>
   `,
 
-  // Abstract, not the literal diagram: the claim is MARKED for deletion (dashed outline) and yet
-  // still whole (its content rows are intact on both sides), because a closed padlock sits dead
-  // center on it. The lock is the finalizer, and the live mount dropping in from the consumer above
-  // is why it stays shut. Consumer on top, claim in the middle, disk below, so the poster carries the
-  // same centered vertical stack as the card.
-  //
-  // Two things it deliberately does NOT draw. No X across the object: an X reads as deleted, which is
-  // the exact opposite of the card, where the delete is the thing that has NOT happened. And no
-  // side clamps, an earlier cut of this, which read as two brackets parked near the object rather
-  // than as anything holding it. The object is locked in place, not struck out and not squeezed.
-  // Vertical rhythm: BOTH gaps are 18, and the disk's gap is measured from the top of its ELLIPSE
-  // (cy - ry = 131), not from cy. Measuring to cy is what made the lower gap look bigger than the
-  // upper one in an earlier cut: the numbers read 16 and 19 while the two connectors were drawn the
-  // same length, because the ellipse bulges ry=6 up past the point the connector stopped at. The
-  // stack therefore runs 15..164 (24 + 18 + 56 + 18 + 33), which is 149 tall and centered in the 180
-  // canvas with 15 and 16 of margin. Move any tier and the two 18s have to be re-derived.
   'storage-pvc-protection': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="128" y="15" width="64" height="24" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -1394,14 +1119,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // One staged device, two doorways: a single disk mounts once, then bind-mounts fan to two Pods.
-  // Every link is a straight vertical drop, never a diagonal, and every one of the three is the same
-  // 26 units long: the staging band spans exactly the outer edges of the two bind mounts above it,
-  // so each drop lands on a block centre and the whole thing is symmetric about x=160. The disk link
-  // runs edge to edge, from the top of the cap at 127 to the bottom of the band at 101, rather than
-  // disappearing into the cap the way the earlier version did. Content sits 15..165 in a 180 tall
-  // box, so the margin above and below matches. No packet dot: a poster is a standing statement, and
-  // a ball frozen on a wire reads as a paused animation.
   'storage-mount-path-chain': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <path d="M 130 135 A 30 8 0 0 1 190 135 L 190 157 A 30 8 0 0 1 130 157 Z" fill="rgba(255,255,255,0.03)"/>
@@ -1417,26 +1134,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A request that branches looking for somewhere to go, and a rack of sockets with nothing free at
-  // the end of every branch. The shape is a scheduling decision, which is what makes this card
-  // different from its six siblings: they all start with a Pod that already has a node.
-  //
-  // The sockets are drawn DARK (0.03) rather than as bright cells. They are holes, not contents, and
-  // a rack of dark recesses in a barely-lit frame reads as hardware at a glance, where the earlier
-  // 0.20 fill read as eight grey tiles and flattened the whole lower half into a keypad. Dropping
-  // them also frees the brightest fill for the block that the sentence is actually about: the request
-  // at the top, the one thing here that wants something and cannot have it.
-  //
-  // The branch is the original part and it is doing real work: one request forks into two candidates,
-  // and both wires run the full way down to the rack, meeting its top edge at x=112 and x=208, so the
-  // decision layer above is fully wired to the hardware below. Everything above the rack is the
-  // decision, everything below it is the machines, and the four dashed wires connect them at one
-  // weight so the whole path from request to socket reads as continuous.
-  //
-  // Content sits 13..167 in a 180 tall box, so the canvas margins agree at 13, and it is symmetric
-  // about x=160: rack side margins agree at 15, socket rows and columns are both gapped at 6, and the
-  // sockets clear the rack by 9 above and below. No packet dot: a ball frozen on a wire reads as a
-  // paused animation.
   'storage-volume-attach-limits': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="134" y="13" width="52" height="24" rx="5" fill="rgba(255,255,255,0.09)"/>
@@ -1460,49 +1157,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The disk locked inside a closed circuit of waiting. The card's real subject after the rewrite is
-  // not that a node died, it is that nothing is broken at all: the controller will not delete the
-  // attachment while the old Pod runs, and the rollout will not delete that Pod until the new one is
-  // ready, which it cannot be without the disk. That is a CYCLE, and a cycle is a shape, so the
-  // poster draws it literally: a continuous dashed track with the volume sitting inside it, unable
-  // to leave.
-  //
-  // Two devices are deliberately REFUSED here. The obvious one, one solid claim against one dashed
-  // one, was drawn first and thrown away: it is the same picture as half the catalog, it says only
-  // 'one is denied', and it puts the emphasis on a rejection when the interesting part is that both
-  // claimants are legitimate and alive. So the two blocks on the ring are IDENTICAL, at equal
-  // weight, because neither of them is the problem. The other refusal is a break in the track: an
-  // opening would promise a way out, and the whole point is that there is not one until something
-  // outside the loop (Recreate) cuts it.
-  //
-  // The loop is drawn as two ARCS BETWEEN the blocks, not as one continuous track with the blocks
-  // laid over it. That was the first attempt and it failed in a way only a render shows: a rounded
-  // rect passing behind a translucent box still shows its dashes straight through the fill, so the
-  // line read as crossing the block rather than as arriving at it, which looks like a mistake. Arcs
-  // that START and END on the block edges make the two blocks stations ON the cycle, and the circuit
-  // closes through them: block, arc, block, arc, back again. Nothing overlaps anything.
-  //
-  // The two chevrons are what turn a pair of arcs into a circuit. Top points right, bottom points
-  // left, which resolves to clockwise and gives the eye a direction to travel and never finish. They
-  // sit at the arc apexes, the two points furthest from everything else on the canvas.
-  //
-  // Both arcs RUN TO THE CENTER OF EACH BLOCK, (60, 90) and (260, 90), and the track is masked by the
-  // two block rectangles so the part that lies inside a block is not drawn. That is the whole trick,
-  // and it cannot be done with z-order: the blocks are filled in translucent white over the poster
-  // background, so a dashed line painted underneath one still shows straight through the fill, which
-  // is what read as the arc crossing the block. A mask removes those spans outright.
-  //
-  // The visible arc therefore leaves each block through its TOP edge at x=64, four units off the
-  // block center, and the bottom arc leaves through the bottom edge at the same x. So the line meets
-  // the middle of the block and disappears under it, which is what makes the two blocks read as
-  // stations ON the circuit rather than as boxes parked beside it. Geometry: one ellipse, rx 100,
-  // ry 59, centered on (160, 90), so the two apexes land on 31 and 149 and the chevrons sit on them
-  // without moving.
-  //
-  // Brightness: the disk carries 0.04, the fill the rest of the storage posters give a cylinder body
-  // (0.03 to 0.04). It sat at 0.14 and read as a different material from every sibling poster in the
-  // grid. Content sits 25..155 in a 180 tall box, symmetric about x=160 and about y=90. No packet
-  // dot: a ball frozen on a wire reads as a paused animation.
   'storage-multi-attach-error': `
     <defs>
       <mask id="mae-track" maskUnits="userSpaceOnUse" x="0" y="0" width="320" height="180">
@@ -1525,19 +1179,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Ownership of a tree: a non-root Pod cannot touch a row of root-owned files until a sweep re-owns
-  // them, entry by entry.
-  // Kubelet reaches one directory listing and it is the TOP row that decides everything: under
-  // OnRootMismatch that row alone is read, and if its ownership already matches, nothing below it is
-  // touched. So the poster is the listing, and the owner cells step DOWN a gradient, 0.20 / 0.13 /
-  // 0.07, rather than being one bright cell over two identical dim ones. The ramp says the same
-  // thing the flat pair did, that attention belongs at the top, but it reads as a deliberate scale
-  // instead of as one odd cell out. Only the small cells carry the ramp: the three row rectangles
-  // behind them stay identical, because the rows themselves are peers. Redrawn when
-  // the card moved off its old side-by-side shelf: the previous version showed a kubelet box over
-  // five blank glyphs swept left to right, which is a layout the card no longer has and a sentence
-  // it never made, since nothing in it depicted ownership at all. Content sits 17..163 in a 180 tall
-  // box, symmetric about x=160. No packet dot: a ball frozen on a wire reads as a paused animation.
   'storage-fsgroup-ownership': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="110" y="17" width="100" height="30" rx="6" fill="rgba(255,255,255,0.06)"/>
@@ -1554,18 +1195,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A technical diagram, curated to one sentence: a live VolumeAttachment still binds the volume to a
-  // DEAD node, and the move to the live node is gated by a timeout. Two machine frames stand left and
-  // right: the left one is dim with a dark status LED (failed, kubelet silent), the right one is lit
-  // with its Pod still dashed (pending, waiting on the disk). The volume sits between them with the
-  // faint 0.04 body fill the rest of the poster cylinders use, so it reads by its jade rim, not as a
-  // grey slab. Both wires LEAVE THE CYLINDER HORIZONTALLY and are identically dashed, then turn up into
-  // the node above: only the badge versus the clock, and the dim versus the lit node, tell the two
-  // sides apart. A small badge carrying an attached:true check rides the left wire to the dead node,
-  // the attachment that has not been deleted, and a CLOCK sits on the right wire to the live node, the
-  // roughly six minute force-detach wait that has to elapse first. The clock is the signature: the
-  // whole card is that a healthy-looking cluster still waits out a timer. Both wires break cleanly
-  // around the badge and the clock so nothing draws through them. Content spans y=28..158, centred.
   'storage-volume-detach-on-node-loss': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <g opacity="0.45">
@@ -1595,14 +1224,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Abstract, not the literal diagram. The whole point of binding is that it is TWO-WAY and it is
-  // EXCLUSIVE, so both are drawn: the claim document and the one disk that fits are joined by a pair
-  // of opposed lanes (volumeName going down, claimRef coming back up), and a dashed capsule closes
-  // around just those two, sealing them off as a pair. The two disks that lost sit outside the
-  // capsule, dim and unconnected. The two rejected disks are deliberately IDENTICAL in size: making
-  // them differ read as an accidental mismatch rather than as meaningful, and the eye should be
-  // spending its attention on the pair inside the capsule. All three disks share one baseline
-  // (y=146) and near-identical tops, so the center one stands out by width and fill, not by height.
   'storage-pvc-binding': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="104" y="14" width="112" height="150" rx="14" fill="rgba(255,255,255,0.02)" stroke-dasharray="5 4" opacity="0.5"/>
@@ -1632,17 +1253,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // volumeClaimTemplates: one template stamps a DEDICATED disk per ordinal, and the point is that each
-  // replica gets its OWN stable disk rather than sharing one the way a Deployment would. So the poster is
-  // a template box up top and three IDENTICAL ordinal columns below it, each a Pod wired straight down to
-  // its own cylinder. The fan-out is orthogonal, matching the card, which mints every claim straight down
-  // an axis: one vertical drop out of the template into a horizontal bus, then one 90 degree drop into
-  // each column, so the branch reads as deliberate wiring rather than a spray of diagonals. It is
-  // symmetric about x=160 with columns on 60 / 160 / 260. The three solid vertical spines are the
-  // signature (a spine per ordinal, never a shelf they fight over): the fan is dashed because the
-  // template is minting instances, the spines are solid because each Pod OWNS its disk. The small dashed
-  // rect inside the template box is the claim template itself. No packet dot: a ball frozen on a wire
-  // reads as a paused animation. Content spans y=18..158, centred.
   'storage-volumeclaimtemplates': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="112" y="18" width="96" height="30" rx="6" fill="rgba(255,255,255,0.07)"/>
@@ -1672,10 +1282,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // One policy, two knobs, forking to two fates. A dashed fork drops from the policy box (its two knob
-  // cells one solid, one hollow) to two disks: left stands whole and bright (Retain kept it), right is
-  // dashed and faded (Delete reclaimed it). Echoes the volumeClaimTemplates sibling's top-box + fork
-  // grammar, but diverges to two outcomes instead of stamping three copies.
   'storage-pvc-retention-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="104" y="14" width="112" height="34" rx="6" fill="rgba(255,255,255,0.06)"/>
@@ -1693,9 +1299,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The Pod's zone (bright, centred) among faint sibling zones: the scheduler placed the Pod first, so
-  // its volume is provisioned into that same zone, the jade disk directly beneath it. The empty
-  // flanking zones are the topologies the volume did NOT land in.
   'storage-topology-aware-provisioning': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20" y="30" width="72" height="120" rx="9" fill="rgba(255,255,255,0.02)" opacity="0.38" stroke-dasharray="5 4"/>
@@ -1710,18 +1313,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // One volume with one instant lifted off it. The SAME cylinder is drawn twice on the x=160 axis:
-  // whole and live below, a thin frozen slice of it above, joined by a dashed riser on the axis. Both
-  // bodies are the same width because it is one volume seen twice, not two volumes, and the slice
-  // carries the brightest fill on the poster because it is the thing the card is about. Four elements
-  // and one line, which is the whole poster: no frame, no API objects, no restored disk.
-  //
-  // Deliberately VERTICAL, because storage-pvc-clone is the horizontal pair (two disks side by side
-  // with a copy running between them) and the two cards sit in the same subcategory row. A clone is a
-  // second disk, a snapshot is a moment of the same disk, and the two posters have to say that apart
-  // at 200px wide. Mirror-symmetric about x=160, bodies 132 wide with 94 of margin a side: sized to sit
-  // level with the disks on the neighbouring posters rather than to fill the frame, because at 168 wide
-  // it outweighed every card around it in the row.
   'storage-volume-snapshot': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <path d="M 94 40 A 66 7 0 0 1 226 40 L 226 56 A 66 7 0 0 1 94 56 Z" fill="rgba(255,255,255,0.13)"/>
@@ -1732,16 +1323,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // Two claims, two equal volumes, and one duplicate made INSIDE the storage system: the dashed
-  // enclosure around the pair is the word server-side, which is the whole claim of the card, and the
-  // line between the volumes runs straight from one to the other because there is no object in the
-  // middle. That is also what tells this poster apart from storage-volume-snapshot beside it in the
-  // row: a snapshot is a thin slice lifted off ONE volume, drawn vertically, while a clone is a full
-  // equal twin drawn beside its source. The clone carries the brightest fill because it is the thing
-  // the card is about, and both claim links are dashed like the card, since a solid line between two
-  // objects reads as a route that never runs.
-  // Mirror-symmetric about x=160: content 24..296 and 20..160, so 24 of margin a side and 20 top and
-  // bottom, with the volumes centred in the enclosure at 14 above and below.
   'storage-pvc-clone': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="40" y="20" width="64" height="26" rx="4" fill="rgba(255,255,255,0.05)"/>
@@ -1757,18 +1338,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The owned column: a Pod, the claim it owns, and the volume behind that claim, hanging off one
-  // dashed ownership spine and tapering as it goes down, so the two lower tiers read as derived from
-  // the Pod rather than as neighbours of it.
-  //
-  // The grammar is the card's own, and it is what the poster gained in the rebuild. SOLID stroke means
-  // a real object: the whole point of a generic ephemeral volume is that the claim and the volume are
-  // genuine API objects with genuine provisioning behind them, not a folder on the node, so drawing
-  // them dashed (as this poster used to draw the disk) said the opposite of the card. DIMMED means a
-  // borrowed lifetime: they exist fully, they just do not outlive the Pod above them. DASHED is kept
-  // for the spine alone, because ownership is a relationship and not traffic, which is also why the
-  // packet that used to sit on that spine is gone: nothing travels down an ownerReference.
-  // The claim carries the brightest fill because it is the pivot the card turns on.
   'storage-generic-ephemeral-volume': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="100" y="14" width="120" height="44" rx="8" fill="rgba(255,255,255,0.05)"/>
@@ -1785,13 +1354,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // The capacity record sitting between the pools that publish it and the scheduler that reads it: two
-  // pools, one per topology segment, each advertise their free space up into their OWN value cell of a
-  // single CSIStorageCapacity object, which the scheduler reads before it commits. The pair is mirrored
-  // about the x=160 centre line, so the comparison (this pool against that one) is the shape of the
-  // poster rather than a caption on it. Every link runs edge to edge, and each publish lane leaves its
-  // cylinder at the midpoint of the side face it is drawn on, never inside the body, then turns up into
-  // the exact x of the cell it fills.
   'storage-csi-capacity-tracking': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="108" y="12" width="104" height="26" rx="6" fill="rgba(255,255,255,0.05)"/>
@@ -1812,7 +1374,7 @@ export const POSTERS = {
   `,
 
   // Hub-and-spoke: apiserver in the centre, four control-plane satellites + worker box.
-  'control-plane-architecture': `
+  'cluster-architecture': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <circle cx="160" cy="90" r="22" fill="rgba(255,255,255,0.06)"/>
       <rect x="20"  y="68"  width="62" height="44" rx="5" fill="rgba(255,255,255,0.04)"/>
@@ -1827,7 +1389,7 @@ export const POSTERS = {
     <circle cx="160" cy="90" r="3.5" fill="currentColor"/>
   `,
 
-  'control-node-drain': `
+  'cluster-node-drain': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22" y="38" width="120" height="104" rx="8" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 3"/>
       <rect x="40" y="48"  width="84" height="22" rx="4" fill="rgba(255,255,255,0.10)"/>
@@ -1840,7 +1402,7 @@ export const POSTERS = {
     </g>
   `,
 
-  'control-kubelet-sync-loop': `
+  'cluster-kubelet-sync-loop': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22"  y="36" width="80" height="44" rx="6" fill="rgba(255,255,255,0.04)"/>
       <rect x="218" y="36" width="80" height="44" rx="6" fill="rgba(255,255,255,0.04)"/>
@@ -1852,7 +1414,7 @@ export const POSTERS = {
   `,
 
   // Pod sandbox: two app containers sharing one pause base (shared namespaces + Pod IP).
-  'control-pod-sandbox-cri': `
+  'cluster-pod-sandbox-cri': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="56" y="36" width="208" height="108" rx="12" fill="rgba(255,255,255,0.03)"/>
       <rect x="76" y="108" width="168" height="24" rx="5" fill="currentColor" stroke="none" opacity="0.12"/>
@@ -1864,7 +1426,7 @@ export const POSTERS = {
     </g>
   `,
 
-  'control-node-pressure-eviction': `
+  'cluster-node-pressure-eviction': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="80" y="30"  width="160" height="36" rx="6" fill="rgba(255,255,255,0.03)" opacity="0.5" stroke-dasharray="4 3"/>
       <line x1="92"  y1="36" x2="228" y2="60" opacity="0.55" stroke-linecap="round"/>
@@ -1878,7 +1440,7 @@ export const POSTERS = {
   `,
 
   // Container full of memory, split top-to-bottom by a jagged SIGKILL crack (OOMKilled).
-  'control-oom-kill': `
+  'cluster-oom-kill': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="82" y="40" width="156" height="100" rx="10" fill="rgba(255,255,255,0.03)"/>
     </g>
@@ -1892,7 +1454,7 @@ export const POSTERS = {
 
   // The shutdown grace timer (a clock, two hands + 12/3/6/9 hour dots) signals the Node, whose Pods
   // then terminate in order: leftmost still up, middle draining, last gone (dashed, faint).
-  'control-graceful-node-shutdown': `
+  'cluster-graceful-node-shutdown': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <circle cx="50"  cy="90" r="26" stroke-width="1.6"/>
       <line   x1="50"  y1="90" x2="50"  y2="73" stroke-linecap="round" stroke-width="2"/>
@@ -1912,7 +1474,7 @@ export const POSTERS = {
   `,
 
   // Node failure: the Pod reschedules off a dead (dashed, dim) node onto a healthy node.
-  'control-node-failure': `
+  'cluster-node-failure': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="18"  y="44" width="122" height="92" rx="9" fill="rgba(255,255,255,0.02)" opacity="0.42" stroke-dasharray="5 4"/>
       <rect x="36"  y="69" width="86" height="42" rx="6" opacity="0.42" stroke-dasharray="4 3"/>
@@ -1925,7 +1487,7 @@ export const POSTERS = {
   `,
 
   // Three stacked URL bars representing GVR routes; event dots stream out of each.
-  'control-api-structure': `
+  'cluster-api-structure': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="36" y="48"  width="160" height="22" rx="3" fill="rgba(255,255,255,0.04)"/>
       <rect x="36" y="80"  width="160" height="22" rx="3" fill="rgba(255,255,255,0.04)"/>
@@ -1942,10 +1504,7 @@ export const POSTERS = {
     <circle cx="298" cy="123" r="2"   fill="currentColor" opacity="0.5"/>
   `,
 
-  // Apply = creation flow: a manifest (deploy.yaml) travels through the control plane and
-  // materialises as a running Pod. Mirror of the Delete Flow poster: the fills rise left to
-  // right (doc 0.04 -> box 0.05 -> Pod 0.06 / container 0.10) as the object comes alive.
-  'control-plane-apply-flow': `
+  'cluster-apply-flow': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="24" y="50" width="58" height="80" rx="6" fill="rgba(255,255,255,0.04)"/>
       <line x1="36" y1="68"  x2="70" y2="68"/>
@@ -1960,12 +1519,7 @@ export const POSTERS = {
     </g>
   `,
 
-  // Delete = teardown flow, the mirror of the Apply Flow poster: the SAME running Pod that apply
-  // builds (solid shell + container) starts on the left, is walked through the control plane, and
-  // is erased, so the matching Pod shell on the right is dashed, empty and struck through (the
-  // record leaving ETCD). Fills fall left to right (Pod 0.06 / 0.10 -> box 0.05 -> gone), the
-  // exact inverse of Apply.
-  'control-plane-delete-flow': `
+  'cluster-delete-flow': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="24"  y="58" width="60" height="64" rx="14" fill="rgba(255,255,255,0.06)"/>
       <rect x="38"  y="80" width="32" height="20" rx="3"  fill="rgba(255,255,255,0.10)"/>
@@ -1979,7 +1533,7 @@ export const POSTERS = {
   `,
 
   // Three etcd cylinders: leader (left, bright entry) replicates to two followers via dashed arrows.
-  'control-etcd-raft': `
+  'cluster-etcd-raft': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <ellipse cx="60"  cy="58"  rx="30" ry="7" fill="rgba(255,255,255,0.06)"/>
       <line    x1="30"  y1="58"  x2="30"  y2="130"/>
@@ -2001,10 +1555,7 @@ export const POSTERS = {
     </g>
   `,
 
-  // The scheduler decision: the Pod is scored against three candidate nodes, then BOUND to the
-  // highest-scoring winner (a bright dashed link) while the passed-over nodes get the same dashed
-  // links but dim, with shorter score bars. The winner reads through its bright box + score bar.
-  'control-scheduler-decision': `
+  'cluster-scheduler-decision': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="128" y="26" width="64" height="34" rx="8" fill="rgba(255,255,255,0.07)"/>
       <rect x="146" y="38" width="12" height="12" rx="2" fill="rgba(255,255,255,0.06)"/>
@@ -2021,7 +1572,7 @@ export const POSTERS = {
     </g>
   `,
 
-  'control-leader-election': `
+  'cluster-leader-election': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <!-- three replicas: the middle one is the elected leader (bright), the others standby -->
       <rect x="26"  y="28" width="68" height="44" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.45"/>
@@ -2039,7 +1590,7 @@ export const POSTERS = {
     <circle cx="158" cy="50" r="3.6" fill="currentColor"/>
   `,
 
-  'control-admission-webhooks': `
+  'cluster-admission-webhooks': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20"  y="74" width="44" height="40" rx="4" fill="rgba(255,255,255,0.04)"/>
       <line x1="28"  y1="86"  x2="56"  y2="86"/>
@@ -2317,9 +1868,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // One Pod per node across the cluster: three nodes each hold a single Pod, the dashed node
-  // on the right is joining (the + marker) with its Pod still forming. The uniform 1:1
-  // pod-to-node mapping is the DaemonSet signature.
   'workloads-daemonset': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="23"  y="50" width="58" height="84" rx="8" fill="rgba(255,255,255,0.05)"/>
@@ -2339,9 +1887,6 @@ export const POSTERS = {
     <rect x="258" y="82" width="20" height="9" rx="2" fill="currentColor" opacity="0.4"/>
   `,
 
-  // Revision history with a rollback: rev 1 (good) and rev 3 (restored copy of rev 1) carry the
-  // same version bar, rev 2 (bad) is dimmed and struck out, and a solid counter-clockwise undo
-  // arc sweeps from the current revision back over the bad one to the good revision.
   'workloads-deployment-rollback': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <path d="M 252 108 C 252 46, 68 46, 68 103" stroke-width="1.7"/>
@@ -2377,9 +1922,6 @@ export const POSTERS = {
     </g>
   `,
 
-  // A ReplicaSet on top owns three Pods below through ownerReference links (dashed). The
-  // third Pod is dashed and faint: it just died and is being recreated, the controller
-  // self-healing the count back to three.
   'workloads-replicaset': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="116" y="28"  width="88" height="38" rx="6" fill="rgba(255,255,255,0.08)"/>

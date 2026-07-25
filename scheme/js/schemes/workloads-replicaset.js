@@ -1,8 +1,10 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow, packet } from '../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-replicaset
 
-// valChip / setVal / setBoxLabel / setBoxSublabel are imported from ../lib/scheme-kit.js
+
+// valChip / setVal / setBoxLabel / setBoxSublabel are imported from ../lib/workloads-kit.js
 // Set a Pod slot in one call: label (the app= label), sublabel (owner state) and opacity.
 function setPod(s, idx, { label, sub, opacity }) {
   const boxEl = s.refs['pod' + idx + 'Box'];
@@ -27,19 +29,19 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const rs  = box({ x: 320, y: 40, w: 220, h: 80, label: 'ReplicaSet', sublabel: 'owned by Deployment web', cat: 'control' });
-    const api = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'Pod create · delete · watch', cat: 'control' });
+    const rs  = box({ x: 320, y: 40, w: 220, h: 80, label: 'ReplicaSet', sublabel: 'owned by Deployment web', role: 'cluster' });
+    const api = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'Pod create · delete · watch', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const selectorChip = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'selector',       value: 'app=web' });
-    const desiredChip  = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'spec.replicas',  value: '3' });
-    const observedChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'status.replicas', value: '3' });
-    const actionChip   = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'reconcile',      value: 'in sync' });
+    const selectorChip = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'selector',       value: 'app=web', role: 'workloads' });
+    const desiredChip  = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'spec.replicas',  value: '3', role: 'workloads' });
+    const observedChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'status.replicas', value: '3', role: 'workloads' });
+    const actionChip   = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'reconcile',      value: 'in sync', role: 'workloads' });
     [selectorChip, desiredChip, observedChip, actionChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -52,7 +54,7 @@ class Scene {
         '5. converge  ·  surplus deleted, never exceed replicas',
         '6. orphan    ·  relabel releases a Pod, RS replaces it',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -67,11 +69,11 @@ class Scene {
     ];
     const podBoxes = [];
     const podWrappers = POD_DEFS.map((d, i) => {
-      const shell = pod({ x: d.x, y: 497, w: 182, h: 106, label: d.name, sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: d.x, y: 497, w: 182, h: 106, label: d.name, sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: d.x + 10, y: 525, w: 162, h: 52, label: 'app=web', sublabel: 'owner: rs', cat: 'workloads' });
+      const innerBox = box({ x: d.x + 10, y: 525, w: 162, h: 52, label: 'app=web', sublabel: 'owner: rs', role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.appendChild(shell);
@@ -85,7 +87,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -159,7 +161,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // Declaration: a packet runs from the ReplicaSet down the connector to the node, and the
       // three Pods pulse on arrival, announcing they exist and belong to the RS by ownerReference.
-      const decl = connectorPacket(s, ctx, { delay: BEAT.lead });
+      const decl = connectorPacket(s, ctx, { delay: BEAT.lead, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, decl.arrivalMs);
       pulsePod(s.refs.pod2, ctx, decl.arrivalMs);
       pulsePod(s.refs.pod3, ctx, decl.arrivalMs);
@@ -213,8 +215,8 @@ const STEPS = [
       // web-b2 dies, the controller issues the create (top hop), then the new Pod
       // travels down the connector and lands on arrival.
       ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: 0, fill: 'forwards', easing: 'ease-in' }));
-      const req = topPacket(s, ctx, { delay: FADE.out + BEAT.afterHop });
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { delay: FADE.out + BEAT.afterHop, role: 'workloads' });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod2, ctx, create.arrivalMs);
     },
@@ -240,12 +242,9 @@ const STEPS = [
       s.refs.actionChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); return; }
-      // The RS claims the orphan (ownerReference PATCH on the top arrow), then a packet runs
-      // down the connector and the adopted Pod materializes in the node block on arrival,
-      // showing the fourth replica joining the managed set.
       s.refs.pod4.style.opacity = '0';
-      const patch = topPacket(s, ctx);
-      const join = connectorPacket(s, ctx, { delay: patch.arrivalMs + BEAT.afterHop });
+      const patch = topPacket(s, ctx, { role: 'workloads' });
+      const join = connectorPacket(s, ctx, { delay: patch.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: join.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod4, ctx, join.arrivalMs);
     },
@@ -273,8 +272,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // The DELETE travels to the node, the surplus Pod pulses then is removed on arrival.
       s.refs.pod4.style.opacity = '1';
-      const del = topPacket(s, ctx);
-      const evict = connectorPacket(s, ctx, { delay: del.arrivalMs + BEAT.afterHop });
+      const del = topPacket(s, ctx, { role: 'workloads' });
+      const evict = connectorPacket(s, ctx, { delay: del.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod4, ctx, evict.arrivalMs);
       ctx.register(s.refs.pod4.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
@@ -305,9 +304,9 @@ const STEPS = [
       // pod3 fades to its dim released state, the RS removes its ownerReference (top PATCH),
       // then creates a replacement that materializes in the free slot on arrival.
       ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0.45 }], { duration: FADE.out, delay: 0, fill: 'both', easing: 'ease-in' }));
-      const release = topPacket(s, ctx);
+      const release = topPacket(s, ctx, { role: 'workloads' });
       s.refs.pod4.style.opacity = '0';
-      const replace = connectorPacket(s, ctx, { delay: release.arrivalMs + BEAT.afterHop });
+      const replace = connectorPacket(s, ctx, { delay: release.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: replace.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod4, ctx, replace.arrivalMs);
     },

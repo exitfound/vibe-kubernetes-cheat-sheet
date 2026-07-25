@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -17,19 +17,19 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Deployment', sublabel: 'scales RS-v1, RS-v2', cat: 'control' });
-    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',     sublabel: 'PATCH .scale + Pod CRUD', cat: 'control' });
+    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Deployment', sublabel: 'scales RS-v1, RS-v2', role: 'cluster' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',     sublabel: 'PATCH .scale + Pod CRUD', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const v1Chip       = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'RS-v1 (old) · Ready', value: '3 / 3' });
-    const v2Chip       = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'RS-v2 (new) · Ready', value: '0 / 0' });
-    const surgeChip    = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'maxSurge · maxUnavailable', value: '1 · 1' });
-    const progressChip = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'rollout',  value: 'idle' });
+    const v1Chip       = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'RS-v1 (old) · Ready', value: '3 / 3', role: 'workloads' });
+    const v2Chip       = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'RS-v2 (new) · Ready', value: '0 / 0', role: 'workloads' });
+    const surgeChip    = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'maxSurge · maxUnavailable', value: '1 · 1', role: 'workloads' });
+    const progressChip = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'rollout',  value: 'idle', role: 'workloads' });
     [v1Chip, v2Chip, surgeChip, progressChip].forEach(c => root.appendChild(c));
 
     // Pipeline chain, 6 stages of the rolling update cycle.
@@ -43,7 +43,7 @@ class Scene {
         '5. repeat    ·  surge + drain per old replica',
         '6. converged ·  3 v2 Ready, RS-v1 scaled to 0',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -52,11 +52,11 @@ class Scene {
     const POD_XS    = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'v1.0', cat: 'workloads' });
+      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'v1.0', role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.appendChild(shell);
@@ -69,7 +69,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -147,7 +147,7 @@ const STEPS = [
       s.refs.progressChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
-      topPacket(s, ctx);
+      topPacket(s, ctx, { role: 'workloads' });
     },
   },
   {
@@ -171,9 +171,9 @@ const STEPS = [
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       // kubectl-style scale PATCH reaches Api, then the create flows down to the node.
-      const patch = topPacket(s, ctx);
+      const patch = topPacket(s, ctx, { role: 'workloads' });
       // New v2 Pod is created in slot web-1: the ball travels down, the Pod pulses on arrival.
-      const create = connectorPacket(s, ctx, { delay: patch.arrivalMs + BEAT.afterHop });
+      const create = connectorPacket(s, ctx, { delay: patch.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, create.arrivalMs);
     },
   },
@@ -199,7 +199,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.pod3.style.opacity = '0.4'; s.refs.pod1Box.classList.add('highlight'); return; }
       // Scale-down delete travels to the node. On arrival the new v2 Pod (web-1) confirms
       // Ready with a pulse, and the oldest v1 Pod (web-3) begins terminating and fades out.
-      const drain = connectorPacket(s, ctx, { delay: BEAT.lead });
+      const drain = connectorPacket(s, ctx, { delay: BEAT.lead, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, drain.arrivalMs);
       pulsePod(s.refs.pod3, ctx, drain.arrivalMs);
       ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: drain.arrivalMs, fill: 'both', easing: 'ease-in' }));
@@ -229,9 +229,9 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0.4';
       if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
       // Scale PATCH reaches Api, then the create flows down to slot web-2.
-      const patch = topPacket(s, ctx);
+      const patch = topPacket(s, ctx, { role: 'workloads' });
       // New v2 Pod in slot web-2 reaches the node and pulses Ready on arrival.
-      const create = connectorPacket(s, ctx, { delay: patch.arrivalMs + BEAT.afterHop });
+      const create = connectorPacket(s, ctx, { delay: patch.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod2, ctx, create.arrivalMs);
     },
   },
@@ -258,7 +258,7 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0.4';
       if (ctx.reduced) { s.refs.pod3.style.opacity = '1'; s.refs.pod3Box.classList.add('highlight'); return; }
       // Final v2 Pod is created in slot web-3: ball travels down, the Pod lifts to full and pulses on arrival.
-      const create = connectorPacket(s, ctx, { delay: BEAT.lead });
+      const create = connectorPacket(s, ctx, { delay: BEAT.lead, role: 'workloads' });
       ctx.register(s.refs.pod3.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod3, ctx, create.arrivalMs);
     },

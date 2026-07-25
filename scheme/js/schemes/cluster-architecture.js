@@ -1,6 +1,8 @@
 import { svg, g, line, text } from '../lib/svg.js';
 import { arrowDefs, box, node, cylinder, arrow, pathArrow } from '../lib/primitives.js';
-import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/control-kit.js';
+import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/cluster-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#cluster-architecture
+
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -19,15 +21,15 @@ class Scene {
 
     // Top row: Api (centre) + ETCD (top-right). All component boxes use the
     // workloads standard size (w:220 h:80) so every block reads at one scale.
-    const apisrv = box({ x: 490, y: 80, w: 220, h: 80, label: 'Api',  cat: 'control' });
-    const etcdC  = cylinder({ x: 960, y: 70, w: 130, h: 110, label: 'ETCD', cat: 'control' });
+    const apisrv = box({ x: 490, y: 80, w: 220, h: 80, label: 'Api',  role: 'cluster' });
+    const etcdC  = cylinder({ x: 960, y: 70, w: 130, h: 110, label: 'ETCD', role: 'cluster' });
     root.appendChild(apisrv);
     root.appendChild(etcdC);
 
     // Middle row: ControllerManager sits above Runtime (left column),
     // Scheduler sits above KubeProxy (right column), same x as the node boxes.
-    const ctrlMgr = box({ x: 170, y: 240, w: 220, h: 80, label: 'ControllerManager', cat: 'control' });
-    const sched   = box({ x: 810, y: 240, w: 220, h: 80, label: 'Scheduler',         cat: 'control' });
+    const ctrlMgr = box({ x: 170, y: 240, w: 220, h: 80, label: 'ControllerManager', role: 'cluster' });
+    const sched   = box({ x: 810, y: 240, w: 220, h: 80, label: 'Scheduler',         role: 'cluster' });
     root.appendChild(ctrlMgr);
     root.appendChild(sched);
 
@@ -35,27 +37,24 @@ class Scene {
     root.appendChild(nodeEl);
 
     // Bottom row: Runtime (left), Kubelet (centre, straight under Api), KubeProxy (right).
-    const runtime = box({ x: 170, y: 480, w: 220, h: 80, label: 'Runtime',   cat: 'control' });
-    const kubelet = box({ x: 490, y: 480, w: 220, h: 80, label: 'Kubelet',   cat: 'control' });
-    const kproxy  = box({ x: 810, y: 480, w: 220, h: 80, label: 'KubeProxy', cat: 'control' });
+    const runtime = box({ x: 170, y: 480, w: 220, h: 80, label: 'Runtime',   role: 'cluster' });
+    const kubelet = box({ x: 490, y: 480, w: 220, h: 80, label: 'Kubelet',   role: 'cluster' });
+    const kproxy  = box({ x: 810, y: 480, w: 220, h: 80, label: 'KubeProxy', role: 'cluster' });
     root.appendChild(runtime);
     root.appendChild(kubelet);
     root.appendChild(kproxy);
 
-    root.appendChild(arrow({ x1: 710, y1: 110, x2: 960, y2: 110, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 960, y1: 130, x2: 710, y2: 130, dim: true, dashed: true, color: 'control' }));
-    // ControllerManager + Scheduler each get a parallel arrow PAIR (like the ETCD
-    // write/read lanes): watch event in (Api -> block, upper lane) and the
-    // reconcile / Binding write-back out (block -> Api, lower lane).
-    root.appendChild(pathArrow({ points: [[540, 160], [540, 200], [270, 200], [270, 240]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: [[290, 240], [290, 220], [560, 220], [560, 160]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: [[660, 160], [660, 200], [930, 200], [930, 240]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: [[910, 240], [910, 220], [640, 220], [640, 160]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 600, y1: 160, x2: 600, y2: 420, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 710, y1: 110, x2: 960, y2: 110, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 960, y1: 130, x2: 710, y2: 130, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[540, 160], [540, 200], [270, 200], [270, 240]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[290, 240], [290, 220], [560, 220], [560, 160]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[660, 160], [660, 200], [930, 200], [930, 240]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[910, 240], [910, 220], [640, 220], [640, 160]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 600, y1: 160, x2: 600, y2: 420, dim: true, dashed: true, role: 'cluster' }));
 
     // Inside the node: Kubelet wired to Runtime and KubeProxy (solid binding lines, not flow).
-    root.appendChild(line({ class: 'scheme-arrow scheme-arrow-control', x1: 390, y1: 520, x2: 490, y2: 520 }));
-    root.appendChild(line({ class: 'scheme-arrow scheme-arrow-control', x1: 710, y1: 520, x2: 810, y2: 520 }));
+    root.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: 390, y1: 520, x2: 490, y2: 520 }));
+    root.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: 710, y1: 520, x2: 810, y2: 520 }));
 
     const wireEtcdWrite  = text({ class: 'scheme-label code dim', x: 835, y: 98,  'text-anchor': 'middle' }, [' ']);
     const wireEtcdRead   = text({ class: 'scheme-label code dim', x: 835, y: 152, 'text-anchor': 'middle' }, [' ']);
@@ -122,7 +121,7 @@ const STEPS = [
       s.refs.etcdC.classList.add('highlight');
       setWire(s, 'etcd-write', 'write · Raft quorum commit');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[710, 110], [835, 110], [960, 110]]);
+      routePacket(s, ctx, [[710, 110], [835, 110], [960, 110]], { role: 'cluster' });
     },
   },
   {
@@ -137,7 +136,7 @@ const STEPS = [
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'etcd-read', 'read · watch stream open');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[960, 130], [835, 130], [710, 130]]);
+      routePacket(s, ctx, [[960, 130], [835, 130], [710, 130]], { role: 'cluster' });
     },
   },
   {
@@ -154,8 +153,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // Watch event in (Api -> ControllerManager, upper lane), then the reconcile
       // write-back out (ControllerManager -> Api, lower lane).
-      const watch = routePacket(s, ctx, [[540, 160], [540, 200], [270, 200], [270, 240]]);
-      routePacket(s, ctx, [[290, 240], [290, 220], [560, 220], [560, 160]], { delay: watch.arrivalMs + BEAT.afterHop });
+      const watch = routePacket(s, ctx, [[540, 160], [540, 200], [270, 200], [270, 240]], { role: 'cluster' });
+      routePacket(s, ctx, [[290, 240], [290, 220], [560, 220], [560, 160]], { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -172,8 +171,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // Watch Pods in (Api -> Scheduler, upper lane), then the Binding posted back
       // to the Api (Scheduler -> Api, lower lane).
-      const watch = routePacket(s, ctx, [[660, 160], [660, 200], [930, 200], [930, 240]]);
-      routePacket(s, ctx, [[910, 240], [910, 220], [640, 220], [640, 160]], { delay: watch.arrivalMs + BEAT.afterHop });
+      const watch = routePacket(s, ctx, [[660, 160], [660, 200], [930, 200], [930, 240]], { role: 'cluster' });
+      routePacket(s, ctx, [[910, 240], [910, 220], [640, 220], [640, 160]], { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -190,7 +189,7 @@ const STEPS = [
       s.refs.kproxy.classList.add('highlight');
       setWire(s, 'node', 'watch Pods · spec.nodeName=Node');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[600, 160], [600, 420]]);
+      routePacket(s, ctx, [[600, 160], [600, 420]], { role: 'cluster' });
     },
   },
 ];

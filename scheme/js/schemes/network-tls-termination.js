@@ -1,12 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-tls-termination
 
-// Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. The flow runs
-// left to right along y312, external client -> Ingress controller -> backend Pod, with the TLS
-// Secret sitting above the Ingress as the source of the certificate. TLS is decrypted INSIDE the
-// Ingress box. The client and Ingress are infrastructure (they light, never pulse); only the
-// backend Pod pulses.
+
 const FLOW_Y = 312;
 const CLIENT_EDGE = 270;
 const ING_LEFT = 470;
@@ -14,19 +11,11 @@ const ING_RIGHT = 710;
 const POD_LEFT = 910;
 const SECRET_X = 590;
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'http :8080', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'http :8080', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -48,21 +37,21 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = box({ x: 70, y: 276, w: 200, h: 72, label: 'Client', sublabel: 'browser · https', cat: 'network' });
-    const secret = box({ x: 470, y: 150, w: 240, h: 56, label: 'TLS Secret', sublabel: 'cert + private key', cat: 'network' });
-    const ingress = box({ x: ING_LEFT, y: 276, w: 240, h: 72, label: 'Ingress Controller', sublabel: 'TLS terminate', cat: 'network' });
+    const client = box({ x: 70, y: 276, w: 200, h: 72, label: 'Client', sublabel: 'browser · https', role: 'network' });
+    const secret = box({ x: 470, y: 150, w: 240, h: 56, label: 'TLS Secret', sublabel: 'cert + private key', role: 'network' });
+    const ingress = box({ x: ING_LEFT, y: 276, w: 240, h: 72, label: 'Ingress Controller', sublabel: 'TLS terminate', role: 'network' });
     const podX = podBlock({ x: 910, y: 252, w: 210, h: 120, label: 'Pod web', ip: '10.244.2.7' });
 
-    const cWire = arrow({ x1: CLIENT_EDGE, y1: FLOW_Y, x2: ING_LEFT, y2: FLOW_Y, dashed: true, dim: true, color: 'network' });
-    const pWire = arrow({ x1: ING_RIGHT, y1: FLOW_Y, x2: POD_LEFT, y2: FLOW_Y, dashed: true, dim: true, color: 'network' });
-    const sWire = arrow({ x1: SECRET_X, y1: 206, x2: SECRET_X, y2: 276, dashed: true, dim: true, color: 'network' });
+    const cWire = arrow({ x1: CLIENT_EDGE, y1: FLOW_Y, x2: ING_LEFT, y2: FLOW_Y, dashed: true, dim: true, role: 'network' });
+    const pWire = arrow({ x1: ING_RIGHT, y1: FLOW_Y, x2: POD_LEFT, y2: FLOW_Y, dashed: true, dim: true, role: 'network' });
+    const sWire = arrow({ x1: SECRET_X, y1: 206, x2: SECRET_X, y2: 276, dashed: true, dim: true, role: 'network' });
     const cLabel = text({ class: 'scheme-label code dim', x: 370, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const pLabel = text({ class: 'scheme-label code dim', x: 810, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const schemeChip = valChip({ x: 70,  y: 440, w: 210, h: 34, name: 'wire', value: 'idle', cat: 'network' });
-    const tlsChip    = valChip({ x: 300, y: 440, w: 340, h: 34, name: 'TLS', value: 'none', cat: 'network' });
-    const certChip   = valChip({ x: 660, y: 440, w: 180, h: 34, name: 'cert', value: 'in Secret', cat: 'network' });
-    const backChip   = valChip({ x: 860, y: 440, w: 260, h: 34, name: 'to backend', value: 'none', cat: 'network' });
+    const schemeChip = valChip({ x: 70,  y: 440, w: 210, h: 34, name: 'wire', value: 'idle', role: 'network' });
+    const tlsChip    = valChip({ x: 300, y: 440, w: 340, h: 34, name: 'TLS', value: 'none', role: 'network' });
+    const certChip   = valChip({ x: 660, y: 440, w: 180, h: 34, name: 'cert', value: 'in Secret', role: 'network' });
+    const backChip   = valChip({ x: 860, y: 440, w: 260, h: 34, name: 'to backend', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -125,7 +114,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.client.classList.add('highlight'); return; }
       // No Pod on this leg: the client and ingress are infra. The encrypted hello rides client ->
       // ingress, which lights on arrival along with the Secret it pulled the cert from.
-      const hello = segmentPacket(s, ctx, { from: [CLIENT_EDGE, FLOW_Y], to: [ING_LEFT, FLOW_Y], cat: 'network' });
+      const hello = segmentPacket(s, ctx, { from: [CLIENT_EDGE, FLOW_Y], to: [ING_LEFT, FLOW_Y], role: 'network' });
       lightBoxAt(s.refs.ingress, ctx, hello.arrivalMs);
     },
   },
@@ -162,7 +151,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.podXBox.classList.add('highlight'); return; }
       // The plaintext request leaves the ingress and is delivered to the backend Pod, which pulses
       // on arrival.
-      const give = segmentPacket(s, ctx, { from: [ING_RIGHT, FLOW_Y], to: [POD_LEFT, FLOW_Y], cat: 'network' });
+      const give = segmentPacket(s, ctx, { from: [ING_RIGHT, FLOW_Y], to: [POD_LEFT, FLOW_Y], role: 'network' });
       pulsePod(s.refs.podX, ctx, give.arrivalMs);
     },
   },

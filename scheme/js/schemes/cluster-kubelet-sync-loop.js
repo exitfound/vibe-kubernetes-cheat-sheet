@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, chainList, arrow } from '../lib/primitives.js';
-import { valChip, setVal, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, flashChips, BEAT } from '../lib/control-kit.js';
+import { valChip, setVal, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, flashChips, BEAT } from '../lib/cluster-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -18,16 +18,16 @@ class Scene {
     const content = g({ transform: 'translate(0, 0)' });
     content.appendChild(arrowDefs());
 
-    const api     = box({ x: 320, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'spec source',  cat: 'control' });
-    const kubelet = box({ x: 620, y: 40, w: 220, h: 80, label: 'Kubelet',    sublabel: 'on Node-1',    cat: 'control' });
-    const runtime = box({ x: 920, y: 40, w: 240, h: 80, label: 'Containerd', sublabel: 'CRI gRPC',     cat: 'control' });
+    const api     = box({ x: 320, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'spec source',  role: 'cluster' });
+    const kubelet = box({ x: 620, y: 40, w: 220, h: 80, label: 'Kubelet',    sublabel: 'on Node-1',    role: 'cluster' });
+    const runtime = box({ x: 920, y: 40, w: 240, h: 80, label: 'Containerd', sublabel: 'CRI gRPC',     role: 'cluster' });
 
     // Top arrows, symmetric about each box centre (y=80, so +/-15 -> 65 and 95):
     // Api <-> Kubelet (watch + status PATCH), Kubelet <-> Runtime (CRI calls).
-    content.appendChild(arrow({ x1: 540, y1: 65, x2: 620, y2: 65, dim: true, dashed: true, color: 'control' }));
-    content.appendChild(arrow({ x1: 620, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
-    content.appendChild(arrow({ x1: 840, y1: 65, x2: 920, y2: 65, dim: true, dashed: true, color: 'control' }));
-    content.appendChild(arrow({ x1: 920, y1: 95, x2: 840, y2: 95, dim: true, dashed: true, color: 'control' }));
+    content.appendChild(arrow({ x1: 540, y1: 65, x2: 620, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    content.appendChild(arrow({ x1: 620, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
+    content.appendChild(arrow({ x1: 840, y1: 65, x2: 920, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    content.appendChild(arrow({ x1: 920, y1: 95, x2: 840, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     // Wire labels (font-size: 9) in the gap between top row and pipeline.
     const wireApi = text({ class: 'scheme-label code dim', x: 580, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
@@ -44,14 +44,14 @@ class Scene {
         '4. CRI       ·  Create/Start container gRPC',
         '5. status    ·  PATCH Pod containerStatuses',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // State chips column on the right.
-    const podChip      = valChip({ x: 800, y: 200, w: 380, h: 32, name: 'Pod',         value: '—' });
-    const desiredChip  = valChip({ x: 800, y: 242, w: 380, h: 32, name: 'desired',     value: '—' });
-    const observedChip = valChip({ x: 800, y: 284, w: 380, h: 32, name: 'observed',    value: '—' });
-    const lastOpChip   = valChip({ x: 800, y: 326, w: 380, h: 32, name: 'last CRI op', value: '—' });
+    const podChip      = valChip({ x: 800, y: 200, w: 380, h: 32, name: 'Pod',         value: 'none', role: 'cluster' });
+    const desiredChip  = valChip({ x: 800, y: 242, w: 380, h: 32, name: 'desired',     value: 'none', role: 'cluster' });
+    const observedChip = valChip({ x: 800, y: 284, w: 380, h: 32, name: 'observed',    value: 'none', role: 'cluster' });
+    const lastOpChip   = valChip({ x: 800, y: 326, w: 380, h: 32, name: 'last CRI op', value: 'none', role: 'cluster' });
     [podChip, desiredChip, observedChip, lastOpChip].forEach(c => content.appendChild(c));
 
     // Packet layer.
@@ -93,10 +93,10 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.podChip, '—');
-      setVal(s.refs.desiredChip, '—');
-      setVal(s.refs.observedChip, '—');
-      setVal(s.refs.lastOpChip, '—');
+      setVal(s.refs.podChip, 'none');
+      setVal(s.refs.desiredChip, 'none');
+      setVal(s.refs.observedChip, 'none');
+      setVal(s.refs.lastOpChip, 'none');
     },
   },
   {
@@ -109,8 +109,8 @@ const STEPS = [
       clearWires(s);
       setVal(s.refs.podChip, 'my-app-7d4-abc');
       setVal(s.refs.desiredChip, '1 container');
-      setVal(s.refs.observedChip, '—');
-      setVal(s.refs.lastOpChip, '—');
+      setVal(s.refs.observedChip, 'none');
+      setVal(s.refs.lastOpChip, 'none');
       setWire(s, 'api', 'watch ADDED');
       s.refs.api.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
@@ -119,7 +119,7 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[0]) rows[0].classList.add('highlight');
       if (ctx.reduced) return;
-      topPacket(s, ctx, { from: 540, to: 620 });
+      topPacket(s, ctx, { from: 540, to: 620, role: 'cluster' });
     },
   },
   {
@@ -141,8 +141,8 @@ const STEPS = [
       if (rows[1]) rows[1].classList.add('highlight');
       if (ctx.reduced) return;
       // ListContainers request out, the container list answers once it lands.
-      const req = topPacket(s, ctx, { from: 840, to: 920 });
-      topPacket(s, ctx, { from: 920, to: 840, y: 95, delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { from: 840, to: 920, role: 'cluster' });
+      topPacket(s, ctx, { from: 920, to: 840, y: 95, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -180,9 +180,9 @@ const STEPS = [
       if (rows[3]) rows[3].classList.add('highlight');
       if (ctx.reduced) return;
       // Three packets sequenced for RunPodSandbox, CreateContainer, StartContainer.
-      const sandbox = segmentPacket(s, ctx, { from: [840, 65], to: [920, 65] });
-      const create = segmentPacket(s, ctx, { from: [840, 65], to: [920, 65], delay: sandbox.arrivalMs + BEAT.afterHop });
-      segmentPacket(s, ctx, { from: [840, 65], to: [920, 65], delay: create.arrivalMs + BEAT.afterHop });
+      const sandbox = segmentPacket(s, ctx, { from: [840, 65], to: [920, 65], role: 'cluster' });
+      const create = segmentPacket(s, ctx, { from: [840, 65], to: [920, 65], delay: sandbox.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      segmentPacket(s, ctx, { from: [840, 65], to: [920, 65], delay: create.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -202,7 +202,7 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[4]) rows[4].classList.add('highlight');
       if (ctx.reduced) return;
-      topPacket(s, ctx, { from: 620, to: 540, y: 95 });
+      topPacket(s, ctx, { from: 620, to: 540, y: 95, role: 'cluster' });
     },
   },
 ];

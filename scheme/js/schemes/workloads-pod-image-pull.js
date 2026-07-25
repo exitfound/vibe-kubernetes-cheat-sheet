@@ -1,6 +1,6 @@
 import { svg, g, rect, path, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, pulsePodDim, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, pulsePodDim, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
 
 
 class Scene {
@@ -18,19 +18,19 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet  = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet',  sublabel: 'image puller',          cat: 'control' });
-    const registry = box({ x: 580, y: 40, w: 220, h: 80, label: 'Registry', sublabel: 'OCI Distribution · out-of-cluster', cat: 'control' });
+    const kubelet  = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet',  sublabel: 'image puller',          role: 'cluster' });
+    const registry = box({ x: 580, y: 40, w: 220, h: 80, label: 'Registry', sublabel: 'OCI Distribution · out-of-cluster', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 163, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const imageChip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'image',           value: 'app:v2' });
-    const policyChip = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'imagePullPolicy', value: 'pending' });
-    const layersChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'layers cached',   value: 'not probed' });
-    const statusChip = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'container state', value: 'Waiting' });
+    const imageChip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'image',           value: 'app:v2', role: 'workloads' });
+    const policyChip = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'imagePullPolicy', value: 'pending', role: 'workloads' });
+    const layersChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'layers cached',   value: 'not probed', role: 'workloads' });
+    const statusChip = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'container state', value: 'Waiting', role: 'workloads' });
     [imageChip, policyChip, layersChip, statusChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -42,16 +42,16 @@ class Scene {
         '4. pull   ·  GET /v2/{repo}/blobs/<digest> · reuse cached layers',
         '5. start  ·  overlay rootfs · CreateContainer + Start',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
 
-    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'container', cat: 'workloads' });
+    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'container', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
     podGroup.appendChild(podShell);
@@ -60,7 +60,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -180,7 +180,7 @@ const STEPS = [
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
       // Pod stays dim while the probe travels, then blinks when it reaches the node.
-      const probe = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]]);
+      const probe = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { role: 'workloads' });
       pulsePodDim(s.refs.podGroup, ctx, probe.arrivalMs);
     },
   },
@@ -205,8 +205,8 @@ const STEPS = [
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
       // Blob GET reaches the registry, the 200 with the layers hops back after it lands.
-      const get = topPacket(s, ctx);
-      topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: get.arrivalMs + BEAT.afterHop });
+      const get = topPacket(s, ctx, { role: 'workloads' });
+      topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: get.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
   {
@@ -228,7 +228,7 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      const start = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]]);
+      const start = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { role: 'workloads' });
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.55 }, { opacity: 1 }],
         { duration: FADE.in, delay: start.arrivalMs, fill: 'both', easing: 'ease-out' }

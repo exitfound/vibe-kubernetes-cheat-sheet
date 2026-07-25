@@ -1,24 +1,7 @@
 #!/usr/bin/env node
-// anim-dump.mjs — dump a scheme card's motion AS DATA, per step. Turns the one
-// thing screenshots hide (WAAPI timing + trajectories) into a compact table that
-// reads in a single glance: for each animation its target, animated props, duration,
-// delay, easing, and the computed transform/opacity sampled at fixed progress points
-// (deterministic via currentTime seeking, no wall-clock sampling). Plus per-step DOM
-// facts: packet count, ball-on-top z-order, highlighted blocks, narration.
-//
-// This is an ANALYSIS aid (read by a human / agent), not a pass/fail gate. It also
-// partly fills the gap left by the retired play-probe: diff two dumps to see exactly
-// what a change moved.
-//
-// Usage:
-//   node anim-dump.mjs <scheme-id>                 # all steps, text table
-//   node anim-dump.mjs <scheme-id> 3               # step 3 only (1-based)
-//   node anim-dump.mjs <scheme-id> --samples=0,50,100   # progress % to sample (default 0,50,100)
-//   node anim-dump.mjs <scheme-id> --json          # machine-readable JSON instead of the table
-//   node anim-dump.mjs <scheme-id> --base=http://localhost:8888
-//
-// Needs the dev server up (default :8080) and runs under inspect mode so
-// window.__schemeCtl is exposed.
+// anim-dump.mjs: a card's motion AS DATA per step (target, props, dur/delay/easing, transforms
+// sampled at fixed progress, plus DOM facts). Analysis aid, not a gate. See scheme/CLAUDE.md.
+// node anim-dump.mjs <id> [step] [--samples=0,50,100] [--json] [--base=URL]
 
 import { launch, setInspect, stepCount, enterStep, stepSpan, DEFAULT_BASE } from './_shared.mjs';
 
@@ -32,9 +15,8 @@ const flags = Object.fromEntries(
 const positional = args.filter(a => !a.startsWith('--'));
 const schemeId = positional[0];
 const stepArg = positional[1];
-// --base= wins, else BASE= from the env via _shared's DEFAULT_BASE. Hardcoding the :8080 default
-// here made the env var silently inert, so a run against a live dev server kept dumping whatever
-// the Docker container held: stale motion presented as current.
+// --base= wins, else BASE= from the env. No hardcoded default: that made BASE inert and dumped
+// the container's stale copy as if it were current.
 const baseUrl = (flags.base || DEFAULT_BASE).replace(/\/$/, '');
 const asJson = !!flags.json;
 let sampleOffsets = String(flags.samples || '0,50,100')

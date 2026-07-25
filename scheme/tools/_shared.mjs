@@ -1,17 +1,12 @@
-// _shared.mjs — common Playwright plumbing for the scheme dev tools (smoke-all,
-// anim-dump, frame-strip). Launch, controller-probing, and the deterministic-seek
-// trio live here so the tools cannot drift apart again: the deleted
-// frame-strip-patched.mjs was exactly that drift, a private fork of getStepCount
-// that diverged from the original.
+// _shared.mjs: Playwright plumbing shared by every tool (launch, id discovery, step count, and the
+// deterministic-seek trio) so they cannot drift apart into private forks again.
 import { chromium } from 'playwright';
 
 // Default dev server: Docker nginx on :8080. Override with BASE=... in the env.
 export const DEFAULT_BASE = (process.env.BASE || 'http://localhost:8080').replace(/\/$/, '');
 
-// Let Playwright resolve its own bundled Chromium. Set PLAYWRIGHT_CHROMIUM only to
-// point at a system browser; never hardcode a versioned cache path (~/.cache/
-// ms-playwright/chromium-<build>/...) — it breaks on the next Playwright bump and
-// on any machine that is not this one.
+// Playwright resolves its own Chromium. PLAYWRIGHT_CHROMIUM only to point at a system browser:
+// never hardcode a versioned cache path, it dies on the next bump and on any other machine.
 export function launch(opts = {}) {
   const exe = process.env.PLAYWRIGHT_CHROMIUM;
   return chromium.launch({ headless: true, ...(exe ? { executablePath: exe } : {}), ...opts });
@@ -21,6 +16,14 @@ export function launch(opts = {}) {
 // window.__schemeCtl. Pass 'grid' instead to also draw the inspector overlay.
 export function setInspect(mode) {
   try { localStorage.setItem('scheme:inspect', mode); } catch (_) {}
+}
+
+// Every scheme id, in catalog order, off the rendered grid. The one source of truth for "the whole
+// catalog": a private list misses new cards and keeps running retired ones. Navigates the page.
+export async function discoverIds(page, base = DEFAULT_BASE) {
+  await page.goto(`${base}/scheme/`, { waitUntil: 'networkidle' });
+  return page.$$eval('article.card', els =>
+    els.map(e => e.dataset.id || e.getAttribute('data-id')).filter(Boolean));
 }
 
 // True STEPS length: the controller's `total` (covers the posterFirst last step
@@ -35,11 +38,8 @@ export function stepCount(page) {
 
 const DIAGRAM = 'dialog.scheme-dialog svg.diagram';
 
-// Run exactly ONE step's play-path with animations but no auto-advance: steps
-// 0..idx-1 are applied statically (gotoStep), then step idx's enter() runs with
-// reduced:false via the timeline. Returns true if the real play-path ran, false if
-// the controller lacks the debug handle (then it falls back to a static frame — no
-// motion). Pair with seekStep() to freeze the result at a chosen logical time.
+// Run ONE step's play-path with animations but no auto-advance. Returns false if the controller
+// lacks the debug handle, in which case it falls back to a static frame. Pair with seekStep().
 export function enterStep(page, idx) {
   return page.evaluate(({ i, sel }) => {
     const c = window.__schemeCtl;
@@ -62,9 +62,8 @@ export function enterStep(page, idx) {
   }, { i: idx, sel: DIAGRAM });
 }
 
-// Logical length of the current step in ms: the latest end (delay + active +
-// endDelay) across the diagram's finite animations. Infinite loops (flowDash) count
-// only one iteration. 0 when the step has no animations (e.g. the poster).
+// Logical length of the current step in ms: the latest delay + active + endDelay. An infinite
+// animation counts one iteration, so a span can include something that never actually ends.
 export function stepSpan(page) {
   return page.evaluate((sel) => {
     const svg = document.querySelector(sel);
@@ -82,9 +81,8 @@ export function stepSpan(page) {
   }, DIAGRAM);
 }
 
-// Freeze every diagram animation at absolute logical time t (ms). Idempotent and
-// race-free: currentTime is set absolutely, so real time elapsed since enterStep is
-// irrelevant. Returns how many animations were pinned.
+// Freeze every diagram animation at absolute logical time t. Race-free because currentTime is
+// absolute, so elapsed real time since enterStep does not matter.
 export function seekStep(page, t) {
   return page.evaluate(({ tt, sel }) => {
     const svg = document.querySelector(sel);

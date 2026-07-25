@@ -1,38 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
-import {
-  valChip, setVal, setCylinderLabel, pulsePod, routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, BEAT, FADE,
-} from '../lib/storage-kit.js';
+import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel } from '../lib/storage-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#storage-hostpath
 
-// hostPath. Storage grammar as a VERTICAL STACK inside one Node boundary, the same skeleton as the
-// emptyDir card (Node holding a Pod of two containers over a backing cylinder, side-entry L-lanes),
-// because hostPath is the other node-local volume and the two cards must read as a pair. The whole
-// card is the CONTRAST with emptyDir: an emptyDir is scratch the kubelet makes FOR the Pod, a
-// hostPath is a raw window onto a directory that ALREADY LIVES ON THE NODE and belongs to it.
-//
-// TWO DELIBERATE FAMILY VARIATIONS, both carrying the lesson:
-//   1. NO OWNERSHIP SPINE. volume-model and emptyDir draw a dim spine from the Pod down to the disk
-//      because the volume belongs to the Pod. Here the directory belongs to the NODE, not the Pod,
-//      so that spine is intentionally absent: the Pod and the host directory read as two separate
-//      things joined only by the mount lanes. The empty gap at x=600 IS the message.
-//   2. THE reschedule STEP INVERTS emptyDir's dies STEP. emptyDir ghosts the Pod AND its directory
-//      together (both owned by the Pod). hostPath ghosts ONLY the Pod and its mount lanes while the
-//      host directory stays lit at full opacity, because the directory is the node's and outlives
-//      the Pod on that node. That single visual inversion is why hostPath is not persistence.
-//
-// GEOMETRY is emptyDir's verbatim so the pair aligns: Node 180..1020, Pod 300..900 centered on 600,
-// the two containers pushed to the Pod edges (centers 425 and 775, outside the cylinder span), the
-// cylinder 470..730 centered on 600. The narration overlay reaches about (300, 163) here, and the
-// Node top at 170 sits flush under it. A longer narration invalidates that measurement.
-//
-// PULSE MODEL (canon): the Pod is one unit, the SHELL pulses (shellWrap holds only the shell so the
-// pulse never reaches the inner containers), the containers only take a static .highlight, never a
-// pulse. Highlights are step-static, set above the reduced guard, and the shell pulse fires in the
-// same beat. The cylinder is infrastructure: it lights, never pulses.
-//
-// WIRES: two directed L-lanes, exactly emptyDir's, each shared by its static pathArrow and its ball.
-// The app writes DOWN into the cylinder side, the agent reads UP out of the far side.
+
 const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550
 
 const POD_X = 300, POD_Y = 186, POD_W = 600, POD_H = 170;       // 300..900, center 600
@@ -57,23 +28,11 @@ const CHIPS_Y = 566;
 const LANE_WRITE = [[APP_CX, C_BOTTOM], [APP_CX, HP_MY], [HP_X, HP_MY]];              // app -> host dir
 const LANE_READ  = [[HP_X + HP_W, HP_MY], [SIDE_CX, HP_MY], [SIDE_CX, C_BOTTOM]];     // host dir -> agent
 
-// A tag that rides ALONG with the ball on the same path, timing and easing. Balls are routePacket
-// (eased), so the label defaults to the same ease-in-out and the same routeDur, or it would drift
-// off the ball mid-flight.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function containerBlock({ x, y, w, h, label, sublabel }) {
-  const b = box({ x, y, w, h, label, sublabel, cat: 'storage' });
+  const b = box({ x, y, w, h, label, sublabel, role: 'storage' });
   const wrap = g({});
   wrap.appendChild(b);
   return { wrap, box: b };
@@ -98,7 +57,7 @@ class Scene {
 
     // The pod shell lives alone in shellWrap so the pod pulse (which queries .scheme-pod
     // descendants) reaches ONLY the shell, never the inner container boxes.
-    const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod log-agent', sublabel: 'volumes: varlog (hostPath)', containers: 0, cat: 'storage' });
+    const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod log-agent', sublabel: 'volumes: varlog (hostPath)', containers: 0, role: 'storage' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     const shellWrap = g({});
@@ -111,21 +70,21 @@ class Scene {
 
     // The backing cylinder is the node's OWN directory, not a Pod-scoped disk. It carries the host
     // path as its label and is drawn inside the Node boundary. No spine ties it to the Pod.
-    const hp = cylinder({ x: HP_X, y: HP_Y, w: HP_W, h: HP_H, label: '/var/log', cat: 'storage' });
+    const hp = cylinder({ x: HP_X, y: HP_Y, w: HP_W, h: HP_H, label: '/var/log', role: 'storage' });
     const hpLbl = hp.querySelector('.scheme-cylinder-label');
     if (hpLbl) hpLbl.setAttribute('y', 64);
 
     // One directed lane per container, each with its own arrowhead: the app writes into the cylinder
     // side, the agent reads out of the far side. No ownership spine (the directory is not the Pod's).
-    const wWrite = pathArrow({ points: LANE_WRITE, dashed: true, dim: true, color: 'storage' });
-    const wRead  = pathArrow({ points: LANE_READ,  dashed: true, dim: true, color: 'storage' });
+    const wWrite = pathArrow({ points: LANE_WRITE, dashed: true, dim: true, role: 'storage' });
+    const wRead  = pathArrow({ points: LANE_READ,  dashed: true, dim: true, role: 'storage' });
 
     const diskLbl = text({ class: 'scheme-label code dim', x: 600, y: DISK_LBL_Y, 'text-anchor': 'middle' }, ['the node filesystem']);
 
     // The chip strip spans exactly the node width (180..1020): 3x270 + 2x15 = 840.
-    const hostChip = valChip({ x: 180, y: CHIPS_Y, w: 270, h: 34, name: 'hostPath',  value: 'mounts /var/log', cat: 'storage' });
-    const livesChip = valChip({ x: 465, y: CHIPS_Y, w: 270, h: 34, name: 'data lives', value: 'on the node',    cat: 'storage' });
-    const expChip  = valChip({ x: 750, y: CHIPS_Y, w: 270, h: 34, name: 'exposure',  value: 'one directory',   cat: 'storage' });
+    const hostChip = valChip({ x: 180, y: CHIPS_Y, w: 270, h: 34, name: 'hostPath',  value: 'mounts /var/log', role: 'storage' });
+    const livesChip = valChip({ x: 465, y: CHIPS_Y, w: 270, h: 34, name: 'data lives', value: 'on the node',    role: 'storage' });
+    const expChip  = valChip({ x: 750, y: CHIPS_Y, w: 270, h: 34, name: 'exposure',  value: 'one directory',   role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -150,9 +109,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// Sets each chip and statically highlights the ones whose value CHANGES on this step (the standard
-// set by the volume-model anchor): a chip that changes glows for the step, a chip that stays the
-// same does not. Steps are always entered in order, so the diff is deterministic.
 function setChip(chip, val) {
   const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
   setVal(chip, val);
@@ -199,9 +155,6 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { host: 'bind-mounted in', lives: 'on the node', exposure: 'one directory' });
-      // kubelet bind-mounts the existing host directory INTO the containers, so the cylinder AND both
-      // container boxes light as the mount lands, and the shell pulses in the same beat. All static
-      // above the guard so reduced motion holds the same lit end-state.
       s.refs.hp.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
       s.refs.sideBox.classList.add('highlight');
@@ -224,13 +177,10 @@ const STEPS = [
       s.refs.appBox.classList.add('highlight');
       s.refs.sideBox.classList.add('highlight');
       if (ctx.reduced) return;
-      // The app WRITE leaves the Pod for the cylinder (up-arrow), so the shell pulses first and the
-      // write ball descends at afterPulse. The agent READ returns the bytes INTO the Pod (down-arrow),
-      // so the read ball leaves the far side first and the shell pulses AGAIN when it arrives back.
       pulsePod(s.refs.shellWrap, ctx, 0);
-      const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, cat: 'storage' });
+      const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'write entry', LANE_WRITE, { delay: BEAT.afterPulse });
-      const read = routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, cat: 'storage' });
+      const read = routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'read entry', LANE_READ, { delay: write.arrivalMs + BEAT.afterHop });
       pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
     },
@@ -274,7 +224,7 @@ const STEPS = [
       pulsePod(s.refs.shellWrap, ctx, 0);
       // The Pod reaches down into the host root: a pod-to-infra hop, so the shell pulses first and
       // the ball leaves at afterPulse.
-      routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, cat: 'storage' });
+      routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'full node access', LANE_WRITE, { delay: BEAT.afterPulse });
     },
   },
@@ -292,7 +242,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // The agent reads the node logs: an infra-to-pod hop, so the ball leaves first and the shell
       // pulses when it arrives.
-      const read = routePacket(s, ctx, LANE_READ, { cat: 'storage' });
+      const read = routePacket(s, ctx, LANE_READ, { role: 'storage' });
       ridingLabel(s, ctx, 'reads node logs', LANE_READ);
       pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
     },

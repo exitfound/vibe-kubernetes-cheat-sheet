@@ -1,29 +1,9 @@
 import { svg, g, text, path } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-internal-traffic-policy
 
-// internalTrafficPolicy Cluster vs Local (viewBox 1200x640). The east-west twin of the External Traffic
-// card: same two values, same Service, but the traffic starts INSIDE the cluster. So the sender is a
-// client Pod on Node-1, and the question is which endpoints the kube-proxy on THAT Node is allowed to
-// program: every ready endpoint in the cluster (Cluster), or only the ones sitting on Node-1 (Local).
-// The third step is the one that separates it from externalTrafficPolicy: Local has no fallback and no
-// health check, so with no local backend kube-proxy drops the packets instead of forwarding them.
-//
-// Standard contract: Pods are shell + inner box; only Pods pulse; the Service and kube-proxy are
-// infrastructure and only light; value chips never flash; packets stop at block edges. A ball never
-// crosses a Node border: the cross-node leg starts on the Node-1 bottom edge (the packet has left the
-// Node by then) and ends on the Node-2 bottom edge, and the Pod inside pulses to show it was served.
-//
-// GEOMETRY. Every wire and every packet is derived from a block edge, never hand-typed.
-//
-// Vertical: the Service sits alone on top, the Node row carries the whole flow on FLOW_Y, and the
-// underlay lane below the Nodes carries the cross-node hop. The narration overlay really covers
-// x 0..399, y 0..300, so the Node row starts at 312 and the Service (the only block above 300) lives at
-// x >= 450, clear of it.
-//
-// Horizontal: Node-1 is wide because it holds the whole local path (client, dataplane, local backend),
-// Node-2 only holds the remote backend. The two span 40..1160, so the scheme centres in the viewBox and
-// the chip strip spans that same extent 1:1.
+
 const FLOW_Y = 405;
 
 const SVC_X = 450, SVC_Y = 56, SVC_W = 300, SVC_H = 74;
@@ -62,36 +42,14 @@ const TO_LOCAL = [[KP_RIGHT, FLOW_Y], [PODA_X, FLOW_Y]];
 // by the time the ball is on this path the packet has already left the Node.
 const TO_REMOTE = [[KP_CX, NODE_BOTTOM], [KP_CX, UNDER_Y], [PODB_CX, UNDER_Y], [PODB_CX, NODE_BOTTOM]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A tag that rides ALONG with the ball on the same path, timing and easing, carrying the address that
-// leg actually has. It lives in the packet layer but is not a .scheme-packet, so the tools do not count
-// it as a packet. segmentPacket is linear and routePacket is eased, so each caller passes the easing of
-// the ball it rides or the tag drifts off it mid-flight. `dy` flips the tag below the ball on the
-// underlay leg, whose endpoints sit on Node edges: above the ball it would print inside a Node.
-function ridingLabel(s, ctx, txt, points, { delay = 0, easing = 'ease-in-out', dy = -14 } = {}) {
-  if (ctx.reduced) return;
-  const d = routeDur(points);
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: dy, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 170, delay: delay + d, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0 });
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 46, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 46, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -117,22 +75,15 @@ class Scene {
     const node2 = node({ x: N2_X, y: NODE_Y, w: N2_W, h: NODE_H, label: 'Node-2' });
 
     const client = podBlock({ x: CLIENT_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Client Pod', ip: '10.244.1.5' });
-    const kproxy = box({ x: KP_X, y: KP_TOP, w: KP_W, h: KP_H, label: 'kube-proxy', sublabel: 'on Node-1', cat: 'network' });
+    const kproxy = box({ x: KP_X, y: KP_TOP, w: KP_W, h: KP_H, label: 'kube-proxy', sublabel: 'on Node-1', role: 'network' });
     const podA = podBlock({ x: PODA_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.9' });
     const podB = podBlock({ x: PODB_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.2.7' });
 
-    const svc = box({ x: SVC_X, y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'ClusterIP 10.96.0.10:80', cat: 'network' });
+    const svc = box({ x: SVC_X, y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'ClusterIP 10.96.0.10:80', role: 'network' });
 
-    const kpWire = arrow({ x1: TO_KP[0][0], y1: TO_KP[0][1], x2: TO_KP[1][0], y2: TO_KP[1][1], dashed: true, dim: true, color: 'network' });
-    const localWire = arrow({ x1: TO_LOCAL[0][0], y1: TO_LOCAL[0][1], x2: TO_LOCAL[1][0], y2: TO_LOCAL[1][1], dashed: true, dim: true, color: 'network' });
-    const remoteWire = pathArrow({ points: TO_REMOTE, dashed: true, dim: true, color: 'network' });
-    // Ownership marker, NOT a traffic path: the Service and its EndpointSlices are what kube-proxy on
-    // each Node is programmed from. No packet ever travels it (the ClusterIP never appears on a wire),
-    // so it is a plain dashed polyline with NO arrowhead: an association, not a wire missing its ball
-    // (pathArrow always carries a head, hence the raw path). It drops out of the Service, turns onto the
-    // Node axis and STOPS on the Node top edge rather than reaching into kube-proxy: the Service is an
-    // API object that lives outside any Node, and what it programs inside one is the Node business.
-    // N1_CX and KP_CX happen to be the same 390, so the line still reads as landing on the dataplane.
+    const kpWire = arrow({ x1: TO_KP[0][0], y1: TO_KP[0][1], x2: TO_KP[1][0], y2: TO_KP[1][1], dashed: true, dim: true, role: 'network' });
+    const localWire = arrow({ x1: TO_LOCAL[0][0], y1: TO_LOCAL[0][1], x2: TO_LOCAL[1][0], y2: TO_LOCAL[1][1], dashed: true, dim: true, role: 'network' });
+    const remoteWire = pathArrow({ points: TO_REMOTE, dashed: true, dim: true, role: 'network' });
     const OWN = [[SVC_CX, SVC_BOTTOM], [SVC_CX, 240], [N1_CX, 240], [N1_CX, NODE_Y]];
     const ownLink = path({
       class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network',
@@ -146,13 +97,10 @@ class Scene {
     const aNote = text({ class: 'scheme-label code dim', x: PODA_X + POD_W / 2, y: 480, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
     const bNote = text({ class: 'scheme-label code dim', x: PODB_CX, y: 480, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
 
-    // The four chips span the scheme 1:1, from the Node-1 left edge to the Node-2 right edge, with even
-    // 20px gaps. The policy is a property of the Service, so it is true from the start. The scope, the
-    // hop and the result are outcomes of a call, so they read none until traffic actually flows.
-    const policyChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 290, h: CHIP_H, name: 'internalTrafficPolicy', value: 'Cluster', cat: 'network' });
-    const scopeChip  = valChip({ x: 350, y: CHIP_Y, w: 300, h: CHIP_H, name: 'endpoints in scope', value: 'none', cat: 'network' });
-    const hopChip    = valChip({ x: 670, y: CHIP_Y, w: 210, h: CHIP_H, name: 'leaves Node', value: 'none', cat: 'network' });
-    const resultChip = valChip({ x: 900, y: CHIP_Y, w: SCHEME_RIGHT - 900, h: CHIP_H, name: 'result', value: 'none', cat: 'network' });
+    const policyChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 290, h: CHIP_H, name: 'internalTrafficPolicy', value: 'Cluster', role: 'network' });
+    const scopeChip  = valChip({ x: 350, y: CHIP_Y, w: 300, h: CHIP_H, name: 'endpoints in scope', value: 'none', role: 'network' });
+    const hopChip    = valChip({ x: 670, y: CHIP_Y, w: 210, h: CHIP_H, name: 'leaves Node', value: 'none', role: 'network' });
+    const resultChip = valChip({ x: 900, y: CHIP_Y, w: SCHEME_RIGHT - 900, h: CHIP_H, name: 'result', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -183,9 +131,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// The inner app boxes are listed by key so the .highlight a reduced replay puts on them is cleared too:
-// clearPodHighlight only resets inline strokes. Every Node and Pod opacity goes back to full so a dim
-// set by one policy cannot leak into the next step.
 function clearHL(s) {
   clearHighlights(s, ['svc', 'kproxy', 'policyChip', 'scopeChip', 'hopChip', 'resultChip', 'clientBox', 'podABox', 'podBBox'], [s.refs.client, s.refs.podA, s.refs.podB]);
   ['node1', 'node2', 'client', 'podA', 'podB'].forEach(k => { s.refs[k].style.opacity = '1'; });
@@ -229,16 +174,12 @@ const STEPS = [
       s.refs.scopeChip.classList.add('highlight');
       s.refs.hopChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
-      // Up-arrow: the client Pod is the sender, so it pulses FIRST and the packet leaves at
-      // BEAT.afterPulse carrying the ClusterIP. kube-proxy lights as it catches it, the DNAT happens
-      // inside the box, and the ball re-emerges below it on the Node edge already carrying the remote
-      // Pod address. The remote backend pulses as the underlay leg lands on its Node.
       pulsePod(s.refs.client, ctx, 0);
-      const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, cat: 'network' });
+      const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.96.0.10:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.kproxy, ctx, toKp.arrivalMs);
       const outDelay = toKp.arrivalMs + BEAT.afterHop;
-      const out = routePacket(s, ctx, TO_REMOTE, { delay: outDelay, cat: 'network' });
+      const out = routePacket(s, ctx, TO_REMOTE, { delay: outDelay, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.2.7:8080', TO_REMOTE, { delay: outDelay, dy: 20 });
       pulsePod(s.refs.podB, ctx, out.arrivalMs);
     },
@@ -267,15 +208,12 @@ const STEPS = [
       s.refs.scopeChip.classList.add('highlight');
       s.refs.hopChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
-      // Same opening as Cluster: the client pulses, the ball carries the ClusterIP to kube-proxy. This
-      // time the DNAT resolves to the local Pod, so the ball leaves the far edge of kube-proxy and stays
-      // inside the Node, and the local backend pulses on arrival.
       pulsePod(s.refs.client, ctx, 0);
-      const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, cat: 'network' });
+      const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.96.0.10:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.kproxy, ctx, toKp.arrivalMs);
       const giveDelay = toKp.arrivalMs + BEAT.afterHop;
-      const give = segmentPacket(s, ctx, { from: TO_LOCAL[0], to: TO_LOCAL[1], delay: giveDelay, cat: 'network' });
+      const give = segmentPacket(s, ctx, { from: TO_LOCAL[0], to: TO_LOCAL[1], delay: giveDelay, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.1.9:8080', TO_LOCAL, { delay: giveDelay, easing: 'linear' });
       pulsePod(s.refs.podA, ctx, give.arrivalMs);
     },
@@ -306,7 +244,7 @@ const STEPS = [
       // The call is made exactly as before, and it dies at kube-proxy: the ball arrives, the box lights,
       // and no further ball leaves. The absent second hop is the whole point of the step.
       pulsePod(s.refs.client, ctx, 0);
-      const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, cat: 'network' });
+      const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.96.0.10:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.kproxy, ctx, toKp.arrivalMs);
     },

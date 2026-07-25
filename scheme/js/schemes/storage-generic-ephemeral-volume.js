@@ -1,69 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
-import {
-  valChip, setVal, setBoxSublabel, pulsePod, routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, setWire, BEAT, FADE,
-} from '../lib/storage-kit.js';
+import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#storage-generic-ephemeral-volume
 
-// Generic Ephemeral Volumes. An inline volumeClaimTemplate written directly on the Pod under
-// ephemeral. It gets a real PVC, a real StorageClass, real dynamic provisioning and a real CSI mount,
-// so unlike emptyDir it can be large, of a specific class, and even snapshotted. But its lifetime is
-// the Pod: the PVC carries an ownerReference back to the Pod and is garbage-collected when the Pod
-// dies. This card is the bridge between the ephemeral world and the persistent machinery, so the
-// identity column is the Pod owning its PVC owning its PV, and the last gesture is that whole column
-// collapsing when the Pod goes away.
-//
-// ---- Horizontal composition ----
-// The identity column runs straight down the canvas centre line (Pod, PVC, PV, all on CX = 600) and
-// the two machinery blocks flank it symmetrically: the StorageClass the claim names on the left, the
-// provisioner that acts on it on the right, both on the claim row and equidistant from it. Content
-// spans 112..1088 with the chip strip, margins equal a side. The earlier pass ran 430..1090.
-//
-// ---- Vertical composition ----
-// The identity column is evenly spaced, so the ownership above the claim and the binding below it read
-// as one rhythm rather than as two different distances:
-//   36    canvas top margin
-//   36    Pod                116 tall, to 152
-//   66    gap, ownerReference link and the mount and GC lanes that flank it
-//   218   claim row          72 tall, to 290, with the class and the provisioner on the same line
-//   66    gap, the Bound link and the lower half of those same lanes
-//   356   the volume         110 tall, to 466
-//   500   mount caption
-//   570   chip strip         34 tall, to 604
-//   36    canvas bottom margin, equal to the top one
-//
-// ---- Narration overlay ----
-// Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
-//   1920x900  right 102  bottom 183
-//   1600x1000 right 291  bottom 143
-//   1280x900  right 378  bottom 173
-//   1100x900  right 397  bottom 149
-// Worst case x <= 397 and y <= 183. Only the Pod sits inside that y band, and at 450..750 it clears
-// the overlay on x while staying centred on CX. The claim row (y 208) and everything below it clear
-// the overlay entirely. A longer narration than the ones below would invalidate this measurement.
-//
-// PULSE MODEL: only the Pod pulses, and it is a wrapping g. The claim, the class, the provisioner and
-// the disk are infrastructure: they light via .highlight, on packet arrival where there is a packet
-// and at step entry where there is not, and they never pulse or blink. The owner step carries no
-// packet and no Pod pulse, and the canon would allow it the one sanctioned block blink so it does not
-// read as frozen: it deliberately does not take it. That step states a fact rather than moves
-// something, and a brightness blink on a block that is only being pointed at reads as traffic that
-// never arrives. Do not add it back.
-//
-// WIRES: ONE axis, on CX itself, and EVERY wire on this card carries an arrowhead. There are no
-// undirected lines left: the ownerReference, the Bound link and the class reference used to hang there
-// as static dashed strokes, which put three arrow-shaped things on the card that never fired, and
-// forced all the real traffic 12 units off the block centre lines to get around them. Each of those
-// three facts is now carried by something that moves or by text that stays:
-//   ownerReference  a ball down the column on the step where the claim is created, stamping it, plus
-//                   the claim sublabel (owned by Pod), the caption beside the column, and the lifetime
-//                   chip. The same lane carries the cascade on the way out.
-//   Bound           the claim sublabel flips to Bound and the chip says so.
-//   the class       the ball out to the provisioner carries storageClassName: fast-ssd, which is the
-//                   field itself, and the class block lights as it is read.
-// Four column lanes share the one axis (two up, two down) because no step shows both directions, and
-// every one of them meets its block on the centre of the face it enters. Each lane also goes out
-// behind the cascade it carries on the closing step, so nothing is left pointing at a ghost.
+
 const CX = 600;
 
 // 226 x 110 is the storage family Pod (storage-csi-attach-mount sets it). This card was drawing a
@@ -82,27 +22,12 @@ const PV_TOP = PV_Y, PV_MY = PV_Y + PV_H / 2;                           // 350 /
 const CAPTION_Y = 500;
 const CHIPS_Y = 570;              // 34 above the canvas floor, equal to the top margin
 
-// Each static wire and its ball share ONE points array, so they cannot drift apart. Every endpoint is
-// a block edge MIDPOINT, and all four column lanes run on CX itself, so every arrowhead lands dead
-// centre on the face it enters. Up and down never appear in the same step, which is what lets them
-// share the one axis.
 const W_CLAIM_PROV = [[CX + CLAIM_W / 2, ROW_MY], [PROV_CX - SIDE_W / 2, ROW_MY]];
 const W_CREATE     = [[PROV_CX, ROW_BOTTOM], [PROV_CX, PV_MY], [CX + PV_W / 2, PV_MY]];
 const W_DOWN_HIGH  = [[CX, POD_BOTTOM], [CX, ROW_Y]];
 const W_DOWN_LOW   = [[CX, ROW_BOTTOM], [CX, PV_TOP]];
 const W_UP_HIGH    = [[CX, ROW_Y], [CX, POD_BOTTOM]];
 const W_UP_LOW     = [[CX, PV_TOP], [CX, ROW_BOTTOM]];
-
-// Lights an infrastructure block ON PACKET ARRIVAL rather than at step entry, via a zero-effect
-// animation whose onfinish sets the class. Under reduced motion it applies immediately so the static
-// end-state stays correct. This is how a box receives a packet without pulsing.
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
 
 // An object materialises when the call that creates it lands, so no arrowhead is ever aimed at
 // nothing. LAND_MS is shorter than BEAT.lead for the same reason.
@@ -122,38 +47,23 @@ function vanishAt(el, ctx, delay = 0, to = GONE) {
   ctx.register(el.animate([{ opacity: 1 }, { opacity: to }], { duration: FADE.out, delay, fill: 'forwards', easing: 'ease-in' }));
 }
 
-// A tag that rides ALONG with the ball on the same path, timing and easing, so the packet visibly
-// carries what the step narrates. Balls are routePacket (eased), so the label defaults to the same
-// ease-in-out and the same routeDur, or it would drift off the ball mid-flight.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'storage' });
 
-// The wrapping g is not optional. pulsePod finds its targets with querySelectorAll, which matches
-// descendants only and never the element itself, so pulsing a bare pod() would catch its
-// .scheme-pod-rect child but not the group, and the pulse would silently fire at half strength.
 function podBlock() {
-  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'ephemeral: volumeClaimTemplate', containers: 0, cat: 'storage' });
+  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'ephemeral: volumeClaimTemplate', containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
   // Centred in the band the pod primitive leaves free between its label (baseline 16) and its
   // sublabel (baseline h - 8).
-  const innerBox = box({ x: POD_X + 24, y: POD_Y + 33, w: POD_W - 48, h: 44, label: 'app', sublabel: 'writes /scratch', cat: 'storage' });
+  const innerBox = box({ x: POD_X + 24, y: POD_Y + 33, w: POD_W - 48, h: 44, label: 'app', sublabel: 'writes /scratch', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
   return { group, innerBox };
 }
 
-const lane = points => pathArrow({ points, dashed: true, dim: true, color: 'storage' });
+const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'storage' });
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -172,12 +82,12 @@ class Scene {
 
     const podB = podBlock();
 
-    const pvc = box({ x: CX - CLAIM_W / 2, y: ROW_Y, w: CLAIM_W, h: ROW_H, label: 'PVC app-0-scratch', sublabel: 'owned by Pod', cat: 'storage' });
+    const pvc = box({ x: CX - CLAIM_W / 2, y: ROW_Y, w: CLAIM_W, h: ROW_H, label: 'PVC app-0-scratch', sublabel: 'owned by Pod', role: 'storage' });
     pvc.style.opacity = '0';
-    const sc = box({ x: SC_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'StorageClass fast-ssd', sublabel: 'ebs.csi.aws.com', cat: 'storage' });
-    const prov = box({ x: PROV_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'External-provisioner', sublabel: 'driver: ebs.csi.aws.com', cat: 'storage' });
+    const sc = box({ x: SC_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'StorageClass fast-ssd', sublabel: 'ebs.csi.aws.com', role: 'storage' });
+    const prov = box({ x: PROV_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'External-provisioner', sublabel: 'driver: ebs.csi.aws.com', role: 'storage' });
 
-    const pv = cylinder({ x: CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-e91c', cat: 'storage' });
+    const pv = cylinder({ x: CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-e91c', role: 'storage' });
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse is
     // not part of the visible front face. Re-centre on the face, derived from the height.
     const pvLbl = pv.querySelector('.scheme-cylinder-label');
@@ -195,23 +105,17 @@ class Scene {
     const ownerLbl = text({ class: 'scheme-label code dim', x: CX + 36, y: 184, 'text-anchor': 'start' }, [' ']);
     const mountLbl = text({ class: 'scheme-label code dim', x: CX, y: CAPTION_Y, 'text-anchor': 'middle' }, [' ']);
 
-    // CHIP_W 232 is the storage family default. Worst case here is 'backing' + 'mounted at /scratch'
-    // at 26 characters, and .scheme-chip-text runs 6.89 viewBox units per character, so 26 * 6.89 + 24
-    // of padding is 203 against the 232 available.
     const CHIP_W = 232, CHIP_GAP = 16;
     const CHIPS_W = CHIP_W * 4 + CHIP_GAP * 3;                  // 976
     const CHIPS_X = CX - CHIPS_W / 2;                           // 112, so the strip centres on CX
     const chipX = i => CHIPS_X + i * (CHIP_W + CHIP_GAP);
-    const podChip  = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'Pod',      value: 'Pending',      cat: 'storage' });
-    const pvcChip  = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'PVC',      value: 'none',         cat: 'storage' });
-    const backChip = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'backing',  value: 'CSI dynamic',  cat: 'storage' });
-    const lifeChip = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'lifetime', value: 'tied to Pod',  cat: 'storage' });
+    const podChip  = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'Pod',      value: 'Pending',      role: 'storage' });
+    const pvcChip  = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'PVC',      value: 'none',         role: 'storage' });
+    const backChip = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'backing',  value: 'CSI dynamic',  role: 'storage' });
+    const lifeChip = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'lifetime', value: 'tied to Pod',  role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order (bottom -> top): blocks and the disk, then the relationship links and lanes and their
-    // captions above them, then the chip strip, then the packet layer so every ball rides above
-    // everything.
     [podB.group, pvc, sc, prov, pv].forEach(el => root.appendChild(el));
     [wClaimProv, wCreate, wDownHigh, wDownLow, wUpHigh, wUpLow, ownerLbl, mountLbl].forEach(el => root.appendChild(el));
     [podChip, pvcChip, backChip, lifeChip].forEach(c => root.appendChild(c));
@@ -230,9 +134,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-// holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-// always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 function setChip(chip, val) {
   const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
   setVal(chip, val);
@@ -251,11 +152,6 @@ function setChips(s, { pod, pvc, back, life }) {
 // The Pod is dim until it actually reaches Running.
 const POD_DIM = 0.55;
 
-// Pins the visibility of EVERY element born or removed mid-story, and of every lane, exactly as
-// setChips pins every chip. A lane into an object that does not exist points at nothing, so lanes are
-// pinned to 0 rather than left at whatever the previous step happened to set.
-// The claim defaults to PLACEHOLDER rather than to 0: it is the middle block of a three-block row, and
-// cutting it out leaves a hole in that row rather than an absence.
 const LANES = ['wClaimProv', 'wCreate', 'wDownHigh', 'wDownLow', 'wUpHigh', 'wUpLow'];
 function setStage(s, { podOn = POD_DIM, claim = PLACEHOLDER, disk = 0, lanes = [] } = {}) {
   s.refs.podB.style.opacity = String(podOn);
@@ -295,11 +191,8 @@ const STEPS = [
       setStage(s, { claim: 1, lanes: ['wDownHigh'] });
       s.refs.pvc.classList.add('highlight');
       if (ctx.reduced) return;
-      // The ownership used to be a static undirected line hanging under the Pod. It is a ball now: the
-      // claim is stamped with its ownerReference at the moment it is created, so the tag rides down and
-      // the claim comes up to full on its arrival.
       setStage(s, { lanes: ['wDownHigh'] });
-      const own = routePacket(s, ctx, W_DOWN_HIGH, { delay: BEAT.lead, cat: 'storage' });
+      const own = routePacket(s, ctx, W_DOWN_HIGH, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'ownerReference', W_DOWN_HIGH, { delay: BEAT.lead });
       revealAt(s.refs.pvc, ctx, own.arrivalMs, PLACEHOLDER);
       lightBoxAt(s.refs.pvc, ctx, own.arrivalMs);
@@ -322,10 +215,10 @@ const STEPS = [
       s.refs.sc.classList.add('highlight');
       if (ctx.reduced) { s.refs.prov.classList.add('highlight'); s.refs.pv.classList.add('highlight'); return; }
       setStage(s, { claim: 1, disk: PLACEHOLDER, lanes: ['wClaimProv', 'wCreate'] });
-      const claim = routePacket(s, ctx, W_CLAIM_PROV, { delay: BEAT.lead, cat: 'storage' });
+      const claim = routePacket(s, ctx, W_CLAIM_PROV, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'storageClassName: fast-ssd', W_CLAIM_PROV, { delay: BEAT.lead });
       lightBoxAt(s.refs.prov, ctx, claim.arrivalMs);
-      const create = routePacket(s, ctx, W_CREATE, { delay: claim.arrivalMs + BEAT.afterHop, cat: 'storage' });
+      const create = routePacket(s, ctx, W_CREATE, { delay: claim.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', W_CREATE, { delay: claim.arrivalMs + BEAT.afterHop });
       revealAt(s.refs.pv, ctx, create.arrivalMs, PLACEHOLDER);
       lightBoxAt(s.refs.pv, ctx, create.arrivalMs);
@@ -349,8 +242,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); return; }
       setStage(s, { podOn: POD_DIM, claim: 1, disk: 1, lanes: ['wUpLow', 'wUpHigh'] });
       // Down-arrow into the Pod, so the balls lead and the pulse lands on the second one arriving.
-      const low = routePacket(s, ctx, W_UP_LOW, { delay: BEAT.lead, cat: 'storage' });
-      const high = routePacket(s, ctx, W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop, cat: 'storage' });
+      const low = routePacket(s, ctx, W_UP_LOW, { delay: BEAT.lead, role: 'storage' });
+      const high = routePacket(s, ctx, W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, '/scratch', W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop });
       ctx.register(s.refs.podB.animate([{ opacity: POD_DIM }, { opacity: 1 }], { duration: FADE.in, delay: high.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, high.arrivalMs);
@@ -392,12 +285,12 @@ const STEPS = [
       setStage(s, { podOn: 1, claim: 1, disk: 1, lanes: ['wDownHigh', 'wDownLow'] });
       // The Pod goes first, then the cascade walks down the column: the claim next, then the disk.
       ctx.register(s.refs.podB.animate([{ opacity: 1 }, { opacity: GONE }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
-      const gcHigh = routePacket(s, ctx, W_DOWN_HIGH, { delay: FADE.out + BEAT.afterHop, cat: 'storage' });
+      const gcHigh = routePacket(s, ctx, W_DOWN_HIGH, { delay: FADE.out + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'ownerReference GC', W_DOWN_HIGH, { delay: FADE.out + BEAT.afterHop });
       // Each lane goes out behind the cascade it carried, so nothing is left pointing at a ghost.
       vanishAt(s.refs.pvc, ctx, gcHigh.arrivalMs);
       vanishAt(s.refs.wDownHigh, ctx, gcHigh.arrivalMs, 0);
-      const gcLow = routePacket(s, ctx, W_DOWN_LOW, { delay: gcHigh.arrivalMs + BEAT.afterHop, cat: 'storage' });
+      const gcLow = routePacket(s, ctx, W_DOWN_LOW, { delay: gcHigh.arrivalMs + BEAT.afterHop, role: 'storage' });
       vanishAt(s.refs.pv, ctx, gcLow.arrivalMs);
       vanishAt(s.refs.wDownLow, ctx, gcLow.arrivalMs, 0);
     },

@@ -1,24 +1,9 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow } from '../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-service-cidr
 
-// Layout zones (viewBox 1200x640):
-//   - the top-left band (x<=380, y<=300) is reserved for the narration overlay, so the pool box
-//     sits at x>=440 and the bands start at y=320.
-// Sibling card: network-ipam-pod-cidr (the pod-CIDR allocation analog). This is the Service-side
-// twin: one configured Service CIDR splits into a static and a dynamic band, hand-picked IPs come
-// out of the static band, the allocator draws ClusterIPs from the dynamic band, and a second
-// ServiceCIDR can be added to grow the range. There are no Pods, so motion is packets + box
-// .highlight + an arrival ripple (only Pods pulse, and this card has none).
-//
-// Alignment grammar (the common rule every wire follows, mirrors ipam-pod-cidr):
-//   - One horizontal distribution rail per fork. The pool forks on the y230 rail to each band
-//     centre, the bands fork on the y428 rail to their Services. Every drop lands on a box centre.
-//   - Services sit on an even 260 / 600 / 940 grid, edges flush with the band bar (120..1080).
-//   - The add-on CIDR is stacked directly over the web column (x940), so add-on -> dynamic band ->
-//     web read as one vertical line on the extend step instead of a stray top-right box.
-//   - The static pathArrow and the moving packet share the same point array so the ball rides
-//     exactly on the wire.
+
 const POOL_X = 580;   // pool centre (kept right of the overlay band)
 const STATIC_X = 260; // static band centre, flush under Service kubernetes
 const DYN_X = 750;    // dynamic band centre
@@ -57,28 +42,25 @@ class Scene {
 
     // Top row: the configured Service CIDR, plus a second one stacked over the web column,
     // revealed only on the extend step.
-    const pool = box({ x: POOL_X - 140, y: 44, w: 280, h: 64, label: 'ServiceCIDR Kubernetes', sublabel: '10.96.0.0/16', cat: 'network' });
-    const cidr2 = box({ x: WEB_X - 140, y: 44, w: 280, h: 64, label: 'ServiceCIDR Add-on', sublabel: '10.97.0.0/16', cat: 'network' });
+    const pool = box({ x: POOL_X - 140, y: 44, w: 280, h: 64, label: 'ServiceCIDR Kubernetes', sublabel: '10.96.0.0/16', role: 'network' });
+    const cidr2 = box({ x: WEB_X - 140, y: 44, w: 280, h: 64, label: 'ServiceCIDR Add-on', sublabel: '10.97.0.0/16', role: 'network' });
     cidr2.style.opacity = '0';
 
     // The range, drawn as two adjacent bands so it reads as one divided CIDR: a small static band
     // flush under Service kubernetes, and the much wider dynamic band filling the rest.
-    const staticBand  = box({ x: 120, y: 320, w: 280, h: 84, label: 'Static Band', sublabel: 'low IPs . reserved', cat: 'network' });
-    const dynamicBand = box({ x: 420, y: 320, w: 660, h: 84, label: 'Dynamic Band', sublabel: 'high IPs . auto-assigned', cat: 'network' });
+    const staticBand  = box({ x: 120, y: 320, w: 280, h: 84, label: 'Static Band', sublabel: 'low IPs . reserved', role: 'network' });
+    const dynamicBand = box({ x: 420, y: 320, w: 660, h: 84, label: 'Dynamic Band', sublabel: 'high IPs . auto-assigned', role: 'network' });
 
     // Three Services on an even grid, IP assigned across the steps (pending at rest).
-    const svcK8s = box({ x: 120, y: 450, w: 280, h: 86, label: 'Service Kubernetes', sublabel: 'clusterIP pending', cat: 'network' });
-    const svcDns = box({ x: 460, y: 450, w: 280, h: 86, label: 'Service Kube-dns', sublabel: 'clusterIP pending', cat: 'network' });
-    const svcWeb = box({ x: 800, y: 450, w: 280, h: 86, label: 'Service Web', sublabel: 'clusterIP pending', cat: 'network' });
+    const svcK8s = box({ x: 120, y: 450, w: 280, h: 86, label: 'Service Kubernetes', sublabel: 'clusterIP pending', role: 'network' });
+    const svcDns = box({ x: 460, y: 450, w: 280, h: 86, label: 'Service Kube-dns', sublabel: 'clusterIP pending', role: 'network' });
+    const svcWeb = box({ x: 800, y: 450, w: 280, h: 86, label: 'Service Web', sublabel: 'clusterIP pending', role: 'network' });
 
     // The IPAddress object that records the dynamic binding, parked under the web column so it
     // reads as web's record (revealed and highlighted on the dynamic step).
-    const ipaddrChip = valChip({ x: 800, y: 556, w: 280, h: 34, name: 'IPAddress', value: ' ', cat: 'network' });
+    const ipaddrChip = valChip({ x: 800, y: 556, w: 280, h: 34, name: 'IPAddress', value: ' ', role: 'network' });
     ipaddrChip.style.opacity = '0';
 
-    // Dim dashed wires: pool splits into both bands, static band feeds the two well-known
-    // Services, dynamic band feeds web, and the add-on CIDR feeds the dynamic band (hidden until
-    // the extend step). They sit ABOVE the blocks so the bright ball reads on a muted wire.
     const aSplit1 = pathArrow({ points: SPLIT_STATIC, dashed: true, dim: true });
     const aSplit2 = pathArrow({ points: SPLIT_DYNAMIC, dashed: true, dim: true });
     const aK8s    = arrow({ x1: STATIC_X, y1: 404, x2: STATIC_X, y2: 450, dashed: true, dim: true });
@@ -150,8 +132,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // The pool divides into the two bands: a packet rides into each, slowed and synchronized
       // (shared SPLIT_DUR) so the divide is easy to follow and both bands light together.
-      routePacket(s, ctx, SPLIT_STATIC, { dur: SPLIT_DUR, fadeIn: true, cat: 'network' });
-      routePacket(s, ctx, SPLIT_DYNAMIC, { dur: SPLIT_DUR, fadeIn: true, cat: 'network' });
+      routePacket(s, ctx, SPLIT_STATIC, { dur: SPLIT_DUR, fadeIn: true, role: 'network' });
+      routePacket(s, ctx, SPLIT_DYNAMIC, { dur: SPLIT_DUR, fadeIn: true, role: 'network' });
     },
   },
   {
@@ -170,8 +152,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // Two reservations leave the static band together (packet first, ripple on arrival: the
       // Service boxes are receivers, and only Pods pulse so a box gets the ripple instead).
-      const p1 = segmentPacket(s, ctx, { from: [STATIC_X, 404], to: [STATIC_X, 450], dur: 540, cat: 'network' });
-      const p2 = routePacket(s, ctx, DNS_ROUTE, { fadeIn: true, cat: 'network' });
+      const p1 = segmentPacket(s, ctx, { from: [STATIC_X, 404], to: [STATIC_X, 450], dur: 540, role: 'network' });
+      const p2 = routePacket(s, ctx, DNS_ROUTE, { fadeIn: true, role: 'network' });
       arrivalRipple(s.refs.packetLayer, ctx, [STATIC_X, 450], p1.arrivalMs, 'network');
       arrivalRipple(s.refs.packetLayer, ctx, [600, 450], p2.arrivalMs, 'network');
     },
@@ -191,7 +173,7 @@ const STEPS = [
       setBoxSublabel(s.refs.svcWeb, 'clusterIP 10.96.137.42');
       setVal(s.refs.ipaddrChip, '10.96.137.42 . default/web');
       if (ctx.reduced) { s.refs.ipaddrChip.style.opacity = '1'; return; }
-      const give = routePacket(s, ctx, WEB_ROUTE, { cat: 'network' });
+      const give = routePacket(s, ctx, WEB_ROUTE, { role: 'network' });
       arrivalRipple(s.refs.packetLayer, ctx, [WEB_X, 450], give.arrivalMs, 'network');
       // The IPAddress object materializes once the address lands on the Service.
       ctx.register(s.refs.ipaddrChip.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, delay: give.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
@@ -220,7 +202,7 @@ const STEPS = [
       ctx.register(s.refs.cidr2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, fill: 'forwards', easing: 'ease-out' }));
       ctx.register(s.refs.aExtend.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, fill: 'forwards', easing: 'ease-out' }));
       // The add-on CIDR feeds fresh addresses into the Dynamic Band from its right side.
-      const give = routePacket(s, ctx, EXTEND_ROUTE, { delay: 420, cat: 'network' });
+      const give = routePacket(s, ctx, EXTEND_ROUTE, { delay: 420, role: 'network' });
       arrivalRipple(s.refs.packetLayer, ctx, [DYN_RIGHT, DYN_MID_Y], give.arrivalMs, 'network');
     },
   },

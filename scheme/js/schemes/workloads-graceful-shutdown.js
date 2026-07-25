@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
 
 
 const CONNECTOR_DOWN = [[690, 120], [690, 185], [280, 185], [280, 550], [320, 550]];
@@ -21,14 +21,14 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubectl = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl', sublabel: 'delete pod app-pod', cat: 'control' });
-    const api     = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'sets deletionTimestamp', cat: 'control' });
+    const kubectl = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl', sublabel: 'delete pod app-pod', role: 'cluster' });
+    const api     = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'sets deletionTimestamp', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
-    const connectorDown = pathArrow({ points: CONNECTOR_DOWN, dim: true, dashed: true, color: 'control' });
-    const connectorUp   = pathArrow({ points: CONNECTOR_UP,   dim: true, dashed: true, color: 'control' });
+    const connectorDown = pathArrow({ points: CONNECTOR_DOWN, dim: true, dashed: true, role: 'cluster' });
+    const connectorUp   = pathArrow({ points: CONNECTOR_UP,   dim: true, dashed: true, role: 'cluster' });
     connectorUp.style.opacity = '0';
     root.appendChild(connectorDown);
     root.appendChild(connectorUp);
@@ -47,25 +47,25 @@ class Scene {
         '5. countdown ·  terminationGracePeriodSeconds ticks',
         '6. SIGKILL   ·  force-kill, remove Pod from etcd',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // State chips on the right, y-aligned to the first five chain rows.
-    const preStopChip = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'preStop hook',     value: 'idle' });
-    const sigChip     = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'signal',           value: 'none' });
-    const graceChip   = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'grace remaining',  value: '30s' });
-    const statusChip  = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'pod status',       value: 'Running' });
-    const sliceChip   = valChip({ x: 830, y: 388, w: 350, h: 32, name: 'EndpointSlice',    value: '[10.244.1.7]' });
+    const preStopChip = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'preStop hook',     value: 'idle', role: 'workloads' });
+    const sigChip     = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'signal',           value: 'none', role: 'workloads' });
+    const graceChip   = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'grace remaining',  value: '30s', role: 'workloads' });
+    const statusChip  = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'pod status',       value: 'Running', role: 'workloads' });
+    const sliceChip   = valChip({ x: 830, y: 388, w: 350, h: 32, name: 'EndpointSlice',    value: '[10.244.1.7]', role: 'workloads' });
     [preStopChip, sigChip, graceChip, statusChip, sliceChip].forEach(c => root.appendChild(c));
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
 
-    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     // The container box. Signals target its main process, PID 1.
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'container: PID 1', cat: 'workloads' });
+    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'container: PID 1', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
     podGroup.appendChild(podShell);
@@ -144,8 +144,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // DELETE hits the apiserver (top hop), then the termination order travels
       // down to the kubelet side and the Pod pulses on arrival.
-      const req = topPacket(s, ctx);
-      const order = routePacket(s, ctx, CONNECTOR_DOWN, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const order = routePacket(s, ctx, CONNECTOR_DOWN, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, order.arrivalMs);
     },
   },
@@ -246,7 +246,7 @@ const STEPS = [
         { duration: FADE.out, fill: 'both', easing: 'ease-in' }
       ));
       // After the process is gone, the kubelet reports up to the apiserver.
-      routePacket(s, ctx, CONNECTOR_UP, { delay: BEAT.afterPulse });
+      routePacket(s, ctx, CONNECTOR_UP, { delay: BEAT.afterPulse, role: 'workloads' });
     },
   },
 ];

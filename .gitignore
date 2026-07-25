@@ -22,3 +22,6 @@ smoke-*.png
 scheme/tools/node_modules/
 scheme/tools/output/
 scheme/tools/baselines/
+
+# Review working document: lives on disk, never in git
+SCHEME-REVIEW.md

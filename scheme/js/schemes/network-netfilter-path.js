@@ -1,29 +1,9 @@
 import { svg, g, text, line } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-netfilter-path
 
-// The netfilter path a packet takes (viewBox 1200x640). Every other Network Foundations card names an
-// OPERATION on a packet (kube-proxy DNATs, conntrack pins the flow, egress MASQUERADEs) without ever
-// saying WHERE in the kernel it runs. This card is that missing floor: the hooks, in order, with the
-// packet walking them. The order is the lesson, so the whole composition is one left-to-right chain and
-// the packet never doubles back on it: PREROUTING, the routing decision, FORWARD, POSTROUTING, the wire.
-//
-// Standard contract: the Pod is a shell + inner box; only Pods pulse; the hooks, the conntrack table and
-// the NIC are infrastructure and light on packet arrival, never pulse; value chips never flash; packets
-// stop at block edges. The closing eBPF step carries no motion at all: it is a comparison, not traffic.
-//
-// GEOMETRY. Every wire and every packet is derived from a block edge, never hand-typed.
-//
-// Horizontal: the five blocks of the chain span the Node 1:1, from the PREROUTING left edge (70) to the
-// eth0 right edge (1140), with even gaps, and the chip strip spans exactly that same extent. The
-// conntrack table sits under the four hooks it belongs to (70..950) and stops where the wire begins,
-// because a packet on the wire is past it.
-//
-// Vertical: the narration overlay really covers x 0..399, y 0..300, so the Node frame starts at 305 and
-// the client Pod, the only block above it, sits at x >= 450, clear of the panel. Its packet drops
-// straight down and only turns left once it is INSIDE the Node, below the panel. The reply rides its own
-// lane (RETURN, y 360) above the chain rather than retracing the forward wires backwards, the same rule
-// every round-trip card here follows.
+
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 251;
 // The Node frame is the widest element, so it is what the chip strip spans, edge to edge.
 const SCHEME_LEFT = NODE_X;                    // 40
@@ -69,36 +49,14 @@ const PO_TO_ETH = [[PO_RIGHT, ROW_CY], [ETH_X, ROW_CY]];
 // where the request landed, so the two never share a point.
 const RETURN = [[ETH_CX, ROW_Y], [ETH_CX, RETURN_LANE_Y], [210, RETURN_LANE_Y], [210, ROW_Y]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A tag that rides ALONG with the ball on the same path, timing and easing, carrying the addresses the
-// packet has AT THAT HOOK. That is the point of the card, so almost every hop wears one. It lives in the
-// packet layer but is not a .scheme-packet, so the tools do not count it as a packet. segmentPacket is
-// linear and routePacket is eased, so each caller passes the easing of the ball it rides or the tag
-// drifts off it mid-flight.
-function ridingLabel(s, ctx, txt, points, { delay = 0, easing = 'ease-in-out', emerge = 0, dy = -14 } = {}) {
-  if (ctx.reduced) return;
-  const d = routeDur(points);
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: dy, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: delay + emerge, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 170, delay: delay + d, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -124,19 +82,19 @@ class Scene {
 
     const podC = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Client Pod', ip: '10.244.1.5' });
 
-    const pre  = box({ x: PRE_X, y: ROW_Y, w: PRE_W, h: ROW_H, label: 'PREROUTING', sublabel: 'conntrack + nat', cat: 'network' });
-    const rt   = box({ x: RT_X,  y: ROW_Y, w: RT_W,  h: ROW_H, label: 'Routing Decision', sublabel: 'local or forward', cat: 'network' });
-    const fw   = box({ x: FW_X,  y: ROW_Y, w: FW_W,  h: ROW_H, label: 'FORWARD', sublabel: 'filter', cat: 'network' });
-    const po   = box({ x: PO_X,  y: ROW_Y, w: PO_W,  h: ROW_H, label: 'POSTROUTING', sublabel: 'nat · MASQUERADE', cat: 'network' });
-    const eth  = box({ x: ETH_X, y: ROW_Y, w: ETH_W, h: ROW_H, label: 'eth0', sublabel: 'the wire', cat: 'network' });
-    const ct   = box({ x: CT_X, y: CT_Y, w: CT_W, h: CT_H, label: 'Conntrack Table', sublabel: 'no flow yet', cat: 'network' });
+    const pre  = box({ x: PRE_X, y: ROW_Y, w: PRE_W, h: ROW_H, label: 'PREROUTING', sublabel: 'conntrack + nat', role: 'network' });
+    const rt   = box({ x: RT_X,  y: ROW_Y, w: RT_W,  h: ROW_H, label: 'Routing Decision', sublabel: 'local or forward', role: 'network' });
+    const fw   = box({ x: FW_X,  y: ROW_Y, w: FW_W,  h: ROW_H, label: 'FORWARD', sublabel: 'filter', role: 'network' });
+    const po   = box({ x: PO_X,  y: ROW_Y, w: PO_W,  h: ROW_H, label: 'POSTROUTING', sublabel: 'nat · MASQUERADE', role: 'network' });
+    const eth  = box({ x: ETH_X, y: ROW_Y, w: ETH_W, h: ROW_H, label: 'eth0', sublabel: 'the wire', role: 'network' });
+    const ct   = box({ x: CT_X, y: CT_Y, w: CT_W, h: CT_H, label: 'Conntrack Table', sublabel: 'no flow yet', role: 'network' });
 
-    const entryWire = pathArrow({ points: ENTRY, dashed: true, dim: true, color: 'network' });
-    const h1 = arrow({ x1: PRE_TO_RT[0][0], y1: PRE_TO_RT[0][1], x2: PRE_TO_RT[1][0], y2: PRE_TO_RT[1][1], dashed: true, dim: true, color: 'network' });
-    const h2 = arrow({ x1: RT_TO_FW[0][0], y1: RT_TO_FW[0][1], x2: RT_TO_FW[1][0], y2: RT_TO_FW[1][1], dashed: true, dim: true, color: 'network' });
-    const h3 = arrow({ x1: FW_TO_PO[0][0], y1: FW_TO_PO[0][1], x2: FW_TO_PO[1][0], y2: FW_TO_PO[1][1], dashed: true, dim: true, color: 'network' });
-    const h4 = arrow({ x1: PO_TO_ETH[0][0], y1: PO_TO_ETH[0][1], x2: PO_TO_ETH[1][0], y2: PO_TO_ETH[1][1], dashed: true, dim: true, color: 'network' });
-    const returnWire = pathArrow({ points: RETURN, dashed: true, dim: true, color: 'network' });
+    const entryWire = pathArrow({ points: ENTRY, dashed: true, dim: true, role: 'network' });
+    const h1 = arrow({ x1: PRE_TO_RT[0][0], y1: PRE_TO_RT[0][1], x2: PRE_TO_RT[1][0], y2: PRE_TO_RT[1][1], dashed: true, dim: true, role: 'network' });
+    const h2 = arrow({ x1: RT_TO_FW[0][0], y1: RT_TO_FW[0][1], x2: RT_TO_FW[1][0], y2: RT_TO_FW[1][1], dashed: true, dim: true, role: 'network' });
+    const h3 = arrow({ x1: FW_TO_PO[0][0], y1: FW_TO_PO[0][1], x2: FW_TO_PO[1][0], y2: FW_TO_PO[1][1], dashed: true, dim: true, role: 'network' });
+    const h4 = arrow({ x1: PO_TO_ETH[0][0], y1: PO_TO_ETH[0][1], x2: PO_TO_ETH[1][0], y2: PO_TO_ETH[1][1], dashed: true, dim: true, role: 'network' });
+    const returnWire = pathArrow({ points: RETURN, dashed: true, dim: true, role: 'network' });
 
     // Ownership marker, NOT a traffic path: PREROUTING is where the flow is looked up and recorded. No
     // packet ever travels it, so it is a plain dashed line with NO arrowhead.
@@ -146,15 +104,10 @@ class Scene {
     // build, filled per step.
     const exitLabel = text({ class: 'scheme-label code dim', x: ETH_CX, y: ROW_BOTTOM + 20, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    // The four chips span the SCHEME 1:1, edge to edge with the Node frame (40..1160), which is the widest
-    // element on the canvas, so the strip and the frame share both verticals and the composition reads as
-    // one column. hook is where the packet is right now, dst and src are what it carries there, and
-    // conntrack is what the kernel remembers about it. All four are outcomes of a packet in flight, so
-    // they read the values it starts with and the steps rewrite them exactly where the kernel does.
-    const hookChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 270, h: CHIP_H, name: 'hook', value: 'none', cat: 'network' });
-    const dstChip  = valChip({ x: 330, y: CHIP_Y, w: 320, h: CHIP_H, name: 'dst', value: '10.96.0.10:80', cat: 'network' });
-    const srcChip  = valChip({ x: 670, y: CHIP_Y, w: 260, h: CHIP_H, name: 'src', value: '10.244.1.5', cat: 'network' });
-    const ctChip   = valChip({ x: 950, y: CHIP_Y, w: SCHEME_RIGHT - 950, h: CHIP_H, name: 'conntrack', value: 'none', cat: 'network' });
+    const hookChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 270, h: CHIP_H, name: 'hook', value: 'none', role: 'network' });
+    const dstChip  = valChip({ x: 330, y: CHIP_Y, w: 320, h: CHIP_H, name: 'dst', value: '10.96.0.10:80', role: 'network' });
+    const srcChip  = valChip({ x: 670, y: CHIP_Y, w: 260, h: CHIP_H, name: 'src', value: '10.244.1.5', role: 'network' });
+    const ctChip   = valChip({ x: 950, y: CHIP_Y, w: SCHEME_RIGHT - 950, h: CHIP_H, name: 'conntrack', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -179,9 +132,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// The inner app box is listed by key so the .highlight a reduced replay puts on it is cleared too:
-// clearPodHighlight only resets inline strokes. Every dimmable block goes back to full opacity so the dim
-// the eBPF step puts on the chain cannot leak into a replay of an earlier step.
 function clearHL(s) {
   clearHighlights(s, ['pre', 'rt', 'fw', 'po', 'eth', 'ct', 'hookChip', 'dstChip', 'srcChip', 'ctChip', 'podCBox'], [s.refs.podC]);
   ['pre', 'rt', 'fw', 'po', 'eth', 'ct'].forEach(k => { s.refs[k].style.opacity = '1'; });
@@ -225,7 +175,7 @@ const STEPS = [
       // Up-arrow: the Pod is the sender, so it pulses FIRST and the packet leaves at BEAT.afterPulse. It
       // still carries the ClusterIP, which is what the tag says, and PREROUTING lights on arrival.
       pulsePod(s.refs.podC, ctx, 0);
-      const inb = routePacket(s, ctx, ENTRY, { delay: BEAT.afterPulse, cat: 'network' });
+      const inb = routePacket(s, ctx, ENTRY, { delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.96.0.10:80', ENTRY, { delay: BEAT.afterPulse });
       lightBoxAt(s.refs.pre, ctx, inb.arrivalMs);
     },
@@ -250,7 +200,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.rt.classList.add('highlight'); return; }
       // The rewrite happened INSIDE the hook, so the ball re-emerges at its right edge already carrying
       // the backend address, and the routing decision lights as it arrives.
-      const hop = segmentPacket(s, ctx, { from: PRE_TO_RT[0], to: PRE_TO_RT[1], cat: 'network' });
+      const hop = segmentPacket(s, ctx, { from: PRE_TO_RT[0], to: PRE_TO_RT[1], role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.2.7:8080', PRE_TO_RT, { easing: 'linear' });
       lightBoxAt(s.refs.rt, ctx, hop.arrivalMs);
     },
@@ -273,7 +223,7 @@ const STEPS = [
       s.refs.dstChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.fw.classList.add('highlight'); return; }
       // Not local, so the packet is handed to the FORWARD chain, which lights as it arrives.
-      const hop = segmentPacket(s, ctx, { from: RT_TO_FW[0], to: RT_TO_FW[1], cat: 'network' });
+      const hop = segmentPacket(s, ctx, { from: RT_TO_FW[0], to: RT_TO_FW[1], role: 'network' });
       ridingLabel(s, ctx, 'not local, forward', RT_TO_FW, { easing: 'linear' });
       lightBoxAt(s.refs.fw, ctx, hop.arrivalMs);
     },
@@ -299,10 +249,10 @@ const STEPS = [
       if (ctx.reduced) { s.refs.po.classList.add('highlight'); s.refs.eth.classList.add('highlight'); return; }
       // Two chained hops: through POSTROUTING and out onto the wire. The source rides the ball on the last
       // leg, because that is the value MASQUERADE would have changed and here deliberately does not.
-      const toPo = segmentPacket(s, ctx, { from: FW_TO_PO[0], to: FW_TO_PO[1], cat: 'network' });
+      const toPo = segmentPacket(s, ctx, { from: FW_TO_PO[0], to: FW_TO_PO[1], role: 'network' });
       lightBoxAt(s.refs.po, ctx, toPo.arrivalMs);
       const outDelay = toPo.arrivalMs + BEAT.afterHop;
-      const out = segmentPacket(s, ctx, { from: PO_TO_ETH[0], to: PO_TO_ETH[1], delay: outDelay, cat: 'network' });
+      const out = segmentPacket(s, ctx, { from: PO_TO_ETH[0], to: PO_TO_ETH[1], delay: outDelay, role: 'network' });
       ridingLabel(s, ctx, 'src 10.244.1.5', PO_TO_ETH, { delay: outDelay, easing: 'linear' });
       lightBoxAt(s.refs.eth, ctx, out.arrivalMs);
     },
@@ -327,7 +277,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.pre.classList.add('highlight'); return; }
       // The reply rides its own lane, never a forward wire backwards, and PREROUTING lights as it lands.
       // The tag carries the source the backend actually sent, which conntrack is about to rewrite.
-      const back = routePacket(s, ctx, RETURN, { cat: 'network' });
+      const back = routePacket(s, ctx, RETURN, { role: 'network' });
       ridingLabel(s, ctx, 'src 10.244.2.7:8080', RETURN, { emerge: 150 });
       lightBoxAt(s.refs.pre, ctx, back.arrivalMs);
     },

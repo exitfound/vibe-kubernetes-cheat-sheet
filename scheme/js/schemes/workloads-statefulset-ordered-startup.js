@@ -1,8 +1,8 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
 
-// valChip / setVal are imported from ../lib/scheme-kit.js
+// valChip / setVal are imported from ../lib/workloads-kit.js
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -19,22 +19,22 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'StatefulSet', sublabel: 'serial scale-up', cat: 'control' });
-    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',       sublabel: 'PVC + Pod CRUD',     cat: 'control' });
-    const svc        = box({ x: 840, y: 40, w: 220, h: 80, label: 'Service web',     sublabel: 'clusterIP=None (headless)', cat: 'control' });
+    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'StatefulSet', sublabel: 'serial scale-up', role: 'cluster' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',       sublabel: 'PVC + Pod CRUD',     role: 'cluster' });
+    const svc        = box({ x: 840, y: 40, w: 220, h: 80, label: 'Service web',     sublabel: 'clusterIP=None (headless)', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 800, y1: 80, x2: 840, y2: 80, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 800, y1: 80, x2: 840, y2: 80, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     const wireSvc = text({ class: 'scheme-label code dim', x: 820, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     [wireReq, wireSvc].forEach(t => root.appendChild(t));
 
-    const web0Chip = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'web-0',  value: 'pending' });
-    const web1Chip = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'web-1',  value: 'not created' });
-    const web2Chip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'web-2',  value: 'not created' });
-    const focusChip= valChip({ x: 830, y: 346, w: 350, h: 32, name: 'focus',  value: 'none' });
+    const web0Chip = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'web-0',  value: 'pending', role: 'workloads' });
+    const web1Chip = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'web-1',  value: 'not created', role: 'workloads' });
+    const web2Chip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'web-2',  value: 'not created', role: 'workloads' });
+    const focusChip= valChip({ x: 830, y: 346, w: 350, h: 32, name: 'focus',  value: 'none', role: 'workloads' });
     [web0Chip, web1Chip, web2Chip, focusChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -46,7 +46,7 @@ class Scene {
         '4. ordinal 1  ·  PVC data-web-1, web-1 after web-0 Ready',
         '5. ordinal 2  ·  PVC data-web-2, web-2 after web-1 Ready',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -56,11 +56,11 @@ class Scene {
     const POD_XS    = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'pvc: ' + POD_PVCS[i], cat: 'workloads' });
+      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'pvc: ' + POD_PVCS[i], role: 'workloads' });
 
       const wrap = g({ id: `pod${i}` });
       wrap.style.opacity = '0';
@@ -74,7 +74,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -153,8 +153,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.pod0Box.classList.add('highlight'); return; }
       // Controller asks Api to create the PVC and Pod, then the Pod is created
       // on the node. web-0 materializes and pulses when the create reaches the node.
-      const req = topPacket(s, ctx);
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod0.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod0, ctx, create.arrivalMs);
     },
@@ -208,8 +208,8 @@ const STEPS = [
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       // Same create flow as ordinal 0. web-1 materializes and pulses on arrival.
-      const req = topPacket(s, ctx);
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod1, ctx, create.arrivalMs);
     },
@@ -239,8 +239,8 @@ const STEPS = [
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
       // Final ordinal. web-2 materializes and pulses on arrival, all three are Ready.
-      const req = topPacket(s, ctx);
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod2, ctx, create.arrivalMs);
     },

@@ -1,21 +1,10 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-ipam-pod-cidr
 
-// Layout zones (viewBox 1200x640):
-//   - top band y<300 (top-left) is reserved for the narration overlay.
-//   - the controller column (cluster CIDR -> kcm) is centred at x460..740 so it clears the
-//     overlay; the three Nodes fill the y312..602 band.
-// Lessons carried over from network-pod-to-pod-same-node:
-//   - the Pod is the canonical shell + inner-box block (so the whole group pulses as one).
-//   - arrows are DIM dashed (no colour override) so the bright ball reads on a muted wire,
-//     and they sit ABOVE the blocks so they are not hidden under the node rects.
-//   - only the Pod pulses; boxes/chips get the static highlight + the packet arrival ripple.
-//   - packets ride exactly along the arrows (segmentPacket endpoints == arrow endpoints).
+
 const POD_Y = 442;
-// The two side allocation arrows turn at right angles: down from the controller to a shared
-// branch level, then horizontally out to the node, then down into its podCIDR chip. The static
-// pathArrow and the moving packet share the same point array. The centre arrow stays straight.
 const BRANCH_Y = 264;
 const ALLOC1 = [[600, 222], [600, BRANCH_Y], [230, BRANCH_Y], [230, 350]]; // controller -> Node-1 slice
 const ALLOC3 = [[600, 222], [600, BRANCH_Y], [970, BRANCH_Y], [970, 350]]; // controller -> Node-3 slice
@@ -23,10 +12,10 @@ const ALLOC3 = [[600, 222], [600, BRANCH_Y], [970, BRANCH_Y], [970, 350]]; // co
 // One Pod as a translucent shell wrapping an eth0 container box, grouped so pulsePod
 // animates both rects together. Returns { group, innerBox }.
 function podBlock({ x, y, label, ip }) {
-  const shell = pod({ x, y, w: 200, h: 130, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w: 200, h: 130, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 37, w: 160, h: 56, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 37, w: 160, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -48,16 +37,16 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const clusterBox = box({ x: 460, y: 44, w: 280, h: 64, label: 'Cluster Pod CIDR', sublabel: '10.244.0.0/16', cat: 'network' });
-    const kcm = box({ x: 460, y: 150, w: 280, h: 72, label: 'Controller-manager', cat: 'network' });
+    const clusterBox = box({ x: 460, y: 44, w: 280, h: 64, label: 'Cluster Pod CIDR', sublabel: '10.244.0.0/16', role: 'network' });
+    const kcm = box({ x: 460, y: 150, w: 280, h: 72, label: 'Controller-manager', role: 'network' });
 
     const node1 = node({ x: 80,  y: 312, w: 300, h: 290, label: 'Node-1' });
     const node2 = node({ x: 450, y: 312, w: 300, h: 290, label: 'Node-2' });
     const node3 = node({ x: 820, y: 312, w: 300, h: 290, label: 'Node-3' });
 
-    const slice1 = valChip({ x: 100, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', cat: 'network' });
-    const slice2 = valChip({ x: 470, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', cat: 'network' });
-    const slice3 = valChip({ x: 840, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', cat: 'network' });
+    const slice1 = valChip({ x: 100, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
+    const slice2 = valChip({ x: 470, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
+    const slice3 = valChip({ x: 840, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
     [slice1, slice2, slice3].forEach(c => root.appendChild(c));
 
     const a = podBlock({ x: 130, y: POD_Y, label: 'Pod', ip: 'IP pending' });
@@ -65,9 +54,6 @@ class Scene {
     const b = podBlock({ x: 500, y: POD_Y, label: 'Pod', ip: 'IP pending' });
     b.group.style.opacity = '0';
 
-    // Dim dashed arrows: config (pool -> kcm), allocation (kcm -> each node slice), and the IPAM
-    // hand-out from each node slice to its Pod. The Node-2 hand-out is revealed only on the final
-    // step, so its arrow starts hidden. They are appended ABOVE the blocks.
     const cfgArrow   = arrow({ x1: 600, y1: 108, x2: 600, y2: 150, dashed: true, dim: true });
     const allocArrow1 = pathArrow({ points: ALLOC1, dashed: true, dim: true });
     const allocArrow2 = arrow({ x1: 600, y1: 222, x2: 600, y2: 350, dashed: true, dim: true });
@@ -136,7 +122,7 @@ const STEPS = [
       s.refs.kcm.classList.add('highlight');
       if (ctx.reduced) return;
       // The pool registers into the controller-manager; arrival ripple marks the kcm.
-      segmentPacket(s, ctx, { from: [600, 108], to: [600, 150], dur: 450, cat: 'network' });
+      segmentPacket(s, ctx, { from: [600, 108], to: [600, 150], dur: 450, role: 'network' });
     },
   },
   {
@@ -154,13 +140,10 @@ const STEPS = [
       setVal(s.refs.slice2, '10.244.2.0/24');
       setVal(s.refs.slice3, '10.244.3.0/24');
       if (ctx.reduced) return;
-      // The kcm carves a slice into each node.spec.podCIDR in one reconcile pass: all three
-      // packets leave together and share one travel time, so the short centre path and the long
-      // side paths all reach their slice at the same moment. The centre simply moves slower.
       const dur = 1100;
-      routePacket(s, ctx, [[600, 222], [600, 350]], { dur, fadeIn: true, cat: 'network' });
-      routePacket(s, ctx, ALLOC1, { dur, fadeIn: true, cat: 'network' });
-      routePacket(s, ctx, ALLOC3, { dur, fadeIn: true, cat: 'network' });
+      routePacket(s, ctx, [[600, 222], [600, 350]], { dur, fadeIn: true, role: 'network' });
+      routePacket(s, ctx, ALLOC1, { dur, fadeIn: true, role: 'network' });
+      routePacket(s, ctx, ALLOC3, { dur, fadeIn: true, role: 'network' });
     },
   },
   {
@@ -178,7 +161,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); return; }
       // IPAM hands an address from the slice down to the Pod (packet first, then the
       // Pod pulses on arrival: it is the receiver, so no blink-first here).
-      const give = segmentPacket(s, ctx, { from: [230, 384], to: [230, POD_Y], dur: 550, cat: 'network' });
+      const give = segmentPacket(s, ctx, { from: [230, 384], to: [230, POD_Y], dur: 550, role: 'network' });
       pulsePod(s.refs.podA, ctx, give.arrivalMs);
     },
   },
@@ -197,9 +180,6 @@ const STEPS = [
       setVal(s.refs.slice3, '10.244.3.0/24');
       setPodSublabel(s.refs.podA, 'IP 10.244.1.5');
       setPodSublabel(s.refs.podB, 'IP 10.244.2.8');
-      // Node-1 pod just keeps its settled IP with no highlight; the action is on Node-2. Reveal
-      // the Node-2 pod and show its own IPAM hand-out: a second pod with a non-overlapping IP
-      // out of its slice proves uniqueness.
       if (ctx.reduced) {
         s.refs.podB.style.opacity = '1';
         s.refs.ipam2Arrow.style.opacity = '1';
@@ -210,7 +190,7 @@ const STEPS = [
       ctx.register(s.refs.ipam2Arrow.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, fill: 'forwards', easing: 'ease-out' }));
       // After the pod appears, Node-2 IPAM hands its address down (packet first, then the pod
       // pulses on arrival, the receiver).
-      const give = segmentPacket(s, ctx, { from: [600, 384], to: [600, POD_Y], delay: 420, dur: 550, cat: 'network' });
+      const give = segmentPacket(s, ctx, { from: [600, 384], to: [600, POD_Y], delay: 420, dur: 550, role: 'network' });
       pulsePod(s.refs.podB, ctx, give.arrivalMs);
     },
   },

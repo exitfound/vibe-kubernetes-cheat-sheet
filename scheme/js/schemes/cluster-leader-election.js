@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, arrow } from '../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/control-kit.js';
+import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/cluster-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -19,21 +19,21 @@ class Scene {
 
     // Three Controller-manager replicas (boxes, standard 220x80), edges flush with
     // the Lease below (360..1040). Centres 470 / 700 / 930.
-    const r1 = box({ x: 360, y: 50, w: 220, h: 80, label: 'Controller-mgr-1', cat: 'control' });
-    const r2 = box({ x: 590, y: 50, w: 220, h: 80, label: 'Controller-mgr-2', cat: 'control' });
-    const r3 = box({ x: 820, y: 50, w: 220, h: 80, label: 'Controller-mgr-3', cat: 'control' });
+    const r1 = box({ x: 360, y: 50, w: 220, h: 80, label: 'Controller-mgr-1', role: 'cluster' });
+    const r2 = box({ x: 590, y: 50, w: 220, h: 80, label: 'Controller-mgr-2', role: 'cluster' });
+    const r3 = box({ x: 820, y: 50, w: 220, h: 80, label: 'Controller-mgr-3', role: 'cluster' });
 
     // role chip under each replica.
-    const v1 = valChip({ x: 360, y: 170, w: 220, name: 'role', value: 'standby' });
-    const v2 = valChip({ x: 590, y: 170, w: 220, name: 'role', value: 'standby' });
-    const v3 = valChip({ x: 820, y: 170, w: 220, name: 'role', value: 'standby' });
+    const v1 = valChip({ x: 360, y: 170, w: 220, name: 'role', value: 'standby', role: 'cluster' });
+    const v2 = valChip({ x: 590, y: 170, w: 220, name: 'role', value: 'standby', role: 'cluster' });
+    const v3 = valChip({ x: 820, y: 170, w: 220, name: 'role', value: 'standby', role: 'cluster' });
     root.appendChild(v1); root.appendChild(v2); root.appendChild(v3);
 
     // Each replica's CAS exchange is a parallel pair (like the previous card):
     // PUT request down the left lane (cx-10), response up the right lane (cx+10).
     [470, 700, 930].forEach(cx => {
-      root.appendChild(arrow({ x1: cx - 10, y1: 202, x2: cx - 10, y2: 300, dim: true, dashed: true, color: 'control' }));
-      root.appendChild(arrow({ x1: cx + 10, y1: 300, x2: cx + 10, y2: 202, dim: true, dashed: true, color: 'control' }));
+      root.appendChild(arrow({ x1: cx - 10, y1: 202, x2: cx - 10, y2: 300, dim: true, dashed: true, role: 'cluster' }));
+      root.appendChild(arrow({ x1: cx + 10, y1: 300, x2: cx + 10, y2: 202, dim: true, dashed: true, role: 'cluster' }));
     });
 
     // PUT result labels, set per step, to the right of each pair.
@@ -43,13 +43,13 @@ class Scene {
     [wire1, wire2, wire3].forEach(t => root.appendChild(t));
 
     // The Lease object all three watch and contend for.
-    const lease = box({ x: 360, y: 300, w: 680, h: 80, label: 'Lease', sublabel: 'kube-controller-manager · coordination.k8s.io/v1', cat: 'control' });
+    const lease = box({ x: 360, y: 300, w: 680, h: 80, label: 'Lease', sublabel: 'kube-controller-manager · coordination.k8s.io/v1', role: 'cluster' });
 
     // Lease fields, grouped directly under it. holderIdentity is the headline.
-    const holderChip = valChip({ x: 360, y: 400, w: 680, h: 32, name: 'holderIdentity', value: '—' });
-    const durChip    = valChip({ x: 360, y: 447, w: 220, h: 32, name: 'leaseDuration',    value: '15s' });
-    const renewChip  = valChip({ x: 590, y: 447, w: 220, h: 32, name: 'renewTime',        value: '—' });
-    const transChip  = valChip({ x: 820, y: 447, w: 220, h: 32, name: 'leaseTransitions', value: '0' });
+    const holderChip = valChip({ x: 360, y: 400, w: 680, h: 32, name: 'holderIdentity', value: 'none', role: 'cluster' });
+    const durChip    = valChip({ x: 360, y: 447, w: 220, h: 32, name: 'leaseDuration',    value: '15s', role: 'cluster' });
+    const renewChip  = valChip({ x: 590, y: 447, w: 220, h: 32, name: 'renewTime',        value: 'none', role: 'cluster' });
+    const transChip  = valChip({ x: 820, y: 447, w: 220, h: 32, name: 'leaseTransitions', value: '0', role: 'cluster' });
     [holderChip, durChip, renewChip, transChip].forEach(c => root.appendChild(c));
 
     const packetLayer = g({ id: 'packetLayer' });
@@ -82,14 +82,14 @@ function resetReplicaOpacity(s) {
 
 // PUT request: down the left lane (cx-10) from the role chip to the Lease.
 function putPacket(s, ctx, cx, delay = 0) {
-  return routePacket(s, ctx, [[cx - 10, 202], [cx - 10, 300]], { delay });
+  return routePacket(s, ctx, [[cx - 10, 202], [cx - 10, 300]], { delay, role: 'cluster' });
 }
 
 // A losing CAS: the request lands, the resourceVersion check fails, and a 409
 // response travels back up the right lane (cx+10). The winner commits with no bounce.
 function loserPut(s, ctx, cx) {
   const down = putPacket(s, ctx, cx);
-  routePacket(s, ctx, [[cx + 10, 300], [cx + 10, 202]], { delay: down.arrivalMs + BEAT.afterHop });
+  routePacket(s, ctx, [[cx + 10, 300], [cx + 10, 202]], { delay: down.arrivalMs + BEAT.afterHop, role: 'cluster' });
   return down;
 }
 
@@ -106,9 +106,9 @@ const STEPS = [
       setVal(s.refs.v1, 'standby');
       setVal(s.refs.v2, 'standby');
       setVal(s.refs.v3, 'standby');
-      setVal(s.refs.holderChip, '—');
+      setVal(s.refs.holderChip, 'none');
       setVal(s.refs.durChip, '15s');
-      setVal(s.refs.renewChip, '—');
+      setVal(s.refs.renewChip, 'none');
       setVal(s.refs.transChip, '0');
     },
   },

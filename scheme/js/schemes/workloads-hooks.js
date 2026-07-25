@@ -1,6 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, connectorPacket, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, connectorPacket, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-hooks
 
 
 class Scene {
@@ -18,21 +19,21 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet', sublabel: 'lifecycle handler', cat: 'control' });
-    const runtime = box({ x: 580, y: 40, w: 220, h: 80, label: 'Runtime', sublabel: 'CRI runc / Containerd', cat: 'control' });
+    const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet', sublabel: 'lifecycle handler', role: 'cluster' });
+    const runtime = box({ x: 580, y: 40, w: 220, h: 80, label: 'Runtime', sublabel: 'CRI runc / Containerd', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     // Single wire label centered below the top row, set per step via setWire.
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const postStartChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'postStart hook',  value: 'declared' });
-    const entrypointChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'ENTRYPOINT',       value: 'not started' });
-    const preStopChip     = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'preStop hook',     value: 'declared' });
-    const stateChip       = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'container state',  value: 'Waiting' });
-    const graceChip       = valChip({ x: 830, y: 388, w: 350, h: 32, name: 'grace remaining',  value: '30s' });
+    const postStartChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'postStart hook',  value: 'declared', role: 'workloads' });
+    const entrypointChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'ENTRYPOINT',       value: 'not started', role: 'workloads' });
+    const preStopChip     = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'preStop hook',     value: 'declared', role: 'workloads' });
+    const stateChip       = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'container state',  value: 'Waiting', role: 'workloads' });
+    const graceChip       = valChip({ x: 830, y: 388, w: 350, h: 32, name: 'grace remaining',  value: '30s', role: 'workloads' });
     [postStartChip, entrypointChip, preStopChip, stateChip, graceChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -45,16 +46,16 @@ class Scene {
         '5. preStop   ·  delete fires hook before any signal',
         '6. sigterm   ·  SIGTERM, then SIGKILL at grace=0',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
 
-    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'terminationGracePeriod: 30s', cat: 'workloads' });
+    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'terminationGracePeriod: 30s', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
     podGroup.appendChild(podShell);
@@ -62,7 +63,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -154,8 +155,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // The CRI calls hop to the runtime, the OK hops back, and the container
       // materializes once the start call lands.
-      const req = topPacket(s, ctx);
-      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 0.4 }, { opacity: 1 }],
         { duration: FADE.in, delay: req.arrivalMs, fill: 'both', easing: 'ease-out' }
@@ -181,8 +182,8 @@ const STEPS = [
       s.refs.entrypointChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      const req = topPacket(s, ctx);
-      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
   {
@@ -205,8 +206,8 @@ const STEPS = [
       s.refs.stateChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      const req = topPacket(s, ctx);
-      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
   {
@@ -228,12 +229,9 @@ const STEPS = [
       s.refs.graceChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      // ExecSync hops to the runtime and acks back; once that ack lands at the
-      // kubelet the exec order travels down to the Pod, which pulses as the hook
-      // starts running inside it.
-      const req = topPacket(s, ctx);
-      const ack = segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
-      const exec = connectorPacket(s, ctx, { delay: ack.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const ack = segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      const exec = connectorPacket(s, ctx, { delay: ack.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, exec.arrivalMs);
     },
   },
@@ -258,12 +256,9 @@ const STEPS = [
       s.refs.podGroup.style.opacity = '0.3';
       setChainActive(s.refs.chain, 5);
       if (ctx.reduced) return;
-      // StopContainer hops to the runtime and acks back; once that ack lands at
-      // the kubelet the SIGTERM order travels down to the Pod, which pulses then
-      // dims out as the process exits.
-      const req = topPacket(s, ctx);
-      const ack = segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop });
-      const stop = connectorPacket(s, ctx, { delay: ack.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const ack = segmentPacket(s, ctx, { from: [580, 95], to: [540, 95], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      const stop = connectorPacket(s, ctx, { delay: ack.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, stop.arrivalMs);
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 1 }, { opacity: 0.3 }],

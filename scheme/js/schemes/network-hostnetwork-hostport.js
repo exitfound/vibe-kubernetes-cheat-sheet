@@ -1,32 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-hostnetwork-hostport
 
-// hostNetwork and hostPort (viewBox 1200x640). Every other Pod Networking card assumes the Pod has its
-// OWN namespace, its own IP and a veth into the bridge. This card is the two sanctioned ways out of that,
-// and the composition is one Node seen from the LAN side.
-//
-// Standard contract: Pods are shell + inner box; only Pods pulse; the client, the NIC, the bridge and the
-// portmap rule are infrastructure and only light; value chips never flash; packets stop at block edges.
-// The two reflective steps carry no motion at all: they compare, they do not move traffic.
-//
-// GEOMETRY. A strict three-column grid, so nothing sits at a random x. Every wire and every packet is
-// derived from a block edge, never hand-typed.
-//
-//   COL1 (cx 240)          COL2 (cx 600)          COL3 (cx 960)
-//   portmap rule           Node eth0              (empty: the lane to the agent runs through it)
-//   Pod app                cni0 bridge            Pod node-agent
-//
-// The NIC is the hub and it exits three ways, one per direction: LEFT along its own row into the portmap
-// rule, RIGHT along that same row into the hostNetwork Pod, and DOWN its own column into the bridge. Each
-// block therefore sits under or beside the block it belongs to: the rule above the Pod it maps to, the
-// bridge under the NIC that routes into it, and the hostNetwork Pod alone in a column, because it hangs
-// off nothing.
-//
-// Vertical: the narration overlay really covers x 0..399, y 0..300, and the Node spans the full width, so
-// its frame starts at 305, just under the panel, and runs to 570, which is as deep as the chip strip
-// allows. The client is the only block above the Node and it sits at x >= 450, clear of the panel, dead
-// centred on the NIC so the entry hop is one clean vertical with no dogleg.
+
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;
 const NODE_BOTTOM = NODE_Y + NODE_H;           // 570
 
@@ -72,42 +49,17 @@ const ENTRY = [[COL2_CX, CLIENT_BOTTOM], [COL2_CX, R1_Y]];               // LAN 
 const TO_PM = [[ETH_X, R1_CY], [PM_RIGHT, R1_CY]];                       // NIC -> the portmap rule
 const TO_AGENT = [[ETH_RIGHT, R1_CY], [COL3_CX, R1_CY], [COL3_CX, R2_Y]];// NIC -> the hostNetwork Pod
 const TO_BRIDGE = [[COL2_CX, R1_BOTTOM], [COL2_CX, BR_TOP]];             // NIC -> the bridge, ordinary route
-// The rewrite happens INSIDE the rule box, so the ball re-emerges at its bottom edge already carrying the
-// Pod address, and only then joins the ordinary path. It lands on the bridge left of the NIC route so the
-// two never overlap.
 const PM_TO_BRIDGE = [[COL1_CX, R1_BOTTOM], [COL1_CX, BUS_Y], [560, BUS_Y], [560, BR_TOP]];
 const VETH = [[BR_X, POD_CY], [APP_RIGHT, POD_CY]];                      // bridge -> Pod app, the veth pair
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A tag that rides ALONG with the ball on the same path, timing and easing, carrying the address that leg
-// actually has. It lives in the packet layer but is not a .scheme-packet, so the tools do not count it as
-// a packet. segmentPacket is linear and routePacket is eased, so each caller passes the easing of the ball
-// it rides or the tag drifts off it mid-flight. `emerge` holds the tag invisible until the ball has
-// cleared the block it is leaving, for a leg that exits downward out of a box.
-function ridingLabel(s, ctx, txt, points, { delay = 0, easing = 'ease-in-out', emerge = 0, dy = -14 } = {}) {
-  if (ctx.reduced) return;
-  const d = routeDur(points);
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: dy, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: delay + emerge, fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 170, delay: delay + d, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -129,37 +81,31 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    // The frame label sits at the Node top-left (x+12, y+18), which puts it above and left of the portmap
-    // box at x=110, so Node-1 clears it. Do not lengthen it much further or it runs under that box. The
-    // Node address stays on the eth0 block, which is where it belongs anyway.
     const theNode = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
-    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client on the LAN', sublabel: '', cat: 'network' });
-    const eth = box({ x: ETH_X, y: R1_Y, w: ETH_W, h: R1_H, label: 'Node eth0', sublabel: '192.168.1.20', cat: 'network' });
-    const portmap = box({ x: PM_X, y: R1_Y, w: PM_W, h: R1_H, label: 'Portmap rule', sublabel: 'none', cat: 'network' });
-    const bridge = box({ x: BR_X, y: BR_TOP, w: BR_W, h: BR_H, label: 'cni0 bridge', sublabel: '10.244.1.1', cat: 'network' });
+    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client on the LAN', sublabel: '', role: 'network' });
+    const eth = box({ x: ETH_X, y: R1_Y, w: ETH_W, h: R1_H, label: 'Node eth0', sublabel: '192.168.1.20', role: 'network' });
+    const portmap = box({ x: PM_X, y: R1_Y, w: PM_W, h: R1_H, label: 'Portmap rule', sublabel: 'none', role: 'network' });
+    const bridge = box({ x: BR_X, y: BR_TOP, w: BR_W, h: BR_H, label: 'cni0 bridge', sublabel: '10.244.1.1', role: 'network' });
 
     const podApp = podBlock({ x: APP_X, y: R2_Y, w: POD_W, h: POD_H, label: 'Pod app', ip: '10.244.1.5' });
     const podAgent = podBlock({ x: AGENT_X, y: R2_Y, w: POD_W, h: POD_H, label: 'Pod node-agent', ip: 'hostNetwork: true' });
 
-    const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, color: 'network' });
-    const pmWire = arrow({ x1: TO_PM[0][0], y1: TO_PM[0][1], x2: TO_PM[1][0], y2: TO_PM[1][1], dashed: true, dim: true, color: 'network' });
-    const brWire = arrow({ x1: TO_BRIDGE[0][0], y1: TO_BRIDGE[0][1], x2: TO_BRIDGE[1][0], y2: TO_BRIDGE[1][1], dashed: true, dim: true, color: 'network' });
-    const vethWire = arrow({ x1: VETH[0][0], y1: VETH[0][1], x2: VETH[1][0], y2: VETH[1][1], dashed: true, dim: true, color: 'network' });
-    const agentWire = pathArrow({ points: TO_AGENT, dashed: true, dim: true, color: 'network' });
-    const pmBrWire = pathArrow({ points: PM_TO_BRIDGE, dashed: true, dim: true, color: 'network' });
+    const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, role: 'network' });
+    const pmWire = arrow({ x1: TO_PM[0][0], y1: TO_PM[0][1], x2: TO_PM[1][0], y2: TO_PM[1][1], dashed: true, dim: true, role: 'network' });
+    const brWire = arrow({ x1: TO_BRIDGE[0][0], y1: TO_BRIDGE[0][1], x2: TO_BRIDGE[1][0], y2: TO_BRIDGE[1][1], dashed: true, dim: true, role: 'network' });
+    const vethWire = arrow({ x1: VETH[0][0], y1: VETH[0][1], x2: VETH[1][0], y2: VETH[1][1], dashed: true, dim: true, role: 'network' });
+    const agentWire = pathArrow({ points: TO_AGENT, dashed: true, dim: true, role: 'network' });
+    const pmBrWire = pathArrow({ points: PM_TO_BRIDGE, dashed: true, dim: true, role: 'network' });
 
     // The veth is the thing the two Pods differ by, so the wire that carries it is the one wire that is
     // named. Everything else a step needs to say rides the chips or the Pod sublabels.
     const vethLabel = text({ class: 'scheme-label code dim', x: (BR_X + APP_RIGHT) / 2, y: POD_CY - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    // The four chips span the Node 1:1, with even 20px gaps. They are the four things these two fields
-    // actually change, and each is a property of the setup rather than of a request, so they all carry the
-    // ordinary-Pod truth from the start and the steps flip them.
-    const nsChip   = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 260, h: CHIP_H, name: 'netns', value: 'own', cat: 'network' });
-    const ipChip   = valChip({ x: 320, y: CHIP_Y, w: 300, h: CHIP_H, name: 'Pod IP', value: '10.244.1.5', cat: 'network' });
-    const vethChip = valChip({ x: 640, y: CHIP_Y, w: 170, h: CHIP_H, name: 'veth', value: 'yes', cat: 'network' });
-    const portChip = valChip({ x: 830, y: CHIP_Y, w: SCHEME_RIGHT - 830, h: CHIP_H, name: 'reachable at', value: 'Pod IP only', cat: 'network' });
+    const nsChip   = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 260, h: CHIP_H, name: 'netns', value: 'own', role: 'network' });
+    const ipChip   = valChip({ x: 320, y: CHIP_Y, w: 300, h: CHIP_H, name: 'Pod IP', value: '10.244.1.5', role: 'network' });
+    const vethChip = valChip({ x: 640, y: CHIP_Y, w: 170, h: CHIP_H, name: 'veth', value: 'yes', role: 'network' });
+    const portChip = valChip({ x: 830, y: CHIP_Y, w: SCHEME_RIGHT - 830, h: CHIP_H, name: 'reachable at', value: 'Pod IP only', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -189,9 +135,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// The inner app boxes are listed by key so the .highlight a reduced replay puts on them is cleared too:
-// clearPodHighlight only resets inline strokes. Every dimmable block goes back to full opacity so the dim
-// one case puts on the other cannot leak into the next step.
 function clearHL(s) {
   clearHighlights(s, ['client', 'eth', 'portmap', 'bridge', 'nsChip', 'ipChip', 'vethChip', 'portChip', 'podAppBox', 'podAgentBox'], [s.refs.podApp, s.refs.podAgent]);
   ['podApp', 'podAgent', 'portmap', 'bridge'].forEach(k => { s.refs[k].style.opacity = '1'; });
@@ -245,11 +188,11 @@ const STEPS = [
       if (ctx.reduced) { s.refs.eth.classList.add('highlight'); s.refs.podAgentBox.classList.add('highlight'); return; }
       // Down-arrow all the way: the request lands on the Node NIC, which lights on arrival, and goes on to
       // the Pod with no rewrite of any kind, so the same Node address rides the ball the whole way.
-      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], cat: 'network' });
+      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], role: 'network' });
       ridingLabel(s, ctx, 'dst 192.168.1.20:80', ENTRY, { easing: 'linear' });
       lightBoxAt(s.refs.eth, ctx, inb.arrivalMs);
       const outDelay = inb.arrivalMs + BEAT.afterHop;
-      const out = routePacket(s, ctx, TO_AGENT, { delay: outDelay, cat: 'network' });
+      const out = routePacket(s, ctx, TO_AGENT, { delay: outDelay, role: 'network' });
       ridingLabel(s, ctx, 'dst 192.168.1.20:80', TO_AGENT, { delay: outDelay });
       pulsePod(s.refs.podAgent, ctx, out.arrivalMs);
     },
@@ -301,21 +244,18 @@ const STEPS = [
         s.refs.podAppBox.classList.add('highlight');
         return;
       }
-      // Down-arrow chain: the request lands on the NIC, is matched by the portmap rule, and the rewrite
-      // happens INSIDE that box, so the ball re-emerges at its bottom edge already carrying the Pod
-      // address. From there it takes the ordinary path, bridge then veth, and the Pod pulses on arrival.
-      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], cat: 'network' });
+      const inb = segmentPacket(s, ctx, { from: ENTRY[0], to: ENTRY[1], role: 'network' });
       ridingLabel(s, ctx, 'dst 192.168.1.20:8080', ENTRY, { easing: 'linear' });
       lightBoxAt(s.refs.eth, ctx, inb.arrivalMs);
       const pmDelay = inb.arrivalMs + BEAT.afterHop;
-      const toPm = segmentPacket(s, ctx, { from: TO_PM[0], to: TO_PM[1], delay: pmDelay, cat: 'network' });
+      const toPm = segmentPacket(s, ctx, { from: TO_PM[0], to: TO_PM[1], delay: pmDelay, role: 'network' });
       lightBoxAt(s.refs.portmap, ctx, toPm.arrivalMs);
       const brDelay = toPm.arrivalMs + BEAT.afterHop;
-      const toBr = routePacket(s, ctx, PM_TO_BRIDGE, { delay: brDelay, cat: 'network' });
+      const toBr = routePacket(s, ctx, PM_TO_BRIDGE, { delay: brDelay, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.1.5:80', PM_TO_BRIDGE, { delay: brDelay, emerge: 150 });
       lightBoxAt(s.refs.bridge, ctx, toBr.arrivalMs);
       const vethDelay = toBr.arrivalMs + BEAT.afterHop;
-      const toPod = segmentPacket(s, ctx, { from: VETH[0], to: VETH[1], delay: vethDelay, cat: 'network' });
+      const toPod = segmentPacket(s, ctx, { from: VETH[0], to: VETH[1], delay: vethDelay, role: 'network' });
       pulsePod(s.refs.podApp, ctx, toPod.arrivalMs);
     },
   },

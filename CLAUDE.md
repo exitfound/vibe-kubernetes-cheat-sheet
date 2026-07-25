@@ -10,7 +10,7 @@ One static, dependency-free site deployed to `kube.how`, made of three path-base
 |---|---|---|---|
 | `/` | **Hub** | One-viewport landing page: two entry panels (Commands, Schemes) over an aurora + canvas packet-graph background | this file (Hub section below) |
 | `/cli/` | **Commands** | Searchable `kubectl`/Helm/Kustomize/K9s cheat sheet, 890 commands, copy + star | `cli/CLAUDE.md` |
-| `/scheme/` | **Schemes** | Card grid of animated SVG Kubernetes architecture diagrams (click a card, a `<dialog>` plays a step-by-step animation) | `scheme/CLAUDE.md` |
+| `/scheme/` | **Schemes** | Card grid of animated SVG Kubernetes architecture diagrams (click a card, a `<dialog>` plays a step-by-step animation) | `scheme/CLAUDE.md`, plus `scheme/docs/CARDS.md` for per-card geometry |
 
 Each sub-app has its own nested `CLAUDE.md` with the full detail; Claude Code auto-loads it when you work inside that folder. This file stays an overview: the repo shape, how to run and ship, and the chrome shared across all three pages.
 
@@ -36,10 +36,10 @@ Rebuild after edits: `docker rm -f kube-cheatsheet && docker build -t kube-cheat
 ## Deployment
 
 Two GitHub Actions run on every push to `main`:
-- **`deploy.yml`** stages `index.html`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, plus the `images/`, `cli/`, and `scheme/` directories, then strips `scheme/tools/` and every `CLAUDE.md` before publishing to GitHub Pages. `configs/`, `Dockerfile`, and `.dockerignore` are intentionally excluded (Docker-only).
-- **`release.yml`** zips the shippable tree (`index.html`, `cli/`, `scheme/`, `images/`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, `Dockerfile`, `configs/`, `.dockerignore`, minus `scheme/tools/` and the nested `CLAUDE.md` files) into a tagged Release `vYYYY.MM.DD-<sha>`. Its `paths:` trigger matches that artifact list so any shippable change cuts a release while docs-only commits are skipped.
+- **`deploy.yml`** stages `index.html`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, plus the `images/`, `cli/`, and `scheme/` directories, then strips `scheme/tools/`, `scheme/docs/` and every `CLAUDE.md` before publishing to GitHub Pages. `configs/`, `Dockerfile`, and `.dockerignore` are intentionally excluded (Docker-only).
+- **`release.yml`** zips the shippable tree (`index.html`, `cli/`, `scheme/`, `images/`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, `Dockerfile`, `configs/`, `.dockerignore`, minus `scheme/tools/`, `scheme/docs/` and the nested `CLAUDE.md` files) into a tagged Release `vYYYY.MM.DD-<sha>`. Its `paths:` trigger matches that artifact list so any shippable change cuts a release while docs-only commits are skipped.
 
-Internal docs (`CLAUDE.md` anywhere, `scheme/tools/`) never reach production. Any push to `main` ships immediately; there is no staging environment. Hosting is GitHub Pages + Cloudflare (custom domain, SSL, edge cache).
+Internal docs (`CLAUDE.md` anywhere, `scheme/tools/`, `scheme/docs/`, root `SCHEME-REVIEW.md`) never reach production. Three mechanisms have to agree: `deploy.yml` (GitHub Pages), `release.yml` (the zip) and `.dockerignore` (the container image). The first two are allowlists, so a new internal file at the repo root needs only `.dockerignore`; anything inside an already-copied directory (`scheme/`, `cli/`, `images/`) must be named in all three. The local container is the easiest place to catch a miss: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/<path>` must return 404. Any push to `main` ships immediately; there is no staging environment. Hosting is GitHub Pages + Cloudflare (custom domain, SSL, edge cache).
 
 ## Shared chrome (cross-cutting, applies to all three pages)
 

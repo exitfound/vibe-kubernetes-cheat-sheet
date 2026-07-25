@@ -1,13 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/control-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/cluster-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#cluster-node-failure
 
-// Shared connectors. Heartbeat: Node-1 top-centre up into the Lease bottom-centre,
-// the vertical riding the gap (x=790) between the chain and the chips column.
-// Evict: controller left margin down into Node-1. Reschedule: the workload relocates
-// from the failed Node-1 across to the healthy Node-2; the packet bridges the two
-// node blocks (right edge x=680 -> left edge x=740) and the replacement Pod only
-// materialises inside Node-2 once the packet lands on the node.
+
 const HEARTBEAT_CONNECTOR = [[500, 480], [500, 468], [790, 468], [790, 150]];
 const EVICT_CONNECTOR     = [[320, 112], [290, 112], [290, 550], [320, 550]];
 const RESCHED_CONNECTOR   = [[680, 550], [740, 550]];
@@ -27,21 +23,21 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const ctrl  = box({ x: 320, y: 40, w: 300, h: 110, label: 'Kube-controller-manager', sublabel: 'node-lifecycle-controller', cat: 'control' });
+    const ctrl  = box({ x: 320, y: 40, w: 300, h: 110, label: 'Kube-controller-manager', sublabel: 'node-lifecycle-controller', role: 'cluster' });
     // Lease centred on x=790 so the heartbeat connector drops into its bottom centre.
-    const lease = cylinder({ x: 725, y: 40, w: 130, h: 110, label: 'Lease', cat: 'control' });
+    const lease = cylinder({ x: 725, y: 40, w: 130, h: 110, label: 'Lease', role: 'cluster' });
 
     // Top-row arrows, symmetric about the control-plane centre (y=95, so +/-15 -> 80 and 110).
-    root.appendChild(arrow({ x1: 620, y1: 80,  x2: 725, y2: 80,  dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 725, y1: 110, x2: 620, y2: 110, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 620, y1: 80,  x2: 725, y2: 80,  dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 725, y1: 110, x2: 620, y2: 110, dim: true, dashed: true, role: 'cluster' }));
 
     // Heartbeat connector: Node-1 top centre up and over into the Lease bottom centre.
-    root.appendChild(pathArrow({ points: HEARTBEAT_CONNECTOR, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(pathArrow({ points: HEARTBEAT_CONNECTOR, dim: true, dashed: true, role: 'cluster' }));
 
     // Controller -> failing-node connector so the eviction DELETE is carried by a
     // visible packet the Pod reacts to on arrival; reschedule bridges node to node.
-    root.appendChild(pathArrow({ points: EVICT_CONNECTOR,   dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: RESCHED_CONNECTOR, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(pathArrow({ points: EVICT_CONNECTOR,   dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: RESCHED_CONNECTOR, dim: true, dashed: true, role: 'cluster' }));
 
     const wireCtrl = text({ class: 'scheme-label code dim', x: 470, y: 174, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireCtrl);
@@ -56,15 +52,15 @@ class Scene {
         '5. evicted     ·  Toleration expires, Pod deleted',
         '6. rescheduled ·  Scheduler binds replacement',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // State chips column on the right, each tracking one Node/Lease/Taint field.
-    const readyChip = valChip({ x: 800, y: 220, w: 380, h: 32, name: 'Ready',          value: 'True' });
-    const leaseChip = valChip({ x: 800, y: 262, w: 380, h: 32, name: 'Lease age',      value: '2s · Fresh' });
-    const taintChip = valChip({ x: 800, y: 304, w: 380, h: 32, name: 'Taint',          value: 'none' });
-    const tolerChip = valChip({ x: 800, y: 346, w: 380, h: 32, name: 'Toleration',     value: 'none' });
-    const evictChip = valChip({ x: 800, y: 388, w: 380, h: 32, name: 'Eviction timer', value: 'none' });
+    const readyChip = valChip({ x: 800, y: 220, w: 380, h: 32, name: 'Ready',          value: 'True', role: 'cluster' });
+    const leaseChip = valChip({ x: 800, y: 262, w: 380, h: 32, name: 'Lease age',      value: '2s · Fresh', role: 'cluster' });
+    const taintChip = valChip({ x: 800, y: 304, w: 380, h: 32, name: 'Taint',          value: 'none', role: 'cluster' });
+    const tolerChip = valChip({ x: 800, y: 346, w: 380, h: 32, name: 'Toleration',     value: 'none', role: 'cluster' });
+    const evictChip = valChip({ x: 800, y: 388, w: 380, h: 32, name: 'Eviction timer', value: 'none', role: 'cluster' });
     [readyChip, leaseChip, taintChip, tolerChip, evictChip].forEach(c => root.appendChild(c));
 
     // Bottom row: two worker nodes side-by-side. Node-1 is the failing one, Node-2 the target.
@@ -72,12 +68,12 @@ class Scene {
     const nodeB = node({ x: 740, y: 480, w: 360, h: 140, label: 'Node-2' });
 
     // Failing node hosts the running Pod that gets evicted.
-    const podAShell = pod({ x: 392, y: 497, w: 216, h: 106, label: 'Pod', sublabel: ' ', containers: 0, cat: 'workloads' });
+    const podAShell = pod({ x: 392, y: 497, w: 216, h: 106, label: 'Pod', sublabel: ' ', containers: 0, role: 'workloads' });
     podAShell.style.setProperty('--workloads-color', '#c0b0ff');
     const podAShellRect = podAShell.querySelector('.scheme-pod-rect');
     if (podAShellRect) podAShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const podABox = box({ x: 422, y: 525, w: 156, h: 52, label: 'app-pod', sublabel: 'nginx:1.27', cat: 'workloads' });
+    const podABox = box({ x: 422, y: 525, w: 156, h: 52, label: 'app-pod', sublabel: 'nginx:1.27', role: 'workloads' });
     podABox.style.setProperty('--workloads-color', '#c0b0ff');
 
     const podA = g({ id: 'podA' });
@@ -85,12 +81,12 @@ class Scene {
     podA.appendChild(podABox);
 
     // Target node receives the rescheduled replacement Pod (hidden until reschedule).
-    const podBShell = pod({ x: 812, y: 497, w: 216, h: 106, label: 'Pod', sublabel: ' ', containers: 0, cat: 'workloads' });
+    const podBShell = pod({ x: 812, y: 497, w: 216, h: 106, label: 'Pod', sublabel: ' ', containers: 0, role: 'workloads' });
     podBShell.style.setProperty('--workloads-color', '#c0b0ff');
     const podBShellRect = podBShell.querySelector('.scheme-pod-rect');
     if (podBShellRect) podBShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const podBBox = box({ x: 842, y: 525, w: 156, h: 52, label: 'app-pod', sublabel: 'nginx:1.27', cat: 'workloads' });
+    const podBBox = box({ x: 842, y: 525, w: 156, h: 52, label: 'app-pod', sublabel: 'nginx:1.27', role: 'workloads' });
     podBBox.style.setProperty('--workloads-color', '#c0b0ff');
 
     const podB = g({ id: 'podB' });
@@ -172,7 +168,7 @@ const STEPS = [
       s.refs.leaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
-      routePacket(s, ctx, HEARTBEAT_CONNECTOR);
+      routePacket(s, ctx, HEARTBEAT_CONNECTOR, { role: 'cluster' });
     },
   },
   {
@@ -264,7 +260,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // The DELETE travels from the controller down the left margin to the Pod on
       // Node-1; the Pod flinches and disappears only when the packet reaches it.
-      const del = routePacket(s, ctx, EVICT_CONNECTOR);
+      const del = routePacket(s, ctx, EVICT_CONNECTOR, { role: 'cluster' });
       pulsePod(s.refs.podA, ctx, del.arrivalMs);
       ctx.register(s.refs.podA.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
@@ -288,7 +284,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // The bind packet bridges Node-1 across to Node-2 (node block to node block);
       // the replacement Pod materialises and pulses only when it lands on Node-2.
-      const bind = routePacket(s, ctx, RESCHED_CONNECTOR);
+      const bind = routePacket(s, ctx, RESCHED_CONNECTOR, { role: 'cluster' });
       ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: bind.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, bind.arrivalMs);
     },

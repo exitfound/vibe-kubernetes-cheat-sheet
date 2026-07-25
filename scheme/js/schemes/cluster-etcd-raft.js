@@ -1,6 +1,6 @@
 import { svg, g, line, text } from '../lib/svg.js';
 import { arrowDefs, box, cylinder, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/control-kit.js';
+import { valChip, setVal, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/cluster-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -22,39 +22,39 @@ class Scene {
     const content = g({ transform: 'translate(-20, 32)' });
 
     // ETCD replicas spaced 200 apart (40px gaps) so they read as distinct nodes.
-    const e1 = cylinder({ x: 380, y: 40, w: 160, h: 130, label: 'ETCD-1', cat: 'control' });
-    const e2 = cylinder({ x: 580, y: 40, w: 160, h: 130, label: 'ETCD-2', cat: 'control' });
-    const e3 = cylinder({ x: 780, y: 40, w: 160, h: 130, label: 'ETCD-3', cat: 'control' });
+    const e1 = cylinder({ x: 380, y: 40, w: 160, h: 130, label: 'ETCD-1', role: 'cluster' });
+    const e2 = cylinder({ x: 580, y: 40, w: 160, h: 130, label: 'ETCD-2', role: 'cluster' });
+    const e3 = cylinder({ x: 780, y: 40, w: 160, h: 130, label: 'ETCD-3', role: 'cluster' });
     content.appendChild(e1); content.appendChild(e2); content.appendChild(e3);
 
     // term/acks/quorum: chain step-row height (rowH 32, gap 10), same as every
     // other card now that the shrink wrapper is gone. Width 240 keeps the right margin.
-    const termChip   = valChip({ x: 960, y: 40,  w: 240, h: 32, name: 'term',             value: '4' });
-    const acksChip   = valChip({ x: 960, y: 82,  w: 240, h: 32, name: 'acks (entry 9)', value: 'idle' });
-    const quorumChip = valChip({ x: 960, y: 124, w: 240, h: 32, name: 'quorum',           value: '2 of 3' });
+    const termChip   = valChip({ x: 960, y: 40,  w: 240, h: 32, name: 'term',             value: '4', role: 'cluster' });
+    const acksChip   = valChip({ x: 960, y: 82,  w: 240, h: 32, name: 'acks (entry 9)', value: 'idle', role: 'cluster' });
+    const quorumChip = valChip({ x: 960, y: 124, w: 240, h: 32, name: 'quorum',           value: '2 of 3', role: 'cluster' });
     content.appendChild(termChip); content.appendChild(acksChip); content.appendChild(quorumChip);
 
-    const r1 = valChip({ x: 380, y: 190, w: 160, name: 'role', value: 'Leader' });
-    const r2 = valChip({ x: 580, y: 190, w: 160, name: 'role', value: 'Follower' });
-    const r3 = valChip({ x: 780, y: 190, w: 160, name: 'role', value: 'Follower' });
+    const r1 = valChip({ x: 380, y: 190, w: 160, name: 'role', value: 'Leader', role: 'cluster' });
+    const r2 = valChip({ x: 580, y: 190, w: 160, name: 'role', value: 'Follower', role: 'cluster' });
+    const r3 = valChip({ x: 780, y: 190, w: 160, name: 'role', value: 'Follower', role: 'cluster' });
     content.appendChild(r1); content.appendChild(r2); content.appendChild(r3);
 
-    const l1 = valChip({ x: 380, y: 230, w: 160, name: 'log/commit', value: '8 / 8' });
-    const l2 = valChip({ x: 580, y: 230, w: 160, name: 'log/commit', value: '8 / 8' });
-    const l3 = valChip({ x: 780, y: 230, w: 160, name: 'log/commit', value: '8 / 8' });
+    const l1 = valChip({ x: 380, y: 230, w: 160, name: 'log/commit', value: '8 / 8', role: 'cluster' });
+    const l2 = valChip({ x: 580, y: 230, w: 160, name: 'log/commit', value: '8 / 8', role: 'cluster' });
+    const l3 = valChip({ x: 780, y: 230, w: 160, name: 'log/commit', value: '8 / 8', role: 'cluster' });
     content.appendChild(l1); content.appendChild(l2); content.appendChild(l3);
 
-    const api = box({ x: 40, y: 320, w: 220, h: 80, label: 'Api', cat: 'control' });
+    const api = box({ x: 40, y: 320, w: 220, h: 80, label: 'Api', role: 'cluster' });
     content.appendChild(api);
 
-    content.appendChild(pathArrow({ points: [[260, 360], [320, 360], [320, 105], [380, 105]], dim: true, dashed: true, color: 'control' }));
-    content.appendChild(arrow({ x1: 540, y1: 105, x2: 580, y2: 105, dim: true, dashed: true, color: 'control' }));
-    content.appendChild(pathArrow({ points: [[460, 40], [460, 8], [860, 8], [860, 40]], dim: true, dashed: true, color: 'control' }));
+    content.appendChild(pathArrow({ points: [[260, 360], [320, 360], [320, 105], [380, 105]], dim: true, dashed: true, role: 'cluster' }));
+    content.appendChild(arrow({ x1: 540, y1: 105, x2: 580, y2: 105, dim: true, dashed: true, role: 'cluster' }));
+    content.appendChild(pathArrow({ points: [[460, 40], [460, 8], [860, 8], [860, 40]], dim: true, dashed: true, role: 'cluster' }));
 
     // Tie each ETCD replica to the role chip directly below it (a binding, not flow).
-    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-control', x1: 460, y1: 170, x2: 460, y2: 190 }));
-    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-control', x1: 660, y1: 170, x2: 660, y2: 190 }));
-    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-control', x1: 860, y1: 170, x2: 860, y2: 190 }));
+    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: 460, y1: 170, x2: 460, y2: 190 }));
+    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: 660, y1: 170, x2: 660, y2: 190 }));
+    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: 860, y1: 170, x2: 860, y2: 190 }));
 
     const wireProposal  = text({ class: 'scheme-label code dim', x: 0, y: -6, 'text-anchor': 'middle', transform: 'translate(320, 240) rotate(-90)' }, [' ']);
     const wireReplicate = text({ class: 'scheme-label code dim', x: 660, y: -2,  'text-anchor': 'middle' }, [' ']);
@@ -111,7 +111,7 @@ const STEPS = [
       s.refs.e1.classList.add('highlight');
       setWire(s, 'proposal', 'write Pod · via Leader');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[260, 360], [320, 360], [320, 105], [380, 105]]);
+      routePacket(s, ctx, [[260, 360], [320, 360], [320, 105], [380, 105]], { role: 'cluster' });
     },
   },
   {
@@ -148,8 +148,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // Both AppendEntries leave together: a short hop to the near Follower and
       // the over-the-top route to the far one, each at natural travel speed.
-      segmentPacket(s, ctx, { from: [540, 105], to: [580, 105] });
-      routePacket(s, ctx, [[460, 40], [460, 8], [860, 8], [860, 40]]);
+      segmentPacket(s, ctx, { from: [540, 105], to: [580, 105], role: 'cluster' });
+      routePacket(s, ctx, [[460, 40], [460, 8], [860, 8], [860, 40]], { role: 'cluster' });
     },
   },
   {

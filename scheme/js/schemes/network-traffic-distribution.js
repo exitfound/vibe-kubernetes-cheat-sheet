@@ -1,16 +1,9 @@
-import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
+import { svg, g } from '../lib/svg.js';
+import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel} from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-traffic-distribution
 
-// Layout zones (viewBox 1200x640): the narration overlay is a fixed panel over the top-left
-// (about x<=250, y<=152), so the client and its setting chips sit on the left below it. The whole
-// flow is centred on y=320 (client -> kube-proxy -> zones) and on x=600. Each zone stacks its two
-// Pods VERTICALLY, so the fan from kube-proxy reaches every Pod at its own left edge over a shared
-// vertical rail at x=700, with no route crossing another Pod. The client and the two zones are
-// symmetric about y=320.
-// Standard contract: only Pods pulse, boxes light via .highlight, the fan routes are shared by the
-// static wires and the moving packets. A connection is client -> kube-proxy (the decision point)
-// -> the chosen backend, so the client pulse always leads into real traffic.
+
 const FLOW_Y = 320;                          // central flow line
 const CLIENT_OUT = [320, FLOW_Y];            // client right edge
 const KP_IN = [440, FLOW_Y];                 // kube-proxy left edge (connection arrives)
@@ -27,10 +20,10 @@ const FAN_B1 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B1Y], [POD_L, B1Y]];
 const FAN_B2 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B2Y], [POD_L, B2Y]];
 
 function podBlock({ x, y, w = 240, h = 96, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 18, y: y + 30, w: w - 36, h: 44, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 18, y: y + 30, w: w - 36, h: 44, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -38,10 +31,10 @@ function podBlock({ x, y, w = 240, h = 96, label, ip }) {
 }
 
 function clientBlock({ x, y, w, h }) {
-  const shell = pod({ x, y, w, h, label: 'client . zone-a', sublabel: '10.244.2.50', containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label: 'client . zone-a', sublabel: '10.244.2.50', containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 16, y: y + 34, w: w - 32, h: 48, label: 'app', sublabel: 'to Service web', cat: 'network' });
+  const innerBox = box({ x: x + 16, y: y + 34, w: w - 32, h: 48, label: 'app', sublabel: 'to Service web', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -64,7 +57,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const client = clientBlock({ x: 120, y: 265, w: 200, h: 110 });
-    const kproxy = box({ x: 440, y: 280, w: 190, h: 80, label: 'kube-proxy', sublabel: 'endpoint pick', cat: 'network' });
+    const kproxy = box({ x: 440, y: 280, w: 190, h: 80, label: 'kube-proxy', sublabel: 'endpoint pick', role: 'network' });
 
     const zoneA = node({ x: ZONE_X, y: 60, w: ZONE_W, h: 240, label: 'zone-a' });
     const zoneB = node({ x: ZONE_X, y: 340, w: ZONE_W, h: 240, label: 'zone-b' });
@@ -81,8 +74,8 @@ class Scene {
     const fB1 = pathArrow({ points: FAN_B1, dashed: true, dim: true });
     const fB2 = pathArrow({ points: FAN_B2, dashed: true, dim: true });
 
-    const modeChip = valChip({ x: 120, y: 420, w: 320, h: 34, name: 'distribution', value: 'unset . spread', cat: 'network' });
-    const pinChip = valChip({ x: 120, y: 468, w: 320, h: 34, name: 'session', value: 'None', cat: 'network' });
+    const modeChip = valChip({ x: 120, y: 420, w: 320, h: 34, name: 'distribution', value: 'unset . spread', role: 'network' });
+    const pinChip = valChip({ x: 120, y: 468, w: 320, h: 34, name: 'session', value: 'None', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -117,29 +110,14 @@ function clearHL(s) {
 // The client's connection arrives at kube-proxy: client pulses, a packet rides client -> kube-proxy.
 // Returns the arrival ms so the fan hop can chain off it.
 function clientHop(s, ctx, delay) {
-  return segmentPacket(s, ctx, { from: CLIENT_OUT, to: KP_IN, delay, cat: 'network' }).arrivalMs;
+  return segmentPacket(s, ctx, { from: CLIENT_OUT, to: KP_IN, delay, role: 'network' }).arrivalMs;
 }
-// A small label that rides ALONG with the fan packet on the same path and timing, tagging the ball
-// with the client source IP. sessionAffinity hashes that src IP, so seeing the same 10.244.2.50
-// land on the same Pod is the mechanism made visible. Lives in the packet layer but is not a
-// .scheme-packet, so it does not count as a packet to the tools.
-function ridingLabel(s, ctx, txt, points, { delay, dur }) {
-  if (ctx.reduced) return;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -15, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: Math.max(0, delay - 160), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: dur, delay }));      // same path + timing as the packet
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur + 260, fill: 'forwards', easing: 'ease-in' }));
-}
-// kube-proxy forwards to one backend: a packet rides the fan route, the Pod pulses on arrival. When
-// ipTag is given, the client source IP rides with the ball so the chosen backend is tagged. The fan
-// is deliberately slowed (routeDur * FAN_SLOW) so the tag stays readable, and the label rides the
-// SAME dur so it stays locked to the ball. Speed stays distance-normalized: one shared multiplier.
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
 const FAN_SLOW = 1.6;
 function fanTo(s, ctx, fan, backendKey, delay, ipTag) {
   const dur = Math.round(routeDur(fan) * FAN_SLOW);
-  const h = routePacket(s, ctx, fan, { delay, dur, cat: 'network' });
+  const h = routePacket(s, ctx, fan, { delay, dur, role: 'network' });
   if (ipTag) ridingLabel(s, ctx, ipTag, fan, { delay, dur });
   pulsePod(s.refs[backendKey], ctx, h.arrivalMs);
   return h.arrivalMs;

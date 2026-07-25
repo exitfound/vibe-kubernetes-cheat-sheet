@@ -1,22 +1,9 @@
 import { svg, g, text, path } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow, chainList, setChainActive } from '../lib/primitives.js';
 import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-cni-invocation
 
-// CNI plugin invocation (viewBox 1200x640). This is a control-plane handoff, not Pod traffic:
-// kubelet -> CRI runtime -> CNI plugin chain, and the allocated IP is wired back into the sandbox
-// namespace as eth0. The narration overlay owns the top-left (x<=380, y<=300), so the actor row
-// sits just below it at y352.
-//
-// The CNI plugin is one dashed node container holding a vertical dashed spine that taps each plugin
-// row (bridge, IPAM, result). The CNI block is aligned so its top tap sits at the runtime row and
-// its bottom tap sits at the sandbox row, which keeps the ADD and result arrows dead straight (no
-// mid-run jog). One ball walks the whole chain across the steps:
-//   CRI -> bridge -> IPAM -> result -> sandbox, touching every block and every dashed segment.
-//
-// Standard contract (matches network-model / network-service-clusterip):
-//   - only the Pod sandbox pulses, boxes + ladder light via .highlight, never pulse.
-//   - the same point array feeds the static wire and the packet that rides it.
-//   - one clear motion per step, all routed through ctx.register via the kit wrappers.
+
 const RAISE = 64;                           // lift the whole diagram up ~10% of the viewBox height
 const ROW_Y = 352 - RAISE;                  // 288: Kubelet / CRI / bridge-tap row (straight ADD)
 
@@ -26,10 +13,6 @@ const KUBE = [48, 312 - RAISE, 200, 80];    // x, y, w, h  -> centre 148  bottom
 const CRI  = [370, 312 - RAISE, 220, 80];   // centre 480  right 590  bottom 328
 const CRI_CX = CRI[0] + CRI[2] / 2;         // 480
 
-// Pod sandbox: compact, dropped below the runtime. Its pause/eth0 row sets the result-tap height so
-// the result arrow runs straight back into it.
-// Height is tuned so the block centre lands exactly on PAUSE_Y, where the result and join arrows
-// enter, so those arrows read as centred on the block (without moving them and grazing the CNI box).
 const SBX = [360, 442 - RAISE, 240, 116];   // x, y, w, h  -> top 378  right 600  centre y 436 = PAUSE_Y
 const SBX_CX = SBX[0] + SBX[2] / 2;         // 480
 const SBX_RIGHT = SBX[0] + SBX[2];          // 600
@@ -69,14 +52,14 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: KUBE[0], y: KUBE[1], w: KUBE[2], h: KUBE[3], label: 'Kubelet', sublabel: 'PodSpec ready', cat: 'network' });
-    const cri = box({ x: CRI[0], y: CRI[1], w: CRI[2], h: CRI[3], label: 'CRI . containerd', sublabel: 'sandbox runtime', cat: 'network' });
+    const kubelet = box({ x: KUBE[0], y: KUBE[1], w: KUBE[2], h: KUBE[3], label: 'Kubelet', sublabel: 'PodSpec ready', role: 'network' });
+    const cri = box({ x: CRI[0], y: CRI[1], w: CRI[2], h: CRI[3], label: 'CRI . containerd', sublabel: 'sandbox runtime', role: 'network' });
 
     // Pod sandbox = a pod shell (loopback-only netns) wrapping an inner pause/eth0 box.
-    const sandboxShell = pod({ x: SBX[0], y: SBX[1], w: SBX[2], h: SBX[3], label: 'Pod Sandbox', sublabel: 'netns: lo only', containers: 0, cat: 'network' });
+    const sandboxShell = pod({ x: SBX[0], y: SBX[1], w: SBX[2], h: SBX[3], label: 'Pod Sandbox', sublabel: 'netns: lo only', containers: 0, role: 'network' });
     const sandboxRect = sandboxShell.querySelector('.scheme-pod-rect');
     if (sandboxRect) sandboxRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-    const sandboxInner = box({ x: SBX[0] + 22, y: PAUSE_Y - 30, w: SBX[2] - 44, h: 60, label: 'pause', sublabel: 'eth0', cat: 'network' });
+    const sandboxInner = box({ x: SBX[0] + 22, y: PAUSE_Y - 30, w: SBX[2] - 44, h: 60, label: 'pause', sublabel: 'eth0', role: 'network' });
     const sandbox = g({});
     sandbox.appendChild(sandboxShell);
     sandbox.appendChild(sandboxInner);
@@ -88,7 +71,7 @@ class Scene {
       + TAP.map(y => `M ${SPINE_X} ${y} L ${CHAIN_X} ${y}`).join(' ');
     const spine = path({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim', d: spineD, fill: 'none' });
     const chain = chainList({
-      x: CHAIN_X, y: CHAIN_Y, w: CHAIN_W, rowH: CHAIN_ROWH, gap: CHAIN_GAP, cat: 'network',
+      x: CHAIN_X, y: CHAIN_Y, w: CHAIN_W, rowH: CHAIN_ROWH, gap: CHAIN_GAP, role: 'network',
       items: ['bridge: veth pair, attach cni0', 'host-local IPAM: 10.244.1.5', 'result: IP, routes, DNS'],
     });
 
@@ -107,8 +90,8 @@ class Scene {
 
     // Status chips docked under the block each describes: the allocated Pod IP under the sandbox,
     // the live CNI operation under the plugin container.
-    const ipChip = valChip({ x: SBX[0], y: SBX[1] + SBX[3] + 12, w: SBX[2], h: 30, name: 'Pod IP', value: 'pending', cat: 'network' });
-    const opChip = valChip({ x: CNI[0], y: CNI[1] + CNI[3] + 12, w: CNI[2], h: 30, name: 'CNI op', value: 'idle', cat: 'network' });
+    const ipChip = valChip({ x: SBX[0], y: SBX[1] + SBX[3] + 12, w: SBX[2], h: 30, name: 'Pod IP', value: 'pending', role: 'network' });
+    const opChip = valChip({ x: CNI[0], y: CNI[1] + CNI[3] + 12, w: CNI[2], h: 30, name: 'CNI op', value: 'idle', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -181,8 +164,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.sandboxInner.classList.add('highlight'); return; }
       // kubelet calls the runtime, which then creates the sandbox: two chained hops, the sandbox
       // pulses on arrival (down-arrow: packet first, pulse at arrivalMs).
-      const h1 = segmentPacket(s, ctx, { from: RUN[0], to: RUN[1], cat: 'network' });
-      const h2 = segmentPacket(s, ctx, { from: NETNS[0], to: NETNS[1], delay: h1.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const h1 = segmentPacket(s, ctx, { from: RUN[0], to: RUN[1], role: 'network' });
+      const h2 = segmentPacket(s, ctx, { from: NETNS[0], to: NETNS[1], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.sandbox, ctx, h2.arrivalMs);
     },
   },
@@ -201,7 +184,7 @@ const STEPS = [
       setVal(s.refs.opChip, 'ADD');
       if (ctx.reduced) return;
       // The ADD call rides straight from the runtime into the bridge tap (top of the spine).
-      segmentPacket(s, ctx, { from: ADD[0], to: ADD[1], cat: 'network' });
+      segmentPacket(s, ctx, { from: ADD[0], to: ADD[1], role: 'network' });
     },
   },
   {
@@ -221,7 +204,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // The bridge delegates down the spine to the IPAM tap, rippling there as the address is
       // picked.
-      segmentPacket(s, ctx, { from: SP_1_2[0], to: SP_1_2[1], cat: 'network' });
+      segmentPacket(s, ctx, { from: SP_1_2[0], to: SP_1_2[1], role: 'network' });
     },
   },
   {
@@ -241,7 +224,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // The ball rides the spine from the IPAM tap to the result tap and stops there, rippling like
       // it did at bridge and IPAM, so every plugin in the chain gets its own arrival.
-      segmentPacket(s, ctx, { from: SP_2_3[0], to: SP_2_3[1], cat: 'network' });
+      segmentPacket(s, ctx, { from: SP_2_3[0], to: SP_2_3[1], role: 'network' });
     },
   },
   {
@@ -262,7 +245,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.sandboxInner.classList.add('highlight'); return; }
       // Only now does the ball leave the result tap and ride the straight wire into the sandbox,
       // which pulses as eth0 comes up (down-arrow: packet first, pulse at arrivalMs).
-      const hop = segmentPacket(s, ctx, { from: RESULT[0], to: RESULT[1], cat: 'network' });
+      const hop = segmentPacket(s, ctx, { from: RESULT[0], to: RESULT[1], role: 'network' });
       pulsePod(s.refs.sandbox, ctx, hop.arrivalMs);
     },
   },
@@ -282,7 +265,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.sandboxInner.classList.add('highlight'); return; }
       // kubelet starts the app containers into the existing namespace: an L route, the sandbox
       // pulses as the containers join it (down-arrow, eased multi-point route, no explicit dur).
-      const hop = routePacket(s, ctx, JOIN, { cat: 'network' });
+      const hop = routePacket(s, ctx, JOIN, { role: 'network' });
       pulsePod(s.refs.sandbox, ctx, hop.arrivalMs);
     },
   },

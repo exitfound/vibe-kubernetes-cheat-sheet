@@ -1,18 +1,9 @@
-import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
+import { svg, g } from '../lib/svg.js';
+import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-pod-egress-snat
 
-// Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. A Node box
-// holds the client Pod and the MASQUERADE box; the Internet box is lifted to the top-right, well
-// above the egress lanes. Forward and return traffic ride SEPARATE parallel lanes so the round trip
-// reads as a loop: the request goes out along the upper lane (FWD_Y) and turns up into the Internet
-// box, the reply comes down and returns along the lower lane (RET_Y). Both lanes sit inside the box
-// heights so a ball never travels under a box. The Node left edge and the Internet right edge line up
-// with the leftmost (src) and rightmost (dst) chips below, so the top row and the info strip share
-// extremes. The SNAT and the reverse SNAT happen INSIDE the masquerade box, so the ball fades at one
-// edge and re-emerges at the far edge. masquerade/net are infrastructure: they light, they never
-// pulse. Only the Pod pulses. Source/destination IPs are not inline wire text: they ride ALONG with
-// the ball on each hop (ridingLabel), forward on send/masquerade and in reverse on reply/deliver.
+
 const EGRESS_Y = 360;               // vertical center of the Pod and masquerade boxes: both lanes sit symmetric about it
 const LANE_DY = 12;                 // half-gap between the two horizontal lanes
 const FWD_Y = EGRESS_Y - LANE_DY;   // 348: forward lane (Pod -> Internet), above center
@@ -29,36 +20,11 @@ const NET_BOTTOM = NET_Y + NET_H;   // 172: where the legs meet the Internet box
 const LEG_DX = 20;
 const FWD_UP_X = NET_CX - LEG_DX;   // 985
 const RET_DOWN_X = NET_CX + LEG_DX; // 1025
-// Forward leg as one right-angle path: out from MASQ_RIGHT along FWD_Y, then up at FWD_UP_X into the
-// box bottom. Return leg mirrors it on the lower lane: down at RET_DOWN_X, then back along RET_Y to
-// MASQ_RIGHT. Each static wire and its moving ball share the exact array. Both ends sit at block
-// edges so the ball never travels under a box.
 const OUT_PATH = [[MASQ_RIGHT, FWD_Y], [FWD_UP_X, FWD_Y], [FWD_UP_X, NET_BOTTOM]];
 const RET_PATH = [[RET_DOWN_X, NET_BOTTOM], [RET_DOWN_X, RET_Y], [MASQ_RIGHT, RET_Y]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A small label that rides ALONG with the ball on the same path, timing and easing, tagging it with
-// the source/destination IP the step narrates. It lives in the packet layer but is not a
-// .scheme-packet, so it does not count as a packet to the tools. dur omitted => routeDur(points),
-// matching a ball that also omits dur. Pass easing:'linear' for straight segmentPacket hops so the
-// tag stays locked to the linear ball; routePacket legs keep the default ease-in-out.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network' });
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -79,31 +45,31 @@ class Scene {
     const theNode = node({ x: 80, y: 214, w: 620, h: 312, label: 'Node   ·   192.168.1.20' });
 
     // Shell vertical center pinned to EGRESS_Y (298 + 124/2 = 360) so the two lanes enter/exit it symmetrically.
-    const shell = pod({ x: 110, y: 298, w: 200, h: 124, label: 'client Pod', sublabel: '10.244.1.5', containers: 0, cat: 'network' });
+    const shell = pod({ x: 110, y: 298, w: 200, h: 124, label: 'client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     const podGroup = g({});
     podGroup.appendChild(shell);
     // eth0 lives INSIDE podGroup so pulsePod (which pulses .scheme-pod-rect + .scheme-box-rect within
     // the group) blinks the app box together with the Pod shell.
-    const eth0 = box({ x: 130, y: 334, w: 160, h: 52, label: 'app', sublabel: 'eth0', cat: 'network' });
+    const eth0 = box({ x: 130, y: 334, w: 160, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
     podGroup.appendChild(eth0);
 
-    const masq = box({ x: MASQ_LEFT, y: 329, w: 190, h: 62, label: 'MASQUERADE', sublabel: 'iptables SNAT', cat: 'network' });
-    const net = box({ x: NET_X, y: NET_Y, w: NET_W, h: NET_H, label: 'Internet', sublabel: '1.1.1.1:443', cat: 'network' });
+    const masq = box({ x: MASQ_LEFT, y: 329, w: 190, h: 62, label: 'MASQUERADE', sublabel: 'iptables SNAT', role: 'network' });
+    const net = box({ x: NET_X, y: NET_Y, w: NET_W, h: NET_H, label: 'Internet', sublabel: '1.1.1.1:443', role: 'network' });
 
     // Forward lane: Pod eth0 -> masquerade (upper), then the right-angle leg up into the Internet box.
-    const eWire = arrow({ x1: POD_EDGE, y1: FWD_Y, x2: MASQ_LEFT, y2: FWD_Y, dashed: true, dim: true, color: 'network' });
-    const outWire = pathArrow({ points: OUT_PATH, dashed: true, dim: true, color: 'network' });
+    const eWire = arrow({ x1: POD_EDGE, y1: FWD_Y, x2: MASQ_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });
+    const outWire = pathArrow({ points: OUT_PATH, dashed: true, dim: true, role: 'network' });
     // Return lane: the reply leg down out of the Internet box, then masquerade -> Pod eth0 (lower).
-    const retWire = pathArrow({ points: RET_PATH, dashed: true, dim: true, color: 'network' });
-    const eWireBack = arrow({ x1: MASQ_LEFT, y1: RET_Y, x2: POD_EDGE, y2: RET_Y, dashed: true, dim: true, color: 'network' });
+    const retWire = pathArrow({ points: RET_PATH, dashed: true, dim: true, role: 'network' });
+    const eWireBack = arrow({ x1: MASQ_LEFT, y1: RET_Y, x2: POD_EDGE, y2: RET_Y, dashed: true, dim: true, role: 'network' });
 
     // Chip strip: src chip left (80) == Node left, dst chip right (1120) == Internet right.
-    const srcChip  = valChip({ x: 80,  y: 560, w: 270, h: 34, name: 'src', value: '10.244.1.5', cat: 'network' });
-    const snatChip = valChip({ x: 370, y: 560, w: 270, h: 34, name: 'SNAT', value: 'none', cat: 'network' });
-    const ctChip   = valChip({ x: 660, y: 560, w: 230, h: 34, name: 'conntrack', value: 'none', cat: 'network' });
-    const dstChip  = valChip({ x: 910, y: 560, w: 210, h: 34, name: 'dst', value: '1.1.1.1:443', cat: 'network' });
+    const srcChip  = valChip({ x: 80,  y: 560, w: 270, h: 34, name: 'src', value: '10.244.1.5', role: 'network' });
+    const snatChip = valChip({ x: 370, y: 560, w: 270, h: 34, name: 'SNAT', value: 'none', role: 'network' });
+    const ctChip   = valChip({ x: 660, y: 560, w: 230, h: 34, name: 'conntrack', value: 'none', role: 'network' });
+    const dstChip  = valChip({ x: 910, y: 560, w: 210, h: 34, name: 'dst', value: '1.1.1.1:443', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -161,7 +127,7 @@ const STEPS = [
       // masquerade box, which lights on arrival. The src IP rides with the ball.
       pulsePod(s.refs.podGroup, ctx, 0);
       const pts = [[POD_EDGE, FWD_Y], [MASQ_LEFT, FWD_Y]];
-      const send = segmentPacket(s, ctx, { from: pts[0], to: pts[1], delay: BEAT.afterPulse, cat: 'network' });
+      const send = segmentPacket(s, ctx, { from: pts[0], to: pts[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'src 10.244.1.5', pts, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.masq, ctx, send.arrivalMs);
     },
@@ -183,7 +149,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.net.classList.add('highlight'); return; }
       // The SNAT-ed packet emerges from the masquerade box (rewrite happened inside), turns up the
       // L into the Internet box, which lights on arrival. The rewritten src rides with the ball.
-      const out = routePacket(s, ctx, OUT_PATH, { cat: 'network' });
+      const out = routePacket(s, ctx, OUT_PATH, { role: 'network' });
       ridingLabel(s, ctx, 'src 192.168.1.20', OUT_PATH, {});
       lightBoxAt(s.refs.net, ctx, out.arrivalMs);
     },
@@ -203,10 +169,7 @@ const STEPS = [
       s.refs.dstChip.classList.add('highlight');
       setVal(s.refs.ctChip, 'reverse SNAT');
       if (ctx.reduced) return;
-      // Return lane: the reply ball descends out of the Internet box and runs back along RET_Y into
-      // the masquerade box (reverse SNAT inside), which lights on arrival. The dst it still carries
-      // (node IP) rides along.
-      const back = routePacket(s, ctx, RET_PATH, { cat: 'network' });
+      const back = routePacket(s, ctx, RET_PATH, { role: 'network' });
       ridingLabel(s, ctx, 'dst 192.168.1.20', RET_PATH, {});
       lightBoxAt(s.refs.masq, ctx, back.arrivalMs);
     },
@@ -225,7 +188,7 @@ const STEPS = [
       // Reverse direction: the restored packet leaves the masquerade box and hops back into the Pod,
       // which pulses on arrival as the receiver. The restored dst (pod IP) rides with the ball.
       const pts = [[MASQ_LEFT, RET_Y], [POD_EDGE, RET_Y]];
-      const into = segmentPacket(s, ctx, { from: pts[0], to: pts[1], cat: 'network' });
+      const into = segmentPacket(s, ctx, { from: pts[0], to: pts[1], role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.1.5', pts, { easing: 'linear' });
       pulsePod(s.refs.podGroup, ctx, into.arrivalMs);
     },

@@ -1,63 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
-import {
-  valChip, setVal, setBoxSublabel, pulsePod, routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, setWire, BEAT,
-} from '../lib/storage-kit.js';
+import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#storage-volume-expansion
 
-// ---- What this card has to get RIGHT ----
-//
-// The allowVolumeExpansion gate is enforced by the API SERVER on the edit, not by the external-resizer
-// afterwards. Raising the request on a claim whose StorageClass does not allow expansion is refused at
-// admission with "only dynamically provisioned pvc can be resized and the storageclass that provisions
-// the pvc must support resize", so the resizer never sees such a request at all. An earlier cut of this
-// card had the resizer consult the class before acting, which puts the gate one component too far
-// downstream and makes a rejected edit look like a resize that quietly declined to run.
-//
-// The second phase is for FILESYSTEM volumes only. A raw block volume has no filesystem to grow, so
-// NodeExpandVolume does not apply and the bigger device is visible as soon as phase one lands. The
-// node-expand narration says so rather than implying every volume needs both halves.
-//
-// Shrinking: the API refuses a request below the size already provisioned. What newer clusters do
-// allow is walking a request back DOWN while an expansion is still pending, which cancels a grow that
-// has not happened yet. That is not shrinking a volume and the narration is worded not to promise it.
-//
-// ---- Layout (viewBox 1200x640) ----
-// Storage grammar, the centered vertical stack: Pod on top, its claim under it, the real disk on the
-// shelf below, all three on ONE axis at the canvas center CX=600. Tier heights and block footprints
-// are the same numbers as storage-pvc-protection, so the two cards in this subcategory read as one
-// family. The spine is the mount ascent (disk -> claim -> Pod, upward) and balls travel it, so its
-// arrowheads are earned. There are no headless relationship lines.
-//
-// The vertical pitch is TIER=162 again: 108, 270, 432. What differs from the sibling card is that this
-// one has FOUR actors, and they are placed so that not one lane needs more than a single turn:
-//
-//   - Slot A, top right at 108, is shared by Kubectl Patch and the StorageClass. They are never on
-//     stage together (Kubectl acts on the edit and the shrink steps, the class only on the gate step),
-//     so they occupy one slot and send their ball down ONE lane into the claim. Whoever is acting on
-//     the claim this step stands in slot A.
-//   - The external-resizer sits right at 432, dead level with the disk, so ControllerExpandVolume is a
-//     STRAIGHT horizontal into the disk's right edge.
-//   - Kubelet sits LEFT at 432, mirrored about the spine (its box is the exact reflection of the
-//     resizer's), so NodeExpandVolume is a straight horizontal into the disk's left edge.
-//
-// The two phases therefore arrive at the disk from opposite sides at the same height, which is the
-// composition stating the thing the card is about: the control plane grows the device from one side,
-// the node grows the filesystem from the other, and the disk between them is the one object both
-// touch. The 234..306 band in the right column is deliberately left empty so the claim lane can drop
-// through it without crossing anybody.
-//
-// Narration overlay: the blanket rule reserves x<=380 AND y<=300. Kubelet sits at x=130 but at y=396,
-// far under the y half of that rule, so it never meets the overlay at any width.
-//
-// The one element placed on a MEASUREMENT is the verdict caption left of the claim, anchored end at
-// x=464, y=274, reaching back to about x=273 on its longest string. This card's own overlay was
-// measured across viewport widths 1920 down to 900: right peaks at 399 and bottom peaks at 231, both
-// at the narrow end. The caption clears that bottom by 43 units. Note this card runs 30 units LOWER
-// than storage-pvc-protection, whose same caption measured 201, purely because the node-expand
-// narration is longer: the bottom is driven by the text, so it is a per-card number and copying a
-// sibling's is not safe. LENGTHENING ANY NARRATION HERE INVALIDATES THE 231: re-measure, or move the
-// caption back to the right of the axis. Nothing else in the card depends on the measurement.
+
 const CX = 600;
 const TIER = 162;
 
@@ -95,36 +41,16 @@ const W_TO_PVC = [[ACT_R_CX, SLOT_A_BOTTOM], [ACT_R_CX, PVC_MID], [PVC_RIGHT, PV
 const W_CTRL_EXP = [[ACT_R_X, DISK_MID], [DISK_RIGHT, DISK_MID]];
 const W_NODE_EXP = [[ACT_L_RIGHT, DISK_MID], [DISK_LEFT, DISK_MID]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A tag that rides ALONG with the ball on the same path, timing and easing, so the packet visibly
-// carries what the step narrates. It lives in the packet layer but is not a .scheme-packet, so the
-// tools do not count it as one. dur omitted => routeDur(points), matching a ball that also omits it.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 // A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
 // matches descendants only, so pulsing a bare pod() would fire at half strength.
 function podBlock() {
-  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'df reads the mount', containers: 0, cat: 'storage' });
+  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'df reads the mount', containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: POD_X + 20, y: POD_Y + (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'App', sublabel: 'writes to /data', cat: 'storage' });
+  const innerBox = box({ x: POD_X + 20, y: POD_Y + (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'App', sublabel: 'writes to /data', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -134,7 +60,7 @@ function podBlock() {
 // Every lane in this card is a ROUTE: something travels all of them, so they are all dashed, all
 // carry a head, and all are built from the same points array as their ball.
 function lane(points) {
-  return pathArrow({ points, dashed: true, dim: true, color: 'storage' });
+  return pathArrow({ points, dashed: true, dim: true, role: 'storage' });
 }
 
 class Scene {
@@ -153,14 +79,14 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const web = podBlock();
-    const pvc = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'requests 5Gi', cat: 'storage' });
+    const pvc = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'requests 5Gi', role: 'storage' });
     // Slot A holds whoever acts on the claim this step. The two never share a step, so they share the
     // slot and the lane out of it.
-    const kubectl = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'Kubectl Patch', sublabel: 'raises the request', cat: 'storage' });
-    const klass = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'StorageClass gp3', sublabel: 'allowVolumeExpansion', cat: 'storage' });
-    const resizer = box({ x: ACT_R_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'External Resizer', sublabel: 'ControllerExpandVolume', cat: 'storage' });
-    const kubelet = box({ x: ACT_L_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'Kubelet', sublabel: 'NodeExpandVolume', cat: 'storage' });
-    const disk = cylinder({ x: DISK_LEFT, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'PV data-vol', cat: 'storage' });
+    const kubectl = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'Kubectl Patch', sublabel: 'raises the request', role: 'storage' });
+    const klass = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'StorageClass gp3', sublabel: 'allowVolumeExpansion', role: 'storage' });
+    const resizer = box({ x: ACT_R_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'External Resizer', sublabel: 'ControllerExpandVolume', role: 'storage' });
+    const kubelet = box({ x: ACT_L_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'Kubelet', sublabel: 'NodeExpandVolume', role: 'storage' });
+    const disk = cylinder({ x: DISK_LEFT, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'PV data-vol', role: 'storage' });
     [kubectl, klass, resizer, kubelet].forEach(el => { el.style.opacity = '0'; });
 
     const lMountLow = lane(W_MOUNT_LOW);
@@ -170,28 +96,19 @@ class Scene {
     const lNodeExp = lane(W_NODE_EXP);
     [lToPvc, lCtrlExp, lNodeExp].forEach(el => { el.style.opacity = '0'; });
 
-    // Lane captions, blank at build and filled per step by setWire. The verdict slot reports the state
-    // of the CLAIM, which changes kind across the card, so it is named for its job rather than for a
-    // lane, and it sits hard against the claim instead of beside a lane it does not describe.
     const mountLbl = text({ class: 'scheme-label code dim', x: MOUNT_LBL_X, y: MOUNT_LBL_Y, 'text-anchor': 'start' }, [' ']);
     const verdictLbl = text({ class: 'scheme-label code dim', x: VERDICT_LBL_X, y: VERDICT_LBL_Y, 'text-anchor': 'end' }, [' ']);
     const capLbl = text({ class: 'scheme-label code dim', x: CX, y: CAP_LBL_Y, 'text-anchor': 'middle' }, [' ']);
 
-    // A centered four-chip strip, derived rather than hand-placed. These four are the whole lesson:
-    // they hold the same number at the start, then change ONE AT A TIME in order, so the staggered
-    // highlight walking left to right IS the two phase story.
     const CHIP_W = 252, CHIP_GAP = 24;
     const chipX = i => (1200 - (CHIP_W * 4 + CHIP_GAP * 3)) / 2 + i * (CHIP_W + CHIP_GAP);  // 60 / 336 / 612 / 888
-    const reqChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'requests', value: '5Gi', cat: 'storage' });
-    const diskChip = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'real disk', value: '5Gi', cat: 'storage' });
-    const fsChip = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'filesystem', value: '5Gi', cat: 'storage' });
-    const seesChip = valChip({ x: chipX(3), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'Pod sees', value: '5Gi', cat: 'storage' });
+    const reqChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'requests', value: '5Gi', role: 'storage' });
+    const diskChip = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'real disk', value: '5Gi', role: 'storage' });
+    const fsChip = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'filesystem', value: '5Gi', role: 'storage' });
+    const seesChip = valChip({ x: chipX(3), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'Pod sees', value: '5Gi', role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order (bottom -> top): the blocks and the disk, then every lane above them, then the lane
-    // captions, then the Pod so it sits above the axis that ends on its edge, then the chip strip,
-    // then the packet layer so every ball rides above everything.
     [pvc, kubectl, klass, resizer, kubelet, disk].forEach(el => root.appendChild(el));
     [lMountLow, lMountHigh, lToPvc, lCtrlExp, lNodeExp].forEach(el => root.appendChild(el));
     [mountLbl, verdictLbl, capLbl].forEach(el => root.appendChild(el));
@@ -213,9 +130,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-// holds the previous step value at call time (clearHL clears the class, not the text) and steps are
-// always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 function setChip(chip, val) {
   const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
   setVal(chip, val);
@@ -280,7 +194,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // Kubectl sends the ball, so only kubectl is lit at entry and the claim waits for it to land.
       s.refs.pvc.classList.remove('highlight');
-      const edit = routePacket(s, ctx, W_TO_PVC, { cat: 'storage' });
+      const edit = routePacket(s, ctx, W_TO_PVC, { role: 'storage' });
       ridingLabel(s, ctx, 'requests: 20Gi', W_TO_PVC);
       lightBoxAt(s.refs.pvc, ctx, edit.arrivalMs);
     },
@@ -302,7 +216,7 @@ const STEPS = [
       s.refs.pvc.classList.add('highlight');
       if (ctx.reduced) return;
       s.refs.pvc.classList.remove('highlight');
-      const gate = routePacket(s, ctx, W_TO_PVC, { cat: 'storage' });
+      const gate = routePacket(s, ctx, W_TO_PVC, { role: 'storage' });
       ridingLabel(s, ctx, 'allowVolumeExpansion: true', W_TO_PVC);
       lightBoxAt(s.refs.pvc, ctx, gate.arrivalMs);
     },
@@ -325,7 +239,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // The resizer sends the ball, so the disk earns its light when the call lands on it.
       s.refs.disk.classList.remove('highlight');
-      const exp = routePacket(s, ctx, W_CTRL_EXP, { cat: 'storage' });
+      const exp = routePacket(s, ctx, W_CTRL_EXP, { role: 'storage' });
       ridingLabel(s, ctx, 'ControllerExpandVolume', W_CTRL_EXP);
       lightBoxAt(s.refs.disk, ctx, exp.arrivalMs);
     },
@@ -347,7 +261,7 @@ const STEPS = [
       s.refs.disk.classList.add('highlight');
       if (ctx.reduced) return;
       s.refs.disk.classList.remove('highlight');
-      const exp = routePacket(s, ctx, W_NODE_EXP, { cat: 'storage' });
+      const exp = routePacket(s, ctx, W_NODE_EXP, { role: 'storage' });
       ridingLabel(s, ctx, 'NodeExpandVolume', W_NODE_EXP);
       lightBoxAt(s.refs.disk, ctx, exp.arrivalMs);
     },
@@ -373,9 +287,9 @@ const STEPS = [
       // The new room rises the same axis the volume always did: disk to claim, claim to Pod.
       s.refs.pvc.classList.remove('highlight');
       s.refs.app.classList.remove('highlight');
-      const hop1 = routePacket(s, ctx, W_MOUNT_LOW, { cat: 'storage' });
+      const hop1 = routePacket(s, ctx, W_MOUNT_LOW, { role: 'storage' });
       lightBoxAt(s.refs.pvc, ctx, hop1.arrivalMs);
-      const hop2 = routePacket(s, ctx, W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop, cat: 'storage' });
+      const hop2 = routePacket(s, ctx, W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'now 20Gi', W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop });
       lightBoxAt(s.refs.app, ctx, hop2.arrivalMs);
       pulsePod(s.refs.web, ctx, hop2.arrivalMs);
@@ -398,7 +312,7 @@ const STEPS = [
       s.refs.pvc.classList.add('highlight');
       if (ctx.reduced) return;
       s.refs.pvc.classList.remove('highlight');
-      const shrink = routePacket(s, ctx, W_TO_PVC, { cat: 'storage' });
+      const shrink = routePacket(s, ctx, W_TO_PVC, { role: 'storage' });
       ridingLabel(s, ctx, 'requests: 5Gi rejected', W_TO_PVC);
       lightBoxAt(s.refs.pvc, ctx, shrink.arrivalMs);
     },

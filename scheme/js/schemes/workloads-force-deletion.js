@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/workloads-kit.js';
 
 
 class Scene {
@@ -18,32 +18,32 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubectl = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl', sublabel: 'delete pod pod-a', cat: 'control' });
-    const api     = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'deletionTimestamp + etcd', cat: 'control' });
+    const kubectl = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl', sublabel: 'delete pod pod-a', role: 'cluster' });
+    const api     = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'deletionTimestamp + etcd', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 28, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
     const connector = pathArrow({
       points: [[680, 120], [680, 185], [280, 185], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
     const connectorRight = pathArrow({
       points: [[700, 120], [700, 185], [1198, 185], [1198, 450], [975, 450], [975, 480]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connectorRight);
 
     // State chips on the right.
-    const nodeChip    = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'Node-1',      value: 'Ready' });
-    const podChip     = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'Pod A',       value: 'Running' });
-    const replicaChip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'StatefulSet', value: 'replicas 1/1' });
-    const focusChip   = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'focus',       value: 'none' });
+    const nodeChip    = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'Node-1',      value: 'Ready', role: 'workloads' });
+    const podChip     = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'Pod A',       value: 'Running', role: 'workloads' });
+    const replicaChip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'StatefulSet', value: 'replicas 1/1', role: 'workloads' });
+    const focusChip   = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'focus',       value: 'none', role: 'workloads' });
     [nodeChip, podChip, replicaChip, focusChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -55,27 +55,27 @@ class Scene {
         '4. force       ·  --grace-period=0 --force drops it from etcd',
         '5. risk        ·  partitioned node may still run the old one',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const node1 = node({ x: 320, y: 480, w: 410, h: 140, label: 'Node-1' });
     const node2 = node({ x: 770, y: 480, w: 410, h: 140, label: 'Node-2' });
 
-    const podOldShell = pod({ x: 415, y: 497, w: 220, h: 106, label: 'Pod A', sublabel: '', containers: 0, cat: 'workloads' });
+    const podOldShell = pod({ x: 415, y: 497, w: 220, h: 106, label: 'Pod A', sublabel: '', containers: 0, role: 'workloads' });
     const podOldShellRect = podOldShell.querySelector('.scheme-pod-rect');
     if (podOldShellRect) podOldShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const podOldBox = box({ x: 425, y: 525, w: 200, h: 52, label: 'app', sublabel: 'StatefulSet Pod', cat: 'workloads' });
+    const podOldBox = box({ x: 425, y: 525, w: 200, h: 52, label: 'app', sublabel: 'StatefulSet Pod', role: 'workloads' });
 
     const podOld = g({ id: 'podOld' });
     podOld.appendChild(podOldShell);
     podOld.appendChild(podOldBox);
 
-    const podNewShell = pod({ x: 865, y: 497, w: 220, h: 106, label: 'Pod B', sublabel: '', containers: 0, cat: 'workloads' });
+    const podNewShell = pod({ x: 865, y: 497, w: 220, h: 106, label: 'Pod B', sublabel: '', containers: 0, role: 'workloads' });
     const podNewShellRect = podNewShell.querySelector('.scheme-pod-rect');
     if (podNewShellRect) podNewShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const podNewBox = box({ x: 875, y: 525, w: 200, h: 52, label: 'app', sublabel: 'recreated replica', cat: 'workloads' });
+    const podNewBox = box({ x: 875, y: 525, w: 200, h: 52, label: 'app', sublabel: 'recreated replica', role: 'workloads' });
 
     const podNew = g({ id: 'podNew' });
     podNew.style.opacity = '0';
@@ -115,13 +115,13 @@ function clearHL(s) {
 
 function recreationPacket(s, ctx, { delay = 0 } = {}) {
   const pts = [[700, 120], [700, 185], [1198, 185], [1198, 450], [975, 450], [975, 480]];
-  return routePacket(s, ctx, pts, { delay, fadeIn: true });
+  return routePacket(s, ctx, pts, { delay, fadeIn: true, role: 'workloads' });
 }
 // Packet down the left connector from the Api to Pod A on Node-1.
 // Mirrors recreationPacket but follows the left arrow (Api -> Node-1 Pod).
 function node1Packet(s, ctx, { delay = 0 } = {}) {
   const pts = [[680, 120], [680, 185], [280, 185], [280, 550], [320, 550]];
-  return routePacket(s, ctx, pts, { delay, fadeIn: true });
+  return routePacket(s, ctx, pts, { delay, fadeIn: true, role: 'workloads' });
 }
 function setChips(s, { node, pod, replica, focus }) {
   setVal(s.refs.nodeChip, node);
@@ -186,7 +186,7 @@ const STEPS = [
       s.refs.podNew.style.opacity = '0';
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      topPacket(s, ctx);
+      topPacket(s, ctx, { role: 'workloads' });
     },
   },
   {
@@ -224,7 +224,7 @@ const STEPS = [
       s.refs.podNew.style.opacity = '0';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      topPacket(s, ctx);
+      topPacket(s, ctx, { role: 'workloads' });
     },
   },
   {

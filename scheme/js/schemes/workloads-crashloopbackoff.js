@@ -1,6 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chip, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, setConnectorDir, connectorPacketDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, setConnectorDir, connectorPacketDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-crashloopbackoff
 
 
 class Scene {
@@ -19,7 +20,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     // Top row: Kubelet, the restart manager (x=320 w=280, single-block standard).
-    const kubelet = box({ x: 320, y: 40, w: 280, h: 80, label: 'Kubelet', sublabel: 'restart manager + backoff', cat: 'control' });
+    const kubelet = box({ x: 320, y: 40, w: 280, h: 80, label: 'Kubelet', sublabel: 'restart manager + backoff', role: 'cluster' });
 
     // Wire labels above and below the Kubelet block, set per step via setWire.
     const wireOut = text({ class: 'scheme-label code dim', x: 460, y: 28,  'text-anchor': 'middle', 'font-size': 9 }, [' ']);
@@ -27,11 +28,11 @@ class Scene {
 
     const connectorDown = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     const connectorUp = pathArrow({
       points: [[320, 550], [280, 550], [280, 80], [320, 80]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     connectorUp.style.opacity = '0';
     root.appendChild(connectorDown);
@@ -47,31 +48,31 @@ class Scene {
         '5. cap        ·  delay clamped at the 300s ceiling',
         '6. reset      ·  healthy run resets backoff to 10s base',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
-    const stateChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'container state', value: 'Running' });
-    const reasonChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'reason',          value: 'none' });
-    const restartChip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'restartCount',    value: '0' });
-    const delayChip   = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'current backoff', value: '0s' });
+    const stateChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'container state', value: 'Running', role: 'workloads' });
+    const reasonChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'reason',          value: 'none', role: 'workloads' });
+    const restartChip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'restartCount',    value: '0', role: 'workloads' });
+    const delayChip   = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'current backoff', value: '0s', role: 'workloads' });
     [stateChip, reasonChip, restartChip, delayChip].forEach(c => root.appendChild(c));
 
     const ladderLabels = ['10s', '20s', '40s', '80s', '160s', '300s'];
     const ladderX = 830, ladderY = 410, ladderW = 51, ladderGap = 8;
     const ladder = g({ class: 'scheme-ladder', transform: `translate(${ladderX},${ladderY})` });
     const ladderChips = ladderLabels.map((lbl, i) => {
-      const c = chip({ x: i * (ladderW + ladderGap), y: 0, w: ladderW, h: 28, label: lbl, cat: 'control' });
+      const c = chip({ x: i * (ladderW + ladderGap), y: 0, w: ladderW, h: 28, label: lbl, role: 'cluster' });
       ladder.appendChild(c);
       return c;
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
 
-    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'restartPolicy: Always', cat: 'workloads' });
+    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'restartPolicy: Always', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
     podGroup.appendChild(podShell);
@@ -157,7 +158,7 @@ const STEPS = [
       // Pod blinks first (the container just crashed), then the Node reports the
       // exit up the connector to Kubelet.
       pulsePod(s.refs.podGroup, ctx, 0);
-      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse, role: 'workloads' });
     },
   },
   {
@@ -210,9 +211,6 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 3);
       setLadder(s, 4);
-      // Kubelet only waits between attempts, nothing travels and the Pod is untouched.
-      // The climbing backoff shows via the ladder filling and the static chip highlight
-      // (no chip pulse).
     },
   },
   {
@@ -268,7 +266,7 @@ const STEPS = [
         [{ opacity: 0.3 }, { opacity: 1 }],
         { duration: FADE.in, fill: 'both', easing: 'ease-out' }
       ));
-      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse });
+      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse, role: 'workloads' });
     },
   },
 ];

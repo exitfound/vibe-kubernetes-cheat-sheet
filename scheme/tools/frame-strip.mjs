@@ -1,22 +1,7 @@
 #!/usr/bin/env node
-// frame-strip.mjs — capture N frames of a scheme step and stitch them horizontally
-// into one PNG per step. Reveals motion that a single end-of-step screenshot hides
-// (animateAlong delays, packet trajectories).
-//
-// Frames are sampled DETERMINISTICALLY: each step's play-path is entered with no
-// auto-advance, then every WAAPI animation is frozen at an exact logical time via
-// currentTime seeking (frame i = i/(N-1) of the step's full span). No wall-clock
-// sampling, so the frame you see is the frame you asked for, every run.
-//
-// Usage:
-//   node frame-strip.mjs <scheme-id>                   # all steps, one strip PNG each
-//   node frame-strip.mjs <scheme-id> 3                 # step 3 only (1-based)
-//   node frame-strip.mjs <scheme-id> 3 --frames=12     # default 8
-//   node frame-strip.mjs <scheme-id> --contact         # one labelled contact sheet for the whole card
-//   node frame-strip.mjs <scheme-id> --inspect         # keep the grid overlay in frames
-//   node frame-strip.mjs <scheme-id> --base=http://localhost:8888
-//
-// Output: scheme/tools/output/<id>/step-NN.png  (or <id>/contact.png with --contact)
+// frame-strip.mjs: N frames per step stitched into one PNG. Frames are seeked by currentTime, so
+// frame i is exactly i/(N-1) of the step's span every run. Output under output/<id>/.
+// node frame-strip.mjs <id> [step] [--frames=8] [--contact] [--inspect] [--base=URL]
 
 import { PNG } from 'pngjs';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -41,9 +26,7 @@ const schemeId = positional[0];
 const stepArg  = positional[1];
 const contact  = !!flags.contact;
 const frames   = Math.max(1, parseInt(flags.frames || (contact ? '5' : '8'), 10) || 1);
-// --base= wins, else BASE= from the env via _shared's DEFAULT_BASE. Same drift anim-dump had: a
-// hardcoded default made the documented env var inert, so frames silently came from whatever the
-// Docker container held instead of the dev server under test.
+// --base= wins, else BASE= from the env. No hardcoded default, same reason as anim-dump.
 const baseUrl  = (flags.base || DEFAULT_BASE).replace(/\/$/, '');
 const showGrid = !!flags.inspect;
 

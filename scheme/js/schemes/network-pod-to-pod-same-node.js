@@ -1,32 +1,23 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-pod-to-pod-same-node
 
-// Layout zones (viewBox 1200x640):
-//   - top band y<255 is reserved for the narration overlay; nothing essential lives there.
-//   - topology band y255..505 carries the Node, both Pods (shell + eth0 box) and the cni0 bridge.
-//   - value-chip strip sits at y540, below everything and clear of the overlay.
-// Each Pod is the canonical shell+inner-box block (matches the workloads/control cards):
-// a translucent pod shell holds an eth0 container box, so the whole group pulses as one.
-// The veth pair is drawn as TWO directional lanes, symmetric about the block centre:
-//   - top lane  (TOP_Y) carries the forward direction A -> B (ARP request + data frame)
-//   - bottom lane (BOT_Y) carries the return direction B -> A (the ARP reply)
-// Every packet rides exactly along its lane's arrow (segmentPacket endpoints == arrow
-// endpoints == block edges, no overshoot into a box).
+
 const POD_MID = 380;          // vertical centre of the pod / cni0 blocks
 const LANE = 12;              // half-gap between the two veth lanes
-const TOP_Y = POD_MID - LANE; // 368 — forward lane (A -> B)
-const BOT_Y = POD_MID + LANE; // 392 — return lane (B -> A)
+const TOP_Y = POD_MID - LANE; // 368, forward lane (A -> B)
+const BOT_Y = POD_MID + LANE; // 392, return lane (B -> A)
 const HOP = 800;              // ball travel per veth hop, a touch slower than the 700ms
                               // floor so the direction of each hop reads clearly
 
 // Build one Pod as a shell (translucent outer) wrapping an eth0 container box, in a
 // group so pulsePod animates both rects together. Returns { group, innerBox }.
 function podBlock({ x, label, ip }) {
-  const shell = pod({ x, y: 315, w: 200, h: 130, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y: 315, w: 200, h: 130, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: 352, w: 160, h: 56, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: 352, w: 160, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -52,7 +43,7 @@ class Scene {
 
     const a = podBlock({ x: 150, label: 'Pod A', ip: '10.244.1.5' });
     const b = podBlock({ x: 850, label: 'Pod B', ip: '10.244.1.6' });
-    const cni0 = box({ x: 505, y: 345, w: 170, h: 70, label: 'cni0', sublabel: 'L2 bridge', cat: 'network' });
+    const cni0 = box({ x: 505, y: 345, w: 170, h: 70, label: 'cni0', sublabel: 'L2 bridge', role: 'network' });
 
     // veth pair as two directional lanes. Dim dashed wires carry the actual frame;
     // the bright ball travels exactly along the matching lane.
@@ -63,10 +54,10 @@ class Scene {
     const wireA = text({ class: 'scheme-label code dim', x: 427, y: TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const wireB = text({ class: 'scheme-label code dim', x: 762, y: TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const srcChip  = valChip({ x: 80,  y: 540, w: 250, h: 34, name: 'src',      value: '10.244.1.5', cat: 'network' });
-    const dstChip  = valChip({ x: 350, y: 540, w: 250, h: 34, name: 'dst',      value: '10.244.1.6', cat: 'network' });
-    const pathChip = valChip({ x: 620, y: 540, w: 250, h: 34, name: 'datapath', value: 'L2 bridge',  cat: 'network' });
-    const natChip  = valChip({ x: 890, y: 540, w: 230, h: 34, name: 'NAT',      value: 'none',       cat: 'network' });
+    const srcChip  = valChip({ x: 80,  y: 540, w: 250, h: 34, name: 'src',      value: '10.244.1.5', role: 'network' });
+    const dstChip  = valChip({ x: 350, y: 540, w: 250, h: 34, name: 'dst',      value: '10.244.1.6', role: 'network' });
+    const pathChip = valChip({ x: 620, y: 540, w: 250, h: 34, name: 'datapath', value: 'L2 bridge',  role: 'network' });
+    const natChip  = valChip({ x: 890, y: 540, w: 230, h: 34, name: 'NAT',      value: 'none',       role: 'network' });
     [srcChip, dstChip, pathChip, natChip].forEach(c => root.appendChild(c));
 
     const packetLayer = g({ id: 'packetLayer' });
@@ -125,15 +116,11 @@ const STEPS = [
       setVal(s.refs.pathChip, 'ARP who-has .6');
       s.refs.pathChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
-      // A pulses FIRST and fully; the request ball departs only once that blink has
-      // landed (BEAT.afterPulse), per the up-arrow choreography. The ARP exchange is a
-      // round trip: request floods A -> bridge -> B on the top lane, then B unicasts its
-      // reply B -> bridge -> A on the bottom lane.
       pulsePod(s.refs.podA, ctx, 0);                // A broadcasts the request (blink first)
-      const req1 = segmentPacket(s, ctx, { from: [350, TOP_Y], to: [505, TOP_Y], delay: BEAT.afterPulse, dur: HOP, cat: 'network' });
-      const req2 = segmentPacket(s, ctx, { from: [675, TOP_Y], to: [850, TOP_Y], delay: req1.arrivalMs + BEAT.afterHop, dur: HOP, cat: 'network' });
-      const rep1 = segmentPacket(s, ctx, { from: [850, BOT_Y], to: [675, BOT_Y], delay: req2.arrivalMs + BEAT.afterHop, dur: HOP, cat: 'network' });
-      const rep2 = segmentPacket(s, ctx, { from: [505, BOT_Y], to: [350, BOT_Y], delay: rep1.arrivalMs + BEAT.afterHop, dur: HOP, cat: 'network' });
+      const req1 = segmentPacket(s, ctx, { from: [350, TOP_Y], to: [505, TOP_Y], delay: BEAT.afterPulse, dur: HOP, role: 'network' });
+      const req2 = segmentPacket(s, ctx, { from: [675, TOP_Y], to: [850, TOP_Y], delay: req1.arrivalMs + BEAT.afterHop, dur: HOP, role: 'network' });
+      const rep1 = segmentPacket(s, ctx, { from: [850, BOT_Y], to: [675, BOT_Y], delay: req2.arrivalMs + BEAT.afterHop, dur: HOP, role: 'network' });
+      const rep2 = segmentPacket(s, ctx, { from: [505, BOT_Y], to: [350, BOT_Y], delay: rep1.arrivalMs + BEAT.afterHop, dur: HOP, role: 'network' });
       pulsePod(s.refs.podB, ctx, req2.arrivalMs);   // B receives the flood and replies
       pulsePod(s.refs.podA, ctx, rep2.arrivalMs);   // A gets B MAC from the reply
     },
@@ -155,8 +142,8 @@ const STEPS = [
       // A pulses FIRST and fully; the data frame departs only after that blink lands
       // (BEAT.afterPulse). It then rides the forward (top) lane A -> bridge -> B in two hops.
       pulsePod(s.refs.podA, ctx, 0);
-      const hop1 = segmentPacket(s, ctx, { from: [350, TOP_Y], to: [505, TOP_Y], delay: BEAT.afterPulse, dur: HOP, cat: 'network' });
-      const hop2 = segmentPacket(s, ctx, { from: [675, TOP_Y], to: [850, TOP_Y], delay: hop1.arrivalMs + BEAT.afterHop, dur: HOP, cat: 'network' });
+      const hop1 = segmentPacket(s, ctx, { from: [350, TOP_Y], to: [505, TOP_Y], delay: BEAT.afterPulse, dur: HOP, role: 'network' });
+      const hop2 = segmentPacket(s, ctx, { from: [675, TOP_Y], to: [850, TOP_Y], delay: hop1.arrivalMs + BEAT.afterHop, dur: HOP, role: 'network' });
       pulsePod(s.refs.podB, ctx, hop2.arrivalMs);
     },
   },

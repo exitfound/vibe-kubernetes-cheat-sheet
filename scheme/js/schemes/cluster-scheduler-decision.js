@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, box, cylinder, chainList, arrow } from '../lib/primitives.js';
-import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/control-kit.js';
+import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/cluster-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -18,9 +18,9 @@ class Scene {
     root.appendChild(arrowDefs());
 
     // Top row: even 60px gaps, Api centred on x=600 so its downward spine lands on the pipeline.
-    const sched = box({ x: 180, y: 60, w: 200, h: 80, label: 'Scheduler', sublabel: 'watch unscheduled Pods', cat: 'control' });
-    const api   = box({ x: 440, y: 60, w: 320, h: 80, label: 'Api', sublabel: 'pods + binding subresource', cat: 'control' });
-    const etcdC = cylinder({ x: 820, y: 50, w: 140, h: 100, label: 'ETCD', cat: 'control' });
+    const sched = box({ x: 180, y: 60, w: 200, h: 80, label: 'Scheduler', sublabel: 'watch unscheduled Pods', role: 'cluster' });
+    const api   = box({ x: 440, y: 60, w: 320, h: 80, label: 'Api', sublabel: 'pods + binding subresource', role: 'cluster' });
+    const etcdC = cylinder({ x: 820, y: 50, w: 140, h: 100, label: 'ETCD', role: 'cluster' });
     // Centre the cylinder label optically: the default h/2 baseline reads high under the cap,
     // and a full nudge to the body-below-cap centre reads low. y=60 (glyph centre ~106) balances both.
     const etcdLbl = etcdC.querySelector('.scheme-cylinder-label');
@@ -35,26 +35,26 @@ class Scene {
         '3. score   ·  plugins rank survivors 0 to 100',
         '4. bind    ·  POST .../pods/{name}/binding',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // State chips column. Three chips, top-aligned with the first three chain rows and
     // right-aligned with node-4 + the placed Pod so the whole right edge reads as one column.
-    const queueChip  = valChip({ x: 900, y: 220, w: 240, h: 32, name: 'queued pod', value: '—' });
-    const candChip   = valChip({ x: 900, y: 264, w: 240, h: 32, name: 'candidates', value: '—' });
-    const winnerChip = valChip({ x: 900, y: 308, w: 240, h: 32, name: 'winner',     value: '—' });
+    const queueChip  = valChip({ x: 900, y: 220, w: 240, h: 32, name: 'queued pod', value: 'none', role: 'cluster' });
+    const candChip   = valChip({ x: 900, y: 264, w: 240, h: 32, name: 'candidates', value: 'none', role: 'cluster' });
+    const winnerChip = valChip({ x: 900, y: 308, w: 240, h: 32, name: 'winner',     value: 'none', role: 'cluster' });
     root.appendChild(queueChip);
     root.appendChild(candChip);
     root.appendChild(winnerChip);
 
-    // Top-row arrows (out at y=100, return at y=130) — all dashed.
-    root.appendChild(arrow({ x1: 380, y1: 85,  x2: 440, y2: 85,  dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 440, y1: 115, x2: 380, y2: 115, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 760, y1: 85,  x2: 820, y2: 85,  dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 820, y1: 115, x2: 760, y2: 115, dim: true, dashed: true, color: 'control' }));
+    // Top-row arrows (out at y=100, return at y=130), all dashed.
+    root.appendChild(arrow({ x1: 380, y1: 85,  x2: 440, y2: 85,  dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 440, y1: 115, x2: 380, y2: 115, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 760, y1: 85,  x2: 820, y2: 85,  dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 820, y1: 115, x2: 760, y2: 115, dim: true, dashed: true, role: 'cluster' }));
 
     // Connector Api.bottom → pipeline.top (x=600 spine).
-    root.appendChild(arrow({ x1: 600, y1: 140, x2: 600, y2: 218, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 600, y1: 140, x2: 600, y2: 218, dim: true, dashed: true, role: 'cluster' }));
 
     // Wire labels at fixed positions, populated per step.
     const wireReq     = text({ class: 'scheme-label code dim', x: 410, y: 46,  'text-anchor': 'middle' }, [' ']);
@@ -74,20 +74,20 @@ class Scene {
       'cpu 40% / mem 60%',
       'cpu 25% / mem 35%',
     ];
-    const nodes = nx.map((x, i) => box({ x, y: nodeY, w: nodeW, h: nodeH, label: nLabels[i], sublabel: nSubs[i], cat: 'control' }));
+    const nodes = nx.map((x, i) => box({ x, y: nodeY, w: nodeW, h: nodeH, label: nLabels[i], sublabel: nSubs[i], role: 'cluster' }));
     nodes.forEach(n => root.appendChild(n));
 
     // Verdict chip below each node.
-    const verdicts = nx.map((x) => valChip({ x, y: 552, w: nodeW, h: 32, name: 'verdict', value: '—' }));
+    const verdicts = nx.map((x) => valChip({ x, y: 552, w: nodeW, h: 32, name: 'verdict', value: 'none', role: 'cluster' }));
     verdicts.forEach(v => root.appendChild(v));
 
-    const placedPodShell = pod({ x: 912, y: 422, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const placedPodShell = pod({ x: 912, y: 422, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     placedPodShell.style.setProperty('--workloads-color', '#c0b0ff');
     const placedPodShellRect = placedPodShell.querySelector('.scheme-pod-rect');
     if (placedPodShellRect) placedPodShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     // Inner box matches the workloads canon for a 216-wide shell: 10px side insets (w=196).
-    const placedPodBox = box({ x: 922, y: 450, w: 196, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', cat: 'workloads' });
+    const placedPodBox = box({ x: 922, y: 450, w: 196, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', role: 'workloads' });
     placedPodBox.style.setProperty('--workloads-color', '#c0b0ff');
 
     const placedPod = g({ id: 'placedPod' });
@@ -138,7 +138,7 @@ function resetNodeOpacity(s) {
 }
 
 function resetVerdicts(s) {
-  ['v1','v2','v3','v4'].forEach(k => setVal(s.refs[k], '—'));
+  ['v1','v2','v3','v4'].forEach(k => setVal(s.refs[k], 'none'));
 }
 
 const STEPS = [
@@ -152,9 +152,9 @@ const STEPS = [
       clearWires(s);
       resetNodeOpacity(s);
       resetVerdicts(s);
-      setVal(s.refs.queueChip, '—');
-      setVal(s.refs.candChip, '—');
-      setVal(s.refs.winnerChip, '—');
+      setVal(s.refs.queueChip, 'none');
+      setVal(s.refs.candChip, 'none');
+      setVal(s.refs.winnerChip, 'none');
       s.refs.placedPod.style.opacity = '0';
     },
   },
@@ -170,7 +170,7 @@ const STEPS = [
       resetVerdicts(s);
       setVal(s.refs.queueChip, 'my-app-7d4-abc');
       setVal(s.refs.candChip, '4 of 4');
-      setVal(s.refs.winnerChip, '—');
+      setVal(s.refs.winnerChip, 'none');
       setWire(s, 'resp', 'watch ADDED · spec.nodeName=""');
       s.refs.sched.classList.add('highlight');
       s.refs.api.classList.add('highlight');
@@ -179,8 +179,8 @@ const STEPS = [
       if (rows[0]) rows[0].classList.add('highlight');
       if (ctx.reduced) return;
       // Watch event flows Api → Scheduler (return arrow at y=130), then drops to pipeline row 1.
-      const watch = segmentPacket(s, ctx, { from: [440, 115], to: [380, 115] });
-      segmentPacket(s, ctx, { from: [600, 140], to: [600, 218], delay: watch.arrivalMs + BEAT.afterHop });
+      const watch = segmentPacket(s, ctx, { from: [440, 115], to: [380, 115], role: 'cluster' });
+      segmentPacket(s, ctx, { from: [600, 140], to: [600, 218], delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -194,8 +194,8 @@ const STEPS = [
       setVal(s.refs.candChip, '2 of 4');
       setVal(s.refs.v1, 'filtered · taint');
       setVal(s.refs.v2, 'filtered · resources');
-      setVal(s.refs.v3, '—');
-      setVal(s.refs.v4, '—');
+      setVal(s.refs.v3, 'none');
+      setVal(s.refs.v4, 'none');
       // Filtering is the Scheduler's own work (the Api is not involved), so the Scheduler lights up.
       s.refs.sched.classList.add('highlight');
       s.refs.candChip.classList.add('highlight');
@@ -257,8 +257,8 @@ const STEPS = [
       if (rows[3]) rows[3].classList.add('highlight');
       if (ctx.reduced) return;
       // Two arrow segments: Scheduler → Api (binding POST), then Api → ETCD (persist).
-      const post = segmentPacket(s, ctx, { from: [380, 85], to: [440, 85] });
-      segmentPacket(s, ctx, { from: [760, 85], to: [820, 85], delay: post.arrivalMs + BEAT.afterHop });
+      const post = segmentPacket(s, ctx, { from: [380, 85], to: [440, 85], role: 'cluster' });
+      segmentPacket(s, ctx, { from: [760, 85], to: [820, 85], delay: post.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {

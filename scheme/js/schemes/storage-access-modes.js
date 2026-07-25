@@ -1,52 +1,11 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, node, pathArrow, animateAlong } from '../lib/primitives.js';
-import {
-  valChip, setVal, pulsePod, pulsePodDim, routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, setWire, BEAT,
-} from '../lib/storage-kit.js';
+import { arrowDefs, box, pod, cylinder, node, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#storage-access-modes
 
-// Layout (viewBox 1200x640). Storage grammar: consumers on top, machinery in the middle, disks on a
-// shelf at the bottom. Here the top row is TWO worker nodes, each carrying Pods, because the whole
-// point of access modes is which node (and which Pod) may hold the volume at the same time. The CSI
-// driver sits as a full-width band under the nodes, since every attach is mediated by it and the
-// driver is what actually honours (or refuses) the requested mode. The disks are two PVs on the
-// bottom shelf: a block disk that can only do single-attach, and a shared filesystem that can do many.
-//
-// Every mount is a DESCENT through the driver: Pod -> driver (attach request), then driver -> disk
-// (the attach). A ball that enters the driver at the Pod column and re-emerges at the disk column is
-// the rewrite-inside-a-box idiom: the driver is where the decision is made. A refused attach stops AT
-// the driver and never reaches a disk. Only Pods pulse. The driver and the disks light, never pulse.
-//
-// ---- Horizontal composition, derived rather than hand-placed ----
-// Every tier (node row, driver band, disk shelf, chip strip) shares ONE center, CONTENT_CX, instead
-// of each carrying its own hand-typed margins. That shared center is NOT the canvas center, and it
-// cannot be: the narration overlay permanently occupies the top left, and the node row sits inside
-// its vertical band.
-//
-// Do not "improve" this by measuring the overlay at your own window size and sliding LEFT_X leftward.
-// The overlay is HTML laid over the SVG, so the NARROWER the window, the MORE viewBox units it eats.
-// Measured right edge / bottom edge by viewport, this card, worst step:
-//   1920x1080 -> 203 / 146    1440x900 -> 319 / 183    1280x800 -> 358 / 213
-//   1100x800  -> 397 / 230     900x650 -> 398 / 375
-// So the real worst case is x<=398 and y<=375, NOT the 380/342 an earlier pass wrote here from a
-// too-narrow sample. LEFT_X 400 therefore has about 2px of slack, not 20: it cannot move left at all,
-// and the driver band (bottom 375) is only just clear of the overlay at the smallest window too.
-// A left edge picked from a single wide-window measurement looks centered on the machine it was tuned
-// on and slides under the overlay on a laptop.
+
 const LEFT_X = 400;                                      // leftmost the NODE ROW may go, all viewports
 
-// Pod and node sizes drive everything else: the node row width is DERIVED from what it has to hold,
-// and the driver band and disk shelf follow that. Nothing here is a hand-typed x.
-//
-// POD_W is what decides whether the whole diagram can look centered, because CONTENT_CX works out to
-// LEFT_X + (3*POD_W + 102)/2 and LEFT_X is pinned by the overlay. At the old POD_W 156 the center
-// landed on 692 against a canvas center of 600, which read as a visible shift to the right. POD_W is
-// in turn bound by the WIDEST TEXT INSIDE A POD: the container sublabel used to be 'reads and writes',
-// which renders 94 units wide and put a hard floor of ~146 under POD_W. Shortening it to 'read/write'
-// (59 units) is what buys the room, so do not lengthen that string back without re-deriving all this.
-// At POD_W 112 the Pods came out narrower than they are tall and read as squeezed, so they are 128
-// here: that is the widest the row can go while the whole diagram still reads as centered (every
-// extra unit of POD_W costs 1.5 units of rightward shift, since three Pods sit in the row).
 const POD_Y = 82, POD_W = 128, POD_H = 126;
 const POD_BOTTOM = POD_Y + POD_H;                        // 208
 const NODE_PAD = 16;                                     // node border to the Pod inside it
@@ -77,24 +36,11 @@ const PV_W = 215;
 const PV_SPREAD = 148;                                   // half-distance between the two disk centers
 const BLOCK_CX = CONTENT_CX - PV_SPREAD;                 // 544
 const NFS_CX = CONTENT_CX + PV_SPREAD;                   // 840
-// cylinder() puts its own name on the baseline h/2+5, and this spec line goes 14 BELOW that, the same
-// gap storage-pvc-binding uses. It used to be a flat PV_Y+66, which against a 100-tall cylinder left
-// only 11px between two baselines whose text is 11px tall: the two lines visually touched.
 const SPEC_GAP = 14;
 const SPEC_Y = PV_Y + PV_H / 2 + 5 + SPEC_GAP;           // 519
 const VERDICT_Y = 566;
 const CHIPS_Y = 585;
 
-// ONE width for all four chips, rather than four hand-picked widths. valChip anchors the name at 12
-// from the left and the value at 12 from the right, so the width a chip needs is name + value + 24
-// plus a readable gap between the two. Measured worst cases, in viewBox units:
-//   accessModes 76 + ReadWriteOncePod 110 = 186   <- the binding one, and neither string can shorten
-//   attached to 76 + 'node-1, node-2'    96 = 172
-//   sharing     48 + 'app-1, app-2, app-3' 131 = 179
-//   enforced by 76 + 'CSI driver'         69 = 145
-// So 232 clears the worst pair with ~22 units between name and value. That is also why the multi-value
-// chips read as comma lists: 'node-1 and node-2' and 'app-1, app-2 and app-3' were wide enough to force
-// a wider uniform chip, and the strip is already more than twice the width of the diagram it captions.
 const CHIP_W = 232;
 const CHIP_GAP = 16;
 const CHIP_COUNT = 4;                  // accessModes / attached to / sharing / enforced by
@@ -102,12 +48,6 @@ const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);   // 976
 const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>
   CONTENT_CX - CHIPS_W / 2 + i * (CHIP_W + CHIP_GAP));
 
-// A Pod the access mode REFUSES. Dim means denied, not "has not mounted yet": a Pod that simply has
-// not been shown mounting is a perfectly healthy Pod and must look like one. Dimming those too made
-// the resting state of the card (the poster auto-plays step 1, so that is what you stare at on open)
-// show two of three Pods greyed out for no reason a viewer could name, and it conflated app-2, which
-// mounts fine one step later, with app-3, which is genuinely refused.
-// Who currently HOLDS the volume is carried by the ball, the lit disk and the sharing chip instead.
 const DIM = 0.75;
 
 // Attach request hops: Pod -> driver band.
@@ -116,48 +56,23 @@ const W_P2_DRV = [[P2_CX, POD_BOTTOM], [P2_CX, DRV_TOP]];
 const W_P3_DRV = [[P3_CX, POD_BOTTOM], [P3_CX, DRV_TOP]];
 // Attach hops: driver -> disk. The ball re-emerges from the driver at the disk column.
 const W_DRV_BLOCK = [[BLOCK_CX, DRV_BOTTOM], [BLOCK_CX, PV_TOP]];
-// The shared filesystem is reached on THREE lanes, one per mounting Pod, and all three are drawn.
-// There used to be a single wire down NFS_CX with balls flying at NFS_CX +/- 7, so no ball actually
-// rode the drawn line: they skimmed 7px either side of it. Three lanes rather than two because
-// ReadWriteMany excludes nobody: app-2 sits on the same node as app-1 and can mount it just as well,
-// and leaving it out made the step look like RWX still rations access somehow.
 const NFS_LANE = 16;
 const W_DRV_NFS_1 = [[NFS_CX - NFS_LANE, DRV_BOTTOM], [NFS_CX - NFS_LANE, PV_TOP]];  // app-1 on node-1
 const W_DRV_NFS_2 = [[NFS_CX, DRV_BOTTOM], [NFS_CX, PV_TOP]];                        // app-2 on node-1
 const W_DRV_NFS_3 = [[NFS_CX + NFS_LANE, DRV_BOTTOM], [NFS_CX + NFS_LANE, PV_TOP]];  // app-3 on node-2
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A tag that rides with the ball on the same path, timing and easing, so the packet visibly carries
-// what the step narrates. Not a .scheme-packet, so the tools do not count it. easing:'linear' for a
-// straight segmentPacket hop, default (eased) for a routePacket which is what every hop here is.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 // A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
 // matches descendants only, so pulsing a bare pod() would fire at half strength.
 function podBlock({ x, label }) {
-  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, cat: 'storage' });
+  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
   // Inset 14 rather than 20: at this POD_W the old inset left the sublabel close to the box sides.
   // 'read/write' is 59 units wide against a 100-wide box, so it keeps ~20 units of air either side.
-  const innerBox = box({ x: x + 14, y: POD_Y + 46, w: POD_W - 28, h: 52, label: 'ctr', sublabel: 'read/write', cat: 'storage' });
+  const innerBox = box({ x: x + 14, y: POD_Y + 46, w: POD_W - 28, h: 52, label: 'ctr', sublabel: 'read/write', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -190,34 +105,31 @@ class Scene {
     const podA2 = podBlock({ x: P2_X, label: 'Pod app-2' });
     const podB1 = podBlock({ x: P3_X, label: 'Pod app-3' });
 
-    const driver = box({ x: DRV_X, y: DRV_Y, w: DRV_W, h: DRV_H, label: 'CSI driver and attach controller', sublabel: 'grants or refuses each attach', cat: 'storage' });
+    const driver = box({ x: DRV_X, y: DRV_Y, w: DRV_W, h: DRV_H, label: 'CSI driver and attach controller', sublabel: 'grants or refuses each attach', role: 'storage' });
 
-    const pvBlock = cylinder({ x: BLOCK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-block', cat: 'storage' });
-    const pvNfs   = cylinder({ x: NFS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-nfs', cat: 'storage' });
+    const pvBlock = cylinder({ x: BLOCK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-block', role: 'storage' });
+    const pvNfs   = cylinder({ x: NFS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-nfs', role: 'storage' });
 
-    const wA1 = pathArrow({ points: W_P1_DRV, dashed: true, dim: true, color: 'storage' });
-    const wA2 = pathArrow({ points: W_P2_DRV, dashed: true, dim: true, color: 'storage' });
-    const wB1 = pathArrow({ points: W_P3_DRV, dashed: true, dim: true, color: 'storage' });
-    const wBlock = pathArrow({ points: W_DRV_BLOCK, dashed: true, dim: true, color: 'storage' });
-    const wNfs1 = pathArrow({ points: W_DRV_NFS_1, dashed: true, dim: true, color: 'storage' });
-    const wNfs2 = pathArrow({ points: W_DRV_NFS_2, dashed: true, dim: true, color: 'storage' });
-    const wNfs3 = pathArrow({ points: W_DRV_NFS_3, dashed: true, dim: true, color: 'storage' });
+    const wA1 = pathArrow({ points: W_P1_DRV, dashed: true, dim: true, role: 'storage' });
+    const wA2 = pathArrow({ points: W_P2_DRV, dashed: true, dim: true, role: 'storage' });
+    const wB1 = pathArrow({ points: W_P3_DRV, dashed: true, dim: true, role: 'storage' });
+    const wBlock = pathArrow({ points: W_DRV_BLOCK, dashed: true, dim: true, role: 'storage' });
+    const wNfs1 = pathArrow({ points: W_DRV_NFS_1, dashed: true, dim: true, role: 'storage' });
+    const wNfs2 = pathArrow({ points: W_DRV_NFS_2, dashed: true, dim: true, role: 'storage' });
+    const wNfs3 = pathArrow({ points: W_DRV_NFS_3, dashed: true, dim: true, role: 'storage' });
 
     const blockLbl = text({ class: 'scheme-label code dim', x: BLOCK_CX, y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
     const nfsLbl   = text({ class: 'scheme-label code dim', x: NFS_CX, y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
     // Centered on the driver band it captions, rather than the hand-typed 725 it used to sit at.
     const drvLbl   = text({ class: 'scheme-label code dim', x: DRV_X + DRV_W / 2, y: 408, 'text-anchor': 'middle' }, [' ']);
 
-    const modeChip   = valChip({ x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'accessModes', value: 'ReadWriteOnce', cat: 'storage' });
-    const attachChip = valChip({ x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'attached to', value: 'none', cat: 'storage' });
-    const shareChip  = valChip({ x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'sharing', value: 'none', cat: 'storage' });
-    const driverChip = valChip({ x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'enforced by', value: 'CSI driver', cat: 'storage' });
+    const modeChip   = valChip({ x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'accessModes', value: 'ReadWriteOnce', role: 'storage' });
+    const attachChip = valChip({ x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'attached to', value: 'none', role: 'storage' });
+    const shareChip  = valChip({ x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'sharing', value: 'none', role: 'storage' });
+    const driverChip = valChip({ x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'enforced by', value: 'CSI driver', role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order (bottom -> top): node containers, then the driver band and disks, then the Pods so they
-    // sit above their node, then the wires and their labels above the blocks, then the chip strip,
-    // then the packet layer so every ball rides above everything.
     [nodeA, nodeB, driver, pvBlock, pvNfs, podA1.group, podA2.group, podB1.group].forEach(el => root.appendChild(el));
     [wA1, wA2, wB1, wBlock, wNfs1, wNfs2, wNfs3].forEach(el => root.appendChild(el));
     [blockLbl, nfsLbl, drvLbl].forEach(el => root.appendChild(el));
@@ -241,21 +153,11 @@ class Scene {
   reset() { this.build(); }
 }
 
-// A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-// holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-// always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 function setChip(chip, val) {
   const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
   setVal(chip, val);
   if (changed) chip.classList.add('highlight');
 }
-// enforcer is a real value, not a constant caption: every mode here is honoured by the driver EXCEPT
-// ReadWriteOncePod, which Kubernetes itself enforces. The chip used to be hardcoded to 'CSI driver',
-// which made it both dead weight and wrong on the one step where it mattered.
-// 'sharing' answers exactly one question: which Pods hold the volume right now. It used to double as
-// a refusal report ('node-2 refused', 'block cannot span nodes'), which put a refusal in the chip on
-// the very step where a ball flies out of a refused Pod, so the chip read as a caption for that ball.
-// Refusal reasons belong on the driver wire label, which already carries them.
 function setChips(s, { mode, attach, share, enforcer = 'CSI driver' }) {
   setChip(s.refs.modeChip, mode);
   setChip(s.refs.attachChip, attach);
@@ -278,23 +180,18 @@ function clearHL(s) {
 // then the granted attach drops to the disk. Both the driver and the disk light on arrival.
 function grantMount(s, ctx, { podEl, reqPts, attachPts, tag, disk, lead = 0 }) {
   pulsePod(podEl, ctx, lead);
-  const req = routePacket(s, ctx, reqPts, { delay: lead + BEAT.afterPulse, cat: 'storage' });
+  const req = routePacket(s, ctx, reqPts, { delay: lead + BEAT.afterPulse, role: 'storage' });
   lightBoxAt(s.refs.driver, ctx, req.arrivalMs);
-  const att = routePacket(s, ctx, attachPts, { delay: req.arrivalMs + BEAT.afterHop, cat: 'storage' });
+  const att = routePacket(s, ctx, attachPts, { delay: req.arrivalMs + BEAT.afterHop, role: 'storage' });
   ridingLabel(s, ctx, tag, attachPts, { delay: req.arrivalMs + BEAT.afterHop });
   lightBoxAt(disk, ctx, att.arrivalMs);
   return att.arrivalMs;
 }
 
-// A refused attach: the request reaches the gate and stops there. No disk lights.
-// The Pod blinks FIRST, exactly as in grantMount. It is the actor either way, and without the blink
-// the narration names a Pod that is never seen doing anything: the ball just materialised out of a
-// dim block. Refused Pods stay dim, so the blink has to be the dim variant with an opacity lift or it
-// is invisible against the 0.55 they sit at.
 function denyMount(s, ctx, { podEl, reqPts, tag, lead = 0 }) {
   if (podEl) pulsePodDim(podEl, ctx, lead, { from: DIM, peak: 0.95 });
   const delay = podEl ? lead + BEAT.afterPulse : lead;
-  const req = routePacket(s, ctx, reqPts, { delay, cat: 'storage' });
+  const req = routePacket(s, ctx, reqPts, { delay, role: 'storage' });
   ridingLabel(s, ctx, tag, reqPts, { delay });
   lightBoxAt(s.refs.driver, ctx, req.arrivalMs);
   return req.arrivalMs;
@@ -355,9 +252,6 @@ const STEPS = [
       setPods(s, { a1: 1, a2: 1, b1: DIM });        // app-3 refused: Multi-Attach
       setWire(s, 'block', 'attached: node-1');
       setWire(s, 'drv', 'held by node-1');
-      // The disk stays lit: it is still attached to node-1 and still in use by app-1 and app-2. It is
-      // the REASON app-3 is refused, so leaving it unlit contradicted both the wire label and the
-      // narration, which say in so many words that the disk is already attached.
       s.refs.pvBlock.classList.add('highlight');
       if (ctx.reduced) { s.refs.driver.classList.add('highlight'); return; }
       denyMount(s, ctx, { podEl: s.refs.podB1, reqPts: W_P3_DRV, tag: 'Multi-Attach denied' });

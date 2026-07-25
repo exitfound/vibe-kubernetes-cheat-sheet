@@ -6,16 +6,18 @@ export {
   setPodSublabel, FADE, BEAT,
 } from './scheme-kit.js';
 import { pulsePodWithTint, pulsePodDimWithTint } from './scheme-kit.js';
-// Design notes: scheme/docs/INTERNALS.md#schemejslibnetwork-kitjs
+// Design notes: scheme/docs/INTERNALS.md#schemejslibcluster-kitjs
 
-export const NETWORK_TINT = Object.freeze({ base: 'rgb(79, 229, 255)', bright: 'rgb(158, 234, 247)' });
+// Cluster pods are recoloured violet (#c0b0ff), so the pulse
+// stroke tint matches them rather than the workloads blue in scheme-kit.
+export const CLUSTER_TINT = Object.freeze({ base: 'rgb(192, 176, 255)', bright: 'rgb(224, 214, 255)' });
 
 
-// Networking pods pulse with the cyan tint. The body is shared with scheme-kit
-// (pulsePodWithTint), so the families differ only in colour.
+// Cluster pods pulse with the violet tint. The body is shared with scheme-kit
+// (pulsePodWithTint), so the two families differ only in colour.
 export function pulsePod(podEl, ctx, delay = 0, opts = {}) {
-  return pulsePodWithTint(podEl, ctx, delay, opts, NETWORK_TINT);
+  return pulsePodWithTint(podEl, ctx, delay, opts, CLUSTER_TINT);
 }
 export function pulsePodDim(podEl, ctx, delay = 0, opts = {}) {
-  return pulsePodDimWithTint(podEl, ctx, delay, opts, NETWORK_TINT);
+  return pulsePodDimWithTint(podEl, ctx, delay, opts, CLUSTER_TINT);
 }

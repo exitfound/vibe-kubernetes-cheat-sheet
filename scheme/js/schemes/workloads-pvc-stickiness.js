@@ -1,6 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-pvc-stickiness
 
 
 class Scene {
@@ -18,20 +19,20 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'StatefulSet', sublabel: 'sticky identity, sticky PVC', cat: 'control' });
-    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',       sublabel: 'PVC retained on Pod delete', cat: 'control' });
-    const pv         = cylinder({ x: 850, y: 30, w: 140, h: 100, label: 'PV cloud-vol-x', cat: 'storage' });
+    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'StatefulSet', sublabel: 'sticky identity, sticky PVC', role: 'cluster' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',       sublabel: 'PVC retained on Pod delete', role: 'cluster' });
+    const pv         = cylinder({ x: 850, y: 30, w: 140, h: 100, label: 'PV cloud-vol-x', role: 'storage' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const podChip  = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'pod identity',  value: 'web-0 · Running' });
-    const pvcChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'PVC name',      value: 'data-web-0 · Bound', cat: 'storage' });
-    const pvChip   = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'PV name',       value: 'cloud-vol-x · ReadWriteOnce', cat: 'storage' });
-    const dataChip = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'on-disk data',  value: 'rev=1234', cat: 'storage' });
+    const podChip  = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'pod identity',  value: 'web-0 · Running', role: 'workloads' });
+    const pvcChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'PVC name',      value: 'data-web-0 · Bound', role: 'storage' });
+    const pvChip   = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'PV name',       value: 'cloud-vol-x · ReadWriteOnce', role: 'storage' });
+    const dataChip = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'on-disk data',  value: 'rev=1234', role: 'storage' });
     [podChip, pvcChip, pvChip, dataChip].forEach(c => root.appendChild(c));
 
     // Pipeline chain, 5 stages of the lifecycle.
@@ -44,27 +45,27 @@ class Scene {
         '4. bind     ·  scheduler picks Node-2 · PVC stays bound',
         '5. reattach ·  CSI mounts the same PV · /data preserved',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeA = node({ x: 320, y: 480, w: 390, h: 140, label: 'Node-1' });
     const nodeB = node({ x: 770, y: 480, w: 390, h: 140, label: 'Node-2' });
 
     // Pod web-0 on Node-1: starts visible, fades on evict.
-    const podAShell = pod({ x: 415, y: 497, w: 220, h: 106, label: 'web-0', sublabel: '', containers: 0, cat: 'workloads' });
+    const podAShell = pod({ x: 415, y: 497, w: 220, h: 106, label: 'web-0', sublabel: '', containers: 0, role: 'workloads' });
     const podAShellRect = podAShell.querySelector('.scheme-pod-rect');
     if (podAShellRect) podAShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-    const podABox = box({ x: 425, y: 525, w: 200, h: 52, label: 'app', sublabel: 'mount: /data', cat: 'workloads' });
+    const podABox = box({ x: 425, y: 525, w: 200, h: 52, label: 'app', sublabel: 'mount: /data', role: 'workloads' });
 
     const podA = g({ id: 'podA' });
     podA.appendChild(podAShell);
     podA.appendChild(podABox);
 
     // Pod web-0 on Node-2: hidden initially, fades in on recreate.
-    const podBShell = pod({ x: 865, y: 497, w: 220, h: 106, label: 'web-0', sublabel: '', containers: 0, cat: 'workloads' });
+    const podBShell = pod({ x: 865, y: 497, w: 220, h: 106, label: 'web-0', sublabel: '', containers: 0, role: 'workloads' });
     const podBShellRect = podBShell.querySelector('.scheme-pod-rect');
     if (podBShellRect) podBShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-    const podBBox = box({ x: 875, y: 525, w: 200, h: 52, label: 'app', sublabel: 'mount: /data', cat: 'workloads' });
+    const podBBox = box({ x: 875, y: 525, w: 200, h: 52, label: 'app', sublabel: 'mount: /data', role: 'workloads' });
 
     const podB = g({ id: 'podB' });
     podB.style.opacity = '0';
@@ -74,7 +75,7 @@ class Scene {
     // Left connector: Api region down to Node-1's pod.
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -82,7 +83,7 @@ class Scene {
     // from the top. Kept off the far-right margin, which belongs to the storage connector.
     const connectorB = pathArrow({
       points: [[800, 80], [815, 80], [815, 460], [975, 460], [975, 480]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connectorB);
 
@@ -90,7 +91,7 @@ class Scene {
     // side past every block, then into Node-2 from its right side (CSI attach + mount path).
     const pvConnector = pathArrow({
       points: [[990, 80], [1198, 80], [1198, 550], [1160, 550]],
-      dim: true, dashed: true, color: 'storage',
+      dim: true, dashed: true, role: 'storage',
     });
     root.appendChild(pvConnector);
 
@@ -129,17 +130,17 @@ function clearHL(s) {
 // Packet down the left connector from the Api region to web-0 on Node-1.
 function connectorPacketA(s, ctx, { delay = 0 } = {}) {
   const pts = [[320, 80], [280, 80], [280, 550], [320, 550]];
-  return routePacket(s, ctx, pts, { delay, fadeIn: true });
+  return routePacket(s, ctx, pts, { delay, fadeIn: true, role: 'workloads' });
 }
 // Packet down the right connector from the Api region to web-0 on Node-2.
 function connectorPacketB(s, ctx, { delay = 0 } = {}) {
   const pts = [[800, 80], [815, 80], [815, 460], [975, 460], [975, 480]];
-  return routePacket(s, ctx, pts, { delay, fadeIn: true });
+  return routePacket(s, ctx, pts, { delay, fadeIn: true, role: 'workloads' });
 }
 // Storage packet from the PV down to web-0 on Node-2 (CSI attach + mount).
 function pvPacket(s, ctx, { delay = 0 } = {}) {
   const pts = [[990, 80], [1198, 80], [1198, 550], [1160, 550]];
-  return routePacket(s, ctx, pts, { delay, cat: 'storage', fadeIn: true });
+  return routePacket(s, ctx, pts, { delay, role: 'storage', fadeIn: true });
 }
 
 const STEPS = [
@@ -184,9 +185,6 @@ const STEPS = [
       s.refs.podA.style.opacity = '0';
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      // The delete reaches Node-1 over the left connector. podA is pinned to 0 above, the
-      // animation back-fills 1 during the delay, then fades web-0 out on arrival. The PVC,
-      // PV and data chips stay lit (retained).
       const del = connectorPacketA(s, ctx);
       ctx.register(s.refs.podA.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
@@ -214,7 +212,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // Control-plane only: the controller posts the new Pod object to the Api.
       // The Pod is still Pending and unbound, so nothing lands on a node yet.
-      topPacket(s, ctx);
+      topPacket(s, ctx, { role: 'workloads' });
     },
   },
   {
@@ -238,10 +236,6 @@ const STEPS = [
       s.refs.podB.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      // The binding is delivered to Node-2 over the right connector (the scheduler posts it
-      // to the Api, no separate scheduler block is drawn). podB is pinned to 1 above,
-      // the animation back-fills 0 during the delay so web-0 materializes and pulses on
-      // arrival, keeping the same sticky identity.
       const bind = connectorPacketB(s, ctx);
       ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: bind.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, bind.arrivalMs);
@@ -269,9 +263,6 @@ const STEPS = [
       s.refs.dataChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      // CSI reattaches the same PV to Node-2. The volume packet travels from the PV down
-      // to Node-2, and web-0 pulses once on arrival then settles back (mounted, data
-      // preserved). No persist, so the pulse fades instead of pinning the outline bright.
       const mount = pvPacket(s, ctx);
       pulsePod(s.refs.podB, ctx, mount.arrivalMs);
     },

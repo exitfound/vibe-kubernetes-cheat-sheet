@@ -1,10 +1,5 @@
-// overlay-measure.mjs — measure a card's REAL narration overlay in viewBox units.
-//
-// The blanket safe-zone (x<=380 & y<=300) is a worst case sized for the longest
-// narration in the catalog, not a measurement of any one card. This walks every
-// step, reads .narration-overlay's client rect, and maps it back into viewBox
-// units so a layout can reclaim the room it actually has.
-//
+// overlay-measure.mjs: a card's REAL narration overlay in viewBox units, per step. The blanket
+// safe-zone is a catalog worst case, so measure when a layout needs the room back.
 // node overlay-measure.mjs <id> [<id> ...]
 import { launch, setInspect, stepCount, DEFAULT_BASE } from './_shared.mjs';
 

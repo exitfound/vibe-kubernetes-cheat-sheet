@@ -1,6 +1,8 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-pod-qos-classes
+
 
 function setSublabels(s, a, b, c) {
   setBoxSublabel(s.refs.pod1Box, a);
@@ -23,22 +25,19 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    // Kubelet is the node-facing actor (places Pods after binding, writes cgroups, evicts), so it
-    // sits on the left where the connector to the node is anchored, matching the other controller
-    // cards (left actor → node, Api on the right). Every connector packet leaves Kubelet.
-    const kubelet   = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet',   sublabel: 'cgroups + eviction',            cat: 'control' });
-    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'admission · qosClass · binding', cat: 'control' });
+    const kubelet   = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet',   sublabel: 'cgroups + eviction',            role: 'cluster' });
+    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'admission · qosClass · binding', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const pod1Chip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'Pod A · qosClass', value: 'pending' });
-    const pod2Chip  = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'Pod B · qosClass', value: 'pending' });
-    const pod3Chip  = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'Pod C · qosClass', value: 'pending' });
-    const focusChip = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'focus',            value: 'none' });
+    const pod1Chip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'Pod A · qosClass', value: 'pending', role: 'workloads' });
+    const pod2Chip  = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'Pod B · qosClass', value: 'pending', role: 'workloads' });
+    const pod3Chip  = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'Pod C · qosClass', value: 'pending', role: 'workloads' });
+    const focusChip = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'focus',            value: 'none', role: 'workloads' });
     [pod1Chip, pod2Chip, pod3Chip, focusChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -50,7 +49,7 @@ class Scene {
         '4. cgroups   ·  Kubelet sets memory.max + oom_score_adj',
         '5. tiers     ·  evict: BestEffort → Burstable → Guaranteed',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -60,11 +59,11 @@ class Scene {
     const POD_XS    = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: POD_SUBS[i], cat: 'workloads' });
+      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: POD_SUBS[i], role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.appendChild(shell);
@@ -77,7 +76,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -203,8 +202,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // Api writes the binding, the kubelet observes it and places each Pod on the node.
       // Top packet Api -> Kubelet (binding delivered), then the connector ball Kubelet -> node.
-      const bind = topPacket(s, ctx, { from: 580, to: 540, y: 95 });
-      const place = connectorPacket(s, ctx, { delay: bind.arrivalMs + BEAT.afterHop });
+      const bind = topPacket(s, ctx, { from: 580, to: 540, y: 95, role: 'workloads' });
+      const place = connectorPacket(s, ctx, { delay: bind.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, place.arrivalMs);
       pulsePod(s.refs.pod2, ctx, place.arrivalMs);
       pulsePod(s.refs.pod3, ctx, place.arrivalMs);
@@ -230,7 +229,7 @@ const STEPS = [
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
       // Kubelet pushes cgroup config down to the node, each Pod pulses as it is written.
-      const cg = connectorPacket(s, ctx);
+      const cg = connectorPacket(s, ctx, { role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, cg.arrivalMs);
       pulsePod(s.refs.pod2, ctx, cg.arrivalMs);
       pulsePod(s.refs.pod3, ctx, cg.arrivalMs);
@@ -255,17 +254,11 @@ const STEPS = [
       s.refs.pod1Chip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
-      // QoS eviction: BestEffort and Burstable (A, B) are evicted and dim together by the same
-      // amount, Guaranteed (C) survives at full opacity. The 1st/2nd order is conveyed by the
-      // sublabels, not by timing or depth. Pin the final state inline for cancel-safety.
       s.refs.pod1.style.opacity = '0.4';
       s.refs.pod2.style.opacity = '0.4';
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) return;
-      // Kubelet's eviction travels down the connector to the node, the same Kubelet → node
-      // delivery the cgroups step uses. On arrival all three pulse together (the memory-pressure
-      // event), then A and B fade out as they are evicted while C (Guaranteed) stays full.
-      const evict = connectorPacket(s, ctx);
+      const evict = connectorPacket(s, ctx, { role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
       pulsePod(s.refs.pod2, ctx, evict.arrivalMs);
       pulsePod(s.refs.pod3, ctx, evict.arrivalMs);

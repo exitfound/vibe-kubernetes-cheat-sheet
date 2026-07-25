@@ -1,15 +1,9 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-kube-proxy-modes
 
-// Concept "two routes" (viewBox 1200x640): the same kind of connection to the ClusterIP is resolved
-// to a backend two ways. The TOP route is iptables, a chain (KUBE-SERVICES -> KUBE-SVC -> KUBE-SEP)
-// the packet WALKS box by box, stopping at each (O(n)). The BOTTOM route is IPVS, one in-kernel hash
-// hop (O(1)). Mirror-symmetric about the flow axis: the chain row and the equally wide hash box sit
-// at equal distance above and below, and each delivers to its own backend Pod through a centred turn,
-// the chain DOWN to the upper Pod and IPVS UP to the lower Pod (so neither arrow curves back).
-// Wires and packets ride only the GAPS and stop at box edges; only Pods pulse; boxes light via
-// .highlight; the inactive lane dims on each mode step.
+
 const AXIS = 322;
 const TOP_Y = 178;          // iptables chain lane (axis - 144)
 const BOT_Y = 466;          // IPVS hash lane (axis + 144)
@@ -18,7 +12,7 @@ const TURN_X = 931;         // delivery turn, centred between the engines (right
 const POD_X = 966;
 const POD_H = 104;
 const PODA_Y = 250;         // upper backend, reached from above (chain comes down)
-const PODB_Y = 394;         // lower backend, reached from below (IPVS comes up) — both symmetric about AXIS
+const PODB_Y = 394;         // lower backend, reached from below (IPVS comes up): both symmetric about AXIS
 const PAUSE = 240;          // dwell inside each chain box, so the walk reads as sequential
 
 const KS = { x: 404, w: 150 }, SVC = { x: 578, w: 150 }, SEP = { x: 752, w: 144 };
@@ -35,10 +29,10 @@ const IPVS_H1 = [[266, AXIS], [ENTRY_X, AXIS], [ENTRY_X, BOT_Y], [IPVS.x, BOT_Y]
 const IPVS_H2 = [[ENGINE_R, BOT_Y], [TURN_X, BOT_Y], [TURN_X, PODB_Y], [POD_X, PODB_Y]];
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 18, y: y + 28, w: w - 36, h: 42, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 18, y: y + 28, w: w - 36, h: 42, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -46,10 +40,10 @@ function podBlock({ x, y, w, h, label, ip }) {
 }
 
 function clientBlock({ x, y, w, h }) {
-  const shell = pod({ x, y, w, h, label: 'client Pod', sublabel: '10.244.1.5', containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label: 'client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 18, y: y + 36, w: w - 36, h: 50, label: 'socket', sublabel: 'dst 10.96.0.10', cat: 'network' });
+  const innerBox = box({ x: x + 18, y: y + 36, w: w - 36, h: 50, label: 'socket', sublabel: 'dst 10.96.0.10', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -59,7 +53,7 @@ function clientBlock({ x, y, w, h }) {
 // IPVS engine: a wide box whose body is a bucket grid, so it reads as one indexed hash table that
 // does the work of the whole chain above it.
 function ipvsEngine({ x, y, w, h }) {
-  const grp = g({ class: 'scheme-box', 'data-cat': 'network', transform: `translate(${x},${y})` });
+  const grp = g({ class: 'scheme-box', 'data-role': 'network', transform: `translate(${x},${y})` });
   grp.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: w, height: h, rx: 6 }));
   grp.appendChild(text({ class: 'scheme-box-label', x: w / 2, y: 24, 'text-anchor': 'middle' }, ['IPVS hash table']));
   const n = 7, gx = 26, cw = (w - 52) / n, gy = 38, ch = 24;
@@ -92,19 +86,19 @@ class Scene {
 
     // iptables lane: chain boxes + a single zigzag entry, two gap arrows and one centred delivery
     // arrow down to the upper Pod, grouped so the lane dims as one. Every wire rides a gap.
-    const ks  = box({ x: KS.x,  y: TOP_Y - 28, w: KS.w,  h: 56, label: 'KUBE-SERVICES', sublabel: 'match dst :80', cat: 'network' });
-    const svc = box({ x: SVC.x, y: TOP_Y - 28, w: SVC.w, h: 56, label: 'KUBE-SVC', sublabel: 'statistic random', cat: 'network' });
-    const sep = box({ x: SEP.x, y: TOP_Y - 28, w: SEP.w, h: 56, label: 'KUBE-SEP', sublabel: 'DNAT .2.7', cat: 'network' });
-    const iEntry = pathArrow({ points: IPT_H1, dashed: true, dim: true, color: 'network' });
-    const iGap1 = arrow({ x1: KS.x + KS.w, y1: TOP_Y, x2: SVC.x, y2: TOP_Y, dashed: true, dim: true, color: 'network' });
-    const iGap2 = arrow({ x1: SVC.x + SVC.w, y1: TOP_Y, x2: SEP.x, y2: TOP_Y, dashed: true, dim: true, color: 'network' });
-    const iDeliver = pathArrow({ points: IPT_H4, dashed: true, dim: true, color: 'network' });
+    const ks  = box({ x: KS.x,  y: TOP_Y - 28, w: KS.w,  h: 56, label: 'KUBE-SERVICES', sublabel: 'match dst :80', role: 'network' });
+    const svc = box({ x: SVC.x, y: TOP_Y - 28, w: SVC.w, h: 56, label: 'KUBE-SVC', sublabel: 'statistic random', role: 'network' });
+    const sep = box({ x: SEP.x, y: TOP_Y - 28, w: SEP.w, h: 56, label: 'KUBE-SEP', sublabel: 'DNAT .2.7', role: 'network' });
+    const iEntry = pathArrow({ points: IPT_H1, dashed: true, dim: true, role: 'network' });
+    const iGap1 = arrow({ x1: KS.x + KS.w, y1: TOP_Y, x2: SVC.x, y2: TOP_Y, dashed: true, dim: true, role: 'network' });
+    const iGap2 = arrow({ x1: SVC.x + SVC.w, y1: TOP_Y, x2: SEP.x, y2: TOP_Y, dashed: true, dim: true, role: 'network' });
+    const iDeliver = pathArrow({ points: IPT_H4, dashed: true, dim: true, role: 'network' });
     const iptLane = g({});
     [ks, svc, sep, iEntry, iGap1, iGap2, iDeliver].forEach(el => iptLane.appendChild(el));
 
     const ipvs = ipvsEngine({ x: IPVS.x, y: BOT_Y - 44, w: IPVS.w, h: 88 });
-    const vEntry = pathArrow({ points: IPVS_H1, dashed: true, dim: true, color: 'network' });
-    const vDeliver = pathArrow({ points: IPVS_H2, dashed: true, dim: true, color: 'network' });
+    const vEntry = pathArrow({ points: IPVS_H1, dashed: true, dim: true, role: 'network' });
+    const vDeliver = pathArrow({ points: IPVS_H2, dashed: true, dim: true, role: 'network' });
     const ipvsLane = g({});
     [ipvs, vEntry, vDeliver].forEach(el => ipvsLane.appendChild(el));
 
@@ -114,9 +108,9 @@ class Scene {
     const iptTag  = text({ class: 'scheme-label code dim', x: 650, y: TOP_Y + 56, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
     const ipvsTag = text({ class: 'scheme-label code dim', x: 650, y: BOT_Y - 58, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
 
-    const iptChip  = valChip({ x: 70,  y: 590, w: 345, h: 34, name: 'iptables', value: 'rule walk O(n)', cat: 'network' });
-    const pickChip = valChip({ x: 445, y: 590, w: 345, h: 34, name: 'selection', value: 'one backend', cat: 'network' });
-    const ipvsChip = valChip({ x: 820, y: 590, w: 345, h: 34, name: 'IPVS', value: 'hash O(1)', cat: 'network' });
+    const iptChip  = valChip({ x: 70,  y: 590, w: 345, h: 34, name: 'iptables', value: 'rule walk O(n)', role: 'network' });
+    const pickChip = valChip({ x: 445, y: 590, w: 345, h: 34, name: 'selection', value: 'one backend', role: 'network' });
+    const ipvsChip = valChip({ x: 820, y: 590, w: 345, h: 34, name: 'IPVS', value: 'hash O(1)', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -199,13 +193,13 @@ const STEPS = [
         return;
       }
       pulsePod(s.refs.client, ctx, 0);
-      const a1 = routePacket(s, ctx, IPT_H1, { delay: BEAT.afterPulse, cat: 'network' });
+      const a1 = routePacket(s, ctx, IPT_H1, { delay: BEAT.afterPulse, role: 'network' });
       lightAt(s.refs.ks, ctx, a1.arrivalMs);
-      const a2 = routePacket(s, ctx, IPT_H2, { delay: a1.arrivalMs + PAUSE, cat: 'network' });
+      const a2 = routePacket(s, ctx, IPT_H2, { delay: a1.arrivalMs + PAUSE, role: 'network' });
       lightAt(s.refs.svc, ctx, a2.arrivalMs);
-      const a3 = routePacket(s, ctx, IPT_H3, { delay: a2.arrivalMs + PAUSE, cat: 'network' });
+      const a3 = routePacket(s, ctx, IPT_H3, { delay: a2.arrivalMs + PAUSE, role: 'network' });
       lightAt(s.refs.sep, ctx, a3.arrivalMs);
-      const a4 = routePacket(s, ctx, IPT_H4, { delay: a3.arrivalMs + PAUSE, cat: 'network' });
+      const a4 = routePacket(s, ctx, IPT_H4, { delay: a3.arrivalMs + PAUSE, role: 'network' });
       pulsePod(s.refs.podA, ctx, a4.arrivalMs);
     },
   },
@@ -227,9 +221,9 @@ const STEPS = [
       s.refs.podA.style.opacity = '0.4';
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
-      const b1 = routePacket(s, ctx, IPVS_H1, { delay: BEAT.afterPulse, cat: 'network' });
+      const b1 = routePacket(s, ctx, IPVS_H1, { delay: BEAT.afterPulse, role: 'network' });
       lightAt(s.refs.ipvs, ctx, b1.arrivalMs);
-      const b2 = routePacket(s, ctx, IPVS_H2, { delay: b1.arrivalMs + PAUSE, cat: 'network' });
+      const b2 = routePacket(s, ctx, IPVS_H2, { delay: b1.arrivalMs + PAUSE, role: 'network' });
       pulsePod(s.refs.podB, ctx, b2.arrivalMs);
     },
   },

@@ -1,6 +1,7 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-pod-phase-machine
 
 
 class Scene {
@@ -18,12 +19,12 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: 320, y: 40, w: 280, h: 80, label: 'Kubelet', sublabel: 'reconciles status.phase', cat: 'control' });
+    const kubelet = box({ x: 320, y: 40, w: 280, h: 80, label: 'Kubelet', sublabel: 'reconciles status.phase', role: 'cluster' });
 
     // L-connector Kubelet -> Node-1 via the left margin at x=280.
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -41,22 +42,22 @@ class Scene {
         '5. recover   ·  restart succeeds, container Running again',
         '6. terminal  ·  all containers exit, Succeeded or Failed',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
-    const phaseChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'status.phase',     value: 'Pending' });
-    const cStateChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'container state',  value: 'none' });
-    const restartChip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'restartCount',     value: '0' });
-    const policyChip  = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'restartPolicy',    value: 'OnFailure' });
+    const phaseChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'status.phase',     value: 'Pending', role: 'workloads' });
+    const cStateChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'container state',  value: 'none', role: 'workloads' });
+    const restartChip = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'restartCount',     value: '0', role: 'workloads' });
+    const policyChip  = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'restartPolicy',    value: 'OnFailure', role: 'workloads' });
     [phaseChip, cStateChip, restartChip, policyChip].forEach(c => root.appendChild(c));
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
 
-    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'no container yet', cat: 'workloads' });
+    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'no container yet', role: 'workloads' });
 
     // Wrap shell + container in a group so opacity animates uniformly.
     const podGroup = g({ id: 'podGroup' });
@@ -100,12 +101,9 @@ function setChips(s, { phase, cstate, restart, policy = 'OnFailure' }) {
 
 function syncPacket(s, ctx, { delay = 0 } = {}) {
   const pts = [[320, 80], [280, 80], [280, 550], [320, 550]];
-  return routePacket(s, ctx, pts, { delay, fadeIn: true });
+  return routePacket(s, ctx, pts, { delay, fadeIn: true, role: 'workloads' });
 }
 
-// Phase transitions cross-fade the Pod opacity between states (0.35 dim / 0.7 / 1).
-// This is a state machine, not a materialize/dissolve, so it keeps its own fade timing
-// rather than the FADE tokens. The delay starts the cross-fade a beat into the step.
 const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;
 
 const STEPS = [

@@ -1,49 +1,9 @@
 import { svg, g, text, path } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, cylinder, pathArrow, animateAlong } from '../lib/primitives.js';
-import {
-  valChip, setVal, setBoxSublabel, pulsePod, pulsePodDim, routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, setWire, BEAT, FADE,
-} from '../lib/storage-kit.js';
+import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#storage-topology-aware-provisioning
 
-// WaitForFirstConsumer. Two zones side by side, each a worker node with its own zonal disk on the
-// shelf below it. volumeBindingMode: Immediate provisions the disk the instant the claim exists, in
-// whatever zone the provisioner happens to pick. The scheduler then honors that already-bound disk,
-// but if the Pod only fits the other zone on capacity and affinity, no node satisfies both the Pod and
-// its zonal disk, so the Pod stays Pending forever with a volume node affinity conflict. It is never
-// scheduled and never reaches ContainerCreating. WaitForFirstConsumer inverts the order: the scheduler
-// picks the node first, and only then is the volume provisioned in that same topology.
-//
-// ---- Horizontal composition ----
-// The two zones are mirrored about the canvas centre, so the picture is symmetric and neither zone
-// reads as the important one: NODE_CX = [CX - SPREAD, CX + SPREAD] with CX = 600, derived from the
-// node width and the gap rather than typed. Content spans 140..1060, margins 140 a side. The earlier
-// pass ran the nodes at 400..720 and 820..1140, which put the pair centre at 770 and left 400 units
-// of dead canvas on the left against 60 on the right.
-//
-// The StorageClass and the claim sit stacked on the centre line above the zones, both centred on CX,
-// because the whole card is about ONE claim and ONE class being resolved into ONE of two zones.
-//
-// ---- Narration overlay ----
-// Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
-//   1920x900  right 102  bottom 183
-//   1600x1000 right 291  bottom 143
-//   1280x900  right 378  bottom 173
-//   1100x900  right 397  bottom 149
-// Worst case x <= 397 and y <= 183. The StorageClass (y 36) and the claim (y 136) both sit inside
-// that y band, so both start at x >= 400. Everything from the node row down (y >= 236) clears the
-// overlay entirely. A longer narration than the ones below would invalidate this measurement.
-//
-// PULSE MODEL: only the Pod pulses, and it is a wrapping g. The zone frames, the class, the claim and
-// the disks are infrastructure: they light via .highlight and never pulse. On the failure step the Pod
-// never went Ready, so it stays dim and takes pulsePodDim with an opacity lift, or the blink is
-// invisible against the 0.55 it sits at.
-//
-// WIRES: the provisioning route leaves the StorageClass from its RIGHT edge midpoint, wraps down the
-// outer margin clear of both zones, runs a bus UNDER the whole disk shelf and rises into the chosen
-// disk through its BOTTOM. That keeps it out of every block and lets one route shape serve either
-// zone. The doomed cross-zone reach uses its own corridor in the gap between the node frames and the
-// shelf, drawn as a bare dashed line the Pod aims at its stranded disk, entering it dead centre on the
-// top edge. It has no arrowhead because the attach never actually succeeds.
+
 const CX = 600;
 
 const SC_X = 400, SC_Y = 36, SC_W = 400, SC_H = 64;
@@ -52,9 +12,6 @@ const SC_RIGHT = SC_X + SC_W, SC_MY = SC_Y + SC_H / 2, SC_BOTTOM = SC_Y + SC_H; 
 const PVC_W = 260, PVC_H = 60, PVC_Y = 136;
 const PVC_X = CX - PVC_W / 2, PVC_BOTTOM = PVC_Y + PVC_H;                          // 470 / 196
 
-// NODE_H hugs the Pod rather than framing canvas. At 180 the frames stood 88 units taller than the
-// Pod they hold, and zone-a, which holds nothing at all in the WaitForFirstConsumer path, read as a
-// large empty box rather than as an empty zone.
 const NODE_W = 430, NODE_GAP = 60, NODE_Y = 236, NODE_H = 140;
 const NODE_BOTTOM = NODE_Y + NODE_H;                                               // 376
 const SPREAD = (NODE_W + NODE_GAP) / 2;                                            // 245
@@ -73,34 +30,13 @@ const PROV_WRAP_X = 1120;                          // outer margin, right of nod
 const CAPTION_Y = DISK_TOP - 14;
 const CHIPS_Y = 588;
 
-// Each static wire and its ball share ONE points array, so they cannot drift apart. Every endpoint is
-// a block edge midpoint. Both provisioning routes leave the StorageClass through its RIGHT edge
-// midpoint and wrap down the same outer margin (a left wrap would run the lane and its ball straight
-// through the narration overlay), then turn in along the shelf midline and enter their disk through
-// the near RIGHT SIDE with two right-angle turns. zone-a simply runs further left than zone-b along
-// that midline: it passes over where the zone-b disk sits, but that disk is invisible during the
-// zone-a provisioning step, so nothing is crossed on screen.
 const W_PROV_B = [[SC_RIGHT, SC_MY], [PROV_WRAP_X, SC_MY], [PROV_WRAP_X, DISK_MY], [NODE_CX[1] + DISK_W / 2, DISK_MY]];
 const W_PROV_A = [[SC_RIGHT, SC_MY], [PROV_WRAP_X, SC_MY], [PROV_WRAP_X, DISK_MY], [NODE_CX[0] + DISK_W / 2, DISK_MY]];
 const wProv = i => (i === 0 ? W_PROV_A : W_PROV_B);
-// The mount lane and the cross-zone reach both meet the node-2 frame at its bottom edge (the line
-// enters the NODE, not the Pod sitting inside it), and they are never drawn in the same step, so each
-// runs straight down the node centre line and enters its disk dead centre.
 const W_MOUNT_B = [[NODE_CX[1], DISK_TOP], [NODE_CX[1], NODE_BOTTOM]];
 // The doomed reach: node-2 would have to cross into zone-a for its disk. It leaves the node-2 frame
 // bottom centre and enters the zone-a disk through its top centre.
 const W_CROSS = [[NODE_CX[1], NODE_BOTTOM], [NODE_CX[1], CROSS_Y], [NODE_CX[0], CROSS_Y], [NODE_CX[0], DISK_TOP]];
-
-// Lights an infrastructure block ON PACKET ARRIVAL rather than at step entry, via a zero-effect
-// animation whose onfinish sets the class. Under reduced motion it applies immediately so the static
-// end-state stays correct. This is how a box receives a packet without pulsing.
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
 
 // A disk materialises when the CreateVolume that makes it lands, so no arrowhead is ever aimed at
 // nothing. LAND_MS is shorter than BEAT.lead for the same reason.
@@ -115,38 +51,23 @@ function revealAt(el, ctx, delay = 0, from = 0) {
   ctx.register(el.animate([{ opacity: from }, { opacity: 1 }], { duration: LAND_MS, delay, fill: 'forwards', easing: 'ease-out' }));
 }
 
-// A tag that rides ALONG with the ball on the same path, timing and easing, so the packet visibly
-// carries what the step narrates. Balls are routePacket (eased), so the label defaults to the same
-// ease-in-out and the same routeDur, or it would drift off the ball mid-flight.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dur = null, easing = 'ease-in-out' } = {}) {
-  if (ctx.reduced) return;
-  const d = dur == null ? routeDur(points) : dur;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -14, 'text-anchor': 'middle', 'data-cat': 'storage' }, [txt]);
-  lbl.style.opacity = '0';
-  lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'storage' });
 
-// The wrapping g is not optional. pulsePod finds its targets with querySelectorAll, which matches
-// descendants only and never the element itself, so pulsing a bare pod() would catch its
-// .scheme-pod-rect child but not the group, and the pulse would silently fire at half strength.
 function podBlock() {
   const x = NODE_CX[1] - POD_W / 2;
   const cy = POD_Y + POD_H / 2;
-  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'mounts /data', containers: 0, cat: 'storage' });
+  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'mounts /data', containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'read/write', cat: 'storage' });
+  const innerBox = box({ x: x + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'read/write', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
   return { group, innerBox };
 }
 
-const lane = points => pathArrow({ points, dashed: true, dim: true, color: 'storage' });
+const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'storage' });
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -163,17 +84,14 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const sc  = box({ x: SC_X, y: SC_Y, w: SC_W, h: SC_H, label: 'StorageClass gp3', sublabel: 'volumeBindingMode: Immediate', cat: 'storage' });
-    const pvc = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-0', sublabel: 'Pending', cat: 'storage' });
+    const sc  = box({ x: SC_X, y: SC_Y, w: SC_W, h: SC_H, label: 'StorageClass gp3', sublabel: 'volumeBindingMode: Immediate', role: 'storage' });
+    const pvc = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-0', sublabel: 'Pending', role: 'storage' });
 
     const nodes = NODE_X.map((x, i) => node({ x, y: NODE_Y, w: NODE_W, h: NODE_H, label: `node-${i + 1}` }));
-    // node() carries no sublabel, so the zone is its own dim caption. It shares the frame HEADER line
-    // with the node label, right-anchored: centred under it at NODE_Y + 24 it landed on the top edge of
-    // the Pod the frame holds, since NODE_H now hugs the Pod.
     const zoneLbls = NODE_X.map((x, i) => text({ class: 'scheme-label code dim', x: x + NODE_W - 12, y: NODE_Y + 18, 'text-anchor': 'end' }, [i === 0 ? 'zone-a' : 'zone-b']));
 
     const disks = NODE_CX.map((cx, i) => {
-      const c = cylinder({ x: cx - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: i === 0 ? 'Disk zone-a' : 'Disk zone-b', cat: 'storage' });
+      const c = cylinder({ x: cx - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: i === 0 ? 'Disk zone-a' : 'Disk zone-b', role: 'storage' });
       // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
       // is not part of the visible front face. Re-centre on the face, derived from the height.
       const l = c.querySelector('.scheme-cylinder-label');
@@ -198,31 +116,22 @@ class Scene {
     // zone-a disk dead centre on its top edge. No arrowhead, since the attach never actually succeeds.
     const crossLink = lane(W_CROSS);
     crossLink.removeAttribute('marker-end');
-    // Lanes are pinned per step by setStage. Left permanently visible, the zone-a provisioning lane
-    // was still drawn during the zone-b provisioning step, pointing into a disk that does not exist
-    // on that path.
     [wProvA, wProvB, wMountB, crossLink].forEach(w => { w.style.opacity = '0'; });
 
     const failLbl = text({ class: 'scheme-label code dim', x: CX, y: CROSS_Y - 12, 'text-anchor': 'middle' }, [' ']);
     const zoneCaps = NODE_CX.map(cx => text({ class: 'scheme-label code dim', x: cx, y: CAPTION_Y, 'text-anchor': 'middle' }, [' ']));
 
-    // CHIP_W 232 is the storage family default. Worst case here is 'mode' + 'WaitForFirstConsumer' at
-    // 24 characters, and .scheme-chip-text runs 6.89 viewBox units per character, so 24 * 6.89 + 24 of
-    // padding is 189 against the 232 available.
     const CHIP_W = 232, CHIP_GAP = 16;
     const CHIPS_W = CHIP_W * 4 + CHIP_GAP * 3;                  // 976
     const CHIPS_X = CX - CHIPS_W / 2;                           // 112, so the strip centres on CX
     const chipX = i => CHIPS_X + i * (CHIP_W + CHIP_GAP);
-    const modeChip = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'mode',  value: 'Immediate', cat: 'storage' });
-    const pvcChip  = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'PVC',   value: 'Pending',   cat: 'storage' });
-    const podChip  = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'Pod',   value: 'Pending',   cat: 'storage' });
-    const zoneChip = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'zones', value: 'unset',     cat: 'storage' });
+    const modeChip = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'mode',  value: 'Immediate', role: 'storage' });
+    const pvcChip  = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'PVC',   value: 'Pending',   role: 'storage' });
+    const podChip  = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'Pod',   value: 'Pending',   role: 'storage' });
+    const zoneChip = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'zones', value: 'unset',     role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
-    // Z-order (bottom -> top): the zone frames, then the class and claim and disks, then the Pod so it
-    // sits above its node, then the lanes and their captions, then the chip strip, then the packet
-    // layer so every ball rides above everything.
     [...nodes, ...zoneLbls, sc, pvc, ...disks, podB.group].forEach(el => root.appendChild(el));
     [classRef, wProvA, wProvB, wMountB, crossLink, failLbl, ...zoneCaps].forEach(el => root.appendChild(el));
     [modeChip, pvcChip, podChip, zoneChip].forEach(c => root.appendChild(c));
@@ -241,9 +150,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-// A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-// holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-// always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 function setChip(chip, val) {
   const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
   setVal(chip, val);
@@ -315,7 +221,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.diskA.classList.add('highlight'); return; }
       setStage(s, { diskA: PLACEHOLDER, pvcState: 'Bound', lanes: ['wProvA'] });
       const pts = wProv(0);
-      const prov = routePacket(s, ctx, pts, { delay: BEAT.lead, cat: 'storage' });
+      const prov = routePacket(s, ctx, pts, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', pts, { delay: BEAT.lead });
       // lightBoxAt is registered before revealAt so the reveal fade owns the disk opacity, and the
       // highlight class lands exactly on the ball's arrival.
@@ -358,9 +264,6 @@ const STEPS = [
       setWire(s, 'za', 'healthy but stranded');
       setWire(s, 'fail', 'volume node affinity conflict');
       if (ctx.reduced) return;
-      // The scheduler keeps re-queuing the Pending Pod and rejecting it, so the Pod blinks. It never
-      // went Ready, so it stays dim and needs the dim variant with an opacity lift or the blink is
-      // invisible against the 0.55 it sits at.
       pulsePodDim(s.refs.podB, ctx, BEAT.lead, { from: POD_DIM, peak: 0.95 });
     },
   },
@@ -384,9 +287,6 @@ const STEPS = [
   },
   {
     id: 'wffc-provision',
-    // 5800, not 4400: this step provisions, materialises the disk and then mounts it, and the pulse on
-    // arrival adds PULSE_POD.ms on top, which anim-dump puts at a 5473ms span. At 4400 the auto-advance
-    // cut the mount off before the Pod ever blinked, so the card under-showed exactly what it narrates.
     duration: 5800,
     narration: 'Now that the Pod has a node, the provisioner knows exactly which zone to build in. The volume is created in zone-b, bound to the claim, and attached to node-2 right above it. The Pod mounts it and starts, because the order was reversed so the disk could follow the Pod.',
     enter(s, ctx) {
@@ -401,14 +301,14 @@ const STEPS = [
       if (ctx.reduced) { s.refs.diskB.classList.add('highlight'); s.refs.podBox.classList.add('highlight'); return; }
       setStage(s, { diskB: PLACEHOLDER, podOn: POD_DIM, mode: 'WaitForFirstConsumer', pvcState: 'Bound', lanes: ['wProvB', 'wMountB'] });
       const provPts = wProv(1);
-      const prov = routePacket(s, ctx, provPts, { delay: BEAT.lead, cat: 'storage' });
+      const prov = routePacket(s, ctx, provPts, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', provPts, { delay: BEAT.lead });
       // The disk earns its highlight on the ball's arrival, not at step entry.
       lightBoxAt(s.refs.diskB, ctx, prov.arrivalMs);
       revealAt(s.refs.diskB, ctx, prov.arrivalMs, PLACEHOLDER);
       // Down-arrow into the Pod, so the ball leads and the pulse lands on its arrival.
       const mountAt = prov.arrivalMs + LAND_MS + BEAT.afterHop;
-      const mount = routePacket(s, ctx, W_MOUNT_B, { delay: mountAt, cat: 'storage' });
+      const mount = routePacket(s, ctx, W_MOUNT_B, { delay: mountAt, role: 'storage' });
       ridingLabel(s, ctx, 'attach and mount', W_MOUNT_B, { delay: mountAt });
       ctx.register(s.refs.podB.animate([{ opacity: POD_DIM }, { opacity: 1 }], { duration: FADE.in, delay: mount.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, mount.arrivalMs);

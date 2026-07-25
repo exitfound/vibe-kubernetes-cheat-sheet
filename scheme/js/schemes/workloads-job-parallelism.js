@@ -1,8 +1,10 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-job-parallelism
 
-// valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js
+
+// valChip / setVal / setBoxSublabel are imported from ../lib/workloads-kit.js
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -19,19 +21,19 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Job', sublabel: 'spawn + count', cat: 'control' });
-    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'create Pod · watch exit', cat: 'control' });
+    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Job', sublabel: 'spawn + count', role: 'cluster' });
+    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'create Pod · watch exit', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const parChip       = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'parallelism',  value: '3' });
-    const compChip      = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'completions', value: '6' });
-    const succChip      = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'succeeded',   value: '0' });
-    const failChip      = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'failed',      value: '0' });
+    const parChip       = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'parallelism',  value: '3', role: 'workloads' });
+    const compChip      = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'completions', value: '6', role: 'workloads' });
+    const succChip      = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'succeeded',   value: '0', role: 'workloads' });
+    const failChip      = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'failed',      value: '0', role: 'workloads' });
     [parChip, compChip, succChip, failChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -43,11 +45,11 @@ class Scene {
         '4. retry    ·  exit != 0 → failed++ · respawn (backoffLimit)',
         '5. complete ·  succeeded == completions · Complete=True',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // State chip for the Job status: aligned below the pipeline.
-    const phaseChip = valChip({ x: 830, y: 410, w: 350, h: 32, name: 'job status', value: '0 active' });
+    const phaseChip = valChip({ x: 830, y: 410, w: 350, h: 32, name: 'job status', value: '0 active', role: 'workloads' });
     root.appendChild(phaseChip);
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -56,11 +58,11 @@ class Scene {
     const POD_XS    = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'idle', cat: 'workloads' });
+      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'idle', role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.style.opacity = '0';
@@ -74,7 +76,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -158,8 +160,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // Create travels controller -> Api -> Node. The 3 Pods materialize and pulse
       // together when the create reaches the node (parallelism=3 starts them simultaneously).
-      const req = topPacket(s, ctx);
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       ctx.register(s.refs.pod3.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
@@ -193,10 +195,7 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '0.4';
       if (ctx.reduced) return;
-      // Controller reconciles the observed exits down to the node state. On arrival the
-      // three Pods react together: worker-1 and worker-2 settle as succeeded (stay lit),
-      // worker-3 pulses then dims to show it failed.
-      const recon = connectorPacket(s, ctx);
+      const recon = connectorPacket(s, ctx, { role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, recon.arrivalMs);
       pulsePod(s.refs.pod2, ctx, recon.arrivalMs);
       pulsePod(s.refs.pod3, ctx, recon.arrivalMs);
@@ -226,11 +225,8 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) return;
-      // Replacement create travels controller -> Api -> Node. worker-3 already runs
-      // its retry here at full opacity (the dim belonged to the previous step), all three
-      // live Pods pulse together on arrival (parallelism=3).
-      const req = topPacket(s, ctx);
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, create.arrivalMs);
       pulsePod(s.refs.pod2, ctx, create.arrivalMs);
       pulsePod(s.refs.pod3, ctx, create.arrivalMs);
@@ -260,7 +256,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // Final reconcile reaches the node. The three workers settle to their completed
       // units and pulse together as the Job reaches completions=6 (Complete=True).
-      const fin = connectorPacket(s, ctx);
+      const fin = connectorPacket(s, ctx, { role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, fin.arrivalMs);
       pulsePod(s.refs.pod2, ctx, fin.arrivalMs);
       pulsePod(s.refs.pod3, ctx, fin.arrivalMs);

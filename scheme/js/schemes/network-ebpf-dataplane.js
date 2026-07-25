@@ -1,14 +1,9 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, pod, arrow, pathArrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-ebpf-dataplane
 
-// Layout zones (viewBox 1200x640): the narration overlay sits over the top-left, so the flow runs
-// left to right along y312 (client -> eBPF program -> backend Pod) with the BPF maps box ABOVE the
-// program, mirroring the ClusterIP reference card. This is the eBPF dataplane that replaces
-// kube-proxy: an eBPF program at the socket hook reads a BPF service map and rewrites the
-// connection to a backend at connect() time, so there is no per-packet iptables walk and no DNAT.
-// Standard contract: only Pods pulse, boxes light via .highlight only (no block flash anywhere),
-// packet routes are right-angle and shared by the static wires and the moving packets.
+
 const FLOW_Y = 312;                    // client <-> eBPF program lane
 const FAN_X = 740;                     // fan turn, exactly midway between the program (660) and Pods (820)
 const PODX_Y = 182;                    // chosen backend centre (symmetric about FLOW_Y)
@@ -24,12 +19,12 @@ const TO_PODX = [[HOOK_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, PODX_Y], [POD_X,
 const TO_PODY = [[HOOK_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, PODY_Y], [POD_X, PODY_Y]];
 
 function clientBlock({ x, y, w, h }) {
-  const shell = pod({ x, y, w, h, label: 'client Pod', sublabel: '10.244.1.5', containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label: 'client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
   // The socket dials the Service ClusterIP (10.96.0.10), not a Pod: shown here against the client own
   // Pod IP on the shell, so the two address kinds read side by side. Fits the 160-wide inner box.
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'socket', sublabel: 'connect() 10.96.0.10', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'socket', sublabel: 'connect() 10.96.0.10', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -37,10 +32,10 @@ function clientBlock({ x, y, w, h }) {
 }
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -63,8 +58,8 @@ class Scene {
     root.appendChild(arrowDefs());
 
     const client = clientBlock({ x: 70, y: 252, w: 200, h: 120 });
-    const hook = box({ x: HOOK_X, y: 276, w: HOOK_W, h: 72, label: 'eBPF program', sublabel: 'socket hook', cat: 'network' });
-    const bpfmap = box({ x: HOOK_X, y: 120, w: HOOK_W, h: 72, label: 'BPF maps', sublabel: 'service + endpoints', cat: 'network' });
+    const hook = box({ x: HOOK_X, y: 276, w: HOOK_W, h: 72, label: 'eBPF program', sublabel: 'socket hook', role: 'network' });
+    const bpfmap = box({ x: HOOK_X, y: 120, w: HOOK_W, h: 72, label: 'BPF maps', sublabel: 'service + endpoints', role: 'network' });
 
     // Pod top edge = centre - h/2, so both backends sit symmetric about FLOW_Y (PODX_Y / PODY_Y).
     const w1 = podBlock({ x: POD_X, y: PODX_Y - 57, w: 210, h: 114, label: 'Pod web', ip: '10.244.2.7:8080' });
@@ -78,16 +73,13 @@ class Scene {
     const fanY = pathArrow({ points: TO_PODY, dashed: true, dim: true });
     // No connect-wire label: the connect target (ClusterIP) now lives on the client socket box.
     const lLookup = text({ class: 'scheme-label code dim', x: 565, y: 238, 'text-anchor': 'start', 'font-size': 10 }, [' ']);
-    // Destination label sits UNDER the first fan segment, just as the rewritten connection leaves the
-    // program (the riding src tag rides ABOVE the ball at y312, this sits below it). Centring the fan
-    // turn put the riser under the old slot, so the dst label moved here where it never collides.
     const lDeliver = text({ class: 'scheme-label code dim', x: 700, y: FLOW_Y + 20, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
     // Info chips: three equal widths spanning the diagram content exactly, from the client left edge
     // (70) to the backend Pod right edge (1030), so the strip lines up with the blocks above it.
-    const svcChip = valChip({ x: 70, y: 548, w: 300, h: 34, name: 'BPF svc map', value: 'pending', cat: 'network' });
-    const modeChip = valChip({ x: 400, y: 548, w: 300, h: 34, name: 'load balance', value: 'per-packet DNAT', cat: 'network' });
-    const kpChip = valChip({ x: 730, y: 548, w: 300, h: 34, name: 'kube-proxy', value: 'present', cat: 'network' });
+    const svcChip = valChip({ x: 70, y: 548, w: 300, h: 34, name: 'BPF svc map', value: 'pending', role: 'network' });
+    const modeChip = valChip({ x: 400, y: 548, w: 300, h: 34, name: 'load balance', value: 'per-packet DNAT', role: 'network' });
+    const kpChip = valChip({ x: 730, y: 548, w: 300, h: 34, name: 'kube-proxy', value: 'present', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -119,28 +111,8 @@ function clearHL(s) {
   s.refs.w2.style.opacity = '1';
 }
 
-// Light a box exactly when a packet reaches it (delay = arrivalMs), matching the network reference
-// cards. Under reduced motion or with no delay it lights immediately so the static end-state is right.
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A small label that rides ALONG with a packet on the same route and timing, tagging the ball with
-// the client source IP. It rides unchanged to the backend, which is the no-NAT point made visible.
-// Lives in the packet layer but is not a .scheme-packet, so it is not counted as a packet.
-function ridingLabel(s, ctx, txt, points, { delay, dur }) {
-  if (ctx.reduced) return;
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: -15, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: Math.max(0, delay - 160), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: dur, delay }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: delay + dur + 260, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
 
 const STEPS = [
   {
@@ -196,7 +168,7 @@ const STEPS = [
       // Up-arrow: the client pulses first, the connect call reaches the socket hook, which lights on
       // arrival. The map lights a beat later, as the program looks the address up.
       pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: [270, FLOW_Y], to: [HOOK_X, FLOW_Y], delay: BEAT.afterPulse, cat: 'network' });
+      const send = segmentPacket(s, ctx, { from: [270, FLOW_Y], to: [HOOK_X, FLOW_Y], delay: BEAT.afterPulse, role: 'network' });
       lightBoxAt(s.refs.hook, ctx, send.arrivalMs);
       lightBoxAt(s.refs.bpfmap, ctx, send.arrivalMs + BEAT.afterHop);
     },
@@ -217,7 +189,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.w1Box.classList.add('highlight'); return; }
       // Down-arrow: the rewritten connection rides the right-angle route to the chosen Pod, which
       // pulses on arrival. The client source IP rides with it and arrives unchanged (no NAT).
-      const give = routePacket(s, ctx, TO_PODX, { dur: DELIVER_DUR, cat: 'network' });
+      const give = routePacket(s, ctx, TO_PODX, { dur: DELIVER_DUR, role: 'network' });
       ridingLabel(s, ctx, CLIENT_IP, TO_PODX, { delay: 0, dur: DELIVER_DUR });
       pulsePod(s.refs.w1, ctx, give.arrivalMs);
     },

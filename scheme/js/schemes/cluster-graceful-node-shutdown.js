@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/control-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/cluster-kit.js';
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -17,20 +17,20 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet', sublabel: 'shutdown manager', cat: 'control' });
-    const systemd = box({ x: 580, y: 40, w: 220, h: 80, label: 'systemd', sublabel: 'inhibitor lock',   cat: 'control' });
+    const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet', sublabel: 'shutdown manager', role: 'cluster' });
+    const systemd = box({ x: 580, y: 40, w: 220, h: 80, label: 'systemd', sublabel: 'inhibitor lock',   role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 580, y1: 65, x2: 540, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 540, y1: 95, x2: 580, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 580, y1: 65, x2: 540, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 540, y1: 95, x2: 580, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     // Wire label (font-size: 9) centred in the 40px gap below the top row, populated per step.
     const wireSig = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireSig);
 
-    const lockChip     = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'inhibitor lock',                   value: 'held by Kubelet' });
-    const gpChip       = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'shutdownGracePeriod',              value: '60s' });
-    const gpCritChip   = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'shutdownGracePeriodCriticalPods', value: '20s' });
-    const phaseChip    = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'phase',                            value: 'normal' });
+    const lockChip     = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'inhibitor lock',                   value: 'held by Kubelet', role: 'cluster' });
+    const gpChip       = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'shutdownGracePeriod',              value: '60s', role: 'cluster' });
+    const gpCritChip   = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'shutdownGracePeriodCriticalPods', value: '20s', role: 'cluster' });
+    const phaseChip    = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'phase',                            value: 'normal', role: 'cluster' });
     [lockChip, gpChip, gpCritChip, phaseChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -42,7 +42,7 @@ class Scene {
         '4. critical ·  SIGTERM critical, await up to 20s',
         '5. release  ·  drop lock, OS proceeds with shutdown',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -51,12 +51,12 @@ class Scene {
     const POD_XS   = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
       shell.style.setProperty('--workloads-color', '#c0b0ff');
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 30, y: 525, w: 156, h: 52, label: 'app', sublabel: POD_SUBS[i], cat: 'workloads' });
+      const innerBox = box({ x: px + 30, y: 525, w: 156, h: 52, label: 'app', sublabel: POD_SUBS[i], role: 'workloads' });
       innerBox.style.setProperty('--workloads-color', '#c0b0ff');
 
       const wrap = g({ id: `pod${i + 1}` });
@@ -70,7 +70,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -144,7 +144,7 @@ const STEPS = [
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) return;
-      topPacket(s, ctx, { from: 580, to: 540 });
+      topPacket(s, ctx, { from: 580, to: 540, role: 'cluster' });
     },
   },
   {
@@ -182,7 +182,7 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      const sig = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]]);
+      const sig = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { role: 'cluster' });
       // SIGTERM reaches the node: the non-critical Pods flinch (pulse) then terminate (fade).
       pulsePod(s.refs.pod1, ctx, sig.arrivalMs);
       pulsePod(s.refs.pod2, ctx, sig.arrivalMs);
@@ -209,7 +209,7 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      const sig = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]]);
+      const sig = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { role: 'cluster' });
       // SIGTERM reaches the node: the critical Pod flinches (pulse) then terminates (fade).
       pulsePod(s.refs.pod3, ctx, sig.arrivalMs);
       // Narrative-slow 1200ms fade: the grace-period drain reads as a long dim, not a snap.
@@ -237,7 +237,7 @@ const STEPS = [
       s.refs.pod3.style.opacity = '0';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      topPacket(s, ctx, { y: 95 });
+      topPacket(s, ctx, { y: 95, role: 'cluster' });
     },
   },
 ];

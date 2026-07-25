@@ -2,15 +2,16 @@
   "name": "scheme-tools",
   "private": true,
   "type": "module",
-  "description": "Local dev tools for the scheme/ subsite (gate = canon + smoke). Not shipped to GitHub Pages. Needs a server at http://localhost:8080.",
+  "description": "Local dev tools for the scheme/ subsite (gate = canon + smoke + reduced + palette). Not shipped to GitHub Pages. Needs a server at http://localhost:8080.",
   "scripts": {
     "frame-strip": "node frame-strip.mjs",
     "dump": "node anim-dump.mjs",
     "canon": "node check-canon.mjs",
     "smoke": "node smoke-all.mjs",
-    "gate": "node check-canon.mjs && node smoke-all.mjs",
+    "gate": "node check-canon.mjs && node smoke-all.mjs && node check-reduced.mjs && node check-palette.mjs",
     "geometry": "node check-geometry.mjs",
     "reduced": "node check-reduced.mjs",
+    "palette": "node check-palette.mjs",
     "overlay": "node overlay-measure.mjs"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, FADE } from '../lib/control-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, FADE } from '../lib/cluster-kit.js';
 
 const CONNECTOR = [[320, 80], [280, 80], [280, 550], [320, 550]];
 
@@ -20,13 +20,13 @@ class Scene {
     root.appendChild(arrowDefs());
 
     // Top row: Kubelet (the eviction actor) on the left, state chips column on the right.
-    const kubelet = box({ x: 320, y: 40, w: 320, h: 80, label: 'Kubelet', sublabel: 'eviction manager + cAdvisor', cat: 'control' });
+    const kubelet = box({ x: 320, y: 40, w: 320, h: 80, label: 'Kubelet', sublabel: 'eviction manager + cAdvisor', role: 'cluster' });
 
     // State chips column (right of Kubelet, starting at the same Y).
-    const memChip       = valChip({ x: 700, y: 40,  w: 480, h: 32, name: 'memory.available',  value: '4Gi' });
-    const thresholdChip = valChip({ x: 700, y: 82,  w: 480, h: 32, name: '--eviction-hard',   value: 'memory.available<1Gi' });
-    const pressureChip  = valChip({ x: 700, y: 124, w: 480, h: 32, name: 'MemoryPressure',    value: 'False' });
-    const victimChip    = valChip({ x: 700, y: 166, w: 480, h: 32, name: 'victim',            value: '—' });
+    const memChip       = valChip({ x: 700, y: 40,  w: 480, h: 32, name: 'memory.available',  value: '4Gi', role: 'cluster' });
+    const thresholdChip = valChip({ x: 700, y: 82,  w: 480, h: 32, name: '--eviction-hard',   value: 'memory.available<1Gi', role: 'cluster' });
+    const pressureChip  = valChip({ x: 700, y: 124, w: 480, h: 32, name: 'MemoryPressure',    value: 'False', role: 'cluster' });
+    const victimChip    = valChip({ x: 700, y: 166, w: 480, h: 32, name: 'victim',            value: 'none', role: 'cluster' });
     [memChip, thresholdChip, pressureChip, victimChip].forEach(c => root.appendChild(c));
 
     // Pipeline chain on the left, 5 stages of node-pressure eviction.
@@ -39,7 +39,7 @@ class Scene {
         '4. evict     ·  SIGKILL victim, grace 0',
         '5. relieve   ·  pressure clears, reset',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     // Bottom row: Node-1 container with three Pods of different QoS classes.
@@ -49,12 +49,12 @@ class Scene {
     const POD_XS     = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
       shell.style.setProperty('--workloads-color', '#c0b0ff');
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 30, y: 525, w: 156, h: 52, label: 'app', sublabel: QOS_LABELS[i], cat: 'workloads' });
+      const innerBox = box({ x: px + 30, y: 525, w: 156, h: 52, label: 'app', sublabel: QOS_LABELS[i], role: 'workloads' });
       innerBox.style.setProperty('--workloads-color', '#c0b0ff');
 
       const wrap = g({ id: `pod${i + 1}` });
@@ -68,7 +68,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -119,7 +119,7 @@ const STEPS = [
       setVal(s.refs.memChip, '4Gi');
       setVal(s.refs.thresholdChip, 'memory.available<1Gi');
       setVal(s.refs.pressureChip, 'False');
-      setVal(s.refs.victimChip, '—');
+      setVal(s.refs.victimChip, 'none');
       setChainActive(s.refs.chain, -1);
     },
   },
@@ -133,7 +133,7 @@ const STEPS = [
       resetPodOpacity(s);
       setVal(s.refs.memChip, '500Mi');
       setVal(s.refs.pressureChip, 'False');
-      setVal(s.refs.victimChip, '—');
+      setVal(s.refs.victimChip, 'none');
       s.refs.kubelet.classList.add('highlight');
       s.refs.memChip.classList.add('highlight');
       s.refs.thresholdChip.classList.add('highlight');
@@ -194,7 +194,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // SIGKILL travels to the node, the victim reacts only on arrival. delay 0 means
       // routePacket starts the ball visible (fadeIn is delay-gated), matching the old call.
-      const kill = routePacket(s, ctx, CONNECTOR);
+      const kill = routePacket(s, ctx, CONNECTOR, { role: 'cluster' });
       pulsePod(s.refs.pod1, ctx, kill.arrivalMs);
       ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: kill.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
@@ -208,7 +208,7 @@ const STEPS = [
       clearHL(s);
       setVal(s.refs.memChip, '3.5Gi');
       setVal(s.refs.pressureChip, 'False');
-      setVal(s.refs.victimChip, '—');
+      setVal(s.refs.victimChip, 'none');
       s.refs.pod1.style.opacity = '0';
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';

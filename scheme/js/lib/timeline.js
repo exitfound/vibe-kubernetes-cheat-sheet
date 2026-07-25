@@ -1,5 +1,6 @@
 import { reducedMotion } from './motion.js';
 import { PULSE_BLOCK } from './tokens.js';
+// Design notes: scheme/docs/INTERNALS.md#schemejslibtimelinejs
 
 export class Timeline {
   constructor({ steps, scene, onSceneReset, onChange, onPlayingChange, defaultDuration = 2000, posterFirst = false, autoPulse = true }) {
@@ -19,9 +20,6 @@ export class Timeline {
     // When true, steps[0] is a non-narrated "poster" rest frame: auto-play and loop
     // start at step 1 (the first action), and manual Next wraps the last step back to it.
     this.posterFirst = posterFirst;
-    // Generic block auto-pulse (a brightness flash on every freshly highlighted block/
-    // chip). Workloads + control cards set this false so only pods pulse; the other
-    // categories keep it on. Pods pulse via explicit pulsePod calls regardless.
     this.autoPulse = autoPulse;
     this._destroyed = false;
     queueMicrotask(() => this._notifyChange());
@@ -58,9 +56,6 @@ export class Timeline {
     if (this._timer) { clearTimeout(this._timer); this._timer = null; }
   }
 
-  // Auto-play after an opening dwell. Owned by the Timeline so any explicit action
-  // (pause/step/gotoStep/restart/destroy) cancels it — no surprise playback firing
-  // after the user has interacted, and no race with headless step-probing.
   autoPlay(ms) {
     this._clearAutoPlay();
     this._autoPlayTimer = setTimeout(() => {
@@ -132,7 +127,8 @@ export class Timeline {
         try {
           const t = a.effect && a.effect.getTiming();
           if (!t) continue;
-          // Skip infinite-iteration animations (e.g. flowDash idle loops).
+          // Skip infinite-iteration animations: network-model's marchWire is one, and waiting
+          // on it would hang the step forever. Do not remove this guard.
           if (!isFinite(t.iterations)) continue;
           const iters = t.iterations || 1;
           const dur   = t.duration   || 0;

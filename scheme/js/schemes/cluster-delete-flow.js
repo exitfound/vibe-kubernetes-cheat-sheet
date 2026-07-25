@@ -1,6 +1,8 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, arrow, pathArrow } from '../lib/primitives.js';
-import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/control-kit.js';
+import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/cluster-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#cluster-delete-flow
+
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -17,38 +19,35 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = box({ x: 130, y: 60, w: 130, h: 80, label: 'Kubectl', cat: 'control' });
+    const client = box({ x: 130, y: 60, w: 130, h: 80, label: 'Kubectl', role: 'cluster' });
     root.appendChild(client);
 
-    const apisrv = box({ x: 390, y: 60, w: 220, h: 80, label: 'Api', cat: 'control' });
+    const apisrv = box({ x: 390, y: 60, w: 220, h: 80, label: 'Api', role: 'cluster' });
     root.appendChild(apisrv);
 
-    // ETCD narrowed to w=130 (was 140) so the label is not lost in a squat-wide cylinder and the
-    // two control-plane cards match. Top/height unchanged (y=50, h=100) so its centre stays level
-    // with the Api row (y=100) and the top wire labels keep their clearance above the cap.
-    const etcd = cylinder({ x: 750, y: 50, w: 130, h: 100, label: 'ETCD', cat: 'control' });
+    const etcd = cylinder({ x: 750, y: 50, w: 130, h: 100, label: 'ETCD', role: 'cluster' });
     root.appendChild(etcd);
 
     // ControllerManager and GarbageCollector are mirrored about the Api spine (x=500): both
     // 240 wide, centres at 250 and 750 (250 either side of the spine).
-    const cm = box({ x: 130, y: 240, w: 240, h: 80, label: 'ControllerManager', cat: 'control' });
+    const cm = box({ x: 130, y: 240, w: 240, h: 80, label: 'ControllerManager', role: 'cluster' });
     root.appendChild(cm);
 
-    const gc = box({ x: 630, y: 240, w: 240, h: 80, label: 'GarbageCollector', cat: 'control' });
+    const gc = box({ x: 630, y: 240, w: 240, h: 80, label: 'GarbageCollector', role: 'cluster' });
     root.appendChild(gc);
 
     const nodeEl = node({ x: 50, y: 410, w: 900, h: 190, label: 'Node-1' });
     root.appendChild(nodeEl);
 
-    const kubelet = box({ x: 90, y: 465, w: 220, h: 80, label: 'Kubelet', cat: 'control' });
+    const kubelet = box({ x: 90, y: 465, w: 220, h: 80, label: 'Kubelet', role: 'cluster' });
     root.appendChild(kubelet);
 
-    const placedPodShell = pod({ x: 530, y: 452, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, cat: 'workloads' });
+    const placedPodShell = pod({ x: 530, y: 452, w: 216, h: 106, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     placedPodShell.style.setProperty('--workloads-color', '#c0b0ff');
     const placedPodShellRect = placedPodShell.querySelector('.scheme-pod-rect');
     if (placedPodShellRect) placedPodShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const placedPodBox = box({ x: 560, y: 480, w: 156, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', cat: 'workloads' });
+    const placedPodBox = box({ x: 560, y: 480, w: 156, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', role: 'workloads' });
     placedPodBox.style.setProperty('--workloads-color', '#c0b0ff');
 
     const placedPod = g({ id: 'placedPod' });
@@ -56,26 +55,23 @@ class Scene {
     placedPod.appendChild(placedPodBox);
     root.appendChild(placedPod);
 
-    const kubeletPodArrow = arrow({ x1: 310, y1: 505, x2: 530, y2: 505, dashed: true, color: 'control' });
+    const kubeletPodArrow = arrow({ x1: 310, y1: 505, x2: 530, y2: 505, dashed: true, role: 'cluster' });
     root.appendChild(kubeletPodArrow);
 
     // Top-row lanes straddle the Api/Kubectl/ETCD centre line (y=100): request out at y=90,
     // response back at y=110, so the pair sits centred on the blocks instead of low.
-    root.appendChild(arrow({ x1: 260, y1: 90, x2: 390, y2: 90, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 610, y1: 90, x2: 750, y2: 90, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 750, y1: 110, x2: 610, y2: 110, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 390, y1: 110, x2: 260, y2: 110, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 260, y1: 90, x2: 390, y2: 90, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 610, y1: 90, x2: 750, y2: 90, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 750, y1: 110, x2: 610, y2: 110, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 390, y1: 110, x2: 260, y2: 110, dim: true, dashed: true, role: 'cluster' }));
     // Api -> ControllerManager and Api -> GarbageCollector, mirrored about the spine (x=500).
-    root.appendChild(pathArrow({ points: [[450, 140], [450, 200], [250, 200], [250, 240]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: [[550, 140], [550, 200], [760, 200], [760, 240]], dim: true, dashed: true, color: 'control' }));
-    // GarbageCollector DELETEs back up to the Api. Nested inside-and-below the event arrow (exits
-    // GC top left of the centre entry, lower lane y=220) so the two never cross, the same out/back
-    // layout the Control Plane Architecture card uses.
-    root.appendChild(pathArrow({ points: [[740, 240], [740, 220], [540, 220], [540, 140]], dim: true, dashed: true, color: 'control' }));
+    root.appendChild(pathArrow({ points: [[450, 140], [450, 200], [250, 200], [250, 240]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[550, 140], [550, 200], [760, 200], [760, 240]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[740, 240], [740, 220], [540, 220], [540, 140]], dim: true, dashed: true, role: 'cluster' }));
     // Api -> Kubelet and the Kubelet -> Api return lane (the "Pod terminated" report) straddle the
     // Kubelet centre (x=190 in, x=210 out) and keep their horizontal legs clear of the Node top.
-    root.appendChild(pathArrow({ points: [[500, 140], [500, 360], [190, 360], [190, 465]], dim: true, dashed: true, color: 'control' }));
-    root.appendChild(pathArrow({ points: [[210, 465], [210, 380], [520, 380], [520, 140]], dim: true, dashed: true, color: 'control' }));
+    root.appendChild(pathArrow({ points: [[500, 140], [500, 360], [190, 360], [190, 465]], dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: [[210, 465], [210, 380], [520, 380], [520, 140]], dim: true, dashed: true, role: 'cluster' }));
 
     const wireDelete       = text({ class: 'scheme-label code dim', x: 325, y: 46,  'text-anchor': 'middle' }, [' ']);
     const wirePersist      = text({ class: 'scheme-label code dim', x: 680, y: 46,  'text-anchor': 'middle' }, [' ']);
@@ -139,7 +135,7 @@ const STEPS = [
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'delete', 'DELETE /apis/apps/v1/.../deployments/my-app');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[260, 90], [325, 90], [390, 90]]);
+      routePacket(s, ctx, [[260, 90], [325, 90], [390, 90]], { role: 'cluster' });
     },
   },
   {
@@ -154,7 +150,7 @@ const STEPS = [
       s.refs.etcd.classList.add('highlight');
       setWire(s, 'persist', 'patch deletionTimestamp · rv=843');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[610, 90], [680, 90], [750, 90]]);
+      routePacket(s, ctx, [[610, 90], [680, 90], [750, 90]], { role: 'cluster' });
     },
   },
   {
@@ -172,8 +168,8 @@ const STEPS = [
       s.refs.wires['api-ack'].textContent  = 'HTTP 202 Accepted';
       if (ctx.reduced) return;
 
-      const ack = routePacket(s, ctx, [[750, 110], [680, 110], [610, 110]]);
-      routePacket(s, ctx, [[390, 110], [260, 110]], { delay: ack.arrivalMs + BEAT.afterHop });
+      const ack = routePacket(s, ctx, [[750, 110], [680, 110], [610, 110]], { role: 'cluster' });
+      routePacket(s, ctx, [[390, 110], [260, 110]], { delay: ack.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -191,13 +187,13 @@ const STEPS = [
       s.refs.wires['gc'].textContent         = 'DELETE replicasets · pods';
       if (ctx.reduced) return;
 
-      const gcEvent = routePacket(s, ctx, [[550, 140], [550, 200], [760, 200], [760, 240]]);
+      const gcEvent = routePacket(s, ctx, [[550, 140], [550, 200], [760, 200], [760, 240]], { role: 'cluster' });
       // To CM (left), for Deployment/ReplicaSet controllers:
-      routePacket(s, ctx, [[450, 140], [450, 200], [250, 200], [250, 240]]);
+      routePacket(s, ctx, [[450, 140], [450, 200], [250, 200], [250, 240]], { role: 'cluster' });
 
       // The MODIFIED-event packet reaching GC carries the beat, then the
       // PATCH-back packet leaves below once the event has landed.
-      routePacket(s, ctx, [[740, 240], [740, 220], [540, 220], [540, 140]], { delay: gcEvent.arrivalMs + BEAT.afterHop });
+      routePacket(s, ctx, [[740, 240], [740, 220], [540, 220], [540, 140]], { delay: gcEvent.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -212,7 +208,7 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       setWire(s, 'kubelet-watch', 'watch MODIFIED · Pod');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[500, 140], [500, 360], [190, 360], [190, 465]]);
+      routePacket(s, ctx, [[500, 140], [500, 360], [190, 360], [190, 465]], { role: 'cluster' });
     },
   },
   {
@@ -230,7 +226,7 @@ const STEPS = [
       s.refs.placedPod.style.opacity = '0.4';
       if (ctx.reduced) return;
       // SIGTERM packet flies from Kubelet to Pod first.
-      const sigterm = routePacket(s, ctx, [[310, 505], [420, 505], [530, 505]]);
+      const sigterm = routePacket(s, ctx, [[310, 505], [420, 505], [530, 505]], { role: 'cluster' });
       // Narrative-slow fade: the grace-period drain reads as a long dim, not a snap.
       ctx.register(s.refs.placedPod.animate(
         [{ opacity: 1 }, { opacity: 0.4 }],
@@ -241,7 +237,7 @@ const STEPS = [
       pulsePod(s.refs.placedPod, ctx, sigterm.arrivalMs);
       // After the grace-period drain, the Kubelet reports the terminated Pod up to the Api on the
       // return lane.
-      routePacket(s, ctx, [[210, 465], [210, 380], [520, 380], [520, 140]], { delay: sigterm.arrivalMs + 800 });
+      routePacket(s, ctx, [[210, 465], [210, 380], [520, 380], [520, 140]], { delay: sigterm.arrivalMs + 800, role: 'cluster' });
     },
   },
   {
@@ -263,8 +259,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // The GarbageCollector clears the foregroundDeletion finalizer (PATCH up to the Api), then the
       // Api issues the real DELETE to ETCD. The Pod and its arrow vanish as the object leaves ETCD.
-      const clear = routePacket(s, ctx, [[740, 240], [740, 220], [540, 220], [540, 140]]);
-      const del = routePacket(s, ctx, [[610, 90], [680, 90], [750, 90]], { delay: clear.arrivalMs + BEAT.afterHop });
+      const clear = routePacket(s, ctx, [[740, 240], [740, 220], [540, 220], [540, 140]], { role: 'cluster' });
+      const del = routePacket(s, ctx, [[610, 90], [680, 90], [750, 90]], { delay: clear.arrivalMs + BEAT.afterHop, role: 'cluster' });
       ctx.register(s.refs.placedPod.animate(
         [{ opacity: 0.4 }, { opacity: 0 }],
         { duration: 700, delay: del.arrivalMs, fill: 'forwards', easing: 'ease-out' }

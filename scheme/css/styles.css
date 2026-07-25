@@ -1,3 +1,4 @@
+/* Design notes: scheme/docs/INTERNALS.md#schemecssstylescss */
 @import url('tokens.css');
 @import url('diagrams.css');
 
@@ -517,7 +518,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .cat-btn.active[data-cat="network"]   { color: var(--network-color);   background: var(--network-glow);   border-color: var(--network-border); }
 .cat-btn.active[data-cat="storage"]   { color: var(--storage-color);   background: var(--storage-glow);   border-color: var(--storage-border); }
 .cat-btn.active[data-cat="workloads"] { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
-.cat-btn.active[data-cat="control"]   { color: var(--control-color);   background: var(--control-glow);   border-color: var(--control-border); }
+.cat-btn.active[data-cat="cluster"]   { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
 
 /* ===== SUB-CATEGORY NAV (mirrors CLI mid-row coordinates) ===== */
 .cat-nav-sub {
@@ -562,7 +563,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .cat-nav-sub[data-cat="network"]   .subcat-btn.active { color: var(--network-color);   background: var(--network-glow);   border-color: var(--network-border); }
 .cat-nav-sub[data-cat="storage"]   .subcat-btn.active { color: var(--storage-color);   background: var(--storage-glow);   border-color: var(--storage-border); }
 .cat-nav-sub[data-cat="workloads"] .subcat-btn.active { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
-.cat-nav-sub[data-cat="control"]   .subcat-btn.active { color: var(--control-color);   background: var(--control-glow);   border-color: var(--control-border); }
+.cat-nav-sub[data-cat="cluster"]   .subcat-btn.active { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
 
 /* ===== MAIN GRID ===== */
 .main {
@@ -598,7 +599,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .section[data-cat="network"]   .section-header::after { background: linear-gradient(90deg, rgba(79,229,255,0.70)  0%, rgba(79,229,255,0.50)  50%, rgba(79,229,255,0.28)  80%, transparent 100%); }
 .section[data-cat="workloads"] .section-header::after { background: linear-gradient(90deg, rgba(61,160,255,0.70)  0%, rgba(61,160,255,0.50)  50%, rgba(61,160,255,0.28)  80%, transparent 100%); }
 .section[data-cat="storage"]   .section-header::after { background: linear-gradient(90deg, rgba(94,202,148,0.70)  0%, rgba(94,202,148,0.50)  50%, rgba(94,202,148,0.28)  80%, transparent 100%); }
-.section[data-cat="control"]   .section-header::after { background: linear-gradient(90deg, rgba(125,134,255,0.70) 0%, rgba(125,134,255,0.50) 50%, rgba(125,134,255,0.28) 80%, transparent 100%); }
+.section[data-cat="cluster"]   .section-header::after { background: linear-gradient(90deg, rgba(125,134,255,0.70) 0%, rgba(125,134,255,0.50) 50%, rgba(125,134,255,0.28) 80%, transparent 100%); }
 
 .section-icon {
   width: 28px;
@@ -615,7 +616,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .section[data-cat="network"]   .section-icon { background: var(--network-glow);   border-color: var(--network-border);   color: var(--network-color); }
 .section[data-cat="workloads"] .section-icon { background: var(--workloads-glow); border-color: var(--workloads-border); color: var(--workloads-color); }
 .section[data-cat="storage"]   .section-icon { background: var(--storage-glow);   border-color: var(--storage-border);   color: var(--storage-color); }
-.section[data-cat="control"]   .section-icon { background: var(--control-glow);   border-color: var(--control-border);   color: var(--control-color); }
+.section[data-cat="cluster"]   .section-icon { background: var(--cluster-glow);   border-color: var(--cluster-border);   color: var(--cluster-color); }
 
 .section-title {
   font-size: 20px;
@@ -633,7 +634,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .section[data-cat="network"]   .section-sub { color: var(--network-color);   opacity: 0.75; }
 .section[data-cat="workloads"] .section-sub { color: var(--workloads-color); opacity: 0.75; }
 .section[data-cat="storage"]   .section-sub { color: var(--storage-color);   opacity: 0.75; }
-.section[data-cat="control"]   .section-sub { color: var(--control-color);   opacity: 0.75; }
+.section[data-cat="cluster"]   .section-sub { color: var(--cluster-color);   opacity: 0.75; }
 
 .section-count {
   margin-left: auto;
@@ -653,7 +654,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .section[data-cat="network"]   .section-count { color: var(--network-color);   background: var(--network-glow);   border-color: var(--network-border); }
 .section[data-cat="workloads"] .section-count { color: var(--workloads-color); background: var(--workloads-glow); border-color: var(--workloads-border); }
 .section[data-cat="storage"]   .section-count { color: var(--storage-color);   background: var(--storage-glow);   border-color: var(--storage-border); }
-.section[data-cat="control"]   .section-count { color: var(--control-color);   background: var(--control-glow);   border-color: var(--control-border); }
+.section[data-cat="cluster"]   .section-count { color: var(--cluster-color);   background: var(--cluster-glow);   border-color: var(--cluster-border); }
 
 .cards-grid {
   display: grid;
@@ -680,7 +681,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .card[data-cat="network"]:hover   { border-color: var(--network-color); }
 .card[data-cat="storage"]:hover   { border-color: var(--storage-color); }
 .card[data-cat="workloads"]:hover { border-color: var(--workloads-color); }
-.card[data-cat="control"]:hover   { border-color: var(--control-color); }
+.card[data-cat="cluster"]:hover   { border-color: var(--cluster-color); }
 
 .card-poster {
   aspect-ratio: 16 / 9;
@@ -739,8 +740,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="storage"]   .card-cat { background: var(--storage-glow);   color: var(--storage-color);   border-color: var(--storage-border); }
 .card[data-cat="workloads"] .card-cat,
 .scheme-dialog[data-cat="workloads"] .card-cat { background: var(--workloads-glow); color: var(--workloads-color); border-color: var(--workloads-border); }
-.card[data-cat="control"]   .card-cat,
-.scheme-dialog[data-cat="control"]   .card-cat { background: var(--control-glow);   color: var(--control-color);   border-color: var(--control-border); }
+.card[data-cat="cluster"]   .card-cat,
+.scheme-dialog[data-cat="cluster"]   .card-cat { background: var(--cluster-glow);   color: var(--cluster-color);   border-color: var(--cluster-border); }
 .card-version {
   font-size: 11px;
   font-family: 'JetBrains Mono', monospace;
@@ -784,16 +785,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="network"]   { border-top: 3px solid var(--network-color); }
 .scheme-dialog[data-cat="storage"]   { border-top: 3px solid var(--storage-color); }
 .scheme-dialog[data-cat="workloads"] { border-top: 3px solid var(--workloads-color); }
-.scheme-dialog[data-cat="control"]   { border-top: 3px solid var(--control-color); }
+.scheme-dialog[data-cat="cluster"]   { border-top: 3px solid var(--cluster-color); }
 
-/* ===== TINTED DIALOG =====
-   The whole modal collapses onto one category's colour ramp. Each category
-   supplies a literal 3-stop ramp (deep / base / bright) plus glow, border and
-   surface values. The generic rule then remaps every category token, the
-   accent trio, the diagram stroke/arrow tokens and the dialog surface onto
-   that ramp. Literal hex values are used on purpose: a var() chain back to the
-   category tokens is what made the previous version cyclic and invalid, and
-   color-mix is avoided so resolution is fully deterministic everywhere. */
 .scheme-dialog[data-tinted="true"][data-cat="workloads"] {
   --tint-deep:      #3f5d8a;
   --tint-base:      #5bb8ff;
@@ -808,7 +801,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   --tint-fill:      rgba(22, 34, 66, 0.72);
   --tint-fill-node: rgba(13, 21, 44, 0.62);
 }
-.scheme-dialog[data-tinted="true"][data-cat="control"] {
+.scheme-dialog[data-tinted="true"][data-cat="cluster"] {
   --tint-deep:      #4c4f92;
   --tint-base:      #7d86ff;
   --tint-bright:    #abb0f5;
@@ -852,7 +845,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
   --accent-glow:   var(--tint-glow);
   --accent-border: var(--tint-border);
 
-  --control-color:   var(--tint-base); --control-glow:   var(--tint-glow); --control-border:   var(--tint-border);
+  --cluster-color:   var(--tint-base); --cluster-glow:   var(--tint-glow); --cluster-border:   var(--tint-border);
   --network-color:   var(--tint-base); --network-glow:   var(--tint-glow); --network-border:   var(--tint-border);
   --workloads-color: var(--tint-base); --workloads-glow: var(--tint-glow); --workloads-border: var(--tint-border);
   --storage-color:   var(--tint-base); --storage-glow:   var(--tint-glow); --storage-border:   var(--tint-border);
@@ -875,11 +868,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-tinted="true"] .dialog-header {
   border-bottom-color: var(--tint-border);
 }
-/* Player-chrome gradation: the modal reads as a three-step ramp instead of one
-   flat tone. The canvas (--tint-canvas) is darkest, the controls bar
-   (--tint-chrome) is the mid tone, the header and step-dots strip (--bg-card,
-   from --tint-surface) are lightest. --tint-chrome falls back to the old
-   --tint-fill-node for any category that has not defined it. */
 .scheme-dialog[data-tinted="true"] .dialog-controls {
   background: var(--tint-chrome, var(--tint-fill-node));
   border-top-color: var(--tint-border);
@@ -1003,7 +991,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="network"]   .narration-overlay { border-left-color: var(--network-color); }
 .scheme-dialog[data-cat="workloads"] .narration-overlay { border-left-color: var(--workloads-color); }
 .scheme-dialog[data-cat="storage"]   .narration-overlay { border-left-color: var(--storage-color); }
-.scheme-dialog[data-cat="control"]   .narration-overlay { border-left-color: var(--control-color); }
+.scheme-dialog[data-cat="cluster"]   .narration-overlay { border-left-color: var(--cluster-color); }
 .narration-overlay .narration-step {
   font-size: 11px;
   color: var(--text-dim);
@@ -1035,7 +1023,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="network"]   .dialog-progress-fill { background: var(--network-color); }
 .scheme-dialog[data-cat="workloads"] .dialog-progress-fill { background: var(--workloads-color); }
 .scheme-dialog[data-cat="storage"]   .dialog-progress-fill { background: var(--storage-color); }
-.scheme-dialog[data-cat="control"]   .dialog-progress-fill { background: var(--control-color); }
+.scheme-dialog[data-cat="cluster"]   .dialog-progress-fill { background: var(--cluster-color); }
 
 .dialog-step-dots {
   display: flex;
@@ -1079,18 +1067,13 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="workloads"] .step-dot.active { background: var(--workloads-color); }
 .scheme-dialog[data-cat="storage"]   .step-dot.passed,
 .scheme-dialog[data-cat="storage"]   .step-dot.active { background: var(--storage-color); }
-.scheme-dialog[data-cat="control"]   .step-dot.passed,
-.scheme-dialog[data-cat="control"]   .step-dot.active { background: var(--control-color); }
+.scheme-dialog[data-cat="cluster"]   .step-dot.passed,
+.scheme-dialog[data-cat="cluster"]   .step-dot.active { background: var(--cluster-color); }
 .scheme-dialog[data-cat="network"]   .step-dot.passed,
 .scheme-dialog[data-cat="workloads"] .step-dot.passed,
 .scheme-dialog[data-cat="storage"]   .step-dot.passed,
-.scheme-dialog[data-cat="control"]   .step-dot.passed { opacity: 0.5; }
+.scheme-dialog[data-cat="cluster"]   .step-dot.passed { opacity: 0.5; }
 
-/* Tinted dialog, bright end of the ramp. Highlighted diagram elements, moving
-   packets and the player progress/dots lift to --tint-bright, so the
-   foreground reads lighter than the base-tone blocks and the deep-tone
-   structure. These rules sit after the per-category ones so they win the
-   equal-specificity tie. */
 .scheme-dialog[data-tinted="true"] .scheme-box.highlight .scheme-box-rect,
 .scheme-dialog[data-tinted="true"] .scheme-chip.highlight .scheme-chip-rect,
 .scheme-dialog[data-tinted="true"] .scheme-pod.highlight .scheme-pod-rect,
@@ -1102,9 +1085,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
   fill: var(--tint-bright);
   filter: drop-shadow(0 0 6px var(--tint-bright));
 }
-/* Network --tint-bright is a pale cyan (#9eeaf7), which washes the ball out. The
-   saturated network cyan reads far more vividly, so pin packet + ripple to it for
-   network dialogs only (higher specificity than the generic tinted rule above). */
 .scheme-dialog[data-cat="network"][data-tinted="true"] .scheme-packet {
   fill: #4fe5ff;
   filter: drop-shadow(0 0 6px #4fe5ff);
@@ -1123,12 +1103,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
   fill: var(--tint-glow);
 }
 
-/* Player chrome, mirrored from the non-tinted cluster cards but with a wider
-   gap between the two states. Idle controls blend into the panel: same fill as
-   the controls bar, a barely-there border, calm light icon. The active Play,
-   pressed Loop, hovered button and selected speed take a clear accent: a lit
-   --tint-active fill, bright border and bright icon. The idle chip recedes,
-   the active chip plainly stands out. */
 .scheme-dialog[data-tinted="true"] .ctl-btn,
 .scheme-dialog[data-tinted="true"] .ctl-speed {
   border-color: var(--tint-edge);
@@ -1143,9 +1117,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
   background: var(--tint-active);
   color: var(--tint-bright);
 }
-/* Disabled control (Prev on step 0, Next on the last step): keep the full chip
-   so it stays uniform with its neighbours, only the icon dims to the deep
-   tone. The base rule's blunt opacity: 0.4 made the whole button look broken. */
 .scheme-dialog[data-tinted="true"] .ctl-btn:disabled {
   opacity: 1;
   color: var(--tint-deep);
@@ -1154,9 +1125,6 @@ body.sidebar-collapsed .side-expand { display: grid; }
   background: var(--tint-active);
   color: var(--tint-bright);
 }
-/* Progress fill and the active/passed step dots drop from the bright tone to
-   the base tone, a touch darker, as requested. The track and idle dots keep
-   the faint glow. */
 .scheme-dialog[data-tinted="true"] .dialog-progress { background: var(--tint-glow); }
 .scheme-dialog[data-tinted="true"] .step-dot { background: var(--tint-glow); }
 .scheme-dialog[data-tinted="true"] .dialog-progress-fill,

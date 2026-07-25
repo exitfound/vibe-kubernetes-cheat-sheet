@@ -1,26 +1,24 @@
-// Headless smoke test: open every scheme, build its SVG, step through all steps,
-// and report any console errors / page exceptions. The cheap half of the gate
-// (alongside check-canon). Requires the dev server up on :8080.
-import { launch, setInspect, stepCount, DEFAULT_BASE } from './_shared.mjs';
+// smoke-all.mjs: open every scheme, build it, walk every step twice (reduced and PLAYED) and fail on
+// any console error or page exception. The played pass is the point: stepping only via gotoStep under
+// reducedMotion never executes a single line below `if (ctx.reduced) return;`. In the gate.
+import { launch, setInspect, stepCount, enterStep, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 
 const BASE = DEFAULT_BASE;
 
 const browser = await launch();
-const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+// NOT reducedMotion: the played pass has to run the real motion path.
+const ctx = await browser.newContext();
 const page = await ctx.newPage();
 await page.addInitScript(setInspect, 'expose');
 
-// Discover scheme ids from the grid.
-await page.goto(`${BASE}/scheme/`, { waitUntil: 'networkidle' });
-const ids = await page.$$eval('article.card', els =>
-  els.map(e => e.dataset.id || e.getAttribute('data-id')).filter(Boolean));
+const ids = await discoverIds(page, BASE);
 console.log(`discovered ${ids.length} schemes`);
-if (ids.length === 0) { console.error('NO CARDS RENDERED — posters/grid broken'); process.exit(1); }
+if (ids.length === 0) { console.error('NO CARDS RENDERED: posters/grid broken'); process.exit(1); }
 
 const results = [];
 for (const id of ids) {
   const errs = [];
-  // Ignore the Cloudflare RUM analytics beacon — it fails CORS on localhost,
+  // Ignore the Cloudflare RUM analytics beacon: it fails CORS on localhost,
   // pre-existing and unrelated to the JS under test.
   const ignore = t => /cloudflareinsights|cdn-cgi\/rum|ERR_FAILED/.test(t);
   const onConsole = m => { if (m.type() === 'error' && !ignore(m.text())) errs.push(`console: ${m.text()}`); };
@@ -32,10 +30,17 @@ for (const id of ids) {
     await page.waitForSelector('dialog.scheme-dialog svg.diagram', { timeout: 8000 });
     const built = await page.$eval('dialog.scheme-dialog svg.diagram', s => s.childElementCount);
     const total = await stepCount(page);
-    // step through every step via the exposed controller
+    // Pass 1, reduced: the static end-state of every step, the path prev/reset takes.
     for (let i = 0; i < total; i++) {
       await page.evaluate(n => window.__schemeCtl && window.__schemeCtl.gotoStep(n), i);
-      await page.waitForTimeout(40);
+      await page.waitForTimeout(30);
+    }
+    // Pass 2, played: enterStep runs each step's real enter() with reduced:false and freezes it, so
+    // every packet, pulse, riding label and lightBoxAt actually executes. Timeline swallows a throw
+    // into console.error, which the listener above turns into a failure.
+    for (let i = 1; i < total; i++) {
+      await enterStep(page, i);
+      await page.waitForTimeout(30);
     }
     const ok = built > 0 && total > 0 && errs.length === 0;
     results.push({ id, total, built, errs, ok });

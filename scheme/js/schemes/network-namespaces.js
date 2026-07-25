@@ -1,30 +1,9 @@
 import { svg, g, text, path, rect } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt} from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-namespaces
 
-// Layout (viewBox 1200x640). The host stack and the Pod namespace line up so the veth reads as a
-// straight cross-namespace link landing dead on eth0, and the host block is vertically centered on
-// the Pod netns block.
-//
-//   Host netns ╌╌veth╌╌> [ Pod netns ]   the dashed veth plugs into the Pod namespace boundary.
-//
-// Inside the Pod netns shell every block plugs into ONE shared stack, drawn as a dashed rail (a bus)
-// that runs across the stack band. The two interfaces of that single stack hang off the rail: eth0
-// (the external door, in-Pod end of the veth) and lo (loopback). The two tenant containers (app,
-// sidecar) tap the same rail from above. So app, sidecar, eth0 and lo are all peers on one stack,
-// not wired one-to-one.
-//
-// Connector convention (matches network-model / network-cni-invocation): every dashed line, the veth
-// and all five interior taps, is drawn ONCE in the same constant dim-dashed style and its opacity is
-// never changed per step. Progression is shown only by which blocks get .highlight and by the packets
-// that ride the connectors, never by fading wires in and out.
-//
-// Choreography (motion follows the steps, blocks light via .highlight, only the Pod shell pulses):
-//   fresh  - only lo is live: lo lights and flashes, nothing flows yet.
-//   veth   - a packet crosses the veth, eth0 lights on arrival, the pod pulses.
-//   shared - app, sidecar and eth0 all light, a localhost packet rides app -> rail -> sidecar, lo lights.
-//   isolation - host, eth0 and lo stay lit (the live host link), the whole shared stack pulses as one
-//               private unit that lives and dies together.
+
 const POD_TOP = 160;      // Pod netns shell top
 const POD_H = 304;        // Pod netns shell height
 const POD_CY = POD_TOP + POD_H / 2;   // 312: Pod netns vertical center, the host block centers on this
@@ -56,15 +35,6 @@ function dashLink(x1, y1, x2, y2) {
   return path({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim', d: `M ${x1} ${y1} L ${x2} ${y2}`, fill: 'none' });
 }
 
-// Light a box (add .highlight) at a delay, so an interface brightens when the packet reaches it.
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
 
@@ -80,21 +50,18 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const host = box({ x: 150, y: HOST_Y, w: 260, h: HOST_H, label: 'Host NETNS', sublabel: 'node NICs · routes · iptables', cat: 'network' });
+    const host = box({ x: 150, y: HOST_Y, w: 260, h: HOST_H, label: 'Host NETNS', sublabel: 'node NICs · routes · iptables', role: 'network' });
 
-    const shell = pod({ x: POD_LEFT, y: POD_TOP, w: POD_W, h: POD_H, label: 'Pod NETNS', sublabel: 'isolated stack · 10.244.1.5', containers: 0, cat: 'network' });
+    const shell = pod({ x: POD_LEFT, y: POD_TOP, w: POD_W, h: POD_H, label: 'Pod NETNS', sublabel: 'isolated stack · 10.244.1.5', containers: 0, role: 'network' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     // Containers (tenants) on top, the shared stack (eth0 + lo) on the row below.
-    const app  = box({ x: COL_L - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'app',     sublabel: 'container', cat: 'network' });
-    const side = box({ x: COL_R - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'sidecar', sublabel: 'container', cat: 'network' });
-    const eth0 = box({ x: COL_L - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'eth0', sublabel: '10.244.1.5', cat: 'network' });
-    const lo   = box({ x: COL_R - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'lo',   sublabel: '127.0.0.1',  cat: 'network' });
+    const app  = box({ x: COL_L - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'app',     sublabel: 'container', role: 'network' });
+    const side = box({ x: COL_R - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'sidecar', sublabel: 'container', role: 'network' });
+    const eth0 = box({ x: COL_L - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'eth0', sublabel: '10.244.1.5', role: 'network' });
+    const lo   = box({ x: COL_R - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'lo',   sublabel: '127.0.0.1',  role: 'network' });
 
-    // The shared network stack: a faint band, and inside it a dashed rail (the bus). app + sidecar tap
-    // the rail from above, eth0 + lo from below, so all four are peers on ONE stack. The band, rail and
-    // taps live in podGroup so they pulse as one unit with the pod.
     const band = rect({ class: 'netns-stack-band', x: BAND_CX - 204, y: 276, w: 408, h: 122, rx: 10,
       style: 'fill:rgba(79,229,255,0.035);stroke:rgba(79,229,255,0.28);stroke-width:1' });
     const bandLabel = text({ class: 'scheme-label code dim', x: BAND_CX, y: 420, 'text-anchor': 'middle', 'font-size': 11 }, ['shared network stack']);
@@ -108,15 +75,15 @@ class Scene {
 
     // veth pair host stack -> Pod namespace: the only cross-namespace link, a single dashed cable
     // that plugs into the Pod netns boundary (its in-Pod end is eth0, just inside).
-    const vethWire  = arrow({ x1: HOST_EDGE, y1: AXIS_Y, x2: POD_LEFT, y2: AXIS_Y, dashed: true, dim: true, color: 'network' });
+    const vethWire  = arrow({ x1: HOST_EDGE, y1: AXIS_Y, x2: POD_LEFT, y2: AXIS_Y, dashed: true, dim: true, role: 'network' });
     const vethLabel = text({ class: 'scheme-label code dim', x: 505, y: AXIS_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
     const localLabel = text({ class: 'scheme-label code dim', x: BAND_CX, y: RAIL_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
     // Info chips centered under the diagram: the row spans exactly host-left (150) to Pod-right (1048).
-    const scopeChip = valChip({ x: 150, y: 500, w: 210, h: 34, name: 'namespace', value: 'host', cat: 'network' });
-    const ifaceChip = valChip({ x: 376, y: 500, w: 205, h: 34, name: 'interfaces', value: 'lo', cat: 'network' });
-    const portChip  = valChip({ x: 597, y: 500, w: 180, h: 34, name: 'ports', value: 'private', cat: 'network' });
-    const reachChip = valChip({ x: 793, y: 500, w: 255, h: 34, name: 'reach', value: 'isolated', cat: 'network' });
+    const scopeChip = valChip({ x: 150, y: 500, w: 210, h: 34, name: 'namespace', value: 'host', role: 'network' });
+    const ifaceChip = valChip({ x: 376, y: 500, w: 205, h: 34, name: 'interfaces', value: 'lo', role: 'network' });
+    const portChip  = valChip({ x: 597, y: 500, w: 180, h: 34, name: 'ports', value: 'private', role: 'network' });
+    const reachChip = valChip({ x: 793, y: 500, w: 255, h: 34, name: 'reach', value: 'isolated', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -197,7 +164,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.eth0.classList.add('highlight'); return; }
       // Down-arrow: the packet crosses the veth from the host side into eth0, which lights on arrival,
       // then the pod shell pulses as the namespace gains reach.
-      const hop = segmentPacket(s, ctx, { from: [HOST_EDGE, AXIS_Y], to: [POD_LEFT, AXIS_Y], cat: 'network' });
+      const hop = segmentPacket(s, ctx, { from: [HOST_EDGE, AXIS_Y], to: [POD_LEFT, AXIS_Y], role: 'network' });
       lightBoxAt(s.refs.eth0, ctx, hop.arrivalMs);
       pulsePod(s.refs.podGroup, ctx, hop.arrivalMs);
     },
@@ -219,10 +186,7 @@ const STEPS = [
       setVal(s.refs.scopeChip, 'pod');
       setVal(s.refs.portChip, 'shared');
       if (ctx.reduced) { s.refs.lo.classList.add('highlight'); return; }
-      // One localhost packet rides app -> rail -> sidecar over the shared stack: it drops down the app
-      // tap, crosses the rail and climbs the sidecar tap, so it traces both joins and the localhost
-      // hop in a single motion. lo (the loopback that serves it) lights on arrival.
-      const hop = routePacket(s, ctx, LOCAL_PATH, { cat: 'network' });
+      const hop = routePacket(s, ctx, LOCAL_PATH, { role: 'network' });
       lightBoxAt(s.refs.lo, ctx, hop.arrivalMs);
     },
   },

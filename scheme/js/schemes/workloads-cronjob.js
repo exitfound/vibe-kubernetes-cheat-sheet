@@ -1,8 +1,10 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chip, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#workloads-cronjob
 
-// valChip / setVal / setBoxSublabel are imported from ../lib/scheme-kit.js
+
+// valChip / setVal / setBoxSublabel are imported from ../lib/workloads-kit.js
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -19,37 +21,34 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const cronjob   = box({ x: 320, y: 40, w: 220, h: 80, label: 'CronJob',   sublabel: 'schedule evaluator',      cat: 'control' });
-    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'create Job · prune history', cat: 'control' });
+    const cronjob   = box({ x: 320, y: 40, w: 220, h: 80, label: 'CronJob',   sublabel: 'schedule evaluator',      role: 'cluster' });
+    const apiserver = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'create Job · prune history', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const scheduleChip = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'schedule (UTC)',    value: '*/5 * * * *' });
-    const concChip     = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'concurrencyPolicy', value: 'Forbid' });
-    const activeChip   = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'active jobs',        value: '0' });
-    const lastChip     = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'lastScheduleTime',   value: 'none' });
+    const scheduleChip = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'schedule (UTC)',    value: '*/5 * * * *', role: 'workloads' });
+    const concChip     = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'concurrencyPolicy', value: 'Forbid', role: 'workloads' });
+    const activeChip   = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'active jobs',        value: '0', role: 'workloads' });
+    const lastChip     = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'lastScheduleTime',   value: 'none', role: 'workloads' });
     [scheduleChip, concChip, activeChip, lastChip].forEach(c => root.appendChild(c));
 
-    // Schedule clock: one chip per 5-minute tick. The current tick is highlighted as time advances.
-    // Caption centred over the tick chips: span is 830 (left edge of tick 0) to 1176
-    // (right edge of tick 5), so the centre is 1003.
     const ladderCaption = text({ class: 'scheme-label code dim', x: 1003, y: 222, 'text-anchor': 'middle', 'font-size': 10 }, ['schedule ticks · every 5 min']);
     root.appendChild(ladderCaption);
     const tickLabels = ['12:00', '12:05', '12:10', '12:15', '12:20', '12:25'];
     const tickX = 830, tickY = 235, tickW = 51, tickGap = 8;
     const ladder = g({ class: 'scheme-ladder', transform: `translate(${tickX},${tickY})` });
     const tickChips = tickLabels.map((lbl, i) => {
-      const c = chip({ x: i * (tickW + tickGap), y: 0, w: tickW, h: 28, label: lbl, cat: 'workloads' });
+      const c = chip({ x: i * (tickW + tickGap), y: 0, w: tickW, h: 28, label: lbl, role: 'workloads' });
       ladder.appendChild(c);
       return c;
     });
     root.appendChild(ladder);
 
-    const eventChip = valChip({ x: 830, y: 410, w: 350, h: 32, name: 'last event', value: 'none' });
+    const eventChip = valChip({ x: 830, y: 410, w: 350, h: 32, name: 'last event', value: 'none', role: 'workloads' });
     root.appendChild(eventChip);
 
     const chain = chainList({
@@ -62,7 +61,7 @@ class Scene {
         '5. missed   ·  past startingDeadlineSeconds, skipped',
         '6. suspend  ·  spec.suspend pauses new Jobs',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -76,11 +75,11 @@ class Scene {
     ];
     const podBoxes = [];
     const podWrappers = POD_DEFS.map((d, i) => {
-      const shell = pod({ x: d.x, y: 497, w: 182, h: 106, label: d.job, sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: d.x, y: 497, w: 182, h: 106, label: d.job, sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: d.x + 10, y: 525, w: 162, h: 52, label: 'Pod', sublabel: 'pending', cat: 'workloads' });
+      const innerBox = box({ x: d.x + 10, y: 525, w: 162, h: 52, label: 'Pod', sublabel: 'pending', role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.style.opacity = '0';
@@ -94,7 +93,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -128,9 +127,6 @@ function clearHL(s) {
     [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
   s.refs.tickChips.forEach(c => c.classList.remove('highlight'));
 }
-// Light the schedule ticks at which a Job actually fired (cumulative). Ticks skipped by
-// concurrencyPolicy or missed during downtime stay dark, so the gaps in the ladder are real.
-// Newly-lit ticks auto-pulse via the Timeline delta, drawing the eye to the fresh run.
 function setTicks(s, lit) {
   s.refs.tickChips.forEach((c, i) => c.classList.toggle('highlight', lit.includes(i)));
 }
@@ -184,9 +180,9 @@ const STEPS = [
       s.refs.pod4.style.opacity = '0';
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       s.refs.pod1.style.opacity = '0';
-      const req = topPacket(s, ctx);
+      const req = topPacket(s, ctx, { role: 'workloads' });
       // Create reaches the node, the Job Pod materializes and pulses on arrival.
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod1, ctx, create.arrivalMs);
     },
@@ -214,9 +210,6 @@ const STEPS = [
       s.refs.pod2.style.opacity = '0';
       s.refs.pod3.style.opacity = '0';
       s.refs.pod4.style.opacity = '0';
-      // No connector packet: nothing reaches the node because creation is skipped.
-      // The tick is skipped in place, nothing travels: the policy consulted and the
-      // recorded event show via the static highlight only (no chip pulse).
     },
   },
   {
@@ -247,8 +240,8 @@ const STEPS = [
       s.refs.pod4.style.opacity = '0';
       if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
       s.refs.pod2.style.opacity = '0';
-      const req = topPacket(s, ctx);
-      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const create = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod2, ctx, create.arrivalMs);
     },
@@ -281,8 +274,8 @@ const STEPS = [
       if (ctx.reduced) return;
       // The DELETE reaches the node, the oldest Job pulses then its Pod is removed.
       s.refs.pod1.style.opacity = '1';
-      const req = topPacket(s, ctx);
-      const prune = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop });
+      const req = topPacket(s, ctx, { role: 'workloads' });
+      const prune = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, prune.arrivalMs);
       ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: prune.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
@@ -308,9 +301,6 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       s.refs.pod4.style.opacity = '1';
-      // No connector packet: the missed tick produces no Job.
-      // Nothing is created for the missed tick: the recorded miss shows via the
-      // static highlight only (no chip pulse).
     },
   },
   {

@@ -1,36 +1,9 @@
 import { svg, g, text, line } from '../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, animateAlong } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, BEAT } from '../lib/network-kit.js';
+import { arrowDefs, box, pod, node, arrow } from '../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#network-north-south-path
 
-// North-south request path (viewBox 1200x640). NORTH-SOUTH is the name of the thing being drawn:
-// traffic crossing the cluster boundary, as opposed to east-west Pod to Pod traffic. Instead of a bare
-// full-height divider line, the composition is framed by two faint regions: an outside-the-cluster box
-// on the left holding the client and cloud LB, and the Node box on the right holding kube-proxy,
-// conntrack and the Pod. The empty GAP between the two regions IS the boundary, and the ball visibly
-// crosses it once on the way in (LB2KP) and once on the way out (KP2LB).
-//
-// Standard contract: the Pod is a shell + inner box; only the Pod pulses; infrastructure (client, LB,
-// kube-proxy, conntrack) lights via lightBoxAt and never pulses; value chips never flash; packets ride
-// the wires and stop at block edges.
-//
-// GEOMETRY. Every wire and every packet is derived from a block edge, never hand-typed.
-//
-// Vertical: two lanes, FWD_Y above and RET_Y below the spine, because this card is a ROUND TRIP. A
-// single retraced lane would send the reply backwards along a right-pointing arrowhead. Every block on
-// the path is centred on FLOW_Y, so both lanes meet every block on its edge. The narration overlay
-// really covers x 0..399, y 0..300, so the client and LB blocks sit at y >= 315 while the faint region
-// boxes frame up to REGION_TOP to fill the top of the canvas and pull the whole scheme up and centred.
-//
-// Horizontal: client and cloud LB live in the outside region, kube-proxy, conntrack and the backend Pod
-// live inside the Node region. conntrack is a real block here rather than a word in the narration: it is
-// what pins the flow on the way in and what unwinds the DNAT on the way out, and it fills the Node
-// interior. The framed diagram and the info-chip strip both span the same width, from the outside region
-// left edge (22) to the Node region right edge (1176), so the scheme reads as one column.
-//
-// Addresses ride ALONG with the ball (ridingLabel) instead of sitting as static wire text. That is the
-// whole point of the card: the same packet carries dst 203.0.113.9:443, then dst 192.168.1.20:31000,
-// then dst 10.244.2.7:8080, and the reply unwinds those same three values as src. As inline wire text
-// the longest of them overflowed its 80-unit gap and printed straight through the Pod border.
+
 const FLOW_Y = 356;                 // spine: client, cloud LB, kube-proxy and the Pod are centred on it
 const LANE_DY = 20;                 // half-gap between the forward and return lanes
 const FWD_Y = FLOW_Y - LANE_DY;     // 336: request lane, above the spine
@@ -41,9 +14,6 @@ const CLIENT_RIGHT = CLIENT_X + CLIENT_W;      // 210
 const LB_X = 290, LB_W = 180, LB_H = 74;
 const LB_RIGHT = LB_X + LB_W;                  // 470
 
-// Two faint framing regions replace the old full-height divider line. Both share the same top and
-// height so they read as a matched pair, and the empty gap between them (EXT right 492 .. Node left 540)
-// is the cluster boundary the north-south hops cross.
 const REGION_TOP = 264, REGION_BOT = 488;
 const REGION_H = REGION_BOT - REGION_TOP;      // 224
 const EXT_X = 22, EXT_W = 470;                 // outside-the-cluster region: 22..492, wraps client + LB
@@ -77,34 +47,16 @@ const POD2KP = [[POD_X, RET_Y], [KP_RIGHT, RET_Y]];
 const KP2LB = [[KP_X, RET_Y], [LB_RIGHT, RET_Y]];               // crosses the gap on the way back
 const LB2C = [[LB_X, RET_Y], [CLIENT_RIGHT, RET_Y]];
 
-function lightBoxAt(boxEl, ctx, delay = 0) {
-  if (!boxEl) return;
-  if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = () => boxEl.classList.add('highlight');
-  ctx.register(a);
-}
-
-// A tag that rides ALONG with the ball on the same path, timing and easing. Every ball here is a
-// segmentPacket, which is always linear, so the tag must be linear too or it drifts off the ball
-// mid-flight. dy places it above the forward lane and below the return lane, so a tag never lands on
-// the other lane.
-function ridingLabel(s, ctx, txt, points, { delay = 0, dy = -14 } = {}) {
-  if (ctx.reduced) return;
-  const d = routeDur(points);
-  const lbl = text({ class: 'scheme-box-sublabel', x: 0, y: dy, 'text-anchor': 'middle', 'data-cat': 'network' }, [txt]);
-  lbl.style.opacity = '0';
-  s.refs.packetLayer.appendChild(lbl);
-  ctx.register(lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: Math.max(0, delay - 150), fill: 'forwards', easing: 'ease-out' }));
-  ctx.register(animateAlong(lbl, points, { duration: d, delay, easing: 'linear' }));
-  ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: delay + d + 160, fill: 'forwards', easing: 'ease-in' }));
-}
+// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+// Every ball on this card is a linear segmentPacket, so the tag rides linear too:
+// with the eased default it drifted up to 11 units ahead of its ball mid-flight.
+const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
 
 function podBlock({ x, y, w, h, label }) {
-  const shell = pod({ x, y, w, h, label, containers: 0, cat: 'network' });
+  const shell = pod({ x, y, w, h, label, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', cat: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -126,35 +78,31 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    // The two faint framing regions. Both use the node() primitive so they read as one matched pair of
-    // barely-visible dashed containers: left is everything outside Kubernetes, right is the Node. The
-    // outside region carries its title at the BOTTOM-left instead of the top so the narration overlay
-    // (which sits over the top-left) never hides it.
     const extRegion = node({ x: EXT_X, y: REGION_TOP, w: EXT_W, h: REGION_H, label: '' });
     const extLabel = text({ class: 'scheme-node-label', x: EXT_RIGHT - 12, y: REGION_TOP + 18, 'text-anchor': 'end' }, ['internet   ·   outside cluster']);
     const theNode = node({ x: NODE_X, y: REGION_TOP, w: NODE_W, h: REGION_H, label: 'Node   ·   192.168.1.20' });
-    const client = box({ x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: 'internet', cat: 'network' });
-    const lb = box({ x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'Cloud LB', sublabel: '203.0.113.9:443', cat: 'network' });
-    const kproxy = box({ x: KP_X, y: FLOW_Y - KP_H / 2, w: KP_W, h: KP_H, label: 'Kube-proxy rules', sublabel: 'NodePort 31000', cat: 'network' });
-    const conntrack = box({ x: CT_X, y: CT_Y, w: CT_W, h: CT_H, label: 'Conntrack', sublabel: 'no flow yet', cat: 'network' });
+    const client = box({ x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: 'internet', role: 'network' });
+    const lb = box({ x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'Cloud LB', sublabel: '203.0.113.9:443', role: 'network' });
+    const kproxy = box({ x: KP_X, y: FLOW_Y - KP_H / 2, w: KP_W, h: KP_H, label: 'Kube-proxy rules', sublabel: 'NodePort 31000', role: 'network' });
+    const conntrack = box({ x: CT_X, y: CT_Y, w: CT_W, h: CT_H, label: 'Conntrack', sublabel: 'no flow yet', role: 'network' });
     const podX = podBlock({ x: POD_X, y: FLOW_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web' });
 
-    const cFwd = arrow({ x1: C2LB[0][0], y1: C2LB[0][1], x2: C2LB[1][0], y2: C2LB[1][1], dashed: true, dim: true, color: 'network' });
-    const lFwd = arrow({ x1: LB2KP[0][0], y1: LB2KP[0][1], x2: LB2KP[1][0], y2: LB2KP[1][1], dashed: true, dim: true, color: 'network' });
-    const kFwd = arrow({ x1: KP2POD[0][0], y1: KP2POD[0][1], x2: KP2POD[1][0], y2: KP2POD[1][1], dashed: true, dim: true, color: 'network' });
-    const kRet = arrow({ x1: POD2KP[0][0], y1: POD2KP[0][1], x2: POD2KP[1][0], y2: POD2KP[1][1], dashed: true, dim: true, color: 'network' });
-    const lRet = arrow({ x1: KP2LB[0][0], y1: KP2LB[0][1], x2: KP2LB[1][0], y2: KP2LB[1][1], dashed: true, dim: true, color: 'network' });
-    const cRet = arrow({ x1: LB2C[0][0], y1: LB2C[0][1], x2: LB2C[1][0], y2: LB2C[1][1], dashed: true, dim: true, color: 'network' });
+    const cFwd = arrow({ x1: C2LB[0][0], y1: C2LB[0][1], x2: C2LB[1][0], y2: C2LB[1][1], dashed: true, dim: true, role: 'network' });
+    const lFwd = arrow({ x1: LB2KP[0][0], y1: LB2KP[0][1], x2: LB2KP[1][0], y2: LB2KP[1][1], dashed: true, dim: true, role: 'network' });
+    const kFwd = arrow({ x1: KP2POD[0][0], y1: KP2POD[0][1], x2: KP2POD[1][0], y2: KP2POD[1][1], dashed: true, dim: true, role: 'network' });
+    const kRet = arrow({ x1: POD2KP[0][0], y1: POD2KP[0][1], x2: POD2KP[1][0], y2: POD2KP[1][1], dashed: true, dim: true, role: 'network' });
+    const lRet = arrow({ x1: KP2LB[0][0], y1: KP2LB[0][1], x2: KP2LB[1][0], y2: KP2LB[1][1], dashed: true, dim: true, role: 'network' });
+    const cRet = arrow({ x1: LB2C[0][0], y1: LB2C[0][1], x2: LB2C[1][0], y2: LB2C[1][1], dashed: true, dim: true, role: 'network' });
 
     // Ownership marker, NOT a traffic path: the rules and the flow table are two halves of one
     // dataplane. No packet ever travels it, so it is a plain dashed line with no arrowhead.
     const ctLink = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: KP_CX, y1: KP_BOTTOM, x2: KP_CX, y2: CT_Y, 'stroke-dasharray': '5 5', fill: 'none' });
 
     // Four equal cells, equal gaps, spanning the full framed width.
-    const stageChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'stage', value: 'idle', cat: 'network' });
-    const svcChip   = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'Service', value: 'type: LoadBalancer', cat: 'network' });
-    const dnatChip  = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'DNAT', value: 'none', cat: 'network' });
-    const backChip  = valChip({ x: chipX(3), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'backend', value: 'none', cat: 'network' });
+    const stageChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'stage', value: 'idle', role: 'network' });
+    const svcChip   = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'Service', value: 'type: LoadBalancer', role: 'network' });
+    const dnatChip  = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'DNAT', value: 'none', role: 'network' });
+    const backChip  = valChip({ x: chipX(3), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'backend', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -216,7 +164,7 @@ const STEPS = [
       s.refs.svcChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.lb.classList.add('highlight'); return; }
       // The packet carries the public IP as its destination, and the tag rides with it.
-      const hop = segmentPacket(s, ctx, { from: C2LB[0], to: C2LB[1], cat: 'network' });
+      const hop = segmentPacket(s, ctx, { from: C2LB[0], to: C2LB[1], role: 'network' });
       ridingLabel(s, ctx, 'dst 203.0.113.9:443', C2LB);
       lightBoxAt(s.refs.lb, ctx, hop.arrivalMs);
     },
@@ -237,7 +185,7 @@ const STEPS = [
       s.refs.svcChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); return; }
       // The only hop that crosses the region gap on the way in: the destination is now a Node, not the LB.
-      const hop = segmentPacket(s, ctx, { from: LB2KP[0], to: LB2KP[1], cat: 'network' });
+      const hop = segmentPacket(s, ctx, { from: LB2KP[0], to: LB2KP[1], role: 'network' });
       ridingLabel(s, ctx, 'dst 192.168.1.20:31000', LB2KP);
       lightBoxAt(s.refs.kproxy, ctx, hop.arrivalMs);
     },
@@ -262,7 +210,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.podXBox.classList.add('highlight'); return; }
       // The rewrite happens INSIDE kube-proxy, so the ball re-emerges at its right edge already
       // carrying the Pod address. Down-arrow: packet first, the Pod pulses on arrival.
-      const give = segmentPacket(s, ctx, { from: KP2POD[0], to: KP2POD[1], cat: 'network' });
+      const give = segmentPacket(s, ctx, { from: KP2POD[0], to: KP2POD[1], role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.2.7:8080', KP2POD);
       pulsePod(s.refs.podX, ctx, give.arrivalMs);
     },
@@ -291,13 +239,13 @@ const STEPS = [
       // Up-arrow: the Pod is the sender, so it pulses FIRST and the reply leaves at BEAT.afterPulse.
       // Each hop unwinds one rewrite, and its tag says which source address the packet now carries.
       pulsePod(s.refs.podX, ctx, 0);
-      const h1 = segmentPacket(s, ctx, { from: POD2KP[0], to: POD2KP[1], delay: BEAT.afterPulse, cat: 'network' });
+      const h1 = segmentPacket(s, ctx, { from: POD2KP[0], to: POD2KP[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'src 10.244.2.7:8080', POD2KP, { delay: BEAT.afterPulse, dy: 24 });
       lightBoxAt(s.refs.kproxy, ctx, h1.arrivalMs);
-      const h2 = segmentPacket(s, ctx, { from: KP2LB[0], to: KP2LB[1], delay: h1.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const h2 = segmentPacket(s, ctx, { from: KP2LB[0], to: KP2LB[1], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'src 192.168.1.20:31000', KP2LB, { delay: h1.arrivalMs + BEAT.afterHop, dy: 24 });
       lightBoxAt(s.refs.lb, ctx, h2.arrivalMs);
-      const h3 = segmentPacket(s, ctx, { from: LB2C[0], to: LB2C[1], delay: h2.arrivalMs + BEAT.afterHop, cat: 'network' });
+      const h3 = segmentPacket(s, ctx, { from: LB2C[0], to: LB2C[1], delay: h2.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'src 203.0.113.9:443', LB2C, { delay: h2.arrivalMs + BEAT.afterHop, dy: 24 });
       lightBoxAt(s.refs.client, ctx, h3.arrivalMs);
     },

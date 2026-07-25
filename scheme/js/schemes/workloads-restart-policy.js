@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/scheme-kit.js';
+import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
 
 
 class Scene {
@@ -18,20 +18,20 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const apiserver = box({ x: 320, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'stores spec.restartPolicy', cat: 'control' });
-    const kubelet   = box({ x: 580, y: 40, w: 220, h: 80, label: 'Kubelet',   sublabel: 'restart enforcer',        cat: 'control' });
+    const apiserver = box({ x: 320, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'stores spec.restartPolicy', role: 'cluster' });
+    const kubelet   = box({ x: 580, y: 40, w: 220, h: 80, label: 'Kubelet',   sublabel: 'restart enforcer',        role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, color: 'control' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, color: 'control' }));
+    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
     // State chips on the right: one per Pod plus a focus line.
-    const pod1Chip  = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'Pod A · Always',    value: 'Running' });
-    const pod2Chip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'Pod B · OnFailure', value: 'Running' });
-    const pod3Chip  = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'Pod C · Never',     value: 'Running' });
-    const focusChip = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'focus',             value: 'none' });
+    const pod1Chip  = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'Pod A · Always',    value: 'Running', role: 'workloads' });
+    const pod2Chip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'Pod B · OnFailure', value: 'Running', role: 'workloads' });
+    const pod3Chip  = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'Pod C · Never',     value: 'Running', role: 'workloads' });
+    const focusChip = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'focus',             value: 'none', role: 'workloads' });
     [pod1Chip, pod2Chip, pod3Chip, focusChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
@@ -43,7 +43,7 @@ class Scene {
         '4. backoff   ·  Always and OnFailure share the restart backoff',
         '5. fit       ·  Always for services, OnFailure / Never for Jobs',
       ],
-      cat: 'control',
+      role: 'cluster',
     });
 
     const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
@@ -53,11 +53,11 @@ class Scene {
     const POD_XS    = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, cat: 'workloads' });
+      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: POD_SUBS[i], cat: 'workloads' });
+      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: POD_SUBS[i], role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.appendChild(shell);
@@ -70,7 +70,7 @@ class Scene {
 
     const connector = pathArrow({
       points: [[320, 80], [280, 80], [280, 550], [320, 550]],
-      dim: true, dashed: true, color: 'control',
+      dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
 
@@ -115,8 +115,8 @@ function setChips(s, { a, b, c, focus }) {
 
 function bouncePacket(s, ctx, { delay = 0 } = {}) {
   // Request up to the apiserver, then the response hop back (y=95) once it returns.
-  const req = topPacket(s, ctx, { delay });
-  return topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: req.arrivalMs + BEAT.afterHop });
+  const req = topPacket(s, ctx, { delay, role: 'workloads' });
+  return topPacket(s, ctx, { from: 580, to: 540, y: 95, delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
 }
 
 // The container exit is an in-place event with no packet to anchor to: the Pods

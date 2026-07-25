@@ -1,19 +1,10 @@
-// check-reduced.mjs — verify the reduced-motion contract per step.
-//
-// The load-bearing rule: everything above `if (ctx.reduced) return;` is the
-// COMPLETE static end-state of the step. Prev/reset replays steps reduced, so if
-// the played end-state and the reduced state differ, going backwards shows a
-// different picture than going forwards did.
-//
-// This enters each step twice: once reduced (gotoStep), once played and seeked
-// past its own span, then diffs the resting OPACITY of every block. Highlights are
-// deliberately not compared: see the note at the diff below.
-//
-// node check-reduced.mjs <id> [<id> ...]
-import { launch, setInspect, stepCount, enterStep, stepSpan, seekStep, DEFAULT_BASE } from './_shared.mjs';
+// check-reduced.mjs: the ctx.reduced contract. Enters each step twice, played-and-seeked and
+// statically, and diffs the resting opacity of every block. In the gate.
+// node check-reduced.mjs [<id> ...]   ids => verbose; none => whole catalog, terse
+import { launch, setInspect, stepCount, enterStep, stepSpan, seekStep, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 
-const ids = process.argv.slice(2);
-if (!ids.length) { console.error('usage: node check-reduced.mjs <id> [<id> ...]'); process.exit(1); }
+const argIds = process.argv.slice(2);
+const terse = argIds.length === 0;
 
 const SEL = '.scheme-box, .scheme-pod, .scheme-cylinder, .scheme-node, .scheme-chip, .scheme-arrow';
 
@@ -35,6 +26,9 @@ const snap = () => {
 const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 await page.addInitScript(setInspect, 'expose');
+
+const ids = terse ? await discoverIds(page) : argIds;
+if (!ids.length) { console.error('NO CARDS RENDERED: posters/grid broken'); process.exit(1); }
 
 let bad = 0;
 for (const id of ids) {
@@ -59,17 +53,16 @@ for (const id of ids) {
     for (let k = 0; k < Math.min(played.length, reduced.length); k++) {
       const p = played[k], r = reduced[k];
       if (p.key !== r.key) continue;
-      // Opacity slack absorbs a fill-forwards animation that lands a hair off.
-      // Opacity only. .highlight is NOT comparable this way: lightBoxAt sets the class from an
-      // animation's onfinish, and onfinish never fires for an animation that was seeked rather than
-      // played, so the played snapshot is missing every arrival highlight by construction.
+      // Opacity only, with slack for a fill-forwards landing. .highlight is not comparable: onfinish
+      // never fires for a seeked animation, so lightBoxAt's arrival class is missing by construction.
       if (Math.abs(p.op - r.op) > 0.06) issues.push(`  step ${i}  ${p.key}  opacity played=${p.op} reduced=${r.op}`);
     }
   }
 
   if (issues.length) { bad++; console.log(`\n${id}  ${issues.length} mismatch(es)`); issues.slice(0, 20).forEach(l => console.log(l)); }
-  else console.log(`\n${id}  reduced state matches played end-state on every step`);
+  else if (!terse) console.log(`\n${id}  reduced state matches played end-state on every step`);
 }
 
 await browser.close();
+if (terse && !bad) console.log(`reduced check OK: ${ids.length} cards match their played end-state on every step`);
 process.exit(bad ? 1 : 0);

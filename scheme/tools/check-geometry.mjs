@@ -1,26 +1,15 @@
-// check-geometry.mjs — static geometry lint for a scheme card, in viewBox units.
-//
-// Catches the defect class that survives every other check because it is invisible
-// in source and easy to miss in a frame: a lane drawn THROUGH a block, a slanted
-// segment in an orthogonal grammar, a lane that meets a block off its edge
-// midpoint, and a composition whose centre is not the canvas centre.
-//
-// It reads the built SVG (all steps, so lanes that only exist mid-story are seen),
-// pulls every .scheme-arrow path plus every block bbox, and reports:
-//   THROUGH  a lane segment crosses a block it neither starts nor ends on
-//   DIAGONAL a segment that is neither horizontal nor vertical
-//   OFFEDGE  a lane endpoint on a block edge but off its midpoint by > TOL
-//   CENTRE   content bbox / chip strip centre away from x=600 by > TOL
-//
+// check-geometry.mjs: geometry lint in viewBox units over every step. Reports THROUGH, DIAGONAL,
+// OFFEDGE, CENTRE and CENTRE-LOW. Not in the gate yet, see scheme/CLAUDE.md (Dev tools).
 // node check-geometry.mjs <id> [<id> ...]
 import { launch, setInspect, stepCount, DEFAULT_BASE } from './_shared.mjs';
 
 const TOL = 6;          // units of slack on a midpoint or a centre
 const EDGE_TOL = 2;     // how close a point must be to a face to count as "on" it
-// The family's deliberate lane-pair offsets (storage-kit cards use 10/12/16 in narrow
-// columns and 40 in wide ones). An endpoint sitting exactly on one of these is a lane
-// twin, not a mistake. Anything else is judged as a fraction of the face it meets.
-const LANE_OFFSETS = new Set([10, 12, 14, 16, 40]);
+// Deliberate lane-pair offsets used to be whitelisted numerically. The twin rule below covers the
+// same case structurally, so the list is gone: keeping it hid unpaired endpoints at those values.
+// Two lanes on ONE face at mirrored offsets (+d and -d) are a deliberate pair, whatever d is.
+// Pooled across all steps, since a pair whose halves live in different steps is still a pair.
+const TWIN_TOL = 2;
 const FACE_FRAC = 0.18;
 
 const ids = process.argv.slice(2);
@@ -34,10 +23,8 @@ const probe = () => {
   const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
   if (!svg) return null;
 
-  // A block's getBBox() is in ITS OWN user space, but primitives are <g transform=
-  // "translate(x,y)">, so a raw bbox is offset from the coordinates the lane arrays
-  // are written in. Map every bbox through the element-to-root matrix first, or the
-  // whole check silently compares two different coordinate systems.
+  // getBBox() is in the element's own user space and primitives are translated groups, so map
+  // every bbox through the element-to-root matrix or the check compares two coordinate systems.
   const rootCTM = svg.getScreenCTM();
   const toRoot = (el, b) => {
     const m = rootCTM.inverse().multiply(el.getScreenCTM());
@@ -75,23 +62,43 @@ const probe = () => {
     if (el.closest('#packetLayer')) continue;
     const cs = getComputedStyle(el);
     if (cs.opacity === '0' || cs.display === 'none') continue;
-    let pts = null;
+    // Every M starts a NEW polyline. Reading `d` as one flat number list fabricates a segment
+    // between subpaths, and those phantoms were the whole DIAGONAL report (and can fake THROUGH).
+    let subpaths = [];
     if (el.tagName.toLowerCase() === 'line') {
-      pts = [[+el.getAttribute('x1'), +el.getAttribute('y1')], [+el.getAttribute('x2'), +el.getAttribute('y2')]];
+      subpaths = [[[+el.getAttribute('x1'), +el.getAttribute('y1')], [+el.getAttribute('x2'), +el.getAttribute('y2')]]];
     } else {
       const d = el.getAttribute('d') || '';
-      const nums = d.match(/-?\d+(\.\d+)?/g);
-      if (!nums || nums.length < 4) continue;
-      pts = [];
-      for (let i = 0; i + 1 < nums.length; i += 2) pts.push([+nums[i], +nums[i + 1]]);
+      if (/[QqCcSsTtAa]/.test(d)) continue;         // curved: no straight-segment claim to make
+      const toks = d.match(/[MmLlHhVvZz]|-?\d+(?:\.\d+)?/g) || [];
+      let cmd = null, cur = null, x = 0, y = 0, start = null;
+      for (let i = 0; i < toks.length;) {
+        if (/^[MmLlHhVvZz]$/.test(toks[i])) {
+          cmd = toks[i++];
+          if (/[Zz]/.test(cmd) && cur && start) { cur.push([start[0], start[1]]); }
+          continue;
+        }
+        if (!cmd) break;                        // `d` starting with a number: nothing to claim
+        const rel = cmd === cmd.toLowerCase();
+        if (/[Hh]/.test(cmd))      { x = rel ? x + (+toks[i++]) : +toks[i++]; }
+        else if (/[Vv]/.test(cmd)) { y = rel ? y + (+toks[i++]) : +toks[i++]; }
+        else {
+          const nx = +toks[i++], ny = +toks[i++];
+          x = rel ? x + nx : nx; y = rel ? y + ny : ny;
+        }
+        if (/[Mm]/.test(cmd)) { cur = [[x, y]]; subpaths.push(cur); start = [x, y]; cmd = rel ? 'l' : 'L'; }
+        else if (cur) { cur.push([x, y]); }
+      }
     }
     const lm = rootCTM.inverse().multiply(el.getScreenCTM());
-    pts = pts.map(([x, y]) => {
-      const p = svg.createSVGPoint(); p.x = x; p.y = y;
-      const q = p.matrixTransform(lm);
-      return [Math.round(q.x * 100) / 100, Math.round(q.y * 100) / 100];
-    });
-    lanes.push(pts);
+    for (const sp of subpaths) {
+      if (sp.length < 2) continue;
+      lanes.push(sp.map(([px, py]) => {
+        const p = svg.createSVGPoint(); p.x = px; p.y = py;
+        const q = p.matrixTransform(lm);
+        return [Math.round(q.x * 100) / 100, Math.round(q.y * 100) / 100];
+      }));
+    }
   }
 
   // Content bbox: every block, so the composition's own centre can be checked.
@@ -104,7 +111,21 @@ const probe = () => {
     const b = toRoot(el, el.getBBox());
     px0 = Math.min(px0, b.x); px1 = Math.max(px1, b.x + b.w);
   }
-  return { blocks, lanes, content: [cx0, cx1], chips: [px0, px1] };
+  // The overlay's REAL extent in viewBox units: the blanket safe-zone is a catalog worst case, so
+  // a card reserving the whole gutter is judged against its own. Same mapping as overlay-measure.
+  let overlay = null;
+  const ov = document.querySelector('.narration-overlay');
+  if (ov) {
+    const sb = svg.getBoundingClientRect();
+    const ob = ov.getBoundingClientRect();
+    const vb = svg.viewBox.baseVal;
+    const scale = Math.min(sb.width / vb.width, sb.height / vb.height);   // xMidYMid meet
+    const offX = sb.left + (sb.width - vb.width * scale) / 2;
+    const offY = sb.top + (sb.height - vb.height * scale) / 2;
+    overlay = { right: (ob.right - offX) / scale + vb.x, bottom: (ob.bottom - offY) / scale + vb.y };
+  }
+
+  return { blocks, lanes, content: [cx0, cx1], chips: [px0, px1], overlay };
 };
 
 // Does segment (a,b) pass through the interior of rect r? Endpoints resting on a
@@ -112,9 +133,8 @@ const probe = () => {
 function crosses(a, b, r, tol) {
   const x0 = r.x + tol, x1 = r.x + r.w - tol, y0 = r.y + tol, y1 = r.y + r.h - tol;
   if (x1 <= x0 || y1 <= y0) return false;
-  // A segment that ENDS inside a block is an arrival into it, not a crossing. Storage
-  // lanes routinely terminate on a container inside a Pod shell or a node frame, and
-  // counting those as crossings buries the real defects in false positives.
+  // A segment ENDING inside a block is an arrival, not a crossing: storage lanes routinely
+  // terminate on a container inside a Pod shell.
   const inside = p => p[0] > x0 && p[0] < x1 && p[1] > y0 && p[1] < y1;
   if (inside(a) || inside(b)) return false;
   // Axis-aligned segments only need an overlap test against the shrunk rect.
@@ -140,6 +160,11 @@ for (const id of ids) {
   const seen = new Set();
   const issues = [];
   const span = [Infinity, -Infinity], strip = [Infinity, -Infinity];
+  // Pooled across every step: face endpoints (twin rule), distinct blocks (CENTRE-LOW) and the
+  // worst overlay extent. A block that only appears mid-story still has to sit where it belongs.
+  const faceHits = new Map();
+  const blockSeen = new Map();
+  let ovRight = 0, ovBottom = 0;
   for (let i = 0; i < total; i++) {
     await page.evaluate((n) => window.__schemeCtl.gotoStep(n), i);
     await page.waitForTimeout(50);
@@ -161,37 +186,72 @@ for (const id of ids) {
           if (!seen.has(key)) { seen.add(key); issues.push(`  THROUGH   segment (${a}) -> (${b}) crosses block "${r.label}" [${r.x.toFixed(0)}..${(r.x + r.w).toFixed(0)} x ${r.y.toFixed(0)}..${(r.y + r.h).toFixed(0)}]`); }
         }
       }
-      // Endpoint-on-edge-midpoint check for the two ends of each lane.
+      // Endpoint-on-edge accumulation. Judged after every step has been walked, so a
+      // lane pair split across steps is still recognised as a pair.
       for (const p of [pts[0], pts[pts.length - 1]]) {
         for (const r of data.blocks) {
           const mx = r.x + r.w / 2, my = r.y + r.h / 2;
           const onV = (Math.abs(p[0] - r.x) < EDGE_TOL || Math.abs(p[0] - (r.x + r.w)) < EDGE_TOL) && p[1] > r.y - EDGE_TOL && p[1] < r.y + r.h + EDGE_TOL;
           const onH = (Math.abs(p[1] - r.y) < EDGE_TOL || Math.abs(p[1] - (r.y + r.h)) < EDGE_TOL) && p[0] > r.x - EDGE_TOL && p[0] < r.x + r.w + EDGE_TOL;
-          if (onV) {
-            const off = Math.abs(p[1] - my);
-            if (off > TOL && !LANE_OFFSETS.has(Math.round(off)) && off / r.h > FACE_FRAC) {
-              const key = `OFFEDGE ${p} ${r.label} v`;
-              if (!seen.has(key)) { seen.add(key); issues.push(`  OFFEDGE   endpoint (${p}) meets "${r.label}" side edge ${off.toFixed(0)} off its midpoint y=${my.toFixed(0)} (${(100 * off / r.h).toFixed(0)}% of a ${r.h.toFixed(0)} face)`); }
-            }
-          }
-          if (onH) {
-            const off = Math.abs(p[0] - mx);
-            if (off > TOL && !LANE_OFFSETS.has(Math.round(off)) && off / r.w > FACE_FRAC) {
-              const key = `OFFEDGE ${p} ${r.label} h`;
-              if (!seen.has(key)) { seen.add(key); issues.push(`  OFFEDGE   endpoint (${p}) meets "${r.label}" top/bottom edge ${off.toFixed(0)} off its midpoint x=${mx.toFixed(0)} (${(100 * off / r.w).toFixed(0)}% of a ${r.w.toFixed(0)} face)`); }
-            }
-          }
+          // Face key is the block's geometry, not its index: the blocks array is rebuilt
+          // per step and its order is not stable.
+          const gk = `${r.x.toFixed(0)},${r.y.toFixed(0)},${r.w.toFixed(0)},${r.h.toFixed(0)}`;
+          const push = (face, off, axis) => {
+            const k = `${gk}:${face}`;
+            if (!faceHits.has(k)) faceHits.set(k, []);
+            faceHits.get(k).push({ off, p, r, axis });
+          };
+          if (onV) push(Math.abs(p[0] - r.x) < EDGE_TOL ? 'left' : 'right', p[1] - my, 'v');
+          if (onH) push(Math.abs(p[1] - r.y) < EDGE_TOL ? 'top' : 'bottom', p[0] - mx, 'h');
         }
       }
     }
+    for (const b of data.blocks) blockSeen.set(`${b.x.toFixed(0)},${b.y.toFixed(0)},${b.w.toFixed(0)},${b.h.toFixed(0)}`, b);
+    if (data.overlay) {
+      ovRight = Math.max(ovRight, data.overlay.right);
+      ovBottom = Math.max(ovBottom, data.overlay.bottom);
+    }
     span[0] = Math.min(span[0], data.content[0]); span[1] = Math.max(span[1], data.content[1]);
     strip[0] = Math.min(strip[0], data.chips[0]); strip[1] = Math.max(strip[1], data.chips[1]);
-    if (i === total - 1) {
-      data.content = span; data.chips = strip;
-      const cc = (data.content[0] + data.content[1]) / 2;
-      const pc = (data.chips[0] + data.chips[1]) / 2;
-      if (Math.abs(pc - 600) > TOL) issues.push(`  CENTRE    chip strip spans ${data.chips[0].toFixed(0)}..${data.chips[1].toFixed(0)}, centre ${pc.toFixed(0)} (want 600)`);
-      if (Math.abs(cc - 600) > 40) issues.push(`  CENTRE    content spans ${data.content[0].toFixed(0)}..${data.content[1].toFixed(0)}, centre ${cc.toFixed(0)} (want ~600, margins ${data.content[0].toFixed(0)} / ${(1200 - data.content[1]).toFixed(0)})`);
+  }
+
+  // OFFEDGE verdicts: an endpoint is a defect only if it is alone on its face. A
+  // mirrored sibling (+d against -d) means the two are a deliberate lane pair.
+  for (const hits of faceHits.values()) {
+    for (const h of hits) {
+      const off = Math.abs(h.off);
+      if (off <= TOL) continue;
+      const face = h.axis === 'v' ? h.r.h : h.r.w;
+      if (off / face <= FACE_FRAC) continue;
+      if (hits.some(o => o !== h && Math.abs(o.off + h.off) <= TWIN_TOL)) continue;
+      const r = h.r;
+      const mid = h.axis === 'v' ? (r.y + r.h / 2) : (r.x + r.w / 2);
+      const key = `OFFEDGE ${h.p} ${r.label} ${h.axis}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const where = h.axis === 'v' ? `side edge` : `top/bottom edge`;
+      const axisName = h.axis === 'v' ? 'y' : 'x';
+      issues.push(`  OFFEDGE   endpoint (${h.p}) alone on "${r.label}" ${where}, ${off.toFixed(0)} off its midpoint ${axisName}=${mid.toFixed(0)} (${(100 * off / face).toFixed(0)}% of a ${face.toFixed(0)} face)`);
+    }
+  }
+
+  // CENTRE verdicts.
+  const cc = (span[0] + span[1]) / 2;
+  const pc = (strip[0] + strip[1]) / 2;
+  const ovNote = ovBottom ? ` [overlay covers x<=${ovRight.toFixed(0)}, y<=${ovBottom.toFixed(0)}]` : '';
+  if (Math.abs(pc - 600) > TOL) issues.push(`  CENTRE    chip strip spans ${strip[0].toFixed(0)}..${strip[1].toFixed(0)}, centre ${pc.toFixed(0)} (want 600)`);
+  if (Math.abs(cc - 600) > 40) issues.push(`  CENTRE    content spans ${span[0].toFixed(0)}..${span[1].toFixed(0)}, centre ${cc.toFixed(0)} (want ~600, margins ${span[0].toFixed(0)} / ${(1200 - span[1]).toFixed(0)})${ovNote}`);
+
+  // CENTRE-LOW: content entirely BELOW the overlay has the full width free, so a gutter there is
+  // not the safe-zone paying for itself. Separates reserving the band as an L from as a rectangle.
+  if (ovBottom) {
+    const low = [...blockSeen.values()].filter(b => b.y >= ovBottom && !b.isFrame);
+    if (low.length >= 2) {
+      const lo = Math.min(...low.map(b => b.x)), hi = Math.max(...low.map(b => b.x + b.w));
+      const lc = (lo + hi) / 2;
+      if (hi - lo >= 200 && Math.abs(lc - 600) > 40) {
+        issues.push(`  CENTRE-LOW ${low.length} blocks below the overlay span ${lo.toFixed(0)}..${hi.toFixed(0)}, centre ${lc.toFixed(0)} (want ~600, full width is free there)`);
+      }
     }
   }
 
