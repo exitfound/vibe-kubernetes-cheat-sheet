@@ -1548,7 +1548,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — INSTALLATION ──────────────────────────
   {
-    id: 'troubleshooting-installation', title: 'Installation', icon: ICONS['troubleshooting-installation'], sub: 'Troubleshooting',
+    id: 'troubleshooting-installation', title: 'Installation', icon: ICONS['troubleshooting-installation'], sub: 'Debug K8s',
     groups: [
       {
         title: 'Kubeadm',
@@ -1622,7 +1622,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — CLUSTER ─────────────────────────────
   {
-    id: 'troubleshooting-cluster', title: 'Cluster', icon: ICONS['troubleshooting-cluster'], sub: 'Troubleshooting',
+    id: 'troubleshooting-cluster', title: 'Cluster', icon: ICONS['troubleshooting-cluster'], sub: 'Debug K8s',
     groups: [
       {
         title: 'Events',
@@ -1686,7 +1686,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — NETWORK ─────────────────────────────
   {
-    id: 'troubleshooting-network', title: 'Network', icon: ICONS['troubleshooting-network'], sub: 'Troubleshooting',
+    id: 'troubleshooting-network', title: 'Network', icon: ICONS['troubleshooting-network'], sub: 'Debug K8s',
     groups: [
       {
         title: 'DNS Resolution',
@@ -1731,7 +1731,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — STORAGE ─────────────────────────────
   {
-    id: 'troubleshooting-storage', title: 'Storage', icon: ICONS['troubleshooting-storage'], sub: 'Troubleshooting',
+    id: 'troubleshooting-storage', title: 'Storage', icon: ICONS['troubleshooting-storage'], sub: 'Debug K8s',
     groups: [
       {
         title: 'PV and PVC State',
@@ -1769,7 +1769,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — RESOURCES ───────────────────────────
   {
-    id: 'troubleshooting-resources', title: 'Resources', icon: ICONS['troubleshooting-resources'], sub: 'Troubleshooting',
+    id: 'troubleshooting-resources', title: 'Resources', icon: ICONS['troubleshooting-resources'], sub: 'Debug K8s',
     groups: [
       {
         title: 'Crash Forensics',
@@ -1821,7 +1821,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — SCHEDULING ──────────────────────────
   {
-    id: 'troubleshooting-scheduling', title: 'Scheduling', icon: ICONS['troubleshooting-scheduling'], sub: 'Troubleshooting',
+    id: 'troubleshooting-scheduling', title: 'Scheduling', icon: ICONS['troubleshooting-scheduling'], sub: 'Debug K8s',
     groups: [
       {
         title: 'Pending Pods',
@@ -1857,7 +1857,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — HELM ────────────────────────────────
   {
-    id: 'troubleshooting-helm', title: 'Helm', icon: ICONS['troubleshooting-helm'], sub: 'Troubleshooting',
+    id: 'troubleshooting-helm', title: 'Helm', icon: ICONS['troubleshooting-helm'], sub: 'Debug Tools',
     groups: [
       {
         title: 'Failed Releases',
@@ -1889,7 +1889,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — KUSTOMIZE ──────────────────────────
   {
-    id: 'troubleshooting-kustomize', title: 'Kustomize', icon: ICONS['troubleshooting-kustomize'], sub: 'Troubleshooting',
+    id: 'troubleshooting-kustomize', title: 'Kustomize', icon: ICONS['troubleshooting-kustomize'], sub: 'Debug Tools',
     groups: [
       {
         title: 'Debug Build',
@@ -1918,7 +1918,7 @@ const SECTIONS = [
 
   // ── TROUBLESHOOTING — K9S ─────────────────────────────────
   {
-    id: 'troubleshooting-k9s', title: 'K9s', icon: ICONS['troubleshooting-k9s'], sub: 'Troubleshooting',
+    id: 'troubleshooting-k9s', title: 'K9s', icon: ICONS['troubleshooting-k9s'], sub: 'Debug Tools',
     groups: [
       {
         title: 'Diagnose K9s',

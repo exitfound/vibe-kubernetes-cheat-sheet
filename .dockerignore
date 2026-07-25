@@ -4,6 +4,9 @@
 .gitignore
 README.md
 LICENSE
-CLAUDE.md
+**/CLAUDE.md
 Dockerfile
 images/og-image.svg
+scheme/tools
+scheme/docs
+SCHEME-REVIEW.md

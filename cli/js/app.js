@@ -1,4 +1,11 @@
 import { COPY_ICON, CHECK_ICON, STAR_ICON, CONTACT_ICON, SPONSOR_ICON, SECTIONS } from './data.js';
+import { setupSidebar } from './lib/sidebar.js';
+
+setupSidebar();
+
+// Yield one painted frame before building the heavy command list below, so
+// navigation shows the dark shell instantly instead of a blank canvas flash.
+await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
 
 document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -733,6 +740,6 @@ document.addEventListener('keydown', e => {
 });
 
 try {
-  const { CONTACTS, SPONSOR, GITHUB } = await import('./contacts.js');
-  renderHeaderActions(CONTACTS, SPONSOR, GITHUB);
+  const mod = await import('./contacts.js');
+  renderHeaderActions(mod.CONTACTS, mod.SPONSOR, mod.GITHUB);
 } catch (_) {}

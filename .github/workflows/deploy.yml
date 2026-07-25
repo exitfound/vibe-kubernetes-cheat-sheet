@@ -30,7 +30,10 @@ jobs:
       - name: Stage site
         run: |
           mkdir -p _site
-          cp -r index.html css js images favicon.svg robots.txt sitemap.xml CNAME _site/
+          cp index.html favicon.svg robots.txt sitemap.xml CNAME _site/
+          cp -r images cli scheme _site/
+          rm -rf _site/scheme/tools _site/scheme/docs
+          find _site -name CLAUDE.md -delete
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

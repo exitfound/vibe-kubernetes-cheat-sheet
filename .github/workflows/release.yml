@@ -6,12 +6,16 @@ on:
       - main
     paths:
       - 'index.html'
-      - 'css/**'
-      - 'js/**'
+      - 'cli/**'
+      - 'scheme/**'
       - 'images/**'
       - 'favicon.svg'
+      - 'robots.txt'
+      - 'sitemap.xml'
       - 'CNAME'
+      - 'Dockerfile'
       - 'configs/**'
+      - '.dockerignore'
 
 permissions:
   contents: write
@@ -39,8 +43,8 @@ jobs:
         run: |
           zip -r kube-cheatsheet-${{ steps.version.outputs.VERSION }}.zip \
             index.html \
-            css/ \
-            js/ \
+            cli/ \
+            scheme/ \
             images/ \
             favicon.svg \
             robots.txt \
@@ -48,7 +52,8 @@ jobs:
             CNAME \
             Dockerfile \
             configs/ \
-            .dockerignore
+            .dockerignore \
+            -x "scheme/tools/*" "scheme/docs/*" "cli/CLAUDE.md" "scheme/CLAUDE.md"
 
       - name: Create Release on Github
         uses: softprops/action-gh-release@v2
