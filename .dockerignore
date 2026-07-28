@@ -9,7 +9,3 @@ Dockerfile
 images/og-image.svg
 scheme/tools
 scheme/docs
-SCHEME-REVIEW.md
-SCHEME-2.4-PLAN.md
-SCHEME-2.4-STAGE-K.md
-REVIEW-FINDINGS.md
