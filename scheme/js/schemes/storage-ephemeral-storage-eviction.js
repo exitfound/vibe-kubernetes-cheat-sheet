@@ -178,7 +178,7 @@ const STEPS = [
   {
     id: 'request',
     duration: 2200,
-    narration: 'The requests.ephemeral-storage value is the amount the scheduler reserves when it places the Pod, the same way it reserves CPU and memory. It picks a Node with room for that request, but the request alone does not cap what the Pod may actually use.',
+    narration: 'The requests.ephemeral-storage value is what the Pod reserves on the Node when it is placed, the same way it reserves CPU and memory. The Pod lands only on a Node with room for that request, but the request alone does not cap what it may actually use.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

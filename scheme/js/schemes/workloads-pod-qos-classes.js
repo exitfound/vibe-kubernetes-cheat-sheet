@@ -240,7 +240,7 @@ const STEPS = [
   {
     id: 'schedule',
     duration: 3400,
-    narration: 'Scheduler picks a Node for each Pod. It looks only at requests, ignoring both limits and the QoS class. Pod A asks for nothing and fits anywhere. Pod B competes for 500m CPU and 256Mi memory. Pod C competes for 1 CPU and 1Gi memory. Once a Node passes the checks, the Pod is bound to it via POST .../pods/{name}/binding.',
+    narration: 'Each Pod is now placed on a Node. Scheduling looks only at requests, ignoring both limits and the QoS class. Pod A asks for nothing and fits anywhere. Pod B competes for 500m CPU and 256Mi memory. Pod C competes for 1 CPU and 1Gi memory. Once a Node passes the checks, the Pod is bound to it via POST .../pods/{name}/binding.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -251,7 +251,7 @@ const STEPS = [
       setVal(s.refs.pod2Chip, 'Burstable');
       setVal(s.refs.pod3Chip, 'Guaranteed');
       setVal(s.refs.focusChip, 'scheduler · requests only');
-      setWire(s, 'req', 'POST .../pods/{name}/binding · Scheduler reads requests');
+      setWire(s, 'req', 'POST .../pods/{name}/binding · requests only, not limits');
       s.refs.apiserver.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');

@@ -179,7 +179,7 @@ const STEPS = [
   {
     id: 'mint',
     duration: 3000,
-    narration: 'When the Pod is created, the ephemeral volume controller makes a real PVC from that inline template, in the same namespace and named after the Pod and the volume with a hyphen between them: app-0-scratch. It carries an ownerReference straight back at the Pod that spawned it.',
+    narration: 'When the Pod is created, that inline template becomes a real PVC, in the same namespace and named after the Pod and the volume with a hyphen between them: app-0-scratch. It carries an ownerReference straight back at the Pod that spawned it.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -225,7 +225,7 @@ const STEPS = [
   {
     id: 'mount',
     duration: 4200,
-    narration: 'The CSI driver attaches the disk to the Node and mounts it at /scratch inside the container, exactly as it would for any ordinary PVC. The Pod starts and writes to a real, dynamically provisioned volume. Nothing about this path is a shortcut.',
+    narration: 'The volume is attached and mounted at /scratch inside the container over CSI, exactly as it would be for any ordinary PVC. The Pod starts and writes to a real, dynamically provisioned volume. Nothing about this path is a shortcut.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

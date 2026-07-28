@@ -288,7 +288,7 @@ const STEPS = [
   {
     id: 'attachb',
     duration: 3400,
-    narration: 'With PV-web detached, the controller attaches it to Node-2, Kubelet mounts it, and the new Pod finally starts. Nothing in that sequence was slow. The entire outage was the safety margin: the eviction wait and then six more minutes of deliberate doubt about a Node that could not be asked.',
+    narration: 'With PV-web detached, it attaches to Node-2 and is mounted there, and the new Pod finally starts. Nothing in that sequence was slow. The entire outage was the safety margin: the eviction wait and then six more minutes of deliberate doubt about a Node that could not be asked.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

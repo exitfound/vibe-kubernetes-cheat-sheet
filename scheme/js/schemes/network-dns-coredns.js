@@ -134,7 +134,7 @@ const STEPS = [
   {
     id: 'resolv',
     duration: 2200,
-    narration: 'The Kubelet wrote the Pod /etc/resolv.conf when it started. Its nameserver is the kube-dns Service ClusterIP, it lists cluster search domains, and it sets ndots:5. Those three lines are what make in-cluster name resolution work without the app knowing anything about CoreDNS.',
+    narration: 'The Pod /etc/resolv.conf was written by the Kubelet at startup. Its nameserver is the kube-dns Service ClusterIP, it lists cluster search domains, and it sets ndots:5. Those three lines are what make in-cluster name resolution work without the app knowing anything about CoreDNS.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

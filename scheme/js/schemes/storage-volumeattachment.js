@@ -253,7 +253,7 @@ const STEPS = [
   {
     id: 'attach',
     duration: 4800,
-    narration: 'The external-attacher watches VolumeAttachment objects. It picks this one up, calls ControllerPublishVolume on the driver, and the driver asks the storage backend to attach vol-1 to Node-1. The device is physically on the Node now, and Kubelet still will not touch it, because the object still says false.',
+    narration: 'The external-attacher watches VolumeAttachment objects. It picks this one up and calls ControllerPublishVolume on the driver, and that call is what gets vol-1 attached to Node-1 in the storage backend. The device is physically on the Node now, and Kubelet still will not touch it, because the object still says false.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

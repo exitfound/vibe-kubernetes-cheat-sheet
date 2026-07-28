@@ -152,7 +152,7 @@ const STEPS = [
   {
     id: 'loadbalancer',
     duration: 2400,
-    narration: 'LoadBalancer builds on NodePort. The cloud-controller-manager provisions an external load balancer whose targets are those Node ports, so clients get one stable public address instead of a list of Nodes. It is ClusterIP plus NodePort plus a cloud VIP.',
+    narration: 'LoadBalancer builds on NodePort. It gets an external load balancer provisioned by the cloud-controller-manager, with those Node ports as its targets, so clients get one stable public address instead of a list of Nodes. It is ClusterIP plus NodePort plus a cloud VIP.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -170,7 +170,7 @@ const STEPS = [
   {
     id: 'externalname',
     duration: 2300,
-    narration: 'ExternalName is the odd one out. It has no selector, no Pods and no proxy. CoreDNS simply returns a CNAME that points the name at an external host, so the Service is just a stable in-cluster alias for something living outside.',
+    narration: 'ExternalName is the odd one out. It has no selector, no Pods and no proxy. A lookup of the Service name simply returns a CNAME that points at an external host, so the Service is just a stable in-cluster alias for something living outside.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

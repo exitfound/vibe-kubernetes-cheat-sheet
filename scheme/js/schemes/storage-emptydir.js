@@ -159,7 +159,7 @@ const STEPS = [
   {
     id: 'create',
     duration: 2400,
-    narration: 'The moment the scheduler places the Pod on Node-1, Kubelet creates an empty directory for it on the Node disk. There is nothing to provision and nothing to bind, the directory simply appears, owned by this one Pod.',
+    narration: 'The moment the Pod is placed on Node-1, an empty directory is created for it on the Node disk. There is nothing to provision and nothing to bind, the directory simply appears, owned by this one Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -241,7 +241,7 @@ const STEPS = [
   {
     id: 'sizelimit',
     duration: 3600,
-    narration: 'A sizeLimit caps how large the emptyDir may grow. Write past the limit and Kubelet evicts the Pod off the Node rather than let it fill the disk. Whether it is memory or disk, an unbounded emptyDir is a way to lose the Pod.',
+    narration: 'A sizeLimit caps how large the emptyDir may grow. Write past the limit and the Pod is evicted off the Node rather than left to fill the disk. Whether it is memory or disk, an unbounded emptyDir is a way to lose the Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

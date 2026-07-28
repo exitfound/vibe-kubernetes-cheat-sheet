@@ -3918,6 +3918,17 @@ one frame: the left container writes INTO the disk, the right container reads OU
 
 ## storage-ephemeral-storage-eviction
 
+### decision: Kubelet is an accepted off-card actor in storage (2026-07-29)
+
+Family K of review item 2.4 rewrites narration that makes an actor the grammatical subject where
+the card draws no block for it. This card is deliberately exempt, and so is `storage-hostpath`.
+The `sources`, `podLimit`, `diskPressure` and `rankEvict` steps all name the Kubelet as the
+subject, and every one of those statements is true of work only the Kubelet does. The storage
+category has almost no Kubelet box by design, so the alternatives were a prose sweep over two
+whole cards into the passive voice, which throws the mechanism away and is exactly the shape of
+edit this project has been burned by, or drawing a Kubelet block, which is geometry and outside
+2.4. Accepted as an off-card actor for the whole category instead. Do not file these again.
+
 ### before `const NODE_X = 210, NODE_Y = 45, NODE_W = 780, NODE_H = 485; // 210..990, canvas-centered`
 
 ```
@@ -4467,6 +4478,12 @@ The claim carries the brightest fill because it is the pivot the card turns on.
 ---
 
 ## storage-hostpath
+
+### decision: Kubelet is an accepted off-card actor in storage (2026-07-29)
+
+The `idle` and `mount` steps name the Kubelet as the subject although this card draws no Kubelet
+block. Left as written, under the category-wide decision recorded on
+`storage-ephemeral-storage-eviction`. Do not file these again.
 
 ### before `const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550`
 
@@ -6782,7 +6799,7 @@ the card from the first frame would say the scheduling attempt is already under 
 the opposite of the setup: right now there is simply a cluster with room in it.
 ```
 
-### before `narration: 'The ceiling is not a Kubernetes setting. The CSI node plugin answers NodeGetInfo with max_volumes_`
+### before `narration: 'The ceiling is not a Kubernetes setting. It is reported by the CSI node plugin as max_volumes_`
 
 ```
 Where the number comes from, which is the one CSI object the rest of the row never touches.
@@ -7781,6 +7798,13 @@ it outweighed every card around it in the row.
 
 ## storage-volumeattachment
 
+### decision: the backend is named but not drawn, on purpose (2026-07-29)
+
+Reviewed under family K of item 2.4 and left alone. The `status` and `detach` steps say "when the
+backend confirms the attach" and "only when the backend has detached", and this card draws no
+storage-backend block. Both are subordinate time clauses rather than the visible action of the
+step, so the reader is not being pointed at a missing box. Do not file these again.
+
 ### before `const M = 60;`
 
 ```
@@ -8646,6 +8670,15 @@ rather than the FADE tokens. The delay starts the cross-fade a beat into the ste
 ---
 
 ## workloads-pod-priority-preemption
+
+### decision: two off-card actors in `bind` are deliberate (2026-07-29)
+
+Family K of item 2.4 rewrote one sentence of this step (Kubelet starting the new Pod became "Pod
+NEW then starts on Node-1"). The two that remain are deliberate. "The controller that owns Pod A
+(Deployment, StatefulSet) creates a replacement" and "the Kubelet evicts Pods that are over their
+requests first" both describe events explicitly OFF this card: a replacement placed elsewhere, and
+a mechanism the sentence itself marks as covered separately. Neither points the reader at a box
+that should be on the diagram. Do not file these again.
 
 ### layout (R5-a, 2026-07-27)
 

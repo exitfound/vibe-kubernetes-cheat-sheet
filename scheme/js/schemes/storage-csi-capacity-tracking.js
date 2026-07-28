@@ -263,7 +263,7 @@ const STEPS = [
   {
     id: 'publish',
     duration: 3600,
-    narration: 'Turn on capacity tracking and the CSI driver publishes a CSIStorageCapacity object for each Node, reporting the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
+    narration: 'Turn on capacity tracking and a CSIStorageCapacity object appears for each Node, published by the driver from the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

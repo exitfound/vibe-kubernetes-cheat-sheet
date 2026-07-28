@@ -117,7 +117,7 @@ const STEPS = [
   {
     id: 'map',
     duration: 2400,
-    narration: 'The Service definition maps port 80 to its targetPort. The kube-proxy uses that mapping to rewrite the destination port as it DNATs the packet to a backend Pod IP. The port the client used and the port the container listens on are now two independent values joined only by this rule.',
+    narration: 'The Service definition maps port 80 to its targetPort. That mapping becomes a DNAT rule on the Node, written by kube-proxy, so the destination port is rewritten as the packet goes to a backend Pod IP. The port the client used and the port the container listens on are now two independent values joined only by this rule.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

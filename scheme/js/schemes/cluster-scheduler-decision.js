@@ -301,7 +301,7 @@ const STEPS = [
   {
     id: 'placed',
     duration: 2200,
-    narration: 'The Kubelet on Node-4 has a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-4. The ADDED event arrives, Kubelet pulls the image, and the Pod transitions to Running.',
+    narration: 'Node-4 sees the Pod through a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-4. On that ADDED event the image is pulled by the Kubelet there, and the Pod transitions to Running.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -304,7 +304,7 @@ const STEPS = [
     id: 'ready',
     // Three chained hops back up the chain: driver to sidecar, sidecar to content, content to request.
     duration: 5000,
-    narration: 'The driver returns a snapshot handle. The sidecar writes it into the content status and flips readyToUse to true, and the controller mirrors that status up onto snap-1, which can now be consumed. Note where the data sits: on the same storage system as the source, right beside it. If that system fails both are lost, so a snapshot is not a backup.',
+    narration: 'A snapshot handle comes back from the driver. The sidecar writes it into the content status and flips readyToUse to true, and the controller mirrors that status up onto snap-1, which can now be consumed. Note where the data sits: on the same storage system as the source, right beside it. If that system fails both are lost, so a snapshot is not a backup.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -338,7 +338,7 @@ const STEPS = [
   {
     id: 'restore',
     duration: 3600,
-    narration: 'To restore, create a brand new PVC whose dataSource names snap-1. The external-provisioner resolves that through the bound content and asks the driver for a fresh volume seeded from the snapshot. The original is untouched, the restore is a separate independent disk, and all three of them still sit in the same backend.',
+    narration: 'To restore, create a brand new PVC whose dataSource names snap-1. That claim resolves through the bound content, and provisioning asks the driver for a fresh volume seeded from the snapshot. The original is untouched, the restore is a separate independent disk, and all three of them still sit in the same backend.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

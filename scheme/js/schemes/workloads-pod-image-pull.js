@@ -208,7 +208,7 @@ const STEPS = [
   {
     id: 'cache',
     duration: 2300,
-    narration: 'Kubelet asks the runtime via the CRI ImageStatus call whether this exact image is already present on this Node. The runtime keeps a content-addressable layer store keyed by sha256 digest and shared across every Pod on the Node. The app:v2 image is only partially cached: 2 of its 4 layers are already in the store (shared with other images). If the policy were Always, the runtime would still fetch the remote manifest to resolve the current digest and skip the actual blob pulls when it matches the local digest.',
+    narration: 'Kubelet asks the runtime via the CRI ImageStatus call whether this exact image is already present on this Node. The layer store it queries is content-addressable, keyed by sha256 digest and shared across every Pod on the Node. The app:v2 image is only partially cached: 2 of its 4 layers are already in the store (shared with other images). If the policy were Always, the remote manifest would still be fetched to resolve the current digest, and the actual blob pulls skipped when it matches the local digest.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -231,7 +231,7 @@ const STEPS = [
   {
     id: 'pull',
     duration: 2400,
-    narration: 'The 2 missing layers are pulled. The runtime fetches the image manifest, then for each missing layer issues GET /v2/app/blobs/sha256:{digest} to the registry with the assembled Authorization header. Layers shared with previously-pulled images on this Node are reused from the store, so a partial cache hit shrinks the actual wire transfer. On error (404, auth fail, network timeout) the container goes Waiting with reason ErrImagePull, Kubelet retries on an exponential backoff (~10s, 20s, 40s, capped at 300s), surfaced as ImagePullBackOff after the first few failures.',
+    narration: 'Kubelet has the runtime pull the 2 missing layers. The image manifest is fetched first, then for each missing layer a GET /v2/app/blobs/sha256:{digest} goes to the registry with the assembled Authorization header. Layers shared with previously-pulled images on this Node are reused from the store, so a partial cache hit shrinks the actual wire transfer. On error (404, auth fail, network timeout) the container goes Waiting with reason ErrImagePull, Kubelet retries on an exponential backoff (~10s, 20s, 40s, capped at 300s), surfaced as ImagePullBackOff after the first few failures.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -256,7 +256,7 @@ const STEPS = [
   {
     id: 'start',
     duration: 2300,
-    narration: 'All 4 layers are present in the layer store. The runtime assembles the container rootfs via an overlay filesystem: each layer mounts read-only and one top read-write layer holds the writes the running container makes. The layer store is shared across containers, so a second Pod using the same image reuses the same lower layers (only the upper RW layer is per-container). Kubelet calls CreateContainer to bind the rootfs and configure namespaces, then StartContainer to exec PID 1.',
+    narration: 'All 4 layers are present in the layer store. The container rootfs is assembled as an overlay filesystem: each layer mounts read-only and one top read-write layer holds the writes the running container makes. The layer store is shared across containers, so a second Pod using the same image reuses the same lower layers (only the upper RW layer is per-container). Kubelet calls CreateContainer to bind the rootfs and configure namespaces, then StartContainer to exec PID 1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

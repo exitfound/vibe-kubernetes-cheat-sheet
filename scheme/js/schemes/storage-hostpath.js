@@ -188,7 +188,7 @@ const STEPS = [
   {
     id: 'reschedule',
     duration: 2800,
-    narration: 'The directory belongs to the Node, not the Pod, so deleting the Pod leaves /var/log untouched on Node-1, and here the Pod dims out while the directory stays lit. The replacement may land on Node-2, where hostPath mounts the different /var/log that belongs to that Node. The data did not travel. A hostPath volume looks like persistence and is not.',
+    narration: 'The directory belongs to the Node, not the Pod, so deleting the Pod leaves /var/log untouched on Node-1, and here the Pod dims out while the directory stays lit. Schedule a replacement onto another Node and the /var/log it finds there is a different directory that belongs to that Node. The data did not travel. A hostPath volume looks like persistence and is not.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

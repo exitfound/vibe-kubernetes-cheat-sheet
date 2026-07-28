@@ -67,7 +67,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The phase field of a PersistentVolume as a state machine with four places. A fresh volume is Available and open to any matching claim. When the binding controller writes a claimRef the volume becomes Bound. Deleting that claim moves it to Released rather than back to Available, because the claimRef stays behind and is now stale. From Released the PV controller reads the reclaim policy. Under Delete it removes both the storage asset and the PersistentVolume object, so the volume leaves the machine entirely, and if that automated reclamation errors instead the volume moves to Failed, which is terminal. Under Retain the controller makes no call at all and the volume parks in Released. The single backward edge is manual: an administrator clears the stale claimRef and the volume returns to Available.',
+      'aria-label': 'The phase field of a PersistentVolume as a state machine with four places. A fresh volume is Available and open to any matching claim. When a claimRef is written the volume becomes Bound. Deleting that claim moves it to Released rather than back to Available, because the claimRef stays behind and is now stale. From Released the PV controller reads the reclaim policy. Under Delete it removes both the storage asset and the PersistentVolume object, so the volume leaves the machine entirely, and if that automated reclamation errors instead the volume moves to Failed, which is terminal. Under Retain the controller makes no call at all and the volume parks in Released. The single backward edge is manual: an administrator clears the stale claimRef and the volume returns to Available.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -173,7 +173,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A PersistentVolume and the four phases its lifecycle runs through. Right now it is Available, which means no claim points at it and the binding controller is free to match it to the next claim that fits on size, access mode and storage class.',
+    narration: 'A PersistentVolume and the four phases its lifecycle runs through. Right now it is Available, which means no claim points at it and it is free to be matched to the next claim that fits on size, access mode and storage class.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -186,7 +186,7 @@ const STEPS = [
   {
     id: 'bind',
     duration: 3200,
-    narration: 'A matching claim asks for the volume. The binding controller writes that claim into the claimRef field of the PV, and the phase moves to Bound. From here the volume is reserved for exactly one claim and no other claim can take it.',
+    narration: 'A matching claim asks for the volume. That claim is written into the claimRef field of the PV, and the phase moves to Bound. From here the volume is reserved for exactly one claim and no other claim can take it.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

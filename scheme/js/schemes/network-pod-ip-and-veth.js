@@ -122,7 +122,7 @@ const STEPS = [
   {
     id: 'sandbox',
     duration: 2100,
-    narration: 'The runtime first starts the pause container, which holds the Pod network namespace open. Because pause owns that namespace, every other container in the Pod is later joined into it rather than getting its own, which is what makes them one network endpoint.',
+    narration: 'The pause container is started first by the runtime, and it holds the Pod network namespace open. Because pause owns that namespace, every other container in the Pod is later joined into it rather than getting its own, which is what makes them one network endpoint.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -138,7 +138,7 @@ const STEPS = [
   {
     id: 'cni-add',
     duration: 2400,
-    narration: 'The runtime then calls the CNI plugin with the namespace path. The plugin allocates one IP for the Pod through its IPAM, creates a veth pair, moves one end into the namespace as eth0 and attaches the peer to cni0 on the host. The Pod now has a single routable address and a link to the Node.',
+    narration: 'The CNI plugin is then called by the runtime with the namespace path. It allocates one IP for the Pod through its IPAM, creates a veth pair, moves one end into the namespace as eth0 and attaches the peer to cni0 on the host. The Pod now has a single routable address and a link to the Node.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

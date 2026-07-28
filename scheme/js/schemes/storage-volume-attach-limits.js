@@ -254,7 +254,7 @@ const STEPS = [
   {
     id: 'cap',
     duration: 2800,
-    narration: 'The ceiling is not a Kubernetes setting. The CSI node plugin answers NodeGetInfo with max_volumes_per_node, and Kubelet writes that number into the CSINode object for its own Node, as allocatable.count. Real drivers report anything from a handful on a small VM to a hundred and twenty seven on GCE.',
+    narration: 'The ceiling is not a Kubernetes setting. It is reported by the CSI node plugin as max_volumes_per_node in its NodeGetInfo answer, then written by the Kubelet into the CSINode object for that Node as allocatable.count. Real drivers report anything from a handful on a small VM to a hundred and twenty seven on GCE.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

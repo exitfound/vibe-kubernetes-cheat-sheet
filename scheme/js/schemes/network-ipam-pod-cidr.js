@@ -56,7 +56,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and the CNI IPAM on a Node hands Pod IPs out of its own slice',
+      'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and every Pod IP on a Node is drawn by the CNI IPAM out of that slice',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -173,7 +173,7 @@ const STEPS = [
   {
     id: 'ipam',
     duration: 2400,
-    narration: 'When a Pod is scheduled to Node-1, the CNI IPAM running there picks the next free address strictly out of that Node slice, 10.244.1.0/24, and assigns 10.244.1.5. It never reaches outside its own block, which is exactly what stops two Nodes from colliding.',
+    narration: 'When a Pod is scheduled to Node-1, its address is drawn by the CNI IPAM strictly out of that Node slice, 10.244.1.0/24, so the Pod gets 10.244.1.5. Allocation never reaches outside the block a Node owns, which is exactly what stops two Nodes from colliding.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

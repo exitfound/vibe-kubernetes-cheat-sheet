@@ -284,7 +284,7 @@ const STEPS = [
   {
     id: 'bind',
     duration: 3400,
-    narration: 'Pod A has exited gracefully and is gone. Its allocatable capacity returns to Node-1. Scheduler picks Pod NEW again, Filter+Score now passes, and binds via POST /api/v1/.../pods/pod-new/binding. Kubelet on Node-1 starts the new Pod. The controller that owns Pod A (Deployment, StatefulSet) creates a replacement which the scheduler may place on another Node, or queue if no Node has capacity. Preemption is distinct from node-pressure eviction (covered separately), where the Kubelet evicts Pods that are over their requests first, which puts BestEffort at the front, and uses Pod priority only to order that queue.',
+    narration: 'Pod A has exited gracefully and is gone. Its allocatable capacity returns to Node-1. Scheduler picks Pod NEW again, Filter+Score now passes, and binds via POST /api/v1/.../pods/pod-new/binding. Pod NEW then starts on Node-1. The controller that owns Pod A (Deployment, StatefulSet) creates a replacement which the scheduler may place on another Node, or queue if no Node has capacity. Preemption is distinct from node-pressure eviction (covered separately), where the Kubelet evicts Pods that are over their requests first, which puts BestEffort at the front, and uses Pod priority only to order that queue.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

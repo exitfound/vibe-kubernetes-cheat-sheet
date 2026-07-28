@@ -78,7 +78,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and the scheduler then finds no Node that both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
+      'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and no Node then both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -201,7 +201,7 @@ const STEPS = [
     // 4400, not 3600: the provisioning route wraps the outer margin and runs the shelf midline into
     // the zone-a disk from the right, which anim-dump puts at a 3960ms span (ball plus its ripple).
     duration: 4400,
-    narration: 'With Immediate the volume is provisioned the moment the claim appears, long before any Pod is scheduled. The provisioner has no Pod to guide it, so it just picks a zone. Here it lands in zone-a, and the claim is Bound to a disk that now physically lives in zone-a, reachable only by Node-1.',
+    narration: 'With Immediate the volume is provisioned the moment the claim appears, long before any Pod is scheduled. With no Pod to guide it, provisioning just picks a zone. Here it lands in zone-a, and the claim is Bound to a disk that now physically lives in zone-a, reachable only by Node-1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -226,7 +226,7 @@ const STEPS = [
   {
     id: 'imm-schedule',
     duration: 3000,
-    narration: 'Only now is the Pod created, and the scheduler must place it around a disk that already lives in zone-a. This Pod fits Node-2 in zone-b on capacity and affinity, but a zone-a disk cannot attach to a Node in zone-b. The scheduler does read volume topology, so it rejects Node-2, while Node-1 in zone-a has no room for the Pod.',
+    narration: 'Only now is the Pod created, and it has to be placed around a disk that already lives in zone-a. This Pod fits Node-2 in zone-b on capacity and affinity, but a zone-a disk cannot attach to a Node in zone-b. Volume topology is read during scheduling, so Node-2 is rejected, while Node-1 in zone-a has no room for the Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -264,7 +264,7 @@ const STEPS = [
   {
     id: 'wffc-schedule',
     duration: 3200,
-    narration: 'Set volumeBindingMode to WaitForFirstConsumer and start over. Binding is now deferred, so the claim stays Pending on purpose while no disk exists yet. The scheduler runs first and places the Pod on Node-2 in zone-b, and its choice is recorded on the claim.',
+    narration: 'Set volumeBindingMode to WaitForFirstConsumer and start over. Binding is now deferred, so the claim stays Pending on purpose while no disk exists yet. The Pod is scheduled first and lands on Node-2 in zone-b, and that choice is recorded on the claim.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -282,7 +282,7 @@ const STEPS = [
   {
     id: 'wffc-provision',
     duration: 5800,
-    narration: 'Now that the Pod has a Node, the provisioner knows exactly which zone to build in. The volume is created in zone-b, bound to the claim, and attached to Node-2 right above it. The Pod mounts it and starts, because the order was reversed so the disk could follow the Pod.',
+    narration: 'Now that the Pod has a Node, the zone to build in is no longer a guess. The volume is created in zone-b, bound to the claim, and attached to Node-2 right above it. The Pod mounts it and starts, because the order was reversed so the disk could follow the Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -150,7 +150,7 @@ const STEPS = [
   {
     id: 'pool',
     duration: 2400,
-    narration: 'An in-cluster load balancer implementation, MetalLB and its kin, fills that gap. It watches for pending Services and hands out an address from a pool the cluster operator declares, then writes it into status.loadBalancer.ingress. The Service finally has 203.0.113.9. An allocated address is not a reachable one though: something still has to tell the network where to send it.',
+    narration: 'That gap is filled in-cluster instead, by an implementation such as MetalLB. The cluster operator declares an address pool, an address out of it is handed to the pending Service and written into status.loadBalancer.ingress, so the Service finally has 203.0.113.9. An allocated address is not a reachable one though: something still has to tell the network where to send it.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

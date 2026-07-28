@@ -133,7 +133,7 @@ const STEPS = [
   {
     id: 'terminate',
     duration: 2400,
-    narration: 'The rollout deletes Pod web-c. The Kubelet runs its preStop hook first, then sends SIGTERM, but the container does not vanish at once. It enters Terminating and keeps serving whatever it is already handling.',
+    narration: 'The rollout deletes Pod web-c. Its preStop hook runs first and SIGTERM follows from the Kubelet, but the container does not vanish at once. It enters Terminating and keeps serving whatever it is already handling.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -156,7 +156,7 @@ const STEPS = [
   {
     id: 'condition',
     duration: 3500,
-    narration: 'Almost at once the EndpointSlice controller flips that endpoint: ready becomes false while serving and terminating stay true. The kube-proxy reads the change and stops handing NEW connections to web-c, so fresh traffic now goes to web-a only.',
+    narration: 'Almost at once that endpoint flips in the slice: ready becomes false while serving and terminating stay true. The kube-proxy reads the change and stops handing NEW connections to web-c, so fresh traffic now goes to web-a only.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -211,7 +211,7 @@ const STEPS = [
   {
     id: 'gone',
     duration: 3500,
-    narration: 'When the grace period ends web-c exits, the controller removes its endpoint from the slice, and the replacement Pod started by the ReplicaSet is already Ready in its place. Traffic carried on throughout, and no client saw a reset.',
+    narration: 'When the grace period ends web-c exits and its endpoint leaves the slice, with a replacement Pod from the ReplicaSet already Ready in its place. Traffic carried on throughout, and no client saw a reset.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
