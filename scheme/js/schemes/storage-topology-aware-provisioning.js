@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-topology-aware-provisioning
 
 
@@ -37,18 +37,6 @@ const W_MOUNT_B = [[NODE_CX[1], DISK_TOP], [NODE_CX[1], NODE_BOTTOM]];
 // The doomed reach: node-2 would have to cross into zone-a for its disk. It leaves the node-2 frame
 // bottom centre and enters the zone-a disk through its top centre.
 const W_CROSS = [[NODE_CX[1], NODE_BOTTOM], [NODE_CX[1], CROSS_Y], [NODE_CX[0], CROSS_Y], [NODE_CX[0], DISK_TOP]];
-
-// A disk materialises when the CreateVolume that makes it lands, so no arrowhead is ever aimed at
-// nothing. LAND_MS is shorter than BEAT.lead for the same reason.
-const LAND_MS = 500;
-// OPACITY.pending is the dim a disk is drawn at while the provisioning lane already points AT it but it
-// has not been created yet. Hiding it outright aims the arrowhead at blank canvas for the whole flight.
-function revealAt(el, ctx, delay = 0, from = 0) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
-  el.style.opacity = String(from);
-  ctx.register(el.animate([{ opacity: from }, { opacity: 1 }], { duration: LAND_MS, delay, fill: 'forwards', easing: 'ease-out' }));
-}
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
@@ -108,10 +96,9 @@ class Scene {
     const wProvA = lane(wProv(0));
     const wProvB = lane(wProv(1));
     const wMountB = lane(W_MOUNT_B);
-    // The doomed cross-zone reach: a bare dashed line the Pod aims at its stranded disk, entering the
-    // zone-a disk dead centre on its top edge. No arrowhead, since the attach never actually succeeds.
-    const crossLink = lane(W_CROSS);
-    crossLink.removeAttribute('marker-end');
+    // The doomed cross-zone reach: the Pod aims at its stranded disk, entering the zone-a disk dead
+    // centre on its top edge. A relationship rather than traffic, since the attach never succeeds.
+    const crossLink = relationPath({ points: W_CROSS, role: 'storage' });
     [wProvA, wProvB, wMountB, crossLink].forEach(w => { w.style.opacity = '0'; });
 
     const failLbl = text({ class: 'scheme-label code dim', x: CX, y: CROSS_Y - 12, 'text-anchor': 'middle' }, [' ']);
@@ -301,7 +288,7 @@ const STEPS = [
       lightBoxAt(s.refs.diskB, ctx, prov.arrivalMs);
       revealAt(s.refs.diskB, ctx, prov.arrivalMs, OPACITY.pending);
       // Down-arrow into the Pod, so the ball leads and the pulse lands on its arrival.
-      const mountAt = prov.arrivalMs + LAND_MS + BEAT.afterHop;
+      const mountAt = prov.arrivalMs + REVEAL_MS + BEAT.afterHop;
       const mount = routePacket(s, ctx, W_MOUNT_B, { delay: mountAt, role: 'storage' });
       ridingLabel(s, ctx, 'attach and mount', W_MOUNT_B, { delay: mountAt });
       ctx.register(s.refs.podB.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: FADE.in, delay: mount.arrivalMs, fill: 'forwards', easing: 'ease-out' }));

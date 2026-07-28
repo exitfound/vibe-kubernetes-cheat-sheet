@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, node, pathArrow, chainList, setChainActive } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-csi-attach-mount
 
 
@@ -70,14 +70,6 @@ const W_PUB_A   = [[PODA_CX, STG_BOTTOM], [PODA_CX, POD_Y]];
 const W_PUB_B   = [[PODB_CX, STG_BOTTOM], [PODB_CX, POD_Y]];
 const W_OWNS = `M ${OWNS_X} ${ND_Y + ND_H} L ${OWNS_X} ${STG_TOP}`;
 
-const LAND_MS = 500;
-
-function revealAt(el, ctx, delay = 0, to = 1, dur = 500) {
-  if (!el) return;
-  if (ctx.reduced) { el.style.opacity = String(to); return; }
-  el.style.opacity = '0';
-  ctx.register(el.animate([{ opacity: 0 }, { opacity: to }], { duration: dur, delay, fill: 'forwards', easing: 'ease-out' }));
-}
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
@@ -202,8 +194,8 @@ function call(s, ctx, { points, tag, target, delay = BEAT.lead }) {
 }
 
 function publishInto(s, ctx, { podEl, lane, points, tag }) {
-  revealAt(podEl, ctx, 0, 1, LAND_MS);
-  revealAt(lane, ctx, 0, 1, LAND_MS);
+  revealAt(podEl, ctx, 0);
+  revealAt(lane, ctx, 0);
   const delay = BEAT.lead;
   const pkt = routePacket(s, ctx, points, { delay, role: 'storage' });
   ridingLabel(s, ctx, tag, points, { delay });
@@ -257,9 +249,9 @@ const STEPS = [
       s.refs.ctrl.classList.add('highlight');
       s.refs.cdisk.classList.add('highlight');
       if (ctx.reduced) { s.refs.dev.classList.add('highlight'); return; }
-      revealAt(s.refs.dev, ctx, 0, 1, LAND_MS);
-      revealAt(s.refs.wAttach, ctx, 0, 1, LAND_MS);
-      revealAt(s.refs.wStage, ctx, 0, 1, LAND_MS);
+      revealAt(s.refs.dev, ctx, 0);
+      revealAt(s.refs.wAttach, ctx, 0);
+      revealAt(s.refs.wStage, ctx, 0);
       call(s, ctx, { points: W_ATTACH, tag: 'ControllerPublish', target: s.refs.dev });
     },
   },

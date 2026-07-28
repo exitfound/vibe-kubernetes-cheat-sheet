@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-generic-ephemeral-volume
 
 
@@ -28,16 +28,6 @@ const W_DOWN_HIGH  = [[CX, POD_BOTTOM], [CX, ROW_Y]];
 const W_DOWN_LOW   = [[CX, ROW_BOTTOM], [CX, PV_TOP]];
 const W_UP_HIGH    = [[CX, ROW_Y], [CX, POD_BOTTOM]];
 const W_UP_LOW     = [[CX, PV_TOP], [CX, ROW_BOTTOM]];
-
-// An object materialises when the call that creates it lands, so no arrowhead is ever aimed at
-// nothing. LAND_MS is shorter than BEAT.lead for the same reason.
-const LAND_MS = 500;
-function revealAt(el, ctx, delay = 0, from = 0) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
-  el.style.opacity = String(from);
-  ctx.register(el.animate([{ opacity: from }, { opacity: 1 }], { duration: LAND_MS, delay, fill: 'forwards', easing: 'ease-out' }));
-}
 
 function vanishAt(el, ctx, delay = 0, to = OPACITY.terminated) {
   if (!el) return;

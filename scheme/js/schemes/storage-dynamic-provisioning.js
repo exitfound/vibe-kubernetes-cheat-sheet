@@ -1,6 +1,6 @@
 import { svg, g, text, line } from '../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-dynamic-provisioning
 
 
@@ -66,14 +66,6 @@ const W_PROV_TO_CLOUD = [[DOWN_X, PROV_BOTTOM], [DOWN_X, CLOUD_TOP]];
 const W_CLOUD_TO_PROV = [[UP_X, CLOUD_TOP], [UP_X, PROV_BOTTOM]];
 const W_PROV_TO_PV  = [[PROV_LEFT, PROV_MY + PROV_LANE], [ELBOW_X, PROV_MY + PROV_LANE], [ELBOW_X, 396], [PV_CX, 396], [PV_CX, PV_TOP]];
 const W_BOUND       = [[SPINE_X, PVC_BOTTOM], [SPINE_X, PV_TOP]];
-
-// Reveals the disk (or any hidden block) exactly when the packet that creates it lands.
-function revealAt(el, ctx, delay = 0) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
-  el.style.opacity = '0';
-  ctx.register(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay, fill: 'forwards', easing: 'ease-out' }));
-}
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });

@@ -143,6 +143,10 @@ svg.diagram {
 .scheme-arrow-network { stroke: var(--network-color); }
 .scheme-arrow-storage { stroke: var(--storage-color); }
 .scheme-arrow-cluster { stroke: var(--cluster-color); }
+/* A relationship line carries no ball on any step, so it must not read as a route. It keeps its
+   category hue and sinks behind the live wires instead. stroke-opacity rather than a darker colour:
+   the hue then stays one token per category, and an element opacity a card pins still multiplies. */
+.scheme-arrow.scheme-arrow-relation { stroke-opacity: 0.45; }
 .scheme-arrow.flowing {
   stroke-width: 2;
 }

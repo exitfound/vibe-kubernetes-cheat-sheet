@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-csi-capacity-tracking
 
 
@@ -43,16 +43,6 @@ function wRead(i) {
   const topX = NODE_CX[i];
   const schedEdge = i === 0 ? SCHED_LEFT : SCHED_RIGHT;
   return [[topX, NODE_TOP], [topX, SCHED_MY], [schedEdge, SCHED_MY]];
-}
-
-// A capacity object materialises when the publish that creates it lands, so no arrowhead is ever
-// aimed at nothing. LAND_MS is shorter than BEAT.lead for the same reason.
-const LAND_MS = 500;
-function revealAt(el, ctx, delay = 0) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
-  el.style.opacity = '0';
-  ctx.register(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: LAND_MS, delay, fill: 'forwards', easing: 'ease-out' }));
 }
 
 // A node that the filter rejects dims when the read that rejects it lands, not at step entry.
@@ -214,7 +204,7 @@ const STEPS = [
   {
     id: 'blind-schedule',
     duration: 4300,
-    narration: 'Without capacity tracking the scheduler scores the Nodes on cpu, memory and affinity only, and Node-1 wins on those. It selects Node-1 for the Pod, having no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
+    narration: 'Without capacity tracking the scheduler scores the Nodes on cpu, memory and affinity only, and Node-1 wins on those. Node-1 is recorded on the claim as the chosen one, with no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -263,7 +253,7 @@ const STEPS = [
   {
     id: 'publish',
     duration: 3600,
-    narration: 'Turn on capacity tracking and a CSIStorageCapacity object appears for each Node, published by the driver from the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
+    narration: 'Turn on capacity tracking, which means storageCapacity true on the CSIDriver, and a CSIStorageCapacity object appears for each Node, published by the driver from the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -289,7 +279,7 @@ const STEPS = [
   {
     id: 'filter',
     duration: 3800,
-    narration: 'This time the scheduler reads both capacity objects during its filter phase. Node-1 cannot fit 20Gi in 5Gi, so it is filtered out before scoring even begins. Node-2 has ample room and survives the filter, so it becomes the only candidate.',
+    narration: 'This time the scheduler reads both capacity objects during its filter phase, which it does for a claim whose class binds on WaitForFirstConsumer. Node-1 cannot fit 20Gi in 5Gi, so it is filtered out before scoring even begins. Node-2 has ample room and survives the filter, so it becomes the only candidate.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

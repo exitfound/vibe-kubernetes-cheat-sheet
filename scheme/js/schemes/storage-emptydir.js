@@ -55,7 +55,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'emptyDir lifecycle: an emptyDir is created empty when the Pod is assigned to a Node, lives on that Node disk, and is shared by every container in the Pod. It survives a container crash but is deleted forever when the Pod is removed from the Node. With medium Memory it is backed by tmpfs that counts against the memory limit, and a sizeLimit that is exceeded gets the Pod evicted.',
+      'aria-label': 'emptyDir lifecycle: an emptyDir is created empty when the Pod is assigned to a Node, lives on that Node disk, and is shared by every container in the Pod. It survives a container crash but is deleted forever when the Pod is removed from the Node. With medium Memory it is backed by tmpfs that counts against the memory limit, where a sizeLimit sizes the tmpfs itself so a write past it fails, while on the Node disk an exceeded sizeLimit gets the Pod evicted.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -241,7 +241,7 @@ const STEPS = [
   {
     id: 'sizelimit',
     duration: 3600,
-    narration: 'A sizeLimit caps how large the emptyDir may grow. Write past the limit and the Pod is evicted off the Node rather than left to fill the disk. Whether it is memory or disk, an unbounded emptyDir is a way to lose the Pod.',
+    narration: 'A sizeLimit caps how large the emptyDir may grow. On the Node disk, writing past the limit gets the Pod evicted rather than left to fill the disk, while on tmpfs the limit sizes the filesystem itself and the write fails instead. Either way an unbounded emptyDir is a way to lose the Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

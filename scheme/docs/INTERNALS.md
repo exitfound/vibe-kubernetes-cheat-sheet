@@ -116,6 +116,39 @@ finally inline generic ephemeral volumes, which close the loop back to the ephem
 
 ## scheme/js/lib/scheme-kit.js
 
+### before `export const REVEAL_MS = 500;`
+
+```
+How long a newborn construction takes to materialise, and the one number the whole storage family
+sequences off. It runs BEFORE the ball leaves (BEAT.lead is 800), so a block and its lanes are
+fully present and at full strength by the time anything is sent down them, which is the whole
+point: the reader never sees a lane with no block on the end of it. Three cards add REVEAL_MS to a
+later delay for exactly that reason, which is why it is exported rather than private.
+
+Deliberately not FADE.in (600). That one is the general-purpose fade, this one is the landing beat
+and the two were never the same number in any of the nine card-local copies.
+```
+
+### before `export function revealAt(el, ctx, delay = 0, from = 0) {`
+
+```
+Fades an element in from `from` to full at `delay`, leaving the caller free to pin the static end
+state above the ctx.reduced guard. `from` is the shade the object rests at while a lane already
+points AT it: hiding it outright aims the arrowhead at blank canvas for the whole flight.
+
+Hoisted 2026-07-29 out of NINE near-identical copies across the storage category, which is also
+what fixed them. Every copy short-circuited on `delay <= 0` straight to opacity 1, so a reveal at
+step entry silently played no fade and threw `from` away. Two cards were live victims:
+storage-pvc-clone rested its clone PVC on full instead of the placeholder shade, and
+storage-volume-snapshot popped its restore claim in with no fade. The tenth copy, in
+storage-csi-attach-mount, was the only one WITHOUT that short-circuit, and it carried `to` and
+`dur` parameters that all five of its call sites passed defaults for.
+
+Under ctx.reduced it snaps to full, which is what keeps a prev/reset replay's static end state
+correct. It never snaps otherwise, not even at delay 0, because a zero-delay reveal is a real beat
+rather than a shortcut.
+```
+
 ### before `export function relationPath({ points, d, role = null, dash = null }) {`
 
 ```
@@ -541,6 +574,49 @@ the faint glow.
 ---
 
 ## scheme/css/diagrams.css
+
+### decision: role beats dim on an arrow, and that is not the bug it looks like (2026-07-29)
+
+`.scheme-arrow-dim` sits ABOVE the three `.scheme-arrow-<role>` rules at equal specificity, so the
+role wins the stroke and `dim` survives only as `stroke-width: 1.4`. `arrow()` and `pathArrow()` in
+`primitives.js` read the same way round for the marker. 315 of the catalog's 358 `dim: true` calls
+pass a role, so on the face of it `dim` is a no-op almost everywhere, and item 2.4 of the review
+filed it as defect S1, a catalog-wide bug worth fixing in two lines.
+
+It was implemented and reverted the same day. The premise is wrong: **`dim` here is a stroke
+WEIGHT, not a lifecycle state.** A wire that a ball rides is normally drawn dim, which was measured
+rather than argued: a probe over every step of every card found 601 dim lanes carrying a packet
+across 511 steps. Making dim outrank role therefore does not quieten a handful of inactive lanes,
+it greys out most of the route wires in the catalog and breaks the per-category colour identity.
+Verified on rendered before/after frames: 94 of 103 cards changed, the mount lanes carrying `write`
+and `read` on `storage-volume-model` went from jade to grey, and the kube-proxy fan on
+`network-service-clusterip`, the card this project names as the Networking exemplar, went from cyan
+to grey.
+
+What the real fix separates is a RELATIONSHIP line (no ball ever, already its own helper
+`relationPath`) from a resting ROUTE wire. `dim` does not tell them apart, so `relationPath` now
+adds `scheme-arrow-relation` and the CSS gives that class `stroke-opacity: 0.45`. The line keeps
+its category hue and sinks behind the live wires instead of turning neutral, which was the author
+call: a grey line loses the category identity the whole palette exists to carry. 28 calls over 26
+cards, every one of them reviewed as a before/after frame pair.
+
+Read `stroke-opacity` rather than a darker colour literal as deliberate. It keeps ONE colour token
+per category (a darker variant would be a second token per category to keep in step with the
+first), and it multiplies with any element `opacity` a card pins, so a relation line into a block
+that is fading out still fades with it.
+
+That change exposed one real defect, now fixed: `network-pod-ip-and-veth` drew its localhost
+loopback with `relationPath`, but its `shared` step sends a ball along it. It is a route wearing
+the relationship helper, the same mis-classification the sweep of 2026-07-27 deliberately avoided
+on `network-model`'s `podWire`. The card now raises that line to full strength on the one step that
+uses it and lets it rest recessed on the others, which is family J rule 3 applied to a relation
+line. A probe over all 26 cards and 128 steps found no second case.
+
+What was kept from the attempt: arrows now carry `data-role`, and `.scheme-arrow` joined
+`check-palette`'s `PAINTED` list with `scheme-arrow-dim` as part of the state key. Arrows had never
+been colour-checked by anything, which is why the S1 report could claim a catalog-wide repaint with
+no check disagreeing. The catalog is consistent under the new rule: 1762 painted elements over 30
+combinations, up from 1294 over 23.
 
 ### before `fill: #abb0f5;`
 

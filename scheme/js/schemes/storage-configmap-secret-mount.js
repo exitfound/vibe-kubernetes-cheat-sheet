@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-configmap-secret-mount
 
 
@@ -86,12 +86,10 @@ class Scene {
     const dirNew = box({ x: NEW_X, y: DIR_Y, w: DIR_W, h: DIR_H, label: '..2026_07_15', sublabel: 'app.conf v2', role: 'storage' });
     dirNew.style.opacity = '0';
 
-    // Symlink pointers: bare dashed right-angle Ls into the dir slot each points at (no arrowheads,
-    // they are relationships, not traffic). Only one is ever visible at a time, that is the whole flip.
-    const symOld = pathArrow({ points: SYM_OLD, dashed: true, role: 'storage' });
-    const symNew = pathArrow({ points: SYM_NEW, dashed: true, role: 'storage' });
-    symOld.removeAttribute('marker-end');
-    symNew.removeAttribute('marker-end');
+    // Symlink pointers: relationships, not traffic, so relationPath rather than a stripped pathArrow.
+    // Only one is ever visible at a time, that is the whole flip.
+    const symOld = relationPath({ points: SYM_OLD, role: 'storage' });
+    const symNew = relationPath({ points: SYM_NEW, role: 'storage' });
     symNew.style.opacity = '0';
 
     // The source row: kubelet centered, fed from both sides.

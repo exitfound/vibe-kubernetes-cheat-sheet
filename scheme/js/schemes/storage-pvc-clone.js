@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-pvc-clone
 
 
@@ -43,16 +43,6 @@ const CHIPS_Y = 588;                              // 18 below the frame, and 18 
 const W_REQ = [[CLONE_CX, CLAIM_TOP], [CLONE_CX, REQ_CORRIDOR_Y], [CX, REQ_CORRIDOR_Y], [CX, PROV_BOTTOM]];
 const W_CALL = [[PROV_X + PROV_W, PROV_Y + PROV_H / 2], [CALL_WRAP_X, PROV_Y + PROV_H / 2], [CALL_WRAP_X, DISK_MY], [CLONE_CX + DISK_W / 2, DISK_MY]];
 const W_COPY = [[SRC_CX + DISK_W / 2, DISK_MY], [CLONE_CX - DISK_W / 2, DISK_MY]];
-
-// An object materialises when the call that creates it lands, so no arrowhead is ever aimed at
-// nothing. LAND_MS is shorter than BEAT.lead for the same reason.
-const LAND_MS = 500;
-function revealAt(el, ctx, delay = 0, from = 0) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
-  el.style.opacity = String(from);
-  ctx.register(el.animate([{ opacity: from }, { opacity: 1 }], { duration: LAND_MS, delay, fill: 'forwards', easing: 'ease-out' }));
-}
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
@@ -207,7 +197,7 @@ const STEPS = [
       revealAt(s.refs.clonePvc, ctx, 0, OPACITY.pending);
       // The dataSource line only means anything once both claims exist, so it draws in after the
       // clone has landed rather than alongside it.
-      ctx.register(s.refs.dsRef.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: LAND_MS, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.dsRef.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }));
     },
   },
   {
@@ -263,7 +253,7 @@ const STEPS = [
       ridingLabel(s, ctx, 'CreateVolume', W_CALL, { delay: req.arrivalMs + BEAT.afterHop });
       revealAt(s.refs.cloneDisk, ctx, call.arrivalMs, OPACITY.pending);
       // The duplicate is only made once the target volume exists, so it waits out the materialisation.
-      const copyAt = call.arrivalMs + LAND_MS;
+      const copyAt = call.arrivalMs + REVEAL_MS;
       const copy = routePacket(s, ctx, W_COPY, { delay: copyAt, role: 'storage' });
       ridingLabel(s, ctx, 'exact duplicate', W_COPY, { delay: copyAt });
       lightBoxAt(s.refs.srcDisk, ctx, copyAt);

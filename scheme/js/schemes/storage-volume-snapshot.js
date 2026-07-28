@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-snapshot
 
 
@@ -55,16 +55,6 @@ const W_SNAP_VSC  = [[SNAP_RIGHT, MID_MY], [VSC_LEFT, MID_MY]];
 const W_VSC_REQ   = [[CX + REQ_LANE, MID_Y], [CX + REQ_LANE, REQ_BOTTOM]];
 const W_COPY      = [[SRC_CX + CYL_W / 2, CYL_MY], [SNAPDATA_CX - CYL_W / 2, CYL_MY]];
 const W_SEED      = [[SNAPDATA_CX + CYL_W / 2, CYL_MY], [RESTORED_CX - CYL_W / 2, CYL_MY]];
-
-// An object materialises when the call that creates it lands, so no arrowhead is ever aimed at
-// nothing. LAND_MS is shorter than BEAT.lead for the same reason.
-const LAND_MS = 500;
-function revealAt(el, ctx, delay = 0, from = 0) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
-  el.style.opacity = String(from);
-  ctx.register(el.animate([{ opacity: from }, { opacity: 1 }], { duration: LAND_MS, delay, fill: 'forwards', easing: 'ease-out' }));
-}
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
@@ -295,8 +285,8 @@ const STEPS = [
       revealAt(s.refs.snapData, ctx, call.arrivalMs, OPACITY.pending);
       // The copy itself: the point in time frozen out of the source into the new snapshot, which is the
       // whole reason both disks sit inside one backend frame.
-      const copy = routePacket(s, ctx, W_COPY, { delay: call.arrivalMs + LAND_MS, role: 'storage' });
-      lightBoxAt(s.refs.src, ctx, call.arrivalMs + LAND_MS);
+      const copy = routePacket(s, ctx, W_COPY, { delay: call.arrivalMs + REVEAL_MS, role: 'storage' });
+      lightBoxAt(s.refs.src, ctx, call.arrivalMs + REVEAL_MS);
       lightBoxAt(s.refs.snapData, ctx, copy.arrivalMs);
     },
   },
@@ -355,10 +345,10 @@ const STEPS = [
       setStage(s, { vsc: 1, snapData: 1, restored: OPACITY.pending, restore: 0, ds: 0, lanes: ['wSeed'] });
       // The claim and its dataSource reference appear first: they are what triggers everything below.
       revealAt(s.refs.restore, ctx, 0);
-      ctx.register(s.refs.dsRef.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: LAND_MS, fill: 'forwards', easing: 'ease-out' }));
-      lightBoxAt(s.refs.restore, ctx, LAND_MS);
-      const seed = routePacket(s, ctx, W_SEED, { delay: BEAT.lead + LAND_MS, role: 'storage' });
-      ridingLabel(s, ctx, 'new volume from snap-1', W_SEED, { delay: BEAT.lead + LAND_MS });
+      ctx.register(s.refs.dsRef.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }));
+      lightBoxAt(s.refs.restore, ctx, REVEAL_MS);
+      const seed = routePacket(s, ctx, W_SEED, { delay: BEAT.lead + REVEAL_MS, role: 'storage' });
+      ridingLabel(s, ctx, 'new volume from snap-1', W_SEED, { delay: BEAT.lead + REVEAL_MS });
       revealAt(s.refs.restored, ctx, seed.arrivalMs, OPACITY.pending);
       lightBoxAt(s.refs.restored, ctx, seed.arrivalMs);
     },

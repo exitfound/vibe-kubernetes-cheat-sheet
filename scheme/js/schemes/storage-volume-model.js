@@ -157,13 +157,13 @@ const STEPS = [
   {
     id: 'declare',
     duration: 2200,
-    narration: 'The declaration lives at Pod level. The spec.volumes list names the volume once, cache, and that one declaration is what every container in the Pod is allowed to reach. Nothing is mounted yet, the volume simply exists as part of the Pod.',
+    narration: 'The declaration lives at Pod level. The spec.volumes list names the volume once, cache, and that one declaration is what every container in the Pod is allowed to reach. Where each container puts it is a separate decision, taken next, and the volume exists as part of the Pod either way.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { vol: 'declared', mounts: MOUNTS, data: 'empty' });
-      // Nothing is mounted yet and the Pod is not acting, so it does not pulse. Only the volume lights.
+      // The Pod is not acting on this step, so it does not pulse. Only the volume lights.
       s.refs.volume.classList.add('highlight');
     },
   },

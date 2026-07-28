@@ -78,7 +78,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Detach on Node failure: when a Node goes NotReady and its Kubelet is silent, Kubernetes will not detach the volume immediately, because the old Pod cannot be confirmed dead and detaching while it might still write would let two Nodes write one filesystem, so it waits out the pod-eviction timeout and then the roughly six minute force-detach before attaching the disk on a new Node, a deliberate safety property rather than a bug, and the non-graceful node shutdown out-of-service taint is the operator escape hatch that asserts the Node is truly dead and skips the wait',
+      'aria-label': 'Detach on Node failure: when a Node goes NotReady and its Kubelet is silent, Kubernetes will not detach the volume immediately, because the old Pod cannot be confirmed dead and detaching while it might still write would let two Nodes write one filesystem, so it waits out the 300 second unreachable toleration and then the roughly six minute force-detach before attaching the disk on a new Node, a deliberate safety property rather than a bug, and the non-graceful node shutdown out-of-service taint is the operator escape hatch that asserts the Node is truly dead and skips the wait',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -104,7 +104,7 @@ class Scene {
     const chain = chainList({
       x: LAD_X, y: LAD_Y, w: LAD_W, rowH: LAD_ROW, gap: LAD_GAP,
       items: [
-        '1. pod-eviction timeout  ·  mark old Pod deleted',
+        '1. unreachable taint  ·  300s, old Pod deleted',
         '2. force-detach timeout  ·  ~6 min, then rip attach',
         '3. attach on node-2  ·  new Pod finally starts',
       ],
@@ -239,7 +239,7 @@ const STEPS = [
   {
     id: 'evict',
     duration: 2600,
-    narration: 'The clocks start. First the pod-eviction timeout: once Node-1 has been NotReady long enough, the old Pod is marked for deletion. On a reachable Node that would delete the Pod cleanly and release the volume. On an unreachable Node the deletion cannot be confirmed, so the disk is still held. That same deletion mark is what finally lets a replacement be created on Node-2, where it sits in ContainerCreating waiting for a disk it cannot have.',
+    narration: 'The clocks start. First the eviction wait: Node-1 takes the unreachable taint, and the old Pod tolerates that for 300 seconds by default before it is marked for deletion. On a reachable Node that would delete the Pod cleanly and release the volume. On an unreachable Node the deletion cannot be confirmed, so the disk is still held. That same deletion mark is what finally lets a replacement be created on Node-2, where it sits in ContainerCreating waiting for a disk it cannot have.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

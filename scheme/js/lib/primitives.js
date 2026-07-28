@@ -64,6 +64,8 @@ export function cylinder({ x, y, w = 80, h = 60, label = '', role = 'storage', c
   return group;
 }
 
+// role OUTRANKS dim on the marker, deliberately, and diagrams.css says the same about the stroke.
+// Why that is not the bug it looks like: docs/INTERNALS.md#schemecssdiagramscss (2026-07-29).
 export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, role = '', cls = '' } = {}) {
   const dashAttr = dashed ? '5 5' : null;
   let markerId = dim ? 'arrowhead-dim' : 'arrowhead';
@@ -73,6 +75,7 @@ export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, role = '', 
   const klass = ['scheme-arrow', dashed && 'scheme-arrow-dashed', dim && 'scheme-arrow-dim', role && `scheme-arrow-${role}`, cls].filter(Boolean).join(' ');
   return path({
     class: klass,
+    'data-role': role || null,
     d: `M ${x1} ${y1} L ${x2} ${y2}`,
     'stroke-dasharray': dashAttr,
     'marker-end': `url(#${markerId})`,
@@ -80,6 +83,7 @@ export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, role = '', 
   });
 }
 
+// Same precedence as `arrow()` above, same reason.
 export function pathArrow({ points = [], dashed = false, dim = false, role = '', cls = '' } = {}) {
   if (!points || points.length < 2) return null;
   const dashAttr = dashed ? '5 5' : null;
@@ -91,6 +95,7 @@ export function pathArrow({ points = [], dashed = false, dim = false, role = '',
   const d = points.map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`)).join(' ');
   return path({
     class: klass,
+    'data-role': role || null,
     d,
     'stroke-dasharray': dashAttr,
     'marker-end': `url(#${markerId})`,

@@ -591,7 +591,7 @@ export const SCHEMES = [
     title: 'emptyDir Lifecycle',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'Where does an emptyDir live, and exactly when does it disappear? It is created empty the moment the Pod is assigned to a Node, sits on that Node disk, and is shared by every container in the Pod. It survives a container restarting but is deleted forever when the Pod leaves the Node. Set medium to Memory and it becomes tmpfs counted against the memory limit, while an exceeded sizeLimit gets the Pod evicted rather than the write being refused.',
+    desc: 'Where does an emptyDir live, and exactly when does it disappear? It is created empty the moment the Pod is assigned to a Node, sits on that Node disk, and is shared by every container in the Pod. It survives a container restarting but is deleted forever when the Pod leaves the Node. Set medium to Memory and it becomes tmpfs sized to the sizeLimit, so a write past it fails, while on disk that same limit gets the Pod evicted instead.',
     k8sVersion: '1.35',
     module: './schemes/storage-emptydir.js',
     tinted: true,

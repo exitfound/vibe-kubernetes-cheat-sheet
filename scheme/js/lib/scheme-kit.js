@@ -171,12 +171,32 @@ export function makeRidingLabel({
 // 26 cards, which had already drifted (some omitted the role suffix, some the dasharray).
 // Pass `points` for the ordinary case; `d` is for the few cards that build a multi-subpath spine.
 export function relationPath({ points, d, role = null, dash = null }) {
-  const cls = ['scheme-arrow', 'scheme-arrow-dashed', 'scheme-arrow-dim'];
+  // scheme-arrow-relation sinks the line behind the route wires while keeping the category hue.
+  // Without it a relationship reads as traffic: see docs/INTERNALS.md#schemecssdiagramscss.
+  const cls = ['scheme-arrow', 'scheme-arrow-dashed', 'scheme-arrow-dim', 'scheme-arrow-relation'];
   if (role) cls.push(`scheme-arrow-${role}`);
-  const attrs = { class: cls.join(' '), fill: 'none' };
+  const attrs = { class: cls.join(' '), 'data-role': role || null, fill: 'none' };
   attrs.d = d !== undefined ? d : points.map(([px, py], i) => `${i ? 'L' : 'M'} ${px} ${py}`).join(' ');
   if (dash) attrs['stroke-dasharray'] = dash;
   return path(attrs);
+}
+
+// An object COMING INTO EXISTENCE part way through a step: it rests at `from` and lands on full
+// when its packet arrives. Hoisted 2026-07-29 out of nine byte-similar storage copies, which is
+// also what fixes them: every copy short-circuited on `delay <= 0` straight to opacity 1, so a
+// reveal at step entry silently played no fade AND threw `from` away. That put two live cards on
+// the wrong resting shade. Duration is the landing fade the nine copies all used, deliberately
+// not FADE.in (600), which is the general-purpose one. Exported because three cards sequence the
+// NEXT beat off the end of a reveal, and a private copy of the number is how those two drift apart.
+// `from` is the shade the object rests at while a lane already points AT it: hiding it outright
+// aims the arrowhead at blank canvas for the whole flight.
+export const REVEAL_MS = 500;
+export function revealAt(el, ctx, delay = 0, from = 0) {
+  if (!el) return;
+  if (ctx.reduced) { el.style.opacity = '1'; return; }
+  el.style.opacity = String(from);
+  ctx.register(el.animate([{ opacity: from }, { opacity: 1 }],
+    { duration: REVEAL_MS, delay, fill: 'forwards', easing: 'ease-out' }));
 }
 
 export function lightBoxAt(boxEl, ctx, delay = 0) {

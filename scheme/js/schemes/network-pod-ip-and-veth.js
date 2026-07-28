@@ -91,6 +91,7 @@ class Scene {
     this.refs = {
       svg: root, nodeEl, podGroup, podShell, pauseBox, appBox, cni0, cniPlugin,
       nsChip, ipChip, vethChip, reachChip,
+      loWire,
       packetLayer,
       wires: { veth: vethLabel, lo: loLabel },
     };
@@ -101,6 +102,9 @@ class Scene {
 
 function clearHL(s) {
   clearHighlights(s, ['cni0', 'cniPlugin', 'pauseBox', 'appBox', 'nsChip', 'ipChip', 'vethChip', 'reachChip'], [s.refs.podGroup]);
+  // The loopback is drawn as a relationship (shared facility, no direction, no arrowhead) and so
+  // sits recessed, but one step sends a ball along it. Reset here, raised in that step.
+  s.refs.loWire.style.strokeOpacity = '';
 }
 
 const STEPS = [
@@ -169,6 +173,7 @@ const STEPS = [
       setPodSublabel(s.refs.podShell, 'IP 10.244.1.5');
       setWire(s, 'lo', '127.0.0.1');
       setVal(s.refs.reachChip, 'localhost');
+      s.refs.loWire.style.strokeOpacity = '1';   // it carries the ball on this step, so it is live
       s.refs.appBox.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.pauseBox.classList.add('highlight'); return; }

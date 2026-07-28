@@ -3,7 +3,7 @@ export {
   routePacket, segmentPacket, routeDur, routeLength, packetArrival,
   topPacket, setConnectorDir, clearPodHighlight,
   arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, makeRidingLabel,
-  relationPath,
+  relationPath, revealAt, REVEAL_MS,
   setPodSublabel, FADE, BEAT, OPACITY,
 } from './scheme-kit.js';
 import { pulsePodWithTint, pulsePodDimWithTint } from './scheme-kit.js';

@@ -2945,7 +2945,10 @@ uses lights at step entry, above the reduced guard, never on packet arrival.
 ### before `const SYM_OLD = [[DATA_X, SYM_Y], [OLD_CX, SYM_Y], [OLD_CX, DIR_Y]];`
 
 ```
-Symlink pointers: strict right-angle Ls with an arrowhead at the directory they point at. Each
+Symlink pointers: strict right-angle Ls into the directory they point at, drawn with relationPath
+because a symlink is a relationship rather than traffic, so they carry no arrowhead and sit
+recessed behind the live lanes. (Corrected 2026-07-29 twice over: the note used to say they carry
+an arrowhead, and the two lines were hand-rolled as stripped pathArrows until the same day.) Each
 exits the SIDE of ..data at its mid height, turns 90 degrees over its dir slot and drops into
 the slot top, mirroring the write lane below the slot so the column reads kubelet -> dir -> ..data.
 ```
@@ -3435,22 +3438,6 @@ mount below it. No ball ever rides this, so it deliberately has NO arrowhead (a 
 rather than a pathArrow), because an arrowhead with no ball reads as traffic that never runs.
 ```
 
-### before `const LAND_MS = 500;`
-
-```
-How long a newborn construction takes to materialise. It runs BEFORE the ball leaves (BEAT.lead is
-800), so the block and its lanes are fully present and at full strength by the time anything is sent
-down them, which is the whole point: the reader never sees a lane with no block on the end of it.
-```
-
-### before `function revealAt(el, ctx, delay = 0, to = 1, dur = 500) {`
-
-```
-Fade an element in to `to` at `delay`. Under ctx.reduced it snaps, which is what keeps the static
-end-state of a prev/reset replay correct. It never snaps otherwise, not even at delay 0, because a
-zero-delay reveal here is a real beat (Pod B landing on the node) and not a shortcut.
-```
-
 ### before `function podBlock({ x, label }) {`
 
 ```
@@ -3560,12 +3547,14 @@ the first three steps next to blocks at full strength, so it looked broken, not 
 is not there yet is now simply not drawn, which says the same thing without dimming anything.
 ```
 
-### before `revealAt(s.refs.dev, ctx, 0, 1, LAND_MS);`
+### before `revealAt(s.refs.dev, ctx, 0);`
 
 ```
 The device and BOTH of its lanes materialise as one construction, and finish materialising
-before the call is sent (LAND_MS 500 against BEAT.lead 800), so the reader never sees an
-arrowhead aimed at a block that is not there yet.
+before the call is sent (REVEAL_MS 500 against BEAT.lead 800), so the reader never sees an
+arrowhead aimed at a block that is not there yet. This card used to carry its own revealAt with
+a `to` and a `dur` parameter, and every one of its five calls passed the defaults, so the hoist
+into scheme-kit on 2026-07-29 dropped both.
 ```
 
 ---
@@ -3871,8 +3860,10 @@ flicker. HIGHLIGHTS ARE STEP-STATIC: every block a step uses lights at step entr
 reduced guard, and the shell pulse fires at the same instant, one beat, no arrival delays.
 
 FADES exist for exactly one meaning: an object CEASING TO EXIST. The dies step ghosts the Pod and
-its directory in one simultaneous fade (Pod deleted, directory deleted with it), the sizeLimit
-step ghosts the Pod once the over-limit write lands (kubelet evicts it). Nothing else fades.
+its directory in one simultaneous fade (Pod deleted, directory deleted with it). Nothing else
+fades, the sizeLimit step included: it holds the directory at full opacity and carries its beat
+with the shell pulse and the over-limit write instead. (Corrected 2026-07-29: this note used to
+claim that step ghosts the Pod, and it never has.)
 
 WIRES are the volume-model grammar: the dim center spine (ownership, no traffic) plus one
 L-shaped directed lane per container, dropping from the container and entering the cylinder
@@ -3951,8 +3942,9 @@ can go while doing so. The disk moves with the row, so its three contributor lan
 The card must keep TWO eviction paths distinct. Path A is per-Pod: writable + emptyDir + logs going
 over limits.ephemeral-storage evicts THIS Pod at once, regardless of node health. Path B is
 node-wide: nodefs usage crossing the eviction threshold taints the node DiskPressure, and kubelet
-then evicts Pods ranked by QoS class and by how far each is over its request, which can hit a Pod
-that was within its own limit. Only Pods pulse. The disk and contributor boxes light.
+then evicts Pods ranked by Pod Priority and by how far each is over its request, which can hit a
+Pod that was within its own limit. (Corrected 2026-07-29: this note said QoS class, which is what
+the card's own distinct step contradicts.) Only Pods pulse. The disk and contributor boxes light.
 
 GEOMETRY. Every lane is ONE straight vertical segment: the disk is wide enough (440..800) that
 all three contributor centers drop straight onto its top, no corners anywhere. Centering the node
@@ -4351,11 +4343,11 @@ spans 112..1088 with the chip strip, margins equal a side. The earlier pass ran 
 The identity column is evenly spaced, so the ownership above the claim and the binding below it read
 as one rhythm rather than as two different distances:
   36    canvas top margin
-  36    Pod                116 tall, to 152
+  36    Pod                110 tall, to 146
   66    gap, ownerReference link and the mount and GC lanes that flank it
-  218   claim row          72 tall, to 290, with the class and the provisioner on the same line
+  212   claim row          72 tall, to 284, with the class and the provisioner on the same line
   66    gap, the Bound link and the lower half of those same lanes
-  356   the volume         110 tall, to 466
+  350   the volume         110 tall, to 460
   500   mount caption
   570   chip strip         34 tall, to 604
   36    canvas bottom margin, equal to the top one
@@ -4370,9 +4362,10 @@ Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
   1100x800  right 397  bottom 205   <- added 2026-07-27
 Worst case x <= 397 and y <= **205**, not the 183 recorded above: the rows sampled originally were
 all 900 or 1000 tall, and a shorter window shrinks the diagram while the HTML panel keeps its pixels.
-Only the Pod sits inside that y band, and at 450..750 it clears the overlay on x while staying
-centred on CX. The claim row at y 208 clears the real floor by **3 units**, not the 25 the old number
-implied, so this row must not move up. A longer narration than the ones below would invalidate this
+Only the Pod sits inside that y band, and at 487..713 it clears the overlay on x while staying
+centred on CX. The claim row at y 212 clears the real floor by **7 units**, so this row must not
+move up. (Corrected 2026-07-29: the stack above and the two spans here were still the pre-resize
+numbers, from before the Pod came down to the 226x110 family size.) A longer narration than the ones below would invalidate this
 measurement.
 
 PULSE MODEL: only the Pod pulses, and it is a wrapping g. The claim, the class, the provisioner and
@@ -4665,12 +4658,13 @@ nearest lane gives a caption half-width of 102, and at 6.88 units per character 
 code) that is a ceiling of 29 characters. Overrun it and the first and last letters sit on a lane.
 ```
 
-### before `function revealAt(el, ctx, delay = 0) {`
+### before `[s.refs.wStgBUp, s.refs.wBPodUp, s.refs.bindB].forEach(el => revealAt(el, ctx, 1));`
 
 ```
-Fade an element in at `delay` while leaving the caller free to pin opacity 1 statically above the
+Fades the element in while leaving the caller free to pin opacity 1 statically above the
 ctx.reduced guard. Used for the Pod B column, which is a fact the card introduces partway through
-rather than structure it starts with. A corridor changing direction uses flipAt instead.
+rather than structure it starts with. A corridor changing direction uses flipAt instead. The helper
+itself moved into scheme-kit on 2026-07-29, see INTERNALS.md.
 ```
 
 ### before `function podBlock({ x, label }) {`
@@ -4817,8 +4811,8 @@ between this card and storage-volume-detach-on-node-loss. Here nothing is uncert
 broken: the volume is legitimately held by a Pod that is legitimately still running, and the only
 reason the new Pod waits is that its own rollout strategy created it before deleting the old one.
 It is an ORDERING problem with an ordering fix (Recreate). The unreachable-node case, the
-pod-eviction and force-detach clocks, the roughly six minutes, and the argument about two writers
-corrupting one filesystem all belong to the detach-on-node-loss card and are deliberately not
+unreachable-toleration and force-detach clocks, the roughly six minutes, and the argument about
+two writers corrupting one filesystem all belong to the detach-on-node-loss card and are deliberately not
 re-told here. An earlier pass told both stories on both cards, in nearly the same sentences, and
 the pair read as one card shown twice. If a timeout shows up in this file again, it has drifted.
 
@@ -5113,13 +5107,24 @@ step before it is made. It arrives on the next step, together with the ball that
 which is the catalog rule: a lane appears when it first carries traffic.
 ```
 
-### before `narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV-web is ReadWriteOnce and the first attachment is still live, so a second cannot be satisfied.',`
+### before `narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment.`
 
 ```
 THE REFUSAL, and the reason this card exists. The idiom (shared with storage-access-modes) is
 a ball that travels to the deciding block and STOPS there. Nothing continues past the
 controller, va-2 never lights, and no lane is drawn under va-2 at all: the object is wanted,
 not wired up. A ball carrying on to va-2 would show the attach succeeding.
+
+Reviewed 2026-07-29 and the picture was corrected to match. va-2 used to fade in AT FULL STRENGTH
+as the refused request landed, which says the object was created and then blocked. It is not: the
+attach and detach controller checks that a ReadWriteOnce volume is already attached elsewhere and
+reports the Multi-Attach error BEFORE writing anything, so through the whole blocked stretch there
+is no va-2 in the API at all. It now appears at OPACITY.pending and stays there until the attach
+step really writes it, which is the catalog convention for a block that does not exist yet: a
+ghost rather than a hole, since a block-sized gap in the column reads as a rendering fault. The
+sublabel says `wanted, not written` for the same reason, and the narration no longer stops at
+"a second cannot be satisfied", which was true but left the reader to assume an object had been
+made.
 ```
 
 ### before `narration: 'What clears it is the old attachment going away, and nothing else will. The controller will not de`
@@ -6925,7 +6930,7 @@ is not the outcome, it is what is being waited on. There, node-1 is HEALTHY and 
 legitimately held by a Pod that is legitimately still running: an ordering problem, fixed by
 ordering (Recreate). Here nothing is contending for the volume at all. The wait is on DOUBT,
 because a silent kubelet cannot confirm its Pod stopped writing. So this card owns the
-pod-eviction and force-detach clocks, the roughly six minutes, the argument that two writers
+unreachable-toleration and force-detach clocks, the roughly six minutes, the argument that two writers
 corrupt one filesystem, and the out-of-service taint. None of those appear on the other card.
 
 ---- Layout ----

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, node, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, revealAt, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-multi-attach-error
 
 
@@ -117,7 +117,7 @@ class Scene {
     });
 
     const vaA = box({ x: VA_A_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-1', sublabel: 'node-1, attached: true', role: 'storage' });
-    const vaB = box({ x: VA_B_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-2', sublabel: 'wanted, blocked', role: 'storage' });
+    const vaB = box({ x: VA_B_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-2', sublabel: 'wanted, not written', role: 'storage' });
 
     const disk = cylinder({ x: DK_X, y: DK_Y, w: DK_W, h: DK_H, label: 'PV-web RWO', role: 'storage' });
     // The primitive centers the label on the raw bbox, which reads high because the top cap ellipse
@@ -180,7 +180,12 @@ function setStage(s, {
   oldOp = 1, oldSub = 'Running',
   newOp = 0, newSub = 'ContainerCreating',
   vaAOp = 1, vaASub = 'node-1, attached: true',
-  vaBOp = 0, vaBSub = 'wanted, blocked',
+  // OPACITY.pending is va-2 as a WANT rather than an object. The attach and detach controller
+  // refuses a second attachment for a ReadWriteOnce volume before writing anything, so through the
+  // whole blocked stretch there is no va-2 in the API. Drawn as a ghost rather than hidden, because
+  // a block-sized hole in the column reads as a rendering fault, and brought to full on the one
+  // step that really writes it. Reviewed 2026-07-29: it used to materialise at full on the refusal.
+  vaBOp = 0, vaBSub = 'wanted, not written',
   linkA = 1,        // the column-a lanes: controller to va-1, and va-1 down to the disk
   linkB = 0,        // the column-b lanes: only drawn once a ball actually rides them
   linkNew = 0,      // the node-2 request lane: hidden until node-2 exists
@@ -251,12 +256,12 @@ const STEPS = [
   {
     id: 'wantattach',
     duration: 3200,
-    narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV-web is ReadWriteOnce and the first attachment is still live, so a second cannot be satisfied.',
+    narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV-web is ReadWriteOnce and the first attachment is still live, so the refusal comes before anything is written and va-2 stays a want rather than an object.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setStage(s, { nodeBOp: 1, newOp: 1, linkNew: 1, vaBOp: 1 });
+      setStage(s, { nodeBOp: 1, newOp: 1, linkNew: 1, vaBOp: OPACITY.pending });
       setChips(s, { attached: 'node-1', newPod: 'ContainerCreating', blocked: 'va-1 on node-1' });
       setWire(s, 'band', 'RWO: cannot attach twice');
       if (ctx.reduced) { s.refs.ctrl.classList.add('highlight'); return; }
@@ -270,10 +275,13 @@ const STEPS = [
       const req = routePacket(s, ctx, W_NODE_BAND, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'attach node-2', W_NODE_BAND, { delay: BEAT.afterPulse });
       lightBoxAt(s.refs.ctrl, ctx, req.arrivalMs);
-      // va-2 materializes as the refused request lands: the object gets created, it just never
-      // becomes an attachment. It is never lit, because nothing was granted.
+      // The WANT appears as the refused request lands, at the placeholder shade, because that is all
+      // it ever is on this step: the controller refuses before it writes, so no va-2 exists. Never
+      // lit either, since nothing was granted.
+      // Not the kit revealAt: that one lands on full, and this never gets past the placeholder.
       s.refs.vaB.style.opacity = '0';
-      ctx.register(s.refs.vaB.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: req.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.vaB.animate([{ opacity: 0 }, { opacity: OPACITY.pending }],
+        { duration: FADE.in, delay: req.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
     },
   },
   {
@@ -286,7 +294,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setStage(s, { nodeBOp: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: 1 });
+      setStage(s, { nodeBOp: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: OPACITY.pending });
       setChips(s, { attached: 'node-1', newPod: 'Multi-Attach error', blocked: 'va-1 on node-1' });
       setWire(s, 'band', 'first attachment still live');
       s.refs.vaA.classList.add('highlight');
@@ -303,7 +311,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setStage(s, {
-        nodeBOp: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: 1,
+        nodeBOp: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: OPACITY.pending,
         vaASub: 'node-1, still held',
       });
       setChips(s, { attached: 'node-1', newPod: 'Multi-Attach error', blocked: 'old Pod running' });
@@ -322,7 +330,7 @@ const STEPS = [
       // Static end state: va-1 and its lanes are gone, the old Pod with them, the disk is free.
       setStage(s, {
         nodeBOp: 1, oldOp: OPACITY.terminated, oldSub: 'deleted',
-        newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: 1,
+        newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: OPACITY.pending,
         vaAOp: OPACITY.terminated, vaASub: 'deleted', linkA: OPACITY.terminated,
       });
       setChips(s, { attached: 'nothing', newPod: 'Multi-Attach error', blocked: 'nothing' });
@@ -369,6 +377,9 @@ const STEPS = [
       if (ctx.reduced) { s.refs.vaB.classList.add('highlight'); s.refs.disk.classList.add('highlight'); return; }
       const wr = routePacket(s, ctx, W_BAND_VA_B, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'write va-2', W_BAND_VA_B, { delay: BEAT.lead });
+      // This is the step that actually creates va-2, so it rises from the want to the object as the
+      // write lands rather than being at full strength before the ball has left.
+      revealAt(s.refs.vaB, ctx, wr.arrivalMs, OPACITY.pending);
       lightBoxAt(s.refs.vaB, ctx, wr.arrivalMs);
       const att = routePacket(s, ctx, W_VAB_DISK, { delay: wr.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'attach', W_VAB_DISK, { delay: wr.arrivalMs + BEAT.afterHop });

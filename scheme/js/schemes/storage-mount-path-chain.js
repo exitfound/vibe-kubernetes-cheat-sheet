@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-mount-path-chain
 
 
@@ -54,13 +54,6 @@ const W_B_POD_UP  = lane(R_CX, BIND_TOP, POD_BOTTOM);
 const W_POD_A_DN  = lane(L_CX, POD_BOTTOM, BIND_TOP);
 const W_A_STG_DN  = lane(L_CX, BIND_BOTTOM, STG_TOP);
 const W_STG_DEV_DN = lane(CONTENT_CX, STG_BOTTOM, DEV_TOP);
-
-function revealAt(el, ctx, delay = 0) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
-  el.style.opacity = '0';
-  ctx.register(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay, fill: 'forwards', easing: 'ease-out' }));
-}
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });

@@ -237,7 +237,7 @@ const STEPS = [
   {
     id: 'scaled-retain',
     duration: 3000,
-    narration: 'Scale down to two with whenScaled set to Retain. Pod web-2 is removed, but claim data-web-2 stays and pv-web-2 keeps its data. This is the historical default and it is safe, yet every scale-down that is never cleaned up leaves a disk behind that still costs money.',
+    narration: 'Scale down to two with whenScaled set to Retain. Pod web-2 is removed, but claim data-web-2 stays and pv-web-2 keeps its data. This is what an unset field gives you and it is safe, yet every scale-down that is never cleaned up leaves a disk behind that still costs money.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
