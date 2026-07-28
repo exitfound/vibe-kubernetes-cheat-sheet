@@ -4,7 +4,8 @@
 // node check-canon.mjs        CANON_VERBOSE=1 lists every report-only finding
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { sentences } from './prose.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCHEMES = join(__dirname, '..', 'js', 'schemes');
@@ -44,6 +45,21 @@ function callArgs(src, open) {
   return src.slice(open + 1);
 }
 
+// Read the expression an `opacity:` / `opacity =` is set to, stopping at the comma, semicolon or
+// closing bracket that ends it AT DEPTH ZERO. A flat scan to the next comma or paren truncates
+// `lanes.includes(k) ? '1' : '0'` into `lanes.includes(k`, which is how the first version of the
+// rule reported seven ternaries that resolve to 0 and 1.
+function opExpr(src, i) {
+  let depth = 0;
+  for (let j = i; j < src.length; j++) {
+    const c = src[j];
+    if ('([{'.includes(c)) depth++;
+    else if (')]}'.includes(c)) { if (depth === 0) return src.slice(i, j).trim(); depth--; }
+    else if (depth === 0 && (c === ',' || c === ';' || c === '\n')) return src.slice(i, j).trim();
+  }
+  return src.slice(i).trim();
+}
+
 // Categories on the shared kit and thus held to the canon: currently the whole
 // catalog. Add a new category here once its cards are on the kit.
 const COVERED = /^(workloads|cluster|network|storage)-.*\.js$/;
@@ -62,6 +78,19 @@ const ENFORCED = new Set([
   'R-ridinglabel',
   // Empty on arrival: all four kits re-export the same 26 names today.
   'R-kitparity',
+  // Queue drained by the B2 text pass, and the band was widened on 2026-07-26 to 400-470.
+  'R-desc',
+  // Queue drained: 44 dashes replaced across the agreed lint area (scheme/ plus the named cli/
+  // and root files). scheme/docs/*.md is deliberately outside that area, see the note below.
+  'R-dash',
+  'R-srclabel',
+  'R-srcdup',
+  // Queue drained by the R4 fade-phase pass, and the rule was rewritten to judge the EXPRESSION
+  // rather than the number, so a named constant can no longer smuggle a shade past it.
+  'R-opacity',
+  // Queue drained by the R5 cluster rebuild: all 103 cards are on '0 0 1200 640' now, so a
+  // shifted camera can only ever be a regression.
+  'R-viewbox',
 ]);
 const advisories = [];
 const violations = [];
@@ -73,7 +102,6 @@ const EM_DASH = String.fromCharCode(0x2014);
 const EN_DASH = String.fromCharCode(0x2013);
 const DASH_RE = new RegExp(`[${EM_DASH}${EN_DASH}]`, 'g');
 const DASH_NAME = { [EM_DASH]: 'em-dash', [EN_DASH]: 'en-dash' };
-const OPACITY_VOCAB = new Set(['1', '0.8', '0.55', '0.4', '0.35', '0.3']);
 const CANON_VIEWBOX = '0 0 1200 640';
 
 // Blank comments out, keeping byte offsets so line numbers stay right. Load-bearing: this
@@ -195,15 +223,24 @@ for (const f of files) {
     report('R-rawpulse', `${f}:${lineAt(m3.index)}  direct pulse() (blocks never pulse; pods pulse via the kit's pulsePod)`);
   }
 
-  // 7. element opacity must come from the OPACITY vocabulary. Report-only until the fade-phase
-  //    vocabulary is settled: the off-vocabulary values are the evidence for what it needs.
-  const op = /(?<![-\w])opacity\s*[:=]\s*'?(0?\.\d+|0|1)'?/g;
+  // 7. element opacity reads the EXPRESSION, not the number. A card writes a bare 0 or 1 (an
+  //    element is drawn or it is not) and takes every shade in between from OPACITY. Judging the
+  //    number was the old rule's flaw: it blessed a value that happened to match while staying
+  //    blind to `const GONE = 0.1`, which is where most of the drift lived.
+  //    What it still does NOT catch: the bare-identifier guard below skips ANY name as an assumed
+  //    helper parameter, so a module-level `const GONE = 0.1; ... opacity: GONE` passes silently,
+  //    and so does any shade reaching an element through a parameter. Only check-opacity, which
+  //    resolves both in the browser, closes that. Do not read a green R-opacity as a clean card.
+  const op = /(?<![-\w])opacity\s*[:=]\s*/g;
   let m4;
   while ((m4 = op.exec(code))) {
-    const v = String(parseFloat(m4[1]));
-    if (v !== '0' && !OPACITY_VOCAB.has(v)) {
-      report('R-opacity', `${f}:${lineAt(m4.index)}  literal opacity ${v} outside the OPACITY vocabulary`);
-    }
+    const expr = opExpr(code, m4.index + m4[0].length);
+    if (/^'?[01](\.0+)?'?$/.test(expr)) continue;        // 0 and 1 are "not drawn" / "drawn"
+    if (/\bOPACITY\./.test(expr)) continue;             // straight out of the vocabulary
+    if (/^[A-Za-z_$][\w$.[\]]*$/.test(expr) && !/^'/.test(expr)) continue;  // a parameter: check-opacity resolves it
+    if (/^String\([A-Za-z_$][\w$.[\]()]*\)$/.test(expr)) continue;   // same, wrapped
+    if (!/\d*\.\d+/.test(expr)) continue;              // no shade in it at all: 0 / 1 / a ternary over them
+    report('R-opacity', `${f}:${lineAt(m4.index)}  opacity ${expr} is neither 0, 1, nor an OPACITY.* shade`);
   }
 }
 
@@ -232,6 +269,50 @@ for (const f of files) {
         (missing.length ? `, missing: ${missing.join(', ')}` : '') +
         (extra.length ? `, extra: ${extra.join(', ')}` : ''));
     }
+  }
+}
+
+// ---- R-desc ----
+// One catalog-wide band for the card description. Target 410-460 characters, with 10 characters of
+// slack either side when a description genuinely will not fit, so the hard range is 400-470.
+// Widened from 400-420 on 2026-07-26: that ceiling was forcing qualifiers out of descriptions and
+// was directly responsible for 29 technical defects, because a dropped condition leaves an absolute
+// standing. Sentences stay at 3 with a tolerance of one.
+{
+  const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
+  for (const s of SCHEMES) {
+    const len = s.desc.length;
+    const n = sentences(s.desc).length;
+    if (len < 400 || len > 470) report('R-desc', `${s.id}  desc is ${len} chars (hard range is 400-470, target 410-460)`);
+    if (n < 2 || n > 4) report('R-desc', `${s.id}  desc is ${n} sentences (3, tolerance one)`);
+  }
+}
+
+// ---- R-srclabel / R-srcdup ----
+// Two invariants of the sources layer, both read only data.js so they stay deterministic and can
+// live in the gate. Written after a hand pass found four defects the label-vs-heading heuristic
+// could never state: that heuristic gave 66 findings out of 194 and is a report, these are rules.
+//   R-srclabel  one URL carries one label across the whole catalog. It caught
+//               pod-lifecycle/#pod-termination spelled three ways, one of them naming the page
+//               while pointing into a section.
+//   R-srcdup    no card may show two sources under the same label, which would render as
+//               `Sources: Gateway API - Gateway API` in the dialog footer.
+{
+  const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
+  const byHref = new Map();
+  for (const sc of SCHEMES) {
+    const seen = new Set();
+    for (const src of sc.sources || []) {
+      if (seen.has(src.label)) report('R-srcdup', `${sc.id}  two sources share the label "${src.label}"`);
+      seen.add(src.label);
+      if (!byHref.has(src.href)) byHref.set(src.href, new Map());
+      byHref.get(src.href).set(src.label, sc.id);
+    }
+  }
+  for (const [href, labels] of byHref) {
+    if (labels.size < 2) continue;
+    const shown = [...labels].map(([l, id]) => `"${l}" (${id})`).join(' vs ');
+    report('R-srclabel', `${href}  is labelled ${labels.size} ways: ${shown}`);
   }
 }
 

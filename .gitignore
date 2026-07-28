@@ -25,3 +25,6 @@ scheme/tools/baselines/
 
 # Review working document: lives on disk, never in git
 SCHEME-REVIEW.md
+
+# Source-page cache for scheme/tools/check-sources.mjs (fetched docs, regenerable)
+scheme/tools/.cache/
