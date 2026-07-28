@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-pvc-retention-policy
 
 
@@ -33,8 +33,7 @@ const ownPts = i => [[POD_RIGHT, ROW_CY[i]], [PVC_X, ROW_CY[i]]];        // Pod 
 const reclaimPts = i => [[PVC_RIGHT, ROW_CY[i]], [PV_X, ROW_CY[i]]];     // claim -> disk
 
 // Fades a claim, disk or lane away exactly when the reclaim that removes it reaches it.
-const GONE = 0.1;
-function vanishAt(el, ctx, delay = 0, to = GONE) {
+function vanishAt(el, ctx, delay = 0, to = OPACITY.terminated) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); return; }
   ctx.register(el.animate([{ opacity: 1 }, { opacity: to }], { duration: FADE.out, delay, fill: 'forwards', easing: 'ease-in' }));
@@ -74,7 +73,7 @@ class Scene {
 
     const src = box({
       x: SRC_X, y: SRC_Y, w: SRC_W, h: SRC_H,
-      label: 'StatefulSet Web', sublabel: 'persistentVolumeClaimRetentionPolicy', role: 'storage',
+      label: 'StatefulSet web', sublabel: 'persistentVolumeClaimRetentionPolicy', role: 'storage',
     });
 
     const pods = ROW_CY.map((cy, i) => podBlock({ cy, label: `web-${i}` }));
@@ -173,7 +172,7 @@ const BOUND = ['Bound', 'Bound', 'Bound'];
 function removePod(s, ctx, i, { delay = 0 } = {}) {
   pulsePod(s.refs[`p${i}`], ctx, delay);
   const fadeAt = delay + BEAT.afterPulse;
-  ctx.register(s.refs[`p${i}`].animate([{ opacity: 1 }, { opacity: 0.12 }], { duration: FADE.out, delay: fadeAt, fill: 'forwards', easing: 'ease-in' }));
+  ctx.register(s.refs[`p${i}`].animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: fadeAt, fill: 'forwards', easing: 'ease-in' }));
   return fadeAt + FADE.out;
 }
 
@@ -244,7 +243,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '2', ws: 'Retain', wd: 'Retain', disks: '3 kept, 1 leaks' });
-      setStage(s, { pods: [1, 1, 0.12] });
+      setStage(s, { pods: [1, 1, OPACITY.terminated] });
       setClaimLabels(s, ['Bound', 'Bound', 'kept, no Pod']);
       setWire(s, 'g2', 'retained');
       if (ctx.reduced) return;
@@ -262,7 +261,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '2', ws: 'Delete', wd: 'Retain', disks: '2 kept' });
-      setStage(s, { pods: [1, 1, 0.12], claims: [1, 1, GONE], disks: [1, 1, GONE] });
+      setStage(s, { pods: [1, 1, OPACITY.terminated], claims: [1, 1, OPACITY.terminated], disks: [1, 1, OPACITY.terminated] });
       setClaimLabels(s, BOUND);
       setWire(s, 'g2', 'reclaimed');
       if (ctx.reduced) return;
@@ -281,7 +280,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '0', ws: 'Delete', wd: 'Retain', disks: '3 kept' });
-      setStage(s, { pods: [0.12, 0.12, 0.12] });
+      setStage(s, { pods: [OPACITY.terminated, OPACITY.terminated, OPACITY.terminated] });
       setClaimLabels(s, ['kept, no owner', 'kept, no owner', 'kept, no owner']);
       ROW_CY.forEach((_, i) => setWire(s, `g${i}`, 'retained'));
       if (ctx.reduced) return;
@@ -299,7 +298,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { repl: '0', ws: 'Delete', wd: 'Delete', disks: '0 kept' });
-      setStage(s, { pods: [0.12, 0.12, 0.12], claims: [GONE, GONE, GONE], disks: [GONE, GONE, GONE] });
+      setStage(s, { pods: [OPACITY.terminated, OPACITY.terminated, OPACITY.terminated], claims: [OPACITY.terminated, OPACITY.terminated, OPACITY.terminated], disks: [OPACITY.terminated, OPACITY.terminated, OPACITY.terminated] });
       setClaimLabels(s, BOUND);
       ROW_CY.forEach((_, i) => setWire(s, `g${i}`, 'reclaimed'));
       if (ctx.reduced) return;

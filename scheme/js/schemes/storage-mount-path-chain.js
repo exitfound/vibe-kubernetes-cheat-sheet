@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-mount-path-chain
 
 
@@ -87,7 +87,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Where the bytes land. One attached block device is mounted exactly once on the node, at a global staging path under the kubelet plugins directory. That single staged filesystem is then bind-mounted into a directory that belongs to one Pod alone, under the kubelet pods directory and the Pod uid, and the container runtime maps that directory to slash data inside the container. A second Pod on the same node gets its own directory and its own bind mount off the same staging path, so two Pods share one disk through two separate bind mounts with no second attach and no second filesystem mount. A write to slash data descends the same chain, through the bind mount into the staging mount and onto the device, with no copy made at any hop.',
+      'aria-label': 'Where the bytes land. One attached block device is mounted exactly once on the Node, at a global staging path under the Kubelet plugins directory. That single staged filesystem is then bind-mounted into a directory that belongs to one Pod alone, under the Kubelet Pods directory and the Pod uid, and the container runtime maps that directory to slash data inside the container. A second Pod on the same Node gets its own directory and its own bind mount off the same staging path, so two Pods share one disk through two separate bind mounts with no second attach and no second filesystem mount. A write to slash data descends the same chain, through the bind mount into the staging mount and onto the device, with no copy made at any hop.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -95,12 +95,12 @@ class Scene {
     const podA = podBlock({ x: L_X, label: 'Pod A' });
     const podB = podBlock({ x: R_X, label: 'Pod B' });
 
-    const bindA = box({ x: L_X, y: BIND_Y, w: COL_W, h: BIND_H, label: 'Pod A Bind Mount', sublabel: '/pods/uid-a/volumes/vol-1', role: 'storage' });
-    const bindB = box({ x: R_X, y: BIND_Y, w: COL_W, h: BIND_H, label: 'Pod B Bind Mount', sublabel: '/pods/uid-b/volumes/vol-1', role: 'storage' });
+    const bindA = box({ x: L_X, y: BIND_Y, w: COL_W, h: BIND_H, label: 'Pod A bind mount', sublabel: '/pods/uid-a/volumes/vol-1', role: 'storage' });
+    const bindB = box({ x: R_X, y: BIND_Y, w: COL_W, h: BIND_H, label: 'Pod B bind mount', sublabel: '/pods/uid-b/volumes/vol-1', role: 'storage' });
 
     const stg = box({
       x: LEFT_X, y: STG_Y, w: CONTENT_W, h: STG_H,
-      label: 'Global Staging Mount', sublabel: '/plugins/.../csi/vol-1/globalmount', role: 'storage',
+      label: 'Global staging mount', sublabel: '/plugins/.../csi/vol-1/globalmount', role: 'storage',
     });
     const dev = cylinder({ x: DEV_X, y: DEV_Y, w: DEV_W, h: DEV_H, label: '/dev/nvme1n1', role: 'storage' });
     {
@@ -195,26 +195,26 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod writes to /data and expects the bytes to reach a disk. On the node that path is not one hop, it is a short chain of mounts. Start at the bottom: one real block device, /dev/nvme1n1, attached to this node and holding the filesystem.',
+    narration: 'A Pod writes to /data and expects the bytes to reach a disk. On the Node that path is not one hop, it is a short chain of mounts. Start at the bottom: one real block device, /dev/nvme1n1, attached to this Node and holding the filesystem.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'not yet', binds: 'none', copies: 'none' });
-      setStage(s, { podA: 0.5 });
+      setStage(s, { podA: OPACITY.pending });
       setWire(s, 'disk', 'attached to node-1');
     },
   },
   {
     id: 'stage',
     duration: 2600,
-    narration: 'The device is mounted exactly once, at a global staging path under the kubelet plugins directory. This is the only place the filesystem itself is mounted on the node. Everything above this point is not another mount of the disk, it is a view onto this one.',
+    narration: 'The device is mounted exactly once, at a global staging path under the Kubelet plugins directory. This is the only place the filesystem itself is mounted on the Node. Everything above this point is not another mount of the disk, it is a view onto this one.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'once', binds: 'none', copies: 'none' });
-      setStage(s, { podA: 0.5 });
+      setStage(s, { podA: OPACITY.pending });
       setWire(s, 'disk', 'mounted once, here');
       s.refs.dev.classList.add('highlight');
       if (ctx.reduced) { s.refs.stg.classList.add('highlight'); return; }
@@ -234,7 +234,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'once', binds: 'Pod A', copies: 'none' });
-      setStage(s, { podA: 0.5 });
+      setStage(s, { podA: OPACITY.pending });
       setWire(s, 'bind', 'NodePublish: bind mount');
       setWire(s, 'disk', 'still mounted once');
       s.refs.stg.classList.add('highlight');
@@ -259,15 +259,15 @@ const STEPS = [
       if (ctx.reduced) return;
       const p = routePacket(s, ctx, W_A_POD_UP, { role: 'storage' });
       ridingLabel(s, ctx, 'mount /data', W_A_POD_UP, RIDE_UP);
-      s.refs.podA.style.opacity = '0.5';
-      ctx.register(s.refs.podA.animate([{ opacity: 0.5 }, { opacity: 1 }], { duration: 500, delay: p.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
+      s.refs.podA.style.opacity = String(OPACITY.pending);
+      ctx.register(s.refs.podA.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: 500, delay: p.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
       pulsePod(s.refs.podA, ctx, p.arrivalMs);
     },
   },
   {
     id: 'second',
     duration: 3600,
-    narration: 'A second Pod on the same node gets its own directory and its own bind mount off the same global staging path. The disk is not attached twice and not staged twice. Two Pods, two bind mounts, one device underneath. That is how a single disk is shared across Pods on a node.',
+    narration: 'A second Pod on the same Node gets its own directory and its own bind mount off the same global staging path. The disk is not attached twice and not staged twice. Two Pods, two bind mounts, one device underneath. That is how a single disk is shared across Pods on a Node.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -1,21 +1,45 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-ipam-pod-cidr
 
 
-const POD_Y = 442;
-const BRANCH_Y = 264;
-const ALLOC1 = [[600, 222], [600, BRANCH_Y], [230, BRANCH_Y], [230, 350]]; // controller -> Node-1 slice
-const ALLOC3 = [[600, 222], [600, BRANCH_Y], [970, BRANCH_Y], [970, 350]]; // controller -> Node-3 slice
+// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 255. The three Node frames span
+// 80..1120 and are centred on the canvas, the control-plane column stands on their common centre.
+const NODE_Y = 312, NODE_W = 300, NODE_H = 290;
+const NODE_X = [80, 450, 820];
+const NODE_CX = NODE_X.map(x => x + NODE_W / 2);            // 230, 600, 970
+const SPINE_X = NODE_CX[1];                                 // 600: controller column and Node-2 drop
+
+const CFG_X = 460, CFG_W = 280, CFG_Y = 44, CFG_H = 64;     // the cluster pod CIDR pool
+const KCM_Y = 150, KCM_H = 72;
+const KCM_BOTTOM = KCM_Y + KCM_H;                           // 222: where every allocation leaves
+
+const SLICE_W = 260, SLICE_H = 34, SLICE_Y = 350;
+const SLICE_X = NODE_X.map(x => x + (NODE_W - SLICE_W) / 2);// 100, 470, 840
+const SLICE_BOTTOM = SLICE_Y + SLICE_H;                     // 384: where the IPAM hands an IP down
+
+const POD_Y = 442, POD_W = 200, POD_H = 130;
+const POD_X = NODE_CX.map(cx => cx - POD_W / 2);            // 130, 500, 870
+
+const BRANCH_Y = 264;                                       // the bus the flanking allocations turn on
+// controller -> a Node slice: straight down the spine for Node-2, down and out along the bus for the
+// flanking two. Wire and ball come from the same array.
+const allocTo = (cx) => [[SPINE_X, KCM_BOTTOM], [SPINE_X, BRANCH_Y], [cx, BRANCH_Y], [cx, SLICE_Y]];
+const ALLOC1 = allocTo(NODE_CX[0]);
+const ALLOC3 = allocTo(NODE_CX[2]);
+const ALLOC2 = [[SPINE_X, KCM_BOTTOM], [SPINE_X, SLICE_Y]];        // Node-2 sits on the spine
+const CFG_DROP = [[SPINE_X, CFG_Y + CFG_H], [SPINE_X, KCM_Y]];     // the pool the controller reads
+const IPAM1 = [[NODE_CX[0], SLICE_BOTTOM], [NODE_CX[0], POD_Y]];   // Node-1 IPAM -> its Pod
+const IPAM2 = [[SPINE_X, SLICE_BOTTOM], [SPINE_X, POD_Y]];         // Node-2 IPAM -> its Pod
 
 // One Pod as a translucent shell wrapping an eth0 container box, grouped so pulsePod
 // animates both rects together. Returns { group, innerBox }.
 function podBlock({ x, y, label, ip }) {
-  const shell = pod({ x, y, w: 200, h: 130, label, sublabel: ip, containers: 0, role: 'network' });
+  const shell = pod({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 37, w: 160, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 37, w: POD_W - 40, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -32,34 +56,34 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each node, and the CNI IPAM on a node hands Pod IPs out of its own slice',
+      'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and the CNI IPAM on a Node hands Pod IPs out of its own slice',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const clusterBox = box({ x: 460, y: 44, w: 280, h: 64, label: 'Cluster Pod CIDR', sublabel: '10.244.0.0/16', role: 'network' });
-    const kcm = box({ x: 460, y: 150, w: 280, h: 72, label: 'Controller-manager', role: 'network' });
+    const clusterBox = box({ x: CFG_X, y: CFG_Y, w: CFG_W, h: CFG_H, label: 'Cluster Pod CIDR', sublabel: '10.244.0.0/16', role: 'network' });
+    const kcm = box({ x: CFG_X, y: KCM_Y, w: CFG_W, h: KCM_H, label: 'controller-manager', role: 'network' });
 
-    const node1 = node({ x: 80,  y: 312, w: 300, h: 290, label: 'Node-1' });
-    const node2 = node({ x: 450, y: 312, w: 300, h: 290, label: 'Node-2' });
-    const node3 = node({ x: 820, y: 312, w: 300, h: 290, label: 'Node-3' });
+    const node1 = node({ x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
+    const node2 = node({ x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' });
+    const node3 = node({ x: NODE_X[2], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3' });
 
-    const slice1 = valChip({ x: 100, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
-    const slice2 = valChip({ x: 470, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
-    const slice3 = valChip({ x: 840, y: 350, w: 260, h: 34, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
+    const slice1 = valChip({ x: SLICE_X[0], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
+    const slice2 = valChip({ x: SLICE_X[1], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
+    const slice3 = valChip({ x: SLICE_X[2], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
     [slice1, slice2, slice3].forEach(c => root.appendChild(c));
 
-    const a = podBlock({ x: 130, y: POD_Y, label: 'Pod', ip: 'IP pending' });
+    const a = podBlock({ x: POD_X[0], y: POD_Y, label: 'Pod', ip: 'IP pending' });
     // The Node-2 pod proves uniqueness on the final step; it stays hidden until then.
-    const b = podBlock({ x: 500, y: POD_Y, label: 'Pod', ip: 'IP pending' });
+    const b = podBlock({ x: POD_X[1], y: POD_Y, label: 'Pod', ip: 'IP pending' });
     b.group.style.opacity = '0';
 
-    const cfgArrow   = arrow({ x1: 600, y1: 108, x2: 600, y2: 150, dashed: true, dim: true });
+    const cfgArrow   = arrow({ x1: SPINE_X, y1: CFG_Y + CFG_H, x2: SPINE_X, y2: KCM_Y, dashed: true, dim: true });
     const allocArrow1 = pathArrow({ points: ALLOC1, dashed: true, dim: true });
-    const allocArrow2 = arrow({ x1: 600, y1: 222, x2: 600, y2: 350, dashed: true, dim: true });
+    const allocArrow2 = arrow({ x1: SPINE_X, y1: KCM_BOTTOM, x2: SPINE_X, y2: SLICE_Y, dashed: true, dim: true });
     const allocArrow3 = pathArrow({ points: ALLOC3, dashed: true, dim: true });
-    const ipamArrow  = arrow({ x1: 230, y1: 384, x2: 230, y2: POD_Y, dashed: true, dim: true });
-    const ipam2Arrow = arrow({ x1: 600, y1: 384, x2: 600, y2: POD_Y, dashed: true, dim: true });
+    const ipamArrow  = arrow({ x1: NODE_CX[0], y1: SLICE_BOTTOM, x2: NODE_CX[0], y2: POD_Y, dashed: true, dim: true });
+    const ipam2Arrow = arrow({ x1: SPINE_X, y1: SLICE_BOTTOM, x2: SPINE_X, y2: POD_Y, dashed: true, dim: true });
     ipam2Arrow.style.opacity = '0';
 
     const packetLayer = g({ id: 'packetLayer' });
@@ -119,10 +143,10 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       s.refs.clusterBox.classList.add('highlight');
-      s.refs.kcm.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.kcm.classList.add('highlight'); return; }
       // The pool registers into the controller-manager; arrival ripple marks the kcm.
-      segmentPacket(s, ctx, { from: [600, 108], to: [600, 150], dur: 450, role: 'network' });
+      const pkt = segmentPacket(s, ctx, { from: CFG_DROP[0], to: CFG_DROP[1], dur: 450, role: 'network' });
+      lightBoxAt(s.refs.kcm, ctx, pkt.arrivalMs);
     },
   },
   {
@@ -141,7 +165,7 @@ const STEPS = [
       setVal(s.refs.slice3, '10.244.3.0/24');
       if (ctx.reduced) return;
       const dur = 1100;
-      routePacket(s, ctx, [[600, 222], [600, 350]], { dur, fadeIn: true, role: 'network' });
+      routePacket(s, ctx, ALLOC2, { dur, fadeIn: true, role: 'network' });
       routePacket(s, ctx, ALLOC1, { dur, fadeIn: true, role: 'network' });
       routePacket(s, ctx, ALLOC3, { dur, fadeIn: true, role: 'network' });
     },
@@ -161,7 +185,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); return; }
       // IPAM hands an address from the slice down to the Pod (packet first, then the
       // Pod pulses on arrival: it is the receiver, so no blink-first here).
-      const give = segmentPacket(s, ctx, { from: [230, 384], to: [230, POD_Y], dur: 550, role: 'network' });
+      const give = segmentPacket(s, ctx, { from: IPAM1[0], to: IPAM1[1], dur: 550, role: 'network' });
       pulsePod(s.refs.podA, ctx, give.arrivalMs);
     },
   },
@@ -190,7 +214,7 @@ const STEPS = [
       ctx.register(s.refs.ipam2Arrow.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, fill: 'forwards', easing: 'ease-out' }));
       // After the pod appears, Node-2 IPAM hands its address down (packet first, then the pod
       // pulses on arrival, the receiver).
-      const give = segmentPacket(s, ctx, { from: [600, 384], to: [600, POD_Y], delay: 420, dur: 550, role: 'network' });
+      const give = segmentPacket(s, ctx, { from: IPAM2[0], to: IPAM2[1], delay: 420, dur: 550, role: 'network' });
       pulsePod(s.refs.podB, ctx, give.arrivalMs);
     },
   },

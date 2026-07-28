@@ -1,6 +1,6 @@
-import { svg, g, text, line } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-north-south-path
 
 
@@ -26,6 +26,10 @@ const KP_CX = KP_X + KP_W / 2;                 // 685
 const KP_BOTTOM = FLOW_Y + KP_H / 2;           // 396
 const POD_X = 930, POD_W = 210, POD_H = 100;
 const CT_X = 580, CT_Y = 418, CT_W = 560, CT_H = 54;            // conntrack table, under kube-proxy
+const CT_CX = CT_X + CT_W / 2;                 // 860: where the ownership marker meets the table
+// Ownership marker: kube-proxy bottom-centre, a step across the gap between the rows, then down onto
+// the conntrack table's own top-edge centre. Both ends sit on a face midpoint.
+const CT_LINK = [[KP_CX, KP_BOTTOM], [KP_CX, (KP_BOTTOM + CT_Y) / 2], [CT_CX, (KP_BOTTOM + CT_Y) / 2], [CT_CX, CT_Y]];
 
 const CHIP_Y = 500;
 
@@ -73,7 +77,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'North-south request path: an external client reaches a cloud load balancer at its public IP, the load balancer crosses the cluster boundary and forwards to a Node on the service NodePort, kube-proxy rules DNAT the packet to a backing Pod IP while conntrack pins the flow, the Pod serves the request, and the reply travels a separate return lane where conntrack unwinds every rewrite so the client sees an answer from the public IP it dialed',
+      'aria-label': 'North-south request path: an external client reaches a cloud load balancer at its public IP, the load balancer crosses the cluster boundary and forwards to a Node on the Service NodePort, kube-proxy rules DNAT the packet to a backing Pod IP while conntrack pins the flow, the Pod serves the request, and the reply travels a separate return lane where conntrack unwinds every rewrite so the client sees an answer from the public IP it dialed',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -83,7 +87,7 @@ class Scene {
     const theNode = node({ x: NODE_X, y: REGION_TOP, w: NODE_W, h: REGION_H, label: 'Node   ·   192.168.1.20' });
     const client = box({ x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: 'internet', role: 'network' });
     const lb = box({ x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'Cloud LB', sublabel: '203.0.113.9:443', role: 'network' });
-    const kproxy = box({ x: KP_X, y: FLOW_Y - KP_H / 2, w: KP_W, h: KP_H, label: 'Kube-proxy rules', sublabel: 'NodePort 31000', role: 'network' });
+    const kproxy = box({ x: KP_X, y: FLOW_Y - KP_H / 2, w: KP_W, h: KP_H, label: 'kube-proxy rules', sublabel: 'NodePort 31000', role: 'network' });
     const conntrack = box({ x: CT_X, y: CT_Y, w: CT_W, h: CT_H, label: 'Conntrack', sublabel: 'no flow yet', role: 'network' });
     const podX = podBlock({ x: POD_X, y: FLOW_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web' });
 
@@ -96,7 +100,7 @@ class Scene {
 
     // Ownership marker, NOT a traffic path: the rules and the flow table are two halves of one
     // dataplane. No packet ever travels it, so it is a plain dashed line with no arrowhead.
-    const ctLink = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: KP_CX, y1: KP_BOTTOM, x2: KP_CX, y2: CT_Y, 'stroke-dasharray': '5 5', fill: 'none' });
+    const ctLink = relationPath({ points: CT_LINK, role: 'network', dash: '5 5' });
 
     // Four equal cells, equal gaps, spanning the full framed width.
     const stageChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'stage', value: 'idle', role: 'network' });
@@ -155,7 +159,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      setVal(s.refs.stageChip, 'Cloud LB');
+      setVal(s.refs.stageChip, 'cloud LB');
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.backChip, 'none');
       setBoxSublabel(s.refs.conntrack, 'no flow yet');
@@ -172,7 +176,7 @@ const STEPS = [
   {
     id: 'nodeport',
     duration: 2400,
-    narration: 'The load balancer rewrites the destination to a Node and the service NodePort, a high port opened on every Node, and the packet crosses the cluster edge. kube-proxy programmed the rules that catch that port, so the packet is matched on arrival with the destination still the Node IP and that port.',
+    narration: 'The load balancer rewrites the destination to a Node and the Service NodePort, a high port opened on every Node, and the packet crosses the cluster edge. The kube-proxy programmed the rules that catch that port, so the packet is matched on arrival with the destination still the Node IP and that port.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -200,7 +204,7 @@ const STEPS = [
       setVal(s.refs.stageChip, 'DNAT');
       setVal(s.refs.dnatChip, '-> 10.244.2.7:8080');
       setVal(s.refs.backChip, '10.244.2.7:8080');
-      setBoxSublabel(s.refs.conntrack, '203.0.113.9 -> 10.244.2.7:8080  pinned');
+      setBoxSublabel(s.refs.conntrack, '192.168.1.20:31000 -> 10.244.2.7:8080  pinned');
       s.refs.kproxy.classList.add('highlight');
       s.refs.conntrack.classList.add('highlight');
       s.refs.stageChip.classList.add('highlight');
@@ -220,14 +224,14 @@ const STEPS = [
     // Pod pulse (900) at 0, then three 700ms hops chained on BEAT: the last lands at 3100 and its
     // ripple + tag fade run to ~3660, so the step holds a touch longer than that before auto-advancing.
     duration: 3700,
-    narration: 'The Pod replies, and the answer retraces the same chain in reverse, drawn here as its own lane. conntrack matches the reply to the flow it pinned and undoes the DNAT, so the source becomes the Node and its NodePort again, then the load balancer rewrites it once more and the client sees an answer from the public IP it dialed. The client never learns the Pod address, and every rewrite the request crossed is unwound on the way out.',
+    narration: 'The Pod replies, and the answer retraces the same chain in reverse, drawn here as its own lane. The conntrack table matches the reply to the flow it pinned and undoes the DNAT, so the source becomes the Node and its NodePort again, then the load balancer rewrites it once more and the client sees an answer from the public IP it dialed. The client never learns the Pod address, and every rewrite the request crossed is unwound on the way out.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       setVal(s.refs.stageChip, 'reply unwinds');
       setVal(s.refs.dnatChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.2.7:8080');
-      setBoxSublabel(s.refs.conntrack, '203.0.113.9 -> 10.244.2.7:8080  pinned');
+      setBoxSublabel(s.refs.conntrack, '192.168.1.20:31000 -> 10.244.2.7:8080  pinned');
       s.refs.conntrack.classList.add('highlight');
       s.refs.stageChip.classList.add('highlight');
       s.refs.dnatChip.classList.add('highlight');

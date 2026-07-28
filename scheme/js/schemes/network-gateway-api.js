@@ -1,13 +1,16 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt} from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-gateway-api
 
 
-const FLOW_Y = 339;                            // Client + Gateway share this row: a request enters here
+// Panel measured 2026-07-27: right <= 397, bottom <= 330 (this card carries a long narration). The
+// Client is the only block left of 397, so the whole request row hangs below that bottom. A longer
+// narration invalidates the measurement.
+const FLOW_Y = 380;                          // Client + Gateway share this row: a request enters here
 
 const CLIENT_X = 40, CLIENT_W = 260, CLIENT_H = 72;
-const CLIENT_Y = FLOW_Y - CLIENT_H / 2;        // 303, clear of the narration overlay
+const CLIENT_Y = FLOW_Y - CLIENT_H / 2;        // 344, clear of the panel bottom above
 const CLIENT_RIGHT = CLIENT_X + CLIENT_W;      // 300
 
 const STACK_X = 410, STACK_W = 260;
@@ -17,10 +20,10 @@ const STACK_RIGHT = STACK_X + STACK_W;         // 670
 const GW_H = 86;                               // the GatewayClass shares this height, they are peers
 const CLASS_Y = 56, CLASS_H = GW_H;            // 56..142
 const CLASS_BOTTOM = CLASS_Y + CLASS_H;        // 142
-const GW_TOP = FLOW_Y - GW_H / 2;              // 296
-const GW_BOTTOM = GW_TOP + GW_H;               // 382
-const ROUTE_Y = 430, ROUTE_H = 84;             // 430..514
-const ROUTE_CY = ROUTE_Y + ROUTE_H / 2;        // 472, the row the backend hangs off
+const GW_TOP = FLOW_Y - GW_H / 2;              // 337
+const GW_BOTTOM = GW_TOP + GW_H;               // 423
+const ROUTE_Y = 460, ROUTE_H = 84;             // 460..544
+const ROUTE_CY = ROUTE_Y + ROUTE_H / 2;        // 502, the row the backend hangs off
 
 const SVC_W = 160, SVC_H = 66, SVC_X = 730;
 const SVC_RIGHT = SVC_X + SVC_W;               // 890
@@ -28,7 +31,7 @@ const POD_X = 950, POD_W = 210, POD_H = 114;
 const POD_RIGHT = POD_X + POD_W;               // 1160
 
 const ROLE_X = 700;                            // ownership captions, left-anchored just right of the stack
-const CHIP_Y = 560;
+const CHIP_Y = 586;
 
 const ENTRY = [[CLIENT_RIGHT, FLOW_Y], [STACK_X, FLOW_Y]];
 const CLASS_REF = [[STACK_CX, GW_TOP], [STACK_CX, CLASS_BOTTOM]];      // Gateway -> its GatewayClass
@@ -68,7 +71,7 @@ class Scene {
     const gwClass = box({ x: STACK_X, y: CLASS_Y, w: STACK_W, h: CLASS_H, label: 'GatewayClass: nginx', sublabel: 'controllerName: nginx.org/gw', role: 'network' });
     const gw      = box({ x: STACK_X, y: GW_TOP,  w: STACK_W, h: GW_H,    label: 'Gateway', sublabel: 'listener :443 HTTPS', role: 'network' });
     const route   = box({ x: STACK_X, y: ROUTE_Y, w: STACK_W, h: ROUTE_H, label: 'HTTPRoute', sublabel: 'parentRefs: Gateway', role: 'network' });
-    const svc     = box({ x: SVC_X, y: ROUTE_CY - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service Web', sublabel: '', role: 'network' });
+    const svc     = box({ x: SVC_X, y: ROUTE_CY - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: '', role: 'network' });
     const podW    = podBlock({ x: POD_X, y: ROUTE_CY - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.5' });
 
     const entryWire   = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, role: 'network' });

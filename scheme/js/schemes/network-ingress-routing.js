@@ -1,6 +1,6 @@
-import { svg, g, text, line } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-ingress-routing
 
 
@@ -36,7 +36,6 @@ const TO_API = [[CTRL_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, API_Y], [SVC_X, A
 const WEB_HOP = [[SVC_RIGHT, WEB_Y], [POD_X, WEB_Y]];
 const API_HOP = [[SVC_RIGHT, API_Y], [POD_X, API_Y]];
 
-const DIM = '0.45';
 
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
@@ -59,7 +58,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Ingress controller routing: an Ingress Controller Pod watches Ingress objects, matches the request host and path against the rules, terminates TLS, and proxies each request on to the backend Service and Pod its rule names, slash to Service web and slash api to Service api',
+      'aria-label': 'Ingress controller routing: an Ingress controller Pod watches Ingress objects, matches the request host and path against the rules, terminates TLS, and proxies each request on to the backend Service and Pod its rule names, slash to Service web and slash api to Service api',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -70,8 +69,8 @@ class Scene {
 
     // Every block is centred on its own row: extLB and the controller on FLOW_Y, each Service on the
     // same row as the backend Pod it fronts, so no wire ever meets a block off-centre.
-    const extLB = box({ x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'external LB', sublabel: 'or NodePort', role: 'network' });
-    const ctrl  = podBlock({ x: CTRL_X, y: CTRL_TOP, w: CTRL_W, h: CTRL_H, label: 'Ingress Controller Pod', ip: 'watches Ingress' });
+    const extLB = box({ x: LB_X, y: FLOW_Y - LB_H / 2, w: LB_W, h: LB_H, label: 'External LB', sublabel: 'or NodePort', role: 'network' });
+    const ctrl  = podBlock({ x: CTRL_X, y: CTRL_TOP, w: CTRL_W, h: CTRL_H, label: 'Ingress controller Pod', ip: 'watches Ingress' });
 
     const svcWeb = box({ x: SVC_X, y: WEB_Y - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: '', role: 'network' });
     const svcApi = box({ x: SVC_X, y: API_Y - SVC_H / 2, w: SVC_W, h: SVC_H, label: 'Service api', sublabel: '', role: 'network' });
@@ -79,7 +78,7 @@ class Scene {
     const podApi = podBlock({ x: POD_X, y: API_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod api', ip: '10.244.2.7' });
 
     const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, role: 'network' });
-    const rulesWire = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: CTRL_CX, y1: CTRL_TOP, x2: CTRL_CX, y2: RULE_BOTTOM, 'stroke-dasharray': '5 5', fill: 'none' });
+    const rulesWire = relationPath({ points: [[CTRL_CX, CTRL_TOP], [CTRL_CX, RULE_BOTTOM]], role: 'network', dash: '5 5' });
     const fanWeb = pathArrow({ points: TO_WEB, dashed: true, dim: true, role: 'network' });
     const fanApi = pathArrow({ points: TO_API, dashed: true, dim: true, role: 'network' });
     const podWebWire = arrow({ x1: WEB_HOP[0][0], y1: WEB_HOP[0][1], x2: WEB_HOP[1][0], y2: WEB_HOP[1][1], dashed: true, dim: true, role: 'network' });
@@ -128,7 +127,7 @@ function clearHL(s) {
 function branch(s, active) {
   if (active === 'both') return;
   const idle = active === 'web' ? ['svcApi', 'podApi'] : ['svcWeb', 'podWeb'];
-  idle.forEach(k => { s.refs[k].style.opacity = DIM; });
+  idle.forEach(k => { s.refs[k].style.opacity = String(OPACITY.notready); });
 }
 
 const STEPS = [
@@ -172,7 +171,9 @@ const STEPS = [
       clearWires(s);
       setWire(s, 'w', 'GET shop.io/');
       setVal(s.refs.hostChip, 'shop.io');
+      s.refs.hostChip.classList.add('highlight');
       setVal(s.refs.pathChip, '/');
+      s.refs.pathChip.classList.add('highlight');
       s.refs.extLB.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); return; }
@@ -220,6 +221,7 @@ const STEPS = [
       setWire(s, 'w', 'GET shop.io/api');
       setVal(s.refs.hostChip, 'shop.io');
       setVal(s.refs.pathChip, '/api');
+      s.refs.pathChip.classList.add('highlight');
       s.refs.extLB.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); return; }

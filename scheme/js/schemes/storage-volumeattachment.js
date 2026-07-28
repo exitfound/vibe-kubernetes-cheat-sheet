@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volumeattachment
 
 
@@ -54,11 +54,13 @@ const DISK_LBL_Y = DISK_TOP - 14;                        // 386
 
 const CHIPS_Y = 592, CHIP_H = 34;                        // 592..626, 14 clear of the viewBox
 const CHIP_GAP = 16, CHIP_COUNT = 4;
-const CHIPS_L = DISK_X, CHIPS_R = CONTENT_R;             // 130 / 1140, the diagram's own extent
-const CHIPS_W = CHIPS_R - CHIPS_L;                                      // 1010
-const CHIP_W = (CHIPS_W - CHIP_GAP * (CHIP_COUNT - 1)) / CHIP_COUNT;    // 240.5
+// The strip spans the card's own margins, so it centres on CX by construction. Hanging its left end
+// on DISK_X instead put the strip at 130..1140, whose centre is 635.
+const CHIPS_L = CONTENT_L, CHIPS_R = CONTENT_R;          // 60 / 1140
+const CHIPS_W = CHIPS_R - CHIPS_L;                                      // 1080
+const CHIP_W = (CHIPS_W - CHIP_GAP * (CHIP_COUNT - 1)) / CHIP_COUNT;    // 258
 const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>
-  CHIPS_L + i * (CHIP_W + CHIP_GAP));                    // 130 / 386.5 / 643 / 899.5, last ends 1140
+  CHIPS_L + i * (CHIP_W + CHIP_GAP));                    // 60 / 334 / 608 / 882, last ends 1140
 
 const LANE = 40;
 const W_WRITE   = [[COL_R_CX, ADC_BOTTOM], [COL_R_CX, VA_TOP]];              // controller creates it
@@ -72,8 +74,6 @@ const W_ONNODE  = [[DISK_RIGHT, DISK_CY], [COL_L_CX, DISK_CY], [COL_L_CX, KUBE_B
 const W_GATE    = [[COL_R_X, VA_CY], [CORRIDOR_X, VA_CY], [CORRIDOR_X, KUBE_CY], [KUBE_RIGHT, KUBE_CY]];
 const W_MOUNT   = [[COL_L_CX, KUBE_TOP], [COL_L_CX, POD_BOTTOM]];
 
-const DISK_DIM = 0.3;
-const VA_PLACEHOLDER = 0.45;
 // How long a born-mid-story construction takes to materialise, and how long it takes to leave. It runs
 // before the ball is sent (BEAT.lead is 800), so nothing is ever aimed at a block that is not there.
 const LAND_MS = 500;
@@ -92,7 +92,7 @@ function podBlock() {
   const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'needs vol-1', containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: POD_X + POD_PAD, y: POD_Y + POD_INNER_Y, w: POD_W - POD_PAD * 2, h: POD_INNER_H, label: 'App', sublabel: 'wants /data', role: 'storage' });
+  const innerBox = box({ x: POD_X + POD_PAD, y: POD_Y + POD_INNER_Y, w: POD_W - POD_PAD * 2, h: POD_INNER_H, label: 'app', sublabel: 'wants /data', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -109,16 +109,16 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The VolumeAttachment object. The attach and detach controller inside kube-controller-manager, not kubelet, decides a volume must be attached to a node and writes a VolumeAttachment naming the volume and the node with status.attached false. The external-attacher watches those objects, calls ControllerPublishVolume on the driver, and on success writes status.attached true back onto the same object. Kubelet is blocked on that one field and mounts only once it reads true. Because the object, not the Pod, is the cluster record of the attach, deleting it is what triggers ControllerUnpublishVolume and the detach.',
+      'aria-label': 'The VolumeAttachment object. The attach and detach controller inside kube-controller-manager, not Kubelet, decides a volume must be attached to a Node and writes a VolumeAttachment naming the volume and the Node with status.attached false. The external-attacher watches those objects, calls ControllerPublishVolume on the driver, and on success writes status.attached true back onto the same object. Kubelet is blocked on that one field and mounts only once it reads true. Because the object, not the Pod, is the cluster record of the attach, deleting it is what triggers ControllerUnpublishVolume and the detach.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const nodeBox = node({ x: COL_L_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-1' });
+    const nodeBox = node({ x: COL_L_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
     const appPod = podBlock();
     const kube = box({ x: KUBE_X, y: KUBE_Y, w: KUBE_W, h: KUBE_H, label: 'Kubelet', sublabel: 'gated on attach', role: 'storage' });
 
-    const adc = box({ x: COL_R_X, y: ADC_Y, w: BOX_W, h: BOX_H, label: 'Attach/Detach Controller', sublabel: 'kube-controller-manager', role: 'storage' });
+    const adc = box({ x: COL_R_X, y: ADC_Y, w: BOX_W, h: BOX_H, label: 'Attach/Detach controller', sublabel: 'kube-controller-manager', role: 'storage' });
     const va  = box({ x: COL_R_X, y: VA_Y,  w: BOX_W, h: BOX_H, label: 'VolumeAttachment va-7f', sublabel: 'not created yet', role: 'storage' });
     const att = box({ x: COL_R_X, y: ATT_Y, w: BOX_W, h: BOX_H, label: 'External-attacher', sublabel: 'watches VolumeAttachment', role: 'storage' });
 
@@ -135,7 +135,7 @@ class Scene {
     const vaLanes = [wWrite, wWatch, wStatus, wGate];
     const wires = [...vaLanes, wPublish, wOnNode, wMount];
 
-    va.style.opacity = String(VA_PLACEHOLDER);
+    va.style.opacity = String(OPACITY.pending);
     vaLanes.forEach(el => { el.style.opacity = '0'; });
 
     const writeLbl = text({ class: 'scheme-label code dim', x: COL_R_CX + 12, y: (ADC_BOTTOM + VA_TOP) / 2 + 4, 'text-anchor': 'start' }, [' ']);
@@ -180,7 +180,7 @@ function setChips(s, { va, attached, disk, kubelet }) {
   setChip(s.refs.kubeChip, kubelet);
 }
 
-function setBorn(s, { object = VA_PLACEHOLDER, lanes = 0, pod = 1 } = {}) {
+function setBorn(s, { object = OPACITY.pending, lanes = 0, pod = 1 } = {}) {
   s.refs.va.style.opacity = String(object);
   s.refs.vaLanes.forEach(w => { w.style.opacity = String(lanes); });
   s.refs.appPod.style.opacity = String(pod);
@@ -197,7 +197,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pod web-0 is scheduled onto node-1 and needs the disk vol-1. Before kubelet can mount anything the disk has to be attached to that node, and Kubernetes keeps that fact in an object of its own. Right now no such object exists, so kubelet is going nowhere.',
+    narration: 'Pod web-0 is scheduled onto Node-1 and needs the disk vol-1. Before Kubelet can mount anything the disk has to be attached to that Node, and Kubernetes keeps that fact in an object of its own. Right now no such object exists, so Kubelet is going nowhere.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -207,13 +207,13 @@ const STEPS = [
       setWire(s, 'disk', 'not attached to any node');
       // The Pod is scheduled and waiting, which the narration states outright, so it is present at
       // full strength. Only the object is missing, and it is genuinely absent rather than greyed out.
-      setBorn(s, { object: VA_PLACEHOLDER, lanes: 0, pod: 1 });
+      setBorn(s, { object: OPACITY.pending, lanes: 0, pod: 1 });
     },
   },
   {
     id: 'decide',
     duration: 2200,
-    narration: 'It is not kubelet that decides a volume needs attaching. The attach and detach controller runs inside kube-controller-manager, sees a Pod bound to a node with a volume that is not attached there, and takes ownership of making it happen.',
+    narration: 'It is not Kubelet that decides a volume needs attaching. The attach and detach controller runs inside kube-controller-manager, sees a Pod bound to a Node with a volume that is not attached there, and takes ownership of making it happen.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -221,14 +221,14 @@ const STEPS = [
       setChips(s, { va: 'none', attached: 'no object', disk: 'no', kubelet: 'blocked' });
       setBoxSublabel(s.refs.va, 'not created yet');
       setWire(s, 'disk', 'not attached to any node');
-      setBorn(s, { object: VA_PLACEHOLDER, lanes: 0, pod: 1 });
+      setBorn(s, { object: OPACITY.pending, lanes: 0, pod: 1 });
       s.refs.adc.classList.add('highlight');
     },
   },
   {
     id: 'write',
     duration: 2600,
-    narration: 'The controller writes a VolumeAttachment. It names the volume and the node, and it starts with status.attached set to false. This object is now the single cluster record that vol-1 is meant to live on node-1. Nothing physical has happened yet.',
+    narration: 'The controller writes a VolumeAttachment. It names the volume and the Node, and it starts with status.attached set to false. This object is now the single cluster record that vol-1 is meant to live on Node-1. Nothing physical has happened yet.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -243,7 +243,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.va.classList.add('highlight'); return; }
       // The object and all four of its lanes materialise as ONE construction, and finish before the
       // write is sent (LAND_MS 500 against BEAT.lead 800), so no arrowhead is ever aimed at nothing.
-      fadeTo(s.refs.va, ctx, VA_PLACEHOLDER, 1);
+      fadeTo(s.refs.va, ctx, OPACITY.pending, 1);
       s.refs.vaLanes.forEach(w => fadeTo(w, ctx, 0, 1));
       const w = routePacket(s, ctx, W_WRITE, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'vol-1 on node-1', W_WRITE, { delay: BEAT.lead });
@@ -253,7 +253,7 @@ const STEPS = [
   {
     id: 'attach',
     duration: 4800,
-    narration: 'The external-attacher watches VolumeAttachment objects. It picks this one up, calls ControllerPublishVolume on the driver, and the driver asks the storage backend to attach vol-1 to node-1. The device is physically on the node now, and kubelet still will not touch it, because the object still says false.',
+    narration: 'The external-attacher watches VolumeAttachment objects. It picks this one up, calls ControllerPublishVolume on the driver, and the driver asks the storage backend to attach vol-1 to Node-1. The device is physically on the Node now, and Kubelet still will not touch it, because the object still says false.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -325,16 +325,16 @@ const STEPS = [
   {
     id: 'detach',
     duration: 4600,
-    narration: 'Because the object is the record, deleting it is what tears the attach down. Once the Pod is gone the controller removes the VolumeAttachment, the attacher sees it disappear, calls ControllerUnpublishVolume, and the backend detaches vol-1 from node-1. No object, no attach.',
+    narration: 'Because the object is the record, deleting it is what tears the attach down. Once the Pod is gone the controller deletes the VolumeAttachment, the attacher sees the deletion mark, calls ControllerUnpublishVolume, and only when the backend has detached vol-1 from Node-1 does the object finally go. No object, no attach.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { va: 'deleted', attached: 'gone', disk: 'no', kubelet: 'released' });
-      setBoxSublabel(s.refs.va, 'deleted, detach follows');
+      setBoxSublabel(s.refs.va, 'deleted after detach');
       setWire(s, 'disk', 'detached from node-1');
-      setBorn(s, { object: VA_PLACEHOLDER, lanes: 0, pod: 0 });
-      s.refs.disk.style.opacity = String(DISK_DIM);
+      setBorn(s, { object: OPACITY.terminated, lanes: 0, pod: 0 });
+      s.refs.disk.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.att.classList.add('highlight'); return; }
       setBorn(s, { object: 1, lanes: 1, pod: 1 });
       s.refs.disk.style.opacity = '1';
@@ -344,11 +344,19 @@ const STEPS = [
       const watch = routePacket(s, ctx, W_WATCH, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'va-7f deleted', W_WATCH, { delay: BEAT.lead });
       lightBoxAt(s.refs.att, ctx, watch.arrivalMs);
-      fadeTo(s.refs.va, ctx, 1, VA_PLACEHOLDER, watch.arrivalMs);
-      s.refs.vaLanes.forEach(w => fadeTo(w, ctx, 1, 0, watch.arrivalMs));
+      // The deletion mark, not the deletion: the attacher sees deletionTimestamp and the object
+      // drops to the terminating shade, still holding its finalizer.
+      fadeTo(s.refs.va, ctx, 1, OPACITY.terminating, watch.arrivalMs);
       const call = routePacket(s, ctx, W_PUBLISH, { delay: watch.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'ControllerUnpublish', W_PUBLISH, { delay: watch.arrivalMs + BEAT.afterHop });
-      fadeTo(s.refs.disk, ctx, 1, DISK_DIM, call.arrivalMs, 400);
+      fadeTo(s.refs.disk, ctx, 1, OPACITY.notready, call.arrivalMs, 400);
+      // Only once the backend has detached does the object itself go, and its lanes with it. Not
+      // fadeTo here: that helper pins its `from` inline, which would drop the object to the
+      // terminating shade at step entry instead of at the watch.
+      ctx.register(s.refs.va.animate(
+        [{ opacity: OPACITY.terminating }, { opacity: OPACITY.terminated }],
+        { duration: LAND_MS, delay: call.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
+      s.refs.vaLanes.forEach(w => fadeTo(w, ctx, 1, 0, call.arrivalMs));
     },
   },
 ];

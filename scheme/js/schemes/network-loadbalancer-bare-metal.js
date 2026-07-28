@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-loadbalancer-bare-metal
 
 
@@ -43,7 +43,6 @@ const TO_N2 = [[MID_X, ROUTER_BOTTOM], [MID_X, NODE_Y]];
 const TO_N3 = [[MID_X, ROUTER_BOTTOM], [MID_X, BUS_Y], [N3_CX, BUS_Y], [N3_CX, NODE_Y]];
 const FANS = [TO_N1, TO_N2, TO_N3];
 
-const DIM = '0.4';
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
@@ -82,7 +81,7 @@ class Scene {
     const pod3 = podBlock({ x: POD3_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.3.9' });
 
     const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Clients', sublabel: 'internet', role: 'network' });
-    const router = box({ x: ROUTER_X, y: ROUTER_Y, w: ROUTER_W, h: ROUTER_H, label: 'Upstream Router', sublabel: 'route to 203.0.113.9', role: 'network' });
+    const router = box({ x: ROUTER_X, y: ROUTER_Y, w: ROUTER_W, h: ROUTER_H, label: 'Upstream router', sublabel: 'route to 203.0.113.9', role: 'network' });
 
     const cWire = arrow({ x1: C_WIRE[0][0], y1: C_WIRE[0][1], x2: C_WIRE[1][0], y2: C_WIRE[1][1], dashed: true, dim: true, role: 'network' });
     const fan1 = pathArrow({ points: TO_N1, dashed: true, dim: true, role: 'network' });
@@ -183,7 +182,7 @@ const STEPS = [
       s.refs.modeChip.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
       // Only Node-1 announces, so the other two take no traffic at all in this mode.
-      [s.refs.node2, s.refs.node3, s.refs.pod2, s.refs.pod3].forEach(el => { el.style.opacity = DIM; });
+      [s.refs.node2, s.refs.node3, s.refs.pod2, s.refs.pod3].forEach(el => { el.style.opacity = String(OPACITY.notready); });
       if (ctx.reduced) { s.refs.router.classList.add('highlight'); s.refs.pod1Box.classList.add('highlight'); return; }
       // Down-arrow all the way: the request reaches the router, which lights on arrival, then rides the
       // fan to the one Node that claimed the address, and the Pod inside it pulses as it is served.
@@ -212,7 +211,7 @@ const STEPS = [
       s.refs.modeChip.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
       // Node-1 is the one that failed, and Node-3 still announces nothing: only the new owner is live.
-      [s.refs.node1, s.refs.pod1, s.refs.node3, s.refs.pod3].forEach(el => { el.style.opacity = DIM; });
+      [s.refs.node1, s.refs.pod1, s.refs.node3, s.refs.pod3].forEach(el => { el.style.opacity = String(OPACITY.notready); });
       if (ctx.reduced) { s.refs.router.classList.add('highlight'); s.refs.pod2Box.classList.add('highlight'); return; }
       // Same down-arrow as before, but the fan now lands on the Node that took the address over, and its
       // local Pod pulses as it serves the request.
@@ -229,7 +228,7 @@ const STEPS = [
     // Three flows staggered 180ms apart. The last one leaves at 360, reaches the router at 1060, and its
     // fan lands at 2231, so its Pod pulse ends at 3131. The floor leaves a settle after that.
     duration: 3700,
-    narration: 'BGP mode changes the shape. Every Node peers with the router and advertises the same address, so the router installs an equal-cost route and hashes each new flow across all of them. Ingress is no longer one Node wide, and losing a Node costs only the flows it was carrying. The price is a router that speaks BGP with the cluster, and a change in the Node set can rehash live flows onto a different Node.',
+    narration: 'BGP mode changes the shape. Every Node peers with the router and advertises the same address, so the router installs an equal-cost route and hashes each new flow across all of them. Ingress is no longer one Node wide, and router hashes are rarely stable, so losing a Node breaks most active connections and not only the ones it was carrying. The price is a router that speaks BGP with the cluster, and a change in the Node set can rehash live flows onto a different Node.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

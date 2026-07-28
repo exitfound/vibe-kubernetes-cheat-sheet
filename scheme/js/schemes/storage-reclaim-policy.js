@@ -1,6 +1,6 @@
 import { svg, g, text, line } from '../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-reclaim-policy
 
 
@@ -29,9 +29,6 @@ const CHIP_H = 34;
 const CHIP_ROW_1 = VERDICT_Y + 18;           // 536: the volumes
 const CHIP_ROW_2 = CHIP_ROW_1 + CHIP_H + 8;  // 578: their disks, strip ends at 612
 
-const GONE = 0.12;   // an object the API has removed
-const DYING = 0.45;  // an object with a deletionTimestamp on it
-const DIM = 0.6;     // a claim that exists and is refused: Pending, not deleted
 
 // Reclaim hops, both columns. The same points arrays feed the static lanes and the balls, so the two
 // cannot drift apart.
@@ -43,7 +40,7 @@ const W_RET_WIPE   = [[RET_CX, BAND_BOTTOM], [RET_CX, DISK_TOP]];  // drawn, nev
 const W_RET_BIND = [[RET_CX, PVC_BOTTOM], [RET_CX, PV_TOP]];
 const W_ADMIN_PV = [[ADMIN_CX, ADMIN_Y + ADMIN_H], [ADMIN_CX, PV_Y + PV_H / 2], [RET_RIGHT, PV_Y + PV_H / 2]];
 
-function removeAt(el, ctx, delay = 0, to = GONE) {
+function removeAt(el, ctx, delay = 0, to = OPACITY.terminated) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); el.classList.remove('highlight'); return; }
   const a = el.animate([{ opacity: 1 }, { opacity: to }], { duration: 500, delay, fill: 'forwards', easing: 'ease-in' });
@@ -51,15 +48,6 @@ function removeAt(el, ctx, delay = 0, to = GONE) {
   ctx.register(a);
 }
 
-// The only sanctioned block blink, and only on a step with no packet and no Pod, so the card does
-// not read frozen. Value chips never blink, so this takes boxes only.
-function flashBox(el, ctx, delay = 0) {
-  if (!el || ctx.reduced) return;
-  ctx.register(el.animate(
-    [{ filter: 'brightness(1)' }, { filter: 'brightness(1.55)' }, { filter: 'brightness(1)' }],
-    { duration: 600, delay, easing: 'ease-out' },
-  ));
-}
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
@@ -101,7 +89,7 @@ class Scene {
     // One controller for both columns: the reclaim policy is a field it reads, not two machines.
     const band = box({ x: BAND_X, y: BAND_Y, w: BAND_W, h: BAND_H, label: 'PV controller and CSI driver', sublabel: 'reads the reclaim policy on each released volume', role: 'storage' });
 
-    const admin = box({ x: ADMIN_X, y: ADMIN_Y, w: ADMIN_W, h: ADMIN_H, label: 'administrator', sublabel: 'kubectl patch pv', role: 'storage' });
+    const admin = box({ x: ADMIN_X, y: ADMIN_Y, w: ADMIN_W, h: ADMIN_H, label: 'Administrator', sublabel: 'kubectl patch pv', role: 'storage' });
     admin.style.opacity = '0';
 
     // The Bound links: solid and arrowhead-free, because a bound relation carries no traffic.
@@ -220,10 +208,7 @@ const STEPS = [
       s.refs.delPv.classList.add('highlight');
       s.refs.retPv.classList.add('highlight');
       // The claims are on their way out, so they end this step faded but still readable.
-      setStage(s, { delPvc: DYING, delPv: 1, delDisk: 1, retPvc: DYING, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
-      if (ctx.reduced) return;
-      flashBox(s.refs.delPvc, ctx, 0);
-      flashBox(s.refs.retPvc, ctx, 0);
+      setStage(s, { delPvc: OPACITY.terminating, delPv: 1, delDisk: 1, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
     },
   },
   {
@@ -239,7 +224,7 @@ const STEPS = [
       setBoxSublabel(s.refs.retPvc, 'Terminating');
       setWire(s, 'del', 'disk wiped, PV removed');
       // End-state: the band has acted, and the PV and its disk are gone on the Delete side.
-      setStage(s, { delPvc: GONE, delPv: GONE, delDisk: GONE, retPvc: DYING, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
+      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
       s.refs.band.classList.add('highlight');
       if (ctx.reduced) return;
       // Replayed forward, the two objects start alive and are killed by the ball that reaches them.
@@ -269,7 +254,7 @@ const STEPS = [
       clearWires(s);
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'data intact' });
       setWire(s, 'ret', 'nothing touched, data kept');
-      setStage(s, { delPvc: GONE, delPv: GONE, delDisk: GONE, retPvc: GONE, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
+      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: OPACITY.terminated, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
       // Static end state, which is also what a reduced-motion replay snaps to.
       s.refs.retPv.classList.add('highlight');
       s.refs.retDisk.classList.add('highlight');
@@ -297,8 +282,8 @@ const STEPS = [
       setBoxSublabel(s.refs.retPvc2, 'Pending');
       setWire(s, 'ret', 'skipped: stale claimRef');
       // The refused claim is dim, not faded out: it exists, it is just not getting what it asked for.
-      setStage(s, { delPvc: GONE, delPv: GONE, delDisk: GONE, retPvc: 0, retPvc2: DIM, admin: 0, delBound: 0, retBound: 0, retBindLane: 1, adminLane: 0 });
-      // The asking claim sits at DIM and therefore gets NO lit stroke: it is the ball leaving it that
+      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: 0, retPvc2: OPACITY.pending, admin: 0, delBound: 0, retBound: 0, retBindLane: 1, adminLane: 0 });
+      // The asking claim sits at OPACITY.pending and therefore gets NO lit stroke: it is the ball leaving it that
       // says it is the one asking, and dim plus glowing would say refused and live at the same time.
       if (ctx.reduced) { s.refs.retPv.classList.add('highlight'); return; }
       // The request lands on the PV and the PV lights, because it was looked at. Nothing below it
@@ -319,7 +304,7 @@ const STEPS = [
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Available', retDisk: 'reusable' });
       setBoxSublabel(s.refs.retPvc2, 'Pending');
       setWire(s, 'ret', 'claimRef cleared, Available');
-      setStage(s, { delPvc: GONE, delPv: GONE, delDisk: GONE, retPvc: 0, retPvc2: DIM, admin: 1, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 1 });
+      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: 0, retPvc2: OPACITY.pending, admin: 1, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 1 });
       // The human is the actor on this step, so the human lights.
       s.refs.admin.classList.add('highlight');
       if (ctx.reduced) { s.refs.retPv.classList.add('highlight'); return; }
@@ -339,7 +324,7 @@ const STEPS = [
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Bound', retDisk: 'in use again' });
       setBoxSublabel(s.refs.retPvc2, 'Bound');
       setWire(s, 'ret', 'bound to PVC data-c');
-      setStage(s, { delPvc: GONE, delPv: GONE, delDisk: GONE, retPvc: 0, retPvc2: 1, admin: 0, delBound: 0, retBound: 0, retBindLane: 1, adminLane: 0 });
+      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: 0, retPvc2: 1, admin: 0, delBound: 0, retBound: 0, retBindLane: 1, adminLane: 0 });
       s.refs.retDisk.classList.add('highlight');
       if (ctx.reduced) { s.refs.retPv.classList.add('highlight'); s.refs.retPvc2.classList.add('highlight'); return; }
       s.refs.retDisk.classList.remove('highlight');

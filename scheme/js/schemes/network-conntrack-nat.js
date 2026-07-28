@@ -1,16 +1,37 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt} from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-conntrack-nat
 
 
-const FLOW_Y = 312;     // mid-line, where the per-gap wire label sits between the two lanes
-const REQ_Y = 300;      // request lane (left -> right)
-const REP_Y = 324;      // reply lane (right -> left)
-const CLIENT_EDGE = 260;
-const NF_LEFT = 470;
-const NF_RIGHT = 710;
-const SERVER_LEFT = 910;
+// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 255. A longer narration invalidates
+// that bottom. The flow row starts at y=252, so the top 3 units of the Client Pod (x 70..260) do
+// overlap the panel corner: far under the OCCLUDED area threshold, and left as measured rather
+// than nudged. Do not read this as a clearance.
+const POD_Y = 252, POD_H = 120;                    // both Pod shells stand on one baseline
+const CLIENT_X = 70, CLIENT_W = 190;
+const CLIENT_EDGE = CLIENT_X + CLIENT_W;           // 260
+const NF_X = 470, NF_W = 240, NF_Y = 276, NF_H = 72;
+const NF_LEFT = NF_X, NF_RIGHT = NF_X + NF_W;      // 470 / 710
+const NF_CX = NF_X + NF_W / 2;                     // 590
+const CHIP_R = 1130;                               // the strip and the server Pod end here together
+const SERVER_W = 200, SERVER_X = CHIP_R - SERVER_W;// 930
+const SERVER_LEFT = SERVER_X;
+
+const FLOW_Y = POD_Y + POD_H / 2;   // 312: mid-line, where the per-gap wire label sits between the lanes
+const LANE_DY = 12;                 // half-gap between the request and reply lanes
+const REQ_Y = FLOW_Y - LANE_DY;     // 300: request lane (left -> right)
+const REP_Y = FLOW_Y + LANE_DY;     // 324: reply lane (right -> left)
+
+// Chip strip: the outer two are flush with the Pod footprints (CHIP_L is the client left edge,
+// CHIP_R the server right edge) and the middle pair stays centred under netfilter, so the strip
+// spans CHIP_L..CHIP_R and centres on x=600 with every chip still under the block it describes.
+const CHIP_L = CLIENT_X, CHIP_Y = 530, CHIP_H = 34;
+const CHIP_W_OUT = 250, CHIP_W_MID = 215, CHIP_GAP_MID = 14;
+const CHIP_X_ORIG = CHIP_L;                                     // 70
+const CHIP_X_STATE = NF_CX - CHIP_GAP_MID / 2 - CHIP_W_MID;     // 368
+const CHIP_X_DIR = NF_CX + CHIP_GAP_MID / 2;                    // 597
+const CHIP_X_NAT = CHIP_R - CHIP_W_OUT;                         // 880
 
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
@@ -38,9 +59,9 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = podBlock({ x: 70, y: 252, w: 190, h: 120, label: 'client Pod', ip: '10.244.1.5' });
-    const nf = box({ x: NF_LEFT, y: 276, w: 240, h: 72, label: 'netfilter', sublabel: 'NAT + conntrack', role: 'network' });
-    const server = podBlock({ x: 910, y: 252, w: 200, h: 120, label: 'server Pod', ip: '10.244.2.7:8080' });
+    const client = podBlock({ x: CLIENT_X, y: POD_Y, w: CLIENT_W, h: POD_H, label: 'Client Pod', ip: '10.244.1.5' });
+    const nf = box({ x: NF_X, y: NF_Y, w: NF_W, h: NF_H, label: 'netfilter', sublabel: 'NAT + conntrack', role: 'network' });
+    const server = podBlock({ x: SERVER_X, y: POD_Y, w: SERVER_W, h: POD_H, label: 'Server Pod', ip: '10.244.2.7:8080' });
 
     // Two lanes per gap: request (top, ->) and reply (bottom, <-). The reply arrows are the reverse
     // direction the ball travels on the reply step, so the motion always has a matching arrow.
@@ -48,13 +69,13 @@ class Scene {
     const cRep = arrow({ x1: NF_LEFT,     y1: REP_Y, x2: CLIENT_EDGE, y2: REP_Y, dashed: true, dim: true, role: 'network' });
     const sReq = arrow({ x1: NF_RIGHT,    y1: REQ_Y, x2: SERVER_LEFT, y2: REQ_Y, dashed: true, dim: true, role: 'network' });
     const sRep = arrow({ x1: SERVER_LEFT, y1: REP_Y, x2: NF_RIGHT,    y2: REP_Y, dashed: true, dim: true, role: 'network' });
-    const cLabel = text({ class: 'scheme-label code dim', x: 365, y: FLOW_Y + 3, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const sLabel = text({ class: 'scheme-label code dim', x: 810, y: FLOW_Y + 3, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const cLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + NF_LEFT) / 2, y: FLOW_Y + 3, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const sLabel = text({ class: 'scheme-label code dim', x: (NF_RIGHT + SERVER_LEFT) / 2, y: FLOW_Y + 3, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const origChip  = valChip({ x: 70,  y: 530, w: 250, h: 34, name: 'orig dst',   value: '10.96.0.10:80', role: 'network' });
-    const stateChip = valChip({ x: 368, y: 530, w: 215, h: 34, name: 'ct state',   value: 'none',          role: 'network' });
-    const dirChip   = valChip({ x: 597, y: 530, w: 215, h: 34, name: 'reply',      value: 'none',          role: 'network' });
-    const natChip   = valChip({ x: 860, y: 530, w: 250, h: 34, name: 'translated', value: 'none',          role: 'network' });
+    const origChip  = valChip({ x: CHIP_X_ORIG,  y: CHIP_Y, w: CHIP_W_OUT, h: CHIP_H, name: 'orig dst',   value: '10.96.0.20:80', role: 'network' });
+    const stateChip = valChip({ x: CHIP_X_STATE, y: CHIP_Y, w: CHIP_W_MID, h: CHIP_H, name: 'ct state',   value: 'none',          role: 'network' });
+    const dirChip   = valChip({ x: CHIP_X_DIR,   y: CHIP_Y, w: CHIP_W_MID, h: CHIP_H, name: 'reply',      value: 'none',          role: 'network' });
+    const natChip   = valChip({ x: CHIP_X_NAT,   y: CHIP_Y, w: CHIP_W_OUT, h: CHIP_H, name: 'translated', value: 'none',          role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -90,7 +111,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.origChip, '10.96.0.10:80');
+      setVal(s.refs.origChip, '10.96.0.20:80');
       setVal(s.refs.natChip, 'none');
       setVal(s.refs.stateChip, 'none');
       setVal(s.refs.dirChip, 'none');
@@ -104,9 +125,9 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setWire(s, 'c', 'dst 10.96.0.10:80');
+      setWire(s, 'c', 'dst 10.96.0.20:80');
       s.refs.origChip.classList.add('highlight');
-      setVal(s.refs.origChip, '10.96.0.10:80');
+      setVal(s.refs.origChip, '10.96.0.20:80');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.nf.classList.add('highlight'); return; }
       // Up-arrow: client pulses first, the packet leaves on the request lane at BEAT.afterPulse and
       // reaches netfilter.
@@ -144,7 +165,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setWire(s, 'c', 'src restored to 10.96.0.10');
+      setWire(s, 'c', 'src restored to 10.96.0.20');
       s.refs.nf.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
       s.refs.dirChip.classList.add('highlight');
@@ -160,13 +181,13 @@ const STEPS = [
   },
   {
     id: 'fastpath',
-    duration: 2600,
+    duration: 3300,
     narration: 'From now on every packet of this flow hits the existing ESTABLISHED entry and is translated the same way with no rule walk at all. This is why a flow always sticks to one backend, and why a Node under heavy churn can exhaust its conntrack table and start dropping new connections.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setWire(s, 'c', 'dst 10.96.0.10:80');
+      setWire(s, 'c', 'dst 10.96.0.20:80');
       setWire(s, 's', '-> 10.244.2.7:8080');
       s.refs.nf.classList.add('highlight');
       s.refs.natChip.classList.add('highlight');

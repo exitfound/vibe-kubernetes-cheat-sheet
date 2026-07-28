@@ -1,7 +1,60 @@
 import { svg, g, rect, text } from '../lib/svg.js';
-import { arrowDefs, box, cylinder, chainList, arrow, fadeIn } from '../lib/primitives.js';
-import { valChip, setVal, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, CLUSTER_TINT, FADE, BEAT } from '../lib/cluster-kit.js';
-import { PULSE_POD } from '../lib/tokens.js';
+import { arrowDefs, box, cylinder, chainList, fadeIn, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, segmentPacket, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT } from '../lib/cluster-kit.js';
+
+// Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
+// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=181, so the Client moves into the
+// freed bottom-left and reaches the API up a riser that clears the panel. The Informer/Indexer
+// stack keeps its centre column.
+const M = 60;
+const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
+const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
+const PANEL_R = 400, PANEL_B = 200;                      // the reserved corner
+
+const TOP_Y = 60, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 60 / 140
+const TOP_CY = TOP_Y + TOP_H / 2;                        // 100
+const LANE_DY = 15;
+const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 85 / 115
+const API_W = 220, API_X = CX - API_W / 2, API_R = API_X + API_W;  // 490..710
+// ETCD drops into the bottom-right so the row below the panel balances the Client on the left:
+// with both corners used, the low band spans the full content width and centres on CX.
+const ETCD_W = 140, ETCD_X = CONTENT_R - ETCD_W;         // 1000..1140
+const ETCD_Y = 390, ETCD_H = 100;                        // 390..490
+const ETCD_CX = ETCD_X + ETCD_W / 2;                     // 1070
+const ETCD_CY = ETCD_Y + ETCD_H / 2;                      // 440
+const ETCD_LANE_DY = 12;
+// The two lanes reach ETCD through the corridor between the Informer and the chip column and
+// enter its LEFT face: dropping at ETCD_CX ran both risers straight through all three chips.
+const RISER_OUT_X = 764, RISER_BACK_X = 740;             // out right of back, so they never cross
+const API_TO_ETCD = [[API_R, OUT_Y], [RISER_OUT_X, OUT_Y], [RISER_OUT_X, ETCD_CY - ETCD_LANE_DY], [ETCD_X, ETCD_CY - ETCD_LANE_DY]];
+const ETCD_TO_API = [[ETCD_X, ETCD_CY + ETCD_LANE_DY], [RISER_BACK_X, ETCD_CY + ETCD_LANE_DY], [RISER_BACK_X, BACK_Y], [API_R, BACK_Y]];
+
+const CLIENT_X = CONTENT_L, CLIENT_W = 240, CLIENT_H = 80;
+const CLIENT_Y = 390, CLIENT_R = CLIENT_X + CLIENT_W;    // 60..300, 390..470
+const CLIENT_CY = CLIENT_Y + CLIENT_H / 2;               // 430
+const RISER_X = 412;                                     // clear of the panel by 15
+const CLIENT_TO_API = [[CLIENT_R, CLIENT_CY], [RISER_X, CLIENT_CY], [RISER_X, TOP_CY], [API_X, TOP_CY]];
+
+const GVR_X = CONTENT_L, GVR_W = 300;                    // 60..360, in the left band below the panel
+const GVR_Y = 217;
+const SCHIP_X = 840, SCHIP_W = CONTENT_R - SCHIP_X;      // 300, 840..1140
+const SCHIP_H = 32, SCHIP_GAP = 6;
+const SCHIP_Y = i => GVR_Y + i * (SCHIP_H + SCHIP_GAP);  // 217 / 255 / 293, level with the GVR rows
+
+// Centre column under the API: the Informer feeds the Indexer down the CX spine.
+const COL_W = 180, COL_X = CX - COL_W / 2;               // 510..690
+const INF_Y = 235, INF_H = 72, INF_BOTTOM = INF_Y + INF_H;   // 235..307
+const IDX_Y = 390, IDX_H = 110;                          // 390..500
+const LANE_INSET = 4;
+const WATCH_LANE = [[CX, TOP_BOTTOM + LANE_INSET], [CX, INF_Y - LANE_INSET]];
+const FEED_LANE  = [[CX, INF_BOTTOM + LANE_INSET], [CX, IDX_Y - LANE_INSET]];
+
+// The watch event stream: four slots centred on CX below the Indexer.
+const SLOT_W = 140, SLOT_H = 44, SLOT_GAP = 20, SLOT_N = 4;
+const SLOT_SPAN = SLOT_N * SLOT_W + (SLOT_N - 1) * SLOT_GAP;   // 620
+const SLOT_X = i => CX - SLOT_SPAN / 2 + i * (SLOT_W + SLOT_GAP);
+const SLOT_Y = 548, STREAM_LABEL_Y = SLOT_Y - 12;
+const WIRE_REQ_Y = (INF_BOTTOM + IDX_Y) / 2;             // 348, between the Informer and the Indexer
 // Design notes for this card: scheme/docs/CARDS.md#cluster-api-structure
 
 
@@ -10,7 +63,7 @@ function eventSlot({ x, y, w = 140, h = 44, role = 'cluster' }) {
   grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
   const top = text({ class: 'scheme-chip-text', x: w / 2, y: h / 2 - 2, 'text-anchor': 'middle' }, ['none']);
   const bot = text({ class: 'scheme-chip-text', x: w / 2, y: h / 2 + 12, 'text-anchor': 'middle' }, ['']);
-  bot.style.opacity = '0.7';
+  bot.style.fill = 'var(--diag-text-dim)';
   grp.appendChild(top);
   grp.appendChild(bot);
   grp._top = top;
@@ -38,26 +91,26 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = box({ x: 220, y: 60, w: 200, h: 80, label: 'Client', sublabel: 'client-go controller', role: 'cluster' });
-    const api = box({ x: 490, y: 60, w: 220, h: 80, label: 'Api', sublabel: 'discovery: /api · /apis', role: 'cluster' });
-    const etcdC = cylinder({ x: 780, y: 50, w: 140, h: 100, label: 'ETCD', role: 'cluster' });
+    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: 'client-go controller', role: 'cluster' });
+    const api = box({ x: API_X, y: TOP_Y, w: API_W, h: TOP_H, label: 'API', sublabel: 'discovery: /api · /apis', role: 'cluster' });
+    const etcdC = cylinder({ x: ETCD_X, y: ETCD_Y, w: ETCD_W, h: ETCD_H, label: 'ETCD', role: 'cluster' });
     const etcdLbl = etcdC.querySelector('.scheme-cylinder-label');
     if (etcdLbl) etcdLbl.setAttribute('y', 60);
 
-    const rvChip    = valChip({ x: 800, y: 217, w: 240, h: 32, name: 'resourceVersion', value: 'none', role: 'cluster' });
-    const watchChip = valChip({ x: 800, y: 255, w: 240, h: 32, name: 'watch',           value: 'closed', role: 'cluster' });
-    const cacheChip = valChip({ x: 800, y: 293, w: 240, h: 32, name: 'cache size',      value: '0', role: 'cluster' });
+    const rvChip    = valChip({ x: SCHIP_X, y: SCHIP_Y(0), w: SCHIP_W, h: SCHIP_H, name: 'resourceVersion', value: 'none', role: 'cluster' });
+    const watchChip = valChip({ x: SCHIP_X, y: SCHIP_Y(1), w: SCHIP_W, h: SCHIP_H, name: 'watch',           value: 'closed', role: 'cluster' });
+    const cacheChip = valChip({ x: SCHIP_X, y: SCHIP_Y(2), w: SCHIP_W, h: SCHIP_H, name: 'cache size',      value: '0', role: 'cluster' });
     root.appendChild(rvChip); root.appendChild(watchChip); root.appendChild(cacheChip);
 
     // Centre spine under Api (cx=600), generous vertical spacing: Informer feeds the Indexer.
-    const informer = box({ x: 510, y: 235, w: 180, h: 72, label: 'Informer', sublabel: 'shared list-watch', role: 'cluster' });
-    const cache = cylinder({ x: 510, y: 390, w: 180, h: 110, label: 'Indexer', role: 'cluster' });
+    const informer = box({ x: COL_X, y: INF_Y, w: COL_W, h: INF_H, label: 'Informer', sublabel: 'shared list-watch', role: 'cluster' });
+    const cache = cylinder({ x: COL_X, y: IDX_Y, w: COL_W, h: IDX_H, label: 'Indexer', role: 'cluster' });
     const cacheLbl = cache.querySelector('.scheme-cylinder-label');
     if (cacheLbl) cacheLbl.setAttribute('y', 66);
     root.appendChild(cache);
 
     const gvr = chainList({
-      x: 100, y: 217, w: 300, rowH: 32, gap: 6,
+      x: GVR_X, y: GVR_Y, w: GVR_W, rowH: 32, gap: 6,
       items: [
         '/api/v1/pods',
         '/apis/apps/v1/deployments',
@@ -70,37 +123,40 @@ class Scene {
     const crdRow = gvr.querySelector('[data-idx="3"]');
     if (crdRow) crdRow.style.opacity = '0';
 
-    const streamLabel = text({ class: 'scheme-label dim code', x: 600, y: 536, 'text-anchor': 'middle' }, ['watch event stream (resourceVersion grows)']);
+    const streamLabel = text({ class: 'scheme-label dim code', x: CX, y: STREAM_LABEL_Y, 'text-anchor': 'middle' }, ['watch event stream (resourceVersion grows)']);
     streamLabel.style.opacity = '0';
     root.appendChild(streamLabel);
     const slots = [];
-    const slotXs = [290, 450, 610, 770];
-    for (let i = 0; i < 4; i++) {
-      const slot = eventSlot({ x: slotXs[i], y: 548 });
+    for (let i = 0; i < SLOT_N; i++) {
+      const slot = eventSlot({ x: SLOT_X(i), y: SLOT_Y, w: SLOT_W, h: SLOT_H });
       slot.style.opacity = '0';
       root.appendChild(slot);
       slots.push(slot);
     }
 
-    // Top-row arrows: out at y=85, return at y=115 (straddle the block centre y=100).
-    root.appendChild(arrow({ x1: 420, y1: 85,  x2: 490, y2: 85,  dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 490, y1: 115, x2: 420, y2: 115, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 710, y1: 85,  x2: 780, y2: 85,  dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 780, y1: 115, x2: 710, y2: 115, dim: true, dashed: true, role: 'cluster' }));
+    // The ETCD pair straddles the block centre (out at y=85, return at y=115). The Client link is a
+    // single lane on the centre line, because only the discovery request is ever animated: a second
+    // arrowhead pointing back at the Client would read as traffic that no step sends.
+    root.appendChild(pathArrow({ points: CLIENT_TO_API, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: API_TO_ETCD, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: ETCD_TO_API, dim: true, dashed: true, role: 'cluster' }));
 
     // Watch stream: straight vertical drop Api → Informer (cx=600).
-    const watchArrow = arrow({ x1: 600, y1: 144, x2: 600, y2: 231, dim: true, dashed: true, role: 'cluster' });
+    const watchArrow = pathArrow({ points: WATCH_LANE, dim: true, dashed: true, role: 'cluster' });
     root.appendChild(watchArrow);
 
     // Internal: Informer → Indexer (events feed the cache).
-    root.appendChild(arrow({ x1: 600, y1: 309, x2: 600, y2: 386, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: FEED_LANE, dim: true, dashed: true, role: 'cluster' }));
 
     // Wire labels at fixed positions, populated per step.
-    const wireReq      = text({ class: 'scheme-label code dim', x: 455, y: 46,  'text-anchor': 'middle' }, [' ']);
-    const wireApiEtcd  = text({ class: 'scheme-label code dim', x: 745, y: 46,  'text-anchor': 'middle' }, [' ']);
-    const wireWatch    = text({ class: 'scheme-label code dim', x: 620, y: 192, 'text-anchor': 'start'  }, [' ']);
-    const wireEtcdRet  = text({ class: 'scheme-label code dim', x: 745, y: 158, 'text-anchor': 'middle' }, [' ']);
-    const wireGvr      = text({ class: 'scheme-label code dim', x: 250, y: 205, 'text-anchor': 'middle' }, [' ']);
+    // Beside the riser, not in the 112 unit gap under it: the LIST string is 140 wide, so on the
+    // horizontal leg it overran the Client block on one side and the riser cut it on the other.
+    const wireReq      = text({ class: 'scheme-label code dim', x: RISER_X + 10, y: WIRE_REQ_Y, 'text-anchor': 'start' }, [' ']);
+    const wireApiEtcd  = text({ class: 'scheme-label code dim', x: (API_R + ETCD_CX) / 2, y: OUT_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    // Left of the watch arrow: the corridor on its right now carries the two ETCD risers.
+    const wireWatch    = text({ class: 'scheme-label code dim', x: 580, y: 200, 'text-anchor': 'end'  }, [' ']);
+    const wireEtcdRet  = text({ class: 'scheme-label code dim', x: (API_R + ETCD_CX) / 2, y: BACK_Y + 20, 'text-anchor': 'middle' }, [' ']);
+    const wireGvr      = text({ class: 'scheme-label code dim', x: GVR_X + GVR_W / 2, y: GVR_Y - 12, 'text-anchor': 'middle' }, [' ']);
     const wireEvent    = text({ class: 'scheme-label code dim', x: 620, y: 352, 'text-anchor': 'start'  }, [' ']);
     [wireReq, wireApiEtcd, wireWatch, wireEtcdRet, wireGvr, wireEvent].forEach(t => root.appendChild(t));
 
@@ -156,35 +212,12 @@ function hideAllSlots(s) {
   if (s.refs.streamLabel) s.refs.streamLabel.style.opacity = '0';
 }
 
-function pulseSlot(slot, ctx, delay = 0) {
-  if (!slot) return;
-  const RAMP = PULSE_POD.ms / 2;
-  const rect = slot.querySelector('.scheme-chip-rect');
-  if (rect) {
-    const rest = getComputedStyle(rect).stroke; // the steady .highlight stroke colour
-    rect.style.transition = 'none';
-    const up = rect.animate([
-      { stroke: rest,                strokeWidth: 2.4 },
-      { stroke: CLUSTER_TINT.bright, strokeWidth: 3.2 },
-    ], { duration: RAMP, delay, fill: 'forwards', easing: 'ease-in-out' });
-    ctx.register(up);
-    const down = rect.animate([
-      { stroke: CLUSTER_TINT.bright, strokeWidth: 3.2 },
-      { stroke: rest,                strokeWidth: 2.4 },
-    ], { duration: RAMP, delay: delay + RAMP, fill: 'forwards', easing: 'ease-in-out' });
-    ctx.register(down);
-    down.onfinish = () => { rect.style.stroke = ''; rect.style.strokeWidth = ''; rect.style.transition = ''; };
-  }
-  ctx.register(slot.animate(
-    [{ filter: 'brightness(1)' }, { filter: `brightness(${PULSE_POD.bright})` }, { filter: 'brightness(1)' }],
-    { duration: PULSE_POD.ms, delay, fill: 'forwards', easing: 'ease-in-out' }));
-}
 
 const STEPS = [
   {
     id: 'discovery',
     duration: 1900,
-    narration: 'The Api is a catalogue of GVRs grouped by core/v1, apps/v1, batch/v1. Non-core groups follow /apis/<group>/<version>/<resource>, and the legacy core group lives under /api/v1/<resource>. The client first calls /api and /apis on the Api to discover this catalogue, including any CRDs that have registered.',
+    narration: 'The API is a catalogue of GVRs grouped by core/v1, apps/v1, batch/v1. Non-core groups follow /apis/<group>/<version>/<resource>, and the legacy core group lives under /api/v1/<resource>. The client first calls /api and /apis on the API to discover this catalogue, including any CRDs that have registered.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);
@@ -200,13 +233,13 @@ const STEPS = [
       s.refs.api.classList.add('highlight');
       if (ctx.reduced) return;
       // The client calls /api and /apis on the Api to fetch the GVR catalogue.
-      topPacket(s, ctx, { from: 420, to: 490, y: 85, role: 'cluster' });
+      routePacket(s, ctx, CLIENT_TO_API, { role: 'cluster' });
     },
   },
   {
     id: 'list',
-    duration: 2400,
-    narration: 'The informer fires the initial LIST. The Api reads from ETCD and returns the full set at a snapshot resourceVersion (rv=842). The informer fills its Indexer cache, and the controller can now reconcile from local memory without hitting the Api again.',
+    duration: 3800,
+    narration: 'The informer fires the initial LIST. The API reads from ETCD and returns the full set at a snapshot resourceVersion (rv=842). The informer fills its Indexer cache, and the controller can now reconcile from local memory without hitting the API again.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);
@@ -220,7 +253,8 @@ const STEPS = [
       s.refs.api.classList.add('highlight');
       s.refs.etcdC.classList.add('highlight');
       s.refs.informer.classList.add('highlight');
-      s.refs.cache.classList.add('highlight');
+      s.refs.rvChip.classList.add('highlight');
+      s.refs.cacheChip.classList.add('highlight');
       const labels = [['ADDED', 'pod-a · rv=840'], ['ADDED', 'pod-b · rv=841'], ['ADDED', 'pod-c · rv=842']];
       s.refs.slots.slice(0, 3).forEach((slot, i) => {
         setSlot(slot, labels[i][0], labels[i][1]);
@@ -228,10 +262,11 @@ const STEPS = [
       });
       // Caption is the cancel/reduced final; the fade below back-fills it hidden until arrival.
       s.refs.streamLabel.style.opacity = '1';
-      if (ctx.reduced) return;
-      const read    = segmentPacket(s, ctx, { from: [780, 115], to: [710, 115], role: 'cluster' });
-      const stream  = segmentPacket(s, ctx, { from: [600, 150], to: [600, 229], delay: read.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      const toCache = segmentPacket(s, ctx, { from: [600, 312], to: [600, 384], delay: stream.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      if (ctx.reduced) { s.refs.cache.classList.add('highlight'); return; }
+      const read    = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });
+      const stream  = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], delay: read.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      const toCache = segmentPacket(s, ctx, { from: FEED_LANE[0], to: FEED_LANE[1], delay: stream.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      lightBoxAt(s.refs.cache, ctx, toCache.arrivalMs);
       s.refs.slots.slice(0, 3).forEach((slot, i) => {
         ctx.register(slot.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400 + i * 120, delay: toCache.arrivalMs, fill: 'both' }));
       });
@@ -242,7 +277,7 @@ const STEPS = [
   {
     id: 'watch',
     duration: 2000,
-    narration: 'The informer opens GET /api/v1/pods?watch=true&resourceVersion=842. The Api streams every change since that RV as a chunked HTTP response. The connection stays open for as long as the controller wants.',
+    narration: 'The informer opens GET /api/v1/pods?watch=true&resourceVersion=842. The API streams every change since that RV as a chunked HTTP response. The connection stays open for as long as the controller wants.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);
@@ -251,19 +286,19 @@ const STEPS = [
       setVal(s.refs.watchChip, 'open · chunked HTTP');
       setWire(s, 'watch', 'chunked HTTP · streaming');
       s.refs.api.classList.add('highlight');
-      s.refs.informer.classList.add('highlight');
       s.refs.watchChip.classList.add('highlight');
       s.refs.slots.slice(0, 3).forEach(slot => { slot.style.opacity = '1'; });
       s.refs.streamLabel.style.opacity = '1';
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.informer.classList.add('highlight'); return; }
       // Watch stream: Api -> Informer, straight vertical drop.
-      segmentPacket(s, ctx, { from: [600, 150], to: [600, 229], role: 'cluster' });
+      const pkt = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], role: 'cluster' });
+      lightBoxAt(s.refs.informer, ctx, pkt.arrivalMs);
     },
   },
   {
     id: 'event',
-    duration: 2400,
-    narration: 'A new pod lands in ETCD. The Api pushes an ADDED event over the open watch (rv=843). The informer enqueues the object key and updates the Indexer cache.',
+    duration: 3800,
+    narration: 'A new Pod lands in ETCD. The API pushes an ADDED event over the open watch (rv=843). The informer enqueues the object key and updates the Indexer cache.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);
@@ -276,28 +311,31 @@ const STEPS = [
       s.refs.etcdC.classList.add('highlight');
       s.refs.api.classList.add('highlight');
       s.refs.informer.classList.add('highlight');
-      s.refs.cache.classList.add('highlight');
+      s.refs.rvChip.classList.add('highlight');
+      s.refs.cacheChip.classList.add('highlight');
+      s.refs.watchChip.classList.add('highlight');
       s.refs.slots.slice(0, 3).forEach(slot => { slot.style.opacity = '1'; });
       s.refs.streamLabel.style.opacity = '1';
       const fourth = s.refs.slots[3];
       setSlot(fourth, 'ADDED', 'pod-d · rv=843');
       fourth.classList.add('highlight');
       fourth.style.opacity = '1';
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.cache.classList.add('highlight'); return; }
       // The ADDED event's journey as three sequenced hops on their real arrows:
       // etcd -> Api (watch return), Api -> Informer (watch stream), Informer -> Indexer.
-      const ret = segmentPacket(s, ctx, { from: [780, 115], to: [710, 115], role: 'cluster' });
-      const stream = segmentPacket(s, ctx, { from: [600, 150], to: [600, 229], delay: ret.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      const toCache = segmentPacket(s, ctx, { from: [600, 312], to: [600, 384], delay: stream.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      const ret = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });
+      const stream = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], delay: ret.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      const toCache = segmentPacket(s, ctx, { from: FEED_LANE[0], to: FEED_LANE[1], delay: stream.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      lightBoxAt(s.refs.cache, ctx, toCache.arrivalMs);
       ctx.register(fourth.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: toCache.arrivalMs, fill: 'both', easing: 'ease-out' }));
-      // ...and pulses as it lands, the same pod-block pulse as the postStart/preStop card.
-      pulseSlot(fourth, ctx, toCache.arrivalMs);
+      // ...and lights as it lands. This card draws no Pod, so nothing here pulses.
+      lightBoxAt(fourth, ctx, toCache.arrivalMs);
     },
   },
   {
     id: 'relist-on-410',
     duration: 1900,
-    narration: 'If the Api has compacted history past the resourceVersion the informer holds, the next watch chunk returns HTTP 410 Gone. The informer drops its watch, re-LISTs to a fresh resourceVersion, and resumes the watch.',
+    narration: 'If the API has compacted history past the resourceVersion the informer holds, the next watch chunk returns HTTP 410 Gone. The informer drops its watch, re-LISTs to a fresh resourceVersion, and resumes the watch.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);
@@ -310,18 +348,20 @@ const STEPS = [
       setWire(s, 'watch', 'HTTP 410 Gone');
       setWire(s, 'req', 're-LIST · fresh rv');
       s.refs.api.classList.add('highlight');
-      s.refs.informer.classList.add('highlight');
       s.refs.watchChip.classList.add('highlight');
-      if (ctx.reduced) return;
+      s.refs.rvChip.classList.add('highlight');
+      s.refs.cacheChip.classList.add('highlight');
+      if (ctx.reduced) { s.refs.informer.classList.add('highlight'); return; }
       // The 410 Gone arrives on the open watch (Api -> Informer, down the watch arrow), not on the
       // top client lane. The informer then drops the watch and re-LISTs (shown via the chips/wire).
-      segmentPacket(s, ctx, { from: [600, 150], to: [600, 229], role: 'cluster' });
+      const pkt = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], role: 'cluster' });
+      lightBoxAt(s.refs.informer, ctx, pkt.arrivalMs);
     },
   },
   {
     id: 'crd',
     duration: 1900,
-    narration: 'CRDs add their own group (example.com/v1). The Api serves them under /apis just like built-ins. Same list-then-watch contract, same informer story, same controller pattern.',
+    narration: 'CRDs add their own group (example.com/v1). The API serves them under /apis just like built-ins. Same list-then-watch contract, same informer story, same controller pattern.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);

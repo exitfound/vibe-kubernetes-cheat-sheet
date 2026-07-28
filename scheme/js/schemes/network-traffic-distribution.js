@@ -1,25 +1,40 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel} from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-traffic-distribution
 
 
+const SCHEME_L = 60, SCHEME_R = 1140;        // content edges, mirrored about x=600
 const FLOW_Y = 320;                          // central flow line
-const CLIENT_OUT = [320, FLOW_Y];            // client right edge
-const KP_IN = [440, FLOW_Y];                 // kube-proxy left edge (connection arrives)
-const KP = [630, FLOW_Y];                    // kube-proxy right edge (fan origin, after the pick)
+
+const CLIENT_X = SCHEME_L, CLIENT_W = 200, CLIENT_H = 110;
+const CLIENT_OUT = [CLIENT_X + CLIENT_W, FLOW_Y];   // 260: client right edge
+const KP_X = 440, KP_W = 190, KP_H = 80;
+const KP_IN = [KP_X, FLOW_Y];                // kube-proxy left edge (connection arrives)
+const KP = [KP_X + KP_W, FLOW_Y];            // 630: kube-proxy right edge (fan origin, after the pick)
 const RAIL_X = 700;                          // shared vertical fan rail, left of the zones (740)
-const ZONE_X = 740, ZONE_W = 400;            // zone box left edge held at 740, widened to the right
-const POD_L = ZONE_X + (ZONE_W - 240) / 2;   // 820: Pod centred in the zone, clear of its top-left label
+const ZONE_X = 740, ZONE_W = SCHEME_R - 740, ZONE_H = 240;   // 740..1140
+const ZONE_A_Y = 60, ZONE_B_Y = 340;         // mirrored about FLOW_Y
+const POD_W = 240, POD_H = 96;
+const POD_L = ZONE_X + (ZONE_W - POD_W) / 2; // 820: Pod centred in the zone, clear of its top-left label
+const POD_PAD = (ZONE_H - 2 * POD_H) / 3;    // 16: equal padding above, between and below the two Pods
 // Backend Pod centre rows: zone-a stacked on top (a1, a2), zone-b below (b1, b2), symmetric about
 // FLOW_Y so the fan is balanced.
-const A1Y = 124, A2Y = 236, B1Y = 404, B2Y = 516;
+const A1Y = ZONE_A_Y + POD_PAD + POD_H / 2;  // 124
+const A2Y = A1Y + POD_H + POD_PAD;           // 236
+const B1Y = ZONE_B_Y + POD_PAD + POD_H / 2;  // 404
+const B2Y = B1Y + POD_H + POD_PAD;           // 516
+
+// Bottom strip: two equal chips spanning the composition, so the row centres on 600 like the rest.
+const CHIP_Y = 592, CHIP_H = 34, CHIP_GAP = 20;
+const CHIP_W = (SCHEME_R - SCHEME_L - CHIP_GAP) / 2;   // 530
+const chipX = (i) => SCHEME_L + i * (CHIP_W + CHIP_GAP);
 const FAN_A1 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, A1Y], [POD_L, A1Y]];
 const FAN_A2 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, A2Y], [POD_L, A2Y]];
 const FAN_B1 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B1Y], [POD_L, B1Y]];
 const FAN_B2 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B2Y], [POD_L, B2Y]];
 
-function podBlock({ x, y, w = 240, h = 96, label, ip }) {
+function podBlock({ x, y, w = POD_W, h = POD_H, label, ip }) {
   const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
@@ -31,7 +46,7 @@ function podBlock({ x, y, w = 240, h = 96, label, ip }) {
 }
 
 function clientBlock({ x, y, w, h }) {
-  const shell = pod({ x, y, w, h, label: 'client . zone-a', sublabel: '10.244.2.50', containers: 0, role: 'network' });
+  const shell = pod({ x, y, w, h, label: 'Client . zone-a', sublabel: '10.244.2.50', containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
   const innerBox = box({ x: x + 16, y: y + 34, w: w - 32, h: 48, label: 'app', sublabel: 'to Service web', role: 'network' });
@@ -56,16 +71,16 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = clientBlock({ x: 120, y: 265, w: 200, h: 110 });
-    const kproxy = box({ x: 440, y: 280, w: 190, h: 80, label: 'kube-proxy', sublabel: 'endpoint pick', role: 'network' });
+    const client = clientBlock({ x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H });
+    const kproxy = box({ x: KP_X, y: FLOW_Y - KP_H / 2, w: KP_W, h: KP_H, label: 'kube-proxy', sublabel: 'endpoint pick', role: 'network' });
 
-    const zoneA = node({ x: ZONE_X, y: 60, w: ZONE_W, h: 240, label: 'zone-a' });
-    const zoneB = node({ x: ZONE_X, y: 340, w: ZONE_W, h: 240, label: 'zone-b' });
+    const zoneA = node({ x: ZONE_X, y: ZONE_A_Y, w: ZONE_W, h: ZONE_H, label: 'zone-a' });
+    const zoneB = node({ x: ZONE_X, y: ZONE_B_Y, w: ZONE_W, h: ZONE_H, label: 'zone-b' });
 
-    const a1 = podBlock({ x: POD_L, y: A1Y - 48, label: 'Pod web', ip: '10.244.2.7' });
-    const a2 = podBlock({ x: POD_L, y: A2Y - 48, label: 'Pod web', ip: '10.244.2.8' });
-    const b1 = podBlock({ x: POD_L, y: B1Y - 48, label: 'Pod web', ip: '10.244.3.4' });
-    const b2 = podBlock({ x: POD_L, y: B2Y - 48, label: 'Pod web', ip: '10.244.3.5' });
+    const a1 = podBlock({ x: POD_L, y: A1Y - POD_H / 2, label: 'Pod web', ip: '10.244.2.7' });
+    const a2 = podBlock({ x: POD_L, y: A2Y - POD_H / 2, label: 'Pod web', ip: '10.244.2.8' });
+    const b1 = podBlock({ x: POD_L, y: B1Y - POD_H / 2, label: 'Pod web', ip: '10.244.3.4' });
+    const b2 = podBlock({ x: POD_L, y: B2Y - POD_H / 2, label: 'Pod web', ip: '10.244.3.5' });
 
     // Dim dashed wires: client -> kube-proxy, plus the four fan routes (no route crosses a Pod).
     const wClient = arrow({ x1: CLIENT_OUT[0], y1: CLIENT_OUT[1], x2: KP_IN[0], y2: KP_IN[1], dashed: true, dim: true });
@@ -74,8 +89,8 @@ class Scene {
     const fB1 = pathArrow({ points: FAN_B1, dashed: true, dim: true });
     const fB2 = pathArrow({ points: FAN_B2, dashed: true, dim: true });
 
-    const modeChip = valChip({ x: 120, y: 420, w: 320, h: 34, name: 'distribution', value: 'unset . spread', role: 'network' });
-    const pinChip = valChip({ x: 120, y: 468, w: 320, h: 34, name: 'session', value: 'None', role: 'network' });
+    const modeChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'distribution', value: 'unset . spread', role: 'network' });
+    const pinChip = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'session', value: 'None', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -139,7 +154,7 @@ const STEPS = [
   },
   {
     id: 'default',
-    duration: 3300,
+    duration: 4000,
     narration: 'With both fields unset, kube-proxy spreads connections roughly evenly across every ready endpoint and ignores zones. Two connections from the same client can land on Pods in different zones, here one in zone-a and one in zone-b. Load is balanced but traffic may cross the zone boundary.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -159,7 +174,7 @@ const STEPS = [
   },
   {
     id: 'session-affinity',
-    duration: 3700,
+    duration: 4600,
     narration: 'First lever: stickiness. Set sessionAffinity to ClientIP and the opening connection still picks a backend freely, then kube-proxy pins that client source IP to the chosen Pod, here 10.244.2.7. Every later connection from the same client returns to that one Pod, so a session stays put.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -178,7 +193,7 @@ const STEPS = [
   },
   {
     id: 'topology',
-    duration: 3300,
+    duration: 4000,
     narration: 'Second lever: locality, independent of the first. Set trafficDistribution to PreferSameZone (older clusters spell it PreferClose) and kube-proxy favors endpoints in the same zone as the client. The zone-a client is routed to a zone-a Pod, keeping traffic in-zone, which cuts latency and the cross-zone data charges a cloud would bill.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -187,9 +202,10 @@ const STEPS = [
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'PreferSameZone . in-zone');
       setVal(s.refs.pinChip, 'None');
+      s.refs.pinChip.classList.add('highlight');
       // The far zone is not preferred: dim its Pods.
-      s.refs.b1.style.opacity = '0.4';
-      s.refs.b2.style.opacity = '0.4';
+      s.refs.b1.style.opacity = String(OPACITY.notready);
+      s.refs.b2.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.a1Box.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const arr = clientHop(s, ctx, BEAT.afterPulse);
@@ -198,7 +214,7 @@ const STEPS = [
   },
   {
     id: 'fallback',
-    duration: 2900,
+    duration: 3800,
     narration: 'PreferSameZone is a preference, not a hard rule. The field is still PreferSameZone, but if zone-a has no ready endpoint kube-proxy falls back to a Pod in another zone rather than dropping the connection, so the client still reaches zone-b. Availability wins over locality.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -208,8 +224,8 @@ const STEPS = [
       setVal(s.refs.modeChip, 'PreferSameZone . fallback');
       setVal(s.refs.pinChip, 'None');
       // zone-a has no ready endpoint: dim its Pods, traffic falls back to zone-b.
-      s.refs.a1.style.opacity = '0.4';
-      s.refs.a2.style.opacity = '0.4';
+      s.refs.a1.style.opacity = String(OPACITY.notready);
+      s.refs.a2.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.b1Box.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const arr = clientHop(s, ctx, BEAT.afterPulse);

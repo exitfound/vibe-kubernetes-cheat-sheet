@@ -49,7 +49,7 @@ const SPONSOR_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none
 
 // ── Data ──────────────────────────────────────────────────────
 const SECTIONS = [
-  // ── INSTALLATION — KUBEADM ──────────────────────────────────
+  // ── INSTALLATION - KUBEADM ──────────────────────────────────
   {
     id: 'install-kubeadm', title: 'Kubeadm', icon: ICONS.kubeadm, sub: 'Installation',
     groups: [
@@ -108,7 +108,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── INSTALLATION — K3S ──────────────────────────────────────
+  // ── INSTALLATION - K3S ──────────────────────────────────────
   {
     id: 'install-k3s', title: 'k3s', icon: ICONS.k3s, sub: 'Installation',
     groups: [
@@ -164,7 +164,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── INSTALLATION — K3D ──────────────────────────────────────
+  // ── INSTALLATION - K3D ──────────────────────────────────────
   {
     id: 'install-k3d', title: 'k3d', icon: ICONS.k3d, sub: 'Installation',
     groups: [
@@ -228,7 +228,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── INSTALLATION — KIND ─────────────────────────────────────
+  // ── INSTALLATION - KIND ─────────────────────────────────────
   {
     id: 'install-kind', title: 'KinD', icon: ICONS.kind, sub: 'Installation',
     groups: [
@@ -278,7 +278,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── INSTALLATION — MINIKUBE ─────────────────────────────────
+  // ── INSTALLATION - MINIKUBE ─────────────────────────────────
   {
     id: 'install-minikube', title: 'Minikube', icon: ICONS.minikube, sub: 'Installation',
     groups: [
@@ -1203,7 +1203,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── HELM — RELEASES ───────────────────────────────────────
+  // ── HELM - RELEASES ───────────────────────────────────────
   {
     id: 'helm-releases', title: 'Releases', icon: ICONS['helm-releases'], sub: 'Helm',
     groups: [
@@ -1265,7 +1265,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── HELM — CHARTS ─────────────────────────────────────────
+  // ── HELM - CHARTS ─────────────────────────────────────────
   {
     id: 'helm-charts', title: 'Charts', icon: ICONS['helm-charts'], sub: 'Helm',
     groups: [
@@ -1325,7 +1325,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── KUSTOMIZE — BUILD & APPLY ─────────────────────────────
+  // ── KUSTOMIZE - BUILD & APPLY ─────────────────────────────
   {
     id: 'kustomize-manage', title: 'Manage', icon: ICONS['kustomize-manage'], sub: 'Kustomize',
     groups: [
@@ -1363,7 +1363,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── KUSTOMIZE — EDIT ──────────────────────────────────────
+  // ── KUSTOMIZE - EDIT ──────────────────────────────────────
   {
     id: 'kustomize-edit', title: 'Edit', icon: ICONS['kustomize-edit'], sub: 'Kustomize',
     groups: [
@@ -1409,7 +1409,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── K9S — CLI & LAUNCH ───────────────────────────────────
+  // ── K9S - CLI & LAUNCH ───────────────────────────────────
   {
     id: 'k9s-cli', title: 'CLI & Launch', icon: ICONS['k9s-cli'], sub: 'K9s',
     groups: [
@@ -1442,7 +1442,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── K9S — UI SHORTCUTS ───────────────────────────────────
+  // ── K9S - UI SHORTCUTS ───────────────────────────────────
   {
     id: 'k9s-ui', title: 'UI Shortcuts', icon: ICONS['k9s-ui'], sub: 'K9s',
     groups: [
@@ -1546,7 +1546,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — INSTALLATION ──────────────────────────
+  // ── TROUBLESHOOTING - INSTALLATION ──────────────────────────
   {
     id: 'troubleshooting-installation', title: 'Installation', icon: ICONS['troubleshooting-installation'], sub: 'Debug K8s',
     groups: [
@@ -1620,7 +1620,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — CLUSTER ─────────────────────────────
+  // ── TROUBLESHOOTING - CLUSTER ─────────────────────────────
   {
     id: 'troubleshooting-cluster', title: 'Cluster', icon: ICONS['troubleshooting-cluster'], sub: 'Debug K8s',
     groups: [
@@ -1684,7 +1684,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — NETWORK ─────────────────────────────
+  // ── TROUBLESHOOTING - NETWORK ─────────────────────────────
   {
     id: 'troubleshooting-network', title: 'Network', icon: ICONS['troubleshooting-network'], sub: 'Debug K8s',
     groups: [
@@ -1729,7 +1729,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — STORAGE ─────────────────────────────
+  // ── TROUBLESHOOTING - STORAGE ─────────────────────────────
   {
     id: 'troubleshooting-storage', title: 'Storage', icon: ICONS['troubleshooting-storage'], sub: 'Debug K8s',
     groups: [
@@ -1767,7 +1767,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — RESOURCES ───────────────────────────
+  // ── TROUBLESHOOTING - RESOURCES ───────────────────────────
   {
     id: 'troubleshooting-resources', title: 'Resources', icon: ICONS['troubleshooting-resources'], sub: 'Debug K8s',
     groups: [
@@ -1819,7 +1819,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — SCHEDULING ──────────────────────────
+  // ── TROUBLESHOOTING - SCHEDULING ──────────────────────────
   {
     id: 'troubleshooting-scheduling', title: 'Scheduling', icon: ICONS['troubleshooting-scheduling'], sub: 'Debug K8s',
     groups: [
@@ -1855,7 +1855,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — HELM ────────────────────────────────
+  // ── TROUBLESHOOTING - HELM ────────────────────────────────
   {
     id: 'troubleshooting-helm', title: 'Helm', icon: ICONS['troubleshooting-helm'], sub: 'Debug Tools',
     groups: [
@@ -1887,7 +1887,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — KUSTOMIZE ──────────────────────────
+  // ── TROUBLESHOOTING - KUSTOMIZE ──────────────────────────
   {
     id: 'troubleshooting-kustomize', title: 'Kustomize', icon: ICONS['troubleshooting-kustomize'], sub: 'Debug Tools',
     groups: [
@@ -1916,7 +1916,7 @@ const SECTIONS = [
     ]
   },
 
-  // ── TROUBLESHOOTING — K9S ─────────────────────────────────
+  // ── TROUBLESHOOTING - K9S ─────────────────────────────────
   {
     id: 'troubleshooting-k9s', title: 'K9s', icon: ICONS['troubleshooting-k9s'], sub: 'Debug Tools',
     groups: [

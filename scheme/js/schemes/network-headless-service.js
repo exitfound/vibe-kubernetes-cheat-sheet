@@ -1,25 +1,37 @@
-import { svg, g, path } from '../lib/svg.js';
+import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt} from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-headless-service
 
 
 const CY = 320;                      // canvas centre line: Pods column + CoreDNS are centred on it
 const W0 = 168, W1 = CY, W2 = 472;   // backend Pod centre rows (W0/W2 mirror about CY)
-const POD_X = 880;                   // backend Pods left edge
-const CORE_LEFT = 430, CORE_RIGHT = 680;
+const POD_X = 880, POD_W = 240, POD_H = 116;   // backend Pods
+const CORE_LEFT = 430, CORE_RIGHT = 680, CORE_H = 78;
+const CORE_CX = (CORE_LEFT + CORE_RIGHT) / 2;  // 555: the Service -> CoreDNS relationship line
+const SVC_Y = 430, SVC_H = 70;
 const FAN_X = 760;                   // vertical bus for the CoreDNS -> Pods endpoint fan
 const DATA_X = 820;                  // vertical bus for the client -> Pod direct data path
-const CLIENT_TOP = 420, CLIENT_RIGHT = 290;
+const CHIP_Y = 575, CHIP_H = 34;
+const CLIENT_X = 80, CLIENT_W = 210, CLIENT_H = 130;
+const CLIENT_TOP = 420, CLIENT_RIGHT = CLIENT_X + CLIENT_W;   // 290
+const CLIENT_CY = CLIENT_TOP + CLIENT_H / 2;                  // 485: the data trunk leaves here
 const DATA_Y = 520;                  // the data trunk runs below CoreDNS and the Service box
+// The trunk has to clear the Service box (y 430..500) on its way right, so it steps down from the
+// Pod edge to DATA_Y here, in the free gap between the client and CoreDNS.
+const DATA_STEP_X = 355;
 
 // DNS lane: up out of the client's TOP edge, then square into CoreDNS's left edge. Two lanes, 20px
-// apart, so the answer comes home on its own wire instead of running back up the query arrow.
-const QUERY = [[175, CLIENT_TOP], [175, 310], [CORE_LEFT, 310]];
-const ANSWER = [[CORE_LEFT, 330], [195, 330], [195, CLIENT_TOP]];
+// apart on both faces, so the answer comes home on its own wire instead of running back up the
+// query arrow. Both pairs straddle their face midpoint (the Pod centre, and CY at CoreDNS).
+const LANE_DX = 10, LANE_DY = 10;
+const CLIENT_CX = CLIENT_X + CLIENT_W / 2;   // 185
+const QUERY = [[CLIENT_CX - LANE_DX, CLIENT_TOP], [CLIENT_CX - LANE_DX, CY - LANE_DY], [CORE_LEFT, CY - LANE_DY]];
+const ANSWER = [[CORE_LEFT, CY + LANE_DY], [CLIENT_CX + LANE_DX, CY + LANE_DY], [CLIENT_CX + LANE_DX, CLIENT_TOP]];
 
-// Direct data path to each backend. Same array draws the wire and flies the ball.
-const toPod = (cy) => [[CLIENT_RIGHT, DATA_Y], [DATA_X, DATA_Y], [DATA_X, cy], [POD_X, cy]];
+// Direct data path to each backend, leaving the Pod at the middle of its right edge. Same array
+// draws the wire and flies the ball.
+const toPod = (cy) => [[CLIENT_RIGHT, CLIENT_CY], [DATA_STEP_X, CLIENT_CY], [DATA_STEP_X, DATA_Y], [DATA_X, DATA_Y], [DATA_X, cy], [POD_X, cy]];
 const TO_W0 = toPod(W0);
 const TO_W1 = toPod(W1);
 const TO_W2 = toPod(W2);
@@ -53,29 +65,24 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = podBlock({ x: 80, y: CLIENT_TOP, w: 210, h: 130, label: 'Client Pod', ip: '10.244.1.5' });
-    const coredns = box({ x: CORE_LEFT, y: CY - 39, w: 250, h: 78, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', role: 'network' });
-    const svc = box({ x: CORE_LEFT, y: 430, w: 250, h: 70, label: 'Service web', sublabel: 'clusterIP: None', role: 'network' });
+    const client = podBlock({ x: CLIENT_X, y: CLIENT_TOP, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.1.5' });
+    const coredns = box({ x: CORE_LEFT, y: CY - CORE_H / 2, w: CORE_RIGHT - CORE_LEFT, h: CORE_H, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', role: 'network' });
+    const svc = box({ x: CORE_LEFT, y: SVC_Y, w: CORE_RIGHT - CORE_LEFT, h: SVC_H, label: 'Service web', sublabel: 'clusterIP: None', role: 'network' });
 
-    const w0 = podBlock({ x: POD_X, y: W0 - 58, w: 240, h: 116, label: 'web-0', ip: '10.244.2.7' });
-    const w1 = podBlock({ x: POD_X, y: W1 - 58, w: 240, h: 116, label: 'web-1', ip: '10.244.3.4' });
-    const w2 = podBlock({ x: POD_X, y: W2 - 58, w: 240, h: 116, label: 'web-2', ip: '10.244.1.9' });
+    const w0 = podBlock({ x: POD_X, y: W0 - POD_H / 2, w: POD_W, h: POD_H, label: 'web-0', ip: '10.244.2.7' });
+    const w1 = podBlock({ x: POD_X, y: W1 - POD_H / 2, w: POD_W, h: POD_H, label: 'web-1', ip: '10.244.3.4' });
+    const w2 = podBlock({ x: POD_X, y: W2 - POD_H / 2, w: POD_W, h: POD_H, label: 'web-2', ip: '10.244.1.9' });
 
-    const wSvc = path({
-      class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim',
-      d: `M 555 430 L 555 ${CY + 39}`,
-      'stroke-dasharray': '5 5',
-      fill: 'none',
-    });
+    const wSvc = relationPath({ points: [[CORE_CX, SVC_Y], [CORE_CX, CY + CORE_H / 2]], dash: '5 5' });
     // Endpoint fan and data fan. Both are drawn from the exact arrays their balls fly.
     const fans = [W0, W1, W2].map(cy => pathArrow({ points: fanTo(cy), dashed: true, dim: true }));
     const dataWires = [TO_W0, TO_W1, TO_W2].map(points => pathArrow({ points, dashed: true, dim: true }));
     const wQuery = pathArrow({ points: QUERY, dashed: true, dim: true });
     const wAnswer = pathArrow({ points: ANSWER, dashed: true, dim: true });
 
-    const vipChip = valChip({ x: 80, y: 575, w: 210, h: 34, name: 'clusterIP', value: 'None', role: 'network' });
-    const dnsChip = valChip({ x: CORE_LEFT, y: 575, w: 250, h: 34, name: 'A records', value: 'pending', role: 'network' });
-    const connChip = valChip({ x: POD_X, y: 575, w: 240, h: 34, name: 'connection', value: 'none', role: 'network' });
+    const vipChip = valChip({ x: CLIENT_X, y: CHIP_Y, w: CLIENT_W, h: CHIP_H, name: 'clusterIP', value: 'None', role: 'network' });
+    const dnsChip = valChip({ x: CORE_LEFT, y: CHIP_Y, w: CORE_RIGHT - CORE_LEFT, h: CHIP_H, name: 'A records', value: 'pending', role: 'network' });
+    const connChip = valChip({ x: POD_X, y: CHIP_Y, w: POD_W, h: CHIP_H, name: 'connection', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 

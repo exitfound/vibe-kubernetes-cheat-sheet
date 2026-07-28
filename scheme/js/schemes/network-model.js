@@ -1,12 +1,13 @@
-import { svg, g, rect, text, line, path } from '../lib/svg.js';
+import { svg, g, rect, text, line } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel} from '../lib/network-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-model
 
 
 const RAISE = 64;                        // band/Pods/chips: net +10% up (lowered 5% from the old 96)
 const KUBELET_RAISE = 96;                // kubelet stays one notch higher than the rest
-const BAND_X = 120, BAND_W = 960;        // flat-network band horizontal extent (width is optimal, kept)
+const SCHEME_L = 120, SCHEME_R = 1080;   // content edges, mirrored about x=600
+const BAND_X = SCHEME_L, BAND_W = SCHEME_R - SCHEME_L;   // flat-network band: 120..1080 (width is optimal, kept)
 const BAND_H = 80;                       // taller, so the rail clears both text rows with room
 const BAND_Y = 302 - RAISE;              // raised band top
 const BAND_BOTTOM = BAND_Y + BAND_H;     // Pod wires meet the band here
@@ -16,13 +17,16 @@ const SUBLABEL_LOCAL_Y = 61;             // sublabel row, lower third
 const BUS_Y = BAND_Y + RAIL_LOCAL_Y;     // the spine the packet rides along
 const POD_TOP = 440 - RAISE;             // Pods hang below the band
 const CHIP_Y = 588 - RAISE;              // info chips row
+const CHIP_H = 34, CHIP_GAP = 21, CHIP_W = (SCHEME_R - SCHEME_L - 2 * CHIP_GAP) / 3;   // 306
+const chipX = (i) => SCHEME_L + i * (CHIP_W + CHIP_GAP);
 
 const POD_W = 180;                       // Pod block width (matches podBlock)
-const POD_GAP = 48;                      // equal end-margin and inner gap
+const POD_N = 4;
+const POD_GAP = (BAND_W - POD_N * POD_W) / (POD_N + 1);  // 48: equal end-margin and inner gap
 const AX = BAND_X + POD_GAP + POD_W / 2;  // 258
 const BX = AX + POD_W + POD_GAP;          // 486
 const CX = BX + POD_W + POD_GAP;          // 714
-const DX = CX + POD_W + POD_GAP;          // 942, right edge 1032 (48 in from the band edge)
+const DX = CX + POD_W + POD_GAP;          // 942, right edge 1032 (POD_GAP in from the band edge)
 
 // Pod IPs are not shown at idle: rule one (step 1) is where each Pod gets its address, so idle
 // shows a pending placeholder and step 1 reveals the real IPs.
@@ -41,13 +45,12 @@ const A_TO_B = [[AX, POD_TOP], [AX, BUS_Y], [BX, BUS_Y], [BX, POD_TOP]];
 const KUBELET_TO_C = [[KUBELET_X, KUBELET_BOTTOM], [KUBELET_X, BUS_Y], [CX, BUS_Y], [CX, POD_TOP]];
 
 const CNI_W = 180, CNI_H = 72;
-const CNI_X = 1100;                       // centre, far top-right
-const CNI_Y = KUBELET_Y + 4;
+const CNI_X = SCHEME_R - CNI_W / 2;       // 990: badge tucked under the right end of the content, so
+const CNI_Y = KUBELET_Y + 4;              // the composition still ends on SCHEME_R and centres on 600
 const CNI_BOTTOM = CNI_Y + CNI_H;
-const BAND_SIDE_Y = BUS_Y;                // align with the bus spine, so the CNI arrow meets the rail
-// CNI connector: bottom-centre of the badge, down, then left into the band's right side.
-const CNI_CONNECTOR = [[CNI_X, CNI_BOTTOM], [CNI_X, BAND_SIDE_Y], [BAND_X + BAND_W, BAND_SIDE_Y]];
-const POD_DIM = 0.32;                    // out-of-scope Pods fade to this on the node-agent step
+// CNI connector: straight down from the bottom-centre of the badge onto the bus spine itself, the
+// one line inside the band. It stops on the rail rather than on a border, like the Pod wires do.
+const CNI_CONNECTOR = [[CNI_X, CNI_BOTTOM], [CNI_X, BUS_Y]];
 
 function podBlock({ x, label, ip }) {
   const shell = pod({ x, y: POD_TOP, w: POD_W, h: 120, label, sublabel: ip, containers: 0, role: 'network' });
@@ -83,11 +86,11 @@ class Scene {
     const podLocalX = [AX, BX, CX, DX].map(x => x - BAND_X);
     const spine = `M ${podLocalX[0]} ${RAIL_LOCAL_Y} L ${podLocalX[podLocalX.length - 1]} ${RAIL_LOCAL_Y}`;
     const teeth = podLocalX.map(px => `M ${px} ${RAIL_LOCAL_Y} L ${px} ${BAND_H}`).join(' ');
-    const busRail = path({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim', d: `${spine} ${teeth}`, fill: 'none' });
+    const busRail = relationPath({ d: `${spine} ${teeth}` });
     bus.appendChild(busRail);
     // Spine extension to the band's right edge, hidden until the CNI step, where it reaches out to
     // meet the incoming CNI arrow.
-    const busRailExt = path({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim', d: `M ${podLocalX[podLocalX.length - 1]} ${RAIL_LOCAL_Y} L ${BAND_W} ${RAIL_LOCAL_Y}`, fill: 'none' });
+    const busRailExt = relationPath({ points: [[podLocalX[podLocalX.length - 1], RAIL_LOCAL_Y], [BAND_W, RAIL_LOCAL_Y]] });
     busRailExt.style.opacity = '0';
     bus.appendChild(busRailExt);
     bus.appendChild(text({ class: 'scheme-box-sublabel', x: BAND_W / 2, y: SUBLABEL_LOCAL_Y, 'text-anchor': 'middle' }, ['one cluster-wide address space']));
@@ -117,12 +120,11 @@ class Scene {
     // kubelet down to the band stays a single directional reach.
     const wK = arrow({ x1: KUBELET_X, y1: KUBELET_BOTTOM, x2: KUBELET_X, y2: BAND_Y, dashed: true, dim: true });
 
-    // Info chips stretched evenly across the full band width: left edge on the band left,
-    // right edge on the band right.
-    const CHIP_W = 306, CHIP_GAP = 21;
-    const ipChip    = valChip({ x: BAND_X, y: CHIP_Y, w: CHIP_W, h: 34, name: 'Pod IP', value: 'one per Pod', role: 'network' });
-    const natChip   = valChip({ x: BAND_X + CHIP_W + CHIP_GAP, y: CHIP_Y, w: CHIP_W, h: 34, name: 'NAT', value: 'none', role: 'network' });
-    const reachChip = valChip({ x: BAND_X + 2 * (CHIP_W + CHIP_GAP), y: CHIP_Y, w: CHIP_W, h: 34, name: 'reachability', value: 'any to any', role: 'network' });
+    // Info chips stretched evenly across the whole composition: left edge on the band left,
+    // right edge on the CNI badge right, so the strip spans SCHEME_L..SCHEME_R and centres on 600.
+    const ipChip    = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'Pod IP', value: 'one per Pod', role: 'network' });
+    const natChip   = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'NAT', value: 'none', role: 'network' });
+    const reachChip = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'reachability', value: 'any to any', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -227,7 +229,7 @@ const STEPS = [
   },
   {
     id: 'no-nat',
-    duration: 2600,
+    duration: 3300,
     narration: 'Rule two: any Pod can reach any other Pod on any Node directly, with no NAT on the way. The source address that arrives is the real Pod IP, here 10.244.1.5, even when the packet crosses to another Node.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -248,7 +250,7 @@ const STEPS = [
   },
   {
     id: 'same-node',
-    duration: 2400,
+    duration: 2800,
     narration: 'Same address space on one Node too. Pod 10.244.1.5 reaches its neighbour 10.244.1.6, both on Node-1, with the same flat addressing and no NAT. The traffic never leaves the Node, but to the Pods it is the very same model, no special case to reason about.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -272,7 +274,7 @@ const STEPS = [
   {
     id: 'node-agent',
     duration: 2400,
-    narration: 'Rule three is narrower: the Node agent, the kubelet, reaches only the Pods on its own Node. The kubelet on Node-2 talks to Pod 10.244.2.7, its local Pod, to run liveness and readiness probes and to proxy exec and logs. Pods on other Nodes are out of this guarantee.',
+    narration: 'Rule three is narrower: the Node agent, the Kubelet, reaches only the Pods on its own Node. The Kubelet on Node-2 talks to Pod 10.244.2.7, its local Pod, to run the HTTP and TCP probes that decide whether it is live and ready. Pods on other Nodes are out of this guarantee.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -283,9 +285,9 @@ const STEPS = [
       setVal(s.refs.natChip, 'none');
       // Local scope: the kubelet on Node-2 reaches only its Node-2 Pod (C). Fade the other Nodes
       // out so the guarantee reads as local-only, not the any-to-any of rule two.
-      s.refs.podA.style.opacity = String(POD_DIM);
-      s.refs.podB.style.opacity = String(POD_DIM);
-      s.refs.podD.style.opacity = String(POD_DIM);
+      s.refs.podA.style.opacity = String(OPACITY.notready);
+      s.refs.podB.style.opacity = String(OPACITY.notready);
+      s.refs.podD.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); return; }
       // Down-arrow: infrastructure reaches a Pod, so the packet goes first and the Pod pulses on
       // arrival.

@@ -1,6 +1,6 @@
 import { svg, g, text, path } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-emptydir
 
 
@@ -55,7 +55,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'emptyDir lifecycle: an emptyDir is created empty when the Pod is assigned to a node, lives on that node disk, and is shared by every container in the Pod. It survives a container crash but is deleted forever when the Pod is removed from the node. With medium Memory it is backed by tmpfs that counts against the memory limit, and a sizeLimit that is exceeded gets the Pod evicted.',
+      'aria-label': 'emptyDir lifecycle: an emptyDir is created empty when the Pod is assigned to a Node, lives on that Node disk, and is shared by every container in the Pod. It survives a container crash but is deleted forever when the Pod is removed from the Node. With medium Memory it is backed by tmpfs that counts against the memory limit, and a sizeLimit that is exceeded gets the Pod evicted.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -70,7 +70,7 @@ class Scene {
     const shellWrap = g({});
     shellWrap.appendChild(shell);
 
-    const app  = containerBlock({ x: APP_X,  y: C_Y, w: C_W, h: C_H, label: 'App',    sublabel: 'writes /cache' });
+    const app  = containerBlock({ x: APP_X,  y: C_Y, w: C_W, h: C_H, label: 'app',    sublabel: 'writes /cache' });
     const side = containerBlock({ x: SIDE_X, y: C_Y, w: C_W, h: C_H, label: 'Worker', sublabel: 'reads /cache' });
     const podGroup = g({});
     [shellWrap, app.wrap, side.wrap].forEach(el => podGroup.appendChild(el));
@@ -148,7 +148,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'An emptyDir is the simplest volume. It is created empty when the Pod is assigned to a node, it lives on that node disk, and every container in the Pod shares it. It exists only as long as the Pod stays on that node.',
+    narration: 'An emptyDir is the simplest volume. It is created empty when the Pod is assigned to a Node, it lives on that Node disk, and every container in the Pod shares it. It exists only as long as the Pod stays on that Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -159,7 +159,7 @@ const STEPS = [
   {
     id: 'create',
     duration: 2400,
-    narration: 'The moment the scheduler places the Pod on Node-1, kubelet creates an empty directory for it on the node disk. There is nothing to provision and nothing to bind, the directory simply appears, owned by this one Pod.',
+    narration: 'The moment the scheduler places the Pod on Node-1, Kubelet creates an empty directory for it on the Node disk. There is nothing to provision and nothing to bind, the directory simply appears, owned by this one Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -186,38 +186,38 @@ const STEPS = [
       // and the shell pulse fires at the same instant, one beat.
       s.refs.ed.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
-      s.refs.sideBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
       pulsePod(s.refs.shellWrap, ctx, 0);
       // The app writes down its lane into the cylinder side, then the worker reads the same bytes
       // out of the far side and up its own lane: two mirrored one-way hops.
       const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'write /cache', LANE_WRITE, { delay: BEAT.afterPulse });
-      routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
+      const sideBoxPkt = routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
+      lightBoxAt(s.refs.sideBox, ctx, sideBoxPkt.arrivalMs);
       ridingLabel(s, ctx, 'read /cache', LANE_READ, { delay: write.arrivalMs + BEAT.afterHop });
     },
   },
   {
     id: 'dies',
     duration: 2600,
-    narration: 'When the Pod is removed from the node the emptyDir is deleted forever, and the diagram dims them out together: nothing of the Pod or its directory stays on the node. A container crash it survives, a Pod deletion it does not. That single rule is the whole lifecycle of an emptyDir.',
+    narration: 'When the Pod is removed from the Node the emptyDir is deleted forever, and the diagram dims them out together: nothing of the Pod or its directory stays on the Node. A container crash it survives, a Pod deletion it does not. That single rule is the whole lifecycle of an emptyDir.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { ed: 'deleted forever', medium: 'node disk', limit: 'none' });
       const GONE = [s.refs.pod, s.refs.ed, s.refs.spine, s.refs.wWrite, s.refs.wRead, s.refs.diskLbl];
-      GONE.forEach(el => { el.style.opacity = '0.22'; });
+      GONE.forEach(el => { el.style.opacity = String(OPACITY.terminated); });
       if (ctx.reduced) return;
       GONE.forEach(el => {
-        ctx.register(el.animate([{ opacity: 1 }, { opacity: 0.22 }], { duration: 900, easing: 'ease-in' }));
+        ctx.register(el.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: 900, easing: 'ease-in' }));
       });
     },
   },
   {
     id: 'memory',
     duration: 3000,
-    narration: 'Set medium to Memory and the same emptyDir is backed by a tmpfs instead of the node disk. Reads and writes are fast, but every byte counts against the container memory limit, and filling it can get the Pod OOM-killed the way a heap leak would.',
+    narration: 'Set medium to Memory and the same emptyDir is backed by a tmpfs instead of the Node disk. Reads and writes are fast, but every byte counts against the Pod memory limit, and filling it can get the Pod OOM-killed the way a heap leak would.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -230,18 +230,18 @@ const STEPS = [
       // With medium Memory the directory is NOT on the node disk, the shelf label must not lie.
       s.refs.diskLbl.textContent = 'tmpfs in RAM';
       // The app writes and the tmpfs receives: both light at entry, the shell pulses same beat.
-      s.refs.ed.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.ed.classList.add('highlight'); return; }
       pulsePod(s.refs.shellWrap, ctx, 0);
-      routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
+      const edPkt = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
+      lightBoxAt(s.refs.ed, ctx, edPkt.arrivalMs);
       ridingLabel(s, ctx, 'held in RAM', LANE_WRITE, { delay: BEAT.afterPulse });
     },
   },
   {
     id: 'sizelimit',
     duration: 3600,
-    narration: 'A sizeLimit caps how large the emptyDir may grow. Write past the limit and kubelet evicts the Pod off the node rather than let it fill the disk. Whether it is memory or disk, an unbounded emptyDir is a way to lose the Pod.',
+    narration: 'A sizeLimit caps how large the emptyDir may grow. Write past the limit and Kubelet evicts the Pod off the Node rather than let it fill the disk. Whether it is memory or disk, an unbounded emptyDir is a way to lose the Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -250,11 +250,11 @@ const STEPS = [
       s.refs.ed.style.opacity = '1';
       // The app writes past the cap into the disk: both light at entry, the shell pulses same
       // beat. The eviction itself is told by the chips (512Mi, evicted), no fade on this step.
-      s.refs.ed.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.ed.classList.add('highlight'); return; }
       pulsePod(s.refs.shellWrap, ctx, 0);
-      routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
+      const pkt = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
+      lightBoxAt(s.refs.ed, ctx, pkt.arrivalMs);
       ridingLabel(s, ctx, 'over 512Mi', LANE_WRITE, { delay: BEAT.afterPulse });
     },
   },

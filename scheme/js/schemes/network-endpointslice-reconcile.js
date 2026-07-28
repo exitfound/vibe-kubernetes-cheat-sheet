@@ -1,6 +1,6 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-endpointslice-reconcile
 
 
@@ -40,7 +40,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     // Top: the Service owns the selector and names the slice, but holds no addresses.
-    const service = box({ x: 410, y: 52, w: 380, h: 70, label: 'Service: web', sublabel: 'selector app=web · holds no addresses', role: 'network' });
+    const service = box({ x: 410, y: 52, w: 380, h: 70, label: 'Service web', sublabel: 'selector app=web · holds no addresses', role: 'network' });
 
     // Centre: the EndpointSlice (the derived list). One row per matching Pod.
     const ep1 = valChip({ x: 410, y: 152, w: 380, h: 42, name: 'endpoint', value: '(empty)', role: 'network' });
@@ -104,7 +104,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.podC.style.opacity = '0.4';
+      s.refs.podC.style.opacity = String(OPACITY.notready);
       setVal(s.refs.ep1, '(empty)');
       setVal(s.refs.ep2, '(empty)');
       setVal(s.refs.ep3, '(empty)');
@@ -117,7 +117,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.podC.style.opacity = '0.4';
+      s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.service.classList.add('highlight');
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
       // The Ready candidates pulse together so the selector match reads clearly.
@@ -132,11 +132,12 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.podC.style.opacity = '0.4';
+      s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.ctlr.classList.add('highlight');
       setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
       setVal(s.refs.ep2, '10.244.2.7:8080 · ready');
       setVal(s.refs.ep3, '10.244.3.9 · notReady');
+      s.refs.ep3.classList.add('highlight');
       if (ctx.reduced) { s.refs.ep1.classList.add('highlight'); s.refs.ep2.classList.add('highlight'); return; }
       pulsePod(s.refs.podA, ctx, 0);
       pulsePod(s.refs.podB, ctx, 0);
@@ -155,7 +156,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.podC.style.opacity = '0.4';
+      s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.ctlr.classList.add('highlight');
       setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
       setVal(s.refs.ep2, '10.244.2.7 · dropped (notReady)');
@@ -164,7 +165,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); s.refs.ep2.classList.add('highlight'); return; }
       // Pod B flips to notReady (it pulses through its dimmed state), the controller updates the
       // slice (one packet up), and the dropped endpoint lights to show the change.
-      s.refs.podB.style.opacity = '0.4';
+      s.refs.podB.style.opacity = String(OPACITY.notready);
       pulsePod(s.refs.podB, ctx, 0);
       const upd = segmentPacket(s, ctx, { from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, '10.244.2.7 notReady', WRITE_PATH, { delay: BEAT.afterPulse, easing: 'linear' });
@@ -174,12 +175,12 @@ const STEPS = [
   {
     id: 'consume',
     duration: 2300,
-    narration: 'kube-proxy on every Node watches the EndpointSlice, never the Pods directly. When the slice changes it reprograms the Node dataplane so traffic to the Service only ever lands on a currently Ready endpoint. The slice is the contract between what is healthy and where packets go.',
+    narration: 'The kube-proxy on every Node watches the EndpointSlice, never the Pods directly. When the slice changes it reprograms the Node dataplane so traffic to the Service only ever lands on a currently Ready endpoint. The slice is the contract between what is healthy and where packets go.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.podC.style.opacity = '0.4';
-      s.refs.podB.style.opacity = '0.4';
+      s.refs.podC.style.opacity = String(OPACITY.notready);
+      s.refs.podB.style.opacity = String(OPACITY.notready);
       s.refs.ep1.classList.add('highlight');
       setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
       setVal(s.refs.ep2, '10.244.2.7 · dropped (notReady)');

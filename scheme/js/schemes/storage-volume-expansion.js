@@ -50,7 +50,7 @@ function podBlock() {
   const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'df reads the mount', containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: POD_X + 20, y: POD_Y + (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'App', sublabel: 'writes to /data', role: 'storage' });
+  const innerBox = box({ x: POD_X + 20, y: POD_Y + (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'app', sublabel: 'writes to /data', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -73,7 +73,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. You raise the storage request on the claim, and the API server accepts that edit only because the StorageClass behind it has allowVolumeExpansion set to true. Then the external-resizer calls ControllerExpandVolume and the backend grows the real block device, which is phase one. Then kubelet calls NodeExpandVolume on the node where the Pod runs and the filesystem grows to fill the bigger device, which is phase two. Only after both does the extra space appear inside the container, with no restart. Going the other way is refused: a request below the size already provisioned is rejected.',
+      'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. You raise the storage request on the claim, and the API server accepts that edit only because the StorageClass behind it has allowVolumeExpansion set to true. Then the external-resizer calls ControllerExpandVolume and the backend grows the real block device, which is phase one. Then Kubelet calls NodeExpandVolume on the Node where the Pod runs and the filesystem grows to fill the bigger device, which is phase two. Only after both does the extra space appear inside the container, with no restart. Going the other way is refused: a request below the size already provisioned is rejected.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -82,9 +82,9 @@ class Scene {
     const pvc = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'requests 5Gi', role: 'storage' });
     // Slot A holds whoever acts on the claim this step. The two never share a step, so they share the
     // slot and the lane out of it.
-    const kubectl = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'Kubectl Patch', sublabel: 'raises the request', role: 'storage' });
+    const kubectl = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'kubectl patch', sublabel: 'raises the request', role: 'storage' });
     const klass = box({ x: ACT_R_X, y: SLOT_A_Y, w: ACT_W, h: ACT_H, label: 'StorageClass gp3', sublabel: 'allowVolumeExpansion', role: 'storage' });
-    const resizer = box({ x: ACT_R_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'External Resizer', sublabel: 'ControllerExpandVolume', role: 'storage' });
+    const resizer = box({ x: ACT_R_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'External-resizer', sublabel: 'ControllerExpandVolume', role: 'storage' });
     const kubelet = box({ x: ACT_L_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'Kubelet', sublabel: 'NodeExpandVolume', role: 'storage' });
     const disk = cylinder({ x: DISK_LEFT, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'PV data-vol', role: 'storage' });
     [kubectl, klass, resizer, kubelet].forEach(el => { el.style.opacity = '0'; });
@@ -247,7 +247,7 @@ const STEPS = [
   {
     id: 'node-expand',
     duration: 3200,
-    narration: 'Phase two runs on the node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device until it fills the larger disk. This half can only happen where the Pod actually is, because a filesystem is only growable where it is mounted. A raw block volume has no filesystem at all, so it skips this phase entirely.',
+    narration: 'Phase two runs on the Node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device until it fills the larger disk. This half can only happen where the Pod actually is, because a filesystem is only growable where it is mounted. A raw block volume has no filesystem at all, so it skips this phase entirely.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -298,7 +298,7 @@ const STEPS = [
   {
     id: 'no-shrink',
     duration: 3200,
-    narration: 'Growing works, going back does not. Ask for less than the volume already has and the Api refuses the edit, because there is no safe general way to shrink a filesystem with live data on it. Walking a request back down while an expansion is still pending is a different thing: that cancels a grow that has not happened, it does not make any volume smaller.',
+    narration: 'Growing works, going back does not. Ask for less than the volume already has and the API refuses the edit, because there is no safe general way to shrink a filesystem with live data on it. Walking a request back down while an expansion is still pending is a different thing: that cancels a grow that has not happened, it does not make any volume smaller.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

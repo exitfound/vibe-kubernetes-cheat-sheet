@@ -65,12 +65,12 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ExternalTrafficPolicy Cluster versus Local: Cluster forwards to a backend on any node but SNATs away the client IP, while Local keeps the client IP and avoids the extra hop at the cost of dropping traffic on nodes with no local backend',
+      'aria-label': 'ExternalTrafficPolicy Cluster versus Local: Cluster forwards to a backend on any Node but SNATs away the client IP, while Local keeps the client IP and avoids the extra hop at the cost of dropping traffic on Nodes with no local backend',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External Client', sublabel: 'src 198.51.100.9', role: 'network' });
+    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External client', sublabel: 'src 198.51.100.9', role: 'network' });
     const lb     = box({ x: LB_X, y: LB_Y, w: LB_W, h: LB_H, label: 'LoadBalancer', sublabel: 'targets node ports', role: 'network' });
 
     const cWire = arrow({ x1: C_WIRE[0][0], y1: C_WIRE[0][1], x2: C_WIRE[1][0], y2: C_WIRE[1][1], dashed: true, dim: true, role: 'network' });
@@ -156,7 +156,9 @@ const STEPS = [
       // The SNAT and the Node-to-Node hop both happen in THIS step, so their chips take their values
       // here. The next step is the one that highlights them and talks about what they cost.
       setVal(s.refs.srcChip, 'lost (SNAT)');
+      s.refs.srcChip.classList.add('highlight');
       setVal(s.refs.hopChip, 'yes');
+      s.refs.hopChip.classList.add('highlight');
       setVal(s.refs.hcChip, 'unused');
       s.refs.lb.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');

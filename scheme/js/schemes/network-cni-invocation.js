@@ -1,6 +1,6 @@
-import { svg, g, text, path } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow, chainList, setChainActive } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-cni-invocation
 
 
@@ -9,7 +9,8 @@ const ROW_Y = 352 - RAISE;                  // 288: Kubelet / CRI / bridge-tap r
 
 // Actor boxes (workloads-standard height 80). Kubelet sits well left so the inline RunPodSandbox
 // label has room in the gap to the CRI.
-const KUBE = [48, 312 - RAISE, 200, 80];    // x, y, w, h  -> centre 148  bottom 328
+const CONTENT_L = 60, CONTENT_R = 1140;     // the content band, so the chip strip centres on 600
+const KUBE = [CONTENT_L, 312 - RAISE, 200, 80];  // x, y, w, h  -> centre 160  bottom 328
 const CRI  = [370, 312 - RAISE, 220, 80];   // centre 480  right 590  bottom 328
 const CRI_CX = CRI[0] + CRI[2] / 2;         // 480
 
@@ -20,13 +21,14 @@ const PAUSE_Y = 500 - RAISE;                 // 436: pause / eth0 inner box cent
 
 // CNI plugin container + internal spine. Three taps: bridge at the runtime row, result at the
 // sandbox row (PAUSE_Y), IPAM exactly between, so the spine spans the two straight arrows.
-const SPINE_X = 806;
-const CHAIN_X = 826, CHAIN_W = 252, CHAIN_ROWH = 40;
+const SPINE_X = 846;
+const CHAIN_X = 866, CHAIN_W = 252, CHAIN_ROWH = 40;
 const TAP = [ROW_Y, (ROW_Y + PAUSE_Y) / 2, PAUSE_Y];   // 288, 362, 436
 const CHAIN_GAP = (TAP[1] - TAP[0]) - CHAIN_ROWH;       // pitch derived from the tap spacing
 const CHAIN_Y = TAP[0] - CHAIN_ROWH / 2;                // first row top
 const CNI_TOP = 308 - RAISE;                             // 244
-const CNI = [780, CNI_TOP, 320, (TAP[2] + CHAIN_ROWH / 2 + 14) - CNI_TOP];  // wraps every row + padding
+const CNI_X = CONTENT_R - 320;              // 820, so its chip can end on the content edge
+const CNI = [CNI_X, CNI_TOP, 320, (TAP[2] + CHAIN_ROWH / 2 + 14) - CNI_TOP];  // wraps every row + padding
 
 // Connector point arrays (each shared by the static wire and the packet that rides it).
 const RUN    = [[KUBE[0] + KUBE[2], ROW_Y], [CRI[0], ROW_Y]];          // Kubelet -> CRI
@@ -47,7 +49,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CNI plugin invocation: the kubelet asks the CRI runtime to create the Pod sandbox, the runtime invokes the CNI ADD operation, the plugin chain wires a veth and allocates an IP, and the result is written into the sandbox namespace as eth0',
+      'aria-label': 'CNI plugin invocation: the Kubelet asks the CRI runtime to create the Pod sandbox, the runtime invokes the CNI ADD operation, the plugin chain wires a veth and allocates an IP, and the result is written into the sandbox namespace as eth0',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -56,7 +58,7 @@ class Scene {
     const cri = box({ x: CRI[0], y: CRI[1], w: CRI[2], h: CRI[3], label: 'CRI . containerd', sublabel: 'sandbox runtime', role: 'network' });
 
     // Pod sandbox = a pod shell (loopback-only netns) wrapping an inner pause/eth0 box.
-    const sandboxShell = pod({ x: SBX[0], y: SBX[1], w: SBX[2], h: SBX[3], label: 'Pod Sandbox', sublabel: 'netns: lo only', containers: 0, role: 'network' });
+    const sandboxShell = pod({ x: SBX[0], y: SBX[1], w: SBX[2], h: SBX[3], label: 'Pod sandbox', sublabel: 'netns: lo only', containers: 0, role: 'network' });
     const sandboxRect = sandboxShell.querySelector('.scheme-pod-rect');
     if (sandboxRect) sandboxRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     const sandboxInner = box({ x: SBX[0] + 22, y: PAUSE_Y - 30, w: SBX[2] - 44, h: 60, label: 'pause', sublabel: 'eth0', role: 'network' });
@@ -69,7 +71,7 @@ class Scene {
     const cniBox = node({ x: CNI[0], y: CNI[1], w: CNI[2], h: CNI[3], label: 'CNI plugin' });
     const spineD = `M ${SPINE_X} ${TAP[0]} L ${SPINE_X} ${TAP[2]} `
       + TAP.map(y => `M ${SPINE_X} ${y} L ${CHAIN_X} ${y}`).join(' ');
-    const spine = path({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim', d: spineD, fill: 'none' });
+    const spine = relationPath({ d: spineD });
     const chain = chainList({
       x: CHAIN_X, y: CHAIN_Y, w: CHAIN_W, rowH: CHAIN_ROWH, gap: CHAIN_GAP, role: 'network',
       items: ['bridge: veth pair, attach cni0', 'host-local IPAM: 10.244.1.5', 'result: IP, routes, DNS'],
@@ -90,8 +92,10 @@ class Scene {
 
     // Status chips docked under the block each describes: the allocated Pod IP under the sandbox,
     // the live CNI operation under the plugin container.
-    const ipChip = valChip({ x: SBX[0], y: SBX[1] + SBX[3] + 12, w: SBX[2], h: 30, name: 'Pod IP', value: 'pending', role: 'network' });
-    const opChip = valChip({ x: CNI[0], y: CNI[1] + CNI[3] + 12, w: CNI[2], h: 30, name: 'CNI op', value: 'idle', role: 'network' });
+    // The two chips are hung on the content band, not on the blocks they caption, so the strip
+    // spans CONTENT_L..CONTENT_R and centres on the canvas without anything being stretched.
+    const ipChip = valChip({ x: CONTENT_L, y: SBX[1] + SBX[3] + 12, w: SBX_RIGHT - CONTENT_L, h: 30, name: 'Pod IP', value: 'pending', role: 'network' });
+    const opChip = valChip({ x: CNI[0], y: CNI[1] + CNI[3] + 12, w: CONTENT_R - CNI[0], h: 30, name: 'CNI op', value: 'idle', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -135,7 +139,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The kubelet has a Pod to run, but a container with no network is useless. Before any app container starts, the Pod needs a network namespace and an IP, and that wiring is delegated out to a CNI plugin.',
+    narration: 'The Kubelet has a Pod to run, but a container with no network is useless. Before any app container starts, the Pod needs a network namespace and an IP, and that wiring is delegated out to a CNI plugin.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -148,7 +152,7 @@ const STEPS = [
   {
     id: 'sandbox',
     duration: 2600,
-    narration: 'First the kubelet asks the CRI runtime, here containerd, to create the Pod sandbox. The runtime starts the pause container, which owns a fresh network namespace that every container in the Pod will share. For now that namespace holds loopback only and no Pod IP.',
+    narration: 'First the Kubelet asks the CRI runtime, here containerd, to create the Pod sandbox. The runtime starts the pause container, which owns a fresh network namespace that every container in the Pod will share. For now that namespace holds loopback only and no Pod IP.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -159,7 +163,7 @@ const STEPS = [
       setWire(s, 'run', 'RunPodSandbox');
       setWire(s, 'netns', 'create netns');
       s.refs.opChip.classList.add('highlight');
-      setVal(s.refs.opChip, 'RunPodSandbox');
+      setVal(s.refs.opChip, 'not called yet');
       setPodSublabel(s.refs.sandbox, 'netns: lo only');
       if (ctx.reduced) { s.refs.sandboxInner.classList.add('highlight'); return; }
       // kubelet calls the runtime, which then creates the sandbox: two chained hops, the sandbox
@@ -190,7 +194,7 @@ const STEPS = [
   {
     id: 'plugin-chain',
     duration: 2600,
-    narration: 'The bridge plugin creates a veth pair and attaches the host end to the cni0 bridge, then delegates to its IPAM plugin. host-local allocates 10.244.1.5 from this Node range and hands the address back.',
+    narration: 'The bridge plugin creates a veth pair and attaches the host end to the cni0 bridge, then delegates to its IPAM plugin. The host-local plugin allocates 10.244.1.5 from this Node range and hands the address back.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -210,7 +214,7 @@ const STEPS = [
   {
     id: 'result',
     duration: 2400,
-    narration: 'The chain finishes in the result plugin. It gathers everything that was produced, the IP, the routes and the DNS, into a single CNI result and hands that back up to the runtime.',
+    narration: 'The chain finishes and the plugin assembles a single CNI result. It carries everything that was produced, the IP, the routes and the DNS, and is handed back up to the runtime.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -252,7 +256,7 @@ const STEPS = [
   {
     id: 'join',
     duration: 2600,
-    narration: 'Only now does the kubelet start the app containers, and they join the namespace the sandbox already set up, so they all share that one Pod IP. When the Pod is later deleted, the runtime calls CNI DEL to release the address and remove the veth.',
+    narration: 'Only now does the Kubelet start the app containers, and they join the namespace the sandbox already set up, so they all share that one Pod IP. When the Pod is later deleted, the runtime calls CNI DEL to release the address and remove the veth.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -262,6 +266,7 @@ const STEPS = [
       setPodSublabel(s.refs.sandbox, 'eth0: 10.244.1.5');
       setVal(s.refs.ipChip, '10.244.1.5');
       setVal(s.refs.opChip, 'DEL on delete');
+      s.refs.opChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.sandboxInner.classList.add('highlight'); return; }
       // kubelet starts the app containers into the existing namespace: an L route, the sandbox
       // pulses as the containers join it (down-arrow, eased multi-point route, no explicit dur).

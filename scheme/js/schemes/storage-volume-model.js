@@ -1,6 +1,6 @@
 import { svg, g, text, path } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-model
 
 
@@ -66,12 +66,12 @@ class Scene {
     const shellWrap = g({});
     shellWrap.appendChild(shell);
 
-    const app  = containerBlock({ x: APP_X,  y: C_Y, w: C_W, h: C_H, label: 'App',         sublabel: 'mounts cache at /data' });
-    const side = containerBlock({ x: SIDE_X, y: C_Y, w: C_W, h: C_H, label: 'Log-Shipper', sublabel: 'mounts cache at /backup' });
+    const app  = containerBlock({ x: APP_X,  y: C_Y, w: C_W, h: C_H, label: 'app',         sublabel: 'mounts cache at /data' });
+    const side = containerBlock({ x: SIDE_X, y: C_Y, w: C_W, h: C_H, label: 'Log-shipper', sublabel: 'mounts cache at /backup' });
     const podGroup = g({});
     [shellWrap, app.wrap, side.wrap].forEach(el => podGroup.appendChild(el));
 
-    const volume = cylinder({ x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: 'Volume Cache', role: 'storage' });
+    const volume = cylinder({ x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: 'Volume cache', role: 'storage' });
     // The primitive centers the label on the raw bbox, which reads high because the top cap
     // ellipse is not part of the visible front face. Re-center on the face (below the cap).
     const volLbl = volume.querySelector('.scheme-cylinder-label');
@@ -91,7 +91,7 @@ class Scene {
     const ownLbl = text({ class: 'scheme-label code dim', x: SPINE_X + 16, y: 374, 'text-anchor': 'start' }, ['belongs to Pod']);
 
     const volChip   = valChip({ x: 110, y: CHIPS_Y, w: 250, h: 34, name: 'volume', value: 'declared',            role: 'storage' });
-    const mountChip = valChip({ x: 380, y: CHIPS_Y, w: 430, h: 34, name: 'mounts', value: 'App /data  Log /backup', role: 'storage' });
+    const mountChip = valChip({ x: 380, y: CHIPS_Y, w: 430, h: 34, name: 'mounts', value: 'app /data  log /backup', role: 'storage' });
     const dataChip  = valChip({ x: 830, y: CHIPS_Y, w: 260, h: 34, name: 'data',   value: 'empty',               role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
@@ -140,7 +140,7 @@ function clearHL(s) {
     .forEach(el => { el.style.opacity = '1'; });
 }
 
-const MOUNTS = 'App /data  Log /backup';
+const MOUNTS = 'app /data  log /backup';
 
 const STEPS = [
   {
@@ -157,7 +157,7 @@ const STEPS = [
   {
     id: 'declare',
     duration: 2200,
-    narration: 'The declaration lives at Pod level. spec.volumes names the volume once, cache, and that one declaration is what every container in the Pod is allowed to reach. Nothing is mounted yet, the volume simply exists as part of the Pod.',
+    narration: 'The declaration lives at Pod level. The spec.volumes list names the volume once, cache, and that one declaration is what every container in the Pod is allowed to reach. Nothing is mounted yet, the volume simply exists as part of the Pod.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -179,15 +179,15 @@ const STEPS = [
       // Both containers mount the volume, so all three light for the whole step (static, so it also
       // holds under reduced motion). The Pod pulse fires at the same instant, one beat.
       s.refs.volume.classList.add('highlight');
-      s.refs.appBox.classList.add('highlight');
-      s.refs.sideBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.appBox.classList.add('highlight'); s.refs.sideBox.classList.add('highlight'); return; }
       pulsePod(s.refs.shellWrap, ctx, 0);
       // The two mounts leave the volume sides and rise into the containers in lockstep (the lanes
       // are mirror images, so routeDur gives them the same duration). Mounts ride the UP lanes.
-      routePacket(s, ctx, LANE_APP_UP, { role: 'storage' });
+      const appBoxPkt = routePacket(s, ctx, LANE_APP_UP, { role: 'storage' });
+      lightBoxAt(s.refs.appBox, ctx, appBoxPkt.arrivalMs);
       ridingLabel(s, ctx, 'mount at /data', LANE_APP_UP);
-      routePacket(s, ctx, LANE_SIDE_UP, { role: 'storage' });
+      const sideBoxPkt = routePacket(s, ctx, LANE_SIDE_UP, { role: 'storage' });
+      lightBoxAt(s.refs.sideBox, ctx, sideBoxPkt.arrivalMs);
       ridingLabel(s, ctx, 'mount at /backup', LANE_SIDE_UP);
     },
   },
@@ -204,32 +204,32 @@ const STEPS = [
       // stay lit for the entire step. The Pod pulses at the same instant.
       s.refs.volume.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
-      s.refs.sideBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
       pulsePod(s.refs.shellWrap, ctx, 0);
       // The app write descends its DOWN lane into the volume side, then the log shipper reads the
       // same bytes back out of the far side and up its own UP lane.
       const write = routePacket(s, ctx, LANE_APP_DOWN, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'write foo', LANE_APP_DOWN, { delay: BEAT.afterPulse });
-      routePacket(s, ctx, LANE_SIDE_UP, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
+      const sideBoxPkt = routePacket(s, ctx, LANE_SIDE_UP, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
+      lightBoxAt(s.refs.sideBox, ctx, sideBoxPkt.arrivalMs);
       ridingLabel(s, ctx, 'read foo', LANE_SIDE_UP, { delay: write.arrivalMs + BEAT.afterHop });
     },
   },
   {
     id: 'restart',
     duration: 2800,
-    narration: 'The volume outlives a container. When the app container crashes and kubelet restarts it, the fresh container remounts the same volume and foo is still there. A container is disposable, the Pod volume is not.',
+    narration: 'The volume outlives a container. When the app container crashes and Kubelet restarts it, the fresh container remounts the same volume and foo is still there. A container is disposable, the Pod volume is not.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { vol: 'survives restart', mounts: MOUNTS, data: 'foo intact' });
       s.refs.volume.classList.add('highlight');
-      s.refs.appBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.appBox.classList.add('highlight'); return; }
       pulsePod(s.refs.shellWrap, ctx, 0);
       // The fresh container re-reads foo from the untouched volume, up the app UP lane.
-      routePacket(s, ctx, LANE_APP_UP, { delay: BEAT.afterPulse, role: 'storage' });
+      const appBoxPkt = routePacket(s, ctx, LANE_APP_UP, { delay: BEAT.afterPulse, role: 'storage' });
+      lightBoxAt(s.refs.appBox, ctx, appBoxPkt.arrivalMs);
       ridingLabel(s, ctx, 'foo still here', LANE_APP_UP, { delay: BEAT.afterPulse });
     },
   },
@@ -243,10 +243,10 @@ const STEPS = [
       clearWires(s);
       setChips(s, { vol: 'gone with Pod', mounts: 'unmounted', data: 'lost' });
       const GONE = [s.refs.pod, s.refs.volume, s.refs.spine, s.refs.wAppUp, s.refs.wAppDown, s.refs.wSideUp, s.refs.wSideDown, s.refs.ownLbl];
-      GONE.forEach(el => { el.style.opacity = '0.25'; });
+      GONE.forEach(el => { el.style.opacity = String(OPACITY.terminated); });
       if (ctx.reduced) return;
       GONE.forEach(el => {
-        ctx.register(el.animate([{ opacity: 1 }, { opacity: 0.25 }], { duration: FADE.out, easing: 'ease-in' }));
+        ctx.register(el.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, easing: 'ease-in' }));
       });
     },
   },

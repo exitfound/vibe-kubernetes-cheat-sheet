@@ -210,7 +210,7 @@ svg.diagram {
 .scheme-chip[data-role="storage"].highlight   { color: var(--storage-color); }
 .scheme-chip[data-role="workloads"].highlight { color: var(--workloads-color); }
 
-/* Outline highlight variant — thin dim baseline, bright clean border on active.
+/* Outline highlight variant: thin dim baseline, bright clean border on active.
    Opt in per-scheme by adding data-style="outline" on the root <svg>. */
 svg.diagram[data-style="outline"] .scheme-box-rect,
 svg.diagram[data-style="outline"] .scheme-cylinder-body,
@@ -232,6 +232,8 @@ svg.diagram[data-style="outline"] .scheme-pod.highlight .scheme-pod-rect {
 }
 
 /* Generic dim/active states */
+/* Texture cells (the IPVS hash table): presentation, not a lifecycle shade. */
+.scheme-grid-cell { opacity: 0.4; }
 .scheme-dim { opacity: 0.35; }
 .scheme-hidden { opacity: 0; }
 

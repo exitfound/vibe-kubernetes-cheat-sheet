@@ -1,6 +1,6 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, FADE, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, FADE, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-service-terminating-endpoints
 
 
@@ -14,7 +14,6 @@ const PODA_CY = 168, PODC_CY = 484;
 const BUS_X = 770;                       // shared vertical bus: the fans turn here so each one enters
                                          // its Pod horizontally, a right-angle approach not a diagonal
 const PULSE_MS = 900;                    // PULSE_POD.ms: web-c fades only after its pulse completes
-const DIM = 0.5;                         // single dim level for web-c once it is terminating: one shade
 const LANE  = [[CLIENT_EDGE, FLOW_Y], [KP_LEFT, FLOW_Y]];                                              // client -> kube-proxy
 const FAN_A = [[KP_RIGHT, FLOW_Y - 14], [BUS_X, FLOW_Y - 14], [BUS_X, PODA_CY], [POD_LEFT, PODA_CY]];  // kube-proxy -> web-a
 const FAN_C = [[KP_RIGHT, FLOW_Y + 14], [BUS_X, FLOW_Y + 14], [BUS_X, PODC_CY], [POD_LEFT, PODC_CY]];  // kube-proxy -> web-c
@@ -50,7 +49,7 @@ class Scene {
 
     const client = podBlock({ x: 70, y: 270, w: 185, h: 112, label: 'Client Pod', ip: '10.244.1.5' });
     const kproxy = box({ x: KP_LEFT, y: 286, w: KP_RIGHT - KP_LEFT, h: 80, label: 'kube-proxy', sublabel: 'routes new connections', role: 'network' });
-    const podA = podBlock({ x: POD_LEFT, y: PODA_CY - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web-a', ip: '10.244.1.5 · ready' });
+    const podA = podBlock({ x: POD_LEFT, y: PODA_CY - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web-a', ip: '10.244.2.7 · ready' });
     const podC = podBlock({ x: POD_LEFT, y: PODC_CY - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web-c', ip: '10.244.3.9 · ready' });
 
     const laneWire = arrow({ x1: LANE[0][0], y1: LANE[0][1], x2: LANE[1][0], y2: LANE[1][1], dashed: true, dim: true, role: 'network' });
@@ -110,7 +109,7 @@ const STEPS = [
   },
   {
     id: 'steady',
-    duration: 3000,
+    duration: 3500,
     narration: 'Both Pods are Ready endpoints in the slice, so kube-proxy spreads new connections across the two of them. This is the normal state, before anything starts to change.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -134,38 +133,42 @@ const STEPS = [
   {
     id: 'terminate',
     duration: 2400,
-    narration: 'The rollout deletes Pod web-c. The kubelet sends it SIGTERM and runs its preStop hook, but the container does not vanish at once. It enters Terminating and keeps serving whatever it is already handling.',
+    narration: 'The rollout deletes Pod web-c. The Kubelet runs its preStop hook first, then sends SIGTERM, but the container does not vanish at once. It enters Terminating and keeps serving whatever it is already handling.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       setVal(s.refs.condChip, 'terminating · serving');
+      s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a and web-c');
       setVal(s.refs.graceChip, 'terminationGracePeriod 30s');
+      s.refs.graceChip.classList.add('highlight');
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
       // Static end-state: web-c has taken the signal and dimmed out of the normal set.
-      s.refs.podC.style.opacity = String(DIM);
+      s.refs.podC.style.opacity = String(OPACITY.terminating);
       if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); return; }
       // web-c starts calm at full opacity, pulses as it receives SIGTERM, THEN fades out to the dimmed
       // end-state (pulse first, dim after, never the reverse). No packet on this step.
       s.refs.podC.style.opacity = '1';
       pulsePod(s.refs.podC, ctx, 0);
-      ctx.register(s.refs.podC.animate([{ opacity: 1 }, { opacity: DIM }], { duration: FADE.out, delay: PULSE_MS, fill: 'forwards', easing: 'ease-in' }));
+      ctx.register(s.refs.podC.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: PULSE_MS, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
     id: 'condition',
-    duration: 2600,
-    narration: 'Almost at once the EndpointSlice controller flips that endpoint: ready becomes false while serving and terminating stay true. kube-proxy reads the change and stops handing NEW connections to web-c, so fresh traffic now goes to web-a only.',
+    duration: 3500,
+    narration: 'Almost at once the EndpointSlice controller flips that endpoint: ready becomes false while serving and terminating stay true. The kube-proxy reads the change and stops handing NEW connections to web-c, so fresh traffic now goes to web-a only.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       s.refs.kproxy.classList.add('highlight');
       setVal(s.refs.condChip, 'notReady · serving');
+      s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a only');
+      s.refs.newChip.classList.add('highlight');
       setVal(s.refs.graceChip, 'terminationGracePeriod 30s');
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
       // web-c is out of the new-connection set: keep it dim at the shared DIM level.
-      s.refs.podC.style.opacity = String(DIM);
+      s.refs.podC.style.opacity = String(OPACITY.terminating);
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
       // A new connection now lands on web-a only: client pulses, packet runs the lane then the web-a
       // fan, and web-a pulses on arrival. No ball goes to web-c, which is the whole point.
@@ -186,10 +189,12 @@ const STEPS = [
       clearHL(s);
       s.refs.kproxy.classList.add('highlight');
       setVal(s.refs.condChip, 'notReady · draining');
+      s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a only');
       setVal(s.refs.graceChip, 'draining in grace window');
+      s.refs.graceChip.classList.add('highlight');
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
-      s.refs.podC.style.opacity = String(DIM);
+      s.refs.podC.style.opacity = String(OPACITY.terminating);
       if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
       const drain = routePacket(s, ctx, FAN_C, { delay: 0, role: 'network' });
       ridingLabel(s, ctx, 'in-flight', FAN_C, { delay: 0, easing: 'ease-in-out' });
@@ -205,19 +210,21 @@ const STEPS = [
   },
   {
     id: 'gone',
-    duration: 2600,
+    duration: 3500,
     narration: 'When the grace period ends web-c exits, the controller removes its endpoint from the slice, and the replacement Pod started by the ReplicaSet is already Ready in its place. Traffic carried on throughout, and no client saw a reset.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       s.refs.kproxy.classList.add('highlight');
       setVal(s.refs.condChip, 'removed');
+      s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a + replica');
+      s.refs.newChip.classList.add('highlight');
       setVal(s.refs.graceChip, 'grace elapsed');
+      s.refs.graceChip.classList.add('highlight');
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminated');
-      // web-c is gone: hold the same DIM shade as the terminating steps (the removal reads from the
-      // chip and sublabel, not from a darker fade, so the dim never changes tone between steps).
-      s.refs.podC.style.opacity = String(DIM);
+      // web-c is gone, so it drops from the terminating shade to the terminated one.
+      s.refs.podC.style.opacity = String(OPACITY.terminated);
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
       // Service carries on: a new connection lands on web-a and it pulses on arrival.
       pulsePod(s.refs.client, ctx, 0);

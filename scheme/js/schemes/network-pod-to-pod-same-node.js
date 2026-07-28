@@ -34,7 +34,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod-to-Pod traffic on the same node: Pod A reaches Pod B through the cni0 bridge over a pair of veth links, with no NAT and no encapsulation',
+      'aria-label': 'Pod-to-Pod traffic on the same Node: Pod A reaches Pod B through the cni0 bridge over a pair of veth links, with no NAT and no encapsulation',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -104,7 +104,7 @@ const STEPS = [
   },
   {
     id: 'arp',
-    duration: 4400,
+    duration: 5300,
     narration: 'A does not yet know the MAC behind 10.244.1.6, so it broadcasts an ARP request out eth0. The veth peer hands it to cni0, the Node Linux bridge, which floods it out every other port. B sees its own IP and unicasts an ARP reply with its MAC back to A, and from that reply the bridge learns which port B sits on.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -127,7 +127,7 @@ const STEPS = [
   },
   {
     id: 'forward',
-    duration: 2900,
+    duration: 3500,
     narration: 'With the MAC for B resolved and its bridge port learned, A sends the actual data frame as a unicast. It crosses the veth onto cni0, which switches it straight out the veth peer to B eth0. This is plain layer 2 forwarding inside the Node, so the packet never touches the physical NIC.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();

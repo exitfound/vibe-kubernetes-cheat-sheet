@@ -137,7 +137,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Node volume attach limits. Every node has a hard ceiling on how many volumes one CSI driver may have attached to it at once. The CSI node plugin answers NodeGetInfo with max_volumes_per_node, kubelet writes that number into the node CSINode object as allocatable.count, and the scheduler filter NodeVolumeLimits is the only thing that reads it. Here three nodes each report a ceiling of eight, so the cluster has twenty four attachment slots. As claims are provisioned the nodes walk up to eight of eight and the cluster runs out of slots. Pod web-0 is then created, asks for one volume, and the filter rejects every node, so the Pod sits in Pending reporting that the nodes exceed max volume count even though every node has spare CPU and spare memory. The count covers the volumes of Pods assigned to a node plus every VolumeAttachment still live on it, so a slot is freed only when a detach completes and its VolumeAttachment is deleted, not when a Pod dies. The Pod schedules on the next attempt after one detach finishes on node-3. The levers are fewer volumes per Pod, more nodes, or a node pool whose instance type reports a higher ceiling.',
+      'aria-label': 'Node volume attach limits. Every Node has a hard ceiling on how many volumes one CSI driver may have attached to it at once. The CSI node plugin answers NodeGetInfo with max_volumes_per_node, Kubelet writes that number into the Node CSINode object as allocatable.count, and the scheduler filter NodeVolumeLimits is the only thing that reads it. Here three Nodes each report a ceiling of eight, so the cluster has twenty four attachment slots. As claims are provisioned the Nodes walk up to eight of eight and the cluster runs out of slots. Pod web-0 is then created, asks for one volume, and the filter rejects every Node, so the Pod sits in Pending reporting that the Nodes exceed max volume count even though every Node has spare CPU and spare memory. The count covers the volumes of Pods assigned to a Node plus every VolumeAttachment still live on it, so a slot is freed only when a detach completes and its VolumeAttachment is deleted, not when a Pod dies. The Pod schedules on the next attempt after one detach finishes on Node-3. The levers are fewer volumes per Pod, more Nodes, or a Node pool whose instance type reports a higher ceiling.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -241,7 +241,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Every node has a hard ceiling on how many volumes one CSI driver may have attached to it at once, and it has nothing to do with CPU or memory. Here three nodes each report a ceiling of eight, so the cluster holds twenty four slots and four are in use. Nothing about this number is on a dashboard.',
+    narration: 'Every Node has a hard ceiling on how many volumes one CSI driver may have attached to it at once, and it has nothing to do with CPU or memory. Here three Nodes each report a ceiling of eight, so the cluster holds twenty four slots and four are in use. Nothing about this number is on a dashboard.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -254,7 +254,7 @@ const STEPS = [
   {
     id: 'cap',
     duration: 2800,
-    narration: 'The ceiling is not a Kubernetes setting. The CSI node plugin answers NodeGetInfo with max_volumes_per_node, and kubelet writes that number into the CSINode object for its own node, as allocatable.count. Real drivers report anything from a handful on a small VM to a hundred and twenty seven on GCE.',
+    narration: 'The ceiling is not a Kubernetes setting. The CSI node plugin answers NodeGetInfo with max_volumes_per_node, and Kubelet writes that number into the CSINode object for its own Node, as allocatable.count. Real drivers report anything from a handful on a small VM to a hundred and twenty seven on GCE.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -276,7 +276,7 @@ const STEPS = [
     duration: 2600,
     // Packet-less and Pod-less, and it does not need the sanctioned block flash: the slots filling IS
     // the motion, and it is the only step on the card where the gauge moves on its own.
-    narration: 'Now the cluster fills. More Pods with claims are provisioned, more disks attach, and every node walks up to its own ceiling: eight of eight on all three, twenty four of twenty four across the cluster. No alarm fires, because a node sitting exactly at its ceiling is a healthy node.',
+    narration: 'Now the cluster fills. More Pods with claims are provisioned, more disks attach, and every Node walks up to its own ceiling: eight of eight on all three, twenty four of twenty four across the cluster. No alarm fires, because a Node sitting exactly at its ceiling is a healthy Node.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -300,7 +300,7 @@ const STEPS = [
   {
     id: 'ask',
     duration: 3000,
-    narration: 'Now Pod web-0 is created and it asks for one volume of its own. Before the scheduler can score any node it has to filter out the ones that cannot take the Pod at all, and one filter exists purely for this ceiling. It is called NodeVolumeLimits, and it skips Pods that ask for no volumes.',
+    narration: 'Now Pod web-0 is created and it asks for one volume of its own. Before the scheduler can score any Node it has to filter out the ones that cannot take the Pod at all, and one filter exists purely for this ceiling. It is called NodeVolumeLimits, and it skips Pods that ask for no volumes.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -322,7 +322,7 @@ const STEPS = [
   {
     id: 'filter',
     duration: 3200,
-    narration: 'The filter reads allocatable.count out of each CSINode and compares it with what that node already owes: the volumes of the Pods assigned to it, plus every VolumeAttachment still live on it. Eight against a ceiling of eight, so all three are rejected before scoring runs at all.',
+    narration: 'The filter reads allocatable.count out of each CSINode and compares it with what that Node already owes: the volumes of the Pods assigned to it, plus every VolumeAttachment still live on it. Eight against a ceiling of eight, so all three are rejected before scoring runs at all.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -345,7 +345,7 @@ const STEPS = [
   {
     id: 'reject',
     duration: 3000,
-    narration: 'So web-0 stays Pending, and its event reads zero of three nodes are available, three nodes exceed max volume count. Every one of those nodes has spare CPU and spare memory, which is what makes this hard to recognise: the cluster looks half empty and the Pod will not schedule.',
+    narration: 'So web-0 stays Pending, and its event reads zero of three Nodes are available, three Nodes exceed max volume count. Every one of those Nodes has spare CPU and spare memory, which is what makes this hard to recognise: the cluster looks half empty and the Pod will not schedule.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -365,7 +365,7 @@ const STEPS = [
     duration: 3400,
     // The senior edge, and the reason this is not simply a capacity-planning card. A slot is held by
     // an ATTACHMENT, not by a Pod, so the two are not freed at the same moment.
-    narration: 'What clears it is a detach completing. The slot is held by the VolumeAttachment, not by the Pod, so deleting a Pod frees nothing until that object is gone, and a detach takes seconds to tens of seconds. One finishes on node-3, the count drops to seven, and web-0 is placed there at once.',
+    narration: 'What clears it is a detach completing. The slot is held by the VolumeAttachment, not by the Pod, so deleting a Pod frees nothing until that object is gone, and a detach takes seconds to tens of seconds. One finishes on Node-3, the count drops to seven, and web-0 is placed there at once.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -377,10 +377,10 @@ const STEPS = [
       if (ctx.reduced) return;
       const slot = s.refs.nodes[2].slots[SLOT_N - 1];
       const cnt = s.refs.nodes[2].counter;
-      const free = slot.animate([{ opacity: 1 }, { opacity: 0.12 }], { duration: FADE.out, delay: 200, fill: 'forwards', easing: 'ease-in' });
+      const free = slot.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: 200, fill: 'forwards', easing: 'ease-in' });
       free.onfinish = () => setBoxLabel(cnt, '7 of ' + SLOT_N);
       ctx.register(free);
-      const take = slot.animate([{ opacity: 0.12 }, { opacity: 1 }], { duration: 400, delay: 1600, fill: 'forwards', easing: 'ease-out' });
+      const take = slot.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: 1600, fill: 'forwards', easing: 'ease-out' });
       take.onfinish = () => setBoxLabel(cnt, SLOT_N + ' of ' + SLOT_N);
       ctx.register(take);
       pulsePod(s.refs.podNew, ctx, 2000);
@@ -389,7 +389,7 @@ const STEPS = [
   {
     id: 'fix',
     duration: 3400,
-    narration: 'Every lever here is about the ceiling and none is about CPU. Fewer volumes per Pod is the cheapest, since a Pod mounting four claims eats four slots wherever it lands. More nodes buys more slots, and an instance type that reports a higher ceiling buys more per node.',
+    narration: 'Every lever here is about the ceiling and none is about CPU. Fewer volumes per Pod is the cheapest, since a Pod mounting four claims eats four slots wherever it lands. More Nodes buys more slots, and an instance type that reports a higher ceiling buys more per Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -39,7 +39,7 @@ class Scene {
 
     const client = box({ x: 70, y: 276, w: 200, h: 72, label: 'Client', sublabel: 'browser · https', role: 'network' });
     const secret = box({ x: 470, y: 150, w: 240, h: 56, label: 'TLS Secret', sublabel: 'cert + private key', role: 'network' });
-    const ingress = box({ x: ING_LEFT, y: 276, w: 240, h: 72, label: 'Ingress Controller', sublabel: 'TLS terminate', role: 'network' });
+    const ingress = box({ x: ING_LEFT, y: 276, w: 240, h: 72, label: 'Ingress controller', sublabel: 'TLS terminate', role: 'network' });
     const podX = podBlock({ x: 910, y: 252, w: 210, h: 120, label: 'Pod web', ip: '10.244.2.7' });
 
     const cWire = arrow({ x1: CLIENT_EDGE, y1: FLOW_Y, x2: ING_LEFT, y2: FLOW_Y, dashed: true, dim: true, role: 'network' });
@@ -103,7 +103,6 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setWire(s, 'c', 'TLS handshake · https');
-      s.refs.ingress.classList.add('highlight');
       s.refs.secret.classList.add('highlight');
       s.refs.schemeChip.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
@@ -111,7 +110,8 @@ const STEPS = [
       setVal(s.refs.schemeChip, 'https');
       setVal(s.refs.tlsChip, 'handshake');
       setVal(s.refs.certChip, 'presented');
-      if (ctx.reduced) { s.refs.client.classList.add('highlight'); return; }
+      s.refs.client.classList.add('highlight');
+      if (ctx.reduced) { s.refs.ingress.classList.add('highlight'); return; }
       // No Pod on this leg: the client and ingress are infra. The encrypted hello rides client ->
       // ingress, which lights on arrival along with the Secret it pulled the cert from.
       const hello = segmentPacket(s, ctx, { from: [CLIENT_EDGE, FLOW_Y], to: [ING_LEFT, FLOW_Y], role: 'network' });
@@ -147,6 +147,7 @@ const STEPS = [
       s.refs.ingress.classList.add('highlight');
       s.refs.backChip.classList.add('highlight');
       setVal(s.refs.schemeChip, 'http');
+      s.refs.schemeChip.classList.add('highlight');
       setVal(s.refs.backChip, 'Pod :8080');
       if (ctx.reduced) { s.refs.podXBox.classList.add('highlight'); return; }
       // The plaintext request leaves the ingress and is delivered to the backend Pod, which pulses
@@ -167,6 +168,7 @@ const STEPS = [
       s.refs.tlsChip.classList.add('highlight');
       setVal(s.refs.tlsChip, 'terminate / re-encrypt / passthru');
       setVal(s.refs.schemeChip, 'http or https');
+      s.refs.schemeChip.classList.add('highlight');
       setVal(s.refs.backChip, 'Pod :8080');
       if (ctx.reduced) return;
       // No new traffic: the backend Pod pulses to mark where passthrough would move termination to.

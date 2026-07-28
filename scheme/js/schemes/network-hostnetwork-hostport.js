@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-hostnetwork-hostport
 
 
@@ -35,21 +35,26 @@ const AGENT_X = COL3_CX - POD_W / 2;           // 855
 const BR_W = 200, BR_H = 60;
 const BR_X = COL2_CX - BR_W / 2;               // 500
 const BR_TOP = POD_CY - BR_H / 2;              // 465
+// Two routes reach the bridge from above, the ordinary one straight off the NIC and the rewritten
+// one off the portmap rule. They land as a mirrored pair either side of the bridge midpoint rather
+// than one on it and one beside it.
+const BR_IN_DX = 20;
+const BR_IN_ORD = COL2_CX + BR_IN_DX;          // 620, the ordinary route
+const BR_IN_PM = COL2_CX - BR_IN_DX;           // 580, the portmap route
 
 const BUS_Y = (R1_BOTTOM + R2_Y) / 2;          // 417, the lane between the two rows
 const CHIP_Y = 590, CHIP_H = 34;
 const SCHEME_LEFT = NODE_X;                    // 40
 const SCHEME_RIGHT = NODE_X + NODE_W;          // 1160
 
-const DIM = '0.4';
 
 // Each static wire and the ball that rides it share the same points array. The three NIC exits are one
 // per direction, and the rule rejoins the ordinary path on the bus between the rows.
 const ENTRY = [[COL2_CX, CLIENT_BOTTOM], [COL2_CX, R1_Y]];               // LAN client -> the Node NIC
 const TO_PM = [[ETH_X, R1_CY], [PM_RIGHT, R1_CY]];                       // NIC -> the portmap rule
 const TO_AGENT = [[ETH_RIGHT, R1_CY], [COL3_CX, R1_CY], [COL3_CX, R2_Y]];// NIC -> the hostNetwork Pod
-const TO_BRIDGE = [[COL2_CX, R1_BOTTOM], [COL2_CX, BR_TOP]];             // NIC -> the bridge, ordinary route
-const PM_TO_BRIDGE = [[COL1_CX, R1_BOTTOM], [COL1_CX, BUS_Y], [560, BUS_Y], [560, BR_TOP]];
+const TO_BRIDGE = [[BR_IN_ORD, R1_BOTTOM], [BR_IN_ORD, BR_TOP]];         // NIC -> the bridge, ordinary route
+const PM_TO_BRIDGE = [[COL1_CX, R1_BOTTOM], [COL1_CX, BUS_Y], [BR_IN_PM, BUS_Y], [BR_IN_PM, BR_TOP]];
 const VETH = [[BR_X, POD_CY], [APP_RIGHT, POD_CY]];                      // bridge -> Pod app, the veth pair
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
@@ -93,7 +98,9 @@ class Scene {
 
     const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, role: 'network' });
     const pmWire = arrow({ x1: TO_PM[0][0], y1: TO_PM[0][1], x2: TO_PM[1][0], y2: TO_PM[1][1], dashed: true, dim: true, role: 'network' });
-    const brWire = arrow({ x1: TO_BRIDGE[0][0], y1: TO_BRIDGE[0][1], x2: TO_BRIDGE[1][0], y2: TO_BRIDGE[1][1], dashed: true, dim: true, role: 'network' });
+    // The ordinary route is a relationship, not a route: no ball ever rides it on any step, so it
+    // carries no arrowhead. An arrowhead with no traffic under it reads as traffic.
+    const brWire = relationPath({ points: TO_BRIDGE, role: 'network', dash: '5 5' });
     const vethWire = arrow({ x1: VETH[0][0], y1: VETH[0][1], x2: VETH[1][0], y2: VETH[1][1], dashed: true, dim: true, role: 'network' });
     const agentWire = pathArrow({ points: TO_AGENT, dashed: true, dim: true, role: 'network' });
     const pmBrWire = pathArrow({ points: PM_TO_BRIDGE, dashed: true, dim: true, role: 'network' });
@@ -144,7 +151,7 @@ function clearHL(s) {
 // hostNetwork Pod uses, so those blocks dim while that case is on screen, and the other way round.
 function only(s, which) {
   const idle = which === 'hostnet' ? ['podApp', 'bridge', 'portmap'] : ['podAgent'];
-  idle.forEach(k => { s.refs[k].style.opacity = DIM; });
+  idle.forEach(k => { s.refs[k].style.opacity = String(OPACITY.notready); });
 }
 
 const STEPS = [
@@ -181,6 +188,7 @@ const STEPS = [
       setVal(s.refs.ipChip, '192.168.1.20 (Node)');
       setVal(s.refs.vethChip, 'none');
       setVal(s.refs.portChip, 'Node IP :80');
+      s.refs.portChip.classList.add('highlight');
       s.refs.client.classList.add('highlight');
       s.refs.nsChip.classList.add('highlight');
       s.refs.ipChip.classList.add('highlight');
@@ -223,7 +231,7 @@ const STEPS = [
     // Motion: entry(700) + beat + rule hop(700) + beat + rewrite route(700) + beat + veth(700) = 3100,
     // then the Pod pulse (900) ends at 4000. The floor leaves a settle.
     duration: 4400,
-    narration: 'hostPort is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds one DNAT rule on the Node: anything arriving at 192.168.1.20:8080 is rewritten to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN and still never learns that it was.',
+    narration: 'The hostPort field is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds one DNAT rule on the Node: anything arriving at 192.168.1.20:8080 is rewritten to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN and still never learns that it was.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -232,7 +240,9 @@ const STEPS = [
       setBoxSublabel(s.refs.portmap, 'nodeIP:8080 -> pod:80');
       setPodSublabel(s.refs.podApp, '10.244.1.5 · hostPort 8080');
       setVal(s.refs.nsChip, 'own');
+      s.refs.nsChip.classList.add('highlight');
       setVal(s.refs.ipChip, '10.244.1.5');
+      s.refs.ipChip.classList.add('highlight');
       setVal(s.refs.vethChip, 'yes');
       setVal(s.refs.portChip, 'Node IP :8080');
       setWire(s, 'veth', 'veth pair');
@@ -272,7 +282,9 @@ const STEPS = [
       setPodSublabel(s.refs.podApp, '10.244.1.5 · hostPort 8080');
       setVal(s.refs.nsChip, 'own or the Node one');
       setVal(s.refs.ipChip, 'Pod IP or Node IP');
+      s.refs.ipChip.classList.add('highlight');
       setVal(s.refs.vethChip, 'yes or none');
+      s.refs.vethChip.classList.add('highlight');
       setVal(s.refs.portChip, 'one per Node either way');
       setWire(s, 'veth', 'veth pair');
       s.refs.nsChip.classList.add('highlight');

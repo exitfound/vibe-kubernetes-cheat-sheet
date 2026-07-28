@@ -1,16 +1,16 @@
-import { g, rect, text, circle } from './svg.js';
+import { g, rect, text, circle, path } from './svg.js';
 import { packet, animateAlong } from './primitives.js';
 import { Timeline } from './timeline.js';
 import { PULSE_POD, PULSE_BLOCK, OPACITY } from './tokens.js';
-export { FADE, BEAT } from './tokens.js';
+export { FADE, BEAT, OPACITY } from './tokens.js';
 // Design notes: scheme/docs/INTERNALS.md#schemejslibscheme-kitjs
 
 // ---- geometry constants ----
 // Not exported: only the connector wrappers below read it, and no card ever did.
+// The two connector routes that used to live here were the 320 gutter: one hardcoded left-margin
+// dogleg shared by every workloads card. They are gone, each card owns its spine, and the ball
+// rides the same points array the wire is drawn from. See WL in workloads-kit.js.
 const LAYOUT = Object.freeze({
-  VIEWBOX: '0 0 1200 640',
-  CONNECTOR_DOWN: [[320, 80], [280, 80], [280, 550], [320, 550]],
-  CONNECTOR_UP:   [[320, 550], [280, 550], [280, 80], [320, 80]],
   POD_SHELL_FILL: 'rgba(255, 255, 255, 0.03)',
 });
 
@@ -111,7 +111,7 @@ export function pulsePodWithTint(podEl, ctx, delay, { persist = false } = {}, ti
     ctx.register(el.animate(BRIGHTNESS_FRAMES, { duration: PULSE_POD.ms, delay, fill: 'forwards', easing: 'ease-in-out' }));
   }
 }
-export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.booting, peak = OPACITY.partial, dur = PULSE_POD.ms } = {}, tint) {
+export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending, peak = PULSE_POD.dimPeak, dur = PULSE_POD.ms } = {}, tint) {
   if (!podEl) return;
   pulsePodWithTint(podEl, ctx, delay, {}, tint);
   ctx.register(podEl.animate(
@@ -163,6 +163,20 @@ export function makeRidingLabel({
     ctx.register(animateAlong(lbl, points, { duration: d, delay, easing: ease }));
     ctx.register(lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: outMs, delay: delay + d + hold, fill: 'forwards', easing: 'ease-in' }));
   };
+}
+
+// A RELATIONSHIP line: a wire that carries no ball on any step. It must not take an arrowhead,
+// because a marker with no traffic under it reads as traffic, and `arrow()` / `pathArrow()` always
+// attach one. Written 2026-07-27 to retire 29 hand-rolled copies of the same class string across
+// 26 cards, which had already drifted (some omitted the role suffix, some the dasharray).
+// Pass `points` for the ordinary case; `d` is for the few cards that build a multi-subpath spine.
+export function relationPath({ points, d, role = null, dash = null }) {
+  const cls = ['scheme-arrow', 'scheme-arrow-dashed', 'scheme-arrow-dim'];
+  if (role) cls.push(`scheme-arrow-${role}`);
+  const attrs = { class: cls.join(' '), fill: 'none' };
+  attrs.d = d !== undefined ? d : points.map(([px, py], i) => `${i ? 'L' : 'M'} ${px} ${py}`).join(' ');
+  if (dash) attrs['stroke-dasharray'] = dash;
+  return path(attrs);
 }
 
 export function lightBoxAt(boxEl, ctx, delay = 0) {
@@ -234,14 +248,6 @@ export function arrivalRipple(packetLayer, ctx, point, delay, role = '') {
     ],
     { duration: 560, delay, fill: 'forwards', easing: 'ease-out' }
   ));
-}
-// Canonical left-margin connector, top->node (animateAlong). dur omitted => routeDur.
-export function connectorPacket(s, ctx, { delay = 0, dur = null, role = '' } = {}) {
-  return packetAlong(s.refs.packetLayer, ctx, LAYOUT.CONNECTOR_DOWN, { delay, dur, role });
-}
-export function connectorPacketDir(s, ctx, dir, { delay = 0, dur = null, easing = 'ease-in-out', offsets = null, role = '' } = {}) {
-  const pts = dir === 'up' ? LAYOUT.CONNECTOR_UP : LAYOUT.CONNECTOR_DOWN;
-  return packetAlong(s.refs.packetLayer, ctx, pts, { delay, dur, easing, offsets, role });
 }
 // Short packet on a top arrow (animateAlong). fadeIn only when delayed (matches the cards).
 export function topPacket(s, ctx, { from = 540, to = 580, y = 65, delay = 0, dur = HOP_MS, role = '' } = {}) {

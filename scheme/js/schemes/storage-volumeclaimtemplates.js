@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volumeclaimtemplates
 
 
@@ -77,13 +77,13 @@ class Scene {
 
     const src = box({
       x: SRC_X, y: SRC_Y, w: SRC_W, h: SRC_H,
-      label: 'StatefulSet Web', sublabel: 'replicas: 3, volumeClaimTemplate: data', role: 'storage',
+      label: 'StatefulSet web', sublabel: 'replicas: 3, volumeClaimTemplates: data', role: 'storage',
     });
 
     const pods = ROW_CY.map((cy, i) => podBlock({ cy, label: `web-${i}` }));
     const pvcs = ROW_CY.map((cy, i) => {
       const b = box({ x: PVC_X, y: cy - PVC_H / 2, w: PVC_W, h: PVC_H, label: `PVC data-web-${i}`, sublabel: 'not created yet', role: 'storage' });
-      b.style.opacity = '0.4';   // a placeholder until the template mints it, never a hole
+      b.style.opacity = String(OPACITY.pending);   // a placeholder until the template mints it, never a hole
       return b;
     });
     const pvs = ROW_CY.map((cy, i) => {
@@ -154,9 +154,7 @@ function setChips(s, { repl, pvcs, naming, ret }) {
   setChip(s.refs.retChip, ret);
 }
 
-const POD_PRESENT = 1;
-const CLAIM_PLACEHOLDER = 0.4;
-function setStage(s, { pods = [POD_PRESENT, POD_PRESENT, POD_PRESENT], claims = [CLAIM_PLACEHOLDER, CLAIM_PLACEHOLDER, CLAIM_PLACEHOLDER], mint = false } = {}) {
+function setStage(s, { pods = [1, 1, 1], claims = [OPACITY.pending, OPACITY.pending, OPACITY.pending], mint = false } = {}) {
   [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => { p.style.opacity = String(pods[i]); });
   [s.refs.v0, s.refs.v1, s.refs.v2].forEach((v, i) => { v.style.opacity = String(claims[i]); });
   s.refs.trunkW.forEach(w => { w.style.opacity = mint ? '1' : '0'; });
@@ -221,7 +219,7 @@ const STEPS = [
       ROW_CY.forEach((_, i) => {
         const mint = routePacket(s, ctx, trunkSeg(i), { delay: at, role: 'storage' });
         ridingLabel(s, ctx, `data-web-${i}`, trunkSeg(i), { delay: at, dy: -22, dx: 44 });
-        revealAt(s.refs[`v${i}`], ctx, mint.arrivalMs, CLAIM_PLACEHOLDER);
+        revealAt(s.refs[`v${i}`], ctx, mint.arrivalMs, OPACITY.pending);
         lightBoxAt(s.refs[`v${i}`], ctx, mint.arrivalMs);
         at = mint.arrivalMs + BEAT.afterHop;
       });
@@ -254,7 +252,7 @@ const STEPS = [
   {
     id: 'mount',
     duration: 3800,
-    narration: 'Now each Pod starts and mounts the volume behind its own claim. web-0 reads and writes data-web-0 alone, web-1 reads data-web-1, and so on. The bind is exclusive, so no two Pods ever land on the same disk.',
+    narration: 'Now each Pod starts and mounts the volume behind its own claim. Replica web-0 reads and writes data-web-0 alone, web-1 reads data-web-1, and so on. The bind is exclusive, so no two Pods ever land on the same disk.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -276,7 +274,7 @@ const STEPS = [
   {
     id: 'rebind',
     duration: 4900,
-    narration: 'Delete web-1 and the StatefulSet recreates it, perhaps on another node. The claim data-web-1 is not deleted with the Pod, it stays Bound to pv-web-1. Because the new Pod derives the exact same claim name from its ordinal, it rebinds the very same disk and sees the very same data.',
+    narration: 'Delete web-1 and the StatefulSet recreates it, perhaps on another Node. The claim data-web-1 is not deleted with the Pod, it stays Bound to pv-web-1. Because the new Pod derives the exact same claim name from its ordinal, it rebinds the very same disk and sees the very same data.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -290,7 +288,7 @@ const STEPS = [
       // disk), so the lifecycle is narrated in the SUBLABEL instead. Final resting state: recreated.
       setPodSublabel(s.refs.p1, 'recreated');
       if (ctx.reduced) { s.refs.v1.classList.add('highlight'); s.refs.b1.classList.add('highlight'); return; }
-      const GONE = 0.15, OUT = 850, HOLD = 550, IN = 800;
+      const GONE = OPACITY.terminated, OUT = 850, HOLD = 550, IN = 800;
       setPodSublabel(s.refs.p1, 'deleted');
       ctx.register(s.refs.p1.animate([{ opacity: 1 }, { opacity: GONE }], { duration: OUT, fill: 'forwards', easing: 'ease-in' }));
       const reborn = OUT + HOLD;
@@ -320,10 +318,10 @@ const STEPS = [
       setWire(s, 'n2', 'retained');
       // web-2 leaves, but data-web-2 and pv-web-2 stay put: the claim is the thing that persists. The
       // ghost opacity is pinned statically so a mid-step cancel and reduced motion land on it too.
-      s.refs.p2.style.opacity = '0.12';
+      s.refs.p2.style.opacity = String(OPACITY.terminated);
       if (ctx.reduced) return;
       s.refs.p2.style.opacity = '1';
-      ctx.register(s.refs.p2.animate([{ opacity: 1 }, { opacity: 0.12 }], { duration: FADE.out, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-in' }));
+      ctx.register(s.refs.p2.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-in' }));
     },
   },
 ];

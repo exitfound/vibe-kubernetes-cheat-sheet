@@ -1,28 +1,31 @@
 import { svg, g, text, line } from '../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-dynamic-provisioning
 
 
 const LEFT_X = 400;                                   // leftmost the TOP ROW may go, all viewports
-const CONTENT_W = 520;
-const RIGHT_END = LEFT_X + CONTENT_W;                 // 920
-const CONTENT_CX = LEFT_X + CONTENT_W / 2;            // 660: the one center every tier uses
+const CANVAS_CX = 600;                                // where the chip strip sits, always
 
 const COL_L_W = 200;                                  // identity column: the claim and its volume
-const COL_R_W = 240;                                  // machinery column: class, provisioner, backend
-const COL_R_X = RIGHT_END - COL_R_W;                  // 620
-const COL_GAP = COL_R_X - (LEFT_X + COL_L_W);         // 80: the elbow channel lives in here
+const COL_R_W = 220;                                  // machinery column: class, provisioner, backend
+const COL_GAP = 40;                                   // the elbow channel lives in here
+const COL_R_X = LEFT_X + COL_L_W + COL_GAP;           // 640
+// The claim tier sits inside the narration panel's y band, so the left edge is pinned at 400 and the
+// composition is centred by pulling the machinery column in, not by sliding the whole card left.
+const RIGHT_END = COL_R_X + COL_R_W;                  // 860, so the drawing centres on 630
 
 const PVC_X = LEFT_X, PVC_Y = 70, PVC_W = COL_L_W, PVC_H = 80;
 const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 540 / 150
 
 const SC_X = COL_R_X, SC_Y = 70, SC_W = COL_R_W, SC_H = 80;
-const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;                 // 620 / 150
-const SC_CX = SC_X + SC_W / 2;                                 // 740
+const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;                 // 640 / 150
+const SC_CX = SC_X + SC_W / 2;                                 // 750
+const ROW_MY = SC_Y + SC_H / 2;                                // 110, shared by the claim and the class
 
 const PROV_X = COL_R_X, PROV_Y = 250, PROV_W = COL_R_W, PROV_H = 90;
-const PROV_LEFT = PROV_X, PROV_TOP = PROV_Y, PROV_BOTTOM = PROV_Y + PROV_H; // 620 / 250 / 340
+const PROV_LEFT = PROV_X, PROV_TOP = PROV_Y, PROV_BOTTOM = PROV_Y + PROV_H; // 640 / 250 / 340
+const PROV_MY = PROV_Y + PROV_H / 2;                                        // 295
 
 const CLOUD_X = COL_R_X, CLOUD_Y = 440, CLOUD_W = COL_R_W, CLOUD_H = 90;
 const CLOUD_TOP = CLOUD_Y;                                     // 440
@@ -45,19 +48,23 @@ const CHIP_W = [210, 250, 240, 230];
 const CHIP_GAP = 20;
 const CHIPS_W = CHIP_W.reduce((a, b) => a + b, 0) + CHIP_GAP * (CHIP_W.length - 1);   // 990
 const CHIPS_X0 = CHIP_W.reduce((acc, w, i) => {
-  acc.push(i === 0 ? CONTENT_CX - CHIPS_W / 2 : acc[i - 1] + CHIP_W[i - 1] + CHIP_GAP);
+  acc.push(i === 0 ? CANVAS_CX - CHIPS_W / 2 : acc[i - 1] + CHIP_W[i - 1] + CHIP_GAP);
   return acc;
 }, []);                                                                               // 105 / 335 / 605 / 865
 
-const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 580
+const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 620
+
+// Two lanes share each of these two faces, so they sit as a mirrored pair either side of the face
+// midpoint: alone and off-centre, a single endpoint reads as a slip rather than as a pair.
+const ROW_LANE = 12, PROV_LANE = 16;
 
 // Each static wire and its ball share one array, so they cannot drift. Every endpoint is a block edge.
-const W_SC_REF     = [[PVC_RIGHT, 100], [SC_LEFT, 100]];                                  // reference, no ball
-const W_PVC_TO_PROV = [[PVC_RIGHT, 130], [ELBOW_X, 130], [ELBOW_X, 282], [PROV_LEFT, 282]];
+const W_SC_REF     = [[PVC_RIGHT, ROW_MY - ROW_LANE], [SC_LEFT, ROW_MY - ROW_LANE]];      // reference, no ball
+const W_PVC_TO_PROV = [[PVC_RIGHT, ROW_MY + ROW_LANE], [ELBOW_X, ROW_MY + ROW_LANE], [ELBOW_X, PROV_MY - PROV_LANE], [PROV_LEFT, PROV_MY - PROV_LANE]];
 const W_SC_TO_PROV  = [[SC_CX, SC_BOTTOM], [SC_CX, PROV_TOP]];
 const W_PROV_TO_CLOUD = [[DOWN_X, PROV_BOTTOM], [DOWN_X, CLOUD_TOP]];
 const W_CLOUD_TO_PROV = [[UP_X, CLOUD_TOP], [UP_X, PROV_BOTTOM]];
-const W_PROV_TO_PV  = [[PROV_LEFT, 312], [ELBOW_X, 312], [ELBOW_X, 396], [PV_CX, 396], [PV_CX, PV_TOP]];
+const W_PROV_TO_PV  = [[PROV_LEFT, PROV_MY + PROV_LANE], [ELBOW_X, PROV_MY + PROV_LANE], [ELBOW_X, 396], [PV_CX, 396], [PV_CX, PV_TOP]];
 const W_BOUND       = [[SPINE_X, PVC_BOTTOM], [SPINE_X, PV_TOP]];
 
 // Reveals the disk (or any hidden block) exactly when the packet that creates it lands.
@@ -89,15 +96,14 @@ class Scene {
     const pvc   = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'wants 5Gi, class gp3', role: 'storage' });
     const sc    = box({ x: SC_X, y: SC_Y, w: SC_W, h: SC_H, label: 'StorageClass gp3', sublabel: 'provisioner: ebs.csi.aws.com', role: 'storage' });
     const prov  = box({ x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'External-provisioner', sublabel: 'CSI controller sidecar', role: 'storage' });
-    const cloud = box({ x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage Backend', sublabel: 'reached via the CSI driver', role: 'storage' });
+    const cloud = box({ x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage backend', sublabel: 'reached via the CSI driver', role: 'storage' });
 
     // The volume does not exist until CreateVolume returns, so it starts invisible.
     const pv = cylinder({ x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-a7f2', role: 'storage' });
     pv.style.opacity = '0';
 
-    const [[scRefX1, scRefY1], [scRefX2, scRefY2]] = W_SC_REF;
     const [[bndX1, bndY1], [bndX2, bndY2]] = W_BOUND;
-    const scRef = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', x1: scRefX1, y1: scRefY1, x2: scRefX2, y2: scRefY2, 'stroke-dasharray': '5 5', fill: 'none' });
+    const scRef = relationPath({ points: W_SC_REF, role: 'storage', dash: '5 5' });
     const boundLink = line({ class: 'scheme-arrow scheme-arrow-storage', x1: bndX1, y1: bndY1, x2: bndX2, y2: bndY2, fill: 'none' });
     boundLink.style.opacity = '0';
 

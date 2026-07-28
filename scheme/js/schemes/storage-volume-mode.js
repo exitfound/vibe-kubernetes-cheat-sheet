@@ -79,11 +79,11 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const nodeBox = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-1' });
+    const nodeBox = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
     const podFs = podBlock({
       x: P1_X, label: 'Pod web-0', sublabel: 'volumeMode: Filesystem',
-      ctr: 'App', ctrSub: 'volumeMounts',
+      ctr: 'app', ctrSub: 'volumeMounts',
     });
     const podBlk = podBlock({
       x: P2_X, label: 'Pod db-0', sublabel: 'volumeMode: Block',
@@ -190,7 +190,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Two Pods on one node, two claims for the same 20Gi disk, and a single field telling them apart. volumeMode decides what the workload is actually handed: a formatted directory it can open files in, or the bare block device with nothing on it. Leave the field out and you get Filesystem.',
+    narration: 'Two Pods on one Node, two claims for identical 20Gi disks, and a single field telling them apart. The volumeMode field decides what the workload is actually handed: a formatted directory it can open files in, or the bare block device with nothing on it. Leave the field out and you get Filesystem.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -201,7 +201,7 @@ const STEPS = [
   {
     id: 'fs-claim',
     duration: 2900,
-    narration: 'Pod web-0 takes the default. volumeMode Filesystem is what you get whenever the field is absent, and it is what almost every workload wants. The Pod consumes the volume under volumeMounts, naming a mountPath, and what it expects to find at that path is a directory.',
+    narration: 'Pod web-0 takes the default. A volumeMode of Filesystem is what you get whenever the field is absent, and it is what almost every workload wants. The Pod consumes the volume under volumeMounts, naming a mountPath, and what it expects to find at that path is a directory.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -248,7 +248,7 @@ const STEPS = [
   {
     id: 'block-claim',
     duration: 2900,
-    narration: 'Pod db-0 asks for the same disk with volumeMode set to Block. Nothing about the storage request changed: same size, same class, same backend. What changed is that the Pod consumes it under volumeDevices with a devicePath, instead of volumeMounts with a mountPath.',
+    narration: 'Pod db-0 asks for an identical disk with volumeMode set to Block. Nothing about the storage request changed: same size, same class, same backend. What changed is that the Pod consumes it under volumeDevices with a devicePath, instead of volumeMounts with a mountPath.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -285,7 +285,7 @@ const STEPS = [
   {
     id: 'trade',
     duration: 3800,
-    narration: 'That is the trade. A database that manages its own layout gets the device with no filesystem in the way, and in exchange every filesystem level feature stops working: fsGroup has no ownership to walk, subPath has no paths to choose from, and file permissions have no files. volumeMode is also immutable once the claim exists, and a claim asking for Block will never bind to a volume offering Filesystem, so this is a decision you make when you create the claim.',
+    narration: 'That is the trade. A database that manages its own layout gets the device with no filesystem in the way, and in exchange every filesystem level feature stops working: fsGroup has no ownership to walk, subPath has no paths to choose from, and file permissions have no files. The volumeMode field is also immutable once the claim exists, and a claim asking for Block will never bind to a volume offering Filesystem, so this is a decision you make when you create the claim.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

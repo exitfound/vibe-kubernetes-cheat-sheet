@@ -91,7 +91,7 @@ function podBlock({ x, y }) {
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
   const appBox = box({
     x: x + IN_INSET, y: y + IN_APP_DY, w: IN_W, h: IN_H,
-    label: 'App', sublabel: 'runAsUser: 1000', role: 'storage',
+    label: 'app', sublabel: 'runAsUser: 1000', role: 'storage',
   });
   const secBox = box({
     x: x + IN_INSET, y: y + IN_SEC_DY, w: IN_W, h: IN_H,
@@ -114,7 +114,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'fsGroup and volume ownership: a volume mounts owned by root so a non-root container cannot write, and securityContext.fsGroup makes kubelet chown and setgid the whole volume tree to that GID before the container starts, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start whereas the default Always always walks',
+      'aria-label': 'fsGroup and volume ownership: a volume mounts owned by root so a non-root container cannot write, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start whereas the default Always always walks, and a CSI driver advertising VOLUME_MOUNT_GROUP applies the fsGroup itself so Kubelet does no walk at all',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -127,7 +127,7 @@ class Scene {
 
     const tree = box({
       x: TREE_X, y: TREE_Y, w: TREE_W, h: TREE_H,
-      label: 'Volume Tree', sublabel: 'owned root:root', role: 'storage',
+      label: 'Volume tree', sublabel: 'owned root:root', role: 'storage',
     });
     // Lift the tree caption off the middle of the box: the listing lives there.
     const treeLbl = tree.querySelector('.scheme-box-label');
@@ -273,7 +273,7 @@ const STEPS = [
   {
     id: 'fsgroup',
     duration: 2800,
-    narration: 'The fix is one field. securityContext.fsGroup: 2000 asks Kubernetes to make the volume usable by group 2000, and every container in the Pod is added to that supplemental group. Kubelet reads this before it ever starts the container.',
+    narration: 'The fix is one field. Setting securityContext.fsGroup: 2000 asks Kubernetes to make the volume usable by group 2000, and every container in the Pod is added to that supplemental group. Kubelet reads this before it ever starts the container.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -298,7 +298,7 @@ const STEPS = [
     // 4200 rather than 3400: adding the persist hop down to the volume pushed the step's own motion
     // to 3631ms, and a duration under that would auto-advance while the change was still in flight.
     duration: 4200,
-    narration: 'Before the container starts, kubelet walks the volume tree and chowns every entry to group 2000, setting the setgid bit on directories so new files inherit it too. The owner stays root, the group becomes 2000. This is real work on real inodes, done once at mount time.',
+    narration: 'Before the container starts, Kubelet walks the volume tree and chowns every entry to group 2000, setting the setgid bit on directories so new files inherit it too. The owner stays root, the group becomes 2000. This is real work on real inodes, done once at mount time.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -370,7 +370,7 @@ const STEPS = [
   {
     id: 'onmismatch',
     duration: 3000,
-    narration: 'fsGroupChangePolicy: OnRootMismatch is the escape. Kubelet checks only the ownership of the top-level directory. If it already matches the expected fsGroup, it assumes the tree was set on a previous start and skips the walk entirely. The next start is fast no matter how many files sit below.',
+    narration: 'The fsGroupChangePolicy: OnRootMismatch setting is the escape. Kubelet checks only the ownership of the top-level directory. If it already matches the expected fsGroup, it assumes the tree was set on a previous start and skips the walk entirely. The next start is fast no matter how many files sit below.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

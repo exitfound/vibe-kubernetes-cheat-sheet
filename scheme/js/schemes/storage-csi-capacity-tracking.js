@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-csi-capacity-tracking
 
 
@@ -56,8 +56,7 @@ function revealAt(el, ctx, delay = 0) {
 }
 
 // A node that the filter rejects dims when the read that rejects it lands, not at step entry.
-const FILTERED = 0.4;
-function dimAt(el, ctx, delay = 0, to = FILTERED) {
+function dimAt(el, ctx, delay = 0, to = OPACITY.notready) {
   if (!el) return;
   // A filtered element loses its highlight as it dims: it is no longer a live candidate, so its glow
   // must go as the fade completes, not linger at reduced opacity.
@@ -94,15 +93,15 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CSI storage capacity tracking: without it the scheduler can pick a node whose local storage pool is already full, provisioning of the volume fails there, and because binding waits on provisioning the Pod never schedules and stays Pending forever, while CSIStorageCapacity objects published by the driver per topology segment let the scheduler see the free capacity and filter out nodes that cannot fit the claim before committing',
+      'aria-label': 'CSI storage capacity tracking: without it the scheduler can pick a Node whose local storage pool is already full, provisioning of the volume fails there, and because binding waits on provisioning the Pod never schedules and stays Pending forever, while CSIStorageCapacity objects published by the driver per topology segment let the scheduler see the free capacity and filter out Nodes that cannot fit the claim before committing',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const sched = box({ x: SCHED_X, y: SCHED_Y, w: SCHED_W, h: SCHED_H, label: 'Kube-scheduler', sublabel: 'filter and score', role: 'storage' });
+    const sched = box({ x: SCHED_X, y: SCHED_Y, w: SCHED_W, h: SCHED_H, label: 'Scheduler', sublabel: 'filter and score', role: 'storage' });
     const podB = podBlock();
 
-    const nodes = NODE_X.map((x, i) => node({ x, y: NODE_Y, w: NODE_W, h: NODE_H, label: `node-${i + 1}` }));
+    const nodes = NODE_X.map((x, i) => node({ x, y: NODE_Y, w: NODE_W, h: NODE_H, label: `Node-${i + 1}` }));
 
     const caps = NODE_CX.map((cx, i) => {
       const b = box({
@@ -179,7 +178,6 @@ function setChips(s, { pod, need, aware, res }) {
 }
 
 // The Pod is dim until it actually reaches Running.
-const POD_DIM = 0.55;
 
 const DECIDE_DUR = 850, BIND_DUR = 1000, READ_DUR = 1000;
 
@@ -203,33 +201,33 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod needs a 20Gi volume from local storage, which can only be provisioned on the node the Pod lands on. Two nodes can take it, but node-1 has only 5Gi of pool left while node-2 has 50Gi. The scheduler cannot see any of that yet.',
+    narration: 'A Pod needs a 20Gi volume from local storage, which can only be provisioned on the Node the Pod lands on. Two Nodes can take it, but Node-1 has only 5Gi of pool left while Node-2 has 50Gi. The scheduler cannot see any of that yet.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { pod: 'Pending', need: 'needs 20Gi', aware: 'no', res: 'unscheduled' });
       setStage(s);
-      s.refs.podB.style.opacity = String(POD_DIM);
+      s.refs.podB.style.opacity = String(OPACITY.pending);
     },
   },
   {
     id: 'blind-schedule',
     duration: 4300,
-    narration: 'Without capacity tracking the scheduler scores the nodes on cpu, memory and affinity only, and node-1 wins on those. It selects node-1 for the Pod, having no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
+    narration: 'Without capacity tracking the scheduler scores the Nodes on cpu, memory and affinity only, and Node-1 wins on those. It selects Node-1 for the Pod, having no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { pod: 'node-1 selected', need: 'needs 20Gi', aware: 'no', res: 'scheduling' });
       setStage(s, { lanes: ['wDecide', 'bind1'] });
-      s.refs.podB.style.opacity = String(POD_DIM);
+      s.refs.podB.style.opacity = String(OPACITY.pending);
       // The scheduler is where the ball departs from, so it is lit at step entry: a ball must never
       // leave an unlit block or it reads as coming from nowhere. node-1 is the receiver.
       s.refs.sched.classList.add('highlight');
       if (ctx.reduced) { s.refs.node1.classList.add('highlight'); return; }
       const decide = routePacket(s, ctx, W_DECIDE, { delay: BEAT.lead, dur: DECIDE_DUR, role: 'storage' });
-      pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: POD_DIM, peak: 0.9 });
+      pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: OPACITY.pending, peak: 0.9 });
       // The bind ball leaves only AFTER that pulse has played out (BEAT.afterPulse), never mid-blink.
       const pts = wBind(NODE_CX[0]);
       const bindAt = decide.arrivalMs + BEAT.afterPulse;
@@ -242,14 +240,14 @@ const STEPS = [
   {
     id: 'blind-fail',
     duration: 3600,
-    narration: 'Provisioning is now triggered on node-1, where the pool has 5Gi against a 20Gi request. There is no room, so the volume is never created and the claim stays unbound. The Pod cannot bind until its volume does, so it never schedules and sits Pending, and with no capacity signal the scheduler keeps landing back on node-1, so it hangs there indefinitely.',
+    narration: 'Provisioning is now triggered on Node-1, where the pool has 5Gi against a 20Gi request. There is no room, so the volume is never created and the claim stays unbound. The Pod cannot bind until its volume does, so it never schedules and sits Pending, and with no capacity signal the Node choice is reset and the scheduler keeps landing back on Node-1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { pod: 'Pending', need: 'needs 20Gi', aware: 'no', res: 'provision fails' });
       setStage(s, { lanes: ['prov1'] });
-      s.refs.podB.style.opacity = String(POD_DIM);
+      s.refs.podB.style.opacity = String(OPACITY.pending);
       s.refs.node1.classList.add('highlight');
       setWire(s, 'n1', '5Gi against 20Gi');
       if (ctx.reduced) { s.refs.pool1.classList.add('highlight'); return; }
@@ -259,20 +257,20 @@ const STEPS = [
       lightBoxAt(s.refs.pool1, ctx, prov.arrivalMs);
       // The Pod never went Ready, so it stays dim and needs the dim variant with an opacity lift or
       // the blink is invisible against the 0.55 it sits at.
-      pulsePodDim(s.refs.podB, ctx, prov.arrivalMs, { from: POD_DIM, peak: 0.9 });
+      pulsePodDim(s.refs.podB, ctx, prov.arrivalMs, { from: OPACITY.pending, peak: 0.9 });
     },
   },
   {
     id: 'publish',
     duration: 3600,
-    narration: 'Turn on capacity tracking and the CSI driver publishes a CSIStorageCapacity object for each node, reporting the free space in its pool. node-1 advertises 5Gi, node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
+    narration: 'Turn on capacity tracking and the CSI driver publishes a CSIStorageCapacity object for each Node, reporting the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { pod: 'Pending', need: 'needs 20Gi', aware: 'yes', res: 'rescheduling' });
       setStage(s, { caps: [1, 1], lanes: ['pub1', 'pub2'] });
-      s.refs.podB.style.opacity = String(POD_DIM);
+      s.refs.podB.style.opacity = String(OPACITY.pending);
       // The pools are where the balls depart from, so both are lit at step entry.
       s.refs.pool1.classList.add('highlight');
       s.refs.pool2.classList.add('highlight');
@@ -291,7 +289,7 @@ const STEPS = [
   {
     id: 'filter',
     duration: 3800,
-    narration: 'This time the scheduler reads both capacity objects during its filter phase. node-1 cannot fit 20Gi in 5Gi, so it is filtered out before scoring even begins. node-2 has ample room and survives the filter, so it becomes the only candidate.',
+    narration: 'This time the scheduler reads both capacity objects during its filter phase. Node-1 cannot fit 20Gi in 5Gi, so it is filtered out before scoring even begins. Node-2 has ample room and survives the filter, so it becomes the only candidate.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -299,8 +297,8 @@ const STEPS = [
       setChips(s, { pod: 'Pending', need: 'needs 20Gi', aware: 'yes', res: 'node-1 filtered out' });
       // node-1 is filtered out, so its WHOLE subtree (frame, pool, capacity object) ends dimmed and
       // unlit. Only node-2, the survivor, keeps its capacity object highlighted.
-      setStage(s, { caps: [FILTERED, 1], nodes: [FILTERED, 1], pools: [FILTERED, 1], lanes: ['read1', 'read2'] });
-      s.refs.podB.style.opacity = String(POD_DIM);
+      setStage(s, { caps: [OPACITY.notready, 1], nodes: [OPACITY.notready, 1], pools: [OPACITY.notready, 1], lanes: ['read1', 'read2'] });
+      s.refs.podB.style.opacity = String(OPACITY.pending);
       s.refs.cap2.classList.add('highlight');
       setWire(s, 'n1', 'too small');
       setWire(s, 'n2', 'fits 20Gi');
@@ -321,23 +319,23 @@ const STEPS = [
   {
     id: 'success',
     duration: 5500,
-    narration: 'The scheduler binds the Pod to node-2, where the pool has room. Provisioning succeeds, the volume is mounted, and the Pod starts. Capacity tracking turned a permanent hang into a clean placement, simply by letting the scheduler look before it leaped.',
+    narration: 'The scheduler selects Node-2, where the pool has room. Provisioning succeeds there, so the Pod is bound to the Node, the volume is mounted, and the Pod starts. Capacity tracking turned blind retries into a clean placement, simply by letting the scheduler look before it leaped.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { pod: 'Running on node-2', need: 'needs 20Gi', aware: 'yes', res: 'scheduled and mounted' });
-      setStage(s, { caps: [FILTERED, 1], nodes: [FILTERED, 1], pools: [FILTERED, 1], lanes: ['wDecide', 'bind2', 'prov2'] });
+      setStage(s, { caps: [OPACITY.notready, 1], nodes: [OPACITY.notready, 1], pools: [OPACITY.notready, 1], lanes: ['wDecide', 'bind2', 'prov2'] });
       s.refs.sched.classList.add('highlight');
       s.refs.node2.classList.add('highlight');
       setWire(s, 'n2', 'provisioned');
       s.refs.podB.style.opacity = '1';
       if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); s.refs.pool2.classList.add('highlight'); return; }
-      s.refs.podB.style.opacity = String(POD_DIM);
+      s.refs.podB.style.opacity = String(OPACITY.pending);
       const decide = routePacket(s, ctx, W_DECIDE, { delay: BEAT.lead, dur: DECIDE_DUR, role: 'storage' });
       // Same scheduling beat as step 1: the decision lands on the Pod, the Pod takes its full pulse (dim,
       // since it is only scheduled here), and the bind ball leaves only after the pulse plays out.
-      pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: POD_DIM, peak: 0.9 });
+      pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: OPACITY.pending, peak: 0.9 });
       const bindAt = decide.arrivalMs + BEAT.afterPulse;
       const bindPts = wBind(NODE_CX[1]);
       const bind = routePacket(s, ctx, bindPts, { delay: bindAt, dur: BIND_DUR, role: 'storage' });
@@ -347,7 +345,7 @@ const STEPS = [
       const prov = routePacket(s, ctx, provPts, { delay: provAt, role: 'storage' });
       ridingLabel(s, ctx, 'provision ok', provPts, { delay: provAt });
       lightBoxAt(s.refs.pool2, ctx, prov.arrivalMs);
-      ctx.register(s.refs.podB.animate([{ opacity: POD_DIM }, { opacity: 1 }], { duration: FADE.in, delay: prov.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.podB.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: FADE.in, delay: prov.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, prov.arrivalMs);
       lightBoxAt(s.refs.podBox, ctx, prov.arrivalMs);
     },

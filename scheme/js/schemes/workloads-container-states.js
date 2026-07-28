@@ -1,6 +1,34 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, setConnectorDir, connectorPacketDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+
+// Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
+// Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
+// Design notes for this card: scheme/docs/CARDS.md#workloads-container-states
+const PANEL_B = 230;
+const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;
+const WIRE_Y = WL.TOP_Y - 12;                            // above the actor box
+const NODE_H = 140, CANVAS_B = 624;
+const NODE_Y = CANVAS_B - NODE_H;                        // 484..624, the frame rests on the floor
+
+const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+const LAD_Y = 160;                                       // 6 rows -> 160..402
+
+const POD_W = 460, POD_H = 110, POD_X = WL.CX - POD_W / 2;
+const POD_Y = NODE_Y + (NODE_H - POD_H) / 2;             // 499..609, centred in the frame
+const CONT_W = 300, CONT_H = 64, CONT_X = WL.CX - CONT_W / 2;
+const CONT_Y = POD_Y + 30;
+
+// The spine reaches the Pod it addresses, not the frame edge above it.
+const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];
+const SPINE_UP = [...SPINE].reverse();
+
+// Chips as a column in the left band, which only opens below the panel.
+const CHIP_GAP = 8;
+const CHIPS_TOP = PANEL_B + 20;                          // 250, clear of the panel
+const CHIP_X = WL.LADDER_X, CHIP_W = WL.LADDER_W;        // 60..540
+const CHIP_Y = i => CHIPS_TOP + i * (WL.CHIP_H + CHIP_GAP);
+
 
 
 class Scene {
@@ -18,14 +46,14 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: 320, y: 40, w: 280, h: 80, label: 'Kubelet', sublabel: 'writes containerStatuses[]', role: 'cluster' });
+    const kubelet = box({ x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'writes containerStatuses[]', role: 'cluster' });
 
     const connectorDown = pathArrow({
-      points: [[320, 80], [280, 80], [280, 550], [320, 550]],
+      points: SPINE,
       dim: true, dashed: true, role: 'cluster',
     });
     const connectorUp = pathArrow({
-      points: [[320, 550], [280, 550], [280, 80], [320, 80]],
+      points: SPINE_UP,
       dim: true, dashed: true, role: 'cluster',
     });
     connectorUp.style.opacity = '0';
@@ -33,37 +61,37 @@ class Scene {
     root.appendChild(connectorUp);
 
     // Single wire label pinned just below the Kubelet box, set per step.
-    const wireReq = text({ class: 'scheme-label code dim', x: 460, y: 146, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WL.CX, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    // Pipeline chain on the left. Row 0 is the baseline shown at idle.
+    // Pipeline chain on the right. Row 0 is the baseline shown at idle.
     const chain = chainList({
-      x: 320, y: 220, w: 480, rowH: 32, gap: 10,
+      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
       items: [
         '1. running    ·  state is Running, the container is up',
         '2. exit       ·  process exits, state becomes Terminated',
         '3. restart    ·  the Terminated record rolls into lastState',
         '4. lastState  ·  the prior-death record, read it to debug',
         '5. exitCode   ·  decode the number into a cause of death',
-        '6. describe   ·  Kubectl shows State and Last State',
+        '6. describe   ·  kubectl shows State and Last State',
       ],
       role: 'cluster',
     });
 
-    // State field chips on the right: the containerStatuses fields you read.
-    const stateChip   = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'state',        value: 'Running', role: 'workloads' });
-    const detailChip  = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'state detail', value: 'startedAt 09:20:14Z', role: 'workloads' });
-    const lastChip    = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'lastState',    value: 'Terminated · exitCode 1 · Error', role: 'workloads' });
-    const restartChip = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'restartCount', value: '2', role: 'workloads' });
+    // State field chips in the left band: the containerStatuses fields you read.
+    const stateChip   = valChip({ x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'state',        value: 'Running', role: 'workloads' });
+    const detailChip  = valChip({ x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'state detail', value: 'startedAt 09:20:14Z', role: 'workloads' });
+    const lastChip    = valChip({ x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'lastState',    value: 'Terminated · exitCode 1 · Error', role: 'workloads' });
+    const restartChip = valChip({ x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'restartCount', value: '2', role: 'workloads' });
     [stateChip, detailChip, lastChip, restartChip].forEach(c => root.appendChild(c));
 
-    const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
+    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
+    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'container', role: 'workloads' });
+    const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
     podGroup.appendChild(podShell);
@@ -134,33 +162,34 @@ const STEPS = [
       clearWires(s);
       setChips(s, { state: 'Terminated', detail: 'exitCode 137 · OOMKilled', last: PRIOR, restart: '2' });
       setWire(s, 'req', 'CRI: container exited · 137');
-      s.refs.kubelet.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
       s.refs.detailChip.classList.add('highlight');
-      s.refs.podGroup.style.opacity = '0.3';
+      s.refs.podGroup.style.opacity = String(OPACITY.notready);
       setConnectorDir(s, 'up');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
       // Pod blinks and dims first (the container just died), then the CRI exit
       // report travels up the connector to Kubelet.
       pulsePod(s.refs.podGroup, ctx, 0);
       ctx.register(s.refs.podGroup.animate(
-        [{ opacity: 1 }, { opacity: 0.3 }],
+        [{ opacity: 1 }, { opacity: OPACITY.notready }],
         { duration: FADE.out, fill: 'both', easing: 'ease-in' }
       ));
-      connectorPacketDir(s, ctx, 'up', { delay: BEAT.afterPulse, role: 'workloads' });
+      const pkt = routePacket(s, ctx, SPINE_UP, { delay: BEAT.afterPulse, role: 'workloads' });
+      lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
     },
   },
   {
     id: 'restart',
     duration: 2300,
-    narration: 'Kubelet restarts the container in the same Pod sandbox. As the fresh instance comes up, state goes back to Running, and the Terminated record just produced is rolled into lastState. restartCount ticks to 3. The earlier lastState is overwritten, only the most recent termination is kept.',
+    narration: 'Kubelet restarts the container in the same Pod sandbox. As the fresh instance comes up, state goes back to Running, and the Terminated record just produced is rolled into lastState. The restartCount ticks to 3. The earlier lastState is overwritten, only the most recent termination is kept.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { state: 'Running', detail: 'startedAt 09:24:30Z', last: FRESH, restart: '3' });
-      setWire(s, 'req', 'Restart container · lastState recorded');
+      s.refs.detailChip.classList.add('highlight');
+      setWire(s, 'req', 'restart container · lastState recorded');
       s.refs.kubelet.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
       s.refs.lastChip.classList.add('highlight');
@@ -172,9 +201,9 @@ const STEPS = [
       if (ctx.reduced) return;
       // The restart order travels down to the node, the fresh container comes up
       // and the Pod pulses on arrival.
-      const restart = connectorPacketDir(s, ctx, 'down', { role: 'workloads' });
+      const restart = routePacket(s, ctx, SPINE, { role: 'workloads' });
       ctx.register(s.refs.podGroup.animate(
-        [{ opacity: 0.3 }, { opacity: 1 }],
+        [{ opacity: OPACITY.notready }, { opacity: 1 }],
         { duration: FADE.in, delay: restart.arrivalMs, fill: 'both', easing: 'ease-out' }
       ));
       pulsePod(s.refs.podGroup, ctx, restart.arrivalMs);
@@ -183,7 +212,7 @@ const STEPS = [
   {
     id: 'read',
     duration: 2200,
-    narration: 'This is the field you debug with. The live state says Running, so the container is fine right now and reveals nothing about the failure. lastState holds the answer: a Terminated record with exitCode 137 and reason OOMKilled, which is why the previous instance died.',
+    narration: 'This is the field you debug with. The live state says Running, so the container is fine right now and reveals nothing about the failure. The lastState field holds the answer: a Terminated record with exitCode 137 and reason OOMKilled, which is why the previous instance died.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -218,7 +247,7 @@ const STEPS = [
   {
     id: 'describe',
     duration: 2100,
-    narration: 'Kubectl describe pod surfaces both records, State for the live instance and Last State for the prior one. Together with restartCount, which counts every restart, these three fields are what you read to diagnose a container that has been restarting.',
+    narration: 'Running kubectl describe pod surfaces both records, State for the live instance and Last State for the prior one. Together with restartCount, which counts every restart, these three fields are what you read to diagnose a container that has been restarting.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

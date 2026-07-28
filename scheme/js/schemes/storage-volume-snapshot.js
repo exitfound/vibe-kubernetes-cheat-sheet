@@ -1,6 +1,6 @@
-import { svg, g, text, path } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-snapshot
 
 
@@ -13,45 +13,52 @@ const REQ_MY = REQ_Y + REQ_H / 2, REQ_BOTTOM = REQ_Y + REQ_H;               // 7
 const RST_X = 840, RST_W = 240;
 const RST_CX = RST_X + RST_W / 2;                                           // 960
 
-const MID_Y = 210, MID_H = 68, MID_BOTTOM = MID_Y + MID_H;                  // 278
-const MID_W = 232, MID_SPREAD = 340, MID_MY = MID_Y + MID_H / 2;            // 244
+// The middle row is three 232 wide boxes on one line, so its left box lands at 144..376 whatever the
+// spread, which is under the narration panel (x<=397 down to y=280 on this card). The row therefore
+// starts BELOW the panel floor, and the chain runs right to left so the request from the top row
+// reaches the controller on the free side instead of diving behind the panel to get to it.
+const MID_Y = 282, MID_H = 68, MID_BOTTOM = MID_Y + MID_H;                  // 350
+const MID_W = 232, MID_SPREAD = 340, MID_MY = MID_Y + MID_H / 2;            // 316
 const MID_CX = [CX - MID_SPREAD, CX, CX + MID_SPREAD];                      // 260 / 600 / 940
-const CTRL_CX = MID_CX[0], VSC_CX = MID_CX[1], SNAP_CX = MID_CX[2];
-const CTRL_RIGHT = CTRL_CX + MID_W / 2, VSC_LEFT = VSC_CX - MID_W / 2;      // 376 / 484
-const VSC_RIGHT = VSC_CX + MID_W / 2, SNAP_LEFT = SNAP_CX - MID_W / 2;      // 716 / 824
+const SNAP_CX = MID_CX[0], VSC_CX = MID_CX[1], CTRL_CX = MID_CX[2];
+const SNAP_RIGHT = SNAP_CX + MID_W / 2, VSC_LEFT = VSC_CX - MID_W / 2;      // 376 / 484
+const VSC_RIGHT = VSC_CX + MID_W / 2, CTRL_LEFT = CTRL_CX - MID_W / 2;      // 716 / 824
 
 const CYL_W = 176, CYL_H = 90;
 const FRAME_INSET = 42;
-const FRAME_X = 144, FRAME_W = 912, FRAME_Y = 356;                          // 144..1056, aligned with
-const FRAME_H = CYL_H + FRAME_INSET * 2;                                    // the middle row, 356..530
+const FRAME_X = 144, FRAME_W = 912, FRAME_Y = 396;                          // 144..1056, below the
+const FRAME_H = CYL_H + FRAME_INSET * 2;                                    // middle row, 396..570
 
-const CYL_Y = FRAME_Y + FRAME_INSET;                                        // 398
+const CYL_Y = FRAME_Y + FRAME_INSET;                                        // 438
 const CYL_MY = CYL_Y + CYL_H / 2, CYL_TOP = CYL_Y;                          // 443 / 398
 const CYL_SPREAD = 300;
 const SRC_CX = CX - CYL_SPREAD, SNAPDATA_CX = CX, RESTORED_CX = CX + CYL_SPREAD;   // 300 / 600 / 900
 // Three disks 176 wide at 300/600/900 span 212..988 inside a frame at 144..1056, so the frame keeps 68
 // of margin on each side and the disks keep 124 between them, which is the run each shelf hop travels.
 
-const CORRIDOR_Y = (MID_BOTTOM + CYL_TOP) / 2;              // 338
-const REQ_CORRIDOR_Y = (REQ_BOTTOM + MID_Y) / 2;            // 157
-const CAPTION_Y = CYL_Y + CYL_H + 24;             // 512
-const CHIPS_Y = 570;                              // 40 below the frame, and 36 above the canvas floor
+// Kept clear of the frame rather than midway to it: the middle row now sits much closer.
+const CORRIDOR_Y = FRAME_Y - 18;                            // 378
+const REQ_CORRIDOR_Y = 157;
+const CAPTION_Y = CYL_Y + CYL_H + 24;             // 552
+const CHIPS_Y = 588;                              // 18 below the frame, and 18 above the canvas floor
 
-const W_REQ_CTRL  = [[CX, REQ_BOTTOM], [CX, REQ_CORRIDOR_Y], [CTRL_CX, REQ_CORRIDOR_Y], [CTRL_CX, MID_Y]];
-const W_CTRL_VSC  = [[CTRL_RIGHT, MID_MY], [VSC_LEFT, MID_MY]];
-const W_VSC_SNAP  = [[VSC_RIGHT, MID_MY], [SNAP_LEFT, MID_MY]];
+// The request goes down and the mirrored status goes up, so the two share the VolumeSnapshot floor
+// as a pair either side of its midpoint instead of running on one another.
+const REQ_LANE = 16;
+const W_REQ_CTRL  = [[CX - REQ_LANE, REQ_BOTTOM], [CX - REQ_LANE, REQ_CORRIDOR_Y], [CTRL_CX, REQ_CORRIDOR_Y], [CTRL_CX, MID_Y]];
+const W_CTRL_VSC  = [[CTRL_LEFT, MID_MY], [VSC_RIGHT, MID_MY]];
+const W_VSC_SNAP  = [[VSC_LEFT, MID_MY], [SNAP_RIGHT, MID_MY]];
 const W_CREATE    = [[SNAP_CX, MID_BOTTOM], [SNAP_CX, CORRIDOR_Y], [SNAPDATA_CX, CORRIDOR_Y], [SNAPDATA_CX, CYL_TOP]];
 // The driver answers back up the same lane, reversed, so the two hops read as one call and its return.
 const W_ACK       = [...W_CREATE].reverse();
-const W_SNAP_VSC  = [[SNAP_LEFT, MID_MY], [VSC_RIGHT, MID_MY]];
-const W_VSC_REQ   = [[CX, MID_Y], [CX, REQ_BOTTOM]];
+const W_SNAP_VSC  = [[SNAP_RIGHT, MID_MY], [VSC_LEFT, MID_MY]];
+const W_VSC_REQ   = [[CX + REQ_LANE, MID_Y], [CX + REQ_LANE, REQ_BOTTOM]];
 const W_COPY      = [[SRC_CX + CYL_W / 2, CYL_MY], [SNAPDATA_CX - CYL_W / 2, CYL_MY]];
 const W_SEED      = [[SNAPDATA_CX + CYL_W / 2, CYL_MY], [RESTORED_CX - CYL_W / 2, CYL_MY]];
 
 // An object materialises when the call that creates it lands, so no arrowhead is ever aimed at
 // nothing. LAND_MS is shorter than BEAT.lead for the same reason.
 const LAND_MS = 500;
-const PLACEHOLDER = 0.4;
 function revealAt(el, ctx, delay = 0, from = 0) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
@@ -97,7 +104,7 @@ class Scene {
     // The sidecar rides beside the driver named by the class, which is what the sublabel states.
     const snapper = box({ x: SNAP_CX - MID_W / 2, y: MID_Y, w: MID_W, h: MID_H, label: 'External-snapshotter', sublabel: 'driver: ebs.csi.aws.com', role: 'storage' });
 
-    const frame = node({ x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'storage backend' });
+    const frame = node({ x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Storage backend' });
 
     const mkCyl = (cx, label) => {
       const c = cylinder({ x: cx - CYL_W / 2, y: CYL_Y, w: CYL_W, h: CYL_H, label, role: 'storage' });
@@ -114,10 +121,7 @@ class Scene {
     restored.style.opacity = '0';
 
     // dataSource: the restore claim references the snapshot. Also a relationship, so no arrowhead.
-    const dsRef = path({
-      class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage',
-      d: `M ${REQ_RIGHT} ${REQ_MY} L ${RST_X} ${REQ_MY}`, 'stroke-dasharray': '5 5', fill: 'none',
-    });
+    const dsRef = relationPath({ points: [[REQ_RIGHT, REQ_MY], [RST_X, REQ_MY]], role: 'storage', dash: '5 5' });
     dsRef.style.opacity = '0';
 
     const wReqCtrl = lane(W_REQ_CTRL);
@@ -184,7 +188,7 @@ function setChips(s, { cont, hand, ready, store }) {
   setChip(s.refs.storeChip, store);
 }
 
-function setStage(s, { vsc = PLACEHOLDER, restore = 0, snapData = PLACEHOLDER, restored = PLACEHOLDER, ds = 0, lanes = [] } = {}) {
+function setStage(s, { vsc = OPACITY.pending, restore = 0, snapData = OPACITY.pending, restored = OPACITY.pending, ds = 0, lanes = [] } = {}) {
   s.refs.vsc.style.opacity = String(vsc);
   s.refs.restore.style.opacity = String(restore);
   s.refs.snapData.style.opacity = String(snapData);
@@ -257,7 +261,7 @@ const STEPS = [
       lightBoxAt(s.refs.ctrl, ctx, watch.arrivalMs);
       const write = routePacket(s, ctx, W_CTRL_VSC, { delay: watch.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'create and bind', W_CTRL_VSC, { delay: watch.arrivalMs + BEAT.afterHop });
-      revealAt(s.refs.vsc, ctx, write.arrivalMs, PLACEHOLDER);
+      revealAt(s.refs.vsc, ctx, write.arrivalMs, OPACITY.pending);
       lightBoxAt(s.refs.vsc, ctx, write.arrivalMs);
     },
   },
@@ -288,7 +292,7 @@ const STEPS = [
       lightBoxAt(s.refs.snapper, ctx, wake.arrivalMs);
       const call = routePacket(s, ctx, W_CREATE, { delay: wake.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'CreateSnapshot', W_CREATE, { delay: wake.arrivalMs + BEAT.afterHop });
-      revealAt(s.refs.snapData, ctx, call.arrivalMs, PLACEHOLDER);
+      revealAt(s.refs.snapData, ctx, call.arrivalMs, OPACITY.pending);
       // The copy itself: the point in time frozen out of the source into the new snapshot, which is the
       // whole reason both disks sit inside one backend frame.
       const copy = routePacket(s, ctx, W_COPY, { delay: call.arrivalMs + LAND_MS, role: 'storage' });
@@ -348,14 +352,14 @@ const STEPS = [
       // The snapshot data is where the ball departs from, so it is lit at step entry.
       s.refs.snapData.classList.add('highlight');
       if (ctx.reduced) { s.refs.restore.classList.add('highlight'); s.refs.restored.classList.add('highlight'); return; }
-      setStage(s, { vsc: 1, snapData: 1, restored: PLACEHOLDER, restore: 0, ds: 0, lanes: ['wSeed'] });
+      setStage(s, { vsc: 1, snapData: 1, restored: OPACITY.pending, restore: 0, ds: 0, lanes: ['wSeed'] });
       // The claim and its dataSource reference appear first: they are what triggers everything below.
       revealAt(s.refs.restore, ctx, 0);
       ctx.register(s.refs.dsRef.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: LAND_MS, fill: 'forwards', easing: 'ease-out' }));
       lightBoxAt(s.refs.restore, ctx, LAND_MS);
       const seed = routePacket(s, ctx, W_SEED, { delay: BEAT.lead + LAND_MS, role: 'storage' });
       ridingLabel(s, ctx, 'new volume from snap-1', W_SEED, { delay: BEAT.lead + LAND_MS });
-      revealAt(s.refs.restored, ctx, seed.arrivalMs, PLACEHOLDER);
+      revealAt(s.refs.restored, ctx, seed.arrivalMs, OPACITY.pending);
       lightBoxAt(s.refs.restored, ctx, seed.arrivalMs);
     },
   },

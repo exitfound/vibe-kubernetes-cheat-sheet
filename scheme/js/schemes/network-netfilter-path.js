@@ -1,6 +1,6 @@
-import { svg, g, text, line } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-netfilter-path
 
 
@@ -27,6 +27,10 @@ const ETH_RIGHT = ETH_X + ETH_W;               // 1140
 const ETH_CX = ETH_X + ETH_W / 2;              // 1065
 
 const CT_X = PRE_X, CT_Y = 480, CT_W = PO_RIGHT - PRE_X, CT_H = 56;   // under the four hooks, 70..950
+const CT_CX = CT_X + CT_W / 2;                 // 510: where the ownership marker meets the table
+// Ownership marker: PREROUTING bottom-centre, a short step in the gap between the rows, then down
+// onto the conntrack table's own top-edge centre. Both ends sit on a face midpoint.
+const CT_LINK = [[PRE_CX, ROW_BOTTOM], [PRE_CX, (ROW_BOTTOM + CT_Y) / 2], [CT_CX, (ROW_BOTTOM + CT_Y) / 2], [CT_CX, CT_Y]];
 
 const POD_X = 450, POD_Y = 60, POD_W = 210, POD_H = 110;
 const POD_CX = POD_X + POD_W / 2;              // 555
@@ -34,9 +38,11 @@ const POD_BOTTOM = POD_Y + POD_H;              // 170
 
 const IN_LANE_Y = 336;                         // the lane the client packet turns left on, inside the Node
 const RETURN_LANE_Y = 360;                     // the reply lane, its own, so it never rides a forward wire
-const CHIP_Y = 576, CHIP_H = 34;
+// Chip strip: four cells with even gaps spanning the Node frame 1:1, each sized for its own values.
+const CHIP_Y = 576, CHIP_H = 34, CHIP_GAP = 20;
+const CHIP_W = [270, 320, 260, 210];
+const CHIP_X = CHIP_W.reduce((acc, w, i) => (i ? [...acc, acc[i - 1] + CHIP_W[i - 1] + CHIP_GAP] : [SCHEME_LEFT]), []);
 
-const DIM = '0.4';
 
 // Each static wire and the ball that rides it share the same points array. The forward chain is four
 // short hops, one per hook boundary, so the ball visibly stops at every hook instead of gliding past it.
@@ -83,11 +89,11 @@ class Scene {
     const podC = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Client Pod', ip: '10.244.1.5' });
 
     const pre  = box({ x: PRE_X, y: ROW_Y, w: PRE_W, h: ROW_H, label: 'PREROUTING', sublabel: 'conntrack + nat', role: 'network' });
-    const rt   = box({ x: RT_X,  y: ROW_Y, w: RT_W,  h: ROW_H, label: 'Routing Decision', sublabel: 'local or forward', role: 'network' });
+    const rt   = box({ x: RT_X,  y: ROW_Y, w: RT_W,  h: ROW_H, label: 'Routing decision', sublabel: 'local or forward', role: 'network' });
     const fw   = box({ x: FW_X,  y: ROW_Y, w: FW_W,  h: ROW_H, label: 'FORWARD', sublabel: 'filter', role: 'network' });
     const po   = box({ x: PO_X,  y: ROW_Y, w: PO_W,  h: ROW_H, label: 'POSTROUTING', sublabel: 'nat · MASQUERADE', role: 'network' });
     const eth  = box({ x: ETH_X, y: ROW_Y, w: ETH_W, h: ROW_H, label: 'eth0', sublabel: 'the wire', role: 'network' });
-    const ct   = box({ x: CT_X, y: CT_Y, w: CT_W, h: CT_H, label: 'Conntrack Table', sublabel: 'no flow yet', role: 'network' });
+    const ct   = box({ x: CT_X, y: CT_Y, w: CT_W, h: CT_H, label: 'Conntrack table', sublabel: 'no flow yet', role: 'network' });
 
     const entryWire = pathArrow({ points: ENTRY, dashed: true, dim: true, role: 'network' });
     const h1 = arrow({ x1: PRE_TO_RT[0][0], y1: PRE_TO_RT[0][1], x2: PRE_TO_RT[1][0], y2: PRE_TO_RT[1][1], dashed: true, dim: true, role: 'network' });
@@ -98,16 +104,16 @@ class Scene {
 
     // Ownership marker, NOT a traffic path: PREROUTING is where the flow is looked up and recorded. No
     // packet ever travels it, so it is a plain dashed line with NO arrowhead.
-    const ctLink = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: PRE_CX, y1: ROW_BOTTOM, x2: PRE_CX, y2: CT_Y, 'stroke-dasharray': '5 5', fill: 'none' });
+    const ctLink = relationPath({ points: CT_LINK, role: 'network', dash: '5 5' });
 
     // One wire label, under the NIC: where this packet is actually headed once it is on the wire. Blank at
     // build, filled per step.
     const exitLabel = text({ class: 'scheme-label code dim', x: ETH_CX, y: ROW_BOTTOM + 20, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
-    const hookChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 270, h: CHIP_H, name: 'hook', value: 'none', role: 'network' });
-    const dstChip  = valChip({ x: 330, y: CHIP_Y, w: 320, h: CHIP_H, name: 'dst', value: '10.96.0.10:80', role: 'network' });
-    const srcChip  = valChip({ x: 670, y: CHIP_Y, w: 260, h: CHIP_H, name: 'src', value: '10.244.1.5', role: 'network' });
-    const ctChip   = valChip({ x: 950, y: CHIP_Y, w: SCHEME_RIGHT - 950, h: CHIP_H, name: 'conntrack', value: 'none', role: 'network' });
+    const hookChip = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'hook', value: 'none', role: 'network' });
+    const dstChip  = valChip({ x: CHIP_X[1], y: CHIP_Y, w: CHIP_W[1], h: CHIP_H, name: 'dst', value: '10.96.0.20:80', role: 'network' });
+    const srcChip  = valChip({ x: CHIP_X[2], y: CHIP_Y, w: CHIP_W[2], h: CHIP_H, name: 'src', value: '10.244.1.5', role: 'network' });
+    const ctChip   = valChip({ x: CHIP_X[3], y: CHIP_Y, w: CHIP_W[3], h: CHIP_H, name: 'conntrack', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -148,7 +154,7 @@ const STEPS = [
       clearWires(s);
       setBoxSublabel(s.refs.ct, 'no flow yet');
       setVal(s.refs.hookChip, 'none');
-      setVal(s.refs.dstChip, '10.96.0.10:80');
+      setVal(s.refs.dstChip, '10.96.0.20:80');
       setVal(s.refs.srcChip, '10.244.1.5');
       setVal(s.refs.ctChip, 'none');
     },
@@ -158,14 +164,14 @@ const STEPS = [
     // Motion: the Pod pulses first, the ball leaves at BEAT.afterPulse(800) and rides the entry route
     // (1389ms), so PREROUTING lights at 2189.
     duration: 2900,
-    narration: 'The client Pod opens a connection to a Service. The packet leaves the Pod and enters the Node kernel at PREROUTING, the very first hook, before any routing decision has been made. conntrack sees a flow it has never seen and records it, which is what will let the reply be untangled later with no work at all.',
+    narration: 'The client Pod opens a connection to a Service. The packet leaves the Pod and enters the Node kernel at PREROUTING, the very first hook, before any routing decision has been made. The conntrack table sees a flow it has never seen and records it, which is what will let the reply be untangled later with no work at all.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setBoxSublabel(s.refs.ct, '10.244.1.5 -> 10.96.0.10:80');
+      setBoxSublabel(s.refs.ct, '10.244.1.5 -> 10.96.0.20:80');
       setVal(s.refs.hookChip, 'PREROUTING');
-      setVal(s.refs.dstChip, '10.96.0.10:80');
+      setVal(s.refs.dstChip, '10.96.0.20:80');
       setVal(s.refs.srcChip, '10.244.1.5');
       setVal(s.refs.ctChip, 'new flow');
       s.refs.ct.classList.add('highlight');
@@ -176,7 +182,7 @@ const STEPS = [
       // still carries the ClusterIP, which is what the tag says, and PREROUTING lights on arrival.
       pulsePod(s.refs.podC, ctx, 0);
       const inb = routePacket(s, ctx, ENTRY, { delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'dst 10.96.0.10:80', ENTRY, { delay: BEAT.afterPulse });
+      ridingLabel(s, ctx, 'dst 10.96.0.20:80', ENTRY, { delay: BEAT.afterPulse });
       lightBoxAt(s.refs.pre, ctx, inb.arrivalMs);
     },
   },
@@ -188,8 +194,9 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setBoxSublabel(s.refs.ct, '10.96.0.10:80 -> 10.244.2.7:8080');
+      setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
       setVal(s.refs.hookChip, 'PREROUTING (nat)');
+      s.refs.hookChip.classList.add('highlight');
       setVal(s.refs.dstChip, '10.244.2.7:8080');
       setVal(s.refs.srcChip, '10.244.1.5');
       setVal(s.refs.ctChip, 'DNAT recorded');
@@ -213,7 +220,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setBoxSublabel(s.refs.ct, '10.96.0.10:80 -> 10.244.2.7:8080');
+      setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
       setVal(s.refs.hookChip, 'routing decision');
       setVal(s.refs.dstChip, '10.244.2.7:8080');
       setVal(s.refs.srcChip, '10.244.1.5');
@@ -238,7 +245,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setWire(s, 'exit', 'to Node-2');
-      setBoxSublabel(s.refs.ct, '10.96.0.10:80 -> 10.244.2.7:8080');
+      setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
       setVal(s.refs.hookChip, 'FORWARD, POSTROUTING');
       setVal(s.refs.dstChip, '10.244.2.7:8080');
       setVal(s.refs.srcChip, '10.244.1.5 (no SNAT)');
@@ -261,15 +268,17 @@ const STEPS = [
     id: 'reply',
     // Motion: the reply rides its own lane back to PREROUTING (1998ms), which lights on arrival.
     duration: 3000,
-    narration: 'The backend answers, and the reply arrives on the wire addressed from 10.244.2.7 to the Pod. At PREROUTING conntrack matches it against the flow it recorded, sees an established connection, and reverses the translation on the spot: the source becomes 10.96.0.10 again, the address the Pod dialed. Not a single Service rule is walked, which is why the rule walk is a first-packet cost and nothing more.',
+    narration: 'The backend answers, and the reply arrives on the wire addressed from 10.244.2.7 to the Pod. At PREROUTING conntrack matches it against the flow it recorded and sees an established connection, so the stored translation is reversed automatically on the way back out: the source becomes 10.96.0.20 again, the address the Pod dialed. Not a single Service rule is walked, which is why the rule walk is a first-packet cost and nothing more.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setBoxSublabel(s.refs.ct, '10.96.0.10:80 -> 10.244.2.7:8080');
+      setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
       setVal(s.refs.hookChip, 'PREROUTING');
+      s.refs.hookChip.classList.add('highlight');
       setVal(s.refs.dstChip, '10.244.1.5');
-      setVal(s.refs.srcChip, '10.96.0.10:80 (restored)');
+      s.refs.dstChip.classList.add('highlight');
+      setVal(s.refs.srcChip, '10.96.0.20:80 (restored)');
       setVal(s.refs.ctChip, 'ESTABLISHED');
       s.refs.ct.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
@@ -294,9 +303,11 @@ const STEPS = [
       setVal(s.refs.hookChip, 'socket, above netfilter');
       setVal(s.refs.dstChip, '10.244.2.7:8080');
       setVal(s.refs.srcChip, '10.244.1.5');
+      s.refs.srcChip.classList.add('highlight');
       setVal(s.refs.ctChip, 'in BPF maps');
+      s.refs.ctChip.classList.add('highlight');
       // The chain the packet no longer walks: dimming it is the message of the step.
-      ['pre', 'rt', 'fw', 'po', 'ct'].forEach(k => { s.refs[k].style.opacity = DIM; });
+      ['pre', 'rt', 'fw', 'po', 'ct'].forEach(k => { s.refs[k].style.opacity = String(OPACITY.notready); });
       s.refs.hookChip.classList.add('highlight');
       s.refs.dstChip.classList.add('highlight');
       // Reflective beat: nothing travels here, because the point is the path NOT taken. The chips carry

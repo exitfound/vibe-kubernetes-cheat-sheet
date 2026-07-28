@@ -1,6 +1,47 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/cluster-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
+
+// Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
+// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=195, so the reserved corner is
+// 400 x 215. A longer narration on any step invalidates that bottom.
+const M = 60;
+const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
+const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
+const PANEL_R = 400, PANEL_B = 215;                      // the reserved corner
+
+// Three actors in the top row, all clear of the panel.
+const TOP_Y = 40, BOX_H = 80, TOP_BOTTOM = TOP_Y + BOX_H;// 40 / 120
+const KUBE_W = 200, RT_W = 280, CNI_W = 180, TOP_GAP = 30;
+const KUBE_X = 420, KUBE_R = KUBE_X + KUBE_W;            // 420..620
+const RT_X = KUBE_R + TOP_GAP, RT_R = RT_X + RT_W;       // 650..930
+const CNI_X = RT_R + TOP_GAP, CNI_R = CNI_X + CNI_W;     // 960..1140
+const LANE_DY = 12, TOP_CY = TOP_Y + BOX_H / 2;          // 80
+const CALL_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;  // 68 / 92
+const WIRE_Y = TOP_BOTTOM + 24;                          // 144
+const WIRE_KR_X = (KUBE_R + RT_X) / 2;                   // 635
+const WIRE_RC_X = (RT_R + CNI_X) / 2;                    // 945
+
+// The left band opens below the panel.
+const LADDER_X = CONTENT_L, LADDER_W = 430;              // 60..490, clear of the spine
+const LADDER_Y = 235, ROW_H = 32, ROW_GAP = 10;          // 5 rows -> 235..435
+
+const CHIP_X = 620, CHIP_W = CONTENT_R - CHIP_X;         // 520, 620..1140
+const CHIP_H = 34, CHIP_GAP = 22;
+const CHIP_Y = i => LADDER_Y + i * (CHIP_H + CHIP_GAP);  // 235 / 291 / 347 / 403, bottom 437
+
+const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
+const NODE_Y = 462, NODE_H = 158;                        // 462..620
+const POD_W = 460, POD_H = 116;
+const POD_X = CX - POD_W / 2;                            // 370..830
+const POD_Y = NODE_Y + 22;                               // 484..600
+const INNER_W = 190, INNER_H = 54, INNER_Y = POD_Y + 30; // 514..568
+const PAUSE_X = POD_X + 22;                              // 392..582
+const APP_X = POD_X + POD_W - 22 - INNER_W;              // 618..808
+
+// The lane from Kubelet down into the sandbox. It leaves the box on its midpoint and runs in the
+// corridor between the ladder and the chip column, so it crosses nothing.
+const SPINE_X = KUBE_X + KUBE_W / 2;                     // 520
 // Design notes for this card: scheme/docs/CARDS.md#cluster-pod-sandbox-cri
 
 
@@ -12,29 +53,29 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      viewBox: '0 20 1200 620',
+      viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
       'aria-label': 'Pod sandbox via CRI: RunPodSandbox creates the pause container, CNI attaches the network, PullImage, CreateContainer and StartContainer launch the workload inside the sandbox',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: 300, y: 40, w: 200, h: 80, label: 'Kubelet',    sublabel: 'CRI client',      role: 'cluster' });
-    const runtime = box({ x: 560, y: 40, w: 280, h: 80, label: 'Containerd', sublabel: 'CRI gRPC server', role: 'cluster' });
-    const cni     = box({ x: 900, y: 40, w: 200, h: 80, label: 'CNI plugin', sublabel: 'veth + IPAM',     role: 'cluster' });
+    const kubelet = box({ x: KUBE_X, y: TOP_Y, w: KUBE_W, h: BOX_H, label: 'Kubelet',    sublabel: 'CRI client',      role: 'cluster' });
+    const runtime = box({ x: RT_X,   y: TOP_Y, w: RT_W,   h: BOX_H, label: 'containerd', sublabel: 'CRI gRPC server', role: 'cluster' });
+    const cni     = box({ x: CNI_X,  y: TOP_Y, w: CNI_W,  h: BOX_H, label: 'CNI plugin', sublabel: 'veth + IPAM',     role: 'cluster' });
 
     // Top arrows, symmetric about each box centre (y=80, so +/-15 -> 65 and 95).
-    root.appendChild(arrow({ x1: 500, y1: 65, x2: 560, y2: 65, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 560, y1: 95, x2: 500, y2: 95, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 840, y1: 65, x2: 900, y2: 65, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 900, y1: 95, x2: 840, y2: 95, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: KUBE_R, y1: CALL_Y, x2: RT_X, y2: CALL_Y, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: RT_X, y1: BACK_Y, x2: KUBE_R, y2: BACK_Y, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: RT_R, y1: CALL_Y, x2: CNI_X, y2: CALL_Y, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: CNI_X, y1: BACK_Y, x2: RT_R, y2: BACK_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    const wireKR = text({ class: 'scheme-label code dim', x: 530, y: 144, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
-    const wireRC = text({ class: 'scheme-label code dim', x: 870, y: 144, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireKR = text({ class: 'scheme-label code dim', x: WIRE_KR_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireRC = text({ class: 'scheme-label code dim', x: WIRE_RC_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     [wireKR, wireRC].forEach(t => root.appendChild(t));
 
     const chain = chainList({
-      x: 60, y: 196, w: 470, rowH: 32, gap: 10,
+      x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
         '1. RunPodSandbox   ·  pause container, shared namespaces',
         '2. CNI ADD         ·  veth pair, IPAM, route',
@@ -45,23 +86,23 @@ class Scene {
       role: 'cluster',
     });
 
-    const sandboxChip = valChip({ x: 800, y: 196, w: 380, h: 32, name: 'sandbox id', value: 'none', role: 'cluster' });
-    const ipChip      = valChip({ x: 800, y: 238, w: 380, h: 32, name: 'Pod IP',     value: 'none', role: 'cluster' });
-    const statusChip  = valChip({ x: 800, y: 280, w: 380, h: 32, name: 'status',     value: 'none', role: 'cluster' });
-    const lastOpChip  = valChip({ x: 800, y: 322, w: 380, h: 32, name: 'last op',    value: 'none', role: 'cluster' });
+    const sandboxChip = valChip({ x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'sandbox id', value: 'none', role: 'cluster' });
+    const ipChip      = valChip({ x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'Pod IP',     value: 'none', role: 'cluster' });
+    const statusChip  = valChip({ x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'status',     value: 'none', role: 'cluster' });
+    const lastOpChip  = valChip({ x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'last op',    value: 'none', role: 'cluster' });
     [sandboxChip, ipChip, statusChip, lastOpChip].forEach(c => root.appendChild(c));
 
     // Node centred under Containerd (centre x=700) so the connector drops straight in.
-    const nodeEl = node({ x: 320, y: 460, w: 760, h: 160, label: 'Node-1' });
+    const nodeEl = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: 470, y: 482, w: 460, h: 116, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });
+    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });
     podShell.style.setProperty('--workloads-color', '#c0b0ff');
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    const pauseBox = box({ x: 492, y: 512, w: 190, h: 54, label: 'pause', sublabel: 'netns · IPC · UTS', role: 'workloads' });
+    const pauseBox = box({ x: PAUSE_X, y: INNER_Y, w: INNER_W, h: INNER_H, label: 'pause', sublabel: 'netns · IPC · UTS', role: 'workloads' });
     pauseBox.style.setProperty('--workloads-color', '#c0b0ff');
-    const appBox = box({ x: 718, y: 512, w: 190, h: 54, label: 'app', sublabel: 'ENTRYPOINT', role: 'workloads' });
+    const appBox = box({ x: APP_X, y: INNER_Y, w: INNER_W, h: INNER_H, label: 'app', sublabel: 'ENTRYPOINT', role: 'workloads' });
     appBox.style.setProperty('--workloads-color', '#c0b0ff');
 
     // sandboxGroup (shell + pause) appears together at RunPodSandbox; appGroup later.
@@ -70,10 +111,13 @@ class Scene {
     sandboxGroup.appendChild(pauseBox);
     const appGroup = g({ id: 'appGroup' });
     appGroup.appendChild(appBox);
+    // Inside the shell, not beside it: the app container belongs to the Pod, and pulsePod only
+    // reaches what the Pod group contains.
+    sandboxGroup.appendChild(appGroup);
 
     // The runtime does the work on the node: connector drops straight into the node top centre.
     const connector = pathArrow({
-      points: [[700, 120], [700, 460]],
+      points: SANDBOX_CONNECTOR,
       dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
@@ -84,7 +128,6 @@ class Scene {
     root.appendChild(chain);
     root.appendChild(nodeEl);
     root.appendChild(sandboxGroup);
-    root.appendChild(appGroup);
     root.appendChild(kubelet);
     root.appendChild(runtime);
     root.appendChild(cni);
@@ -109,7 +152,10 @@ function clearHL(s) {
     [s.refs.sandboxGroup, s.refs.appGroup]);
 }
 
-const SANDBOX_CONNECTOR = [[700, 120], [700, 460]];
+// It ends ON the Pod sandbox, not on the Node frame edge above it: the drop turns onto the Pod's
+// top midpoint through the gutter between the ladder and the chip column.
+const BUS_Y = NODE_Y - 16;                               // 446, below both columns, above the frame
+const SANDBOX_CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, BUS_Y], [CX, BUS_Y], [CX, POD_Y]];
 
 const STEPS = [
   {
@@ -133,7 +179,7 @@ const STEPS = [
   },
   {
     id: 'sandbox',
-    duration: 2100,
+    duration: 2800,
     narration: 'Kubelet calls RunPodSandbox with the Pod namespace, labels, and resource hints. The runtime creates a pause container that holds the network, IPC, and UTS namespaces every workload container will share by default. The PID namespace is shared only when spec.shareProcessNamespace is set.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -144,17 +190,18 @@ const STEPS = [
       setVal(s.refs.sandboxChip, 'pause-7f3a');
       setVal(s.refs.statusChip, 'sandbox ready');
       setVal(s.refs.lastOpChip, 'RunPodSandbox');
+      s.refs.statusChip.classList.add('highlight');
       setWire(s, 'kr', 'RunPodSandbox');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.sandboxChip.classList.add('highlight');
       s.refs.lastOpChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       // Pin final state inline so cancel does not flash to default.
       s.refs.sandboxGroup.style.opacity = '1';
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       // gRPC to the runtime, then the runtime materialises the sandbox on the node.
-      const grpc = topPacket(s, ctx, { from: 500, to: 560, role: 'cluster' });
+      const grpc = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: CALL_Y, role: 'cluster' });
+      lightBoxAt(s.refs.runtime, ctx, grpc.arrivalMs);
       const run = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: grpc.arrivalMs + BEAT.afterHop, role: 'cluster' });
       ctx.register(s.refs.sandboxGroup.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: run.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.sandboxGroup, ctx, run.arrivalMs);
@@ -162,7 +209,7 @@ const STEPS = [
   },
   {
     id: 'cni',
-    duration: 2200,
+    duration: 2800,
     narration: 'As part of sandbox setup the runtime invokes the configured CNI plugin with the sandbox netns path. The plugin creates a veth pair, allocates an IP via IPAM, configures routes, and returns the result. The Pod IP is now set on the sandbox.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -173,15 +220,17 @@ const STEPS = [
       setVal(s.refs.ipChip, '10.244.1.5');
       setVal(s.refs.statusChip, 'sandbox ready · IP set');
       setVal(s.refs.lastOpChip, 'CNI ADD');
+      s.refs.statusChip.classList.add('highlight');
+      s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'rc', 'ADD · netns + IPAM');
       s.refs.runtime.classList.add('highlight');
-      s.refs.cni.classList.add('highlight');
       s.refs.ipChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
       s.refs.sandboxGroup.style.opacity = '1';
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.cni.classList.add('highlight'); return; }
       // Runtime execs CNI (right arrow), then the netns config lands on the sandbox.
-      const exec = topPacket(s, ctx, { from: 840, to: 900, role: 'cluster' });
+      const exec = topPacket(s, ctx, { from: RT_R, to: CNI_X, y: CALL_Y, role: 'cluster' });
+      lightBoxAt(s.refs.cni, ctx, exec.arrivalMs);
       const conf = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: exec.arrivalMs + BEAT.afterHop, role: 'cluster' });
       pulsePod(s.refs.sandboxGroup, ctx, conf.arrivalMs);
     },
@@ -197,20 +246,21 @@ const STEPS = [
       s.refs.appGroup.style.opacity = '0';
       setVal(s.refs.statusChip, 'image cached');
       setVal(s.refs.lastOpChip, 'PullImage');
+      s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'kr', 'PullImage · nginx:1.27');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.statusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       s.refs.sandboxGroup.style.opacity = '1';
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       // Image fetch is a kubelet -> runtime gRPC only. The Pod does not change yet.
-      topPacket(s, ctx, { from: 500, to: 560, role: 'cluster' });
+      const pkt = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: CALL_Y, role: 'cluster' });
+      lightBoxAt(s.refs.runtime, ctx, pkt.arrivalMs);
     },
   },
   {
     id: 'create',
-    duration: 2100,
+    duration: 2800,
     narration: 'Kubelet calls CreateContainer with the sandbox id, container config (command, env, mounts), and resource limits. The runtime sets up cgroups, prepares the mounts, and returns a container id. The container now exists in the sandbox but is not yet running.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -219,25 +269,26 @@ const STEPS = [
       setBoxSublabel(s.refs.appBox, 'created · not started');
       setVal(s.refs.statusChip, 'created (not started)');
       setVal(s.refs.lastOpChip, 'CreateContainer');
+      s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'kr', 'CreateContainer');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.statusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
       s.refs.sandboxGroup.style.opacity = '1';
       // Pinned dim: the container exists but is not running.
-      s.refs.appGroup.style.opacity = '0.45';
-      if (ctx.reduced) return;
+      s.refs.appGroup.style.opacity = String(OPACITY.pending);
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       // gRPC to the runtime, then the created (not started) container lands dim.
-      const grpc = topPacket(s, ctx, { from: 500, to: 560, role: 'cluster' });
+      const grpc = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: CALL_Y, role: 'cluster' });
+      lightBoxAt(s.refs.runtime, ctx, grpc.arrivalMs);
       const create = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: grpc.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      ctx.register(s.refs.appGroup.animate([{ opacity: 0 }, { opacity: 0.45 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.appGroup.animate([{ opacity: 0 }, { opacity: OPACITY.pending }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.appGroup, ctx, create.arrivalMs);
     },
   },
   {
     id: 'start',
-    duration: 2300,
+    duration: 2800,
     narration: 'Kubelet calls StartContainer with the container id. The runtime forks the container ENTRYPOINT process inside the shared namespaces of the sandbox. The Pod workload is now running and the Pod reports Ready once its probes pass.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -248,18 +299,18 @@ const STEPS = [
       setVal(s.refs.lastOpChip, 'StartContainer');
       setWire(s, 'kr', 'StartContainer');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.statusChip.classList.add('highlight');
       s.refs.lastOpChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       s.refs.sandboxGroup.style.opacity = '1';
       // Pinned full: the container is running.
       s.refs.appGroup.style.opacity = '1';
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       // gRPC to the runtime, then the ENTRYPOINT forks and the container brightens.
-      const grpc = topPacket(s, ctx, { from: 500, to: 560, role: 'cluster' });
+      const grpc = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: CALL_Y, role: 'cluster' });
+      lightBoxAt(s.refs.runtime, ctx, grpc.arrivalMs);
       const start = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: grpc.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      ctx.register(s.refs.appGroup.animate([{ opacity: 0.45 }, { opacity: 1 }], { duration: FADE.in, delay: start.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      ctx.register(s.refs.appGroup.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: FADE.in, delay: start.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.appGroup, ctx, start.arrivalMs);
     },
   },

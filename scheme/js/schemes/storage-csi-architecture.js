@@ -1,6 +1,6 @@
-import { svg, g, text, rect, path } from '../lib/svg.js';
+import { svg, g, text, rect } from '../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-csi-architecture
 
 
@@ -91,8 +91,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 // A relationship line, not a route: same dim dashed storage styling as pathArrow but with no
 // marker-end, because nothing ever travels along it.
 function wireNoHead(points) {
-  const d = points.map(([x, y], i) => `${i ? 'L' : 'M'} ${x} ${y}`).join(' ');
-  return path({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', d, fill: 'none' });
+  return relationPath({ points, role: 'storage' });
 }
 
 function frame(x, y, w, h, label) {
@@ -115,25 +114,25 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CSI driver architecture: Kubernetes core knows nothing about any storage vendor, so a CSI driver ships in two halves, a controller plugin that runs as a Deployment with four sidecars that each watch one kind of Kubernetes object and turn it into one gRPC call on a shared bus into a single vendor driver, and a node plugin that runs as a DaemonSet on every node, registers itself with the local kubelet, and is the only component that ever touches the node filesystem',
+      'aria-label': 'CSI driver architecture: Kubernetes core knows nothing about any storage vendor, so a CSI driver ships in two halves, a controller plugin that runs as a Deployment or StatefulSet with four sidecars that each watch one kind of Kubernetes object and turn it into one gRPC call on a shared bus into a single vendor driver, and a node plugin that runs as a DaemonSet on every Node, registers itself with the local Kubelet, and is the only component that ever mounts vendor storage on the Node',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const ctrlFrame = frame(FRAME_X, CF_Y, CF_W, CF_H, 'CSI CONTROLLER PLUGIN  ·  Deployment, runs off-node');
+    const ctrlFrame = frame(FRAME_X, CF_Y, CF_W, CF_H, 'CSI CONTROLLER PLUGIN  ·  Deployment or StatefulSet');
     const nodeFrame = frame(FRAME_X, NF_Y, NF_W, NF_H, 'CSI NODE PLUGIN  ·  DaemonSet on every node');
 
     const api  = box({ x: API_X, y: MID_Y, w: SIDE_W, h: MID_H, label: 'Kube-apiserver', sublabel: 'core, no vendor code', role: 'storage' });
     const prov = box({ x: S_X[0], y: S_Y, w: S_W[0], h: S_H, label: 'External-provisioner', sublabel: 'watches PVC', role: 'storage' });
     const att  = box({ x: S_X[1], y: S_Y, w: S_W[1], h: S_H, label: 'External-attacher', sublabel: 'watches VolumeAttachment', role: 'storage' });
     const res  = box({ x: S_X[2], y: S_Y, w: S_W[2], h: S_H, label: 'External-resizer', sublabel: 'watches PVC resize', role: 'storage' });
-    const snap = box({ x: S_X[3], y: S_Y, w: S_W[3], h: S_H, label: 'External-snapshotter', sublabel: 'watches VolumeSnapshot', role: 'storage' });
+    const snap = box({ x: S_X[3], y: S_Y, w: S_W[3], h: S_H, label: 'External-snapshotter', sublabel: 'watches VolumeSnapshotContent', role: 'storage' });
     const drv  = box({ x: DRV_X, y: DRV_Y, w: DRV_W, h: DRV_H, label: 'CSI controller driver', sublabel: 'one vendor gRPC server', role: 'storage' });
     const cloud = box({ x: CLOUD_X, y: MID_Y, w: SIDE_W, h: MID_H, label: 'Cloud storage API', sublabel: 'makes + attaches disks', role: 'storage' });
 
     const kube = box({ x: KUBE_X, y: B_Y, w: SIDE_W, h: B_H, label: 'Kubelet', sublabel: 'asks node plugin to mount', role: 'storage' });
     const reg  = box({ x: REG_X, y: B_Y, w: REG_W, h: B_H, label: 'Node-driver-registrar', sublabel: 'sidecar, registers driver', role: 'storage' });
-    const nd   = box({ x: ND_X, y: B_Y, w: ND_W, h: B_H, label: 'CSI node driver', sublabel: 'the only fs toucher', role: 'storage' });
+    const nd   = box({ x: ND_X, y: B_Y, w: ND_W, h: B_H, label: 'CSI node driver', sublabel: 'the only mounter', role: 'storage' });
     const fs   = cylinder({ x: FS_X, y: FS_Y, w: FS_W, h: FS_H, label: 'NodeFS', role: 'storage' });
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
     // is not part of the visible front face. Re-centre on the face, as storage-volume-model does.
@@ -196,7 +195,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A CSI driver is how a storage vendor plugs into Kubernetes without a line of vendor code living in Kubernetes itself. Every driver ships in two halves: a controller that runs once, off to the side, and a node component that runs on every machine. Neither half is part of Kubernetes core.',
+    narration: 'A CSI driver is how a storage vendor plugs into Kubernetes without a line of vendor code living in Kubernetes itself. Every driver ships in two halves: a controller that runs once, off to the side, and a Node component that runs on every machine. Neither half is part of Kubernetes core.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -209,7 +208,7 @@ const STEPS = [
     duration: 2100,
     // Packet-less and Pod-less, and still NO blink: the pulse is reserved for Pods, and this card has
     // none, so an infrastructure box states itself with a steady .highlight outline and nothing else.
-    narration: 'Kubernetes core deals only in objects: a PVC, a VolumeAttachment, a VolumeSnapshot. It has no idea how any particular disk is made or attached. That deliberate ignorance is what lets one Kubernetes talk to dozens of storage backends it was never taught about.',
+    narration: 'Kubernetes core deals only in objects: a PVC, a PersistentVolume, a VolumeAttachment. It has no idea how any particular disk is made or attached. That deliberate ignorance is what lets one Kubernetes talk to dozens of storage backends it was never taught about.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -223,7 +222,7 @@ const STEPS = [
     duration: 2400,
     // Structural step: the four sidecars light and STAY lit. No blink here either, same reason as
     // the core step: this is a set of four boxes to be read side by side, not a beat to be noticed.
-    narration: 'The controller plugin is a Deployment, and inside it ride the sidecars. Each watches one kind of object and does one job: provisioner for claims, attacher for attachments, resizer for resizes, snapshotter for snapshots. All four call one driver.',
+    narration: 'The controller plugin runs as a Deployment or a StatefulSet, and inside it ride the sidecars. Each watches one kind of object and does one job: provisioner for claims, attacher for attachments, resizer for resizes, snapshotter for snapshots. All four call one driver.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -238,7 +237,7 @@ const STEPS = [
   {
     id: 'translate',
     duration: 3600,
-    narration: 'Follow one sidecar. external-provisioner sees a Pending PVC in the apiserver and turns it into a single gRPC call, CreateVolume, into the vendor driver. The driver is the only part that speaks to the cloud API and asks it to carve out a real disk. Object in, gRPC out.',
+    narration: 'Follow one sidecar. The external-provisioner sees a Pending PVC in the API server and turns it into a single gRPC call, CreateVolume, into the vendor driver. The driver is the only part that speaks to the cloud API and asks it to carve out a real disk. Object in, gRPC out.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -262,7 +261,7 @@ const STEPS = [
   {
     id: 'node',
     duration: 2800,
-    narration: 'The other half is the node plugin, a DaemonSet, so a copy runs on every node. It cannot mount anything until kubelet knows it exists, so the node-driver-registrar sidecar registers the driver with the local kubelet. From then on kubelet routes mount requests for this driver to this node plugin.',
+    narration: 'The other half is the node plugin, a DaemonSet, so a copy runs on every Node. It cannot mount anything until Kubelet knows it exists, so the node-driver-registrar sidecar registers the driver with the local Kubelet. From then on Kubelet routes mount requests for this driver to this node plugin.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -279,7 +278,7 @@ const STEPS = [
   {
     id: 'fstoucher',
     duration: 2800,
-    narration: 'One rule holds the whole design together: only the node plugin ever touches the node filesystem. The controller talks to the cloud and never sees a mount, and kubelet never mounts vendor storage itself. When bytes finally land on disk, it is the CSI node driver that put them there.',
+    narration: 'One rule holds the whole design together: only the node plugin ever mounts the volume on the Node. The controller talks to the cloud and never sees a mount, and Kubelet never mounts vendor storage itself. When bytes finally land on disk, it is the CSI node driver that put them there.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

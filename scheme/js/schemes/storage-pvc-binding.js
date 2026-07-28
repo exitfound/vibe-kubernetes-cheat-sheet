@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-pvc-binding
 
 
@@ -37,7 +37,6 @@ const SPEC_Y = PV_Y + 62;   // inside the cylinder, a line under its name
 const VERDICT_Y = 544;  // per-disk verdict, below the scan bus
 const CHIPS_Y = 572;
 
-const DIM = 0.45;       // a disk the controller has just rejected
 
 const W_PVC_TO_CTRL = [[PVC_RIGHT, PVC_MID - LANE], [CTRL_LEFT, PVC_MID - LANE]];   // watch, straight
 const W_CTRL_TO_PVC = [[CTRL_LEFT, PVC_MID + LANE], [PVC_RIGHT, PVC_MID + LANE]];   // bind write, straight
@@ -51,8 +50,8 @@ const W_MOUNT_HIGH  = [[MOUNT_X, PVC_Y], [MOUNT_X, POD_BOTTOM]];    // PVC -> Po
 // Dims a rejected disk on arrival of the probe that rejected it, for the same reason.
 function dimBoxAt(el, ctx, delay = 0) {
   if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = String(DIM); return; }
-  ctx.register(el.animate([{ opacity: 1 }, { opacity: DIM }], { duration: 400, delay, fill: 'forwards', easing: 'ease-out' }));
+  if (ctx.reduced || delay <= 0) { el.style.opacity = String(OPACITY.notready); return; }
+  ctx.register(el.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: 400, delay, fill: 'forwards', easing: 'ease-out' }));
 }
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
@@ -64,7 +63,7 @@ function podBlock({ x, y, w, h, label, sublabel }) {
   const shell = pod({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + (h - 52) / 2, w: w - 40, h: 52, label: 'App', sublabel: 'writes to /data', role: 'storage' });
+  const innerBox = box({ x: x + 20, y: y + (h - 52) / 2, w: w - 40, h: 52, label: 'app', sublabel: 'writes to /data', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -89,7 +88,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, pairs the claim with the one that does by writing the link both ways, and only then can kubelet mount the volume into the Pod',
+      'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, pairs the claim with the one that does by writing the link both ways, and only then can Kubelet mount the volume into the Pod',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -182,7 +181,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
-      s.refs.appPod.style.opacity = '0.5';
+      s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
       s.refs.wCtrlToPvcB.style.opacity = '0';
     },
@@ -196,7 +195,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
-      s.refs.appPod.style.opacity = '0.5';
+      s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
       s.refs.wCtrlToPvcB.style.opacity = '0';
       s.refs.pvc.classList.add('highlight');
@@ -211,7 +210,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
-      s.refs.appPod.style.opacity = '0.5';
+      s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
       s.refs.wCtrlToPvcB.style.opacity = '0';
       s.refs.pvc.classList.add('highlight');
@@ -231,7 +230,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'candidate PV-x73a', mount: 'none' });
-      s.refs.appPod.style.opacity = '0.5';
+      s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
       s.refs.wCtrlToPvcB.style.opacity = '0';
       s.refs.ctrl.classList.add('highlight');
@@ -240,8 +239,8 @@ const STEPS = [
       setWire(s, 'slow', 'wrong class');
       if (ctx.reduced) {
         s.refs.pvMatchCyl.classList.add('highlight');
-        s.refs.pvSmall.style.opacity = String(DIM);
-        s.refs.pvSlow.style.opacity = String(DIM);
+        s.refs.pvSmall.style.opacity = String(OPACITY.notready);
+        s.refs.pvSlow.style.opacity = String(OPACITY.notready);
         return;
       }
       const toSmall = routePacket(s, ctx, W_SCAN_SMALL, { role: 'storage' });
@@ -261,21 +260,21 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { pvc: 'Bound', pv: 'Bound', bind: BOUND, mount: 'none' });
-      s.refs.appPod.style.opacity = '0.5';
+      s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
       s.refs.wCtrlToPvcB.style.opacity = '0';
       s.refs.ctrl.classList.add('highlight');
-      s.refs.pvc.classList.add('highlight');
-      s.refs.pvMatchCyl.classList.add('highlight');
-      s.refs.pvSmall.style.opacity = String(DIM);
-      s.refs.pvSlow.style.opacity = String(DIM);
+      s.refs.pvSmall.style.opacity = String(OPACITY.notready);
+      s.refs.pvSlow.style.opacity = String(OPACITY.notready);
       setWire(s, 'small', 'too small');
       setWire(s, 'slow', 'wrong class');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); s.refs.pvMatchCyl.classList.add('highlight'); return; }
       // Two writes leave the controller at once: one down to the claim, one down to the volume.
-      routePacket(s, ctx, W_CTRL_TO_PVC, { role: 'storage' });
+      const pvcPkt = routePacket(s, ctx, W_CTRL_TO_PVC, { role: 'storage' });
+      lightBoxAt(s.refs.pvc, ctx, pvcPkt.arrivalMs);
       ridingLabel(s, ctx, 'volumeName: PV-x73a', W_CTRL_TO_PVC);
-      routePacket(s, ctx, W_SCAN_MATCH, { role: 'storage' });
+      const pvMatchCylPkt = routePacket(s, ctx, W_SCAN_MATCH, { role: 'storage' });
+      lightBoxAt(s.refs.pvMatchCyl, ctx, pvMatchCylPkt.arrivalMs);
       ridingLabel(s, ctx, 'claimRef: data-claim', W_SCAN_MATCH);
     },
   },
@@ -292,8 +291,8 @@ const STEPS = [
       s.refs.wCtrlToPvcB.style.opacity = '0';
       s.refs.pvc.classList.add('highlight');
       s.refs.pvMatchCyl.classList.add('highlight');
-      s.refs.pvSmall.style.opacity = String(DIM);
-      s.refs.pvSlow.style.opacity = String(DIM);
+      s.refs.pvSmall.style.opacity = String(OPACITY.notready);
+      s.refs.pvSlow.style.opacity = String(OPACITY.notready);
       setWire(s, 'small', 'too small');
       setWire(s, 'slow', 'wrong class');
       setWire(s, 'mount', 'kubelet mount');
@@ -305,9 +304,9 @@ const STEPS = [
       const hop1 = routePacket(s, ctx, W_MOUNT_LOW, { role: 'storage' });
       const hop2 = routePacket(s, ctx, W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, '/data', W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop });
-      s.refs.appPod.style.opacity = '0.5';
+      s.refs.appPod.style.opacity = String(OPACITY.pending);
       // The ball arrives AT the Pod, so the Pod pulses on arrival, not before it.
-      ctx.register(s.refs.appPod.animate([{ opacity: 0.5 }, { opacity: 1 }], { duration: 500, delay: hop2.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.appPod.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: 500, delay: hop2.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
       pulsePod(s.refs.appPod, ctx, hop2.arrivalMs);
       lightBoxAt(s.refs.appBox, ctx, hop2.arrivalMs);
     },
@@ -326,8 +325,8 @@ const STEPS = [
       s.refs.wCtrlToPvcB.style.opacity = '1';
       s.refs.ctrl.classList.add('highlight');
       s.refs.pvMatchCyl.classList.add('highlight');
-      s.refs.pvSmall.style.opacity = String(DIM);
-      s.refs.pvSlow.style.opacity = String(DIM);
+      s.refs.pvSmall.style.opacity = String(OPACITY.notready);
+      s.refs.pvSlow.style.opacity = String(OPACITY.notready);
       setWire(s, 'small', 'too small');
       setWire(s, 'slow', 'wrong class');
       setBoxSublabel(s.refs.pvcB, 'Pending, no volume');

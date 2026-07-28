@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow, chainList, setChainActive } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-detach-on-node-loss
 
 
@@ -23,30 +23,36 @@ const B_CX = B_X + NODE_W / 2;                           // 704, and (496 + 704)
 const DK_W = 190, DK_H = 104, DK_Y = 282;
 const DK_X = CONTENT_CX - DK_W / 2;                      // 505
 const DK_TOP = DK_Y;                                     // 282
-const DK_LBL_Y = 410;
+// Beside the disk, not under it: the taint lane now comes up the spine into the disk floor.
+const DK_LBL_X = 711, DK_LBL_Y = 340;
 
+// The bottom half carries the ladder on the left and the chips on the right, so between them the
+// strip spans the whole content width and centres on it. The escalation box is the only BLOCK down
+// there beside the disk, so it stands on the spine: parked out at the right it dragged the whole
+// low half of the card off centre with it.
+const M = 60;
 const CHIP_W = 210, CHIP_GAP = 16, CHIP_COUNT = 3, CHIP_H = 32;
 const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);   // 662
-const BAND_LEFT = CONTENT_CX - CHIPS_W / 2;              // 269
-const BAND_RIGHT = CONTENT_CX + CHIPS_W / 2;             // 931
-const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) => BAND_LEFT + i * (CHIP_W + CHIP_GAP));
+const CHIPS_L = 1200 - M - CHIPS_W;                      // 478
+const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) => CHIPS_L + i * (CHIP_W + CHIP_GAP));
 const CHIPS_Y = 598;
 
-const LAD_X = BAND_LEFT, LAD_Y = 448, LAD_W = 380, LAD_ROW = 38, LAD_GAP = 9;
+const LAD_X = M, LAD_Y = 448, LAD_W = 380, LAD_ROW = 38, LAD_GAP = 9;
 const LAD_BOTTOM = LAD_Y + LAD_ROW * 3 + LAD_GAP * 2;    // 580
 const ESC_W = 230, ESC_H = 72;
-const ESC_X = BAND_RIGHT - ESC_W;                        // 701
+const ESC_X = CONTENT_CX - ESC_W / 2;                    // 485
 const ESC_Y = LAD_Y + (LAD_BOTTOM - LAD_Y - ESC_H) / 2;  // 478, vertically centered on the ladder
-const ESC_CX = ESC_X + ESC_W / 2;                        // 816
+const ESC_CX = CONTENT_CX;                               // on the spine, under the disk it acts on
 const ESC_TOP = ESC_Y;
 
-const GONE = 0.35;     // OPACITY.dim
 
 const LANE = 22, CORRIDOR_Y = 260;
 const W_ATTACH_A = [[CONTENT_CX - LANE, DK_TOP], [CONTENT_CX - LANE, CORRIDOR_Y], [A_CX, CORRIDOR_Y], [A_CX, NODE_BOTTOM]];
 const W_ATTACH_B = [[CONTENT_CX + LANE, DK_TOP], [CONTENT_CX + LANE, CORRIDOR_Y], [B_CX, CORRIDOR_Y], [B_CX, NODE_BOTTOM]];
 const DK_RIGHT = DK_X + DK_W, DK_MID_Y = DK_Y + DK_H / 2;   // 695 / 334
-const W_TAINT = [[ESC_CX, ESC_TOP], [ESC_CX, DK_MID_Y], [DK_RIGHT, DK_MID_Y]];
+const DK_BOTTOM = DK_Y + DK_H;                              // 386
+// The taint arrives from directly below, on the spine, so it needs no elbow and crosses nothing.
+const W_TAINT = [[ESC_CX, ESC_TOP], [ESC_CX, DK_BOTTOM]];
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
@@ -55,7 +61,7 @@ function podBlock({ x, label, sublabel }) {
   const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 14, y: POD_Y + 30, w: POD_W - 28, h: 44, label: 'App', sublabel: 'writes PV-web', role: 'storage' });
+  const innerBox = box({ x: x + 14, y: POD_Y + 30, w: POD_W - 28, h: 44, label: 'app', sublabel: 'writes PV-web', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -72,13 +78,13 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Detach on node failure: when a node goes NotReady and its kubelet is silent, Kubernetes will not detach the volume immediately, because the old Pod cannot be confirmed dead and detaching while it might still write would let two nodes write one filesystem, so it waits out the pod-eviction timeout and then the roughly six minute force-detach before attaching the disk on a new node, a deliberate safety property rather than a bug, and the non-graceful node shutdown out-of-service taint is the operator escape hatch that asserts the node is truly dead and skips the wait',
+      'aria-label': 'Detach on Node failure: when a Node goes NotReady and its Kubelet is silent, Kubernetes will not detach the volume immediately, because the old Pod cannot be confirmed dead and detaching while it might still write would let two Nodes write one filesystem, so it waits out the pod-eviction timeout and then the roughly six minute force-detach before attaching the disk on a new Node, a deliberate safety property rather than a bug, and the non-graceful node shutdown out-of-service taint is the operator escape hatch that asserts the Node is truly dead and skips the wait',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const nodeA = node({ x: A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-1' });
-    const nodeB = node({ x: B_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-2' });
+    const nodeA = node({ x: A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
+    const nodeB = node({ x: B_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' });
 
     const oldPod = podBlock({ x: A_X + NODE_PAD, label: 'Pod web-0 (old)', sublabel: 'Running' });
     const newPod = podBlock({ x: B_X + NODE_PAD, label: 'Pod web-0 (new)', sublabel: 'Pending' });
@@ -92,7 +98,7 @@ class Scene {
 
     const escape = box({
       x: ESC_X, y: ESC_Y, w: ESC_W, h: ESC_H,
-      label: 'Out-of-service Taint', sublabel: 'operator asserts node is dead', role: 'storage',
+      label: 'Out-of-service taint', sublabel: 'operator asserts node is dead', role: 'storage',
     });
 
     const chain = chainList({
@@ -111,7 +117,7 @@ class Scene {
     wAttachB.style.opacity = '0';
     wTaint.style.opacity = '0';
 
-    const diskLbl = text({ class: 'scheme-label code dim', x: CONTENT_CX, y: DK_LBL_Y, 'text-anchor': 'middle' }, [' ']);
+    const diskLbl = text({ class: 'scheme-label code dim', x: DK_LBL_X, y: DK_LBL_Y, 'text-anchor': 'start' }, [' ']);
 
     const nodeChip = valChip({ x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'node-1',  value: 'Ready',              role: 'storage' });
     const diskChip = valChip({ x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'volume',  value: 'attached to node-1', role: 'storage' });
@@ -166,7 +172,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A healthy pair of nodes. node-1 is Ready, its Pod runs, and the ReadWriteOnce disk PV-web is attached there. The Pod may be writing to that disk at any instant, and everything about the safety story below turns on that one fact.',
+    narration: 'A healthy pair of Nodes. Node-1 is Ready, its Pod runs, and the ReadWriteOnce disk PV-web is attached there. The Pod may be writing to that disk at any instant, and everything about the safety story below turns on that one fact.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -186,40 +192,42 @@ const STEPS = [
   {
     id: 'notready',
     duration: 2600,
-    narration: 'node-1 stops answering. Its kubelet goes silent, the node is marked NotReady, and a replacement Pod is scheduled onto node-2. But there is no word from node-1 about whether the old Pod actually stopped. It might be dead. It might be a network blip with the Pod still writing.',
+    narration: 'Node-1 stops answering. Its Kubelet goes silent and the Node is marked NotReady, but there is no word from Node-1 about whether the old Pod actually stopped. It might be dead. It might be a network blip with the Pod still writing.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChainActive(s.refs.chain, -1);
-      setChips(s, { nodeA: 'NotReady', volume: 'attached to node-1', newPod: 'Pending' });
+      setChips(s, { nodeA: 'NotReady', volume: 'attached to node-1', newPod: 'not created' });
       setPods(s, { oldSub: 'status unknown', newSub: 'Pending' });
       s.refs.oldPod.style.opacity = '1';
-      s.refs.newPod.style.opacity = '1';
+      // Node-2 stays empty here. A losing Node does not by itself produce a replacement: nothing can
+      // create a second web-0 while the first one is still a live object with no deletionTimestamp.
+      // The replacement appears on the evict step, which is where that timestamp is written.
+      s.refs.newPod.style.opacity = '0';
       s.refs.disk.classList.add('highlight');
       s.refs.wAttachA.style.opacity = '1';
       s.refs.wAttachB.style.opacity = '0';
       s.refs.wTaint.style.opacity = '0';
       if (ctx.reduced) return;
-      // The new Pod being scheduled IS the event, so it fades in. The old Pod stays put: nothing has
-      // happened to it yet, only to its node.
-      s.refs.newPod.style.opacity = '0';
-      ctx.register(s.refs.newPod.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: 200, fill: 'forwards', easing: 'ease-out' }));
+      // The old Pod is the thing that changed: its sublabel flips to status unknown. Nothing
+      // travels on this step, so the pulse is the only beat it has.
+      pulsePod(s.refs.oldPod, ctx, 0);
     },
   },
   {
     id: 'refuse',
     duration: 2800,
-    narration: 'So Kubernetes refuses to detach the disk. Notice what it is not waiting on: no other Pod holds the volume and nothing is contending for it. It is waiting on doubt. Pull PV-web off node-1 while the old Pod might still be writing and two nodes write one filesystem, which corrupts it. Refusing is the safe answer to a question that cannot be answered.',
+    narration: 'So Kubernetes refuses to detach the disk. Notice what it is not waiting on: no other Pod holds the volume and nothing is contending for it. It is waiting on doubt. Pull PV-web off Node-1 while the old Pod might still be writing and two Nodes write one filesystem, which corrupts it. Refusing is the safe answer to a question that cannot be answered.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChainActive(s.refs.chain, -1);
-      setChips(s, { nodeA: 'NotReady', volume: 'held on node-1', newPod: 'ContainerCreating' });
-      setPods(s, { oldSub: 'may still write', newSub: 'ContainerCreating' });
+      setChips(s, { nodeA: 'NotReady', volume: 'held on node-1', newPod: 'not created' });
+      setPods(s, { oldSub: 'may still write', newSub: 'Pending' });
       s.refs.oldPod.style.opacity = '1';
-      s.refs.newPod.style.opacity = '1';
+      s.refs.newPod.style.opacity = '0';
       s.refs.disk.classList.add('highlight');
       setWire(s, 'disk', 'do not detach yet');
       if (ctx.reduced) return;
@@ -231,7 +239,7 @@ const STEPS = [
   {
     id: 'evict',
     duration: 2600,
-    narration: 'The clocks start. First the pod-eviction timeout: once node-1 has been NotReady long enough, the old Pod is marked for deletion. On a reachable node that would delete the Pod cleanly and release the volume. On an unreachable node the deletion cannot be confirmed, so the disk is still held.',
+    narration: 'The clocks start. First the pod-eviction timeout: once Node-1 has been NotReady long enough, the old Pod is marked for deletion. On a reachable Node that would delete the Pod cleanly and release the volume. On an unreachable Node the deletion cannot be confirmed, so the disk is still held. That same deletion mark is what finally lets a replacement be created on Node-2, where it sits in ContainerCreating waiting for a disk it cannot have.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -247,12 +255,16 @@ const STEPS = [
       // The OLD Pod is what this timeout acts on, so the old Pod is what blinks, again with the
       // ordinary pulsePod. An earlier pass pulsed the new Pod here, pointing at the wrong node.
       pulsePod(s.refs.oldPod, ctx, 0);
+      // The replacement can exist from this step on, so this is where it fades in. It cannot start:
+      // the disk it needs is still held by a Node nobody can reach.
+      s.refs.newPod.style.opacity = '0';
+      ctx.register(s.refs.newPod.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: 200, fill: 'forwards', easing: 'ease-out' }));
     },
   },
   {
     id: 'forcedetach',
     duration: 2800,
-    narration: 'Then the force-detach timeout, roughly six minutes after the node went unreachable. At that point Kubernetes gives up waiting for node-1 and rips the attachment away, on the assumption that after this long the old Pod cannot still be running. Only now is the disk free.',
+    narration: 'Then the force-detach timeout, roughly six minutes after that Pod deletion fails to complete. At that point Kubernetes gives up waiting for Node-1 and rips the attachment away, on the assumption that after this long the old Pod cannot still be running. Only now is the disk free.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -260,23 +272,23 @@ const STEPS = [
       setChainActive(s.refs.chain, 1);
       setChips(s, { nodeA: 'NotReady', volume: 'force-detached', newPod: 'ContainerCreating' });
       setPods(s, { oldSub: 'assumed gone', newSub: 'ContainerCreating' });
-      s.refs.oldPod.style.opacity = GONE;
-      s.refs.wAttachA.style.opacity = GONE;
+      s.refs.oldPod.style.opacity = OPACITY.terminated;
+      s.refs.wAttachA.style.opacity = OPACITY.terminated;
       s.refs.newPod.style.opacity = '1';
       s.refs.disk.classList.add('highlight');
       setWire(s, 'disk', 'force-detach');
       if (ctx.reduced) return;
-      // The old Pod fades from full to GONE: it existed until now and is only now assumed dead.
+      // The old Pod fades from full to OPACITY.terminated: it existed until now and is only now assumed dead.
       s.refs.oldPod.style.opacity = '1';
-      ctx.register(s.refs.oldPod.animate([{ opacity: 1 }, { opacity: GONE }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
+      ctx.register(s.refs.oldPod.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
       s.refs.wAttachA.style.opacity = '1';
-      ctx.register(s.refs.wAttachA.animate([{ opacity: 1 }, { opacity: GONE }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
+      ctx.register(s.refs.wAttachA.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
     },
   },
   {
     id: 'attachb',
     duration: 3400,
-    narration: 'With PV-web detached, the controller attaches it to node-2, kubelet mounts it, and the new Pod finally starts. Nothing in that sequence was slow. The entire outage was the safety margin: six minutes of deliberate doubt about a node that could not be asked.',
+    narration: 'With PV-web detached, the controller attaches it to Node-2, Kubelet mounts it, and the new Pod finally starts. Nothing in that sequence was slow. The entire outage was the safety margin: the eviction wait and then six more minutes of deliberate doubt about a Node that could not be asked.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -284,8 +296,8 @@ const STEPS = [
       setChainActive(s.refs.chain, 2);
       setChips(s, { nodeA: 'NotReady', volume: 'attached to node-2', newPod: 'Running' });
       setPods(s, { oldSub: 'assumed gone', newSub: 'Running' });
-      s.refs.oldPod.style.opacity = GONE;
-      s.refs.wAttachA.style.opacity = GONE;
+      s.refs.oldPod.style.opacity = OPACITY.terminated;
+      s.refs.wAttachA.style.opacity = OPACITY.terminated;
       s.refs.wAttachB.style.opacity = '1';
       s.refs.newPod.style.opacity = '1';
       s.refs.disk.classList.add('highlight');
@@ -302,7 +314,7 @@ const STEPS = [
   {
     id: 'escape',
     duration: 3200,
-    narration: 'If an operator knows the node is really dead, waiting six minutes is wasted downtime. Non-graceful node shutdown is the escape hatch: tainting the node out-of-service tells Kubernetes to stop assuming the Pod might live, so it deletes the Pod and detaches the volume at once. The safety wait exists for uncertainty, and the taint is how you remove the uncertainty by hand.',
+    narration: 'If an operator knows the Node is really dead, waiting out both clocks is wasted downtime. Non-graceful node shutdown is the escape hatch: tainting the Node out-of-service tells Kubernetes to stop assuming the Pod might live, so it deletes the Pod and detaches the volume at once. The safety wait exists for uncertainty, and the taint is how you remove the uncertainty by hand.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -312,8 +324,8 @@ const STEPS = [
       setChainActive(s.refs.chain, -1);
       setChips(s, { nodeA: 'NotReady, tainted', volume: 'detached at once', newPod: 'Running' });
       setPods(s, { oldSub: 'deleted by taint', newSub: 'Running' });
-      s.refs.oldPod.style.opacity = GONE;
-      s.refs.wAttachA.style.opacity = GONE;
+      s.refs.oldPod.style.opacity = OPACITY.terminated;
+      s.refs.wAttachA.style.opacity = OPACITY.terminated;
       s.refs.wAttachB.style.opacity = '1';
       s.refs.wTaint.style.opacity = '1';
       s.refs.newPod.style.opacity = '1';

@@ -1,9 +1,10 @@
 export {
   valChip, setVal, setBoxLabel, setBoxSublabel, makeInit, packetAlong,
   routePacket, segmentPacket, routeDur, routeLength, packetArrival,
-  connectorPacket, connectorPacketDir, topPacket, setConnectorDir, clearPodHighlight,
+  topPacket, setConnectorDir, clearPodHighlight,
   arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, makeRidingLabel,
-  setPodSublabel, FADE, BEAT,
+  relationPath,
+  setPodSublabel, FADE, BEAT, OPACITY,
 } from './scheme-kit.js';
 import { pulsePodWithTint, pulsePodDimWithTint } from './scheme-kit.js';
 // Design notes: scheme/docs/INTERNALS.md#schemejslibnetwork-kitjs

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt} from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-pod-to-pod-cross-node
 
 
@@ -35,7 +35,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod-to-Pod traffic across nodes: the source Node routes the off-subnet packet to its CNI dataplane, which in overlay mode wraps it in VXLAN over UDP and ships it across the physical underlay to the remote Node, whose kernel decapsulates and bridges it into the local Pod; a routed BGP mode is shown as the no-encapsulation alternative',
+      'aria-label': 'Pod-to-Pod traffic across Nodes: the source Node routes the off-subnet packet to its CNI dataplane, which in overlay mode wraps it in VXLAN over UDP and ships it across the physical underlay to the remote Node, whose kernel decapsulates and bridges it into the local Pod; a routed BGP mode is shown as the no-encapsulation alternative',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -172,7 +172,7 @@ const STEPS = [
   },
   {
     id: 'routed',
-    duration: 4000,
+    duration: 4700,
     narration: 'Not every CNI encapsulates. A routed plugin such as Calico with BGP advertises each Node Pod subnet to the network, so the packet crosses the underlay carrying its real Pod IPs with no outer headers at all. It travels Pod A to Pod B in one routed path. This drops the encapsulation cost and the MTU overhead, at the price of the network having to carry Pod routes.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();

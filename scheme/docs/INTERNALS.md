@@ -116,7 +116,33 @@ finally inline generic ephemeral volumes, which close the loop back to the ephem
 
 ## scheme/js/lib/scheme-kit.js
 
-### before `import { g, rect, text, circle } from './svg.js';`
+### before `export function relationPath({ points, d, role = null, dash = null }) {`
+
+```
+relationPath: a wire that carries no ball on any step.
+
+Added 2026-07-27 to retire 29 hand-rolled copies of one class string spread over 26
+cards. The rule it serves is old: a static wire with no ball is a RELATIONSHIP, not a
+route, and must not take an arrowhead, because a marker with no traffic under it reads
+as traffic. Both `arrow()` and `pathArrow()` always attach one, so every card that
+needed a relationship line built a bare `path` or `line` by hand, and the copies had
+already drifted: some omitted the `scheme-arrow-<role>` suffix (which drops the stroke
+to a fallback colour), some omitted `stroke-dasharray`, and `storage-ephemeral-vs-
+persistent` uses '4 6' where the rest use '5 5'.
+
+`points` is the ordinary case and is the important one: passing the SAME array the
+card already owns is what keeps a relationship line from drifting away from the blocks
+it connects. `d` is the escape hatch for the three cards that build a multi-subpath
+spine string by hand (network-model's spine plus teeth, network-cni-invocation's
+plugin spine, storage-csi-architecture's fan), where there is no single polyline.
+
+`role` and `dash` are deliberately OPTIONAL rather than defaulted: the drifted copies
+were carried across as they render today, not normalised, because normalising them
+would have been an undeclared visual change to 29 lines in one pass.
+```
+
+
+### before `import { g, rect, text, circle, path } from './svg.js';`
 
 ```
 scheme-kit.js: the shared base kit for ALL FOUR scheme categories.
@@ -184,7 +210,7 @@ pulsePodWithTint is the single source of truth; both card families call it throu
 a thin tinted wrapper (workloads blue here, cluster violet in cluster-kit).
 ```
 
-### before `export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.booting, peak = OPACITY.partial, dur =`
+### before `export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending, peak = PULSE_POD.dimPeak, dur = PULSE_POD.ms } = {}, tint) {`
 
 ```
 Pulse a dimmed pod (booting / not-Ready): pulsePod plus an opacity flash up to
@@ -270,7 +296,7 @@ arrival canon, no per-call opt-in). The returned packet element carries
 geometry instead of hard-coded delays.
 ```
 
-### before `export function arrivalRipple(packetLayer, ctx, point, delay, role = 'cluster') {`
+### before `export function arrivalRipple(packetLayer, ctx, point, delay, role = '') {`
 
 ```
 Arrival ripple: a one-shot ring that expands and fades at `point` at time `delay`,
@@ -278,14 +304,6 @@ reinforcing "delivered". It carries its own .scheme-ripple class rather than
 .scheme-packet, so anything counting packets (anim-dump, check-geometry) sees one ball
 per hop and not two. Exposed so cards that animate packets by hand (not via the route
 wrappers) can still add the same arrival cue.
-```
-
-### before `export function connectorPacketDir(s, ctx, dir, { delay = 0, dur = null, easing = 'ease-in-out', offsets = nul`
-
-```
-Directional connector, top<->node. Glides ease-in-out by canon (animateAlong,
-distance-weighted); dur omitted => routeDur normalizes speed by path length.
-Pass easing:'linear' + offsets:[0,0.15,0.85,1] only for a deliberate per-segment profile.
 ```
 
 ### before `export function routePacket(s, ctx, points, {`
@@ -308,16 +326,11 @@ shared with the matching pathArrow so the static wire and the packet agree.
 
 ## scheme/js/lib/tokens.js
 
-### before `export const PULSE_POD = Object.freeze({ ms: 900, bright: 1.4 });`
+Shared animation magnitude tokens. Kept dependency-free (zero imports) so `timeline.js`,
+`scheme-kit.js` and the four category kits can all read one source of truth without an
+import cycle.
 
-```
-tokens.js — shared animation magnitude tokens.
-
-Kept dependency-free (zero imports) so timeline.js, scheme-kit.js and
-cluster-kit.js can all read one source of truth without an import cycle.
-```
-
-### before `export const PULSE_POD = Object.freeze({ ms: 900, bright: 1.4 });`
+### before `export const PULSE_POD = Object.freeze({ ms: 900, bright: 1.4, dimPeak: 0.8 });`
 
 ```
 Pod pulse: stroke ramp (1.2->2.4 width, base->bright tint) + a brightness flash,

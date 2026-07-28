@@ -1,6 +1,6 @@
-import { svg, g, text, path } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, node, pathArrow, chainList, setChainActive } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-csi-attach-mount
 
 
@@ -8,6 +8,15 @@ const M = 60, GUTTER = 48;
 const COL_W = (1200 - 2 * M - GUTTER) / 2;               // 516: solved, see above
 
 const LAD_X = M, LAD_W = COL_W, LAD_Y = 388, LAD_ROW = 40, LAD_GAP = 10;
+
+// ---- left column: the controller side, under the narration panel's floor (230 on this card) ----
+// It used to sit inside the Node column, which left every block on the card in the right half and
+// the whole left half below the panel empty. Controller side left, Node side right is also the
+// division the four calls are about.
+const CTRL_W = 252, CTRL_H = 64;
+const CTRL_X = M, CTRL_Y = 268;                          // 60..312 / 268..332
+const CTRL_RIGHT = CTRL_X + CTRL_W;                      // 312
+const CTRL_CY = CTRL_Y + CTRL_H / 2;                     // 300
 
 // ---- right column: node-1 and the two blocks above it ----
 const NF_X = M + COL_W + GUTTER, NF_Y = 192, NF_W = COL_W, NF_H = 388;   // 624..1140 / 192..580
@@ -21,11 +30,6 @@ const DISK_CX = DISK_X + DISK_W / 2;                      // 1049, shared by the
 const CDISK_Y = 44, CDISK_H = 104;
 const CDISK_BOTTOM = CDISK_Y + CDISK_H;                   // 148
 const CDISK_FACE_CY = CDISK_Y + CDISK_H / 2;              // 96
-
-const CTRL_W = 252, CTRL_H = 64;
-const CTRL_X = IN_X, CTRL_RIGHT = CTRL_X + CTRL_W;        // 640 / 892
-const CTRL_CY = CDISK_FACE_CY;                            // 96: level with the disk face, by construction
-const CTRL_Y = CTRL_CY - CTRL_H / 2;                      // 64
 
 const DEV_Y = 212, DEV_H = 92;
 const DEV_TOP = DEV_Y, DEV_BOTTOM = DEV_Y + DEV_H;        // 212 / 304
@@ -51,13 +55,20 @@ const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) => M + i * (CHIP_W + CH
 const STG_LBL_Y = 434;
 
 const STAGE_ELBOW_Y  = (DEV_BOTTOM + STG_TOP) / 2;        // 327, centred in the 46 unit device gap
+// The staging mount takes two lanes on its top face: the node driver owns it and the staged device
+// feeds it. They are a mirrored pair about the face midpoint rather than one lane out on its own.
+const OWNS_X = ND_X + ND_W / 2;                           // 765
+const STAGE_IN_X = 2 * NODE_CX - OWNS_X;                  // 999
+// CreateVolume crosses from the controller column to the cloud disk in the free band above the Node
+// frame, turning up out of the panel's reach first.
+const CREATE_TURN_X = 520;
 
-const W_CREATE  = [[CTRL_RIGHT, CTRL_CY], [DISK_X, CDISK_FACE_CY]];
+const W_CREATE  = [[CTRL_RIGHT, CTRL_CY], [CREATE_TURN_X, CTRL_CY], [CREATE_TURN_X, CDISK_FACE_CY], [DISK_X, CDISK_FACE_CY]];
 const W_ATTACH  = [[DISK_CX, CDISK_BOTTOM], [DISK_CX, DEV_TOP]];
-const W_STAGE   = [[DISK_CX, DEV_BOTTOM], [DISK_CX, STAGE_ELBOW_Y], [NODE_CX, STAGE_ELBOW_Y], [NODE_CX, STG_TOP]];
+const W_STAGE   = [[DISK_CX, DEV_BOTTOM], [DISK_CX, STAGE_ELBOW_Y], [STAGE_IN_X, STAGE_ELBOW_Y], [STAGE_IN_X, STG_TOP]];
 const W_PUB_A   = [[PODA_CX, STG_BOTTOM], [PODA_CX, POD_Y]];
 const W_PUB_B   = [[PODB_CX, STG_BOTTOM], [PODB_CX, POD_Y]];
-const W_OWNS = `M ${ND_X + ND_W / 2} ${ND_Y + ND_H} L ${ND_X + ND_W / 2} ${STG_TOP}`;
+const W_OWNS = `M ${OWNS_X} ${ND_Y + ND_H} L ${OWNS_X} ${STG_TOP}`;
 
 const LAND_MS = 500;
 
@@ -75,7 +86,7 @@ function podBlock({ x, label }) {
   const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'private bind mount', containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 24, y: POD_Y + 40, w: POD_W - 48, h: 46, label: 'App', sublabel: '/data writable', role: 'storage' });
+  const innerBox = box({ x: x + 24, y: POD_Y + 40, w: POD_W - 48, h: 46, label: 'app', sublabel: '/data writable', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -92,7 +103,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The CSI attach and mount chain: four gRPC calls take a volume from nowhere to a writable path. CreateVolume makes the disk in the cloud backend, ControllerPublishVolume attaches it to the node as a raw block device, NodeStageVolume formats it if needed and mounts it once at a global staging path, and NodePublishVolume bind-mounts that one staged filesystem into each Pod, which is how two Pods on one node share a single attached disk.',
+      'aria-label': 'The CSI attach and mount chain: four gRPC calls take a volume from nowhere to a writable path. CreateVolume makes the disk in the cloud backend, ControllerPublishVolume attaches it to the Node as a raw block device, NodeStageVolume formats it if needed and mounts it once at a global staging path, and NodePublishVolume bind-mounts that one staged filesystem into each Pod, which is how two Pods on one Node share a single attached disk.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -108,22 +119,22 @@ class Scene {
       role: 'storage',
     });
 
-    const ctrl  = box({ x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'CSI Controller', sublabel: 'attacher + provisioner', role: 'storage' });
+    const ctrl  = box({ x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'CSI controller', sublabel: 'attacher + provisioner', role: 'storage' });
     const cdisk = cylinder({ x: DISK_X, y: CDISK_Y, w: DISK_W, h: CDISK_H, label: 'Cloud Disk vol-1', role: 'storage' });
     const dev   = cylinder({ x: DISK_X, y: DEV_Y, w: DISK_W, h: DEV_H, label: '/dev/nvme1n1', role: 'storage' });
-    const nd    = box({ x: ND_X, y: ND_Y, w: ND_W, h: ND_H, label: 'CSI Node Driver', sublabel: 'node plugin', role: 'storage' });
-    const stg   = box({ x: STG_X, y: STG_Y, w: STG_W, h: STG_H, label: 'Global Staging Mount', sublabel: '.../csi/vol-1/globalmount', role: 'storage' });
+    const nd    = box({ x: ND_X, y: ND_Y, w: ND_W, h: ND_H, label: 'CSI node driver', sublabel: 'node plugin', role: 'storage' });
+    const stg   = box({ x: STG_X, y: STG_Y, w: STG_W, h: STG_H, label: 'Global staging mount', sublabel: '.../csi/vol-1/globalmount', role: 'storage' });
     const podA  = podBlock({ x: PODA_X, label: 'Pod A' });
     const podB  = podBlock({ x: PODB_X, label: 'Pod B' });
 
-    const nodeFrame = node({ x: NF_X, y: NF_Y, w: NF_W, h: NF_H, label: 'node-1' });
+    const nodeFrame = node({ x: NF_X, y: NF_Y, w: NF_W, h: NF_H, label: 'Node-1' });
 
     const wCreate = pathArrow({ points: W_CREATE, dashed: true, dim: true, role: 'storage' });
     const wAttach = pathArrow({ points: W_ATTACH, dashed: true, dim: true, role: 'storage' });
     const wStage  = pathArrow({ points: W_STAGE, dashed: true, dim: true, role: 'storage' });
     const wPubA   = pathArrow({ points: W_PUB_A, dashed: true, dim: true, role: 'storage' });
     const wPubB   = pathArrow({ points: W_PUB_B, dashed: true, dim: true, role: 'storage' });
-    const wOwns   = path({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage', d: W_OWNS, fill: 'none', 'stroke-dasharray': '5 5' });
+    const wOwns   = relationPath({ d: W_OWNS, role: 'storage', dash: '5 5' });
 
     [dev, wAttach, wStage, podA.group, wPubA, podB.group, wPubB].forEach(el => { el.style.opacity = '0'; });
 
@@ -204,7 +215,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Between a bound claim and a container that can write to /data stand four gRPC calls. Two are controller calls that happen once in the cluster, two are node calls that happen on the machine where the Pod lands. Nothing is mounted until all four have run in order.',
+    narration: 'Between a new PersistentVolumeClaim and a container that can write to /data stand four gRPC calls. Two are controller calls that happen once in the cluster, two are Node calls that happen on the machine where the Pod lands. Nothing is mounted until all four have run in order, and a driver that does not advertise the attach or the staging capability simply skips that call.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -216,8 +227,8 @@ const STEPS = [
   },
   {
     id: 'create',
-    duration: 2800,
-    narration: 'CreateVolume runs first, on the controller side. The provisioner asks the driver to carve a real disk out of the cloud backend. When it returns, a disk called vol-1 exists somewhere in the provider, but it is not near any node yet and nothing can read a byte of it.',
+    duration: 3400,
+    narration: 'CreateVolume runs first, on the controller side. The provisioner asks the driver to carve a real disk out of the cloud backend. When it returns, a disk called vol-1 exists somewhere in the provider, but it is not near any Node yet and nothing can read a byte of it.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -233,7 +244,7 @@ const STEPS = [
   {
     id: 'attach',
     duration: 2800,
-    narration: 'ControllerPublishVolume runs next, still on the controller side. The external-attacher asks the driver to attach vol-1 to the node the Pod was scheduled on. This is a cloud operation: the disk shows up on the node as a raw block device, here /dev/nvme1n1. It is still unformatted.',
+    narration: 'ControllerPublishVolume runs next, still on the controller side. The external-attacher asks the driver to attach vol-1 to the Node the Pod was scheduled on. This is a cloud operation: the disk shows up on the Node as a raw block device, here /dev/nvme1n1. It is still unformatted.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -255,7 +266,7 @@ const STEPS = [
   {
     id: 'stage',
     duration: 3000,
-    narration: 'NodeStageVolume is the first node call. The node plugin formats the raw device if needed and mounts it once, at a global staging path under the kubelet directory. This happens a single time per node no matter how many Pods will use the volume, which is the whole reason stage and publish are two calls, not one.',
+    narration: 'NodeStageVolume is the first Node call. The node plugin formats the raw device if needed and mounts it once, at a global staging path under the Kubelet directory. This happens a single time per Node no matter how many Pods will use the volume, which is the whole reason stage and publish are two calls, not one.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -293,7 +304,7 @@ const STEPS = [
   {
     id: 'share',
     duration: 3200,
-    narration: 'A second Pod lands on the same node and asks for the same volume. The disk is already attached and already staged, so those two calls are skipped entirely. Only one more NodePublishVolume runs, a second bind-mount off the same global staging path. That is how several Pods on one node share a single attached disk.',
+    narration: 'A second Pod lands on the same Node and asks for the same volume. The disk is already attached and already staged, so those two calls are skipped entirely. Only one more NodePublishVolume runs, a second bind-mount off the same global staging path. That is how several Pods on one Node share a single attached disk.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

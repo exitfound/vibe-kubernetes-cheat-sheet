@@ -1,6 +1,6 @@
-import { svg, g, text, path } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-pvc-clone
 
 
@@ -9,31 +9,34 @@ const CX = 600;
 const PROV_X = 420, PROV_Y = 36, PROV_W = 360, PROV_H = 68;
 const PROV_BOTTOM = PROV_Y + PROV_H;                                    // 104
 
-const CLAIM_W = 280, CLAIM_H = 68, CLAIM_Y = 196;
-const CLAIM_TOP = CLAIM_Y, CLAIM_BOTTOM = CLAIM_Y + CLAIM_H;            // 196 / 264
-const CLAIM_MY = CLAIM_Y + CLAIM_H / 2;                                 // 230
+// The claim row is the only tier the narration panel could reach (its bottom is 230 on this card,
+// measured over 1600/1280/1100), and the source claim sits at x 180, so the row starts below it.
+const CLAIM_W = 280, CLAIM_H = 68, CLAIM_Y = 236;
+const CLAIM_TOP = CLAIM_Y, CLAIM_BOTTOM = CLAIM_Y + CLAIM_H;            // 236 / 304
+const CLAIM_MY = CLAIM_Y + CLAIM_H / 2;                                 // 270
 const SPREAD = 280;
 const SRC_CX = CX - SPREAD, CLONE_CX = CX + SPREAD;                     // 320 / 880
 
 const DISK_W = 200, DISK_H = 90;
 const FRAME_INSET = 42;
-const FRAME_X = 180, FRAME_W = 840, FRAME_Y = 356;                      // 180..1020, level with the
-const FRAME_H = DISK_H + FRAME_INSET * 2;                               // claim row, 356..530
+const FRAME_X = 180, FRAME_W = 840, FRAME_Y = 396;                      // 180..1020, below the four
+const FRAME_H = DISK_H + FRAME_INSET * 2;                               // constraint lines, 396..570
 
-const DISK_Y = FRAME_Y + FRAME_INSET;                                   // 398
-const DISK_TOP = DISK_Y, DISK_BOTTOM = DISK_Y + DISK_H;                 // 398 / 488
-const DISK_MY = DISK_Y + DISK_H / 2;                                    // 443
+const DISK_Y = FRAME_Y + FRAME_INSET;                                   // 438
+const DISK_TOP = DISK_Y, DISK_BOTTOM = DISK_Y + DISK_H;                 // 438 / 528
+const DISK_MY = DISK_Y + DISK_H / 2;                                    // 483
 // Two disks 200 wide at 320 and 880 span 220..420 and 780..980 inside a frame at 180..1020, so the
 // frame keeps 40 of margin on each side and the copy hop has 360 units of shelf to travel.
 
-const REQ_CORRIDOR_Y = (PROV_BOTTOM + CLAIM_TOP) / 2;                   // 150
+const REQ_CORRIDOR_Y = (PROV_BOTTOM + CLAIM_TOP) / 2;                   // 170
 // The outbound column for the call, in the margin between the backend frame (ends 1020) and the chip
 // strip (ends 1088), so it clears both.
 const CALL_WRAP_X = 1060;
 // Four constraints, four lines, on the centre line in the band between the claims and the backend.
-const RULE_Y = [278, 300, 322, 344];
-const CAPTION_Y = DISK_BOTTOM + 24;               // 512, leaving 18 to the frame floor
-const CHIPS_Y = 570;                              // 40 below the frame, and 36 above the canvas floor
+const RULE_Y0 = CLAIM_Y + CLAIM_H + 16, RULE_PITCH = 20;                // 320
+const RULE_Y = [0, 1, 2, 3].map(i => RULE_Y0 + i * RULE_PITCH);         // 320 / 340 / 360 / 380
+const CAPTION_Y = DISK_BOTTOM + 24;               // 552, leaving 18 to the frame floor
+const CHIPS_Y = 588;                              // 18 below the frame, and 18 above the canvas floor
 
 // Each static wire and its ball share ONE points array, so they cannot drift apart. Every endpoint is
 // a block edge midpoint.
@@ -44,7 +47,6 @@ const W_COPY = [[SRC_CX + DISK_W / 2, DISK_MY], [CLONE_CX - DISK_W / 2, DISK_MY]
 // An object materialises when the call that creates it lands, so no arrowhead is ever aimed at
 // nothing. LAND_MS is shorter than BEAT.lead for the same reason.
 const LAND_MS = 500;
-const PLACEHOLDER = 0.4;
 function revealAt(el, ctx, delay = 0, from = 0) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
@@ -59,10 +61,7 @@ const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'stora
 
 // A relationship, not traffic: no marker, because an arrowhead with no ball reads as traffic that
 // never runs, and DASHED, because a solid line between two objects reads as a live route.
-const relLink = d => path({
-  class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage',
-  d, 'stroke-dasharray': '5 5', fill: 'none',
-});
+const relLink = d => relationPath({ d, role: 'storage', dash: '5 5' });
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -84,7 +83,7 @@ class Scene {
     const srcPvc = box({ x: SRC_CX - CLAIM_W / 2, y: CLAIM_Y, w: CLAIM_W, h: CLAIM_H, label: 'PVC data-src', sublabel: 'Bound, 10Gi gp3', role: 'storage' });
     const clonePvc = box({ x: CLONE_CX - CLAIM_W / 2, y: CLAIM_Y, w: CLAIM_W, h: CLAIM_H, label: 'PVC clone-1', sublabel: 'dataSource: data-src', role: 'storage' });
 
-    const frame = node({ x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'storage backend' });
+    const frame = node({ x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Storage backend' });
 
     const mkDisk = (cx, label) => {
       const c = cylinder({ x: cx - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label, role: 'storage' });
@@ -160,7 +159,7 @@ function setChips(s, { src, dest, method, copy }) {
   setChip(s.refs.copyChip, copy);
 }
 
-function setStage(s, { clone = PLACEHOLDER, cloneDisk = PLACEHOLDER, bound = 0, ds = 0, lanes = [] } = {}) {
+function setStage(s, { clone = OPACITY.pending, cloneDisk = OPACITY.pending, bound = 0, ds = 0, lanes = [] } = {}) {
   s.refs.clonePvc.style.opacity = String(clone);
   s.refs.cloneDisk.style.opacity = String(cloneDisk);
   s.refs.cloneBound.style.opacity = String(bound);
@@ -205,7 +204,7 @@ const STEPS = [
       s.refs.srcPvc.classList.add('highlight');
       if (ctx.reduced) return;
       setStage(s, { ds: 0 });
-      revealAt(s.refs.clonePvc, ctx, 0, PLACEHOLDER);
+      revealAt(s.refs.clonePvc, ctx, 0, OPACITY.pending);
       // The dataSource line only means anything once both claims exist, so it draws in after the
       // clone has landed rather than alongside it.
       ctx.register(s.refs.dsRef.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: LAND_MS, fill: 'forwards', easing: 'ease-out' }));
@@ -262,7 +261,7 @@ const STEPS = [
       lightBoxAt(s.refs.prov, ctx, req.arrivalMs);
       const call = routePacket(s, ctx, W_CALL, { delay: req.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', W_CALL, { delay: req.arrivalMs + BEAT.afterHop });
-      revealAt(s.refs.cloneDisk, ctx, call.arrivalMs, PLACEHOLDER);
+      revealAt(s.refs.cloneDisk, ctx, call.arrivalMs, OPACITY.pending);
       // The duplicate is only made once the target volume exists, so it waits out the materialisation.
       const copyAt = call.arrivalMs + LAND_MS;
       const copy = routePacket(s, ctx, W_COPY, { delay: copyAt, role: 'storage' });

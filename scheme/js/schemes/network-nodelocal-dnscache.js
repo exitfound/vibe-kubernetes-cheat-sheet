@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt} from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-nodelocal-dnscache
 
 
@@ -43,7 +43,7 @@ class Scene {
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     // The resolver box lives INSIDE podGroup: pulsePod walks descendants, so a box appended beside the
     // shell would be left out of the pulse and the Pod would blink with a dead centre.
-    const podBox = box({ x: 130, y: FLOW_Y - 26, w: 140, h: 52, label: 'resolver', sublabel: 'getaddrinfo', role: 'network' });
+    const podBox = box({ x: 130, y: FLOW_Y - 26, w: 140, h: 52, label: 'Resolver', sublabel: 'getaddrinfo', role: 'network' });
     const podGroup = g({});
     podGroup.appendChild(shell);
     podGroup.appendChild(podBox);
@@ -104,17 +104,17 @@ function setChips(s, { path, cache, up, ct }, lit = []) {
 }
 
 // The Pod asks its on-Node agent. Returns the ms the question lands at the agent.
-function ask(s, ctx, { start = 0, label } = {}) {
+function ask(s, ctx, { start = 0, wire } = {}) {
   pulsePod(s.refs.podGroup, ctx, start);
-  at(s, ctx, start + BEAT.afterPulse, () => setWire(s, 'q', label));
+  at(s, ctx, start + BEAT.afterPulse, () => setWire(s, 'q', wire));
   const q = segmentPacket(s, ctx, { from: [POD_EDGE, FWD_Y], to: [AGENT_LEFT, FWD_Y], delay: start + BEAT.afterPulse, role: 'network' });
   lightBoxAt(s.refs.agent, ctx, q.arrivalMs);
   return q.arrivalMs;
 }
 
 // The agent answers the Pod on the RETURN lane, and the Pod pulses as it receives.
-function answer(s, ctx, { start, label } = {}) {
-  at(s, ctx, start, () => setWire(s, 'a', label));
+function answer(s, ctx, { start, wire } = {}) {
+  at(s, ctx, start, () => setWire(s, 'a', wire));
   const a = segmentPacket(s, ctx, { from: [AGENT_LEFT, RET_Y], to: [POD_EDGE, RET_Y], delay: start, role: 'network' });
   pulsePod(s.refs.podGroup, ctx, a.arrivalMs);
   return a.arrivalMs;
@@ -136,19 +136,19 @@ const STEPS = [
   {
     id: 'agent',
     duration: 2600,
-    narration: 'NodeLocal DNSCache runs as a DaemonSet, so a DNS agent sits on every Node listening on a link-local address such as 169.254.20.10, and the kubelet cluster-dns setting points every Pod resolv.conf at it. A query now travels only to this agent on the same Node, never leaving the host to start with. In iptables mode the agent can bind the kube-dns ClusterIP too, so Pods reach it either way.',
+    narration: 'NodeLocal DNSCache runs as a DaemonSet, so a DNS agent sits on every Node listening on a link-local address such as 169.254.20.10, and the Kubelet cluster-dns setting points every Pod resolv.conf at it. A query now travels only to this agent on the same Node, never leaving the host to start with. In iptables mode the agent can bind the kube-dns ClusterIP too, so Pods reach it either way.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { path: 'on-node agent', cache: 'empty', up: 'not used', ct: 'no entry' }, ['pathChip']);
+      setChips(s, { path: 'on-node agent', cache: 'empty', up: 'not used', ct: 'no entry' }, ['pathChip', 'cacheChip', 'upChip', 'ctChip']);
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
         s.refs.agent.classList.add('highlight');
         setWire(s, 'q', 'dst 169.254.20.10');
         return;
       }
-      ask(s, ctx, { start: 0, label: 'dst 169.254.20.10' });
+      ask(s, ctx, { start: 0, wire: 'dst 169.254.20.10' });
     },
   },
   {
@@ -169,8 +169,8 @@ const STEPS = [
       }
       // The whole fast path in one beat: ask on the forward lane, answered on the return lane. The
       // answer rides its OWN wire, so it never retraces the arrow the question went out on.
-      const asked = ask(s, ctx, { start: 0, label: 'dst 169.254.20.10' });
-      answer(s, ctx, { start: asked + BEAT.afterHop, label: 'cached answer' });
+      const asked = ask(s, ctx, { start: 0, wire: 'dst 169.254.20.10' });
+      answer(s, ctx, { start: asked + BEAT.afterHop, wire: 'cached answer' });
     },
   },
   {
@@ -181,7 +181,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { path: 'agent -> CoreDNS', cache: 'miss -> fill', up: 'TCP keep-alive', ct: '1 long-lived' }, ['cacheChip', 'upChip', 'ctChip']);
+      setChips(s, { path: 'agent -> CoreDNS', cache: 'miss -> fill', up: 'TCP keep-alive', ct: '1 long-lived' }, ['cacheChip', 'upChip', 'ctChip', 'pathChip']);
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
         s.refs.agent.classList.add('highlight');
@@ -192,13 +192,13 @@ const STEPS = [
         setWire(s, 'a', 'answer to Pod');
         return;
       }
-      const asked = ask(s, ctx, { start: 0, label: 'dst 169.254.20.10' });
+      const asked = ask(s, ctx, { start: 0, wire: 'dst 169.254.20.10' });
       at(s, ctx, asked, () => setWire(s, 'u', 'TCP to CoreDNS'));
       const fwd = segmentPacket(s, ctx, { from: [AGENT_RIGHT, FWD_Y], to: [DNS_LEFT, FWD_Y], delay: asked + BEAT.afterHop, role: 'network' });
       lightBoxAt(s.refs.dns, ctx, fwd.arrivalMs);
       at(s, ctx, fwd.arrivalMs, () => setWire(s, 'd', 'answer cached'));
       const back = segmentPacket(s, ctx, { from: [DNS_LEFT, RET_Y], to: [AGENT_RIGHT, RET_Y], delay: fwd.arrivalMs + BEAT.afterHop, role: 'network' });
-      answer(s, ctx, { start: back.arrivalMs + BEAT.afterHop, label: 'answer to Pod' });
+      answer(s, ctx, { start: back.arrivalMs + BEAT.afterHop, wire: 'answer to Pod' });
     },
   },
   {
@@ -209,7 +209,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { path: 'on-node agent', cache: 'warm', up: 'idle', ct: 'pressure gone' }, ['pathChip', 'cacheChip', 'ctChip']);
+      setChips(s, { path: 'on-node agent', cache: 'warm', up: 'idle', ct: 'pressure gone' }, ['pathChip', 'cacheChip', 'ctChip', 'upChip']);
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
         s.refs.agent.classList.add('highlight');
@@ -219,8 +219,8 @@ const STEPS = [
       }
       // The steady state IS the fast path, so replay it rather than pulsing at nothing: this is what
       // every lookup looks like once the cache is warm, and CoreDNS stays dark throughout.
-      const asked = ask(s, ctx, { start: 0, label: 'dst 169.254.20.10' });
-      answer(s, ctx, { start: asked + BEAT.afterHop, label: 'served locally' });
+      const asked = ask(s, ctx, { start: 0, wire: 'dst 169.254.20.10' });
+      answer(s, ctx, { start: asked + BEAT.afterHop, wire: 'served locally' });
     },
   },
 ];

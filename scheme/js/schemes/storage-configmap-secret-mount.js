@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-configmap-secret-mount
 
 
@@ -22,7 +22,8 @@ const KUBE_X = 430, KUBE_Y = 500, KUBE_W = 340, KUBE_H = 64;    // 430..770, cen
 const CM_X = 110, SEC_X = 890, SRC_Y = 500, SRC_W = 200, SRC_H = 64; // mirrored about 600
 const SRC_MY = SRC_Y + SRC_H / 2;                               // 532, the source lane height
 
-const CHIPS_Y = 594;
+const CHIPS_Y = 594, CHIP_W = 320, CHIP_GAP = 20, CHIP_H = 34;
+const CHIP_X = i => 600 - (CHIP_W * 3 + CHIP_GAP * 2) / 2 + i * (CHIP_W + CHIP_GAP);   // 100 / 440 / 780
 
 // Each static wire and its ball share one array. Every lane is a single straight segment.
 const W_CM_READ   = [[CM_X + SRC_W, SRC_MY], [KUBE_X, SRC_MY]];          // ConfigMap -> kubelet
@@ -30,7 +31,11 @@ const W_SEC_READ  = [[SEC_X, SRC_MY], [KUBE_X + KUBE_W, SRC_MY]];        // Secr
 const W_WRITE_OLD = [[OLD_CX, KUBE_Y], [OLD_CX, DIR_BOTTOM]];            // kubelet -> v1 dir
 const W_WRITE_NEW = [[NEW_CX, KUBE_Y], [NEW_CX, DIR_BOTTOM]];            // kubelet -> v2 dir
 const W_APP_READ  = [[DATA_CX, VOL_Y], [DATA_CX, POD_BOTTOM]];           // volume -> Pod (the spine)
-const W_SUBPATH   = [[OLD_CX, DIR_Y], [OLD_CX, POD_BOTTOM]];             // v1 dir -> Pod, bypassing ..data
+// The subPath read leaves the v1 dir on its own centre line so it visibly misses ..data, then steps
+// into the Pod-to-volume corridor and enters the Pod beside the spine rather than out at its corner.
+const GAP_MY = (POD_BOTTOM + VOL_Y) / 2;                                 // 222
+const SUB_IN_X = DATA_CX - 60;                                           // 540
+const W_SUBPATH   = [[OLD_CX, DIR_Y], [OLD_CX, GAP_MY], [SUB_IN_X, GAP_MY], [SUB_IN_X, POD_BOTTOM]];
 
 const SYM_OLD = [[DATA_X, SYM_Y], [OLD_CX, SYM_Y], [OLD_CX, DIR_Y]];
 const SYM_NEW = [[DATA_X + DATA_W, SYM_Y], [NEW_CX, SYM_Y], [NEW_CX, DIR_Y]];
@@ -48,7 +53,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ConfigMap and Secret as files: each key becomes a file in the mounted directory. kubelet writes the keys into a timestamped directory and points a ..data symlink at it, and on update it writes a new directory then flips the symlink atomically, so a reader never sees a half-written config. Updates arrive on the kubelet sync period, a subPath mount opts out of the swap and never updates, and Secrets default to tmpfs.',
+      'aria-label': 'ConfigMap and Secret as files: each key becomes a file in the mounted directory. Kubelet writes the keys into a timestamped directory and points a ..data symlink at it, and on update it writes a new directory then flips the symlink atomically, so a reader never sees a half-written config. Updates arrive on the Kubelet sync period, a subPath mount opts out of the swap and never updates, and Secrets default to tmpfs.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -63,7 +68,7 @@ class Scene {
     if (shellSub) shellSub.setAttribute('y', String(POD_H - 10));
     const shellWrap = g({});
     shellWrap.appendChild(shell);
-    const appBox = box({ x: APP_BX, y: APP_BY, w: APP_BW, h: APP_BH, label: 'App', sublabel: 'reads /etc/config/app.conf', role: 'storage' });
+    const appBox = box({ x: APP_BX, y: APP_BY, w: APP_BW, h: APP_BH, label: 'app', sublabel: 'reads /etc/config/app.conf', role: 'storage' });
     const podGroup = g({});
     [shellWrap, appBox].forEach(el => podGroup.appendChild(el));
 
@@ -91,9 +96,9 @@ class Scene {
 
     // The source row: kubelet centered, fed from both sides.
     const kubelet = box({ x: KUBE_X, y: KUBE_Y, w: KUBE_W, h: KUBE_H, label: 'Kubelet', sublabel: 'sync loop', role: 'storage' });
-    const cm  = box({ x: CM_X,  y: SRC_Y, w: SRC_W, h: SRC_H, label: 'ConfigMap App', sublabel: 'key: app.conf', role: 'storage' });
+    const cm  = box({ x: CM_X,  y: SRC_Y, w: SRC_W, h: SRC_H, label: 'ConfigMap app', sublabel: 'key: app.conf', role: 'storage' });
     const sec = box({ x: SEC_X, y: SRC_Y, w: SRC_W, h: SRC_H, label: 'Secret TLS', sublabel: 'on tmpfs', role: 'storage' });
-    sec.style.opacity = '0.45';
+    sec.style.opacity = String(OPACITY.notready);
 
     const wCmRead   = pathArrow({ points: W_CM_READ,   dashed: true, dim: true, role: 'storage' });
     const wSecRead  = pathArrow({ points: W_SEC_READ,  dashed: true, dim: true, role: 'storage' });
@@ -109,9 +114,9 @@ class Scene {
     const clockLbl = text({ class: 'scheme-label code dim', x: 618, y: 226, 'text-anchor': 'start' }, [' ']);
 
     // Uniform chip strip: three chips of one size, centered on the scheme axis.
-    const modeChip  = valChip({ x: 100, y: CHIPS_Y, w: 320, h: 34, name: 'source',    value: 'ConfigMap', role: 'storage' });
-    const swapChip  = valChip({ x: 440, y: CHIPS_Y, w: 320, h: 34, name: 'update',    value: 'symlink to v1', role: 'storage' });
-    const valueChip = valChip({ x: 780, y: CHIPS_Y, w: 320, h: 34, name: 'app reads', value: 'app.conf v1', role: 'storage' });
+    const modeChip  = valChip({ x: CHIP_X(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'source',    value: 'ConfigMap', role: 'storage' });
+    const swapChip  = valChip({ x: CHIP_X(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'update',    value: 'symlink to v1', role: 'storage' });
+    const valueChip = valChip({ x: CHIP_X(2), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'app reads', value: 'app.conf v1', role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -150,7 +155,7 @@ function setChips(s, { mode, swap, value }) {
   setChip(s.refs.valueChip, value);
 }
 
-function setStage(s, { symOld = 1, symNew = 0, dirNew = 0, writeNew = 0, subpath = 0, sec = 0.45 } = {}) {
+function setStage(s, { symOld = 1, symNew = 0, dirNew = 0, writeNew = 0, subpath = 0, sec = OPACITY.notready } = {}) {
   s.refs.symOld.style.opacity = String(symOld);
   s.refs.symNew.style.opacity = String(symNew);
   s.refs.dirNew.style.opacity = String(dirNew);
@@ -182,7 +187,7 @@ const STEPS = [
   {
     id: 'keys',
     duration: 2600,
-    narration: 'kubelet reads the keys from the ConfigMap and writes them as files into a timestamped directory on the node. Every key becomes one file, and the value of the key becomes the contents of that file.',
+    narration: 'Kubelet reads the keys from the ConfigMap and writes them as files into a timestamped directory on the Node. Every key becomes one file, and the value of the key becomes the contents of that file.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -191,18 +196,18 @@ const STEPS = [
       setStage(s, {});
       s.refs.cm.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.dirOld.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.dirOld.classList.add('highlight'); return; }
       const read = routePacket(s, ctx, W_CM_READ, { role: 'storage' });
       ridingLabel(s, ctx, 'app.conf', W_CM_READ);
       const write = routePacket(s, ctx, W_WRITE_OLD, { delay: read.arrivalMs + BEAT.afterHop, role: 'storage' });
+      lightBoxAt(s.refs.dirOld, ctx, write.arrivalMs);
       ridingLabel(s, ctx, 'write v1', W_WRITE_OLD, { delay: read.arrivalMs + BEAT.afterHop });
     },
   },
   {
     id: 'symlink',
     duration: 2400,
-    narration: 'The path the app opens is a chain of symlinks. app.conf points into ..data, and ..data points at the current timestamped directory. So one symlink, ..data, decides which version every file resolves to.',
+    narration: 'The path the app opens is a chain of symlinks. The app.conf symlink points into ..data, and ..data points at the current timestamped directory. So one symlink, ..data, decides which version every file resolves to.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -223,7 +228,7 @@ const STEPS = [
   {
     id: 'atomic',
     duration: 2800,
-    narration: 'On update kubelet does not edit the live files. It writes a whole new timestamped directory, then flips the single ..data symlink to point at it in one atomic step. A reader either sees all of v1 or all of v2, never a half-written mix.',
+    narration: 'On update Kubelet does not edit the live files. It writes a whole new timestamped directory, then flips the single ..data symlink to point at it in one atomic step. A reader either sees all of v1 or all of v2, never a half-written mix.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -254,7 +259,7 @@ const STEPS = [
   {
     id: 'sync',
     duration: 3000,
-    narration: 'The flip is not instant across the cluster. A ConfigMap change reaches the file on the kubelet sync period, up to about a minute, and even then nothing restarts the app. The process has to notice the file changed and re-read it on its own.',
+    narration: 'The flip is not instant across the cluster. A ConfigMap change reaches the file on the Kubelet sync period, up to about a minute, and even then nothing restarts the app. The process has to notice the file changed and re-read it on its own.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -292,7 +297,7 @@ const STEPS = [
   {
     id: 'secret',
     duration: 2400,
-    narration: 'A Secret mounted as a volume works exactly the same way, keys become files behind the atomic symlink swap. The one difference is that a Secret directory defaults to tmpfs, so its files live in memory and never get written to the node disk.',
+    narration: 'A Secret mounted as a volume works exactly the same way, keys become files behind the atomic symlink swap. The one difference is that a Secret directory defaults to tmpfs, so its files live in memory and never get written to the Node disk.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -300,9 +305,9 @@ const STEPS = [
       setChips(s, { mode: 'Secret (tmpfs)', swap: 'same symlink swap', value: 'tls.crt from RAM' });
       setStage(s, { ...STAGE_FLIPPED, sec: 1 });
       s.refs.sec.classList.add('highlight');
-      s.refs.kubelet.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
       const read = routePacket(s, ctx, W_SEC_READ, { role: 'storage' });
+      lightBoxAt(s.refs.kubelet, ctx, read.arrivalMs);
       ridingLabel(s, ctx, 'tls.crt in RAM', W_SEC_READ);
     },
   },

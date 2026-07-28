@@ -30,7 +30,7 @@ function podBlock({ x, y, w, h, label, ip }) {
   const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'client', sublabel: 'eth0', role: 'network' });
+  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'Client', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -157,7 +157,7 @@ const STEPS = [
   },
   {
     id: 'external',
-    duration: 2400,
+    duration: 2600,
     narration: 'Traffic from outside still arrives on the single shared eth0 at the Pod IP. Whichever container is listening on the target port answers, here the app on :8080. From the outside the Pod looks like one host with one address, regardless of how many containers run inside.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -165,7 +165,9 @@ const STEPS = [
       clearWires(s);
       s.refs.ipChip.classList.add('highlight');
       setVal(s.refs.pathChip, 'eth0');
+      s.refs.pathChip.classList.add('highlight');
       setVal(s.refs.bindChip, 'app :8080');
+      s.refs.bindChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.eth0.classList.add('highlight'); s.refs.app.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const dur = routeDur(EXT_PATH);
@@ -189,8 +191,10 @@ const STEPS = [
       s.refs.portChip.classList.add('highlight');
       s.refs.ipChip.classList.add('highlight');
       setVal(s.refs.pathChip, 'shared netns');
+      s.refs.pathChip.classList.add('highlight');
       setVal(s.refs.portChip, 'one space');
       setVal(s.refs.bindChip, 'per port');
+      s.refs.bindChip.classList.add('highlight');
       // Static summary: the shared eth0 and lo both stay lit, no motion.
     },
   },

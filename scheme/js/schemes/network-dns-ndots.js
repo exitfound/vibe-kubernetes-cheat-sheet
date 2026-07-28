@@ -1,16 +1,38 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, chainList } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt} from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dns-ndots
 
 
-const FLOW_Y = 290;
+// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 230, so the flow row hangs below
+// that bottom and the two blocks hold CONTENT_L and CONTENT_R, which centres the content on x=600.
+// A longer narration invalidates the measured bottom.
+const CONTENT_L = 70, CONTENT_R = 1130;
+const FLOW_Y = 400;
 const LANE_DY = 12;
-const FWD_Y = FLOW_Y - LANE_DY;   // 278: Pod -> CoreDNS query lane
-const RET_Y = FLOW_Y + LANE_DY;   // 302: CoreDNS -> Pod answer lane
-const POD_EDGE = 270;             // client Pod right edge
-const DNS_LEFT = 460;             // CoreDNS left edge
-const ROWS_Y = FLOW_Y - 108;      // ladder top, so its 4 rows are symmetric about FLOW_Y
+const FWD_Y = FLOW_Y - LANE_DY;   // 388: Pod -> CoreDNS query lane
+const RET_Y = FLOW_Y + LANE_DY;   // 412: CoreDNS -> Pod answer lane
+
+const POD_X = CONTENT_L, POD_W = 340, POD_H = 130;
+const POD_EDGE = POD_X + POD_W;   // 410: client Pod right edge
+const DNS_W = 340, DNS_H = 96;
+const DNS_LEFT = CONTENT_R - DNS_W;   // 790: CoreDNS left edge
+
+// The candidate ladder sits in the free top-right band, above CoreDNS and clear of the panel.
+const ROWS_X = 740, ROWS_W = 390, ROWS_Y = 60, ROW_H = 48, ROW_GAP = 8;
+
+// resolv.conf under the Pod on the left, the two counters under CoreDNS on the right: together the
+// chip rows span CONTENT_L..CONTENT_R, so the chip strip centres on x=600 as well.
+const RC_X = CONTENT_L, RC_W = 330, RC_H = 32;
+const RC_Y = 512, RC_Y2 = 552;
+const CNT_W = 185, CNT_Y = 512;
+const CNT_X1 = ROWS_X;                       // 740
+const CNT_X2 = CONTENT_R - CNT_W;            // 945
+
+// Query and answer lanes. Wire and ball come from the same array.
+const QUERY = [[POD_EDGE, FWD_Y], [DNS_LEFT, FWD_Y]];
+const ANSWER = [[DNS_LEFT, RET_Y], [POD_EDGE, RET_Y]];
+const LANE_CX = (POD_EDGE + DNS_LEFT) / 2;   // 600, where both lane labels sit
 
 const CANDIDATES = ['api.ns.svc.cluster.local', 'api.svc.cluster.local', 'api.cluster.local', 'api'];
 
@@ -43,35 +65,35 @@ class Scene {
     root.appendChild(arrowDefs());
 
     // Client Pod and CoreDNS both centred on FLOW_Y, so the two lanes meet each at its middle.
-    const shell = pod({ x: 70, y: FLOW_Y - 65, w: 200, h: 130, label: 'Client Pod', sublabel: 'curl api', containers: 0, role: 'network' });
+    const shell = pod({ x: POD_X, y: FLOW_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Client Pod', sublabel: 'curl api', containers: 0, role: 'network' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     // The resolver box lives INSIDE podGroup: pulsePod walks descendants, so a box appended to the root
     // beside the shell would be left out of the pulse and the Pod would blink with a dead centre.
-    const podBox = box({ x: 90, y: FLOW_Y - 29, w: 160, h: 52, label: 'resolver', sublabel: 'getaddrinfo', role: 'network' });
+    const podBox = box({ x: POD_X + 20, y: FLOW_Y - 26, w: POD_W - 40, h: 52, label: 'Resolver', sublabel: 'getaddrinfo', role: 'network' });
     const podGroup = g({});
     podGroup.appendChild(shell);
     podGroup.appendChild(podBox);
 
-    const dns = box({ x: DNS_LEFT, y: FLOW_Y - 48, w: 220, h: 96, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', role: 'network' });
+    const dns = box({ x: DNS_LEFT, y: FLOW_Y - DNS_H / 2, w: DNS_W, h: DNS_H, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10', role: 'network' });
 
     // The candidate ladder: every name this one lookup may have to ask for, in the order tried.
-    const chain = chainList({ x: 740, y: ROWS_Y, w: 390, rowH: 48, gap: 8, items: CANDIDATES, activeIdx: -1, role: 'network' });
+    const chain = chainList({ x: ROWS_X, y: ROWS_Y, w: ROWS_W, rowH: ROW_H, gap: ROW_GAP, items: CANDIDATES, activeIdx: -1, role: 'network' });
 
-    const qWire = arrow({ x1: POD_EDGE, y1: FWD_Y, x2: DNS_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });
-    const aWire = arrow({ x1: DNS_LEFT, y1: RET_Y, x2: POD_EDGE, y2: RET_Y, dashed: true, dim: true, role: 'network' });
-    // font-size 10 and no `A? ` prefix: the lane is only 190px wide and a full FQDN at 11px overruns it
-    // onto the CoreDNS box. The longest name here, api.ns.svc.cluster.local, is ~144px at this size.
-    const qLabel = text({ class: 'scheme-label code dim', x: 365, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const aLabel = text({ class: 'scheme-label code dim', x: 365, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const qWire = arrow({ x1: QUERY[0][0], y1: QUERY[0][1], x2: QUERY[1][0], y2: QUERY[1][1], dashed: true, dim: true, role: 'network' });
+    const aWire = arrow({ x1: ANSWER[0][0], y1: ANSWER[0][1], x2: ANSWER[1][0], y2: ANSWER[1][1], dashed: true, dim: true, role: 'network' });
+    // font-size 10 and no `A? ` prefix: the longest name here, api.ns.svc.cluster.local, is ~144px at
+    // this size, which keeps it clear of both block edges even on the shortest name in the list.
+    const qLabel = text({ class: 'scheme-label code dim', x: LANE_CX, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const aLabel = text({ class: 'scheme-label code dim', x: LANE_CX, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
 
     // resolv.conf, drawn as the file it is: the two lines that decide everything on this card.
-    const rcLabel = text({ class: 'scheme-label code dim', x: 235, y: FLOW_Y + 108, 'text-anchor': 'middle', 'font-size': 11 }, ['/etc/resolv.conf']);
-    const rcSearch = valChip({ x: 70, y: FLOW_Y + 120, w: 330, h: 32, name: 'search', value: 'ns.svc / svc / cluster.local', role: 'network' });
-    const rcNdots = valChip({ x: 70, y: FLOW_Y + 160, w: 330, h: 32, name: 'options', value: 'ndots:5', role: 'network' });
+    const rcLabel = text({ class: 'scheme-label code dim', x: RC_X + RC_W / 2, y: RC_Y - 12, 'text-anchor': 'middle', 'font-size': 11 }, ['/etc/resolv.conf']);
+    const rcSearch = valChip({ x: RC_X, y: RC_Y, w: RC_W, h: RC_H, name: 'search', value: 'ns.svc / svc / cluster.local', role: 'network' });
+    const rcNdots = valChip({ x: RC_X, y: RC_Y2, w: RC_W, h: RC_H, name: 'options', value: 'ndots:5', role: 'network' });
 
-    const namesChip = valChip({ x: 740, y: FLOW_Y + 160, w: 185, h: 32, name: 'names tried', value: '0', role: 'network' });
-    const answerChip = valChip({ x: 945, y: FLOW_Y + 160, w: 185, h: 32, name: 'rcode', value: 'none', role: 'network' });
+    const namesChip = valChip({ x: CNT_X1, y: CNT_Y, w: CNT_W, h: RC_H, name: 'names tried', value: '0', role: 'network' });
+    const answerChip = valChip({ x: CNT_X2, y: CNT_Y, w: CNT_W, h: RC_H, name: 'rcode', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -105,9 +127,9 @@ function roundTrip(s, ctx, { start, lead, name, result, row = -1, pulseOnSend = 
   // The name and its ladder row appear as the question DEPARTS, so it is always readable which
   // candidate is currently in flight, rather than only being told after the reply is back.
   at(s, ctx, start + lead, () => { setWire(s, 'q', name); if (row >= 0) lightRow(s, row); });
-  const q = segmentPacket(s, ctx, { from: [POD_EDGE, FWD_Y], to: [DNS_LEFT, FWD_Y], delay: start + lead, role: 'network' });
+  const q = segmentPacket(s, ctx, { from: QUERY[0], to: QUERY[1], delay: start + lead, role: 'network' });
   lightBoxAt(s.refs.dns, ctx, q.arrivalMs);
-  const a = segmentPacket(s, ctx, { from: [DNS_LEFT, RET_Y], to: [POD_EDGE, RET_Y], delay: q.arrivalMs + BEAT.afterHop, role: 'network' });
+  const a = segmentPacket(s, ctx, { from: ANSWER[0], to: ANSWER[1], delay: q.arrivalMs + BEAT.afterHop, role: 'network' });
   // Down-arrow: the reply lands and the Pod pulses ON ARRIVAL, the same beat it pulsed with on the way
   // out. Without this the answer just dissolves at the Pod edge and nothing acknowledges receiving it.
   pulsePod(s.refs.podGroup, ctx, a.arrivalMs);
@@ -148,7 +170,9 @@ const STEPS = [
   },
   {
     id: 'append',
-    duration: 3400,
+    // Motion: pulse beat (800) + one round trip on the 380 unit lane (~1790) + the Pod pulse on the
+    // answer (900) ends at ~3490.
+    duration: 3600,
     narration: 'The name api has zero dots, well under ndots 5, so the resolver does not send it as is. It appends the first search domain and asks for api.ns.svc.cluster.local. Here that name exists, CoreDNS answers, and the lookup is done in a single round trip.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -165,7 +189,9 @@ const STEPS = [
   },
   {
     id: 'walk',
-    duration: 9200,
+    // Four round trips back to back on the same lane, ~2090 each after the first, and the last one
+    // still has to finish its arrival pulse: the motion runs to ~10230.
+    duration: 10400,
     narration: 'But if that first guess misses, the resolver does not give up, it walks the whole list: api.svc.cluster.local, then api.cluster.local, then finally api on its own. Every miss is a full round trip that ends in NXDOMAIN, so one name that does not exist costs four of them, and because the resolver asks for IPv4 and IPv6 the real total doubles again.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -205,8 +231,9 @@ const STEPS = [
   },
   {
     id: 'fqdn',
-    duration: 3400,
-    narration: 'End the name with a dot, api.ns.svc.cluster.local. with a trailing dot, and it counts as absolute no matter what ndots says. The resolver skips the search list entirely, so not one candidate below is tried and the name is asked for exactly once. Fully qualifying hot names, or lowering ndots, is the usual fix for noisy cluster DNS.',
+    // One round trip, same budget as the append step.
+    duration: 3600,
+    narration: 'A trailing dot makes the name absolute no matter what ndots says, as in api.ns.svc.cluster.local., so the resolver skips the search list entirely and not one candidate below is tried. The name goes on the wire exactly once. Fully qualifying hot names, or lowering ndots, is the usual fix for noisy cluster DNS.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

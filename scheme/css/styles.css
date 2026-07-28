@@ -1199,6 +1199,7 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .ctl-source {
   font-size: 12px;
   color: var(--text-dim);
+  text-align: right;
 }
 .ctl-source a {
   color: var(--text-dim);
@@ -1206,6 +1207,12 @@ body.sidebar-collapsed .side-expand { display: grid; }
   border-bottom: 1px dashed var(--text-dim);
 }
 .ctl-source a:hover { color: var(--text); border-color: var(--text); }
+/* The separator is its own span so the dashed underline of a link stops at the link. Padding
+   rather than a space around the dot, so a wrap breaks between sources and never before it. */
+.ctl-source-sep {
+  padding: 0 6px;
+  opacity: 0.5;
+}
 
 .reduced-notice {
   font-size: 12px;

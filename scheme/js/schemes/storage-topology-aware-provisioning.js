@@ -1,6 +1,6 @@
-import { svg, g, text, path } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-topology-aware-provisioning
 
 
@@ -41,9 +41,8 @@ const W_CROSS = [[NODE_CX[1], NODE_BOTTOM], [NODE_CX[1], CROSS_Y], [NODE_CX[0], 
 // A disk materialises when the CreateVolume that makes it lands, so no arrowhead is ever aimed at
 // nothing. LAND_MS is shorter than BEAT.lead for the same reason.
 const LAND_MS = 500;
-// PLACEHOLDER is the dim a disk is drawn at while the provisioning lane already points AT it but it
+// OPACITY.pending is the dim a disk is drawn at while the provisioning lane already points AT it but it
 // has not been created yet. Hiding it outright aims the arrowhead at blank canvas for the whole flight.
-const PLACEHOLDER = 0.4;
 function revealAt(el, ctx, delay = 0, from = 0) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
@@ -79,7 +78,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and the scheduler then finds no node that both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
+      'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and the scheduler then finds no Node that both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -104,10 +103,7 @@ class Scene {
     podB.group.style.opacity = '0';
 
     // The claim names its class: a relationship, not traffic, so a bare dashed path with no marker.
-    const classRef = path({
-      class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-storage',
-      d: `M ${CX} ${SC_BOTTOM} L ${CX} ${PVC_Y}`, 'stroke-dasharray': '5 5', fill: 'none',
-    });
+    const classRef = relationPath({ points: [[CX, SC_BOTTOM], [CX, PVC_Y]], role: 'storage', dash: '5 5' });
 
     const wProvA = lane(wProv(0));
     const wProvB = lane(wProv(1));
@@ -166,9 +162,7 @@ function setChips(s, { mode, pvc, pod, zones }) {
 }
 
 // The Pod is dim until it actually reaches Running: while it is only Pending it sits at this dim rest.
-const POD_DIM = 0.55;
 // A node the scheduler filters out for this Pod dims to here, the storage-family filtered value.
-const NODE_FILTERED = 0.4;
 
 // Pins the visibility of EVERY element that is born mid-story, exactly as setChips pins every chip,
 // so a step can never silently inherit a disk or a Pod from the step before it.
@@ -193,7 +187,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A claim asks for a disk from a StorageClass whose volumeBindingMode is Immediate. There are two zones, each a node that gets its own zonal disk on the shelf below. A zonal disk can only ever be attached to a node in its own zone, and that single fact is the whole story here.',
+    narration: 'A claim asks for a disk from a StorageClass whose volumeBindingMode is Immediate. There are two zones, each a Node that gets its own zonal disk on the shelf below. A zonal disk can only ever be attached to a Node in its own zone, and that single fact is the whole story here.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -207,7 +201,7 @@ const STEPS = [
     // 4400, not 3600: the provisioning route wraps the outer margin and runs the shelf midline into
     // the zone-a disk from the right, which anim-dump puts at a 3960ms span (ball plus its ripple).
     duration: 4400,
-    narration: 'With Immediate the volume is provisioned the moment the claim appears, long before any Pod is scheduled. The provisioner has no Pod to guide it, so it just picks a zone. Here it lands in zone-a, and the claim is Bound to a disk that now physically lives in zone-a, reachable only by node-1.',
+    narration: 'With Immediate the volume is provisioned the moment the claim appears, long before any Pod is scheduled. The provisioner has no Pod to guide it, so it just picks a zone. Here it lands in zone-a, and the claim is Bound to a disk that now physically lives in zone-a, reachable only by Node-1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -219,20 +213,20 @@ const STEPS = [
       s.refs.sc.classList.add('highlight');
       setWire(s, 'za', 'provisioned here');
       if (ctx.reduced) { s.refs.diskA.classList.add('highlight'); return; }
-      setStage(s, { diskA: PLACEHOLDER, pvcState: 'Bound', lanes: ['wProvA'] });
+      setStage(s, { diskA: OPACITY.pending, pvcState: 'Bound', lanes: ['wProvA'] });
       const pts = wProv(0);
       const prov = routePacket(s, ctx, pts, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', pts, { delay: BEAT.lead });
       // lightBoxAt is registered before revealAt so the reveal fade owns the disk opacity, and the
       // highlight class lands exactly on the ball's arrival.
       lightBoxAt(s.refs.diskA, ctx, prov.arrivalMs);
-      revealAt(s.refs.diskA, ctx, prov.arrivalMs, PLACEHOLDER);
+      revealAt(s.refs.diskA, ctx, prov.arrivalMs, OPACITY.pending);
     },
   },
   {
     id: 'imm-schedule',
     duration: 3000,
-    narration: 'Only now is the Pod created, and the scheduler must place it around a disk that already lives in zone-a. This Pod fits node-2 in zone-b on capacity and affinity, but a zone-a disk cannot attach to a node in zone-b. The scheduler does read volume topology, so it rejects node-2, while node-1 in zone-a has no room for the Pod.',
+    narration: 'Only now is the Pod created, and the scheduler must place it around a disk that already lives in zone-a. This Pod fits Node-2 in zone-b on capacity and affinity, but a zone-a disk cannot attach to a Node in zone-b. The scheduler does read volume topology, so it rejects Node-2, while Node-1 in zone-a has no room for the Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -240,55 +234,55 @@ const STEPS = [
       setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'Pending', zones: 'no node fits' });
       // node-1 is filtered out (no room), node-2 is reachable but wrong zone for the disk. The Pod is
       // admitted to neither, so it stays a Pending Pod hovering at node-2, the only node it fits on cpu.
-      setStage(s, { diskA: 1, podOn: POD_DIM, cross: 1, nodeA: NODE_FILTERED, pvcState: 'Bound' });
+      setStage(s, { diskA: 1, podOn: OPACITY.pending, cross: 1, nodeA: OPACITY.notready, pvcState: 'Bound' });
       s.refs.diskA.classList.add('highlight');
       setWire(s, 'za', 'disk in zone-a');
       setWire(s, 'fail', 'wrong zone for this disk');
       if (ctx.reduced) return;
       // The Pod is created but never admitted, so it arrives at its dim Pending opacity.
       s.refs.podB.style.opacity = '0';
-      ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: POD_DIM }], { duration: FADE.in, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: OPACITY.pending }], { duration: FADE.in, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-out' }));
     },
   },
   {
     id: 'imm-fail',
     duration: 3200,
-    narration: 'No node satisfies both the Pod and its zone-a disk, so the Pod is never scheduled at all. It stays Pending forever with the event node(s) had volume node affinity conflict, the disk healthy but unreachable in zone-a. This is the single most common multi-zone storage bug, and its one-line fix is next.',
+    narration: 'No Node satisfies both the Pod and its zone-a disk, so the Pod is never scheduled at all. It stays Pending forever with the event Node(s) had volume node affinity conflict, the disk healthy but unreachable in zone-a. This is the single most common multi-zone storage bug, and its one-line fix is next.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'unschedulable', zones: 'affinity conflict' });
-      setStage(s, { diskA: 1, podOn: POD_DIM, cross: 1, nodeA: NODE_FILTERED, pvcState: 'Bound' });
+      setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'unschedulable', zones: 'zone-a vs zone-b' });
+      setStage(s, { diskA: 1, podOn: OPACITY.pending, cross: 1, nodeA: OPACITY.notready, pvcState: 'Bound' });
       s.refs.diskA.classList.add('highlight');
       setWire(s, 'za', 'healthy but stranded');
       setWire(s, 'fail', 'volume node affinity conflict');
       if (ctx.reduced) return;
-      pulsePodDim(s.refs.podB, ctx, BEAT.lead, { from: POD_DIM, peak: 0.95 });
+      pulsePodDim(s.refs.podB, ctx, BEAT.lead, { from: OPACITY.pending, peak: 0.95 });
     },
   },
   {
     id: 'wffc-schedule',
     duration: 3200,
-    narration: 'Set volumeBindingMode to WaitForFirstConsumer and start over. Binding is now deferred, so the claim stays Pending on purpose while no disk exists yet. The scheduler runs first and places the Pod on node-2 in zone-b, and its choice is recorded on the claim.',
+    narration: 'Set volumeBindingMode to WaitForFirstConsumer and start over. Binding is now deferred, so the claim stays Pending on purpose while no disk exists yet. The scheduler runs first and places the Pod on Node-2 in zone-b, and its choice is recorded on the claim.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { mode: 'WaitForFirstConsumer', pvc: 'Pending, waiting', pod: 'node-2 zone-b', zones: 'Pod zone-b' });
-      setStage(s, { podOn: POD_DIM, mode: 'WaitForFirstConsumer', pvcState: 'Pending' });
+      setStage(s, { podOn: OPACITY.pending, mode: 'WaitForFirstConsumer', pvcState: 'Pending' });
       s.refs.sc.classList.add('highlight');
       s.refs.nodeB.classList.add('highlight');
       setWire(s, 'zb', 'Pod placed first');
       if (ctx.reduced) return;
       s.refs.podB.style.opacity = '0';
-      ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: POD_DIM }], { duration: FADE.in, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: OPACITY.pending }], { duration: FADE.in, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-out' }));
     },
   },
   {
     id: 'wffc-provision',
     duration: 5800,
-    narration: 'Now that the Pod has a node, the provisioner knows exactly which zone to build in. The volume is created in zone-b, bound to the claim, and attached to node-2 right above it. The Pod mounts it and starts, because the order was reversed so the disk could follow the Pod.',
+    narration: 'Now that the Pod has a Node, the provisioner knows exactly which zone to build in. The volume is created in zone-b, bound to the claim, and attached to Node-2 right above it. The Pod mounts it and starts, because the order was reversed so the disk could follow the Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -299,18 +293,18 @@ const STEPS = [
       s.refs.nodeB.classList.add('highlight');
       setWire(s, 'zb', 'provisioned in topology');
       if (ctx.reduced) { s.refs.diskB.classList.add('highlight'); s.refs.podBox.classList.add('highlight'); return; }
-      setStage(s, { diskB: PLACEHOLDER, podOn: POD_DIM, mode: 'WaitForFirstConsumer', pvcState: 'Bound', lanes: ['wProvB', 'wMountB'] });
+      setStage(s, { diskB: OPACITY.pending, podOn: OPACITY.pending, mode: 'WaitForFirstConsumer', pvcState: 'Bound', lanes: ['wProvB', 'wMountB'] });
       const provPts = wProv(1);
       const prov = routePacket(s, ctx, provPts, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', provPts, { delay: BEAT.lead });
       // The disk earns its highlight on the ball's arrival, not at step entry.
       lightBoxAt(s.refs.diskB, ctx, prov.arrivalMs);
-      revealAt(s.refs.diskB, ctx, prov.arrivalMs, PLACEHOLDER);
+      revealAt(s.refs.diskB, ctx, prov.arrivalMs, OPACITY.pending);
       // Down-arrow into the Pod, so the ball leads and the pulse lands on its arrival.
       const mountAt = prov.arrivalMs + LAND_MS + BEAT.afterHop;
       const mount = routePacket(s, ctx, W_MOUNT_B, { delay: mountAt, role: 'storage' });
       ridingLabel(s, ctx, 'attach and mount', W_MOUNT_B, { delay: mountAt });
-      ctx.register(s.refs.podB.animate([{ opacity: POD_DIM }, { opacity: 1 }], { duration: FADE.in, delay: mount.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.podB.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: FADE.in, delay: mount.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, mount.arrivalMs);
       lightBoxAt(s.refs.podBox, ctx, mount.arrivalMs);
     },

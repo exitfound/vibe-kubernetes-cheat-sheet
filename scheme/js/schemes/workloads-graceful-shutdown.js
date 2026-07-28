@@ -1,10 +1,48 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
 
+// Layout C of the Workloads canon (WL): full-width chip strip, three per row.
+// Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
+// Design notes for this card: scheme/docs/CARDS.md#workloads-graceful-shutdown
+const PANEL_B = 280;
+const TOP1_X = 420, TOP1_W = 220;
+const TOP_GAP = 60;
+const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
+const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
+const REQ_Y = TOP_CY - WL.LANE_DY, RESP_Y = TOP_CY + WL.LANE_DY;
+const WIRE_X = (TOP1_X + TOP1_W + TOP2_X) / 2;
+const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row, off the spine
 
-const CONNECTOR_DOWN = [[690, 120], [690, 185], [280, 185], [280, 550], [320, 550]];
-const CONNECTOR_UP   = [[320, 550], [280, 550], [280, 185], [690, 185], [690, 120]];
+const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+const LAD_Y = 140;                                       // 6 rows -> 140..382
+
+const NODE_Y = 394, NODE_H = 134;                        // 394..528, below the ladder
+const POD_W = 460, POD_H = 106, POD_TOP_PAD = 20;
+const POD_X = WL.CX - POD_W / 2;                         // 370..830, centred on CX
+const POD_Y = NODE_Y + POD_TOP_PAD;                      // 414..520, clear of the frame label
+const CONT_W = 300, CONT_X = WL.CX - CONT_W / 2, CONT_H = 64;
+const POD_INNER = { dy: 28 };
+
+// Chips as a full-width bottom strip, three per row so name and value never collide. Five chips
+// means a row of three and a row of two, the short row centred on CX.
+const CHIP_PER_ROW = 3, CHIP_GAP = 14;
+const CHIP_W = (WL.W - CHIP_GAP * (CHIP_PER_ROW - 1)) / CHIP_PER_ROW;   // 350.67
+const CHIP_ROW_H = WL.CHIP_H + 8;
+const CHIPS_TOP = 548;                                   // two rows -> 548..624
+const CHIP_ROW_N = i => (i < CHIP_PER_ROW ? CHIP_PER_ROW : 2);
+const CHIP_X = i => {
+  const col = i % CHIP_PER_ROW, n = CHIP_ROW_N(i);
+  const rowW = n * CHIP_W + (n - 1) * CHIP_GAP;
+  return WL.CX - rowW / 2 + col * (CHIP_W + CHIP_GAP);
+};
+const CHIP_Y = i => CHIPS_TOP + Math.floor(i / CHIP_PER_ROW) * CHIP_ROW_H;
+
+// The connector steps into the central corridor beside the ladder and reaches the Pod itself.
+const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
+const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
+const CONNECTOR_DOWN = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
+const CONNECTOR_UP   = [...CONNECTOR_DOWN].reverse();
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -16,16 +54,16 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Graceful Pod shutdown: deletionTimestamp, EndpointSlice removal, preStop, SIGTERM, grace countdown, SIGKILL',
+      'aria-label': 'Graceful Pod shutdown: deletionTimestamp, EndpointSlice marked terminating, preStop, SIGTERM, grace countdown, SIGKILL',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
 
-    const kubectl = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubectl', sublabel: 'delete pod app-pod', role: 'cluster' });
-    const api     = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api', sublabel: 'sets deletionTimestamp', role: 'cluster' });
+    const kubectl = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'kubectl', sublabel: 'delete pod app-pod', role: 'cluster' });
+    const api     = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'sets deletionTimestamp', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
     const connectorDown = pathArrow({ points: CONNECTOR_DOWN, dim: true, dashed: true, role: 'cluster' });
     const connectorUp   = pathArrow({ points: CONNECTOR_UP,   dim: true, dashed: true, role: 'cluster' });
@@ -33,15 +71,15 @@ class Scene {
     root.appendChild(connectorDown);
     root.appendChild(connectorUp);
 
-    // Single wire label centered below the top row, set per step via setWire.
-    const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    // Single wire label centered above the top row, clear of the connector below it.
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
     const chain = chainList({
-      x: 320, y: 220, w: 480, rowH: 32, gap: 10,
+      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
       items: [
         '1. running   ·  Pod IP serving traffic',
-        '2. delete    ·  deletionTimestamp, drop from EndpointSlice',
+        '2. delete    ·  deletionTimestamp, endpoint ready=false',
         '3. preStop   ·  Kubelet runs hook synchronously',
         '4. SIGTERM   ·  signal PID 1, drain in-flight work',
         '5. countdown ·  terminationGracePeriodSeconds ticks',
@@ -50,22 +88,22 @@ class Scene {
       role: 'cluster',
     });
 
-    // State chips on the right, y-aligned to the first five chain rows.
-    const preStopChip = valChip({ x: 830, y: 220, w: 350, h: 32, name: 'preStop hook',     value: 'idle', role: 'workloads' });
-    const sigChip     = valChip({ x: 830, y: 262, w: 350, h: 32, name: 'signal',           value: 'none', role: 'workloads' });
-    const graceChip   = valChip({ x: 830, y: 304, w: 350, h: 32, name: 'grace remaining',  value: '30s', role: 'workloads' });
-    const statusChip  = valChip({ x: 830, y: 346, w: 350, h: 32, name: 'pod status',       value: 'Running', role: 'workloads' });
-    const sliceChip   = valChip({ x: 830, y: 388, w: 350, h: 32, name: 'EndpointSlice',    value: '[10.244.1.7]', role: 'workloads' });
+    // State chips in the bottom strip, three then two.
+    const preStopChip = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'preStop hook',     value: 'idle', role: 'workloads' });
+    const sigChip     = valChip({ x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'signal',           value: 'none', role: 'workloads' });
+    const graceChip   = valChip({ x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'grace remaining',  value: '30s', role: 'workloads' });
+    const statusChip  = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'pod status',       value: 'Running', role: 'workloads' });
+    const sliceChip   = valChip({ x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'EndpointSlice',    value: '[10.244.1.7]', role: 'workloads' });
     [preStopChip, sigChip, graceChip, statusChip, sliceChip].forEach(c => root.appendChild(c));
 
-    const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
+    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: 520, y: 500, w: 460, h: 110, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
+    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     const podShellRect = podShell.querySelector('.scheme-pod-rect');
     if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     // The container box. Signals target its main process, PID 1.
-    const containerBox = box({ x: 600, y: 530, w: 300, h: 64, label: 'app', sublabel: 'container: PID 1', role: 'workloads' });
+    const containerBox = box({ x: CONT_X, y: POD_Y + POD_INNER.dy, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container: PID 1', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
     podGroup.appendChild(podShell);
@@ -122,8 +160,8 @@ const STEPS = [
   },
   {
     id: 'delete',
-    duration: 3300,
-    narration: 'Kubectl delete reaches the Api, which stamps metadata.deletionTimestamp on the Pod. That field is what makes Kubectl report the Pod as Terminating, while status.phase itself stays Running. In parallel the endpoint controller drops 10.244.1.7 from the EndpointSlice, so kube-proxy stops sending new connections while the Kubelet termination sequence begins.',
+    duration: 3800,
+    narration: 'A kubectl delete reaches the API, which stamps metadata.deletionTimestamp on the Pod. That field is what makes kubectl report the Pod as Terminating, while status.phase itself stays Running. In parallel the EndpointSlice controller marks 10.244.1.7 terminating with ready false rather than removing it, so kube-proxy stops sending new connections while the Kubelet termination sequence begins.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -132,19 +170,20 @@ const STEPS = [
       setVal(s.refs.sigChip, 'none');
       setVal(s.refs.graceChip, '30s');
       setVal(s.refs.statusChip, 'Terminating');
-      setVal(s.refs.sliceChip, '[] removed');
+      setVal(s.refs.sliceChip, '[10.244.1.7] ready=false');
       setWire(s, 'req', 'DELETE /api/v1/.../app-pod');
       s.refs.kubectl.classList.add('highlight');
-      s.refs.api.classList.add('highlight');
       s.refs.statusChip.classList.add('highlight');
       s.refs.sliceChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
       // DELETE hits the apiserver (top hop), then the termination order travels
-      // down to the kubelet side and the Pod pulses on arrival.
-      const req = topPacket(s, ctx, { role: 'workloads' });
+      // down to the kubelet side and the Pod pulses on arrival. The API receives the
+      // DELETE, so it lights on arrival rather than at step entry.
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.api, ctx, req.arrivalMs);
       const order = routePacket(s, ctx, CONNECTOR_DOWN, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, order.arrivalMs);
     },
@@ -161,7 +200,7 @@ const STEPS = [
       setVal(s.refs.sigChip, 'none');
       setVal(s.refs.graceChip, '30s');
       setVal(s.refs.statusChip, 'Terminating');
-      setVal(s.refs.sliceChip, '[]');
+      setVal(s.refs.sliceChip, '[10.244.1.7] ready=false');
       s.refs.preStopChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
@@ -175,16 +214,17 @@ const STEPS = [
   {
     id: 'sigterm',
     duration: 2000,
-    narration: 'Once preStop returns, the Kubelet sends SIGTERM to PID 1. A well-behaved app traps this signal, stops accepting new work, drains in-flight requests and closes its connections and pools. The time the preStop hook consumed is already gone from the same grace budget.',
+    narration: 'Once preStop returns, the Kubelet asks the runtime to send SIGTERM to PID 1. A well-behaved app traps this signal, stops accepting new work, drains in-flight requests and closes its connections and pools. The time the preStop hook consumed is already gone from the same grace budget.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setVal(s.refs.preStopChip, 'completed');
+      s.refs.preStopChip.classList.add('highlight');
       setVal(s.refs.sigChip, 'SIGTERM');
       setVal(s.refs.graceChip, '25s');
       setVal(s.refs.statusChip, 'Terminating');
-      setVal(s.refs.sliceChip, '[]');
+      setVal(s.refs.sliceChip, '[10.244.1.7] ready=false');
       s.refs.sigChip.classList.add('highlight');
       s.refs.graceChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '1';
@@ -199,7 +239,7 @@ const STEPS = [
   {
     id: 'countdown',
     duration: 2100,
-    narration: 'terminationGracePeriodSeconds, 30 by default, counts down from the moment of deletion. The preStop hook and the SIGTERM drain both spend this single shared budget. Most applications exit well before the timer reaches zero, and the Kubelet then proceeds straight to cleanup.',
+    narration: 'The terminationGracePeriodSeconds, 30 by default, counts down from the moment of deletion. The preStop hook and the SIGTERM drain both spend this single shared budget. Most applications exit well before the timer reaches zero, and the Kubelet then proceeds straight to cleanup.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -208,7 +248,7 @@ const STEPS = [
       setVal(s.refs.sigChip, 'SIGTERM');
       setVal(s.refs.graceChip, '6s');
       setVal(s.refs.statusChip, 'Terminating');
-      setVal(s.refs.sliceChip, '[]');
+      setVal(s.refs.sliceChip, '[10.244.1.7] ready=false');
       s.refs.graceChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
@@ -219,8 +259,8 @@ const STEPS = [
   },
   {
     id: 'sigkill',
-    duration: 3100,
-    narration: 'If the container is still alive when the grace timer reaches 0, the Kubelet sends SIGKILL, which the kernel delivers unconditionally to PID 1. Once the process is gone the Kubelet reports the terminated container, and the Api removes the Pod object from etcd.',
+    duration: 3500,
+    narration: 'If the container is still alive when the grace timer reaches 0, the runtime sends SIGKILL, which the kernel delivers unconditionally to PID 1. Once the process is gone the Kubelet reports the terminated container, and the API removes the Pod object from ETCD.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -230,23 +270,24 @@ const STEPS = [
       setVal(s.refs.graceChip, '0s · expired');
       setVal(s.refs.statusChip, 'deleted');
       setVal(s.refs.sliceChip, '[]');
+      s.refs.sliceChip.classList.add('highlight');
       setWire(s, 'req', 'Pod removed from etcd');
       s.refs.sigChip.classList.add('highlight');
       s.refs.statusChip.classList.add('highlight');
       s.refs.graceChip.classList.add('highlight');
-      s.refs.api.classList.add('highlight');
       // Killed and purged: the whole Pod block drops to its faint terminal state.
-      s.refs.podGroup.style.opacity = '0.3';
+      s.refs.podGroup.style.opacity = String(OPACITY.terminated);
       setConnectorDir(s, 'up');
       setChainActive(s.refs.chain, 5);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
       pulsePod(s.refs.podGroup, ctx, 0);
       ctx.register(s.refs.podGroup.animate(
-        [{ opacity: 1 }, { opacity: 0.3 }],
+        [{ opacity: 1 }, { opacity: OPACITY.terminated }],
         { duration: FADE.out, fill: 'both', easing: 'ease-in' }
       ));
       // After the process is gone, the kubelet reports up to the apiserver.
-      routePacket(s, ctx, CONNECTOR_UP, { delay: BEAT.afterPulse, role: 'workloads' });
+      const pkt = routePacket(s, ctx, CONNECTOR_UP, { delay: BEAT.afterPulse, role: 'workloads' });
+      lightBoxAt(s.refs.api, ctx, pkt.arrivalMs);
     },
   },
 ];

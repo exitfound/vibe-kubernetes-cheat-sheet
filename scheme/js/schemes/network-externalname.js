@@ -4,14 +4,20 @@ import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, BE
 // Design notes for this card: scheme/docs/CARDS.md#network-externalname
 
 
-const ROW_A = 254;
-const ROW_B = 474;
+// Panel measured 2026-07-27: right <= 397, bottom <= 230. Row A used to sit at 254, which put the
+// top of its Client Pod under the panel on the narrow viewports, so both rows hang below 230 now.
+// A longer narration invalidates that bottom.
+const CLIENT_X = 115, CLIENT_W = 160, CLIENT_H = 108;
+const ROW_A = 300;                     // Pod 246..354, clear of the panel
+const ROW_B = 480;
 // x-coords are centered in the 1200 viewBox: content runs 115..1085 (client left edge to the wide
 // external-target right edge), leaving equal 115px side margins.
-const A_CLIENT_EDGE = 275;
+const A_CLIENT_EDGE = CLIENT_X + CLIENT_W;   // 275
 const A_DNS_LEFT = 405, A_DNS_RIGHT = 605, A_HOST_LEFT = 765;
-const B_CLIENT_EDGE = 275;
+const B_CLIENT_EDGE = A_CLIENT_EDGE;
 const B_PROXY_LEFT = 405, B_PROXY_RIGHT = 605, B_EP_LEFT = 765;
+const BOX_H = 60;                      // the four infra boxes share one height, centred on their row
+const TARGET_W = 320;                  // the two external-target boxes: 765..1085
 // Each hop as its own 2-point straight segment. The same array feeds the linear segmentPacket ball
 // and the ridingLabel tag so the tag stays locked to the ball.
 const A_HOP1 = [[A_CLIENT_EDGE, ROW_A], [A_DNS_LEFT, ROW_A]];   // client -> CoreDNS (query)
@@ -48,13 +54,13 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const clientA = podBlock({ x: 115, y: 200, w: 160, h: 108, label: 'Client Pod', ip: 'svc lookup' });
-    const dns = box({ x: A_DNS_LEFT, y: 224, w: 200, h: 60, label: 'CoreDNS', sublabel: 'returns CNAME', role: 'network' });
-    const host = box({ x: A_HOST_LEFT, y: 224, w: 320, h: 60, label: 'db.example.com', sublabel: 'external host', role: 'network' });
+    const clientA = podBlock({ x: CLIENT_X, y: ROW_A - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: 'svc lookup' });
+    const dns = box({ x: A_DNS_LEFT, y: ROW_A - BOX_H / 2, w: A_DNS_RIGHT - A_DNS_LEFT, h: BOX_H, label: 'CoreDNS', sublabel: 'returns CNAME', role: 'network' });
+    const host = box({ x: A_HOST_LEFT, y: ROW_A - BOX_H / 2, w: TARGET_W, h: BOX_H, label: 'db.example.com', sublabel: 'external host', role: 'network' });
 
-    const clientB = podBlock({ x: 115, y: 420, w: 160, h: 108, label: 'Client Pod', ip: 'svc:5432' });
-    const proxy = box({ x: B_PROXY_LEFT, y: 444, w: 200, h: 60, label: 'kube-proxy', sublabel: 'ClusterIP 10.96.0.7', role: 'network' });
-    const ep = box({ x: B_EP_LEFT, y: 444, w: 320, h: 60, label: 'EndpointSlice', sublabel: 'manual · 203.0.113.5', role: 'network' });
+    const clientB = podBlock({ x: CLIENT_X, y: ROW_B - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: 'svc:5432' });
+    const proxy = box({ x: B_PROXY_LEFT, y: ROW_B - BOX_H / 2, w: B_PROXY_RIGHT - B_PROXY_LEFT, h: BOX_H, label: 'kube-proxy', sublabel: 'ClusterIP 10.96.0.7', role: 'network' });
+    const ep = box({ x: B_EP_LEFT, y: ROW_B - BOX_H / 2, w: TARGET_W, h: BOX_H, label: 'EndpointSlice', sublabel: 'manual · 203.0.113.5', role: 'network' });
 
     const aWire1 = arrow({ x1: A_CLIENT_EDGE, y1: ROW_A, x2: A_DNS_LEFT, y2: ROW_A, dashed: true, dim: true, role: 'network' });
     const aWire2 = arrow({ x1: A_DNS_RIGHT, y1: ROW_A, x2: A_HOST_LEFT, y2: ROW_A, dashed: true, dim: true, role: 'network' });
@@ -64,7 +70,7 @@ class Scene {
     // Chip strip spans the block width 1:1: leftmost edge under the Client Pods (115), rightmost edge
     // under the external-target boxes (1085), with even 20px gaps. typeChip is widest for its long value.
     const typeChip  = valChip({ x: 115, y: 566, w: 270, h: 34, name: 'type', value: 'idle', role: 'network' });
-    const vipChip   = valChip({ x: 405, y: 566, w: 200, h: 34, name: 'ClusterIP', value: 'none', role: 'network' });
+    const vipChip   = valChip({ x: 405, y: 566, w: 200, h: 34, name: 'clusterIP', value: 'none', role: 'network' });
     const epChip    = valChip({ x: 625, y: 566, w: 220, h: 34, name: 'endpoints', value: 'none', role: 'network' });
     const proxyChip = valChip({ x: 865, y: 566, w: 220, h: 34, name: 'kube-proxy', value: 'none', role: 'network' });
 
@@ -113,8 +119,8 @@ const STEPS = [
   },
   {
     id: 'externalname',
-    duration: 2600,
-    narration: 'A type ExternalName Service has no ClusterIP at all. When a client looks it up, CoreDNS simply returns a CNAME to an external name such as db.example.com, and the client connects straight there. kube-proxy is never involved, the Service is purely a name pointing at another name.',
+    duration: 3000,
+    narration: 'A type ExternalName Service has no ClusterIP at all. When a client looks it up, CoreDNS simply returns a CNAME to an external name such as db.example.com, and the client connects straight there. The kube-proxy is never involved, the Service is purely a name pointing at another name.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -124,6 +130,7 @@ const STEPS = [
       setVal(s.refs.typeChip, 'ExternalName');
       setVal(s.refs.vipChip, 'none');
       setVal(s.refs.proxyChip, 'not involved');
+      s.refs.proxyChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.clientABox.classList.add('highlight'); s.refs.host.classList.add('highlight'); return; }
       pulsePod(s.refs.clientA, ctx, 0);
       const q = segmentPacket(s, ctx, { from: A_HOP1[0], to: A_HOP1[1], delay: BEAT.afterPulse, role: 'network' });
@@ -136,8 +143,8 @@ const STEPS = [
   },
   {
     id: 'noselector',
-    duration: 2800,
-    narration: 'The other case keeps a real ClusterIP but defines no selector, so Kubernetes creates no endpoints automatically. You attach an EndpointSlice yourself, listing the external IP. kube-proxy then DNATs the ClusterIP to that address exactly as it would to a Pod, so a fixed external server looks like an in-cluster Service.',
+    duration: 3000,
+    narration: 'The other case keeps a real ClusterIP but defines no selector, so Kubernetes creates no endpoints automatically. You attach an EndpointSlice yourself, listing the external IP. The kube-proxy then DNATs the ClusterIP to that address exactly as it would to a Pod, so a fixed external server looks like an in-cluster Service.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -172,8 +179,11 @@ const STEPS = [
       s.refs.typeChip.classList.add('highlight');
       setVal(s.refs.typeChip, 'two modes');
       setVal(s.refs.vipChip, 'none / real');
+      s.refs.vipChip.classList.add('highlight');
       setVal(s.refs.epChip, 'none / manual');
+      s.refs.epChip.classList.add('highlight');
       setVal(s.refs.proxyChip, 'no / yes');
+      s.refs.proxyChip.classList.add('highlight');
       // Packet-less, pod-less recap: the two middle boxes light via .highlight to distinguish the
       // modes. Blocks light, they never blink. Only Pods pulse.
     },

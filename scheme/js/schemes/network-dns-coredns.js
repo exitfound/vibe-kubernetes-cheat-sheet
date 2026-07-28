@@ -1,15 +1,42 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dns-coredns
 
 
-const FLOW_Y = 260;                 // shared center of client and CoreDNS (client y175 + h170/2)
+// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 305, one of the deepest in the
+// catalog, so the client column hangs entirely below it and the CoreDNS Pod holds the right edge of
+// the canvas: the two together centre the content on x=600. A longer narration invalidates the
+// measured bottom.
+const CONTENT_L = 70, CONTENT_R = 1130;
+const FLOW_Y = 400;                 // shared centre of the client and the CoreDNS Pod
 const LANE_DY = 12;                 // half-gap between the two lanes
-const FWD_Y = FLOW_Y - LANE_DY;     // 248: client -> CoreDNS query lane
-const RET_Y = FLOW_Y + LANE_DY;     // 272: CoreDNS -> client answer lane
-const CLIENT_EDGE = 300;            // client Pod right edge (x 70 + w 230)
-const DNS_LEFT = 470;               // CoreDNS Pod left edge
+const FWD_Y = FLOW_Y - LANE_DY;     // 388: client -> CoreDNS query lane
+const RET_Y = FLOW_Y + LANE_DY;     // 412: CoreDNS -> client answer lane
+
+const CLIENT_X = CONTENT_L, CLIENT_W = 230, CLIENT_H = 150;
+const CLIENT_EDGE = CLIENT_X + CLIENT_W;      // 300: client Pod right edge
+const CLIENT_Y = FLOW_Y - CLIENT_H / 2;       // 325, clear of the panel bottom
+
+const DNS_W = 320, DNS_H = 280;
+const DNS_LEFT = CONTENT_R - DNS_W;           // 810: CoreDNS Pod left edge
+const DNS_Y = FLOW_Y - DNS_H / 2;             // 260
+const DNS_CX = DNS_LEFT + DNS_W / 2;          // 970: the spine the plugin chain hops down
+const PLUGIN_X = DNS_LEFT + 30, PLUGIN_W = DNS_W - 60;   // 840, 260
+const PLUGIN_H = 50;
+const PLUGIN_Y = [DNS_Y + 37, DNS_Y + 115, DNS_Y + 193]; // cache / kubernetes / forward
+
+// resolv.conf, drawn under the client Pod, and the two readouts stacked above CoreDNS. Together the
+// two groups span CONTENT_L..CONTENT_R, so the chip strip centres on x=600 too.
+const RC_X = CONTENT_L, RC_W = 320, RC_H = 32;
+const RC_Y = [512, 552, 592];
+const OUT_W = 300, OUT_X = CONTENT_R - OUT_W; // 830
+const OUT_Y = 168, OUT_H = 34, OUT_SEAM = 4;
+
+// Each lane and the ball that rides it come from the same points array.
+const QUERY = [[CLIENT_EDGE, FWD_Y], [DNS_LEFT, FWD_Y]];
+const ANSWER = [[DNS_LEFT, RET_Y], [CLIENT_EDGE, RET_Y]];
+const CHAIN_HOP = [[DNS_CX, PLUGIN_Y[0] + PLUGIN_H], [DNS_CX, PLUGIN_Y[1]]];   // cache -> kubernetes
 
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
@@ -37,33 +64,34 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = podBlock({ x: 70, y: 175, w: 230, h: 170, label: 'Client Pod', ip: '10.244.1.5' });
+    const client = podBlock({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.1.5' });
 
-    const rcNS    = valChip({ x: 70, y: 400, w: 320, h: 32, name: 'nameserver', value: '10.96.0.10', role: 'network' });
-    const rcSearch = valChip({ x: 70, y: 440, w: 320, h: 32, name: 'search', value: 'default.svc / svc / cluster.local', role: 'network' });
-    const rcNdots = valChip({ x: 70, y: 480, w: 320, h: 32, name: 'options', value: 'ndots:5', role: 'network' });
-    const rcLabel = text({ class: 'scheme-label code dim', x: 230, y: 388, 'text-anchor': 'middle', 'font-size': 11 }, ['/etc/resolv.conf']);
+    const rcNS    = valChip({ x: RC_X, y: RC_Y[0], w: RC_W, h: RC_H, name: 'nameserver', value: '10.96.0.10', role: 'network' });
+    const rcSearch = valChip({ x: RC_X, y: RC_Y[1], w: RC_W, h: RC_H, name: 'search', value: 'default.svc / svc / cluster.local', role: 'network' });
+    const rcNdots = valChip({ x: RC_X, y: RC_Y[2], w: RC_W, h: RC_H, name: 'options', value: 'ndots:5', role: 'network' });
+    const rcLabel = text({ class: 'scheme-label code dim', x: RC_X + RC_W / 2, y: RC_Y[0] - 12, 'text-anchor': 'middle', 'font-size': 11 }, ['/etc/resolv.conf']);
 
-    const corednsShell = pod({ x: 470, y: 120, w: 320, h: 280, label: 'CoreDNS Pod', sublabel: '10.244.4.2', containers: 0, role: 'network' });
+    const corednsShell = pod({ x: DNS_LEFT, y: DNS_Y, w: DNS_W, h: DNS_H, label: 'CoreDNS Pod', sublabel: '10.244.4.2', containers: 0, role: 'network' });
     const corednsRect = corednsShell.querySelector('.scheme-pod-rect');
     if (corednsRect) corednsRect.style.fill = 'rgba(255, 255, 255, 0.03)';
     const coredns = g({});
     coredns.appendChild(corednsShell);
-    const pCache = box({ x: 500, y: 157, w: 260, h: 50, label: 'Cache', sublabel: 'answers within TTL', role: 'network' });
-    const pK8s   = box({ x: 500, y: 235, w: 260, h: 50, label: 'Kubernetes', sublabel: 'watches the Api', role: 'network' });
-    const pFwd   = box({ x: 500, y: 313, w: 260, h: 50, label: 'Forward', sublabel: 'upstream resolver', role: 'network' });
+    const pCache = box({ x: PLUGIN_X, y: PLUGIN_Y[0], w: PLUGIN_W, h: PLUGIN_H, label: 'Cache', sublabel: 'answers within TTL', role: 'network' });
+    const pK8s   = box({ x: PLUGIN_X, y: PLUGIN_Y[1], w: PLUGIN_W, h: PLUGIN_H, label: 'Kubernetes', sublabel: 'watches the API', role: 'network' });
+    const pFwd   = box({ x: PLUGIN_X, y: PLUGIN_Y[2], w: PLUGIN_W, h: PLUGIN_H, label: 'Forward', sublabel: 'upstream resolver', role: 'network' });
 
     // Forward query lane and its return answer lane, offset around FLOW_Y so the round trip is a loop.
-    const qWire = arrow({ x1: CLIENT_EDGE, y1: FWD_Y, x2: DNS_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });
-    const aWire = arrow({ x1: DNS_LEFT, y1: RET_Y, x2: CLIENT_EDGE, y2: RET_Y, dashed: true, dim: true, role: 'network' });
-    const fwdLabel = text({ class: 'scheme-label code dim', x: 385, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const retLabel = text({ class: 'scheme-label code dim', x: 385, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    // Internal hop: cache bottom (207) -> kubernetes top (235).
-    const cWire = arrow({ x1: 630, y1: 207, x2: 630, y2: 235, dashed: true, dim: true, role: 'network' });
+    const qWire = arrow({ x1: QUERY[0][0], y1: QUERY[0][1], x2: QUERY[1][0], y2: QUERY[1][1], dashed: true, dim: true, role: 'network' });
+    const aWire = arrow({ x1: ANSWER[0][0], y1: ANSWER[0][1], x2: ANSWER[1][0], y2: ANSWER[1][1], dashed: true, dim: true, role: 'network' });
+    const fwdLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + DNS_LEFT) / 2, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const retLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + DNS_LEFT) / 2, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    // Internal hop: cache bottom -> kubernetes top, on the Pod spine.
+    const cWire = arrow({ x1: CHAIN_HOP[0][0], y1: CHAIN_HOP[0][1], x2: CHAIN_HOP[1][0], y2: CHAIN_HOP[1][1], dashed: true, dim: true, role: 'network' });
 
-    // Query and answer readouts stacked directly one above the other (4px seam), centered on FLOW_Y.
-    const queryChip = valChip({ x: 830, y: 224, w: 300, h: 34, name: 'query', value: '-', role: 'network' });
-    const ansChip   = valChip({ x: 830, y: 262, w: 300, h: 34, name: 'answer A', value: '-', role: 'network' });
+    // Query and answer readouts stacked directly one above the other (4px seam), above the Pod that
+    // produces them and flush with its right edge.
+    const queryChip = valChip({ x: OUT_X, y: OUT_Y, w: OUT_W, h: OUT_H, name: 'query', value: '-', role: 'network' });
+    const ansChip   = valChip({ x: OUT_X, y: OUT_Y + OUT_H + OUT_SEAM, w: OUT_W, h: OUT_H, name: 'answer A', value: '-', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -121,7 +149,9 @@ const STEPS = [
   },
   {
     id: 'query',
-    duration: 2400,
+    // Motion: pulse beat (800) + the query lane (~1130 over 510 units) + the CoreDNS pulse (900)
+    // ends at ~2830, so the step has to outlast that.
+    duration: 3000,
     narration: 'Because the short name web has fewer than 5 dots, the resolver tries the search domains first, expanding it to web.default.svc.cluster.local. That query is sent to the kube-dns ClusterIP, which is itself a Service, so it is load balanced to one of the CoreDNS Pods.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -138,23 +168,23 @@ const STEPS = [
       // Up-arrow: client pulses first, the query departs the forward lane at BEAT.afterPulse and
       // CoreDNS pulses on arrival.
       pulsePod(s.refs.client, ctx, 0);
-      const q = segmentPacket(s, ctx, { from: [CLIENT_EDGE, FWD_Y], to: [DNS_LEFT, FWD_Y], delay: BEAT.afterPulse, role: 'network' });
+      const q = segmentPacket(s, ctx, { from: QUERY[0], to: QUERY[1], delay: BEAT.afterPulse, role: 'network' });
       pulsePod(s.refs.coredns, ctx, q.arrivalMs);
     },
   },
   {
     id: 'plugin-chain',
     duration: 2500,
-    narration: 'Inside CoreDNS the request runs down the plugin chain, whose order is compiled into the binary rather than taken from the Corefile. The cache plugin checks first and misses on a fresh name, so it passes to the kubernetes plugin, which watches Services and Endpoints on the Api and answers the cluster zone from that local cache, never querying the Api per lookup. Names outside the cluster zone would instead fall through to forward.',
+    narration: 'Inside CoreDNS the request runs down the plugin chain, whose order is compiled into the binary rather than taken from the Corefile. The cache plugin checks first and misses on a fresh name, so it passes to the kubernetes plugin, which watches Services and EndpointSlices on the API and answers the cluster zone from that local cache, never querying the API per lookup. Names outside the cluster zone would instead fall through to forward.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       s.refs.pCache.classList.add('highlight');
-      s.refs.pK8s.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.pK8s.classList.add('highlight'); return; }
       // The request falls from cache to the kubernetes plugin: a clean hop between the two boxes.
-      segmentPacket(s, ctx, { from: [630, 207], to: [630, 235], role: 'network' });
+      const pkt = segmentPacket(s, ctx, { from: CHAIN_HOP[0], to: CHAIN_HOP[1], role: 'network' });
+      lightBoxAt(s.refs.pK8s, ctx, pkt.arrivalMs);
     },
   },
   {
@@ -174,7 +204,7 @@ const STEPS = [
       setVal(s.refs.ansChip, '10.96.0.20');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
       // Down-arrow: the answer travels back along the return lane and the client pulses on arrival.
-      const a = segmentPacket(s, ctx, { from: [DNS_LEFT, RET_Y], to: [CLIENT_EDGE, RET_Y], role: 'network' });
+      const a = segmentPacket(s, ctx, { from: ANSWER[0], to: ANSWER[1], role: 'network' });
       pulsePod(s.refs.client, ctx, a.arrivalMs);
     },
   },

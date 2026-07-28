@@ -4,11 +4,14 @@ import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clea
 // Design notes for this card: scheme/docs/CARDS.md#storage-projected-volume
 
 
-const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;  // 330..970, flush over both columns
+const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;  // 330..970, over the projected directory
 const POD_BOTTOM = POD_Y + POD_H;                         // 176
+const POD_CX = POD_X + POD_W / 2;                         // 650
 
-const SRC_X = 330, SRC_W = 220, SRC_RIGHT = SRC_X + SRC_W; // 330..550, left source column
-const SRC_CX = SRC_X + SRC_W / 2;                          // 440, the metadata drop lane
+// The source objects are not part of the Pod, so the column sits out to its left rather than under
+// it. That is also what puts the low content on the canvas centre: 230..970 straddles 600.
+const SRC_X = 230, SRC_W = 220, SRC_RIGHT = SRC_X + SRC_W; // 230..450, left source column
+const SRC_CX = SRC_X + SRC_W / 2;                          // 340, the metadata drop lane
 const SRC_H = 54;
 const DOWN_Y = 264, CM_Y = 336, SEC_Y = 408, TOK_Y = 480;  // downwardAPI first: the drop crosses nothing
 const midOf = y => y + SRC_H / 2;                          // 291 / 363 / 435 / 507
@@ -19,13 +22,20 @@ const ROW_X = 660, ROW_W = 280, ROW_H = 44;
 const R_LBL_Y = 269, R_CFG_Y = 341, R_PWD_Y = 413, R_TOK_Y = 485; // row mids == source mids
 
 const CHIPS_Y = 594;
+const CHIP_W = 320, CHIP_GAP = 20, CHIP_COUNT = 3;
+const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);   // 1000
+const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) => 600 - CHIPS_W / 2 + i * (CHIP_W + CHIP_GAP));
 
 const W_DOWN = [[SRC_RIGHT, midOf(DOWN_Y)], [ROW_X, midOf(DOWN_Y)]];
 const W_CM   = [[SRC_RIGHT, midOf(CM_Y)],   [ROW_X, midOf(CM_Y)]];
 const W_SEC  = [[SRC_RIGHT, midOf(SEC_Y)],  [ROW_X, midOf(SEC_Y)]];
 const W_TOK  = [[SRC_RIGHT, midOf(TOK_Y)],  [ROW_X, midOf(TOK_Y)]];
-const W_POD_META = [[SRC_CX, POD_BOTTOM], [SRC_CX, DOWN_Y]];
-const W_READ = [[DIR_CX, DIR_Y], [DIR_CX, POD_BOTTOM]];
+// Both Pod lanes leave its bottom edge as a mirrored pair either side of the Pod centre and then
+// step out to the column they address, rather than landing out at the Pod corners.
+const POD_LANE = 100;
+const META_ELBOW_Y = 232, READ_ELBOW_Y = 200;   // the metadata elbow clears the panel floor (181)
+const W_POD_META = [[POD_CX - POD_LANE, POD_BOTTOM], [POD_CX - POD_LANE, META_ELBOW_Y], [SRC_CX, META_ELBOW_Y], [SRC_CX, DOWN_Y]];
+const W_READ = [[DIR_CX, DIR_Y], [DIR_CX, READ_ELBOW_Y], [POD_CX + POD_LANE, READ_ELBOW_Y], [POD_CX + POD_LANE, POD_BOTTOM]];
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
@@ -34,7 +44,7 @@ function podBlock({ x, y, w, h, label, sublabel }) {
   const shell = pod({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   const shellRect = shell.querySelector('.scheme-pod-rect');
   if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
-  const innerBox = box({ x: x + (w - 260) / 2, y: y + 34, w: 260, h: 56, label: 'App', sublabel: 'reads /var/run/secrets', role: 'storage' });
+  const innerBox = box({ x: x + (w - 260) / 2, y: y + 34, w: 260, h: 56, label: 'app', sublabel: 'reads /var/run/secrets', role: 'storage' });
   const group = g({});
   group.appendChild(shell);
   group.appendChild(innerBox);
@@ -55,7 +65,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Projected volumes: one directory is assembled from several sources at once, a ConfigMap, a Secret, the downwardAPI carrying Pod metadata, and a serviceAccountToken. The token source is short-lived and audience-bound, and kubelet rotates it in place before it expires, unlike the old forever-valid Secret-based token.',
+      'aria-label': 'Projected volumes: one directory is assembled from several sources at once, a ConfigMap, a Secret, the downwardAPI carrying Pod metadata, and a serviceAccountToken. The token source is short-lived and audience-bound, and Kubelet rotates it in place before it expires, unlike the old forever-valid Secret-based token.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -87,11 +97,11 @@ class Scene {
 
     const clockLbl = text({ class: 'scheme-label code dim', x: DIR_CX, y: 580, 'text-anchor': 'middle' }, [' ']);
 
-    // Uniform chip strip: three chips of one size on one 20px pitch, centered under the diagram
-    // (its center is 650, so the 1000px strip runs 150..1150).
-    const srcChip  = valChip({ x: 150, y: CHIPS_Y, w: 320, h: 34, name: 'sources', value: '4 into one dir', role: 'storage' });
-    const tokChip  = valChip({ x: 490, y: CHIPS_Y, w: 320, h: 34, name: 'SA token', value: 'audience-bound', role: 'storage' });
-    const expChip  = valChip({ x: 830, y: CHIPS_Y, w: 320, h: 34, name: 'expiry', value: 'short-lived', role: 'storage' });
+    // Uniform chip strip: three chips of one size on one 20 unit pitch, centred on the canvas, so the
+    // 1000 unit strip runs 100..1100.
+    const srcChip  = valChip({ x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'sources', value: '4 into one dir', role: 'storage' });
+    const tokChip  = valChip({ x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'SA token', value: 'audience-bound', role: 'storage' });
+    const expChip  = valChip({ x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'expiry', value: 'short-lived', role: 'storage' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -132,7 +142,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A projected volume presents several sources as one directory. Under /var/run/secrets the app sees a handful of ordinary files, but each one is filled from a different Kubernetes source, assembled by kubelet into a single mount.',
+    narration: 'A projected volume presents several sources as one directory. Under /var/run/secrets the app sees a handful of ordinary files, but each one is filled from a different Kubernetes source, assembled by Kubelet into a single mount.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -143,7 +153,7 @@ const STEPS = [
   {
     id: 'assemble',
     duration: 2800,
-    narration: 'Four sources feed this one directory at once: a ConfigMap, a Secret, the downwardAPI and a serviceAccountToken. kubelet gathers them and lays each out as a file, so the app opens files and never has to call the API for any of it.',
+    narration: 'Four sources feed this one directory at once: a ConfigMap, a Secret, the downwardAPI and a serviceAccountToken. Kubelet gathers them and lays each out as a file, so the app opens files and never has to call the API for any of it.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -172,6 +182,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { src: 'ConfigMap + Secret', tok: 'audience-bound', exp: 'short-lived' });
+      s.refs.srcChip.classList.add('highlight');
       s.refs.srcCM.classList.add('highlight');
       s.refs.srcSec.classList.add('highlight');
       if (ctx.reduced) { s.refs.rowCfg.classList.add('highlight'); s.refs.rowPwd.classList.add('highlight'); return; }
@@ -186,12 +197,13 @@ const STEPS = [
   {
     id: 'downward',
     duration: 3400,
-    narration: 'The downwardAPI projects facts about the Pod itself. Its labels, its name, its namespace, even a resource limit, are written out as files, computed by kubelet from the Pod object rather than fetched from anywhere.',
+    narration: 'The downwardAPI projects facts about the Pod itself. Its labels, its name, its namespace, even a resource limit, are written out as files, computed by Kubelet from the Pod object rather than fetched from anywhere.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { src: 'downwardAPI: Pod metadata', tok: 'audience-bound', exp: 'short-lived' });
+      s.refs.srcChip.classList.add('highlight');
       s.refs.srcDown.classList.add('highlight');
       if (ctx.reduced) { s.refs.rowLbl.classList.add('highlight'); return; }
       // The Pod is the source of its own metadata, so the Pod pulses first, then its metadata flows
@@ -212,6 +224,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { src: '4 into one dir', tok: 'bound to audience', exp: 'short-lived' });
+      s.refs.tokChip.classList.add('highlight');
       s.refs.srcTok.classList.add('highlight');
       if (ctx.reduced) { s.refs.rowTok.classList.add('highlight'); return; }
       const t = routePacket(s, ctx, W_TOK, { role: 'storage' });
@@ -222,17 +235,19 @@ const STEPS = [
   {
     id: 'rotate',
     duration: 2800,
-    narration: 'Because the token is short-lived, kubelet refreshes it in place well before it expires, rewriting the same token file with a new one. The app just keeps reading the file and always finds a valid token, with no restart.',
+    narration: 'Because the token is short-lived, Kubelet refreshes it in place well before it expires, rewriting the same token file with a new one. The app just keeps reading the file and always finds a valid token, with no restart.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { src: '4 into one dir', tok: 'rotated in place', exp: 'refreshed before expiry' });
+      s.refs.expChip.classList.add('highlight');
+      s.refs.tokChip.classList.add('highlight');
       s.refs.srcTok.classList.add('highlight');
-      s.refs.rowTok.classList.add('highlight');
       setWire(s, 'clock', 'kubelet rewrites token before it expires');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.rowTok.classList.add('highlight'); return; }
       const t = routePacket(s, ctx, W_TOK, { role: 'storage' });
+      lightBoxAt(s.refs.rowTok, ctx, t.arrivalMs);
       ridingLabel(s, ctx, 'fresh token', W_TOK);
     },
   },
@@ -245,6 +260,8 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { src: '4 into one dir', tok: 'rotated, scoped', exp: 'legacy token never expired' });
+      s.refs.expChip.classList.add('highlight');
+      s.refs.tokChip.classList.add('highlight');
       s.refs.rowTok.classList.add('highlight');
       if (ctx.reduced) return;
       // The app reads the current, rotated token straight out of the dir.

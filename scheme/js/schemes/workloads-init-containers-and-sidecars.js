@@ -1,7 +1,44 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, flashChips, BEAT } from '../lib/workloads-kit.js';
+import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT, WL } from '../lib/workloads-kit.js';
 
+// Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
+// Panel worst case x<=397, y<=255; a longer narration invalidates that measurement.
+// Design notes for this card: scheme/docs/CARDS.md#workloads-init-containers-and-sidecars
+const PANEL_B = 255;
+const TOP1_X = 420, TOP1_W = 220;
+const TOP_GAP = 60;
+const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
+const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
+const REQ_Y = TOP_CY - WL.LANE_DY, RESP_Y = TOP_CY + WL.LANE_DY;
+const WIRE_X = (TOP1_X + TOP1_W + TOP2_X) / 2;
+const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row, off the spine
+
+const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+const LAD_Y = 160;                                       // 5 rows -> 160..360
+
+// Chips as a column in the left band, which only opens below the panel.
+const CHIP_GAP = 8;
+const CHIPS_TOP = PANEL_B + 20;                          // 275
+const CHIP_X = WL.LADDER_X, CHIP_W = WL.LADDER_W;        // 60..540
+const CHIP_Y = i => CHIPS_TOP + i * (WL.CHIP_H + CHIP_GAP);   // 275..435
+
+const NODE_H = 140, CANVAS_B = 624;
+const NODE_Y = CANVAS_B - NODE_H;                        // 484..624, the frame rests on the floor
+
+// Pod shell and its four containers, solved once so the row stays centred in the Node frame.
+const POD_W = 828, POD_H = 106;
+const POD_X = WL.CX - POD_W / 2;                            // 186..1014, centred on CX
+const POD_Y = NODE_Y + (NODE_H - POD_H) / 2;                // 501..607, centred in the frame
+const C_PAD = 10, C_GAP = 16, C_H = 52;
+const C_W = (POD_W - C_PAD * 2 - C_GAP * 3) / 4;            // 190
+const C_Y = POD_Y + 28;                                     // the family inner-box offset
+
+// The spine steps into the central corridor between the two columns and reaches the Pod itself,
+// not the frame edge above it.
+const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
+const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
+const SPINE = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -18,27 +55,26 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const kubelet = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet', sublabel: 'container orchestrator', role: 'cluster' });
-    const runtime = box({ x: 580, y: 40, w: 220, h: 80, label: 'Runtime', sublabel: 'Containerd · CRI',       role: 'cluster' });
+    const kubelet = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'container orchestrator', role: 'cluster' });
+    const runtime = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'Runtime', sublabel: 'containerd · CRI',       role: 'cluster' });
 
-    // Top-row arrows: Kubelet → Runtime (CRI request) at y=65, Runtime → Kubelet (PLEG event) at y=95.
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    // Wire label centred in the 40px gap below the top row.
-    const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    // Wire label above the top row, so the spine leaving the Kubelet box does not strike it.
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    // State chip column on the right: one chip per container.
-    const waitDbChip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'wait-for-db',    value: 'Waiting', role: 'workloads' });
-    const migrateChip = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'migrate-schema', value: 'Waiting', role: 'workloads' });
-    const sidecarChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'sidecar',        value: 'Waiting', role: 'workloads' });
-    const mainChip    = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'main',           value: 'Waiting', role: 'workloads' });
+    // State chip column in the left band: one chip per container.
+    const waitDbChip  = valChip({ x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'wait-for-db',    value: 'Waiting', role: 'workloads' });
+    const migrateChip = valChip({ x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'migrate-schema', value: 'Waiting', role: 'workloads' });
+    const sidecarChip = valChip({ x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'sidecar',        value: 'Waiting', role: 'workloads' });
+    const mainChip    = valChip({ x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'main',           value: 'Waiting', role: 'workloads' });
     [waitDbChip, migrateChip, sidecarChip, mainChip].forEach(c => root.appendChild(c));
 
-    // Pipeline chain on the left, 5 phases of the container startup.
+    // Pipeline chain on the right, 5 phases of the container startup.
     const chain = chainList({
-      x: 320, y: 220, w: 480, rowH: 32, gap: 10,
+      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
       items: [
         '1. wait-for-db    ·  first init container, must exit 0',
         '2. migrate-schema ·  next init, after #1 succeeds',
@@ -49,16 +85,27 @@ class Scene {
       role: 'cluster',
     });
 
-    const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
+    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    const containerWaitDb   = box({ x: 336, y: 510, w: 195, h: 100, label: 'wait-for-db',    sublabel: 'init container',       role: 'cluster'   });
-    const containerMigrate  = box({ x: 547, y: 510, w: 195, h: 100, label: 'migrate-schema', sublabel: 'init container',       role: 'cluster'   });
-    const containerSidecar  = box({ x: 758, y: 510, w: 195, h: 100, label: 'sidecar',        sublabel: 'restartPolicy=Always', role: 'cluster'   });
-    const containerMain     = box({ x: 969, y: 510, w: 195, h: 100, label: 'main',           sublabel: 'app-server',           role: 'cluster'   });
+    // These four are containers of ONE Pod, so the Pod has to be on the canvas: without a shell
+    // there was nothing for a pulse to belong to.
+    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-7d4', sublabel: ' ', containers: 0, role: 'workloads' });
+    const podShellRect = podShell.querySelector('.scheme-pod-rect');
+    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-    // Connector arrow Kubelet → Node-1, standard left-margin route.
+    const cx = i => POD_X + C_PAD + i * (C_W + C_GAP);
+    const containerWaitDb   = box({ x: cx(0), y: C_Y, w: C_W, h: C_H, label: 'wait-for-db',    sublabel: 'init container',       role: 'cluster'   });
+    const containerMigrate  = box({ x: cx(1), y: C_Y, w: C_W, h: C_H, label: 'migrate-schema', sublabel: 'init container',       role: 'cluster'   });
+    const containerSidecar  = box({ x: cx(2), y: C_Y, w: C_W, h: C_H, label: 'sidecar',        sublabel: 'restartPolicy=Always', role: 'cluster'   });
+    const containerMain     = box({ x: cx(3), y: C_Y, w: C_W, h: C_H, label: 'main',           sublabel: 'app-server',           role: 'cluster'   });
+
+    const podGroup = g({ id: 'podGroup' });
+    podGroup.appendChild(podShell);
+    [containerWaitDb, containerMigrate, containerSidecar, containerMain].forEach(c => podGroup.appendChild(c));
+
+    // Connector from the Kubelet box into the Pod, down the central corridor.
     const connector = pathArrow({
-      points: [[320, 80], [280, 80], [280, 550], [320, 550]],
+      points: SPINE,
       dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
@@ -70,7 +117,7 @@ class Scene {
     // Z-order: chain, node, containers, then top-row blocks last.
     root.appendChild(chain);
     root.appendChild(nodeEl);
-    [containerWaitDb, containerMigrate, containerSidecar, containerMain].forEach(c => root.appendChild(c));
+    root.appendChild(podGroup);
     root.appendChild(runtime);
     root.appendChild(kubelet);
 
@@ -79,7 +126,7 @@ class Scene {
       svg: root,
       kubelet, runtime, chain, nodeEl, connector,
       waitDbChip, migrateChip, sidecarChip, mainChip,
-      containerWaitDb, containerMigrate, containerSidecar, containerMain,
+      podShell, podGroup, containerWaitDb, containerMigrate, containerSidecar, containerMain,
       packetLayer,
       wires: { req: wireReq },
     };
@@ -92,14 +139,14 @@ function clearHL(s) {
   clearHighlights(s,
     ['kubelet','runtime','waitDbChip','migrateChip','sidecarChip','mainChip',
      'containerWaitDb','containerMigrate','containerSidecar','containerMain'],
-    [s.refs.containerWaitDb, s.refs.containerMigrate, s.refs.containerSidecar, s.refs.containerMain]);
+    [s.refs.podGroup]);
 }
 
 const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod spec declares two init containers (wait-for-db, migrate-schema), one native sidecar (an initContainer with restartPolicy=Always, on by default since 1.29 and GA since 1.33) and the main app container. Kubelet has received the spec via SyncPod and is about to run the containers in the order the spec demands. Pod phase stays Pending for the whole bootstrap, while the Kubectl STATUS column moves from Init:0/2 to PodInitializing as the containers progress.',
+    narration: 'A Pod spec declares two init containers (wait-for-db, migrate-schema), one native sidecar (an initContainer with restartPolicy=Always, on by default since 1.29 and GA since 1.33) and the main app container. Kubelet has received the spec via SyncPod and is about to run the containers in the order the spec demands. Pod phase stays Pending for the whole bootstrap, while the kubectl STATUS column moves from Init:0/3 to PodInitializing as the containers progress.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -114,7 +161,7 @@ const STEPS = [
   {
     id: 'wait-for-db',
     duration: 2600,
-    narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: each one must exit with code 0 before the next can start. A non-zero exit keeps the Pod in Init:0/2 with a Kubelet restart-backoff (respecting Pod.spec.restartPolicy).',
+    narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: each one must exit with code 0 before the next can start. A non-zero exit keeps the Pod in Init:0/3 with a Kubelet restart-backoff (respecting Pod.spec.restartPolicy).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -125,26 +172,27 @@ const STEPS = [
       setVal(s.refs.mainChip, 'Waiting');
       setWire(s, 'req', 'CreateContainer · StartContainer · wait-for-db');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.waitDbChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
-      if (ctx.reduced) { s.refs.containerWaitDb.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.containerWaitDb.classList.add('highlight'); s.refs.runtime.classList.add('highlight'); return; }
       // CRI request hits the runtime (top hop), then the create travels down to
       // the node and the container box lights up on arrival.
-      const req = topPacket(s, ctx, { role: 'workloads' });
-      const create = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
-      pulsePod(s.refs.containerWaitDb, ctx, create.arrivalMs);
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
+      const create = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
+      lightBoxAt(s.refs.containerWaitDb, ctx, create.arrivalMs);
     },
   },
   {
     id: 'migrate-schema',
     duration: 3400,
-    narration: 'wait-for-db exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and immediately creates migrate-schema. The same rule applies, it must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
+    narration: 'The wait-for-db container exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and immediately creates migrate-schema. The same rule applies, it must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setVal(s.refs.waitDbChip, 'Completed');
+      s.refs.waitDbChip.classList.add('highlight');
       setVal(s.refs.migrateChip, 'Running');
       setVal(s.refs.sidecarChip, 'Waiting');
       setVal(s.refs.mainChip, 'Waiting');
@@ -156,10 +204,10 @@ const STEPS = [
       if (ctx.reduced) { s.refs.containerMigrate.classList.add('highlight'); return; }
       // PLEG callback Runtime -> Kubelet, then the next CRI request Kubelet -> Runtime,
       // then the create travels down to the node, each hop chained on the previous arrival.
-      const pleg = topPacket(s, ctx, { from: 580, to: 540, y: 95, role: 'workloads' });
-      const req = topPacket(s, ctx, { delay: pleg.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      const create = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
-      pulsePod(s.refs.containerMigrate, ctx, create.arrivalMs);
+      const pleg = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: pleg.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      const create = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
+      lightBoxAt(s.refs.containerMigrate, ctx, create.arrivalMs);
     },
   },
   {
@@ -172,18 +220,19 @@ const STEPS = [
       clearWires(s);
       setVal(s.refs.waitDbChip, 'Completed');
       setVal(s.refs.migrateChip, 'Completed');
+      s.refs.migrateChip.classList.add('highlight');
       setVal(s.refs.sidecarChip, 'Started');
       setVal(s.refs.mainChip, 'Waiting');
       setWire(s, 'req', 'migrate-schema exit 0 · StartContainer · sidecar');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.sidecarChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) { s.refs.containerSidecar.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.containerSidecar.classList.add('highlight'); s.refs.runtime.classList.add('highlight'); return; }
       // CRI request hop, then the sidecar create lands on the node on arrival.
-      const req = topPacket(s, ctx, { role: 'workloads' });
-      const create = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
-      pulsePod(s.refs.containerSidecar, ctx, create.arrivalMs);
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
+      const create = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
+      lightBoxAt(s.refs.containerSidecar, ctx, create.arrivalMs);
     },
   },
   {
@@ -197,23 +246,24 @@ const STEPS = [
       setVal(s.refs.waitDbChip, 'Completed');
       setVal(s.refs.migrateChip, 'Completed');
       setVal(s.refs.sidecarChip, 'Running');
+      s.refs.sidecarChip.classList.add('highlight');
       setVal(s.refs.mainChip, 'Starting');
       setWire(s, 'req', 'sidecar Started · StartContainer · main');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.mainChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) { s.refs.containerMain.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.containerMain.classList.add('highlight'); s.refs.runtime.classList.add('highlight'); return; }
       // CRI request hop, then the main create lands on the node on arrival.
-      const req = topPacket(s, ctx, { role: 'workloads' });
-      const create = routePacket(s, ctx, [[320, 80], [280, 80], [280, 550], [320, 550]], { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
-      pulsePod(s.refs.containerMain, ctx, create.arrivalMs);
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
+      const create = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
+      lightBoxAt(s.refs.containerMain, ctx, create.arrivalMs);
     },
   },
   {
     id: 'running',
     duration: 2000,
-    narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, secret rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination the order reverses: regular containers terminate first, then sidecars, so cleanup paths can still talk through the proxy.',
+    narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination the order reverses: regular containers terminate first, then sidecars, so cleanup paths can still talk through the proxy.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -229,8 +279,8 @@ const STEPS = [
       s.refs.containerMain.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;
-      // Steady parallel run, nothing travels: the two settled state chips flash.
-      flashChips(s, ctx, ['sidecarChip', 'mainChip']);
+      // The Pod is what changed state here, so the Pod is what pulses.
+      pulsePod(s.refs.podGroup, ctx, 0);
     },
   },
 ];

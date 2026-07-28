@@ -1,6 +1,47 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, connectorPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT } from '../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+
+// Layout B of the Workloads canon (WL): chips left, pipeline right, one tap into the surging Pod.
+// Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
+// Design notes for this card: scheme/docs/CARDS.md#workloads-deployment-rollback
+const PANEL_B = 230;
+const TOP1_X = 420, TOP1_W = 220;
+const TOP_GAP = 60;
+const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
+const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
+const REQ_Y = TOP_CY - WL.LANE_DY, RESP_Y = TOP_CY + WL.LANE_DY;
+const WIRE_X = (TOP1_X + TOP1_W + TOP2_X) / 2;
+const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row, off the spine
+
+const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+const LAD_Y = 160;                                       // 6 rows -> 160..402
+
+// Chips as a column in the left band, which only opens below the panel.
+const CHIP_GAP = 8;
+const CHIPS_TOP = PANEL_B + 20;                          // 250
+const CHIP_X = WL.LADDER_X, CHIP_W = WL.LADDER_W;        // 60..540
+const CHIP_Y = i => CHIPS_TOP + i * (WL.CHIP_H + CHIP_GAP);
+
+const NODE_H = 140, CANVAS_B = 624;
+const NODE_Y = CANVAS_B - NODE_H;                        // 484..624, the frame rests on the floor
+const POD_W = 300, POD_H = 106, POD_Y = NODE_Y + 22;     // 506..612
+const POD_PAD = 24;
+const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
+const POD_XS = [0, 1, 2].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / 2));
+const POD_CX = i => POD_XS[i] + POD_W / 2;               // 234 / 600 / 966
+
+// The trunk leaves the first actor box on its own midpoint, steps into the central corridor
+// between the two columns, drops to a bus above the Pod row and taps down into the surging Pod,
+// which is the only Pod any ball on this card is addressed to.
+const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
+const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
+const BUS_Y = NODE_Y - 24;                               // 460, clear of the chip column
+const SPINE = [
+  [TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y],
+  [WL.SPINE_X, BUS_Y], [POD_CX(0), BUS_Y], [POD_CX(0), POD_Y],
+];
+
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -17,45 +58,44 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const controller = box({ x: 320, y: 40, w: 220, h: 80, label: 'Deployment', sublabel: 'owns RS revisions', role: 'cluster' });
-    const apiserver  = box({ x: 580, y: 40, w: 220, h: 80, label: 'Api',  sublabel: 'PATCH .scale + Pod CRUD', role: 'cluster' });
+    const controller = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Deployment', sublabel: 'owns RS revisions', role: 'cluster' });
+    const apiserver  = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API',  sublabel: 'PATCH .scale + Pod CRUD', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: 540, y1: 65, x2: 580, y2: 65, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: 580, y1: 95, x2: 540, y2: 95, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    const wireReq = text({ class: 'scheme-label code dim', x: 560, y: 148, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);
 
-    const rs1Chip  = valChip({ x: 830, y: 40,  w: 350, h: 32, name: 'RS-v1 (rev 1) · Ready', value: '3 / 3', role: 'workloads' });
-    const rs2Chip  = valChip({ x: 830, y: 82,  w: 350, h: 32, name: 'RS-v2 (rev 2) · Ready', value: '0 / 0', role: 'workloads' });
-    const condChip = valChip({ x: 830, y: 124, w: 350, h: 32, name: 'condition', value: 'Available=True', role: 'workloads' });
-    const revChip  = valChip({ x: 830, y: 166, w: 350, h: 32, name: 'rollout',   value: 'stable @ rev 1', role: 'workloads' });
+    const rs1Chip  = valChip({ x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'RS-v1 (rev 1) · Ready', value: '3 / 3', role: 'workloads' });
+    const rs2Chip  = valChip({ x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'RS-v2 (rev 2) · Ready', value: '0 / 0', role: 'workloads' });
+    const condChip = valChip({ x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'condition', value: 'Available=True', role: 'workloads' });
+    const revChip  = valChip({ x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'rollout',   value: 'stable @ rev 1', role: 'workloads' });
     [rs1Chip, rs2Chip, condChip, revChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
-      x: 320, y: 220, w: 480, rowH: 32, gap: 10,
+      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
       items: [
         '1. stable   ·  rev 1, RS-v1 owns 3 Ready Pods',
         '2. rollout  ·  set image v2, RS-v2 surges (rev 2)',
         '3. bad      ·  v2 crashes, readiness never passes',
         '4. stuck    ·  progressDeadline, Progressing=False',
-        '5. undo     ·  rollout undo, RS-v1 up, RS-v2 to 0',
+        '5. undo     ·  rollout undo, RS-v2 to 0, RS-v1 kept',
         '6. restored ·  rev 3 copies rev 1, Available=True',
       ],
       role: 'cluster',
     });
 
-    const nodeEl = node({ x: 320, y: 480, w: 860, h: 140, label: 'Node-1' });
+    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
     const POD_NAMES = ['web-1', 'web-2', 'web-3'];
-    const POD_XS    = [386, 642, 898];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: 497, w: 216, h: 106, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
+      const shell = pod({ x: px, y: POD_Y, w: POD_W, h: POD_H, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
-      const innerBox = box({ x: px + 10, y: 525, w: 196, h: 52, label: 'app', sublabel: 'v1.0', role: 'workloads' });
+      const innerBox = box({ x: px + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'v1.0', role: 'workloads' });
 
       const wrap = g({ id: `pod${i + 1}` });
       wrap.appendChild(shell);
@@ -67,7 +107,7 @@ class Scene {
     const [pod1Box, pod2Box, pod3Box] = podBoxes;
 
     const connector = pathArrow({
-      points: [[320, 80], [280, 80], [280, 550], [320, 550]],
+      points: SPINE,
       dim: true, dashed: true, role: 'cluster',
     });
     root.appendChild(connector);
@@ -129,8 +169,8 @@ const STEPS = [
   },
   {
     id: 'rollout',
-    duration: 2600,
-    narration: 'Kubectl set image deployment/web app=v2.0 PATCHes the Pod template. The new template hash differs, so the Deployment controller creates ReplicaSet RS-v2 as revision 2 and starts the rollout, surging a v2 Pod under the RollingUpdate strategy while the old Pods keep serving.',
+    duration: 3700,
+    narration: 'You run kubectl set image deployment/web app=v2.0, which PATCHes the Pod template. The new template hash differs, so the Deployment controller creates ReplicaSet RS-v2 as revision 2 and starts the rollout, surging a v2 Pod under the RollingUpdate strategy while the old Pods keep serving.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -140,24 +180,25 @@ const STEPS = [
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 1');
       setVal(s.refs.condChip, 'Progressing=True');
+      s.refs.condChip.classList.add('highlight');
       setVal(s.refs.revChip, 'rolling out rev 2');
       setWire(s, 'req', 'PATCH .spec.template · create RS-v2 (rev 2)');
       s.refs.controller.classList.add('highlight');
-      s.refs.apiserver.classList.add('highlight');
       s.refs.rs2Chip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
       // The PATCH hits the Api, then the surge order travels down the
       // connector and the surging Pod pulses on arrival.
-      const req = topPacket(s, ctx, { role: 'workloads' });
-      const surge = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
+      const surge = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, surge.arrivalMs);
     },
   },
   {
     id: 'bad',
-    duration: 2400,
+    duration: 2900,
     narration: 'The v2 Pod is broken. Its readinessProbe never passes, so it churns in CrashLoopBackOff and never reports Ready. Because maxUnavailable kept the old Pods alive, the Service still has healthy v1 backends, but RS-v2 cannot reach its target and the rollout makes no progress.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -169,20 +210,21 @@ const STEPS = [
       setVal(s.refs.rs2Chip, '0 / 1 (crashing)');
       setVal(s.refs.condChip, 'Progressing=True');
       setVal(s.refs.revChip, 'rev 2 never Ready');
+      s.refs.revChip.classList.add('highlight');
       setWire(s, 'req', 'readinessProbe fail · v2 not Ready');
       s.refs.apiserver.classList.add('highlight');
       s.refs.rs2Chip.classList.add('highlight');
       // Pin final opacities: the broken v2 Pod dims, the v1 Pods stay up.
-      s.refs.pod1.style.opacity = '0.4';
+      s.refs.pod1.style.opacity = String(OPACITY.notready);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
       // The failed status reaches the controller over the connector. The v2 Pod
       // pulses then dims to show it is crash-looping, the v1 Pods are untouched.
-      const status = connectorPacket(s, ctx, { role: 'workloads' });
+      const status = routePacket(s, ctx, SPINE, { role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, status.arrivalMs);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: FADE.out, delay: status.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: FADE.out, delay: status.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -197,13 +239,14 @@ const STEPS = [
       setVersions(s, 'v2.0 · stuck', 'v1.0', 'v1.0');
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 1 stuck');
+      s.refs.rs2Chip.classList.add('highlight');
       setVal(s.refs.condChip, 'Progressing=False');
       setVal(s.refs.revChip, 'ProgressDeadlineExceeded');
       setWire(s, 'req', 'progressDeadlineSeconds elapsed · rollout halts');
       s.refs.condChip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
       // The broken v2 Pod stays dim, the v1 Pods keep serving.
-      s.refs.pod1.style.opacity = '0.4';
+      s.refs.pod1.style.opacity = String(OPACITY.notready);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
@@ -213,8 +256,8 @@ const STEPS = [
   },
   {
     id: 'undo',
-    duration: 2600,
-    narration: 'Kubectl rollout undo deployment/web rolls back to the previous good revision. The controller scales RS-v1 back up to three and scales RS-v2 down to zero. The broken v2 Pod is deleted and the v1 Pod is recreated in its slot, so all three serving Pods are on v1.0 again.',
+    duration: 3700,
+    narration: 'Running kubectl rollout undo deployment/web rolls back to the previous good revision. The controller scales RS-v2 down to zero, while RS-v1 was never scaled below three and simply keeps serving. The broken v2 Pod is deleted, so all three serving Pods are on v1.0 again.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -223,11 +266,12 @@ const STEPS = [
       setVersions(s, 'v1.0 · restored', 'v1.0', 'v1.0');
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 0');
+      s.refs.rs2Chip.classList.add('highlight');
       setVal(s.refs.condChip, 'Progressing=True');
+      s.refs.condChip.classList.add('highlight');
       setVal(s.refs.revChip, 'undo → rev 1 template');
-      setWire(s, 'req', 'rollout undo · scale RS-v1 up · scale RS-v2 to 0');
+      setWire(s, 'req', 'rollout undo · RS-v2 to 0 · RS-v1 stays 3');
       s.refs.controller.classList.add('highlight');
-      s.refs.apiserver.classList.add('highlight');
       s.refs.rs1Chip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
       // Pin final state: the slot is a healthy v1 Pod again.
@@ -235,19 +279,20 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
-      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
-      const req = topPacket(s, ctx, { role: 'workloads' });
+      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
       // The undo reaches the node. The recreated v1 Pod lifts from the dim broken
       // state back to full opacity and pulses on arrival.
-      const undo = connectorPacket(s, ctx, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      ctx.register(s.refs.pod1.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: FADE.in, delay: undo.arrivalMs, fill: 'both', easing: 'ease-out' }));
+      const undo = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      ctx.register(s.refs.pod1.animate([{ opacity: OPACITY.notready }, { opacity: 1 }], { duration: FADE.in, delay: undo.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod1, ctx, undo.arrivalMs);
     },
   },
   {
     id: 'restored',
     duration: 2300,
-    narration: 'The rollback is itself recorded as a new revision 3 whose template equals revision 1. Undo does not erase revision 2, it stays in history, and revisionHistoryLimit caps how many old ReplicaSets are kept. kubectl rollout history lists all three revisions, and the Deployment reports Available=True again.',
+    narration: 'The rollback is itself recorded as a new revision 3 whose template equals revision 1. Undo does not erase revision 2, it stays in history, and revisionHistoryLimit caps how many old ReplicaSets are kept. Running kubectl rollout history lists all three revisions, and the Deployment reports Available=True again.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -255,7 +300,9 @@ const STEPS = [
       resetPodOpacity(s);
       setVersions(s, 'v1.0', 'v1.0', 'v1.0');
       setVal(s.refs.rs1Chip, '3 / 3 (now rev 3)');
+      s.refs.rs1Chip.classList.add('highlight');
       setVal(s.refs.rs2Chip, '0 / 0 (retained)');
+      s.refs.rs2Chip.classList.add('highlight');
       setVal(s.refs.condChip, 'Available=True');
       setVal(s.refs.revChip, 'restored @ rev 3');
       s.refs.condChip.classList.add('highlight');

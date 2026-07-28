@@ -1,6 +1,6 @@
 # Kubernetes Reference
 
-A fast, searchable web reference for everyone who works with Kubernetes day to day: a command cheat sheet and a library of animated architecture diagrams. No login, no ads, no tracking, no install – open the page and use it.
+A fast, searchable web reference for everyone who works with Kubernetes day to day: a command cheat sheet and a library of animated architecture diagrams. No login, no ads, no tracking, no install, just open the page and use it.
 
 **Live at [kube.how](https://kube.how/)**
 
@@ -74,18 +74,18 @@ Diagrams are hand-built SVG driven by the Web Animations API inside a native `<d
 
 The project is intentionally dependency-free. No framework, no bundler, no npm at runtime.
 
-- **HTML / CSS / JavaScript** – plain ES modules loaded directly by the browser, no build step
-- **SVG + Web Animations API** – all diagram motion, no animation library
-- **Google Fonts** – Space Grotesk for the UI, JetBrains Mono for commands
-- **nginx** – web server inside the Docker image, with gzip, security headers, and static asset caching
-- **GitHub Actions** – automatic deployment to GitHub Pages on every push to `main`, plus a tagged release artifact
-- **GitHub Pages + Cloudflare** – hosting with the custom domain `kube.how`, full SSL, and edge caching
+- **HTML / CSS / JavaScript**: plain ES modules loaded directly by the browser, no build step
+- **SVG + Web Animations API**: all diagram motion, no animation library
+- **Google Fonts**: Space Grotesk for the UI, JetBrains Mono for commands
+- **nginx**: web server inside the Docker image, with gzip, security headers, and static asset caching
+- **GitHub Actions**: automatic deployment to GitHub Pages on every push to `main`, plus a tagged release artifact
+- **GitHub Pages + Cloudflare**: hosting with the custom domain `kube.how`, full SSL, and edge caching
 
 Command content lives in `cli/js/data.js` as one structured array. Adding or editing commands means touching that one file only: no templates, no CMS. Scheme metadata lives in `scheme/js/data.js`, and each diagram is its own module under `scheme/js/schemes/`.
 
-Contacts and sponsor information lives in `cli/js/contacts.js`. That file is optional: delete it to ship a build without the Contacts and Sponsor header buttons, the rest of the app is unaffected.
+Contacts and sponsor information lives in `cli/js/contacts.js`, with a second copy in `scheme/js/contacts.js` so each path prefix stays self-contained. Both are optional: delete a copy to ship without the Contacts and Sponsor header buttons on the pages that import it (`cli/js/contacts.js` covers the hub and Commands, `scheme/js/contacts.js` covers Schemes), and the rest of the app is unaffected.
 
-`scheme/tools/` is a Node dev harness (Playwright-based lint, smoke test, and animation-inspection tools). It is dev-only and never shipped.
+`scheme/tools/` is a Node dev harness: source lints, a terminology and casing dictionary, a link checker, a smoke test that plays every step of every diagram, and animation-inspection tools. `npm run gate` chains thirteen of them and has to be green before a change lands. It is dev-only and never shipped.
 
 ---
 
@@ -145,9 +145,9 @@ Command edits go in `cli/js/data.js`: each section is a plain JS object with a `
 
 New diagrams need an entry in `scheme/js/data.js` and a module in `scheme/js/schemes/` exporting `init(root, callbacks)`. The existing cards in a category are the reference: build on that category's kit in `scheme/js/lib/` rather than starting from scratch.
 
-To update contacts or sponsor links, edit `cli/js/contacts.js`. To remove the header buttons entirely, delete that file.
+To update contacts or sponsor links, edit `cli/js/contacts.js` and its `scheme/js/contacts.js` counterpart. To remove the header buttons entirely, delete both.
 
-If you spot a wrong flag, a missing command, or a broken description – pull requests are welcome.
+If you spot a wrong flag, a missing command, or a broken description, pull requests are welcome.
 
 ---
 

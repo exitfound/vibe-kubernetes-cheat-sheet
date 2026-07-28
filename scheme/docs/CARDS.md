@@ -21,26 +21,102 @@ A second pass added the `### poster` subsections: the `POSTERS` map in `js/poste
 card id, so each poster note sits under the card it draws. That moved 59 blocks, 459 lines. The
 non-card scheme sources (catalog, kits, CSS) are in the sister file `INTERNALS.md`.
 
+**READ THIS BEFORE TRUSTING A NOTE BELOW.** (Deliberately not a `##` heading: every `## ` in this
+file is a card id, and tools parse it that way.)
+
+**A note is a record of what was true when someone wrote it, not a live description of the code.**
+Nothing verifies these entries, so check two things before you act on one.
+
+1. **The narration safe-zone `x<=380, y<=300` was never a measurement, and no note below states it
+   as fact any more.** Measured over 1600 / 1440 / 1280 / 1100, the panel's right edge is `x<=397`
+   catalog-wide, and its BOTTOM is per card, from 171 to 504, changing with viewport width
+   NON-monotonically. A note that justifies a placement by "clears y=300" proves nothing. On
+   2026-07-27 the blanket appeared in 17 notes: 13 derived a placement from it and were corrected,
+   and 4 named it and then gave their own per-viewport measurement. **Those 4 are the pattern to
+   copy** (`storage-csi-architecture`, `storage-csi-attach-mount`, `storage-dynamic-provisioning`,
+   `storage-pv-lifecycle-phases`). Re-measure with `node check-geometry.mjs --rules=occluded`, and
+   read "The narration panel is measured per card" in `scheme/CLAUDE.md`.
+
+   One correction there is worth knowing about because it is not cosmetic: `storage-volume-expansion`
+   argued that its Kubelet at x=130 was safe because y=396 cleared the blanket `y<=300`. Since the
+   real bottom is per card and reaches 504, that block is only safe while THIS card's panel stays
+   above 396, so lengthening its narration can occlude it. The note now says so.
+2. **A stale anchor means a stale note, so anchors are kept live.** Each entry is anchored by the
+   line of code that followed it, so a note can be put back beside its code. On 2026-07-27, 62 of
+   557 anchors had gone stale, almost all in cards the R5 relayout touched, and all 62 were resolved:
+   43 re-anchored, 8 turned into `### opacity phases` topics after R4 replaced their constant with
+   `OPACITY.*`, 10 stripped of an anchor that matched several identical lines, 1 deleted outright
+   because the behaviour it described was removed. **Every anchor in this file now matches a real
+   line.** A dead anchor never meant a worthless note: most carried reasoning (why a lane has no
+   arrowhead, why an absent object is dimmed rather than hidden) that outlived its coordinates.
+
+Two shapes here deliberately carry no anchor, and both are honest about it: `### opacity phases`,
+whose constant no longer exists, and `### note (anchor dropped: ...)`, whose target line appears
+more than once in the card so no anchor can name it.
+
+The reverse case has no detector at all: a note whose anchor still matches while its prose went
+stale. Only reading catches those, and 17 of them are named in point 1.
 
 ---
 
+## cluster-admission-webhooks
+
+### layout
+
+Written 2026-07-27, when a check found this card had no design record at all. The card was never
+part of an R5 relayout because it already reported zero on all six geometry rules, which is exactly
+why the record was missing: nothing forced anyone to write it down.
+
+The shape is the L read correctly. The narration panel owns the top-left corner, so the API row
+starts at `API_X = 420` and the request from `kubectl` cannot come in from the left at that height.
+Instead `kubectl` sits in the freed BOTTOM-left at `60..300 x 300..380` and its request climbs a
+riser at `RISER_X = 412` (15 units clear of the panel edge at 397) before turning into the API's left
+face. That is the storage grammar borrowed into a cluster card, and it is what lets the content still
+span `CONTENT_L..CONTENT_R` and centre on `CX = 600` without anything being stretched to make it.
+
+| constant | value | derived from |
+|---|---|---|
+| `CONTENT_L` / `CONTENT_R` | 60 / 1140 | the shared content band, `M = 60` off each edge |
+| `CX` | 600 | `(CONTENT_L + CONTENT_R) / 2`, not a chosen number |
+| `API_X` | 420 | first multiple of 20 clear of the panel's measured right edge (397) |
+| `RISER_X` | 412 | 15 clear of the panel, 8 left of the API face it feeds |
+| `ETCD_X` | 1000 | `CONTENT_R - ETCD_W`, so the row ends flush with the band |
+| `LADDER_X` / `LADDER_W` | 420 / 400 | the pipeline hangs under the API and inherits its width, so the six admission stages read as belonging to it |
+| `CHIP_W` | 530 | `(CONTENT_R - CONTENT_L - CHIP_GAP) / 2`, two chips spanning the band, so the strip centres on CX by construction |
+
+**The header comment understates the panel and is left as it stands.** It records
+`x<=397, y<=195` measured over 1600/1440/1280/1100, and the code then reserves `PANEL_B = 215`. The
+real worst case over the viewport set `check-geometry` actually judges against
+(1600x1000, 1280x860, 1100x800) is **205**. The card is safe either way, because the 215 it reserves
+is above the true 205 and every block clears it, but the two numbers in the file disagree with each
+other and neither is the measured one. See the note in `scheme/CLAUDE.md` on measuring the panel per
+card and never on one viewport: the widths-only sampling that produced 195 is the same failure that
+put three storage cards' blocks under their own panels.
+
+**Why the chips are two across and not four.** The longest value on this card is
+`{cpu=100m, runAsNonRoot=true}` on the `Pod object` chip. At 530 it clears its name comfortably; at
+the four-across width of 258 that the 2026-07-27 relayout used elsewhere it would overlap, which is
+the defect `check-chipfit` was written for. Two across is the floor for this card, not a preference.
+
 ## cluster-api-structure
 
-### before `const client = box({ x: 220, y: 60, w: 200, h: 80, label: 'Client', sublabel: 'client-go controller', role: 'cl`
+### layout (R5-a, 2026-07-27)
 
 ```
-Top row: Client → Api → ETCD, Api centred on the x=600 spine with even ~70px gaps and the
-full width used (Scheduler-card layout). Client sits left and may slip under the
-narration panel, exactly as the Scheduler block does.
+The two ETCD lanes used to drop at ETCD_CX +/- 12 from the top row, which ran both risers
+straight down through all three state chips. They now leave the API on its right face, run down
+the corridor between the Informer column and the chip column (RISER_OUT_X 764, RISER_BACK_X 740,
+out to the RIGHT of back so the two never cross) and enter ETCD on its LEFT face at
+ETCD_CY -/+ 12. The watch wire label moved to the left of the watch arrow (anchor end at x=580)
+to clear that corridor. Chips stay at 840..1140: the chip strip pools with the GVR ladder at
+60..360 and the event slots, and moving the column left is what breaks CENTRE.
 ```
 
-### before `const rvChip    = valChip({ x: 800, y: 217, w: 240, h: 32, name: 'resourceVersion', value: '—' });`
+The 5 findings check-chipfit reported here were all FALSE: `eventSlot` draws two STACKED texts
+(type over sub-line), not a name/value pair. `check-chipfit.mjs` now skips chips whose two texts
+sit on different baselines.
 
-```
-State chips, right of the Informer and clear of the watch-stream wire label (which runs
-out to x=778). Same 32px block height and 38px pitch as the GVR rows on the left, and the
-stack (3·38−6 = 108 tall) is vertically centred on the Informer's midpoint (cy=271).
-```
+---
 
 ### before `const gvr = chainList({`
 
@@ -52,7 +128,7 @@ Informer exactly like the 3 chips — rows at y=217/255/293, midpoint cy=271. Th
 the Informer's left edge (mirror of the chips' 110px off its right edge).
 ```
 
-### before `const streamLabel = text({ class: 'scheme-label dim code', x: 600, y: 536, 'text-anchor': 'middle' }, ['watch `
+### before `const streamLabel = text({ class: 'scheme-label dim code', x: CX, y: STREAM_LABEL_Y, 'text-anchor': 'middle' }, ['watch event stream (resourceVersion grows)']);`
 
 ```
 Bottom: watch event stream timeline, centred under the spine. The label is centred on
@@ -60,17 +136,7 @@ cx=600 — the midpoint of the four slots (290..910) and the Indexer above them.
 hidden until the ADDED slots appear and tracks their visibility from then on.
 ```
 
-### before `function pulseSlot(slot, ctx, delay = 0) {`
-
-```
-Pulse a freshly-arrived event slot once, the way the postStart/preStop card pulses a pod
-(scheme-kit pulsePodWithTint, NON-persist): the outline brightens from its steady highlight
-colour up to the bright tint and eases straight back, plus a one-shot brightness flash over the
-whole block. On finish the inline overrides are dropped so the slot simply rests on its default
-.highlight again — the pulse fires once and is gone, no lingering over-bright state.
-```
-
-### before `const read    = segmentPacket(s, ctx, { from: [780, 115], to: [710, 115] });`
+### before `const read    = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });`
 
 ```
 The LIST result takes the same downward journey the watch event does: ETCD -> Api (the
@@ -98,7 +164,20 @@ flicker), inline 1 is the cancel/reduced final.
 
 ## cluster-apply-flow
 
-### before `const client = box({ x: 270, y: 80, w: 130, h: 80, label: 'Kubectl',   role: 'cluster' });`
+### layout (R5-a, 2026-07-27)
+
+```
+The four top-row lanes were still drawn from the pre-relayout literals (400..490 and 710..900 at
+y=110/130), so the kubectl lane sat inside the kubectl block and the ETCD lane inside the API
+block, while the balls flew POST / POST_ACK / PERSIST / PERSIST_ACK (550..610, 830..950) over
+blank canvas. All four are now drawn with pathArrow from those same arrays, and the Kubelet-to-Pod
+arrow from START. The two long top wire labels moved above the row (WIRE_TOP_Y = TOP_Y - 20):
+their gaps are 60 and 120 units wide and the strings are three times that.
+```
+
+---
+
+### before `const client = box({ x: KCTL_X, y: TOP_Y, w: KCTL_W, h: TOP_H, label: 'kubectl',   role: 'cluster' });`
 
 ```
 Top row: Kubectl (left) -> Api (centre, x-centre 600) <-> ETCD (top-right). Kubectl is the
@@ -107,7 +186,7 @@ Kubectl<->Api lanes and packets are unchanged. The flanking blocks are pulled in
 Api spine to keep the row compact and symmetric about the centre.
 ```
 
-### before `root.appendChild(pathArrow({ points: [[850, 240], [850, 220], [640, 220], [640, 160]], dim: true, dashed: true`
+### before `root.appendChild(pathArrow({ points: POST,        dim: true, dashed: true, role: 'cluster' }));`
 
 ```
 Scheduler -> Api return lane (the Binding POST). Nested inside-and-below the watch-pickup
@@ -115,7 +194,7 @@ arrow (exits left of its centre entry, lower lane y=220) so the two never cross,
 out/back layout the Control Plane Architecture card uses.
 ```
 
-### before `const wirePost          = text({ class: 'scheme-label code dim', x: 445, y: 68,  'text-anchor': 'middle' }, ['`
+### before `const wirePost          = text({ class: 'scheme-label code dim', x: (KCTL_R + API_X) / 2, y: WIRE_TOP_Y,  'text-anchor': 'middle' }, [' ']);`
 
 ```
 POST is the one long label, so it rides above the top row (y=68, a small gap above the box
@@ -151,7 +230,7 @@ right (doc 0.04 -> box 0.05 -> Pod 0.06 / container 0.10) as the object comes al
 
 ## cluster-architecture
 
-### before `root.appendChild(pathArrow({ points: [[540, 160], [540, 200], [270, 200], [270, 240]], dim: true, dashed: true`
+### before `root.appendChild(pathArrow({ points: TO_CM, dim: true, dashed: true, role: 'cluster' }));`
 
 ```
 ControllerManager + Scheduler each get a parallel arrow PAIR (like the ETCD
@@ -163,7 +242,19 @@ reconcile / Binding write-back out (block -> Api, lower lane).
 
 ## cluster-delete-flow
 
-### before `const etcd = cylinder({ x: 750, y: 50, w: 130, h: 100, label: 'ETCD', role: 'cluster' });`
+### layout (R5-a, 2026-07-27)
+
+```
+Same defect as the sibling Apply Flow card: the four top-row lanes were drawn from stale literals
+(260..390 and 610..750), so one pair floated under the narration panel pointing at nothing and the
+other sat inside the API block, while DELETE / DELETE_ACK / PERSIST / PERSIST_ACK carried the
+balls. All four are drawn from those arrays now, STOP_POD feeds the Kubelet-to-Pod arrow, and the
+delete + persist wire labels moved above the row (WIRE_TOP_Y = TOP_Y - 20).
+```
+
+---
+
+### before `const etcd = cylinder({ x: ETCD_X, y: TOP_Y - 10, w: ETCD_W, h: TOP_H + 20, label: 'ETCD', role: 'cluster' });`
 
 ```
 ETCD narrowed to w=130 (was 140) so the label is not lost in a squat-wide cylinder and the
@@ -171,7 +262,7 @@ two control-plane cards match. Top/height unchanged (y=50, h=100) so its centre 
 with the Api row (y=100) and the top wire labels keep their clearance above the cap.
 ```
 
-### before `root.appendChild(pathArrow({ points: [[740, 240], [740, 220], [540, 220], [540, 140]], dim: true, dashed: true`
+### before `root.appendChild(pathArrow({ points: DELETE,      dim: true, dashed: true, role: 'cluster' }));`
 
 ```
 GarbageCollector DELETEs back up to the Api. Nested inside-and-below the event arrow (exits
@@ -191,9 +282,152 @@ exact inverse of Apply.
 
 ---
 
+## cluster-etcd-raft
+
+### layout
+
+Written 2026-07-27 together with the vertical rebalance. The card was never part of an R5 pass
+because it reported zero on all six geometry rules before and after, which is precisely why nobody
+had looked at it: **`check-geometry` judges the horizontal centre and has no rule for vertical
+balance at all.** The block band ran `y 258..558` in a 640 canvas, so its centre sat at 408 against
+the canvas centre of 320: the drawing was 88 units low, the whole top-right quadrant was blank and
+an 82-unit dead strip ran along the bottom.
+
+The fix moves the band up and lets the replication arc, not the cylinders, carry its top edge.
+
+| constant | value | derived from |
+|---|---|---|
+| `CYL_Y` | 230 | the API is level with the ETCD row and starts at `CONTENT_L`, so `API_Y = CYL_Y + CYL_H/2 - API_H/2` must clear `PANEL_B`. That gives `CYL_Y >= 215`; 230 leaves 15 units under the reserved corner and 25 under the measured panel bottom |
+| `ARC_RISE` | 80 | new named constant replacing an inline `32`. It is what puts something in the previously blank top-right, so the arc reads as a route rather than a decorative notch |
+| `ARC_Y` | 150 | `CYL_Y - ARC_RISE` |
+| everything below | follows | `CYL_CY`, `CYL_BOTTOM`, `ROLE_Y`, `LOG_Y`, `API_Y` and the three state chips are all offsets from `CYL_Y` and moved with it |
+
+Resulting band `150..498`, height 348, centre **324** against the canvas centre 320, margins 150 top
+and 142 bottom.
+
+**Alternatives measured and rejected.**
+
+1. Pure slide-up keeping `ARC_RISE = 32`: band `198..498`, centre 348, still 28 low, and the top-right stays a 198-unit empty strip.
+2. `CYL_Y = 215`, the mathematical minimum: the API's top edge lands exactly on `PANEL_B` with zero clearance. At 1100x800, where the panel is widest, that is one narration line away from an OCCLUDED finding.
+3. Stretching the row gaps to fill the full 640: breaks the only thing tying a role chip and a log chip to their replica. This is one semantic band, so the fix is to centre the band, not to inflate it.
+4. Moving the API into the free bottom-left with an L-lane up into ETCD-1: every cylinder's bottom face is already taken by its role-chip binding line, and the straight API-to-Leader lane is the literal "single point that orders all changes".
+
+**Timing.** `REPLICATE` grew 584 to 680 units (the `32+520+32` legs become `80+520+80`), `routeDur`
+1298 to 1511 ms, the `replicate` step span 1858 to **2071 ms**. That still fitted the 2100 budget,
+but by 29 ms, so `duration` went to 2400 for a beat of headroom. Motion untouched. `API_TO_E1` is
+unchanged at 140 units and stays on the 700 ms floor.
+
+**Left open, needs a go-ahead.** The wire label `write Pod · via Leader` renders about 150 units
+wide with `text-anchor: middle` at `(API_R + CYL_XS[0]) / 2 = 350`, inside a 140-unit gap, so it
+overhangs the API's right border by about 5 units and the ETCD-1 cylinder by about 5. Visible on
+every viewport, worst at 1100. The cheapest correct fix is `CYL_XS = [440, 690, 940]` (inter-cylinder
+gap 60 to 50, right edge still on `CONTENT_R`, content bbox still `60..1140`), which gives the label
+a 160-unit gap. Not applied: it is horizontal geometry and was outside the rebalance.
+
+**Header measurement corrected at the same time**: the card recorded `y <= 220`, the real worst case
+over the viewport set `check-geometry` judges against is **230**.
+
+## cluster-graceful-node-shutdown
+
+### layout (R5-a, 2026-07-27)
+
+```
+Already Layout A (ladder 60..540, chips 620..1140, Node frame full width) and left that way. The one
+change is the lane: a single spine stopped on the Node frame's top edge between Pods, while the step
+that fires it makes two different Pods react. It now drops to a bus at BUS_Y = NODE_Y - 14 and taps
+down into each of the three Pods; all three lanes are drawn, and SIG_LANE(i) feeds both pathArrow and
+routePacket. terminate-normal sends one ball per non-critical Pod (lanes 0 and 1), terminate-critical
+one on lane 2. The frame moved 468 -> 476 so the bus has 14 units of clearance either side.
+terminate-normal 2700 -> 2900, terminate-critical 2600 -> 3000ms.
+```
+
+---
+
+## cluster-kubelet-sync-loop
+
+### layout (R5-a, 2026-07-27)
+
+```
+Untouched apart from the chip column, which was 380 wide against a 500 wide ladder. Widened to the
+category's 480 (60..540). The card is Layout B by shape (API and chips in the left column, ladder
+right) and has none of the three regressions: no chip collision, no lane into empty space, and the
+left band is occupied.
+```
+
+---
+
+## cluster-leader-election
+
+### layout
+
+Written 2026-07-27 together with the vertical rebalance, same story as `cluster-etcd-raft`: zero
+geometry findings throughout, because no rule looks at vertical balance. The band ran `y 50..481`,
+centre 265 against the canvas centre 320, so the drawing sat 55 units high with a 159-unit dead band
+under the field chips and only 50 units above the replica row.
+
+**The card had five independent absolutes** (`ROLE_Y 170`, `CORRIDOR_Y 252`, `LEASE_Y 300`,
+`HOLDER_Y 400`, `FIELD_Y 447`). Each is now derived from `REP_Y` through the gap it already had, so
+the whole stack moves as one and only a single number decides where it sits:
+
+| constant | value | derived from |
+|---|---|---|
+| `CY` | 320 | `640 / 2`, the canvas centre |
+| `BAND_H` | 431 | `FIELD_Y + ROW_H - REP_Y`, the card's own height, unchanged |
+| `REP_Y` | 105 | `Math.round(CY - BAND_H / 2)`. Centred by construction, not by a number anyone liked |
+| `ROLE_Y` | 225 | `REP_BOTTOM + 40` |
+| `LANE_RUN` | 48 | new name for the corridor leg length the card already used twice |
+| `CORRIDOR_Y` | 307 | `ROLE_BOTTOM + LANE_RUN` |
+| `LEASE_Y` | 355 | `CORRIDOR_Y + LANE_RUN` |
+| `HOLDER_Y` | 455 | `LEASE_Y + LEASE_H + 20` |
+| `FIELD_Y` | 502 | `HOLDER_Y + ROW_H + 13` |
+
+Every gap (40 / 48 / 48 / 20 / 13) is the card's existing gap. The only value that changed is
+`REP_Y`, by +55. Band `105..536`, margins 105 top and 104 bottom.
+
+**Alternatives measured and rejected.**
+
+1. Keeping `REP_Y = 50` and stretching the gaps to reach the floor: the corridor legs grow past 48 and the L-shaped CAS pair stops reading as one tight request and response. It also lengthens every route for no compositional gain.
+2. `REP_Y = 110`, a rounder +60: band `110..541`, 5.5 off centre, no advantage over deriving it from `CY` and `BAND_H`.
+3. Moving the three Lease field chips into the free bottom-left as a column: destroys "fields grouped directly under their object", which is the entire bottom half of the card.
+
+**A real defect was found by the rebalance and fixed.** The three CAS packets rode hardcoded centres
+`470 / 700 / 930` while the drawn lanes sit at `REP_CXS = 530 / 780 / 1030`. `anim-dump` before the
+fix put the balls at `t(460,204) t(690,204) t(920,204)` against wires at `520/540`, `770/790`,
+`1020/1040`: **every ball flew 60 to 90 units beside its own dashed lane on three of the five
+steps**, and a stale comment reading `Centres 470 / 700 / 930` said so out loud. The call site is now
+`putPacket(s, ctx, REP_CXS[i])`, so the wire and the ball come from one array, which is the rule this
+project has written down twice.
+
+**Timing.** The vertical move is a pure translation and changes no route length, but the lane fix
+does: mgr-3's corridor leg goes 330 to 430 units (total 426 to 526), `routeDur` 947 to 1169 ms, so
+the `acquire` and `failover` spans went 2554 to **2998 ms**, over their 2700 budget. Both raised to
+3200. Motion untouched.
+
+**Header measurement corrected at the same time**: the card recorded `y <= 195`, the real worst case
+over the viewport set `check-geometry` judges against is **205**.
+
+**`check-arrival` baseline for this card is R2 3**, all three checked by hand and correct behaviour.
+
 ## cluster-node-drain
 
-### before `topPacket(s, ctx);`
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C. Panel measures x<=397, y<=380 here, the tallest in the category: 5 ladder rows (200) plus
+the Node frame (152) plus the chips do not fit under it, so the left column above the frame stays
+empty and the ladder keeps the right column (660..1140). That emptiness is Layout C's known cost.
+Chips went from four across (258, both names overlapped their values) to TWO per row at 532, two
+rows, 548..624. The Node frame moved up to the panel bottom (380..532) to pay for the second row.
+The request wire label moved above the top row (WIRE_Y = TOP_Y - 14): at y=146 it spanned 539..907
+and the spine at x=580 struck through it.
+The eviction lane no longer stops on the frame edge between Pods. EVICT_ROUTE(i) drops the spine to
+a bus at BUS_Y=398 inside the frame and taps down into web-1 or web-2; both lanes are drawn, and
+each step feeds the SAME array to pathArrow and routePacket. evict-A: 3100 -> 3300ms.
+```
+
+---
+
+### note (anchor dropped: `topPacket(s, ctx);` is not unique in the file)
 
 ```
 Listing is a read against Api: only the kubectl <-> apiserver hop
@@ -205,7 +439,26 @@ shown by the chain advancing, not by blinking a Pod the GET never touches).
 
 ## cluster-node-failure
 
-### before `const HEARTBEAT_CONNECTOR = [[500, 480], [500, 468], [790, 468], [790, 150]];`
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C, and the card had to be re-budgeted vertically: six ladder rows (242) were laid out as
+five, so the ladder ran from 190 to 432 and its last row was drawn over the two Node frames. The
+top row dropped from 110 to the family's 80 to buy the space back, which puts the ladder at
+152..394, the frames at 406..538 and the chips at 552..624. Chips went from five across (206, and
+the unreachable taint value alone needs 335) to THREE per row at 350.67, two rows.
+Lanes: the heartbeat used to rise at LEASE_CX straight through all six ladder rows. Both lanes now
+share a two-lane corridor above the frames (EV_JOG_Y 340 outbound, HB_JOG_Y 362 return) and meet
+the top row through GUTTER_X 620 and UNDER_TOP_Y 136, left of the ladder. They land on the Pod's
+top face at POD_A_CX -/+ 12 (a mirrored pair) instead of on the frame edge, and the checked
+enumeration of every segment pair shows no crossing. RESCHED now runs Pod face to Pod face.
+The wire label moved above the row: the heartbeat riser used to strike it. heartbeat 2400 -> 2600,
+evict 2200 -> 2400.
+```
+
+---
+
+### before `const HEARTBEAT_CONNECTOR = [[POD_A_CX + LANE_DX, POD_Y], [POD_A_CX + LANE_DX, HB_JOG_Y], [GUTTER_X, HB_JOG_Y], [GUTTER_X, UNDER_TOP_Y], [LEASE_CX, UNDER_TOP_Y], [LEASE_CX, TOP_BOTTOM]];`
 
 ```
 Shared connectors. Heartbeat: Node-1 top-centre up into the Lease bottom-centre,
@@ -218,9 +471,37 @@ materialises inside Node-2 once the packet lands on the node.
 
 ---
 
+## cluster-node-pressure-eviction
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout B: with a panel bottom of 280 the sum PANEL_B + 20 + chip column (160) + 20 + Node frame (140)
+is 620, so the chips fit in the left column and only the ladder needs the right. Chips left the
+four-across bottom strip (258, --eviction-hard overlapped its own value) for a 480 wide column at
+60..540, and both columns now end together on COL_BOTTOM = 460 with the Node frame at 484..624.
+The lane used to stop on the frame's top edge above the MIDDLE Pod while the Pod that is always
+evicted is the BestEffort one on the left. It now turns at BUS_Y (472, midway between the columns
+and the frame) and lands on POD_CXS[0]. evict: 2500 -> 2700ms.
+```
+
+---
+
 ## cluster-oom-kill
 
-### before `const create = routePacket(s, ctx, NODE_CONNECTOR);`
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C (panel y<=330, so no left column fits above the Node frame). Chips went from four across
+(258) to TWO per row at 532, killing the memory.current / container state overlaps; the frame moved
+to 388..532 to pay for the second row (548..624). The wire label moved above the top row: at y=146
+it spanned 574..877 and the spine at x=580 cut it. NODE_CONNECTOR now ends on POD_Y, the Pod shell
+that actually reacts, instead of on the Node frame edge 20 units above it.
+```
+
+---
+
+### before `const create = routePacket(s, ctx, NODE_CONNECTOR, { role: 'cluster' });`
 
 ```
 Kubelet creates the new container on the node (connector) and rewrites its cgroup
@@ -232,7 +513,18 @@ not chained). The container pulses and re-materialises on arrival.
 
 ## cluster-pod-sandbox-cri
 
-### before `const podShell = pod({ x: 470, y: 482, w: 460, h: 116, label: 'Pod sandbox', sublabel: ' ', containers: 0, cat`
+### layout (R5-a, 2026-07-27)
+
+```
+Already Layout A and left that way. Only the lane changed: it stopped on the Node frame's top edge,
+30 units above and 80 units left of the Pod sandbox it addresses. It now turns at BUS_Y = NODE_Y-16
+(in the gutter between the ladder and the chip column, so it still crosses nothing) and lands on the
+sandbox's top midpoint. Longer route, so sandbox / cni / create / start went 2600 -> 2800ms.
+```
+
+---
+
+### before `const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });`
 
 ```
 The Pod sandbox: shell holds the pause container (created at RunPodSandbox)
@@ -252,6 +544,25 @@ blocks, so the ball reads on its connector and arrival is told by the pulse
 
 ## cluster-scheduler-decision
 
+### layout (R5-a, 2026-07-27)
+
+```
+The Cluster exemplar, rebuilt on Layout A so the rest of the category has a shape to copy: actor row
+40..140 clear of the panel, pipeline ladder in the LEFT column (60..540, was centred at 400..800),
+state chips in the RIGHT column (660..1140 at 480 wide, were 240 wide at 900..1140 with the whole
+left band under the panel empty), candidate Node row and its verdict chips full width at the bottom.
+Chips share the ladder's row rhythm (ROW_H 32, ROW_GAP 12) so the two columns read as one grid.
+API_TO_CHAIN turns at JOG_Y=200, below the measured panel bottom of 181, and lands on the ladder's
+top midpoint.
+CENTRE still passes because the chip strip pools EVERY .scheme-chip: the ladder rows (60..540) and
+the verdict chips (60..1140) keep the strip centred on 600 with the value chips on the right.
+Three packets were still on the coordinates of a much older top row (380..440 and 760..820) and flew
+over blank canvas: they now use SCHED_R / API_X / API_R / ETCD_X, the same numbers as their arrows.
+queue: 2200 -> 2800ms.
+```
+
+---
+
 ### poster
 
 ```
@@ -264,7 +575,7 @@ links but dim, with shorter score bars. The winner reads through its bright box 
 
 ## network-client-ip-preservation
 
-### before `const FLOW_Y = 372;`
+### before `const FLOW_Y = 410;                            // Client top lands at 372, clear of PANEL_B`
 
 ```
 Preserving the client IP (viewBox 1200x640). The card answers one question: the backend Pod sees the
@@ -280,9 +591,22 @@ only lights; value chips never flash; packets stop at block edges.
 GEOMETRY. Every wire and every packet is derived from a block edge, never hand-typed, so a block and
 the ball that rides to it cannot drift apart.
 
-Vertical: one spine, FLOW_Y, low enough that the client block (the only block on the left) clears the
-narration overlay, which really covers x 0..399, y 0..300. The client top edge is FLOW_Y - CLIENT_H/2
-= 334. The header panel is the only thing above y 300 and it lives at x >= 415, so it clears too.
+Vertical: one spine, FLOW_Y, placed low so the client block (the only block on the left) clears the
+narration overlay. The header panel is the only other thing that high, and it lives at x >= 415.
+
+SUPERSEDED NUMBERS. This paragraph was first written against the blanket `x 0..399, y 0..300`, put
+FLOW_Y at 372 and derived a client top of 334. The blanket was never a measurement and is wrong in
+both directions, so those numbers are gone. The card now carries its own measurement instead, and it
+is the only networking card that does:
+
+```js
+const PANEL_B = 355;    // measured worst case over 1600x1000 / 1280x860 / 1100x800
+const FLOW_Y  = 410;    // client top lands at 372, clear of PANEL_B
+```
+
+Beware a name collision inside this card: `PANEL_B` is the narration panel bottom, while
+`PANEL_BOTTOM = 190` is the bottom edge of the drawn header chip. They are unrelated.
+See "The narration panel is measured per card" in `scheme/CLAUDE.md`.
 
 Horizontal: the panel is centred ON THE PROXY, since those headers are what that Pod writes, and the
 ownership line rises straight up from the proxy top centre. A 260-wide panel centred on PROXY_CX 545
@@ -290,7 +614,7 @@ spans 415..675, clear of the overlay with 16 to spare, exactly as in the Ingress
 spans CLIENT_X..POD_RIGHT = 40..1110 and the chip strip spans the same extent 1:1.
 ```
 
-### before `const panelWire = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: `
+### before `const panelWire = relationPath({ points: [[PROXY_CX, PROXY_TOP], [PROXY_CX, PANEL_BOTTOM]], role: 'network', dash: '5 5' });`
 
 ```
 Ownership marker, NOT a traffic path: the proxy is what writes these headers. No packet ever
@@ -298,7 +622,7 @@ travels it, so it is a plain dashed line with NO arrowhead, to read as an associ
 a wire missing its ball.
 ```
 
-### before `const srcChip   = valChip({ x: CLIENT_X, y: CHIP_Y, w: 300, h: 34, name: 'src at backend', value: 'none', cat:`
+### before `const srcChip   = valChip({ x: CHIP_X(0), y: CHIP_Y, w: CHIP_WS[0], h: CHIP_H, name: 'src at backend', value: 'none', role: 'network' });`
 
 ```
 The four chips span the scheme 1:1, from the Client left edge to the backend Pod right edge, with
@@ -342,7 +666,7 @@ and its link drops onto the proxy top edge, and every dash starts and ends on a 
 ```
 CNI plugin invocation (viewBox 1200x640). This is a control-plane handoff, not Pod traffic:
 kubelet -> CRI runtime -> CNI plugin chain, and the allocated IP is wired back into the sandbox
-namespace as eth0. The narration overlay owns the top-left (x<=380, y<=300), so the actor row
+namespace as eth0. The narration overlay owns the top-left corner, so the actor row
 sits just below it at y352.
 
 The CNI plugin is one dashed node container holding a vertical dashed spine that taps each plugin
@@ -370,7 +694,7 @@ enter, so those arrows read as centred on the block (without moving them and gra
 
 ## network-conntrack-nat
 
-### before `const FLOW_Y = 312;     // mid-line, where the per-gap wire label sits between the two lanes`
+### before `const POD_Y = 252, POD_H = 120;                    // both Pod shells stand on one baseline`
 
 ```
 Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. The flow
@@ -380,16 +704,18 @@ outbound packet, the reply lane (REP_Y, arrows point left) carries the return. T
 happens INSIDE the netfilter box, so the ball fades at one edge and re-emerges at the far edge,
 never sliding over it. netfilter is infrastructure: it lights, it never pulses. Only Pods pulse.
 The four state chips sit in one plane under the block each describes: orig dst under the client,
-ct state + reply under netfilter, translated (the backend address) under the server.
+ct state + reply under netfilter, translated (the backend address) under the server. The row spans
+70..1130 and so centres on x=600, which is also why the server Pod ends on 1130 rather than 1110.
 ```
 
-### before `const origChip  = valChip({ x: 70,  y: 530, w: 250, h: 34, name: 'orig dst',   value: '10.96.0.10:80', role: 'n`
+### before `const CHIP_L = CLIENT_X, CHIP_Y = 530, CHIP_H = 34;`
 
 ```
 Chips sit in one plane with the blocks above. The outer two are flush with the pod footprints:
-orig dst left edge = client Pod left edge (70), translated right edge = server Pod right edge
-(1110). ct state + reply stay centred under netfilter (590). orig dst -> client, conntrack
-bookkeeping -> netfilter, translated (the backend address) -> server.
+orig dst left edge = client Pod left edge (CHIP_L, 70), translated right edge = server Pod right
+edge (CHIP_R, 1130). ct state + reply stay centred under netfilter (NF_CX, 590), which is why the
+middle pair is not on the same rhythm as the outer two: they belong to the box above them, not to
+the strip. orig dst -> client, conntrack bookkeeping -> netfilter, translated -> server.
 ```
 
 ### poster
@@ -405,7 +731,7 @@ left on the bottom lane, each with its own packet.
 
 ## network-dns-coredns
 
-### before `const FLOW_Y = 260;                 // shared center of client and CoreDNS (client y175 + h170/2)`
+### before `const CONTENT_L = 70, CONTENT_R = 1130;`
 
 ```
 DNS resolution via CoreDNS (viewBox 1200x640). Standard contract: the client is a shell + inner
@@ -415,22 +741,32 @@ Packets ride the dashed wires edge-to-edge.
 The client and the CoreDNS Pod share one center line (FLOW_Y) so the query lane enters CoreDNS at
 its exact middle. Forward (query) and return (answer) traffic ride SEPARATE lanes offset by
 LANE_DY around that line, so a lookup reads as a loop rather than a retrace.
+
+Layout, rebuilt 2026-07-27 against the MEASURED panel (right <= 397, bottom <= 305, one of the
+deepest in the catalog). The client column used to sit at y 175, which put its whole app box and
+three quarters of its shell under the panel on the narrow viewports. The row now hangs below that
+bottom (FLOW_Y 400, client top 325) and the CoreDNS Pod holds the right edge of the canvas
+(CONTENT_R 1130), so the two blocks centre the content bbox on x=600 without a frame to lean on.
+The query lane is 510 units as a consequence, which is why the query step carries a 3000ms budget.
+resolv.conf hangs under the client and the two readouts stack above CoreDNS, so the chip strip
+spans CONTENT_L..CONTENT_R and centres on 600 as well.
 ```
 
-### before `const corednsShell = pod({ x: 470, y: 120, w: 320, h: 280, label: 'CoreDNS Pod', sublabel: '10.244.4.2', conta`
+### before `const corednsShell = pod({ x: DNS_LEFT, y: DNS_Y, w: DNS_W, h: DNS_H, label: 'CoreDNS Pod', sublabel: '10.24`
 
 ```
-CoreDNS Pod centered on FLOW_Y (y 120 + h 280/2 = 260), so the query lane enters at its middle.
+CoreDNS Pod centered on FLOW_Y (DNS_Y = FLOW_Y - DNS_H/2), so the query lane enters at its middle.
 The shell is wrapped in a `g` (like podBlock) because pulsePod uses querySelectorAll, which only
 matches descendants: pulsing the bare pod element would find its rect but never the .scheme-pod
 itself, so the brightness half of the pulse would silently not fire.
 ```
 
-### before `const pCache = box({ x: 500, y: 157, w: 260, h: 50, label: 'Cache', sublabel: 'answers within TTL', role: 'netw`
+### before `const pCache = box({ x: PLUGIN_X, y: PLUGIN_Y[0], w: PLUGIN_W, h: PLUGIN_H, label: 'Cache', sublabel: 'answ`
 
 ```
 The three plugin boxes are spread wider apart and sit symmetric about FLOW_Y (kubernetes on the
-line, cache above, forward below), leaving equal 37px margins to the pod label and sublabel.
+line, cache above, forward below), leaving equal 37px margins to the pod label and sublabel. Their
+offsets are held relative to the shell top (PLUGIN_Y), so moving the Pod cannot leave them behind.
 Order is the CoreDNS plugin chain order (compiled into the binary, not the Corefile line order).
 ```
 
@@ -458,13 +794,19 @@ only circles left are the three tiny ones separating the address segments.
 
 ## network-dns-ndots
 
-### before `const FLOW_Y = 290;`
+### before `const CONTENT_L = 70, CONTENT_R = 1130;`
 
 ```
 Search domains and ndots (viewBox 1200x640). Everything hangs off one flow line (FLOW_Y): the client
-Pod on the left, CoreDNS close beside it (the lane is deliberately SHORT, this card is about how MANY
-queries are sent, not how far they travel), and the candidate ladder to the right. Content spans
-x 70..1130, so it is centred on the 1200-wide canvas.
+Pod on the left, CoreDNS opposite it on the right, and the candidate ladder in the free top-right band
+above CoreDNS. The two BLOCKS span CONTENT_L..CONTENT_R, which is what centres the content bbox on 600.
+
+The lane used to be deliberately SHORT (190 units, CoreDNS pulled in close), on the argument that the
+card is about how MANY queries are sent rather than how far they travel. Relaying it for R5 traded that
+for the centring: the ladder is chips, so the only things the CENTRE rule can see are the Pod and the
+CoreDNS box, and centring them means putting them on opposite margins. The lane is 380 units now, which
+costs the walk step ~1.2s (9200 -> 10400). The four round trips still read as four identical beats,
+which is the part that carries the lesson.
 
 Forward (query) and return (answer) traffic ride SEPARATE lanes around the line, because the whole
 point of the card is the cost of a ROUND TRIP: a miss is not just a packet out, it is a packet out
@@ -472,11 +814,10 @@ and an NXDOMAIN back, four times over.
 
 The resolv.conf is drawn as its own chips (search + options) under the Pod, exactly as in
 network-dns-coredns, rather than as a box whose sublabel repeats a chip that sits next to it.
-FLOW_Y sits 90px higher than the obvious "safe" value, which centres the content vertically on the
-canvas (ladder top 182, chips bottom 482, midpoint 332 against a canvas midpoint of 320). The blanket
-narration safe-zone (x<=380, y<=300) is a worst-case rule: measured against this card's LONGEST step
-the overlay actually ends at y=143, so the Pod top at 225 still clears it by ~80px. If a narration
-here ever grows by another three lines, re-measure before raising this further.
+The panel was re-measured 2026-07-27 over the three viewports the OCCLUDED rule uses: right <= 397,
+bottom <= 230. The earlier note here read y=143 off ONE viewport, and the Pod top at 225 was clearing
+it by luck rather than by margin. FLOW_Y 400 puts the Pod top at 335, well below the measured bottom,
+and the resolv.conf chips take the space under it. A longer narration invalidates the measurement.
 ```
 
 ### before `const CANDIDATES = ['api.ns.svc.cluster.local', 'api.svc.cluster.local', 'api.cluster.local', 'api'];`
@@ -487,10 +828,11 @@ cluster.local`, so a short name is tried against each in turn and only then as i
 Four candidates, so four round trips per address family.
 ```
 
-### before `const namesChip = valChip({ x: 740, y: FLOW_Y + 160, w: 185, h: 32, name: 'names tried', value: '0', role: 'net`
+### before `const namesChip = valChip({ x: CNT_X1, y: CNT_Y, w: CNT_W, h: RC_H, name: 'names tried', value: '0', role:`
 
 ```
-The live cost readout. It counts NAMES TRIED, not DNS messages: getaddrinfo asks for A and AAAA in
+The live cost readout, under CoreDNS on the right so that the two chip groups (resolv.conf on the
+left, the counters on the right) span the content edge to edge. It counts NAMES TRIED, not DNS messages: getaddrinfo asks for A and AAAA in
 parallel, so each name costs two queries on the wire. Calling this chip `queries` and showing 1 for
 a hit would contradict the walk step, which tells the reader the IPv4 plus IPv6 total doubles.
 The answer is the real DNS rcode, so NOERROR and NXDOMAIN read as the pair they are.
@@ -514,12 +856,13 @@ a search-list walk, where the Pod has just pulsed on the NXDOMAIN landing 300ms 
 pulse on top of it would smear into one long blink rather than read as two beats.
 ```
 
-### before `duration: 9200,`
+### before `duration: 10400,`
 
 ```
-Four full round trips at the house hop speed run ~8.7s, and the last NXDOMAIN pulse rings on until
-~9.1s. The step must outlast its own motion, or auto-advance clips the walk halfway and the card
-silently under-counts the very cost it teaches.
+Four full round trips on the 380 unit lane run ~9.3s, and the last NXDOMAIN pulse rings on until
+~10.2s. The step must outlast its own motion, or auto-advance clips the walk halfway and the card
+silently under-counts the very cost it teaches. The budget was 9200 while the lane was 190 units:
+routeDur is length-based, so the R5 relayout moved it.
 ```
 
 ### poster
@@ -536,26 +879,32 @@ the whole point of ndots, so the poster spends everything on that one shape and 
 
 ## network-dns-records
 
-### before `const FLOW_Y = 380;                       // client + CoreDNS centre line, and the ladder centre`
+### before `const CONTENT_L = 80, CONTENT_R = 1120;`
 
 ```
-Layout zones (viewBox 1200x640): the top-left band (x<=380, y<=300) is reserved for the narration
-overlay, so the flow line sits below it and the FQDN anatomy band is lifted clear above everything.
+Layout, rebuilt 2026-07-27 against the MEASURED panel (right <= 397, bottom <= 330: this card
+carries one of the longest narrations in the category). Read it as an L. Only the record ladder,
+which starts at x=710, may sit beside the panel; everything else hangs below y=330.
 
-Everything hangs off ONE horizontal flow line (FLOW_Y). The client Pod and CoreDNS are centred on
-it, so the query is a single straight hop with no jog, and the four-row record ladder is centred on
-it too: with 4 rows of 54 + 8 gaps the ladder spans 300..540, whose middle is exactly FLOW_Y. So the
-two inner rows sit just above/below the line and the two outer rows mirror them, and the answer fan
-is symmetric about CoreDNS.
+  top right : the four-row record ladder (chips), ROWS_Y 56 down to 296
+  middle    : client Pod -> CoreDNS on FLOW_Y 400, one straight hop with no jog
+  bottom    : the FQDN band, then the question / answers chips
+
+The vertical budget is what forces that order: below the panel there is room for the flow row, one
+64 unit band and the chip strip, but not for a 240 unit ladder as well, so the ladder is the one
+thing that goes up top. The BAND is then the only block that can reach the right margin, which is
+why it is stretched to CONTENT_R: CENTRE measures blocks, the ladder is chips, and CoreDNS has to
+stay in the middle for the fan to work. Content and chip strip both span 80..1120, centre 600.
 
 Each record row is reached by its OWN dashed wire: a trunk out of the CoreDNS right edge, a vertical
 bus at FAN_X, then a horizontal leg entering the row square-on at its left edge (the same fan idiom
-as network-service-clusterip). The four wires share the trunk and diverge at the bus. The answer ball
-rides ANS[i], the exact same array that drew wire i, so a ball is never travelling over blank canvas.
+as network-service-clusterip). The four wires share the trunk and diverge at the bus, climbing to
+the ladder above. The answer ball rides ANS[i], the exact same array that drew wire i, so a ball is
+never travelling over blank canvas.
 Standard contract: only the client Pod pulses, boxes/ladder light via .highlight.
 ```
 
-### before `const SEG_Y = 140;`
+### before `const SEG_Y = 490, SEG_H = 64;`
 
 ```
 The FQDN band is NOT decoration and NOT a one-step cameo: it is the live query name, and it MUTATES
@@ -563,12 +912,14 @@ per step, because the whole point of the card is that a different record kind is
 SRV prefixes the name with _port._proto, a Pod record swaps the service label for the dashed Pod
 address AND swaps the kind from svc to pod, while headless asks the exact same name as A (that is
 the lesson: same name, three answers instead of one). Segments light statically and never flash.
-Band spans 392..858, centred on x=625, which is the centre of the whole lower row (client left edge
-80 to ladder right edge 1170), so it sits square above the three groups below it. It cannot reach
-further left than ~390: at this height it would collide with the narration overlay (x<=380, y<=300).
+Band spans CD_LEFT..CONTENT_R (420..1120), left-aligned with CoreDNS above it and flush with the
+right margin. The four widths keep their old 156:116:76:100 ratio, each sized by its own text, and
+are scaled x1.52 to fill that span. It sits at the BOTTOM now rather than the top: the ladder needed
+the free top-right band, and the band is the only block able to reach the right margin, which is what
+puts the content bbox on x=600.
 ```
 
-### before `const qChip = valChip({ x: 80, y: 560, w: 660, h: 34, name: 'question', value: '-', role: 'network' });`
+### before `const qChip = valChip({ x: CONTENT_L, y: CHIP_Y, w: Q_CHIP_W, h: CHIP_H, name: 'question', value: '-', ro`
 
 ```
 The two readouts are the DNS exchange itself, and neither repeats what the band or ladder says:
@@ -604,11 +955,15 @@ and the poster only has to say what the card is ABOUT.
 
 ```
 Layout zones (viewBox 1200x640): the narration overlay is a fixed panel over the top-left
-(about x<=250, y<=152). The dual-stack config band sits below it (y=200) and now spans only the
-Service..Pod half (480..1080), so it no longer reaches over the client Pod on the left. The
-client / Service / Pod web row sits lower still (y=350). The config band drops into BOTH the
-Service (its ClusterIP) and the Pod (its address). The bottom info chips align under the band:
-the two ClusterIP chips on one row, the ipFamilyPolicy chip stretched full-width on a row below.
+(about x<=250, y<=152, worst case over the viewports x<=397, y<=230). The dual-stack config band
+sits below it (y=136) and spans only the Service..Pod half (480..1080), so it no longer reaches over
+the client Pod on the left. The client / Service / Pod web row sits lower still (ROW_Y 286). The
+config band drops into BOTH the Service (its ClusterIP) and the Pod (its address), as a MIRRORED
+PAIR about the band centre (CONFIG_CX +/- TAP_DX) rather than one tap per target centre: two lanes
+leaving one face at mirrored offsets read as a deliberate pair, and each still lands 15 units off
+its target midpoint, which is invisible on a 240 and a 300 wide face. The bottom info chips span the
+whole row instead of the band (CLIENT_X..ROW_RIGHT, 120..1080), so the strip centres on x=600 like
+the blocks above it: the two ClusterIP chips on one row, ipFamilyPolicy stretched below them.
 Dual-stack means two parallel address families: the Pod gains a second IP, the Service gains a
 second ClusterIP, the client picks a family at connect time.
 Standard contract: only Pods pulse, boxes light via .highlight; the config band feeds the Pod and
@@ -624,7 +979,7 @@ content stays horizontally centred (client + Pod symmetric about x=600); only th
 changes.
 ```
 
-### before `const wClient = arrow({ x1: 420, y1: LANE_Y, x2: 480, y2: LANE_Y, dashed: true, dim: true });`
+### before `const wClient = arrow({ x1: HOP_CLIENT[0][0], y1: LANE_Y, x2: HOP_CLIENT[1][0], y2: LANE_Y, dashed: true,`
 
 ```
 Dim dashed wires (uniform style): client -> Service -> Pod data lane (equal-length hops), plus
@@ -657,7 +1012,7 @@ rather than overloading the ipFamilyPolicy chip with a client-side choice. The S
 the path (kube-proxy DNATs here), so it lights steadily via .highlight, it does not pulse.
 ```
 
-### before `const HOP1 = [[420, LANE_Y], [480, LANE_Y]];   // client -> Service ClusterIP`
+### before `const HOP1 = HOP_CLIENT, HOP2 = HOP_SVC;`
 
 ```
 Up-arrow into the Service then on to the Pod: client pulses first, two linear hops, the Pod
@@ -670,7 +1025,7 @@ destination is rewritten to the Pod IPv6 on the way out.
 
 ## network-ebpf-dataplane
 
-### before `const FLOW_Y = 312;                    // client <-> eBPF program lane`
+### before `const CONTENT_L = 70, CONTENT_R = 1130;`
 
 ```
 Layout zones (viewBox 1200x640): the narration overlay sits over the top-left, so the flow runs
@@ -680,9 +1035,15 @@ kube-proxy: an eBPF program at the socket hook reads a BPF service map and rewri
 connection to a backend at connect() time, so there is no per-packet iptables walk and no DNAT.
 Standard contract: only Pods pulse, boxes light via .highlight only (no block flash anywhere),
 packet routes are right-angle and shared by the static wires and the moving packets.
+
+The composition spans CONTENT_L..CONTENT_R (70..1130): the client Pod holds the left margin and the
+backend Pod column the right one, so the content bbox centres on x=600, and the three chips are one
+even row across that same span. The backend column used to stop at 1030, which left the whole card
+50 units left of centre. FAN_X is derived (midway between the program right edge and the Pod left
+edge), so widening the card moved the fan turn with it rather than leaving it behind.
 ```
 
-### before `const lDeliver = text({ class: 'scheme-label code dim', x: 700, y: FLOW_Y + 20, 'text-anchor': 'middle', 'font`
+### before `const lDeliver = text({ class: 'scheme-label code dim', x: (HOOK_RIGHT + FAN_X) / 2, y: FLOW_Y + 20, 'text`
 
 ```
 Destination label sits UNDER the first fan segment, just as the rewritten connection leaves the
@@ -703,7 +1064,7 @@ a traffic flow. Read it bottom to top and then right:
   (the derived Ready-only address list)  --read by-->  kube-proxy.
 The Service sits on top: it owns the selector and NAMES the slice, but stores no addresses.
 
-Layout zones (top-left band x<=380 y<=300 kept clear for the narration overlay: the Service, the
+Layout zones (top-left band kept clear for the narration overlay: the Service, the
 slice rows and the controller are all centred at x600, well right of it). The slice is three
 valChip rows stacked between the Service and the controller. The controller sits below them and
 writes UP into the slice, kube-proxy sits to the RIGHT of the slice and reads it, the live Pods
@@ -737,10 +1098,14 @@ per Pod, notReady dimmed). Straight horizontal wires carry the one-row-per-Pod m
 
 ## network-externalname
 
-### before `const ROW_A = 254;`
+### before `const CLIENT_X = 115, CLIENT_W = 160, CLIENT_H = 108;`
 
 ```
-Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. Two stacked
+Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay, measured
+2026-07-27 at right <= 397, bottom <= 230. Both rows hang BELOW that bottom (ROW_A 300, ROW_B 480,
+Pod tops 246 and 426): row A used to sit at 254 and put a quarter of its Client Pod under the panel
+on the narrow viewports. The top band is therefore empty by construction on wide viewports, which is
+the price of two full-width rows on a card whose panel reaches a third of the way down. Two stacked
 rows compare the two ways a Service can point at something that is not a selected Pod:
   - top row (ROW_A): type ExternalName, a pure DNS alias. The client looks the name up (the query
     rides to CoreDNS), CoreDNS answers a CNAME that rides on toward the external host. No ClusterIP
@@ -804,6 +1169,12 @@ Horizontal: the two Nodes are the widest row, mirrored about MID_X with NODE_GAP
 scheme spans SCHEME_LEFT..SCHEME_RIGHT = 180..1020 and centres on 600. The chip strip spans that same
 extent 1:1. Vertical: the stack is client / LB / Nodes / underlay / chips with deliberate gaps, and
 the totals leave an equal 40 margin above the client and below the chips, so it centres on the canvas.
+
+CENTRE-LOW is OPEN here on purpose (2 blocks below the overlay span 255..465, centre 360). Those two
+blocks are the backend Pod and its inner box, and everything else in that band is Node frames, which
+the rule deliberately ignores. The Pod cannot move to the centre: it is inside Node-1 because Node-1
+is the Node WITH a local backend, and Node-2 having none is the entire subject of the card. Drawing a
+ghost Pod in Node-2 to balance the count would contradict its own label.
 ```
 
 ### before `const CROSS = [[N2_CX, NODE_BOTTOM], [N2_CX, UNDER_Y], [N1_CX, UNDER_Y], [N1_CX, NODE_BOTTOM]]; // Node-2 -> u`
@@ -829,7 +1200,7 @@ landing on each Node top, and the underlay running Node edge to Node edge withou
 
 ## network-gateway-api
 
-### before `const FLOW_Y = 339;                            // Client + Gateway share this row: a request enters here`
+### before `const FLOW_Y = 380;                          // Client + Gateway share this row: a request enters here`
 
 ```
 Gateway API (viewBox 1200x640). The card is about OWNERSHIP: GatewayClass, Gateway and HTTPRoute
@@ -843,9 +1214,11 @@ block and the ball that rides to it cannot drift apart.
 
 Vertical: the ownership stack is one column on STACK_CX. The Gateway sits on FLOW_Y, which is the
 row a real request enters on, so the Client block can sit beside it on the left. FLOW_Y is pinned
-below the narration overlay (which really covers user-space x 0..399, y 0..300) so the Client, its
-entry wire and its label all clear the panel: the Client top edge is FLOW_Y - CLIENT_H/2 = 303.
-The GatewayClass is the only block above y 300, and it lives at x >= 410, so it clears too.
+below the narration overlay, and that measurement was corrected on 2026-07-27: the panel reaches
+y <= 330 on this card, not 300, so FLOW_Y moved 339 -> 380 and the Client top edge is now
+FLOW_Y - CLIENT_H/2 = 344 instead of 303, which had been 36 percent under the panel. The HTTPRoute
+row and the chip strip moved down with it (ROUTE_Y 460, CHIP_Y 586) keeping their old gaps.
+The GatewayClass is the only block above the panel bottom, and it lives at x >= 410, so it clears.
 
 Horizontal: the Service and the backend Pod hang off the HTTPRoute row to the RIGHT rather than
 continuing the column, because a fifth stacked block plus a bottom chip strip does not fit in 640
@@ -877,7 +1250,8 @@ The point of the card: one caption per stack block, each sitting on its own bloc
 two go in the right column, which is free at those rows. The HTTPRoute row is not free there
 (the backendRef wire and the Service occupy it), and a caption parked above the Service reads as
 labelling the Service, so that one goes to the LEFT of the route instead, where it also fills
-the quadrant the narration panel leaves empty. y >= 310 keeps it clear of the panel.
+the quadrant the narration panel leaves empty. Sitting on ROUTE_CY (502) keeps it clear of the
+panel, whose measured bottom on this card is 330.
 ```
 
 ### before `const listenerChip  = valChip({ x: CLIENT_X, y: CHIP_Y, w: 200, h: 34, name: 'listener', value: ':443 HTTPS', `
@@ -908,16 +1282,20 @@ Geometry, all of it symmetric about the canvas centre line CY=320:
   - The client sits low-left. Its DNS lane leaves the TOP of the Pod, rises, and turns into CoreDNS
     at 90 degrees. Query and answer ride SEPARATE lanes (20px apart) so the answer never retraces the
     query arrow.
-  - The data path leaves the client's RIGHT edge, runs under everything at y=520, and rises on its own
-    bus at DATA_X to enter a Pod square-on. It is drawn to ALL THREE Pods, because a headless client
-    may pick any of them, and every ball in this card rides one of these drawn wires.
+  - The data path leaves the MIDDLE of the client's right edge (CLIENT_CY), steps down at
+    DATA_STEP_X to the trunk level, runs under everything at y=520, and rises on its own bus at
+    DATA_X to enter a Pod square-on. The step exists because the trunk has to pass BELOW the Service
+    box (430..500) while still leaving the Pod at its face midpoint: leaving at y=520 direct put a
+    lone endpoint 35 units off that midpoint, which is what OFFEDGE reports. It is drawn to ALL THREE
+    Pods, because a headless client may pick any of them, and every ball rides one of these wires.
 Content spans x 80..1120 (centre 600) so it is centred on the canvas.
 
-Narration safe-zone: every element left of x=380 sits at y>=310, so nothing can slide under the
-overlay (x<=380, y<=300). That is why the DNS lane turns at 310/330 rather than higher up.
+Narration safe-zone: this card's panel was measured at right <= 397, bottom <= 205. Every element
+left of 397 sits well below that (the client at y>=420, the DNS lane turning at CY +/- 10 = 310/330),
+so nothing can slide under the panel.
 ```
 
-### before `const wSvc = path({`
+### before `const wSvc = relationPath({ points: [[CORE_CX, SVC_Y], [CORE_CX, CY + CORE_H / 2]], dash: '5 5' });`
 
 ```
 Service <-> CoreDNS is a plain dashed line with NO arrowhead: it is not a packet route, it is the
@@ -925,7 +1303,7 @@ static fact that this Service backs those records. An arrowhead here would read 
 ball ever rides it. Drawn as a bare path because arrow() always attaches a marker.
 ```
 
-### before `const vipChip = valChip({ x: 80, y: 575, w: 210, h: 34, name: 'clusterIP', value: 'None', role: 'network' });`
+### before `const vipChip = valChip({ x: CLIENT_X, y: CHIP_Y, w: CLIENT_W, h: CHIP_H, name: 'clusterIP', value: 'None`
 
 ```
 Three readouts, each of which always means exactly what its name says. The old card showed
@@ -970,23 +1348,26 @@ derived from a block edge, never hand-typed.
   Pod app                cni0 bridge            Pod node-agent
 
 The NIC is the hub and it exits three ways, one per direction: LEFT along its own row into the portmap
-rule, RIGHT along that same row into the hostNetwork Pod, and DOWN its own column into the bridge. Each
+rule, RIGHT along that same row into the hostNetwork Pod, and DOWN into the bridge. That last one drops
+on BR_IN_ORD rather than dead on COL2_CX, because the portmap route comes down onto the same bridge
+face: the two land as a mirrored pair either side of the bridge midpoint (COL2_CX +/- BR_IN_DX), which
+is what a face shared by two lanes is supposed to look like. Each
 block therefore sits under or beside the block it belongs to: the rule above the Pod it maps to, the
 bridge under the NIC that routes into it, and the hostNetwork Pod alone in a column, because it hangs
 off nothing.
 
-Vertical: the narration overlay really covers x 0..399, y 0..300, and the Node spans the full width, so
+Vertical: the narration overlay owns the top-left corner, and the Node spans the full width, so
 its frame starts at 305, just under the panel, and runs to 570, which is as deep as the chip strip
 allows. The client is the only block above the Node and it sits at x >= 450, clear of the panel, dead
 centred on the NIC so the entry hop is one clean vertical with no dogleg.
 ```
 
-### before `const PM_TO_BRIDGE = [[COL1_CX, R1_BOTTOM], [COL1_CX, BUS_Y], [560, BUS_Y], [560, BR_TOP]];`
+### before `const PM_TO_BRIDGE = [[COL1_CX, R1_BOTTOM], [COL1_CX, BUS_Y], [BR_IN_PM, BUS_Y], [BR_IN_PM, BR_TOP]];`
 
 ```
 The rewrite happens INSIDE the rule box, so the ball re-emerges at its bottom edge already carrying the
 Pod address, and only then joins the ordinary path. It lands on the bridge left of the NIC route so the
-two never overlap.
+two never overlap, and the two are mirrored about the bridge midpoint so neither reads as a slip.
 ```
 
 ### before `const theNode = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });`
@@ -1050,7 +1431,7 @@ Standard contract: controller and backends are shell + inner box; only Pods puls
 never flash; packets ride the wires and stop at block edges.
 
 GEOMETRY. Every wire below is derived from a block edge, never hand-typed, so a block and the
-packet that rides to it can never drift apart. The Ingress Controller Pod is a standard podBlock
+packet that rides to it can never drift apart. The Ingress controller Pod is a standard podBlock
 (POD_W x POD_H, the same shell used by the web and api backends) rather than an oversized box.
 
 Vertical: everything hangs off FLOW_Y, the midpoint between the rules panel bottom (RULE_BOTTOM)
@@ -1066,7 +1447,7 @@ need 234. CTRL_CX 545 admits a 260-wide panel (415..675) with 16 to spare. The f
 span LB_X..POD_RIGHT = 40..1160, so the scheme still centres in the 1200-wide viewBox.
 ```
 
-### before `const rulesWire = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: `
+### before `const rulesWire = relationPath({ points: [[CTRL_CX, CTRL_TOP], [CTRL_CX, RULE_BOTTOM]], role: 'network', dash: '5 5' });`
 
 ```
 Ownership marker, NOT a traffic path: the controller watches these rules. No packet ever travels
@@ -1153,7 +1534,7 @@ GEOMETRY. Every wire and every packet is derived from a block edge, never hand-t
 
 Vertical: the Service sits alone on top, the Node row carries the whole flow on FLOW_Y, and the
 underlay lane below the Nodes carries the cross-node hop. The narration overlay really covers
-x 0..399, y 0..300, so the Node row starts at 312 and the Service (the only block above 300) lives at
+the top-left corner, so the Node row starts at 312 and the Service (the only block that high) lives at
 x >= 450, clear of it.
 
 Horizontal: Node-1 is wide because it holds the whole local path (client, dataplane, local backend),
@@ -1226,13 +1607,23 @@ the frame, and every leg starting and ending on a shape edge.
 
 ## network-ipam-pod-cidr
 
-### before `const POD_Y = 442;`
+### before `const NODE_Y = 312, NODE_W = 300, NODE_H = 290;`
 
 ```
 Layout zones (viewBox 1200x640):
-  - top band y<300 (top-left) is reserved for the narration overlay.
+  - top band (top-left) is reserved for the narration overlay, measured 2026-07-27 at
+    right <= 397, bottom <= 255.
   - the controller column (cluster CIDR -> kcm) is centred at x460..740 so it clears the
-    overlay; the three Nodes fill the y312..602 band.
+    overlay; the three Nodes fill the y312..602 band and span 80..1120, centred on 600.
+  - every x on the card is derived from NODE_X / NODE_CX, so the Node columns, their slice
+    chips, their Pods and the allocation bus cannot drift apart.
+
+CENTRE-LOW is OPEN here on purpose (4 blocks below the overlay span 130..700, centre 415). The
+rule cannot see Node frames, so what it measures is the two Pods, which sit in Node-1 and Node-2
+because the narration names those two Nodes ("A Pod scheduled to Node-2 gets 10.244.2.8"). Moving
+either Pod to Node-3, reordering the Nodes, or inventing a third Pod would each make the card say
+something different. The composition itself is centred: three equal Node frames spanning 80..1120
+under a control-plane column on their common centre line.
 Lessons carried over from network-pod-to-pod-same-node:
   - the Pod is the canonical shell + inner-box block (so the whole group pulses as one).
   - arrows are DIM dashed (no colour override) so the bright ball reads on a muted wire,
@@ -1249,7 +1640,7 @@ branch level, then horizontally out to the node, then down into its podCIDR chip
 pathArrow and the moving packet share the same point array. The centre arrow stays straight.
 ```
 
-### before `const cfgArrow   = arrow({ x1: 600, y1: 108, x2: 600, y2: 150, dashed: true, dim: true });`
+### before `const cfgArrow   = arrow({ x1: SPINE_X, y1: CFG_Y + CFG_H, x2: SPINE_X, y2: KCM_Y, dashed: true, dim: tru`
 
 ```
 Dim dashed arrows: config (pool -> kcm), allocation (kcm -> each node slice), and the IPAM
@@ -1277,7 +1668,7 @@ out of its slice proves uniqueness.
 
 ## network-kube-proxy-modes
 
-### before `const AXIS = 322;`
+### before `const CX = 600;                        // canvas centre: the chip strip is built on it`
 
 ```
 Concept "two routes" (viewBox 1200x640): the same kind of connection to the ClusterIP is resolved
@@ -1288,6 +1679,14 @@ at equal distance above and below, and each delivers to its own backend Pod thro
 the chain DOWN to the upper Pod and IPVS UP to the lower Pod (so neither arrow curves back).
 Wires and packets ride only the GAPS and stop at box edges; only Pods pulse; boxes light via
 .highlight; the inactive lane dims on each mode step.
+
+GEOMETRY (R5, 2026-07-27). Horizontal: SCHEME_L 40 .. SCHEME_R 1160, mirrored about CX 600, and the
+three chips are 350 wide with even gaps so the strip centres on 600 by construction. Vertical: the
+narration panel measures bottom <= 280 on this card, so AXIS moved 322 -> 352 and the Client Pod
+shell (AXIS +/- 64) now clears it. The chain row does NOT centre on 600: its boxes sit ABOVE the
+panel bottom, so the row has to start right of the panel edge and ENGINE_L is pinned at 420. That
+asymmetry is paid for by the client on the left and the backend column on the right, which is what
+puts the CONTENT bbox on 600.
 ```
 
 ---
@@ -1311,7 +1710,7 @@ inside pulses to show it was served, so no ball ever crosses a Node border.
 GEOMETRY. Every wire and every packet is derived from a block edge, never hand-typed.
 
 Vertical: client, router, the fan bus, the Node row, the chip strip. The narration overlay really
-covers x 0..399, y 0..300, so the Node row starts at 310 and the client and router (the only blocks
+covers the top-left corner, so the Node row starts at 310 and the client and router (the only blocks
 above 300) sit at x >= 450, clear of it.
 
 Horizontal: the three Nodes are the widest row, mirrored about MID_X, so the scheme spans
@@ -1373,6 +1772,12 @@ landing on a Node top edge without ever crossing one.
 Layout zones (viewBox 1200x640):
   - the kubelet box sits centred above the flat-network band. After the RAISE the band reaches
     up near the narration overlay, but only its empty left edge does, no essential text.
+  - the CNI badge is tucked under the RIGHT END of the band (its right edge on SCHEME_R 1080)
+    rather than parked past it. R5 measured the alternative: with the badge outside the band the
+    content bbox can never centre, because the badge always adds CNI_W/4 to the centre no matter
+    how the band is sized. Its connector is therefore a straight drop from the badge bottom-centre
+    onto the bus spine INSIDE the band, which is the line it was always aiming at, instead of a
+    dogleg into the band's right face.
   - one wide band represents the flat Pod network (a single L3 address space). Four Pods hang
     below it on different Nodes, each wired up to the band. Packets ride up the wire, along a
     dashed rail INSIDE the band, and down to the destination: one flat space, no NAT.
@@ -1505,14 +1910,20 @@ eth0 right edge (1140), with even gaps, and the chip strip spans exactly that sa
 conntrack table sits under the four hooks it belongs to (70..950) and stops where the wire begins,
 because a packet on the wire is past it.
 
-Vertical: the narration overlay really covers x 0..399, y 0..300, so the Node frame starts at 305 and
+Vertical: the narration overlay really covers the top-left corner, so the Node frame starts at 305 and
 the client Pod, the only block above it, sits at x >= 450, clear of the panel. Its packet drops
 straight down and only turns left once it is INSIDE the Node, below the panel. The reply rides its own
 lane (RETURN, y 360) above the chain rather than retracing the forward wires backwards, the same rule
 every round-trip card here follows.
+
+The conntrack ownership marker (CT_LINK) is a BRACKET, not a stub: it leaves PREROUTING at its
+bottom-edge midpoint, steps across in the gap between the two rows, and lands on the conntrack
+table's own top-edge midpoint (510). A straight stub from PREROUTING landed 335 units off that
+midpoint, which reads as a lane pointing at nothing in particular and is what OFFEDGE reports. Both
+ends of the bracket now sit on a face midpoint. Same shape on network-north-south-path.
 ```
 
-### before `const hookChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 270, h: CHIP_H, name: 'hook', value: 'none', role: 'ne`
+### before `const hookChip = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'hook', value: 'none', role: 'network' });`
 
 ```
 The four chips span the SCHEME 1:1, edge to edge with the Node frame (40..1160), which is the widest
@@ -1587,7 +1998,7 @@ ClusterIP, so kube-proxy DNATs it and it is tracked. The win is that it is ONE l
 reused by every miss, not one fresh UDP entry per lookup.
 ```
 
-### before `const asked = ask(s, ctx, { start: 0, label: 'dst 169.254.20.10' });`
+### note (anchor dropped: `const asked = ask(s, ctx, { start: 0, label: 'dst 169.254.20` is not unique in the file)
 
 ```
 Four hops, because the narration promises all four: the Pod asks, the agent misses and forwards
@@ -1609,20 +2020,27 @@ cross) and drops everything else the card already draws, packet dots included.
 
 ## network-nodeport-loadbalancer
 
-### before `const FAN_BUS_Y = 286;`
+### before `const CX = 600;                        // canvas centre: the client, the LB and the fan origin sit on it`
 
 ```
 NodePort and LoadBalancer (viewBox 1200x640). External client sits above the LB (top-left is the
 narration zone), the LB fans down to every Node through a right-angle bus, and the chosen Node
 DNATs to a backing Pod. Standard contract: Pods are shell + inner box; only Pods pulse; value
 chips never flash; a packet-less pod-less step gets one box flash. Packets stop at block edges.
+
+GEOMETRY (R5, 2026-07-27). One Node grid drives everything: three frames of 300 spanning
+SCHEME_L 80 .. SCHEME_R 1120, and NODE_CX centres the nodePort chip, the backend Pod and the bottom
+info chip of each column. The two backend Pods sit on the OUTER Nodes (1 and 3), not on 1 and 2:
+that is what puts the low-block bbox on 600, and it also puts the Pod-less Node in the middle,
+where the nodePort step wants it ("even on Nodes that run no backend Pod"). The Node-3 Pod IP moved
+from 10.244.2.7 to 10.244.3.9 with it, so the per-Node CIDR the card sets up by example still holds.
 ```
 
-### before `const toLb = segmentPacket(s, ctx, { from: [600, 100], to: [600, 150], role: 'network' });`
+### before `const toLb = segmentPacket(s, ctx, { from: C_TO_LB[0], to: C_TO_LB[1], role: 'network' });`
 
 ```
 client -> LB (down), then LB picks Node-1 along the right-angle fan; the nodePort lights.
-The VIP address rides the ball the whole way: it emerges from the client into the first gap,
+The tag on the LB leg names the Node and its nodePort, since the balancer has already rewritten both: it emerges from the client into the first gap,
 vanishes into the LB, then re-emerges out of the LB bottom and rides the fan to the Node. Each
 leg only shows the text in the open gap between blocks, never sliding it over the LB itself.
 ```
@@ -1658,7 +2076,7 @@ GEOMETRY. Every wire and every packet is derived from a block edge, never hand-t
 Vertical: two lanes, FWD_Y above and RET_Y below the spine, because this card is a ROUND TRIP. A
 single retraced lane would send the reply backwards along a right-pointing arrowhead. Every block on
 the path is centred on FLOW_Y, so both lanes meet every block on its edge. The narration overlay
-really covers x 0..399, y 0..300, so the client and LB blocks sit at y >= 315 while the faint region
+really covers the top-left corner, so the client and LB blocks sit at y >= 315 while the faint region
 boxes frame up to REGION_TOP to fill the top of the canvas and pull the whole scheme up and centred.
 
 Horizontal: client and cloud LB live in the outside region, kube-proxy, conntrack and the backend Pod
@@ -1666,6 +2084,11 @@ live inside the Node region. conntrack is a real block here rather than a word i
 what pins the flow on the way in and what unwinds the DNAT on the way out, and it fills the Node
 interior. The framed diagram and the info-chip strip both span the same width, from the outside region
 left edge (22) to the Node region right edge (1176), so the scheme reads as one column.
+
+The conntrack ownership marker (CT_LINK) is a BRACKET: it leaves kube-proxy at its bottom-edge
+midpoint, steps across in the gap between the rows, and lands on the conntrack table's own top-edge
+midpoint (860). A straight stub down from kube-proxy landed 175 units off that midpoint, which is
+what OFFEDGE reports. Same shape as network-netfilter-path.
 
 Addresses ride ALONG with the ball (ridingLabel) instead of sitting as static wire text. That is the
 whole point of the card: the same packet carries dst 203.0.113.9:443, then dst 192.168.1.20:31000,
@@ -1711,8 +2134,12 @@ crossing and a round trip, not a row of boxes.
 
 ```
 Layout zones (viewBox 1200x640): top-left band reserved for the narration overlay. A Node box
-holds the client Pod and the MASQUERADE box; the Internet box is lifted to the top-right, well
-above the egress lanes. Forward and return traffic ride SEPARATE parallel lanes so the round trip
+holds the client Pod and the MASQUERADE box; the Internet box sits OUTSIDE it in its own right-hand
+column, its top level with the Node frame (NET_Y = NODE_Y), above the egress lanes. It used to be
+lifted to y110, i.e. above the panel bottom (measured 181 here), which left the three blocks that
+DO sit below the panel spanning 110..630 and centring on 370: CENTRE-LOW. Levelling it with the
+Node frame is what puts that row on 600, and the forward leg still turns UP out of the Node into
+it. Forward and return traffic ride SEPARATE parallel lanes so the round trip
 reads as a loop: the request goes out along the upper lane (FWD_Y) and turns up into the Internet
 box, the reply comes down and returns along the lower lane (RET_Y). Both lanes sit inside the box
 heights so a ball never travels under a box. The Node left edge and the Internet right edge line up
@@ -1760,6 +2187,11 @@ Layout zones (viewBox 1200x640): top band reserved for the narration overlay, th
 everything inside it sit in the y228..528 band (lifted for balance, with a gap to the chip
 strip at y560), so the CNI plugin stays inside the Node box and nothing touches the panel.
 Every packet rides exactly along a dashed link (segmentPacket endpoints == link endpoints).
+
+Horizontally the inner row is CENTRED IN ITS FRAME, and that is a derivation rather than a set of
+typed x values: INNER_W = Pod shell + the veth run + the bridge column, and POD_X = NODE_X +
+(NODE_W - INNER_W) / 2. Before R5 the row sat at 150..960 inside a frame spanning 80..1120, i.e. 70
+of margin on the left against 160 on the right, which CENTRE-LOW reported as a bbox centred on 555.
 ```
 
 ### before `root.appendChild(nodeEl);`
@@ -1934,11 +2366,11 @@ which is the same-node point: switched at layer 2 with no NAT and no encapsulati
 
 ## network-service-cidr
 
-### before `const POOL_X = 580;   // pool centre (kept right of the overlay band)`
+### before `const SCHEME_L = 120, SCHEME_R = 1080;   // content edges, mirrored about x=600`
 
 ```
 Layout zones (viewBox 1200x640):
-  - the top-left band (x<=380, y<=300) is reserved for the narration overlay, so the pool box
+  - the top-left band is reserved for the narration overlay, so the pool box
     sits at x>=440 and the bands start at y=320.
 Sibling card: network-ipam-pod-cidr (the pod-CIDR allocation analog). This is the Service-side
 twin: one configured Service CIDR splits into a static and a dynamic band, hand-picked IPs come
@@ -1954,6 +2386,11 @@ Alignment grammar (the common rule every wire follows, mirrors ipam-pod-cidr):
     web read as one vertical line on the extend step instead of a stray top-right box.
   - The static pathArrow and the moving packet share the same point array so the ball rides
     exactly on the wire.
+  - The IPAddress chip is a FULL-WIDTH bottom strip (SCHEME_L..SCHEME_R), not a 280-wide cell
+    parked under the web column. Two findings closed at once: a lone 280-wide chip at 800..1080 is
+    a chip strip centred on 940, and the value it carries (10.96.137.42 . default/web) did not fit
+    beside its own name in 280, the one chipfit collision the catalog carried into R5. The binding
+    to web is not lost, because the value names the Service.
 ```
 
 ### before `const aSplit1 = pathArrow({ points: SPLIT_STATIC, dashed: true, dim: true });`
@@ -1983,6 +2420,18 @@ re-emerges at the far edge. vip and kube-proxy are infrastructure: they light, t
 Only Pods pulse. Addresses ride ALONG with the ball on each hop (ridingLabel), not as inline wire
 text: the ClusterIP dst on the way in, the Pod IP after DNAT, the Pod IP then the reversed ClusterIP
 src on the way back. Flow 1 runs to podX (send/dnat/reply), flow 2 to podY (balance/balance-reply).
+
+GEOMETRY (R5, 2026-07-27). This card is the Networking exemplar, so its extents are the ones other
+networking cards copy: CX 600, SCHEME_L 60, SCHEME_R 1140, the same L/R/CX the Workloads canon (WL)
+uses. Everything is derived from those three: the client on SCHEME_L, the ClusterIP and kube-proxy
+column mirrored about CX (KP_LEFT/KP_RIGHT = CX -/+ KP_W/2), the backend column flush on SCHEME_R,
+and the two fan buses offset from KP_RIGHT. Before R5 the whole drawing sat 50 units left of that,
+so the middle column stood on 550 and the content bbox on 550 with margins 70 / 170.
+
+The chip strip spans SCHEME_L..SCHEME_R with even gaps but UNEQUAL widths (270 / 310 / 225 / 215),
+each sized for its own longest value: DNAT carries `-> 10.244.2.7:8080` and needs the widest cell.
+Four cells in one row cannot all reach the 350 floor a bottom strip normally wants, and this row
+predates that floor; check-chipfit measures it clean, which is the test that matters.
 ```
 
 ### before `const LANE_FWD = [[CLIENT_EDGE, FWD_Y], [KP_LEFT, FWD_Y]];`
@@ -2002,7 +2451,7 @@ standard canon, so the overall process matches every other card. Riding src/dst-
 same slowDur so they stay locked to the ball. Registered in tools/check-canon.mjs ALLOW_EXPLICIT_DUR.
 ```
 
-### before `const cWireFwd = arrow({ x1: CLIENT_EDGE, y1: FWD_Y, x2: KP_LEFT, y2: FWD_Y, dashed: true, dim: true, color: '`
+### before `const cWireFwd = arrow({ x1: CLIENT_EDGE, y1: FWD_Y, x2: KP_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });`
 
 ```
 Client <-> kube-proxy lanes (upper forward, lower return). The vip->kproxy ownership link. Then
@@ -2010,7 +2459,7 @@ the four backend fans: forward and return for podX (top) and their vertical mirr
 (bottom), so both Pods are wired to kube-proxy identically.
 ```
 
-### before `const ownLink  = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: 5`
+### before `const ownLink  = relationPath({ points: [[CX, VIP_BOTTOM], [CX, KP_TOP]], role: 'network', dash: '5 5' });`
 
 ```
 Ownership marker, NOT a traffic path: kube-proxy realizes this virtual IP. No packet ever
@@ -2018,7 +2467,7 @@ travels it (the ClusterIP never appears on a wire), so it is a plain dashed line
 arrowhead, to read as an association rather than a wire missing its ball.
 ```
 
-### before `const vipChip  = valChip({ x: 70,  y: 548, w: 240, h: 34, name: 'dst', value: '10.96.0.10:80', role: 'network' `
+### before `const vipChip  = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'dst', value: '10.96.0.20:80', role: 'network' });`
 
 ```
 The four chips span the full block width of the scheme 1:1: the leftmost starts at the Client
@@ -2177,8 +2626,11 @@ vs dashed pair is the whole idea: one healthy backend and one that is draining b
 ```
 Layout zones (viewBox 1200x640): this is a MAP card, not a traffic flow, so there is no round
 trip, no return lane and no bottom chip strip. The whole composition is centred on the canvas:
-the type column and the target column sit symmetric about x600, with the narration overlay
-floating over the empty top-left margin (only the top type box border tucks under it, no text).
+the type column and the target column sit symmetric about x600 (210..990), with the narration
+overlay floating over the empty top-left margin. The type column starts at x210, LEFT of the
+panel's right edge, so the rows have to clear the panel by height instead: ROW0 moved 132 -> 186
+in R5 because the panel measures bottom <= 181 here and the top ClusterIP row was 46% under it.
+Moving the columns right instead was measured and rejected: it puts the content bbox on 740.
 Five Service-type rows on the left point STRAIGHT ACROSS to their targets on the right, one row
 each. ClusterIP, NodePort and LoadBalancer all proxy to the same shared backend node (they stack,
 each builds on the one above), while ExternalName and Headless are the odd ones out (no proxy, no
@@ -2190,7 +2642,7 @@ Standard contract (Jul motion canon + core-networking pod build, as a map card):
     animates both (matches network-model / network-service-clusterip).
   - Every arrow is a straight horizontal hop at its row centre. Exits are centred on the type box
     right edge, entries are centred on the target left edge. The three proxy entries land on the
-    backend node symmetric about its vertical centre (154 / 242 / 330 about 242), so the fan reads
+    backend node symmetric about its vertical centre (221 / 309 / 397 about 309), so the fan reads
     balanced with no angled lines.
   - Each hop carries a short ridingLabel tagging the MECHANISM the row uses (via kube-proxy for the
     three proxy types, CNAME for ExternalName, Pod IP direct for Headless).
@@ -2200,7 +2652,7 @@ Standard contract (Jul motion canon + core-networking pod build, as a map card):
   - Each static arrow shares the exact endpoints of the packet route on that row.
 ```
 
-### before `const aCI = arrow({ x1: TYPE_EDGE, y1: cy(Y_CI), x2: TGT_X, y2: cy(Y_CI), dashed: true, dim: true, color: 'net`
+### before `const aCI = arrow({ x1: TYPE_EDGE, y1: cy(Y_CI), x2: TGT_X, y2: cy(Y_CI), dashed: true, dim: true, role: 'network' });`
 
 ```
 Straight horizontal arrows, each from a type box right edge to its target left edge at the row
@@ -2247,7 +2699,12 @@ CLOSED padlock rides the inbound leg (encrypted https) and an OPEN padlock rides
 
 ```
 Layout zones (viewBox 1200x640): the narration overlay is a fixed panel over the top-left
-(about x<=250, y<=152), so the client and its setting chips sit on the left below it. The whole
+(measured bottom <= 255 here), so the client sits on the left below it. The two setting chips used
+to stack under the client, which put the chip strip at 120..440 and centred it on 280: the zone
+frames own everything right of 740 from y340 down, so no arrangement in that left band can reach
+x=600. They are a full-width BOTTOM strip now (two 530-wide cells spanning SCHEME_L 60 ..
+SCHEME_R 1140), which is the grammar the rest of the networking category already uses, and the
+client moved to SCHEME_L so the content bbox lands on 600 with it. The whole
 flow is centred on y=320 (client -> kube-proxy -> zones) and on x=600. Each zone stacks its two
 Pods VERTICALLY, so the fan from kube-proxy reaches every Pod at its own left edge over a shared
 vertical rail at x=700, with no route crossing another Pod. The client and the two zones are
@@ -2286,10 +2743,20 @@ the rewrite-inside-a-box idiom: the driver is where the decision is made. A refu
 the driver and never reaches a disk. Only Pods pulse. The driver and the disks light, never pulse.
 
 ---- Horizontal composition, derived rather than hand-placed ----
-Every tier (node row, driver band, disk shelf, chip strip) shares ONE center, CONTENT_CX, instead
-of each carrying its own hand-typed margins. That shared center is NOT the canvas center, and it
-cannot be: the narration overlay permanently occupies the top left, and the node row sits inside
-its vertical band.
+Every tier is derived rather than hand-placed, but they do NOT all share one center, and the split
+is the point (R5, 2026-07-27). The node row sits inside the overlay's vertical band, so it starts at
+LEFT_X 400 and its own center works out to 647. Everything BELOW the overlay floor has the full
+width free, so the driver band, the disk shelf and the chip strip center on the CANVAS (600). The
+band gets there without moving its right edge: it stays flush with the node row at 894 and takes the
+width it gains on the left, 306..894, which is also what fills the empty lower-left corner. Before
+that, every tier hung off 647 and the whole drawing sat in the right half with the bottom-left third
+blank.
+
+Because the band is no longer under the Pods that feed it, the three attach requests drop onto a bus
+at y 260 (clear of the overlay floor at 230) and enter the band on its center line. Dropping each
+Pod straight down would put three arrows across a 588 unit face, none of them near its midpoint,
+which is the same defect the fan below the band avoids: the three PV-nfs attaches leave the band at
+one point and fan out inside the disk column instead.
 
 Do not "improve" this by measuring the overlay at your own window size and sliding LEFT_X leftward.
 The overlay is HTML laid over the SVG, so the NARROWER the window, the MORE viewBox units it eats.
@@ -2309,9 +2776,9 @@ on and slides under the overlay on a laptop.
 Pod and node sizes drive everything else: the node row width is DERIVED from what it has to hold,
 and the driver band and disk shelf follow that. Nothing here is a hand-typed x.
 
-POD_W is what decides whether the whole diagram can look centered, because CONTENT_CX works out to
-LEFT_X + (3*POD_W + 102)/2 and LEFT_X is pinned by the overlay. At the old POD_W 156 the center
-landed on 692 against a canvas center of 600, which read as a visible shift to the right. POD_W is
+POD_W is what decides how far the NODE ROW sits off the canvas center, because that row's center is
+LEFT_X + (3*POD_W + 102)/2 and LEFT_X is pinned by the overlay. At the old POD_W 156 it landed on
+692, which read as a visible shift to the right, at 128 it lands on 647. POD_W is
 in turn bound by the WIDEST TEXT INSIDE A POD: the container sublabel used to be 'reads and writes',
 which renders 94 units wide and put a hard floor of ~146 under POD_W. Shortening it to 'read/write'
 (59 units) is what buys the room, so do not lengthen that string back without re-deriving all this.
@@ -2343,7 +2810,7 @@ chips read as comma lists: 'node-1 and node-2' and 'app-1, app-2 and app-3' were
 a wider uniform chip, and the strip is already more than twice the width of the diagram it captions.
 ```
 
-### before `const DIM = 0.75;`
+### opacity phases (was `const DIM = 0.75`, now OPACITY.*)
 
 ```
 A Pod the access mode REFUSES. Dim means denied, not "has not mounted yet": a Pod that simply has
@@ -2452,11 +2919,15 @@ half-written config. Updates land on the kubelet sync period (up to about a minu
 must re-read the file itself. A subPath mount pins one file and opts OUT of the swap, so it
 never updates. A Secret uses the same machinery but on tmpfs.
 
-GEOMETRY. Every traffic lane is ONE straight segment (no zigzags): the two source lanes mirror
-each other on the bottom row, the two write lanes rise vertically into the dir slots at x=460
-and x=740 (symmetric about the spine), the read lane rides the spine itself (x=600, ..data up
-to the Pod), and the subPath lane is the read lane's parallel at x=460, rising STRAIGHT from
-the v1 dir and bypassing ..data, which is exactly its meaning. The v2 dir slot and its write
+GEOMETRY. Almost every traffic lane is ONE straight segment (no zigzags): the two source lanes
+mirror each other on the bottom row, the two write lanes rise vertically into the dir slots at x=460
+and x=740 (symmetric about the spine), and the read lane rides the spine itself (x=600, ..data up
+to the Pod). The subPath lane is the exception (R5, 2026-07-27): it rises STRAIGHT out of the v1 dir
+at x=460, bypassing ..data, which is exactly its meaning, and then steps across the Pod-to-volume
+corridor at y=222 to enter the Pod at x=540, 60 left of the spine. Straight to the top it ended out
+at the Pod's corner, 140 off the midpoint of a 540 wide face and alone there, which reads as a lane
+that missed rather than as a second read path. The step is in the corridor, so it crosses nothing,
+and it stays clear of the sync-period label that starts at x=618. The v2 dir slot and its write
 lane stay empty until the update step creates them. Symlink pointers are dashed right-angle Ls
 out of the sides of ..data, each dropping into the dir slot it points at (bare, no arrowheads),
 so the slot columns read kubelet -> dir -> ..data top to bottom.
@@ -2479,7 +2950,7 @@ exits the SIDE of ..data at its mid height, turns 90 degrees over its dir slot a
 the slot top, mirroring the write lane below the slot so the column reads kubelet -> dir -> ..data.
 ```
 
-### before `function setStage(s, { symOld = 1, symNew = 0, dirNew = 0, writeNew = 0, subpath = 0, sec = 0.45 } = {}) {`
+### before `function setStage(s, { symOld = 1, symNew = 0, dirNew = 0, writeNew = 0, subpath = 0, sec = OPACITY.notready } = {}) {`
 
 ```
 Sets the visibility of every toggled element, so no step can leak another step's state. The v2
@@ -2516,7 +2987,7 @@ leaves the Container SIDE and zigzags in right angles around the stack down to t
 The writable layer does not exist until its step, so its copy-up wire does not either: the layer
 and the wire fade in together, are discarded together, and return together for the fresh
 container. Only the Container (a Pod-like consumer) pulses. The layer boxes and the disk are
-infrastructure: they light, they never pulse. The narration overlay owns x<=380 & y<=300, so
+infrastructure: they light, they never pulse. The narration overlay owns the top-left corner, so
 blocks start right of it.
 ```
 
@@ -2801,9 +3272,10 @@ summary, and it wants to be read, not blinked at.
 ```
 Attach and Mount Chain (viewBox 1200x640). THE LADDER CARD. The four gRPC calls that stand between
 a bound claim and a writable /data are a numbered ladder down the LEFT (chainList, one rung lit per
-step), and the RIGHT is the topology those calls act on: the CSI controller and the cloud disk up
-top, outside any node, then node-1 below holding the node plugin, the attached block device, the ONE
-global staging mount, and the two Pods that share it. The descent is literal: CreateVolume makes the
+step), and the RIGHT is the topology those calls act on: the cloud disk up top, outside any node,
+then node-1 below holding the node plugin, the attached block device, the ONE
+global staging mount, and the two Pods that share it. The CSI controller stands in the left column
+above the ladder, opposite the node frame, because it is the one actor that is NOT on the node. The descent is literal: CreateVolume makes the
 disk, ControllerPublishVolume moves it into the node as a device, NodeStageVolume mounts it once at
 the global path, NodePublishVolume bind-mounts that one staged filesystem into each Pod. Stage is
 once per node, publish is once per Pod, which is exactly how two Pods on one node share one disk.
@@ -2821,6 +3293,15 @@ the node driver both hang off the same NODE_PAD. The chip strip is the one tier 
 content width (60..1140) rather than one column, so it reads as a rail under both columns and its
 own centre is 600, agreeing with the composition centre rather than fighting it.
 
+The CSI controller lives in the LEFT column at 60..312, y 268..332 (R5, 2026-07-27). It used to sit
+inside the node column, level with the cloud disk, which left EVERY block on the card in the right
+half: the content bbox ran 624..1140 with its centre at 882 and the whole left half below the
+overlay was blank apart from the ladder. Moving the one off-node actor to the off-node side puts a
+block on each side, and the low content now spans 60..1124 (centre 592). CreateVolume pays for it
+with two corners instead of none: it leaves the controller's right face, turns up at x=520 (right of
+the overlay's 397 at every viewport) and runs to the cloud disk's left face in the free band above
+the node frame. See the overlay note below for what pins y=268 and how little slack there is.
+
 ---- Narration overlay (MEASURED for this card, 2026-07-21) ----
 The overlay is HTML laid over the SVG, so the NARROWER the window the MORE viewBox units it eats.
 Measured right edge / bottom edge, worst step, by viewport:
@@ -2830,6 +3311,15 @@ So the real worst case is x<=398 AND y<=375, well inside the blanket x<=380 & y<
 PAST it on y, because this card carries some of the longest narration in the catalog. The ladder is
 what this pins: LAD_Y 388 clears the measured 375 by 13 units and cannot move up. Lengthening any
 narration string invalidates these numbers and they have to be measured again.
+
+TWO STANDARDS, AND THEY DISAGREE (2026-07-27). `check-geometry`'s OCCLUDED rule samples 1600x1000,
+1280x860 and 1100x800 only, where this card's overlay bottoms out at 230, and `tools` measures the
+same 230. The 900x650 row above is from a wider sample taken by hand in July and it is the stricter
+number by 145 units. The CSI controller at y 268 clears 230 by 38 and is reported clean, but at
+900x650 it would be behind the panel, and so would the top rung of the ladder. There is nowhere else
+for it: below 375 the left column is the ladder, and the whole point of moving it was to get a block
+out of the right half. If the panel is ever clamped in CSS (the open question in SCHEME-REVIEW), this
+is one of the cards that gets its margin back.
 
 ---- Text widths (MEASURED, not estimated) ----
 getBoundingClientRect in the browser, mapped back into viewBox units. Both the chip text and the
@@ -2859,16 +3349,16 @@ and shrinking them to the text would break the column mirror the whole layout is
 ### before `const DISK_W = 150;`
 
 ```
-The controller and the cloud disk sit ABOVE the node frame because neither lives on a node: the
-first two calls are cluster-scope. They align with the node column so the descent reads as one
-vertical story, the controller over the node plugin, the cloud disk over the device it becomes.
+The cloud disk sits ABOVE the node frame because it does not live on a node: the first two calls are
+cluster-scope. It aligns with the node column so the descent reads as one vertical story, the cloud
+disk over the device it becomes.
 
-The disk is declared FIRST and the controller is hung off its face centre, because CreateVolume has
-to read as ONE straight horizontal run. These used to be the other way round with CTRL_Y typed as a
-literal 52, which put the controller centre at 84 against a disk face at 96: a 12 unit mismatch, too
-small to look deliberate and too large to look level, so the lane had to jog through two corners to
-cover it. Deriving CTRL_Y from CDISK_FACE_CY makes the run straight by construction, and keeps it
-straight if either block is ever resized.
+CDISK_FACE_CY is still the anchor for CreateVolume's last run: the lane arrives at the disk's LEFT
+face on its mid height, horizontally, whatever the disk's height becomes. Before the R5 relayout the
+controller sat level with that face and the whole call was one straight run, and its CTRL_Y was
+derived from CDISK_FACE_CY for exactly that reason. It is now derived from the overlay floor
+instead, because the controller moved to the other column, and the level-face trick moved with it to
+the far end of the lane.
 ```
 
 ### before `const STG_X = IN_X, STG_Y = 350, STG_W = IN_W, STG_H = 58;`
@@ -2918,7 +3408,7 @@ to the blocks it sits between, so changing DEV_H would have stranded the elbow m
 and no screenshot catching it.
 ```
 
-### before `const W_CREATE  = [[CTRL_RIGHT, CTRL_CY], [DISK_X, CDISK_FACE_CY]];`
+### before `const W_CREATE  = [[CTRL_RIGHT, CTRL_CY], [CREATE_TURN_X, CTRL_CY], [CREATE_TURN_X, CDISK_FACE_CY], [DISK_X, CDISK_`
 
 ```
 Every wire below is shared by the static pathArrow and the ball that rides it, so the drawn lane and
@@ -2929,7 +3419,7 @@ Each lane also leaves its source from the CENTRE of an edge, never off to one si
 CreateVolume is a single straight segment: controller right edge to disk left edge, both at y=96.
 ```
 
-### before `const W_STAGE   = [[DISK_CX, DEV_BOTTOM], [DISK_CX, STAGE_ELBOW_Y], [NODE_CX, STAGE_ELBOW_Y], [NODE_CX, STG_TO`
+### before `const W_STAGE   = [[DISK_CX, DEV_BOTTOM], [DISK_CX, STAGE_ELBOW_Y], [STAGE_IN_X, STAGE_ELBOW_Y], [STAGE_IN_X, STG_TO`
 
 ```
 The stage lane elbows in to NODE_CX before it drops, so the device visibly arrives at the MIDDLE of
@@ -2937,7 +3427,7 @@ the band rather than at the corner under itself: the staging mount belongs to th
 the column the device happens to sit in. It also makes the run 217 units instead of a 46 unit stub.
 ```
 
-### before `const W_OWNS = `M ${ND_X + ND_W / 2} ${ND_Y + ND_H} L ${ND_X + ND_W / 2} ${STG_TOP}`;`
+### before `const W_OWNS = `M ${OWNS_X} ${ND_Y + ND_H} L ${OWNS_X} ${STG_TOP}`;`
 
 ```
 Ownership, not traffic: the node plugin is what performs both node calls, so it owns the staging
@@ -2974,7 +3464,7 @@ descendants only and never the element itself, so pulsing a bare pod() would cat
 .scheme-pod-rect child but not the group, and the pulse would silently fire at half strength.
 ```
 
-### before `const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'private bind mount', containers: 0, cat`
+### before `const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'private bind mount', containers: 0, role: 'storage' });`
 
 ```
 The sublabel names what NodePublishVolume actually creates for this Pod, a per-Pod bind mount off
@@ -2982,10 +3472,13 @@ the shared staging path. It deliberately does not repeat '/data', which the cont
 already carries: two labels saying the same path made the Pod read as one fact printed twice.
 ```
 
-### before `const ctrl  = box({ x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'CSI Controller', sublabel: 'attacher +`
+### before `const ctrl  = box({ x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'CSI controller', sublabel: 'attacher +`
 
 ```
-Block LABELS are title-capitalized: every word of the name takes a capital. Two labels are
+Block LABELS capitalize the FIRST word only (settled 2026-07-26, the catalog had been split 95 to
+34 between this and Title Case). A later word takes a capital only when it is an API object, an
+acronym or an identifier: 'CSI controller', 'Global staging mount', but 'ConfigMap app' and
+'Pod A bind mount'. Two labels are
 deliberately exempt because capitalizing them would make them WRONG rather than merely styled.
 The device is a literal kernel path, and there is no /dev/Nvme1n1 on any machine. node-1 is a
 hostname, and the node primitive uppercases its own label in CSS anyway, so editing that string
@@ -2993,7 +3486,7 @@ would be a no-op that only looked like a change. Identifiers inside a name (vol-
 real casing for the same reason. Sublabels stay lowercase prose.
 ```
 
-### before `const nodeFrame = node({ x: NF_X, y: NF_Y, w: NF_W, h: NF_H, label: 'node-1' });`
+### before `const nodeFrame = node({ x: NF_X, y: NF_Y, w: NF_W, h: NF_H, label: 'Node-1' });`
 
 ```
 The node primitive carries its own label at a position RELATIVE to the frame group. Appending a
@@ -3103,9 +3596,15 @@ Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
   1600x1000 right 291  bottom 143
   1280x900  right 378  bottom 173
   1100x900  right 397  bottom 149
-Worst case x <= 397 and y <= 183. The scheduler (y 36) and the Pod (y 136) both sit inside that y
-band, so both start at x >= 400. Everything from the node row down (y >= 300) clears the overlay
-entirely. A longer narration than the ones below would invalidate this measurement.
+  1280x860  right 397  bottom 255   <- added 2026-07-27
+  1100x800  right 397  bottom 255   <- added 2026-07-27
+Worst case x <= 397 and y <= **255**, not the 183 recorded above: every row sampled originally was
+900 or 1000 tall, and a SHORTER window shrinks the diagram while the panel, which is HTML at a fixed
+size, keeps its pixels and so eats more viewBox units. The rule that judges occlusion samples
+1600x1000, 1280x860 and 1100x800, so 255 is the number this layout is built against. The scheduler
+(y 36) and the Pod (y 136) both sit inside that y band, so both start at x >= 400. Everything from
+the node row down (y >= 300) still clears the overlay, now by 45 units rather than the 117 the old
+number implied. A longer narration than the ones below would invalidate this measurement.
 
 PULSE MODEL: only the Pod pulses, and it is a wrapping g. The scheduler, the node frames, the
 capacity objects and the pools are infrastructure: they light via .highlight on packet arrival and
@@ -3194,7 +3693,7 @@ setChips pins every chip. A lane into an object that does not exist points at no
 pinned to 0 rather than left at whatever the previous step set.
 ```
 
-### before `pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: POD_DIM, peak: 0.9 });`
+### note (anchor dropped: `pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: POD_` is not unique in the file)
 
 ```
 The scheduler's decision lands ON the Pod (down-arrow), so the Pod takes its full pulse on
@@ -3232,9 +3731,18 @@ so NOTHING in it pulses or blinks: the packet-less first step is fully static by
 read is carried by the .highlight outline alone.
 
 ---- Horizontal composition, derived rather than hand-placed ----
-Every tier (the two columns and the chip strip) shares ONE center, CONTENT_CX, instead of each
-carrying its own hand-typed margins. That shared center is NOT the canvas center, and it cannot be:
-the narration overlay permanently occupies the top left and the top row sits inside its band.
+The two columns share ONE center, CONTENT_CX, instead of each carrying its own hand-typed margins.
+That shared center is NOT the canvas center, and it cannot be: the narration overlay permanently
+occupies the top left and the top row sits inside its band, which pins the left edge at LEFT_X 400.
+The chip strip is the exception and centers on the CANVAS (600), because it sits below everything
+and has the full width to work with.
+
+CONTENT_CX is 630, not the 660 it was until R5 (2026-07-27). The whole drawing does not slide left
+to reach 600: sliding it would drag the claim under the overlay, which is what LEFT_X exists to
+prevent. What moved is the RIGHT edge, by narrowing the machinery column from 240 to 220 and the
+elbow channel from 80 to 40, both of which had slack ('provisioner: ebs.csi.aws.com' is the widest
+string in that column at about 150 units). At 660 the content bbox was 400..920 and the tool called
+it off centre by 60; at 630 it is 400..860.
 
 Do not "improve" this by measuring the overlay at your own window size and sliding LEFT_X leftward.
 The overlay is HTML laid over the SVG, so the NARROWER the window, the MORE viewBox units it eats.
@@ -3252,18 +3760,21 @@ that x because they are never on screen together: the write arrow shows only whi
 created, the spine only once it is bound. Any other arrangement puts one of them off center.
 ```
 
-### before `const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 580`
+### before `const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 620`
 
 ```
 The ONE vertical channel in the gap between the PVC column and the provisioner column. Both the
 claim descending into the provisioner and the PV write leaving it turn on this x, and their
-vertical runs do not overlap in y (130..282 above, 312..396 below), so sharing the channel reads
-as one clean lane. They used to sit at 686 and 690: a 4px offset, far too small to register as a
+vertical runs do not overlap in y (122..279 above, 311..396 below), so sharing the channel reads
+as one clean lane. Those four y values are a pair of MIRRORED lane offsets, not free numbers: two
+lanes meet the claim's right face at 110 +/- 12 and two meet the provisioner's left face at
+295 +/- 16. A single lane sitting off a face midpoint on its own reads as a slip, which is what
+the old 130 and 312 were. They used to sit at 686 and 690: a 4px offset, far too small to register as a
 deliberate lane split (those use LANE_DY, 15) and so it just looked like a misalignment. Derived
 from the gap so it stays centered in it if either column is ever resized.
 ```
 
-### before `const cloud = box({ x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage Backend', sublabel: 'reach`
+### before `const cloud = box({ x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage backend', sublabel: 'reached via the CSI driver', role: 'storage' });`
 
 ```
 Sublabel names the CSI driver because the narration says CreateVolume is called ON the driver,
@@ -3271,7 +3782,7 @@ and the driver has no box of its own: the ball lands here, so this box has to ad
 driver plus the backend behind it, or the text names an actor the picture does not have.
 ```
 
-### before `const [[scRefX1, scRefY1], [scRefX2, scRefY2]] = W_SC_REF;`
+### before `const scRef = relationPath({ points: W_SC_REF, role: 'storage', dash: '5 5' });`
 
 ```
 The claim NAMES its class. Nothing travels this line, so it carries no arrowhead: arrow()
@@ -3412,11 +3923,19 @@ one frame: the left container writes INTO the disk, the right container reads OU
 ```
 Ephemeral Storage Limits. The whole scene is one node, CANVAS-CENTERED (210..990, center 600).
 Inside it the main column (the focus Pod, the three things that make up its ephemeral usage, the
-nodefs disk) is a VERTICAL STACK symmetric about x=480: the Pod centered over the contributor
+nodefs disk) is a VERTICAL STACK symmetric about COL_CX = 620: the Pod centered over the contributor
 row, the row centered over the disk. The other Pods, which matter only for the node-wide path,
 are a right-hand column inside the node (they cannot leave it: DiskPressure on THIS node is what
-evicts them), top-aligned with the focus Pod. The node carries equal 40px inner padding on both
-sides, and the chip strip below spans exactly the node width.
+evicts them), top-aligned with the focus Pod. The chip strip below spans exactly the node width.
+
+COL_CX is 620 rather than the node's own 600, and that 20 unit offset is the whole R5 story on this
+card (2026-07-27). This narration is the longest in the storage set, so the overlay reaches x<=397
+all the way down to y=355, which covers BOTH the Pod tier and the contributor tier. At the old 480
+the Writable box (250..390) was 100 percent behind the panel, the Pod 21 percent and its app box 16.
+Shifting the stack right by 140 clears all three (the Writable box now starts at 390, seven units
+inside the panel's right edge at its worst, five percent of its area), and 620 is as far left as it
+can go while doing so. The disk moves with the row, so its three contributor lanes still drop on
++/-160 either side of its own midpoint and stay a mirrored pair.
 
 The card must keep TWO eviction paths distinct. Path A is per-Pod: writable + emptyDir + logs going
 over limits.ephemeral-storage evicts THIS Pod at once, regardless of node health. Path B is
@@ -3424,11 +3943,14 @@ node-wide: nodefs usage crossing the eviction threshold taints the node DiskPres
 then evicts Pods ranked by QoS class and by how far each is over its request, which can hit a Pod
 that was within its own limit. Only Pods pulse. The disk and contributor boxes light.
 
-GEOMETRY. Every lane is ONE straight vertical segment: the disk is wide enough (300..660) that
+GEOMETRY. Every lane is ONE straight vertical segment: the disk is wide enough (440..800) that
 all three contributor centers drop straight onto its top, no corners anywhere. Centering the node
-puts its top-left corner (and the node tag on narrow viewports) under the narration overlay
-(measured (300, 163) on the family cards on a comfortable 1600px viewport), the accepted price
-of the centering. Every content block stays clear of the measured overlay.
+puts its top-left corner (and the node tag on narrow viewports) under the narration overlay, the
+accepted price of the centering: a node frame is a container, not content, and the rule that counts
+occlusion skips it. Every content BLOCK stays clear of the measured overlay. The left third of the
+frame is empty for the same reason, and on a wide viewport, where the panel is short, it reads as
+empty rather than as reserved. Clamping the panel height in CSS is the open question that would let
+this card put something there.
 ```
 
 ### poster
@@ -3459,9 +3981,16 @@ emptyDir comes back empty (it was tied to the old node) while the PVC reattaches
 with the data intact. Only the Pod pulses. Disks and the claim box are infrastructure: they light.
 
 Because the diagram is centred on the canvas, the Pod's left shell edge passes under the top-left
-narration overlay (right edge ~410, bottom max ~223). Nothing essential is hidden: the pod() label
-and the app box are centre-anchored at the spine, so they stay clear, and every volume sits below
-y=306, well under the overlay. The three state chips are fitted to the Pod width, evenly spaced.
+narration overlay. This card's panel bottoms out at y=181 (measured over 1600/1280/1100), and the
+Pod is sized and placed against that: 560 wide at y=90 leaves about a tenth of its area behind the
+panel at the worst viewport, against a sixth at the old 620 wide at y=66, which the OCCLUDED rule
+counted as a lost block. It cannot clear the panel outright without landing on the volume tier
+(the columns start at y=306 and the write lanes would shrink to stubs), so a tenth is the trade.
+Nothing essential is hidden: the pod() label and the app box are centre-anchored at the spine, so
+they stay clear, and every volume sits below y=306, well under the overlay. The divider between the
+ephemeral and persistent halves starts under the Pod (POD_BOTTOM + 16) rather than at a typed 206,
+so it can never poke into the Pod when the Pod moves. The three state chips are a single width on
+one pitch, centred on the canvas.
 ```
 
 ### before `function setChip(chip, val) {`
@@ -3826,9 +4355,14 @@ Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
   1600x1000 right 291  bottom 143
   1280x900  right 378  bottom 173
   1100x900  right 397  bottom 149
-Worst case x <= 397 and y <= 183. Only the Pod sits inside that y band, and at 450..750 it clears
-the overlay on x while staying centred on CX. The claim row (y 208) and everything below it clear
-the overlay entirely. A longer narration than the ones below would invalidate this measurement.
+  1280x860  right 397  bottom 205   <- added 2026-07-27
+  1100x800  right 397  bottom 205   <- added 2026-07-27
+Worst case x <= 397 and y <= **205**, not the 183 recorded above: the rows sampled originally were
+all 900 or 1000 tall, and a shorter window shrinks the diagram while the HTML panel keeps its pixels.
+Only the Pod sits inside that y band, and at 450..750 it clears the overlay on x while staying
+centred on CX. The claim row at y 208 clears the real floor by **3 units**, not the 25 the old number
+implied, so this row must not move up. A longer narration than the ones below would invalidate this
+measurement.
 
 PULSE MODEL: only the Pod pulses, and it is a wrapping g. The claim, the class, the provisioner and
 the disk are infrastructure: they light via .highlight, on packet arrival where there is a packet
@@ -4335,7 +4869,7 @@ evenly, so the nodes sit higher, the controller drops, and every corridor below 
 Block sizes follow storage-csi-architecture, which sets the storage family's box at 232 x 76 (its
 SIDE_W is 232 and its sidecar row is 76 tall). Both the controller and the two VolumeAttachments
 take that 76, and the VolumeAttachments take the 232 exactly. The controller is the one exception
-on width and it is forced, not chosen: 'Attach/Detach Controller' renders about 252 units, so a
+on width and it is forced, not chosen: 'Attach/Detach controller' renders about 252 units, so a
 232 box would clip its own label. It keeps 300, which leaves ~24 units of air.
 ```
 
@@ -4470,7 +5004,7 @@ fires at half strength (symptom in anim-dump: strokeOpacity rows but no filter r
 is ever put on the container box either, so a Pod never keeps a lit outline after its blink decays.
 ```
 
-### before `const nodeA = node({ x: NODE_A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-1' });`
+### before `const nodeA = node({ x: NODE_A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });`
 
 ```
 node() places its caption in GROUP-LOCAL coordinates (x 12, y 18 inside its own translate).
@@ -4537,7 +5071,7 @@ thing acting right now', and a deleted object is the opposite of that. Pairs wit
 two land together.
 ```
 
-### before `narration: 'PV-web is ReadWriteOnce, so it may be attached to one node at a time and no more. Right now it is `
+### before `narration: 'PV-web is ReadWriteOnce, so it may be attached to one Node at a time and no more. Right now it is attached to Node-1, recorded by the VolumeAttachment va-1, and the Pod there reads and writes it quite happily. Nothing about this is a problem until the Pod has to move.',`
 
 ```
 node-2 is absent, not empty. An empty frame sitting there from the first frame says the second
@@ -4545,7 +5079,7 @@ node is already part of the picture and merely unused, which is the opposite of 
 this point there is one node, one Pod, one attachment, and no contention at all.
 ```
 
-### before `narration: 'Now the Pod moves. A rolling update stands the replacement up on node-2 while the old one is still`
+### before `narration: 'Now the Pod moves. A rolling update stands the replacement up on Node-2 while the old one is still running, which is exactly what RollingUpdate is designed to do. Node-1 stays healthy throughout. A second Pod now exists on the other Node, and it wants the same volume.',`
 
 ```
 The OLD Pod deliberately stays at full opacity here and through step 4: the entire problem is
@@ -4562,7 +5096,7 @@ step before it is made. It arrives on the next step, together with the ball that
 which is the catalog rule: a lane appears when it first carries traffic.
 ```
 
-### before `narration: 'The attach and detach controller tries to attach the volume to node-2, which means writing a secon`
+### before `narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV-web is ReadWriteOnce and the first attachment is still live, so a second cannot be satisfied.',`
 
 ```
 THE REFUSAL, and the reason this card exists. The idiom (shared with storage-access-modes) is
@@ -4638,7 +5172,7 @@ controller. What the reader needs here is the consequence, so the Pod blinks one
 the attach lands.
 ```
 
-### before `narration: 'This is why a Deployment on ReadWriteOnce storage stalls on every rollout. RollingUpdate creates t`
+### before `narration: 'This is why a Deployment on ReadWriteOnce storage stalls whenever the replacement Pod lands on another Node. RollingUpdate creates the new Pod before deleting the old one, so both want one single-node volume and the new one is refused. Set it to Recreate, which deletes the old Pod before making the new one, the way a StatefulSet handles an ordinal.',`
 
 ```
 The closing step, so it deliberately comes to rest: no packet, no pulse, and no block flash
@@ -4698,39 +5232,47 @@ dot: a ball frozen on a wire reads as a paused animation.
 
 ## storage-projected-volume
 
-### before `const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;  // 330..970, flush over both columns`
+### before `const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;  // 330..970, over the projected directory`
 
 ```
 Projected Volumes. One directory assembled from several sources at once. The layout is TWO
-ALIGNED COLUMNS under one wide Pod: the four sources on the left, the projected directory with
-one file row per source on the right, and EVERY source mid-height equals its file row mid-height,
-so all four fan-in lanes are pure horizontal segments. The gesture is a FAN-IN: four parallel
-lanes converge on the one dir.
+ALIGNED COLUMNS: the four sources on the left, the projected directory with one file row per source
+on the right, and EVERY source mid-height equals its file row mid-height, so all four fan-in lanes
+are pure horizontal segments. The gesture is a FAN-IN: four parallel lanes converge on the one dir.
+The Pod sits over the DIRECTORY column only. It used to be flush over both, which put the source
+column under it as though the ConfigMap and the Secret lived inside the Pod, and dragged the whole
+drawing into 330..970 (centre 650) with the lower left third of the canvas empty. The sources are
+cluster objects, so R5 moved that column out from under the Pod to 230..450 (2026-07-27) and the
+content now spans 230..970, centred on the canvas.
 
 The card leads to the serviceAccountToken source, the one that matters. Unlike the old forever
 valid Secret-based token, a projected token is short-lived and audience-bound, and kubelet ROTATES
 it in place before it expires, rewriting the same file with a fresh token and no restart. The
 rotation is the beat the card builds to.
 
-GEOMETRY. Every lane is ONE straight segment, zero corners anywhere: the four source lanes run
-horizontally on shared mid-heights, the Pod metadata drops vertically from the Pod bottom into
-downwardAPI (which sits FIRST in the column exactly so that drop crosses nothing), and the app
-read rides vertically from the dir top into the Pod. The Pod spans both columns, FLUSH with the
-outer edges of both (its left edge is the source column left edge, its right edge is the dir
-right edge), so both vertical lanes start under it and the stack reads as one aligned unit.
+GEOMETRY. The four source lanes run horizontally on shared mid-heights, zero corners. The two Pod
+lanes each turn ONCE: the metadata drop leaves the Pod floor 100 left of its centre, steps out to
+the source column in the corridor at y=232 and drops into downwardAPI (which sits FIRST in the
+column exactly so that drop crosses nothing), and the app read leaves the dir top, steps in at
+y=200 and rises into the Pod floor 100 right of its centre. The pair either side of the Pod centre
+is the point: a 640 wide face with one lane out at 440 and another at 800 reads as two lanes that
+missed, and both were reported as such. 100 is also inside the 18 percent of the face that the rule
+treats as still on the midpoint, so the pair is legible as a pair rather than as a tolerance.
 
 Only the Pod pulses (it is the source of downwardAPI metadata and the reader of the token). Sources
-and file rows are infrastructure: they light. The narration overlay owns the top-left corner:
-blocks start at x=330, clear of the overlay measured on the family cards ((300, 163) on a
-comfortable 1600px viewport). A longer narration invalidates this.
+and file rows are infrastructure: they light. The narration overlay owns the top-left corner, and on
+this card it bottoms out at y=181 (measured over 1600/1280/1100): the Pod at y=56 is the only tier
+inside that band and starts at x=330, and the source column below it starts at y=264, well clear.
+The metadata corridor at y=232 is what those 181 units pin: it cannot rise. A longer narration
+invalidates this.
 ```
 
 ### before `const W_DOWN = [[SRC_RIGHT, midOf(DOWN_Y)], [ROW_X, midOf(DOWN_Y)]];`
 
 ```
-Each static wire and its ball share one array. Every lane is a single straight segment: the four
-source lanes fan into the file rows on shared mid-heights, the Pod drops its own metadata into
-downwardAPI, and the app reads a file back out up the dir spine.
+Each static wire and its ball share one array. The four source lanes fan into the file rows on
+shared mid-heights as single straight segments, and the two Pod lanes turn once each: the Pod drops
+its own metadata into downwardAPI, and the app reads a file back out of the dir.
 ```
 
 ### poster
@@ -5003,7 +5545,7 @@ PV-b22), runs a bus under the whole shelf, and rises into each cylinder BOTTOM w
 before the turn. That keeps every probe off the cylinder tops. The second claim of the exclusive
 step sits above the controller, denied by a short straight hop up. Cylinders are the PVs: they
 light, they never pulse. Only the Pod pulses. The narration overlay owns the top-left band
-(x<=380, y<=300), clear of every block.
+and every block clears it.
 ```
 
 ### before `const W_PVC_TO_CTRL = [[PVC_RIGHT, PVC_MID - LANE], [CTRL_LEFT, PVC_MID - LANE]];   // watch, straight`
@@ -5075,7 +5617,7 @@ the routes are very different lengths. Do not stagger them to make the verdicts 
 narration order: that was tried and it turns one sweep into three separate errands.
 ```
 
-### before `s.refs.appPod.style.opacity = '0.5';`
+### note (anchor dropped: `s.refs.appPod.style.opacity = '0.5';` is not unique in the file)
 
 ```
 The Pod stays dim until the volume actually reaches it, so the motion path re-dims it and
@@ -5138,14 +5680,14 @@ insets are equal, so the column is symmetric and nothing is pinned to a free gap
 the same rhythm as storage-volume-snapshot from the frame down, since the two cards sit in one row:
   36    canvas top margin
   36    External-provisioner   68 tall, to 104
-  150   request corridor       46 below the provisioner, 46 above the claim row
-  196   claim row              68 tall, to 264
-  278   the constraint list    four lines, 22 apart, on the centre line, to 344
-  356   storage backend frame  174 tall, to 530
-  398   disks                  90 tall, to 488, frame insets 42 above and below
-  512   disk captions          18 above the frame floor
-  570   chip strip             34 tall, to 604
-  36    canvas bottom margin, equal to the top one
+  170   request corridor       66 below the provisioner, 66 above the claim row
+  236   claim row              68 tall, to 304
+  320   the constraint list    four lines, 20 apart, on the centre line, to 380
+  396   storage backend frame  174 tall, to 570
+  438   disks                  90 tall, to 528, frame insets 42 above and below
+  552   disk captions          18 above the frame floor
+  588   chip strip             34 tall, to 622
+  18    canvas bottom margin
 
 ---- Narration overlay ----
 Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
@@ -5153,11 +5695,19 @@ Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
   1600x1000 right 291  bottom 160
   1280x900  right 378  bottom 173
   1100x900  right 397  bottom 173
-Worst case x <= 397 and y <= 183. Only the provisioner sits inside that y band, and at 420..780 it
-clears the widest measured panel by 23 while still centring on CX. The request corridor at y=150 is
-inside the band too, but it only ever runs between x=612 and x=880, far right of any panel. The
-claim row (y 196) and everything below it clear the overlay entirely, which is what frees the full
-width for the mirror. A longer narration than the ones below would invalidate this measurement.
+  1280x860  right 397  bottom 230   <- added 2026-07-27
+  1100x800  right 397  bottom 230   <- added 2026-07-27
+The first four rows are all 900 or 1000 tall, and that is what made the old worst case (y <= 183)
+too kind by 47 units: a SHORTER window gives the dialog less height, the diagram scales down with it
+and the panel, which is HTML at a fixed size, eats more viewBox units. The rule that judges occlusion
+samples 1600x1000, 1280x860 and 1100x800, so the number this layout is built against is 230.
+
+At 196 the claim row was inside that band and the source claim (180..460) was 38 percent behind the
+panel. The row now starts at 236, clear of 230 outright, and everything under it moved down by 40 to
+follow: the constraint lines lost 2 units of leading (22 to 20) to pay for part of it, and the chip
+strip took the rest out of the bottom margin. The provisioner still sits inside the band and still
+clears it on x, at 420..780. The request corridor at y=170 is inside the band too, but it only ever
+runs between x=600 and x=880, far right of any panel. A longer narration invalidates all of this.
 
 PULSE MODEL: nothing pulses and nothing blinks. There is no Pod on this card, and every block is
 infrastructure that lights via .highlight, on packet arrival where there is a packet and at step
@@ -5193,7 +5743,7 @@ sized from its contents. The top band carries the frame label (node() puts its l
 below the frame top) and the bottom band carries the disk captions, and the two come out equal.
 ```
 
-### before `const REQ_CORRIDOR_Y = (PROV_BOTTOM + CLAIM_TOP) / 2;                   // 150`
+### before `const REQ_CORRIDOR_Y = (PROV_BOTTOM + CLAIM_TOP) / 2;                   // 170`
 
 ```
 The horizontal run of a zigzag belongs at the MIDPOINT OF WHAT IT CROSSES, not in whatever gap
@@ -5205,7 +5755,7 @@ faces it leaves and enters. It used to turn in over the cap and drop onto the to
 two arrowheads on one disk pointing from the same direction as the copy.
 ```
 
-### before `const PLACEHOLDER = 0.4;`
+### opacity phases (was `const PLACEHOLDER = 0.4`, now OPACITY.pending)
 
 ```
 PLACEHOLDER is the dim an object is drawn at while it does not exist yet. Hiding it outright leaves
@@ -5245,7 +5795,7 @@ holds the previous step's text at call time (clearHL clears the class, not the t
 always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
-### before `function setStage(s, { clone = PLACEHOLDER, cloneDisk = PLACEHOLDER, bound = 0, ds = 0, lanes = [] } = {}) {`
+### before `function setStage(s, { clone = OPACITY.pending, cloneDisk = OPACITY.pending, bound = 0, ds = 0, lanes = [] } = {}) {`
 
 ```
 Pins the visibility of EVERY element born mid-story, and of every lane, exactly as setChips pins
@@ -5316,31 +5866,37 @@ spine is drawn as the mount ASCENT (disk -> claim -> Pod, upward), the same sing
 storage-pvc-binding settled on, and balls really travel it, so the arrowheads are earned. Nothing
 here is a headless relationship line.
 
-The two actors that drive the delete sit in ONE right-hand column at a shared x and a shared
-footprint, and they are placed so that every lane they send is a straight run or a single right
-angle. There is no dog-leg anywhere in this card and no lane turns twice.
+The two actors that drive the delete sit ONE ON EACH SIDE of the spine, sharing a footprint, and
+they are placed so that every lane they send is a straight run or a single right angle. There is no
+dog-leg anywhere in this card and no lane turns twice.
 
 The vertical rhythm is one pitch, TIER=162, and it does double duty:
-  - kubectl sits at 108, the claim at 270, the controller at 432. Three actors, evenly spaced.
-  - 108 is also the Pod center, so kubectl deletes the Pod along a STRAIGHT horizontal.
-  - 270 is the claim center, so the two lanes that reach the claim, the delete coming DOWN from
-    kubectl and the finalizer patch coming UP from the controller, are exact MIRRORS of each other
-    around the claim midline, each turning once and each landing dead center on its right edge.
-The two forces of the card, the request to delete and the release that finally allows it, arrive on
-mirrored lanes. That is the composition saying what the narration says.
+  - the claim sits at 270 and the controller at 432, one tier below it.
+  - kubectl is level with the claim it deletes (its own centre is 270), so kubectl -> PVC is a
+    STRAIGHT horizontal into the claim's right face, and deleting the Pod climbs its own column
+    first and turns once into the Pod's right face at the Pod centre, 108.
+  - the two lanes that reach the claim, the delete coming in from kubectl on the right and the
+    finalizer patch coming up from the controller on the left, land dead centre on opposite faces.
+The two forces of the card, the request to delete and the release that finally allows it, arrive
+from opposite sides. That is the composition saying what the narration says.
 
-Every block and every lane clears the narration overlay by the blanket rule alone: the stack starts
-at x=480 and no lane runs left of x=600. The ONE element that reaches into the left column is the
-verdict caption beside the claim, which is anchored end at x=464 and runs back to about x=306 on its
-longest string.
+Both actors used to be stacked in ONE right-hand column, kubectl at the Pod tier and the controller
+below the claim (R5 moved them, 2026-07-27). That put every block on the card in the band 480..1070,
+centre 775, with the whole left half below the panel empty. kubectl cannot move left: it sits in the
+overlay's y band. The controller can, because its tier (396..468) is well below the panel floor of
+230, so it takes the left column at 130..350 and the content spans 130..1070, centre 600. Dropping
+kubectl to the claim tier is what pays for it twice over: it also turns the delete-PVC lane into a
+straight horizontal and leaves the Pod lane as the only turning one.
 
-That one is placed on a MEASUREMENT, not on the blanket rule. This card's own overlay was measured
-across viewport widths 1920 down to 900: its right edge peaks at 399 and its bottom peaks at 201,
-both at the narrow end (the right edge is driven by the VIEWPORT rather than by the text, because
-the overlay is fixed-size HTML over an SVG that scales, so a narrower window eats more viewBox
-units). The caption sits at y=274, which clears that 201 by 73 units at every width. LENGTHENING ANY
-NARRATION INVALIDATES THIS: re-measure before doing it, or move the caption back to the right of the
-axis. Nothing else in the card depends on the measurement.
+The verdict caption beside the claim moved with the controller lane. It is anchored end at x=464 and
+runs back to about x=306 on its longest string, and it now sits BELOW the claim (y=324) rather than
+level with it, because the controller's lane now occupies the claim's mid height on that side.
+
+Its y is a MEASUREMENT, not the blanket rule. This card's overlay was measured across viewport
+widths 1920 down to 900: its right edge peaks at 399 and its bottom at 230 on the 1100x800 sample
+the occlusion rule uses (an earlier note here said 201, from a taller sample). The caption at 324
+and the controller at 396 clear that by 94 and 166. LENGTHENING ANY NARRATION INVALIDATES THIS:
+re-measure before doing it, or move the caption back to the right of the axis.
 ```
 
 ### before `const MOUNT_LBL_X = CX + 16, MOUNT_LBL_Y = 204;`
@@ -5352,15 +5908,16 @@ CLAIM, not of any lane, so it sits hard against the claim at its own midline ins
 the lower lane, as an earlier cut had it, it read as that lane's name, which it never was.
 ```
 
-### before `const W_DEL_PVC  = [[ACT_CX, KUBECTL_BOTTOM], [ACT_CX, PVC_MID], [PVC_RIGHT, PVC_MID]];`
+### before `const W_DEL_PVC = [[ACT_R_X, PVC_MID], [PVC_RIGHT, PVC_MID]];`
 
 ```
-The mirrored pair into the claim. One turn each, and BOTH land dead center on the claim's right
-edge, at PVC_MID exactly, rather than on lanes offset either side of it. Splitting them by a lane
-gap is the usual way to keep two routes from overlapping, and it is wrong here: the two are never
-on stage together (kubectl appears only on the delete step, the controller only on the release
-step), so the gap bought nothing and cost the thing that matters, which is that an arrow arriving
-off center reads as aimed at a corner of the block instead of at the block.
+The pair into the claim, one from each side, and BOTH land dead center on their face, at PVC_MID
+exactly, rather than on lanes offset either side of it. Splitting them by a lane gap is the usual
+way to keep two routes from overlapping, and it is wrong here: the two are never on stage together
+(kubectl appears only on the delete step, the controller only on the release step), so the gap
+bought nothing and cost the thing that matters, which is that an arrow arriving off center reads as
+aimed at a corner of the block instead of at the block. While both actors were in the right column
+these were mirrors around the claim's midline on ONE face; now they are mirrors across the claim.
 ```
 
 ### before `// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.`
@@ -5374,7 +5931,7 @@ mount ball instead, which is both real traffic and the actual point being made: 
 mounted, which is exactly why it cannot go.
 ```
 
-### before `const kubectl = box({ x: ACT_X, y: KUBECTL_Y, w: ACT_W, h: ACT_H, label: 'Kubectl Delete', sublabel: 'issues t`
+### before `const kubectl = box({ x: ACT_R_X, y: KUBECTL_Y, w: ACT_W, h: ACT_H, label: 'kubectl delete', sublabel: 'issues t`
 
 ```
 Block labels lead with the capitalized object TYPE, matching the sibling cards (PV controller,
@@ -5399,12 +5956,17 @@ it reports whatever the claim currently is, which changes kind across the card (
 a block on removal, then a removal), so it is named for its job rather than for one lane.
 ```
 
-### before `const CHIP_W = 252, CHIP_GAP = 24;`
+### before `const CHIP_GAP = 24, CHIP_WS = [312, 232, 244, 220];`
 
 ```
-A centered four-chip strip, derived rather than hand-placed, so the readout is concentric with
-the stack above it. deletionTimestamp and the kubectl column sit next to each other on purpose:
-the second is a display of the first, and seeing them light together is the lesson.
+A four-chip strip over the card's own width, derived rather than hand-placed, so the readout is
+concentric with the stack above it. deletionTimestamp and the kubectl column sit next to each other
+on purpose: the second is a display of the first, and seeing them light together is the lesson.
+
+The four are NOT one width, and that is the fix for the last chip collision in the catalog. The
+first carries both the longest name on the card and its longest value (deletionTimestamp against
+'gone with object'); at the shared 252 those two strings met with one unit to spare, which is a
+collision on any re-measure or font change. It takes 312 and the other three give it back.
 ```
 
 ### before `[pvc, kubectl, ctrl, disk].forEach(el => root.appendChild(el));`
@@ -5577,7 +6139,7 @@ Two rules govern that light, and both exist because a lit stroke is a claim abou
   2. A block that is not at full opacity never carries one. Faded means gone or refused, and a
      dimmed block still glowing reads as deleted-but-somehow-live. removeAt enforces this for the
      mid-flight case by dropping the class as the fade lands.
-The narration overlay owns x<=380 & y<=300, so every block starts at x>=400.
+The narration overlay owns the top-left corner, so every block starts at x>=400.
 
 ---- Vertical rhythm ----
 Four tiers with three equal 54px gaps, so no hop is a blink and no tier reads as belonging to its
@@ -5593,7 +6155,7 @@ this layout did. Everything above the shelf is spaced backwards from it.
 ---- Horizontal composition ----
 The stack is centered on the CANVAS, at 600, not merely placed somewhere to the right of the
 narration overlay. That costs width and the cost is not negotiable: the overlay permanently owns
-the top left (x<=380 worst case), the top two tiers sit inside its vertical band, so the leftmost
+the top left, the top two tiers sit inside its vertical band, so the leftmost
 the columns may start is 400. Centering on 600 with a left edge of 400 pins the stack to exactly
 400 wide. Everything horizontal is derived from those two numbers, so the two columns split what
 is left rather than each carrying a hand-typed x.
@@ -5646,7 +6208,7 @@ to roughly 46 + 73 px of 11px JetBrains Mono, which leaves a clear gap between t
 value. Anything longer collides in the middle of the chip, so shorten the VALUE, never the width.
 ```
 
-### before `function removeAt(el, ctx, delay = 0, to = GONE) {`
+### before `function removeAt(el, ctx, delay = 0, to = OPACITY.terminated) {`
 
 ```
 Fades an object out of existence when the delete that removes it lands, and takes its lit stroke
@@ -5675,7 +6237,7 @@ back on. It used to be the same element wearing a new sublabel, so the step that
 brand new claim showed the deleted claim rising from the dead under its original name.
 ```
 
-### before `const delChip     = valChip({ x: DEL_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV-del', value: 'Bound', c`
+### before `const delChip     = valChip({ x: DEL_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV-del', value: 'Bound', role: 'storage' });`
 
 ```
 Each chip names ONE object and reports only that object's state, so a value can never be read
@@ -5724,7 +6286,7 @@ because that is the moment the policy is read and the disk is spared. Lighting t
 step entry announced the outcome before the ball that decides it had left the volume.
 ```
 
-### before `setStage(s, { delPvc: GONE, delPv: GONE, delDisk: GONE, retPvc: 0, retPvc2: 1, admin: 0, delBound: 0, retBound`
+### before `setStage(s, { delPvc: 1, delPv: 1, delDisk: 1, retPvc: 1, retPvc2: 0, admin: 0, delBound: 1, retBound: 1, retBindLane: 0, adminLane: 0 });`
 
 ```
 A ball travels this segment on this step, so the segment is a ROUTE and is drawn dashed with
@@ -5790,9 +6352,13 @@ Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
   1600x1000 right 291  bottom 143
   1280x900  right 378  bottom 173
   1100x900  right 397  bottom 149
-Worst case x <= 397 and y <= 183. The StorageClass (y 36) and the claim (y 136) both sit inside
-that y band, so both start at x >= 400. Everything from the node row down (y >= 236) clears the
-overlay entirely. A longer narration than the ones below would invalidate this measurement.
+  1280x860  right 397  bottom 230   <- added 2026-07-27
+  1100x800  right 397  bottom 230   <- added 2026-07-27
+Worst case x <= 397 and y <= **230**, not the 183 recorded above: the rows sampled originally were
+all 900 or 1000 tall, and a shorter window shrinks the diagram while the HTML panel keeps its pixels.
+The StorageClass (y 36) and the claim (y 136) both sit inside that y band, so both start at x >= 400.
+The node row at y 236 clears the real floor by **6 units**, not the 53 the old number implied, so it
+must not move up. A longer narration than the ones below would invalidate this measurement.
 
 PULSE MODEL: only the Pod pulses, and it is a wrapping g. The zone frames, the class, the claim and
 the disks are infrastructure: they light via .highlight and never pulse. On the failure step the Pod
@@ -5883,7 +6449,7 @@ holds the previous step's text at call time (clearHL clears the class, not the t
 always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
-### before `pulsePodDim(s.refs.podB, ctx, BEAT.lead, { from: POD_DIM, peak: 0.95 });`
+### before `pulsePodDim(s.refs.podB, ctx, BEAT.lead, { from: OPACITY.pending, peak: 0.95 });`
 
 ```
 The scheduler keeps re-queuing the Pending Pod and rejecting it, so the Pod blinks. It never
@@ -6208,7 +6774,7 @@ what they carry (a node telling the cluster its own ceiling) is a standing relat
 true long before this card started.
 ```
 
-### before `narration: 'Every node has a hard ceiling on how many volumes one CSI driver may have attached to it at once, `
+### before `narration: 'Every Node has a hard ceiling on how many volumes one CSI driver may have attached to it at once, and it has nothing to do with CPU or memory. Here three Nodes each report a ceiling of eight, so the cluster holds twenty four slots and four are in use. Nothing about this number is on a dashboard.',`
 
 ```
 The Pod is absent, not dim. It has not been created yet, and a ghost Pod sitting at the top of
@@ -6249,7 +6815,7 @@ have cut the fill off with the final slot still fading in. 90ms per slot over th
 that actually change lands the last one at 1930ms, well inside the step.
 ```
 
-### before `narration: 'So web-0 stays Pending, and its event reads zero of three nodes are available, three nodes exceed `
+### before `narration: 'So web-0 stays Pending, and its event reads zero of three Nodes are available, three Nodes exceed max volume count. Every one of those Nodes has spare CPU and spare memory, which is what makes this hard to recognise: the cluster looks half empty and the Pod will not schedule.',`
 
 ```
 The sentence of the whole card. The answer comes back DOWN its own lane rather than up the
@@ -6381,9 +6947,17 @@ actually sets the visual center of the card. The previous layout ran the nodes a
 the chips at 430..1142, which put the whole card 186 units right of the canvas center with a dead
 left third. Pulling everything onto 600 makes the strip 269..931 and both readings agree.
 
-The ladder and the escape box share the chip strip's outer edges (LAD_X == CHIP_X[0] and the
-escape box right edge == the strip right edge) so the bottom band reads as one block rather than
-three floating objects.
+The bottom band was re-cut in R5 (2026-07-27) and it no longer sits inside the chip strip's edges.
+The reason is a rule the old cut could not see: the escape box is a BLOCK, and the only other block
+below the overlay is the disk. Two blocks are what the low-content check measures, so an escape box
+parked at 701..931 put the low half of the card at 505..931, centre 718, however well the chip strip
+behaved. It now stands on the spine under the disk it acts on (485..715), which also turns its taint
+lane into a straight climb into the disk floor instead of an elbow into the disk's right face.
+
+The ladder and the chips then take one side each, ladder at the left margin (60..440) and chips at
+the right (478..1140), so between them the .scheme-chip strip still spans the full 60..1140 and
+still centres on 600. Both of those are pooled into one strip by the check, which is why the ladder
+can be moved to balance the chips rather than having to sit under them.
 ```
 
 ### before `const NODE_Y = 48, NODE_H = 160;`
@@ -6411,7 +6985,7 @@ So 210 clears the worst pair with 21 units between name and value, which is the 
 halves still reading as separate fields.
 ```
 
-### before `const LAD_X = BAND_LEFT, LAD_Y = 448, LAD_W = 380, LAD_ROW = 38, LAD_GAP = 9;`
+### before `const LAD_X = M, LAD_Y = 448, LAD_W = 380, LAD_ROW = 38, LAD_GAP = 9;`
 
 ```
 The ladder rows carry the longest strings on the card, and they are the one place a per-character
@@ -6426,11 +7000,11 @@ jammed against the frame.
 
 ```
 ESC_W shrinks to 230 to buy the ladder that extra width back: the widest string inside the box is
-the sublabel at 175 units, so 230 still leaves ~27 either side, and the gap between the ladder
-right edge (649) and the box left edge (701) stays at 52.
+the sublabel at 175 units, so 230 still leaves ~27 either side. The box is now centred on the spine
+(485..715), so the gap it keeps is to the ladder's right edge (440), 45 units.
 ```
 
-### before `const GONE = 0.35;     // OPACITY.dim`
+### opacity phases (was `const GONE = 0.35`, now OPACITY.*)
 
 ```
 A Pod that EXISTS is drawn at full strength and blinks with the ordinary pulsePod, exactly as the
@@ -6477,7 +7051,7 @@ Nothing here ever puts .highlight on the App box either: a Pod must not be left 
 rectangle once its pulse has decayed.
 ```
 
-### before `const nodeA = node({ x: A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-1' });`
+### before `const nodeA = node({ x: A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });`
 
 ```
 node() puts its own label at coordinates RELATIVE to the frame group. An earlier pass hand
@@ -6538,9 +7112,14 @@ has no way to catch.
 Both node FRAMES and both Pods stay at full strength. node-1 being unreachable and its Pod
 being unconfirmed are carried by the chip and the Pod sublabels, not by a faded opacity: a Pod
 that might still be running is a Pod that exists, and the family draws an existing Pod at full.
+
+The replacement Pod is the other half of that rule and is not drawn at all until it exists. It
+used to fade in on the notready step, which no controller could do: while the old web-0 is a live
+object with no deletionTimestamp, nothing may create a second Pod under that name. It now appears
+on the evict step, the step that writes the mark, and node-2 stays an empty frame until then.
 ```
 
-### before `s.refs.oldPod.style.opacity = GONE;`
+### note (anchor dropped: `s.refs.oldPod.style.opacity = GONE;` is not unique in the file)
 
 ```
 The old Pod is now assumed dead and the standing attachment to node-1 is severed, so both
@@ -6648,8 +7227,12 @@ the node grows the filesystem from the other, and the disk between them is the o
 touch. The 234..306 band in the right column is deliberately left empty so the claim lane can drop
 through it without crossing anybody.
 
-Narration overlay: the blanket rule reserves x<=380 AND y<=300. Kubelet sits at x=130 but at y=396,
-far under the y half of that rule, so it never meets the overlay at any width.
+Narration overlay: Kubelet sits at x=130, well inside the panel's horizontal reach, and clears it
+only on the y axis, at y=396. This clearance was argued from the blanket `y<=300`, which is not a
+measurement: the panel bottom is PER CARD and reaches 504 on the longest narration in the catalog.
+Kubelet is therefore safe only while this card's own bottom stays under 396, so lengthening any
+narration here can put the panel over it. Re-measure with
+`node check-geometry.mjs --rules=occluded` after any narration edit.
 
 The one element placed on a MEASUREMENT is the verdict caption left of the claim, anchored end at
 x=464, y=274, reaching back to about x=273 on its longest string. This card's own overlay was
@@ -6978,9 +7561,9 @@ sets the margins the rest answer to:
          beside it on the right, joined by the dataSource reference. The top-left is unusable (the
          narration overlay lives there), so the request box starts at x=420 and the pair leans right,
          which is what balances the panel rather than fighting it.
-  middle the control plane, left to right in the order the story runs: the controller that creates
-         and binds, the object it creates, the sidecar the object wakes. 232 wide, the storage family
-         default, at cx 260 / 600 / 940.
+  middle the control plane, RIGHT TO LEFT in the order the story runs: the controller that creates
+         and binds (940), the object it creates (600), the sidecar the object wakes (260). 232 wide,
+         the storage family default. The direction is not a preference, see the overlay note below.
   bottom the storage backend, holding all three disks so the shared-fate point is made by the picture
          rather than by the caption: source, snapshot, restore, left to right in the order they exist.
 The Content sits on CX so the two lanes it shares with the request run as one straight vertical on
@@ -6992,14 +7575,19 @@ Every horizontal run of every zigzag sits at the MIDPOINT OF THE TWO BLOCKS IT J
 insets are equal, so the whole column is symmetric and nothing is pinned to a free gap:
   36    canvas top margin
   36    VolumeSnapshot request and restore claim   68 tall, to 104
-  157   request corridor                          53 below the request box, 53 above the mid row
-  210   middle row                                68 tall, to 278
-  338   CreateSnapshot corridor                   60 below the mid row, 60 above the disk tops
-  356   storage backend frame                     174 tall, to 530
-  398   disks                                     90 tall, to 488, frame insets 42 above and below
-  512   disk captions                             18 above the frame floor
-  570   chip strip                                34 tall, to 604
-  36    canvas bottom margin, equal to the top one
+  157   request corridor                          53 below the request box, 125 above the mid row
+  282   middle row                                68 tall, to 350
+  378   CreateSnapshot corridor                   28 below the mid row, 18 above the frame
+  396   storage backend frame                     174 tall, to 570
+  438   disks                                     90 tall, to 528, frame insets 42 above and below
+  552   disk captions                             18 above the frame floor
+  588   chip strip                                34 tall, to 622
+  18    canvas bottom margin
+
+The middle row and everything under it dropped 72 units in R5 (2026-07-27), which is why the two
+corridors are no longer the centred midpoints they were: the request corridor stayed at 157 (it is
+pinned by the overlay, see below) and the CreateSnapshot corridor is now placed off the frame, 18
+above it, rather than halfway. Halfway would put it at 373, five units from the frame edge.
 
 ---- Narration overlay ----
 Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
@@ -7008,13 +7596,24 @@ Measured (tools/overlay-measure.mjs), overlay bottom-right in viewBox units:
   1440x1080 right 335  bottom  94
   1280x900  right 378  bottom 152
   1100x900  right 397  bottom 149
-Worst case x <= 397 and y <= 163, and the two never peak together: the panel is TALL when it is
-narrow (1920: bottom 163, right 102) and WIDE when it is short (1100: right 397, bottom 149). That
-is what lets the request corridor sit at its centred 157: the only viewports whose panel reaches
-right of the corridor start (x=260) have a floor at 143..152, so the lane runs below the panel, and
-the one viewport with a deeper panel stops at x=102, far left of anything drawn. The request box at
-y=36 sits inside the y band, so it starts at x=420, clear of the widest measured panel by 23.
-A longer narration than the ones below would invalidate all of this: re-measure before trusting it.
+  1280x860  right 397  bottom 280   <- added 2026-07-27
+  1100x800  right 397  bottom 280   <- added 2026-07-27
+The last two rows are the ones that matter, and they are 117 units deeper than anything the earlier
+sample saw, because a SHORTER window (860 and 800 tall against 900 and 1080) shrinks the diagram
+while the panel, which is HTML at a fixed size, keeps its pixels and so eats more viewBox units.
+Those are the viewports the occlusion rule samples. Worst case: x <= 397 and y <= 280.
+
+Two things follow, and together they are the whole R5 relayout of this card:
+  1. The middle row is three 232 wide boxes on one line, so its LEFT box lands at 144..376 whatever
+     the spread. At y=210 that box was 100 percent behind the panel. The row therefore starts at
+     282, below the floor, and the frame and disks move down with it.
+  2. The request from the top row has to REACH that left box, and any lane that goes there from
+     above crosses the panel band on its way. So the chain runs right to left: the controller, the
+     one box the request addresses, sits at 940 where the lane can reach it in the clear, and the
+     content and the sidecar follow leftward. The request corridor can then stay at 157, where only
+     the viewports with a SHALLOW panel reach right of it.
+The request box at y=36 sits inside the y band, so it starts at x=420, clear of the widest measured
+panel by 23. A longer narration than the ones below would invalidate all of this: re-measure.
 
 PULSE MODEL: nothing pulses and nothing blinks. There is no Pod on this card, and every block is
 infrastructure that lights via .highlight, on packet arrival where there is a packet and at step
@@ -7057,22 +7656,26 @@ box with its contents pushed up. FRAME_Y is then the one number that positions t
 and it is set so the CreateSnapshot corridor clears the frame edge (see CORRIDOR_Y).
 ```
 
-### before `const CORRIDOR_Y = (MID_BOTTOM + CYL_TOP) / 2;              // 338`
+### before `const CORRIDOR_Y = FRAME_Y - 18;                            // 378`
 
 ```
-The horizontal run of a zigzag belongs at the MIDPOINT OF THE TWO BLOCKS IT JOINS, not in whatever
-gap happens to be free. Both of these are measured that way, off the real block edges:
-  CORRIDOR_Y     mid row bottom 278 to disk top 398, so CreateSnapshot drops 60, runs across, drops
-                 60, and the answer climbs the same lane in reverse. Centring it this way also lands
-                 it 18 clear of the frame edge, so the lane and the frame do not read as one doubled
-                 dashed line: that clearance is FRAME_INSET / 2 and is why FRAME_Y is 356.
-  REQ_CORRIDOR_Y request box bottom 104 to mid row top 210, so the request drops 53 and 53. This one
-                 runs left to x=260 and so has to answer to the narration overlay (see the measured
-                 table above): the lane clears every measured panel floor, but the tag riding it
-                 would not, which is why that one hop rides its label BELOW the ball.
+The horizontal run of a zigzag belongs at the MIDPOINT OF THE TWO BLOCKS IT JOINS, and until R5 both
+of these were measured that way. The middle row then dropped 72 units to clear the panel and the two
+gaps stopped being alike, so each corridor is now pinned to what it must not touch:
+  CORRIDOR_Y     18 above the frame edge, so the lane and the frame do not read as one doubled dashed
+                 line. That clearance is FRAME_INSET / 2. The midpoint of the mid row bottom (350)
+                 and the disk top (438) is 394, which is INSIDE the frame, so the old rule cannot be
+                 kept here: the gap it used to halve is now 28 units of it and 60 of frame inset.
+  REQ_CORRIDOR_Y unchanged at 157, 53 below the request box and 125 above the mid row, so it is
+                 pinned rather than centred too. It used to run LEFT to x=260 and had to answer to
+                 the narration overlay for it (see the measured table above): the lane cleared every
+                 measured panel floor but the tag riding it would not, which is why that hop still
+                 rides its label BELOW the ball (dy 22). It now runs RIGHT to x=940 and the overlay
+                 no longer reaches it at all. The label offset is kept because it also keeps the tag
+                 off the request box floor, which the ball leaves from.
 ```
 
-### before `const CAPTION_Y = CYL_Y + CYL_H + 24;             // 512`
+### before `const CAPTION_Y = CYL_Y + CYL_H + 24;             // 552`
 
 ```
 The disk captions sit BELOW the disks, inside the frame. Above them they would collide with the tag
@@ -7080,19 +7683,22 @@ riding the CreateSnapshot hop, which lands on a disk top: the two strings print 
 one unreadable smear. 24 below the disk leaves 18 to the frame floor.
 ```
 
-### before `const W_REQ_CTRL  = [[CX, REQ_BOTTOM], [CX, REQ_CORRIDOR_Y], [CTRL_CX, REQ_CORRIDOR_Y], [CTRL_CX, MID_Y]];`
+### before `const W_REQ_CTRL  = [[CX - REQ_LANE, REQ_BOTTOM], [CX - REQ_LANE, REQ_CORRIDOR_Y], [CTRL_CX, REQ_CORRIDOR_Y], [CTRL_CX, MID_Y]];`
 
 ```
-Both lanes that touch the request box bottom face run dead centre on it. They used to be offset 12
-to a side each because a dashed identity link held the centre column between the request and its
-content: that link is gone (the sublabel and the Content chip already say the two are bound, and an
-undirected dashed line beside two directed lanes read as a third route), so the ball now leaves and
-arrives on the block centre line. The two never share a step, so neither needs a lane of its own.
+The two lanes that touch the request box bottom face are a mirrored pair, 16 either side of its
+centre. They ran dead centre on it until R5, which was right while the request went down the middle
+of the card and the status came back up the same middle: they never shared a step, so neither needed
+a lane of its own. Now the request turns right to reach the controller at 940 while the mirrored
+status still climbs straight out of the Content at 600, so the two would sit on top of each other
+for the whole run between the request floor and the corridor. 16 is small enough to read as one
+column with two directions and, at 7 percent of a 232 wide face, still counts as centred on the
+Content top face at the other end.
 Each static wire and its ball share ONE points array, so they cannot drift apart. Every endpoint is
 a block edge midpoint.
 ```
 
-### before `const PLACEHOLDER = 0.4;`
+### opacity phases (was `const PLACEHOLDER = 0.4`, now OPACITY.pending)
 
 ```
 PLACEHOLDER is the dim an object is drawn at while a lane already points AT it but it has not been
@@ -7124,7 +7730,7 @@ holds the previous step's text at call time (clearHL clears the class, not the t
 always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
-### before `function setStage(s, { vsc = PLACEHOLDER, restore = 0, snapData = PLACEHOLDER, restored = PLACEHOLDER, ds = 0,`
+### before `function setStage(s, { vsc = OPACITY.pending, restore = 0, snapData = OPACITY.pending, restored = OPACITY.pending, ds = 0, lanes = [] } = {}) {`
 
 ```
 Pins the visibility of EVERY element born mid-story, and of every lane, exactly as setChips pins
@@ -7292,13 +7898,13 @@ one or the other. Above, the whole strip from the overlay floor to the disk cap 
 ### before `const CHIPS_Y = 592, CHIP_H = 34;                        // 592..626, 14 clear of the viewBox`
 
 ```
-ONE width for all four chips, and the strip spans exactly the DIAGRAM, not the content band.
-Those are not the same span on this card and that is the whole point: the blocks run from the
-disk's left edge to the control column's right edge, while the content band starts 70 units
-further left at the page margin. Hanging the strip off the margin left it poking out under the
-empty bottom-left corner on one side and sitting flush on the other, which read as a strip that
-had slipped rather than as a deliberate full-width tier. Both edges are real block edges now, so
-the strip cannot drift if either column moves.
+ONE width for all four chips, and the strip spans the card's own margins, CONTENT_L..CONTENT_R.
+It used to run from the DISK's left edge (130) to the control column's right edge (1140), on the
+argument that both ends were then real block edges and the strip could not drift if a column moved.
+That is true and it is still the wrong span: 130..1140 has its centre at 635, and the chip strip is
+the one tier on any card that is free to sit on the canvas centre, since nothing above it constrains
+it. R5 moved the left end to the margin (2026-07-27). The 70 units it gains on the left are exactly
+the empty bottom-left corner it used to leave, and CHIP_W grows with them.
 
 valChip anchors the name 12 from the left and the value 12 from the right, so a chip needs
 name + value + 24 plus a readable gap. Measured worst cases, in viewBox units. Chip text is
@@ -7308,9 +7914,10 @@ rate has zero variance):
   VolumeAttachment 110.3 + 'deleted'   48.2 + 24 inset = 182.5
   disk on node-1    96.5 + 'yes'       20.7 + 24 inset = 141.2
   kubelet           48.2 + 'released'  55.1 + 24 inset = 127.3
-Narrowing the strip narrows the chips, so this is the number that had to be re-checked: CHIP_W
-falls out at 240.5, which still clears the binding pair with 51 units between name and value. It
-is the floor that matters, not the exact value: below ~190 the longest name and value would touch.
+The strip's width sets the chips', so this is the number to re-check whenever it moves: CHIP_W falls
+out at 258 (240.5 while the strip started at the disk), which clears the binding pair with 69 units
+between name and value. It is the floor that matters, not the exact value: below ~190 the longest
+name and value would touch.
 ```
 
 ### before `const LANE = 40;`
@@ -7343,7 +7950,7 @@ while W_ONNODE enters from below. Nothing else uses the corridor, so this route 
 wire anywhere on the card, and neither does any other lane: the card has zero wire crossings.
 ```
 
-### before `const DISK_DIM = 0.3;`
+### opacity phases (was `const DISK_DIM = 0.3`, now OPACITY.*)
 
 ```
 The disk stays on canvas after the detach because it still exists in the backend, it is just no
@@ -7354,7 +7961,7 @@ reads as a rendering fault rather than as a state. The Pod is now simply present
 canvas entirely on the step where the narration says it is gone.
 ```
 
-### before `const VA_PLACEHOLDER = 0.45;`
+### opacity phases (was `const VA_PLACEHOLDER = 0.45`, now OPACITY.pending)
 
 ```
 The same dim, for the same reason, on the VolumeAttachment box: on the steps where the object does
@@ -7384,11 +7991,12 @@ its .scheme-pod-rect child but not the group, and the pulse would silently fire 
 (the anim-dump symptom is strokeOpacity rows with no filter row).
 ```
 
-### before `const nodeBox = node({ x: COL_L_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-1' });`
+### before `const nodeBox = node({ x: COL_L_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });`
 
 ```
-Block LABELS are title-capitalized: every word of the name takes a capital, except that a
-HYPHENATED name capitalizes only its first segment, since it is one identifier rather than a
+Block LABELS capitalize the FIRST word only, and a later word takes a capital only when it is an
+API object, an acronym or an identifier. A HYPHENATED name likewise capitalizes only its first
+segment, since it is one identifier rather than a
 phrase (External-attacher is the name of one binary). Bare identifiers keep their real casing:
 va-7f, web-0, vol-1, and node-1, which .scheme-node-label uppercases to NODE-1 in CSS. That
 uppercase form is catalog-wide and every node frame in every card carries it, so it is left
@@ -7422,7 +8030,7 @@ fed it has nothing left to point at, and an arrowhead aimed at empty canvas read
 to a block the reader has simply failed to spot.
 ```
 
-### before `va.style.opacity = String(VA_PLACEHOLDER);`
+### before `va.style.opacity = String(OPACITY.pending);`
 
 ```
 BORN MID-STORY, but the SLOT is drawn the whole time. The VolumeAttachment does not exist until
@@ -7473,7 +8081,7 @@ whose whole subject is one object changing state is the fastest way to tell the 
 strip has to be readable as the object's current record on any step you pause on.
 ```
 
-### before `function setBorn(s, { object = VA_PLACEHOLDER, lanes = 0, pod = 1 } = {}) {`
+### before `function setBorn(s, { object = OPACITY.pending, lanes = 0, pod = 1 } = {}) {`
 
 ```
 Every step pins the visibility of everything born mid-story, exactly as setChips pins every chip, so
@@ -7482,7 +8090,7 @@ lanes share ONE flag because they are one construction, and the Pod carries its 
 present from the first frame and leaves on the last.
 ```
 
-### before `narration: 'It is not kubelet that decides a volume needs attaching. The attach and detach controller runs ins`
+### before `narration: 'It is not Kubelet that decides a volume needs attaching. The attach and detach controller runs inside kube-controller-manager, sees a Pod bound to a Node with a volume that is not attached there, and takes ownership of making it happen.',`
 
 ```
 NO pulse here, and that is deliberate. The Pod used to blink on this step, on the grounds that
@@ -7531,7 +8139,7 @@ off), and the unpublish call is the same full-width route as the attach step, so
 the span at 4276 against 2860 before the layout change. 4600 keeps 324ms of headroom.
 ```
 
-### before `setBorn(s, { object: VA_PLACEHOLDER, lanes: 0, pod: 0 });`
+### note (anchor dropped: `setBorn(s, { object: VA_PLACEHOLDER, lanes: 0, pod: 0 });` is not unique in the file)
 
 ```
 The end-state of the card is the mirror of its opening frame: no Pod, no object, no lanes into
@@ -7638,7 +8246,7 @@ holds the previous step's text at call time (clearHL clears the class, not the t
 always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
-### before `const POD_PRESENT = 1;`
+### opacity phases (was `const POD_PRESENT = 1`)
 
 ```
 Pins the visibility of EVERY element that is born or removed mid-story, exactly as setChips pins
@@ -7646,7 +8254,7 @@ every chip, so a step can never silently inherit a claim or a Pod from the step 
 Pods rest at full opacity (see the OPACITY note in the header): only a genuine delete fades one.
 ```
 
-### before `const CLAIM_PLACEHOLDER = 0.4;`
+### opacity phases (was `const CLAIM_PLACEHOLDER = 0.4`, now OPACITY.pending)
 
 ```
 A claim that has not been minted yet is drawn at CLAIM_PLACEHOLDER rather than hidden: removing it
@@ -7662,7 +8270,7 @@ mount lane from the claim up into the Pod, and the Pod pulses when the mount act
 Down-arrow ordering, so the ball leads and the pulse lands on arrival, never at step entry.
 ```
 
-### before `const GONE = 0.15, OUT = 850, HOLD = 550, IN = 800;`
+### before `const GONE = OPACITY.terminated, OUT = 850, HOLD = 550, IN = 800;`
 
 ```
 web-1 is deleted, then recreated. Deliberately slower than the FADE tokens, with a real HOLD
@@ -7690,7 +8298,36 @@ reads as a paused animation. Content spans y=18..158, centred.
 
 ---
 
+## workloads-container-states
+
+### layout
+
+```
+Layout B of the WL canon (chips left, pipeline right). Panel worst case x<=397, y<=230 over
+1600/1440/1280/1100; a longer narration invalidates that number.
+Layout A does not fit: the six-row ladder is 6*32+5*10 = 242 tall and the left band under the
+panel is only 250..464 = 214. The four-chip column is 4*34+3*8 = 160 and does fit, so the chips
+take the left band (60..540, w 480) and the ladder keeps the right one (660..1140).
+The Node frame rests on the canvas floor (NODE_H 140, bottom 624) and the Pod is centred in it,
+so the spine can run WL.SPINE_X straight into the Pod's top midpoint instead of stopping on the
+frame edge above it. The chip strip that check-geometry measures is the union of the chip column
+and the ladder rows (chainList rows carry .scheme-chip), so it still spans 60..1140 and CENTRE
+passes without a full-width bottom strip.
+```
+
+---
+
 ## workloads-crashloopbackoff
+
+### layout
+
+```
+Layout B of the WL canon, unchanged by the R5-a pass except for two defects it carried:
+the spine stopped on the Node frame's top edge 22 units above the Pod, and the lower wire label
+sat centred on WL.SPINE_X, so every step that set it was struck through by the lane. The spine
+now ends on POD_Y and the label hangs off the side of the lane (anchor start at SPINE_X + 14).
+Panel worst case x<=397, y<=205; the card reserves 225, which is deliberately conservative.
+```
 
 ### before `},`
 
@@ -7704,12 +8341,30 @@ The climbing backoff shows via the ladder filling and the static chip highlight
 
 ## workloads-cronjob
 
-### before `const ladderCaption = text({ class: 'scheme-label code dim', x: 1003, y: 222, 'text-anchor': 'middle', 'font-s`
+### layout
+
+```
+Layout C of the WL canon. Panel worst case x<=397, y<=330 over 1600/1440/1280/1100.
+Neither column fits: the left band under the panel is 350..464 and both the six-row ladder (242)
+and the five-chip column (202) are taller, so the chips take a full-width bottom strip.
+Chips go THREE per row, not the two the R5-a brief specifies: 5 chips at two per row is three
+rows (118 tall) and that leaves the Node frame only 64 units between the ladder and the strip,
+where the Pod alone is 106. Three per row is 350.67 wide, exactly the 350 floor, and the widest
+value on this card needs 304. Two rows -> 548..624, short row centred on CX.
+POD_PAD is 80 rather than the family 24: with the frame pulled up to 404 the pod row sits 20
+below the frame's top edge, and at 24 the first Job slot would be drawn over the frame's own
+NODE-1 label. 80 clears it, and the row still centres on CX by construction.
+The trunk drops from the CronJob box at TOP1_CX with no jog (there is no left column to clear)
+into a bus at NODE_Y-8, tapping into the two Job slots that ever receive a create.
+```
+
+### before `const ladderCaption = text({ class: 'scheme-label code dim', x: TICK_X + TICK_SPAN / 2, y: TICK_Y - TICK_CAPTION_DY, 'text-anchor': 'middle', 'font-size': 10 }, ['schedule ticks · every 5 min']);`
 
 ```
 Schedule clock: one chip per 5-minute tick. The current tick is highlighted as time advances.
-Caption centred over the tick chips: span is 830 (left edge of tick 0) to 1176
-(right edge of tick 5), so the centre is 1003.
+The caption is centred over the tick strip by derivation (TICK_X + TICK_SPAN / 2), not by a
+literal: the ticks moved from x=830, where they ran straight through the pipeline ladder, into
+the left band under the panel, and the caption followed for free.
 ```
 
 ### before `function setTicks(s, lit) {`
@@ -7740,7 +8395,26 @@ static highlight only (no chip pulse).
 
 ## workloads-daemonset
 
-### before `const req = topPacket(s, ctx);`
+### layout
+
+```
+Layout B of the WL canon (chips left, pipeline right). Panel worst case x<=397, y<=230.
+Layout A technically fits (the five-row ladder is 200 against a 214 band) but leaves only ~14
+units between the ladder's bottom and the Node row for the lane bus, so the mirrored layout wins:
+the four-chip column is 160 tall and leaves 74.
+Four Node frames rest on the canvas floor (484..624). The old single lane landed on Node-1's top
+edge on EVERY step, including the step that adds a Pod to Node-4 and the step that deletes the
+Pod on Node-2. It is now a trunk into a bus at NODE_Y-24 with one tap per Pod, and each step
+routes its ball down the tap of the Pod that actually reacts (the create step fires three, one
+per matching Node). Wire and ball are the same LANE(i) array.
+A lane into a Node that is not in the cluster is pinned to 0: lane 3 until Node-4 joins, lane 1
+once Node-2 leaves.
+The trunk leaves TOP1's bottom midpoint and steps to WL.SPINE_X at y=140, because a straight
+drop at 530 would cut through the chip column (60..540). The top-row wire label moved above the
+actor row for the same reason: centred at WIRE_X on y=146 it sat on the lane.
+```
+
+### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
 
 ```
 One node at a time: the update travels controller -> Api -> Node-1 down the
@@ -7761,6 +8435,19 @@ pod-to-node mapping is the DaemonSet signature.
 
 ## workloads-deployment-rollback
 
+### layout
+
+```
+Layout B of the WL canon (chips left, pipeline right). Panel worst case x<=397, y<=230.
+The six-row ladder (242) does not fit the 250..464 band, the four-chip column (160) does.
+Only the surging Pod (web-1, centre 234) ever receives a ball, so there is ONE lane: trunk from
+TOP1's bottom midpoint, step to WL.SPINE_X at y=140 to clear the chip column, drop to a bus at
+NODE_Y-24 and tap down into web-1. Drawing taps into web-2 and web-3 as well would put an
+arrowhead on a lane no ball ever rides, which the canon forbids.
+Raising the geometry lengthened the route: steps 1, 2 and 4 went over budget and their durations
+went 3100/2400/3100 -> 3700/2900/3700. Motion untouched.
+```
+
 ### poster
 
 ```
@@ -7771,9 +8458,70 @@ arc sweeps from the current revision back over the bad one to the good revision.
 
 ---
 
+## workloads-force-deletion
+
+### layout
+
+```
+Layout B of the WL canon (chips left, pipeline right). Panel worst case x<=397, y<=280.
+Two Node frames (60..580 and 620..1140) rest near the floor at NODE_H 134, so their Pods centre
+on 320 and 880, mirrored about CX. That is what lets ONE trunk serve both: it leaves the API
+box's bottom midpoint (both node-band actions on this card are control-plane actions issued
+through the API), steps to WL.SPINE_X at y=140, drops to a bus at NODE_Y-15 and taps left and
+right into the two Pods. NODE_H is 134 rather than 140 to open that 15 unit corridor between the
+chip column's bottom (460) and the frames.
+Two stale packet routes were removed here. `recreationPacket` ran [700,120] -> [1198,185] ->
+[975,480] and `node1Packet` ran [680,120] -> [280,185] -> [320,550]: both were left over from the
+pre-relayout gutter, neither followed any drawn wire, and one of them left the content band
+entirely at x=1198. Both now take NODE1_LANE / NODE2_LANE, the same arrays the wires are built
+from.
+The old NODE2_LANE also ran straight down x=810 through the pipeline ladder rows.
+```
+
+---
+
+## workloads-graceful-shutdown
+
+### layout
+
+```
+Layout C of the WL canon. Panel worst case x<=397, y<=280.
+The six-row ladder plus five chips leaves no band deep enough for a column (the left band is
+300..464 = 164, the chip column is 202), so the chips take a full-width bottom strip at THREE per
+row (350.67, the floor; the widest value here needs 279). Two rows -> 548..624, short row centred.
+The ladder moved up to y=140 so the Node frame can be 394..528 with the Pod 20 below its top
+edge: at the previous 412/116 the frame's top border ran 5 units above the Pod's, which reads as
+a rendering slip rather than as a frame.
+The connector was [[690,120],[690,185],[280,185],[280,550],[320,550]], a leftover of the 320
+gutter: it clipped the ladder's first row at y=185 and ended at x=320 inside the Node frame,
+pointing at blank canvas 50 units left of the Pod. It is now TOP1 midpoint -> WL.SPINE_X at
+y=140 -> straight into the Pod's top midpoint, and the return lane is its reverse.
+Layout C leaves the left band above the Node frame empty at wide viewports. That is unavoidable
+while the narration panel is not clamped in CSS.
+```
+
+---
+
 ## workloads-hooks
 
-### before `const req = topPacket(s, ctx);`
+### layout
+
+```
+Layout C of the WL canon, and the tightest card in the category: the panel reaches y<=379, the
+deepest in Workloads after the pod-* cards. Nothing fits beside it (the left band is 399..464).
+Chips take a full-width bottom strip at THREE per row (350.67; the widest value here needs 269).
+Two per row, as the R5-a brief specifies, would be three rows and would leave the Node frame 64
+units where the Pod alone is 106.
+The ladder moved up to y=140 so the frame can be 394..528 with the Pod 20 below its top edge.
+The spine steps from TOP1's bottom midpoint to WL.SPINE_X at y=140 and ends on the Pod's top
+midpoint rather than on the frame edge.
+The ExecSync ack rode `segmentPacket from [580,95] to [540,95]` on five steps: both x values sit
+INSIDE the Kubelet box (420..640), so the ball slid across the box instead of down the drawn
+return arrow. It now runs TOP2_X -> TOP1_X+TOP1_W at RESP_Y, which is that arrow.
+Layout C leaves the left band empty at wide viewports; unavoidable while the panel is unclamped.
+```
+
+### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
 
 ```
 ExecSync hops to the runtime and acks back; once that ack lands at the
@@ -7781,7 +8529,7 @@ kubelet the exec order travels down to the Pod, which pulses as the hook
 starts running inside it.
 ```
 
-### before `const req = topPacket(s, ctx);`
+### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
 
 ```
 StopContainer hops to the runtime and acks back; once that ack lands at
@@ -7791,9 +8539,41 @@ dims out as the process exits.
 
 ---
 
+## workloads-init-containers-and-sidecars
+
+### layout
+
+```
+Layout B of the WL canon (chips left, pipeline right). Panel worst case x<=397, y<=255.
+The five-row ladder is 200 tall against a 275..464 band of 189, eleven short, so the four-chip
+column (160) takes the left band instead and the ladder keeps the right one.
+The Node frame rests on the floor and the 828-wide Pod is centred in it, so the spine steps to
+WL.SPINE_X at y=140 (clearing the chip column) and lands on the Pod's own top midpoint.
+The top-row wire label moved above the actor row: at WIRE_X on y=146 it sat across the spine's
+step.
+```
+
+---
+
 ## workloads-job-parallelism
 
-### before `const recon = connectorPacket(s, ctx);`
+### layout
+
+```
+Layout C of the WL canon. Panel worst case x<=397, y<=280.
+Five chips are 202 tall against a left band of 164, so they take a full-width bottom strip at
+THREE per row (350.67; the widest value here needs 258). Two rows -> 548..624, short row centred.
+All three workers react on every packet step, so the trunk (TOP1 midpoint -> WL.SPINE_X at y=140
+-> bus at NODE_Y-12) taps into all three Pods and each step fires one ball per lane through the
+card-local `fanOut` helper. The middle Pod centres exactly on WL.SPINE_X, so its lane skips the
+bus point rather than drawing a zero-length segment.
+POD_TOP_PAD is 24: the Pod row starts at x=84 and at a smaller pad the frame's own NODE-1 label
+would be drawn inside worker-1's shell.
+Longer routes pushed all four motion steps over budget: 3100/2400/3100/2400 -> 3500/2700/3500/
+2700. Motion untouched.
+```
+
+### before `const recon = fanOut(s, ctx);`
 
 ```
 Controller reconciles the observed exits down to the node state. On arrival the
@@ -7801,7 +8581,7 @@ three Pods react together: worker-1 and worker-2 settle as succeeded (stay lit),
 worker-3 pulses then dims to show it failed.
 ```
 
-### before `const req = topPacket(s, ctx);`
+### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
 
 ```
 Replacement create travels controller -> Api -> Node. worker-3 already runs
@@ -7811,7 +8591,49 @@ live Pods pulse together on arrival (parallelism=3).
 
 ---
 
+## workloads-pod-image-pull
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C. Panel measured x<=397, y<=379 (worst of 1600/1440/1280/1100), which leaves no
+column under it, so the pipeline keeps the right band 660..1140 (WL.CHIP_X / CHIP_W) and the
+value chips form a two-across bottom strip, 532 wide, at y 548 and 590. Four across was 258
+and "container state" ran into "Waiting · ContainerCreating".
+
+Kubelet is 420..780, centred on CX, so the lane leaves its bottom midpoint and drops down the
+corridor left of the ladder, ending on the Pod at y 430 rather than on the Node frame edge
+above it. The Registry is the narrower box (840..1100) because the cloud path has to wrap it:
+the cloud is one hand-drawn path whose own centre is (685, 85) and it is placed by transform,
+CLOUD_SCALE 1.05, instead of being redrawn. Before this it straddled BOTH actor boxes, which
+read as a rendering fault.
+
+The ladder starts at 176, not 150, because the scaled cloud reaches y 157.
+```
+
+---
+
 ## workloads-pod-phase-machine
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C and the tightest card in the catalog: the panel measures 397 x 504, more than three
+quarters of the canvas height on the left, so the band below it is 136 units for everything
+full width.
+
+The pipeline moved from 420..1140 to 660..1140 and status.phase moved from a full-width strip
+to the left column 60..540 at y 506. That is what buys the corridor at x = SPINE_X (560): the
+lane used to run straight down through six ladder rows AND through the status.phase chip. It
+now drops clear of both and ends on the Pod.
+
+status.phase in the left column is also what keeps the CENTRE rule green: it is the only chip
+left of CX, and without it the chip strip would span 660..1140 and centre on 900.
+
+Node 546..624 (was 546..640, whose bottom edge fell on the viewBox edge and did not draw).
+Pod 552..616, container 574..610: shorter than the family default and deliberately so, there
+is no more room. A longer narration on any step invalidates PANEL_B: re-measure.
+```
 
 ### before `const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;`
 
@@ -7823,9 +8645,41 @@ rather than the FADE tokens. The delay starts the cross-fade a beat into the ste
 
 ---
 
+## workloads-pod-priority-preemption
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C. Panel x<=397, y<=404, so the pipeline keeps 660..1140 and the chips are a two-across
+bottom strip 532 wide. Four across was 258 and six of the eight chip strings collided,
+including "Pod NEW · pri" against "2e9 (system-cluster-critical)".
+
+Scheduler is 420..780, centred on CX. Everything the Scheduler sends down addresses slot 0: it
+is the victim it preempts (Pod A) and the slot Pod NEW is bound into. So there is ONE lane, not
+a bus, and it doglegs at BUS_Y = NODE_Y + 12 to land on that slot Pod top midpoint. The wire
+and the ball are built from that one LANE array.
+```
+
+---
+
 ## workloads-pod-qos-classes
 
-### before `const kubelet   = box({ x: 320, y: 40, w: 220, h: 80, label: 'Kubelet',   sublabel: 'cgroups + eviction',     `
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C. Panel x<=397, y<=404. Pipeline 660..1140, chips two across at 548 and 590.
+
+Every step that travels writes to all three Pods at once (classify, schedule, cgroups, evict),
+so the lane is a trunk down x = CX into the Node frame, a bus at NODE_Y + 12 above the Pod row
+and one tap per Pod. One ball per tap, each Pod pulsing on ITS OWN ball landing rather than on
+a single shared arrival: the outer lanes are longer and the difference is the point.
+
+The bus sits INSIDE the frame (NODE_Y + 12) rather than above it because that costs no vertical
+space at all: the Pods simply start at NODE_Y + 34 instead of NODE_Y + 22. Above the frame it
+would have cost 40 units this card does not have.
+```
+
+### before `const kubelet   = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet',   sublabel: 'cgroups + eviction',            role: 'cluster' });`
 
 ```
 Kubelet is the node-facing actor (places Pods after binding, writes cgroups, evicts), so it
@@ -7833,7 +8687,7 @@ sits on the left where the connector to the node is anchored, matching the other
 cards (left actor → node, Api on the right). Every connector packet leaves Kubelet.
 ```
 
-### before `s.refs.pod1.style.opacity = '0.4';`
+### before `s.refs.pod1.style.opacity = String(OPACITY.terminating);`
 
 ```
 QoS eviction: BestEffort and Burstable (A, B) are evicted and dim together by the same
@@ -7841,7 +8695,7 @@ amount, Guaranteed (C) survives at full opacity. The 1st/2nd order is conveyed b
 sublabels, not by timing or depth. Pin the final state inline for cancel-safety.
 ```
 
-### before `const evict = connectorPacket(s, ctx);`
+### before `const evict = fanToPods(s, ctx);`
 
 ```
 Kubelet's eviction travels down the connector to the node, the same Kubelet → node
@@ -7852,6 +8706,29 @@ event), then A and B fade out as they are evicted while C (Guaranteed) stays ful
 ---
 
 ## workloads-probes
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout A, and the Workloads exemplar, so this is the shape new workloads cards copy.
+
+Panel x<=397, y<=255. Both columns start on one line at BAND_Y = PANEL_B + 21 = 276: the
+pipeline in the LEFT column 60..540 (WL.LADDER_X / LADDER_W) and the five value chips stacked in
+the RIGHT column 660..1140 (WL.CHIP_X / CHIP_W), 480 wide, 34 high, 8 apart. The Node frame
+spans L..R at the bottom, 496..624.
+
+Before this the ladder was in WL.CHIP_X and the chips were a five-across bottom strip 205 wide,
+which left the whole left band empty under the panel and overlapped three chip names with their
+values ("EndpointSlice" against "10.244.1.5 ready=false" by 60 units).
+
+The lane runs down the corridor between the two columns at WL.SPINE_X and ends on the Pod top
+midpoint at y 518, not on the Node frame edge. SPINE_UP is its reverse, so the report hop and
+the probe hop cannot drift apart.
+
+The gap between the actor row and BAND_Y is visible at wide viewports, where the panel is
+shorter than its 1100 worst case. That is the unclamped-panel question the customer deferred,
+not a layout defect.
+```
 
 ### before `pulsePodDim(s.refs.podGroup, ctx, 0);`
 
@@ -7864,6 +8741,34 @@ reserved for the ready step. Only after the blink does the packet leave.
 ---
 
 ## workloads-pvc-stickiness
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C, and the card with the worst chip damage in the catalog (11 collisions). Panel
+x<=397, y<=330. Pipeline 660..1140, chips two across at 548 and 590.
+
+The PV moved from the top row into the GAP BETWEEN THE TWO NODE FRAMES, centred on CX at
+530..670 x 412..512. In the top row it overlapped the Api box outright (850..990 against
+700..920). Between the frames it is also what the card is about: one disk, detached from Node-1
+and attached to Node-2. The frames narrowed to 440 each (60..500 and 700..1140) to make the gap.
+
+Lanes, all of them rebuilt, because the packets and the wires had drifted apart:
+  the control lanes were DRAWN from NODE1_LANE / NODE2_LANE but the BALLS flew literal arrays
+  ([[800,80],[815,80],[815,460],[975,460],[975,480]] and a route out to x=1198, off the content
+  band entirely) that matched no wire on the card. Now one trunk at TOP1_CX, a bus split into a
+  left and a right half so each half can be hidden with its own tap, and one tap per Node
+  landing on that Node Pod.
+  the storage lane called pvConnector was RETURN_LANE, which is NODE2_LANE reversed: a control
+  route wearing the storage colour, and its comment described a route down the right margin that
+  the code did not draw. It is now PV_LANE, PV right face to web-0 on Node-2, and PV_MOUNT_A
+  mirrors it on the left as the mount web-0 already holds on Node-1 (no ball ever rides that
+  one, so it carries no arrowhead).
+
+setLanes pins each lane to 0 while the Pod it addresses is not on that Node, per the project
+rule that an absent block dims but its lanes disappear. Without it the CSI lane claimed the
+volume was attached to Node-2 on the idle step, contradicting the narration.
+```
 
 ### before `const del = connectorPacketA(s, ctx);`
 
@@ -7885,14 +8790,31 @@ arrival, keeping the same sticky identity.
 ### before `const mount = pvPacket(s, ctx);`
 
 ```
-CSI reattaches the same PV to Node-2. The volume packet travels from the PV down
-to Node-2, and web-0 pulses once on arrival then settles back (mounted, data
+CSI reattaches the same PV to Node-2. The volume packet crosses from the PV into
+web-0 on Node-2, and web-0 pulses once on arrival then settles back (mounted, data
 preserved). No persist, so the pulse fades instead of pinning the outline bright.
 ```
 
 ---
 
 ## workloads-replicaset
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout B: the panel reaches y<=305, which leaves room under it for the four value chips but not
+for the six-row pipeline, so the two columns SWAP. Chips left 60..540 from y 325, ladder right
+660..1140 from y 150, Node frame full width 500..624.
+
+The ReplicaSet box is 420..780, centred on CX, so the lane leaves its bottom midpoint and drops
+between the columns. Four slots means four different addressees across the story (self-heal
+targets web-b2, adopt / converge / orphan all target web-d4, and the ownership step addresses
+all three live Pods), so the lane is a trunk plus a bus at NODE_Y + 12 plus one tap per slot,
+and the ownership step sends one ball per Pod down its own tap.
+
+Pods are 78 high here rather than the family 106: the six-row ladder and the chip column both
+have to clear the panel, and 78 is what is left.
+```
 
 ### before `s.refs.pod4.style.opacity = '0';`
 
@@ -7909,3 +8831,70 @@ A ReplicaSet on top owns three Pods below through ownerReference links (dashed).
 third Pod is dashed and faint: it just died and is being recreated, the controller
 self-healing the count back to three.
 ```
+
+---
+
+## workloads-restart-policy
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout C. Panel x<=397, y<=355. Pipeline 660..1140, chips two across at 548 and 590 (four
+across was 258 and five strings collided, including "Pod B · OnFailure" against
+"Waiting (backoff)").
+
+Kubelet and the Api SWAPPED places. Kubelet is now the first box, 420..780 centred on CX,
+because it is the node-facing actor and the line down to the Node has to leave a box midpoint
+inside the corridor. The swap also fixes bouncePacket, whose comment said "request up to the
+apiserver" while the request was actually leaving it.
+
+Nothing ever travels down to the Node on this card: restartPolicy is enforced in place and every
+packet is a top-row hop. So the vertical line is a RELATIONSHIP, not a lane: it lands on the
+Node frame top midpoint and carries no arrowhead, per the rule that a wire with no ball must not
+wear one.
+```
+
+
+---
+
+## workloads-rolling-update
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout A. Panel x<=397, y<=205, the shallowest in the batch, so both columns fit under it:
+ladder left 60..540 from BAND_Y = 226, chips right 660..1140 from the same line, Node frame full
+width 490..624.
+
+The Deployment box is 420..780, centred on CX. Three slots and three different addressees
+(surge targets web-1, the drain targets web-3, then web-2 and web-3 in turn), so the lane is a
+trunk down CX into the frame, a bus at NODE_Y + 12 and one tap per slot. LANE(1) collapses to a
+straight drop because slot 1 is centred on CX, which is why its step did not go over budget when
+the other three did.
+
+The wire label moved from below the actor row to above it: at TOP_BOTTOM + 26 it was overlapping
+the first ladder row.
+```
+
+
+---
+
+## workloads-statefulset-ordered-startup
+
+### layout (R5-a, 2026-07-27)
+
+```
+Layout A. Panel x<=397, y<=255. Ladder left 60..540 from BAND_Y = 276, chips right 660..1140
+from the same line, Node frame full width 496..624.
+
+The headless Service moved OUT of the actor row and now hangs under the Api at 840..1140 x
+152..232, joined by a vertical arrow between the two face midpoints. In the row it was at
+840..1060 against an Api at 700..920: the two boxes overlapped by 80 units and their wire labels
+overlapped too. Its wire label moved to below it for the same reason.
+
+The StatefulSet box is 420..780, centred on CX. Three ordinals are created on three different
+steps, so the lane is a trunk plus a bus at NODE_Y + 12 plus one tap per ordinal. The taps are
+drawn on every step, including idle where no Pod exists yet: they read as the three slots the
+ladder is about to fill, and the ball that rides one is what materializes that Pod.
+```
+

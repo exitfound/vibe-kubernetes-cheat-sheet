@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-generic-ephemeral-volume
 
 
@@ -32,16 +32,14 @@ const W_UP_LOW     = [[CX, PV_TOP], [CX, ROW_BOTTOM]];
 // An object materialises when the call that creates it lands, so no arrowhead is ever aimed at
 // nothing. LAND_MS is shorter than BEAT.lead for the same reason.
 const LAND_MS = 500;
-function revealAt(el, ctx, delay = 0) {
+function revealAt(el, ctx, delay = 0, from = 0) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.style.opacity = '1'; return; }
-  el.style.opacity = '0';
-  ctx.register(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: LAND_MS, delay, fill: 'forwards', easing: 'ease-out' }));
+  el.style.opacity = String(from);
+  ctx.register(el.animate([{ opacity: from }, { opacity: 1 }], { duration: LAND_MS, delay, fill: 'forwards', easing: 'ease-out' }));
 }
 
-const PLACEHOLDER = 0.4;
-const GONE = 0.1;
-function vanishAt(el, ctx, delay = 0, to = GONE) {
+function vanishAt(el, ctx, delay = 0, to = OPACITY.terminated) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); return; }
   ctx.register(el.animate([{ opacity: 1 }, { opacity: to }], { duration: FADE.out, delay, fill: 'forwards', easing: 'ease-in' }));
@@ -150,10 +148,9 @@ function setChips(s, { pod, pvc, back, life }) {
 }
 
 // The Pod is dim until it actually reaches Running.
-const POD_DIM = 0.55;
 
 const LANES = ['wClaimProv', 'wCreate', 'wDownHigh', 'wDownLow', 'wUpHigh', 'wUpLow'];
-function setStage(s, { podOn = POD_DIM, claim = PLACEHOLDER, disk = 0, lanes = [] } = {}) {
+function setStage(s, { podOn = OPACITY.pending, claim = OPACITY.pending, disk = 0, lanes = [] } = {}) {
   s.refs.podB.style.opacity = String(podOn);
   s.refs.pvc.style.opacity = String(claim);
   s.refs.pv.style.opacity = String(disk);
@@ -169,7 +166,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod carries an inline volumeClaimTemplate under a field named ephemeral. It reads like a throwaway scratch volume, the same slot where emptyDir would go, but everything below this Pod is about to become real storage machinery rather than a folder on the node.',
+    narration: 'A Pod carries an inline volumeClaimTemplate under a field named ephemeral. It reads like a throwaway scratch volume, the same slot where emptyDir would go, but everything below this Pod is about to become real storage machinery rather than a folder on the Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -189,12 +186,13 @@ const STEPS = [
       clearWires(s);
       setChips(s, { pod: 'Pending', pvc: 'Pending', back: 'CSI dynamic', life: 'tied to Pod' });
       setStage(s, { claim: 1, lanes: ['wDownHigh'] });
-      s.refs.pvc.classList.add('highlight');
-      if (ctx.reduced) return;
+      // The claim is the RECEIVER here, so it earns its highlight on arrival, not at entry. The
+      // reduced path applies it directly, which is the same end state without the motion.
+      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); return; }
       setStage(s, { lanes: ['wDownHigh'] });
       const own = routePacket(s, ctx, W_DOWN_HIGH, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'ownerReference', W_DOWN_HIGH, { delay: BEAT.lead });
-      revealAt(s.refs.pvc, ctx, own.arrivalMs, PLACEHOLDER);
+      revealAt(s.refs.pvc, ctx, own.arrivalMs, OPACITY.pending);
       lightBoxAt(s.refs.pvc, ctx, own.arrivalMs);
     },
   },
@@ -214,20 +212,20 @@ const STEPS = [
       s.refs.pvc.classList.add('highlight');
       s.refs.sc.classList.add('highlight');
       if (ctx.reduced) { s.refs.prov.classList.add('highlight'); s.refs.pv.classList.add('highlight'); return; }
-      setStage(s, { claim: 1, disk: PLACEHOLDER, lanes: ['wClaimProv', 'wCreate'] });
+      setStage(s, { claim: 1, disk: OPACITY.pending, lanes: ['wClaimProv', 'wCreate'] });
       const claim = routePacket(s, ctx, W_CLAIM_PROV, { delay: BEAT.lead, role: 'storage' });
       ridingLabel(s, ctx, 'storageClassName: fast-ssd', W_CLAIM_PROV, { delay: BEAT.lead });
       lightBoxAt(s.refs.prov, ctx, claim.arrivalMs);
       const create = routePacket(s, ctx, W_CREATE, { delay: claim.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', W_CREATE, { delay: claim.arrivalMs + BEAT.afterHop });
-      revealAt(s.refs.pv, ctx, create.arrivalMs, PLACEHOLDER);
+      revealAt(s.refs.pv, ctx, create.arrivalMs, OPACITY.pending);
       lightBoxAt(s.refs.pv, ctx, create.arrivalMs);
     },
   },
   {
     id: 'mount',
     duration: 4200,
-    narration: 'The CSI driver attaches the disk to the node and mounts it at /scratch inside the container, exactly as it would for any ordinary PVC. The Pod starts and writes to a real, dynamically provisioned volume. Nothing about this path is a shortcut.',
+    narration: 'The CSI driver attaches the disk to the Node and mounts it at /scratch inside the container, exactly as it would for any ordinary PVC. The Pod starts and writes to a real, dynamically provisioned volume. Nothing about this path is a shortcut.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -240,12 +238,12 @@ const STEPS = [
       setWire(s, 'owner', 'ownerReference');
       setWire(s, 'mount', 'attach and mount');
       if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); return; }
-      setStage(s, { podOn: POD_DIM, claim: 1, disk: 1, lanes: ['wUpLow', 'wUpHigh'] });
+      setStage(s, { podOn: OPACITY.pending, claim: 1, disk: 1, lanes: ['wUpLow', 'wUpHigh'] });
       // Down-arrow into the Pod, so the balls lead and the pulse lands on the second one arriving.
       const low = routePacket(s, ctx, W_UP_LOW, { delay: BEAT.lead, role: 'storage' });
       const high = routePacket(s, ctx, W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, '/scratch', W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop });
-      ctx.register(s.refs.podB.animate([{ opacity: POD_DIM }, { opacity: 1 }], { duration: FADE.in, delay: high.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
+      ctx.register(s.refs.podB.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: FADE.in, delay: high.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, high.arrivalMs);
       lightBoxAt(s.refs.podBox, ctx, high.arrivalMs);
     },
@@ -278,13 +276,13 @@ const STEPS = [
       setChips(s, { pod: 'Deleted', pvc: 'deleted by GC', back: 'reclaimed', life: 'ended with Pod' });
       // Nothing is left pointing at anything: the lanes go out behind the cascade they carried, so the
       // closing frame is the collapsed column and nothing else.
-      setStage(s, { podOn: GONE, claim: GONE, disk: GONE });
+      setStage(s, { podOn: OPACITY.terminated, claim: OPACITY.terminated, disk: OPACITY.terminated });
       setBoxSublabel(s.refs.pvc, 'Bound');
       setWire(s, 'owner', 'cascade delete');
       if (ctx.reduced) return;
       setStage(s, { podOn: 1, claim: 1, disk: 1, lanes: ['wDownHigh', 'wDownLow'] });
       // The Pod goes first, then the cascade walks down the column: the claim next, then the disk.
-      ctx.register(s.refs.podB.animate([{ opacity: 1 }, { opacity: GONE }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
+      ctx.register(s.refs.podB.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
       const gcHigh = routePacket(s, ctx, W_DOWN_HIGH, { delay: FADE.out + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'ownerReference GC', W_DOWN_HIGH, { delay: FADE.out + BEAT.afterHop });
       // Each lane goes out behind the cascade it carried, so nothing is left pointing at a ghost.

@@ -1,28 +1,39 @@
-import { svg, g, text, line } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, BEAT, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, relationPath, BEAT, makeRidingLabel } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-client-ip-preservation
 
 
-const FLOW_Y = 372;
+// The content band is symmetric about the canvas centre by construction, so the flow row and the
+// chip strip both centre on CX without anything being stretched to make them.
+const CONTENT_L = 65, CONTENT_R = 1135;
+const CX = (CONTENT_L + CONTENT_R) / 2;        // 600
+const PANEL_B = 355;                           // measured worst case over 1600x1000/1280x860/1100x800
+const FLOW_Y = 410;                            // Client top lands at 372, clear of PANEL_B
 
-const CLIENT_X = 40, CLIENT_W = 230, CLIENT_H = 76;
-const CLIENT_Y = FLOW_Y - CLIENT_H / 2;        // 334, clear of the narration overlay
-const CLIENT_RIGHT = CLIENT_X + CLIENT_W;      // 270
+const CLIENT_X = CONTENT_L, CLIENT_W = 230, CLIENT_H = 76;
+const CLIENT_Y = FLOW_Y - CLIENT_H / 2;        // 372, below the narration panel
+const CLIENT_RIGHT = CLIENT_X + CLIENT_W;      // 295
 
-const PROXY_X = 430, PROXY_W = 230, PROXY_H = 124;
-const PROXY_TOP = FLOW_Y - PROXY_H / 2;        // 310
-const PROXY_RIGHT = PROXY_X + PROXY_W;         // 660
-const PROXY_CX = PROXY_X + PROXY_W / 2;        // 545
+const PROXY_X = 455, PROXY_W = 230, PROXY_H = 124;
+const PROXY_TOP = FLOW_Y - PROXY_H / 2;        // 348
+const PROXY_RIGHT = PROXY_X + PROXY_W;         // 685
+const PROXY_CX = PROXY_X + PROXY_W / 2;        // 570
 
-const POD_X = 900, POD_W = 210, POD_H = 124;
-const POD_TOP = FLOW_Y - POD_H / 2;            // 310
-const POD_RIGHT = POD_X + POD_W;               // 1110
+const POD_W = 210, POD_H = 124;
+const POD_X = CONTENT_R - POD_W;               // 925
+const POD_TOP = FLOW_Y - POD_H / 2;            // 348
+const POD_RIGHT = CONTENT_R;                   // 1135
 
 const PANEL_W = 260;
-const PANEL_X = PROXY_CX - PANEL_W / 2;        // 415, clear of the narration overlay (399)
+const PANEL_X = PROXY_CX - PANEL_W / 2;        // 440, clear of the narration panel edge (397)
 const PANEL_BOTTOM = 190;                      // bottom edge of the lower header chip
 const CHIP_Y = 552;
+
+// Four chips spanning CONTENT_L..CONTENT_R, so the strip centres on CX by construction.
+const CHIP_GAP = 20, CHIP_H = 34;
+const CHIP_WS = [300, 220, 250, 240];          // sums with the gaps to CONTENT_R - CONTENT_L
+const CHIP_X = i => CONTENT_L + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);
 
 // Each static wire and the ball that rides it share the same endpoints.
 const ENTRY = [[CLIENT_RIGHT, FLOW_Y], [PROXY_X, FLOW_Y]];
@@ -69,12 +80,12 @@ class Scene {
 
     const entryWire = arrow({ x1: ENTRY[0][0], y1: ENTRY[0][1], x2: ENTRY[1][0], y2: ENTRY[1][1], dashed: true, dim: true, role: 'network' });
     const deliverWire = arrow({ x1: DELIVER[0][0], y1: DELIVER[0][1], x2: DELIVER[1][0], y2: DELIVER[1][1], dashed: true, dim: true, role: 'network' });
-    const panelWire = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: PROXY_CX, y1: PROXY_TOP, x2: PROXY_CX, y2: PANEL_BOTTOM, 'stroke-dasharray': '5 5', fill: 'none' });
+    const panelWire = relationPath({ points: [[PROXY_CX, PROXY_TOP], [PROXY_CX, PANEL_BOTTOM]], role: 'network', dash: '5 5' });
 
-    const srcChip   = valChip({ x: CLIENT_X, y: CHIP_Y, w: 300, h: 34, name: 'src at backend', value: 'none', role: 'network' });
-    const readsChip = valChip({ x: 360, y: CHIP_Y, w: 220, h: 34, name: 'app reads', value: 'none', role: 'network' });
-    const modeChip  = valChip({ x: 600, y: CHIP_Y, w: 260, h: 34, name: 'edge mode', value: 'L7 proxy', role: 'network' });
-    const ipChip    = valChip({ x: 880, y: CHIP_Y, w: POD_RIGHT - 880, h: 34, name: 'client IP', value: 'unknown', role: 'network' });
+    const srcChip   = valChip({ x: CHIP_X(0), y: CHIP_Y, w: CHIP_WS[0], h: CHIP_H, name: 'src at backend', value: 'none', role: 'network' });
+    const readsChip = valChip({ x: CHIP_X(1), y: CHIP_Y, w: CHIP_WS[1], h: CHIP_H, name: 'app reads', value: 'none', role: 'network' });
+    const modeChip  = valChip({ x: CHIP_X(2), y: CHIP_Y, w: CHIP_WS[2], h: CHIP_H, name: 'edge mode', value: 'L7 proxy', role: 'network' });
+    const ipChip    = valChip({ x: CHIP_X(3), y: CHIP_Y, w: CHIP_WS[3], h: CHIP_H, name: 'client IP', value: 'unknown', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -107,7 +118,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A packet only ever carries the address of its last hop, so by the time a request reaches a Pod the original client address can already be gone. At the edge there are two ways to carry it through anyway, one for HTTP and one for everything else.',
+    narration: 'A packet keeps whatever source address the last device to rewrite it left behind, so once a proxy or a NAT hop stands between client and Pod the original client address can already be gone. At the edge there are two ways to carry it through anyway, one for HTTP and one for everything else.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -205,7 +216,7 @@ const STEPS = [
       setVal(s.refs.srcChip, 'proxy 10.244.0.9');
       setVal(s.refs.readsChip, 'header');
       setVal(s.refs.modeChip, 'L7 proxy');
-      setVal(s.refs.ipChip, 'trust the edge');
+      setVal(s.refs.ipChip, 'trusted hop only');
       s.refs.client.classList.add('highlight');
       s.refs.xffChip.classList.add('highlight');
       s.refs.ipChip.classList.add('highlight');

@@ -9,21 +9,22 @@ const TGT_X = 690, TGT_W = 300;            // target column: left edge + width (
 const TYPE_EDGE = TYPE_X + TYPE_W;         // 490: where every arrow leaves the type box
 const ROW_H = 70;
 const PITCH = 88;                          // vertical gap between row tops
-const ROW0 = 132;                          // top of the first row (kept low enough that the tallest
-                                           // narration overlay clears the top ClusterIP row text)
-const Y_CI = ROW0, Y_NP = ROW0 + PITCH, Y_LB = ROW0 + 2 * PITCH;      // 119, 207, 295
-const Y_EN = ROW0 + 3 * PITCH, Y_HL = ROW0 + 4 * PITCH;               // 383, 471
-const cy = (y) => y + ROW_H / 2;           // row centre y: 154, 242, 330, 418, 506
+const ROW0 = 186;                          // top of the first row: the type column starts at x=210,
+                                           // so every row has to clear the narration panel, measured
+                                           // at bottom <= 181 (a longer narration invalidates that)
+const Y_CI = ROW0, Y_NP = ROW0 + PITCH, Y_LB = ROW0 + 2 * PITCH;      // 186, 274, 362
+const Y_EN = ROW0 + 3 * PITCH, Y_HL = ROW0 + 4 * PITCH;               // 450, 538
+const cy = (y) => y + ROW_H / 2;           // row centre y: 221, 309, 397, 485, 573
 
 // Backend node spans exactly the three proxy rows, so its vertical centre equals the NodePort row
 // centre and the three horizontal entries land on it symmetric about that centre.
-const NODE_Y = Y_CI;                                // 119
-const NODE_H = (Y_LB + ROW_H) - Y_CI;              // 246, so node bottom = 365, centre = 242
+const NODE_Y = Y_CI;                                // 186
+const NODE_H = (Y_LB + ROW_H) - Y_CI;              // 246, so node bottom = 432, centre = 309
 const POD_W = 240, POD_H = 104;                     // core-networking pod proportions, scaled to fit
 const POD_X = TGT_X + (TGT_W - POD_W) / 2;         // 720: pods centred inside the node
 const POD_GAP = 22;
-const POD_TOP_Y = NODE_Y + (NODE_H - (2 * POD_H + POD_GAP)) / 2;      // 127
-const POD_BOT_Y = POD_TOP_Y + POD_H + POD_GAP;                       // 253
+const POD_TOP_Y = NODE_Y + (NODE_H - (2 * POD_H + POD_GAP)) / 2;      // 194
+const POD_BOT_Y = POD_TOP_Y + POD_H + POD_GAP;                       // 320
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'network' });
@@ -56,7 +57,7 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const ci = box({ x: TYPE_X, y: Y_CI, w: TYPE_W, h: ROW_H, label: 'ClusterIP', sublabel: '10.96.0.10 · in-cluster VIP', role: 'network' });
+    const ci = box({ x: TYPE_X, y: Y_CI, w: TYPE_W, h: ROW_H, label: 'ClusterIP', sublabel: '10.96.0.20 · in-cluster VIP', role: 'network' });
     const np = box({ x: TYPE_X, y: Y_NP, w: TYPE_W, h: ROW_H, label: 'NodePort', sublabel: ':31000 on every Node', role: 'network' });
     const lb = box({ x: TYPE_X, y: Y_LB, w: TYPE_W, h: ROW_H, label: 'LoadBalancer', sublabel: '203.0.113.7 · cloud VIP', role: 'network' });
     const en = box({ x: TYPE_X, y: Y_EN, w: TYPE_W, h: ROW_H, label: 'ExternalName', sublabel: 'CNAME, no selector', role: 'network' });
@@ -107,7 +108,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'There are five Service types, but they are not five unrelated things. Three of them stack, each building on the one above, and two of them skip the proxy entirely and work through DNS alone.',
+    narration: 'There are four Service types plus a headless variant, and they are not five unrelated things. Three of them stack, each building on the one above, and two of them skip the proxy entirely and work through DNS alone.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -1,6 +1,6 @@
-import { svg, g, text, path } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-internal-traffic-policy
 
 
@@ -33,7 +33,6 @@ const CHIP_Y = 578, CHIP_H = 34;
 const SCHEME_LEFT = N1_X;                      // 40
 const SCHEME_RIGHT = N2_X + N2_W;              // 1160
 
-const DIM = '0.4';
 
 // Each static wire and the ball that rides it share the same points array.
 const TO_KP = [[CLIENT_RIGHT, FLOW_Y], [KP_X, FLOW_Y]];
@@ -79,18 +78,13 @@ class Scene {
     const podA = podBlock({ x: PODA_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.9' });
     const podB = podBlock({ x: PODB_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.2.7' });
 
-    const svc = box({ x: SVC_X, y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'ClusterIP 10.96.0.10:80', role: 'network' });
+    const svc = box({ x: SVC_X, y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'ClusterIP 10.96.0.20:80', role: 'network' });
 
     const kpWire = arrow({ x1: TO_KP[0][0], y1: TO_KP[0][1], x2: TO_KP[1][0], y2: TO_KP[1][1], dashed: true, dim: true, role: 'network' });
     const localWire = arrow({ x1: TO_LOCAL[0][0], y1: TO_LOCAL[0][1], x2: TO_LOCAL[1][0], y2: TO_LOCAL[1][1], dashed: true, dim: true, role: 'network' });
     const remoteWire = pathArrow({ points: TO_REMOTE, dashed: true, dim: true, role: 'network' });
     const OWN = [[SVC_CX, SVC_BOTTOM], [SVC_CX, 240], [N1_CX, 240], [N1_CX, NODE_Y]];
-    const ownLink = path({
-      class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network',
-      d: OWN.map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`)).join(' '),
-      'stroke-dasharray': '5 5',
-      fill: 'none',
-    });
+    const ownLink = relationPath({ points: OWN, role: 'network', dash: '5 5' });
 
     // What each backend is to the kube-proxy on Node-1. Both notes sit on one baseline under the Pods,
     // inside their Nodes, so they read as a pair that the policy flips.
@@ -140,7 +134,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Service spreads traffic over every ready backend, wherever it runs. internalTrafficPolicy decides whether that stays true for callers INSIDE the cluster, and it is the east-west twin of externalTrafficPolicy: same two values, different direction of travel.',
+    narration: 'A Service spreads traffic over every ready backend, wherever it runs. The internalTrafficPolicy field decides whether that stays true for callers INSIDE the cluster, and it is the east-west twin of externalTrafficPolicy: same two values, different direction of travel.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -165,6 +159,7 @@ const STEPS = [
       setVal(s.refs.scopeChip, 'all ready (2)');
       setVal(s.refs.hopChip, 'yes');
       setVal(s.refs.resultChip, 'served by Node-2');
+      s.refs.resultChip.classList.add('highlight');
       // Both backends are programmed, so both notes read as endpoints. This flow happens to take the
       // remote one.
       setWire(s, 'a', 'endpoint · local');
@@ -176,7 +171,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'dst 10.96.0.10:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
+      ridingLabel(s, ctx, 'dst 10.96.0.20:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.kproxy, ctx, toKp.arrivalMs);
       const outDelay = toKp.arrivalMs + BEAT.afterHop;
       const out = routePacket(s, ctx, TO_REMOTE, { delay: outDelay, role: 'network' });
@@ -198,11 +193,12 @@ const STEPS = [
       setVal(s.refs.scopeChip, 'node-local (1)');
       setVal(s.refs.hopChip, 'no');
       setVal(s.refs.resultChip, 'served by Node-1');
+      s.refs.resultChip.classList.add('highlight');
       setWire(s, 'a', 'endpoint · in scope');
-      setWire(s, 'b', 'endpoint · dropped');
+      setWire(s, 'b', 'endpoint · out of scope');
       // The remote backend is no longer programmed on this Node, so it and its Node go dim: out of scope
       // is the whole point of Local.
-      [s.refs.node2, s.refs.podB].forEach(el => { el.style.opacity = DIM; });
+      [s.refs.node2, s.refs.podB].forEach(el => { el.style.opacity = String(OPACITY.notready); });
       s.refs.svc.classList.add('highlight');
       s.refs.policyChip.classList.add('highlight');
       s.refs.scopeChip.classList.add('highlight');
@@ -210,7 +206,7 @@ const STEPS = [
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'dst 10.96.0.10:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
+      ridingLabel(s, ctx, 'dst 10.96.0.20:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.kproxy, ctx, toKp.arrivalMs);
       const giveDelay = toKp.arrivalMs + BEAT.afterHop;
       const give = segmentPacket(s, ctx, { from: TO_LOCAL[0], to: TO_LOCAL[1], delay: giveDelay, role: 'network' });
@@ -233,10 +229,10 @@ const STEPS = [
       setVal(s.refs.hopChip, 'no');
       setVal(s.refs.resultChip, 'traffic dropped');
       setWire(s, 'a', 'no local backend');
-      setWire(s, 'b', 'endpoint · dropped');
+      setWire(s, 'b', 'endpoint · out of scope');
       // Node-1 has lost its backend and the remote one is still out of scope, so both Pods go dim: there
       // is nothing left for kube-proxy to send to.
-      [s.refs.podA, s.refs.node2, s.refs.podB].forEach(el => { el.style.opacity = DIM; });
+      [s.refs.podA, s.refs.node2, s.refs.podB].forEach(el => { el.style.opacity = String(OPACITY.notready); });
       s.refs.policyChip.classList.add('highlight');
       s.refs.scopeChip.classList.add('highlight');
       s.refs.resultChip.classList.add('highlight');
@@ -245,7 +241,7 @@ const STEPS = [
       // and no further ball leaves. The absent second hop is the whole point of the step.
       pulsePod(s.refs.client, ctx, 0);
       const toKp = segmentPacket(s, ctx, { from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'dst 10.96.0.10:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
+      ridingLabel(s, ctx, 'dst 10.96.0.20:80', TO_KP, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.kproxy, ctx, toKp.arrivalMs);
     },
   },

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, makeRidingLabel, lightBoxAt } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-container-filesystem
 
 
@@ -56,13 +56,13 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const ctr = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Container', sublabel: 'Root Filesystem' });
+    const ctr = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Container', sublabel: 'root filesystem' });
 
-    const writable = box({ x: STK_X, y: WR_Y, w: STK_W, h: WR_H, label: 'writable layer', sublabel: 'upperdir, starts empty', role: 'storage' });
+    const writable = box({ x: STK_X, y: WR_Y, w: STK_W, h: WR_H, label: 'Writable layer', sublabel: 'upperdir, starts empty', role: 'storage' });
     writable.style.opacity = '0';
-    const l3 = box({ x: STK_X, y: L3_Y, w: STK_W, h: LH, label: 'image layer: app', sublabel: 'read-only', role: 'storage' });
-    const l2 = box({ x: STK_X, y: L2_Y, w: STK_W, h: LH, label: 'image layer: deps', sublabel: 'read-only', role: 'storage' });
-    const l1 = box({ x: STK_X, y: L1_Y, w: STK_W, h: LH, label: 'image layer: base', sublabel: 'read-only', role: 'storage' });
+    const l3 = box({ x: STK_X, y: L3_Y, w: STK_W, h: LH, label: 'Image layer: app', sublabel: 'read-only', role: 'storage' });
+    const l2 = box({ x: STK_X, y: L2_Y, w: STK_W, h: LH, label: 'Image layer: deps', sublabel: 'read-only', role: 'storage' });
+    const l1 = box({ x: STK_X, y: L1_Y, w: STK_W, h: LH, label: 'Image layer: base', sublabel: 'read-only', role: 'storage' });
 
     const volume = cylinder({ x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: 'Volume', role: 'storage' });
     const volLbl = volume.querySelector('.scheme-cylinder-label');
@@ -179,7 +179,7 @@ const STEPS = [
   {
     id: 'copyup',
     duration: 2800,
-    narration: 'A write to a path that lives in an image layer does not touch the image. overlayfs copies the file up into the writable layer first, then applies the change there. The read-only layer underneath is left exactly as it was.',
+    narration: 'A write to a path that lives in an image layer does not touch the image. The overlayfs driver copies the file up into the writable layer first, then applies the change there. The read-only layer underneath is left exactly as it was.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -190,10 +190,10 @@ const STEPS = [
       // The process writes and the writable layer receives: both light at step entry (step-static,
       // per the family standard), and the shell pulse fires in the same beat.
       s.refs.ctrBox.classList.add('highlight');
-      s.refs.writable.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.writable.classList.add('highlight'); return; }
       pulsePod(s.refs.ctrShell, ctx, 0);
-      routePacket(s, ctx, W_COPYUP, { delay: BEAT.afterPulse, role: 'storage' });
+      const pkt = routePacket(s, ctx, W_COPYUP, { delay: BEAT.afterPulse, role: 'storage' });
+      lightBoxAt(s.refs.writable, ctx, pkt.arrivalMs);
       ridingLabel(s, ctx, 'copy-up', W_COPYUP, { delay: BEAT.afterPulse });
     },
   },
@@ -232,15 +232,15 @@ const STEPS = [
       // The process writes and the volume receives: both light at step entry (step-static, per
       // the family standard), and the shell pulse fires in the same beat.
       s.refs.ctrBox.classList.add('highlight');
-      s.refs.volume.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.volume.classList.add('highlight'); return; }
       s.refs.writable.style.opacity = '0';
       s.refs.wCopyup.style.opacity = '0';
       ctx.register(s.refs.writable.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
       ctx.register(s.refs.wCopyup.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
       // The fresh container then writes to /data, which bypasses the overlay and lands on the disk.
       pulsePod(s.refs.ctrShell, ctx, 0);
-      routePacket(s, ctx, W_VOL, { delay: BEAT.afterPulse, role: 'storage' });
+      const pkt = routePacket(s, ctx, W_VOL, { delay: BEAT.afterPulse, role: 'storage' });
+      lightBoxAt(s.refs.volume, ctx, pkt.arrivalMs);
       ridingLabel(s, ctx, 'write /data', W_VOL, { delay: BEAT.afterPulse });
     },
   },

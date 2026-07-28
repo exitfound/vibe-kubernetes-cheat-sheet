@@ -19,7 +19,7 @@
   --toast-bg:       #1e1438;
   --toast-text:     #c4a8ff;
 
-  /* Scheme categories — built atop main palette */
+  /* Scheme categories, built atop main palette */
   --network-color:    #4fe5ff;
   --network-glow:     rgba(79, 229, 255, 0.13);
   --network-border:   rgba(79, 229, 255, 0.28);

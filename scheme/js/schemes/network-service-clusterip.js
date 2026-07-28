@@ -1,26 +1,42 @@
-import { svg, g, line } from '../lib/svg.js';
+import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel} from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-service-clusterip
 
+
+const CX = 600;                     // canvas centre: the ClusterIP column and the chip strip sit on it
+const SCHEME_L = 60, SCHEME_R = 1140; // content edges, mirrored about CX
 
 const FLOW_Y = 312;                 // center line: client, kube-proxy and the two fans are symmetric about it
 const LANE_DY = 12;                 // half-gap between the two client <-> kube-proxy lanes
 const FWD_Y = FLOW_Y - LANE_DY;     // 300: client -> kube-proxy lane, above center
 const RET_Y = FLOW_Y + LANE_DY;     // 324: kube-proxy -> client lane, below center
-const CLIENT_EDGE = 260;            // right edge of the client Pod shell: the two client lanes meet it
-const KP_LEFT = 440, KP_RIGHT = 660;// kube-proxy box left/right edges (center y = FLOW_Y)
-const POD_LEFT = 820, POD_W = 210, POD_H = 114;
+const CLIENT_X = SCHEME_L, CLIENT_W = 190, CLIENT_H = 120;
+const CLIENT_EDGE = CLIENT_X + CLIENT_W;  // 250: right edge of the client Pod shell, where both client lanes meet it
+const KP_W = 220, KP_H = 72;        // ClusterIP box and kube-proxy box share one size, centred on CX
+const KP_LEFT = CX - KP_W / 2;      // 490
+const KP_RIGHT = CX + KP_W / 2;     // 710
+const KP_TOP = FLOW_Y - KP_H / 2;   // 276: kube-proxy sits on the flow line
+const VIP_Y = 120;                  // the virtual ClusterIP is lifted clear above it
+const VIP_BOTTOM = VIP_Y + KP_H;    // 192
+const POD_W = 210, POD_H = 114;
+const POD_LEFT = SCHEME_R - POD_W;  // 930: backend column, flush with the right content edge
 const POD_OFFSET = 150;             // each backend centre is this far above/below FLOW_Y (mirror pair)
 const PODX_CY = FLOW_Y - POD_OFFSET;// 162: top backend centre
 const PODY_CY = FLOW_Y + POD_OFFSET;// 462: bottom backend centre
 const PODX_Y = PODX_CY - POD_H / 2; // 105
 const PODY_Y = PODY_CY - POD_H / 2; // 405
 const FAN_DY = 12;                  // fan attaches +/-FAN_DY from a Pod centre at its left edge
-const FAN_OUT_X = 700, FAN_IN_X = 730; // forward (out) vertical bus and return (in) vertical bus
+const FAN_OUT_X = KP_RIGHT + 40, FAN_IN_X = KP_RIGHT + 70; // forward (out) and return (in) vertical buses
 // kube-proxy right-edge attach points, symmetric about FLOW_Y: top pair for podX, bottom pair mirrors it.
 const KPX_FWD_Y = 294, KPX_RET_Y = 306; // podX forward-out / return-in (both just above center)
 const KPY_FWD_Y = 330, KPY_RET_Y = 318; // podY forward-out / return-in (mirror, both just below center)
+
+// Chip strip: four cells spanning SCHEME_L..SCHEME_R with even gaps, so it centres on CX. Widths are
+// not equal: each is sized for its own longest value (DNAT carries the widest).
+const CHIP_Y = 548, CHIP_H = 34, CHIP_GAP = 20;
+const CHIP_W = [270, 310, 225, 215];
+const CHIP_X = CHIP_W.reduce((acc, w, i) => (i ? [...acc, acc[i - 1] + CHIP_W[i - 1] + CHIP_GAP] : [SCHEME_L]), []);
 
 const LANE_FWD = [[CLIENT_EDGE, FWD_Y], [KP_LEFT, FWD_Y]];
 const LANE_RET = [[KP_LEFT, RET_Y], [CLIENT_EDGE, RET_Y]];
@@ -61,24 +77,24 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const client = podBlock({ x: 70, y: 252, w: 190, h: 120, label: 'Client Pod', ip: '10.244.1.5' });
-    const vip    = box({ x: 440, y: 120, w: 220, h: 72, label: 'ClusterIP 10.96.0.10:80', sublabel: 'virtual · no interface', role: 'network' });
-    const kproxy = box({ x: 440, y: 276, w: 220, h: 72, label: 'kube-proxy', sublabel: 'DNAT dataplane', role: 'network' });
+    const client = podBlock({ x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.1.5' });
+    const vip    = box({ x: KP_LEFT, y: VIP_Y, w: KP_W, h: KP_H, label: 'ClusterIP 10.96.0.20:80', sublabel: 'virtual · no interface', role: 'network' });
+    const kproxy = box({ x: KP_LEFT, y: KP_TOP, w: KP_W, h: KP_H, label: 'kube-proxy', sublabel: 'DNAT dataplane', role: 'network' });
     const podX = podBlock({ x: POD_LEFT, y: PODX_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.2.7:8080' });
     const podY = podBlock({ x: POD_LEFT, y: PODY_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.3.9:8080' });
 
     const cWireFwd = arrow({ x1: CLIENT_EDGE, y1: FWD_Y, x2: KP_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });
     const cWireRet = arrow({ x1: KP_LEFT, y1: RET_Y, x2: CLIENT_EDGE, y2: RET_Y, dashed: true, dim: true, role: 'network' });
-    const ownLink  = line({ class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-network', x1: 550, y1: 192, x2: 550, y2: 276, 'stroke-dasharray': '5 5', fill: 'none' });
+    const ownLink  = relationPath({ points: [[CX, VIP_BOTTOM], [CX, KP_TOP]], role: 'network', dash: '5 5' });
     const fanFwdX  = pathArrow({ points: FAN_FWD_X, dashed: true, dim: true, role: 'network' });
     const fanRetX  = pathArrow({ points: FAN_RET_X, dashed: true, dim: true, role: 'network' });
     const fanFwdY  = pathArrow({ points: FAN_FWD_Y, dashed: true, dim: true, role: 'network' });
     const fanRetY  = pathArrow({ points: FAN_RET_Y, dashed: true, dim: true, role: 'network' });
 
-    const vipChip  = valChip({ x: 70,  y: 548, w: 240, h: 34, name: 'dst', value: '10.96.0.10:80', role: 'network' });
-    const dnatChip = valChip({ x: 330, y: 548, w: 270, h: 34, name: 'DNAT', value: 'none', role: 'network' });
-    const ctChip   = valChip({ x: 620, y: 548, w: 200, h: 34, name: 'conntrack', value: 'none', role: 'network' });
-    const backChip = valChip({ x: 840, y: 548, w: 190, h: 34, name: 'backend', value: 'none', role: 'network' });
+    const vipChip  = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'dst', value: '10.96.0.20:80', role: 'network' });
+    const dnatChip = valChip({ x: CHIP_X[1], y: CHIP_Y, w: CHIP_W[1], h: CHIP_H, name: 'DNAT', value: 'none', role: 'network' });
+    const ctChip   = valChip({ x: CHIP_X[2], y: CHIP_Y, w: CHIP_W[2], h: CHIP_H, name: 'conntrack', value: 'none', role: 'network' });
+    const backChip = valChip({ x: CHIP_X[3], y: CHIP_Y, w: CHIP_W[3], h: CHIP_H, name: 'backend', value: 'none', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -115,7 +131,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The web Service has a ClusterIP, 10.96.0.10, and two Ready backend Pods. That ClusterIP is a stable address clients connect to, but as the next steps show, nothing actually owns it on the network.',
+    narration: 'The web Service has a ClusterIP, 10.96.0.20, and two Ready backend Pods. That ClusterIP is a stable address clients connect to, but as the next steps show, nothing actually owns it on the network.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -138,7 +154,7 @@ const STEPS = [
   {
     id: 'program',
     duration: 2300,
-    narration: 'kube-proxy watches the Service and its EndpointSlices and installs the dataplane rules: any packet whose destination is 10.96.0.10:80 should be DNAT-ed to one of the backend Pod IPs. The rules are in place before any traffic arrives.',
+    narration: 'The kube-proxy watches the Service and its EndpointSlices and installs the dataplane rules: any packet whose destination is 10.96.0.20:80 should be DNAT-ed to one of the backend Pod IPs. The rules are in place before any traffic arrives.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -150,26 +166,26 @@ const STEPS = [
   {
     id: 'send',
     duration: 2300,
-    narration: 'The client opens a connection to the ClusterIP 10.96.0.10:80. As the packet leaves the client it is caught by the kube-proxy rules on the Node before it can go anywhere, because there is no real host at that address to route to.',
+    narration: 'The client opens a connection to the ClusterIP 10.96.0.20:80. As the packet leaves the client it is caught by the kube-proxy rules on the Node before it can go anywhere, because there is no real host at that address to route to.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       // The dst chip is the ClusterIP the ball currently carries.
       s.refs.vipChip.classList.add('highlight');
-      setVal(s.refs.vipChip, '10.96.0.10:80');
+      setVal(s.refs.vipChip, '10.96.0.20:80');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.kproxy.classList.add('highlight'); return; }
       // Up-arrow: the client pulses first, the packet leaves at BEAT.afterPulse along the forward lane
       // and is caught at kube-proxy, which lights on arrival. The ClusterIP dst rides with the ball.
       pulsePod(s.refs.client, ctx, 0);
       const send = segmentPacket(s, ctx, { from: LANE_FWD[0], to: LANE_FWD[1], delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), role: 'network' });
-      ridingLabel(s, ctx, 'dst 10.96.0.10:80', LANE_FWD, { delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), easing: 'linear' });
+      ridingLabel(s, ctx, 'dst 10.96.0.20:80', LANE_FWD, { delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), easing: 'linear' });
       lightBoxAt(s.refs.kproxy, ctx, send.arrivalMs);
     },
   },
   {
     id: 'dnat',
     duration: 2500,
-    narration: 'kube-proxy picks one backend and rewrites the destination to that Pod IP, here 10.244.2.7:8080. Connection tracking records the mapping so every later packet of the same flow takes the same backend. The DNAT-ed packet is then delivered to the chosen Pod.',
+    narration: 'The kube-proxy picks one backend and rewrites the destination to that Pod IP, here 10.244.2.7:8080. Connection tracking records the mapping so every later packet of the same flow takes the same backend. The DNAT-ed packet is then delivered to the chosen Pod.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -181,7 +197,7 @@ const STEPS = [
       setVal(s.refs.ctChip, 'flow pinned');
       setVal(s.refs.backChip, '10.244.2.7');
       // podY is idle for this flow: dim it so the chosen backend reads clearly.
-      s.refs.podY.style.opacity = '0.4';
+      s.refs.podY.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.podXBox.classList.add('highlight'); return; }
       const give = routePacket(s, ctx, FAN_FWD_X, { dur: slowDur(FAN_FWD_X), role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.2.7:8080', FAN_FWD_X, { dur: slowDur(FAN_FWD_X) });
@@ -193,21 +209,21 @@ const STEPS = [
     // Two-hop round trip: the motion runs ~3340ms, so this floor gives a ~460ms settle after the
     // reply lands, matching the dwell of the single-hop steps instead of snapping straight on.
     duration: 3800,
-    narration: 'The Pod replies from its own IP, but conntrack reverses the translation on the way back so the source looks like 10.96.0.10 again. The client only ever sees the ClusterIP it dialed, never the Pod address it was actually served by.',
+    narration: 'The Pod replies from its own IP, but conntrack reverses the translation on the way back so the source looks like 10.96.0.20 again. The client only ever sees the ClusterIP it dialed, never the Pod address it was actually served by.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       s.refs.ctChip.classList.add('highlight');
       setVal(s.refs.ctChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.2.7');
-      s.refs.podY.style.opacity = '0.4';
+      s.refs.podY.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
       pulsePod(s.refs.podX, ctx, 0);
       const h1 = routePacket(s, ctx, FAN_RET_X, { delay: BEAT.afterPulse, dur: slowDur(FAN_RET_X), role: 'network' });
       ridingLabel(s, ctx, 'src 10.244.2.7', FAN_RET_X, { delay: BEAT.afterPulse, dur: slowDur(FAN_RET_X) });
       lightBoxAt(s.refs.kproxy, ctx, h1.arrivalMs);
       const h2 = segmentPacket(s, ctx, { from: LANE_RET[0], to: LANE_RET[1], delay: h1.arrivalMs + BEAT.afterHop, dur: slowDur(LANE_RET), role: 'network' });
-      ridingLabel(s, ctx, 'src 10.96.0.10', LANE_RET, { delay: h1.arrivalMs + BEAT.afterHop, dur: slowDur(LANE_RET), easing: 'linear' });
+      ridingLabel(s, ctx, 'src 10.96.0.20', LANE_RET, { delay: h1.arrivalMs + BEAT.afterHop, dur: slowDur(LANE_RET), easing: 'linear' });
       pulsePod(s.refs.client, ctx, h2.arrivalMs);
     },
   },
@@ -227,11 +243,11 @@ const STEPS = [
       setVal(s.refs.ctChip, 'two flows');
       setVal(s.refs.backChip, '10.244.3.9');
       // Mirror of flow 1: podX is not the backend this flow acts on, so dim it exactly as flow 1 dims podY.
-      s.refs.podX.style.opacity = '0.4';
+      s.refs.podX.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.podYBox.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const send = segmentPacket(s, ctx, { from: LANE_FWD[0], to: LANE_FWD[1], delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), role: 'network' });
-      ridingLabel(s, ctx, 'dst 10.96.0.10:80', LANE_FWD, { delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), easing: 'linear' });
+      ridingLabel(s, ctx, 'dst 10.96.0.20:80', LANE_FWD, { delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), easing: 'linear' });
       const give = routePacket(s, ctx, FAN_FWD_Y, { delay: send.arrivalMs + BEAT.afterHop, dur: slowDur(FAN_FWD_Y), role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.3.9:8080', FAN_FWD_Y, { delay: send.arrivalMs + BEAT.afterHop, dur: slowDur(FAN_FWD_Y) });
       pulsePod(s.refs.podY, ctx, give.arrivalMs);
@@ -241,7 +257,7 @@ const STEPS = [
     id: 'balance-reply',
     // Same two-hop round trip (~3340ms of motion): match the settle so the final step does not snap.
     duration: 3800,
-    narration: 'podY replies from its own 10.244.3.9, and conntrack reverses this second flow the same way, rewriting the source back to 10.96.0.10 before the reply reaches the client. Two Pods served two connections, and the client only ever saw the single ClusterIP.',
+    narration: 'The second backend Pod replies from its own 10.244.3.9, and conntrack reverses this second flow the same way, rewriting the source back to 10.96.0.20 before the reply reaches the client. Two Pods served two connections, and the client only ever saw the single ClusterIP.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -249,14 +265,14 @@ const STEPS = [
       setVal(s.refs.ctChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.3.9');
       // Mirror of flow 1 reply: podX is not this flow backend, so dim it as flow 1 dims podY.
-      s.refs.podX.style.opacity = '0.4';
+      s.refs.podX.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
       pulsePod(s.refs.podY, ctx, 0);
       const h1 = routePacket(s, ctx, FAN_RET_Y, { delay: BEAT.afterPulse, dur: slowDur(FAN_RET_Y), role: 'network' });
       ridingLabel(s, ctx, 'src 10.244.3.9', FAN_RET_Y, { delay: BEAT.afterPulse, dur: slowDur(FAN_RET_Y) });
       lightBoxAt(s.refs.kproxy, ctx, h1.arrivalMs);
       const h2 = segmentPacket(s, ctx, { from: LANE_RET[0], to: LANE_RET[1], delay: h1.arrivalMs + BEAT.afterHop, dur: slowDur(LANE_RET), role: 'network' });
-      ridingLabel(s, ctx, 'src 10.96.0.10', LANE_RET, { delay: h1.arrivalMs + BEAT.afterHop, dur: slowDur(LANE_RET), easing: 'linear' });
+      ridingLabel(s, ctx, 'src 10.96.0.20', LANE_RET, { delay: h1.arrivalMs + BEAT.afterHop, dur: slowDur(LANE_RET), easing: 'linear' });
       pulsePod(s.refs.client, ctx, h2.arrivalMs);
     },
   },

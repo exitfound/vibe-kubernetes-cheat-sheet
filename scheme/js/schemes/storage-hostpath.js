@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel } from '../lib/storage-kit.js';
+import { valChip, setVal, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-hostpath
 
 
@@ -48,7 +48,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'hostPath volume: a hostPath mounts a file or directory that already exists on the node filesystem straight into the Pod. The directory belongs to the node, not the Pod, so writes land in real host state and stay on the node after the Pod is gone, but a Pod rescheduled to another node mounts the different directory that belongs to that node, so hostPath looks like persistence and is not. Pointed at a sensitive path it hands the whole node to the Pod, which is why the Baseline and Restricted Pod Security Standards forbid it.',
+      'aria-label': 'hostPath volume: a hostPath mounts a file or directory from the Node filesystem straight into the Pod. Under type Directory or File the target must already exist, DirectoryOrCreate and FileOrCreate make it, and the default empty type checks nothing at all. The directory belongs to the Node, not the Pod, so writes land in real host state and stay on the Node after the Pod is gone, but a Pod rescheduled to another Node mounts the different directory that belongs to that Node, so hostPath looks like persistence and is not. Pointed at a sensitive path it hands the whole Node to the Pod, which is why the Baseline and Restricted Pod Security Standards forbid it.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -63,7 +63,7 @@ class Scene {
     const shellWrap = g({});
     shellWrap.appendChild(shell);
 
-    const app  = containerBlock({ x: APP_X,  y: C_Y, w: C_W, h: C_H, label: 'App',   sublabel: 'writes /var/log' });
+    const app  = containerBlock({ x: APP_X,  y: C_Y, w: C_W, h: C_H, label: 'app',   sublabel: 'writes /var/log' });
     const side = containerBlock({ x: SIDE_X, y: C_Y, w: C_W, h: C_H, label: 'Agent', sublabel: 'reads /var/log' });
     const podGroup = g({});
     [shellWrap, app.wrap, side.wrap].forEach(el => podGroup.appendChild(el));
@@ -138,7 +138,7 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A hostPath mounts a file or directory that already exists on the node filesystem straight into the Pod. Unlike an emptyDir, kubelet does not create it for the Pod. It is a raw window onto /var/log, which belongs to the node, not to this Pod.',
+    narration: 'A hostPath mounts a file or directory from the Node filesystem straight into the Pod. Unlike an emptyDir, Kubelet creates nothing for the Pod unless the type says DirectoryOrCreate or FileOrCreate. It is a raw window onto /var/log, which belongs to the Node, not to this Pod.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -149,7 +149,7 @@ const STEPS = [
   {
     id: 'mount',
     duration: 2600,
-    narration: 'The Pod names a hostPath with a path and a type. kubelet checks the node first: type Directory requires /var/log to already exist, while DirectoryOrCreate makes it, owned by kubelet. It then bind-mounts that host directory into the container.',
+    narration: 'The Pod names a hostPath with a path and a type. Kubelet checks the Node first: type Directory requires /var/log to already exist, while DirectoryOrCreate makes it, owned by Kubelet. It then bind-mounts that host directory into the container.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -165,7 +165,7 @@ const STEPS = [
   {
     id: 'access',
     duration: 3800,
-    narration: 'Inside the container /var/log is the real log directory of the node. The app writes an entry and the agent reads it straight back, and every byte lands in the node filesystem where it stays after the Pod is gone. This is live host state, not private scratch.',
+    narration: 'Inside the container /var/log is the real log directory of the Node. The app writes an entry and the agent reads it straight back, and every byte lands in the Node filesystem where it stays after the Pod is gone. This is live host state, not private scratch.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -175,12 +175,12 @@ const STEPS = [
       // entry, and the shell pulse fires at the same instant, one beat.
       s.refs.hp.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
-      s.refs.sideBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
       pulsePod(s.refs.shellWrap, ctx, 0);
       const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'write entry', LANE_WRITE, { delay: BEAT.afterPulse });
       const read = routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
+      lightBoxAt(s.refs.sideBox, ctx, read.arrivalMs);
       ridingLabel(s, ctx, 'read entry', LANE_READ, { delay: write.arrivalMs + BEAT.afterHop });
       pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
     },
@@ -188,7 +188,7 @@ const STEPS = [
   {
     id: 'reschedule',
     duration: 2800,
-    narration: 'The directory belongs to the node, not the Pod, so deleting the Pod leaves /var/log untouched on Node-1, and here the Pod dims out while the directory stays lit. The replacement may land on Node-2, where hostPath mounts the different /var/log that belongs to that node. The data did not travel. hostPath looks like persistence and is not.',
+    narration: 'The directory belongs to the Node, not the Pod, so deleting the Pod leaves /var/log untouched on Node-1, and here the Pod dims out while the directory stays lit. The replacement may land on Node-2, where hostPath mounts the different /var/log that belongs to that Node. The data did not travel. A hostPath volume looks like persistence and is not.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -199,17 +199,17 @@ const STEPS = [
       s.refs.hp.classList.add('highlight');
       s.refs.diskLbl.textContent = 'stays on Node-1';
       const GONE = [s.refs.pod, s.refs.wWrite, s.refs.wRead];
-      GONE.forEach(el => { el.style.opacity = '0.22'; });
+      GONE.forEach(el => { el.style.opacity = String(OPACITY.terminated); });
       if (ctx.reduced) return;
       GONE.forEach(el => {
-        ctx.register(el.animate([{ opacity: 1 }, { opacity: 0.22 }], { duration: FADE.out, easing: 'ease-in' }));
+        ctx.register(el.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, easing: 'ease-in' }));
       });
     },
   },
   {
     id: 'security',
     duration: 3000,
-    narration: 'Point a hostPath at a sensitive path and the risk is plain. Mounting the host root or the container runtime socket gives the Pod control of the node itself, a container escape. This is why the Baseline and Restricted Pod Security Standards forbid hostPath outright.',
+    narration: 'Point a hostPath at a sensitive path and the risk is plain. Mounting the host root or the container runtime socket gives the Pod control of the Node itself, a container escape. This is why the Baseline and Restricted Pod Security Standards forbid hostPath outright.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -218,31 +218,31 @@ const STEPS = [
       // The cylinder now stands for the host root, and the reach into it is what the ball carries.
       setCylinderLabel(s.refs.hp, 'host /');
       s.refs.diskLbl.textContent = 'hands over the node';
-      s.refs.hp.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.hp.classList.add('highlight'); return; }
       pulsePod(s.refs.shellWrap, ctx, 0);
       // The Pod reaches down into the host root: a pod-to-infra hop, so the shell pulses first and
       // the ball leaves at afterPulse.
-      routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
+      const hpPkt = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
+      lightBoxAt(s.refs.hp, ctx, hpPkt.arrivalMs);
       ridingLabel(s, ctx, 'full node access', LANE_WRITE, { delay: BEAT.afterPulse });
     },
   },
   {
     id: 'bridge',
     duration: 3000,
-    narration: 'Used narrowly, hostPath is right: a node agent in a DaemonSet reading /var/log or /proc genuinely needs the host. For an ordinary Pod that wants node-local storage to survive a reschedule, the portable answer is a local PersistentVolume, whose node affinity keeps the Pod pinned to its data. That is where the rest of this category begins.',
+    narration: 'Used narrowly, hostPath is right: a Node agent in a DaemonSet reading /var/log or /proc genuinely needs the host. For an ordinary Pod that wants node-local storage to survive a reschedule, the portable answer is a local PersistentVolume, whose node affinity keeps the Pod pinned to its data. That is where the rest of this category begins.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setChips(s, { host: 'for node agents', lives: 'on the node', exposure: 'one directory' });
       s.refs.hp.classList.add('highlight');
-      s.refs.sideBox.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
       // The agent reads the node logs: an infra-to-pod hop, so the ball leaves first and the shell
       // pulses when it arrives.
       const read = routePacket(s, ctx, LANE_READ, { role: 'storage' });
+      lightBoxAt(s.refs.sideBox, ctx, read.arrivalMs);
       ridingLabel(s, ctx, 'reads node logs', LANE_READ);
       pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
     },
