@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
+import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-failure
 
 // Layout C: six ladder rows plus two Node frames plus five chips do not leave room for a left
@@ -15,8 +15,7 @@ const CTRL_W = 300, LEASE_W = 130, TOP_GAP = 70;
 const CTRL_X = CX - CTRL_W / 2, CTRL_R = CTRL_X + CTRL_W;// 450..750, centred so its spine is on CX
 const LEASE_X = CTRL_R + TOP_GAP;                        // 820..950
 const LEASE_CX = LEASE_X + LEASE_W / 2;                  // 885
-const LANE_DY = 15, TOP_CY = TOP_Y + TOP_H / 2;          // 80
-const READ_Y = TOP_CY - LANE_DY, WRITE_Y = TOP_CY + LANE_DY;  // 65 / 95
+const TOP_CY = TOP_Y + TOP_H / 2;                        // 80
 const WIRE_X = (CTRL_R + LEASE_X) / 2;                   // 785
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row: the lanes own below it
 
@@ -74,9 +73,11 @@ class Scene {
     // The heartbeat lane climbs into the Lease on its bottom midpoint, LEASE_CX.
     const lease = cylinder({ x: LEASE_X, y: TOP_Y, w: LEASE_W, h: TOP_H, label: 'Lease', role: 'cluster' });
 
-    // Top-row lanes, one per direction, straddling the row centre line by LANE_DY.
-    root.appendChild(arrow({ x1: CTRL_R, y1: READ_Y,  x2: LEASE_X, y2: READ_Y,  dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: LEASE_X, y1: WRITE_Y, x2: CTRL_R, y2: WRITE_Y, dim: true, dashed: true, role: 'cluster' }));
+    // The controller and the Lease are wired together, they do not exchange anything the card ever
+    // animates: the status flip is COMPUTED on the controller from an expired Lease, which the
+    // not-ready step says in so many words. So this is one relationship line on the row centre, not a
+    // pair of arrows. It was a pair of arrowheaded lanes that no ball ever rode, on either direction.
+    root.appendChild(relationPath({ points: [[CTRL_R, TOP_CY], [LEASE_X, TOP_CY]], role: 'cluster' }));
 
     // Heartbeat connector: Node-1 top centre up and over into the Lease bottom centre.
     const hbLane = pathArrow({ points: HEARTBEAT_CONNECTOR, dim: true, dashed: true, role: 'cluster' });

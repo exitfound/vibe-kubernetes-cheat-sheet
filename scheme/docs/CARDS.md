@@ -1134,6 +1134,13 @@ Pod B going notReady is the whole of this step, so its shade is static end-state
 the guard, next to Pod C which was already pinned there. It sat below the guard until 2026-07-29,
 so prev and reset drew Pod B at full brightness directly beneath its own sublabel reading
 10.244.2.7 notReady, and beside a slice row reading dropped (notReady).
+
+Pinning the shade exposed a second thing, fixed 2026-07-30: the Pod was pulsed with plain pulsePod
+while sitting at 0.40, and that pulse ramps the STROKE from the resting tint, which on an already
+dim Pod is close to invisible. It takes pulsePodDim with `from: OPACITY.notready` instead, which
+adds the opacity flash the dim variant exists for. The signature in anim-dump is an `opacity` track
+on the Pod group next to the `filter` one, and the peak sits between the sampled percentages because
+a blink returns to where it started.
 ```
 
 ---
@@ -8277,12 +8284,20 @@ volume. Then the attacher reads the deletion, and the object leaves WITH its fou
 same construction that arrived together on step 3. Then the unpublish call reaches the disk.
 ```
 
-### before `if (ctx.reduced) { s.refs.att.classList.add('highlight'); s.refs.va`
+### before `gone.onfinish = () => s.refs.va.classList.remove('highlight');`
 
 ```
-va-7f is the subject of the step: lit from entry as the source of the watch, and still lit as it
-fades to the terminated shade, so the static path lights it too. It is lit AT 0.12, which is the
-end-state the played path settles on, not a claim that a deleted object is bright.
+va-7f is the subject of the step and is lit from entry as the source of the watch, but it does not
+KEEP that light once it is gone: the class comes off when the fade to the terminated shade finishes,
+so the static path has nothing to mirror and does not light it at all.
+
+This was settled on 2026-07-30 after a first pass went the other way and mirrored the highlight onto
+the static path instead. Both readings end the step consistently, so the tie is broken by the rule
+already in the gate: check-opacity LIT says nothing may hold .highlight at the terminated shade,
+because a block that is gone cannot also be the thing the step points at. LIT reads inline style on
+the played path only, so it sees neither version here, which is exactly why the answer has to be
+written down rather than left to whichever card is edited next. The same shape lives in removeAt
+(storage-reclaim-policy) and vanishAt (storage-pvc-retention-policy, storage-csi-capacity-tracking).
 ```
 
 ---

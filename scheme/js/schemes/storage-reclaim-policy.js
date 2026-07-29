@@ -135,6 +135,9 @@ class Scene {
       svg: root,
       delPvc, delPv, delDisk, retPvc, retPvc2, retPv, retDisk, band, admin,
       delBound, retBound, wRetBind, wAdminPv, delSpec, retSpec,
+      // The Delete column reclaims, so its two lanes have to fade with the objects they join. The
+      // Retain pair never moves off full, because nothing on that side is ever taken away.
+      lDelPolicy, lDelWipe,
       delChip, delDiskChip, retChip, retDiskChip,
       wires: { del: delLbl, ret: retLbl },
       packetLayer,
@@ -163,6 +166,11 @@ function setStage(s, { delPvc, delPv, delDisk, retPvc, retPvc2, admin, delBound,
   s.refs.delPv.style.opacity = String(delPv);
   s.refs.delDisk.style.opacity = String(delDisk);
   s.refs.delSpec.style.opacity = String(delDisk);   // the caption dies with the disk it describes
+  // A lane is only as present as the fainter end it joins, and the policy band is drawn on every
+  // step, so each Delete lane simply follows its object. Without this both stayed on full through
+  // the four steps where the PV and the disk sit at the terminated shade.
+  s.refs.lDelPolicy.style.opacity = String(delPv);
+  s.refs.lDelWipe.style.opacity = String(delDisk);
   s.refs.retPvc.style.opacity = String(retPvc);
   s.refs.retPvc2.style.opacity = String(retPvc2);
   s.refs.admin.style.opacity = String(admin);
@@ -227,9 +235,13 @@ const STEPS = [
       s.refs.band.classList.add('highlight');
       if (ctx.reduced) return;
       // Replayed forward, the two objects start alive and are killed by the ball that reaches them.
+      // Their lanes come back up with them: each one carries a ball this step, so it has to be on
+      // screen for the flight and then go down with the object at its far end.
       s.refs.delPv.style.opacity = '1';
       s.refs.delDisk.style.opacity = '1';
       s.refs.delSpec.style.opacity = '1';
+      s.refs.lDelPolicy.style.opacity = '1';
+      s.refs.lDelWipe.style.opacity = '1';
       s.refs.band.classList.remove('highlight');
       s.refs.delPv.classList.add('highlight');
       const policy = routePacket(s, ctx, W_DEL_POLICY, { role: 'storage' });
@@ -240,7 +252,9 @@ const STEPS = [
       lightBoxAt(s.refs.delDisk, ctx, wipe.arrivalMs);
       removeAt(s.refs.delDisk, ctx, wipe.arrivalMs + 180);
       removeAt(s.refs.delSpec, ctx, wipe.arrivalMs + 180);
+      removeAt(s.refs.lDelWipe, ctx, wipe.arrivalMs + 180);
       removeAt(s.refs.delPv, ctx, wipe.arrivalMs + 580);
+      removeAt(s.refs.lDelPolicy, ctx, wipe.arrivalMs + 580);
     },
   },
   {

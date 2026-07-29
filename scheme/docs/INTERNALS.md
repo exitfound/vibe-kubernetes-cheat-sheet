@@ -404,6 +404,39 @@ self-initiates a command packet down the connector with no preceding hop or
 pulse, so the lit source block registers before the ball leaves.
 ```
 
+### before `export const OPACITY = Object.freeze({`
+
+```
+How a LANE takes its shade, which is not in the vocabulary above because a lane has no phase of its
+own. A lane is only as present as the fainter of the two things it joins, so its opacity is
+min(source, sink). Deriving it from one end is how the catalog came to draw a full-strength arrow out
+of a Pod that was a ghost at 0.12, and a full-strength fan into a Node the step had just taken out of
+the path.
+
+Three rules, in the order they get broken:
+
+1. Pin an object and its lanes in ONE helper. Two separate assignments drift the moment a step is
+   added, and the drift is invisible to every check in the gate.
+2. A lane whose far end is gone goes to 0 rather than to a dim shade. A block leaves a hole when it
+   vanishes, so it dims instead, but an arrow into nothing leaves no hole and reads as a fault.
+3. A lane that CARRIES a ball this step has to be on screen for the whole flight: pin its end value
+   above the ctx.reduced guard and animate down from 1 with `fill: 'both'`, so keyframe one is held
+   through the delay window. Sinking it at step entry hides the ball it is supposed to be carrying.
+
+Ten cards were on the wrong side of this until 2026-07-30, and nine needed fixing: the four whose
+lanes were never put in refs at all (storage-reclaim-policy, storage-ephemeral-vs-persistent,
+storage-volumeattachment, storage-volumeclaimtemplates), the four whose helper pinned the blocks and
+skipped the lanes (cluster-node-pressure-eviction, network-ingress-routing,
+network-loadbalancer-bare-metal, network-internal-traffic-policy), and one that derived the shade
+from the wrong end (storage-pvc-retention-policy took an ownership lane from its claim while the lane
+leaves the Pod). network-externaltrafficpolicy was on the list and is not a defect: that card never
+changes an opacity at all, so it has no dimmed end for a lane to point at.
+
+Rule 3 is the one that bites twice. Two of the nine passed the gate on the static path and failed it
+on the played path, because the end state was pinned correctly and the ANIMATION still took only the
+block down: `check-reduced` caught both as played-versus-reduced mismatches.
+```
+
 ---
 
 ## scheme/js/lib/timeline.js
@@ -438,6 +471,43 @@ base directly, which left scheme-kit playing two parts at once: the shared base 
 the workloads kit. That is why the workloads blue sat in the base as TINT_BASE. It
 lives here now, so all four categories reach the base the same way and the base has
 no category of its own.
+```
+
+### before `LANE_DY: 12,`
+
+```
+The top-row lane PAIR, and what settled on 2026-07-30 about the one nobody rides.
+
+17 cards draw the pair: `REQ_Y = TOP_CY - LANE_DY` carries the controller's request to the API, and
+`RESP_Y = TOP_CY + LANE_DY` carries the answer back. 6 of them ride the answer lane. On the other 11
+it was drawn with an arrowhead and no ball ever used it, which reads as traffic that does not exist.
+
+The rule is not one answer for all 11, it is the step's own words. Where a step NAMES something
+arriving from the API, the lane gets a ball and the receiving box goes dark at entry and lights on
+arrival (it is a receiver now, so check-arrival R3 applies to it): workloads-replicaset (`self-heal`,
+"sees the observed count drop through its Pod watch"), workloads-daemonset (`node-join`, watches Node
+objects), workloads-job-parallelism (`partial`, wire says watch Pod exits),
+workloads-pvc-stickiness (`recreate`, "observes the missing replica"), workloads-force-deletion
+(`force`, "the API now reports the Pod as gone") and workloads-graceful-shutdown (`delete`, the field
+"makes kubectl report the Pod as Terminating"). On the last two the left box is kubectl, the SOURCE of
+the round trip, so it stays lit at entry and does not light again on arrival.
+
+Where no step names anything coming back, the lane is a relationship and goes through
+`relationPath`: no arrowhead, `stroke-opacity: 0.45`, category tint kept. Five cards:
+workloads-statefulset-ordered-startup, workloads-cronjob, workloads-rolling-update,
+workloads-deployment-rollback, workloads-pod-priority-preemption. Do not read a relation line on one
+card and an arrow on another as drift: the difference IS the content.
+
+Two things learned the hard way here. First, an added hop costs ~800ms (the 60-unit gap sits on the
+`PKT_DUR_MIN` floor of 700, plus `BEAT.afterHop`), so three of the six needed their `duration` raised
+and `check-duration` is what says by how much. Second, `workloads-force-deletion` and
+`workloads-pvc-stickiness` did not import `BEAT` at all, so the new hop threw a ReferenceError that
+`Timeline` swallowed into console.error: the step played its first packet and silently stopped. Only
+`smoke-all` sees that. Run it after touching any card's imports.
+
+One step was left alone deliberately: `workloads-replicaset/reconcile`, whose wire says `watch Pods`,
+carries a recorded decision that no packet moves on a no-op reconcile. The watch ball went on
+`self-heal` instead, which names the same traffic and already had motion.
 ```
 
 ### before `export const WORKLOADS_TINT = Object.freeze({ base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' });`

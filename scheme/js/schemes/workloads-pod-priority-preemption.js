@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=404 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
@@ -65,7 +65,9 @@ class Scene {
     const apiserver = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'PriorityClass + delete + bind', role: 'cluster' });
 
     root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
+    // The answer lane is a relationship here, not a route: no step on this card names anything
+    // travelling back from the API, so it carries no arrowhead and sits behind the live lane.
+    root.appendChild(relationPath({ points: [[TOP2_X, RESP_Y], [TOP1_X + TOP1_W, RESP_Y]], role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     root.appendChild(wireReq);

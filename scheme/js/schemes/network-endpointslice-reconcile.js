@@ -1,6 +1,6 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, pulsePodDim, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-endpointslice-reconcile
 
 
@@ -164,9 +164,10 @@ const STEPS = [
       setVal(s.refs.ep3, '10.244.3.9 · notReady');
       setPodSublabel(s.refs.podB, '10.244.2.7 · notReady');
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); s.refs.ep2.classList.add('highlight'); return; }
-      // Pod B pulses through its dimmed state, the controller updates the slice (one packet up),
-      // and the dropped endpoint lights to show the change.
-      pulsePod(s.refs.podB, ctx, 0);
+      // Pod B pulses FROM its dimmed state: a plain pulsePod ramps the stroke from the resting tint
+      // and a Pod already sitting at 0.40 barely registers the blink, so it takes the dim variant with
+      // its own opacity flash, the same call shape as storage-csi-capacity-tracking.
+      pulsePodDim(s.refs.podB, ctx, 0, { from: OPACITY.notready });
       const upd = segmentPacket(s, ctx, { from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, '10.244.2.7 notReady', WRITE_PATH, { delay: BEAT.afterPulse, easing: 'linear' });
       lightBoxAt(s.refs.ep2, ctx, upd.arrivalMs);

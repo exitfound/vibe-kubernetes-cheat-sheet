@@ -118,6 +118,7 @@ class Scene {
       pod2: pod2.group, pod2Box: pod2.innerBox,
       pod3: pod3.group, pod3Box: pod3.innerBox,
       statusChip, poolChip, modeChip, pathChip,
+      fan1, fan2, fan3,
       packetLayer, wires: { n1: n1Note, n2: n2Note, n3: n3Note },
     };
   }
@@ -125,9 +126,23 @@ class Scene {
   reset() { this.build(); }
 }
 
+// A Node, the Pod inside it and the fan lane that reaches it are one thing as far as presence goes,
+// so one helper pins all three. Pinning them separately is how a fan arrow at full strength came to
+// point into a Node dimmed out of the path.
+const NODE_TRIPLES = [['node1', 'pod1', 'fan1'], ['node2', 'pod2', 'fan2'], ['node3', 'pod3', 'fan3']];
+
+function setNodes(s, opacities) {
+  NODE_TRIPLES.forEach(([n, p, w], i) => {
+    const v = String(opacities[i]);
+    s.refs[n].style.opacity = v;
+    s.refs[p].style.opacity = v;
+    s.refs[w].style.opacity = v;
+  });
+}
+
 function clearHL(s) {
   clearHighlights(s, ['client', 'router', 'statusChip', 'poolChip', 'modeChip', 'pathChip', 'pod1Box', 'pod2Box', 'pod3Box'], [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
-  ['node1', 'node2', 'node3', 'pod1', 'pod2', 'pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
+  setNodes(s, [1, 1, 1]);
 }
 
 const pods = (s) => [s.refs.pod1, s.refs.pod2, s.refs.pod3];
@@ -180,8 +195,9 @@ const STEPS = [
       s.refs.client.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
-      // Only Node-1 announces, so the other two take no traffic at all in this mode.
-      [s.refs.node2, s.refs.node3, s.refs.pod2, s.refs.pod3].forEach(el => { el.style.opacity = String(OPACITY.notready); });
+      // Only Node-1 announces, so the other two take no traffic at all in this mode, and neither do
+      // the fan lanes that reach them.
+      setNodes(s, [1, OPACITY.notready, OPACITY.notready]);
       if (ctx.reduced) { s.refs.router.classList.add('highlight'); s.refs.pod1Box.classList.add('highlight'); return; }
       // Down-arrow all the way: the request reaches the router, which lights on arrival, then rides the
       // fan to the one Node that claimed the address, and the Pod inside it pulses as it is served.
@@ -210,7 +226,7 @@ const STEPS = [
       s.refs.modeChip.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
       // Node-1 is the one that failed, and Node-3 still announces nothing: only the new owner is live.
-      [s.refs.node1, s.refs.pod1, s.refs.node3, s.refs.pod3].forEach(el => { el.style.opacity = String(OPACITY.notready); });
+      setNodes(s, [OPACITY.notready, 1, OPACITY.notready]);
       if (ctx.reduced) { s.refs.router.classList.add('highlight'); s.refs.pod2Box.classList.add('highlight'); return; }
       // Same down-arrow as before, but the fan now lands on the Node that took the address over, and its
       // local Pod pulses as it serves the request.

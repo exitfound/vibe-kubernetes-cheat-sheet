@@ -109,6 +109,7 @@ class Scene {
       svg: root, extLB, ctrl: ctrl.group, ctrlBox: ctrl.innerBox, ruleA, ruleB, svcWeb, svcApi,
       podWeb: podWeb.group, podWebBox: podWeb.innerBox, podApi: podApi.group, podApiBox: podApi.innerBox,
       hostChip, pathChip, tlsChip,
+      fanWeb, fanApi, podWebWire, podApiWire,
       packetLayer, wires: { w: entryLabel, web: webLabel, api: apiLabel },
     };
   }
@@ -116,17 +117,25 @@ class Scene {
   reset() { this.build(); }
 }
 
+// A branch is its Service, its Pod AND the two lanes that join them, because a lane into a Service
+// the request did not choose is not a route on this step. Listing the blocks without their lanes is
+// how the idle branch kept two arrows at full strength.
+const BRANCH = {
+  web: ['svcWeb', 'podWeb', 'fanWeb', 'podWebWire'],
+  api: ['svcApi', 'podApi', 'fanApi', 'podApiWire'],
+};
+
 function clearHL(s) {
   clearHighlights(s, ['extLB', 'ruleA', 'ruleB', 'svcWeb', 'svcApi', 'hostChip', 'pathChip', 'tlsChip', 'ctrlBox', 'podWebBox', 'podApiBox'], [s.refs.ctrl, s.refs.podWeb, s.refs.podApi]);
   // Both branches back to full: each step re-dims the one it is not using, so a dim never leaks.
-  ['svcWeb', 'podWeb', 'svcApi', 'podApi'].forEach(k => { s.refs[k].style.opacity = '1'; });
+  [...BRANCH.web, ...BRANCH.api].forEach(k => { s.refs[k].style.opacity = '1'; });
 }
 
 // Dim the branch the current request is not taking, so the chosen path reads clearly. 'both' leaves
 // the scheme neutral, before any rule has matched.
 function branch(s, active) {
   if (active === 'both') return;
-  const idle = active === 'web' ? ['svcApi', 'podApi'] : ['svcWeb', 'podWeb'];
+  const idle = active === 'web' ? BRANCH.api : BRANCH.web;
   idle.forEach(k => { s.refs[k].style.opacity = String(OPACITY.notready); });
 }
 

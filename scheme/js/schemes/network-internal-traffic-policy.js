@@ -118,6 +118,7 @@ class Scene {
       podA: podA.group, podABox: podA.innerBox,
       podB: podB.group, podBBox: podB.innerBox,
       policyChip, scopeChip, hopChip, resultChip,
+      localWire, remoteWire,
       packetLayer, wires: { a: aNote, b: bNote },
     };
   }
@@ -125,9 +126,18 @@ class Scene {
   reset() { this.build(); }
 }
 
+// A backend and the lane kube-proxy would reach it by are one thing: if the endpoint is out of scope
+// the lane is not a route any more. One helper pins both, because two separate assignments are how a
+// bright arrow came to point at a Pod that the step had just taken out of scope.
+function setBackends(s, localOp, remoteOp) {
+  [s.refs.podA, s.refs.localWire].forEach(el => { el.style.opacity = String(localOp); });
+  [s.refs.podB, s.refs.node2, s.refs.remoteWire].forEach(el => { el.style.opacity = String(remoteOp); });
+}
+
 function clearHL(s) {
   clearHighlights(s, ['svc', 'kproxy', 'policyChip', 'scopeChip', 'hopChip', 'resultChip', 'clientBox', 'podABox', 'podBBox'], [s.refs.client, s.refs.podA, s.refs.podB]);
-  ['node1', 'node2', 'client', 'podA', 'podB'].forEach(k => { s.refs[k].style.opacity = '1'; });
+  ['node1', 'client'].forEach(k => { s.refs[k].style.opacity = '1'; });
+  setBackends(s, 1, 1);
 }
 
 const STEPS = [
@@ -195,9 +205,9 @@ const STEPS = [
       s.refs.resultChip.classList.add('highlight');
       setWire(s, 'a', 'endpoint · in scope');
       setWire(s, 'b', 'endpoint · out of scope');
-      // The remote backend is no longer programmed on this Node, so it and its Node go dim: out of scope
-      // is the whole point of Local.
-      [s.refs.node2, s.refs.podB].forEach(el => { el.style.opacity = String(OPACITY.notready); });
+      // The remote backend is no longer programmed on this Node, so it, its Node and the lane that
+      // would have reached it go dim: out of scope is the whole point of Local.
+      setBackends(s, 1, OPACITY.notready);
       s.refs.svc.classList.add('highlight');
       s.refs.policyChip.classList.add('highlight');
       s.refs.scopeChip.classList.add('highlight');
@@ -229,9 +239,9 @@ const STEPS = [
       setVal(s.refs.resultChip, 'traffic dropped');
       setWire(s, 'a', 'no local backend');
       setWire(s, 'b', 'endpoint · out of scope');
-      // Node-1 has lost its backend and the remote one is still out of scope, so both Pods go dim: there
-      // is nothing left for kube-proxy to send to.
-      [s.refs.podA, s.refs.node2, s.refs.podB].forEach(el => { el.style.opacity = String(OPACITY.notready); });
+      // Node-1 has lost its backend and the remote one is still out of scope, so both Pods go dim, and
+      // both lanes with them: there is nothing left for kube-proxy to send to.
+      setBackends(s, OPACITY.notready, OPACITY.notready);
       s.refs.policyChip.classList.add('highlight');
       s.refs.scopeChip.classList.add('highlight');
       s.refs.resultChip.classList.add('highlight');

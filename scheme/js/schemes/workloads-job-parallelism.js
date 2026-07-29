@@ -226,7 +226,9 @@ const STEPS = [
   },
   {
     id: 'partial',
-    duration: 2700,
+    // Motion: the three exits fan out to their workers (to 1613), then the watch event carries the
+    // counts back to the controller and lands at 2973.
+    duration: 3100,
     narration: 'Both worker-1 and worker-2 exit 0, so .status.succeeded increments to 2. worker-3 exits with code 1, .status.failed becomes 1. The failed Pod is retained in Failed phase as a tombstone (visible in kubectl get pods until the Job is garbage-collected), so the post-mortem stays inspectable. A replacement still needs to run to reach completions=6.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -237,7 +239,8 @@ const STEPS = [
       setVal(s.refs.failChip, '1');
       setVal(s.refs.phaseChip, 'Running · 1 failed');
       setWire(s, 'req', 'watch Pod exits · 2 exit 0 · 1 exit 1');
-      s.refs.controller.classList.add('highlight');
+      // The API is the source of the watch and is lit from entry. The controller RECEIVES it, so it
+      // stays dark until the event lands.
       s.refs.apiserver.classList.add('highlight');
       s.refs.succChip.classList.add('highlight');
       s.refs.failChip.classList.add('highlight');
@@ -246,12 +249,17 @@ const STEPS = [
       // Pin final opacities inline (worker-3 exited 1 and settles to the terminated shade) so a
       // cancel does not drop worker-1 and worker-2 back to the built 0.
       setPods(s, 1, 1, OPACITY.terminated);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.controller.classList.add('highlight'); return; }
       const recon = fanOut(s, ctx);
       // Lane 3 dims on the same beat as the worker it feeds. fill:'both' holds it at full through
       // the delay window, so the ball is never riding a wire dimmer than itself.
       ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: recon[2].arrivalMs, fill: 'both', easing: 'ease-in' }));
       ctx.register(s.refs.lanes[2].animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: recon[2].arrivalMs, fill: 'both', easing: 'ease-in' }));
+      // Every unit has reported before the controller can count, so the watch leaves on the LAST
+      // arrival rather than the first: this is the step whose wire says watch Pod exits.
+      const settled = Math.max(...recon.map(r => r.arrivalMs));
+      const watch = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: settled + BEAT.afterHop, role: 'workloads' });
+      lightBoxAt(s.refs.controller, ctx, watch.arrivalMs);
     },
   },
   {

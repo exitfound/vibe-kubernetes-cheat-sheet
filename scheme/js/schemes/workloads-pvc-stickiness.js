@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=330 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
@@ -267,14 +267,16 @@ const STEPS = [
       setVal(s.refs.pvChip, 'cloud-vol-x · on lost Node-1');
       setVal(s.refs.dataChip, 'rev=1234 · preserved');
       setWire(s, 'req', 'create Pod web-0 (sticky name)');
-      s.refs.controller.classList.add('highlight');
       s.refs.podChip.classList.add('highlight');
       s.refs.pvcChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      // Control-plane only: the controller posts the new Pod object to the Api.
-      // The Pod is still Pending and unbound, so nothing lands on a node yet.
-      const pkt = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      if (ctx.reduced) { s.refs.controller.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+      // Control-plane only, and in the order the narration gives it: the controller OBSERVES the
+      // missing replica, which is an event arriving down the answer lane, and only then posts the new
+      // Pod object. The Pod is still Pending and unbound, so nothing lands on a node yet.
+      const observe = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
+      lightBoxAt(s.refs.controller, ctx, observe.arrivalMs);
+      const pkt = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: observe.arrivalMs + BEAT.afterHop, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, pkt.arrivalMs);
     },
   },

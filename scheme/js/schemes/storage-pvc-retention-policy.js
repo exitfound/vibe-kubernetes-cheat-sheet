@@ -152,12 +152,18 @@ function setChips(s, { repl, ws, wd, disks }) {
   setChip(s.refs.diskChip, disks);
 }
 
+// A lane is only as present as the fainter of the two things it joins, so it takes the min of its
+// endpoints. Deriving it from one end alone is how an ownership lane came to leave a Pod that is a
+// ghost at 0.12 and arrive at its claim on full strength.
+const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));
+
 function setStage(s, { pods = [1, 1, 1], claims = [1, 1, 1], disks = [1, 1, 1], govern = false } = {}) {
   [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => { p.style.opacity = String(pods[i]); });
   [s.refs.v0, s.refs.v1, s.refs.v2].forEach((v, i) => { v.style.opacity = String(claims[i]); });
   [s.refs.d0, s.refs.d1, s.refs.d2].forEach((d, i) => { d.style.opacity = String(disks[i]); });
-  s.refs.ownW.forEach((o, i) => { o.style.opacity = String(claims[i]); });
-  s.refs.reclaimW.forEach((r, i) => { r.style.opacity = String(disks[i]); });
+  s.refs.ownW.forEach((o, i) => { o.style.opacity = laneOf(pods[i], claims[i]); });
+  s.refs.reclaimW.forEach((r, i) => { r.style.opacity = laneOf(claims[i], disks[i]); });
+  // The policy box is drawn on every step, so the governance tap only follows its claim.
   s.refs.spineW.forEach((t, i) => { t.style.opacity = govern ? String(claims[i]) : '0'; });
 }
 
@@ -177,7 +183,10 @@ const BOUND = ['Bound', 'Bound', 'Bound'];
 function removePod(s, ctx, i, { delay = 0 } = {}) {
   pulsePod(s.refs[`p${i}`], ctx, delay);
   const fadeAt = delay + BEAT.afterPulse;
-  ctx.register(s.refs[`p${i}`].animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: fadeAt, fill: 'forwards', easing: 'ease-in' }));
+  // The ownership lane leaves this Pod, so it fades on the same beat: the claim it points at survives
+  // the removal, the ownership does not.
+  [s.refs[`p${i}`], s.refs.ownW[i]].forEach(el => ctx.register(
+    el.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: fadeAt, fill: 'forwards', easing: 'ease-in' })));
   return fadeAt + FADE.out;
 }
 

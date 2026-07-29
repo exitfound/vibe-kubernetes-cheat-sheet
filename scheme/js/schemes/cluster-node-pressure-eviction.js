@@ -141,6 +141,14 @@ function clearHL(s) {
 
 function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
+  s.refs.connector.style.opacity = '1';
+}
+
+// The SIGKILL lane exists for the Pod it points at, so the two are pinned together: once the victim
+// is gone the lane is an arrow into an empty slot, the defect this catalog has already paid for.
+function setVictim(s, v) {
+  s.refs.pod1.style.opacity = String(v);
+  s.refs.connector.style.opacity = String(v);
 }
 
 const STEPS = [
@@ -222,7 +230,7 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.victimChip.classList.add('highlight');
       // Pin final state so cancel does not snap back to opacity 1.
-      s.refs.pod1.style.opacity = '0';
+      setVictim(s, 0);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
@@ -231,7 +239,10 @@ const STEPS = [
       // routePacket starts the ball visible (fadeIn is delay-gated), matching the old call.
       const kill = routePacket(s, ctx, CONNECTOR, { role: 'cluster' });
       pulsePod(s.refs.pod1, ctx, kill.arrivalMs);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: kill.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      // fill 'both' holds the first keyframe through the delay, so the lane is on screen for the whole
+      // flight of the ball it carries and then goes down with the Pod it pointed at.
+      [s.refs.pod1, s.refs.connector].forEach(el => ctx.register(
+        el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: kill.arrivalMs, fill: 'both', easing: 'ease-in' })));
     },
   },
   {
@@ -244,7 +255,7 @@ const STEPS = [
       setVal(s.refs.memChip, '3.5Gi');
       setVal(s.refs.pressureChip, 'False');
       setVal(s.refs.victimChip, 'none');
-      s.refs.pod1.style.opacity = '0';
+      setVictim(s, 0);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       s.refs.kubelet.classList.add('highlight');

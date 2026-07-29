@@ -249,7 +249,9 @@ const STEPS = [
   },
   {
     id: 'self-heal',
-    duration: 3900,
+    // Motion: the Pod fade (700) + beat, the watch event in (700), the create out (700), the new Pod
+    // down the lane and its arrival pulse, which lands at 4521. The watch hop cost 800 of that.
+    duration: 4700,
     narration: 'One Pod is lost, its Node failed or the Pod was deleted. The controller sees the observed count drop to 2 below the desired 3 through its Pod watch, and immediately creates a replacement Pod to restore the count. This self-healing is the whole point of a controller. A bare Pod created on its own has no owner watching it, so once gone it stays gone.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -262,15 +264,18 @@ const STEPS = [
       setPod(s, 3, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 4, { opacity: 0 });
       setWire(s, 'req', 'observed 2 < 3 · create Pod web-b2');
-      s.refs.rs.classList.add('highlight');
       s.refs.observedChip.classList.add('highlight');
       s.refs.actionChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); s.refs.api.classList.add('highlight'); return; }
-      // web-b2 dies, the controller issues the create (top hop), then the new Pod
-      // travels down the connector and lands on arrival.
+      if (ctx.reduced) { s.refs.rs.classList.add('highlight'); s.refs.pod2Box.classList.add('highlight'); s.refs.api.classList.add('highlight'); return; }
+      // web-b2 dies and the loss reaches the controller as a watch event down the answer lane, which
+      // is what the narration means by seeing the count drop THROUGH its Pod watch. The controller is
+      // dark until that event lands: it acts on what it receives. Only then does the create go out,
+      // and the new Pod travels down the connector.
       ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: 0, fill: 'forwards', easing: 'ease-in' }));
-      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: FADE.out + BEAT.afterHop, role: 'workloads' });
+      const watch = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: FADE.out + BEAT.afterHop, role: 'workloads' });
+      lightBoxAt(s.refs.rs, ctx, watch.arrivalMs);
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: watch.arrivalMs + BEAT.afterHop, role: 'workloads' });
       lightBoxAt(s.refs.api, ctx, req.arrivalMs);
       const create = routePacket(s, ctx, LANE(1), { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));

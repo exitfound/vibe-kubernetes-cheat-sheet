@@ -105,6 +105,7 @@ class Scene {
     this.refs = {
       svg: root, pod: podB.group, podBox: podB.innerBox,
       ed, pvc, pv,
+      lanes: [wLWrite, wLMount, wRWrite, wRMount],
       edChip, pvcChip, podChip,
       wires: {},
       packetLayer,
@@ -125,10 +126,18 @@ function setChips(s, { ed, pvc, pod }) {
   setChip(s.refs.podChip, pod);
 }
 
+// Every one of the four lanes has the Pod at one end, so a lane is never more present than the Pod
+// is. One helper pins the blocks and their lanes together: pinning them apart is how four mount
+// arrows stayed at full strength across a Pod that had just faded to the terminal shade.
+function setPresence(s, { pod = 1, ed = 1 } = {}) {
+  s.refs.pod.style.opacity = String(pod);
+  s.refs.ed.style.opacity = String(ed);
+  s.refs.lanes.forEach(el => { el.style.opacity = String(pod); });
+}
+
 function clearHL(s) {
   clearHighlights(s, ['ed', 'pvc', 'pv', 'podBox', 'edChip', 'pvcChip', 'podChip'], [s.refs.pod]);
-  s.refs.pod.style.opacity = '1';
-  s.refs.ed.style.opacity = '1';
+  setPresence(s);
 }
 
 const STEPS = [
@@ -175,12 +184,12 @@ const STEPS = [
       // The PV keeps its data, so it stays lit. The Pod and its emptyDir are gone by the end, both
       // fading to the same terminal shade.
       s.refs.pv.classList.add('highlight');
-      s.refs.pod.style.opacity = String(OPACITY.terminated);
-      s.refs.ed.style.opacity = String(OPACITY.terminated);
+      setPresence(s, { pod: OPACITY.terminated, ed: OPACITY.terminated });
       if (ctx.reduced) return;
-      s.refs.pod.style.opacity = '1';
-      s.refs.ed.style.opacity = '1';
-      ctx.register(s.refs.pod.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: 650, fill: 'forwards', easing: 'ease-in' }));
+      setPresence(s);
+      // The lanes go with the Pod, on the Pod beat: they are the mounts it held.
+      [s.refs.pod, ...s.refs.lanes].forEach(el => ctx.register(
+        el.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: 650, fill: 'forwards', easing: 'ease-in' })));
       ctx.register(s.refs.ed.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: 650, delay: 250, fill: 'forwards', easing: 'ease-in' }));
     },
   },
@@ -195,9 +204,10 @@ const STEPS = [
       setChips(s, { ed: 'empty again', pvc: 'reattaching', pod: 'on Node-2' });
       s.refs.pv.classList.add('highlight');
       if (ctx.reduced) return;
-      // The Pod comes up fresh on Node-2.
-      s.refs.pod.style.opacity = String(OPACITY.terminated);
-      ctx.register(s.refs.pod.animate([{ opacity: OPACITY.terminated }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
+      // The Pod comes up fresh on Node-2, and its mount lanes rise with it.
+      setPresence(s, { pod: OPACITY.terminated });
+      [s.refs.pod, ...s.refs.lanes].forEach(el => ctx.register(
+        el.animate([{ opacity: OPACITY.terminated }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' })));
       pulsePod(s.refs.pod, ctx, 550);
     },
   },

@@ -183,6 +183,10 @@ const STEPS = [
       // DELETE, so it lights on arrival rather than at step entry.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.api, ctx, req.arrivalMs);
+      // The stamped field goes straight back on the answer lane, which is what the narration means by
+      // the field making kubectl REPORT the Pod as Terminating. kubectl is the source of the round
+      // trip and is already lit, so it does not light again on arrival.
+      topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       const order = routePacket(s, ctx, CONNECTOR_DOWN, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, order.arrivalMs);
     },

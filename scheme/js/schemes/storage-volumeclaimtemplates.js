@@ -145,9 +145,16 @@ function setChips(s, { repl, pvcs, naming, ret }) {
   setChip(s.refs.retChip, ret);
 }
 
+// A lane is only as present as the fainter of the two things it joins, so it is pinned in the same
+// helper as the blocks. The disks are drawn on every step, so a bind lane follows its claim, while a
+// mount lane takes the min: without this a mount arrow stayed at full strength into a ghost Pod.
+const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));
+
 function setStage(s, { pods = [1, 1, 1], claims = [OPACITY.pending, OPACITY.pending, OPACITY.pending], mint = false } = {}) {
   [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => { p.style.opacity = String(pods[i]); });
   [s.refs.v0, s.refs.v1, s.refs.v2].forEach((v, i) => { v.style.opacity = String(claims[i]); });
+  s.refs.bindW.forEach((w, i) => { w.style.opacity = String(claims[i]); });
+  s.refs.mountW.forEach((w, i) => { w.style.opacity = laneOf(claims[i], pods[i]); });
   s.refs.trunkW.forEach(w => { w.style.opacity = mint ? '1' : '0'; });
 }
 
@@ -209,7 +216,10 @@ const STEPS = [
       ROW_CY.forEach((_, i) => {
         const mint = routePacket(s, ctx, trunkSeg(i), { delay: at, role: 'storage' });
         ridingLabel(s, ctx, `data-web-${i}`, trunkSeg(i), { delay: at, dy: -22, dx: 44 });
-        revealAt(s.refs[`v${i}`], ctx, mint.arrivalMs, OPACITY.pending);
+        // The claim comes up WITH its two lanes: both have it at one end, so they are exactly as
+        // present as it is, before the mint lands and after.
+        [s.refs[`v${i}`], s.refs.bindW[i], s.refs.mountW[i]]
+          .forEach(el => revealAt(el, ctx, mint.arrivalMs, OPACITY.pending));
         lightBoxAt(s.refs[`v${i}`], ctx, mint.arrivalMs);
         at = mint.arrivalMs + BEAT.afterHop;
       });

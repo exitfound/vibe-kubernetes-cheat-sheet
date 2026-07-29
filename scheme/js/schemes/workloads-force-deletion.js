@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, one trunk, one tap per Node.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
@@ -280,6 +280,10 @@ const STEPS = [
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
       const pkt = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.api, ctx, pkt.arrivalMs);
+      // The answer comes straight back, which is the point of --force: the API reports the object gone
+      // without waiting for any Kubelet. kubectl is the source of the round trip, so it is already lit
+      // and does not light again on arrival.
+      topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: pkt.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
   {

@@ -344,9 +344,13 @@
       "Each earns its line by evidence, never by convenience: an entry here hides a real defect.",
       "forward: the CoreDNS forward plugin block, against the netfilter FORWARD chain.",
       "podb: Pod B is the generic second Pod on five cards, pod-b is a Pod that",
-      "storage-ephemeral-storage-eviction names in its narration next to pod-c."
+      "storage-ephemeral-storage-eviction names in its narration next to pod-c.",
+      "apinssvcclusterlocal: the trailing dot is the whole subject of the last step of",
+      "network-dns-ndots. api.ns.svc.cluster.local is a relative name the resolver builds",
+      "from the search list, api.ns.svc.cluster.local. is absolute and skips that list, so",
+      "the two spellings name two different lookups and must not be merged."
     ],
-    "homographs": ["forward", "podb"],
+    "homographs": ["forward", "podb", "apinssvcclusterlocal"],
     "components": {
       "Api": "API",
       "ApiServer": "API server",

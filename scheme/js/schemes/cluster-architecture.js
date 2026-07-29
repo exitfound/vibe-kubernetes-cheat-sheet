@@ -1,5 +1,5 @@
 import { svg, g, line, text } from '../lib/svg.js';
-import { arrowDefs, box, node, cylinder, arrow, pathArrow } from '../lib/primitives.js';
+import { arrowDefs, box, node, cylinder, pathArrow } from '../lib/primitives.js';
 import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/cluster-kit.js';
 
 // The layout is a three-tier control plane over one Worker Node, every tier centred on CX. It was
@@ -28,6 +28,12 @@ const T3_CY = T3_Y + BOX_H / 2;                          // 520
 // Each tier-2 exchange is a lane pair straddling the flow line, so no endpoint sits alone.
 const D10 = 10, D30 = 30, D60 = 60;
 const JOG_DOWN = 200, JOG_UP = 220;
+// ETCD is the API's only client, so the pair straddles the API centre line, and the Node spine drops
+// from the API bottom midpoint. Named because the packets ride these SAME arrays: they used to be
+// literals repeated at every call site, which is how a sister card came to fly a ball off its wire.
+const API_TO_ETCD = [[API_R, ETCD_OUT], [ETCD_X, ETCD_OUT]];
+const ETCD_TO_API = [[ETCD_X, ETCD_IN], [API_R, ETCD_IN]];
+const API_TO_NODE = [[CX, API_BOTTOM], [CX, NODE_Y]];
 const TO_CM    = [[API_X + 50, API_BOTTOM], [API_X + 50, JOG_DOWN], [CM_CX - D10, JOG_DOWN], [CM_CX - D10, T2_Y]];
 const FROM_CM  = [[CM_CX + D10, T2_Y], [CM_CX + D10, JOG_UP], [API_X + 70, JOG_UP], [API_X + 70, API_BOTTOM]];
 const TO_SCHED = [[API_R - 50, API_BOTTOM], [API_R - 50, JOG_DOWN], [SCHED_CX + D10, JOG_DOWN], [SCHED_CX + D10, T2_Y]];
@@ -75,13 +81,13 @@ class Scene {
     root.appendChild(kubelet);
     root.appendChild(kproxy);
 
-    root.appendChild(arrow({ x1: API_R, y1: ETCD_OUT, x2: ETCD_X, y2: ETCD_OUT, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: ETCD_X, y1: ETCD_IN, x2: API_R, y2: ETCD_IN, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: API_TO_ETCD, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: ETCD_TO_API, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: TO_CM, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: FROM_CM, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: TO_SCHED, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: FROM_SCHED, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: CX, y1: API_BOTTOM, x2: CX, y2: NODE_Y, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: API_TO_NODE, dim: true, dashed: true, role: 'cluster' }));
 
     // Inside the node: Kubelet wired to Runtime and KubeProxy (solid binding lines, not flow).
     root.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: RT_X + BOX_W, y1: T3_CY, x2: KUBE_X, y2: T3_CY }));
@@ -150,7 +156,7 @@ const STEPS = [
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'etcd-write', 'write · Raft quorum commit');
       if (ctx.reduced) { s.refs.etcdC.classList.add('highlight'); return; }
-      const pkt = routePacket(s, ctx, [[710, 110], [835, 110], [960, 110]], { role: 'cluster' });
+      const pkt = routePacket(s, ctx, API_TO_ETCD, { role: 'cluster' });
       lightBoxAt(s.refs.etcdC, ctx, pkt.arrivalMs);
     },
   },
@@ -165,7 +171,7 @@ const STEPS = [
       s.refs.etcdC.classList.add('highlight');
       setWire(s, 'etcd-read', 'read · watch stream open');
       if (ctx.reduced) { s.refs.apisrv.classList.add('highlight'); return; }
-      const pkt = routePacket(s, ctx, [[960, 130], [835, 130], [710, 130]], { role: 'cluster' });
+      const pkt = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });
       lightBoxAt(s.refs.apisrv, ctx, pkt.arrivalMs);
     },
   },
@@ -183,9 +189,9 @@ const STEPS = [
       // Watch event in (Api -> ControllerManager, upper lane), then the reconcile
       // write-back out (ControllerManager -> Api, lower lane). The controller-manager is dark
       // until the watch event lands: it acts on what it receives, so it may not be lit before.
-      const watch = routePacket(s, ctx, [[540, 160], [540, 200], [270, 200], [270, 240]], { role: 'cluster' });
+      const watch = routePacket(s, ctx, TO_CM, { role: 'cluster' });
       lightBoxAt(s.refs.ctrlMgr, ctx, watch.arrivalMs);
-      routePacket(s, ctx, [[290, 240], [290, 220], [560, 220], [560, 160]], { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      routePacket(s, ctx, FROM_CM, { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -201,9 +207,9 @@ const STEPS = [
       if (ctx.reduced) { s.refs.sched.classList.add('highlight'); return; }
       // Watch Pods in (Api -> Scheduler, upper lane), then the Binding posted back
       // to the Api (Scheduler -> Api, lower lane). The Scheduler lights on the watch arriving.
-      const watch = routePacket(s, ctx, [[660, 160], [660, 200], [930, 200], [930, 240]], { role: 'cluster' });
+      const watch = routePacket(s, ctx, TO_SCHED, { role: 'cluster' });
       lightBoxAt(s.refs.sched, ctx, watch.arrivalMs);
-      routePacket(s, ctx, [[910, 240], [910, 220], [640, 220], [640, 160]], { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      routePacket(s, ctx, FROM_SCHED, { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
@@ -220,7 +226,7 @@ const STEPS = [
       s.refs.kproxy.classList.add('highlight');
       setWire(s, 'node', 'watch Pods · spec.nodeName=Node');
       if (ctx.reduced) return;
-      routePacket(s, ctx, [[600, 160], [600, 420]], { role: 'cluster' });
+      routePacket(s, ctx, API_TO_NODE, { role: 'cluster' });
     },
   },
 ];

@@ -223,7 +223,9 @@ const STEPS = [
   },
   {
     id: 'node-join',
-    duration: 3800,
+    // Motion: Node-4 fades in (200 + 600), the Node watch event reaches the controller (700), the
+    // create goes out (700), the Pod rides its lane and pulses on arrival, ending at 5233.
+    duration: 5400,
     narration: 'A new worker Node-4 joins the cluster and turns Ready. The DaemonSet controller watches Node objects, recomputes desiredNumberScheduled to four, and creates a Pod on Node-4 alone. No other Node is disturbed. Automatic per-node placement is the whole reason a DaemonSet exists.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -236,7 +238,6 @@ const STEPS = [
       setVal(s.refs.focusChip, 'Node-4 joined, Pod added');
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'watch Node added · desiredNumberScheduled 3 to 4');
-      s.refs.daemonset.classList.add('highlight');
       s.refs.desiredChip.classList.add('highlight');
       s.refs.currentChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
@@ -247,15 +248,19 @@ const STEPS = [
       s.refs.node4El.style.opacity = '1';
       s.refs.pod4.style.opacity = '1';
       setLanes(s, [1, 1, 1, 1]);
-      if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
-      // The node joins first (its rect fades in), then the controller creates a Pod
-      // on it, which materializes and pulses when the create reaches the node.
+      if (ctx.reduced) { s.refs.daemonset.classList.add('highlight'); s.refs.pod4Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+      // The node joins first (its rect fades in), and the controller learns of it the way the
+      // narration says, by watching Node objects: the event comes back down the answer lane and the
+      // controller is dark until it lands. Then the create goes out and the Pod materializes on
+      // arrival, pulsing as it lands.
       s.refs.node4El.style.opacity = '0';
       s.refs.pod4.style.opacity = '0';
       s.refs.lanes[3].style.opacity = '0';
       ctx.register(s.refs.node4El.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: NODE_JOIN_DELAY, fill: 'both', easing: 'ease-out' }));
       ctx.register(s.refs.lanes[3].animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: NODE_JOIN_DELAY, fill: 'both', easing: 'ease-out' }));
-      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      const watch = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: NODE_JOIN_DELAY + FADE.in, role: 'workloads' });
+      lightBoxAt(s.refs.daemonset, ctx, watch.arrivalMs);
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: watch.arrivalMs + BEAT.afterHop, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
       const create = routePacket(s, ctx, LANE(3), { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod4.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));

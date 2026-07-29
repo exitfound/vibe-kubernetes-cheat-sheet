@@ -158,7 +158,7 @@ class Scene {
     this.refs = {
       svg: root,
       appPod: appPod.group, appBox: appPod.innerBox,
-      kube, adc, va, att, disk, vaLanes, mountLane: wMount,
+      kube, adc, va, att, disk, vaLanes, mountLane: wMount, wPublish, wOnNode,
       vaChip, attrChip, diskChip, kubeChip,
       wires: { write: writeLbl, disk: diskLbl },
       packetLayer,
@@ -187,10 +187,16 @@ function setBorn(s, { object = OPACITY.pending, lanes = 0, pod = 1 } = {}) {
   s.refs.mountLane.style.opacity = String(pod);
 }
 
+// The disk carries two lanes, the publish call into it and the device it exposes on the Node, and
+// neither is more present than the disk itself. One helper, so the three cannot drift apart.
+function setDisk(s, v) {
+  [s.refs.disk, s.refs.wPublish, s.refs.wOnNode].forEach(el => { el.style.opacity = String(v); });
+}
+
 function clearHL(s) {
   clearHighlights(s, ['adc', 'va', 'att', 'kube', 'disk', 'appBox',
     'vaChip', 'attrChip', 'diskChip', 'kubeChip'], [s.refs.appPod]);
-  s.refs.disk.style.opacity = '1';
+  setDisk(s, 1);
 }
 
 const STEPS = [
@@ -334,12 +340,10 @@ const STEPS = [
       setBoxSublabel(s.refs.va, 'deleted after detach');
       setWire(s, 'disk', 'detached from node-1');
       setBorn(s, { object: OPACITY.terminated, lanes: 0, pod: 0 });
-      s.refs.disk.style.opacity = String(OPACITY.notready);
-      // The object is the subject of the step and stays lit from entry to its own deletion, so the
-      // static path has to light it too, at the terminated shade the played path leaves it on.
-      if (ctx.reduced) { s.refs.att.classList.add('highlight'); s.refs.va.classList.add('highlight'); return; }
+      setDisk(s, OPACITY.notready);
+      if (ctx.reduced) { s.refs.att.classList.add('highlight'); return; }
       setBorn(s, { object: 1, lanes: 1, pod: 1 });
-      s.refs.disk.style.opacity = '1';
+      setDisk(s, 1);
       s.refs.va.classList.add('highlight');
       fadeTo(s.refs.appPod, ctx, 1, 0);
       fadeTo(s.refs.mountLane, ctx, 1, 0);
@@ -351,13 +355,20 @@ const STEPS = [
       fadeTo(s.refs.va, ctx, 1, OPACITY.terminating, watch.arrivalMs);
       const call = routePacket(s, ctx, W_PUBLISH, { delay: watch.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'ControllerUnpublish', W_PUBLISH, { delay: watch.arrivalMs + BEAT.afterHop });
-      fadeTo(s.refs.disk, ctx, 1, OPACITY.notready, call.arrivalMs, 400);
+      // The disk and its two lanes sink together, and only after the unpublish ball has landed on it:
+      // the lane the ball is riding has to be on screen for the whole flight.
+      [s.refs.disk, s.refs.wPublish, s.refs.wOnNode].forEach(el => fadeTo(el, ctx, 1, OPACITY.notready, call.arrivalMs, 400));
       // Only once the backend has detached does the object itself go, and its lanes with it. Not
       // fadeTo here: that helper pins its `from` inline, which would drop the object to the
       // terminating shade at step entry instead of at the watch.
-      ctx.register(s.refs.va.animate(
+      // The object is the subject of the step and is lit from entry, but it does not KEEP the light
+      // once it is gone: a block at the terminated shade cannot also be the thing the step points at.
+      // Same shape as removeAt in storage-reclaim-policy and vanishAt in storage-csi-capacity-tracking.
+      const gone = s.refs.va.animate(
         [{ opacity: OPACITY.terminating }, { opacity: OPACITY.terminated }],
-        { duration: LAND_MS, delay: call.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
+        { duration: LAND_MS, delay: call.arrivalMs, fill: 'forwards', easing: 'ease-out' });
+      gone.onfinish = () => s.refs.va.classList.remove('highlight');
+      ctx.register(gone);
       s.refs.vaLanes.forEach(w => fadeTo(w, ctx, 1, 0, call.arrivalMs));
     },
   },
