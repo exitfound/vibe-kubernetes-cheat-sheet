@@ -40,11 +40,19 @@ const CHIP_W = (NODE_W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;     // 532
 const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
-// The eviction lane ends ON the Pod it evicts, never on the frame edge above it: the spine drops
-// to a bus above the Pod row and taps down into that Pod. One route per destination, and the same
-// array feeds the drawn wire and the ball.
+// The eviction lane ends ON the Pod it evicts, never on the frame edge above it: it leaves the API,
+// steps into the spine corridor above the ladder, drops to a bus above the Pod row and taps down into
+// that Pod. One route per destination, and the same array feeds the drawn wire and the ball.
+//
+// It leaves the API, not kubectl, and that is the whole finding here: kubectl POSTs to the eviction
+// subresource and the API is what reads the PDB, grants the 200 OK and DELETES the Pod, which the
+// narration of both evict steps says in those words. The lane used to hang off SPINE_X, and KUBECTL_X
+// is DERIVED from SPINE_X, so the box sat around the lane and the eviction appeared to come out of
+// the command that had only ever talked to the API. Same shape as workloads-force-deletion.
+const API_CX = API_X + BOX_W / 2;                        // 868
+const JOG_Y = TOP_BOTTOM + 25;                           // 145, below the boxes, above the ladder
 const BUS_Y = NODE_Y + 18;                               // 398, inside the frame, above the Pods
-const EVICT_ROUTE = i => [[SPINE_X, TOP_BOTTOM], [SPINE_X, BUS_Y], [POD_CXS[i], BUS_Y], [POD_CXS[i], POD_Y]];
+const EVICT_ROUTE = i => [[API_CX, TOP_BOTTOM], [API_CX, JOG_Y], [SPINE_X, JOG_Y], [SPINE_X, BUS_Y], [POD_CXS[i], BUS_Y], [POD_CXS[i], POD_Y]];
 
 
 
@@ -226,7 +234,9 @@ const STEPS = [
   },
   {
     id: 'evict-A',
-    duration: 3300,
+    // The eviction now leaves the API rather than kubectl, 288 units further along, and the
+    // step runs to 3762ms: 3300 cut the ball off before it reached web-1.
+    duration: 3900,
     narration: 'The drain command POSTs to /api/v1/namespaces/default/pods/web-1/eviction. The API reads the matching PDB, finds currentHealthy=2 and minAvailable=1, so disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed atomically decrements to 0 (via optimistic concurrency on the PDB status), and the Pod is deleted with the standard grace period. The owning ReplicaSet observes the deletion and creates a replacement, which the Scheduler places on another Ready Node, covered in the Deployment rolling update card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();

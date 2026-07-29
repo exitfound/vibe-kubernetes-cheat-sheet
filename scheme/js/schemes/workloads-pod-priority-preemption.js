@@ -43,7 +43,16 @@ const SLOT_CX = i => SLOT_X(i) + SLOT_W / 2;             // 234 / 600 / 966
 // are built from this one array.
 const BUS_Y = NODE_Y + 12;
 const VICTIM_SLOT = 0;
-const LANE = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y], [SLOT_CX(VICTIM_SLOT), BUS_Y], [SLOT_CX(VICTIM_SLOT), POD_Y]];
+// Two lanes, because two different actors reach that slot and a ball must leave the one that acts.
+// SCAN_LANE is the Scheduler evaluating the Pods already on the Node: it leaves the Scheduler, which
+// is centred on CX for exactly this. NODE_LANE is what the API sets in motion once a write has landed
+// on it, the graceful delete of the victim and the start of the bound Pod: the Scheduler never
+// reaches a Node, it writes to the API and the Node acts on what it reads. Both share the drop, so
+// they read as one wiring tree with two sources, the same construction as workloads-force-deletion.
+const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 990
+const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the pipeline
+const SCAN_LANE = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y], [SLOT_CX(VICTIM_SLOT), BUS_Y], [SLOT_CX(VICTIM_SLOT), POD_Y]];
+const NODE_LANE = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.CX, JOG_Y], [WL.CX, BUS_Y], [SLOT_CX(VICTIM_SLOT), BUS_Y], [SLOT_CX(VICTIM_SLOT), POD_Y]];
 
 
 class Scene {
@@ -116,7 +125,8 @@ class Scene {
     const [pod1Box, pod2Box, pod3Box, podNewBox] = podBoxes;
     podNew.style.opacity = '0';
 
-    const connector = pathArrow({ points: LANE, dim: true, dashed: true, role: 'cluster' });
+    const connector = pathArrow({ points: SCAN_LANE, dim: true, dashed: true, role: 'cluster' });
+    const nodeLane  = pathArrow({ points: NODE_LANE, dim: true, dashed: true, role: 'cluster' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -124,6 +134,7 @@ class Scene {
     // ball that rides it are appended after it. Ladder, Pods and actors sit above the packets.
     root.appendChild(nodeEl);
     root.appendChild(connector);
+    root.appendChild(nodeLane);
     root.appendChild(packetLayer);
     root.appendChild(chain);
     [pod1, pod2, pod3, podNew].forEach(p => root.appendChild(p));
@@ -245,13 +256,15 @@ const STEPS = [
       if (ctx.reduced) return;
       // Scheduler scans the node over the connector to find the victim set.
       // Pod A pulses when the scan reaches it (victim flagged in victimChip).
-      const scan = routePacket(s, ctx, LANE, { role: 'workloads' });
+      const scan = routePacket(s, ctx, SCAN_LANE, { role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, scan.arrivalMs);
     },
   },
   {
     id: 'delete',
-    duration: 3400,
+    // The node-band ball now leaves the API rather than the Scheduler, which is 390 units
+    // further along and 867ms slower end to end: 3400 cut it off mid-flight.
+    duration: 4200,
     narration: 'Scheduler issues a standard DELETE to /api/v1/.../pods/pod-a. Preemption uses delete (not the eviction API), so PodDisruptionBudget gates are bypassed at the API layer. The preemption algorithm does try to minimize PDB violations when picking victims, but it can violate them when no PDB-friendly victim set fits. Pod A enters Terminating with its terminationGracePeriodSeconds (preStop hook → SIGTERM → SIGKILL fallback after grace expires). Pod NEW gets status.nominatedNodeName=Node-1 written by the scheduler so other Pods do not race into the freed slot during this window.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -278,14 +291,16 @@ const STEPS = [
       // Pod A pulses and sinks to Terminating only when the DELETE reaches the node.
       const del = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, del.arrivalMs);
-      const evict = routePacket(s, ctx, LANE, { delay: del.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
+      const evict = routePacket(s, ctx, NODE_LANE, { delay: del.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
       ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
     id: 'bind',
-    duration: 3400,
+    // The node-band ball now leaves the API rather than the Scheduler, which is 390 units
+    // further along and 867ms slower end to end: 3400 cut it off mid-flight.
+    duration: 4200,
     narration: 'Pod A has exited gracefully and is gone. Its allocatable capacity returns to Node-1. Scheduler picks Pod NEW again, Filter+Score now passes, and binds via POST /api/v1/.../pods/pod-new/binding. Pod NEW then starts on Node-1. The controller that owns Pod A (Deployment, StatefulSet) creates a replacement which the scheduler may place on another Node, or queue if no Node has capacity. Preemption is distinct from node-pressure eviction (covered separately), where the Kubelet evicts Pods that are over their requests first, which puts BestEffort at the front, and uses Pod priority only to order that queue.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -311,7 +326,7 @@ const STEPS = [
       // Pod NEW pulses once (pulse fades) and materializes in the freed slot when the bind reaches the node.
       const bind = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, bind.arrivalMs);
-      const place = routePacket(s, ctx, LANE, { delay: bind.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
+      const place = routePacket(s, ctx, NODE_LANE, { delay: bind.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
       pulsePod(s.refs.podNew, ctx, place.arrivalMs);
       ctx.register(s.refs.podNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: place.arrivalMs, fill: 'both', easing: 'ease-out' }));
     },

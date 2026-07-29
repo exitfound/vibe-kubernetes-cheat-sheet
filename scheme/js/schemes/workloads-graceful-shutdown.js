@@ -38,10 +38,14 @@ const CHIP_X = i => {
 };
 const CHIP_Y = i => CHIPS_TOP + Math.floor(i / CHIP_PER_ROW) * CHIP_ROW_H;
 
-// The connector steps into the central corridor beside the ladder and reaches the Pod itself.
-const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
+// The connector steps into the central corridor beside the ladder and reaches the Pod itself. It
+// leaves the API box, not kubectl: the termination order is what the API sets in motion once it has
+// stamped deletionTimestamp, and the report at the end climbs back to the API. It used to hang off
+// TOP1_CX, so the order left a box that had only ever talked to the API, and on the last step the
+// ball landed under kubectl while lightBoxAt lit the API. Same shape as workloads-force-deletion.
+const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 810
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
-const CONNECTOR_DOWN = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
+const CONNECTOR_DOWN = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
 const CONNECTOR_UP   = [...CONNECTOR_DOWN].reverse();
 
 class Scene {

@@ -508,6 +508,40 @@ and `check-duration` is what says by how much. Second, `workloads-force-deletion
 One step was left alone deliberately: `workloads-replicaset/reconcile`, whose wire says `watch Pods`,
 carries a recorded decision that no packet moves on a no-op reconcile. The watch ball went on
 `self-heal` instead, which names the same traffic and already had motion.
+
+---- which box the trunk leaves (settled 2026-07-30, review stage 2.4 family C) ----
+
+Same principle one axis over: a lane leaves the box that ACTS. On a control-plane card the leftmost
+box writes to the API and stops there, so the lane into the Node band belongs to the API.
+`workloads-force-deletion` had it right and is the model. Seven cards did not:
+
+| card | left | now leaves | why |
+|---|---|---|---|
+| `workloads-graceful-shutdown` | kubectl | API | the API stamps deletionTimestamp; the last step also LIT the API while the ball landed under kubectl |
+| `workloads-hooks` | Kubelet | Runtime | Kubelet is a CRI client, the runtime execs the hook and delivers the signal, which both wire labels say |
+| `cluster-pod-sandbox-cri` | Kubelet | containerd | four steps, and one had a code comment one line above the call saying the runtime materialises the sandbox |
+| `cluster-node-drain` | kubectl | API | kubectl POSTs to the eviction subresource, the API reads the PDB and deletes the Pod |
+| `workloads-rolling-update` | Deployment | API | the Deployment PATCHes .scale, Pods appear and leave through the API |
+| `workloads-pvc-stickiness` | StatefulSet | API | the eviction and the binding are both API writes taking effect on a Node |
+| `workloads-pod-priority-preemption` | Scheduler | Scheduler AND API | two actors reach one slot, so it draws TWO lanes sharing the drop |
+
+Three things this cost that are worth knowing before repeating it:
+
+1. **It is a timing change, every time.** `routeDur` is length-based, so moving a start 300-400 units
+   right added 250-870ms per ball. Eleven steps went over their `duration` and `check-duration` is the
+   only thing that said so. Raise the duration, never shorten the motion.
+2. **A box can be derived FROM the lane.** `cluster-node-drain` sets `KUBECTL_X = SPINE_X - BOX_W / 2`,
+   so redefining `SPINE_X` would have moved the box instead of the lane. It needed its own `API_CX`.
+   That derivation is why the original plan listed this card as "cannot be moved, ask the author".
+3. **Two actors, two lanes.** On `workloads-pod-priority-preemption` the preemption scan really is the
+   Scheduler evaluating Pods on that Node, while the delete and the bind are the API acting. Picking
+   one owner would have lied about the other, so it draws `SCAN_LANE` and `NODE_LANE` over a shared
+   drop, which is the same construction as this card's own three worker lanes.
+
+**Declined, 1:** `network-ipam-pod-cidr/ipam`. The ball leaves the bottom edge of the Node-1 slice
+chip, and after the stage K rewrite the sentence reads "its address is drawn by the CNI IPAM strictly
+out of that Node slice", so the drawn source and the grammatical one agree. The card has no CNI or
+IPAM block at all, so there is nothing else for it to leave.
 ```
 
 ### before `export const WORKLOADS_TINT = Object.freeze({ base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' });`

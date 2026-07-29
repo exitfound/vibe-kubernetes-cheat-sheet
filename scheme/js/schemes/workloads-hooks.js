@@ -39,9 +39,13 @@ const CHIP_X = i => {
 const CHIP_Y = i => CHIPS_TOP + Math.floor(i / CHIP_PER_ROW) * CHIP_ROW_H;
 
 // The spine steps into the central corridor beside the ladder and reaches the Pod itself.
-const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
+const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 810
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
-const SPINE = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
+// The lane into the container leaves the RUNTIME, not Kubelet. Kubelet never touches a container
+// directly, which is the whole subject of the card: it asks over CRI and the runtime is what execs
+// the hook and delivers the signal. Both steps that ride this say so in their own wire label
+// (CRI ExecSync · preStop · Sync, CRI StopContainer · SIGTERM · ACK), and it used to leave TOP1_CX.
+const SPINE = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
 
 
 class Scene {

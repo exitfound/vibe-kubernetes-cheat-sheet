@@ -30,15 +30,25 @@ const POD_INNER = { dx: 30, w: POD_W - 60, dy: 26, h: 48 };
 const POD_XS = [0, 1, 2].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / 2));
 const POD_CX = i => POD_XS[i] + POD_W / 2;               // 234 / 600 / 966
 
-// The lane drops from the controller into the Node frame, runs along a bus above the Pod row
-// and taps down into whichever Pod the step addresses. Wires and balls share these points.
+// Moving the trunk onto the API added 390 units and about 680ms to every ball that rides it, so
+// the four steps that send one grew their duration to match: routeDur is length-based, and a
+// start point is therefore a timing decision as much as a drawing one.
+// The lane leaves the API, steps into the corridor between the two columns, runs along a bus above
+// the Pod row and taps down into whichever Pod the step addresses. Wires and balls share these points.
+//
+// It leaves the API and not the Deployment, which is what every step here actually describes: the
+// Deployment PATCHes .scale, and what appears or leaves on the Node is the API write taking effect
+// through the ReplicaSet and Kubelet. The Deployment box stays centred on CX because the corridor
+// runs there, but the trunk no longer hangs off it. Same shape as workloads-force-deletion.
+const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 990
+const JOG_Y = WL.TOP_BOTTOM + 25;                        // 145, below the boxes, above both columns
 const BUS_Y = NODE_Y + 12;
-const TRUNK = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y]];
+const TRUNK = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.CX, JOG_Y], [WL.CX, BUS_Y]];
 const BUS = [[POD_CX(0), BUS_Y], [POD_CX(POD_XS.length - 1), BUS_Y]];
 const TAP = i => [[POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]];
 const LANE = i => (POD_CX(i) === WL.CX
-  ? [[WL.CX, WL.TOP_BOTTOM], [WL.CX, POD_Y]]
-  : [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y], [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]);
+  ? [...TRUNK, [WL.CX, POD_Y]]
+  : [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]);
 
 // A trunk segment carries the ball but is not its destination, so it is drawn without a marker:
 // the arrowhead belongs on the tap that lands on a Pod.
@@ -199,7 +209,7 @@ const STEPS = [
   },
   {
     id: 'surge',
-    duration: 3600,
+    duration: 4500,
     narration: 'Setting maxSurge=1 lets the controller scale RS-v2 from 0 to 1 before any old Pod leaves. A fresh v2.0 Pod is created on Node-1, Kubelet starts the container. Total live Pods is now 4 (3 v1 plus 1 surge), 1 above .spec.replicas.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -226,7 +236,7 @@ const STEPS = [
   },
   {
     id: 'probe-and-drain',
-    duration: 3600,
+    duration: 4500,
     narration: 'The new Pod becomes Ready (readinessProbe passes successThreshold times). RS-v2 sees Ready=1. Now maxUnavailable=1 allows scaling RS-v1 from 3 down to 2, the controller picks the oldest Pod and triggers a graceful delete (preStop, then SIGTERM, then grace period).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -254,7 +264,7 @@ const STEPS = [
   },
   {
     id: 'second-cycle',
-    duration: 3100,
+    duration: 3700,
     narration: 'Same dance for slot web-2: surge a new v2 Pod, wait for Ready, drain the old v1. The controller does not move to a third replacement until this one is committed, so the rollout proceeds one Pod at a time.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -284,7 +294,7 @@ const STEPS = [
   },
   {
     id: 'third-cycle',
-    duration: 3600,
+    duration: 4500,
     narration: 'Last slot web-3: surge final v2 Pod, wait for Ready, drain the last v1. The Deployment status moves to .status.updatedReplicas=3, observedGeneration catches up to .metadata.generation, and the condition Progressing=True is set with reason NewReplicaSetAvailable.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();

@@ -43,14 +43,20 @@ const P_A_CX = P_A_X + POD_W / 2, P_B_CX = P_B_X + POD_W / 2;   // 280 / 920
 
 // One control-plane trunk down the corridor left of the pipeline, a bus above the Node band and
 // one tap per Node, each ending on the Pod that reacts. Wires and balls share these points.
+// The trunk leaves the API, not the StatefulSet: every step that sends a ball down here is the API
+// write taking effect on a Node (the eviction deleting web-0, the binding placing it on Node-2), and
+// the controller only ever POSTs to the API on the top row. It steps left into the corridor at the bus
+// junction so both taps stay balanced around it. Same shape as workloads-force-deletion.
+const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 810
+const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the pipeline
 const BUS_Y = NODE_Y - 20;                               // 372
-const TRUNK = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, BUS_Y]];
+const TRUNK = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [TOP1_CX, JOG_Y], [TOP1_CX, BUS_Y]];
 const BUS_L = [[P_A_CX, BUS_Y], [TOP1_CX, BUS_Y]];
 const BUS_R = [[TOP1_CX, BUS_Y], [P_B_CX, BUS_Y]];
 const TAP_A = [[P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
 const TAP_B = [[P_B_CX, BUS_Y], [P_B_CX, POD_Y]];
-const NODE1_LANE = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, BUS_Y], [P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
-const NODE2_LANE = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, BUS_Y], [P_B_CX, BUS_Y], [P_B_CX, POD_Y]];
+const NODE1_LANE = [...TRUNK, [P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
+const NODE2_LANE = [...TRUNK, [P_B_CX, BUS_Y], [P_B_CX, POD_Y]];
 // The CSI reattach: the disk itself goes to web-0 on Node-2, out of the PV right face. The
 // mirrored line on the left is the mount web-0 already holds on Node-1, a relationship no ball
 // ever rides, so it carries no arrowhead.
@@ -223,7 +229,8 @@ const STEPS = [
   },
   {
     id: 'evict',
-    duration: 2300,
+    // Motion: the eviction now leaves the API, 280 units further along, and runs to 2558ms.
+    duration: 2700,
     narration: 'Node-1 goes NotReady (kernel panic, power loss, network partition). After the toleration on node.kubernetes.io/unreachable expires, taint-based eviction deletes the Pod, which sits in Terminating until the Node returns or an operator clears it, and only then is the object gone. Critically, the PVC data-web-0 is NOT deleted, the StatefulSet retains it for the ordinal under the default PVC retention policy. The PV cloud-vol-x stays Bound, the cloud disk is intact, rev=1234 persists.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -282,7 +289,8 @@ const STEPS = [
   },
   {
     id: 'bind',
-    duration: 2600,
+    // Motion: the binding now leaves the API and crosses to the far Node, running to 3069ms.
+    duration: 3200,
     narration: 'Scheduler binds web-0 to Node-2. POST .../pods/web-0/binding writes spec.nodeName=Node-2 in ETCD. PVC data-web-0 stays bound to the same PV cloud-vol-x. The cloud volume is ReadWriteOnce, so it can be safely attached to Node-2 only because the old Pod is fully removed from API (force-delete a stuck Pod and you risk a dual mount, see the Force Deletion card).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();

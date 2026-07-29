@@ -39,9 +39,17 @@ const INNER_W = 190, INNER_H = 54, INNER_Y = POD_Y + 30; // 514..568
 const PAUSE_X = POD_X + 22;                              // 392..582
 const APP_X = POD_X + POD_W - 22 - INNER_W;              // 618..808
 
-// The lane from Kubelet down into the sandbox. It leaves the box on its midpoint and runs in the
+// The lane from the RUNTIME down into the sandbox. Moving its start right by 270 units added
+// 244ms to every ball that rides it, which put all four steps 131ms over their 2800 budget:
+// they are 3100 now. routeDur is length-based, so a start point IS a timing decision.
+// The lane from the RUNTIME down into the sandbox. It leaves the box on its midpoint and runs in the
 // corridor between the ladder and the chip column, so it crosses nothing.
-const SPINE_X = KUBE_X + KUBE_W / 2;                     // 520
+//
+// It used to leave Kubelet, which is the one thing on this card that never touches the sandbox: the
+// whole subject is that Kubelet is a CRI CLIENT and containerd is what materialises the pause
+// container, pulls, creates and starts. All four steps that ride this lane say so in their own
+// narration, and one says it in a code comment two lines above the call.
+const SPINE_X = RT_X + RT_W / 2;                         // 790
 // Design notes for this card: scheme/docs/CARDS.md#cluster-pod-sandbox-cri
 
 
@@ -178,7 +186,7 @@ const STEPS = [
   },
   {
     id: 'sandbox',
-    duration: 2800,
+    duration: 3100,
     narration: 'Kubelet calls RunPodSandbox with the Pod namespace, labels, and resource hints. The runtime creates a pause container that holds the network, IPC, and UTS namespaces every workload container will share by default. The PID namespace is shared only when spec.shareProcessNamespace is set.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -208,7 +216,7 @@ const STEPS = [
   },
   {
     id: 'cni',
-    duration: 2800,
+    duration: 3100,
     narration: 'As part of sandbox setup the runtime invokes the configured CNI plugin with the sandbox netns path. The plugin creates a veth pair, allocates an IP via IPAM, configures routes, and returns the result. The Pod IP is now set on the sandbox.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -259,7 +267,7 @@ const STEPS = [
   },
   {
     id: 'create',
-    duration: 2800,
+    duration: 3100,
     narration: 'Kubelet calls CreateContainer with the sandbox id, container config (command, env, mounts), and resource limits. The runtime sets up cgroups, prepares the mounts, and returns a container id. The container now exists in the sandbox but is not yet running.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -287,7 +295,7 @@ const STEPS = [
   },
   {
     id: 'start',
-    duration: 2800,
+    duration: 3100,
     narration: 'Kubelet calls StartContainer with the container id. The runtime forks the container ENTRYPOINT process inside the shared namespaces of the sandbox. The Pod workload is now running and the Pod reports Ready once its probes pass.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
