@@ -160,7 +160,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Three Pods run on Node-1, each declaring a different spec.restartPolicy: Pod A is Always, Pod B is OnFailure, Pod C is Never. The policy stays inert while a container runs. Kubelet consults it only at the moment a container process exits.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

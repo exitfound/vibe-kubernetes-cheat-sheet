@@ -172,7 +172,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A StatefulSet web is declared with replicas=3 and a volumeClaimTemplate named data. No Pods exist yet. The headless Service web (clusterIP=None) will publish per-Pod DNS names web-N.web once Pods are created.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

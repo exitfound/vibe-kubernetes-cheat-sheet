@@ -144,7 +144,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The web Service has four ready Pods, two in zone-a and two in zone-b, with the client in zone-a. Out of the box kube-proxy treats all four endpoints equally. Two independent Service fields can steer that choice: sessionAffinity and trafficDistribution.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

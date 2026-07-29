@@ -186,7 +186,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pod A, a Pod owned by a StatefulSet, runs on Node-1. The cluster is healthy: Node-1 posts Kubelet heartbeats, the Pod phase is Running, and the StatefulSet counts its single replica as ready. Node-2 is a second healthy Node with spare capacity.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -137,7 +137,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The Gateway API is the successor to Ingress, and its big idea is to split ingress into separate objects owned by separate teams. Three resources stack up, each one the responsibility of a different role.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

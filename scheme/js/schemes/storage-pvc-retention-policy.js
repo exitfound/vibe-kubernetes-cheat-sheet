@@ -197,7 +197,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A StatefulSet with three replicas owns three claims and three disks. What decides whether those disks survive when the workload shrinks or goes away is one field: persistentVolumeClaimRetentionPolicy. Left unset it defaults to Retain on both knobs.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

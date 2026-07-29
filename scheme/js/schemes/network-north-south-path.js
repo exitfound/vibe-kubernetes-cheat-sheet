@@ -142,7 +142,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'North-south traffic is traffic that crosses the cluster boundary, as opposed to east-west traffic between Pods inside it. A request from the public internet does not reach a Pod in one jump. It crosses a chain of hops, each doing one job, that a LoadBalancer Service sets up for it.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

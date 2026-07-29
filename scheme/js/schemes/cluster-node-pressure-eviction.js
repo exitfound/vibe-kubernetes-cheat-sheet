@@ -147,7 +147,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Kubelet on Node-1 monitors local resource usage via cAdvisor. While usage stays below the configured eviction thresholds, all Pods run normally regardless of QoS class.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

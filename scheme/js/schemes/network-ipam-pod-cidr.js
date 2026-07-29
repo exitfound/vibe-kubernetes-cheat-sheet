@@ -125,7 +125,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The whole cluster shares one large pod address space, here 10.244.0.0/16. For Pod IPs to stay unique and routable, that space has to be split up so no two Nodes ever hand out the same address.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

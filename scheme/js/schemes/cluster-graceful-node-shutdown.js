@@ -164,7 +164,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Node-1 runs three Pods: two non-critical workloads and one critical Pod (PriorityClass system-cluster-critical or system-node-critical, e.g. kube-proxy or a CNI agent). The feature is off by default. Here Kubelet is configured with shutdownGracePeriod=60s and shutdownGracePeriodCriticalPods=20s, so it holds a systemd inhibitor lock while the Node runs normally.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

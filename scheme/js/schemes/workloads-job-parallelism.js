@@ -180,7 +180,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Job named process-batch declares spec.parallelism=3 (max Pods running at once) and spec.completions=6 (target number of successful exits). The Job controller auto-generates a selector on the batch.kubernetes.io/controller-uid label and stamps the same label plus an ownerReference onto each spawned Pod. A Job has no phase field like a Pod does, its state lives in the active, succeeded and failed counts plus a Complete or Failed condition. So far .status.active is 0, no Pods created yet.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

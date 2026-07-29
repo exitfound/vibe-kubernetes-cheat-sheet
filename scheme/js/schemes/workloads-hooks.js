@@ -140,7 +140,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod with two lifecycle hooks defined in its spec, sitting before Kubelet has touched it. This card walks through the start-up race between postStart and the ENTRYPOINT, then the graceful termination handled by preStop before SIGTERM.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

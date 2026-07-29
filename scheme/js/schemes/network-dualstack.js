@@ -121,7 +121,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A single-stack cluster gives every Pod one IPv4 address and every Service one IPv4 ClusterIP. Dual-stack runs IPv4 and IPv6 side by side, so each of these gains a second address from the other family.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

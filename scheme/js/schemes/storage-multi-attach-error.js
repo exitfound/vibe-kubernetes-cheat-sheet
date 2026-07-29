@@ -223,7 +223,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'PV-web is ReadWriteOnce, so it may be attached to one Node at a time and no more. Right now it is attached to Node-1, recorded by the VolumeAttachment va-1, and the Pod there reads and writes it quite happily. Nothing about this is a problem until the Pod has to move.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

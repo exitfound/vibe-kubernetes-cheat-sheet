@@ -175,7 +175,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A StatefulSet named web wants three replicas, and it carries a volumeClaimTemplate called data. A Deployment would hand every one of its replicas the single same claim, so all three would fight over one disk. A StatefulSet does the opposite, and the template is how.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

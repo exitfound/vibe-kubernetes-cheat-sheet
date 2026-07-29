@@ -131,7 +131,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The web Service has a ClusterIP, 10.96.0.20, and two Ready backend Pods. That ClusterIP is a stable address clients connect to, but as the next steps show, nothing actually owns it on the network.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

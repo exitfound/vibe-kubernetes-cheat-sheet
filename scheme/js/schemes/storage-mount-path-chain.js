@@ -188,7 +188,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod writes to /data and expects the bytes to reach a disk. On the Node that path is not one hop, it is a short chain of mounts. Start at the bottom: one real block device, /dev/nvme1n1, attached to this Node and holding the filesystem.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

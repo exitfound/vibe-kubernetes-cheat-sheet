@@ -58,8 +58,8 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    // The pod shell lives alone in shellWrap so the pod pulse (which queries .scheme-pod descendants)
-    // reaches ONLY the shell, never the inner container boxes.
+    // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:
+    // it takes the whole Pod group, so the containers blink with the Pod they belong to (2026-07-29).
     const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'spec.volumes: cache', containers: 0, role: 'storage' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
@@ -146,7 +146,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A volume is declared once on the Pod at spec.volumes, and each container mounts it under volumeMounts. The volume belongs to the Pod, not to any single container. This Pod runs two containers that will share one volume named cache.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -180,7 +179,7 @@ const STEPS = [
       // holds under reduced motion). The Pod pulse fires at the same instant, one beat.
       s.refs.volume.classList.add('highlight');
       if (ctx.reduced) { s.refs.appBox.classList.add('highlight'); s.refs.sideBox.classList.add('highlight'); return; }
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
       // The two mounts leave the volume sides and rise into the containers in lockstep (the lanes
       // are mirror images, so routeDur gives them the same duration). Mounts ride the UP lanes.
       const appBoxPkt = routePacket(s, ctx, LANE_APP_UP, { role: 'storage' });
@@ -205,7 +204,7 @@ const STEPS = [
       s.refs.volume.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
       // The app write descends its DOWN lane into the volume side, then the log shipper reads the
       // same bytes back out of the far side and up its own UP lane.
       const write = routePacket(s, ctx, LANE_APP_DOWN, { delay: BEAT.afterPulse, role: 'storage' });
@@ -226,7 +225,7 @@ const STEPS = [
       setChips(s, { vol: 'survives restart', mounts: MOUNTS, data: 'foo intact' });
       s.refs.volume.classList.add('highlight');
       if (ctx.reduced) { s.refs.appBox.classList.add('highlight'); return; }
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
       // The fresh container re-reads foo from the untouched volume, up the app UP lane.
       const appBoxPkt = routePacket(s, ctx, LANE_APP_UP, { delay: BEAT.afterPulse, role: 'storage' });
       lightBoxAt(s.refs.appBox, ctx, appBoxPkt.arrivalMs);

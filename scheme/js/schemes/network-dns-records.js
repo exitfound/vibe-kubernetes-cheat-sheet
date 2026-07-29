@@ -153,7 +153,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Service name in Kubernetes is really a fully qualified DNS name, and the kind of record CoreDNS returns depends on what you ask for. These are the record types behind in-cluster name resolution.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

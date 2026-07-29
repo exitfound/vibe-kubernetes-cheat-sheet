@@ -173,7 +173,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Three new Pods arrive at the API server. Each has a different shape of the resources block: Pod A leaves it empty, Pod B sets requests only, Pod C sets requests equal to limits. From this shape Kubernetes derives a QoS class for each Pod, which later sets its cgroup caps and the oom_score_adj the kernel uses to pick a process to kill.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

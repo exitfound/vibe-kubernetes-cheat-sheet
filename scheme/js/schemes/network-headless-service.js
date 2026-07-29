@@ -124,7 +124,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The web Service is declared with clusterIP None, which makes it headless. It still selects the three StatefulSet Pods, but the cluster gives it no virtual IP at all, so there is nothing for kube-proxy to program.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -166,7 +166,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A claim named data-src is Bound to a volume that already holds real data. You want a second, independent copy of that volume, and you do not want to create a snapshot object first. Cloning does exactly that in one step, straight from claim to claim.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -134,7 +134,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'An Ingress object is just a set of host and path rules, it routes nothing by itself. The work is done by an Ingress controller, a Pod running a reverse proxy that turns those rules into live configuration and serves the traffic.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -119,7 +119,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Three ETCD replicas form the cluster behind the API: one elected Leader and two Followers, all on the same term 4, the logical clock that counts leader elections. Every replica holds an identical log of 8 committed entries, so all three already agree on the current state. A write needs a quorum of 2 of 3 replicas to be durable, which is what lets the cluster keep running when one Node fails.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -81,8 +81,10 @@ class Scene {
     // Z-order: client + Pod shell + container/interface boxes, then wires + label above them,
     // then chips, then the packet layer on top.
     root.appendChild(client.group);
+    // The four boxes drawn inside the Pod go INSIDE its group, so the pulse reaches them: a Pod
+    // blinks as one thing and everything drawn inside it blinks with it (2026-07-29).
+    [app, side, eth0, lo].forEach(el => podGroup.appendChild(el));
     root.appendChild(podGroup);
-    [app, side, eth0, lo].forEach(el => root.appendChild(el));
     [localWire, extWire, localLabel].forEach(el => root.appendChild(el));
     [pathChip, portChip, bindChip, ipChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
@@ -106,7 +108,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod can run more than one container, and they all join the same network namespace. That means one shared loopback, one shared eth0 and one shared Pod IP across every container in the Pod. The classic case is an app plus a sidecar proxy.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -106,7 +106,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A connection is never a single packet. For NAT to work, the kernel has to rewrite the first packet and then remember that choice, so every packet of the same flow is translated the same way and the reply finds its way home. That memory is the conntrack table.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

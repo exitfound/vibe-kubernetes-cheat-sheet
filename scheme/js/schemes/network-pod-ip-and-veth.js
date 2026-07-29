@@ -111,7 +111,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod is more than its containers: it is one network namespace they all live in. Before any workload starts, that namespace has to be created and given an identity on the Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

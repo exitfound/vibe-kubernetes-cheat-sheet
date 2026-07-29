@@ -191,7 +191,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod needs a 20Gi volume from local storage, which can only be provisioned on the Node the Pod lands on. Two Nodes can take it, but Node-1 has only 5Gi of pool left while Node-2 has 50Gi. The scheduler cannot see any of that yet.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

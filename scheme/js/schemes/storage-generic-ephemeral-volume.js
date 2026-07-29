@@ -156,7 +156,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod carries an inline volumeClaimTemplate under a field named ephemeral. It reads like a throwaway scratch volume, the same slot where emptyDir would go, but everything below this Pod is about to become real storage machinery rather than a folder on the Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -125,7 +125,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A container root filesystem is not one disk. It is a stack of read-only image layers with a single thin writable layer on top, combined by overlayfs into the one tree the process sees at slash. A separate volume can be mounted into that tree as well.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -152,7 +151,7 @@ const STEPS = [
       s.refs.l1.classList.add('highlight');
       if (ctx.reduced) return;
       // The container starts and assembles its root from the image layers, so the shell pulses.
-      pulsePod(s.refs.ctrShell, ctx, 0);
+      pulsePod(s.refs.ctr, ctx, 0);
     },
   },
   {
@@ -191,7 +190,7 @@ const STEPS = [
       // per the family standard), and the shell pulse fires in the same beat.
       s.refs.ctrBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.writable.classList.add('highlight'); return; }
-      pulsePod(s.refs.ctrShell, ctx, 0);
+      pulsePod(s.refs.ctr, ctx, 0);
       const pkt = routePacket(s, ctx, W_COPYUP, { delay: BEAT.afterPulse, role: 'storage' });
       lightBoxAt(s.refs.writable, ctx, pkt.arrivalMs);
       ridingLabel(s, ctx, 'copy-up', W_COPYUP, { delay: BEAT.afterPulse });
@@ -238,7 +237,7 @@ const STEPS = [
       ctx.register(s.refs.writable.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
       ctx.register(s.refs.wCopyup.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
       // The fresh container then writes to /data, which bypasses the overlay and lands on the disk.
-      pulsePod(s.refs.ctrShell, ctx, 0);
+      pulsePod(s.refs.ctr, ctx, 0);
       const pkt = routePacket(s, ctx, W_VOL, { delay: BEAT.afterPulse, role: 'storage' });
       lightBoxAt(s.refs.volume, ctx, pkt.arrivalMs);
       ridingLabel(s, ctx, 'write /data', W_VOL, { delay: BEAT.afterPulse });

@@ -86,7 +86,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'List-watch cycle: discovery, LIST, watch, re-list, CRD',
+      'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. The informer fires an initial LIST, which the API answers from ETCD at one snapshot resourceVersion, and that fills the Indexer cache the controller then reconciles from without going back to the API. It opens a watch from that same resourceVersion, and the API streams every later change over one connection held open for as long as the controller wants, so a new Pod reaching ETCD arrives as an ADDED event that updates the cache. When the API has compacted history past the resourceVersion the informer holds, the next chunk of that stream is HTTP 410 Gone, and the informer re-LISTs to a fresh resourceVersion and resumes watching rather than losing its place. CustomResourceDefinitions add their own API group under the same paths, with the same list-then-watch contract, so a controller for a custom resource is written exactly like one for a built-in.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -217,7 +217,6 @@ const STEPS = [
   {
     id: 'discovery',
     duration: 1900,
-    narration: 'The API is a catalogue of GVRs grouped by core/v1, apps/v1, batch/v1. Non-core groups follow /apis/<group>/<version>/<resource>, and the legacy core group lives under /api/v1/<resource>. The client first calls /api and /apis on the API to discover this catalogue, including any CRDs that have registered.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);

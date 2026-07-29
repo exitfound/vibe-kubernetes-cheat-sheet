@@ -141,7 +141,6 @@ const STEPS = [
   {
     id: 'running',
     duration: 1500,
-    narration: 'A container runs on Node-1. Its status.containerStatuses entry carries a state object that holds exactly one of Waiting, Running or Terminated. State is Running now, but restartCount already reads 2, so this container has crashed and been replaced twice before.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

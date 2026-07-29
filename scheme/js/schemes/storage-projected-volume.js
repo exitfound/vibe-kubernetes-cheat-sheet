@@ -142,7 +142,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A projected volume presents several sources as one directory. Under /var/run/secrets the app sees a handful of ordinary files, but each one is filled from a different Kubernetes source, assembled by Kubelet into a single mount.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

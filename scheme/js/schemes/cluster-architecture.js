@@ -122,7 +122,6 @@ const STEPS = [
   {
     id: 'Overview',
     duration: 1500,
-    narration: 'The Control Plane manages the desired cluster state. Worker Nodes run the actual workloads. Every component exchanges data through the API.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

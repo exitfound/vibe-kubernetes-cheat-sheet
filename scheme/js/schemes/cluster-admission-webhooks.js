@@ -133,7 +133,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Six stages stand between an API request and ETCD. Every stage always runs its built-in plugins, and the mutating and validating stages additionally call out to admission webhooks when such configurations exist.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -165,7 +165,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A DaemonSet named fluentd is declared with a Node selector and a RollingUpdate strategy. It computes desiredNumberScheduled from the Nodes that match the selector, three here, and since no Pods exist yet currentNumberScheduled is 0.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -193,7 +193,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A CronJob named backup is declared with schedule */5 * * * * (every five minutes) and concurrencyPolicy=Forbid. Its jobTemplate describes the Job to run. The controller does not run containers itself, it only watches the clock. With no spec.timeZone the schedule is read in the kube-controller-manager local time zone, and naming an IANA zone there (GA in 1.27) pins it, and the controller re-evaluates on a short interval, about every ten seconds. So far no Job has been created, so status.active is empty and lastScheduleTime is unset.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

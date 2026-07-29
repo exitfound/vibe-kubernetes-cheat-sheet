@@ -127,7 +127,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pods live on a private cluster network, so traffic from outside cannot reach them directly. NodePort and LoadBalancer are the two built-in Service types that open a path in from the world, and LoadBalancer is really NodePort with a cloud front-end on top.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -158,7 +158,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A claim asks for 5Gi of the gp3 class. Nothing in the cluster matches it, and unlike static provisioning there is no volume sitting there waiting to be picked. The claim is Pending and the disk it needs does not exist anywhere yet.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

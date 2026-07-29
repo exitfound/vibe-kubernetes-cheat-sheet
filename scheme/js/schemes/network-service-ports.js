@@ -85,7 +85,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Service has two port numbers that are easy to confuse. The port is what clients dial, the stable front door. The targetPort is where the container actually listens. They do not have to match, and keeping them apart is what lets the front door stay stable while the app moves.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -171,7 +171,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Node-1 runs two Deployment-backed app Pods (web-1, web-2) and one Fluentd Pod from a DaemonSet. The Deployment has a PodDisruptionBudget with minAvailable=1, so at most one of the two web replicas may be Unavailable at any moment. The operator is about to run kubectl drain Node-1. Drain is kubectl-side orchestration of a cordon plus per-Pod eviction calls, there is no server-side drain verb.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

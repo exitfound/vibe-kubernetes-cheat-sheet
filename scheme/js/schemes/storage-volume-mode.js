@@ -190,7 +190,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Two Pods on one Node, two claims for identical 20Gi disks, and a single field telling them apart. The volumeMode field decides what the workload is actually handed: a formatted directory it can open files in, or the bare block device with nothing on it. Leave the field out and you get Filesystem.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -159,7 +159,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1400,
-    narration: 'Steady state: Deployment my-app owns ReplicaSet my-app-7d4, which owns Pod my-app-7d4-abc running on Node-1. Every dependent carries an ownerReference back up the chain. No object has a deletionTimestamp yet.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       s.refs.placedPod.style.opacity = '1';

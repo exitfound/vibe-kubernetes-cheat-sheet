@@ -207,7 +207,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Between a new PersistentVolumeClaim and a container that can write to /data stand four gRPC calls. Two are controller calls that happen once in the cluster, two are Node calls that happen on the machine where the Pod lands. Nothing is mounted until all four have run in order, and a driver that does not advertise the attach or the staging capability simply skips that call.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

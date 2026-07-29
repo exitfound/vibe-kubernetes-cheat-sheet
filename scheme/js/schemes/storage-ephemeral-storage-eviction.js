@@ -144,7 +144,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Ephemeral storage is all the scratch space a Pod uses on the Node disk. The container writable layer, any disk-backed emptyDir, and the logs Kubelet keeps for it all count as one pool. There are two completely separate ways that pool can get a Pod evicted.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

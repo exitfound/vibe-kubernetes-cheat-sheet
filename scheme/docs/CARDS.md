@@ -2937,8 +2937,9 @@ overlay measured on the family cards ((300, 163) on a comfortable 1600px viewpor
 windows the overlay may brush the Pod corner, the accepted family trade. A longer narration
 invalidates this.
 
-PULSE MODEL (canon): the Pod SHELL pulses as one unit (shellWrap holds only the shell), the
-inner app box takes a static .highlight only. HIGHLIGHTS ARE STEP-STATIC: every block a step
+PULSE MODEL (canon): the Pod is one unit and blinks as one, the app box inside it included. The
+pulse takes the whole Pod group. (Reversed 2026-07-29: this note said the shell pulses alone and
+the app box takes a static highlight only.) HIGHLIGHTS ARE STEP-STATIC: every block a step
 uses lights at step entry, above the reduced guard, never on packet arrival.
 ```
 
@@ -3005,9 +3006,9 @@ stack down to the disk: the literal picture of bypassing every overlay layer.
 ### before `function podBlock({ x, y, w, h, label, sublabel }) {`
 
 ```
-The Container shell lives alone in shellWrap so the pulse (which queries .scheme-pod and
-.scheme-box descendants) reaches ONLY the shell, never the inner Process box. The Process box is
-an internal part: it only ever takes a static .highlight, never a pulse.
+The pulse takes the whole Container group, so the Process box inside it blinks with the Container
+it belongs to. shellWrap survives as a handle for code that wants the shell alone. (Reversed
+2026-07-29: the pulse used to be aimed at shellWrap so it could not reach the Process box.)
 ```
 
 ### before `const volLbl = volume.querySelector('.scheme-cylinder-label');`
@@ -3853,10 +3854,10 @@ node's top-left corner, an accepted trade). A longer narration invalidates the m
 node keeps extra background below the disk so the inner blocks do not crowd it, and the chip
 strip spans exactly the node width (180..1020).
 
-PULSE MODEL (canon, per the volume-model anchor card): the Pod is one unit. The Pod SHELL pulses
-as a whole (shellWrap holds only the shell so the pulse never reaches the inner containers). The
-containers are internal parts: they only take a static .highlight, never a pulse, never a crash
-flicker. HIGHLIGHTS ARE STEP-STATIC: every block a step uses lights at step entry, above the
+PULSE MODEL (canon, per the volume-model anchor card): the Pod is one unit and blinks as one, its
+containers included, because they are part of the Pod rather than neighbours of it. The pulse takes
+the whole Pod group. (Reversed 2026-07-29, author decision: the 2026-07-16 rule pulsed the shell
+alone and left the containers on a static highlight.) No container takes a crash flicker. HIGHLIGHTS ARE STEP-STATIC: every block a step uses lights at step entry, above the
 reduced guard, and the shell pulse fires at the same instant, one beat, no arrival delays.
 
 FADES exist for exactly one meaning: an object CEASING TO EXIST. The dies step ghosts the Pod and
@@ -4502,9 +4503,9 @@ the two containers pushed to the Pod edges (centers 425 and 775, outside the cyl
 cylinder 470..730 centered on 600. The narration overlay reaches about (300, 163) here, and the
 Node top at 170 sits flush under it. A longer narration invalidates that measurement.
 
-PULSE MODEL (canon): the Pod is one unit, the SHELL pulses (shellWrap holds only the shell so the
-pulse never reaches the inner containers), the containers only take a static .highlight, never a
-pulse. Highlights are step-static, set above the reduced guard, and the shell pulse fires in the
+PULSE MODEL (canon): the Pod is one unit and blinks as one, containers included, because the pulse
+takes the whole Pod group. (Reversed 2026-07-29: this note recorded the 2026-07-16 rule, which
+pulsed the shell alone.) Highlights are step-static, set above the reduced guard, and the shell pulse fires in the
 same beat. The cylinder is infrastructure: it lights, never pulses.
 
 WIRES: two directed L-lanes, exactly emptyDir's, each shared by its static pathArrow and its ball.
@@ -4527,7 +4528,7 @@ container boxes light as the mount lands, and the shell pulses in the same beat.
 above the guard so reduced motion holds the same lit end-state.
 ```
 
-### before `pulsePod(s.refs.shellWrap, ctx, 0);`
+### before `pulsePod(s.refs.pod, ctx, 0);`
 
 ```
 The app WRITE leaves the Pod for the cylinder (up-arrow), so the shell pulses first and the
@@ -5082,7 +5083,7 @@ thing acting right now', and a deleted object is the opposite of that. Pairs wit
 two land together.
 ```
 
-### before `narration: 'PV-web is ReadWriteOnce, so it may be attached to one Node at a time and no more. Right now it is attached to Node-1, recorded by the VolumeAttachment va-1, and the Pod there reads and writes it quite happily. Nothing about this is a problem until the Pod has to move.',`
+### before `setChips(s, { attached: 'node-1', newPod: 'not scheduled', blocked: 'nothing' });`
 
 ```
 node-2 is absent, not empty. An empty frame sitting there from the first frame says the second
@@ -6796,7 +6797,7 @@ what they carry (a node telling the cluster its own ceiling) is a standing relat
 true long before this card started.
 ```
 
-### before `narration: 'Every Node has a hard ceiling on how many volumes one CSI driver may have attached to it at once, and it has nothing to do with CPU or memory. Here three Nodes each report a ceiling of eight, so the cluster holds twenty four slots and four are in use. Nothing about this number is on a dashboard.',`
+### before `setChips(s, { attached: '4 of 24', pod: 'not created', blocked: 'nothing' });`
 
 ```
 The Pod is absent, not dim. It has not been created yet, and a ghost Pod sitting at the top of
@@ -7496,9 +7497,9 @@ container mounts it at volumeMounts, possibly at a different path. The volume be
 not to any container, so it survives a container crash and is shared between containers, and it
 dies only when the Pod dies.
 
-PULSE MODEL: the Pod is one unit. The Pod SHELL pulses as a whole (shellWrap holds only the shell,
-so the pulse never reaches the inner containers). The two containers are internal parts, so they
-only take a static .highlight, never a pulse. HIGHLIGHTS ARE STEP-STATIC: every block a step uses
+PULSE MODEL: the Pod is one unit and blinks as one, both containers included, because the pulse
+takes the whole Pod group. (Reversed 2026-07-29: this note recorded the 2026-07-16 rule, which
+pulsed the shell alone.) HIGHLIGHTS ARE STEP-STATIC: every block a step uses
 lights at step entry (above the reduced guard) and stays lit for the whole step, and the Pod pulse
 fires at the same instant, so pulse and highlights land in one beat. The balls only illustrate the
 traffic, they no longer drive highlight timing. The volume is infrastructure: it lights, never

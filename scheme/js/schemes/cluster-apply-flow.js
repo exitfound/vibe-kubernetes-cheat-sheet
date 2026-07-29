@@ -159,7 +159,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1400,
-    narration: 'Before any request arrives, the cluster sits in a steady state. The Control Plane runs API, ETCD, controller-manager and Scheduler. On Node-1, the Kubelet watches the API for Pods assigned to it.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       s.refs.placedPod.style.opacity = '0';

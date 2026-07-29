@@ -136,7 +136,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'On bare metal there is no cloud-controller-manager, so nothing answers a Service of type LoadBalancer. It sits in status pending, its EXTERNAL-IP never fills in, and the address clients are supposed to dial does not exist anywhere on the network.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -181,7 +181,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Two identical stacks: a claim bound to a volume, and behind that volume a real disk. The only difference is one field on the PV, the reclaim policy, set to Delete on the left and Retain on the right. That single field decides what survives when the claim goes away.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

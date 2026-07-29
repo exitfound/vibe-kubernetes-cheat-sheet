@@ -150,7 +150,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod has been scheduled to Node-1. Its single container references image registry.example.com/app:v2 which is built from 4 layers (base OS, runtime, app dependencies, app binary). Kubelet is about to materialize the image before the container can start. What it actually does depends on imagePullPolicy and on which layers are already cached in the local layer store on this Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

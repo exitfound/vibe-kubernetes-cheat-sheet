@@ -62,8 +62,8 @@ class Scene {
 
     const nd = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
-    // The pod shell lives alone in shellWrap so the pod pulse (which queries .scheme-pod
-    // descendants) reaches ONLY the shell, never the inner container boxes.
+    // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:
+    // it takes the whole Pod group, so the containers blink with the Pod they belong to (2026-07-29).
     const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: scratch (emptyDir)', containers: 0, role: 'storage' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
@@ -148,7 +148,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'An emptyDir is the simplest volume. It is created empty when the Pod is assigned to a Node, it lives on that Node disk, and every container in the Pod shares it. It exists only as long as the Pod stays on that Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -169,7 +168,7 @@ const STEPS = [
       // just created, the shell pulses in the same beat. No materialize animation.
       s.refs.ed.classList.add('highlight');
       if (ctx.reduced) return;
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
     },
   },
   {
@@ -187,7 +186,7 @@ const STEPS = [
       s.refs.ed.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
       // The app writes down its lane into the cylinder side, then the worker reads the same bytes
       // out of the far side and up its own lane: two mirrored one-way hops.
       const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
@@ -232,7 +231,7 @@ const STEPS = [
       // The app writes and the tmpfs receives: both light at entry, the shell pulses same beat.
       s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.ed.classList.add('highlight'); return; }
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
       const edPkt = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       lightBoxAt(s.refs.ed, ctx, edPkt.arrivalMs);
       ridingLabel(s, ctx, 'held in RAM', LANE_WRITE, { delay: BEAT.afterPulse });
@@ -252,7 +251,7 @@ const STEPS = [
       // beat. The eviction itself is told by the chips (512Mi, evicted), no fade on this step.
       s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.ed.classList.add('highlight'); return; }
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
       const pkt = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       lightBoxAt(s.refs.ed, ctx, pkt.arrivalMs);
       ridingLabel(s, ctx, 'over 512Mi', LANE_WRITE, { delay: BEAT.afterPulse });

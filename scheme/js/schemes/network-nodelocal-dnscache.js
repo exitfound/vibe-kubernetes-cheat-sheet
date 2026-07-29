@@ -124,7 +124,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Without a local cache, every Pod DNS query is a UDP packet that kube-proxy DNATs across the cluster to a CoreDNS Pod. Each lookup adds latency and a conntrack entry, and at scale that churn both overloads the DNS path and exposes the race on those short UDP flows that surfaces as the notorious five second lookup stalls. NodeLocal DNSCache fixes this on the Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

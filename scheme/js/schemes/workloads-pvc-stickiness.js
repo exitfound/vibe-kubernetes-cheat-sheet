@@ -207,7 +207,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Replica web-0 (the only replica of StatefulSet web) runs on Node-1. PVC data-web-0 is Bound to PV cloud-vol-x, mounted at /data inside the container. The Pod writes to /data, the on-disk revision is rev=1234. Identity is sticky to ordinal 0 by name (web-0) and by PVC (data-web-0), spun up from a volumeClaimTemplate that creates one PVC per ordinal.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

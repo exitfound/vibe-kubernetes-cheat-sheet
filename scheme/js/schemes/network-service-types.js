@@ -108,7 +108,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'There are four Service types plus a headless variant, and they are not five unrelated things. Three of them stack, each building on the one above, and two of them skip the proxy entirely and work through DNS alone.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

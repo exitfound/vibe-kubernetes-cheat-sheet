@@ -161,7 +161,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Kubelet talks to the container runtime over a Unix socket via the Container Runtime Interface (CRI). Bringing a Pod up takes four CRI gRPC calls. The runtime in turn invokes a CNI plugin for Pod networking, which is an exec of a binary, not a gRPC.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

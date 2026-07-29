@@ -158,7 +158,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'By default a Pod gets its own network namespace, one Pod IP out of the Node podCIDR, and a veth pair into the cni0 bridge. Nothing on the Node listens on its behalf, so the Node address knows nothing about it. Two fields opt out of that, and the infrastructure Pods of any cluster are built on them.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

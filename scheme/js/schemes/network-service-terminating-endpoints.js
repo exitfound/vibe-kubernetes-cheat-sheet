@@ -97,7 +97,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The web Service is backed by two Ready Pods, and a rolling update is about to retire one of them. The real question is what happens to traffic in the seconds while that Pod shuts down, so that nothing gets dropped.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

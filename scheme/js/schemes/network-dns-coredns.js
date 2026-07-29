@@ -96,10 +96,13 @@ class Scene {
     const packetLayer = g({ id: 'packetLayer' });
 
     root.appendChild(client.group);
+    // The three plugin boxes go INSIDE the Pod group, not beside it, so the pulse reaches them:
+    // a Pod blinks as one thing and everything drawn inside it blinks with it (2026-07-29). They
+    // still keep their own refs, because a step lights one plugin at a time.
+    coredns.appendChild(pCache);
+    coredns.appendChild(pK8s);
+    coredns.appendChild(pFwd);
     root.appendChild(coredns);
-    root.appendChild(pCache);
-    root.appendChild(pK8s);
-    root.appendChild(pFwd);
     [rcNS, rcSearch, rcNdots, rcLabel, qWire, aWire, fwdLabel, retLabel, cWire, queryChip, ansChip].forEach(el => root.appendChild(el));
     root.appendChild(packetLayer);
 
@@ -122,7 +125,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod wants to talk to the Service web by name. Before any connection can open, that name has to be turned into an IP, and in a cluster that job belongs to CoreDNS rather than the host resolver.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

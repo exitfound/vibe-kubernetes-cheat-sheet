@@ -195,7 +195,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A CSI driver is how a storage vendor plugs into Kubernetes without a line of vendor code living in Kubernetes itself. Every driver ships in two halves: a controller that runs once, off to the side, and a Node component that runs on every machine. Neither half is part of Kubernetes core.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

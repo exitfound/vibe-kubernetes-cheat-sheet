@@ -181,7 +181,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A ReplicaSet named web-7d4 keeps a stable set of Pods running. It declares spec.replicas=3 and a label selector app=web. The ReplicaSet controller, part of kube-controller-manager, watches every Pod that matches the selector and works to keep the running count equal to spec.replicas. The ReplicaSet itself is owned by a Deployment, which is how you normally manage it.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

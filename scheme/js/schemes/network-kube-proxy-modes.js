@@ -177,7 +177,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A connection to the Service ClusterIP 10.96.0.20 has to become one of the backend Pods. The kube-proxy does that on every Node, and it can resolve the backend two ways that reach a Pod but scale very differently.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

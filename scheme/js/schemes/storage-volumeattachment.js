@@ -197,7 +197,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pod web-0 is scheduled onto Node-1 and needs the disk vol-1. Before Kubelet can mount anything the disk has to be attached to that Node, and Kubernetes keeps that fact in an object of its own. Right now no such object exists, so Kubelet is going nowhere.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

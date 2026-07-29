@@ -174,7 +174,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A claim asks for a disk from a StorageClass whose volumeBindingMode is Immediate. There are two zones, each a Node that gets its own zonal disk on the shelf below. A zonal disk can only ever be attached to a Node in its own zone, and that single fact is the whole story here.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

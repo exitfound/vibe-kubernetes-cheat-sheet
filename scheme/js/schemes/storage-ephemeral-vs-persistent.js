@@ -135,7 +135,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'This Pod mounts two volumes at once. A scratch space at /scratch backed by an emptyDir, and a data directory at /data backed by a PersistentVolumeClaim. One is ephemeral, one is persistent, and the difference only shows when the Pod moves.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

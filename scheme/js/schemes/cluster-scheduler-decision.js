@@ -181,7 +181,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The kube-scheduler runs on the Control Plane and watches the API for unscheduled Pods. For each one it owns the placement decision through four discrete stages.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

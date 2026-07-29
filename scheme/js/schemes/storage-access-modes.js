@@ -215,7 +215,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The block disk PV-block offers ReadWriteOnce. Three Pods want it: two on Node-1 and one on Node-2. The access mode is what decides how many of them can mount it at the same time, and every attach has to pass through the CSI driver.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

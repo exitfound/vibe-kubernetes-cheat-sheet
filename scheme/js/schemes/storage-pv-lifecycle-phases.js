@@ -173,7 +173,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A PersistentVolume and the four phases its lifecycle runs through. Right now it is Available, which means no claim points at it and it is free to be matched to the next claim that fits on size, access mode and storage class.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

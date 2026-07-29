@@ -125,7 +125,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Kubelet on Node-1 runs a continuous reconciliation loop. Pod specs come in from sources (mainly the API), and observed container state comes from the runtime via PLEG. SyncPod compares the two and issues CRI calls to converge.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -90,8 +90,10 @@ class Scene {
     // Z-order: host stack, then pod shell + band + rail/taps, then the interface/container boxes over
     // the rail, then the veth cable + wire labels, then chips, then the packet layer on top.
     root.appendChild(host);
+    // The four boxes drawn inside the Pod go INSIDE its group, so the pulse reaches them: a Pod
+    // blinks as one thing and everything drawn inside it blinks with it (2026-07-29).
+    [eth0, lo, app, side].forEach(el => podGroup.appendChild(el));
     root.appendChild(podGroup);
-    [eth0, lo, app, side].forEach(el => root.appendChild(el));
     [vethWire, vethLabel, localLabel].forEach(el => root.appendChild(el));
     [scopeChip, ifaceChip, portChip, reachChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
@@ -116,7 +118,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A network namespace is a private copy of the Linux network stack: its own interfaces, routing table, iptables rules and socket ports. The host has one, and each Pod gets its own. This is the boundary that makes a Pod IP feel like a tiny separate machine.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

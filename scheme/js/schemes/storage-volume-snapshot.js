@@ -196,7 +196,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A source volume is in use in the storage backend, bound to a claim named data-1. You create a VolumeSnapshot named snap-1 whose source is that claim. This object is the namespaced request, the exact counterpart of a PVC, and right now nothing is bound behind it and readyToUse is false.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

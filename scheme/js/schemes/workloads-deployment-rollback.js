@@ -153,7 +153,6 @@ const STEPS = [
   {
     id: 'stable',
     duration: 1500,
-    narration: 'A Deployment web sits at revision 1. ReplicaSet RS-v1 owns three Ready Pods on image v1.0. When the template changes the old ReplicaSets are not deleted, they are retained as revision history up to revisionHistoryLimit (default 10), so every past template stays available for a one-step rollback.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -98,7 +98,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pod A on Node-1 wants to reach Pod B on Node-2. The two Pods sit in different Node subnets, 10.244.1.0/24 and 10.244.2.0/24, so the packet cannot be switched on a local bridge. It has to leave the Node and cross the physical network between the two hosts.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

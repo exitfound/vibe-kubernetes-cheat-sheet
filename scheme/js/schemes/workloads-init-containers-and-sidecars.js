@@ -146,7 +146,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod spec declares two init containers (wait-for-db, migrate-schema), one native sidecar (an initContainer with restartPolicy=Always, on by default since 1.29 and GA since 1.33) and the main app container. Kubelet has received the spec via SyncPod and is about to run the containers in the order the spec demands. Pod phase stays Pending for the whole bootstrap, while the kubectl STATUS column moves from Init:0/3 to PodInitializing as the containers progress.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

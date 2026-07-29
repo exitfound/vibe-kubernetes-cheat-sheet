@@ -125,7 +125,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'An app container declares all three probe types. The container is still booting, so Kubelet will run only startupProbe at first. The livenessProbe and readinessProbe do not run until startupProbe passes, and the Pod IP is not yet a member of the Service EndpointSlice.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -144,7 +144,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The container runs normally on Node-1. Its restartCount is 0 and no restart backoff is active. CrashLoopBackOff is a Waiting reason that only appears once a container starts failing repeatedly.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

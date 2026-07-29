@@ -129,7 +129,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A LoadBalancer sends external traffic to Node ports, but the backing Pods are not evenly spread: Node-1 runs one, Node-2 runs none. How the Node handles that gap is decided by the Service externalTrafficPolicy.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

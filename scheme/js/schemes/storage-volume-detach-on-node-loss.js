@@ -172,7 +172,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A healthy pair of Nodes. Node-1 is Ready, its Pod runs, and the ReadWriteOnce disk PV-web is attached there. The Pod may be writing to that disk at any instant, and everything about the safety story below turns on that one fact.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

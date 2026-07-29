@@ -136,7 +136,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'In iptables mode a packet to a ClusterIP walks a long chain of rules on every Node, and that walk grows with the number of Services. The eBPF dataplane removes that walk entirely.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

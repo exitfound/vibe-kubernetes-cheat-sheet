@@ -83,7 +83,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Clients reach the cluster over HTTPS, but the backend Pods usually speak plain HTTP. Something at the edge has to handle the encryption so the apps do not each have to. That job is TLS termination, and the Ingress or Gateway is where it happens.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

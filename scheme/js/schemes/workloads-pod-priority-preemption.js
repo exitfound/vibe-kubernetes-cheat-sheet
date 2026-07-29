@@ -152,7 +152,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Three Pods are running on Node-1: Pod A and Pod C at priority 100, Pod B at priority 1000. Their cpu and memory requests sum to the Node allocatable, so the Node is full and cannot accept new Pods. A new Pod is about to land at the API with priorityClassName=system-cluster-critical (numeric priority 2000000000, far above any current occupant).',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

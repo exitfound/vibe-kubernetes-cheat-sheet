@@ -126,7 +126,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Every Service of type ClusterIP needs a virtual IP, and you rarely have to pick one by hand. The cluster carves one out of a single configured range, the Service CIDR, here 10.96.0.0/16.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

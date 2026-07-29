@@ -118,7 +118,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A packet keeps whatever source address the last device to rewrite it left behind, so once a proxy or a NAT hop stands between client and Pod the original client address can already be gone. At the edge there are two ways to carry it through anyway, one for HTTP and one for everything else.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

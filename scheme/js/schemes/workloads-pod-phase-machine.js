@@ -145,7 +145,6 @@ const STEPS = [
   {
     id: 'admit',
     duration: 1500,
-    narration: 'The Pod object has been persisted in ETCD through the API, but spec.nodeName is empty so the scheduler has not yet bound it to a Node. The status.phase field reports Pending and no container exists. Kubelet is unaware of the Pod, since each Kubelet only watches its own Node.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -107,7 +107,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Most Services proxy to Pods chosen by a selector, but two kinds do not. A type ExternalName Service is just a DNS alias, and a ClusterIP Service with no selector lets you attach endpoints by hand. Both let a Service stand in for something outside the cluster.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

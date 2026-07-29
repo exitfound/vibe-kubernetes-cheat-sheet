@@ -160,7 +160,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Deployment owns a ReplicaSet (RS-v1) at replicas=3, all Pods running image v1.0 and Ready. Strategy is RollingUpdate with maxSurge=1 and maxUnavailable=1, so during a rollout the cluster will hold between 2 and 4 Pods alive while the swap happens.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

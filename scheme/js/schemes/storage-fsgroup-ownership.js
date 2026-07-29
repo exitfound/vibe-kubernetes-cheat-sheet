@@ -238,7 +238,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The container runs as user 1000, deliberately not root. The volume it mounts was created owned by root, group root. A process that is not root and not in the owning group has no permission to write there, which is the trap this whole mechanism exists to solve.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

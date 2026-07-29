@@ -241,7 +241,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Every Node has a hard ceiling on how many volumes one CSI driver may have attached to it at once, and it has nothing to do with CPU or memory. Here three Nodes each report a ceiling of eight, so the cluster holds twenty four slots and four are in use. Nothing about this number is on a dashboard.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

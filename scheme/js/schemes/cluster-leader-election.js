@@ -134,7 +134,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Three controller-manager replicas run on the Control Plane for high availability. Each one watches the same Lease object in coordination.k8s.io/v1. Until a replica writes the Lease successfully there is no holder, so no leader exists and no control loops run.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

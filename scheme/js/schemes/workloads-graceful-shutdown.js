@@ -142,7 +142,6 @@ const STEPS = [
   {
     id: 'running',
     duration: 1500,
-    narration: 'The Pod app-pod runs on Node-1 with its single container as PID 1. Its IP 10.244.1.7 is published in the Service EndpointSlice, so kube-proxy routes client traffic straight to it. The phase is Running and the full terminationGracePeriodSeconds budget of 30s is untouched.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

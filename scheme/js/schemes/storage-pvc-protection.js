@@ -184,7 +184,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pod web-0 is running and mounts data-claim, which is Bound to a real disk. The claim already carries one finalizer, kubernetes.io slash pvc-protection. The StorageObjectInUseProtection admission plugin put it there when the claim was created, not when a Pod picked it up, so the protection is standing before anything needs it.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

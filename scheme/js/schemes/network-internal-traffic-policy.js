@@ -134,7 +134,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Service spreads traffic over every ready backend, wherever it runs. The internalTrafficPolicy field decides whether that stays true for callers INSIDE the cluster, and it is the east-west twin of externalTrafficPolicy: same two values, different direction of travel.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

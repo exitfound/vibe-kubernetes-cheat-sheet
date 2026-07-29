@@ -142,7 +142,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod runs on Node-1 with a memory limit of 256Mi. Kubelet has written this limit into the container cgroup as memory.max. Current usage sits well under the cap, and the container reports Running.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

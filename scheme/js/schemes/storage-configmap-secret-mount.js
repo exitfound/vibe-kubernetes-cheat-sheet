@@ -58,8 +58,8 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    // The pod shell lives alone in shellWrap so the pod pulse (which queries .scheme-pod
-    // descendants) reaches ONLY the shell, never the inner app box.
+    // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:
+    // it takes the whole Pod group, so the app box blinks with the Pod it belongs to (2026-07-29).
     const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'mounts /etc/config', containers: 0, role: 'storage' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
@@ -173,7 +173,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A ConfigMap mounted as a volume turns each of its keys into a file. The app reads /etc/config/app.conf like any file on disk, and never has to know the value came from a ConfigMap. It reads version one to start with.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -220,7 +219,7 @@ const STEPS = [
       // pulses on arrival.
       const read = routePacket(s, ctx, W_APP_READ, { role: 'storage' });
       ridingLabel(s, ctx, 'resolves v1', W_APP_READ);
-      pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
+      pulsePod(s.refs.pod, ctx, read.arrivalMs);
     },
   },
   {
@@ -271,7 +270,7 @@ const STEPS = [
       // After the sync delay the app re-reads, and ..data now resolves to v2.
       const read = routePacket(s, ctx, W_APP_READ, { delay: 900, role: 'storage' });
       ridingLabel(s, ctx, 'resolves v2', W_APP_READ, { delay: 900 });
-      pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
+      pulsePod(s.refs.pod, ctx, read.arrivalMs);
     },
   },
   {
@@ -289,7 +288,7 @@ const STEPS = [
       // The subPath read rises straight from the old dir, visibly missing ..data on its way up.
       const read = routePacket(s, ctx, W_SUBPATH, { role: 'storage' });
       ridingLabel(s, ctx, 'v1 forever', W_SUBPATH);
-      pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
+      pulsePod(s.refs.pod, ctx, read.arrivalMs);
     },
   },
   {

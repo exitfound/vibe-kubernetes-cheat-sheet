@@ -147,7 +147,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The DNAT that kube-proxy programs, the conntrack entry that pins a flow, the MASQUERADE that rewrites an egress source: none of them float somewhere in the kernel. Each runs at a fixed netfilter hook, and the order of those hooks is what makes them work at all.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

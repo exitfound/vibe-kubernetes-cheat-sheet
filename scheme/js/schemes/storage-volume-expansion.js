@@ -165,7 +165,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pod web-0 runs on a 5Gi volume, and every number agrees: the claim requests 5Gi, the block device behind it is 5Gi, the filesystem on that device is 5Gi, so df inside the container reads 5Gi. The workload has filled it and needs more room without going offline.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

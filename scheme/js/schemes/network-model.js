@@ -195,7 +195,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Kubernetes gives the whole cluster one flat network. Every Pod attaches to the same address space no matter which Node runs it, and these are the rules that space has to satisfy.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -100,7 +100,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Service named web selects Pods with the label app=web, but the set of Pods behind it changes constantly as they come and go. Something has to keep a live list of which Pods are actually serving right now, and that list is the EndpointSlice.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

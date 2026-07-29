@@ -139,7 +139,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The Kubelet has a Pod to run, but a container with no network is useless. Before any app container starts, the Pod needs a network namespace and an IP, and that wiring is delegated out to a CNI plugin.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

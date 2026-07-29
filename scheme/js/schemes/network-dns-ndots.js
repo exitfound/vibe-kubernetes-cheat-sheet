@@ -141,7 +141,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Every Pod gets a resolv.conf with a list of search domains and an ndots value. Together they decide how a short name is expanded, and a surprising amount of in-cluster DNS traffic comes down to this one setting.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

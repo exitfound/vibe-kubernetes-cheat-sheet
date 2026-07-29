@@ -113,7 +113,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A Pod wants to reach an address out on the internet. Its source IP, 10.244.1.5, is private to the cluster and the outside world has no route back to it. If the packet left with that source untouched, the reply would have nowhere to return.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

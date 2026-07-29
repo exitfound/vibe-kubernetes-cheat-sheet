@@ -55,8 +55,8 @@ class Scene {
 
     const nd = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
-    // The pod shell lives alone in shellWrap so the pod pulse (which queries .scheme-pod
-    // descendants) reaches ONLY the shell, never the inner container boxes.
+    // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:
+    // it takes the whole Pod group, so the containers blink with the Pod they belong to (2026-07-29).
     const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod log-agent', sublabel: 'volumes: varlog (hostPath)', containers: 0, role: 'storage' });
     const shellRect = shell.querySelector('.scheme-pod-rect');
     if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
@@ -138,7 +138,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'A hostPath mounts a file or directory from the Node filesystem straight into the Pod. Unlike an emptyDir, Kubelet creates nothing for the Pod unless the type says DirectoryOrCreate or FileOrCreate. It is a raw window onto /var/log, which belongs to the Node, not to this Pod.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -159,7 +158,7 @@ const STEPS = [
       s.refs.appBox.classList.add('highlight');
       s.refs.sideBox.classList.add('highlight');
       if (ctx.reduced) return;
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
     },
   },
   {
@@ -176,13 +175,13 @@ const STEPS = [
       s.refs.hp.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
       const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'write entry', LANE_WRITE, { delay: BEAT.afterPulse });
       const read = routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
       lightBoxAt(s.refs.sideBox, ctx, read.arrivalMs);
       ridingLabel(s, ctx, 'read entry', LANE_READ, { delay: write.arrivalMs + BEAT.afterHop });
-      pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
+      pulsePod(s.refs.pod, ctx, read.arrivalMs);
     },
   },
   {
@@ -220,7 +219,7 @@ const STEPS = [
       s.refs.diskLbl.textContent = 'hands over the node';
       s.refs.appBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.hp.classList.add('highlight'); return; }
-      pulsePod(s.refs.shellWrap, ctx, 0);
+      pulsePod(s.refs.pod, ctx, 0);
       // The Pod reaches down into the host root: a pod-to-infra hop, so the shell pulses first and
       // the ball leaves at afterPulse.
       const hpPkt = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
@@ -244,7 +243,7 @@ const STEPS = [
       const read = routePacket(s, ctx, LANE_READ, { role: 'storage' });
       lightBoxAt(s.refs.sideBox, ctx, read.arrivalMs);
       ridingLabel(s, ctx, 'reads node logs', LANE_READ);
-      pulsePod(s.refs.shellWrap, ctx, read.arrivalMs);
+      pulsePod(s.refs.pod, ctx, read.arrivalMs);
     },
   },
 ];

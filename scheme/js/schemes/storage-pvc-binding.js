@@ -175,7 +175,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'The Pod asks for a volume by naming a claim, data-claim, and that claim is still Pending. Three PersistentVolumes exist in the cluster and none of them is spoken for yet. Until the claim is bound to one of them, the Pod cannot start.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

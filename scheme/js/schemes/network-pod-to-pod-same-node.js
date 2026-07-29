@@ -93,7 +93,6 @@ const STEPS = [
   {
     id: 'idle',
     duration: 1500,
-    narration: 'Pod A and Pod B sit on the same Node, both holding an IP out of that Node pod CIDR 10.244.1.0/24. Because the two addresses share one subnet, A reaches B directly with no router and no gateway in the path.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

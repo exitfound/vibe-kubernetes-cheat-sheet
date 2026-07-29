@@ -194,7 +194,6 @@ const STEPS = [
   {
     id: 'healthy',
     duration: 1500,
-    narration: 'Node-1 is Ready and a Pod runs on it. The Lease in kube-node-lease is fresh, and the Node-lifecycle-controller sees no anomaly on its watch. Steady state.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
