@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=404 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
@@ -264,20 +264,21 @@ const STEPS = [
       setWire(s, 'req', 'DELETE .../pods/pod-a · Graceful · nominatedNodeName=Node-1');
       s.refs.scheduler.classList.add('highlight');
       s.refs.victimChip.classList.add('highlight');
-      // Pin final state inline so cancel does not flash to default.
-      s.refs.pod1.style.opacity   = '0';
+      // Pin final state inline so cancel does not flash to default. Pod A is Terminating here, as
+      // the victim chip says in words, so it keeps its slot at that shade.
+      s.refs.pod1.style.opacity   = String(OPACITY.terminating);
       s.refs.pod2.style.opacity   = '1';
       s.refs.pod3.style.opacity   = '1';
       s.refs.podNew.style.opacity = '0';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       // DELETE hits the apiserver (top hop), then travels down the connector.
-      // Pod A pulses and fades out only when the DELETE reaches the node.
+      // Pod A pulses and sinks to Terminating only when the DELETE reaches the node.
       const del = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, del.arrivalMs);
       const evict = routePacket(s, ctx, LANE, { delay: del.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {

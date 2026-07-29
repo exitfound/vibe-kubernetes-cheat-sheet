@@ -246,7 +246,9 @@ const STEPS = [
       setChainActive(s.refs.chain, 0);
       setChips(s, { nodeA: 'NotReady', volume: 'held on node-1', newPod: 'ContainerCreating' });
       setPods(s, { oldSub: 'marked for deletion', newSub: 'ContainerCreating' });
-      s.refs.oldPod.style.opacity = '1';
+      // Marked for deletion is the Terminating phase, so the old Pod sits at that shade rather
+      // than at full. It drops again to terminated on the next step, where it is assumed gone.
+      s.refs.oldPod.style.opacity = String(OPACITY.terminating);
       s.refs.newPod.style.opacity = '1';
       s.refs.disk.classList.add('highlight');
       setWire(s, 'disk', 'still held');
@@ -254,6 +256,10 @@ const STEPS = [
       // The OLD Pod is what this timeout acts on, so the old Pod is what blinks, again with the
       // ordinary pulsePod. An earlier pass pulsed the new Pod here, pointing at the wrong node.
       pulsePod(s.refs.oldPod, ctx, 0);
+      // It blinks at full first, then takes the mark: the pulse says which Pod this is about, the
+      // fade says what just happened to it, and the two must not read as one event.
+      s.refs.oldPod.style.opacity = '1';
+      ctx.register(s.refs.oldPod.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-in' }));
       // The replacement can exist from this step on, so this is where it fades in. It cannot start:
       // the disk it needs is still held by a Node nobody can reach.
       s.refs.newPod.style.opacity = '0';
@@ -277,9 +283,10 @@ const STEPS = [
       s.refs.disk.classList.add('highlight');
       setWire(s, 'disk', 'force-detach');
       if (ctx.reduced) return;
-      // The old Pod fades from full to OPACITY.terminated: it existed until now and is only now assumed dead.
-      s.refs.oldPod.style.opacity = '1';
-      ctx.register(s.refs.oldPod.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
+      // The old Pod fades the rest of the way, Terminating to terminated. It starts at the shade
+      // the previous step left it on, never back at full, or the mark reads as undone for a frame.
+      s.refs.oldPod.style.opacity = String(OPACITY.terminating);
+      ctx.register(s.refs.oldPod.animate([{ opacity: OPACITY.terminating }, { opacity: OPACITY.terminated }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
       s.refs.wAttachA.style.opacity = '1';
       ctx.register(s.refs.wAttachA.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
     },

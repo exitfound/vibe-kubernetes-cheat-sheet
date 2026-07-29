@@ -314,17 +314,17 @@ const STEPS = [
       s.refs.ctrl.classList.add('highlight');
       setWire(s, 'ctrl', 'DELETE /api/v1/.../pods/{name} · taint-eviction');
       setChainActive(s.refs.chain, 4);
-      // Pin final state so cancel does not snap back to opacity 1. Both Node-1 lanes end on this
-      // Pod, so they go with it rather than outliving it as arrows into an empty frame.
-      s.refs.podA.style.opacity = '0';
-      setLanes(s, 0, 0, 0);
+      // Pin final state so cancel does not snap back to opacity 1. Terminating is a phase and not
+      // an absence, so the Pod and both its lanes stay drawn at the Terminating shade.
+      s.refs.podA.style.opacity = String(OPACITY.terminating);
+      setLanes(s, OPACITY.terminating, OPACITY.terminating, 0);
       if (ctx.reduced) return;
       // The DELETE travels from the controller down the left margin to the Pod on
-      // Node-1; the Pod flinches and disappears only when the packet reaches it.
+      // Node-1; the Pod flinches and sinks to Terminating when the packet reaches it.
       const del = routePacket(s, ctx, EVICT_CONNECTOR, { role: 'cluster' });
       pulsePod(s.refs.podA, ctx, del.arrivalMs);
       [s.refs.podA, s.refs.hbLane, s.refs.evictLane].forEach(el => ctx.register(
-        el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' })));
+        el.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' })));
     },
   },
   {
@@ -337,14 +337,15 @@ const STEPS = [
       clearWires(s);
       s.refs.nodeA.style.opacity = String(OPACITY.notready);
       s.refs.nodeB.style.opacity = '1';
-      s.refs.podA.style.opacity = '0';
+      // The old Pod is still Terminating, not gone, so it and its two lanes keep that shade.
+      s.refs.podA.style.opacity = String(OPACITY.terminating);
       s.refs.ctrl.classList.add('highlight');
       setWire(s, 'ctrl', 'Deployment recreates replica · Scheduler binds Node-2');
       setChainActive(s.refs.chain, 5);
-      // Pin final state inline. The reschedule lane is the only one left: it ends on the
-      // replacement, which exists from this step on.
+      // Pin final state inline. The reschedule lane joins the two Terminating ones: it ends on
+      // the replacement, which exists from this step on.
       s.refs.podB.style.opacity = '1';
-      setLanes(s, 0, 0, 1);
+      setLanes(s, OPACITY.terminating, OPACITY.terminating, 1);
       if (ctx.reduced) return;
       // The bind packet bridges Node-1 across to Node-2 (node block to node block);
       // the replacement Pod materialises and pulses only when it lands on Node-2.

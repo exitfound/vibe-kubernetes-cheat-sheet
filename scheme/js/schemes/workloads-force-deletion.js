@@ -298,7 +298,9 @@ const STEPS = [
       s.refs.focusChip.classList.add('highlight');
       // Each lane appears and dims with the Pod it ends on: before this step Pod B does not exist
       // and an arrow into it would point at nothing.
-      setPods(s, OPACITY.terminated, 1);
+      // Pod A comes UP from terminated to notready here, and that rise is the whole step: the API
+      // believes it is gone, the chips say it may still be running.
+      setPods(s, OPACITY.notready, 1);
       setChainActive(s.refs.chain, 4);
       // podNew appears on arrival, so pulse it then. Lighting podNewBox in enter() would
       // auto-pulse it at delay 0 while the Pod is still invisible (and double with pulsePod).

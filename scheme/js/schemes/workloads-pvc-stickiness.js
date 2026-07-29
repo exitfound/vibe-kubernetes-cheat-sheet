@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=330 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
@@ -242,12 +242,13 @@ const STEPS = [
       s.refs.pvcChip.classList.add('highlight');
       s.refs.pvChip.classList.add('highlight');
       s.refs.dataChip.classList.add('highlight');
-      // Pin final opacity inline (web-0 gone) so a cancel between steps does not flash it back.
-      s.refs.podA.style.opacity = '0';
+      // Pin final opacity inline so a cancel between steps does not flash it back. The chip says
+      // Terminating on this step, so web-0 sinks to that shade rather than leaving its slot.
+      s.refs.podA.style.opacity = String(OPACITY.terminating);
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
       const del = connectorPacketA(s, ctx);
-      ctx.register(s.refs.podA.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.podA.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {

@@ -471,6 +471,25 @@ materialises inside Node-2 once the packet lands on the node.
 
 ---
 
+### before `s.refs.podA.style.opacity = String(OPACITY.terminating);`
+
+```
+Family A, closed 2026-07-29 (SCHEME-2.4-PLAN.md, stage 2.1). Both the evict step and the
+reschedule step after it used to draw Pod A at opacity 0, on both the Pod and its two Node-1
+lanes, while the narration said the Pod sits in Terminating and the chip read '0s Terminating'.
+Terminating is a phase in the vocabulary, not an absence: an object with a deletionTimestamp that
+the API cannot finish deleting is exactly the thing this card is about, and drawing it as gone
+deleted the subject of its own sentence. Pod and lanes now hold OPACITY.terminating.
+
+The lanes take the Pod's shade rather than 0 for the reason recorded catalog-wide: a lane may not
+outlive the Pod it ends on, and it may not vanish from under a Pod that is still drawn either.
+The reschedule step keeps all three at that shade and brings only the replacement to full, because
+a Pod carrying a deletionTimestamp no longer counts towards the replica total, which is what lets
+the controller create the replacement while the old one is still on screen.
+```
+
+---
+
 ## cluster-node-pressure-eviction
 
 ### layout (R5-a, 2026-07-27)
@@ -7030,12 +7049,20 @@ the sublabel at 175 units, so 230 still leaves ~27 either side. The box is now c
 ### opacity phases (was `const GONE = 0.35`, now OPACITY.*)
 
 ```
-A Pod that EXISTS is drawn at full strength and blinks with the ordinary pulsePod, exactly as the
-rest of the storage family does (see storage-multi-attach-error): a dim 'unknown' state pulsed with
-pulsePodDim stacks an opacity swing on top of the blink and reads as a faster, busier pulse than the
-same beat elsewhere in the catalog. The old Pod being unconfirmed is carried by its sublabel and its
-chip, not by a faded opacity. The only opacity a Pod takes here is GONE, once it is assumed dead or
-deleted, and a GONE Pod never pulses. GONE is the catalog value for gone/unhealthy.
+A Pod that EXISTS and is not yet marked is drawn at full strength and blinks with the ordinary
+pulsePod, exactly as the rest of the storage family does (see storage-multi-attach-error): a dim
+'unknown' state pulsed with pulsePodDim stacks an opacity swing on top of the blink and reads as a
+faster, busier pulse than the same beat elsewhere in the catalog. The old Pod being UNCONFIRMED is
+carried by its sublabel and its chip, not by a faded opacity: not knowing whether a Pod runs is not
+a phase of its own.
+
+Being MARKED is a phase, and the card walks the old Pod down the vocabulary in the two steps that
+earn it. On evict it pulses at full and then sinks to OPACITY.terminating, because the sublabel
+reading 'marked for deletion' IS the Terminating phase, and drawing that as full strength was the
+catalog-wide family A defect (SCHEME-2.4-PLAN.md, stage 2.1). On forcedetach it goes the rest of the
+way to OPACITY.terminated, and it starts that fade AT terminating rather than at 1: an animation
+keyframed from full would brighten a marked Pod back up for one frame before killing it.
+A Pod at either shade never pulses.
 ```
 
 ### before `const LANE = 22, CORRIDOR_Y = 260;`
@@ -7132,9 +7159,11 @@ has no way to catch.
 ### before `s.refs.oldPod.style.opacity = '1';`
 
 ```
-Both node FRAMES and both Pods stay at full strength. node-1 being unreachable and its Pod
-being unconfirmed are carried by the chip and the Pod sublabels, not by a faded opacity: a Pod
-that might still be running is a Pod that exists, and the family draws an existing Pod at full.
+Through notready and refuse, both node FRAMES and both Pods stay at full strength. node-1 being
+unreachable and its Pod being unconfirmed are carried by the chip and the Pod sublabels, not by a
+faded opacity: a Pod that might still be running is a Pod that exists, and the family draws an
+existing Pod at full. The old Pod leaves full only on evict, where it is marked, and the shades it
+takes from there are in the opacity phases note above.
 
 The replacement Pod is the other half of that rule and is not drawn at all until it exists. It
 used to fade in on the notready step, which no controller could do: while the old web-0 is a live
@@ -8510,6 +8539,24 @@ The old NODE2_LANE also ran straight down x=810 through the pipeline ladder rows
 
 ---
 
+### before `setPods(s, OPACITY.notready, 1);`
+
+```
+Family A, closed 2026-07-29 (SCHEME-2.4-PLAN.md, stage 2.1). The risk step used to leave Pod A at
+OPACITY.terminated, the shade for gone, while its own chips read 'maybe still running' and
+'identity live twice'. That drew the API server's belief instead of the card's subject, and the
+subject of this card is that the API server is wrong: force-delete dropped the object without any
+Kubelet acknowledgement, so on a merely partitioned Node the container keeps running.
+
+It rises to OPACITY.notready here instead, which is the vocabulary entry for alive but not serving
+and not observed, and the rise itself is the step: the previous step drew the object dropped from
+ETCD, this one puts the process back on screen next to the replacement that now shares its
+identity. This is the only card in the catalog where a Pod comes back UP the vocabulary, and it is
+deliberate rather than a missed fade.
+```
+
+---
+
 ## workloads-graceful-shutdown
 
 ### layout
@@ -8701,6 +8748,22 @@ and the ball are built from that one LANE array.
 
 ---
 
+### before `s.refs.pod1.style.opacity   = String(OPACITY.terminating);`
+
+```
+Family A, closed 2026-07-29 (SCHEME-2.4-PLAN.md, stage 2.1). The delete step used to pin Pod A to
+0 and animate it 1 -> 0 on the eviction packet arriving, while the victim chip on the same step
+read 'Pod A · Terminating' and the narration spent two sentences on the grace period it is serving.
+A Pod inside its terminationGracePeriodSeconds is the most present thing on the diagram, not an
+absence, so it now holds OPACITY.terminating and keeps its slot. It leaves the slot on the bind
+step, where the narration says it has exited and its capacity has returned to the Node.
+
+OPACITY was not imported in this file at all before the fix, which is why the step had no shade to
+reach for.
+```
+
+---
+
 ## workloads-pod-qos-classes
 
 ### layout (R5-a, 2026-07-27)
@@ -8812,9 +8875,10 @@ volume was attached to Node-2 on the idle step, contradicting the narration.
 ### before `const del = connectorPacketA(s, ctx);`
 
 ```
-The delete reaches Node-1 over the left connector. podA is pinned to 0 above, the
-animation back-fills 1 during the delay, then fades web-0 out on arrival. The PVC,
-PV and data chips stay lit (retained).
+The delete reaches Node-1 over the left connector. podA is pinned to OPACITY.terminating
+above, the animation back-fills 1 during the delay, then sinks web-0 to that shade on
+arrival: the chip says 'Terminating, then removed', so the Pod is marked on this step and
+leaves its slot on the next one, not here. The PVC, PV and data chips stay lit (retained).
 ```
 
 ### before `const bind = connectorPacketB(s, ctx);`
@@ -8832,6 +8896,16 @@ arrival, keeping the same sticky identity.
 CSI reattaches the same PV to Node-2. The volume packet crosses from the PV into
 web-0 on Node-2, and web-0 pulses once on arrival then settles back (mounted, data
 preserved). No persist, so the pulse fades instead of pinning the outline bright.
+```
+
+### before `s.refs.podA.style.opacity = String(OPACITY.terminating);`
+
+```
+Family A, closed 2026-07-29 (SCHEME-2.4-PLAN.md, stage 2.1). The evict step drew web-0 out to 0
+under a chip reading 'web-0 · Terminating, then removed', which is a chip naming two states and a
+drawing showing only the second. The Pod now sinks to OPACITY.terminating on this step, which is
+the state the chip names first, and the recreate step is where it leaves the slot: that is the
+step whose narration has the object finally gone and a new one created under the same name.
 ```
 
 ---
