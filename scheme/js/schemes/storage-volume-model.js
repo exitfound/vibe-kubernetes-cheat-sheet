@@ -199,16 +199,16 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { vol: 'mounted x2', mounts: MOUNTS, data: 'foo written' });
-      // Both containers share the volume this whole step (app writes, log shipper reads), so both
-      // stay lit for the entire step. The Pod pulses at the same instant.
-      s.refs.volume.classList.add('highlight');
+      // The app container is the writer, so it is lit from entry. The volume takes the write before
+      // it can serve the read, so it lights when the ball lands on it, like the sidecar box below.
       s.refs.appBox.classList.add('highlight');
-      if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.volume.classList.add('highlight'); s.refs.sideBox.classList.add('highlight'); return; }
       pulsePod(s.refs.pod, ctx, 0);
       // The app write descends its DOWN lane into the volume side, then the log shipper reads the
       // same bytes back out of the far side and up its own UP lane.
       const write = routePacket(s, ctx, LANE_APP_DOWN, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'write foo', LANE_APP_DOWN, { delay: BEAT.afterPulse });
+      lightBoxAt(s.refs.volume, ctx, write.arrivalMs);
       const sideBoxPkt = routePacket(s, ctx, LANE_SIDE_UP, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
       lightBoxAt(s.refs.sideBox, ctx, sideBoxPkt.arrivalMs);
       ridingLabel(s, ctx, 'read foo', LANE_SIDE_UP, { delay: write.arrivalMs + BEAT.afterHop });

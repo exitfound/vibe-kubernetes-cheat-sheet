@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, OPACITY, WL } from '../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C of the Workloads canon (WL): the deepest panel in the category leaves room for no column.
 // Panel worst case x<=397, y<=379; a longer narration invalidates that measurement.
@@ -189,13 +189,13 @@ const STEPS = [
       s.refs.stateChip.classList.add('highlight');
       setWire(s, 'req', 'CRI CreateContainer + StartContainer · OK');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.entrypointChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       // The CRI calls hop to the runtime, the OK hops back, and the container
       // materializes once the start call lands.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
       segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: OPACITY.pending }, { opacity: 1 }],
@@ -217,12 +217,12 @@ const STEPS = [
       setVal(s.refs.stateChip, 'Running');
       setWire(s, 'req', 'CRI ExecSync · postStart · Exit 0');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.postStartChip.classList.add('highlight');
       s.refs.entrypointChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
       segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
@@ -240,13 +240,13 @@ const STEPS = [
       setVal(s.refs.stateChip, 'Running');
       setWire(s, 'req', 'PLEG watch · Readiness probe OK · Serving traffic');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.postStartChip.classList.add('highlight');
       s.refs.entrypointChip.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
       segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
@@ -264,12 +264,12 @@ const STEPS = [
       setVal(s.refs.graceChip, '22s');
       setWire(s, 'req', 'CRI ExecSync · preStop · Sync');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.preStopChip.classList.add('highlight');
       s.refs.graceChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
       const ack = segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       const exec = routePacket(s, ctx, SPINE, { delay: ack.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, exec.arrivalMs);
@@ -291,14 +291,14 @@ const STEPS = [
       setVal(s.refs.graceChip, '0s · SIGKILL');
       setWire(s, 'req', 'CRI StopContainer · SIGTERM · ACK');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
       s.refs.graceChip.classList.add('highlight');
       // Pin final state inline so cancel between steps does not flash to default.
       s.refs.podGroup.style.opacity = String(OPACITY.terminating);
       setChainActive(s.refs.chain, 5);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
       const ack = segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       const stop = routePacket(s, ctx, SPINE, { delay: ack.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, stop.arrivalMs);

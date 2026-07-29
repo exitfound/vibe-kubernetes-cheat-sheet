@@ -269,9 +269,10 @@ const STEPS = [
       setChips(s, { mode: 'Block', nodeDoes: 'no mkfs, no mount', container: 'device /dev/xvda', fsgroup: 'not applied' });
       setWire(s, 'blk', 'raw, unformatted');
       setWire(s, 'band', 'publish the device');
-      s.refs.band.classList.add('highlight');
       s.refs.pvBlk.classList.add('highlight');
-      if (ctx.reduced) return;
+      // The band receives the device before it publishes it, and actOnDisk below already lights it
+      // on that arrival. Lighting it here too made the arrival invisible.
+      if (ctx.reduced) { s.refs.band.classList.add('highlight'); return; }
       // Two chained hops: the untouched device rises from the disk to the node service, which passes
       // it straight on into the container without doing anything to it.
       const up = actOnDisk(s, ctx, { points: W_BLK_DEV, tag: 'device as is', disk: s.refs.band });

@@ -151,12 +151,13 @@ const STEPS = [
       setVal(s.refs.ipChip, '10.244.1.5');
       setVal(s.refs.vethChip, 'eth0 <-> veth');
       s.refs.cniPlugin.classList.add('highlight');
-      s.refs.cni0.classList.add('highlight');
       s.refs.ipChip.classList.add('highlight');
       s.refs.vethChip.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.cni0.classList.add('highlight'); return; }
       // CNI execs (plugin -> bridge), then the IP and link are configured into the Pod over the veth.
+      // The bridge is the receiver of that exec, so it lights when the ball lands on it.
       const exec = segmentPacket(s, ctx, { from: CNI_EXEC[0], to: CNI_EXEC[1], role: 'network' });
+      lightBoxAt(s.refs.cni0, ctx, exec.arrivalMs);
       const conf = segmentPacket(s, ctx, { from: VETH[0], to: VETH[1], delay: exec.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podGroup, ctx, conf.arrivalMs);
     },

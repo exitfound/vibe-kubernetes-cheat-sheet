@@ -99,7 +99,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['nf', 'origChip', 'natChip', 'stateChip', 'dirChip'], [s.refs.client, s.refs.server]);
+  // The inner boxes are keys, not pod groups: a pod group only has its pulse strokes reset, so a
+  // .highlight left on a container would ride along into every later step.
+  clearHighlights(s, ['nf', 'clientBox', 'serverBox', 'origChip', 'natChip', 'stateChip', 'dirChip'], [s.refs.client, s.refs.server]);
 }
 
 const STEPS = [
@@ -165,15 +167,16 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setWire(s, 'c', 'src restored to 10.96.0.20');
-      s.refs.nf.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
       s.refs.dirChip.classList.add('highlight');
       setVal(s.refs.stateChip, 'ESTABLISHED');
       setVal(s.refs.dirChip, 'reverse NAT');
-      if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.nf.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
       // Reply rides the reply lane: server -> netfilter (reverse NAT inside, ball hidden across the
-      // box) -> client, which pulses on arrival.
+      // box) -> client, which pulses on arrival. netfilter lights as the reply enters it, the same
+      // shape the send step uses, so the box is not already lit when its own packet lands.
       const h1 = segmentPacket(s, ctx, { from: [SERVER_LEFT, REP_Y], to: [NF_RIGHT, REP_Y], role: 'network' });
+      lightBoxAt(s.refs.nf, ctx, h1.arrivalMs);
       const h2 = segmentPacket(s, ctx, { from: [NF_LEFT, REP_Y], to: [CLIENT_EDGE, REP_Y], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.client, ctx, h2.arrivalMs);
     },
@@ -188,18 +191,18 @@ const STEPS = [
       clearWires(s);
       setWire(s, 'c', 'dst 10.96.0.20:80');
       setWire(s, 's', '-> 10.244.2.7:8080');
-      s.refs.nf.classList.add('highlight');
       s.refs.natChip.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
       s.refs.dirChip.classList.add('highlight');
       setVal(s.refs.natChip, '-> 10.244.2.7:8080');
       setVal(s.refs.stateChip, 'ESTABLISHED');
       setVal(s.refs.dirChip, 'fast path');
-      if (ctx.reduced) { s.refs.serverBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.nf.classList.add('highlight'); s.refs.serverBox.classList.add('highlight'); return; }
       // A later packet takes the fast path: client pulses, then the ball runs straight through on the
       // request lane (translated inside netfilter, no pause for a rule walk) to the server.
       pulsePod(s.refs.client, ctx, 0);
       const h1 = segmentPacket(s, ctx, { from: [CLIENT_EDGE, REQ_Y], to: [NF_LEFT, REQ_Y], delay: BEAT.afterPulse, role: 'network' });
+      lightBoxAt(s.refs.nf, ctx, h1.arrivalMs);
       const h2 = segmentPacket(s, ctx, { from: [NF_RIGHT, REQ_Y], to: [SERVER_LEFT, REQ_Y], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.server, ctx, h2.arrivalMs);
     },

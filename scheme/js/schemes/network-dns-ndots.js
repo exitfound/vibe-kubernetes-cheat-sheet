@@ -182,7 +182,15 @@ const STEPS = [
       s.refs.answerChip.classList.add('highlight');
       setVal(s.refs.namesChip, '1');
       setVal(s.refs.answerChip, 'NOERROR');
-      if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); s.refs.dns.classList.add('highlight'); return; }
+      if (ctx.reduced) {
+        s.refs.podBox.classList.add('highlight');
+        s.refs.dns.classList.add('highlight');
+        // Both lane labels are written from inside roundTrip, which never runs on this path, so the
+        // question and its answer have to be restated here or prev/reset shows two blank lanes.
+        setWire(s, 'q', 'api.ns.svc.cluster.local');
+        setWire(s, 'a', 'A 10.96.0.42');
+        return;
+      }
       roundTrip(s, ctx, { start: 0, lead: BEAT.afterPulse, name: CANDIDATES[0], result: 'A 10.96.0.42', row: 0 });
     },
   },
@@ -204,6 +212,10 @@ const STEPS = [
         s.refs.dns.classList.add('highlight');
         setVal(s.refs.namesChip, '4');
         setVal(s.refs.answerChip, 'NXDOMAIN x4');
+        // The lanes end the step on the LAST candidate and its miss, the state the fourth round
+        // trip leaves behind, since roundTrip does not run on this path to write them.
+        setWire(s, 'q', 'api');
+        setWire(s, 'a', 'NXDOMAIN');
         return;
       }
       setVal(s.refs.namesChip, '0');
@@ -243,7 +255,15 @@ const STEPS = [
       s.refs.answerChip.classList.add('highlight');
       setVal(s.refs.namesChip, '1');
       setVal(s.refs.answerChip, 'NOERROR');
-      if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); s.refs.dns.classList.add('highlight'); return; }
+      if (ctx.reduced) {
+        s.refs.podBox.classList.add('highlight');
+        s.refs.dns.classList.add('highlight');
+        // The absolute name and its answer, restated for the path that never enters roundTrip. The
+        // trailing dot has to survive here too: it is the whole subject of the step.
+        setWire(s, 'q', 'api.ns.svc.cluster.local.');
+        setWire(s, 'a', 'A 10.96.0.42');
+        return;
+      }
       // The trailing dot is the entire point, so the name is shown with it and no row is lit.
       roundTrip(s, ctx, { start: 0, lead: BEAT.afterPulse, name: 'api.ns.svc.cluster.local.', result: 'A 10.96.0.42' });
     },

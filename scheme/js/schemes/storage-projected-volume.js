@@ -203,13 +203,14 @@ const STEPS = [
       clearWires(s);
       setChips(s, { src: 'downwardAPI: Pod metadata', tok: 'audience-bound', exp: 'short-lived' });
       s.refs.srcChip.classList.add('highlight');
-      s.refs.srcDown.classList.add('highlight');
-      if (ctx.reduced) { s.refs.rowLbl.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.srcDown.classList.add('highlight'); s.refs.rowLbl.classList.add('highlight'); return; }
       // The Pod is the source of its own metadata, so the Pod pulses first, then its metadata flows
-      // down to downwardAPI and on into the labels file.
+      // down to downwardAPI and on into the labels file. downwardAPI is mid-chain here, unlike on
+      // the assemble step where it sends, so it lights on the metadata landing.
       pulsePod(s.refs.pod, ctx, 0);
       const meta = routePacket(s, ctx, W_POD_META, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'labels, name', W_POD_META, { delay: BEAT.afterPulse });
+      lightBoxAt(s.refs.srcDown, ctx, meta.arrivalMs);
       const d = routePacket(s, ctx, W_DOWN, { delay: meta.arrivalMs + BEAT.afterHop, role: 'storage' });
       lightBoxAt(s.refs.rowLbl, ctx, d.arrivalMs);
     },

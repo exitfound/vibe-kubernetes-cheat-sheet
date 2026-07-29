@@ -156,15 +156,16 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
+      // Pod B is what this step flips, so its shade is static end-state, not motion.
+      s.refs.podB.style.opacity = String(OPACITY.notready);
       s.refs.ctlr.classList.add('highlight');
       setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
       setVal(s.refs.ep2, '10.244.2.7 · dropped (notReady)');
       setVal(s.refs.ep3, '10.244.3.9 · notReady');
       setPodSublabel(s.refs.podB, '10.244.2.7 · notReady');
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); s.refs.ep2.classList.add('highlight'); return; }
-      // Pod B flips to notReady (it pulses through its dimmed state), the controller updates the
-      // slice (one packet up), and the dropped endpoint lights to show the change.
-      s.refs.podB.style.opacity = String(OPACITY.notready);
+      // Pod B pulses through its dimmed state, the controller updates the slice (one packet up),
+      // and the dropped endpoint lights to show the change.
       pulsePod(s.refs.podB, ctx, 0);
       const upd = segmentPacket(s, ctx, { from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, '10.244.2.7 notReady', WRITE_PATH, { delay: BEAT.afterPulse, easing: 'linear' });

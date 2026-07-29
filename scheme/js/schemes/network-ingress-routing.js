@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, OPACITY } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-ingress-routing
 
 
@@ -196,12 +196,14 @@ const STEPS = [
       s.refs.ruleA.classList.add('highlight');
       s.refs.hostChip.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
-      s.refs.svcWeb.classList.add('highlight');
       setVal(s.refs.hostChip, 'shop.io');
       setVal(s.refs.pathChip, '/');
-      if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); s.refs.podWebBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); s.refs.svcWeb.classList.add('highlight'); s.refs.podWebBox.classList.add('highlight'); return; }
+      // The controller proxies, so the Service is the destination of that hop and lights when the
+      // ball lands on it, not before the controller has even chosen the branch.
       pulsePod(s.refs.ctrl, ctx, 0);
       const toSvc = routePacket(s, ctx, TO_WEB, { delay: BEAT.afterPulse, role: 'network' });
+      lightBoxAt(s.refs.svcWeb, ctx, toSvc.arrivalMs);
       const toPod = segmentPacket(s, ctx, { from: WEB_HOP[0], to: WEB_HOP[1], delay: toSvc.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podWeb, ctx, toPod.arrivalMs);
     },
@@ -247,12 +249,12 @@ const STEPS = [
       s.refs.ruleB.classList.add('highlight');
       s.refs.hostChip.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
-      s.refs.svcApi.classList.add('highlight');
-      if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); s.refs.podApiBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); s.refs.svcApi.classList.add('highlight'); s.refs.podApiBox.classList.add('highlight'); return; }
       // Exact mirror of match-proxy on the lower fan: the controller pulses first as the sender, the
       // ball leaves at BEAT.afterPulse, and the api backend Pod pulses on arrival.
       pulsePod(s.refs.ctrl, ctx, 0);
       const toSvc = routePacket(s, ctx, TO_API, { delay: BEAT.afterPulse, role: 'network' });
+      lightBoxAt(s.refs.svcApi, ctx, toSvc.arrivalMs);
       const toPod = segmentPacket(s, ctx, { from: API_HOP[0], to: API_HOP[1], delay: toSvc.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podApi, ctx, toPod.arrivalMs);
     },

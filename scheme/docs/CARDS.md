@@ -894,6 +894,20 @@ and the dot trailing each row is the query that attempt costs. The staircase IS 
 the whole point of ndots, so the poster spends everything on that one shape and draws no topology.
 ```
 
+### before `setWire(s, 'q', 'api');`
+
+```
+roundTrip writes BOTH lane labels from inside the motion path, so on the static path (prev, reset,
+reduced motion) the two lanes stood empty while the ladder and the counters carried the whole
+story. Each query step now restates its own end-state labels inside the guard body. The walk step
+ends on the LAST candidate and its NXDOMAIN, because that is the pair the fourth round trip leaves
+on the wire, not the first.
+
+The fqdn step restates the name WITH its trailing dot, which is why check-labels reports
+api.ns.svc.cluster.local. against api.ns.svc.cluster.local as an ambiguous pair. The pair is the
+subject of that step and is meant to stand: one name is absolute and the other is not.
+```
+
 ---
 
 ## network-dns-records
@@ -1111,6 +1125,15 @@ endpoint rows light together as it lands.
 The scheme abstracted to its essence: live Pods on the left (the source, the notReady one
 dimmed) are reconciled into the EndpointSlice on the right (the derived list, one endpoint row
 per Pod, notReady dimmed). Straight horizontal wires carry the one-row-per-Pod mapping.
+```
+
+### before `if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); s.refs.ep2`
+
+```
+Pod B going notReady is the whole of this step, so its shade is static end-state and belongs above
+the guard, next to Pod C which was already pinned there. It sat below the guard until 2026-07-29,
+so prev and reset drew Pod B at full brightness directly beneath its own sublabel reading
+10.244.2.7 notReady, and beside a slice row reading dropped (notReady).
 ```
 
 ---
@@ -4338,6 +4361,16 @@ it never made, since nothing in it depicted ownership at all. Content sits 17..1
 box, symmetric about x=160. No packet dot: a ball frozen on a wire reads as a paused animation.
 ```
 
+### before `walkRows(s, ctx, { chown: true });`
+
+```
+walkRows carries its own ctx.reduced branch (light every row it would visit, no packet), but the
+three steps that call it were calling it BELOW the guard, so that branch was unreachable and the
+static path showed an unvisited listing on the one card whose subject is the walk. The guard body
+now calls it too: the whole tree on chown and always, and the top directory alone on onmismatch,
+which is exactly the picture that step argues for.
+```
+
 ---
 
 ## storage-generic-ephemeral-volume
@@ -5309,6 +5342,23 @@ The metadata corridor at y=232 is what those 181 units pin: it cannot rise. A lo
 invalidates this.
 ```
 
+### note (R3 finding on the assemble step, REJECTED 2026-07-29)
+
+```
+`check-arrival --rules=r3` reports the projected directory block as lit at step entry while four
+balls land inside it at 700ms, and that finding is correct about the facts and wrong about the
+defect. The block is not the receiver: it is the CONTAINER the four file rows sit in, and each ROW
+lights on its own ball arriving, which is the arrival the reader is meant to see. Dimming the
+enclosing frame until the first ball lands would draw a directory that does not exist yet on the
+step whose whole subject is four sources feeding one directory that does.
+
+This is the same shape as the single survivor the R3 queue was closed on in 2026-07 (recorded in
+scheme/CLAUDE.md under lightBoxAt) and it stays open in the tool on purpose: the rule cannot tell an
+enclosure from a destination, and a card-level exception list would hide the real ones. Family E of
+the 2.4 review closed at 66 findings fixed and this one rejected. The downward step on this same
+card WAS a real finding and was fixed: there downwardAPI is a genuine mid-chain receiver.
+```
+
 ### before `const W_DOWN = [[SRC_RIGHT, midOf(DOWN_Y)], [ROW_X, midOf(DOWN_Y)]];`
 
 ```
@@ -6155,6 +6205,19 @@ One policy, two knobs, forking to two fates. A dashed fork drops from the policy
 cells one solid, one hollow) to two disks: left stands whole and bright (Retain kept it), right is
 dashed and faded (Delete reclaimed it). Echoes the volumeClaimTemplates sibling's top-box + fork
 grammar, but diverges to two outcomes instead of stamping three copies.
+```
+
+### before `const dark = () => el.classList.remove('highlight');`
+
+```
+The ball lights each claim and each disk as it lands (lightBoxAt), then vanishAt fades the block
+away behind it. The class was never taken back, so a reclaimed block ended its step lit at the
+terminated shade: the thing the step points at and the thing that no longer exists, at once. The
+static path never reproduced it, because it pins the shade and lights nothing, which is how this
+surfaced as eight reduced-motion findings rather than as a drawing complaint.
+
+Dropping the class when the fade finishes settles both paths at once, and matches what
+check-opacity LIT enforces everywhere the shade is pinned rather than animated.
 ```
 
 ---
@@ -8212,6 +8275,14 @@ mid-step lands on the torn-down state rather than the lit one.
 Played in the causal order the narration gives. The Pod goes first, which is what frees the
 volume. Then the attacher reads the deletion, and the object leaves WITH its four lanes, the
 same construction that arrived together on step 3. Then the unpublish call reaches the disk.
+```
+
+### before `if (ctx.reduced) { s.refs.att.classList.add('highlight'); s.refs.va`
+
+```
+va-7f is the subject of the step: lit from entry as the source of the watch, and still lit as it
+fades to the terminated shade, so the static path lights it too. It is lit AT 0.12, which is the
+end-state the played path settles on, not a claim that a deleted object is bright.
 ```
 
 ---

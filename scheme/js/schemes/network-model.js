@@ -152,7 +152,10 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['bus', 'kubelet', 'cni', 'ipChip', 'natChip', 'reachChip'],
+  // The four container boxes are keys, not pod groups: the pod-group list only resets inline pulse
+  // strokes, so a .highlight put on a container stayed on for the rest of the card.
+  clearHighlights(s, ['bus', 'kubelet', 'cni', 'podABox', 'podBBox', 'podCBox', 'podDBox',
+    'ipChip', 'natChip', 'reachChip'],
     [s.refs.podA, s.refs.podB, s.refs.podC, s.refs.podD]);
   setBoxSublabel(s.refs.bus, 'one cluster-wide address space');
   // Pods return to full opacity (the node-agent step dims out-of-scope ones).

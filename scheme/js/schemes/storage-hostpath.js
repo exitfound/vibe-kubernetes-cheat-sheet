@@ -170,14 +170,14 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { host: 'reads host files', lives: 'on the node', exposure: 'one directory' });
-      // Both containers and the host directory are in use this whole step: all three light at step
-      // entry, and the shell pulse fires at the same instant, one beat.
-      s.refs.hp.classList.add('highlight');
+      // The app container is the writer and is lit at entry. The host directory and the agent box
+      // are receivers, so each lights as its own ball lands, and the pulse fires on the same beat.
       s.refs.appBox.classList.add('highlight');
-      if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.hp.classList.add('highlight'); s.refs.sideBox.classList.add('highlight'); return; }
       pulsePod(s.refs.pod, ctx, 0);
       const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'write entry', LANE_WRITE, { delay: BEAT.afterPulse });
+      lightBoxAt(s.refs.hp, ctx, write.arrivalMs);
       const read = routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
       lightBoxAt(s.refs.sideBox, ctx, read.arrivalMs);
       ridingLabel(s, ctx, 'read entry', LANE_READ, { delay: write.arrivalMs + BEAT.afterHop });

@@ -76,7 +76,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['client', 'secret', 'ingress', 'schemeChip', 'tlsChip', 'certChip', 'backChip'], [s.refs.podX]);
+  // podXBox is a key, not a pod group: the pod-group list only resets inline pulse strokes, so a
+  // .highlight on the backend container would stay lit through every later step.
+  clearHighlights(s, ['client', 'secret', 'ingress', 'podXBox', 'schemeChip', 'tlsChip', 'certChip', 'backChip'], [s.refs.podX]);
 }
 
 const STEPS = [

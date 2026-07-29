@@ -309,7 +309,13 @@ const STEPS = [
       setWire(s, 'disk', 'now group 2000');
       // kubelet is the SOURCE here, so it is lit from step entry. Only destinations wait for a ball.
       s.refs.kube.classList.add('highlight');
-      if (ctx.reduced) { [s.refs.tree, s.refs.cyl].forEach(el => el.classList.add('highlight')); return; }
+      // walkRows lights the listing row by row and carries its own reduced branch, so the static
+      // path calls it here: the walk is the step, and prev/reset showed an unvisited listing.
+      if (ctx.reduced) {
+        [s.refs.tree, s.refs.cyl].forEach(el => el.classList.add('highlight'));
+        walkRows(s, ctx, { chown: true });
+        return;
+      }
       const r = routePacket(s, ctx, W_CHOWN, { role: 'storage' });
       ridingLabel(s, ctx, 'chown -R :2000', W_CHOWN);
       const walkEnd = walkRows(s, ctx, { delay: r.arrivalMs + BEAT.afterHop, chown: true });
@@ -359,7 +365,7 @@ const STEPS = [
       // change. Static highlight, not a flash: chips never blink.
       s.refs.policyChip.classList.add('highlight');
       s.refs.cyl.classList.add('highlight');
-      if (ctx.reduced) { s.refs.tree.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.tree.classList.add('highlight'); walkRows(s, ctx, {}); return; }
       // The scan runs the whole listing again and nothing changes as a result, which IS the point:
       // the work is paid whether or not it was needed.
       const walkEnd = walkRows(s, ctx, { delay: 0 });
@@ -380,7 +386,8 @@ const STEPS = [
       setRows(s, true);
       setWire(s, 'disk', 'set on a previous start');
       s.refs.cyl.classList.add('highlight');
-      if (ctx.reduced) { s.refs.tree.classList.add('highlight'); return; }
+      // Only the top directory is visited, so only its row lights on either path.
+      if (ctx.reduced) { s.refs.tree.classList.add('highlight'); walkRows(s, ctx, { only: 1 }); return; }
       const walkEnd = walkRows(s, ctx, { delay: 0, only: 1 });
       lightBoxAt(s.refs.tree, ctx, walkEnd);
     },

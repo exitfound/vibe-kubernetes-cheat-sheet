@@ -186,16 +186,18 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.svc.classList.add('highlight');
       s.refs.v6Chip.classList.add('highlight');
       setVal(s.refs.famChip, 'PreferDualStack');
       setVal(s.refs.v6Chip, 'fd00:96::a');
       setBoxSublabel(s.refs.clientBox, 'dials IPv6 fd00:96::a');
-      if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.svc.classList.add('highlight'); s.refs.podBox.classList.add('highlight'); return; }
+      // The Service is the first hop's destination, so it lights when the client packet lands on it
+      // and forwards one beat later, rather than being lit before the client has dialled.
       const HOP1 = HOP_CLIENT, HOP2 = HOP_SVC;
       pulsePod(s.refs.client, ctx, 0);
       const h1 = segmentPacket(s, ctx, { from: HOP1[0], to: HOP1[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'dst fd00:96::a', HOP1, { delay: BEAT.afterPulse, dur: routeDur(HOP1), easing: 'linear' });
+      lightBoxAt(s.refs.svc, ctx, h1.arrivalMs);
       const h2 = segmentPacket(s, ctx, { from: HOP2[0], to: HOP2[1], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'dst fd00::1:5', HOP2, { delay: h1.arrivalMs + BEAT.afterHop, dur: routeDur(HOP2), easing: 'linear' });
       pulsePod(s.refs.pod, ctx, h2.arrivalMs);

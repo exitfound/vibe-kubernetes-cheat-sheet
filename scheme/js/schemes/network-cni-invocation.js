@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow, chainList, setChainActive } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-cni-invocation
 
 
@@ -156,18 +156,19 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      // Both actors are in the handoff: the kubelet initiates, the runtime creates the sandbox.
+      // Both actors are in the handoff, but the kubelet initiates it: the runtime lights when the
+      // RunPodSandbox call reaches it, one hop before it creates anything.
       s.refs.kubelet.classList.add('highlight');
-      s.refs.cri.classList.add('highlight');
       setWire(s, 'run', 'RunPodSandbox');
       setWire(s, 'netns', 'create netns');
       s.refs.opChip.classList.add('highlight');
       setVal(s.refs.opChip, 'not called yet');
       setPodSublabel(s.refs.sandbox, 'netns: lo only');
-      if (ctx.reduced) { s.refs.sandboxInner.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.cri.classList.add('highlight'); s.refs.sandboxInner.classList.add('highlight'); return; }
       // kubelet calls the runtime, which then creates the sandbox: two chained hops, the sandbox
       // pulses on arrival (down-arrow: packet first, pulse at arrivalMs).
       const h1 = segmentPacket(s, ctx, { from: RUN[0], to: RUN[1], role: 'network' });
+      lightBoxAt(s.refs.cri, ctx, h1.arrivalMs);
       const h2 = segmentPacket(s, ctx, { from: NETNS[0], to: NETNS[1], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.sandbox, ctx, h2.arrivalMs);
     },

@@ -196,14 +196,15 @@ const STEPS = [
       setVal(s.refs.sidecarChip, 'Waiting');
       setVal(s.refs.mainChip, 'Waiting');
       setWire(s, 'req', 'wait-for-db exit 0 (PLEG) · StartContainer · migrate-schema');
-      s.refs.kubelet.classList.add('highlight');
       s.refs.runtime.classList.add('highlight');
       s.refs.migrateChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) { s.refs.containerMigrate.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); s.refs.containerMigrate.classList.add('highlight'); return; }
       // PLEG callback Runtime -> Kubelet, then the next CRI request Kubelet -> Runtime,
-      // then the create travels down to the node, each hop chained on the previous arrival.
+      // then the create travels down to the node, each hop chained on the previous arrival. The
+      // runtime reports first, so the Kubelet lights when that callback lands and not before it.
       const pleg = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
+      lightBoxAt(s.refs.kubelet, ctx, pleg.arrivalMs);
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: pleg.arrivalMs + BEAT.afterHop, role: 'workloads' });
       const create = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
       lightBoxAt(s.refs.containerMigrate, ctx, create.arrivalMs);

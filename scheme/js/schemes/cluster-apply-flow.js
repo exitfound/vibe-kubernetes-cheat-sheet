@@ -204,14 +204,16 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.apisrv.classList.add('highlight');
       s.refs.etcd.classList.add('highlight');
       clearWires(s);
       s.refs.wires['etcd-ack'].textContent = 'ack · rv=842';
       s.refs.wires['api-ack'].textContent  = 'HTTP 201 Created';
-      if (ctx.reduced) { s.refs.client.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.apisrv.classList.add('highlight'); s.refs.client.classList.add('highlight'); return; }
 
+      // ETCD sends the ack, so it is lit from entry. The Api is mid-chain: it takes the ack before
+      // it answers the client, so it lights on arrival, and the client lights one hop later.
       const ack = routePacket(s, ctx, PERSIST_ACK, { role: 'cluster' });
+      lightBoxAt(s.refs.apisrv, ctx, ack.arrivalMs);
       const clientPkt = routePacket(s, ctx, POST_ACK, { delay: ack.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.client, ctx, clientPkt.arrivalMs);
     },
@@ -240,12 +242,13 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.apisrv.classList.add('highlight');
-      s.refs.sched.classList.add('highlight');
       setWire(s, 'schedule', 'POST .../binding · node=Node-1');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.sched.classList.add('highlight'); return; }
       // The Scheduler picks up the unscheduled Pod on its watch (Api -> Scheduler), then posts the
-      // Binding back to the Api on the return lane (Scheduler -> Api) that pins it to Node-1.
+      // Binding back to the Api on the return lane (Scheduler -> Api) that pins it to Node-1. It
+      // lights when the watch reaches it: everything it does here is a reaction to that event.
       const pickup = routePacket(s, ctx, TO_SCHED, { role: 'cluster' });
+      lightBoxAt(s.refs.sched, ctx, pickup.arrivalMs);
       routePacket(s, ctx, FROM_SCHED, { delay: pickup.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },

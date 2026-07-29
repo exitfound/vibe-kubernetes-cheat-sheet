@@ -1,6 +1,6 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, lightBoxAt, BEAT, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-traffic-distribution
 
 
@@ -158,15 +158,16 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.kproxy.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'unset . spread all');
       setVal(s.refs.pinChip, 'None');
-      if (ctx.reduced) { s.refs.a1Box.classList.add('highlight'); s.refs.b2Box.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.a1Box.classList.add('highlight'); s.refs.b2Box.classList.add('highlight'); return; }
       // One connection arrives at kube-proxy, which spreads it across two zones: a1 (zone-a) and b2
-      // (zone-b), symmetric about the flow line.
+      // (zone-b), symmetric about the flow line. kube-proxy is the subject of every step here, but
+      // it is still the RECEIVER of the client hop, so on all four it lights when that ball lands.
       pulsePod(s.refs.client, ctx, 0);
       const arr = clientHop(s, ctx, BEAT.afterPulse);
+      lightBoxAt(s.refs.kproxy, ctx, arr);
       fanTo(s, ctx, FAN_A1, 'a1', arr + BEAT.afterHop, CLIENT_IP);
       fanTo(s, ctx, FAN_B2, 'b2', arr + BEAT.afterHop, CLIENT_IP);
     },
@@ -178,14 +179,14 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.kproxy.classList.add('highlight');
       s.refs.pinChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'unset . spread all');
       setVal(s.refs.pinChip, 'ClientIP . pin .2.7');
-      if (ctx.reduced) { s.refs.a1Box.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.a1Box.classList.add('highlight'); return; }
       // Two connections from the same client both land on the SAME Pod (a1, 10.244.2.7).
       pulsePod(s.refs.client, ctx, 0);
       const arr = clientHop(s, ctx, BEAT.afterPulse);
+      lightBoxAt(s.refs.kproxy, ctx, arr);
       fanTo(s, ctx, FAN_A1, 'a1', arr + BEAT.afterHop, CLIENT_IP);
       fanTo(s, ctx, FAN_A1, 'a1', arr + BEAT.afterHop + 540, CLIENT_IP);
     },
@@ -197,7 +198,6 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.kproxy.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'PreferSameZone . in-zone');
       setVal(s.refs.pinChip, 'None');
@@ -205,9 +205,10 @@ const STEPS = [
       // The far zone is not preferred: dim its Pods.
       s.refs.b1.style.opacity = String(OPACITY.notready);
       s.refs.b2.style.opacity = String(OPACITY.notready);
-      if (ctx.reduced) { s.refs.a1Box.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.a1Box.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const arr = clientHop(s, ctx, BEAT.afterPulse);
+      lightBoxAt(s.refs.kproxy, ctx, arr);
       fanTo(s, ctx, FAN_A1, 'a1', arr + BEAT.afterHop, CLIENT_IP);
     },
   },
@@ -218,16 +219,16 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.kproxy.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'PreferSameZone . fallback');
       setVal(s.refs.pinChip, 'None');
       // zone-a has no ready endpoint: dim its Pods, traffic falls back to zone-b.
       s.refs.a1.style.opacity = String(OPACITY.notready);
       s.refs.a2.style.opacity = String(OPACITY.notready);
-      if (ctx.reduced) { s.refs.b1Box.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.b1Box.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const arr = clientHop(s, ctx, BEAT.afterPulse);
+      lightBoxAt(s.refs.kproxy, ctx, arr);
       fanTo(s, ctx, FAN_B1, 'b1', arr + BEAT.afterHop, CLIENT_IP);
     },
   },

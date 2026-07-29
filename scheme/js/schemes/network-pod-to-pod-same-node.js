@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-pod-to-pod-same-node
 
 
@@ -111,12 +111,12 @@ const STEPS = [
       clearWires(s);
       setWire(s, 'a', 'veth · eth0');
       setWire(s, 'b', 'veth · eth0');
-      s.refs.cni0.classList.add('highlight'); // bridge stays highlighted, never pulses
       setVal(s.refs.pathChip, 'ARP who-has .6');
       s.refs.pathChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.cni0.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
       pulsePod(s.refs.podA, ctx, 0);                // A broadcasts the request (blink first)
       const req1 = segmentPacket(s, ctx, { from: [350, TOP_Y], to: [505, TOP_Y], delay: BEAT.afterPulse, dur: HOP, role: 'network' });
+      lightBoxAt(s.refs.cni0, ctx, req1.arrivalMs);   // the bridge lights as the frame reaches it, and never pulses
       const req2 = segmentPacket(s, ctx, { from: [675, TOP_Y], to: [850, TOP_Y], delay: req1.arrivalMs + BEAT.afterHop, dur: HOP, role: 'network' });
       const rep1 = segmentPacket(s, ctx, { from: [850, BOT_Y], to: [675, BOT_Y], delay: req2.arrivalMs + BEAT.afterHop, dur: HOP, role: 'network' });
       const rep2 = segmentPacket(s, ctx, { from: [505, BOT_Y], to: [350, BOT_Y], delay: rep1.arrivalMs + BEAT.afterHop, dur: HOP, role: 'network' });
@@ -134,14 +134,14 @@ const STEPS = [
       clearWires(s);
       setWire(s, 'a', 'veth · eth0');
       setWire(s, 'b', 'veth · eth0');
-      s.refs.cni0.classList.add('highlight'); // bridge stays highlighted, never pulses
       setVal(s.refs.pathChip, 'L2 bridge');
       s.refs.pathChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.cni0.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
       // A pulses FIRST and fully; the data frame departs only after that blink lands
       // (BEAT.afterPulse). It then rides the forward (top) lane A -> bridge -> B in two hops.
       pulsePod(s.refs.podA, ctx, 0);
       const hop1 = segmentPacket(s, ctx, { from: [350, TOP_Y], to: [505, TOP_Y], delay: BEAT.afterPulse, dur: HOP, role: 'network' });
+      lightBoxAt(s.refs.cni0, ctx, hop1.arrivalMs);   // the bridge lights as the frame reaches it, and never pulses
       const hop2 = segmentPacket(s, ctx, { from: [675, TOP_Y], to: [850, TOP_Y], delay: hop1.arrivalMs + BEAT.afterHop, dur: HOP, role: 'network' });
       pulsePod(s.refs.podB, ctx, hop2.arrivalMs);
     },

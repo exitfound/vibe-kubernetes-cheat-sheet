@@ -311,8 +311,9 @@ const STEPS = [
       setBorn(s, { object: 1, lanes: 1, pod: 1 });
       s.refs.va.classList.add('highlight');
       s.refs.disk.classList.add('highlight');
-      s.refs.kube.classList.add('highlight');
-      if (ctx.reduced) return;
+      // The Kubelet is what the gate opens onto, and lightBoxAt below already lights it on that
+      // arrival. It was lit here as well, so the moment it stopped waiting could not be seen.
+      if (ctx.reduced) { s.refs.kube.classList.add('highlight'); return; }
       const gate = routePacket(s, ctx, W_GATE, { role: 'storage' });
       ridingLabel(s, ctx, 'attached: true', W_GATE);
       lightBoxAt(s.refs.kube, ctx, gate.arrivalMs);
@@ -334,7 +335,9 @@ const STEPS = [
       setWire(s, 'disk', 'detached from node-1');
       setBorn(s, { object: OPACITY.terminated, lanes: 0, pod: 0 });
       s.refs.disk.style.opacity = String(OPACITY.notready);
-      if (ctx.reduced) { s.refs.att.classList.add('highlight'); return; }
+      // The object is the subject of the step and stays lit from entry to its own deletion, so the
+      // static path has to light it too, at the terminated shade the played path leaves it on.
+      if (ctx.reduced) { s.refs.att.classList.add('highlight'); s.refs.va.classList.add('highlight'); return; }
       setBorn(s, { object: 1, lanes: 1, pod: 1 });
       s.refs.disk.style.opacity = '1';
       s.refs.va.classList.add('highlight');

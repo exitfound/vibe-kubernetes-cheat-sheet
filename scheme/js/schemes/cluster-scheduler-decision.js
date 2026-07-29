@@ -285,14 +285,15 @@ const STEPS = [
       s.refs.n1.style.opacity = String(OPACITY.notready);
       s.refs.n2.style.opacity = String(OPACITY.notready);
       s.refs.sched.classList.add('highlight');
-      s.refs.api.classList.add('highlight');
       s.refs.winnerChip.classList.add('highlight');
       s.refs.n4.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[3]) rows[3].classList.add('highlight');
-      if (ctx.reduced) { s.refs.etcdC.classList.add('highlight'); return; }
-      // Two arrow segments: Scheduler → Api (binding POST), then Api → ETCD (persist).
+      if (ctx.reduced) { s.refs.api.classList.add('highlight'); s.refs.etcdC.classList.add('highlight'); return; }
+      // Two arrow segments: Scheduler → Api (binding POST), then Api → ETCD (persist). The Api is
+      // mid-chain here: it takes the POST before it writes, so it lights on arrival like ETCD does.
       const post = segmentPacket(s, ctx, { from: [SCHED_R, OUT_Y], to: [API_X, OUT_Y], role: 'cluster' });
+      lightBoxAt(s.refs.api, ctx, post.arrivalMs);
       const etcdCPkt = segmentPacket(s, ctx, { from: [API_R, OUT_Y], to: [ETCD_X, OUT_Y], delay: post.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.etcdC, ctx, etcdCPkt.arrivalMs);
     },

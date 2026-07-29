@@ -171,13 +171,14 @@ const STEPS = [
       s.refs.v1.classList.add('highlight');
       s.refs.v2.classList.add('highlight');
       s.refs.v3.classList.add('highlight');
-      s.refs.lease.classList.add('highlight');
       s.refs.holderChip.classList.add('highlight');
       s.refs.renewChip.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.lease.classList.add('highlight'); return; }
       // Three CAS-PUTs leave together. mgr-1 commits (stays); the other two are
-      // rejected and bounce back as 409.
-      putPacket(s, ctx, REP_CXS[0]);
+      // rejected and bounce back as 409. The Lease lights when the winning write lands on it,
+      // the same shape the renew step uses.
+      const wins = putPacket(s, ctx, REP_CXS[0]);
+      lightBoxAt(s.refs.lease, ctx, wins.arrivalMs);
       loserPut(s, ctx, REP_CXS[1]);
       loserPut(s, ctx, REP_CXS[2]);
     },
@@ -253,13 +254,14 @@ const STEPS = [
       s.refs.r3.style.opacity = '1';
       s.refs.r2.classList.add('highlight');
       s.refs.v2.classList.add('highlight');
-      s.refs.lease.classList.add('highlight');
       s.refs.holderChip.classList.add('highlight');
       s.refs.renewChip.classList.add('highlight');
       s.refs.transChip.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.lease.classList.add('highlight'); return; }
       // The two survivors race; mgr-2 commits (stays), mgr-3 is rejected and bounces back as 409.
-      putPacket(s, ctx, REP_CXS[1]);
+      // The Lease lights on the winning write landing, not before it.
+      const wins = putPacket(s, ctx, REP_CXS[1]);
+      lightBoxAt(s.refs.lease, ctx, wins.arrivalMs);
       loserPut(s, ctx, REP_CXS[2]);
     },
   },

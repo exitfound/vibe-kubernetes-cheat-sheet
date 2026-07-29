@@ -123,14 +123,13 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.dns.classList.add('highlight');
       s.refs.typeChip.classList.add('highlight');
       s.refs.vipChip.classList.add('highlight');
       setVal(s.refs.typeChip, 'ExternalName');
       setVal(s.refs.vipChip, 'none');
       setVal(s.refs.proxyChip, 'not involved');
       s.refs.proxyChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.clientABox.classList.add('highlight'); s.refs.host.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.clientABox.classList.add('highlight'); s.refs.dns.classList.add('highlight'); s.refs.host.classList.add('highlight'); return; }
       pulsePod(s.refs.clientA, ctx, 0);
       const q = segmentPacket(s, ctx, { from: A_HOP1[0], to: A_HOP1[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'db.default.svc', A_HOP1, { delay: BEAT.afterPulse, easing: 'linear' });
@@ -147,7 +146,6 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.proxy.classList.add('highlight');
       s.refs.typeChip.classList.add('highlight');
       s.refs.vipChip.classList.add('highlight');
       s.refs.epChip.classList.add('highlight');
@@ -156,7 +154,7 @@ const STEPS = [
       setVal(s.refs.vipChip, '10.96.0.7');
       setVal(s.refs.epChip, 'manual');
       setVal(s.refs.proxyChip, 'DNAT');
-      if (ctx.reduced) { s.refs.clientBBox.classList.add('highlight'); s.refs.ep.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.clientBBox.classList.add('highlight'); s.refs.proxy.classList.add('highlight'); s.refs.ep.classList.add('highlight'); return; }
       pulsePod(s.refs.clientB, ctx, 0);
       const send = segmentPacket(s, ctx, { from: B_HOP1[0], to: B_HOP1[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'dst 10.96.0.7', B_HOP1, { delay: BEAT.afterPulse, easing: 'linear' });

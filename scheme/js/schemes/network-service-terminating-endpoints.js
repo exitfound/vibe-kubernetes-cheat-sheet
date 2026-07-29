@@ -1,6 +1,6 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, FADE, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt, BEAT, FADE, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-service-terminating-endpoints
 
 
@@ -113,16 +113,16 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.kproxy.classList.add('highlight');
       setVal(s.refs.condChip, 'ready · serving');
       setVal(s.refs.newChip, 'web-a and web-c');
       setVal(s.refs.graceChip, 'not draining');
-      if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.podCBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.podCBox.classList.add('highlight'); return; }
       // Up-arrow: the client pulses, one packet runs the lane to kube-proxy, then both fans fire so the
       // two backends light together and the balancing across both endpoints reads clearly.
       pulsePod(s.refs.client, ctx, 0);
       const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
+      lightBoxAt(s.refs.kproxy, ctx, send.arrivalMs);
       const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       const giveC = routePacket(s, ctx, FAN_C, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
@@ -159,7 +159,6 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.kproxy.classList.add('highlight');
       setVal(s.refs.condChip, 'notReady · serving');
       s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a only');
@@ -168,12 +167,13 @@ const STEPS = [
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
       // web-c is out of the new-connection set: keep it dim at the shared DIM level.
       s.refs.podC.style.opacity = String(OPACITY.terminating);
-      if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
       // A new connection now lands on web-a only: client pulses, packet runs the lane then the web-a
       // fan, and web-a pulses on arrival. No ball goes to web-c, which is the whole point.
       pulsePod(s.refs.client, ctx, 0);
       const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
+      lightBoxAt(s.refs.kproxy, ctx, send.arrivalMs);
       const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'to web-a', FAN_A, { delay: send.arrivalMs + BEAT.afterHop, easing: 'ease-in-out' });
       pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
@@ -214,7 +214,6 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.kproxy.classList.add('highlight');
       setVal(s.refs.condChip, 'removed');
       s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a + replica');
@@ -224,11 +223,12 @@ const STEPS = [
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminated');
       // web-c is gone, so it drops from the terminating shade to the terminated one.
       s.refs.podC.style.opacity = String(OPACITY.terminated);
-      if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
       // Service carries on: a new connection lands on web-a and it pulses on arrival.
       pulsePod(s.refs.client, ctx, 0);
       const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
+      lightBoxAt(s.refs.kproxy, ctx, send.arrivalMs);
       const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
     },

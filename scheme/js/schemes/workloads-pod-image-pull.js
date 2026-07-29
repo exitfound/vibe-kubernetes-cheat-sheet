@@ -1,6 +1,6 @@
 import { svg, g, rect, path, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, pulsePodDim, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, OPACITY, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, pulsePodDim, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=379 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
@@ -241,14 +241,15 @@ const STEPS = [
       setVal(s.refs.statusChip, 'Waiting · ContainerCreating');
       setWire(s, 'req', 'GET /v2/app/blobs/sha256:... · 200 · 2 new layers · 4 of 4 cached');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.registry.classList.add('highlight');
       s.refs.cloud.classList.add('highlight');
       s.refs.layersChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = String(OPACITY.pending);
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) return;
-      // Blob GET reaches the registry, the 200 with the layers hops back after it lands.
+      if (ctx.reduced) { s.refs.registry.classList.add('highlight'); return; }
+      // Blob GET reaches the registry, the 200 with the layers hops back after it lands. The
+      // registry lights on the GET landing: it answers the request, it does not open the step.
       const get = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      lightBoxAt(s.refs.registry, ctx, get.arrivalMs);
       topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: get.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },

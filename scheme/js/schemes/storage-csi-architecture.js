@@ -243,12 +243,12 @@ const STEPS = [
       clearWires(s);
       setChips(s, { core: 'PVC Pending', ctrl: 'CreateVolume', node: 'idle', bridge: 'object -> gRPC' });
       s.refs.api.classList.add('highlight');
-      s.refs.prov.classList.add('highlight');
       setWire(s, 'watch', 'PVC Pending');
-      if (ctx.reduced) { s.refs.drv.classList.add('highlight'); s.refs.cloud.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.prov.classList.add('highlight'); s.refs.drv.classList.add('highlight'); s.refs.cloud.classList.add('highlight'); return; }
       // Three chained hops, each timed off the previous arrival rather than a hard-coded delay:
       // object out of the apiserver, one gRPC call into the driver, one vendor call out to the cloud.
       const watch = routePacket(s, ctx, W_API_PROV, { role: 'storage' });
+      lightBoxAt(s.refs.prov, ctx, watch.arrivalMs);
       const call = routePacket(s, ctx, W_PROV_DRV, { delay: watch.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume', W_PROV_DRV, { delay: watch.arrivalMs + BEAT.afterHop });
       lightBoxAt(s.refs.drv, ctx, call.arrivalMs);

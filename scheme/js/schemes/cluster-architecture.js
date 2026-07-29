@@ -178,12 +178,13 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.apisrv.classList.add('highlight');
-      s.refs.ctrlMgr.classList.add('highlight');
       setWire(s, 'controllers', 'watch · reconcile loop');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.ctrlMgr.classList.add('highlight'); return; }
       // Watch event in (Api -> ControllerManager, upper lane), then the reconcile
-      // write-back out (ControllerManager -> Api, lower lane).
+      // write-back out (ControllerManager -> Api, lower lane). The controller-manager is dark
+      // until the watch event lands: it acts on what it receives, so it may not be lit before.
       const watch = routePacket(s, ctx, [[540, 160], [540, 200], [270, 200], [270, 240]], { role: 'cluster' });
+      lightBoxAt(s.refs.ctrlMgr, ctx, watch.arrivalMs);
       routePacket(s, ctx, [[290, 240], [290, 220], [560, 220], [560, 160]], { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
@@ -196,12 +197,12 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.apisrv.classList.add('highlight');
-      s.refs.sched.classList.add('highlight');
       setWire(s, 'scheduler', 'watch Pods · post Binding');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.sched.classList.add('highlight'); return; }
       // Watch Pods in (Api -> Scheduler, upper lane), then the Binding posted back
-      // to the Api (Scheduler -> Api, lower lane).
+      // to the Api (Scheduler -> Api, lower lane). The Scheduler lights on the watch arriving.
       const watch = routePacket(s, ctx, [[660, 160], [660, 200], [930, 200], [930, 240]], { role: 'cluster' });
+      lightBoxAt(s.refs.sched, ctx, watch.arrivalMs);
       routePacket(s, ctx, [[910, 240], [910, 220], [640, 220], [640, 160]], { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },

@@ -91,7 +91,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['cni1', 'cni2', 'innerChip', 'outerChip', 'encapChip', 'modeChip'], [s.refs.podA, s.refs.podB]);
+  // The two inner Pod boxes belong in the KEY list, not in the pod-group list: a pod group only has
+  // its inline pulse strokes reset, so a .highlight put on a container would never come off again.
+  clearHighlights(s, ['cni1', 'cni2', 'podABox', 'podBBox', 'innerChip', 'outerChip', 'encapChip', 'modeChip'], [s.refs.podA, s.refs.podB]);
 }
 
 const STEPS = [
@@ -180,19 +182,26 @@ const STEPS = [
       setWire(s, 'va', 'veth');
       setWire(s, 'vb', 'veth');
       setWire(s, 'encap', 'routed · no outer headers');
-      // Both dataplanes are on the path; light them statically (infra never pulses).
-      s.refs.cni1.classList.add('highlight');
-      s.refs.cni2.classList.add('highlight');
+      // Both dataplanes are on the path and never pulse, but each is a receiver before it forwards,
+      // so both light on arrival below and the pair reads as a route rather than as a lit corridor.
       s.refs.outerChip.classList.add('highlight');
       s.refs.encapChip.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.outerChip, 'pod IPs routed');
       setVal(s.refs.encapChip, 'none');
       setVal(s.refs.modeChip, 'routed · BGP');
-      if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
+      if (ctx.reduced) {
+        s.refs.cni1.classList.add('highlight');
+        s.refs.cni2.classList.add('highlight');
+        s.refs.podABox.classList.add('highlight');
+        s.refs.podBBox.classList.add('highlight');
+        return;
+      }
       pulsePod(s.refs.podA, ctx, 0);
       const h1 = segmentPacket(s, ctx, { from: [278, VETH_Y], to: [370, VETH_Y], delay: BEAT.afterPulse, role: 'network' });           // Pod A -> cni1 (veth)
+      lightBoxAt(s.refs.cni1, ctx, h1.arrivalMs);
       const h2 = routePacket(s, ctx, UNDERLAY_PATH, { delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });                          // cni1 -> underlay -> cni2
+      lightBoxAt(s.refs.cni2, ctx, h2.arrivalMs);
       const h3 = segmentPacket(s, ctx, { from: [830, VETH_Y], to: [922, VETH_Y], delay: h2.arrivalMs + BEAT.afterHop, role: 'network' }); // cni2 -> Pod B (veth)
       pulsePod(s.refs.podB, ctx, h3.arrivalMs);
     },

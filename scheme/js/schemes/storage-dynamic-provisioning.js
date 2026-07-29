@@ -219,9 +219,10 @@ const STEPS = [
       s.refs.wProvToPv.style.opacity = '0';
       s.refs.boundLink.style.opacity = '0';
       s.refs.prov.classList.add('highlight');
-      s.refs.cloud.classList.add('highlight');
       setWire(s, 'call', 'CreateVolume');
-      if (ctx.reduced) return;
+      // The provisioner calls, so it is lit from entry. The backend was lit here as well, which hid
+      // its own lightBoxAt below: a call cannot land on a block that was already answering.
+      if (ctx.reduced) { s.refs.cloud.classList.add('highlight'); return; }
       // Descent then ascent, on separate lanes, so the round trip reads as a loop, not a retrace.
       const call = routePacket(s, ctx, W_PROV_TO_CLOUD, { role: 'storage' });
       ridingLabel(s, ctx, 'CreateVolume 5Gi', W_PROV_TO_CLOUD);

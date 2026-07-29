@@ -214,6 +214,20 @@ other category's.
 Clears .highlight from the given s.refs keys, every chain chip (when the card
 has a chain strip), and the pod stroke highlight on the given pod elements.
 Card-specific extras (tick ladders, event slots) stay in the card's clearHL.
+
+The two arguments are NOT interchangeable, and confusing them is a leak that no check sees. The
+pods argument runs clearPodHighlight, which resets the inline stroke styles a pulse leaves behind
+and touches no class at all. So a .highlight put on a Pod inner box has to be cleared by NAME, in
+the keys list. Five networking cards listed the pod GROUP and not the box, and light that box in
+their ctx.reduced branch (the static stand-in for a pulse), so on prev and reset the container
+stayed lit for the rest of the card, gathering one more as each step went by:
+network-pod-to-pod-cross-node, network-conntrack-nat, network-model,
+network-nodeport-loadbalancer, network-tls-termination, all corrected 2026-07-29.
+network-pod-to-pod-same-node had it right from the start and is the model.
+
+Invisible to the gate by construction. check-reduced compares the two paths step by step and both
+paths accumulate identically once a card is replayed, check-arrival looks at receivers, and
+check-palette treats a lit element as a legal state. Only a per-step dump of the class shows it.
 ```
 
 ### before `autoPulse: false,`

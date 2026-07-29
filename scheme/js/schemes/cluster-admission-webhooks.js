@@ -152,13 +152,14 @@ const STEPS = [
       setVal(s.refs.failurePolicy, 'none');
       setWire(s, 'req', 'POST /api/v1/pods');
       s.refs.kubectl.classList.add('highlight');
-      s.refs.api.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[0]) rows[0].classList.add('highlight');
       if (rows[1]) rows[1].classList.add('highlight');
-      if (ctx.reduced) return;
-      // Two arrow segments: top arrow Kubectl→Api, then down-connector Api→pipeline.
+      if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
+      // Two arrow segments: top arrow Kubectl→Api, then down-connector Api→pipeline. The Api is
+      // the receiver of the first hop, so it lights when the request lands rather than at entry.
       const req = routePacket(s, ctx, KCTL_TO_API, { role: 'cluster' });
+      lightBoxAt(s.refs.api, ctx, req.arrivalMs);
       routePacket(s, ctx, API_TO_CHAIN, { delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
@@ -225,10 +226,11 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[5]) rows[5].classList.add('highlight');
       s.refs.api.classList.add('highlight');
-      s.refs.etcdC.classList.add('highlight');
-      if (ctx.reduced) { s.refs.kubectl.classList.add('highlight'); return; }
-      // Three arrow segments, sequenced. Each packet is visible only on its own arrow.
+      if (ctx.reduced) { s.refs.etcdC.classList.add('highlight'); s.refs.kubectl.classList.add('highlight'); return; }
+      // Three arrow segments, sequenced. Each packet is visible only on its own arrow. The Api is
+      // the source and stays lit from entry; ETCD lights on the write landing, like kubectl below.
       const write = segmentPacket(s, ctx, { from: [API_R, OUT_Y], to: [ETCD_X, OUT_Y], role: 'cluster' });
+      lightBoxAt(s.refs.etcdC, ctx, write.arrivalMs);
       const commit = segmentPacket(s, ctx, { from: [ETCD_X, BACK_Y], to: [API_R, BACK_Y], delay: write.arrivalMs + BEAT.afterHop, role: 'cluster' });
       const kubectlPkt = routePacket(s, ctx, API_TO_KCTL, { delay: commit.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.kubectl, ctx, kubectlPkt.arrivalMs);

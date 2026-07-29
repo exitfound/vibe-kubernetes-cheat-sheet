@@ -234,7 +234,6 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.kproxy.classList.add('highlight');
       s.refs.dnatChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
       s.refs.backChip.classList.add('highlight');
@@ -243,10 +242,13 @@ const STEPS = [
       setVal(s.refs.backChip, '10.244.3.9');
       // Mirror of flow 1: podX is not the backend this flow acts on, so dim it exactly as flow 1 dims podY.
       s.refs.podX.style.opacity = String(OPACITY.notready);
-      if (ctx.reduced) { s.refs.podYBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.podYBox.classList.add('highlight'); return; }
+      // This step is the send and the DNAT in one, so kube-proxy lights on the client packet
+      // arriving, exactly as it does on the send step, and only then picks the second backend.
       pulsePod(s.refs.client, ctx, 0);
       const send = segmentPacket(s, ctx, { from: LANE_FWD[0], to: LANE_FWD[1], delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), role: 'network' });
       ridingLabel(s, ctx, 'dst 10.96.0.20:80', LANE_FWD, { delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), easing: 'linear' });
+      lightBoxAt(s.refs.kproxy, ctx, send.arrivalMs);
       const give = routePacket(s, ctx, FAN_FWD_Y, { delay: send.arrivalMs + BEAT.afterHop, dur: slowDur(FAN_FWD_Y), role: 'network' });
       ridingLabel(s, ctx, 'dst 10.244.3.9:8080', FAN_FWD_Y, { delay: send.arrivalMs + BEAT.afterHop, dur: slowDur(FAN_FWD_Y) });
       pulsePod(s.refs.podY, ctx, give.arrivalMs);

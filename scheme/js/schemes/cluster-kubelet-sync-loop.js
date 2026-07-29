@@ -170,14 +170,15 @@ const STEPS = [
       setVal(s.refs.lastOpChip, 'ListContainers');
       setWire(s, 'rt', 'ListContainers');
       s.refs.kubelet.classList.add('highlight');
-      s.refs.runtime.classList.add('highlight');
       s.refs.observedChip.classList.add('highlight');
       s.refs.lastOpChip.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[1]) rows[1].classList.add('highlight');
-      if (ctx.reduced) return;
-      // ListContainers request out, the container list answers once it lands.
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
+      // ListContainers request out, the container list answers once it lands. PLEG asks, so the
+      // Kubelet is lit from entry and the runtime lights when the call reaches it.
       const req = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: OUT_Y, role: 'cluster' });
+      lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
       topPacket(s, ctx, { from: RT_X, to: KUBE_R, y: BACK_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },

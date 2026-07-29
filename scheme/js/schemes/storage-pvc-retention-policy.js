@@ -33,10 +33,15 @@ const ownPts = i => [[POD_RIGHT, ROW_CY[i]], [PVC_X, ROW_CY[i]]];        // Pod 
 const reclaimPts = i => [[PVC_RIGHT, ROW_CY[i]], [PV_X, ROW_CY[i]]];     // claim -> disk
 
 // Fades a claim, disk or lane away exactly when the reclaim that removes it reaches it.
+// It also takes back the highlight the ball left on the block: a reclaimed block cannot still be
+// the thing the step points at.
 function vanishAt(el, ctx, delay = 0, to = OPACITY.terminated) {
   if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); return; }
-  ctx.register(el.animate([{ opacity: 1 }, { opacity: to }], { duration: FADE.out, delay, fill: 'forwards', easing: 'ease-in' }));
+  const dark = () => el.classList.remove('highlight');
+  if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); dark(); return; }
+  const a = el.animate([{ opacity: 1 }, { opacity: to }], { duration: FADE.out, delay, fill: 'forwards', easing: 'ease-in' });
+  a.onfinish = dark;
+  ctx.register(a);
 }
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.

@@ -225,14 +225,15 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       baseComplexity(s);
-      s.refs.ipvs.classList.add('highlight');
       s.refs.ipvsChip.classList.add('highlight');
       s.refs.pickChip.classList.add('highlight');
       setVal(s.refs.pickChip, 'scheduler rr / lc');
       setWire(s, 'ipvs', 'one hash lookup, any scale');
       s.refs.iptLane.style.opacity = String(OPACITY.notready);
       s.refs.podA.style.opacity = String(OPACITY.notready);
-      if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); return; }
+      // The hash table is where the connection LANDS, so it lights on arrival below and only the
+      // reduced path sets it here. It was lit at entry as well, which hid its own arrival.
+      if (ctx.reduced) { s.refs.ipvs.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
       const b1 = routePacket(s, ctx, IPVS_H1, { delay: BEAT.afterPulse, role: 'network' });
       lightBoxAt(s.refs.ipvs, ctx, b1.arrivalMs);

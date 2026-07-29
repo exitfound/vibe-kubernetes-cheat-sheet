@@ -288,7 +288,6 @@ const STEPS = [
       setChips(s, { pvc: 'Bound', pv: 'Bound', bind: BOUND, mount: 'mounted at /data' });
       s.refs.pvcB.style.opacity = '0';
       s.refs.wCtrlToPvcB.style.opacity = '0';
-      s.refs.pvc.classList.add('highlight');
       s.refs.pvMatchCyl.classList.add('highlight');
       s.refs.pvSmall.style.opacity = String(OPACITY.notready);
       s.refs.pvSlow.style.opacity = String(OPACITY.notready);
@@ -297,10 +296,12 @@ const STEPS = [
       setWire(s, 'mount', 'kubelet mount');
       // The Pod is running by the end of this step, so full opacity is the static end-state.
       s.refs.appPod.style.opacity = '1';
-      if (ctx.reduced) { s.refs.appBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); s.refs.appBox.classList.add('highlight'); return; }
       // The ascent: the volume rises PV -> PVC -> Pod. The ball enters the claim at its bottom edge
-      // and re-emerges at its top edge, because the claim is what the mount is resolved THROUGH.
+      // and re-emerges at its top edge, because the claim is what the mount is resolved THROUGH,
+      // which is also why the claim lights on that first arrival rather than at step entry.
       const hop1 = routePacket(s, ctx, W_MOUNT_LOW, { role: 'storage' });
+      lightBoxAt(s.refs.pvc, ctx, hop1.arrivalMs);
       const hop2 = routePacket(s, ctx, W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, '/data', W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop });
       s.refs.appPod.style.opacity = String(OPACITY.pending);

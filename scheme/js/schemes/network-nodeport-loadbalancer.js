@@ -120,7 +120,9 @@ class Scene {
 }
 
 function clearHL(s) {
-  clearHighlights(s, ['client', 'lb', 'ccm', 'np1', 'np2', 'np3', 'rangeChip', 'vipChip', 'chainChip'], [s.refs.pod1, s.refs.pod2]);
+  // pod1Box is a key, not a pod group: the pod-group list only resets inline pulse strokes, so the
+  // .highlight the client-hit step puts on the container never came off.
+  clearHighlights(s, ['client', 'lb', 'ccm', 'np1', 'np2', 'np3', 'pod1Box', 'rangeChip', 'vipChip', 'chainChip'], [s.refs.pod1, s.refs.pod2]);
 }
 
 const STEPS = [
@@ -175,11 +177,12 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.client.classList.add('highlight');
-      s.refs.lb.classList.add('highlight');
-      s.refs.np1.classList.add('highlight');
-      if (ctx.reduced) return;
+      // The client dials, so only the client is lit at entry. The balancer and the nodePort each
+      // light as the connection reaches them, which is what makes the two hops read as one path.
+      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.np1.classList.add('highlight'); return; }
       const toLb = segmentPacket(s, ctx, { from: C_TO_LB[0], to: C_TO_LB[1], role: 'network' });
       ridingLabel(s, ctx, 'to 203.0.113.7', C_TO_LB, { easing: 'linear' });
+      lightBoxAt(s.refs.lb, ctx, toLb.arrivalMs);
       const fanDelay = toLb.arrivalMs + BEAT.afterHop;
       const toNode = routePacket(s, ctx, TO_N1, { delay: fanDelay, role: 'network' });
       ridingLabel(s, ctx, 'to node-1:31000', TO_N1, { delay: fanDelay, emerge: 150 });

@@ -192,10 +192,12 @@ const STEPS = [
       setChips(s, { mode: 'ConfigMap', swap: 'v1 written to disk', value: 'app.conf v1' });
       setStage(s, {});
       s.refs.cm.classList.add('highlight');
-      s.refs.kubelet.classList.add('highlight');
-      if (ctx.reduced) { s.refs.dirOld.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); s.refs.dirOld.classList.add('highlight'); return; }
+      // The keys travel out of the ConfigMap, so the Kubelet lights when they reach it and writes
+      // one hop later. Lit at entry it would be reading before anything had been sent.
       const read = routePacket(s, ctx, W_CM_READ, { role: 'storage' });
       ridingLabel(s, ctx, 'app.conf', W_CM_READ);
+      lightBoxAt(s.refs.kubelet, ctx, read.arrivalMs);
       const write = routePacket(s, ctx, W_WRITE_OLD, { delay: read.arrivalMs + BEAT.afterHop, role: 'storage' });
       lightBoxAt(s.refs.dirOld, ctx, write.arrivalMs);
       ridingLabel(s, ctx, 'write v1', W_WRITE_OLD, { delay: read.arrivalMs + BEAT.afterHop });
@@ -234,15 +236,15 @@ const STEPS = [
       // After the flip: the new dir exists and ..data points at it. That is the static end-state.
       setStage(s, STAGE_FLIPPED);
       s.refs.cm.classList.add('highlight');
-      s.refs.kubelet.classList.add('highlight');
       s.refs.dataLink.classList.add('highlight');
       s.refs.dirNew.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
       // Re-set the pre-flip state below the guard: the updated ConfigMap reaches kubelet first,
       // then kubelet writes the new dir and flips the pointer.
       setStage(s, {});
       const read = routePacket(s, ctx, W_CM_READ, { role: 'storage' });
       ridingLabel(s, ctx, 'app.conf v2', W_CM_READ);
+      lightBoxAt(s.refs.kubelet, ctx, read.arrivalMs);
       const writeAt = read.arrivalMs + BEAT.afterHop;
       ctx.register(s.refs.dirNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: writeAt, fill: 'forwards', easing: 'ease-out' }));
       ctx.register(s.refs.wWriteNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: writeAt, fill: 'forwards', easing: 'ease-out' }));

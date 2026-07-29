@@ -204,14 +204,16 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.apisrv.classList.add('highlight');
       s.refs.etcd.classList.add('highlight');
       clearWires(s);
       s.refs.wires['etcd-ack'].textContent = 'ack · rv=843';
       s.refs.wires['api-ack'].textContent  = 'HTTP 202 Accepted';
-      if (ctx.reduced) { s.refs.client.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.apisrv.classList.add('highlight'); s.refs.client.classList.add('highlight'); return; }
 
+      // ETCD sends the ack and is lit from entry. The Api takes it before it answers kubectl, so
+      // it lights on arrival rather than at step entry.
       const ack = routePacket(s, ctx, PERSIST_ACK, { role: 'cluster' });
+      lightBoxAt(s.refs.apisrv, ctx, ack.arrivalMs);
       const clientPkt = routePacket(s, ctx, DELETE_ACK, { delay: ack.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.client, ctx, clientPkt.arrivalMs);
     },
@@ -224,13 +226,15 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       s.refs.apisrv.classList.add('highlight');
-      s.refs.gc.classList.add('highlight');
       clearWires(s);
       s.refs.wires['controller'].textContent = 'watch MODIFIED · Deployment';
       s.refs.wires['gc'].textContent         = 'DELETE replicasets · pods';
-      if (ctx.reduced) { s.refs.cm.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.cm.classList.add('highlight'); s.refs.gc.classList.add('highlight'); return; }
 
+      // The Api broadcasts, so it is the lit source. The Garbage collector is a receiver first and
+      // only then a sender, so it lights on the MODIFIED event landing, exactly like the CM below.
       const gcEvent = routePacket(s, ctx, TO_GC, { role: 'cluster' });
+      lightBoxAt(s.refs.gc, ctx, gcEvent.arrivalMs);
       // To CM (left), for Deployment/ReplicaSet controllers:
       const cmPkt = routePacket(s, ctx, TO_CM, { role: 'cluster' });
       lightBoxAt(s.refs.cm, ctx, cmPkt.arrivalMs);
@@ -293,16 +297,17 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.gc.classList.add('highlight');
-      s.refs.apisrv.classList.add('highlight');
       setWire(s, 'gc', 'clear finalizer');
       setWire(s, 'persist', 'DELETE · finalizers=[] · rv=856');
       // Pin final state inline so cancel returns to the right value, not default.
       s.refs.placedPod.style.opacity = '0';
       s.refs.kubeletPodArrow.style.opacity = '0';
-      if (ctx.reduced) { s.refs.etcd.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.apisrv.classList.add('highlight'); s.refs.etcd.classList.add('highlight'); return; }
       // The GarbageCollector clears the foregroundDeletion finalizer (PATCH up to the Api), then the
       // Api issues the real DELETE to ETCD. The Pod and its arrow vanish as the object leaves ETCD.
+      // The Api is mid-chain and lights on the PATCH landing, ETCD one hop later.
       const clear = routePacket(s, ctx, FROM_GC, { role: 'cluster' });
+      lightBoxAt(s.refs.apisrv, ctx, clear.arrivalMs);
       const del = routePacket(s, ctx, PERSIST, { delay: clear.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.etcd, ctx, del.arrivalMs);
       ctx.register(s.refs.placedPod.animate(

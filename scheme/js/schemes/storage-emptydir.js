@@ -181,16 +181,16 @@ const STEPS = [
       clearWires(s);
       setChips(s, { ed: 'shared scratch', medium: 'node disk', limit: 'none' });
       s.refs.ed.style.opacity = '1';
-      // Both containers and the disk are in use this whole step: all three light at step entry,
-      // and the shell pulse fires at the same instant, one beat.
-      s.refs.ed.classList.add('highlight');
+      // The app container is the writer and is lit at entry. The directory and the worker box are
+      // both receivers, so each lights as its own ball lands, and the pulse fires on the same beat.
       s.refs.appBox.classList.add('highlight');
-      if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.ed.classList.add('highlight'); s.refs.sideBox.classList.add('highlight'); return; }
       pulsePod(s.refs.pod, ctx, 0);
       // The app writes down its lane into the cylinder side, then the worker reads the same bytes
       // out of the far side and up its own lane: two mirrored one-way hops.
       const write = routePacket(s, ctx, LANE_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'write /cache', LANE_WRITE, { delay: BEAT.afterPulse });
+      lightBoxAt(s.refs.ed, ctx, write.arrivalMs);
       const sideBoxPkt = routePacket(s, ctx, LANE_READ, { delay: write.arrivalMs + BEAT.afterHop, role: 'storage' });
       lightBoxAt(s.refs.sideBox, ctx, sideBoxPkt.arrivalMs);
       ridingLabel(s, ctx, 'read /cache', LANE_READ, { delay: write.arrivalMs + BEAT.afterHop });

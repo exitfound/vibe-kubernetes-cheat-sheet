@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, OPACITY, WL } from '../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=404 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
@@ -252,13 +252,14 @@ const STEPS = [
       setVal(s.refs.focusChip, 'scheduler · requests only');
       setWire(s, 'req', 'POST .../pods/{name}/binding · requests only, not limits');
       s.refs.apiserver.classList.add('highlight');
-      s.refs.kubelet.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
       // Api writes the binding, the kubelet observes it and places each Pod on the node.
       // Top packet Api -> Kubelet (binding delivered), then the connector ball Kubelet -> node.
+      // The Kubelet lights when the binding reaches it, since placing the Pods is its answer to it.
       const bind = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
+      lightBoxAt(s.refs.kubelet, ctx, bind.arrivalMs);
       fanToPods(s, ctx, { delay: bind.arrivalMs + BEAT.afterHop });
     },
   },

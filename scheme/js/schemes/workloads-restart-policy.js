@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, OPACITY, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=355 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
@@ -147,8 +147,11 @@ function setChips(s, { a, b, c, focus }) {
 }
 
 function bouncePacket(s, ctx, { delay = 0 } = {}) {
-  // Kubelet watches the Api, then the spec hops back down the return lane once it answers.
+  // Kubelet watches the Api, then the spec hops back down the return lane once it answers. The Api
+  // is the receiver of that first hop on every step that calls this, so it lights on arrival here
+  // rather than at step entry, and each caller lights it statically under ctx.reduced.
   const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay, role: 'workloads' });
+  lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
   return topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
 }
 
@@ -180,11 +183,10 @@ const STEPS = [
       resetPodOpacity(s);
       setChips(s, { a: 'Running', b: 'Running', c: 'Running', focus: 'Pod-level, default Always' });
       setWire(s, 'req', 'watch · spec.restartPolicy delivered · Status reported back');
-      s.refs.apiserver.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       bouncePacket(s, ctx);
     },
   },
@@ -200,7 +202,6 @@ const STEPS = [
       setChips(s, { a: 'Running (restarted)', b: 'Succeeded', c: 'Succeeded', focus: 'exit 0: only Always restarts' });
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'container exit 0 · Restart only if Always');
-      s.refs.apiserver.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
       s.refs.pod1Chip.classList.add('highlight');
       s.refs.pod2Chip.classList.add('highlight');
@@ -210,7 +211,7 @@ const STEPS = [
       s.refs.pod2.style.opacity = String(OPACITY.terminated);
       s.refs.pod3.style.opacity = String(OPACITY.terminated);
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       bouncePacket(s, ctx);
       ctx.register(s.refs.pod2.animate(
         [{ opacity: 1 }, { opacity: OPACITY.terminated }],
@@ -237,7 +238,6 @@ const STEPS = [
       setChips(s, { a: 'Running (restarted)', b: 'Running (restarted)', c: 'Failed', focus: 'exit != 0: only Never does not restart' });
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'exit != 0 · Restart if Always or OnFailure');
-      s.refs.apiserver.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
       s.refs.pod1Chip.classList.add('highlight');
       s.refs.pod2Chip.classList.add('highlight');
@@ -247,7 +247,7 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = String(OPACITY.terminated);
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       bouncePacket(s, ctx);
       ctx.register(s.refs.pod3.animate(
         [{ opacity: 1 }, { opacity: OPACITY.terminated }],
@@ -270,7 +270,6 @@ const STEPS = [
       setChips(s, { a: 'Waiting (backoff)', b: 'Waiting (backoff)', c: 'never enters backoff', focus: 'backoff 10s..300s, shared' });
       s.refs.pod3Chip.classList.add('highlight');
       setWire(s, 'req', 'restart backoff: 10s → 20s → ... → 300s cap');
-      s.refs.apiserver.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
       s.refs.pod1Chip.classList.add('highlight');
       s.refs.pod2Chip.classList.add('highlight');
@@ -280,7 +279,7 @@ const STEPS = [
       s.refs.pod2.style.opacity = String(OPACITY.notready);
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       bouncePacket(s, ctx);
       ctx.register(s.refs.pod1.animate(
         [{ opacity: 1 }, { opacity: OPACITY.notready }],

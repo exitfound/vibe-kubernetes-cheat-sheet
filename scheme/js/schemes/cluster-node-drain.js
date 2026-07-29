@@ -272,7 +272,6 @@ const STEPS = [
       setVal(s.refs.lastChip, 'web-2 · 429 → 200 OK');
       setWire(s, 'req', 'POST .../pods/web-2/eviction · 429 → retry → 200');
       s.refs.kubectl.classList.add('highlight');
-      s.refs.apiserver.classList.add('highlight');
       s.refs.pdbChip.classList.add('highlight');
       s.refs.healthyChip.classList.add('highlight');
       s.refs.lastChip.classList.add('highlight');
@@ -281,9 +280,11 @@ const STEPS = [
       s.refs.pod2.style.opacity = '0';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
-      // First attempt: blocked. Top packet out, 429 response back, no connector follow-up.
+      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); s.refs.pod2Box.classList.add('highlight'); return; }
+      // First attempt: blocked. Top packet out, 429 response back, no connector follow-up. kubectl
+      // is the source and lit from entry, the apiserver lights when the eviction reaches it.
       const attempt = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, role: 'cluster' });
+      lightBoxAt(s.refs.apiserver, ctx, attempt.arrivalMs);
       const denied = topPacket(s, ctx, { from: API_X, to: KUBECTL_X + BOX_W, y: RESP_Y, delay: attempt.arrivalMs + BEAT.afterHop, role: 'cluster' });
       // Retry: kubectl → apiserver → connector → the Pod reacts on arrival.
       const retry = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, delay: denied.arrivalMs + BEAT.afterHop, role: 'cluster' });

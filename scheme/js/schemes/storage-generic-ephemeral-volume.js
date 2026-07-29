@@ -223,13 +223,13 @@ const STEPS = [
       setStage(s, { podOn: 1, claim: 1, disk: 1, lanes: ['wUpLow', 'wUpHigh'] });
       setBoxSublabel(s.refs.pvc, 'Bound');
       s.refs.pv.classList.add('highlight');
-      s.refs.pvc.classList.add('highlight');
       setWire(s, 'owner', 'ownerReference');
       setWire(s, 'mount', 'attach and mount');
-      if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); s.refs.podBox.classList.add('highlight'); return; }
       setStage(s, { podOn: OPACITY.pending, claim: 1, disk: 1, lanes: ['wUpLow', 'wUpHigh'] });
       // Down-arrow into the Pod, so the balls lead and the pulse lands on the second one arriving.
       const low = routePacket(s, ctx, W_UP_LOW, { delay: BEAT.lead, role: 'storage' });
+      lightBoxAt(s.refs.pvc, ctx, low.arrivalMs);
       const high = routePacket(s, ctx, W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop, role: 'storage' });
       ridingLabel(s, ctx, '/scratch', W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop });
       ctx.register(s.refs.podB.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: FADE.in, delay: high.arrivalMs, fill: 'forwards', easing: 'ease-out' }));

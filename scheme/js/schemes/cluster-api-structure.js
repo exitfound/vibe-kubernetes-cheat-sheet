@@ -248,10 +248,10 @@ const STEPS = [
       setVal(s.refs.rvChip, '842');
       setVal(s.refs.cacheChip, '3');
       setWire(s, 'req', 'LIST /api/v1/pods · rv=842');
-      // Actors named by the narration: the Api reads ETCD and the Informer fills its Indexer.
-      s.refs.api.classList.add('highlight');
+      // ETCD is where the read starts, so it is the one actor lit from entry. The Api and the
+      // Informer are named by the narration too, but each acts only on what reaches it, so both
+      // light on arrival below.
       s.refs.etcdC.classList.add('highlight');
-      s.refs.informer.classList.add('highlight');
       s.refs.rvChip.classList.add('highlight');
       s.refs.cacheChip.classList.add('highlight');
       const labels = [['ADDED', 'pod-a · rv=840'], ['ADDED', 'pod-b · rv=841'], ['ADDED', 'pod-c · rv=842']];
@@ -261,9 +261,16 @@ const STEPS = [
       });
       // Caption is the cancel/reduced final; the fade below back-fills it hidden until arrival.
       s.refs.streamLabel.style.opacity = '1';
-      if (ctx.reduced) { s.refs.cache.classList.add('highlight'); return; }
+      if (ctx.reduced) {
+        s.refs.api.classList.add('highlight');
+        s.refs.informer.classList.add('highlight');
+        s.refs.cache.classList.add('highlight');
+        return;
+      }
       const read    = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });
+      lightBoxAt(s.refs.api, ctx, read.arrivalMs);
       const stream  = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], delay: read.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      lightBoxAt(s.refs.informer, ctx, stream.arrivalMs);
       const toCache = segmentPacket(s, ctx, { from: FEED_LANE[0], to: FEED_LANE[1], delay: stream.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.cache, ctx, toCache.arrivalMs);
       s.refs.slots.slice(0, 3).forEach((slot, i) => {
@@ -308,8 +315,6 @@ const STEPS = [
       setVal(s.refs.watchChip, 'open · streaming');
       setWire(s, 'watch', 'ADDED · rv=843');
       s.refs.etcdC.classList.add('highlight');
-      s.refs.api.classList.add('highlight');
-      s.refs.informer.classList.add('highlight');
       s.refs.rvChip.classList.add('highlight');
       s.refs.cacheChip.classList.add('highlight');
       s.refs.watchChip.classList.add('highlight');
@@ -319,11 +324,19 @@ const STEPS = [
       setSlot(fourth, 'ADDED', 'pod-d · rv=843');
       fourth.classList.add('highlight');
       fourth.style.opacity = '1';
-      if (ctx.reduced) { s.refs.cache.classList.add('highlight'); return; }
+      if (ctx.reduced) {
+        s.refs.api.classList.add('highlight');
+        s.refs.informer.classList.add('highlight');
+        s.refs.cache.classList.add('highlight');
+        return;
+      }
       // The ADDED event's journey as three sequenced hops on their real arrows:
-      // etcd -> Api (watch return), Api -> Informer (watch stream), Informer -> Indexer.
+      // etcd -> Api (watch return), Api -> Informer (watch stream), Informer -> Indexer. Each
+      // stage lights as the event reaches it, so the row of lit blocks tracks the ball.
       const ret = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });
+      lightBoxAt(s.refs.api, ctx, ret.arrivalMs);
       const stream = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], delay: ret.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      lightBoxAt(s.refs.informer, ctx, stream.arrivalMs);
       const toCache = segmentPacket(s, ctx, { from: FEED_LANE[0], to: FEED_LANE[1], delay: stream.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.cache, ctx, toCache.arrivalMs);
       ctx.register(fourth.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: toCache.arrivalMs, fill: 'both', easing: 'ease-out' }));
