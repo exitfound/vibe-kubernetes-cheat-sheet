@@ -238,6 +238,14 @@ write/read lanes): watch event in (Api -> block, upper lane) and the
 reconcile / Binding write-back out (block -> Api, lower lane).
 ```
 
+**Review stage 2.4 family B listed all four of these as lanes nobody rides. FALSE, snapped 2026-07-30.**
+Every one of them carries a ball: the `controllers` and `scheduler` steps send two each. A grep for the
+constant name could not see it, because the routes were written as literals at the call site and the
+numbers were verified identical to these arrays, to the unit. What the finding did surface is a real
+defect of a different family: seven inline literal routes duplicating named arrays, the same shape that
+reopened on cluster-delete-flow. All seven now ride the arrays, and anim-dump gives byte-identical spans
+before and after.
+
 ---
 
 ## cluster-delete-flow
@@ -316,6 +324,12 @@ and 142 bottom.
 1298 to 1511 ms, the `replicate` step span 1858 to **2071 ms**. That still fitted the 2100 budget,
 but by 29 ms, so `duration` went to 2400 for a beat of headroom. Motion untouched. `API_TO_E1` is
 unchanged at 140 units and stays on the 700 ms floor.
+
+**Superseded 2026-07-30.** `replicate` is 3800 now, and the numbers above are the R5 relayout's, not
+the card's current ones. Review stage 2.4 family D gave every exchange on this card the answer it was
+missing (two Follower acks, the durable report, the whole of `apply`), so `replicate` runs to 3629 and
+`quorum` and `apply` went 1900 -> 2500 each. The row became a lane PAIR to carry them: see the note
+under `LANE_DY` in `docs/INTERNALS.md`.
 
 **Left open, needs a go-ahead.** The wire label `write Pod · via Leader` renders about 150 units
 wide with `text-anchor: middle` at `(API_R + CYL_XS[0]) / 2 = 350`, inside a 140-unit gap, so it
@@ -420,9 +434,16 @@ Chips went from four across (258, both names overlapped their values) to TWO per
 rows, 548..624. The Node frame moved up to the panel bottom (380..532) to pay for the second row.
 The request wire label moved above the top row (WIRE_Y = TOP_Y - 14): at y=146 it spanned 539..907
 and the spine at x=580 struck through it.
-The eviction lane no longer stops on the frame edge between Pods. EVICT_ROUTE(i) drops the spine to
-a bus at BUS_Y=398 inside the frame and taps down into web-1 or web-2; both lanes are drawn, and
-each step feeds the SAME array to pathArrow and routePacket. evict-A: 3100 -> 3300ms.
+The eviction lane no longer stops on the frame edge between Pods. EVICT_ROUTE(i) drops to a bus at
+BUS_Y=398 inside the frame and taps down into web-1 or web-2; both lanes are drawn, and each step feeds
+the SAME array to pathArrow and routePacket. evict-A: 3100 -> 3300ms.
+
+**Two changes since, both 2026-07-30.** The lane leaves the API, not kubectl (review stage 2.4 family
+C): kubectl POSTs to the eviction subresource and the API is what reads the PDB, grants the 200 OK and
+DELETES the Pod, which both evict steps say in those words. `SPINE_X` could not simply be redefined
+because `KUBECTL_X` is DERIVED from it, so the route got its own `API_CX` = 868 and a jog at y=145 that
+clears the ladder; evict-A went 3300 -> 3900. And the 200 OK itself is now animated on the answer lane
+(family D), which the card had drawn and used only for the 429 on the retry step.
 ```
 
 ---
@@ -528,6 +549,17 @@ Kubelet creates the new container on the node (connector) and rewrites its cgrou
 not chained). The container pulses and re-materialises on arrival.
 ```
 
+### before `const pkt = topPacket(s, ctx, { from: KERN_X, to: KUBE_X + BOX_W, y: DOWN_Y, role: 'cluster' });`
+
+```
+Review stage 2.4 family D listed the `observe` step here as a return the narration promises and the
+motion never delivers. DECLINED 2026-07-30. What the step animates IS the claimed return: PLEG spotting
+the dead container travels kernel -> Kubelet on the lower lane, which is the answer lane of this pair
+and the correct direction. The other movement the sentence names, Kubelet PATCHing the container status
+to terminated, goes to an API this card does not draw, and the Kubelet sublabel already accounts for it
+in words (`PLEG + status patch`). A return has to have somewhere on the canvas to go.
+```
+
 ---
 
 ## cluster-pod-sandbox-cri
@@ -535,6 +567,13 @@ not chained). The container pulses and re-materialises on arrival.
 ### layout (R5-a, 2026-07-27)
 
 ```
+**The lane leaves containerd since 2026-07-30, not Kubelet** (review stage 2.4 family C). Kubelet is
+the one block on this card that never touches the sandbox: the whole subject is that it is a CRI client
+and containerd is what materialises the pause container, pulls, creates and starts. All four steps that
+ride the lane say so, and one said it in a code comment two lines above its own call. `SPINE_X` is
+`RT_X + RT_W / 2` = 790, and moving it right by 270 units added 244ms to every ball, which put all four
+steps 131ms over their 2800 budget: they are 3100 now.
+
 Already Layout A and left that way. Only the lane changed: it stopped on the Node frame's top edge,
 30 units above and 80 units left of the Pod sandbox it addresses. It now turns at BUS_Y = NODE_Y-16
 (in the gutter between the ladder and the chip column, so it still crosses nothing) and lands on the
@@ -1245,6 +1284,16 @@ the Pod centred BOTH ways inside Node-1 (cx 81, cy 124), the fan leaving the LB 
 landing on each Node top, and the underlay running Node edge to Node edge without ever crossing one.
 ```
 
+### before `const fan2 = pathArrow({ points: TO_N2, dashed: true, dim: true, role: 'network' });`
+
+```
+Review stage 2.4 family J listed `fan2` and `crossWire` here as bright lanes pointing into a dimmed
+block. DECLINED 2026-07-30, and the reason is not judgement: this card never changes an opacity at all,
+on any of its five steps, so it has no dimmed end for a lane to point at. The premise is vacuous.
+
+`C_WIRE` on this card belonged to family B, not J, and is a separate matter.
+```
+
 ---
 
 ## network-gateway-api
@@ -1711,6 +1760,16 @@ side paths all reach their slice at the same moment. The centre simply moves slo
 Node-1 pod just keeps its settled IP with no highlight; the action is on Node-2. Reveal
 the Node-2 pod and show its own IPAM hand-out: a second pod with a non-overlapping IP
 out of its slice proves uniqueness.
+```
+
+### before `const IPAM1 = [[NODE_CX[0], SLICE_BOTTOM], [NODE_CX[0], POD_Y]];`
+
+```
+Review stage 2.4 family C listed the `ipam` step here as a ball leaving the wrong block. DECLINED
+2026-07-30: the ball leaves the BOTTOM EDGE of the Node-1 slice chip, and after the family K rewrite
+the sentence reads "its address is drawn by the CNI IPAM strictly out of that Node slice", so the drawn
+source and the grammatical one now agree. The card has no CNI and no IPAM block anywhere, so there is
+nothing else for it to leave: the slice the address comes out of is the only candidate on the canvas.
 ```
 
 ---
@@ -8677,8 +8736,13 @@ edge: at the previous 412/116 the frame's top border ran 5 units above the Pod's
 a rendering slip rather than as a frame.
 The connector was [[690,120],[690,185],[280,185],[280,550],[320,550]], a leftover of the 320
 gutter: it clipped the ladder's first row at y=185 and ended at x=320 inside the Node frame,
-pointing at blank canvas 50 units left of the Pod. It is now TOP1 midpoint -> WL.SPINE_X at
+pointing at blank canvas 50 units left of the Pod. It is now TOP2 midpoint -> WL.SPINE_X at
 y=140 -> straight into the Pod's top midpoint, and the return lane is its reverse.
+
+**It left TOP1, kubectl, until 2026-07-30** (review stage 2.4 family C). The termination order is what
+the API sets in motion once it has stamped deletionTimestamp, and on the last step the report climbed
+back to a ball landing under kubectl while `lightBoxAt` lit the API. Moving it to the API cost 311ms
+per ball, which both steps had headroom for.
 Layout C leaves the left band above the Node frame empty at wide viewports. That is unavoidable
 while the narration panel is not clamped in CSS.
 ```
@@ -8696,8 +8760,13 @@ Chips take a full-width bottom strip at THREE per row (350.67; the widest value 
 Two per row, as the R5-a brief specifies, would be three rows and would leave the Node frame 64
 units where the Pod alone is 106.
 The ladder moved up to y=140 so the frame can be 394..528 with the Pod 20 below its top edge.
-The spine steps from TOP1's bottom midpoint to WL.SPINE_X at y=140 and ends on the Pod's top
+The spine steps from TOP2's bottom midpoint to WL.SPINE_X at y=140 and ends on the Pod's top
 midpoint rather than on the frame edge.
+
+**It left TOP1, Kubelet, until 2026-07-30** (review stage 2.4 family C). Kubelet is a CRI CLIENT and
+never touches a container: the runtime execs the hook and delivers the signal, which both steps that
+ride this lane say in their own wire label (`CRI ExecSync · preStop · Sync` and
+`CRI StopContainer · SIGTERM · ACK`). Cost 311ms per ball, both steps had the headroom.
 The ExecSync ack rode `segmentPacket from [580,95] to [540,95]` on five steps: both x values sit
 INSIDE the Kubelet box (420..640), so the ball slid across the box instead of down the drawn
 return arrow. It now runs TOP2_X -> TOP1_X+TOP1_W at RESP_Y, which is that arrow.
@@ -8754,6 +8823,10 @@ POD_TOP_PAD is 24: the Pod row starts at x=84 and at a smaller pad the frame's o
 would be drawn inside worker-1's shell.
 Longer routes pushed all four motion steps over budget: 3100/2400/3100/2400 -> 3500/2700/3500/
 2700. Motion untouched.
+
+**`partial` is 3100 since 2026-07-30**, not the 2700 above: review stage 2.4 family B gave that step
+the watch event its own wire label names (`watch Pod exits`), which leaves on the LAST of the three
+exit arrivals because the controller cannot count before every unit has reported.
 ```
 
 ### before `const recon = fanOut(s, ctx);`
@@ -8847,6 +8920,14 @@ bottom strip 532 wide. Four across was 258 and six of the eight chip strings col
 including "Pod NEW · pri" against "2e9 (system-cluster-critical)".
 
 Scheduler is 420..780, centred on CX. Everything the Scheduler sends down addresses slot 0: it
+**TWO lanes since 2026-07-30, not one** (review stage 2.4 family C): `SCAN_LANE` from the Scheduler,
+which is the preemption scan evaluating the Pods already on the Node, and `NODE_LANE` from the API,
+which is what the API sets in motion once a write has landed on it (the graceful delete of the victim,
+the start of the bound Pod). The Scheduler never reaches a Node, it writes to the API and the Node acts
+on what it reads, so picking one owner would have lied about the other. Both share the drop, so they
+read as one wiring tree with two sources. `delete` and `bind` went 3400 -> 4200. The paragraph below is
+the R5 reasoning for the single lane it replaced.
+
 is the victim it preempts (Pod A) and the slot Pod NEW is bound into. So there is ONE lane, not
 a bus, and it doglegs at BUS_Y = NODE_Y + 12 to land on that slot Pod top midpoint. The wire
 and the ball are built from that one LANE array.
@@ -8973,9 +9054,12 @@ and attached to Node-2. The frames narrowed to 440 each (60..500 and 700..1140) 
 Lanes, all of them rebuilt, because the packets and the wires had drifted apart:
   the control lanes were DRAWN from NODE1_LANE / NODE2_LANE but the BALLS flew literal arrays
   ([[800,80],[815,80],[815,460],[975,460],[975,480]] and a route out to x=1198, off the content
-  band entirely) that matched no wire on the card. Now one trunk at TOP1_CX, a bus split into a
-  left and a right half so each half can be hidden with its own tap, and one tap per Node
-  landing on that Node Pod.
+  band entirely) that matched no wire on the card. Now one trunk, a bus split into a left and a
+  right half so each half can be hidden with its own tap, and one tap per Node landing on that Node
+  Pod. The trunk left TOP1_CX until 2026-07-30 and now leaves TOP2_CX with a jog into the corridor at
+  y=140 (review stage 2.4 family C): both the eviction and the binding are API writes taking effect on
+  a Node, and the StatefulSet only ever POSTs to the API on the top row. Cost: `evict` 2300 -> 2700 and
+  `bind` 2600 -> 3200.
   the storage lane called pvConnector was RETURN_LANE, which is NODE2_LANE reversed: a control
   route wearing the storage colour, and its comment described a route down the right margin that
   the code did not draw. It is now PV_LANE, PV right face to web-0 on Node-2, and PV_MOUNT_A
