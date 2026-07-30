@@ -256,9 +256,11 @@ const STEPS = [
       setVal(s.refs.iptChip, 'thousands of rules');
       setVal(s.refs.ipvsChip, 'still one lookup');
       // The selection chip was the one chip this step did not write, so it carried the IPVS scheduler
-      // from the step before into a step whose whole point is that selection is the SAME in both modes
-      // and only the lookup differs.
-      setVal(s.refs.pickChip, 'same in both');
+      // from the step before. What is true HERE is that selection is the thing scale does not touch:
+      // the chain walk grows with every Service, the choice of backend does not. It must not say the
+      // two modes select the SAME way, because this card spends two steps establishing that they do
+      // not (statistic random against a rr / lc scheduler), and it said exactly that for one commit.
+      setVal(s.refs.pickChip, 'unchanged by scale');
       s.refs.pickChip.classList.add('highlight');
       setWire(s, 'ipt', 'grows with every Service');
       setWire(s, 'ipvs', 'constant time');

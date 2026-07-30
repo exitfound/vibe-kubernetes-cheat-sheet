@@ -172,9 +172,10 @@ const STEPS = [
       setVal(s.refs.slice3, '10.244.3.0/24');
       if (ctx.reduced) return;
       // The three slices held their /24 from step entry, so the carve arrived at chips that already
-      // showed its result. They read unset until the allocations land, which they do together: the
+      // showed its result. They hold `pending`, the card's own word for an uncarved slice, until the
+      // allocations land, which they do together: the
       // three balls share one explicit dur because one sweep writes all three podCIDR fields.
-      [s.refs.slice1, s.refs.slice2, s.refs.slice3].forEach(c => setVal(c, 'unset'));
+      [s.refs.slice1, s.refs.slice2, s.refs.slice3].forEach(c => setVal(c, 'pending'));
       const dur = 1100;
       const a2 = routePacket(s, ctx, ALLOC2, { dur, fadeIn: true, role: 'network' });
       routePacket(s, ctx, ALLOC1, { dur, fadeIn: true, role: 'network' });
