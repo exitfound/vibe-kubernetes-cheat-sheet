@@ -210,7 +210,7 @@ const STEPS = [
   {
     id: 'gone',
     duration: 3500,
-    narration: 'When the grace period ends web-c exits and its endpoint leaves the slice, with a replacement Pod from the ReplicaSet already Ready in its place. Traffic carried on throughout, and no client saw a reset.',
+    narration: 'When the grace period ends web-c exits and its endpoint leaves the slice. Its replacement is already Ready elsewhere in the ReplicaSet, so the Service never dropped below its backend count. Traffic carried on throughout, and no client saw a reset.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

@@ -25,11 +25,16 @@ const CHIP_Y = i => CHIPS_TOP + i * (WL.CHIP_H + CHIP_GAP);
 
 const NODE_H = 140, CANVAS_B = 624;
 const NODE_Y = CANVAS_B - NODE_H;                        // 484..624, the frame rests on the floor
-const POD_W = 300, POD_H = 106, POD_Y = NODE_Y + 22;     // 506..612
+// FOUR slots. Every step of this card pins RS-v1 at 3 / 3, and the narration says RS-v1 was never
+// scaled below three, so the three v1 Pods are always drawn. The fourth slot carries the whole v2
+// story: it appears on the rollout, crash-loops, wedges, and is deleted by the undo. With three slots
+// the broken v2 stood in a v1 Pod's place and the row showed two survivors against a chip saying three.
+const POD_W = 234, POD_H = 106, POD_Y = NODE_Y + 22;     // 506..612
 const POD_PAD = 24;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
-const POD_XS = [0, 1, 2].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / 2));
-const POD_CX = i => POD_XS[i] + POD_W / 2;               // 234 / 600 / 966
+const SLOT_N = 4;
+const POD_XS = [0, 1, 2, 3].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / (SLOT_N - 1)));
+const POD_CX = i => POD_XS[i] + POD_W / 2;               // 201 / 467 / 733 / 999
 
 // The trunk leaves the first actor box on its own midpoint, steps into the central corridor
 // between the two columns, drops to a bus above the Pod row and taps down into the surging Pod,
@@ -39,7 +44,7 @@ const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes
 const BUS_Y = NODE_Y - 24;                               // 460, clear of the chip column
 const SPINE = [
   [TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y],
-  [WL.SPINE_X, BUS_Y], [POD_CX(0), BUS_Y], [POD_CX(0), POD_Y],
+  [WL.SPINE_X, BUS_Y], [POD_CX(3), BUS_Y], [POD_CX(3), POD_Y],
 ];
 
 
@@ -90,7 +95,7 @@ class Scene {
 
     const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    const POD_NAMES = ['web-1', 'web-2', 'web-3'];
+    const POD_NAMES = ['web-a1', 'web-b2', 'web-c3', 'web-d4'];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
       const shell = pod({ x: px, y: POD_Y, w: POD_W, h: POD_H, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
@@ -105,8 +110,8 @@ class Scene {
       podBoxes.push(innerBox);
       return wrap;
     });
-    const [pod1, pod2, pod3] = podWrappers;
-    const [pod1Box, pod2Box, pod3Box] = podBoxes;
+    const [pod1, pod2, pod3, pod4] = podWrappers;
+    const [pod1Box, pod2Box, pod3Box, pod4Box] = podBoxes;
 
     const connector = pathArrow({
       points: SPINE,
@@ -119,7 +124,7 @@ class Scene {
 
     root.appendChild(chain);
     root.appendChild(nodeEl);
-    [pod1, pod2, pod3].forEach(p => root.appendChild(p));
+    [pod1, pod2, pod3, pod4].forEach(p => root.appendChild(p));
     root.appendChild(apiserver);
     root.appendChild(controller);
 
@@ -128,7 +133,7 @@ class Scene {
       svg: root,
       controller, apiserver, chain, nodeEl, connector,
       rs1Chip, rs2Chip, condChip, revChip,
-      pod1, pod2, pod3, pod1Box, pod2Box, pod3Box,
+      pod1, pod2, pod3, pod4, pod1Box, pod2Box, pod3Box, pod4Box,
       packetLayer,
       wires: { req: wireReq },
     };
@@ -139,18 +144,23 @@ class Scene {
 
 function clearHL(s) {
   clearHighlights(s,
-    ['controller','apiserver','rs1Chip','rs2Chip','condChip','revChip','pod1Box','pod2Box','pod3Box'],
-    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
+    ['controller','apiserver','rs1Chip','rs2Chip','condChip','revChip','pod1Box','pod2Box','pod3Box','pod4Box'],
+    [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
 }
-function setVersions(s, a, b, c) {
-  setBoxSublabel(s.refs.pod1Box, a);
-  setBoxSublabel(s.refs.pod2Box, b);
-  setBoxSublabel(s.refs.pod3Box, c);
+// A slot's version and its presence are one fact: `null` means the slot is empty on this step. The
+// three v1 Pods never leave, so only the fourth argument ever changes.
+function setSlots(s, ...slots) {
+  slots.forEach((v, i) => {
+    const pod = s.refs['pod' + (i + 1)];
+    if (v === null) { pod.style.opacity = '0'; return; }
+    pod.style.opacity = String(v.op === undefined ? 1 : v.op);
+    setBoxSublabel(s.refs['pod' + (i + 1) + 'Box'], v.v);
+  });
 }
-function resetPodOpacity(s) {
-  ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
-}
-
+const V1 = { v: 'v1.0' };
+const V2_NEW = { v: 'v2.0 · starting' };
+const V2_CRASH = { v: 'v2.0 · CrashLoopBackOff', op: OPACITY.notready };
+const V2_STUCK = { v: 'v2.0 · stuck', op: OPACITY.notready };
 const STEPS = [
   {
     id: 'stable',
@@ -159,8 +169,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      resetPodOpacity(s);
-      setVersions(s, 'v1.0', 'v1.0', 'v1.0');
+      setSlots(s, V1, V1, V1, null);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 0');
       setVal(s.refs.condChip, 'Available=True');
@@ -176,8 +185,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      resetPodOpacity(s);
-      setVersions(s, 'v2.0 · starting', 'v1.0', 'v1.0');
+      setSlots(s, V1, V1, V1, V2_NEW);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 1');
       setVal(s.refs.condChip, 'Progressing=True');
@@ -188,13 +196,13 @@ const STEPS = [
       s.refs.rs2Chip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
       // The PATCH hits the Api, then the surge order travels down the
       // connector and the surging Pod pulses on arrival.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
       const surge = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      pulsePod(s.refs.pod1, ctx, surge.arrivalMs);
+      pulsePod(s.refs.pod4, ctx, surge.arrivalMs);
     },
   },
   {
@@ -205,8 +213,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      resetPodOpacity(s);
-      setVersions(s, 'v2.0 · CrashLoopBackOff', 'v1.0', 'v1.0');
+      setSlots(s, V1, V1, V1, V2_CRASH);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 1 (crashing)');
       setVal(s.refs.condChip, 'Progressing=True');
@@ -215,17 +222,14 @@ const STEPS = [
       setWire(s, 'req', 'readinessProbe fail · v2 not Ready');
       s.refs.apiserver.classList.add('highlight');
       s.refs.rs2Chip.classList.add('highlight');
-      // Pin final opacities: the broken v2 Pod dims, the v1 Pods stay up.
-      s.refs.pod1.style.opacity = String(OPACITY.notready);
-      s.refs.pod2.style.opacity = '1';
-      s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      // The failed status reaches the controller over the connector. The v2 Pod
-      // pulses then dims to show it is crash-looping, the v1 Pods are untouched.
+      // The failed status reaches the controller over the connector. The v2 Pod pulses then dims to
+      // show it is crash-looping, and the three v1 Pods are untouched throughout.
+      s.refs.pod4.style.opacity = '1';
       const status = routePacket(s, ctx, SPINE, { role: 'workloads' });
-      pulsePod(s.refs.pod1, ctx, status.arrivalMs);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: FADE.out, delay: status.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      pulsePod(s.refs.pod4, ctx, status.arrivalMs);
+      ctx.register(s.refs.pod4.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: FADE.out, delay: status.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -236,8 +240,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      resetPodOpacity(s);
-      setVersions(s, 'v2.0 · stuck', 'v1.0', 'v1.0');
+      setSlots(s, V1, V1, V1, V2_STUCK);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 1 stuck');
       s.refs.rs2Chip.classList.add('highlight');
@@ -246,10 +249,6 @@ const STEPS = [
       setWire(s, 'req', 'progressDeadlineSeconds elapsed · rollout halts');
       s.refs.condChip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
-      // The broken v2 Pod stays dim, the v1 Pods keep serving.
-      s.refs.pod1.style.opacity = String(OPACITY.notready);
-      s.refs.pod2.style.opacity = '1';
-      s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
       // The deadline lapses with nothing moving and the Pods are untouched: the wedged
       // conditions show via the static highlight only (no chip pulse).
@@ -263,8 +262,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      resetPodOpacity(s);
-      setVersions(s, 'v1.0 · restored', 'v1.0', 'v1.0');
+      setSlots(s, V1, V1, V1, null);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 0');
       s.refs.rs2Chip.classList.add('highlight');
@@ -275,19 +273,17 @@ const STEPS = [
       s.refs.controller.classList.add('highlight');
       s.refs.rs1Chip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
-      // Pin final state: the slot is a healthy v1 Pod again.
-      s.refs.pod1.style.opacity = '1';
-      s.refs.pod2.style.opacity = '1';
-      s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
-      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
-      // The undo reaches the node. The recreated v1 Pod lifts from the dim broken
-      // state back to full opacity and pulses on arrival.
+      // The undo reaches the node and the broken v2 Pod is DELETED, which is what the narration says:
+      // RS-v2 goes to zero and the three v1 Pods simply keep serving, so the row loses its fourth Pod
+      // rather than converting it back into a v1.
+      s.refs.pod4.style.opacity = String(OPACITY.notready);
       const undo = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      ctx.register(s.refs.pod1.animate([{ opacity: OPACITY.notready }, { opacity: 1 }], { duration: FADE.in, delay: undo.arrivalMs, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod1, ctx, undo.arrivalMs);
+      pulsePod(s.refs.pod4, ctx, undo.arrivalMs);
+      ctx.register(s.refs.pod4.animate([{ opacity: OPACITY.notready }, { opacity: 0 }], { duration: FADE.out, delay: undo.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -298,8 +294,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      resetPodOpacity(s);
-      setVersions(s, 'v1.0', 'v1.0', 'v1.0');
+      setSlots(s, V1, V1, V1, null);
       setVal(s.refs.rs1Chip, '3 / 3 (now rev 3)');
       s.refs.rs1Chip.classList.add('highlight');
       setVal(s.refs.rs2Chip, '0 / 0 (retained)');

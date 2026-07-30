@@ -8597,10 +8597,18 @@ pod-to-node mapping is the DaemonSet signature.
 ```
 Layout B of the WL canon (chips left, pipeline right). Panel worst case x<=397, y<=230.
 The six-row ladder (242) does not fit the 250..464 band, the four-chip column (160) does.
-Only the surging Pod (web-1, centre 234) ever receives a ball, so there is ONE lane: trunk from
-TOP1's bottom midpoint, step to WL.SPINE_X at y=140 to clear the chip column, drop to a bus at
-NODE_Y-24 and tap down into web-1. Drawing taps into web-2 and web-3 as well would put an
-arrowhead on a lane no ball ever rides, which the canon forbids.
+Only the surging Pod ever receives a ball, so there is ONE lane: trunk from TOP1's bottom midpoint,
+step to WL.SPINE_X at y=140 to clear the chip column, drop to a bus at NODE_Y-24 and tap down into it.
+Drawing taps into the other slots as well would put an arrowhead on a lane no ball ever rides, which
+the canon forbids.
+
+**FOUR slots since 2026-07-30** (review stage 2.4 family G), so that Pod is web-d4 at centre 999 and
+the lane taps there, not into the leftmost slot. Every step of this card pins RS-v1 at 3 / 3 and the
+wedged step says RS-v1 keeps ALL THREE v1.0 Pods serving, so the three v1 Pods have to be drawn at
+once. With three slots the broken v2 stood in one of their places and the row showed two survivors
+against a chip saying three. The fourth slot now carries the whole v2 story on its own: it appears on
+the rollout, crash-loops, wedges, and is DELETED by the undo rather than converted back into a v1,
+which is what the undo step narrates. Row is 4 x 234 at 201 / 467 / 733 / 999, Pods named web-a1..d4.
 Raising the geometry lengthened the route: steps 1, 2 and 4 went over budget and their durations
 went 3100/2400/3100 -> 3700/2900/3700. Motion untouched.
 ```
@@ -9086,11 +9094,23 @@ Layout A. Panel x<=397, y<=205, the shallowest in the batch, so both columns fit
 ladder left 60..540 from BAND_Y = 226, chips right 660..1140 from the same line, Node frame full
 width 490..624.
 
-The Deployment box is 420..780, centred on CX. Three slots and three different addressees
-(surge targets web-1, the drain targets web-3, then web-2 and web-3 in turn), so the lane is a
-trunk down CX into the frame, a bus at NODE_Y + 12 and one tap per slot. LANE(1) collapses to a
-straight drop because slot 1 is centred on CX, which is why its step did not go over budget when
-the other three did.
+The Deployment box is 420..780, centred on CX.
+
+**FOUR slots since 2026-07-30, and that is content rather than layout** (review stage 2.4 family G).
+maxSurge=1 means the rollout is transiently one Pod ABOVE .spec.replicas, which the surge step says in
+words and counts in its chip as "4 Pods alive". Three slots made the drawing contradict the card's own
+subject, so the row is 4 x 234 wide at 201 / 467 / 733 / 999. The fourth slot is where the surge lands;
+each drain then frees a slot the next v2 takes, and the row ends with its LEFTMOST slot empty because
+the surge capacity is given back. Pods are named web-a1..web-d4 rather than by ordinal, because an
+ordinal implies an age order the drawing never establishes while the narration says the controller
+picks the oldest.
+
+Two claims that stood here until then and are now false, kept as a warning: there were three slots, and
+LANE(1) collapsed to a straight drop because slot 1 sat on CX. With four slots no centre lands on CX,
+so every tap is a jog, and the trunk no longer starts at CX either (it leaves the API at 990 and steps
+into the corridor, review stage 2.4 family C). A cycle is now TWO events, a surge and a drain, where
+the three-slot version could only draw one, which is what took second-cycle to 6200 and third-cycle to
+6800.
 
 The wire label moved from below the actor row to above it: at TOP_BOTTOM + 26 it was overlapping
 the first ladder row.
