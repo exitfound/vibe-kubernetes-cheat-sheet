@@ -20,7 +20,15 @@ const PANEL_X = 710, PANEL_W = 410;       // record ladder: 710..1120
 const ROWS_Y = 56, ROW_H = 54, ROW_GAP = 8;
 const ROWS = [0, 1, 2, 3].map(i => ROWS_Y + i * (ROW_H + ROW_GAP) + ROW_H / 2);   // 83 145 207 269
 const FAN_X = 680;                        // vertical bus the four answer wires branch on
-const QUERY = [[CLIENT_EDGE, FLOW_Y], [CD_LEFT, FLOW_Y]];
+// The client leg is a PAIR: the question goes out above the flow line and the answer comes home below
+// it, mirrored on both faces. Every record step says the CLIENT gets the record ("Ask for the name
+// itself and you get an A record"), and until 2026-07-30 the only answer drawn went up into the record
+// ladder, which is the record being displayed rather than anything reaching the asker.
+const LANE_DY = 12;
+const Q_OUT_Y = FLOW_Y - LANE_DY;         // 388
+const Q_BACK_Y = FLOW_Y + LANE_DY;        // 412
+const QUERY = [[CLIENT_EDGE, Q_OUT_Y], [CD_LEFT, Q_OUT_Y]];
+const REPLY = [[CD_LEFT, Q_BACK_Y], [CLIENT_EDGE, Q_BACK_Y]];
 const ANS = ROWS.map(cy => [[CD_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, cy], [PANEL_X, cy]]);
 
 // FQDN band: the four name segments keep their relative widths (156:116:76:100, each sized by its
@@ -83,6 +91,7 @@ class Scene {
     // Dim dashed wires: the straight query lane client -> CoreDNS, then ONE wire per record row so
     // every answer ball has a line under it. Each wire is drawn from the same array the ball rides.
     const wQuery = arrow({ x1: QUERY[0][0], y1: QUERY[0][1], x2: QUERY[1][0], y2: QUERY[1][1], dashed: true, dim: true, role: 'network' });
+    const wReply = arrow({ x1: REPLY[0][0], y1: REPLY[0][1], x2: REPLY[1][0], y2: REPLY[1][1], dashed: true, dim: true, role: 'network' });
     const wAns = ANS.map(points => pathArrow({ points, dashed: true, dim: true }));
 
     const qChip = valChip({ x: CONTENT_L, y: CHIP_Y, w: Q_CHIP_W, h: CHIP_H, name: 'question', value: '-', role: 'network' });
@@ -92,7 +101,7 @@ class Scene {
 
     // Z-order: anatomy + coredns + client + ladder, then wires ABOVE, then chips, then packets.
     [seg1, seg2, seg3, seg4, coredns, client.group, records].forEach(el => root.appendChild(el));
-    [wQuery, ...wAns].forEach(el => root.appendChild(el));
+    [wQuery, wReply, ...wAns].forEach(el => root.appendChild(el));
     [qChip, ansChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
 
@@ -146,7 +155,12 @@ function resolve(s, ctx, rowIdx) {
   const row = s.refs.coredns.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay: ans.arrivalMs });
   row.onfinish = () => setChainActive(s.refs.records, rowIdx);
   ctx.register(row);
-  return ans;
+  // The record lights in the ladder, and THEN the same answer goes home: every step on this card says
+  // the client is what gets the record, and the ladder is the record being displayed rather than
+  // anything arriving at the asker.
+  const reply = segmentPacket(s, ctx, { from: REPLY[0], to: REPLY[1], delay: ans.arrivalMs + BEAT.afterHop, role: 'network' });
+  pulsePod(s.refs.client, ctx, reply.arrivalMs);
+  return reply;
 }
 
 const STEPS = [
@@ -180,7 +194,9 @@ const STEPS = [
   },
   {
     id: 'a-record',
-    duration: 3000,
+    // Motion: the query out, the record up into the ladder, then the answer home to the
+    // client and its arrival pulse, ending at ~4100.
+    duration: 4400,
     narration: 'Ask for the name itself and you get an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: a name in, the stable virtual IP out, which kube-proxy then load-balances to a Pod. Note that this is the web Service address, not 10.96.0.10, which is the kube-dns ClusterIP the query was sent to.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -193,7 +209,9 @@ const STEPS = [
   },
   {
     id: 'srv-record',
-    duration: 3000,
+    // Motion: the query out, the record up into the ladder, then the answer home to the
+    // client and its arrival pulse, ending at ~4100.
+    duration: 4400,
     narration: 'A named port also publishes an SRV record. The name grows a prefix, _http._tcp, naming the port and the protocol, and the answer carries the port number and the target host. It lets a client discover which port a Service exposes without that port being hard-coded anywhere.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -206,7 +224,9 @@ const STEPS = [
   },
   {
     id: 'headless-record',
-    duration: 3000,
+    // Motion: the query out, the record up into the ladder, then the answer home to the
+    // client and its arrival pulse, ending at ~4100.
+    duration: 4400,
     narration: 'If the Service is headless, the name does not change at all: the client asks exactly what it asked for the A record. What changes is the answer, one A record per ready Pod instead of a single virtual IP, here three of them, and the client chooses an endpoint itself.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -219,7 +239,9 @@ const STEPS = [
   },
   {
     id: 'pod-record',
-    duration: 3000,
+    // Motion: the query out, the record up into the ladder, then the answer home to the
+    // client and its arrival pulse, ending at ~4100.
+    duration: 4400,
     narration: 'Finally a Pod can be addressed directly, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves this when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode it reads the address straight back out of the name without checking that such a Pod exists. The stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();

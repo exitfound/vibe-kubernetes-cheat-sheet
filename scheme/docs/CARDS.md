@@ -6760,6 +6760,18 @@ that sat centred on 700 in the same corridor, so the corridor carried a lane lef
 line of text right of it and read as neither aligned nor deliberate. The caption is gone (see
 build) and the lane is back on CONTENT_CX, which is also where node-2 reports in from below, so
 the CSINode box now has one vertical axis through it rather than two near-misses.
+
+**This is why review stage 2.4 family D is DECLINED on this card (2026-07-30).** The finding is real
+as far as it goes: the filter step narrates a read ("reads allocatable.count out of each CSINode and
+compares it") and only the question was ever drawn. The fix D prescribes is a lane pair, and it was
+built and then reverted, because a pair is by definition two axes and would put three verticals
+through this box where the note above records the work of getting it down to one.
+
+What answers the read instead is already on screen and is why the step lights what it lights: the
+CSINode carries `allocatable.count: 8` in its own sublabel, and all three Node counters are lit for
+the whole step precisely because they are the values being compared against. A ball would restate
+what two blocks already say, at the cost of the axis. If a rule can only be satisfied by making the
+picture worse, the finding stays open with the reason written down.
 ```
 
 ### before `const W_NODE_CSI = [`

@@ -28,7 +28,13 @@ const CLIENT_IP = 'src 10.244.1.5';
 const TO_PODX = [[HOOK_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, PODX_Y], [POD_X, PODX_Y]];
 const TO_PODY = [[HOOK_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, PODY_Y], [POD_X, PODY_Y]];
 const CONNECT = [[CLIENT_RIGHT, FLOW_Y], [HOOK_X, FLOW_Y]];   // client socket -> the eBPF program
-const LOOKUP = [[LOOKUP_X, HOOK_Y], [LOOKUP_X, MAP_Y + MAP_H]];  // program -> BPF maps
+// A map lookup is a round trip, so the link is a PAIR straddling LOOKUP_X: the question goes up on
+// the left of it, the address comes back down on the right, mirrored so neither endpoint stands alone
+// on the faces they touch. Until 2026-07-30 the up leg was drawn and carried nothing at all, and the
+// map only lit: the sentence "looks the address up in the map" had no motion behind it.
+const LOOKUP_DX = 12;
+const LOOKUP = [[LOOKUP_X - LOOKUP_DX, HOOK_Y], [LOOKUP_X - LOOKUP_DX, MAP_Y + MAP_H]];   // program -> BPF maps
+const LOOKUP_BACK = [[LOOKUP_X + LOOKUP_DX, MAP_Y + MAP_H], [LOOKUP_X + LOOKUP_DX, HOOK_Y]];  // the answer
 
 const CHIP_Y = 548, CHIP_H = 34, CHIP_GAP = 20;
 const CHIP_W = (CONTENT_R - CONTENT_L - 2 * CHIP_GAP) / 3;   // 340
@@ -87,6 +93,7 @@ class Scene {
     // -> map lookup link, and the right-angle fan to the two backends (chosen bright on use).
     const wConnect = arrow({ x1: CONNECT[0][0], y1: CONNECT[0][1], x2: CONNECT[1][0], y2: CONNECT[1][1], dashed: true, dim: true });
     const wLookup = arrow({ x1: LOOKUP[0][0], y1: LOOKUP[0][1], x2: LOOKUP[1][0], y2: LOOKUP[1][1], dashed: true, dim: true });
+    const wLookupBack = arrow({ x1: LOOKUP_BACK[0][0], y1: LOOKUP_BACK[0][1], x2: LOOKUP_BACK[1][0], y2: LOOKUP_BACK[1][1], dashed: true, dim: true });
     const fanX = pathArrow({ points: TO_PODX, dashed: true, dim: true });
     const fanY = pathArrow({ points: TO_PODY, dashed: true, dim: true });
     // No connect-wire label: the connect target (ClusterIP) now lives on the client socket box.
@@ -107,7 +114,7 @@ class Scene {
     root.appendChild(client.group);
     root.appendChild(w1.group);
     root.appendChild(w2.group);
-    [wConnect, wLookup, fanX, fanY, lLookup, lDeliver].forEach(el => root.appendChild(el));
+    [wConnect, wLookup, wLookupBack, fanX, fanY, lLookup, lDeliver].forEach(el => root.appendChild(el));
     [svcChip, modeChip, kpChip].forEach(c => root.appendChild(c));
     root.appendChild(packetLayer);
 
@@ -172,7 +179,9 @@ const STEPS = [
   },
   {
     id: 'connect-time',
-    duration: 2500,
+    // Motion: the client pulse, the connect call to the hook, then the map lookup up and its
+    // answer back down, ending at 3660.
+    duration: 4000,
     narration: 'When the client calls connect to the ClusterIP, the socket-level eBPF program looks the address up in the map and rewrites the destination to a chosen Pod right there, before the packet is even built. This is connect-time load balancing, not per-packet DNAT.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -187,7 +196,12 @@ const STEPS = [
       pulsePod(s.refs.client, ctx, 0);
       const send = segmentPacket(s, ctx, { from: CONNECT[0], to: CONNECT[1], delay: BEAT.afterPulse, role: 'network' });
       lightBoxAt(s.refs.hook, ctx, send.arrivalMs);
-      lightBoxAt(s.refs.bpfmap, ctx, send.arrivalMs + BEAT.afterHop);
+      // The lookup itself, which the sentence names and the card drew a lane for without ever using
+      // it: the question goes up to the map, the map lights when it lands, and the address comes back
+      // down the paired lane. The rewrite the sentence ends on happens once it is back.
+      const ask = segmentPacket(s, ctx, { from: LOOKUP[0], to: LOOKUP[1], delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
+      lightBoxAt(s.refs.bpfmap, ctx, ask.arrivalMs);
+      segmentPacket(s, ctx, { from: LOOKUP_BACK[0], to: LOOKUP_BACK[1], delay: ask.arrivalMs + BEAT.afterHop, role: 'network' });
     },
   },
   {

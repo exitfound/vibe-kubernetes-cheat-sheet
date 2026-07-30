@@ -222,7 +222,9 @@ const STEPS = [
   },
   {
     id: 'status',
-    duration: 2000,
+    // Motion: the PLEG round trip to the runtime (700 out, 700 back with a beat between), then
+    // the PATCH down the riser to the API, ending at 3316.
+    duration: 3600,
     narration: 'Next PLEG cycle observes the running container, observed state catches up to desired state, and SyncPod issues no new CRI calls. Kubelet PATCHes Pod status (containerStatuses) back to the API. The loop is ready for the next change.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -236,8 +238,14 @@ const STEPS = [
       s.refs.observedChip.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[4]) rows[4].classList.add('highlight');
-      if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
-      const pkt = routePacket(s, ctx, KUBE_TO_API, { role: 'cluster' });
+      if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); s.refs.api.classList.add('highlight'); return; }
+      // The sentence OPENS with the next PLEG cycle observing the container, which is the same
+      // ListContainers round trip the pleg step makes, and only then does the Kubelet PATCH status.
+      // The card animated the PATCH alone, so the observation that justifies it was invisible.
+      const list = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: OUT_Y, role: 'cluster' });
+      lightBoxAt(s.refs.runtime, ctx, list.arrivalMs);
+      const seen = topPacket(s, ctx, { from: RT_X, to: KUBE_R, y: BACK_Y, delay: list.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      const pkt = routePacket(s, ctx, KUBE_TO_API, { delay: seen.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.api, ctx, pkt.arrivalMs);
     },
   },

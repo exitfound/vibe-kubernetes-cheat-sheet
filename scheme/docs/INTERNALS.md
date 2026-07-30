@@ -589,10 +589,26 @@ nests inside the outbound one and leaves each cylinder top on the mirrored side 
 three durations raised (2400 -> 3800, and two 1900 -> 2500), and `BEAT` had to be imported, which
 `smoke-all` caught as a swallowed ReferenceError for the third time this review.
 
-**Still open, 5 cards**, all needing the same lane-pair split on their own main lane:
-`cluster-kubelet-sync-loop/status`, `network-ebpf-dataplane/connect-time`,
-`network-tls-termination/handshake`, `network-dns-records` (four record steps, whose answers go to the
-record rows rather than back to the client) and `storage-volume-attach-limits/filter`.
+**The other four closed the same day**, three of them by building the pair their card lacked:
+
+| card | what was missing | what it cost |
+|---|---|---|
+| `cluster-kubelet-sync-loop/status` | the sentence OPENS with the next PLEG cycle observing the container, and only the PATCH that follows was drawn. Both lanes already existed | duration 2000 -> 3600 |
+| `network-ebpf-dataplane/connect-time` | "looks the address up in the map" had no motion: the lookup lane was drawn and had never carried anything, the map only lit. Now a pair straddling `LOOKUP_X` | duration 2500 -> 4000 |
+| `network-tls-termination/handshake` | the certificate the controller PRESENTS (its lane drawn, never used) and the server side of the handshake. The client leg became a pair, the backend leg stays single because nothing claims a response from the Pod | duration 2500 -> 3200 |
+| `network-dns-records` | four record steps whose answers climbed into the record ladder and never reached the asker, while every one of them says the CLIENT gets the record. Client leg split into a pair | four durations 3000 -> 4400 |
+
+**Declined, 2.** `cluster-oom-kill/observe` promises a status PATCH to an API this card does not draw.
+`storage-volume-attach-limits/filter` is the interesting one: the pair was built and then REVERTED,
+because `docs/CARDS.md` records the work of getting the CSINode box down to one vertical axis and a
+pair is two by definition. What answers that read is already on screen, which is why the step lights
+all three Node counters. Reason written under the card's own note.
+
+**Two traps this family sets, both hit more than once.** A return flips the sender into a receiver, so
+a box lit at step entry has to go dark and light on arrival instead: `check-arrival` R3 caught it on
+`workloads-init-containers-and-sidecars` and again on `cluster-etcd-raft/apply`. And `BEAT` was missing
+from the imports of four different cards, each time surfacing as a step that played its first packet
+and silently stopped, visible only to `smoke-all`.
 ```
 
 ### before `export const WORKLOADS_TINT = Object.freeze({ base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' });`

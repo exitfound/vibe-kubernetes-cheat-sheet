@@ -244,18 +244,19 @@ const STEPS = [
       setVal(s.refs.l2, '9 / 9');
       setVal(s.refs.l3, '9 / 9');
       s.refs.e1.classList.add('highlight');
-      s.refs.e2.classList.add('highlight');
-      s.refs.e3.classList.add('highlight');
       s.refs.l1.classList.add('highlight');
       s.refs.l2.classList.add('highlight');
       s.refs.l3.classList.add('highlight');
-      if (ctx.reduced) return;
+      // Both Followers now RECEIVE the heartbeat, so they are dark at step entry and light when it
+      // lands: check-arrival R3 fired the moment the balls were added.
+      if (ctx.reduced) { s.refs.e2.classList.add('highlight'); s.refs.e3.classList.add('highlight'); return; }
       // This step animated nothing at all while its narration has the Leader CARRYING the new
       // commitIndex to both Followers on the next heartbeat. It is the same two outbound lanes the
       // replicate step uses, and each Follower is already lit because both apply the entry.
       const hb2 = segmentPacket(s, ctx, { from: E1_TO_E2[0], to: E1_TO_E2[1], role: 'cluster' });
+      lightBoxAt(s.refs.e2, ctx, hb2.arrivalMs);
       const hb3 = routePacket(s, ctx, REPLICATE, { role: 'cluster' });
-      return [hb2, hb3];
+      lightBoxAt(s.refs.e3, ctx, hb3.arrivalMs);
     },
   },
 ];
