@@ -574,9 +574,22 @@ the container id, on two lanes that were drawn and had never carried anything) a
 one: `cluster-oom-kill/observe` promises a status PATCH to an API this card does not draw, and its
 Kubelet sublabel already reads `PLEG + status patch`, so the return has nowhere on-card to go.
 
-**Still open, 6 cards**, all needing a return lane that does not exist yet, which means splitting the
-card's main lane into a pair and re-timing every step that rides it: `cluster-etcd-raft` (two Follower
-acks plus the durable report to the API, and its `quorum` step animates nothing at all),
+`cluster-etcd-raft` closed 2026-07-30 and is the model for the rest, because it is the case where the
+lane pair had to be built. Raft is nothing but answers, an entry is not committed until a majority has
+acknowledged it, and not one answer was drawn: the two Follower acks its `replicate` step narrates, the
+durable report its `quorum` step narrates, and the whole of `apply`, whose narration has the Leader
+CARRYING the new commitIndex to both Followers. **Two of its five steps animated nothing at all**, which
+no check reports: `check-duration` only asks that a step outlast its own motion, and a step with no
+motion passes trivially.
+
+The construction: every exchange on the card became a lane PAIR, requests `LANE_DY` above the row
+centre line and answers the same distance below, mirrored on each face so no endpoint stands alone and
+`OFFEDGE` stays quiet. The far Follower needed the same treatment in the other axis, so its ack arc
+nests inside the outbound one and leaves each cylinder top on the mirrored side of its midpoint. Cost:
+three durations raised (2400 -> 3800, and two 1900 -> 2500), and `BEAT` had to be imported, which
+`smoke-all` caught as a swallowed ReferenceError for the third time this review.
+
+**Still open, 5 cards**, all needing the same lane-pair split on their own main lane:
 `cluster-kubelet-sync-loop/status`, `network-ebpf-dataplane/connect-time`,
 `network-tls-termination/handshake`, `network-dns-records` (four record steps, whose answers go to the
 record rows rather than back to the client) and `storage-volume-attach-limits/filter`.
