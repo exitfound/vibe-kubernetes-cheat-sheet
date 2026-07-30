@@ -262,7 +262,9 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { pod: 'Deleted', pvc: 'deleted by GC', back: 'reclaimed', life: 'ended with Pod' });
+      // The chip names what BACKS the volume, so after garbage collection it reports the backing's
+      // fate in those terms rather than the policy that caused it: the disk went with the claim.
+      setChips(s, { pod: 'Deleted', pvc: 'deleted by GC', back: 'deleted with claim', life: 'ended with Pod' });
       // Nothing is left pointing at anything: the lanes go out behind the cascade they carried, so the
       // closing frame is the collapsed column and nothing else.
       setStage(s, { podOn: OPACITY.terminated, claim: OPACITY.terminated, disk: OPACITY.terminated });

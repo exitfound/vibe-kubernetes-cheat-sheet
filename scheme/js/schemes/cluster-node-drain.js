@@ -261,6 +261,10 @@ const STEPS = [
       // down the connector. The Pod reacts only when the ball reaches the node.
       const req = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, role: 'cluster' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
+      // The 200 OK the narration grants: it rides the answer lane back to kubectl, the same lane the
+      // retry step already uses for its 429. Only the grant was missing, so the card showed a request
+      // that was answered on one step and silently swallowed on the other.
+      topPacket(s, ctx, { from: API_X, to: KUBECTL_X + BOX_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
       const evict = routePacket(s, ctx, EVICT_ROUTE(0), { delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
       // The lane carried the ball, so it fades WITH its Pod rather than at step entry.

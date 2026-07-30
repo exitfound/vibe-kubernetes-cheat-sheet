@@ -218,6 +218,14 @@ function setSlots(s, counts) {
   });
 }
 
+// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
+
 function clearHL(s) {
   clearHighlights(s, ['sched', 'csinode', 'cnt0', 'cnt1', 'cnt2', 'podBox',
     'capChip', 'attChip', 'podChip', 'blockChip'], [s.refs.podNew]);
@@ -285,6 +293,10 @@ const STEPS = [
       setChips(s, { attached: '24 of 24', pod: 'not created', blocked: 'nothing' });
       s.refs.nodes.forEach(n => n.counter.classList.add('highlight'));
       if (ctx.reduced) return;
+      // The gauge read its final 24 of 24 from step entry, while the slots it counts were still
+      // filling in for another two seconds. It holds the count the previous step left and turns over
+      // when the last slot lands.
+      setChips(s, { attached: '4 of 24', pod: 'not created', blocked: 'nothing' });
       const prev = [2, 1, 1];
       let seq = 0;
       s.refs.nodes.forEach((n, i) => {
@@ -294,6 +306,7 @@ const STEPS = [
             { duration: 220, delay: 90 * seq, fill: 'forwards', easing: 'ease-out' }));
         }
       });
+      at(s, ctx, 90 * (seq - 1) + 220, () => setChips(s, { attached: '24 of 24', pod: 'not created', blocked: 'nothing' }));
     },
   },
   {

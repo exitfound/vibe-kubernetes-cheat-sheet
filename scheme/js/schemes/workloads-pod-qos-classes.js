@@ -288,7 +288,9 @@ const STEPS = [
   },
   {
     id: 'tiers',
-    duration: 2600,
+    // Motion: Pod A is reached at 1520, Pod B a beat later at 2327, and the second fade ends at
+    // 3227. Sequencing the two evictions costs 627ms over the old simultaneous fan.
+    duration: 3400,
     narration: 'When the Node runs low on memory, Kubelet ranks Pods by whether each is using more than it requested, then by Pod Priority, then by how far over the request it sits. Pod A declared no request at all, so it is over the moment it allocates anything and goes first. Pod B is over its own request and goes next. Pod C requests exactly what it is allowed to use, so it never exceeds its request and is reached only by the kernel OOMKiller in extreme cases. QoS class does not decide this order, it only predicts it, and this is a separate mechanism from priority-based preemption (which is covered in its own card).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -309,9 +311,17 @@ const STEPS = [
       s.refs.pod2.style.opacity = String(OPACITY.terminating);
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) return;
-      const evict = fanToPods(s, ctx);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: evict[0].arrivalMs, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: evict[1].arrivalMs, fill: 'both', easing: 'ease-in' }));
+      // The ORDER is the content of this step, so it is built from explicit delays and not from the
+      // shared fan. The three lanes are different lengths (684 units to slot 0, 318 to the middle),
+      // so sending them together landed Pod B, the one labelled evicted 2nd, a full 800ms BEFORE
+      // Pod A, labelled evicted 1st. Pod C gets no ball at all: it survives, and the narration says
+      // only the kernel OOMKiller reaches it.
+      const evictA = routePacket(s, ctx, LANE(0), { role: 'workloads' });
+      pulsePod(s.refs.pod1, ctx, evictA.arrivalMs);
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: evictA.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      const evictB = routePacket(s, ctx, LANE(1), { delay: evictA.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      pulsePod(s.refs.pod2, ctx, evictB.arrivalMs);
+      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: evictB.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
 ];

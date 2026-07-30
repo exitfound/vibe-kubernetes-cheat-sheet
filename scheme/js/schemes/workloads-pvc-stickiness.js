@@ -190,6 +190,14 @@ function setLanes(s, { toA, toB }) {
   s.refs.pvConnector.style.opacity = toB ? '1' : '0';
 }
 
+// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
+
 function clearHL(s) {
   clearHighlights(s,
     ['controller','apiserver','pv','podChip','pvcChip','pvChip','dataChip','podABox','podBBox'],
@@ -310,7 +318,12 @@ const STEPS = [
       s.refs.podB.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
+      // The identity chip carried the outcome from step entry, three seconds before the Pod appeared
+      // on Node-2, so it read as bound while the slot was still empty. It holds the value the previous
+      // step left and turns over when the binding actually lands.
+      setVal(s.refs.podChip, 'web-0 · Pending (created again)');
       const bind = connectorPacketB(s, ctx);
+      at(s, ctx, bind.arrivalMs, () => setVal(s.refs.podChip, 'web-0 · bound to Node-2'));
       ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: bind.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, bind.arrivalMs);
     },

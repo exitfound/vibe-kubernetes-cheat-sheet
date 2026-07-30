@@ -237,6 +237,9 @@ const STEPS = [
       if (ctx.reduced) { s.refs.cni.classList.add('highlight'); return; }
       // Runtime execs CNI (right arrow), then the netns config lands on the sandbox.
       const exec = topPacket(s, ctx, { from: RT_R, to: CNI_X, y: CALL_Y, role: 'cluster' });
+      // "returns the result" is in the narration, and the return lane is drawn: it just never carried
+      // anything. The result comes back to the runtime before the sandbox is configured below.
+      topPacket(s, ctx, { from: CNI_X, to: RT_R, y: BACK_Y, delay: exec.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.cni, ctx, exec.arrivalMs);
       const conf = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: exec.arrivalMs + BEAT.afterHop, role: 'cluster' });
       pulsePod(s.refs.sandboxGroup, ctx, conf.arrivalMs);
@@ -288,6 +291,8 @@ const STEPS = [
       // gRPC to the runtime, then the created (not started) container lands dim.
       const grpc = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: CALL_Y, role: 'cluster' });
       lightBoxAt(s.refs.runtime, ctx, grpc.arrivalMs);
+      // The container id the narration says comes back, on the drawn return lane.
+      topPacket(s, ctx, { from: RT_X, to: KUBE_R, y: BACK_Y, delay: grpc.arrivalMs + BEAT.afterHop, role: 'cluster' });
       const create = routePacket(s, ctx, SANDBOX_CONNECTOR, { delay: grpc.arrivalMs + BEAT.afterHop, role: 'cluster' });
       ctx.register(s.refs.appGroup.animate([{ opacity: 0 }, { opacity: OPACITY.pending }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.appGroup, ctx, create.arrivalMs);

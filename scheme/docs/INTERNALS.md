@@ -542,6 +542,44 @@ Three things this cost that are worth knowing before repeating it:
 chip, and after the stage K rewrite the sentence reads "its address is drawn by the CNI IPAM strictly
 out of that Node slice", so the drawn source and the grammatical one agree. The card has no CNI or
 IPAM block at all, so there is nothing else for it to leave.
+
+---- order, chips and promised returns (2026-07-30, review stage 2.4 families H, I and D) ----
+
+**H, the order the lanes contradict.** `workloads-pod-qos-classes/tiers` released three eviction balls
+at once down lanes of different lengths, so Pod B, labelled `evicted 2nd`, landed 800ms BEFORE Pod A,
+labelled `evicted 1st`. It now sends A, then B a beat behind, and nothing at all to C, which survives.
+That REPLACED a recorded decision saying the order lived in the sublabels and not in the timing: the
+timing was never neutral, it actively said the opposite, and a drawing that contradicts its own labels
+is worse than one that stays quiet. `workloads-rolling-update/probe-and-drain` pulsed the new Pod's
+readiness and the old Pod's deletion on the same arrival, drawing a permission and the thing it
+permits as one event: readiness now pulses first and the scale-down leaves at `BEAT.afterPulse`.
+`workloads-rolling-update/third-cycle` turned out NOT to be an ordering defect. Its narration promises
+a surge to a fourth Pod on a card with three slots, which is a slot-count question and belongs to
+family G, still open on an author decision.
+
+**I, chips that disagree with the picture.** Ten steps, two shapes. Either the chip means something
+other than its name (see the Chips rules in `../CLAUDE.md`), or it shows the outcome before the motion
+that earns it. The second is the one worth knowing the pattern for, because the reduced contract
+pushes you into it: pin the end value above the guard, then on the played path set the chip back to the
+value the step starts from and turn it over on `pkt.arrivalMs`. Four cards needed a tiny local
+`at(s, ctx, delay, fn)` for that, a 1ms zero-effect animation carrying an `onfinish`, copied from
+`network-dns-ndots`. Also settled here: a card must not leave one chip unwritten (`network-kube-proxy-modes/scale`
+carried an IPVS-specific selection value into a step about both modes, `network-tls-termination/modes`
+carried `presented` into a step where passthrough hands the certificate to the Pod).
+
+**D, returns the words promise, PARTLY closed.** Three cards fixed where the answer lane was already
+drawn: `cluster-node-drain` (the 200 OK the PDB grants), `cluster-pod-sandbox-cri` (the CNI result and
+the container id, on two lanes that were drawn and had never carried anything) and
+`workloads-init-containers-and-sidecars` (the exit report that both wire labels open with). Declined
+one: `cluster-oom-kill/observe` promises a status PATCH to an API this card does not draw, and its
+Kubelet sublabel already reads `PLEG + status patch`, so the return has nowhere on-card to go.
+
+**Still open, 6 cards**, all needing a return lane that does not exist yet, which means splitting the
+card's main lane into a pair and re-timing every step that rides it: `cluster-etcd-raft` (two Follower
+acks plus the durable report to the API, and its `quorum` step animates nothing at all),
+`cluster-kubelet-sync-loop/status`, `network-ebpf-dataplane/connect-time`,
+`network-tls-termination/handshake`, `network-dns-records` (four record steps, whose answers go to the
+record rows rather than back to the client) and `storage-volume-attach-limits/filter`.
 ```
 
 ### before `export const WORKLOADS_TINT = Object.freeze({ base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' });`

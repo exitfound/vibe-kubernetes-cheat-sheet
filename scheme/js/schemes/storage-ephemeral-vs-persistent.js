@@ -180,7 +180,9 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { ed: 'wiped', pvc: 'detached, kept', pod: 'deleted' });
+      // The chip is the CLAIM, and a claim does not detach: the disk does. What the claim does here is
+      // survive the Pod and stay bound, which is the whole contrast with the emptyDir beside it.
+      setChips(s, { ed: 'wiped', pvc: 'kept, still Bound', pod: 'deleted' });
       // The PV keeps its data, so it stays lit. The Pod and its emptyDir are gone by the end, both
       // fading to the same terminal shade.
       s.refs.pv.classList.add('highlight');

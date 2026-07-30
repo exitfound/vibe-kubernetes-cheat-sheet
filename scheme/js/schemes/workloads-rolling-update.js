@@ -254,10 +254,12 @@ const STEPS = [
       s.refs.progressChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.pod3.style.opacity = String(OPACITY.terminating); s.refs.pod1Box.classList.add('highlight'); return; }
-      // Scale-down delete travels to the node. On arrival the new v2 Pod (web-1) confirms
-      // Ready with a pulse, and the oldest v1 Pod (web-3) begins terminating and fades out.
-      const drain = routePacket(s, ctx, LANE(2), { delay: BEAT.lead, role: 'workloads' });
-      pulsePod(s.refs.pod1, ctx, drain.arrivalMs);
+      // Readiness comes FIRST and is the precondition, which is what the narration says: the new v2
+      // Pod confirms Ready, and only then does maxUnavailable allow the scale-down to travel to the
+      // node and take the oldest v1 Pod. Both used to pulse on the same arrival, which drew the
+      // permission and the thing it permits as one event.
+      pulsePod(s.refs.pod1, ctx, 0);
+      const drain = routePacket(s, ctx, LANE(2), { delay: BEAT.afterPulse, role: 'workloads' });
       pulsePod(s.refs.pod3, ctx, drain.arrivalMs);
       ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: drain.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },

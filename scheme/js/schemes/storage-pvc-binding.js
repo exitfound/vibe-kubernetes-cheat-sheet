@@ -162,6 +162,15 @@ function setChips(s, { pvc, pv, bind, mount }) {
   setChip(s.refs.mountChip, mount);
 }
 
+// Runs fn at a point inside the step, or at once on the static path so the end state is right.
+// Same construction as network-dns-ndots: a zero-effect 1ms animation carrying an onfinish.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
+
 function clearHL(s) {
   clearHighlights(s, ['ctrl', 'pvc', 'pvcB', 'pvSmall', 'pvMatchCyl', 'pvSlow', 'appBox',
     'pvcChip', 'pvChip', 'bindChip', 'mountChip'], [s.refs.appPod]);
@@ -233,13 +242,13 @@ const STEPS = [
       s.refs.pvcB.style.opacity = '0';
       s.refs.wCtrlToPvcB.style.opacity = '0';
       s.refs.ctrl.classList.add('highlight');
-      setWire(s, 'small', 'too small');
-      setWire(s, 'match', '5Gi, RWO, local-ssd OK');
-      setWire(s, 'slow', 'wrong class');
       if (ctx.reduced) {
         s.refs.pvMatchCyl.classList.add('highlight');
         s.refs.pvSmall.style.opacity = String(OPACITY.notready);
         s.refs.pvSlow.style.opacity = String(OPACITY.notready);
+        setWire(s, 'small', 'too small');
+        setWire(s, 'match', '5Gi, RWO, local-ssd OK');
+        setWire(s, 'slow', 'wrong class');
         return;
       }
       const toSmall = routePacket(s, ctx, W_SCAN_SMALL, { role: 'storage' });
@@ -248,6 +257,12 @@ const STEPS = [
       dimBoxAt(s.refs.pvSmall, ctx, toSmall.arrivalMs);
       dimBoxAt(s.refs.pvSlow, ctx, toSlow.arrivalMs);
       lightBoxAt(s.refs.pvMatchCyl, ctx, toMatch.arrivalMs);
+      // Each verdict is written when its OWN probe lands. All three used to be on screen at step
+      // entry, so the reader was told which volume wins before the sweep that decides it had run,
+      // and the three probes land 1.4s apart because the three lanes are different lengths.
+      at(s, ctx, toSmall.arrivalMs, () => setWire(s, 'small', 'too small'));
+      at(s, ctx, toMatch.arrivalMs, () => setWire(s, 'match', '5Gi, RWO, local-ssd OK'));
+      at(s, ctx, toSlow.arrivalMs,  () => setWire(s, 'slow', 'wrong class'));
     },
   },
   {

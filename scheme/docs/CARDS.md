@@ -2516,7 +2516,7 @@ travels it (the ClusterIP never appears on a wire), so it is a plain dashed line
 arrowhead, to read as an association rather than a wire missing its ball.
 ```
 
-### before `const vipChip  = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'dst', value: '10.96.0.20:80', role: 'network' });`
+### before `const vipChip  = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'clusterIP', value: '10.96.0.20:80', role: 'network' });`
 
 ```
 The four chips span the full block width of the scheme 1:1: the leftmost starts at the Client
@@ -8879,16 +8879,25 @@ cards (left actor → node, Api on the right). Every connector packet leaves Kub
 
 ```
 QoS eviction: BestEffort and Burstable (A, B) are evicted and dim together by the same
-amount, Guaranteed (C) survives at full opacity. The 1st/2nd order is conveyed by the
-sublabels, not by timing or depth. Pin the final state inline for cancel-safety.
+amount, Guaranteed (C) survives at full opacity. Pin the final state inline for cancel-safety.
 ```
 
-### before `const evict = fanToPods(s, ctx);`
+### before `const evictA = routePacket(s, ctx, LANE(0), { role: 'workloads' });`
 
 ```
-Kubelet's eviction travels down the connector to the node, the same Kubelet → node
-delivery the cgroups step uses. On arrival all three pulse together (the memory-pressure
-event), then A and B fade out as they are evicted while C (Guaranteed) stays full.
+Kubelet's eviction travels down the connector to the node, the same Kubelet → node delivery the
+cgroups step uses, but this step does NOT reuse the shared fan: it sends A, then B a beat behind it,
+and sends nothing at all to C.
+
+This supersedes the note that stood here until 2026-07-30, which said the 1st/2nd order was conveyed
+by the sublabels and not by timing. The trouble was that the timing was not neutral: the shared fan
+released all three at once and the three lanes are different lengths (684 units to slot 0 against 318
+to the middle), so Pod B, labelled evicted 2nd, landed a full 800ms BEFORE Pod A, labelled evicted
+1st. A drawing that asserts the opposite of its own labels is worse than one that stays quiet, so the
+order is now carried by explicit delays as well, which is what review stage 2.4 family H asks for.
+
+C gets no ball because it survives, and the narration says only the kernel OOMKiller reaches it. The
+step cost 627ms of duration for the sequencing (2600 -> 3400).
 ```
 
 ---

@@ -171,6 +171,11 @@ const STEPS = [
       setVal(s.refs.schemeChip, 'http or https');
       s.refs.schemeChip.classList.add('highlight');
       setVal(s.refs.backChip, 'Pod :8080');
+      // The cert chip was the one chip this step left alone, so it still read `presented` from the
+      // handshake step while the narration says passthrough hands the certificate to the Pod instead.
+      // Under three modes at once the honest value is where it MAY live, not where it just was.
+      setVal(s.refs.certChip, 'controller or Pod');
+      s.refs.certChip.classList.add('highlight');
       if (ctx.reduced) return;
       // No new traffic: the backend Pod pulses to mark where passthrough would move termination to.
       pulsePod(s.refs.podX, ctx, 0);

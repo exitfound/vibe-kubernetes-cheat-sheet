@@ -279,7 +279,10 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { repl: '3', pvcs: '3 in use', naming: 'data-web-1 kept', ret: 'retained' });
+      // The naming chip holds the PATTERN, which does not change here. That data-web-1 is kept is a
+      // retention fact and it is already on the `on delete` chip and the claim sublabel, so the
+      // chip no longer answers a question it was not asked.
+      setChips(s, { repl: '3', pvcs: '3 in use', naming: 'data-web-N', ret: 'retained' });
       setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1] });
       [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Bound'));
       [s.refs.d0, s.refs.d1, s.refs.d2].forEach(d => d.classList.add('highlight'));
@@ -306,7 +309,9 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { repl: '2', pvcs: '3 (1 idle)', naming: 'data-web-N', ret: 'kept, leaks' });
+      // `on delete` holds the POLICY, and the policy has not changed: it is still the default retain.
+      // The leak this step is about is carried by the PVC count and by the idle claim sublabel.
+      setChips(s, { repl: '2', pvcs: '3 (1 idle)', naming: 'data-web-N', ret: 'retained' });
       setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1] });
       setBoxSublabel(s.refs.v0, 'Bound');
       setBoxSublabel(s.refs.v1, 'Bound');

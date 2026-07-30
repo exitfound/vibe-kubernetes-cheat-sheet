@@ -212,7 +212,9 @@ const STEPS = [
   },
   {
     id: 'sidecar-start',
-    duration: 2600,
+    // Motion: the runtime's report comes back (700), then StartContainer goes out and the
+    // container lands on the node, ending at 3162.
+    duration: 3400,
     narration: 'Both regular init containers exited 0. The sidecar (declared as an initContainer with restartPolicy=Always since 1.29) is started next, allowed to run for the full lifetime of the Pod. Once it reports Started (its startupProbe succeeded, or immediately if no probe is set), Kubelet treats the bootstrap phase as complete and unblocks the main container.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -224,12 +226,18 @@ const STEPS = [
       setVal(s.refs.sidecarChip, 'Started');
       setVal(s.refs.mainChip, 'Waiting');
       setWire(s, 'req', 'migrate-schema exit 0 · StartContainer · sidecar');
-      s.refs.kubelet.classList.add('highlight');
       s.refs.sidecarChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) { s.refs.containerSidecar.classList.add('highlight'); s.refs.runtime.classList.add('highlight'); return; }
-      // CRI request hop, then the sidecar create lands on the node on arrival.
-      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      // Kubelet RECEIVES the exit report before it sends the next call, so it is dark at step entry
+      // and lights when the report lands. check-arrival R3 exempts a source only if it sends no later
+      // than it receives, and here it sends a beat later.
+      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); s.refs.containerSidecar.classList.add('highlight'); s.refs.runtime.classList.add('highlight'); return; }
+      // The wire label opens with `migrate-schema exit 0`, which is the runtime REPORTING the init
+      // container finished. That report comes back first, on the answer lane, and only then does the
+      // next StartContainer go out. Same construction as the running step below.
+      const done = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
+      lightBoxAt(s.refs.kubelet, ctx, done.arrivalMs);
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: done.arrivalMs + BEAT.afterHop, role: 'workloads' });
       lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
       const create = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
       lightBoxAt(s.refs.containerSidecar, ctx, create.arrivalMs);
@@ -237,7 +245,9 @@ const STEPS = [
   },
   {
     id: 'main-start',
-    duration: 2600,
+    // Motion: the runtime's report comes back (700), then StartContainer goes out and the
+    // container lands on the node, ending at 3162.
+    duration: 3400,
     narration: 'As soon as the sidecar Started flag flips true, Kubelet creates and starts the main container. From here both run in parallel. Pod phase flips from Pending to Running once the main container has started.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -249,12 +259,15 @@ const STEPS = [
       s.refs.sidecarChip.classList.add('highlight');
       setVal(s.refs.mainChip, 'Starting');
       setWire(s, 'req', 'sidecar Started · StartContainer · main');
-      s.refs.kubelet.classList.add('highlight');
       s.refs.mainChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) { s.refs.containerMain.classList.add('highlight'); s.refs.runtime.classList.add('highlight'); return; }
-      // CRI request hop, then the main create lands on the node on arrival.
-      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      // Same as the step above: the report arrives before the call goes out, so Kubelet lights on it.
+      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); s.refs.containerMain.classList.add('highlight'); s.refs.runtime.classList.add('highlight'); return; }
+      // The wire label opens with `sidecar Started`, the runtime reporting the sidecar up. It arrives
+      // first on the answer lane, and the StartContainer for the main container follows it.
+      const done = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
+      lightBoxAt(s.refs.kubelet, ctx, done.arrivalMs);
+      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: done.arrivalMs + BEAT.afterHop, role: 'workloads' });
       lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
       const create = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
       lightBoxAt(s.refs.containerMain, ctx, create.arrivalMs);

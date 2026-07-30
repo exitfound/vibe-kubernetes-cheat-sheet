@@ -114,6 +114,14 @@ class Scene {
   reset() { this.build(); }
 }
 
+// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
+
 function clearHL(s) {
   clearHighlights(s, ['clusterBox', 'kcm', 'slice1', 'slice2', 'slice3', 'podABox', 'podBBox'], [s.refs.podA, s.refs.podB]);
   // The Node-2 pod and its IPAM arrow are revealed only on the final uniqueness step.
@@ -163,10 +171,19 @@ const STEPS = [
       setVal(s.refs.slice2, '10.244.2.0/24');
       setVal(s.refs.slice3, '10.244.3.0/24');
       if (ctx.reduced) return;
+      // The three slices held their /24 from step entry, so the carve arrived at chips that already
+      // showed its result. They read unset until the allocations land, which they do together: the
+      // three balls share one explicit dur because one sweep writes all three podCIDR fields.
+      [s.refs.slice1, s.refs.slice2, s.refs.slice3].forEach(c => setVal(c, 'unset'));
       const dur = 1100;
-      routePacket(s, ctx, ALLOC2, { dur, fadeIn: true, role: 'network' });
+      const a2 = routePacket(s, ctx, ALLOC2, { dur, fadeIn: true, role: 'network' });
       routePacket(s, ctx, ALLOC1, { dur, fadeIn: true, role: 'network' });
       routePacket(s, ctx, ALLOC3, { dur, fadeIn: true, role: 'network' });
+      at(s, ctx, a2.arrivalMs, () => {
+        setVal(s.refs.slice1, '10.244.1.0/24');
+        setVal(s.refs.slice2, '10.244.2.0/24');
+        setVal(s.refs.slice3, '10.244.3.0/24');
+      });
     },
   },
   {

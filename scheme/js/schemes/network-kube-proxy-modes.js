@@ -255,6 +255,11 @@ const STEPS = [
       s.refs.ipvsChip.classList.add('highlight');
       setVal(s.refs.iptChip, 'thousands of rules');
       setVal(s.refs.ipvsChip, 'still one lookup');
+      // The selection chip was the one chip this step did not write, so it carried the IPVS scheduler
+      // from the step before into a step whose whole point is that selection is the SAME in both modes
+      // and only the lookup differs.
+      setVal(s.refs.pickChip, 'same in both');
+      s.refs.pickChip.classList.add('highlight');
       setWire(s, 'ipt', 'grows with every Service');
       setWire(s, 'ipvs', 'constant time');
       if (ctx.reduced) return;
