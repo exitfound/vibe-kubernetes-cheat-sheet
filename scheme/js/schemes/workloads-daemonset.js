@@ -284,8 +284,11 @@ const STEPS = [
       s.refs.readyChip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
-      // All four Pods stay placed, Node-4 stays present.
-      s.refs.pod1.style.opacity = '1';
+      // maxUnavailable=1 means exactly ONE Pod is down at a time, which the ready chip says in numbers
+      // (3 / 4 updating) and the narration says in words. All four used to be pinned at full, so the
+      // drawing showed four healthy Pods against a chip counting three. The one being recreated is the
+      // one the update ball lands on, so it holds the notready shade while its Node stays present.
+      s.refs.pod1.style.opacity = String(OPACITY.notready);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       s.refs.pod4.style.opacity = '1';
@@ -294,7 +297,12 @@ const STEPS = [
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       const update = routePacket(s, ctx, LANE(0), { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      // It is at full strength until the delete reaches it, then it drops: the ball is what takes it
+      // down, so the shade must not be there before the ball arrives.
+      s.refs.pod1.style.opacity = '1';
       pulsePod(s.refs.pod1, ctx, update.arrivalMs);
+      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.notready }],
+        { duration: FADE.out, delay: update.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
