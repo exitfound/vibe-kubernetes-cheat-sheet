@@ -153,7 +153,7 @@ const STEPS = [
   },
   {
     id: 'default',
-    duration: 4000,
+    duration: 4600,
     narration: 'With both fields unset, kube-proxy spreads connections roughly evenly across every ready endpoint and ignores zones. Two connections from the same client can land on Pods in different zones, here one in zone-a and one in zone-b. Load is balanced but traffic may cross the zone boundary.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -162,14 +162,17 @@ const STEPS = [
       setVal(s.refs.modeChip, 'unset . spread all');
       setVal(s.refs.pinChip, 'None');
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.a1Box.classList.add('highlight'); s.refs.b2Box.classList.add('highlight'); return; }
-      // One connection arrives at kube-proxy, which spreads it across two zones: a1 (zone-a) and b2
-      // (zone-b), symmetric about the flow line. kube-proxy is the subject of every step here, but
-      // it is still the RECEIVER of the client hop, so on all four it lights when that ball lands.
+      // TWO connections from the same client, the second staggered by the same 540 that session-affinity
+      // uses, so they read as two rides rather than one ball splitting across two backends. The first
+      // lands in zone-a (a1), the second in zone-b (b2), symmetric about the flow line. kube-proxy is
+      // the subject of every step here, but it is still the RECEIVER of the client hop, so it lights
+      // when that ball lands.
       pulsePod(s.refs.client, ctx, 0);
       const arr = clientHop(s, ctx, BEAT.afterPulse);
       lightBoxAt(s.refs.kproxy, ctx, arr);
       fanTo(s, ctx, FAN_A1, 'a1', arr + BEAT.afterHop, CLIENT_IP);
-      fanTo(s, ctx, FAN_B2, 'b2', arr + BEAT.afterHop, CLIENT_IP);
+      const arr2 = clientHop(s, ctx, BEAT.afterPulse + 540);
+      fanTo(s, ctx, FAN_B2, 'b2', arr2 + BEAT.afterHop, CLIENT_IP);
     },
   },
   {

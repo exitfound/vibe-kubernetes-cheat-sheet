@@ -122,9 +122,9 @@ function putPacket(s, ctx, cx, delay = 0) {
   return routePacket(s, ctx, putRoute(cx), { delay, role: 'cluster' });
 }
 
-// A losing CAS: the request lands, the resourceVersion check fails, and a 409
-// response travels back up the right lane (cx+10). The winner commits with no bounce.
-function loserPut(s, ctx, cx) {
+// A CAS exchange: the request lands and the API answers on the right lane (cx+10). Winner or
+// loser, the answer is what the replica acts on, so both get one: 200 OK or 409 Conflict.
+function casPut(s, ctx, cx) {
   const down = putPacket(s, ctx, cx);
   routePacket(s, ctx, ackRoute(cx), { delay: down.arrivalMs + BEAT.afterHop, role: 'cluster' });
   return down;
@@ -174,13 +174,13 @@ const STEPS = [
       s.refs.holderChip.classList.add('highlight');
       s.refs.renewChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.lease.classList.add('highlight'); return; }
-      // Three CAS-PUTs leave together. mgr-1 commits (stays); the other two are
-      // rejected and bounce back as 409. The Lease lights when the winning write lands on it,
-      // the same shape the renew step uses.
-      const wins = putPacket(s, ctx, REP_CXS[0]);
+      // Three CAS-PUTs leave together and each is answered on its own lane: mgr-1 takes the
+      // 200 OK its wire label promises, the other two the 409. The Lease lights when the
+      // winning write lands on it, the same shape the renew step uses.
+      const wins = casPut(s, ctx, REP_CXS[0]);
       lightBoxAt(s.refs.lease, ctx, wins.arrivalMs);
-      loserPut(s, ctx, REP_CXS[1]);
-      loserPut(s, ctx, REP_CXS[2]);
+      casPut(s, ctx, REP_CXS[1]);
+      casPut(s, ctx, REP_CXS[2]);
     },
   },
   {
@@ -258,11 +258,11 @@ const STEPS = [
       s.refs.renewChip.classList.add('highlight');
       s.refs.transChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.lease.classList.add('highlight'); return; }
-      // The two survivors race; mgr-2 commits (stays), mgr-3 is rejected and bounces back as 409.
+      // The two survivors race, and each is answered: mgr-2 takes the 200 OK, mgr-3 the 409.
       // The Lease lights on the winning write landing, not before it.
-      const wins = putPacket(s, ctx, REP_CXS[1]);
+      const wins = casPut(s, ctx, REP_CXS[1]);
       lightBoxAt(s.refs.lease, ctx, wins.arrivalMs);
-      loserPut(s, ctx, REP_CXS[2]);
+      casPut(s, ctx, REP_CXS[2]);
     },
   },
 ];

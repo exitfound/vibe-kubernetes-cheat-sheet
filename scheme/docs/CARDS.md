@@ -232,6 +232,20 @@ materialises as a running Pod. Mirror of the Delete Flow poster: the fills rise 
 right (doc 0.04 -> box 0.05 -> Pod 0.06 / container 0.10) as the object comes alive.
 ```
 
+### before `const T2_LANE_DX = 20;`
+
+```
+Each tier-2 box carries a mirrored pair on its top face: watch out on the outer lane at y=200, write
+back on the inner lane at y=220, so the two never cross.
+
+The controller-manager half was added 2026-07-30. The `controller` step narrates two creates back to
+the API (a ReplicaSet, then a Pod) and only the watch moved, while the very next step drew both halves
+of the identical shape for the Scheduler. Two adjacent steps taught two different rules about where a
+controller's output goes. Adding `FROM_CM` at `API_CX - D30` needed the Kubelet lane off that slot, so
+it moved to the spine at `API_CX`, and the API bottom face now reads -60 -30 0 +30 +60, which is what
+this file's own comment had claimed since the relayout.
+```
+
 ---
 
 ## cluster-architecture
@@ -427,6 +441,18 @@ the `acquire` and `failover` spans went 2554 to **2998 ms**, over their 2700 bud
 over the viewport set `check-geometry` judges against is **205**.
 
 **`check-arrival` baseline for this card is R2 3**, all three checked by hand and correct behaviour.
+### before `function casPut(s, ctx, cx) {`
+
+```
+One helper for both outcomes. The winner used to send only, so an arrowheaded lane labelled
+`PUT 200 OK` sat empty beside two lanes visibly carrying their 409s, and the card taught that only
+rejection travels back. The answer, not the write, is what a replica acts on, so all three PUTs are
+answered now.
+
+Durations stay at 3200: the span is set by mgr-3's long corridor leg at 2998ms and the winner's ack
+lands at 2060ms, so the added return costs nothing.
+```
+
 
 ## cluster-node-drain
 
@@ -460,6 +486,18 @@ clears the ladder; evict-A went 3300 -> 3900. And the 200 OK itself is now anima
 Listing is a read against Api: only the kubectl <-> apiserver hop
 moves. No packet reaches the node, so no Pod reacts (the bucketing is
 shown by the chain advancing, not by blinking a Pod the GET never touches).
+```
+
+### before `setVal(s.refs.healthyChip, '2 of 2');`
+
+```
+The step narrates the API READING `currentHealthy=2` and only then granting the eviction, which is
+what takes the count to 1. The chip is literally named `currentHealthy`, and it read `1 of 2` from
+step entry, so for the whole 3900ms the number beside the sentence contradicted it.
+
+The end value stays pinned above the guard for the reduced contract. The played path rolls back to
+`2 of 2` and turns over on `evict.arrivalMs`, the same instant the Pod pulses and its lane fades.
+Local `at(...)` is the standard 1ms zero-effect carrier, the `network-ipam-pod-cidr` shape.
 ```
 
 ---
@@ -513,6 +551,28 @@ outlive the Pod it ends on, and it may not vanish from under a Pod that is still
 The reschedule step keeps all three at that shade and brings only the replacement to full, because
 a Pod carrying a deletionTimestamp no longer counts towards the replica total, which is what lets
 the controller create the replacement while the old one is still on screen.
+```
+
+### before `const EVICT_CONNECTOR     = [[CX - LANE_DX, TOP_BOTTOM], [CX - LANE_DX, EV_JOG_Y], [POD_A_CX - L`
+
+```
+Both Node-band lanes leave the CONTROLLER, because the controller is the actor both steps name: the
+taint-eviction controller DELETEs the Pod on Node-1, and the owning controller CREATES the replacement
+on Node-2.
+
+The reschedule lane used to run Pod A's right edge to Pod B's left edge. That drew the dying Pod
+migrating across to Node-2, on a card whose previous step has just left it Terminating with an
+orphaned container on an unreachable Node, which is the one thing a Node-failure card must not teach.
+The step's own comment claimed the packet bridged node block to node block and the coordinates said
+otherwise.
+
+It cannot mirror the eviction lane and jog right along `EV_JOG_Y`, because that y is inside the ladder
+(152..394) and the clearance under it is 12 units, so it takes the 580..620 corridor between the two
+Node frames and enters Pod B on its left face midpoint. The two lanes share the controller's bottom
+face as a mirrored `LANE_DX` pair: at a single exit point they overlap for 220 units of vertical, and
+an unpaired offset endpoint is an OFFEDGE finding. Cost of the pairing: evict's route shortens 594 to
+582 units. `setLanes(..., 1)` on the reschedule lane is now correct by the `min(source, sink)` rule
+rather than merely tolerated, because its source is no longer a ghost Pod.
 ```
 
 ---
@@ -799,6 +859,16 @@ The scheme in miniature, vertically centred: client Pod -> netfilter (holding a 
 table mapping the original tuple to the translated one) -> server Pod. Two lanes carry the flow
 with explicit chevrons: the request runs left to right on the top lane, the reply runs right to
 left on the bottom lane, each with its own packet.
+```
+
+### before `setVal(s.refs.dirChip, 'reverse NAT, no walk');`
+
+```
+The chip is named `reply` and this step animates a REQUEST only, so its value has to stay true of the
+reply rather than describe the ball on screen. It read `fast path`, which is the outbound path,
+sitting next to the previous step's `reverse NAT`, and the reuse made it look like an answer to a
+question nobody had asked. What is actually true of the reply on an established flow is that it takes
+the same entry and the same reverse translation and no longer costs a rule walk.
 ```
 
 ---
@@ -1913,6 +1983,19 @@ about it, each Pod centred inside its Node, and every fan leg leaving the router
 landing on a Node top edge without ever crossing one.
 ```
 
+### before `narration: 'On bare metal there is no cloud-controller-manager, so nothing answers a Service of `
+
+```
+This narration carries the premise the deleted step-0 text used to supply: no
+cloud-controller-manager, so nothing answers a Service of type LoadBalancer and it sits pending.
+
+Deleting every step-0 narration catalog-wide on 2026-07-29 was right (the poster shows step 1's text,
+so step 0's was read by nobody) and harmless on 102 cards. Here it orphaned a pronoun: the first
+sentence a reader ever saw became `That gap is filled in-cluster instead`, with no gap named anywhere
+on the card, and `status.loadBalancer: pending` lost its only explanation. Kept under 471 characters,
+the length of this card's `bgp` narration, so the measured panel worst case stays where it was.
+```
+
 ---
 
 ## network-model
@@ -2900,6 +2983,20 @@ SAME dur so it stays locked to the ball. Speed stays distance-normalized: one sh
 Review stage 2.4 family B listed `FAN_A2` as a lane nobody rides. DECLINED 2026-07-30, same reason as
 the nodeport fan: it is the endpoint the traffic distribution did NOT pick on this step, and the point
 of the card is that the choice was made among the drawn candidates rather than forced.
+```
+
+### before `const arr2 = clientHop(s, ctx, BEAT.afterPulse + 540);`
+
+```
+The narration says TWO connections from the same client can land in different zones, and the step used
+to fire both fans at the identical delay off ONE client hop, which reads as a single connection being
+split across two backends: the one thing a connection cannot do. The step's own inline comment said
+`one connection` and contradicted its own narration.
+
+A second client hop, staggered by the same 540 `session-affinity` uses, makes the two rides read as
+two connections. No second pod pulse: `PULSE_POD.ms` is 900 against a 540 stagger, so the second would
+composite over the first on the same element, and `session-affinity` already establishes one pulse per
+step with two rides. Duration 4600 for a 4412ms span, the figure its sibling carries.
 ```
 
 ---
@@ -5867,6 +5964,19 @@ spending its attention on the pair inside the capsule. All three disks share one
 (y=146) and near-identical tops, so the center one stands out by width and fill, not by height.
 ```
 
+### before `setVal(s.refs.bindChip, 'none');`
+
+```
+The last carrier left behind when the verdicts were deferred. The three wire verdicts already turn
+over on their own probe arrivals, and the note above says why. The `binding` chip did not: it named
+`candidate PV-x73a` at t=0, between 1.4 and 2.8s before the sweep that decides it had run, on the
+one card whose whole subject is that the decision is made by scanning.
+
+Rolled back to `none` below the guard and written inside the same `at(...)` that lights the winning
+cylinder and writes its wire. `setVal` for the roll-back, `setChip` for the turnover, so the
+highlight fires on the verdict rather than on the reset.
+```
+
 ---
 
 ## storage-pvc-clone
@@ -6572,6 +6682,33 @@ columns are locked by the PVC row above them, which has to sit right of the narr
 only way to pull the centre left is to stretch the policy band across the full width. That is exactly
 the fit-the-metric edit that produced the R5-a regressions, so the number stays red and the picture
 stays honest.
+```
+
+### before `ridingLabel(s, ctx, 'policy: Retain', W_RET_POLICY);`
+
+```
+The disk is deliberately NOT lit on this step, on either path. `lightBoxAt` is this catalog's cue for
+a block that RECEIVED a packet, and it used to fire on `retDisk` at the same millisecond as the band
+with no ball on the lane between them, which made the one step whose entire point is that the disk is
+never touched into the step where the disk lights up on arrival.
+
+Retain is a state, not an arrival. `setStage` never pins `retDisk`, so it holds full opacity while
+the whole Delete column sits at `OPACITY.terminated` beside it, and that contrast is what says the
+data survived. The band keeps its own `lightBoxAt`, because the policy ball really does reach it.
+```
+
+### before `removeAt(s.refs.wRetBind, ctx, bind.arrivalMs, 0);`
+
+```
+`retBound` and `wRetBind` are drawn on the SAME segment, so on the one step where both are true they
+hand over rather than stack.
+
+`rebind` used to pass `retBound: 0`, exactly as the refused `retain-stuck` does, which showed an
+identical picture for a claim that binds and a claim that is skipped and broke the distinction the
+card teaches one step earlier in so many words. Raising it alone was not enough: with `retBindLane`
+also at 1 the solid arrowhead-free Bound link renders underneath a dashed arrowhead. The end state is
+now the link alone, the lane is re-raised below the guard so the ball has something to ride, and the
+two cross-fade on `bind.arrivalMs`.
 ```
 
 ---
@@ -8430,12 +8567,14 @@ is never given a .highlight, here or at step entry: the blink is the whole signa
 to end when the ball does.
 ```
 
-### before `duration: 4600,`
+### before `duration: 5400,`
 
 ```
-Four beats (Pod leaves, attacher reads the deletion, object leaves with its lanes, disk comes
-off), and the unpublish call is the same full-width route as the attach step, so anim-dump puts
-the span at 4276 against 2860 before the layout change. 4600 keeps 324ms of headroom.
+Five beats now, not four: the Pod leaves, the CONTROLLER deletes the object on the same lane it
+created it on, the attacher reads the deletion, the object leaves with its lanes, the disk comes
+off. The unpublish call is the same full-width route as the attach step, so the span is 5076
+against 4276 before the delete write was added on 2026-07-30. 5400 keeps the same 324ms of
+headroom the note recorded at 4600.
 ```
 
 ### note (anchor dropped: `setBorn(s, { object: VA_PLACEHOLDER, lanes: 0, pod: 0 });` is not unique in the file)
@@ -8468,6 +8607,18 @@ because a block that is gone cannot also be the thing the step points at. LIT re
 the played path only, so it sees neither version here, which is exactly why the answer has to be
 written down rather than left to whichever card is edited next. The same shape lives in removeAt
 (storage-reclaim-policy) and vanishAt (storage-pvc-retention-policy, storage-csi-capacity-tracking).
+```
+
+### before `const del = routePacket(s, ctx, W_WRITE, { delay: BEAT.lead, role: 'storage' });`
+
+```
+The one clause this card exists to teach, that the CONTROLLER and not the Pod and not Kubelet writes
+and deletes the object, was animated on the create half and dropped on the delete half: the step
+opened on the attacher's watch while `W_WRITE` sat drawn, aimed and at full opacity carrying nothing.
+
+The delete now rides the same lane the create did, and the watch can only follow it. The object is the
+receiver of that write, so it lights on arrival instead of at entry, and the ADC takes the entry light
+as the actor.
 ```
 
 ---
@@ -8760,6 +8911,18 @@ on the right is joining (the + marker) with its Pod still forming. The uniform 1
 pod-to-node mapping is the DaemonSet signature.
 ```
 
+### before `let placed = 0;`
+
+```
+The step says the controller sees three matching Nodes and ZERO Pods, and the Pods do not fade in
+until their creates land about 2s later. Both counters read `3` from step entry, `numberReady` being
+the worse half: it reached three before a single Pod was drawn.
+
+Counted per arrival rather than turned over once at the end, because the narration is `creates one
+Pod on each` and the card draws three separate creates: the count climbing 0-1-2-3 alongside the
+three Pods appearing IS the step. `3` stays pinned above the guard for the reduced contract.
+```
+
 ---
 
 ## workloads-deployment-rollback
@@ -8791,6 +8954,17 @@ went 3100/2400/3100 -> 3700/2900/3700. Motion untouched.
 Revision history with a rollback: rev 1 (good) and rev 3 (restored copy of rev 1) carry the
 same version bar, rev 2 (bad) is dimmed and struck out, and a solid counter-clockwise undo
 arc sweeps from the current revision back over the bad one to the good revision.
+```
+
+### before `'aria-label': 'Deployment rollback and revision history: a bad rollout stalls past progressDeadl`
+
+```
+The aria-label ends on RS-v2 going to zero rather than on RS-v1 coming back up, because on this card
+RS-v1 is never scaled below three: its chip reads `3 / 3` on all six steps, chain row 5 says
+`RS-v2 to 0, RS-v1 kept`, and two steps are spent establishing that maxUnavailable kept the old Pods
+serving. The earlier wording, `scales the previous ReplicaSet back up`, described a rollback this card
+deliberately does not draw, and it survived every check because no tool compares an aria-label with
+the steps underneath it.
 ```
 
 ---
@@ -8902,6 +9076,20 @@ the kubelet the SIGTERM order travels down to the Pod, which pulses then
 dims out as the process exits.
 ```
 
+### before `const exec = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads`
+
+```
+Ask, deliver, return, in that order, on all three CRI steps. The ack rides at the spine ball's
+arrival plus a beat, never before it. Until 2026-07-30 the ack was second, so the runtime reported
+`ExecSync` complete before the hook had been exec-ed and reported `StopContainer` complete before
+SIGTERM had reached the process: the answer arrived before the thing it was answering.
+
+The reorder makes the steps SHORTER, not longer, because the Pod pulse moved earlier. Span 3280
+against durations of 3800, 3800 and 4000, measured with anim-dump. `poststart` gained the spine ride
+it never had at all (it animated the top row only, drawing Kubelet asking and the runtime answering
+while nothing reached the container the handler runs inside) and rose 2100 to 3800 to match.
+```
+
 ---
 
 ## workloads-init-containers-and-sidecars
@@ -8937,17 +9125,22 @@ would be drawn inside worker-1's shell.
 Longer routes pushed all four motion steps over budget: 3100/2400/3100/2400 -> 3500/2700/3500/
 2700. Motion untouched.
 
-**`partial` is 3100 since 2026-07-30**, not the 2700 above: review stage 2.4 family B gave that step
-the watch event its own wire label names (`watch Pod exits`), which leaves on the LAST of the three
-exit arrivals because the controller cannot count before every unit has reported.
+**`partial` is 2600 since the second-eyes pass of 2026-07-30**, not the 2700 above and not the 3100
+that family B briefly set. Family B added the watch event the wire label names (`watch Pod exits`)
+and left `fanOut` in place beneath it, so three balls still flew DOWN from the controller into the
+workers on the step whose whole subject is those workers exiting. The down-balls are gone, the three
+exits are pulses at 0, and the watch leaves at `BEAT.afterPulse`. Span 2060.
 ```
 
-### before `const recon = fanOut(s, ctx);`
+### before `[s.refs.pod1, s.refs.pod2, s.refs.pod3].forEach(p => pulsePod(p, ctx, 0));`
 
 ```
-Controller reconciles the observed exits down to the node state. On arrival the
-three Pods react together: worker-1 and worker-2 settle as succeeded (stay lit),
-worker-3 pulses then dims to show it failed.
+Up-arrow step: the workers act and the controller receives, so the three exits pulse at 0 and the
+report leaves at `BEAT.afterPulse`. This used to call `fanOut`, which is the CREATE helper: its
+`LANE(i)` is built trunk-first from the controller box bottom down to the Pod, so the step whose
+wire label reads `watch Pod exits` was drawing three creates. Nothing is created here, so nothing
+rides down. Worker-3 and its lane settle to `OPACITY.terminated` on the same `BEAT.afterPulse`, so
+the tombstone shade lands with the exit that earned it rather than with a ball that no longer flies.
 ```
 
 ### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
@@ -9323,6 +9516,20 @@ the first ladder row.
 ```
 
 
+### before `if (ctx.reduced) { ['pod2Box','pod3Box','pod4Box'].forEach(k => s.refs[k].classList.add('highlig`
+
+```
+Second-eyes pass, 2026-07-30. The three live v2 Pods sit in slots 2, 3 and 4, not 1, 2 and 3: the
+surge capacity is released from the LEFTMOST slot, so `setSlots(s, null, V2, V2, V2)` empties slot 1
+on this step. The relayout from three slots to four kept the old pulse list, so one pulse fired on an
+invisible Pod while `pod4`, a Ready v2 Pod, never acknowledged the narration that calls it Ready.
+Both the played list and the reduced highlight list follow the slot map, and both must be revisited
+if the slot count or the released slot ever changes.
+
+This is the defect the relayout introduced and no check could see: the played and the reduced path
+were wrong IDENTICALLY, which is exactly the condition under which `check-reduced` passes.
+```
+
 ---
 
 ## workloads-statefulset-ordered-startup
@@ -9340,7 +9547,20 @@ overlapped too. Its wire label moved to below it for the same reason.
 
 The StatefulSet box is 420..780, centred on CX. Three ordinals are created on three different
 steps, so the lane is a trunk plus a bus at NODE_Y + 12 plus one tap per ordinal. The taps are
-drawn on every step, including idle where no Pod exists yet: they read as the three slots the
-ladder is about to fill, and the ball that rides one is what materializes that Pod.
+drawn on every step, but `setPods` pins each Pod itself to 0 until its ordinal is created, so on
+idle the reader sees three empty slots the ladder is about to fill, and the ball that rides a tap
+is what materializes that Pod.
 ```
+### before `const SVC_LANE = [[SVC_CX, WL.TOP_BOTTOM], [SVC_CX, SVC_Y]];`
+
+```
+The card names the headless-Service registration three times in narration, labels this wire for it
+three times through `setWire(s, 'svc', ...)`, and drew it with an arrowhead, and no ball had ever
+ridden it on any of the five steps.
+
+It rides now, one beat after the Pod pulses Ready, because registration follows readiness. The wire
+became a `pathArrow` off this array so the ball and the lane cannot drift apart. The Service is a
+receiver now, so it lights on arrival rather than at step entry. Durations rose to 4800 / 4000 / 4800.
+```
+
 

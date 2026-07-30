@@ -161,6 +161,14 @@ function clearHL(s) {
 // A lane into a Node that is not in the cluster points at nothing, so it is pinned out.
 function setLanes(s, on) { s.refs.lanes.forEach((l, i) => { l.style.opacity = String(on[i]); }); }
 
+// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
+
 const STEPS = [
   {
     id: 'idle',
@@ -209,15 +217,25 @@ const STEPS = [
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) { ['pod1Box','pod2Box','pod3Box'].forEach(k => s.refs[k].classList.add('highlight')); s.refs.apiserver.classList.add('highlight'); return; }
+      // The step starts from what it narrates, three matching Nodes and ZERO Pods, so both counts
+      // go back to 0 and are raised one at a time as the creates land.
+      setVal(s.refs.currentChip, '0');
+      setVal(s.refs.readyChip, '0');
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
       // One create per matching Node, each riding its own tap off the bus, so every Pod that
       // materializes has a ball that actually reached it.
       const pods = [s.refs.pod1, s.refs.pod2, s.refs.pod3];
+      let placed = 0;
       pods.forEach((p, i) => {
         const create = routePacket(s, ctx, LANE(i), { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
         ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
         pulsePod(p, ctx, create.arrivalMs);
+        at(s, ctx, create.arrivalMs, () => {
+          placed += 1;
+          setVal(s.refs.currentChip, String(placed));
+          setVal(s.refs.readyChip, String(placed));
+        });
       });
     },
   },

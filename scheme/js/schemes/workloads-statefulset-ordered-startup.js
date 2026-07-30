@@ -17,6 +17,8 @@ const REQ_Y = TOP_CY - WL.LANE_DY, RESP_Y = TOP_CY + WL.LANE_DY;
 const WIRE_X = (TOP1_X + TOP1_W + TOP2_X) / 2;
 const SVC_X = TOP2_X, SVC_W = TOP2_W, SVC_Y = 152, SVC_H = WL.BOX_H;
 const SVC_CX = SVC_X + SVC_W / 2;
+// The registration lane, API down into the headless Service. Wire and ball share these points.
+const SVC_LANE = [[SVC_CX, WL.TOP_BOTTOM], [SVC_CX, SVC_Y]];
 
 const BAND_Y = PANEL_B + PANEL_GAP;                      // 276, both columns start here
 const LAD_X = WL.LADDER_X, LAD_W = WL.LADDER_W;          // 60..540, the pipeline
@@ -74,7 +76,7 @@ class Scene {
     // The answer lane is a relationship here, not a route: no step on this card names anything
     // travelling back from the API, so it carries no arrowhead and sits behind the live lane.
     root.appendChild(relationPath({ points: [[TOP2_X, RESP_Y], [TOP1_X + TOP1_W, RESP_Y]], role: 'cluster' }));
-    root.appendChild(arrow({ x1: SVC_CX, y1: WL.TOP_BOTTOM, x2: SVC_CX, y2: SVC_Y, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: SVC_LANE, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
     const wireSvc = text({ class: 'scheme-label code dim', x: SVC_CX, y: SVC_Y + SVC_H + 16, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
@@ -188,7 +190,7 @@ const STEPS = [
   },
   {
     id: 'pod-0',
-    duration: 3600,
+    duration: 4800,
     narration: 'Controller picks ordinal 0 first. API creates PVC data-web-0 (sticky to ordinal 0 by name, never recycled), the binding controller pairs it with a fresh PV, then a Pod web-0 is created with spec.hostname=web-0 and spec.subdomain=web. Once readinessProbe passes, web-0 is Ready and gets registered as web-0.web in the headless Service EndpointSlice.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -202,11 +204,10 @@ const STEPS = [
       setWire(s, 'req', 'create PVC data-web-0 · Create Pod web-0');
       setWire(s, 'svc', 'register web-0.web');
       s.refs.controller.classList.add('highlight');
-      s.refs.svc.classList.add('highlight');
       s.refs.web0Chip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) { s.refs.pod0Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.pod0Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); s.refs.svc.classList.add('highlight'); return; }
       // Controller asks Api to create the PVC and Pod, then the Pod is created
       // on the node. web-0 materializes and pulses when the create reaches the node.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
@@ -214,6 +215,10 @@ const STEPS = [
       const create = routePacket(s, ctx, LANE(0), { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod0.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod0, ctx, create.arrivalMs);
+      // Registration follows readiness, so the endpoint reaches the headless Service one beat
+      // after the Pod has pulsed, and the Service lights when it lands rather than at entry.
+      const reg = routePacket(s, ctx, SVC_LANE, { delay: create.arrivalMs + BEAT.afterPulse, role: 'workloads' });
+      lightBoxAt(s.refs.svc, ctx, reg.arrivalMs);
     },
   },
   {
@@ -240,7 +245,7 @@ const STEPS = [
   },
   {
     id: 'pod-1',
-    duration: 3100,
+    duration: 4000,
     narration: 'Replica web-0 cleared the gate. Controller creates PVC data-web-1 and Pod web-1 with spec.hostname=web-1, served as DNS web-1.web by the headless Service. Same flow as ordinal 0. Pod web-1 reaches Ready and the headless Service EndpointSlice now lists two backends: web-0.web and web-1.web.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -254,7 +259,6 @@ const STEPS = [
       setWire(s, 'req', 'create PVC data-web-1 · Create Pod web-1');
       setWire(s, 'svc', 'register web-1.web');
       s.refs.controller.classList.add('highlight');
-      s.refs.svc.classList.add('highlight');
       s.refs.web1Chip.classList.add('highlight');
       // web-1 reaching Ready is exactly what opens web-2's gate, and that chip changes value on this
       // step to say so, so it lights with the event rather than sitting unlit beside it. This was the
@@ -263,18 +267,20 @@ const STEPS = [
       s.refs.web2Chip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
-      // Same create flow as ordinal 0. web-1 materializes and pulses on arrival.
+      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); s.refs.svc.classList.add('highlight'); return; }
+      // Same create flow as ordinal 0, and the same registration one beat after the Pod is Ready.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
       const create = routePacket(s, ctx, LANE(1), { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod1.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod1, ctx, create.arrivalMs);
+      const reg = routePacket(s, ctx, SVC_LANE, { delay: create.arrivalMs + BEAT.afterPulse, role: 'workloads' });
+      lightBoxAt(s.refs.svc, ctx, reg.arrivalMs);
     },
   },
   {
     id: 'pod-2',
-    duration: 3600,
+    duration: 4800,
     narration: 'Replica web-1 reached Ready, the gate unlocks for ordinal 2. PVC data-web-2 is provisioned and Pod web-2 starts with spec.hostname=web-2, served as DNS web-2.web. Once Ready, all three replicas are alive with sticky identities. Termination on scale-down runs in reverse order (web-2 first, then web-1, then web-0).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -288,17 +294,18 @@ const STEPS = [
       setWire(s, 'req', 'create PVC data-web-2 · Create Pod web-2');
       setWire(s, 'svc', 'register web-2.web');
       s.refs.controller.classList.add('highlight');
-      s.refs.svc.classList.add('highlight');
       s.refs.web2Chip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
-      if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
-      // Final ordinal. web-2 materializes and pulses on arrival, all three are Ready.
+      if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); s.refs.svc.classList.add('highlight'); return; }
+      // Final ordinal. web-2 materializes and pulses on arrival, registers, all three are Ready.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
       const create = routePacket(s, ctx, LANE(2), { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.pod2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.pod2, ctx, create.arrivalMs);
+      const reg = routePacket(s, ctx, SVC_LANE, { delay: create.arrivalMs + BEAT.afterPulse, role: 'workloads' });
+      lightBoxAt(s.refs.svc, ctx, reg.arrivalMs);
     },
   },
 ];

@@ -251,6 +251,9 @@ const STEPS = [
         setWire(s, 'slow', 'wrong class');
         return;
       }
+      // The candidate is a VERDICT of the sweep, so it starts from what the watch step left it at
+      // and is named on the same arrival that lights PV-x73a and writes its wire.
+      setVal(s.refs.bindChip, 'none');
       const toSmall = routePacket(s, ctx, W_SCAN_SMALL, { role: 'storage' });
       const toMatch = routePacket(s, ctx, W_SCAN_MATCH, { role: 'storage' });
       const toSlow  = routePacket(s, ctx, W_SCAN_SLOW,  { role: 'storage' });
@@ -261,7 +264,10 @@ const STEPS = [
       // entry, so the reader was told which volume wins before the sweep that decides it had run,
       // and the three probes land 1.4s apart because the three lanes are different lengths.
       at(s, ctx, toSmall.arrivalMs, () => setWire(s, 'small', 'too small'));
-      at(s, ctx, toMatch.arrivalMs, () => setWire(s, 'match', '5Gi, RWO, local-ssd OK'));
+      at(s, ctx, toMatch.arrivalMs, () => {
+        setWire(s, 'match', '5Gi, RWO, local-ssd OK');
+        setChip(s.refs.bindChip, 'candidate PV-x73a');
+      });
       at(s, ctx, toSlow.arrivalMs,  () => setWire(s, 'slow', 'wrong class'));
     },
   },

@@ -360,11 +360,13 @@ const STEPS = [
       setVal(s.refs.progressChip, 'Complete · Available=True');
       s.refs.progressChip.classList.add('highlight');
       setChainActive(s.refs.chain, 5);
-      if (ctx.reduced) { ['pod1Box','pod2Box','pod3Box'].forEach(k => s.refs[k].classList.add('highlight')); return; }
-      // Rollout converged: all three v2 Pods are Ready, pulse them together (the pulse fades back to the resting outline).
-      pulsePod(s.refs.pod1, ctx, 0);
+      if (ctx.reduced) { ['pod2Box','pod3Box','pod4Box'].forEach(k => s.refs[k].classList.add('highlight')); return; }
+      // Rollout converged: the three live v2 Pods sit in slots 2, 3 and 4, because the surge capacity
+      // is released from the LEFTMOST slot. Pulse those three (the pulse fades back to the resting
+      // outline), never slot 1, which setSlots has just emptied.
       pulsePod(s.refs.pod2, ctx, 0);
       pulsePod(s.refs.pod3, ctx, 0);
+      pulsePod(s.refs.pod4, ctx, 0);
     },
   },
 ];

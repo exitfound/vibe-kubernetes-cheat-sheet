@@ -209,7 +209,7 @@ const STEPS = [
   },
   {
     id: 'poststart',
-    duration: 2100,
+    duration: 3800,
     narration: 'Kubelet fires the postStart hook the moment the container is created, concurrently with the ENTRYPOINT. There is no guarantee which one finishes first. Exec handlers run inside the container over CRI ExecSync, httpGet handlers are issued by Kubelet directly against the Pod IP. If the handler exits non-zero or times out, Kubelet kills the container (subject to the Pod restartPolicy).',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -225,9 +225,13 @@ const STEPS = [
       s.refs.entrypointChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
+      // The exec handler runs INSIDE the container, which is what the wire label says, so the same
+      // ask, deliver, return shape as preStop: the Exit 0 cannot precede the exec that produced it.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
-      segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      const exec = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      pulsePod(s.refs.podGroup, ctx, exec.arrivalMs);
+      segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: exec.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
   {
@@ -272,11 +276,13 @@ const STEPS = [
       s.refs.graceChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
+      // Ask, deliver, then return: Kubelet asks over CRI, the runtime execs the hook inside the
+      // container, and only once that lands does the ExecSync call report back.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
-      const ack = segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      const exec = routePacket(s, ctx, SPINE, { delay: ack.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      const exec = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, exec.arrivalMs);
+      segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: exec.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
   {
@@ -301,11 +307,13 @@ const STEPS = [
       s.refs.podGroup.style.opacity = String(OPACITY.terminating);
       setChainActive(s.refs.chain, 5);
       if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
+      // Ask, deliver, then return: StopContainer goes out, the runtime delivers SIGTERM to the
+      // process, and the call is only done once the signal has landed.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
-      const ack = segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      const stop = routePacket(s, ctx, SPINE, { delay: ack.arrivalMs + BEAT.afterHop, role: 'workloads' });
+      const stop = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, stop.arrivalMs);
+      segmentPacket(s, ctx, { from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], delay: stop.arrivalMs + BEAT.afterHop, role: 'workloads' });
       ctx.register(s.refs.podGroup.animate(
         [{ opacity: 1 }, { opacity: OPACITY.terminating }],
         { duration: FADE.out, delay: stop.arrivalMs, fill: 'both', easing: 'ease-in' }

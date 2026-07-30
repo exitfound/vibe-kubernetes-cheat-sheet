@@ -196,7 +196,9 @@ const STEPS = [
       s.refs.dirChip.classList.add('highlight');
       setVal(s.refs.natChip, '-> 10.244.2.7:8080');
       setVal(s.refs.stateChip, 'ESTABLISHED');
-      setVal(s.refs.dirChip, 'fast path');
+      // The chip is named `reply`, so its value has to stay true of the REPLY: on an established flow
+      // the reply keeps the same reverse translation and no longer costs a rule walk.
+      setVal(s.refs.dirChip, 'reverse NAT, no walk');
       if (ctx.reduced) { s.refs.nf.classList.add('highlight'); s.refs.serverBox.classList.add('highlight'); return; }
       // A later packet takes the fast path: client pulses, then the ball runs straight through on the
       // request lane (translated inside netfilter, no pause for a rule walk) to the server.

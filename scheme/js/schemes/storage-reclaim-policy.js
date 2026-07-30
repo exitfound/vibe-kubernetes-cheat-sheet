@@ -268,19 +268,18 @@ const STEPS = [
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'data intact' });
       setWire(s, 'ret', 'nothing touched, data kept');
       setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: OPACITY.terminated, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
-      // Static end state, which is also what a reduced-motion replay snaps to.
+      // Static end state, which is also what a reduced-motion replay snaps to. The disk is NOT lit:
+      // surviving intact is a state, and it reads off the full opacity it keeps while the Delete
+      // column goes to the terminated shade beside it.
       s.refs.retPv.classList.add('highlight');
-      s.refs.retDisk.classList.add('highlight');
       s.refs.band.classList.add('highlight');
       if (ctx.reduced) return;
       s.refs.band.classList.remove('highlight');
-      s.refs.retDisk.classList.remove('highlight');
       // The policy hop is made on this side too, and it is the SECOND hop that never happens: the
       // lane down to the disk is drawn and stays empty. Retain shown as an absence, not as a gap.
       const policy = routePacket(s, ctx, W_RET_POLICY, { role: 'storage' });
       ridingLabel(s, ctx, 'policy: Retain', W_RET_POLICY);
       lightBoxAt(s.refs.band, ctx, policy.arrivalMs);
-      lightBoxAt(s.refs.retDisk, ctx, policy.arrivalMs);
     },
   },
   {
@@ -337,15 +336,25 @@ const STEPS = [
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Bound', retDisk: 'in use again' });
       setBoxSublabel(s.refs.retPvc2, 'Bound');
       setWire(s, 'ret', 'bound to PVC data-c');
-      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: 0, retPvc2: 1, admin: 0, delBound: 0, retBound: 0, retBindLane: 1, adminLane: 0 });
+      // This is the step where the claim DOES bind, so the Bound link is the thing that has to appear:
+      // retain-stuck taught the reader that a refused request leaves it absent.
+      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: 0, retPvc2: 1, admin: 0, delBound: 0, retBound: 1, retBindLane: 0, adminLane: 0 });
       s.refs.retDisk.classList.add('highlight');
       if (ctx.reduced) { s.refs.retPv.classList.add('highlight'); s.refs.retPvc2.classList.add('highlight'); return; }
       s.refs.retDisk.classList.remove('highlight');
       s.refs.retPvc2.classList.add('highlight');
+      // The request lane and the Bound link stand on the same segment, so they hand over instead of
+      // being drawn on top of each other: the ball rides the dashed lane, and on arrival it becomes
+      // the solid arrowhead-free link.
+      s.refs.wRetBind.style.opacity = '1';
+      s.refs.retBound.style.opacity = '0';
       const bind = routePacket(s, ctx, W_RET_BIND, { role: 'storage' });
       ridingLabel(s, ctx, 'bound', W_RET_BIND);
       lightBoxAt(s.refs.retPv, ctx, bind.arrivalMs);
       lightBoxAt(s.refs.retDisk, ctx, bind.arrivalMs);
+      removeAt(s.refs.wRetBind, ctx, bind.arrivalMs, 0);
+      const showBound = s.refs.retBound.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: bind.arrivalMs, fill: 'forwards', easing: 'ease-out' });
+      ctx.register(showBound);
     },
   },
 ];

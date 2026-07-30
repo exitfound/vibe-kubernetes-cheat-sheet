@@ -330,7 +330,7 @@ const STEPS = [
   },
   {
     id: 'detach',
-    duration: 4600,
+    duration: 5400,
     narration: 'Because the object is the record, deleting it is what tears the attach down. Once the Pod is gone the controller deletes the VolumeAttachment, the attacher sees the deletion mark, calls ControllerUnpublishVolume, and only when the backend has detached vol-1 from Node-1 does the object finally go. No object, no attach.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -341,14 +341,20 @@ const STEPS = [
       setWire(s, 'disk', 'detached from node-1');
       setBorn(s, { object: OPACITY.terminated, lanes: 0, pod: 0 });
       setDisk(s, OPACITY.notready);
+      // The controller is the actor of the first clause, so it is lit from entry on both paths.
+      s.refs.adc.classList.add('highlight');
       if (ctx.reduced) { s.refs.att.classList.add('highlight'); return; }
       setBorn(s, { object: 1, lanes: 1, pod: 1 });
       setDisk(s, 1);
-      s.refs.va.classList.add('highlight');
       fadeTo(s.refs.appPod, ctx, 1, 0);
       fadeTo(s.refs.mountLane, ctx, 1, 0);
-      const watch = routePacket(s, ctx, W_WATCH, { delay: BEAT.lead, role: 'storage' });
-      ridingLabel(s, ctx, 'va-7f deleted', W_WATCH, { delay: BEAT.lead });
+      // The delete rides the SAME lane the create did, because the same controller writes both.
+      // The watch below is the attacher reading that deletion, so it can only follow it.
+      const del = routePacket(s, ctx, W_WRITE, { delay: BEAT.lead, role: 'storage' });
+      ridingLabel(s, ctx, 'delete va-7f', W_WRITE, { delay: BEAT.lead });
+      lightBoxAt(s.refs.va, ctx, del.arrivalMs);
+      const watch = routePacket(s, ctx, W_WATCH, { delay: del.arrivalMs + BEAT.afterHop, role: 'storage' });
+      ridingLabel(s, ctx, 'va-7f deleted', W_WATCH, { delay: del.arrivalMs + BEAT.afterHop });
       lightBoxAt(s.refs.att, ctx, watch.arrivalMs);
       // The deletion mark, not the deletion: the attacher sees deletionTimestamp and the object
       // drops to the terminating shade, still holding its finalizer.

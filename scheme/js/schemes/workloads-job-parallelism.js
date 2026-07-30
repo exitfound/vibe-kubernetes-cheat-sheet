@@ -175,6 +175,13 @@ function setUnits(s, a, b, c) {
   setBoxSublabel(s.refs.pod2Box, b);
   setBoxSublabel(s.refs.pod3Box, c);
 }
+// A 1ms zero-effect animation used purely to carry an onfinish at a chosen time, so a chip can turn
+// over on the beat the motion earns it instead of at step entry.
+function at(s, ctx, delay, fn) {
+  const a = s.refs.packetLayer.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
 
 const STEPS = [
   {
@@ -214,6 +221,9 @@ const STEPS = [
       // animations) leaves the Pods visible instead of reverting to the built 0.
       setPods(s, 1, 1, 1);
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
+      // The step STARTS from the observation its own narration opens with, zero live Pods, and the
+      // chip only turns over once the three creates have landed.
+      setVal(s.refs.phaseChip, '0 active');
       // Create travels controller -> Api -> Node. The 3 Pods materialize and pulse
       // together when the create reaches the node (parallelism=3 starts them simultaneously).
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
@@ -222,13 +232,14 @@ const STEPS = [
       [s.refs.pod1, s.refs.pod2, s.refs.pod3].forEach((p, i) => {
         ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create[i].arrivalMs, fill: 'both', easing: 'ease-out' }));
       });
+      at(s, ctx, Math.max(...create.map(c => c.arrivalMs)), () => setVal(s.refs.phaseChip, 'Running · 3 active'));
     },
   },
   {
     id: 'partial',
-    // Motion: the three exits fan out to their workers (to 1613), then the watch event carries the
-    // counts back to the controller and lands at 2973.
-    duration: 3100,
+    // Motion: the three workers pulse their exits (to 900), then the watch event leaves at 800 and
+    // lands on the controller at 1500, its ripple closing the step at 2060.
+    duration: 2600,
     narration: 'Both worker-1 and worker-2 exit 0, so .status.succeeded increments to 2. worker-3 exits with code 1, .status.failed becomes 1. The failed Pod is retained in Failed phase as a tombstone (visible in kubectl get pods until the Job is garbage-collected), so the post-mortem stays inspectable. A replacement still needs to run to reach completions=6.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -250,16 +261,15 @@ const STEPS = [
       // cancel does not drop worker-1 and worker-2 back to the built 0.
       setPods(s, 1, 1, OPACITY.terminated);
       if (ctx.reduced) { s.refs.controller.classList.add('highlight'); return; }
-      const recon = fanOut(s, ctx);
-      // Lane 3 dims on the same beat as the worker it feeds. fill:'both' holds it at full through
-      // the delay window, so the ball is never riding a wire dimmer than itself.
-      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: recon[2].arrivalMs, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.lanes[2].animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: recon[2].arrivalMs, fill: 'both', easing: 'ease-in' }));
-      // Every unit has reported before the controller can count, so the watch leaves on the LAST
-      // arrival rather than the first: this is the step whose wire says watch Pod exits.
-      const settled = Math.max(...recon.map(r => r.arrivalMs));
-      const watch = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: settled + BEAT.afterHop, role: 'workloads' });
+      // Up-arrow: the workers act and the controller receives. The three exits happen first, then
+      // the watch event carries the counts up. Nothing is created on this step, so nothing rides down.
+      [s.refs.pod1, s.refs.pod2, s.refs.pod3].forEach(p => pulsePod(p, ctx, 0));
+      const watch = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: BEAT.afterPulse, role: 'workloads' });
       lightBoxAt(s.refs.controller, ctx, watch.arrivalMs);
+      // Worker-3 exited 1, so it and the lane that feeds it settle to the tombstone shade on the beat
+      // its own exit pulse hands over. fill:'both' holds both at full through the delay window.
+      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }));
+      ctx.register(s.refs.lanes[2].animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -289,7 +299,8 @@ const STEPS = [
   },
   {
     id: 'complete',
-    duration: 2700,
+    // Motion: the three workers pulse their final exits and nothing else, so the step closes at 900.
+    duration: 2200,
     narration: 'Between them the three workers have completed all 6 units, the last one (unit-6) just finishing on worker-1. .status.succeeded now equals .spec.completions (6), so the controller sets condition Complete=True and stops creating Pods. The earlier single failure stays counted in .status.failed, and the terminated Pods are retained until ttlSecondsAfterFinished elapses (Job auto-cleanup) or until kubectl delete job is issued.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -307,9 +318,9 @@ const STEPS = [
       // Pin final opacities inline so the three Pods stay visible after a cancel.
       setPods(s, 1, 1, 1);
       if (ctx.reduced) return;
-      // Final reconcile reaches the node. The three workers settle to their completed
-      // units and pulse together as the Job reaches completions=6 (Complete=True).
-      fanOut(s, ctx);
+      // Complete=True is a state the controller REACHES, not traffic it sends: the sentence ends with
+      // the controller no longer creating Pods, so the only motion here is the workers reporting done.
+      [s.refs.pod1, s.refs.pod2, s.refs.pod3].forEach(p => pulsePod(p, ctx, 0));
     },
   },
 ];

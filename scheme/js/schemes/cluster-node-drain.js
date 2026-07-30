@@ -175,6 +175,14 @@ function setLanes(s, l1, l2) {
   s.refs.evictLane2.style.opacity = String(l2);
 }
 
+// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
+
 const STEPS = [
   {
     id: 'idle',
@@ -257,6 +265,9 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+      // The count the API READS is 2, and the eviction is what takes it to 1, so the chip stays at
+      // what the previous step left and turns over when the eviction ball lands on web-1.
+      setVal(s.refs.healthyChip, '2 of 2');
       // Top packet: kubectl → apiserver (POST eviction), then the delete flows
       // down the connector. The Pod reacts only when the ball reaches the node.
       const req = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, role: 'cluster' });
@@ -266,6 +277,7 @@ const STEPS = [
       // that was answered on one step and silently swallowed on the other.
       topPacket(s, ctx, { from: API_X, to: KUBECTL_X + BOX_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
       const evict = routePacket(s, ctx, EVICT_ROUTE(0), { delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      at(s, ctx, evict.arrivalMs, () => setVal(s.refs.healthyChip, '1 of 2'));
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
       // The lane carried the ball, so it fades WITH its Pod rather than at step entry.
       [s.refs.pod1, s.refs.evictLane1].forEach(el => ctx.register(

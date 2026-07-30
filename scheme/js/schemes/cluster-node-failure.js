@@ -43,7 +43,7 @@ const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
 // Every lane ends ON the Pod it addresses, never on the frame edge above it, and none of them may
-// cross the ladder: both verticals stay left of LADDER_X and meet the top row through GUTTER_X.
+// cross the ladder, so every vertical stays left of LADDER_X.
 const LANE_DX = 12;                                      // the two lanes share the Pod top face
 const GUTTER_X = LADDER_X - 40;                          // 620, the corridor between Pods and ladder
 const UNDER_TOP_Y = TOP_BOTTOM + 16;                     // 136, below the top row, above the ladder
@@ -51,8 +51,10 @@ const EV_JOG_Y = NODE_Y - 66;                            // 340, the outbound la
 const HB_JOG_Y = NODE_Y - 44;                            // 362, the return lane, 22 below it
 
 const HEARTBEAT_CONNECTOR = [[POD_A_CX + LANE_DX, POD_Y], [POD_A_CX + LANE_DX, HB_JOG_Y], [GUTTER_X, HB_JOG_Y], [GUTTER_X, UNDER_TOP_Y], [LEASE_CX, UNDER_TOP_Y], [LEASE_CX, TOP_BOTTOM]];
-const EVICT_CONNECTOR     = [[CX, TOP_BOTTOM], [CX, EV_JOG_Y], [POD_A_CX - LANE_DX, EV_JOG_Y], [POD_A_CX - LANE_DX, POD_Y]];
-const RESCHED_CONNECTOR   = [[POD_A_X + POD_W, POD_CY], [POD_B_X, POD_CY]];
+// Both Node-band lanes leave the controller, the actor both steps name, as a mirrored pair on its
+// bottom face. The reschedule lane drops the 580..620 corridor between the frames, not EV_JOG_Y.
+const EVICT_CONNECTOR     = [[CX - LANE_DX, TOP_BOTTOM], [CX - LANE_DX, EV_JOG_Y], [POD_A_CX - LANE_DX, EV_JOG_Y], [POD_A_CX - LANE_DX, POD_Y]];
+const RESCHED_CONNECTOR   = [[CX + LANE_DX, TOP_BOTTOM], [CX + LANE_DX, POD_CY], [POD_B_X, POD_CY]];
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -83,8 +85,8 @@ class Scene {
     const hbLane = pathArrow({ points: HEARTBEAT_CONNECTOR, dim: true, dashed: true, role: 'cluster' });
     root.appendChild(hbLane);
 
-    // Controller -> failing-node connector so the eviction DELETE is carried by a
-    // visible packet the Pod reacts to on arrival; reschedule bridges node to node.
+    // Two controller-sourced lanes into the Node band: the eviction DELETE drops onto the Pod on
+    // Node-1, and the creation of the replacement drops onto the new Pod on Node-2.
     const evictLane = pathArrow({ points: EVICT_CONNECTOR,   dim: true, dashed: true, role: 'cluster' });
     const reschedLane = pathArrow({ points: RESCHED_CONNECTOR, dim: true, dashed: true, role: 'cluster' });
     root.appendChild(evictLane);
@@ -330,7 +332,7 @@ const STEPS = [
   },
   {
     id: 'reschedule',
-    duration: 2200,
+    duration: 2600,
     narration: 'The owning controller (Deployment via its ReplicaSet) sees the missing replica and creates a replacement Pod. Scheduler picks the healthy Node-2 and Kubelet there starts it. End-to-end recovery takes about 50s plus 300s by default, the grace period plus the toleration.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -348,8 +350,8 @@ const STEPS = [
       s.refs.podB.style.opacity = '1';
       setLanes(s, OPACITY.terminating, OPACITY.terminating, 1);
       if (ctx.reduced) return;
-      // The bind packet bridges Node-1 across to Node-2 (node block to node block);
-      // the replacement Pod materialises and pulses only when it lands on Node-2.
+      // Nothing moves from the dying Pod: the controller CREATES a replacement, so the ball leaves
+      // the controller and the new Pod materialises and pulses only when it arrives on Node-2.
       const bind = routePacket(s, ctx, RESCHED_CONNECTOR, { role: 'cluster' });
       ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: bind.arrivalMs, fill: 'both', easing: 'ease-out' }));
       pulsePod(s.refs.podB, ctx, bind.arrivalMs);

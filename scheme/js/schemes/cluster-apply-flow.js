@@ -25,7 +25,8 @@ const T2_Y = 240, T2_H = 80, T2_W = 220;
 const CM_X = 240, CM_CX = CM_X + T2_W / 2;               // 240..460, 350
 const SCHED_X = 845, SCHED_CX = SCHED_X + T2_W / 2;      // 845..1065, 955
 
-// Four lanes leave the API's bottom face, so they are drawn as two mirrored pairs about API_CX.
+// Five lanes meet the API bottom face: two mirrored pairs about API_CX, plus the Kubelet lane
+// on the midpoint.
 const D30 = 30, D60 = 60;
 const NODE_X = 110, NODE_W = 980, NODE_Y = 420, NODE_H = 180;   // 110..1090, 420..600
 const KUBELET_X = 135, KUBELET_W = 220, KUBELET_Y = 475, KUBELET_H = 80;
@@ -33,11 +34,15 @@ const KUBELET_R = KUBELET_X + KUBELET_W, KUBELET_CX = KUBELET_X + KUBELET_W / 2;
 const POD_X = 720, POD_W = 216, POD_Y = 462, POD_H = 106;
 const LANE_Y = KUBELET_Y + KUBELET_H / 2;                // 515, and the Pod shares it
 
-const SCHED_LANE_DX = 20;
-const TO_CM      = [[API_CX - D60, TOP_BOTTOM], [API_CX - D60, 200], [CM_CX, 200], [CM_CX, T2_Y]];
-const TO_SCHED   = [[API_CX + D60, TOP_BOTTOM], [API_CX + D60, 200], [SCHED_CX + SCHED_LANE_DX, 200], [SCHED_CX + SCHED_LANE_DX, T2_Y]];
-const FROM_SCHED = [[SCHED_CX - SCHED_LANE_DX, T2_Y], [SCHED_CX - SCHED_LANE_DX, 220], [API_CX + D30, 220], [API_CX + D30, TOP_BOTTOM]];
-const TO_KUBELET = [[API_CX - D30, TOP_BOTTOM], [API_CX - D30, 390], [KUBELET_CX, 390], [KUBELET_CX, KUBELET_Y]];
+// Each tier-2 box carries a mirrored pair on its top face: the watch lands on the outer lane and
+// runs at y=200, the write back leaves on the inner one and runs at y=220, so the two never cross.
+const T2_LANE_DX = 20;
+const TO_CM      = [[API_CX - D60, TOP_BOTTOM], [API_CX - D60, 200], [CM_CX - T2_LANE_DX, 200], [CM_CX - T2_LANE_DX, T2_Y]];
+const FROM_CM    = [[CM_CX + T2_LANE_DX, T2_Y], [CM_CX + T2_LANE_DX, 220], [API_CX - D30, 220], [API_CX - D30, TOP_BOTTOM]];
+const TO_SCHED   = [[API_CX + D60, TOP_BOTTOM], [API_CX + D60, 200], [SCHED_CX + T2_LANE_DX, 200], [SCHED_CX + T2_LANE_DX, T2_Y]];
+const FROM_SCHED = [[SCHED_CX - T2_LANE_DX, T2_Y], [SCHED_CX - T2_LANE_DX, 220], [API_CX + D30, 220], [API_CX + D30, TOP_BOTTOM]];
+// The Kubelet lane drops down the spine, between the two return lanes at API_CX +/- D30.
+const TO_KUBELET = [[API_CX, TOP_BOTTOM], [API_CX, 390], [KUBELET_CX, 390], [KUBELET_CX, KUBELET_Y]];
 const POST       = [[KCTL_R, OUT_Y], [API_X, OUT_Y]];
 const POST_ACK   = [[API_X, BACK_Y], [KCTL_R, BACK_Y]];
 const PERSIST    = [[API_R, OUT_Y], [ETCD_X, OUT_Y]];
@@ -110,8 +115,10 @@ class Scene {
     root.appendChild(pathArrow({ points: POST_ACK,    dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: PERSIST,     dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: PERSIST_ACK, dim: true, dashed: true, role: 'cluster' }));
-    // Api -> ControllerManager and Api -> Scheduler, mirrored about the spine.
+    // ControllerManager and Scheduler each get a watch lane out and a write lane back, and the
+    // two pairs are mirrored about the spine.
     root.appendChild(pathArrow({ points: TO_CM, dim: true, dashed: true, role: 'cluster' }));
+    root.appendChild(pathArrow({ points: FROM_CM, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: TO_SCHED, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: FROM_SCHED, dim: true, dashed: true, role: 'cluster' }));
     // Api -> Kubelet: straight down the spine, then into the Kubelet inside the node.
@@ -220,7 +227,7 @@ const STEPS = [
   },
   {
     id: 'controller',
-    duration: 1900,
+    duration: 2700,
     narration: 'The Deployment controller, inside the controller-manager, sees "my-app" via its watch on the API. It creates a ReplicaSet (my-app-7d4). The ReplicaSet controller then creates a Pod (my-app-7d4-abc) with no nodeName yet.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -229,8 +236,11 @@ const STEPS = [
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'controller', 'watch ADDED Deployment my-app');
       if (ctx.reduced) { s.refs.cm.classList.add('highlight'); return; }
-      const pkt = routePacket(s, ctx, TO_CM, { role: 'cluster' });
-      lightBoxAt(s.refs.cm, ctx, pkt.arrivalMs);
+      // The Deployment controller reacts on its watch and then WRITES back: the ReplicaSet and the
+      // Pod are both creates on the API. Same out-and-back shape the schedule step uses next.
+      const pickup = routePacket(s, ctx, TO_CM, { role: 'cluster' });
+      lightBoxAt(s.refs.cm, ctx, pickup.arrivalMs);
+      routePacket(s, ctx, FROM_CM, { delay: pickup.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
