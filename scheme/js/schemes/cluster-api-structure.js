@@ -237,7 +237,9 @@ const STEPS = [
   },
   {
     id: 'list',
-    duration: 3800,
+    // Motion: the LIST read goes out to ETCD, the full set comes back, then the stream reaches the
+    // informer and its cache fills, ending at 5140. Drawing the read itself cost 1340ms.
+    duration: 5400,
     narration: 'The informer fires the initial LIST. The API reads from ETCD and returns the full set at a snapshot resourceVersion (rv=842). The informer fills its Indexer cache, and the controller can now reconcile from local memory without hitting the API again.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -248,10 +250,10 @@ const STEPS = [
       setVal(s.refs.rvChip, '842');
       setVal(s.refs.cacheChip, '3');
       setWire(s, 'req', 'LIST /api/v1/pods · rv=842');
-      // ETCD is where the read starts, so it is the one actor lit from entry. The Api and the
-      // Informer are named by the narration too, but each acts only on what reaches it, so both
-      // light on arrival below.
-      s.refs.etcdC.classList.add('highlight');
+      // Nobody is lit from entry on this step any more: the API sends the read, so ETCD RECEIVES it
+      // before it answers, and every one of the three actors here acts only on what reaches it. The
+      // API was the source before the read itself was drawn (review stage 2.4 family B), and it is the
+      // source of the outbound ball still, which is why it stays lit at entry below the guard.
       s.refs.rvChip.classList.add('highlight');
       s.refs.cacheChip.classList.add('highlight');
       const labels = [['ADDED', 'pod-a · rv=840'], ['ADDED', 'pod-b · rv=841'], ['ADDED', 'pod-c · rv=842']];
@@ -263,11 +265,17 @@ const STEPS = [
       s.refs.streamLabel.style.opacity = '1';
       if (ctx.reduced) {
         s.refs.api.classList.add('highlight');
+        s.refs.etcdC.classList.add('highlight');
         s.refs.informer.classList.add('highlight');
         s.refs.cache.classList.add('highlight');
         return;
       }
-      const read    = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });
+      // "The API reads from ETCD and returns the full set": only the return was ever drawn, so the read
+      // itself goes out first down the lane the card draws for it, and ETCD lights when it lands.
+      s.refs.api.classList.add('highlight');
+      const ask     = routePacket(s, ctx, API_TO_ETCD, { role: 'cluster' });
+      lightBoxAt(s.refs.etcdC, ctx, ask.arrivalMs);
+      const read    = routePacket(s, ctx, ETCD_TO_API, { delay: ask.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.api, ctx, read.arrivalMs);
       const stream  = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], delay: read.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.informer, ctx, stream.arrivalMs);

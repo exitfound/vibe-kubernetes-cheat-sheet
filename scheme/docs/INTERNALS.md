@@ -116,6 +116,24 @@ finally inline generic ephemeral volumes, which close the loop back to the ephem
 
 ## scheme/js/lib/scheme-kit.js
 
+### before `export const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));`
+
+```
+Hoisted here 2026-07-30. It existed as three identical copies: one in `storage-pvc-retention-policy`,
+one in `storage-volumeclaimtemplates`, and the reasoning behind it written out twice in slightly
+different words. Both cards now import it, and all four category kits re-export it.
+
+A lane is only as present as the FAINTER of the two things it joins, so it takes the min of its
+endpoints. Deriving the opacity from one end alone is how an ownership lane came to leave a Pod that
+is a ghost at OPACITY.terminated and arrive at its claim on full strength, and how a mount arrow
+stayed bright into a Pod that was gone.
+
+`R-kitparity` caught the omission in three of the four kits the moment it was added, which is worth
+knowing: the four re-export lists are formatted differently enough that a single find-and-replace
+across them does not work.
+```
+
+
 ### before `export const REVEAL_MS = 500;`
 
 ```

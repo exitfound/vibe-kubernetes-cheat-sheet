@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, makeRidingLabel } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-externaltrafficpolicy
 
 
@@ -143,9 +143,11 @@ const STEPS = [
   },
   {
     id: 'cluster',
-    // Motion runs fan(693) + hop beat(100) + underlay(1271) = 2064, then the Pod pulse (900) ends at
-    // 2964. The old 2700 floor cut that pulse off mid-flight when the step advanced.
-    duration: 3300,
+    // Motion runs the client entry leg, then fan(693) + hop beat(100) + underlay(1271), then the Pod
+    // pulse (900), ending at 3771. It was 2964 before the entry leg was drawn (review stage 2.4
+    // family B): every step here opens with a client hitting the external address, and that first leg
+    // was drawn and never rode.
+    duration: 4200,
     narration: 'With the default policy Cluster, every Node accepts the traffic even with no local Pod. The balancer happens to pick Node-2, which has no backend, so the Node SNATs the packet and forwards it across the cluster network to the Pod on Node-1. Load spreads evenly over every backend, wherever it runs.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -159,12 +161,16 @@ const STEPS = [
       setVal(s.refs.hopChip, 'yes');
       s.refs.hopChip.classList.add('highlight');
       setVal(s.refs.hcChip, 'unused');
-      s.refs.lb.classList.add('highlight');
+      // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
       s.refs.modeChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.podWBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
       // LB -> Node-2 (no backend), then SNAT and forward across the underlay to the Pod on Node-1,
       // which pulses on arrival. The ball is hidden inside Node-2 between the two legs.
-      const toN2 = routePacket(s, ctx, TO_N2, { role: 'network' });
+      // The client request reaches the load balancer first, on the leg the card draws and never
+      // rode: every one of these steps opens with a client hitting the external address.
+      const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
+      lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
+      const toN2 = routePacket(s, ctx, TO_N2, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'src 198.51.100.9', TO_N2, { emerge: 140 });
       const hopDelay = toN2.arrivalMs + BEAT.afterHop;
       const hop = routePacket(s, ctx, CROSS, { delay: hopDelay, role: 'network' });
@@ -175,6 +181,7 @@ const STEPS = [
   },
   {
     id: 'cluster-cost',
+    // Reflective step: no packet at all, so the entry-leg change above does not reach it.
     duration: 2300,
     narration: 'That convenience has a cost. The extra Node-to-Node hop adds latency, and because Node-2 had to SNAT, the Pod sees the packet as coming from the Node, not from 198.51.100.9. The real client IP is gone, which breaks source-IP allowlists and access logs.',
     enter(s, ctx) {
@@ -192,7 +199,8 @@ const STEPS = [
   },
   {
     id: 'local',
-    duration: 2500,
+    // Motion: the client entry leg now precedes the fan, adding about 470ms.
+    duration: 3100,
     narration: 'Switching to externalTrafficPolicy Local changes the rules. A Node only serves the request from its own local Pods, never forwarding to another Node. The balancer sends to Node-1, the packet goes straight to its Pod with no SNAT, so the Pod sees the true client IP 198.51.100.9 and there is no extra hop.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -202,21 +210,26 @@ const STEPS = [
       setVal(s.refs.srcChip, 'preserved');
       setVal(s.refs.hopChip, 'no');
       setVal(s.refs.hcChip, 'unused');
-      s.refs.lb.classList.add('highlight');
+      // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
       s.refs.modeChip.classList.add('highlight');
       s.refs.srcChip.classList.add('highlight');
       s.refs.hopChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.podWBox.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
       // LB -> Node-1 (right-angle fan), stopping on the Node edge. No SNAT, so the ball carries the
       // client address the whole way and the local Pod pulses as it is served.
-      const toN1 = routePacket(s, ctx, TO_N1, { role: 'network' });
+      // The client request reaches the load balancer first, on the leg the card draws and never
+      // rode: every one of these steps opens with a client hitting the external address.
+      const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
+      lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
+      const toN1 = routePacket(s, ctx, TO_N1, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'src 198.51.100.9', TO_N1, { emerge: 140 });
       pulsePod(s.refs.podW, ctx, toN1.arrivalMs);
     },
   },
   {
     id: 'healthcheck',
-    duration: 2500,
+    // Motion: the client entry leg now precedes the fan, adding about 470ms.
+    duration: 3100,
     narration: 'But Local would silently drop traffic that lands on Node-2, which has no Pod to serve it. To avoid that, Local exposes a healthCheckNodePort that reports healthy only on Nodes with a local backend, so the load balancer stops sending to Node-2 and targets only Node-1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -231,10 +244,14 @@ const STEPS = [
       setVal(s.refs.srcChip, 'preserved');
       setVal(s.refs.hopChip, 'no');
       s.refs.hcChip.classList.add('highlight');
-      s.refs.lb.classList.add('highlight');
-      if (ctx.reduced) { s.refs.podWBox.classList.add('highlight'); return; }
+      // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
+      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
       // The health check excludes Node-2, so the LB steers only to Node-1 and its local Pod pulses.
-      const toN1 = routePacket(s, ctx, TO_N1, { role: 'network' });
+      // The client request reaches the load balancer first, on the leg the card draws and never
+      // rode: every one of these steps opens with a client hitting the external address.
+      const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
+      lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
+      const toN1 = routePacket(s, ctx, TO_N1, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });
       ridingLabel(s, ctx, 'src 198.51.100.9', TO_N1, { emerge: 140 });
       pulsePod(s.refs.podW, ctx, toN1.arrivalMs);
     },

@@ -256,6 +256,11 @@ const STEPS = [
       s.refs.controller.classList.add('highlight');
       s.refs.svc.classList.add('highlight');
       s.refs.web1Chip.classList.add('highlight');
+      // web-1 reaching Ready is exactly what opens web-2's gate, and that chip changes value on this
+      // step to say so, so it lights with the event rather than sitting unlit beside it. This was the
+      // one check-arrival R2 finding in the catalog that was a real event rather than a marker being
+      // cleared from the step before.
+      s.refs.web2Chip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }

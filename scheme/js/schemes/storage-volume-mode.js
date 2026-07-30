@@ -224,7 +224,11 @@ const STEPS = [
       setWire(s, 'band', 'stage: mkfs then mount');
       s.refs.band.classList.add('highlight');
       if (ctx.reduced) { s.refs.pvFs.classList.add('highlight'); return; }
-      actOnDisk(s, ctx, { points: W_FS_STAGE, tag: 'mkfs ext4', disk: s.refs.pvFs });
+      const staged = actOnDisk(s, ctx, { points: W_FS_STAGE, tag: 'mkfs ext4', disk: s.refs.pvFs });
+      // The disk hands the formatted device back, which is what its own lane comment has always said
+      // and what the block branch beside it already draws (W_BLK_DEV, "device as is"). Without it the
+      // fs branch staged onto the disk and then mounted a device it was never shown receiving.
+      actOnDisk(s, ctx, { points: W_FS_DEV, tag: 'ext4 device', disk: s.refs.band, lead: staged + BEAT.afterHop });
     },
   },
   {

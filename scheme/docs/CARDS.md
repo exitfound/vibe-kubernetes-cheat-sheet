@@ -136,12 +136,18 @@ cx=600 — the midpoint of the four slots (290..910) and the Indexer above them.
 hidden until the ADDED slots appear and tracks their visibility from then on.
 ```
 
-### before `const read    = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });`
+### before `const read    = routePacket(s, ctx, ETCD_TO_API, { delay: ask.arrivalMs + BEAT.afterHop, role: 'cluster' });`
 
 ```
 The LIST result takes the same downward journey the watch event does: ETCD -> Api (the
-snapshot read), Api -> Informer (the full set), Informer -> Indexer (fills the cache). The
-informer firing the LIST is implied by it lighting up as the recipient.
+snapshot read), Api -> Informer (the full set), Informer -> Indexer (fills the cache).
+
+Review stage 2.4 caught the ask being implied rather than shown: the narration names the
+informer ASKING and the older version only animated the answer, so the reader saw a reply to
+a question nobody put. `ask` now rides API_TO_ETCD outbound and `read` waits on its arrival,
+which is why the step costs 5400ms rather than 3800. The Api is dark at entry and lit by
+lightBoxAt when the answer reaches it, so the sender-lit rule (R3) still holds: on this step
+the Api is a relay, not the origin.
 ```
 
 ### before `s.refs.slots.slice(0, 3).forEach((slot, i) => {`
@@ -748,6 +754,16 @@ Height is tuned so the block centre lands exactly on PAUSE_Y, where the result a
 enter, so those arrows read as centred on the block (without moving them and grazing the CNI box).
 ```
 
+### before `const cniBox = node({ x: CNI[0], y: CNI[1], w: CNI[2], h: CNI[3], label: 'CNI plugin' });`
+
+```
+CENTRE-LOW is OPEN here on purpose (recorded in the R5 pass, 2026-07-27, moved here 2026-07-30 so it
+survives the working documents). The whole right half of the picture is this `node()` frame with
+`chainList` rows inside it, and CENTRE-LOW counts neither frames nor chips: it sees only boxes, pods
+and cylinders. The drawing is centred, the rule is not. Shifting the boxes it CAN see to make the
+number go green would decentre the picture a reader actually looks at.
+```
+
 ---
 
 ## network-conntrack-nat
@@ -1123,6 +1139,15 @@ program (the riding src tag rides ABOVE the ball at y312, this sits below it). C
 turn put the riser under the old slot, so the dst label moved here where it never collides.
 ```
 
+### before `const TO_PODY = [[HOOK_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, PODY_Y], [POD_X, PODY_Y]];`
+
+```
+Review stage 2.4 family B listed `TO_PODY` as a lane nobody rides. DECLINED 2026-07-30: it is the
+ALTERNATIVE backend, drawn so the reader can see that the map lookup picked one of two, and the card
+says so in words. N destinations, N wires. `LOOKUP` was on the same finding and is now ridden, because
+family D gave the map lookup the round trip its sentence names.
+```
+
 ---
 
 ## network-endpointslice-reconcile
@@ -1421,6 +1446,24 @@ that rewrites the destination (there is none to rewrite: clusterIP None, so kube
 nothing) but the DNS reply itself, a sheet of three A records. Each record leaves on its own leg to
 its own Pod, so the record count and the Pod count are visibly the same number, which IS headless:
 one record per ready Pod, and the client dials the Pod IP straight.
+```
+
+### before `const fans = [W0, W1, W2].map(cy => relationPath({ points: fanTo(cy), role: 'network' }));`
+
+```
+Review stage 2.4 family B listed the three `fans` as lanes nobody rides, and the comment above them
+claimed the opposite in so many words ("both are drawn from the exact arrays their balls fly"), which
+was true of the data fan and false of this one. Converted 2026-07-30.
+
+The endpoint fan is CoreDNS knowing which Pods back the Service, and no packet belongs on it in either
+direction: CoreDNS never calls a Pod, and the read that populates the answer comes from the
+EndpointSlice, which this card does not draw. Dropping the arrowhead also settles a direction the arrow
+had wrong: it pointed CoreDNS -> Pod while the narration says CoreDNS READS the endpoints.
+
+The DATA fan beside it keeps its arrowheads and its balls. Two fans that look alike and mean different
+things was the actual defect, and the pair now differs at a glance. `TO_W2` in the data fan still rides
+nothing, which is the separate sanctioned case: N destinations get N wires so the reader can see the
+client picked one of three.
 ```
 
 ---
@@ -1938,6 +1981,15 @@ clear it rather than leaving a stale 10.244.1.5. The value changes here, so the 
 stays highlighted as a participant rather than going dim beside its lit neighbour.
 ```
 
+### before `const CNI_CONNECTOR = [[CNI_X, CNI_BOTTOM], [CNI_X, BUS_Y]];`
+
+```
+Review stage 2.4 family B listed `CNI_CONNECTOR` as a lane nobody rides. FALSE, snapped 2026-07-30: the
+lane IS animated, with `marchWire` rather than a ball, which is this card's vocabulary for "this is
+what implements the model" on the step that reveals the CNI plugin. No packet rides it because nothing
+discrete travels: the plugin is not sending a message, it is the thing that makes the flat space exist.
+```
+
 ---
 
 ## network-namespaces
@@ -2159,6 +2211,17 @@ leg only shows the text in the open gap between blocks, never sliding it over th
 Client to LB, fanning out to node ports across three nodes.
 External client on top -> cloud LoadBalancer (ccm provisioning it from the right) -> a right-angle
 fan down to three Nodes, backend Pods only under two of them (the third Node runs no Pod).
+```
+
+### before `const TO_N2 = [[CX, LB_BOTTOM], [CX, NODE_Y]];`
+
+```
+Review stage 2.4 family B listed `TO_N2` and `TO_N3` as lanes nobody rides. DECLINED 2026-07-30 under
+the canon rule that N destinations get N wires: a NodePort opens the SAME port on EVERY Node, which is
+the card's whole first claim, so all three lanes have to exist for the reader to see that any Node
+would have served the request. One step takes one of them, and which one is the arbitrary part.
+
+`network-headless-service`'s `TO_W2` was already accepted on this basis and is the precedent.
 ```
 
 ---
@@ -2829,6 +2892,14 @@ kube-proxy forwards to one backend: a packet rides the fan route, the Pod pulses
 ipTag is given, the client source IP rides with the ball so the chosen backend is tagged. The fan
 is deliberately slowed (routeDur * FAN_SLOW) so the tag stays readable, and the label rides the
 SAME dur so it stays locked to the ball. Speed stays distance-normalized: one shared multiplier.
+```
+
+### before `const FAN_A2 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, A2Y], [POD_L, A2Y]];`
+
+```
+Review stage 2.4 family B listed `FAN_A2` as a lane nobody rides. DECLINED 2026-07-30, same reason as
+the nodeport fan: it is the endpoint the traffic distribution did NOT pick on this step, and the point
+of the card is that the choice was made among the drawn candidates rather than forced.
 ```
 
 ---
@@ -6492,6 +6563,17 @@ the bottom arc at 160, so 141), not on the shape's bounding box: the cap is draw
 edge-on, and a glyph centered on the box sits visibly high inside the body you actually see.
 ```
 
+### before `const DEL_X = LEFT_X, RET_X = LEFT_X + COL_W + COL_GAP;        // 400 / 624`
+
+```
+CENTRE is OPEN here on purpose (recorded in the R5 pass, 2026-07-27, moved here 2026-07-30 so it
+survives the working documents). Content spans 400..1010, centre 705 against a wanted ~600. Both
+columns are locked by the PVC row above them, which has to sit right of the narration panel, and the
+only way to pull the centre left is to stretch the policy band across the full width. That is exactly
+the fit-the-metric edit that produced the R5-a regressions, so the number stays red and the picture
+stays honest.
+```
+
 ---
 
 ## storage-topology-aware-provisioning
@@ -7263,6 +7345,13 @@ first frame (the volume starts on node-1) and only its OPACITY drops on force-de
 attachment is severed. wAttachB starts hidden and is drawn in when the volume moves to node-2.
 ```
 
+Review stage 2.4 family B listed `W_ATTACH_A` as a lane nobody rides and it was briefly converted
+to a relationPath. REVERTED 2026-07-30: the decision above is exactly what the conversion breaks.
+Sinking one half of a deliberately symmetric pair makes the left lane the lesser arrow, which is
+the thing this card went out of its way not to do. Both halves are relationships by nature here,
+and the card already says which one is live through OPACITY. The finding is declined for the
+symmetry, not for the ridership.
+
 ### before `[nodeA, nodeB, disk, escape, oldPod.group, newPod.group].forEach(el => root.appendChild(el));`
 
 ```
@@ -7642,6 +7731,16 @@ so the poster read as two unrelated drawings rather than one comparison. Pulled 
 gap against 46 unit outer margins, which puts more air outside the pair than inside it and
 makes them read as a pair. The asymmetry between the columns is the content, so the spacing
 has to stay symmetric or it competes with it.
+```
+
+### before `const W_BLK_STAGE = laneDown(BLK_CX, BAND_BOTTOM, PV_TOP);`
+
+```
+Review stage 2.4 family B listed `W_BLK_STAGE` as a lane nobody rides. DECLINED 2026-07-30, and it is
+the strongest case of the family: block mode has NO staging step. There is no mkfs and no mount, which
+is the entire contrast the card is built on, so the lane exists to be visibly empty beside the fs
+branch that uses its twin. Its sibling `W_FS_DEV` was on the same finding and is now ridden, because
+the fs branch really does get the formatted device back.
 ```
 
 ---
@@ -8553,6 +8652,20 @@ The climbing backoff shows via the ladder filling and the static chip highlight
 (no chip pulse).
 ```
 
+### before `const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];`
+
+```
+Review stage 2.4 family B listed the DOWN lane as an arrowhead nobody rides, shown on four of the six
+steps. DECLINED 2026-07-30: on this card the absence of traffic down it IS the content. The three steps
+that show it (`backoff-named`, `doubling`, `cap`) are the ones where Kubelet is HOLDING THE RESTART OFF,
+which each narration says in words, and the restart it is holding is exactly what would travel down.
+The crash itself goes UP and is animated on `first-crash` and `reset`. Drawing a ball down would say
+the restart happened on the step whose subject is that it has not.
+
+Same shape as `W_RET_WIPE` on storage-reclaim-policy, the other lane in the catalog whose emptiness is
+the lesson.
+```
+
 ---
 
 ## workloads-cronjob
@@ -9105,6 +9218,15 @@ under a chip reading 'web-0 · Terminating, then removed', which is a chip namin
 drawing showing only the second. The Pod now sinks to OPACITY.terminating on this step, which is
 the state the chip names first, and the recreate step is where it leaves the slot: that is the
 step whose narration has the object finally gone and a new one created under the same name.
+```
+
+### before `const TAP_A = [[P_A_CX, BUS_Y], [P_A_CX, POD_Y]];`
+
+```
+Review stage 2.4 family B listed `TAP_A` and `TAP_B` as lanes nobody rides. FALSE, snapped 2026-07-30:
+both taps ARE ridden. `NODE1_LANE` and `NODE2_LANE` are `[...TRUNK, ...tap]`, so a ball on either
+covers its tap exactly, and only a grep for the constant name could miss it. Same silhouette as the
+false finding on cluster-architecture.
 ```
 
 ---

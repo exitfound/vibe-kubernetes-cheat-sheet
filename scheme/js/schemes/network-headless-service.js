@@ -74,8 +74,11 @@ class Scene {
     const w2 = podBlock({ x: POD_X, y: W2 - POD_H / 2, w: POD_W, h: POD_H, label: 'web-2', ip: '10.244.1.9' });
 
     const wSvc = relationPath({ points: [[CORE_CX, SVC_Y], [CORE_CX, CY + CORE_H / 2]], dash: '5 5' });
-    // Endpoint fan and data fan. Both are drawn from the exact arrays their balls fly.
-    const fans = [W0, W1, W2].map(cy => pathArrow({ points: fanTo(cy), dashed: true, dim: true }));
+    // Two fans, and only one of them is traffic. The DATA fan is what the client opens, drawn from the
+    // exact arrays its balls fly. The ENDPOINT fan is CoreDNS knowing which Pods back the Service, and
+    // nothing discrete travels it in either direction: CoreDNS does not call the Pods, and the reads it
+    // does come from the EndpointSlice, which this card does not draw. So it carries no arrowhead.
+    const fans = [W0, W1, W2].map(cy => relationPath({ points: fanTo(cy), role: 'network' }));
     const dataWires = [TO_W0, TO_W1, TO_W2].map(points => pathArrow({ points, dashed: true, dim: true }));
     const wQuery = pathArrow({ points: QUERY, dashed: true, dim: true });
     const wAnswer = pathArrow({ points: ANSWER, dashed: true, dim: true });

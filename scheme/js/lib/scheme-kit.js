@@ -39,6 +39,13 @@ export function setPodSublabel(podEl, txt) {
   if (sub) sub.textContent = txt;
 }
 
+// A lane joins two things and is only as present as the fainter of them, so its shade is the MIN of
+// its endpoints. Hoisted 2026-07-30 out of two byte-identical card copies (storage-pvc-retention-policy
+// and storage-volumeclaimtemplates) written days apart, which is the shape that becomes a third copy
+// next: the rule itself is catalog-wide (see the lane rules in scheme/CLAUDE.md), so the one-liner
+// belongs where every card can reach it.
+export const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));
+
 export function clearHighlights(s, keys, pods = []) {
   keys.forEach(k => { const el = s.refs[k]; if (el) el.classList.remove('highlight'); });
   if (s.refs.chain) s.refs.chain.querySelectorAll('.scheme-chip').forEach(c => c.classList.remove('highlight'));

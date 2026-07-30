@@ -1,6 +1,6 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, pulsePodDim, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, pulsePodDim, segmentPacket, relationPath, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-endpointslice-reconcile
 
 
@@ -60,10 +60,13 @@ class Scene {
 
     // Wires: Service names the slice (down), controller writes the slice (up), slice is read by
     // kube-proxy (right), and the controller watches the Pod set (down).
-    const declWire  = arrow({ x1: 600, y1: 122, x2: 600, y2: 152, dashed: true, dim: true, role: 'network' });
+    // Both of these are standing relationships rather than routes, which the comment above already
+    // says in words: a Service NAMES its slice through a selector and a controller WATCHES a Pod set.
+    // Neither is a message, and neither ever carried a ball, so neither takes an arrowhead.
+    const declWire  = relationPath({ points: [[600, 122], [600, 152]], role: 'network' });
     const writeWire = arrow({ x1: WRITE_PATH[0][0], y1: WRITE_PATH[0][1], x2: WRITE_PATH[1][0], y2: WRITE_PATH[1][1], dashed: true, dim: true, role: 'network' });
     const readWire  = arrow({ x1: READ_PATH[0][0], y1: READ_PATH[0][1], x2: READ_PATH[1][0], y2: READ_PATH[1][1], dashed: true, dim: true, role: 'network' });
-    const watchWire = arrow({ x1: 600, y1: 440, x2: 600, y2: 484, dashed: true, dim: true, role: 'network' });
+    const watchWire = relationPath({ points: [[600, 440], [600, 484]], role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 

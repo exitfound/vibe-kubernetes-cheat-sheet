@@ -76,7 +76,11 @@ class Scene {
     const kubelet   = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet',   sublabel: 'cgroups + eviction',            role: 'cluster' });
     const apiserver = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'admission · qosClass · binding', role: 'cluster' });
 
-    root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
+    // The request lane is a RELATIONSHIP here. It runs Kubelet -> API, and the only write this card
+    // narrates in that direction is the binding POST, which the Scheduler makes and which this card
+    // deliberately does not draw (family K rewrote the narration for exactly that reason). Nothing on
+    // the card can ride it, so it carries no arrowhead.
+    root.appendChild(relationPath({ points: [[TOP1_X + TOP1_W, REQ_Y], [TOP2_X, REQ_Y]], role: 'cluster' }));
     root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
     const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);

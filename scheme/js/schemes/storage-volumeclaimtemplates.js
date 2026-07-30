@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, laneOf, OPACITY, revealAt } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volumeclaimtemplates
 
 
@@ -148,7 +148,6 @@ function setChips(s, { repl, pvcs, naming, ret }) {
 // A lane is only as present as the fainter of the two things it joins, so it is pinned in the same
 // helper as the blocks. The disks are drawn on every step, so a bind lane follows its claim, while a
 // mount lane takes the min: without this a mount arrow stayed at full strength into a ghost Pod.
-const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));
 
 function setStage(s, { pods = [1, 1, 1], claims = [OPACITY.pending, OPACITY.pending, OPACITY.pending], mint = false } = {}) {
   [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => { p.style.opacity = String(pods[i]); });
