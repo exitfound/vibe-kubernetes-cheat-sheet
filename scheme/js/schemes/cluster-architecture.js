@@ -1,6 +1,6 @@
-import { svg, g, line, text } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../lib/primitives.js';
-import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/cluster-kit.js';
+import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, relationPath } from '../lib/cluster-kit.js';
 
 // The layout is a three-tier control plane over one Worker Node, every tier centred on CX. It was
 // already clear of the narration panel, so this pass only names the numbers: the geometry record
@@ -89,9 +89,10 @@ class Scene {
     root.appendChild(pathArrow({ points: FROM_SCHED, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: API_TO_NODE, dim: true, dashed: true, role: 'cluster' }));
 
-    // Inside the node: Kubelet wired to Runtime and KubeProxy (solid binding lines, not flow).
-    root.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: RT_X + BOX_W, y1: T3_CY, x2: KUBE_X, y2: T3_CY }));
-    root.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: KUBE_X + BOX_W, y1: T3_CY, x2: KP_X, y2: T3_CY }));
+    // Inside the node: Kubelet wired to Runtime and KubeProxy. No step sends a ball along either,
+    // so both are relationships. See docs/CARDS.md#cluster-architecture for what they used to be.
+    root.appendChild(relationPath({ points: [[RT_X + BOX_W, T3_CY], [KUBE_X, T3_CY]], role: 'cluster' }));
+    root.appendChild(relationPath({ points: [[KUBE_X + BOX_W, T3_CY], [KP_X, T3_CY]], role: 'cluster' }));
 
     const wireEtcdWrite  = text({ class: 'scheme-label code dim', x: (API_R + ETCD_X) / 2, y: ETCD_OUT - 12,  'text-anchor': 'middle' }, [' ']);
     const wireEtcdRead   = text({ class: 'scheme-label code dim', x: (API_R + ETCD_X) / 2, y: ETCD_IN + 22, 'text-anchor': 'middle' }, [' ']);
@@ -137,7 +138,7 @@ const STEPS = [
   {
     id: 'Api',
     duration: 1700,
-    narration: 'The API is the only entry point to the cluster. Every read and every write passes through it. Replicas are stateless and require no coordination, so the layer scales horizontally.',
+    narration: 'The API is the only entry point to the cluster. Every read and every write passes through it, and a write clears authentication, authorization and admission before it is stored. Replicas are stateless and scale horizontally.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -148,7 +149,7 @@ const STEPS = [
   {
     id: 'etcd',
     duration: 1700,
-    narration: 'ETCD is the only durable store in the cluster, and the API is its only client. Every change is replicated through Raft, where a quorum of replicas must agree before the write is committed.',
+    narration: 'ETCD is the only durable store in the cluster, and the API is its only client. Every change is replicated through Raft, where a quorum of replicas must agree before the write is committed and the revision moves forward.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -163,7 +164,7 @@ const STEPS = [
   {
     id: 'etcd-response',
     duration: 1700,
-    narration: 'ETCD returns the requested data to the API. When the API subscribes via a watch, ETCD keeps that stream open and pushes subsequent changes through it without another round trip.',
+    narration: 'ETCD returns the requested data to the API. A watch keeps that stream open and pushes later changes through it without another round trip. Clients watch the API, never ETCD, and it answers them from its own cache.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -178,7 +179,7 @@ const STEPS = [
   {
     id: 'controllers',
     duration: 2600,
-    narration: 'The controller-manager runs many small control loops, one per resource kind (Deployment, ReplicaSet, Job and so on). Each watches the API and writes back to reconcile observed state with desired state.',
+    narration: 'The controller-manager runs one control loop per resource kind (Deployment, ReplicaSet, Job and so on). Each watches the API, never ETCD, and writes back to reconcile observed state with desired state.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -215,7 +216,7 @@ const STEPS = [
   {
     id: 'node-side',
     duration: 2200,
-    narration: 'On a worker Node, the Kubelet watches the API for Pods assigned to it and drives the Runtime to start their containers, while kube-proxy installs the local rules that steer Service traffic.',
+    narration: 'On a worker Node, the Kubelet watches the API for Pods assigned to it and drives the Runtime over CRI to start their containers, while kube-proxy programs the local rules that steer Service traffic to Pod endpoints.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

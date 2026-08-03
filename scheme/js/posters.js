@@ -1392,9 +1392,9 @@ export const POSTERS = {
   'cluster-node-drain': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="22" y="38" width="120" height="104" rx="8" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 3"/>
-      <rect x="40" y="48"  width="84" height="22" rx="4" fill="rgba(255,255,255,0.10)"/>
-      <rect x="40" y="79"  width="84" height="22" rx="4" fill="rgba(255,255,255,0.10)"/>
-      <rect x="40" y="110" width="84" height="22" rx="4" fill="rgba(255,255,255,0.02)" opacity="0.3" stroke-dasharray="3 2"/>
+      <rect x="40" y="48"  width="84" height="22" rx="4" fill="rgba(255,255,255,0.02)" opacity="0.3" stroke-dasharray="3 2"/>
+      <rect x="40" y="79"  width="84" height="22" rx="4" fill="rgba(255,255,255,0.02)" opacity="0.3" stroke-dasharray="3 2"/>
+      <rect x="40" y="110" width="84" height="22" rx="4" fill="rgba(255,255,255,0.16)"/>
       <rect x="178" y="38" width="120" height="104" rx="8" fill="rgba(255,255,255,0.06)"/>
       <rect x="198" y="58" width="80" height="28" rx="4" fill="rgba(255,255,255,0.10)"/>
       <rect x="198" y="94" width="80" height="28" rx="4" fill="rgba(255,255,255,0.10)"/>
@@ -1402,14 +1402,24 @@ export const POSTERS = {
     </g>
   `,
 
+  // Five stage blocks wired head to tail into one closed ring, the reconcile stage lit.
   'cluster-kubelet-sync-loop': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="22"  y="36" width="80" height="44" rx="6" fill="rgba(255,255,255,0.04)"/>
-      <rect x="218" y="36" width="80" height="44" rx="6" fill="rgba(255,255,255,0.04)"/>
-      <rect x="120" y="100" width="80" height="44" rx="6" fill="rgba(255,255,255,0.08)"/>
-      <line x1="102" y1="58"  x2="120" y2="98"  stroke-dasharray="4 3"/>
-      <line x1="218" y1="58"  x2="200" y2="98"  stroke-dasharray="4 3"/>
-      <path d="M 200 122 Q 240 122 260 102 T 240 60 Q 230 50 218 50" stroke-dasharray="3 3" opacity="0.5"/>
+      <rect x="20"  y="20"  width="76" height="50" rx="8" fill="rgba(255,255,255,0.04)"/>
+      <rect x="120" y="20"  width="76" height="50" rx="8" fill="rgba(255,255,255,0.10)"/>
+      <rect x="220" y="20"  width="76" height="50" rx="8" fill="rgba(255,255,255,0.04)"/>
+      <rect x="220" y="110" width="76" height="50" rx="8" fill="rgba(255,255,255,0.04)"/>
+      <rect x="20"  y="110" width="76" height="50" rx="8" fill="rgba(255,255,255,0.04)"/>
+      <path d="M96 45 H120"  stroke-dasharray="3 4"/>
+      <path d="M196 45 H220" stroke-dasharray="3 4"/>
+      <path d="M258 70 V110" stroke-dasharray="3 4"/>
+      <path d="M220 135 H96" stroke-dasharray="3 4"/>
+      <path d="M58 110 V70"  stroke-dasharray="3 4"/>
+      <rect x="32"  y="52"  width="26" height="6" rx="1" fill="currentColor" opacity="0.3"/>
+      <rect x="132" y="52"  width="52" height="6" rx="1" fill="currentColor" opacity="0.9"/>
+      <rect x="232" y="52"  width="26" height="6" rx="1" fill="currentColor" opacity="0.3"/>
+      <rect x="232" y="142" width="26" height="6" rx="1" fill="currentColor" opacity="0.3"/>
+      <rect x="32"  y="142" width="26" height="6" rx="1" fill="currentColor" opacity="0.3"/>
     </g>
   `,
 
@@ -1560,9 +1570,13 @@ export const POSTERS = {
       <rect x="128" y="26" width="64" height="34" rx="8" fill="rgba(255,255,255,0.07)"/>
       <rect x="146" y="38" width="12" height="12" rx="2" fill="rgba(255,255,255,0.06)"/>
       <rect x="162" y="38" width="12" height="12" rx="2" fill="rgba(255,255,255,0.06)"/>
-      <line x1="150" y1="60" x2="64"  y2="102" stroke-dasharray="3 4" opacity="0.4"/>
-      <line x1="170" y1="60" x2="256" y2="102" stroke-dasharray="3 4" opacity="0.4"/>
-      <line x1="160" y1="60" x2="160" y2="100" stroke-dasharray="3 4"/>
+      <!-- Orthogonal, like every lane in the catalog: the two passed-over candidates leave the Pod
+           bottom, turn 90 degrees on a bus at y=82 and drop into their own Node top face, the
+           winner goes straight down. Side entries are impossible here: a lane reaching the left
+           Node's right face would have to cross the middle Node to get there. -->
+      <path d="M150 60 V82 H64 V104" stroke-dasharray="3 4" opacity="0.4"/>
+      <path d="M170 60 V82 H256 V104" stroke-dasharray="3 4" opacity="0.4"/>
+      <line x1="160" y1="60" x2="160" y2="104" stroke-dasharray="3 4"/>
       <rect x="24"  y="104" width="80" height="54" rx="8" fill="rgba(255,255,255,0.03)" opacity="0.45"/>
       <rect x="216" y="104" width="80" height="54" rx="8" fill="rgba(255,255,255,0.03)" opacity="0.45"/>
       <rect x="120" y="104" width="80" height="54" rx="8" fill="rgba(255,255,255,0.10)"/>
@@ -1578,10 +1592,12 @@ export const POSTERS = {
       <rect x="26"  y="28" width="68" height="44" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.45"/>
       <rect x="124" y="28" width="68" height="44" rx="7" fill="rgba(255,255,255,0.10)"/>
       <rect x="222" y="28" width="68" height="44" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.45"/>
-      <!-- contention for the Lease: leader holds it (solid), losers rejected (dashed/dim) -->
-      <line x1="60"  y1="72" x2="138" y2="106" stroke-dasharray="3 4" opacity="0.4"/>
+      <!-- contention for the Lease: leader holds it (solid), losers rejected (dashed/dim).
+           Orthogonal like every lane in this catalog: the outer two drop on their own axis and
+           turn 90 degrees into the Lease side faces, the winner goes straight down into its top. -->
+      <path d="M60 72 V129 H98" stroke-dasharray="3 4" opacity="0.4"/>
       <line x1="158" y1="72" x2="158" y2="106" stroke-dasharray="3 4"/>
-      <line x1="256" y1="72" x2="178" y2="106" stroke-dasharray="3 4" opacity="0.4"/>
+      <path d="M256 72 V129 H218" stroke-dasharray="3 4" opacity="0.4"/>
       <!-- the Lease object with holderIdentity -->
       <rect x="98"  y="106" width="120" height="46" rx="7" fill="rgba(255,255,255,0.06)"/>
       <line x1="112" y1="126" x2="204" y2="126"/>

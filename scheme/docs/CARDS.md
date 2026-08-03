@@ -69,34 +69,176 @@ why the record was missing: nothing forced anyone to write it down.
 
 The shape is the L read correctly. The narration panel owns the top-left corner, so the API row
 starts at `API_X = 420` and the request from `kubectl` cannot come in from the left at that height.
-Instead `kubectl` sits in the freed BOTTOM-left at `60..300 x 300..380` and its request climbs a
-riser at `RISER_X = 412` (15 units clear of the panel edge at 397) before turning into the API's left
-face. That is the storage grammar borrowed into a cluster card, and it is what lets the content still
-span `CONTENT_L..CONTENT_R` and centre on `CX = 600` without anything being stretched to make it.
+Instead `kubectl` sits in the freed BOTTOM-left and its request climbs a riser in the narrow corridor
+between the panel edge (397) and the API face (420) before turning into the API's left face. That is
+the storage grammar borrowed into a cluster card, and it is what lets the content centre on
+`CX = 600` without anything being stretched to make it.
 
 | constant | value | derived from |
 |---|---|---|
 | `CONTENT_L` / `CONTENT_R` | 60 / 1140 | the shared content band, `M = 60` off each edge |
 | `CX` | 600 | `(CONTENT_L + CONTENT_R) / 2`, not a chosen number |
+| `BAND_L` / `BAND_R` | 100 / 1100 | the content band inset by `BAND_INSET = 40`, see the 2026-07-31 note below |
 | `API_X` | 420 | first multiple of 20 clear of the panel's measured right edge (397) |
-| `RISER_X` | 412 | 15 clear of the panel, 8 left of the API face it feeds |
-| `ETCD_X` | 1000 | `CONTENT_R - ETCD_W`, so the row ends flush with the band |
+| `KCTL_OUT_X` / `KCTL_BACK_X` | 205 / 235 | `KCTL_CX` +/- `LANE_DY`, one riser per direction off the kubectl top face, out left of back so they never cross |
+| `ETCD_X` | 956 | `BAND_R - ETCD_OPTICAL - ETCD_W`, 4 inside the band so the cylinder reads flush with the rounded chip below it |
 | `LADDER_X` / `LADDER_W` | 420 / 400 | the pipeline hangs under the API and inherits its width, so the six admission stages read as belonging to it |
-| `CHIP_W` | 530 | `(CONTENT_R - CONTENT_L - CHIP_GAP) / 2`, two chips spanning the band, so the strip centres on CX by construction |
-
-**The header comment understates the panel and is left as it stands.** It records
-`x<=397, y<=195` measured over 1600/1440/1280/1100, and the code then reserves `PANEL_B = 215`. The
-real worst case over the viewport set `check-geometry` actually judges against
-(1600x1000, 1280x860, 1100x800) is **205**. The card is safe either way, because the 215 it reserves
-is above the true 205 and every block clears it, but the two numbers in the file disagree with each
-other and neither is the measured one. See the note in `scheme/CLAUDE.md` on measuring the panel per
-card and never on one viewport: the widths-only sampling that produced 195 is the same failure that
-put three storage cards' blocks under their own panels.
+| `CHIP_W` | 490 | `(BAND_R - BAND_L - CHIP_GAP) / 2`, two chips spanning the inset band, so the strip centres on CX by construction |
 
 **Why the chips are two across and not four.** The longest value on this card is
-`{cpu=100m, runAsNonRoot=true}` on the `Pod object` chip. At 530 it clears its name comfortably; at
+`{cpu=100m, runAsNonRoot=true}` on the `Pod object` chip. At 490 it clears its name comfortably; at
 the four-across width of 258 that the 2026-07-27 relayout used elsewhere it would overlap, which is
 the defect `check-chipfit` was written for. Two across is the floor for this card, not a preference.
+Re-measured at 490 after the 2026-07-31 inset: still clean.
+
+---
+
+### the inset band and the top-face exit (2026-07-31)
+
+```
+Three author changes, one composition.
+
+The flanks stopped standing on the content edges. kubectl, ETCD and the chip strip now share
+BAND_L/BAND_R (CONTENT inset by 40), which does two things at once: it pulls kubectl and ETCD a
+little toward the centre, and it makes the left edge of kubectl the left edge of the Pod object
+chip and the right edge of ETCD the right edge of the failurePolicy chip. One vertical line down
+each side. Centring is unaffected by construction, because the inset is applied to both ends:
+content and chip strip both span 100..1100 and both centre on CX.
+
+Both kubectl lanes moved from its RIGHT face to its TOP face, straddling KCTL_CX by LANE_DY the
+same way they straddle the API face centre by LANE_DY at the other end, and each is ONE right angle:
+up, then across. Out is left of back at both ends, which is what keeps them from crossing.
+
+That shape was reached second. The first attempt jogged each lane right at y=245/275 into the free
+404..416 corridor before rising, to keep every segment out from under the narration panel, and the
+author rejected it as a zigzag. The single right angle is his call, made knowing the cost, and the
+cost is real: x=205 and x=235 are both inside the panel (x<=397, y<=205), so each riser runs behind
+the overlay from y=205 up to its turn, and the left third of the out lane's crossing at y=85 is
+hidden too. At 1100x800 with the longest narration that leaves two dashed stubs entering the API
+and two verticals below the panel, with the join invisible. At 1280 and wider most of it returns.
+
+There is no third option, which is why this is written down rather than left to be rediscovered.
+The API face the lanes must reach sits at y=85/115, ABOVE the panel bottom, so any lane reaching it
+from the left crosses the panel band. Moving kubectl so its centre clears x=397 collides with the
+ladder column at 420..820 or, below the ladder, with the chip strip at y=520. Widening kubectl to
+push its centre right breaks the left-edge alignment the band exists to give.
+
+ETCD is pulled 4 units inside BAND_R while the chips sit flush on it. That is an OPTICAL correction,
+not a geometric one, and the measurement is the point: flush, the two right edges differ by a single
+antialiased pixel, yet the cylinder reads as overhanging because its right wall is a straight line
+down the full height while the chip is a rounded rect whose rx=4 corners pull its own edge in. The
+inset is that rx. Same family as the ETCD label nudge the card already carries.
+
+The API-to-ladder connector became a relationPath, matching the sibling cluster-scheduler-decision:
+no arrowhead, no ball, and it lands ON the ladder edge at LADDER_Y instead of 2 short of it, since
+the 2 was clearance for the arrowhead. The routePacket that used to drop from the API into ladder
+row 1 went with it. The six stages ARE the API, so nothing travels down to reach them.
+
+The response wire label moved with the lanes: it was right-anchored at 396 because the gap beside
+kubectl was 116 units and a centred string overran into the ladder. With both lanes gone from that
+face the gap is down to 80, and the band directly under kubectl is empty to y=520, so the label is
+simply centred on KCTL_CX.
+
+Timing, as always after a geometry change: the request route went 360 -> 430 units and its glide
+800 -> 956ms, which put authn-authz 116ms past its 2200 duration. It was raised to 2500 and then
+put back to 2200 in the same session, because dropping the ladder ball took the step span to 1516.
+Never the ball slowed, either way: the pace is length-based.
+
+PANEL_B and the header comment were corrected to the measured 205 while here. They previously said
+195 (a widths-only sampling) and reserved 215, two numbers that disagreed with each other and with
+the measurement. The pre-existing check-arrival R2 pair on the failurePolicy chip was verified
+against the unmodified file and is not from this change: it is the recorded benign shape, a marker
+from the previous step being cleared rather than an event of this one.
+```
+
+---
+
+### review pass (2026-07-31)
+
+```
+Four defects, found by reading the card against itself and against kubernetes.io.
+
+The Api box was DARK on mutating, schema and validating, and lit only on authn-authz (on arrival)
+and persist (at entry). Those three steps also carry no motion at all, so with the Api unlit the
+only thing happening on screen was one ladder row, and the block whose own pipeline the whole card
+is about read as idle for half its length. One line each, above the guard, since those steps have
+no guard to be below. Same family as the score step of cluster-scheduler-decision.
+
+DefaultStorageClass was named as the always-on mutating example on a card that follows a Pod. It
+acts on PersistentVolumeClaims, which the reference confirms, so the example did not apply to the
+object in the chip or in POST /api/v1/pods. Replaced with DefaultTolerationSeconds: enabled by
+default, mutating, and it acts on Pods.
+
+Ladder rows 3 and 5 credited the whole stage to webhooks while their own steps open with
+"Pluggable plus built-in" and then name the always-on plugins. A block label contradicting the step
+it labels, which is the cheapest defect class in this project and one no check sees. Now
+"plugins and webhooks rewrite it" and "plugins, policies and webhooks".
+
+ValidatingAdmissionPolicy was missing. It sits in the default-enabled controller list, so the
+validating stage has THREE paths and the card named two. Added to the narration, and row 5 says
+"policies" for the same reason.
+
+Narration length fought back, as it does here. Both rewrites came out SHORTER in characters and the
+validating panel still gained a line, because ValidatingAdmissionPolicy and
+ValidatingWebhookConfiguration are two unbreakable 25-plus character tokens in one sentence and the
+wrap is token-bound, not character-bound. Dropping the second name (the mutating step already
+establishes the ...WebhookConfiguration pattern) bought the line back and kept the ResourceQuota and
+LimitRanger examples, which teach more than a CRD name. Panel worst case is 205 again, unchanged.
+
+NOT changed: LimitRanger stays under validating, and the REASON recorded here on 2026-07-31 was
+wrong. It said the kubernetes.io reference classifies it as validating. The reference types it
+"Mutating and Validating" and lists it among the default-enabled plugins, so there is no arbiter to
+appeal to: the placement is a choice, and the choice is that the validating step describes checking
+the final object against a LimitRange, which is what a reader meets it doing. Its defaulting side is
+covered by the mutating step naming always-on plugins as a class. Corrected 2026-08-01.
+```
+
+---
+
+### review pass (2026-08-01)
+
+```
+One defect, in the ladder row and the step that share a stage.
+
+Row 4 read "validate against OpenAPI schema" and its step said the object "is validated against the
+OpenAPI schema for its resource. Type errors and required-field violations are caught here". The
+STAGE is right and sits where the reference request-flow diagram puts it, between the two admission
+phases. The mechanism named is not: for a built-in kind like the Pod this card follows, the API
+server runs its own validation for that kind in Go, an OpenAPI structural schema is what a CUSTOM
+resource is checked against, and type errors are caught earlier still, when the request body is
+decoded. One sentence claiming all three.
+
+Row 4 is "types and required fields checked" and the step names the API rather than a schema
+format, which is true of a built-in and of a custom resource alike. The new narration is 148
+characters against 177, so the panel cannot have got deeper and the measured 205 stands.
+```
+
+---
+
+### poster
+
+```
+One sentence: a write passes a rewrite gate and a check gate before it reaches storage. Four
+elements left to right, chained by dashed links: the request as a small box with three text lines,
+the mutating gate as a dashed box carrying a squiggle (the object being rewritten), the validating
+gate as a dashed box carrying a tick, and the etcd cylinder. The two gates are DASHED while the
+request and the cylinder are solid, which is the whole idea in one attribute: the ends of the chain
+are fixed, the middle is pluggable.
+
+No ladder, no kubectl, no chips, no API frame. The six stages are what makes it a card and what
+would make it unreadable at 200px.
+
+Emphasis is FLAT on purpose, and that is now a decision rather than an oversight. All four elements
+sit at 0.04 to 0.06, where the canon asks for one brightest element to land the eye on what the
+sentence is about.
+
+Tried and rejected by the author, 2026-07-31: raising the two gates to 0.16 while leaving the
+request box and cylinder at 0.04 and 0.06. It did what the rule wants, the eye went to the bright
+dashed middle between two quiet solid ends, and it was reverted on sight. Do not re-apply it as a
+canon fix. If the flat emphasis is ever revisited, the open question is whether a poster whose
+subject is a PAIR can take the single-brightest treatment at all: brightening both is two focal
+points, and brightening one means choosing between mutating and validating on a card about both.
+```
 
 ## cluster-api-structure
 
@@ -139,15 +281,20 @@ hidden until the ADDED slots appear and tracks their visibility from then on.
 ### before `const read    = routePacket(s, ctx, ETCD_TO_API, { delay: ask.arrivalMs + BEAT.afterHop, role: 'cluster' });`
 
 ```
-The LIST result takes the same downward journey the watch event does: ETCD -> Api (the
-snapshot read), Api -> Informer (the full set), Informer -> Indexer (fills the cache).
+Four hops in one chain: Api -> ETCD and ETCD -> Api (the Api keeping its own watch cache
+current), then Api -> Informer (the full set) and Informer -> Indexer (fills the cache).
 
-Review stage 2.4 caught the ask being implied rather than shown: the narration names the
-informer ASKING and the older version only animated the answer, so the reader saw a reply to
-a question nobody put. `ask` now rides API_TO_ETCD outbound and `read` waits on its arrival,
-which is why the step costs 5400ms rather than 3800. The Api is dark at entry and lit by
-lightBoxAt when the answer reaches it, so the sender-lit rule (R3) still holds: on this step
-the Api is a relay, not the origin.
+Review stage 2.4 caught the ask being implied rather than shown: the older version animated
+only the answer, so the reader saw a reply to a question nobody put. `ask` now rides
+API_TO_ETCD outbound and `read` waits on its arrival, which is why the step costs 5400ms
+rather than 3800. The Api is dark at entry and lit by lightBoxAt when the answer reaches it,
+so the sender-lit rule (R3) still holds: on this step the Api is a relay, not the origin.
+
+WHAT THE PAIR MEANS CHANGED ON 2026-08-01 while the motion stayed identical. It used to be
+narrated as this LIST being read through to ETCD, and that is not what happens: see the
+review-pass note below. The two lanes now carry wire labels naming them as the cache fill, so
+the balls are still literal traffic the step narrates, and the step reads cache-fill first,
+answer second, in the order the chain already ran.
 ```
 
 ### before `s.refs.slots.slice(0, 3).forEach((slot, i) => {`
@@ -168,17 +315,318 @@ flicker), inline 1 is the cancel/reduced final.
 
 ---
 
-## cluster-apply-flow
-
-### layout (R5-a, 2026-07-27)
+### review pass (2026-08-01)
 
 ```
-The four top-row lanes were still drawn from the pre-relayout literals (400..490 and 710..900 at
-y=110/130), so the kubectl lane sat inside the kubectl block and the ETCD lane inside the API
-block, while the balls flew POST / POST_ACK / PERSIST / PERSIST_ACK (550..610, 830..950) over
-blank canvas. All four are now drawn with pathArrow from those same arrays, and the Kubelet-to-Pod
-arrow from START. The two long top wire labels moved above the row (WIRE_TOP_Y = TOP_Y - 20):
-their gaps are 60 and 120 units wide and the strings are three times that.
+Two defects, both about the card teaching a mechanism it does not have.
+
+THE INITIAL LIST IS NOT READ THROUGH TO ETCD. The step said "The API reads from ETCD and
+returns the full set at a snapshot resourceVersion", and the aria-label said the same. A
+reflector lists at resourceVersion 0 on its first pass, and the reference is explicit about
+what that means: unset is "served from etcd via a quorum read", 0 is "always served from
+watch cache". The client-go comment says so in the code that picks it:
+
+  For performance reasons, initial list performed by reflector uses "0" as resource version
+  to allow it to be served from the watch cache if it is enabled.
+
+The sibling cluster-architecture had it right all along on its etcd-response step ("Clients
+watch the API, never ETCD, and it answers them from its own cache"), so the catalog was
+disagreeing with itself about the one mechanism both cards exist to explain.
+
+Fixed WITHOUT touching the geometry or a single duration, because the drawn pair is true of
+something else that belongs on this step: the watch cache is filled from ETCD. The req wire
+carries rv=0 rather than rv=842 (the 842 is what comes BACK, and the chip already shows it),
+the two ETCD lanes gained the labels they never had, and the narration and the aria-label say
+cache. What was NOT done: adding an Informer -> Api request lane. The card draws every flow
+downward and the LIST request itself is nowhere on it, which is a real gap and a geometry
+change, so it is left open here rather than half-made.
+
+SLOT 0 WAS NOT A RESET. `discovery` sat in slot 0, so at the poster position the card drew
+its request ball, lit Client and Api and set two wire labels (GET /api + GET /apis, GVR
+catalogue) UNDER the panel text of the step after it, which talks about the LIST. On top of
+that the discovery exchange was the one thing on the card no narration ever explained, and
+its routePacket never ran at all, because the poster position enters reduced. Discovery is
+its own narrated step now and slot 0 clears. The card goes from 5 shown steps to 6.
+
+Two dead things went with the pass. `ETCD_CX` lost its last caller when the ETCD registers were
+re-anchored to the bottom legs, and `wireEvent` was a sixth wire register that build() created,
+positioned at 620/352, appended to the DOM and registered as `wires.event`, which no step had ever
+set: a permanent blank on the canvas. The card has five registers now, and all five are written.
+```
+
+---
+
+## cluster-apply-flow
+
+### layout as it stands (2026-07-31)
+
+```
+Read this one first. The three notes after it are how it got here and what was rejected, and they
+contain numbers that were true at the time and are not now.
+
+Rows, measured off the rendered DOM, not off the source:
+
+  top row      108..188   kubectl 170..330, API 490..710 (centred on CX), ETCD 900..1030, whose
+                          cylinder starts 10 above the row and ends 10 below it at 98..198
+  tier 2       286..366   controller-manager 170..390, Scheduler 810..1030
+  Node-1       440..590   Kubelet 170..390 at 481..561, Pod 814..1030 at 468..574, both inset
+                          NODE_PAD=60 from their own wall of the frame
+  drawing      98..590    98 units of margin above, 50 below
+
+What is PINNED and what is DERIVED, because that is what a later edit has to know:
+
+  TOP_Y   = 108   pinned. Everything in the top row hangs off it.
+  API_X   derived from CX and API_W. ETCD is derived from API_R through GAP=190. kubectl is NOT:
+          its left edge is pinned at 170 and it grows rightward, so the row is deliberately NOT
+          symmetric any more (see the kubectl width note).
+  V       = 98    the gap ABOVE tier 2, and the only lever that moves tier 2.
+  NODE_Y  = 440   pinned. It used to be T2_Y + T2_H + V, which kept tier 2 exactly midway but meant
+          the frame could not be held still while the row moved.
+  BAND_CY = TOP_BOTTOM + V/2, so the two tier-2 lanes (229 and 245) re-centre themselves in the gap
+          whenever V changes, without a second edit.
+  NODE_PAD = M = 60, applied to BOTH walls of the Node frame, so the blocks inside it cannot drift
+          off-centre the way they had.
+
+The gaps are therefore 98 above tier 2 and 74 below it, deliberately unequal. Both asymmetries on
+this card (that one, and 98 above the drawing against 50 below) are instructions rather than
+oversights: the band over the top row belongs to the narration panel, and the drawing should not be
+pushed around to balance against a panel.
+
+Hard floors, so nobody spends an afternoon on them: NODE_H cannot drop past 150, because the Pod
+inside the frame ends at NODE_Y + 134 and the frame has to clear it. KCTL_W cannot rise much past
+160, because the gap it eats has to keep holding POST .../deployments at 133 units. GAP cannot
+drop past 190,
+because the widest string that has to live between two top-row blocks needs air either side. That
+was write committed rv=842 at 165 when GAP was solved; it is write Deployment my-app at 153 now,
+so the margin is 18.5 a side rather than 12.5.
+
+Narration panel, measured per step over 1600x1000 / 1280x860 / 1100x800. Right edge is 300 / 378 /
+397 on every step. Bottom is per step, and the 1100x800 column is the one that binds. After the
+text pass below:
+
+  step 1 post 166   2 persist 166   3 etcd-response 166   4 controller 189
+  step 5 schedule 166   6 kubelet-watch 189   7 create-pod 166
+
+One wrapped line is worth about 23 units there. KNOWN OPEN STATE: the top row bottom is 188, so on
+the two steps at 189 the panel covers kubectl (170..300 x 108..188) entirely, and check-geometry
+reports it at 90% under the panel at its worst. That was accepted knowingly when the row was
+raised. The levers are moving kubectl out of the panel column, shortening those two narrations, or
+leaving it. The next thing the panel would reach going down is controller-manager at 286, roughly
+four more wrapped lines away.
+
+Measure this again after ANY narration edit, because the depth is not a function of the character
+count: an unbreakable path token forces an early wrap. The text pass below made persist SHORTER in
+characters and two lines shallower, while kubelet-watch grew by eleven characters and gained a
+line, so which steps sit at the 189 floor changed even though the floor did not.
+```
+
+---
+
+### how the layout got here, and what was rejected (2026-07-27 to 2026-07-31)
+
+```
+Kept because each step records either a measurement or an alternative that was tried and dropped.
+Numbers inside this note are historical.
+
+R5-a, 2026-07-27. The four top-row lanes were still drawn from pre-relayout literals (400..490 and
+710..900 at y=110/130), so the kubectl lane sat inside the kubectl block and the ETCD lane inside
+the API block, while the balls flew over blank canvas. All four are now drawn with pathArrow from
+the same arrays the balls ride, and the Kubelet-to-Pod arrow from START.
+
+Then the row was kubectl 420..550, API 610..830, ETCD 950..1080: gaps of 60 and 120, not symmetric,
+and the 60 held nothing, so HTTP 201 Created (110 units, measured in the browser) was drawn across
+both block borders and the two long request labels lived above the row.
+
+REJECTED: widening the row in place. It cannot centre the API, and the arithmetic is the whole
+reason the card is laid out the way it is: the panel reaches x<=397 down to y<=180, the row stood
+at 80..160 INSIDE that band, a centred 220-wide API starts at 490, and a 130-wide kubectl touching
+it with ZERO gap already starts at 360. That is 37 units under the panel before any gap exists. No
+arrangement of widths fixes it while the row is up there.
+
+So the row moved DOWN to 195, clear of the panel, and the API was pinned to CX with its flanks
+derived from GAP. Tier 2 was mirrored about CX too (T2_D=320), because a centred API over an
+off-centre tier reads worse than the old asymmetry did. All four top wire labels moved BETWEEN
+their blocks. Three of the four fit. The fourth did not at any gap this canvas allows (POST
+/apis/apps/v1/namespaces/default/deployments measures 338) and was elided to POST .../deployments,
+the card's own idiom, which step 5 already uses for the Binding. Nothing is lost: step 1 spells the
+full path out.
+
+The cost was an empty top band and a drawing sitting low in the frame, and on 2026-07-31 the author
+took it back: TOP_Y went 190 -> 108. REJECTED-THEN-OVERRULED: a note here used to argue 190 was a
+hard ceiling because kubectl would go under the panel. It does, and the raise happened anyway. The
+occlusion is recorded as an open state in the note above rather than as a reason not to.
+
+The rows below the top one then moved three times, and the end state matches none of the first two:
+
+  1. Node lower, tier 2 exactly midway, arrows midway too. Equal gaps make V the only free term:
+     TOP_BOTTOM(188) + V + T2_H(80) + V + NODE_H(150) + bottom margin = 640, and V=74 makes all
+     three intervals equal, the margin under the frame included.
+  2. Both rows lower again: V=86, tier 2 down 12 and the frame down 24, out of the margin.
+  3. Tier 2 alone lower, everything else held. Not expressible while NODE_Y derived from V, because
+     V fed both gaps, so NODE_Y was pinned at the value step 2 left it at and V went to 98.
+
+Older gap history, since it was asked about repeatedly: 60 above tier 2 and FIVE below it, then
+52/52, then 62/62, then 74/74, then 86/86, now 98/74.
+
+The tier-2 lanes were fixed in the same pass. Both levels were offsets from TOP_BOTTOM (+25 and
++40), which glued them to the row they left and left 22 units of dead air under them, so they read
+as belonging to the API rather than as spanning the gap. They hang off BAND_CY now.
+
+Every one of these was also a TIMING change, because routeDur is length-based: widening the band
+lengthened the tier-2 routes and put the schedule step 11ms over its own duration, which is why
+that step carries 2400 rather than 2200. Re-run check-duration after any geometry edit here.
+```
+---
+
+### one padding for both walls of the Node frame (2026-07-31)
+
+```
+The two blocks inside the frame were placed by hand: KUBELET_X = 135 and POD_X = 720 as literals.
+Against a frame spanning 110..1090 that left 25 units of inset on the left and 154 on the right, so
+the pair read as having slid leftwards inside the Node, which is what the author saw.
+
+Both are now derived from ONE padding applied to the frame's own edges:
+
+  NODE_PAD = M = 60
+  KUBELET_X = NODE_X + NODE_PAD                        170..390
+  POD_X     = NODE_X + NODE_W - NODE_PAD - POD_W       814..1030
+
+so the insets are equal by construction rather than by arithmetic anyone has to redo, and reusing
+the canvas margin M means the frame breathes the way the canvas does. The Pod keeps its 216 width
+against the Kubelet's 220: the two are not meant to match, they are a runtime and a workload.
+
+The alignment that falls out is worth not breaking: the Kubelet now occupies 170..390, exactly the
+controller-manager column above it, and the Pod ends on 1030, exactly where the Scheduler does.
+That was a consequence of NODE_PAD=M rather than the goal.
+
+This lengthened START, the Kubelet-to-Pod hop, from 365 to 424 units. routeDur is length-based and
+both ends are above its 700ms floor, so the ball went 811ms to 942ms and the Pod pulse with it.
+Step 7 has 2500 against a span of about 1840, so nothing needed raising, but this is the third time
+in one session a composition change was silently a timing change. Always re-run check-duration.
+```
+
+---
+
+### kubectl grows right, and the row stops being symmetric (2026-07-31)
+
+```
+kubectl was 130 wide and DERIVED backwards from the API through GAP: KCTL_R = API_X - GAP, then
+KCTL_X = KCTL_R - KCTL_W. That is what made the row symmetric about CX, both flanks 130 wide with
+190 either side of a centred API.
+
+The instruction was to widen the block to the RIGHT without moving it, so the derivation had to be
+inverted: KCTL_X is pinned at 170 (the value the symmetric layout left it at), KCTL_W is 160, and
+KCTL_R = 330 follows. The gap on that side is now 160 against ETCD's 190, and the widths are 160
+against 130. The row is no longer symmetric and that is the instruction, not drift. ETCD is still
+derived from GAP, so nothing on the right moved.
+
+160 is near the ceiling rather than a free number. The gap has to hold POST .../deployments,
+measured at 133 units in the browser, and at KCTL_GAP=160 that leaves 13.5 a side. About 27 more
+units of width exist before the label stops fitting between the blocks, and past that the label
+would have to go back above the row, which is the thing the 2026-07-31 relayout existed to undo.
+
+Two things follow for free because they were already derived from the edges: KCTL_GAP_CX, which
+centres the POST and HTTP 201 Created labels, moved 365 -> 410 with the block, and the POST /
+POST_ACK routes shortened from 190 to 160 units. The routes are on routeDur's 700ms floor at both
+lengths, so nothing about the timing changed.
+
+Widening does NOT help the occlusion: kubectl now spans 170..330 and the panel reaches x<=397, so
+the block is still entirely inside the panel's column.
+```
+
+---
+
+### text pass: what each step claims against what it draws (2026-07-31)
+
+```
+A step-by-step read of the narration against the motion, after the layout settled. Six of seven
+steps already agreed. What changed:
+
+DESC. It ended on an absolute the card's own first half contradicts: "Every handoff is one
+component reacting to a change on its own watch rather than a call from the component before it."
+Steps 1 to 3 are calls, not watches: kubectl POSTs to the API, the API writes to ETCD, ETCD answers.
+Only steps 4 to 6 are watch-driven. Now reads "Every handoff AFTER THE WRITE", 460 characters, still
+inside R-desc's 400-470 band. The same sentence's "the scheduler" was lowercased while the block
+label and every narration say Scheduler, so it was capitalised. check-terms classes Scheduler as
+SOFT (26 lowercase against 11 capital catalog-wide), so no rule was going to say either way, but
+one card should not spell one actor two ways.
+
+WIRE REGISTER, tier 2. POST .../binding was drawn at WIRE_T2_Y, above the OUT lane, which is the
+watch carrying the unscheduled Pod TO the Scheduler. The Binding is the Scheduler's answer and
+rides the RETURN lane. The band now has two registers like the top row does, WIRE_T2_OUT_Y 221 and
+WIRE_T2_BACK_Y 259, and each label sits over its own lane. Measured after the move: the label
+occupies x 655..855 y 248..262, directly under the return run at 245 (which spans 630..880) and
+clear of the Scheduler box top at 286 by 24.
+
+WIRE TEXT, persist. write committed rv=842 sat on the REQUEST register above the outbound
+API-to-ETCD lane, so it claimed the commit while the ball was still in flight, and step 3 already
+brings the same fact back as ack rv=842 on the ack register. It is write Deployment my-app now,
+which is what the ball actually carries. Side effect on GAP, recorded above.
+
+STEP 2. Authorization was missing between authentication and admission. "authenticates the caller
+using credentials from your kubeconfig" became "authenticates the caller from your kubeconfig,
+checks RBAC", which adds the stage and is SHORTER, so the panel got shallower rather than deeper.
+
+STEP 5. "scores the survivors" said nothing about what scoring weighs. Now "scores the survivors on
+free resources and topology spread", the two default score plugins a reader is most likely to meet.
+
+STEP 6. The words said the API streams the Pod "to it", meaning the Kubelet, while the lane now
+lands on the Node frame. Reworded to stream it "down that watch to Node-1, where the Kubelet picks
+it up", so the sentence and the picture end in the same place. This is the one step that gained a
+wrapped line.
+
+STEP 7. The payoff step said the least of any on the card (121 characters). It now names the CRI
+sandbox and what the sandbox buys (the network namespace and the IP) before the image pull. What it
+deliberately does NOT say is that the Kubelet reports status back to the API: that is true of real
+Kubernetes, but the card draws no lane from the Node to the API, and a narration that promises a
+return the motion never delivers is a defect family this project has paid for repeatedly. Adding
+the lane would mean splitting the straight API-to-Node spine into a mirrored pair, which would undo
+the note below, so it was left alone deliberately rather than overlooked.
+
+ARIA-LABEL. "kubectl apply flow through the control plane" omitted the half of the card that is a
+Node, a Kubelet and a Pod. It now ends "to the Kubelet on a Node".
+
+NOT changed, and worth knowing why: step 4 fires ONE return ball for two API writes (the ReplicaSet
+create and then the Pod create by a second controller), and that return carries no wire label. The
+compression is honest, the narration names both, and a second ball would need a second lane the
+band cannot hold.
+```
+
+---
+
+### the Kubelet lane is addressed to the Node, not to the Kubelet (2026-07-31)
+
+```
+TO_KUBELET is TWO points now, and there is no turn anywhere in it:
+
+  [[API_CX, TOP_BOTTOM], [API_CX, NODE_Y]]     600,188 -> 600,440
+
+It leaves the API bottom face on that face's midpoint and lands on the Node frame TOP face on ITS
+midpoint, and the two are the same x for free: the API is centred on CX and the frame spans
+110..1090, so both midpoints are 600. The ball drops into the Node and stops. What happens next is
+the Node's own business and is drawn inside the frame on the following step, Kubelet to Pod along
+START, which was not touched.
+
+Two earlier shapes are superseded, and both made the same mistake in different amounts, so the
+mistake is the thing to remember rather than the coordinates. The lane was reading as addressed to
+the KUBELET when what it carries is a watch stream arriving at the NODE:
+
+  1. A jog INSIDE the frame at NODE_Y + 28. The ball crossed the frame edge at x=600, a long way
+     from the Kubelet, then crawled left across the floor of the Node before turning down into it.
+     It read as arriving and then hunting for its destination.
+  2. The same jog lifted into the open band above the frame, so the entry was a clean vertical,
+     but it still landed on the Kubelet top face at x=245. Straighter, same address.
+
+Fixing 1 into 2 and then 2 into this is worth noting as a review lesson: the first repair made the
+picture better and left the actual defect standing, and only a second look at the words ("into the
+Node") caught it. Nothing in the gate reported any of the three states.
+
+The wire label is the one on this card that does NOT sit between two blocks, because its lane is
+vertical and a horizontal string centred on a vertical lane is cut in half by it. It is
+right-anchored at API_CX - 14 = 586, on the middle of the open band between tier 2 and the frame
+(366..440), so it reads to the left of the spine with the whole band to itself.
+
+KUBELET_CX went with it. The Kubelet lane was its only consumer.
 ```
 
 ---
@@ -186,26 +634,43 @@ their gaps are 60 and 120 units wide and the strings are three times that.
 ### before `const client = box({ x: KCTL_X, y: TOP_Y, w: KCTL_W, h: TOP_H, label: 'kubectl',   role: 'cluster' });`
 
 ```
-Top row: Kubectl (left) -> Api (centre, x-centre 600) <-> ETCD (top-right). Kubectl is the
-narrow 130x80 box used in the Delete Flow card; its right edge stays at x=400 so the
-Kubectl<->Api lanes and packets are unchanged. The flanking blocks are pulled in toward the
-Api spine to keep the row compact and symmetric about the centre.
+Top row: kubectl (left) -> API (x-centred on CX) <-> ETCD (right). kubectl is the narrow 130x80
+box the Delete Flow card uses. Do not hardcode an x here: API_X is derived from CX and the flanks
+from GAP, which is what makes the row symmetric by construction.
+
+This note used to say the API was x-centred on 600 while it actually stood at 720, and that the
+kubectl right edge stays at x=400 while it stood at 550. Both were dead numbers for months. The
+first is finally true.
 ```
 
 ### before `root.appendChild(pathArrow({ points: POST,        dim: true, dashed: true, role: 'cluster' }));`
 
 ```
-Scheduler -> Api return lane (the Binding POST). Nested inside-and-below the watch-pickup
-arrow (exits left of its centre entry, lower lane y=220) so the two never cross, the same
-out/back layout the Control Plane Architecture card uses.
+This is where all nine static lanes are drawn, and every one of them is built from the SAME points
+array its ball rides, which is the rule that stops a wire and its packet drifting apart.
+
+Four on the top row, two mirrored pairs about the row centre: request out at OUT_Y and answer back
+at BACK_Y, LANE_DY either side, so no hop reuses the other direction's lane. Four more into tier 2,
+the same shape rotated: the watch goes out on LANE_OUT_Y and lands on the OUTER side of the box
+(CM_CX - 20, SCHED_CX + 20), the write comes back from the INNER side on LANE_BACK_Y, so the pair
+never crosses itself. Then the Kubelet lane, which is a single straight vertical and has its own
+note above.
+
+This note used to describe the Scheduler return lane and a lane y of 220, anchored to the kubectl
+POST line. Both the subject and the number were wrong, and check-notes cannot see that: it verifies
+that an anchor still points at code that exists, never that the sentence under it is about that
+code.
 ```
 
-### before `const wirePost          = text({ class: 'scheme-label code dim', x: (KCTL_R + API_X) / 2, y: WIRE_TOP_Y,  'text-anchor': 'middle' }, [' ']);`
+### before `const WIRE_REQ_Y = OUT_Y - 12, WIRE_ACK_Y = BACK_Y + 18;     // 126 / 176`
 
 ```
-POST is the one long label, so it rides above the top row (y=68, a small gap above the box
-tops at y=80). Its midpoint sits on the Kubectl->Api arrows (gap centre x=445) so the line is
-centred over the wire it describes.
+Two registers, both BETWEEN the blocks: requests above their out lane, acks below their return
+lane, each centred on its own gap (KCTL_GAP_CX 365, ETCD_GAP_CX 835) so it sits over the wire it
+describes. Nothing rides above the top row any more.
+
+The old note here said POST rides at y=68 over a gap centre of x=445. Both numbers were dead long
+before the row moved: WIRE_TOP_Y was TOP_Y - 20 = 60, and the gap centre had moved twice.
 ```
 
 ### before `ctx.register(s.refs.kubeletPodArrow.animate(`
@@ -250,6 +715,43 @@ this file's own comment had claimed since the relayout.
 
 ## cluster-architecture
 
+### the two bindings inside the Node (2026-08-01)
+
+```
+Kubelet to Runtime and Kubelet to kube-proxy were hand-rolled `line()` elements carrying
+`scheme-arrow scheme-arrow-cluster` and nothing else. That is the copy `relationPath` was written to
+retire in 2026-07-27, and this card was missed along with `cluster-etcd-raft` because both spell it
+with `line()` rather than `arrow()`, and no rule reads either.
+
+They qualify as relationships by the test that decides it: no step on this card ever sends a ball
+along them. Every packet here rides API_TO_ETCD, ETCD_TO_API, TO_CM, FROM_CM, TO_SCHED, FROM_SCHED
+or API_TO_NODE. So they are dashed, dim and sunk behind the lanes now, like every other relationship
+in the catalog. Endpoints unchanged to the unit.
+
+After this pass the whole catalog has FOUR hand-rolled arrow class strings left, and one of them is
+deliberate: `network-model`'s podWire wears the string but carries two markers and is animated as
+live traffic, which is a route. The other three are in `storage-dynamic-provisioning` (boundLink)
+and `storage-reclaim-policy` (delBound, retBound). Same miss, different section, left for that pass.
+```
+
+### before `const wireControllers = text({ class: 'scheme-label code dim', x: CM_CX + 135, y: 186, 'text-anchor': 'middle' }, [' ']);`
+
+```
+This label is what caps the narration on the controllers step, and it is the
+tightest constraint on the whole card. Measured 2026-07-30 over 1600x1000,
+1280x860 and 1100x800: the panel is widest and deepest on the SMALLEST one
+(a narrower panel wraps into more lines), reaching x <= 397 and one line =
+25 viewBox units there. Five lines put its bottom at 155, six at 180.
+
+So on 1100x800 the panel column covers this label horizontally, and the label
+sits at y = 186. The controllers step therefore has to stay at FIVE lines,
+about 200 characters, while every other step has room for six (180 is still
+clear of the TO_CM jog at y = 200 and of the controller-manager top at 240).
+A six-line controllers step was written on 2026-07-30 and rendered with
+watch . reconcile loop half behind the panel. Nothing catches this: OCCLUDED
+scores blocks, not wire labels, and it reports the card clean either way.
+```
+
 ### before `root.appendChild(pathArrow({ points: TO_CM, dim: true, dashed: true, role: 'cluster' }));`
 
 ```
@@ -270,14 +772,100 @@ before and after.
 
 ## cluster-delete-flow
 
-### layout (R5-a, 2026-07-27)
+### layout as it stands (2026-07-31)
 
 ```
-Same defect as the sibling Apply Flow card: the four top-row lanes were drawn from stale literals
-(260..390 and 610..750), so one pair floated under the narration panel pointing at nothing and the
-other sat inside the API block, while DELETE / DELETE_ACK / PERSIST / PERSIST_ACK carried the
-balls. All four are drawn from those arrays now, STOP_POD feeds the Kubelet-to-Pod arrow, and the
-delete + persist wire labels moved above the row (WIRE_TOP_Y = TOP_Y - 20).
+Read this one first. This card is the sibling of cluster-apply-flow and was given the same pass on
+the same day, so the two now share a grammar: the API pinned to the canvas centre, both flanks
+DERIVED from it through one gap, every row mirrored about CX, one padding on both walls of the Node
+frame, and every lane level derived from its band's centre rather than written as a literal.
+
+EVERY ROW IS BUILT ABOUT CX=600, and four things line up on each side by construction:
+
+  left  170:  kubectl left edge = controller-manager left edge = Kubelet left edge
+  right 1030: ETCD right edge  = Garbage collector right edge = Pod right edge
+
+The one deliberate asymmetry is kubectl, which is 160 wide against ETCD's 130 and grows to the
+RIGHT from a pinned left edge. That is the sibling card's shape and the same instruction produced
+both. Its gap is therefore 160 against ETCD's 190.
+
+Rows, measured off the rendered DOM:
+
+  top row      110..190   kubectl 170..330, API 490..710 (centred on CX), ETCD 900..1030, whose
+                          cylinder runs 100..200 so its centre sits on the row centre at 150
+  tier 2       300..380   controller-manager 170..410, Garbage collector 790..1030
+  Node-1       440..590   Kubelet 170..390 at 481..561, Pod 814..1030 at 468..574
+  drawing      100..590   100 units of margin above, 50 below
+
+What is PINNED and what is DERIVED:
+
+  API_X   from CX and API_W; ETCD from API_R through GAP=190. kubectl is NOT derived: its left
+          edge is pinned at 170 and it grows right, exactly as on the sibling card.
+  T2_D    SOLVED, not chosen: whatever puts the tier-2 row's outer edges NODE_PAD inside the Node
+          frame, the same inset the Kubelet and the Pod get. That is where the four-way alignment
+          above comes from. 310.
+  NODE_*  identical to cluster-apply-flow, frame 440..590, NODE_PAD = M = 60 on BOTH walls.
+  BAND1_CY  the band's own centre, so the lane pair cannot end up glued to the row it left.
+  TOP_Y   = 110, and it is a floor rather than a preference: see the cost below.
+
+The vertical gaps are 110 above tier 2 and 60 below, deliberately unequal and NOT a rhythm to even
+out. Tier 2 cannot rise because the panel reaches 282, and the two bands carry different loads:
+band 1 holds a lane pair AND both tier-2 wire labels, band 2 holds one label and no horizontal lane
+at all, because the Node pair runs straight down.
+
+THE COST, stated because it is real and was taken knowingly. Centring the row puts kubectl at
+170..330 inside the panel's column, and unlike the sibling card, where kubectl is 90% covered, here
+it is 100% covered at its worst, along with the two wire labels in the left gap and part of the
+controller-manager label on the deepest step. check-geometry reports it. The alternative was tried
+first and rejected by the author: the top row RIGHT of the panel at 420..1080, nothing occluded,
+and the row's centre 150 units off the centre every other row uses. Symmetry won. The levers left
+are shortening the two deepest narrations or accepting it.
+
+Narration panel, measured per step over 1600x1000 / 1280x860 / 1100x800. Right edge 300 / 378 / 397
+on every step. Bottoms at 1100x800, the column that binds:
+
+  0:213  1:213  2:189  3:166  4:282  5:189  6:236  7:213
+
+Step 4 is the floor under T2_Y: 282 against a row starting at 300. If that narration ever grows a
+line, tier 2 has to move or the text has to come down.
+```
+
+---
+
+### how the layout got here (2026-07-27 to 2026-07-31)
+
+```
+R5-a, 2026-07-27. Same defect as the sibling card: the four top-row lanes were drawn from stale
+literals (260..390 and 610..750), so one pair floated under the narration panel pointing at nothing
+and the other sat inside the API block, while DELETE / DELETE_ACK / PERSIST / PERSIST_ACK carried
+the balls. All four are drawn from those arrays now and STOP_POD feeds the Kubelet-to-Pod arrow.
+
+2026-07-31, the pass that brought this card in line with Apply Flow. What was wrong, all of it
+invisible to the gate:
+
+  1. The top row was three hand-placed blocks at 420..550 / 610..830 / 950..1080, gaps of 60 and
+     120, centre 750 against a drawing centred on 600. Now the API is on CX and the flanks derive.
+  2. Tier 2 was at 240..480 and 825..1065, mirrored about 652.5, while the comment above it claimed
+     a spine at x=500 and centres at 250 and 750. All three numbers were dead.
+  3. Inside the Node frame the Kubelet sat 25 from the left wall and the Pod 154 from the right.
+  4. The gap below tier 2 was THIRTY units against 160 above it, and the Kubelet lane pair squeezed
+     its horizontal legs into that strip at y=392 and 402.
+  5. Every lane level was a literal (200, 220, 392, 402), as were three wire-label positions.
+  6. The acks sat at BACK_Y + 26 = 136, INSIDE the row band, so HTTP 202 Accepted was drawn across
+     the kubectl and API borders on every replay of step 3.
+  7. DELETE replicasets · pods was centred on a run crowded by five verticals and struck through by
+     two of them. It was moved off the lane entirely as a result, and brought back over it once the
+     recentring had made the run 260 units long. See its own note below.
+
+An intermediate version kept the row right of the panel and equalised its gaps at 90. It fixed 3
+through 7 and left 1 and 2 standing in a new form, and was rejected: see THE COST above.
+
+Two things the recentring bought that were not asked for. The Node pair could collapse from four
+points to two, because once the API sits on CX its bottom-face offsets and the frame's top-face
+offsets are the same line, so each lane is a single straight vertical with no turn in it. It took
+one more pass on the same day to actually get there, and the slot note below has that story. And a
+THROUGH violation that the intermediate version had introduced (the return lane climbing through
+the Garbage collector box) disappeared with it.
 ```
 
 ---
@@ -293,10 +881,128 @@ with the Api row (y=100) and the top wire labels keep their clearance above the 
 ### before `root.appendChild(pathArrow({ points: DELETE,      dim: true, dashed: true, role: 'cluster' }));`
 
 ```
-GarbageCollector DELETEs back up to the Api. Nested inside-and-below the event arrow (exits
-GC top left of the centre entry, lower lane y=220) so the two never cross, the same out/back
-layout the Control Plane Architecture card uses.
+Where all nine static lanes are drawn, each from the SAME points array its ball rides.
+
+Four on the top row as two mirrored pairs, request out at OUT_Y and answer back at BACK_Y. Three
+into tier 2: the MODIFIED event to the controller-manager, and an out-and-back pair on the Garbage
+collector where the event lands on the OUTER lane (GC_CX + D20) and the DELETEs leave on the INNER
+one (GC_CX - D20), so the pair never crosses itself. Then the Node pair, which has its own note.
+
+Five lanes meet the API's bottom face at 540 / 590 / 610 / 630 / 660. Which lane gets which slot is
+forced rather than chosen and has its own note below.
+
+This note used to describe the Garbage collector return lane and a lane y of 220, anchored to the
+kubectl DELETE line. Both the subject and the number were wrong. The sibling Apply Flow card
+carried the identical misplaced note, which is how it was found: check-notes verifies that an
+anchor points at code that still exists, never that the sentence under it is about that code.
 ```
+
+### which lane gets which slot on the API face (2026-07-31)
+
+```
+Five lanes meet the API's bottom face at 540 / 590 / 610 / 630 / 660. The rule that decides the
+ORDER is one sentence: every lane except the Node pair turns and runs horizontally through band 1,
+so each of them has to leave the face OUTSIDE the pair, or it cuts across one of the two verticals
+dropping to the frame. The Node pair therefore takes the two innermost slots.
+
+Two earlier versions got it wrong, in opposite ways, and both are worth keeping written down.
+
+FIRST, the Garbage collector's return took the midpoint at 600 and the Node's return took 630. The
+Garbage collector is on the RIGHT of the canvas, so its return ran leftwards along the back lane to
+reach 600, and anything joining the 600 slot from the right must cross whatever descends at 630.
+The two returns crossed on their way into the API.
+
+SECOND, they were swapped: the return that comes from the RIGHT entered on the right at 630, and
+the return that comes straight UP from the Node took the midpoint. That killed the crossing and
+paid for it with a 30 unit jog on FROM_NODE, in band 2. It was the wrong trade. The jog was the
+only turn on the only straight run of the card, it sat in an otherwise empty band where nothing
+explained it, and the author read it as a defect on sight.
+
+The resolution keeps both properties instead of trading one for the other. FROM_GC stays at 630 and
+the Node pair moves INSIDE it, to API_CX +/- LANE_DY, reusing the same half-offset the top row uses
+for its request/answer pairs. The API, the Node frame and the canvas share one centre, so both
+lanes are single straight verticals from the API face to the frame face with no turn in either, and
+they are 20 apart rather than the 30/60 the earlier version spread them over, which reads as one
+exchange rather than as two errands. FROM_GC's horizontal run stops at 630, right of both, so
+nothing crosses. Verified by a probe that intersects every horizontal lane segment against every
+vertical one: the card has ZERO lane crossings.
+
+OFFEDGE stays quiet through the change, but NOT because every endpoint is paired or centred, which
+is what an earlier version of this note claimed. It is the face-fraction exemption doing the work:
+check-geometry ignores any offset within 18% of the face, which on a 220 wide API is 39 units, so
+590 / 610 / 630 are all out of its reach and only the 540 / 660 pair needs its mirror. Nothing on
+this face is required to sit on the midpoint.
+
+The pair still addresses the Node frame's TOP face, not the Kubelet's, which is the sibling card's
+decision recorded there in full: a watch stream arrives at a Node and a status report leaves one,
+and what the Kubelet does about it is drawn INSIDE the frame on its own step, along STOP_POD.
+Before all of this the pair aimed at the Kubelet top face at KUBELET_CX +/- D20 and squeezed
+through the thirty unit strip between tier 2 and the frame. KUBELET_CX went with the change;
+nothing else used it.
+
+The watch wire label in band 2 is right-anchored beside the vertical it labels, because a
+horizontal string centred on a vertical lane is cut in half by it.
+```
+
+### before `const wireGc           = text({ class: 'scheme-label code dim', x: (API_CX + D30 + GC_CX - D20) / 2, y: LANE1_OUT - 8, 'text-anchor': 'middle' }, [' ']);`
+
+```
+Both band-1 labels are built the same way: centred on the midpoint of the horizontal run they name,
+8 above the OUT level. Measured at 1600, the two strings occupy 322..508 and 674..846, both on
+y 218..232, so both clear the OUT lane at 237 by 5 and the nearest vertical by 14 or more.
+
+The Garbage collector label sits above the OUT lane while naming the BACK one, and that is a
+choice, not a slip. The pair is 16 apart (LANE_HALF = 8 either side of BAND1_CY) and no string fits
+between them, so the only levels available are above the pair or below it. Above wins because it
+puts both band-1 labels on ONE register, which is what makes them read as a matched pair of
+annotations rather than as two unrelated notes, and because the whole exchange with the Garbage
+collector IS those two lanes: a label over the pair names the traffic on the pair.
+
+It used to be parked at GC_CX + 120, over the Garbage collector box itself, on the reasoning that
+FROM_GC's run was 80 units long and a 167 unit string centred on it would be struck by two
+verticals. That measurement was taken before the row was recentred and never retaken. After the
+recentring the run is 630..890, 260 units, and the five verticals it feared are the API bundle at
+540..660, every one of them LEFT of the string. The author asked for the label to come back over
+the lane, which is where it was meant to be.
+```
+
+### text pass: what each step claims against what it draws (2026-07-31)
+
+```
+Read against the motion, step by step, the way the sibling card was. Six of seven steps already
+agreed. What changed, and what was checked against kubernetes.io rather than against taste:
+
+STEP 2 said "The Deployment is now Terminating". Terminating is a Pod PHASE word; a Deployment
+carrying a deletionTimestamp is marked for deletion and has no such phase. Reworded to "marked for
+deletion". Everything else in the step is right: the API does set deletionTimestamp and the
+foregroundDeletion finalizer rather than removing the object.
+
+STEP 5, the same fix the sibling card needed for the same reason. The words said the API streams
+the event "to it", meaning the Kubelet, while the lane now lands on the Node frame. It now streams
+the event "down that watch to Node-1", so the sentence and the picture end in the same place.
+
+STEP 6 contradicted another card, which is the class of defect this project prizes finding. It said
+the Kubelet "sends SIGTERM to the container, waits up to terminationGracePeriodSeconds (30s
+default)", which reads as the full budget being available AFTER the signal. The Graceful Pod
+Shutdown card, which this very step tells the reader to go and read, says the budget "starts
+counting at the delete and is spent in two parts: the preStop hook, then the SIGTERM drain". Both
+cannot be true. Reworded to start the budget and put SIGTERM inside it, without duplicating what
+the other card covers. The cross-reference itself was verified: workloads-graceful-shutdown exists
+and is titled Graceful Pod Shutdown.
+
+ARIA-LABEL said "through the control plane" while half the card is a Node, a Kubelet and a Pod. Now
+matches the sibling card's shape, ending "to the Kubelet on a Node".
+
+CHECKED AND LEFT ALONE. Step 1's --cascade=foreground plus propagationPolicy=Foreground in the body
+is right. Step 3's HTTP 202 Accepted is what a foreground delete returns. Step 4's claim that the
+DELETEs "only stamp a deletionTimestamp rather than removing it from ETCD yet" holds because both
+dependents acquire finalizers of their own in a foreground cascade. Step 7's order (finalizer
+cleared up the chain, then real DELETEs, then DELETED events) is right. The description spends its
+first half on the DEFAULT background behaviour that this card never draws, which is context rather
+than contradiction, so it stays.
+```
+
+---
 
 ### poster
 
@@ -306,6 +1012,30 @@ builds (solid shell + container) starts on the left, is walked through the contr
 is erased, so the matching Pod shell on the right is dashed, empty and struck through (the
 record leaving ETCD). Fills fall left to right (Pod 0.06 / 0.10 -> box 0.05 -> gone), the
 exact inverse of Apply.
+```
+
+---
+
+### review pass (2026-08-01)
+
+```
+The Garbage collector was drawn as a component, not as a controller.
+
+Two boxes on tier 2, same size, same band, mirrored about CX, no frame around either and no
+sublabel on either: controller-manager on the left, Garbage collector on the right. Nothing on the
+card said where the collector runs, so the drawing asserts it is a peer of the controller-manager.
+It is a controller INSIDE kube-controller-manager, and the sibling Apply Flow card is careful about
+exactly this on the same tier ("The Deployment controller, inside the controller-manager").
+
+Closed with a sublabel, `in controller-manager`, and not in the narration. The gc-cascade step is
+the deepest text on this card (panel bottom 282 against tier 2 at 300), so words there cost the
+drawing 18 units of the 18 it has left. The sublabel costs nothing: the box was the only one on the
+tier without one, and box() draws it under the label inside the existing 240x80.
+
+What was NOT changed: the collector keeps its own box rather than moving inside a controller-manager
+frame. The two act on different things on this card (rollouts stop on one side, ownerReferences are
+walked on the other) and each owns a lane pair to the API. Nesting them would put one lane pair
+inside another block and cost the tier its mirror about CX.
 ```
 
 ---
@@ -351,15 +1081,100 @@ missing (two Follower acks, the durable report, the whole of `apply`), so `repli
 `quorum` and `apply` went 1900 -> 2500 each. The row became a lane PAIR to carry them: see the note
 under `LANE_DY` in `docs/INTERNALS.md`.
 
-**Left open, needs a go-ahead.** The wire label `write Pod · via Leader` renders about 150 units
-wide with `text-anchor: middle` at `(API_R + CYL_XS[0]) / 2 = 350`, inside a 140-unit gap, so it
-overhangs the API's right border by about 5 units and the ETCD-1 cylinder by about 5. Visible on
-every viewport, worst at 1100. The cheapest correct fix is `CYL_XS = [440, 690, 940]` (inter-cylinder
-gap 60 to 50, right edge still on `CONTENT_R`, content bbox still `60..1140`), which gives the label
-a 160-unit gap. Not applied: it is horizontal geometry and was outside the rebalance.
+**Closed 2026-07-30, and not by the fix proposed here.** The wire label `write Pod · via Leader`
+measures **152** units (`getBBox`, not the estimate) with `text-anchor: middle` at
+`(API_R + CYL_XS[0]) / 2 = 350`, so it wanted 176 with clearance and had a 140-unit gap: it sat on
+the API's right border and on the ETCD-1 cylinder, on every viewport.
+
+The fix on file was to tighten the cylinder pitch (`CYL_XS = [440, 690, 940]`, gap 60 to 50) and
+leave the margins at 60. What shipped instead widens the gap from both ends and leaves the row
+spacing alone, on the author's call:
+
+| constant | was | is | why |
+|---|---|---|---|
+| `M` | 60 | **40** | the only way to buy the label its gap without narrowing the API off the 220 standard box width. Both sides take it, so the bbox is `40..1160` and still centred on 600 |
+| `CYL_XS` | literal `[420, 680, 940]` | derived from `CONTENT_R - ROW_W` | `[440, 700, 960]`, right edge on `CONTENT_R` by construction rather than by a comment |
+| `SCHIP_W` | 320 | `API_W` (220) | the API and the three state chips are ONE column and used to end 100 units apart, which is what made the left stack read as two |
+| `wireProposal` y | `CYL_CY - 12` | `ROW_OUT - 14` | `CYL_CY - 12` IS `ROW_OUT` to the unit, because `LANE_DY` is also 12, so the dashed lane ran through the glyphs. 14 above the lane is what the sibling control-plane cards use |
+
+Label clearance is now 14 units at each end (`API_R` 260, label `274..426`, `CYL_XS[0]` 440).
+`check-chipfit` passes at the narrower chip width (the widest pair, `acks (entry 9)` + `1 (then 2)`,
+is 165 of the 196 available). **No timing change**: `API_TO_E1` went 140 to 180 units, both under
+the 700 ms `routeDur` floor, and `anim-dump` gives the same spans as before, 3629 / 2060 / 2071.
 
 **Header measurement corrected at the same time**: the card recorded `y <= 220`, the real worst case
 over the viewport set `check-geometry` judges against is **230**.
+
+### the two arcs crossed, and which end had to be swapped (2026-08-01)
+
+```
+The outbound arc and its ack cut through each other one dash above ETCD-3, and it was there from
+the day the ack was drawn (review stage 2.4 family D) because the pair was built by mirroring:
+outbound on `CX - LANE_DY` at BOTH ends, ack on `CX + LANE_DY` at both.
+
+Work it through and the crossing is forced rather than accidental. The ack horizontal runs at
+y=162 from 1052 to 532. The outbound vertical comes down into E3 at x=1028, from y=150 to the
+cylinder top at 230, so it passes y=162 at a point that is INSIDE 532..1052. One lane through the
+other. The E1 end is clean by luck, not by symmetry: the ack vertical there stops at y=162 and
+never reaches the outbound horizontal at 150.
+
+The fix is to swap the two stubs at ONE end, which the author called before the geometry did. E3
+now RECEIVES on its right stub and SENDS from its left, the opposite of E1, and the two arcs become
+concentric: outer 508 -> 150 -> 1052 -> down, inner 1028 -> 162 -> 532 -> down, nested on all three
+sides. Written down it looks unsymmetric, and that is the point: mirrored stubs are what crossed.
+
+Nothing is traded. Each cylinder top still carries a mirrored pair straddling its own midpoint,
+which is the whole of what OFFEDGE judges, and both lanes still leave and arrive on the face they
+did. Timing moves a little, because the arcs changed length: REPLICATE 680 -> 704 units (routeDur
+1511 -> 1564) and ACK_E3 656 -> 632. That lands `replicate` at 3628 of its 3800 budget and `apply`
+at about 2124 of 2500, both still inside, so no duration moved.
+```
+
+### the cylinder bindings, and the 14 units under them (2026-08-01)
+
+```
+The three lines tying each cylinder to its role chip were hand-rolled `line()` elements carrying
+`scheme-arrow scheme-arrow-cluster` and nothing else: no dasharray, no dim, no relation class. So
+the one thing on the card that is NOT traffic drew brighter and more solid than every lane that
+carries a ball, and it sat in front of them rather than behind. That class string is exactly what
+`relationPath` was added to retire in 2026-07-27, and this card was missed because its copies are
+`line()` rather than `arrow()` and no rule reads either.
+
+All three go through `relationPath` now, one forEach over CYL_CXS rather than three near-identical
+statements, so the wire and its style come from one place.
+
+ROLE_Y went `CYL_BOTTOM + 16` to `CYL_BOTTOM + 30`, on the author's ask, and the two changes belong
+together: at 16 units a `5 5` dash renders a tick and a half, which reads as a rendering slip rather
+than as a relationship. At 30 it is three dashes and the chip stack under every cylinder gets air.
+
+The left column follows, because `SCHIP_Y` is derived from `ROLE_Y` and the term chip shares its top
+edge with the role row: breaking that to hold the left column still would trade one alignment the
+card has for none. What it costs, stated rather than hidden: the band goes 150..498 to 150..512, so
+its centre moves 324 to 331 against the canvas centre of 320, and the bottom margin goes 142 to 128.
+The row itself cannot rise to pay for it, because `CYL_Y >= 215` is set by the panel and 230 is
+already only 15 clear (see alternative 2 above, measured and rejected for that reason).
+```
+
+### review pass (2026-08-01)
+
+```
+The acks chip contradicted the step it sits under, and the card carried two denominators at once.
+
+On the quorum step the chip read `acks (entry 9): 2 / 2 ✓` beside `quorum: 2 of 3`, while the
+narration says the Leader counts "itself plus at least one Follower makes 2 of 3, which meets
+quorum". A tick on the SECOND ack teaches that the commit waits for both Followers. It does not:
+in a group of three the Leader plus one Follower is already the majority, which is why the
+replicate step can honestly say `1 (then 2)` and why a three-node cluster survives losing a Node.
+
+The chip counts now and does not judge: `0 of 2` on append-log, `1 (then 2)` on replicate,
+`2 of 2` on quorum. The verdict moved to the chip whose threshold it actually is, which becomes
+`2 of 3 ✓ at ack 1` on the quorum step and carries that value into apply, where it is still true.
+One denominator on screen with a tick, one plain count beside it.
+
+Values only, so no geometry and no timing moved. Widths: the acks pair is unchanged at its
+recorded 165 of 196 available, and the new quorum value is 17 characters against a 6-character
+name, well inside the same 196.
+```
 
 ## cluster-graceful-node-shutdown
 
@@ -375,6 +1190,88 @@ one on lane 2. The frame moved 468 -> 476 so the bus has 14 units of clearance e
 terminate-normal 2700 -> 2900, terminate-critical 2600 -> 3000ms.
 ```
 
+### rework (2026-08-03): one lane, taller frame, chips on arrival
+
+```
+GEOMETRY. `node()` draws its label at `NODE_Y + 18` and the Pod row started at `NODE_Y + 22`, so
+NODE-1 was printed four units above the first Pod and overlapped it. The Pod row moved to the
+family's `NODE_Y + 34` and the frame grew 140 -> 152 (34 label padding, 106 Pod, 12 floor), with the
+bottom pinned on 624, so `NODE_Y` went 476 -> 472. The ladder and the chip column both end around
+450 and did NOT have to move: the gap to the frame is 22.
+
+THE LANE. The bus-and-taps fan added by R5-a is withdrawn, the same author call made on
+`cluster-node-drain` and `cluster-node-pressure-eviction` the same day. `SIG_LANE` is two points now,
+`[[600, 120], [600, 472]]`, one straight drop from the Kubelet bottom face midpoint to the Node frame
+top face midpoint. That needed `SPINE_X` to move 580 -> `CX`, because the frame midpoint is 600 and a
+lane leaving a box off its own face midpoint is an OFFEDGE finding: since `KUBE_X` is DERIVED from
+`SPINE_X` the whole top row shifted with it, Kubelet 464..696 -> 484..716 and systemd 752..984 ->
+772..1004, both still clear of the panel at x<=397 and of the 1140 edge. The lane runs the 540..620
+corridor between the ladder and the chip column and crosses nothing.
+
+`BUS_Y`, `POD_CXS` and the three-lane `sigLanes` array are gone with it, and `setPods` no longer pins
+lane opacity: the lane ends on a frame that is on screen for the whole card.
+
+**terminate-normal now sends ONE ball and both non-critical Pods react to it**, which is a better
+reading of `in parallel` than the two balls it had (whose arrivals differed anyway, because the two
+taps were different lengths). terminate-critical sends one ball for the critical Pod.
+
+BALL AND PULSE ORDER, checked because it was asked for and not because it was broken: both terminate
+steps are down-arrow (infra to Pod), so the canon is ball first and pulse on arrival, which is what
+they already did. Measured: ball 0..782, pulses 782..1682, fade 782..1982. Nothing fires
+simultaneously, and the up-arrow steps (`signal` in, `release` out) have no Pod pulse at all to
+sequence against.
+
+CHIPS. All four now wait for the packet that earns them, the treatment the sibling cluster cards got:
+`phase` turns over when the D-Bus signal LANDS on the Kubelet (`signal`), when the SIGTERM lands
+(both terminate steps), and `inhibitor lock` plus `phase` when the release reaches systemd
+(`release`). systemd is not free to proceed until the release actually arrives, so showing `released`
+at step entry was the lock being dropped a second before the ball that drops it.
+
+DEAD CODE. `PANEL_R` and `PANEL_B` were read by nothing and are dropped, with the measurement folded
+into the header comment next to what it constrains. Four near-identical `ctx.register(...animate...)`
+fade blocks collapsed into one local `fadeOut(s, ctx, key, delay)` with the 1200ms held in `POD_FADE`.
+
+DURATIONS. The lane went 748 -> 352 units, so both terminate spans dropped 2809/2898 -> 1982 and the
+two steps were left with about 900ms of stillness. Both cut 2900/3000 -> 2400.
+```
+
+### technical pass (2026-08-03)
+
+```
+Checked against the raw text of the Graceful Node Shutdown page, not a summary.
+
+THE BIG GAP, and it was the first thing the doc says after the intro: `Once the kubelet is notified
+of a node shutdown, it sets a NotReady condition on the Node, with the reason set to "node is
+shutting down". The kube-scheduler honors this condition and does not schedule any Pods onto the
+affected node.` The card had none of it. Step 2 was called `cordon` and said only that the Kubelet
+`flips its admission state and rejects any new Pod assignments`, which is the SECOND half of the
+mechanism and not the one that stops the Scheduler. Cordon is also the wrong word: there is no
+`spec.unschedulable` anywhere in this feature. The step id, the ladder row and the phase chip all say
+condition / NotReady now, and the narration names the reason string.
+
+That gap had a knock-on that made the card contradict itself. The `release` step said `While the Node
+is down, the Lease in kube-node-lease grows stale, so the cluster marks it NotReady`, which puts the
+NotReady at the END, on a card where the Kubelet sets it at the START. Reworded: the Node has carried
+NotReady since the Kubelet set that condition, and the stale Lease is what additionally makes it
+unreachable.
+
+POD OUTCOME. Added to terminate-normal: the Pods end up with the status reason Terminated. The doc
+records that `kubectl get pods` shows Terminated and describe shows
+`Message: Pod was terminated in response to imminent node shutdown`. The message itself did not fit
+the character budget.
+
+VERIFIED AND LEFT ALONE: PrepareForShutdown is the logind D-Bus signal, the delay-type inhibitor lock
+is right, `shutdownGracePeriod` minus `shutdownGracePeriodCriticalPods` is the regular-Pod window
+(the doc works the same subtraction with 30/10), the 2,000,000,000 critical threshold is
+`scheduling.SystemCriticalPriority`, and DaemonSet infra sitting in the critical bucket is fair. Not
+added for want of characters: static and mirror Pods count as critical regardless of priority, and
+`shutdownGracePeriodByPodPriority` allows more than two buckets.
+
+TERMS. `node is shutting down` is an API reason string in lower case, so it went into
+`terms.json` under `exceptions.Node` rather than being capitalised into a value that does not exist.
+It is the only occurrence in the catalog.
+```
+
 ---
 
 ## cluster-kubelet-sync-loop
@@ -386,6 +1283,112 @@ Untouched apart from the chip column, which was 380 wide against a 500 wide ladd
 category's 480 (60..540). The card is Layout B by shape (API and chips in the left column, ladder
 right) and has none of the three regressions: no chip collision, no lane into empty space, and the
 left band is occupied.
+```
+
+---
+
+### technical pass (2026-08-03)
+
+```
+NAMED COMPONENTS. The watch step said `The Kubelet source dispatcher routes the spec into podManager`.
+There is no source dispatcher in the Kubelet. The three spec sources (apiserver, file, http) are
+merged by `PodConfig` into ONE update channel, `syncLoop` reads it, and `HandlePodAdditions` puts the
+Pod into `podManager`. This card names real internals everywhere else (podManager, PLEG, SyncPod,
+CRI, containerStatuses), so one invented component was the odd sentence out. Now it reads `merges its
+spec sources into one update channel, and the sync loop records the Pod in podManager`.
+
+PULLIMAGE. The CRI sequence for a new container is RunPodSandbox, PullImage, CreateContainer,
+StartContainer, and the card named three of the four. PullImage is the ImageService half of the CRI
+and it is in this path every time, so it is now in the narration, in the wire label
+(`RunPodSandbox · Pull · Create · Start`), in ladder row 4 (`Pull/Create/Start container gRPC`) and,
+crucially, in the MOTION: the cri step animates four packets, not three, and the chip names each call
+as its ball lands. That cost the step 800ms (a 120 unit hop sits on the PKT_DUR_MIN floor of 700,
+plus BEAT.afterHop), span 2860 -> 3660, so `duration` went 3000 -> 3800.
+
+THE OBSERVED CHIP CHANGED UNITS MID-CARD. It read `0 containers` and then `1 running`, next to a
+`desired` chip reading `1 container`, so the reader had to translate `1 container` into `1 running`
+to see that the loop had converged. It is `0 containers` -> `1 container running` now, directly
+comparable with `desired` at a glance, which is the entire point of putting the two chips together.
+
+THE PANEL MEASUREMENT WAS RECORDED TWICE AND WRONG BOTH TIMES. The header comment claimed a worst
+case of `y<=195` measured over 1600/1440/1280/1100, and `PANEL_B` two lines below it said 215, while
+the real worst at 1100x800 was 205. Neither number was read by anything: `PANEL_R` and `PANEL_B` were
+both dead constants, the exact shape `scheme/CLAUDE.md` says not to re-add. Both dropped, and the
+comment now carries the measurement, re-taken after the narrations grew: `x<=397, y<=230` (160 / 183
+/ 193 / 230 over the four viewports, 269 at 1024x768). What the bottom has to clear is the API box at
+y=300, so there is 70 units of headroom at the rule worst case. Grow a narration here and re-measure.
+
+SETCHAINACTIVE. Five hand-rolled copies of `chain.querySelectorAll('.scheme-chip')` plus
+`rows[i].classList.add('highlight')`, with no import of the helper every other card in the catalog
+uses. Behaviourally identical, because `clearHighlights` clears ladder rows itself. Replaced, and
+slot 0 now says `setChainActive(s.refs.chain, -1)` out loud instead of relying on the clear.
+```
+
+### poster (rebuilt 2026-08-03, concept signed off)
+
+```
+Sentence: a closed cycle of five stages that never stops.
+
+Five stage blocks (76 x 50, `rx="8"`) wired head to tail into a closed ring: three across the top at
+x = 20 / 120 / 220, two under the outer pair at y=110, five dashed legs joining them face midpoint to
+face midpoint, and the long bottom leg reading as the return. The blocks are the card ladder in
+order, clockwise from the top left: watch, PLEG, SyncPod, CRI, status. SyncPod is the reconcile
+itself, which is the card title, so it takes the winner treatment: a stronger box fill (0.10 against
+0.04) and the one bright `currentColor` bar at `opacity="0.9"`, twice the width of the four dim bars
+at 0.3. Fifteen shapes, and they are three repeated motifs rather than fifteen ideas.
+
+**This is the second attempt and the first one is worth knowing about, because it failed on STYLE
+rather than on concept.** The concept (signed off) was the same closed cycle, but drawn as one thin
+rounded track at `opacity="0.45"` with five 14 unit marks on it and an arrowhead. Three faults, all
+only visible next to the siblings: the marks were specks at the 200px the grid actually renders,
+the dimmed track made the dominant shape faint, and 240 x 116 of the canvas was empty air where
+every sibling poster carries mass. It also broke the vocabulary twice over. **No poster in the
+catalog uses an arrowhead** (grep for a closing `Z"` and you get nothing), and the house accent is
+not a bright FILL on a shape, it is a `rect` with `fill="currentColor"` at `opacity="0.9"`, which is
+what `cluster-scheduler-decision` uses and why that one reads best on the sheet. Direction is now
+carried by the ring being closed rather than by an arrowhead.
+
+Before either attempt: three rounded boxes in a triangle with two dashed legs and a curved return,
+a miniature of the card diagram (API, Kubelet, containerd) rather than a sentence about it. The
+canon calls that out twice, no literal copies of the card diagram and no reused two-box layouts.
+
+**If you redraw a poster here, put it side by side with two siblings at 260% before deciding.** All
+three faults of attempt one were invisible on the file and obvious on a montage.
+```
+
+### chips wait for the packet that earns them (2026-08-03)
+
+```
+Every chip on this card reports something the Kubelet has LEARNED or DONE, and all four were pinned
+at step entry, so on three of the five steps the answer stood on screen for a second and a half
+before the ball that produces it. Same defect the node-drain card carried, same fix: pin the end
+value above the `ctx.reduced` guard for the reduced contract, then on the played path set the chip
+back to what the step STARTS from and turn it over through a local 1ms `at(...)`.
+
+What each chip now waits for, and why that beat and not another:
+
+  watch      Pod, desired         the spec ARRIVES at the Kubelet (~1160ms). podManager cannot hold
+                                  a spec the Node has not been handed yet.
+  pleg       last CRI op          the call REACHES the runtime. That is when the op happens.
+  pleg       observed             the ANSWER comes home. The Kubelet learns the container list from
+                                  the reply, not from having asked.
+  cri        last CRI op          four turnovers, one per call as its ball lands: RunPodSandbox,
+                                  PullImage, CreateContainer, StartContainer. The step IS a sequence,
+                                  and a chip reading StartContainer from entry skipped three
+                                  quarters of what the sentence describes.
+  status     last CRI op          the ListContainers of the next PLEG cycle lands on the runtime.
+  status     observed             the answer comes home, and only then does the PATCH leave.
+
+Verified by real-time sampling rather than by frames, because `frame-strip` seeks and never fires
+`onfinish`, so every `at(...)` turnover is invisible to it. `check-reduced` passing is the proof the
+end state still lands.
+
+**`check-arrival` R2 now reports three findings on this card and all three are the tool artefact,
+not defects.** R2 samples chip values at t=0 and compares against t=0 of the previous step, so a
+turnover that happens mid-step gets attributed to the NEXT step, where the chip is not highlighted
+because that step is not about it. It reports `Pod` and `desired` at the pleg step and `last CRI op`
+at the syncpod step. This is the same known blind spot that produces three of the tool's twenty
+catalog-wide survivors, and check-arrival is deliberately out of the gate.
 ```
 
 ---
@@ -441,7 +1444,122 @@ the `acquire` and `failover` spans went 2554 to **2998 ms**, over their 2700 bud
 over the viewport set `check-geometry` judges against is **205**.
 
 **`check-arrival` baseline for this card is R2 3**, all three checked by hand and correct behaviour.
-### before `function casPut(s, ctx, cx) {`
+
+### centred column, one Lease entry per replica, 2026-07-30
+
+**Everything above about the horizontal is superseded**, including `REP_XS = [420, 670, 920]` and
+every row below it. The vertical reasoning still reads correctly as history, but `REP_Y` is no longer
+derived from `CY`: read the constants in the card.
+
+The rebalance had fixed the vertical and left the horizontal alone, which left three defects that
+were reported together and are really one:
+
+- the replica row spanned `420..1140` while the Lease and its chips spanned the full `60..1140`, so
+  the bottom read as a different object from the top;
+- with the row pinned right by the panel, the drawing sat at `420..1140`, centre **780**;
+- all six CAS routes shared one horizontal corridor, so every PUT lay on top of its own answer and
+  it was unreadable which answer belonged to which replica.
+
+The corridor is gone rather than split. **Each replica now reaches the Lease on its own axis**: a
+PUT straight down at `cx - 10` and its answer straight up at `cx + 10`, from the role chip to the
+Lease top. Six independent endpoints on that face, at `340/360`, `590/610`, `840/860`, mirrored in
+pairs about its midpoint 600, so OFFEDGE stays quiet and a reader can follow one exchange without
+tracing a shared line.
+
+With no corridor to route around, the column is free to sit where the canvas wants it:
+
+| constant | value | derived from |
+|---|---|---|
+| `STACK_W` | 720 | `3 * REP_W + 2 * REP_GAP`, the replica row |
+| `STACK_L` | 240 | `CX - STACK_W / 2`. Content spans `240..960`, centre **600** |
+| `REP_XS` | 240 / 490 / 740 | mapped off `STACK_L`, centres 350 / 600 / 850 |
+| `REP_Y` | 170 | `PANEL_B + 15`. The row is pinned by the PANEL now, not by the canvas centre: centred horizontally, its left third is in the panel's column, so it has to clear the panel bottom |
+| `LANE_RUN` | 56 | the straight drop, role chip to Lease |
+| `LEASE_Y` | 352 | `ROLE_BOTTOM + LANE_RUN` |
+| `FIELD_Y` | 492 | band bottom 526 |
+
+`check-geometry` is **clean on all six rules**, CENTRE included, where the previous attempt at this
+opened two CENTRE findings by aligning everything to the right-pinned row.
+
+**The vertical is now a trade with the narration, and the arithmetic is worth stating.** With the
+column centred, the row sits under the panel, so the band top is `panel bottom + 15` and every
+narration line costs the drawing 25 units of viewBox at 1100x800, where the panel is deepest. Moving
+the band up by one line moves its CENTRE up by only 12.5, because the top is pinned and the height is
+not. Measured at each length:
+
+| narration | panel bottom | `REP_Y` | band | centre vs 320 |
+|---|---|---|---|---|
+| 7 lines (as written) | 205 | 220 | 220..609 | 414, 94 low |
+| 6 lines | 180 | 195 | 195..551 | 373, 53 low |
+| **5 lines (shipped)** | **155** | **170** | **170..526** | **348, 28 low** |
+| 4 lines | 130 | 145 | 145..501 | 323, centred |
+
+All four narrations were rewritten to hold five lines (189 to 205 characters), and the band lost 33
+units of gap (`LANE_RUN` 80 to 56, role gap 14 to 12, Lease gap 20 to 16, field gap 13 to 10). Four
+lines would centre it exactly and is **not** taken: at about 160 characters the qualifying clauses
+start coming out, which is the failure this project has already paid for once. **A narration that
+grows past five lines silently pushes the panel onto the replica row**, and nothing checks it:
+OCCLUDED scores block area against the panel and would report the overlap, but only if someone runs
+it, and `check-geometry`'s gate profile does not include that rule.
+
+**Timing.** Every route is now the drop from the role chip to the Lease, under the 700 ms `routeDur`
+floor, so `acquire` and `failover` fall 2998 -> 2198 -> **2060 ms** across the passes of this day.
+Their `duration` is 2700, the card's own pre-lane-fix budget (they had been at 3200 to cover 2998).
+
+### text pass, 2026-07-30
+
+- **`failover` lit only mgr-2**, while mgr-3 races in that step too: it sends a CAS-PUT, its wire
+  label reports the 409 and its role chip changes. Both survivors light now, and that also closed one
+  of the card's three recorded `check-arrival` R2 findings (baseline is **R2 2** from here on, both
+  on `renew`, where the standby chips only drop the previous step's 409 marker).
+- **The standbys do not WATCH the Lease, they GET it.** client-go leader election calls
+  `Get` on the lock every retry period (2s by default against a 15s lease); there is no watch in that
+  loop. The narration said "keep watching", the chips said `standby · watching` and the catalog
+  description said "stand by and watch". All three now say polling or GET.
+- Everything else checked against the two sources on the card: the CAS on `resourceVersion` and its
+  409, the 15s `--leader-elect-lease-duration` default, `leaseTransitions` incrementing only when the
+  holder changes, and the Lease living at `coordination.k8s.io/v1` under the name
+  `kube-controller-manager`.
+- **The first acquisition is a CREATE, and the card called it a PUT** (corrected 2026-08-01). The
+  step said "All three replicas race to PUT the Lease, each write guarded by a compare-and-swap on
+  resourceVersion", with `holderIdentity: none` and `renewTime: none` on the idle chips. Those chips
+  describe a Lease that exists and has never been held, which Kubernetes does not produce: client-go
+  Gets the lock, and on NotFound it CREATEs it, so the winner of the first race takes a 201 and the
+  losers an AlreadyExists 409. Compare-and-swap on resourceVersion is the UPDATE path, which is what
+  every renewal and the failover race use, and the card now draws the difference: `POST 201 Created`
+  and `POST 409` on acquire against `PUT 200 OK` and `PUT 409` on failover. The narration holds its
+  five lines at 201 characters, inside the 189 to 205 band this card is written to.
+- **The Lease box is drawn at idle although the object does not exist yet**, and that is deliberate
+  rather than an oversight the canon missed. The dim-a-block-that-is-not-there-yet rule would take
+  the Lease AND its four field chips to a placeholder shade for one step that a reader never sees on
+  its own (the poster occupies that position), and it would cost the card its anchor: the Lease is
+  the object the whole drawing is about. Left solid, with the create said in words instead.
+- **`renew` now answers too** (approved the same day). It sent a PUT and rode nothing home, so
+  mgr-1's answer lane was the one drawn lane on the card idle while its twin carried a ball, against
+  the card's own rule under `casPut` that a replica acts on the answer rather than on the write. A
+  renewal is the same CAS-PUT and returns 200. `casPut` instead of `putPacket`, span 1260 -> 2060,
+  `duration` 2000 -> 2700, which is what the two racing steps already use.
+
+### poster
+
+```
+Three peers, one object, and only the middle one holds it: the leader is the bright box with the
+holder dot, the other two are dim, and the Lease carries two rules standing for its fields.
+
+The three contention lanes were DIAGONAL until 2026-07-30, which nothing else in the catalog draws
+and which the card itself does not: they are orthogonal now, the outer two dropping on their own
+axis and turning 90 degrees into the Lease side faces at its vertical middle (y 129), the winner
+going straight down into the top face. Side entries rather than three drops on purpose: at 320x180
+three parallel drops into one top face read as one thick line, and the L makes the two losers
+visibly approach from outside while the winner comes down the middle.
+
+The bright box is the MIDDLE one while the card elects Controller-mgr-1, which is the leftmost, and
+that mismatch was raised on 2026-08-01 and left standing. The poster boxes carry no names, so it
+asserts nothing about which replica wins, and the only way to close it is to hand the win to the
+left box: then the solid lane turns into a side face while a loser runs straight down the middle,
+which inverts the reading this composition was built on and puts the one bright element on the
+edge. Closing it would make the picture worse, so it stays open with the reason written down.
+```
 
 ```
 One helper for both outcomes. The winner used to send only, so an arrowheaded lane labelled
@@ -470,12 +1588,150 @@ The eviction lane no longer stops on the frame edge between Pods. EVICT_ROUTE(i)
 BUS_Y=398 inside the frame and taps down into web-1 or web-2; both lanes are drawn, and each step feeds
 the SAME array to pathArrow and routePacket. evict-A: 3100 -> 3300ms.
 
+**That fan was withdrawn on 2026-08-03, by author decision** (and later the same day the lane lost
+its jog too, see the top-row note above). Two lanes crossing the Node frame and
+splitting over the Pod row read as plumbing rather than as an eviction, so there is ONE lane now and
+it stops on the Node frame top face midpoint (`x=CX=600`, `y=NODE_Y=380`): the eviction is addressed
+to a Pod ON this Node, and WHICH Pod is carried by the pulse, which is unchanged on both evict steps.
+`BUS_Y` and `POD_CXS` are gone with it, and so is `setLanes`: the lane ends on a frame that is on
+screen for the whole card, so nothing it points at can go away under it and the catalog-wide
+"a lane lives and dies with its Pod" rule has nothing to bind here. The Pod fades stay, they just no
+longer drag a lane with them.
+Both evict steps got SHORTER rather than longer, and by different amounts, because the two lanes were
+never the same length: the web-1 lane ran 928 units and the web-2 lane 602, against 528 for the single
+lane. evict-A span 3762 -> 2873 against `duration: 3900`, evict-B 4638 -> 4473 against 4700. Both
+durations were left where they are, so evict-A now holds about a second of stillness after web-1 is
+gone. That is the one open cost of this change.
+
 **Two changes since, both 2026-07-30.** The lane leaves the API, not kubectl (review stage 2.4 family
 C): kubectl POSTs to the eviction subresource and the API is what reads the PDB, grants the 200 OK and
 DELETES the Pod, which both evict steps say in those words. `SPINE_X` could not simply be redefined
 because `KUBECTL_X` is DERIVED from it, so the route got its own `API_CX` = 868 and a jog at y=145 that
 clears the ladder; evict-A went 3300 -> 3900. And the 200 OK itself is now animated on the answer lane
 (family D), which the card had drawn and used only for the 429 on the retry step.
+```
+
+### top row moved under the panel (2026-08-03, author decision, OCCLUDED left OPEN)
+
+```
+The API box is centred on the Node frame (`API_X = CX - BOX_W / 2`, 484..716, so `API_CX` is 600) and
+the whole top row moved left by the same 268 units to keep the pair rigid, which puts kubectl at
+196..428. The eviction lane is now a single vertical drop, `[[600, 120], [600, 380]]`: API bottom
+face midpoint straight down to the Node frame top face midpoint, no jog, no corridor. `SPINE_X` and
+`JOG_Y` are gone, and `KUBECTL_X` derives from `API_X` rather than the other way round.
+
+**`check-geometry` reports OCCLUDED on kubectl at 86% and that finding stays open.** It is real, not
+a tool artefact, and it is viewport-dependent in a way the rule cannot express. Measured right edge
+of the panel against kubectl at 196..428:
+
+  2560x1440  154   0% covered, fully clear
+  1920x1080  203   3%, the left border only
+  1728x1080  272   33%
+  1600x1000  291   41%
+  1440x900   319   53%
+  1280x860   378   78%
+  1100x800   397   87%
+
+So the crossover is around 1920: wider than that and nothing is covered at all, narrower and kubectl
+is progressively eaten, at 1280 and below down to a sliver of its right edge. The author looked at
+the real page, judged the centred API and the straight lane worth it, and accepted the cost. Do NOT
+"fix" this by sliding the row right: with `BOX_W` at 232 and the panel reaching x=397, a box on the
+left of a centred API has 420..484 to live in, 64 units, so there is no position that satisfies both.
+The only layouts that close it are kubectl to the RIGHT of the API (772..1004, which reverses the
+request direction of the top row) or a much narrower box family. Both were considered and declined.
+
+Two consequences were repaired rather than accepted, because neither was part of the trade:
+
+WIRE_X. It was the midpoint of the gap between the boxes, which is `(428 + 484) / 2 = 456`. The
+label runs about 300 units wide against a 56 unit gap, so it overhangs both boxes by roughly 120 on
+each side, and at 456 its left end lands on x=305: the panel ate its first 73 units at 1280 and 89 at
+1100, rendering `POST .../pod` as `ls/`. It is `CX` now, centred over the API, 435..765 at the worst
+viewport against a panel that stops at 397. Note the label was ALWAYS wider than its gap, on both
+layouts. What changed is only whether the overhang lands on empty canvas or under the panel.
+
+DURATIONS. The lane went 528 units to 260, which is below the `PKT_DUR_MIN` floor, so both evict
+steps got shorter: evict-A 2873 -> 2400 and evict-B 4473 -> 4000. Left at 3900 and 4700 that is 1.5s
+and 0.7s of stillness at the end of a step. Now 2550 and 4150, back to the tight margin the card used
+before (138 and 62 at the time). This is the third time on this card that a geometry change turned
+out to be a timing change, in both directions.
+```
+
+---
+
+### technical pass (2026-08-03)
+
+```
+A read of the card against kubernetes.io (API-initiated Eviction, Safely Drain a Node, the
+PodDisruptionBudget API reference) turned up four technical defects and three rule defects.
+
+WHO DOES WHAT AT THE PDB GATE. The card had the API server doing the arithmetic: `finds
+currentHealthy=2 and minAvailable=1, so disruptionsAllowed=1`, and ladder row 4 read `API checks
+minAvailable`. The disruption controller is what computes `status.disruptionsAllowed`, and the
+eviction admission path only READS it and decrements it. Row 4 is now `API reads
+disruptionsAllowed`, and the narration names the controller as the thing that keeps the status.
+Same defect one step later, from the other side: evict-B said `the PDB returns 429`, where the PDB
+is an object and the API server is what answers. That one also contradicted the card, since row 4
+had already said the API answers 200 or 429.
+
+DAEMONSET PODS IN THE DESC. It read `DaemonSet Pods are skipped only when you pass
+--ignore-daemonsets`, which says that without the flag they would be evicted. The task page is
+explicit that the subcommand does not drain DaemonSet Pods at all and that the flag exists so the
+drain does not abort. The card own step 2 had it right, so the desc was contradicting its own card.
+439 -> 459 characters, inside the 400-470 band.
+
+RETRY CADENCE. `It retries the eviction on a backoff` became `retries the eviction every 5
+seconds`: kubectl sleeps a fixed 5s on a 429 and tries again, there is no backoff curve.
+
+THE CORDON ABSOLUTE. `The Scheduler stops placing new Pods on this Node` is false for anything
+tolerating `node.kubernetes.io/unschedulable`, and the DaemonSet Pod this very card keeps on the
+Node is exactly that. The toleration is now named in the same sentence.
+
+Also added to step 2: bare Pods with no owning controller need --force. It was the one bucket of
+the list-and-skip step that the narration did not name.
+
+**THE NARRATION LENGTHS ON THIS CARD ARE LOAD-BEARING AND THE FIRST DRAFT OF THIS PASS BROKE THEM.**
+`NODE_Y` IS `PANEL_B` here, so the Node frame starts exactly where the panel ends, and the measured
+worst case at 1100x800 was 379 against a frame at 380: one unit of clearance, spent. Growing three
+narrations for accuracy took the panel bottom to 404 at 1100x800 and 456 at 1024x768, which put it
+over the frame edge and its NODE-1 label. `check-geometry --rules=occluded` stayed CLEAN through all
+of that, because it scores occluded AREA and a 25 unit strip off a 152 tall frame is under its bar,
+so nothing in the gate would ever have said a word.
+
+What sets the panel bottom is the LONGEST narration on the card, so the budget is a single number:
+no step may exceed 528 characters, which is what evict-A was before. The accuracy edits were paid
+for inside the same step rather than by moving the frame. evict-A dropped `which the Scheduler places
+on another Ready Node` to `elsewhere` (the Scheduler placement is the rolling-update card subject and
+the pointer to it survives) and lost one pair of parentheses: 570 back to exactly 528. Step 2 dropped
+`or they are also refused`, which `need` already implies: 540 to 515. Re-measured at 1600/1280/1100,
+back to 379 and 397, the HEAD numbers.
+
+If you add a sentence to any step here, measure with `VW=1100 VH=800 node overlay-measure.mjs
+cluster-node-drain` and pay for it in the same step. Do not trust the gate on this one.
+
+Left alone deliberately: the card says the granted eviction is `200 OK`, which is what the doc
+lists (200 / 429 / 500). The apiserver create handler actually answers 201 Created for a successful
+eviction. Following the doc is the right call for a teaching card, but do not "fix" the 201 in
+either direction without deciding that first.
+
+Also left alone: `web-1` and `web-2` are named like StatefulSet members while their sublabel says
+Deployment, which really produces `web-<rs-hash>-<random>`. Legibility wins here and the naming is
+consistent across every step, chip and wire label on the card, so this is a recorded simplification
+rather than an oversight.
+```
+
+---
+
+### poster
+
+```
+Two Node frames, the drained one left and the destination right, with three Pod slots left and two
+right. Sentence: a drain empties a Node of everything except its DaemonSet Pod.
+
+Until 2026-08-03 the fills said the opposite and did not even agree with themselves: the left Node
+held TWO solid slots and one ghost while TWO solid Pods stood on the right, so one Pod had left and
+two had arrived, on a card where two leave and one stays. The two upper slots are the ghosts now
+and the bottom slot (the DaemonSet Pod) carries the single brightest fill on the poster at 0.16,
+because it is what the sentence is about. Shape count is unchanged.
 ```
 
 ---
@@ -498,6 +1754,27 @@ step entry, so for the whole 3900ms the number beside the sentence contradicted 
 The end value stays pinned above the guard for the reduced contract. The played path rolls back to
 `2 of 2` and turns over on `evict.arrivalMs`, the same instant the Pod pulses and its lane fades.
 Local `at(...)` is the standard 1ms zero-effect carrier, the `network-ipam-pod-cidr` shape.
+
+**Extended to the other three chip values on 2026-08-03**, because doing this to ONE chip while its
+neighbour ran ahead was the tell: `last eviction` read `web-1 · 200 OK` from entry, beside a
+`currentHealthy` that correctly waited. The two chips answer different questions and so turn over on
+different beats. `currentHealthy` is PDB status, so it moves when the eviction takes effect on the
+Pod (`evict.arrivalMs`). `last eviction` is what kubectl KNOWS, so it moves when the answer lands
+back on kubectl: `granted.arrivalMs` on evict-A, `denied.arrivalMs` on evict-B. Capturing the return
+hop into `granted` is the only reason that packet stopped being a bare call.
+
+evict-B was the worse of the two, because both of its pinned values are TRANSITIONS
+(`1 of 2 → 2 of 2`, `web-2 · 429 → 200 OK`): showing them at entry announced the 429 and the retry
+that clears it before either had been drawn. The played path now starts from what evict-A left, puts
+`web-2 · 429` up when the denial reaches kubectl, bumps the count as the RETRY LEAVES (the narration
+has the replacement turning Ready before the retry is granted, not after) and settles on the pinned
+strings at `evict.arrivalMs`. Spans are untouched: `at(...)` is 1ms and every beat it hangs off was
+already inside the step.
+
+The `drained` step no longer writes `2 evicted · DS retained` into this chip. That is a tally, not a
+last eviction, and it is the exact shape the catalog-wide chip-name rule exists to stop. Nothing was
+lost: ladder row 5 and the wire label already carry the summary, and the chip settles on
+`web-2 · 200 OK`, shedding the retry marker the way `currentHealthy` sheds its own on the same step.
 ```
 
 ---
@@ -591,6 +1868,126 @@ evicted is the BestEffort one on the left. It now turns at BUS_Y (472, midway be
 and the frame) and lands on POD_CXS[0]. evict: 2500 -> 2700ms.
 ```
 
+### the lane goes back to the frame (2026-08-03, author decision)
+
+```
+The tap into the BestEffort Pod is withdrawn, the same call the author made on `cluster-node-drain`
+the same day and for the same reason: a lane that crosses the Node frame and picks a Pod out of the
+row reads as plumbing rather than as a kill. `CONNECTOR` is now two points,
+`[[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]]`, a single drop on the spine from the Kubelet bottom face
+midpoint to the Node frame top face midpoint, both exactly x=600, so OFFEDGE stays quiet by
+construction. It passes between the chip column (ends 540) and the ladder (starts 660). Which Pod
+dies is carried by the pulse, which is untouched.
+
+`BUS_Y` and `POD_CXS` are gone with it, and `setVictim` no longer pins the lane: it ends on a frame
+that is on screen for the whole card, so the catalog-wide "a lane lives and dies with its Pod" rule
+has nothing to bind here. The Pod fade stays, it just no longer drags a lane with it.
+
+Route 748 -> 364 units, so the evict span went 2562 -> 1709ms. **`duration` was deliberately NOT cut
+to match**, unlike on node-drain. On this card the durations are reading time, not motion time: three
+of the five steps animate nothing at all, `condition` gives 2000ms to 383 characters, and the evict
+narration GREW to 380 characters in the same pass. 2700 against 1709 is the same relationship rank
+already has (2200 against 1300).
+```
+
+### technical pass (2026-08-03)
+
+```
+Checked against the Node-pressure Eviction page and, for the toleration claim, the raw text of the
+Taints and Tolerations page. Most of the card held up: the three ranking keys are the doc list in the
+doc order, the "QoS class does not decide that order, it only estimates it" line is the doc's own
+Note almost word for word, the 10s eviction manager period is right, the 5m
+`--eviction-pressure-transition-period` default is right, and the toleration sentence is exact
+(`The control plane also adds the node.kubernetes.io/memory-pressure toleration on pods that have a
+QoS class other than BestEffort`). One caveat worth knowing if you re-verify it: asking a summariser
+for that Note returned a confident and completely invented answer about the kube-system namespace.
+Fetch the raw page.
+
+THE ONE REAL GAP was the largest fact on the page and the card did not have it anywhere. The doc's
+own second paragraph: `Node-pressure eviction is not the same as API-initiated eviction. The kubelet
+does not respect your configured PodDisruptionBudget or the pod's terminationGracePeriodSeconds.`
+That is the whole difference between this card and `cluster-node-drain`, which sits in the same
+subcategory and spends five steps on PDB gating, so a reader crossing from one to the other would
+reasonably conclude a PDB protects against this. Both halves are now in the evict narration, and the
+desc carries the short version (`no PodDisruptionBudget applies here`, 412 -> 453 characters).
+
+Also added: the Pod does not merely get `removed locally`, the Kubelet sets `phase` to Failed with
+reason Evicted, which is why evicted Pods sit in the API afterwards.
+
+CHIP TIMING. `victim` read `BestEffort Pod evicted` from step entry while the SIGKILL was still on
+the wire. It now holds what rank left it (`BestEffort Pod selected`) and turns over on
+`kill.arrivalMs`, the same beat the Pod pulses and fades. Local `at(...)` as everywhere else.
+
+DEAD CONSTANTS. `PANEL_R` and `PANEL_B` were declared and read by nothing, the shape CLAUDE.md says
+not to re-add. Dropped, with the measurement folded into the header comment together with the thing
+it constrains: the panel bottom is 280 at 1100x800 and the chip column starts at 300, so there are
+20 units of headroom and NO narration on this card may pass 383 characters. That budget is why the
+evict rewrite landed at 380 rather than at the 408 it wanted.
+
+THE API BLOCK, added the same day on the author's call after being raised as an open finding. Three
+of the five steps say the Kubelet writes to the API and the card drew no API at all, so that traffic
+was narrated and never shown, and two of those steps animated NOTHING (`condition` and `relieve` both
+had span=0 and 900 with zero packets, which no check can see: `check-duration` only asks whether a
+step outlasts its own motion and a step without motion passes trivially).
+
+`API` is 232 wide at `CONTENT_R - API_W` = 908..1140, so it right-aligns with the ladder AND with the
+Node frame below it, and the Kubelet stays centred on the spine that owns the drop into the Node. The
+whole left half of the top row stays empty because that is the narration panel's corner, which is the
+L-shaped safe zone being used rather than fought.
+
+ONE lane, one direction, at the shared face midpoint y=80. No step on this card names anything coming
+back from the API, so a return pair would be decoration, which is the rule stated the other way round
+from how it usually bites. Three steps ride it: `condition` (MemoryPressure=True), `evict` (the Pod
+status after the kill) and `relieve` (MemoryPressure=False). `detect` and `rank` stay silent on it and
+that is correct, both are local to the Kubelet.
+
+Ordering inside `relieve` was wrong on the first cut and the author caught it: the two survivors
+pulsed and the PATCH left the Kubelet on the same beat, which gives the eye two places to look at
+once. The packet now goes at `BEAT.afterPulse`, which is the catalog up-arrow rule (pod acts first,
+packet leaves at 800) and is also the sentence order, since the Kubelet flips the condition BECAUSE
+the memory freed up. Pulse runs 0..900, the ball fades in at 600 and moves at 800, so the tail of the
+pulse and the head of the ball still overlap by design, the way every other card in the catalog
+staggers them. Span 1260 -> 2060 against `duration: 2200`, and the last thing that CHANGES is the
+chip at the ball arrival on 1500, so there is still 700ms of settle before the step wraps.
+
+Ordering inside `evict` matters and is not arbitrary: the status report leaves at
+`kill.arrivalMs + BEAT.afterHop`, after the SIGKILL lands, because the phase cannot be reported Failed
+until the Pod is actually dead. Both condition chips now turn over on the PATCH arriving rather than
+at step entry, for the same reason the victim chip does: a Node does not carry MemoryPressure until
+the write reaches the API that stores it. Spans: condition 0 -> 1260, evict 1709 -> 2142,
+relieve 900 -> 1260, all inside their existing durations.
+```
+
+### vertical rework (2026-08-03)
+
+```
+`node()` draws its own label at `NODE_Y + 18` and the Pod row started at `NODE_Y + 18` too, so NODE-1
+was printed on top of the first Pod. This is the trap written down in `scheme/CLAUDE.md` under the
+Workloads layout canon, and it had been live on this card since the frame was laid out.
+
+The Pod row moved to the family's `NODE_Y + 34` and the frame grew 140 -> 152 to pay for it, which is
+the same frame height `cluster-node-drain` uses with the same 300 x 106 Pods: 34 of label padding,
+106 of Pod, 12 of floor. The frame bottom stays on 624, so `NODE_Y` went 484 -> 472 and the frame
+grew UPWARD, which is why the columns had to move too: `COL_BOTTOM` 460 -> 456, chips 300..460 ->
+296..456, ladder 260..460 -> 256..456. Gap from the chip column to the frame is 16.
+
+That leaves 16 units between the measured panel bottom (280 at 1100x800) and the chip column at 296,
+down from 20. It is the tightest clearance on the card and it is why the 383 character narration
+budget above is not negotiable: the panel is the thing that would close it.
+
+The lane shortened with the frame move (364 units, evict span 2562 -> 1709 before the API packet was
+added back on top of it). `duration` was left alone throughout, see the lane note above for why.
+
+**The victim fade is the one place this card leaves the catalog token, `VICTIM_FADE = 1200` against
+`FADE.out = 700`.** Author call, on the reading that the kill happened too fast. It is also the more
+correct choreography: the fade and the pulse both start on `kill.arrivalMs`, and at 700 against a
+900ms pulse the Pod reached opacity 0 two hundred milliseconds BEFORE it finished blinking, so the
+tail of its own pulse played on something already invisible. At 1200 the Pod is still on screen at
+0.91 through the middle of the pulse and goes out at 1982, after it. The step span is set by the
+status-report packet at 2142 either way, so nothing downstream moved. `FADE` is no longer imported
+here, it had no other call site on this card.
+```
+
 ---
 
 ## cluster-oom-kill
@@ -676,13 +2073,105 @@ The Cluster exemplar, rebuilt on Layout A so the rest of the category has a shap
 state chips in the RIGHT column (660..1140 at 480 wide, were 240 wide at 900..1140 with the whole
 left band under the panel empty), candidate Node row and its verdict chips full width at the bottom.
 Chips share the ladder's row rhythm (ROW_H 32, ROW_GAP 12) so the two columns read as one grid.
-API_TO_CHAIN turns at JOG_Y=200, below the measured panel bottom of 181, and lands on the ladder's
-top midpoint.
+API_TO_CHAIN turns at JOG_Y and lands on the ladder's top midpoint.
 CENTRE still passes because the chip strip pools EVERY .scheme-chip: the ladder rows (60..540) and
 the verdict chips (60..1140) keep the strip centred on 600 with the value chips on the right.
 Three packets were still on the coordinates of a much older top row (380..440 and 760..820) and flew
 over blank canvas: they now use SCHED_R / API_X / API_R / ETCD_X, the same numbers as their arrows.
 queue: 2200 -> 2800ms.
+```
+
+---
+
+### API_TO_CHAIN is a relationship, not a route (2026-07-31)
+
+```
+It shipped as a pathArrow carrying a routePacket on the queue step: the watch event hopped
+Api -> Scheduler on the return lane and then a second ball dropped from the API down into ladder
+row 1. That second ball was wrong twice over. The queue, filter and score stages are the
+Scheduler's OWN work and nothing travels from the API to reach them, and the arrowhead made a
+legend for the scheduling cycle read as a traffic destination. It is now a relationPath: no
+arrowhead, no ball, stroke-opacity 0.45, and it states only that the cycle below works on the Pod
+objects the API holds. queue span fell 2300 -> 1260ms against its unchanged 2800ms duration.
+
+The turn moved JOG_Y 200 -> 180, the exact midpoint of the API bottom face (140) and the ladder
+top face (220), on the author's call that the horizontal run should sit equidistant from both
+rather than hugging the ladder. It ends ON the ladder edge at 220 now, not 2 short of it: the 218
+was clearance for an arrowhead that no longer exists.
+
+The cost is measured and accepted, not overlooked. The narration panel bottom at 1100x800 is
+exactly 180, so at the NARROWEST viewport the leftmost ~97 units of the horizontal run (x 300..397)
+and the corner turn itself pass behind the panel, and the line reads as emerging from under its
+bottom-left edge. At 1280 and wider (panel bottom 150 and less) the whole route is clear. The two
+constraints are mutually exclusive here: the equidistant point IS the worst-case panel bottom.
+JOG_Y=190 would clear every viewport at 50/30 instead of 50/50, and is the fallback if the panel
+ever grows.
+
+Narration length is therefore load-bearing on this card. Panel bottom at 1100x800 goes 155 -> 180
+-> 205 in one-line steps, and 205 swallows the turn entirely. The 2026-07-31 text pass was held to
+that ceiling: bind was drafted at 275 characters, measured 205, and was cut to 245. Measure with
+overlay-measure.mjs at 1100x800 after ANY narration edit here, not at the default 1600.
+```
+
+---
+
+### the commit ack, and why score lights the Scheduler (2026-07-31)
+
+```
+Two findings from the same read that produced the relationPath above, both closed the same day.
+
+The ETCD -> Api return lane at BACK_Y wore an arrowhead that no ball had ever ridden: the exact
+defect the API_TO_CHAIN line was just cured of, one row up. It was NOT demoted to a relationPath.
+The four top-row lanes are two mirrored request/answer pairs, and sinking half of a pair is what
+docs/CARDS.md#storage-volume-detach-on-node-loss argues against, because the surviving half then
+reads as the senior lane. Instead the answer was drawn: bind now runs three hops, POST -> persist
+-> commit ack, chained on arrivalMs + BEAT.afterHop like every other chain in the catalog. rv=903
+on the persist wire was always etcd ANSWERING, so the ball carries a value the card already showed.
+The narration had to name it or the lane would not have earned a ball ("which acks the Raft
+commit"), and naming it inside the panel-height ceiling cost "in its cache" from the assume clause.
+span 2060 -> 2860, so duration 2400 -> 3000.
+
+score did not light the Scheduler while filter did, on two steps that are equally the Scheduler's
+own internal work and neither of which moves a packet. On a step with no motion at all the
+highlight is the entire beat, so the card was reading as if the Scheduler went idle to do its
+scoring. One line, above the guard, so both paths carry it.
+```
+
+---
+
+### text pass (2026-07-31)
+
+```
+queue: "lands on the Scheduler queue ... begins the per-pod cycle" -> "reaches the Scheduler on its
+watch ... pops it off the active queue and runs one scheduling cycle". per-pod cycle was invented
+vocabulary, and workloads-pod-priority-preemption already says "runs the scheduling cycle", which
+is also the upstream name.
+filter: added that a large cluster stops filtering once enough Nodes fit (percentageOfNodesToScore).
+"evaluate every Node" was a naked absolute that is only true at this card's four-Node scale.
+score: "the values are weighted-summed" -> "the weighted sum is the final score". duration 1400 ->
+2200: it was the shortest step on the card, carries the densest text, and has no motion at all, so
+reading time is the only thing setting it.
+bind: added the assume step, which is why the next Pod in the queue already sees Node-4 as taken,
+and the commit ack that earns the ETCD -> Api lane its ball (see the section above).
+placed: "Node-4 sees the Pod through a filtered watch" -> "The Kubelet on Node-4 watches ...". A
+Node does not watch anything, its Kubelet does, and the Scheduler box one row up is the card's own
+example of an actor that watches.
+
+desc: "filters out EVERY Node that cannot fit it" -> "filters out THE Nodes that cannot fit it".
+Caught by the internal-contradiction pass over the whole card after the filter narration grew its
+early-stop clause: a scheduler that stops once enough Nodes fit does not filter out every unfit
+Node, so the summary and the step disagreed the moment the step was corrected. 456 -> 452 chars.
+The desc needed nothing for the assume step or the commit ack, and got nothing: it is a summary,
+and a claim added there has to be carried by a step.
+
+Worth recording that the desc is what CONVICTED the placed narration. It has said "the Kubelet on
+the chosen Node picks the Pod up on its own watch" since it was written, while the step said
+"Node-4 sees the Pod". Two carriers of one fact, one of them wrong, and reading them side by side
+is the whole technique.
+
+NOT changed: chain row 2 keeps "fail predicates". It is legacy vocabulary next to "Filter plugins",
+but workloads-pod-priority-preemption uses the same word and kubernetes.io still glosses Filter
+plugins as the successor to predicates, so changing it here alone would buy cross-card drift.
 ```
 
 ---
@@ -693,6 +2182,17 @@ queue: 2200 -> 2800ms.
 The scheduler decision: the Pod is scored against three candidate nodes, then BOUND to the
 highest-scoring winner (a bright dashed link) while the passed-over nodes get the same dashed
 links but dim, with shorter score bars. The winner reads through its bright box + score bar.
+
+The three links were DIAGONAL until 2026-07-30. They are a trunk and bus now: both losing lanes
+leave the Pod bottom, turn 90 degrees at y=82 and drop into their own Node top face at its centre
+(64 and 256), and the winner runs straight down. Unlike the leader-election poster, the turn cannot
+land on a Node SIDE face here, because a lane reaching the left Node's right edge would cross the
+middle Node on the way. Every lane ends on the Node top edge at 104, not short of it.
+
+Three Nodes with the middle one winning, while the card scores four and binds to Node-4, the
+rightmost. Raised 2026-08-01 and left standing, same reasoning as the leader-election poster: the
+boxes are unnamed, and moving the win to an edge box would send the straight lane to a loser and
+the turning lane to the winner. The poster says one Node wins on score, which is the sentence.
 ```
 
 ---

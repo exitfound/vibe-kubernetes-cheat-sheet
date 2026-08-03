@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, fadeIn, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, segmentPacket, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT } from '../lib/cluster-kit.js';
+import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT } from '../lib/cluster-kit.js';
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
 // Measured worst case over 1600/1440/1280/1100 is x<=397, y<=181, so the Client moves into the
@@ -9,7 +9,8 @@ import { valChip, setVal, segmentPacket, routePacket, topPacket, makeInit, clear
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
-const PANEL_R = 400, PANEL_B = 200;                      // the reserved corner
+// Reserved narration corner: 400 x 200. Nothing on this card derives from it, and the measured
+// worst case per viewport is in the header note above.
 
 const TOP_Y = 60, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 60 / 140
 const TOP_CY = TOP_Y + TOP_H / 2;                        // 100
@@ -20,11 +21,10 @@ const API_W = 220, API_X = CX - API_W / 2, API_R = API_X + API_W;  // 490..710
 // with both corners used, the low band spans the full content width and centres on CX.
 const ETCD_W = 140, ETCD_X = CONTENT_R - ETCD_W;         // 1000..1140
 const ETCD_Y = 390, ETCD_H = 100;                        // 390..490
-const ETCD_CX = ETCD_X + ETCD_W / 2;                     // 1070
 const ETCD_CY = ETCD_Y + ETCD_H / 2;                      // 440
 const ETCD_LANE_DY = 12;
 // The two lanes reach ETCD through the corridor between the Informer and the chip column and
-// enter its LEFT face: dropping at ETCD_CX ran both risers straight through all three chips.
+// enter its LEFT face: dropping at the cylinder centre (1070) ran both risers through all three chips.
 const RISER_OUT_X = 764, RISER_BACK_X = 740;             // out right of back, so they never cross
 const API_TO_ETCD = [[API_R, OUT_Y], [RISER_OUT_X, OUT_Y], [RISER_OUT_X, ETCD_CY - ETCD_LANE_DY], [ETCD_X, ETCD_CY - ETCD_LANE_DY]];
 const ETCD_TO_API = [[ETCD_X, ETCD_CY + ETCD_LANE_DY], [RISER_BACK_X, ETCD_CY + ETCD_LANE_DY], [RISER_BACK_X, BACK_Y], [API_R, BACK_Y]];
@@ -86,7 +86,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. The informer fires an initial LIST, which the API answers from ETCD at one snapshot resourceVersion, and that fills the Indexer cache the controller then reconciles from without going back to the API. It opens a watch from that same resourceVersion, and the API streams every later change over one connection held open for as long as the controller wants, so a new Pod reaching ETCD arrives as an ADDED event that updates the cache. When the API has compacted history past the resourceVersion the informer holds, the next chunk of that stream is HTTP 410 Gone, and the informer re-LISTs to a fresh resourceVersion and resumes watching rather than losing its place. CustomResourceDefinitions add their own API group under the same paths, with the same list-then-watch contract, so a controller for a custom resource is written exactly like one for a built-in.',
+      'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. The controller opens with discovery, GET /api and GET /apis, to learn which group-version-resources it can reach. The informer then fires an initial LIST at resourceVersion 0, which the API answers from the watch cache it keeps filled from ETCD rather than with a quorum read, and that fills the Indexer cache the controller then reconciles from without going back to the API. It opens a watch from that same resourceVersion, and the API streams every later change over one connection held open for as long as the controller wants, so a new Pod reaching ETCD arrives as an ADDED event that updates the cache. When the API has compacted history past the resourceVersion the informer holds, the next chunk of that stream is HTTP 410 Gone, and the informer re-LISTs to a fresh resourceVersion and resumes watching rather than losing its place. CustomResourceDefinitions add their own API group under the same paths, with the same list-then-watch contract, so a controller for a custom resource is written exactly like one for a built-in.',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -152,13 +152,16 @@ class Scene {
     // Beside the riser, not in the 112 unit gap under it: the LIST string is 140 wide, so on the
     // horizontal leg it overran the Client block on one side and the riser cut it on the other.
     const wireReq      = text({ class: 'scheme-label code dim', x: RISER_X + 10, y: WIRE_REQ_Y, 'text-anchor': 'start' }, [' ']);
-    const wireApiEtcd  = text({ class: 'scheme-label code dim', x: (API_R + ETCD_CX) / 2, y: OUT_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    // Both ETCD registers sit on the BOTTOM legs, not up on the row. Their old slot was the midpoint
+    // of API_R and the cylinder centre at row height, which the R5-a relayout left stranded: lanes turn down
+    // at 764 and 740, so a label centred on 890 floats in blank canvas 120 units right of anything it
+    // could be labelling. Nothing noticed for as long as both registers stayed empty.
+    const wireApiEtcd  = text({ class: 'scheme-label code dim', x: (RISER_OUT_X + ETCD_X) / 2, y: ETCD_CY - ETCD_LANE_DY - 10, 'text-anchor': 'middle' }, [' ']);
     // Left of the watch arrow: the corridor on its right now carries the two ETCD risers.
     const wireWatch    = text({ class: 'scheme-label code dim', x: 580, y: 200, 'text-anchor': 'end'  }, [' ']);
-    const wireEtcdRet  = text({ class: 'scheme-label code dim', x: (API_R + ETCD_CX) / 2, y: BACK_Y + 20, 'text-anchor': 'middle' }, [' ']);
+    const wireEtcdRet  = text({ class: 'scheme-label code dim', x: (RISER_BACK_X + ETCD_X) / 2, y: ETCD_CY + ETCD_LANE_DY + 18, 'text-anchor': 'middle' }, [' ']);
     const wireGvr      = text({ class: 'scheme-label code dim', x: GVR_X + GVR_W / 2, y: GVR_Y - 12, 'text-anchor': 'middle' }, [' ']);
-    const wireEvent    = text({ class: 'scheme-label code dim', x: 620, y: 352, 'text-anchor': 'start'  }, [' ']);
-    [wireReq, wireApiEtcd, wireWatch, wireEtcdRet, wireGvr, wireEvent].forEach(t => root.appendChild(t));
+    [wireReq, wireApiEtcd, wireWatch, wireEtcdRet, wireGvr].forEach(t => root.appendChild(t));
 
     // Packet layer (cleared and refilled per step).
     const packetLayer = g({ id: 'packetLayer' });
@@ -184,7 +187,6 @@ class Scene {
         watch:      wireWatch,
         'etcd-ret': wireEtcdRet,
         gvr:        wireGvr,
-        event:      wireEvent,
       },
     };
   }
@@ -215,8 +217,26 @@ function hideAllSlots(s) {
 
 const STEPS = [
   {
+    // A pure reset, which this card did not have: `discovery` used to sit in slot 0, so the poster
+    // position drew its request lane and its two wire labels under the panel text of the step AFTER
+    // it. Discovery is a step of its own now and slot 0 does nothing but clear.
+    id: 'idle',
+    duration: 1500,
+    enter(s) {
+      s.refs.packetLayer.replaceChildren();
+      resetWatchArrow(s);
+      clearHL(s);
+      clearWires(s);
+      hideAllSlots(s);
+      setVal(s.refs.rvChip, 'none');
+      setVal(s.refs.watchChip, 'closed');
+      setVal(s.refs.cacheChip, '0');
+    },
+  },
+  {
     id: 'discovery',
     duration: 1900,
+    narration: 'The controller first asks the API what it can talk to. GET /api and GET /apis return the discovery document, the catalogue of every group, version and resource the informer can list and watch.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);
@@ -240,7 +260,7 @@ const STEPS = [
     // Motion: the LIST read goes out to ETCD, the full set comes back, then the stream reaches the
     // informer and its cache fills, ending at 5140. Drawing the read itself cost 1340ms.
     duration: 5400,
-    narration: 'The informer fires the initial LIST. The API reads from ETCD and returns the full set at a snapshot resourceVersion (rv=842). The informer fills its Indexer cache, and the controller can now reconcile from local memory without hitting the API again.',
+    narration: 'The informer fires the initial LIST at resourceVersion 0. The API keeps its watch cache filled from ETCD and answers the list from there, with no quorum read, so the full set lands in the Indexer at rv=842 and the controller reconciles from local memory.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       resetWatchArrow(s);
@@ -249,7 +269,12 @@ const STEPS = [
       hideAllSlots(s);
       setVal(s.refs.rvChip, '842');
       setVal(s.refs.cacheChip, '3');
-      setWire(s, 'req', 'LIST /api/v1/pods · rv=842');
+      setWire(s, 'req', 'LIST /api/v1/pods · rv=0');
+      // The two ETCD lanes are the API keeping its OWN cache current, and they are labelled as that
+      // now: a reflector lists at rv=0, which the reference says is always served from the watch
+      // cache, so the ball crossing to ETCD is not this request being read through.
+      setWire(s, 'api-etcd', 'list-watch on ETCD');
+      setWire(s, 'etcd-ret', 'objects · rv=842');
       // Nobody is lit from entry on this step any more: the API sends the read, so ETCD RECEIVES it
       // before it answers, and every one of the three actors here acts only on what reaches it. The
       // API was the source before the read itself was drawn (review stage 2.4 family B), and it is the

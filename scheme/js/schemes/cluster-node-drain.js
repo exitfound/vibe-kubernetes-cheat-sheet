@@ -4,21 +4,25 @@ import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighl
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-drain
 
 // Layout C: this card carries the tallest narration panel in the category (x<=397, y<=380), so the
-// whole left column above the Node frame is unusable and the ladder stays right.
+// Node frame sits on the panel bottom and the ladder keeps the right column.
+// The top row is the deliberate exception, see the OCCLUDED note in scheme/docs/CARDS.md.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
-const PANEL_R = 400, PANEL_B = 380;                      // the reserved corner, measured
+const PANEL_B = 380;                                     // the measured panel bottom, and the Node frame sits on it
 
 const BOX_W = 232, BOX_H = 80;
 const TOP_Y = 40, TOP_BOTTOM = TOP_Y + BOX_H;            // 40 / 120
-const SPINE_X = 580;                                     // clear of the panel, left of the ladder
-const KUBECTL_X = SPINE_X - BOX_W / 2;                   // 464..696
+// The API is centred on the Node frame so the eviction lane is one straight drop, and the whole top
+// row moved left by the same 268 units to keep the pair rigid.
 const TOP_GAP = 56;
-const API_X = KUBECTL_X + BOX_W + TOP_GAP;               // 752..984
+const API_X = CX - BOX_W / 2;                            // 484..716, centred on the Node frame
+const KUBECTL_X = API_X - TOP_GAP - BOX_W;               // 196..428
 const LANE_DY = 12, TOP_CY = TOP_Y + BOX_H / 2;          // 80
 const REQ_Y = TOP_CY - LANE_DY, RESP_Y = TOP_CY + LANE_DY;   // 68 / 92
-const WIRE_X = (KUBECTL_X + BOX_W + API_X) / 2;          // 724
+// Over the API, NOT over the gap between the boxes. The label runs about 300 units wide against a
+// 56 unit gap, so a gap-centred label reaches back to x=305 and the panel eats its first 89 units.
+const WIRE_X = CX;                                       // 600
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row: the spine owns below it
 
 const LADDER_X = 660, LADDER_W = 480;                    // 660..1140, right of the spine
@@ -29,7 +33,6 @@ const NODE_Y = PANEL_B, NODE_H = 152;                    // 380..532, the first 
 const POD_W = 300, POD_H = 106, POD_Y = NODE_Y + 34;     // 414..520
 const POD_PAD = 24;
 const POD_XS = [0, 1, 2].map(i => NODE_X + POD_PAD + i * ((NODE_W - POD_PAD * 2 - POD_W) / 2));
-const POD_CXS = POD_XS.map(x => x + POD_W / 2);          // 234 / 600 / 966
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 
 // Chips as a bottom strip, TWO per row: four across leaves 258 units and the names overlap
@@ -40,19 +43,14 @@ const CHIP_W = (NODE_W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;     // 532
 const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
-// The eviction lane ends ON the Pod it evicts, never on the frame edge above it: it leaves the API,
-// steps into the spine corridor above the ladder, drops to a bus above the Pod row and taps down into
-// that Pod. One route per destination, and the same array feeds the drawn wire and the ball.
+// ONE eviction lane, addressed to the Node rather than to a Pod inside it, and with the API centred
+// it is a single vertical drop from the API bottom face to the Node frame top face, both midpoints.
 //
-// It leaves the API, not kubectl, and that is the whole finding here: kubectl POSTs to the eviction
-// subresource and the API is what reads the PDB, grants the 200 OK and DELETES the Pod, which the
-// narration of both evict steps says in those words. The lane used to hang off SPINE_X, and KUBECTL_X
-// is DERIVED from SPINE_X, so the box sat around the lane and the eviction appeared to come out of
-// the command that had only ever talked to the API. Same shape as workloads-force-deletion.
-const API_CX = API_X + BOX_W / 2;                        // 868
-const JOG_Y = TOP_BOTTOM + 25;                           // 145, below the boxes, above the ladder
-const BUS_Y = NODE_Y + 18;                               // 398, inside the frame, above the Pods
-const EVICT_ROUTE = i => [[API_CX, TOP_BOTTOM], [API_CX, JOG_Y], [SPINE_X, JOG_Y], [SPINE_X, BUS_Y], [POD_CXS[i], BUS_Y], [POD_CXS[i], POD_Y]];
+// It leaves the API, not kubectl: kubectl POSTs to the eviction subresource and the API is what
+// reads the PDB, grants the 200 OK and DELETES the Pod, which the narration of both evict steps says
+// in those words. Same shape as workloads-force-deletion.
+const API_CX = API_X + BOX_W / 2;                        // 600
+const EVICT_ROUTE = [[API_CX, TOP_BOTTOM], [API_CX, NODE_Y]];
 
 
 
@@ -95,7 +93,7 @@ class Scene {
         '1. cordon   ·  PATCH Node spec.unschedulable=true',
         '2. list     ·  enumerate Pods, skip DaemonSet / mirror',
         '3. evict    ·  POST .../pods/{name}/eviction',
-        '4. PDB gate ·  API checks minAvailable, 200 or 429',
+        '4. PDB gate ·  API reads disruptionsAllowed, 200 or 429',
         '5. drained  ·  app Pods gone, DaemonSet stays',
       ],
       role: 'cluster',
@@ -125,12 +123,10 @@ class Scene {
     const [pod1, pod2, pod3] = podWrappers;
     const [pod1Box, pod2Box, pod3Box] = podBoxes;
 
-    // One drawn lane per Pod the eviction can reach. They share the spine and the bus, so the
-    // two paths overlap there by construction and cannot drift apart.
-    const evictLane1 = pathArrow({ points: EVICT_ROUTE(0), dim: true, dashed: true, role: 'cluster' });
-    const evictLane2 = pathArrow({ points: EVICT_ROUTE(1), dim: true, dashed: true, role: 'cluster' });
-    root.appendChild(evictLane1);
-    root.appendChild(evictLane2);
+    // One lane, and it ends on the Node frame: the eviction is addressed to a Pod on this Node,
+    // and which Pod that is comes from the pulse, not from a fan of taps into the Pod row.
+    const evictLane = pathArrow({ points: EVICT_ROUTE, dim: true, dashed: true, role: 'cluster' });
+    root.appendChild(evictLane);
 
     // Packet layer.
     const packetLayer = g({ id: 'packetLayer' });
@@ -147,7 +143,7 @@ class Scene {
     this.host.appendChild(root);
     this.refs = {
       svg: root,
-      kubectl, apiserver, chain, nodeEl, evictLane1, evictLane2,
+      kubectl, apiserver, chain, nodeEl, evictLane,
       cordonChip, pdbChip, healthyChip, lastChip,
       pod1, pod2, pod3, pod1Box, pod2Box, pod3Box,
       packetLayer,
@@ -168,12 +164,8 @@ function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
 }
 
-// An eviction lane outlives its Pod otherwise, and an arrow into a Pod that is gone points at
-// nothing. Each lane is pinned to the presence of the Pod it ends on.
-function setLanes(s, l1, l2) {
-  s.refs.evictLane1.style.opacity = String(l1);
-  s.refs.evictLane2.style.opacity = String(l2);
-}
+// The lane ends on the Node frame, which is on screen for the whole card, so it never has to be
+// pinned to the presence of a Pod: nothing it points at can go away under it.
 
 // Runs fn at a point inside the step, or at once on the static path so the end state stays right.
 function at(s, ctx, delay, fn) {
@@ -192,7 +184,6 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setLanes(s, 1, 1);
       setVal(s.refs.cordonChip, 'false');
       setVal(s.refs.pdbChip, '1');
       setVal(s.refs.healthyChip, '2 of 2');
@@ -203,13 +194,12 @@ const STEPS = [
   {
     id: 'cordon',
     duration: 2000,
-    narration: 'The drain command PATCHes Node-1 with spec.unschedulable=true. The Scheduler stops placing new Pods on this Node, and the status shows SchedulingDisabled. Already-running Pods stay put for now. Cordon is also exposed as a separate verb (kubectl cordon Node-1), drain just bundles it with the eviction loop.',
+    narration: 'The drain command PATCHes Node-1 with spec.unschedulable=true. The Scheduler stops placing new Pods on this Node unless they tolerate the node.kubernetes.io/unschedulable taint the way DaemonSet Pods do, and the status shows SchedulingDisabled. Already-running Pods stay put for now. Cordon is also exposed as a separate verb (kubectl cordon Node-1), drain just bundles it with the eviction loop.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setLanes(s, 1, 1);
       setVal(s.refs.cordonChip, 'true · SchedulingDisabled');
       setWire(s, 'req', 'PATCH /api/v1/nodes/Node-1 · spec.unschedulable=true');
       s.refs.kubectl.classList.add('highlight');
@@ -225,13 +215,12 @@ const STEPS = [
   {
     id: 'list',
     duration: 1900,
-    narration: 'The drain command lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. DaemonSet-owned Pods need --ignore-daemonsets (kubectl refuses to proceed without it when DS Pods are present). Mirror Pods (the API representation of static Pods) are skipped because Kubelet would recreate them immediately. Pods with emptyDir volumes need --delete-emptydir-data or they are also refused. The remaining set, two Deployment-backed Pods here, queues for the Eviction API.',
+    narration: 'The drain command lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. DaemonSet-owned Pods need --ignore-daemonsets (kubectl refuses to proceed without it when DS Pods are present). Mirror Pods (the API representation of static Pods) are skipped because Kubelet would recreate them immediately. Pods with emptyDir volumes need --delete-emptydir-data, and bare Pods with no owning controller need --force. The remaining set, two Deployment-backed Pods here, queues for the Eviction API.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setLanes(s, 1, 1);
       setWire(s, 'req', 'GET /api/v1/pods · fieldSelector=spec.nodeName=Node-1');
       s.refs.kubectl.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
@@ -242,16 +231,15 @@ const STEPS = [
   },
   {
     id: 'evict-A',
-    // The eviction now leaves the API rather than kubectl, 288 units further along, and the
-    // step runs to 3762ms: 3300 cut the ball off before it reached web-1.
-    duration: 3900,
-    narration: 'The drain command POSTs to /api/v1/namespaces/default/pods/web-1/eviction. The API reads the matching PDB, finds currentHealthy=2 and minAvailable=1, so disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed atomically decrements to 0 (via optimistic concurrency on the PDB status), and the Pod is deleted with the standard grace period. The owning ReplicaSet observes the deletion and creates a replacement, which the Scheduler places on another Ready Node, covered in the Deployment rolling update card.',
+    // The eviction leaves the API, not kubectl. Its route is one 260 unit drop since the API moved
+    // over the Node frame, so the step runs to 2400ms and duration follows it down.
+    duration: 2550,
+    narration: 'The drain command POSTs to /api/v1/namespaces/default/pods/web-1/eviction. The API reads the matching PDB, whose status the disruption controller keeps at disruptionsAllowed=1 (currentHealthy=2 minus minAvailable=1). The eviction is granted with 200 OK, disruptionsAllowed atomically decrements to 0 via optimistic concurrency on the PDB status, and the Pod is deleted with the standard grace period. The owning ReplicaSet observes the deletion and creates a replacement elsewhere, covered in the Deployment rolling update card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setLanes(s, 0, 1);
       setVal(s.refs.healthyChip, '1 of 2');
       setVal(s.refs.lastChip, 'web-1 · 200 OK');
       setWire(s, 'req', 'POST .../pods/web-1/eviction · 200 OK');
@@ -268,6 +256,10 @@ const STEPS = [
       // The count the API READS is 2, and the eviction is what takes it to 1, so the chip stays at
       // what the previous step left and turns over when the eviction ball lands on web-1.
       setVal(s.refs.healthyChip, '2 of 2');
+      // Same treatment for the verdict chip, and for the same reason: it is what kubectl KNOWS, so it
+      // cannot read 200 OK while the POST that earns it is still on the wire. It turns over when the
+      // answer lands back on kubectl, the count when the eviction takes effect on the Pod.
+      setVal(s.refs.lastChip, 'none');
       // Top packet: kubectl → apiserver (POST eviction), then the delete flows
       // down the connector. The Pod reacts only when the ball reaches the node.
       const req = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, role: 'cluster' });
@@ -275,25 +267,25 @@ const STEPS = [
       // The 200 OK the narration grants: it rides the answer lane back to kubectl, the same lane the
       // retry step already uses for its 429. Only the grant was missing, so the card showed a request
       // that was answered on one step and silently swallowed on the other.
-      topPacket(s, ctx, { from: API_X, to: KUBECTL_X + BOX_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      const evict = routePacket(s, ctx, EVICT_ROUTE(0), { delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      const granted = topPacket(s, ctx, { from: API_X, to: KUBECTL_X + BOX_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      at(s, ctx, granted.arrivalMs, () => setVal(s.refs.lastChip, 'web-1 · 200 OK'));
+      const evict = routePacket(s, ctx, EVICT_ROUTE, { delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
       at(s, ctx, evict.arrivalMs, () => setVal(s.refs.healthyChip, '1 of 2'));
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
-      // The lane carried the ball, so it fades WITH its Pod rather than at step entry.
-      [s.refs.pod1, s.refs.evictLane1].forEach(el => ctx.register(
-        el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' })));
+      ctx.register(s.refs.pod1.animate(
+        [{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
     id: 'evict-B-retry',
-    duration: 4700,
-    narration: 'The drain command POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so the PDB returns 429 Too Many Requests and the request is denied. It retries the eviction on a backoff. Once the replacement web-1 turns Ready elsewhere, currentHealthy bumps back to 2 and the next retry returns 200 OK, freeing web-2 to be evicted.',
+    // Four hops plus the drop: 4000ms after the shortened lane, against 4638 before it.
+    duration: 4150,
+    narration: 'The drain command POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so disruptionsAllowed is 0 and the API server returns 429 Too Many Requests, denying the request. The drain command retries the eviction every 5 seconds. Once the replacement web-1 turns Ready elsewhere, currentHealthy bumps back to 2 and the next retry returns 200 OK, freeing web-2 to be evicted.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setLanes(s, 0, 0);
       setVal(s.refs.healthyChip, '1 of 2 → 2 of 2');
       setVal(s.refs.lastChip, 'web-2 · 429 → 200 OK');
       setWire(s, 'req', 'POST .../pods/web-2/eviction · 429 → retry → 200');
@@ -307,17 +299,26 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); s.refs.pod2Box.classList.add('highlight'); return; }
+      // Both chips roll back to what the step STARTS from and turn over on the beats that earn them,
+      // the same shape evict-A uses. The pinned values above the guard are transitions, so showing
+      // them at entry announced the 429 and the retry that clears it before either was drawn.
+      setVal(s.refs.healthyChip, '1 of 2');
+      setVal(s.refs.lastChip, 'web-1 · 200 OK');
       // First attempt: blocked. Top packet out, 429 response back, no connector follow-up. kubectl
       // is the source and lit from entry, the apiserver lights when the eviction reaches it.
       const attempt = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, role: 'cluster' });
       lightBoxAt(s.refs.apiserver, ctx, attempt.arrivalMs);
       const denied = topPacket(s, ctx, { from: API_X, to: KUBECTL_X + BOX_W, y: RESP_Y, delay: attempt.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      // Retry: kubectl → apiserver → connector → the Pod reacts on arrival.
+      at(s, ctx, denied.arrivalMs, () => setVal(s.refs.lastChip, 'web-2 · 429'));
+      // Retry: kubectl → apiserver → connector → the Pod reacts on arrival. The count bumps as the
+      // retry leaves, because the narration has the replacement turning Ready BEFORE it is granted.
       const retry = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, delay: denied.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      const evict = routePacket(s, ctx, EVICT_ROUTE(1), { delay: retry.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      at(s, ctx, denied.arrivalMs + BEAT.afterHop, () => setVal(s.refs.healthyChip, '1 of 2 → 2 of 2'));
+      const evict = routePacket(s, ctx, EVICT_ROUTE, { delay: retry.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      at(s, ctx, evict.arrivalMs, () => setVal(s.refs.lastChip, 'web-2 · 429 → 200 OK'));
       pulsePod(s.refs.pod2, ctx, evict.arrivalMs);
-      [s.refs.pod2, s.refs.evictLane2].forEach(el => ctx.register(
-        el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' })));
+      ctx.register(s.refs.pod2.animate(
+        [{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -329,9 +330,11 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setLanes(s, 0, 0);
       setVal(s.refs.healthyChip, '2 of 2');
-      setVal(s.refs.lastChip, '2 evicted · DS retained');
+      // A chip means what its name says: this one holds the LAST eviction, so it sheds the retry
+      // marker and settles on web-2. The tally the step is about is carried by ladder row 5 and by
+      // the wire label, which is where a summary belongs.
+      setVal(s.refs.lastChip, 'web-2 · 200 OK');
       setWire(s, 'req', 'drain complete · Node safe for maintenance');
       s.refs.kubectl.classList.add('highlight');
       s.refs.cordonChip.classList.add('highlight');

@@ -1,29 +1,41 @@
-import { svg, g, line, text } from '../lib/svg.js';
-import { arrowDefs, box, cylinder, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, routePacket, segmentPacket, BEAT, makeInit, clearHighlights, clearWires, setWire, lightBoxAt } from '../lib/cluster-kit.js';
+import { svg, g, text } from '../lib/svg.js';
+import { arrowDefs, box, cylinder, pathArrow } from '../lib/primitives.js';
+import { valChip, setVal, routePacket, segmentPacket, BEAT, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, relationPath } from '../lib/cluster-kit.js';
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
 // Measured worst case over 1600/1280/1100 is x<=397, y<=230, so the reserved corner is 400 x 240.
-// One band, 150..498, centred on the canvas. The API is level with the ETCD row, below the panel.
-const M = 60;
-const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
+// One band, 150..512. The API is level with the ETCD row, below the panel. The band was centred on
+// the canvas (150..498, centre 324) until the chip stacks dropped 14 on 2026-08-01: see CARDS.md.
+// The margin is 40 rather than the usual 60 on purpose: it is what buys the proposal label its
+// gap without narrowing the API off the 220 standard box width. Both sides take it, so the
+// content bbox stays 40..1160 and centred on CX.
+const M = 40;
+const CONTENT_L = M, CONTENT_R = 1200 - M;               // 40 / 1160
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
-const PANEL_R = 400, PANEL_B = 240;                      // the reserved corner
+// Reserved narration corner: 400 x 240. Nothing on this card derives from it, and the measured
+// worst case per viewport is in the header note above.
 
 const CYL_W = 200, CYL_H = 130, CYL_GAP = 60;
 // The row sits as high as the API allows: the API is level with it and starts at CONTENT_L,
-// so API_Y = CYL_Y + CYL_H / 2 - API_H / 2 has to clear PANEL_B, giving CYL_Y >= 215.
+// so API_Y = CYL_Y + CYL_H / 2 - API_H / 2 has to clear the panel bottom of 240, giving CYL_Y >= 215.
 const CYL_Y = 230, CYL_BOTTOM = CYL_Y + CYL_H;           // 230..360
 const CYL_CY = CYL_Y + CYL_H / 2;                        // 295
-const CYL_XS = [420, 680, 940];                          // 420..620 / 680..880 / 940..1140, right edge on CONTENT_R
+// Derived rather than written out, so the right edge cannot drift off CONTENT_R when the row moves.
+const ROW_W = 3 * CYL_W + 2 * CYL_GAP;                   // 720
+const ROW_X = CONTENT_R - ROW_W;                         // 440
+const CYL_XS = [0, 1, 2].map(i => ROW_X + i * (CYL_W + CYL_GAP));  // 440..640 / 700..900 / 960..1160
 const CYL_CXS = CYL_XS.map(x => x + CYL_W / 2);          // 520 / 780 / 1040
 
 const ROW_H = 34;
-const ROLE_Y = CYL_BOTTOM + 16;                          // 376..410
-const LOG_Y = ROLE_Y + ROW_H + 10;                       // 420..454
+// 30 rather than 16: the binding to each cylinder is a dashed relationPath now, and 16 units is
+// under two dashes of `5 5`, which reads as a tick rather than as a line. 30 gives three, and the
+// chip stack under every cylinder gets the air the author asked for. The left column follows,
+// because SCHIP_Y is derived from ROLE_Y and the term chip shares its top edge with the role row.
+const ROLE_Y = CYL_BOTTOM + 30;                          // 390..424
+const LOG_Y = ROLE_Y + ROW_H + 10;                       // 434..468
 
 const API_W = 220, API_H = 80;
-const API_X = CONTENT_L, API_R = API_X + API_W;          // 60..280
+const API_X = CONTENT_L, API_R = API_X + API_W;          // 40..260
 const API_Y = CYL_CY - API_H / 2;                        // 255..335, level with the ETCD row
 // Every exchange on this card is a round trip, so the row line is a lane PAIR: the request rides
 // LANE_DY above the centre line, the answer the same distance below it, mirrored on each face so no
@@ -42,16 +54,17 @@ const E2_TO_E1  = [[CYL_XS[1], ROW_BACK], [CYL_XS[0] + CYL_W, ROW_BACK]];
 // is what fills the top of the canvas, so it carries the band top rather than the cylinders.
 const ARC_RISE = 80;
 const ARC_Y = CYL_Y - ARC_RISE;                          // 150
-// The far Follower is a round trip too: the ack arc nests inside the outbound one and leaves each
-// cylinder top on the mirrored side of its midpoint.
+// The far Follower is a round trip too, and the two arcs are CONCENTRIC, which takes OPPOSITE stubs
+// at the two ends. Why mirrored stubs cross: docs/CARDS.md#cluster-etcd-raft.
 const ARC_BACK_Y = ARC_Y + LANE_DY;                      // 162
-const REPLICATE = [[CYL_CXS[0] - LANE_DY, CYL_Y], [CYL_CXS[0] - LANE_DY, ARC_Y], [CYL_CXS[2] - LANE_DY, ARC_Y], [CYL_CXS[2] - LANE_DY, CYL_Y]];
-const ACK_E3    = [[CYL_CXS[2] + LANE_DY, CYL_Y], [CYL_CXS[2] + LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, CYL_Y]];
+const REPLICATE = [[CYL_CXS[0] - LANE_DY, CYL_Y], [CYL_CXS[0] - LANE_DY, ARC_Y], [CYL_CXS[2] + LANE_DY, ARC_Y], [CYL_CXS[2] + LANE_DY, CYL_Y]];
+const ACK_E3    = [[CYL_CXS[2] - LANE_DY, CYL_Y], [CYL_CXS[2] - LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, CYL_Y]];
 
-// State chips in the freed bottom-left, under the API, so the chip strip straddles CX.
-// The third row is the bottom of the band: SCHIP_Y(2) + ROW_H = 498.
-const SCHIP_X = CONTENT_L, SCHIP_W = 320;                // 60..380
-const SCHIP_Y = i => ROLE_Y + i * (ROW_H + 10);          // 376 / 420 / 464
+// State chips in the freed bottom-left, under the API, so the chip strip straddles CX. They take the
+// API width, not one of their own: the four blocks are one column and used to end 100 units apart.
+// The third row is the bottom of the band: SCHIP_Y(2) + ROW_H = 512.
+const SCHIP_X = API_X, SCHIP_W = API_W;                  // 40..260, the API column
+const SCHIP_Y = i => ROLE_Y + i * (ROW_H + 10);          // 390 / 434 / 478
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -79,7 +92,7 @@ class Scene {
     content.appendChild(e1); content.appendChild(e2); content.appendChild(e3);
 
     // term/acks/quorum: one row per line, ROW_H 34 and a 10 unit gap, the pitch the
-    // role and log rows use. Width 320 keeps the strip clear of the ETCD column.
+    // role and log rows use. The width is the API column, so the four blocks line up.
     const termChip   = valChip({ x: SCHIP_X, y: SCHIP_Y(0), w: SCHIP_W, h: ROW_H, name: 'term',             value: '4', role: 'cluster' });
     const acksChip   = valChip({ x: SCHIP_X, y: SCHIP_Y(1), w: SCHIP_W, h: ROW_H, name: 'acks (entry 9)', value: 'idle', role: 'cluster' });
     const quorumChip = valChip({ x: SCHIP_X, y: SCHIP_Y(2), w: SCHIP_W, h: ROW_H, name: 'quorum',           value: '2 of 3', role: 'cluster' });
@@ -101,12 +114,14 @@ class Scene {
     [API_TO_E1, E1_TO_API, E1_TO_E2, E2_TO_E1, REPLICATE, ACK_E3].forEach(pts =>
       content.appendChild(pathArrow({ points: pts, dim: true, dashed: true, role: 'cluster' })));
 
-    // Tie each ETCD replica to the role chip directly below it (a binding, not flow).
-    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: CYL_CXS[0], y1: CYL_BOTTOM, x2: CYL_CXS[0], y2: ROLE_Y }));
-    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: CYL_CXS[1], y1: CYL_BOTTOM, x2: CYL_CXS[1], y2: ROLE_Y }));
-    content.appendChild(line({ class: 'scheme-arrow scheme-arrow-cluster', x1: CYL_CXS[2], y1: CYL_BOTTOM, x2: CYL_CXS[2], y2: ROLE_Y }));
+    // Tie each replica to the chips below it: a binding, not flow, so it goes through relationPath.
+    // What it used to be and what the 30 unit gap buys: docs/CARDS.md#cluster-etcd-raft.
+    CYL_CXS.forEach(cx => content.appendChild(
+      relationPath({ points: [[cx, CYL_BOTTOM], [cx, ROLE_Y]], role: 'cluster' })));
 
-    const wireProposal  = text({ class: 'scheme-label code dim', x: (API_R + CYL_XS[0]) / 2, y: CYL_CY - 12, 'text-anchor': 'middle' }, [' ']);
+    // 14 above the outbound lane, the clearance the sibling control-plane cards use. It read
+    // CYL_CY - 12, which is ROW_OUT to the unit, so the dashes ran through the glyphs.
+    const wireProposal  = text({ class: 'scheme-label code dim', x: (API_R + CYL_XS[0]) / 2, y: ROW_OUT - 14, 'text-anchor': 'middle' }, [' ']);
     const wireReplicate = text({ class: 'scheme-label code dim', x: CX + 100, y: ARC_Y - 10, 'text-anchor': 'middle' }, [' ']);
     content.appendChild(wireProposal); content.appendChild(wireReplicate);
 
@@ -172,7 +187,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setVal(s.refs.l1, '9 / 8');
-      setVal(s.refs.acksChip, '0');
+      setVal(s.refs.acksChip, '0 of 2');
       s.refs.acksChip.classList.add('highlight');
       s.refs.e1.classList.add('highlight');
       s.refs.l1.classList.add('highlight');
@@ -219,7 +234,11 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setVal(s.refs.l1, '9 / 9');
-      setVal(s.refs.acksChip, '2 / 2 ✓');
+      // The acks chip COUNTS, it does not judge: a tick on 2 of 2 said the commit waits for both
+      // Followers, while the narration (and Raft) commit on the first ack, because the Leader plus
+      // one Follower is already the majority. The verdict moved to the chip whose threshold it is.
+      setVal(s.refs.acksChip, '2 of 2');
+      setVal(s.refs.quorumChip, '2 of 3 ✓ at ack 1');
       s.refs.e1.classList.add('highlight');
       s.refs.l1.classList.add('highlight');
       s.refs.acksChip.classList.add('highlight');

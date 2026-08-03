@@ -4,22 +4,22 @@ import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighl
 // Design notes for this card: scheme/docs/CARDS.md#cluster-graceful-node-shutdown
 
 // Laid out on the L, the way network and storage are: the narration panel owns the top-left
-// corner, everything else is free. Measured worst case over 1600/1440/1280/1100 is x<=397,
-// y<=220 for this card, so the corner reserved below is 400 x 240 and nothing is drawn in it.
-// A longer narration on any step invalidates that bottom: re-measure with tools/panel probe.
+// corner, everything else is free. Measured worst case over 1600/1280/1100 is x<=397, y<=230, and
+// the ladder and the chip column both start at y=250, so there are 20 units of headroom: NO
+// narration on this card may pass 323 characters, which is what the signal step already spends.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
-const PANEL_R = 400, PANEL_B = 240;                      // the reserved corner
 
-// Top row, right of the panel. One vertical spine carries the SIGTERM down to the Node, and it
-// runs in the corridor between the ladder and the chip column so it crosses nothing.
+// Top row, right of the panel. The spine sits on CX so the single lane below it is a straight drop
+// onto the Node frame top face midpoint, and it runs in the 540..620 corridor between the ladder and
+// the chip column so it crosses nothing.
 const BOX_W = 232, BOX_H = 80;
 const TOP_Y = 40, TOP_BOTTOM = TOP_Y + BOX_H;            // 40 / 120
-const SPINE_X = 580;
-const KUBE_X = SPINE_X - BOX_W / 2;                      // 464..696
+const SPINE_X = CX;                                      // 600
+const KUBE_X = SPINE_X - BOX_W / 2;                      // 484..716
 const SYS_GAP = 56;
-const SYS_X = KUBE_X + BOX_W + SYS_GAP;                  // 752..984
+const SYS_X = KUBE_X + BOX_W + SYS_GAP;                  // 772..1004
 const LANE_DY = 12;                                      // catalog standard: a lane pair straddles the flow line
 const TOP_CY = TOP_Y + BOX_H / 2;                        // 80
 const SIG_Y = TOP_CY - LANE_DY, REL_Y = TOP_CY + LANE_DY;// 68 / 92, one lane per direction
@@ -34,20 +34,22 @@ const CHIP_X = 620, CHIP_W = CONTENT_R - CHIP_X;         // 520, 620..1140
 const CHIP_H = 34, CHIP_GAP = 21;
 const CHIP_Y = i => LADDER_Y + i * (CHIP_H + CHIP_GAP);  // 250 / 305 / 360 / 415, bottom 449
 
-const NODE_Y = 476, NODE_H = 140;                        // 476..616
+// node() draws its own label at NODE_Y + 18, so the Pod row needs the family's 34 of top padding or
+// NODE-1 prints on top of the first Pod, which is what it was doing at +22. 34 + 106 + 12 of floor
+// is 152, the frame height the sibling Node cards use, and the bottom stays on 624.
+const NODE_H = 152, NODE_BOTTOM = 624, NODE_Y = NODE_BOTTOM - NODE_H;   // 472..624
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
 const POD_W = 300, POD_H = 106;
-const POD_Y = NODE_Y + 22;                               // 498..604
+const POD_Y = NODE_Y + 34;                               // 506..612
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 const POD_PAD = 24;
 const POD_SPAN = NODE_W - POD_PAD * 2;                   // 1032
 const POD_XS = [0, 1, 2].map(i => NODE_X + POD_PAD + i * ((POD_SPAN - POD_W) / 2));  // 84 / 450 / 816
-const POD_CXS = POD_XS.map(x => x + POD_W / 2);          // 234 / 600 / 966
 
-// SIGTERM goes to a Pod, so the lane ends ON that Pod: the spine drops to a bus above the row and
-// taps down into each one. One route per destination, and the same array feeds wire and ball.
-const BUS_Y = NODE_Y - 14;                               // 462, between the columns and the frame
-const SIG_LANE = i => [[SPINE_X, TOP_BOTTOM], [SPINE_X, BUS_Y], [POD_CXS[i], BUS_Y], [POD_CXS[i], POD_Y]];
+// ONE lane, addressed to the Node rather than to a Pod inside it: a single drop on the spine from
+// the Kubelet bottom face midpoint to the Node frame top face midpoint, both x=600. Both SIGTERM
+// phases ride it, and WHICH Pods each phase reaches is carried by the pulses, not by a fan of taps.
+const SIG_LANE = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
 
 
 class Scene {
@@ -85,7 +87,7 @@ class Scene {
       x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
         '1. signal   ·  systemd PrepareForShutdown over D-Bus',
-        '2. cordon   ·  reject new Pods, bucket by priority',
+        '2. condition ·  set NotReady, bucket by priority',
         '3. normal   ·  SIGTERM non-critical, await up to 40s',
         '4. critical ·  SIGTERM critical, await up to 20s',
         '5. release  ·  drop lock, OS proceeds with shutdown',
@@ -115,9 +117,8 @@ class Scene {
     const [pod1, pod2, pod3] = podWrappers;
     const [pod1Box, pod2Box, pod3Box] = podBoxes;
 
-    // One drawn lane per Pod the signal can reach; they share the spine and the bus by construction.
-    const sigLanes = [0, 1, 2].map(i => pathArrow({ points: SIG_LANE(i), dim: true, dashed: true, role: 'cluster' }));
-    sigLanes.forEach(l => root.appendChild(l));
+    const sigLane = pathArrow({ points: SIG_LANE, dim: true, dashed: true, role: 'cluster' });
+    root.appendChild(sigLane);
 
     // Packet layer.
     const packetLayer = g({ id: 'packetLayer' });
@@ -134,7 +135,7 @@ class Scene {
     this.host.appendChild(root);
     this.refs = {
       svg: root,
-      systemd, kubelet, chain, nodeEl, sigLanes,
+      systemd, kubelet, chain, nodeEl, sigLane,
       lockChip, gpChip, gpCritChip, phaseChip,
       pod1, pod2, pod3, pod1Box, pod2Box, pod3Box,
       packetLayer,
@@ -151,13 +152,26 @@ function clearHL(s) {
     [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
 }
 
-// One helper pins a Pod and its own SIGTERM lane together: an arrowhead landing on a Pod that is
-// already gone points at nothing, and two independent assignments drift the moment a step is added.
+// The lane ends on the Node frame, which is on screen for the whole card, so it is never pinned to a
+// Pod: nothing it points at can go away under it. This helper is now only about the Pods.
 function setPods(s, ...vals) {
-  vals.forEach((v, i) => {
-    s.refs['pod' + (i + 1)].style.opacity = String(v);
-    s.refs.sigLanes[i].style.opacity = String(v);
-  });
+  vals.forEach((v, i) => { s.refs['pod' + (i + 1)].style.opacity = String(v); });
+}
+
+// The grace-period drain reads as a long dim rather than a snap, and at 1200 against a 900ms pulse
+// the Pod is still on screen while it blinks instead of vanishing mid-blink.
+const POD_FADE = 1200;
+function fadeOut(s, ctx, key, delay) {
+  ctx.register(s.refs[key].animate(
+    [{ opacity: 1 }, { opacity: 0 }], { duration: POD_FADE, delay, fill: 'both', easing: 'ease-in' }));
+}
+
+// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
 }
 
 const STEPS = [
@@ -192,20 +206,23 @@ const STEPS = [
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
+      // The Kubelet has not received anything until the signal lands, so the phase waits for it.
+      setVal(s.refs.phaseChip, 'normal');
       const pkt = topPacket(s, ctx, { from: SYS_X, to: KUBE_X + BOX_W, y: SIG_Y, role: 'cluster' });
       lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
+      at(s, ctx, pkt.arrivalMs, () => setVal(s.refs.phaseChip, 'shutdown signal received'));
     },
   },
   {
-    id: 'cordon',
+    id: 'condition',
     duration: 1900,
-    narration: 'Kubelet flips its admission state and rejects any new Pod assignments from the API. Existing Pods are listed and bucketed by priority: those at or above the system-cluster-critical threshold (2,000,000,000) form the critical bucket, and the rest are non-critical.',
+    narration: 'Kubelet sets a NotReady condition on the Node with the reason node is shutting down, which is what stops the Scheduler placing anything here, and its admission handler rejects Pods that were already bound. Existing Pods are bucketed by priority: at or above 2,000,000,000 is the critical bucket, the rest are non-critical.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setPods(s, 1, 1, 1);
-      setVal(s.refs.phaseChip, 'cordoned · bucketing pods');
+      setVal(s.refs.phaseChip, 'NotReady · bucketing pods');
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
@@ -215,8 +232,8 @@ const STEPS = [
   },
   {
     id: 'terminate-normal',
-    duration: 2900,
-    narration: 'Kubelet sends SIGTERM to every non-critical Pod in parallel. They get shutdownGracePeriod minus shutdownGracePeriodCriticalPods to finish (40s with this configuration). Pods that exit early let the phase advance sooner.',
+    duration: 2400,
+    narration: 'Kubelet sends SIGTERM to every non-critical Pod in parallel. They get shutdownGracePeriod minus shutdownGracePeriodCriticalPods to finish (40s with this configuration). Each ends up with the status reason Terminated.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -225,28 +242,24 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       s.refs.gpChip.classList.add('highlight');
-      // Pin final state so cancel between steps does not flash to default. The critical Pod and its
-      // lane survive this step, the other two go together.
+      // Pin final state so cancel between steps does not flash to default. The critical Pod survives.
       setPods(s, 0, 0, 1);
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
-      // One SIGTERM per non-critical Pod, each riding its own lane.
-      const sig = routePacket(s, ctx, SIG_LANE(0), { role: 'cluster' });
-      const sig2 = routePacket(s, ctx, SIG_LANE(1), { role: 'cluster' });
+      // ONE SIGTERM down the one lane, and BOTH non-critical Pods react to it on arrival, which is
+      // what the narration means by in parallel. The phase waits for the signal to land too.
+      setVal(s.refs.phaseChip, 'NotReady · bucketing pods');
+      const sig = routePacket(s, ctx, SIG_LANE, { role: 'cluster' });
+      at(s, ctx, sig.arrivalMs, () => setVal(s.refs.phaseChip, 'terminating non-critical · 40s'));
       pulsePod(s.refs.pod1, ctx, sig.arrivalMs);
-      pulsePod(s.refs.pod2, ctx, sig2.arrivalMs);
-      // Narrative-slow 1200ms fade: the grace-period drain reads as a long dim, not a snap. The lane
-      // fades on the same beat as the Pod it feeds, and fill:'both' holds it on screen through the
-      // delay window so the ball is never riding an invisible wire.
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig.arrivalMs, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig2.arrivalMs, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.sigLanes[0].animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig.arrivalMs, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.sigLanes[1].animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig2.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      pulsePod(s.refs.pod2, ctx, sig.arrivalMs);
+      fadeOut(s, ctx, 'pod1', sig.arrivalMs);
+      fadeOut(s, ctx, 'pod2', sig.arrivalMs);
     },
   },
   {
     id: 'terminate-critical',
-    duration: 3000,
+    duration: 2400,
     narration: 'After non-critical Pods are gone (or their grace expired), Kubelet sends SIGTERM to system-critical Pods. They get shutdownGracePeriodCriticalPods (20s here). DaemonSet infra workloads such as CNI or kube-proxy usually sit in this bucket.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
@@ -256,23 +269,22 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       s.refs.gpCritChip.classList.add('highlight');
-      // Pin final state. Nothing is left in the Node frame, lanes included.
+      // Pin final state. Nothing is left in the Node frame.
       setPods(s, 0, 0, 0);
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      const sig = routePacket(s, ctx, SIG_LANE(2), { role: 'cluster' });
+      setVal(s.refs.phaseChip, 'terminating non-critical · 40s');
+      const sig = routePacket(s, ctx, SIG_LANE, { role: 'cluster' });
+      at(s, ctx, sig.arrivalMs, () => setVal(s.refs.phaseChip, 'terminating critical · 20s'));
       // SIGTERM reaches the critical Pod: it flinches (pulse) then terminates (fade).
       pulsePod(s.refs.pod3, ctx, sig.arrivalMs);
-      // Narrative-slow 1200ms fade: the grace-period drain reads as a long dim, not a snap. The lane
-      // rides the same timing, held visible through the delay window by fill:'both'.
-      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig.arrivalMs, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.sigLanes[2].animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, delay: sig.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      fadeOut(s, ctx, 'pod3', sig.arrivalMs);
     },
   },
   {
     id: 'release',
     duration: 2200,
-    narration: 'All Pods are gone or their grace expired. Kubelet releases the inhibitor lock, and systemd resumes the shutdown sequence. While the Node is down, the Lease in kube-node-lease grows stale, so the cluster marks it NotReady until Kubelet boots back up and resumes renewals.',
+    narration: 'All Pods are gone or their grace expired. Kubelet releases the inhibitor lock, and systemd resumes the shutdown sequence. The Node has carried NotReady since the Kubelet set that condition, and once Lease renewals in kube-node-lease stop the control plane treats it as unreachable as well.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -287,8 +299,15 @@ const STEPS = [
       setPods(s, 0, 0, 0);
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.systemd.classList.add('highlight'); return; }
+      // systemd is not free to proceed until the release actually reaches it, so both chips wait.
+      setVal(s.refs.lockChip, 'held by Kubelet');
+      setVal(s.refs.phaseChip, 'terminating critical · 20s');
       const pkt = topPacket(s, ctx, { from: KUBE_X + BOX_W, to: SYS_X, y: REL_Y, role: 'cluster' });
       lightBoxAt(s.refs.systemd, ctx, pkt.arrivalMs);
+      at(s, ctx, pkt.arrivalMs, () => {
+        setVal(s.refs.lockChip, 'released');
+        setVal(s.refs.phaseChip, 'lock released · OS shutdown');
+      });
     },
   },
 ];

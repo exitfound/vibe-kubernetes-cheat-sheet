@@ -1,14 +1,15 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, pod, box, cylinder, chainList, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, segmentPacket, routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
+import { arrowDefs, pod, box, cylinder, chainList, arrow } from '../lib/primitives.js';
+import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
 
+// Design notes for this card: scheme/docs/CARDS.md#cluster-scheduler-decision
 // Layout A, the Cluster exemplar: actor row on top clear of the panel, pipeline ladder in the left
 // column, state chips in the right column, candidate Nodes full width at the bottom.
-// Panel worst case over 1600/1280/1100 is x<=397, y<=181.
+// Panel worst case over 1600/1440/1280/1100 is x<=397, y<=180, and JOG_Y sits on that line.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
-const PANEL_R = 400, PANEL_B = 181;                      // the reserved corner, measured
+// Reserved narration corner: 400 x 180. Nothing on this card derives from it, and the measured
+// worst case per viewport is in the header note above.
 
 const TOP_Y = 60, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;    // 60 / 140
 const TOP_CY = TOP_Y + TOP_H / 2;                        // 100
@@ -28,10 +29,11 @@ const LADDER_Y = 220, LADDER_CX = LADDER_X + LADDER_W / 2;   // 220, 300
 const CHIP_X = 660, CHIP_W = CONTENT_R - CHIP_X;         // 480, 660..1140
 const CHIP_Y = i => LADDER_Y + i * (ROW_H + ROW_GAP);    // chips share the ladder rhythm
 
-// The bind path leaves the API on its bottom midpoint and turns onto the ladder's top midpoint.
-// The turn sits at JOG_Y, below the panel, because the ladder now stands in the left column.
-const JOG_Y = 200;
-const API_TO_CHAIN = [[API_CX, TOP_BOTTOM], [API_CX, JOG_Y], [LADDER_CX, JOG_Y], [LADDER_CX, LADDER_Y - 2]];
+// A relationship line, not a route: the API owns the Pod objects the cycle below reads, and no ball
+// rides it. It leaves the API bottom midpoint and lands on the ladder top midpoint, and the turn
+// sits halfway between the two faces (140 and 220) rather than hugging the ladder.
+const JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2;    // 180
+const API_TO_CHAIN = [[API_CX, TOP_BOTTOM], [API_CX, JOG_Y], [LADDER_CX, JOG_Y], [LADDER_CX, LADDER_Y]];
 
 const NODE_Y = 410, NODE_H = 130, NODE_W = 240;
 const NODE_XS = [60, 340, 620, 900];
@@ -54,7 +56,7 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    // Top row: even 60px gaps, Api centred on x=600 so its downward spine lands on the pipeline.
+    // Top row: even 50px gaps, Scheduler / Api / ETCD left to right, all clear of the panel.
     const sched = box({ x: SCHED_X, y: TOP_Y, w: SCHED_W, h: TOP_H, label: 'Scheduler', sublabel: 'watch unscheduled Pods', role: 'cluster' });
     const api   = box({ x: API_X, y: TOP_Y, w: API_W, h: TOP_H, label: 'API', sublabel: 'pods + binding subresource', role: 'cluster' });
     const etcdC = cylinder({ x: ETCD_X, y: TOP_Y - 10, w: ETCD_W, h: TOP_H + 20, label: 'ETCD', role: 'cluster' });
@@ -89,8 +91,9 @@ class Scene {
     root.appendChild(arrow({ x1: API_R, y1: OUT_Y,  x2: ETCD_X, y2: OUT_Y,  dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(arrow({ x1: ETCD_X, y1: BACK_Y, x2: API_R, y2: BACK_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    // Connector Api.bottom → pipeline.top (x=600 spine).
-    root.appendChild(pathArrow({ points: API_TO_CHAIN, dim: true, dashed: true, role: 'cluster' }));
+    // Api.bottom → pipeline.top. No arrowhead and no ball: it states that the cycle below works on
+    // the Pod objects the API holds, it does not carry traffic.
+    root.appendChild(relationPath({ points: API_TO_CHAIN, role: 'cluster' }));
 
     // Wire labels at fixed positions, populated per step.
     const wireReq     = text({ class: 'scheme-label code dim', x: WIRE_SA_X, y: 46,  'text-anchor': 'middle' }, [' ']);
@@ -196,7 +199,7 @@ const STEPS = [
   {
     id: 'queue',
     duration: 2800,
-    narration: 'A new Pod my-app-7d4-abc lands on the Scheduler queue with an empty spec.nodeName. Until that field is set, no Kubelet will start the Pod. The Scheduler pulls it off the queue and begins the per-pod cycle.',
+    narration: 'A new Pod my-app-7d4-abc reaches the Scheduler on its watch with spec.nodeName empty. Until that field is set, no Kubelet will start it. The Scheduler pops it off the active queue and runs one scheduling cycle.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -213,16 +216,16 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[0]) rows[0].classList.add('highlight');
       if (ctx.reduced) { s.refs.sched.classList.add('highlight'); return; }
-      // Watch event flows Api → Scheduler (return arrow at y=130), then drops to pipeline row 1.
+      // Watch event flows Api → Scheduler on the return lane at y=115. The queue and the three
+      // stages below it are the Scheduler's own work, so nothing travels down to the ladder.
       const watch = segmentPacket(s, ctx, { from: [API_X, BACK_Y], to: [SCHED_R, BACK_Y], role: 'cluster' });
       lightBoxAt(s.refs.sched, ctx, watch.arrivalMs);
-      routePacket(s, ctx, API_TO_CHAIN, { delay: watch.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
     id: 'filter',
     duration: 2300,
-    narration: 'Filter plugins evaluate every Node against the Pod requirements. Node-1 carries a NoSchedule taint without a matching toleration, Node-2 lacks the requested memory. Both are dropped before scoring.',
+    narration: 'Filter plugins test each Node against the Pod requirements, and in a large cluster they stop once enough Nodes fit. Node-1 carries a NoSchedule taint without a matching toleration, Node-2 lacks the requested memory. Both are dropped before scoring.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -251,8 +254,10 @@ const STEPS = [
   },
   {
     id: 'score',
-    duration: 1400,
-    narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity, and PodTopologySpread. Each plugin returns 0 to 100 and the values are weighted-summed: Node-3 scores 78, Node-4 scores 92.',
+    // 1400ms was the shortest step on the card and it carries the densest text with no motion at
+    // all, so nothing but reading time sets it: 2200 matches the packet-less pace of the siblings.
+    duration: 2200,
+    narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 for a Node and the weighted sum is the final score: Node-3 gets 78, Node-4 gets 92.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -267,14 +272,17 @@ const STEPS = [
       s.refs.v4.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[2]) rows[2].classList.add('highlight');
-      // Scoring is computed inside the Scheduler, nothing travels and nothing pulses:
-      // the score verdicts just settle on v3/v4 via the static highlight.
+      // Scoring is computed inside the Scheduler, nothing travels and nothing pulses: the score
+      // verdicts just settle on v3/v4 via the static highlight. The Scheduler lights for the same
+      // reason it lights on filter, both steps are its own work and neither may read as idle.
+      s.refs.sched.classList.add('highlight');
     },
   },
   {
     id: 'bind',
-    duration: 2400,
-    narration: 'Highest score wins, ties broken at random. The Scheduler does not patch the Pod itself. It POSTs a Binding to the binding subresource, and the API writes spec.nodeName=Node-4 into ETCD via Raft.',
+    // Three hops now, span 2860: 2400 would have cut the commit ack off mid-flight.
+    duration: 3000,
+    narration: 'Highest score wins, ties broken at random. The Scheduler assumes the placement so the next Pod sees Node-4 as taken. It POSTs a Binding to the binding subresource, not a Pod patch, and the API writes it into ETCD, which acks the Raft commit.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -290,18 +298,21 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[3]) rows[3].classList.add('highlight');
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); s.refs.etcdC.classList.add('highlight'); return; }
-      // Two arrow segments: Scheduler → Api (binding POST), then Api → ETCD (persist). The Api is
-      // mid-chain here: it takes the POST before it writes, so it lights on arrival like ETCD does.
+      // Three arrow segments: Scheduler → Api (binding POST), Api → ETCD (persist), then the commit
+      // ack back down the return lane. The Api is mid-chain here: it takes the POST before it
+      // writes, so it lights on arrival like ETCD does. The ack is what rv=903 on the persist wire
+      // actually is, and without it the ETCD → Api lane wore an arrowhead no ball ever rode.
       const post = segmentPacket(s, ctx, { from: [SCHED_R, OUT_Y], to: [API_X, OUT_Y], role: 'cluster' });
       lightBoxAt(s.refs.api, ctx, post.arrivalMs);
       const etcdCPkt = segmentPacket(s, ctx, { from: [API_R, OUT_Y], to: [ETCD_X, OUT_Y], delay: post.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.etcdC, ctx, etcdCPkt.arrivalMs);
+      segmentPacket(s, ctx, { from: [ETCD_X, BACK_Y], to: [API_R, BACK_Y], delay: etcdCPkt.arrivalMs + BEAT.afterHop, role: 'cluster' });
     },
   },
   {
     id: 'placed',
     duration: 2200,
-    narration: 'Node-4 sees the Pod through a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-4. On that ADDED event the image is pulled by the Kubelet there, and the Pod transitions to Running.',
+    narration: 'The Kubelet on Node-4 watches /api/v1/pods?fieldSelector=spec.nodeName=Node-4, so the write arrives there as an ADDED event. It pulls the image and starts the containers, and the Pod goes from Pending to Running.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);

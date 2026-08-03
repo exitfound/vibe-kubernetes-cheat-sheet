@@ -1,15 +1,15 @@
 import { svg, g, text } from '../lib/svg.js';
-import { arrowDefs, box, chainList, arrow, pathArrow } from '../lib/primitives.js';
+import { arrowDefs, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
 import { valChip, setVal, topPacket, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/cluster-kit.js';
+// Design notes for this card: scheme/docs/CARDS.md#cluster-kubelet-sync-loop
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=195, so the API moves into the freed
+// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=230, so the API moves into the freed
 // bottom-left and reaches Kubelet up a riser that clears the panel. That is what lets the content
-// still span 60..1140 and centre on CX.
+// still span 60..1140 and centre on CX. The API box at y=300 is what the panel bottom must clear.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
-const PANEL_R = 400, PANEL_B = 215;                      // the reserved corner
 
 const TOP_Y = 40, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 40 / 120
 const TOP_CY = TOP_Y + TOP_H / 2;                        // 80
@@ -78,7 +78,7 @@ class Scene {
         '1. watch     ·  pod specs from API',
         '2. PLEG      ·  observe containers via ListContainers',
         '3. SyncPod   ·  reconcile desired vs observed',
-        '4. CRI       ·  Create/Start container gRPC',
+        '4. CRI       ·  Pull/Create/Start container gRPC',
         '5. status    ·  PATCH Pod containerStatuses',
       ],
       role: 'cluster',
@@ -121,6 +121,16 @@ function clearHL(s) {
   clearHighlights(s, ['api','kubelet','runtime','podChip','desiredChip','observedChip','lastOpChip']);
 }
 
+// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
+// Every chip on this card reports something the Kubelet has LEARNED or DONE, so each one waits for
+// the packet that earns it rather than being true from step entry.
+function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
+}
+
 const STEPS = [
   {
     id: 'idle',
@@ -133,12 +143,13 @@ const STEPS = [
       setVal(s.refs.desiredChip, 'none');
       setVal(s.refs.observedChip, 'none');
       setVal(s.refs.lastOpChip, 'none');
+      setChainActive(s.refs.chain, -1);
     },
   },
   {
     id: 'watch',
     duration: 1900,
-    narration: 'The API streams an ADDED event for Pod my-app-7d4-abc bound to Node-1. The Kubelet source dispatcher routes the spec into podManager as desired state.',
+    narration: 'The API streams an ADDED event for Pod my-app-7d4-abc bound to Node-1. The Kubelet merges its spec sources into one update channel, and the sync loop records the Pod in podManager as desired state.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -151,11 +162,18 @@ const STEPS = [
       s.refs.api.classList.add('highlight');
       s.refs.podChip.classList.add('highlight');
       s.refs.desiredChip.classList.add('highlight');
-      const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[0]) rows[0].classList.add('highlight');
+      setChainActive(s.refs.chain, 0);
       if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
+      // podManager holds the spec once the event REACHES the Kubelet, so both chips wait for the
+      // ball rather than describing a desired state the Node has not been told about yet.
+      setVal(s.refs.podChip, 'none');
+      setVal(s.refs.desiredChip, 'none');
       const pkt = routePacket(s, ctx, API_TO_KUBE, { role: 'cluster' });
       lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
+      at(s, ctx, pkt.arrivalMs, () => {
+        setVal(s.refs.podChip, 'my-app-7d4-abc');
+        setVal(s.refs.desiredChip, '1 container');
+      });
     },
   },
   {
@@ -172,14 +190,19 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.observedChip.classList.add('highlight');
       s.refs.lastOpChip.classList.add('highlight');
-      const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[1]) rows[1].classList.add('highlight');
+      setChainActive(s.refs.chain, 1);
       if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
       // ListContainers request out, the container list answers once it lands. PLEG asks, so the
       // Kubelet is lit from entry and the runtime lights when the call reaches it.
+      // The two chips answer different questions and so land on different beats: the op is named
+      // when the call reaches the runtime, the observation only when the answer comes home.
+      setVal(s.refs.observedChip, 'none');
+      setVal(s.refs.lastOpChip, 'none');
       const req = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: OUT_Y, role: 'cluster' });
       lightBoxAt(s.refs.runtime, ctx, req.arrivalMs);
-      topPacket(s, ctx, { from: RT_X, to: KUBE_R, y: BACK_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      at(s, ctx, req.arrivalMs, () => setVal(s.refs.lastOpChip, 'ListContainers'));
+      const ans = topPacket(s, ctx, { from: RT_X, to: KUBE_R, y: BACK_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      at(s, ctx, ans.arrivalMs, () => setVal(s.refs.observedChip, '0 containers'));
     },
   },
   {
@@ -193,31 +216,38 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.desiredChip.classList.add('highlight');
       s.refs.observedChip.classList.add('highlight');
-      const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[2]) rows[2].classList.add('highlight');
+      setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
     },
   },
   {
     id: 'cri',
-    duration: 3000,
-    narration: 'Kubelet issues CRI gRPC calls in sequence: RunPodSandbox creates the pause container with shared namespaces, then CreateContainer + StartContainer launch each container in the spec. Details of the sandbox setup are covered in the Pod Sandbox via CRI card.',
+    // Four calls, four packets: 3660ms. PullImage cost the step 800 (a 120 unit hop sits on the
+    // PKT_DUR_MIN floor of 700, plus BEAT.afterHop), so duration follows it up from 3000.
+    duration: 3800,
+    narration: 'Kubelet issues CRI gRPC calls in sequence: RunPodSandbox creates the pause container with shared namespaces, PullImage fetches the image unless it is already on the Node, then CreateContainer and StartContainer launch each container in the spec. Details of the sandbox setup are covered in the Pod Sandbox via CRI card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       setVal(s.refs.lastOpChip, 'StartContainer');
-      setWire(s, 'rt', 'RunPodSandbox · Create · Start');
+      setWire(s, 'rt', 'RunPodSandbox · Pull · Create · Start');
       s.refs.kubelet.classList.add('highlight');
       s.refs.lastOpChip.classList.add('highlight');
-      const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[3]) rows[3].classList.add('highlight');
+      setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); return; }
-      // Three packets sequenced for RunPodSandbox, CreateContainer, StartContainer.
-      const sandbox = segmentPacket(s, ctx, { from: [KUBE_R, OUT_Y], to: [RT_X, OUT_Y], role: 'cluster' });
-      lightBoxAt(s.refs.runtime, ctx, sandbox.arrivalMs);
-      const create = segmentPacket(s, ctx, { from: [KUBE_R, OUT_Y], to: [RT_X, OUT_Y], delay: sandbox.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      segmentPacket(s, ctx, { from: [KUBE_R, OUT_Y], to: [RT_X, OUT_Y], delay: create.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      // One packet per call the narration names, in its order, and the chip names each one as it
+      // lands: the step is a SEQUENCE, so a chip that reads StartContainer from entry skips three
+      // quarters of what it is describing. PullImage is the ImageService half of the CRI.
+      setVal(s.refs.lastOpChip, 'ListContainers');
+      const CALLS = ['RunPodSandbox', 'PullImage', 'CreateContainer', 'StartContainer'];
+      let delay = 0;
+      CALLS.forEach((name, i) => {
+        const pkt = segmentPacket(s, ctx, { from: [KUBE_R, OUT_Y], to: [RT_X, OUT_Y], delay, role: 'cluster' });
+        if (i === 0) lightBoxAt(s.refs.runtime, ctx, pkt.arrivalMs);
+        at(s, ctx, pkt.arrivalMs, () => setVal(s.refs.lastOpChip, name));
+        delay = pkt.arrivalMs + BEAT.afterHop;
+      });
     },
   },
   {
@@ -230,21 +260,25 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.observedChip, '1 running');
+      setVal(s.refs.observedChip, '1 container running');
       setVal(s.refs.lastOpChip, 'ListContainers');
       s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'api', 'PATCH .../pods/{name}/status');
       s.refs.kubelet.classList.add('highlight');
       s.refs.observedChip.classList.add('highlight');
-      const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[4]) rows[4].classList.add('highlight');
+      setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.runtime.classList.add('highlight'); s.refs.api.classList.add('highlight'); return; }
       // The sentence OPENS with the next PLEG cycle observing the container, which is the same
       // ListContainers round trip the pleg step makes, and only then does the Kubelet PATCH status.
       // The card animated the PATCH alone, so the observation that justifies it was invisible.
+      // The chips carry the same order: the step starts holding what the CRI step left.
+      setVal(s.refs.observedChip, '0 containers');
+      setVal(s.refs.lastOpChip, 'StartContainer');
       const list = topPacket(s, ctx, { from: KUBE_R, to: RT_X, y: OUT_Y, role: 'cluster' });
       lightBoxAt(s.refs.runtime, ctx, list.arrivalMs);
+      at(s, ctx, list.arrivalMs, () => setVal(s.refs.lastOpChip, 'ListContainers'));
       const seen = topPacket(s, ctx, { from: RT_X, to: KUBE_R, y: BACK_Y, delay: list.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      at(s, ctx, seen.arrivalMs, () => setVal(s.refs.observedChip, '1 container running'));
       const pkt = routePacket(s, ctx, KUBE_TO_API, { delay: seen.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.api, ctx, pkt.arrivalMs);
     },

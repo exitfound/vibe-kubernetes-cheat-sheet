@@ -710,13 +710,47 @@ non-persist pulse fills forwards to `base`). Mirrors the networking tint.
 
 ```
 ===== TINTED DIALOG =====
-The whole modal collapses onto one category's colour ramp. Each category
-supplies a literal 3-stop ramp (deep / base / bright) plus glow, border and
-surface values. The generic rule then remaps every category token, the
-accent trio, the diagram stroke/arrow tokens and the dialog surface onto
-that ramp. Literal hex values are used on purpose: a var() chain back to the
-category tokens is what made the previous version cyclic and invalid, and
-color-mix is avoided so resolution is fully deterministic everywhere.
+The whole modal collapses onto one category's colour ramp. A category block
+declares FOUR opaque colours as channel lists (--tint-deep-rgb / -base-rgb /
+-bright-rgb / -canvas-rgb) plus three hand-mixed surface fills, and nothing
+else. The generic rule builds every alpha shade from those four (glow, border,
+active, edge, panel), then remaps the category tokens, the accent trio, the
+diagram stroke/arrow tokens and the dialog surface onto the result.
+
+Channel lists rather than hex, because rgba() cannot take a hex through a
+var(): rgba(var(--tint-base), 0.15) is invalid, and that invalidity is what an
+earlier attempt at deriving these hit and why the file went to hand-copied
+literals instead. color-mix would express the same thing in one step and is
+still deliberately unused, because resolution stays fully deterministic this
+way and nothing else in the project depends on it.
+
+The literals were the bug, not the fix. Each alpha shade was restated per
+category by hand, so a category could disagree with itself, and two did:
+--tint-glow on Workloads was rgba(91, 168, 236) against its own --tint-base
+rgb(91, 184, 255), which put a duller fill inside .scheme-pod-container than
+the stroke drawn around it, and the narration panel is the second (see the
+note under its rule). Both closed on 2026-07-30 by deleting the restatement.
+Adding a shade means one line in the generic block, never four.
+```
+
+### before `.scheme-dialog[data-tinted="true"] .narration-overlay {`
+
+```
+The panel is its category's canvas at 86%, so the diagram shows through it and
+only the border and the accent edge draw the box.
+
+That used to be one shared literal, rgba(10, 16, 36, 0.86), plus a hand-copied
+override per category. Networking and Storage got theirs, Cluster never did, so
+a violet card carried a navy panel for as long as the category has existed and
+it was reported as a bug on 2026-07-30. Workloads looked right only by
+coincidence: the shared default WAS the Workloads canvas, near enough.
+
+Two of the four overrides were also inexact against the canvas they named as
+their source: Networking moved 2 units when it became a derivation
+(rgba(7, 21, 27) -> rgba(7, 19, 25)) and Workloads moved 2 the same way
+(rgba(10, 16, 36) -> rgba(10, 16, 34)). Nobody had ever compared them.
+Do not add a per-category .narration-overlay rule back: retint the category
+by changing its --tint-canvas-rgb and the panel follows.
 ```
 
 ### before `.scheme-dialog[data-tinted="true"] .dialog-controls {`

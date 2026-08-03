@@ -787,60 +787,60 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="workloads"] { border-top: 3px solid var(--workloads-color); }
 .scheme-dialog[data-cat="cluster"]   { border-top: 3px solid var(--cluster-color); }
 
+/* A category declares only what is its own: the 3-stop ramp (deep / base / bright), the
+   canvas it draws on, and the three hand-mixed surface fills. Every shade WITH an alpha
+   is derived from those four in the shared block below, so a category cannot disagree
+   with itself. The ramp stops are channel lists rather than hex because rgba() cannot
+   take a hex through a var(), which is what made an earlier attempt at this invalid. */
 .scheme-dialog[data-tinted="true"][data-cat="workloads"] {
-  --tint-deep:      #3f5d8a;
-  --tint-base:      #5bb8ff;
-  --tint-bright:    #8ec6f7;
-  --tint-glow:      rgba(91, 168, 236, 0.15);
-  --tint-border:    rgba(142, 198, 247, 0.42);
-  --tint-active:    rgba(142, 198, 247, 0.28);
-  --tint-edge:      rgba(63, 93, 138, 0.5);
+  --tint-deep-rgb:    63, 93, 138;
+  --tint-base-rgb:    91, 184, 255;
+  --tint-bright-rgb: 142, 198, 247;
+  --tint-canvas-rgb:  10, 16, 34;
   --tint-surface:   #18263f;
-  --tint-canvas:    #0a1022;
   --tint-chrome:    #101a30;
   --tint-fill:      rgba(22, 34, 66, 0.72);
   --tint-fill-node: rgba(13, 21, 44, 0.62);
 }
 .scheme-dialog[data-tinted="true"][data-cat="cluster"] {
-  --tint-deep:      #4c4f92;
-  --tint-base:      #7d86ff;
-  --tint-bright:    #abb0f5;
-  --tint-glow:      rgba(125, 134, 255, 0.15);
-  --tint-border:    rgba(171, 176, 245, 0.42);
-  --tint-active:    rgba(171, 176, 245, 0.28);
-  --tint-edge:      rgba(76, 79, 146, 0.5);
+  --tint-deep-rgb:    76, 79, 146;
+  --tint-base-rgb:   125, 134, 255;
+  --tint-bright-rgb: 171, 176, 245;
+  --tint-canvas-rgb:  16, 13, 36;
   --tint-surface:   #14122c;
-  --tint-canvas:    #100d24;
   --tint-fill:      rgba(31, 29, 64, 0.72);
   --tint-fill-node: rgba(20, 18, 44, 0.62);
 }
 .scheme-dialog[data-tinted="true"][data-cat="network"] {
-  --tint-deep:      #357d8c;
-  --tint-base:      #4fe5ff;
-  --tint-bright:    #9eeaf7;
-  --tint-glow:      rgba(79, 229, 255, 0.15);
-  --tint-border:    rgba(158, 234, 247, 0.42);
-  --tint-active:    rgba(158, 234, 247, 0.28);
-  --tint-edge:      rgba(53, 125, 140, 0.5);
+  --tint-deep-rgb:    53, 125, 140;
+  --tint-base-rgb:    79, 229, 255;
+  --tint-bright-rgb: 158, 234, 247;
+  --tint-canvas-rgb:   7, 19, 25;
   --tint-surface:   #0a1a20;
-  --tint-canvas:    #071319;
   --tint-fill:      rgba(14, 38, 46, 0.72);
   --tint-fill-node: rgba(9, 26, 32, 0.62);
 }
 .scheme-dialog[data-tinted="true"][data-cat="storage"] {
-  --tint-deep:      #356e52;
-  --tint-base:      #5eca94;
-  --tint-bright:    #aee0c7;
-  --tint-glow:      rgba(94, 202, 148, 0.15);
-  --tint-border:    rgba(174, 224, 199, 0.42);
-  --tint-active:    rgba(174, 224, 199, 0.28);
-  --tint-edge:      rgba(53, 110, 82, 0.5);
+  --tint-deep-rgb:    53, 110, 82;
+  --tint-base-rgb:    94, 202, 148;
+  --tint-bright-rgb: 174, 224, 199;
+  --tint-canvas-rgb:  11, 20, 16;
   --tint-surface:   #101c17;
-  --tint-canvas:    #0b1410;
   --tint-fill:      rgba(20, 40, 32, 0.72);
   --tint-fill-node: rgba(13, 28, 22, 0.62);
 }
 .scheme-dialog[data-tinted="true"] {
+  --tint-deep:      rgb(var(--tint-deep-rgb));
+  --tint-base:      rgb(var(--tint-base-rgb));
+  --tint-bright:    rgb(var(--tint-bright-rgb));
+  --tint-canvas:    rgb(var(--tint-canvas-rgb));
+
+  --tint-glow:      rgba(var(--tint-base-rgb), 0.15);
+  --tint-border:    rgba(var(--tint-bright-rgb), 0.42);
+  --tint-active:    rgba(var(--tint-bright-rgb), 0.28);
+  --tint-edge:      rgba(var(--tint-deep-rgb), 0.5);
+  --tint-panel:     rgba(var(--tint-canvas-rgb), 0.86);
+
   --accent:        var(--tint-bright);
   --accent-glow:   var(--tint-glow);
   --accent-border: var(--tint-border);
@@ -872,20 +872,12 @@ body.sidebar-collapsed .side-expand { display: grid; }
   background: var(--tint-chrome, var(--tint-fill-node));
   border-top-color: var(--tint-border);
 }
+/* --tint-panel is the canvas at 86%, so only the border and the accent edge draw the box. */
 .scheme-dialog[data-tinted="true"] .narration-overlay {
-  background: rgba(10, 16, 36, 0.86);
+  background: var(--tint-panel);
   border-color: var(--tint-border);
   border-left-color: var(--tint-bright);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-/* Networking panel reads in its own teal tint instead of the shared navy default
-   (same darkness, derived from the network --tint-canvas #071319). */
-.scheme-dialog[data-tinted="true"][data-cat="network"] .narration-overlay {
-  background: rgba(7, 21, 27, 0.86);
-}
-/* Storage does the same in jade, derived from the storage --tint-canvas #0b1410. */
-.scheme-dialog[data-tinted="true"][data-cat="storage"] .narration-overlay {
-  background: rgba(11, 20, 16, 0.86);
 }
 
 .dialog-inner {

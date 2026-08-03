@@ -161,6 +161,7 @@
       "node driver",
       "node service",
       "node controller",
+      "node is shutting down",
       "node shutdown"
     ],
     "Pod": [

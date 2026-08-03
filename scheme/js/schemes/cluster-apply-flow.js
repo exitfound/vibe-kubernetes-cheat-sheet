@@ -2,53 +2,132 @@ import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, pathArrow } from '../lib/primitives.js';
 import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/cluster-kit.js';
 
-// Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=171, so kubectl starts at 420. The
-// tier below the panel (controller-manager, Scheduler, Kubelet, the placed Pod) uses the full
-// width and centres on CX, which is what CENTRE-LOW asks for.
+// The API is pinned to the canvas centre and its flanks are DERIVED from one GAP, so the top row is
+// symmetric about CX by construction. Measured panel worst case over 1600/1280/1100 is x<=397,
+// y<=180. The row no longer clears that band: see TOP_Y.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
-const PANEL_R = 400, PANEL_B = 190;                      // the reserved corner
+// Reserved narration corner: 400 x 180. Nothing on this card derives from it, and the measured
+// worst case per viewport is in the header note above.
 
-const TOP_Y = 80, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 80 / 160
-const TOP_CY = TOP_Y + TOP_H / 2;                        // 120
+// The whole stack hangs off TOP_Y so raising or lowering the top row is ONE number, not eight.
+// 108 puts the topmost ink, the ETCD cylinder at TOP_Y - 10, on y=98. The rows below are then
+// spread by V rather than pinned, so the Node frame floor lands on 590 and the drawing runs
+// 98..590: 98 units of margin above, 50 below.
+// This DOES put kubectl (x 170..300) under the panel, which reaches x<=397 down to y<=180.
+const TOP_Y = 108, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;   // 108 / 188
+const TOP_CY = TOP_Y + TOP_H / 2;                        // 148
 const LANE_DY = 10;
-const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 110 / 130
-const KCTL_X = 420, KCTL_W = 130, KCTL_R = KCTL_X + KCTL_W;  // 420..550
-const API_X = 610, API_W = 220, API_R = API_X + API_W;   // 610..830
-const API_CX = API_X + API_W / 2;                        // 720
-const ETCD_X = 950, ETCD_W = 130, ETCD_R = ETCD_X + ETCD_W;  // 950..1080
+const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 138 / 158
 
-// Second tier, wholly below the panel.
-const T2_Y = 240, T2_H = 80, T2_W = 220;
-const CM_X = 240, CM_CX = CM_X + T2_W / 2;               // 240..460, 350
-const SCHED_X = 845, SCHED_CX = SCHED_X + T2_W / 2;      // 845..1065, 955
+// The API is pinned to the canvas centre. GAP is solved from the widest string that has to live
+// between two blocks on the ETCD side. That was write committed rv=842 at 165 units when GAP was
+// solved, so 190 left 12.5 a side. The label is now write Deployment my-app at 153 (the old one
+// claimed the commit on the outbound register), so the margin is 18.5 and GAP is no longer tight.
+// It stays 190: shrinking it would move ETCD for no gain.
+// The Node frame, not this row, still sets the content bbox.
+const API_W = 220, API_CX = CX, API_X = API_CX - API_W / 2, API_R = API_X + API_W;  // 490..710
+const GAP = 190;
+// kubectl is the ONE block in the row that is not derived from GAP. Its LEFT edge is pinned at 170,
+// the value the symmetric layout left it at, and it grows to the RIGHT only, by instruction: the
+// block was asked wider without being moved. So the row is no longer symmetric about CX, kubectl is
+// 160 wide against ETCD's 130 and its gap is 160 against ETCD's 190, and that is deliberate.
+// 160 is close to the ceiling rather than a free choice: the gap has to hold POST .../deployments,
+// measured at 133 units, so the 160 gap leaves 13.5 a side and roughly 27 more units of width is
+// all that exists before the label stops fitting between the blocks.
+const KCTL_X = 170, KCTL_W = 160, KCTL_R = KCTL_X + KCTL_W;              // 170..330
+const ETCD_W = 130, ETCD_X = API_R + GAP, ETCD_R = ETCD_X + ETCD_W;      // 900..1030
+
+// Second tier, mirrored about CX for the same reason the top row is.
+// V is the gap ABOVE tier 2 and it is now the only thing that moves the row: the Node frame is
+// pinned (see NODE_Y), so raising V lowers tier 2 into the gap below it rather than pushing the
+// frame down. The two gaps are therefore no longer equal, 98 above against 74 below, and that is
+// the instruction rather than an oversight: the row was asked lower with everything else held.
+// The lane band above tier 2 is derived from V, so it re-centres itself on every change.
+// History: 60 above tier 2 and FIVE below it, then 52/52, then 62/62, then 74/74, 86/86, now 98/74.
+const V = 98;
+const T2_Y = TOP_BOTTOM + V, T2_H = 80, T2_W = 220, T2_D = 320;   // 286..366
+const CM_CX = CX - T2_D, CM_X = CM_CX - T2_W / 2;        // 280, 170..390
+const SCHED_CX = CX + T2_D, SCHED_X = SCHED_CX - T2_W / 2;   // 920, 810..1030
 
 // Five lanes meet the API bottom face: two mirrored pairs about API_CX, plus the Kubelet lane
 // on the midpoint.
 const D30 = 30, D60 = 60;
-const NODE_X = 110, NODE_W = 980, NODE_Y = 420, NODE_H = 180;   // 110..1090, 420..600
-const KUBELET_X = 135, KUBELET_W = 220, KUBELET_Y = 475, KUBELET_H = 80;
-const KUBELET_R = KUBELET_X + KUBELET_W, KUBELET_CX = KUBELET_X + KUBELET_W / 2;  // 355, 245
-const POD_X = 720, POD_W = 216, POD_Y = 462, POD_H = 106;
-const LANE_Y = KUBELET_Y + KUBELET_H / 2;                // 515, and the Pod shares it
+// 150 rather than the original 180: those 30 units went into V. The frame clears its contents,
+// which end at NODE_Y + 134, by 16, and the canvas floor by 50.
+// NODE_Y is PINNED at 440 rather than derived from V. It used to be T2_Y + T2_H + V, which kept
+// tier 2 exactly midway but meant the frame could not be held still while the row moved. 440 is
+// where that expression left it at V=86, so this is a freeze, not a move.
+const NODE_X = 110, NODE_W = 980, NODE_Y = 440, NODE_H = 150;   // 110..1090, 440..590
+// The two blocks inside the frame are pushed off ITS edges by ONE padding, used twice, so the side
+// insets are equal by construction and cannot drift apart the way they had: the Kubelet sat 25
+// from the left wall and the Pod 154 from the right, which read as the pair sliding leftwards
+// inside the frame. NODE_PAD is the canvas margin M, so the frame breathes like the canvas does.
+// The Kubelet lands on 170..390, exactly the controller-manager column above it, and the Pod ends
+// on 1030, exactly where the Scheduler does. That alignment is a consequence, not the goal, but it
+// is worth not breaking.
+const NODE_PAD = M;                                      // 60, left and right alike
+const KUBELET_W = 220, KUBELET_X = NODE_X + NODE_PAD;    // 170..390
+const KUBELET_Y = NODE_Y + 41, KUBELET_H = 80;
+const KUBELET_R = KUBELET_X + KUBELET_W;                 // 390. No KUBELET_CX any more: the only
+// thing that ever used it was the Kubelet lane, which no longer aims at this box.
+const POD_W = 216, POD_X = NODE_X + NODE_W - NODE_PAD - POD_W;   // 814..1030
+const POD_Y = NODE_Y + 28, POD_H = 106;                  // shares LANE_Y with the Kubelet
+const LANE_Y = KUBELET_Y + KUBELET_H / 2;                // 521, and the Pod shares it
 
 // Each tier-2 box carries a mirrored pair on its top face: the watch lands on the outer lane and
-// runs at y=200, the write back leaves on the inner one and runs at y=220, so the two never cross.
+// runs at LANE_OUT_Y, the write back leaves on the inner one and runs at LANE_BACK_Y, so the two
+// never cross. Both levels plus the two wire labels live in the V-tall band above tier 2.
+// The pair is pinned to BAND_CY, the exact middle of that band, and spread by one HALF-gap either
+// side, so it floats between the two rows instead of hanging off the face it was measured from.
+// Both levels used to be offsets from TOP_BOTTOM (+25 / +40), which glued them to the top row and
+// left 22 units of dead air under them.
 const T2_LANE_DX = 20;
-const TO_CM      = [[API_CX - D60, TOP_BOTTOM], [API_CX - D60, 200], [CM_CX - T2_LANE_DX, 200], [CM_CX - T2_LANE_DX, T2_Y]];
-const FROM_CM    = [[CM_CX + T2_LANE_DX, T2_Y], [CM_CX + T2_LANE_DX, 220], [API_CX - D30, 220], [API_CX - D30, TOP_BOTTOM]];
-const TO_SCHED   = [[API_CX + D60, TOP_BOTTOM], [API_CX + D60, 200], [SCHED_CX + T2_LANE_DX, 200], [SCHED_CX + T2_LANE_DX, T2_Y]];
-const FROM_SCHED = [[SCHED_CX - T2_LANE_DX, T2_Y], [SCHED_CX - T2_LANE_DX, 220], [API_CX + D30, 220], [API_CX + D30, TOP_BOTTOM]];
-// The Kubelet lane drops down the spine, between the two return lanes at API_CX +/- D30.
-const TO_KUBELET = [[API_CX, TOP_BOTTOM], [API_CX, 390], [KUBELET_CX, 390], [KUBELET_CX, KUBELET_Y]];
+const BAND_CY = TOP_BOTTOM + V / 2;                      // 237
+const T2_LANE_HALF = 8;
+const LANE_OUT_Y = BAND_CY - T2_LANE_HALF, LANE_BACK_Y = BAND_CY + T2_LANE_HALF;   // 229 / 245
+// TWO registers, the same idiom the top row uses: a label describing traffic that goes OUT sits
+// above the out lane, a label describing traffic that comes BACK sits below the return lane. Both
+// tier-2 labels used to share the out register, which put POST .../binding, the Scheduler's answer,
+// over the watch lane that delivered the question to it.
+const WIRE_T2_OUT_Y = LANE_OUT_Y - 8;                    // 221, above the out lane
+const WIRE_T2_BACK_Y = LANE_BACK_Y + 14;                 // 259, below the return lane
+const TO_CM      = [[API_CX - D60, TOP_BOTTOM], [API_CX - D60, LANE_OUT_Y], [CM_CX - T2_LANE_DX, LANE_OUT_Y], [CM_CX - T2_LANE_DX, T2_Y]];
+const FROM_CM    = [[CM_CX + T2_LANE_DX, T2_Y], [CM_CX + T2_LANE_DX, LANE_BACK_Y], [API_CX - D30, LANE_BACK_Y], [API_CX - D30, TOP_BOTTOM]];
+const TO_SCHED   = [[API_CX + D60, TOP_BOTTOM], [API_CX + D60, LANE_OUT_Y], [SCHED_CX + T2_LANE_DX, LANE_OUT_Y], [SCHED_CX + T2_LANE_DX, T2_Y]];
+const FROM_SCHED = [[SCHED_CX - T2_LANE_DX, T2_Y], [SCHED_CX - T2_LANE_DX, LANE_BACK_Y], [API_CX + D30, LANE_BACK_Y], [API_CX + D30, TOP_BOTTOM]];
+// The Kubelet lane is ONE straight vertical segment with no turn in it at all: it leaves the API
+// bottom face on its midpoint and lands on the Node frame TOP face, and both midpoints are the
+// same x because the API is centred on CX and the frame spans 110..1090. So the ball drops into
+// the Node and stops there. What happens next is the Node's own business and is drawn inside it
+// on the following step, Kubelet to Pod along START.
+// Two earlier shapes are superseded, both of which sent the ball on to the Kubelet: a jog INSIDE
+// the frame at NODE_Y + 28 (the ball crossed the frame edge at x=600 and crawled left across the
+// floor of the Node), and then the same jog lifted into the band above the frame so the entry was
+// vertical but still landed on the Kubelet top face. The lane is not addressed to the Kubelet, it
+// is addressed to the Node, and it now says so.
+// The spine clears both tier-2 boxes because CX=600 sits in the 390..810 gap between them.
+const TO_KUBELET = [[API_CX, TOP_BOTTOM], [API_CX, NODE_Y]];
 const POST       = [[KCTL_R, OUT_Y], [API_X, OUT_Y]];
 const POST_ACK   = [[API_X, BACK_Y], [KCTL_R, BACK_Y]];
 const PERSIST    = [[API_R, OUT_Y], [ETCD_X, OUT_Y]];
 const PERSIST_ACK= [[ETCD_X, BACK_Y], [API_R, BACK_Y]];
 const START      = [[KUBELET_R, LANE_Y], [POD_X, LANE_Y]];
-const WIRE_TOP_Y = TOP_Y - 20;                           // 60, above the top row
+// All four wire labels sit BETWEEN their blocks, which the old 60-unit gap could not hold:
+// requests just above their out lane, acks just below their return lane, each centred on its own
+// gap, and each gap clears its own widest string: the kubectl gap 160 against POST .../deployments at
+// 133 (13.5 a side), GAP 190 against write Deployment my-app at 153 (18.5 a side).
+const WIRE_REQ_Y = OUT_Y - 12, WIRE_ACK_Y = BACK_Y + 18;     // 126 / 176
+// Derived from the two edges, so widening kubectl carried both left labels right with it.
+const KCTL_GAP_CX = (KCTL_R + API_X) / 2;                // 410
+const ETCD_GAP_CX = (API_R + ETCD_X) / 2;                // 835
+// The Kubelet watch label is the one that does NOT sit between two blocks, because its lane is
+// vertical. A horizontal string centred on a vertical lane is cut in half by it, so this one is
+// right-anchored just left of the spine, on the middle of the open band between tier 2 and the
+// frame (366..440). The +4 puts the baseline on that middle rather than the ascender.
+const WIRE_KUBELET_X = API_CX - 14;                      // 586, end-anchored
+const WIRE_KUBELET_Y = (T2_Y + T2_H + NODE_Y) / 2 + 4;   // 407
 // Design notes for this card: scheme/docs/CARDS.md#cluster-apply-flow
 
 
@@ -60,11 +139,9 @@ class Scene {
     this.refs = {};
     const root = svg({
       class: 'diagram',
-      // x=-10 centres the content (union bbox centre x=590) in the dialog window,
-      // padL=padR=110, the same self-centring the sibling Delete Flow card uses.
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'kubectl apply flow through the control plane',
+      'aria-label': 'kubectl apply flow from the client through the control plane to the Kubelet on a Node',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -76,8 +153,7 @@ class Scene {
     root.appendChild(apisrv);
     root.appendChild(etcd);
 
-    // Middle row: ControllerManager (left, centre 340) and Scheduler (right, centre 860),
-    // mirrored about the spine and pulled in toward the Api.
+    // Middle row: controller-manager and Scheduler, mirrored about CX at +/- T2_D like the row above.
     const cm    = box({ x: CM_X, y: T2_Y, w: T2_W, h: T2_H, label: 'controller-manager', role: 'cluster' });
     const sched = box({ x: SCHED_X, y: T2_Y, w: T2_W, h: T2_H, label: 'Scheduler',         role: 'cluster' });
     root.appendChild(cm);
@@ -109,7 +185,7 @@ class Scene {
     kubeletPodArrow.style.opacity = '0';
     root.appendChild(kubeletPodArrow);
 
-    // Top-row lanes straddle the Api centre (y=110 out, y=130 back) on both sides.
+    // Top-row lanes straddle the Api centre (OUT_Y out, BACK_Y back) on both sides.
     // Each top-row lane is drawn from the SAME array that carries its ball.
     root.appendChild(pathArrow({ points: POST,        dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: POST_ACK,    dim: true, dashed: true, role: 'cluster' }));
@@ -124,16 +200,16 @@ class Scene {
     // Api -> Kubelet: straight down the spine, then into the Kubelet inside the node.
     root.appendChild(pathArrow({ points: TO_KUBELET, dim: true, dashed: true, role: 'cluster' }));
 
-    // Above the row: the gaps these two label are 60 and 120 units wide and the strings are far
-    // longer, so on the row they struck the blocks either side of their own lane.
-    const wirePost          = text({ class: 'scheme-label code dim', x: (KCTL_R + API_X) / 2, y: WIRE_TOP_Y,  'text-anchor': 'middle' }, [' ']);
-    // HTTP 201 ack rides below the top row (y=180) so its ends clear the Kubectl/Api corners.
-    const wireApiAck        = text({ class: 'scheme-label code dim', x: (KCTL_R + API_X) / 2, y: BACK_Y + 26, 'text-anchor': 'middle' }, [' ']);
-    const wirePersist       = text({ class: 'scheme-label code dim', x: (API_R + ETCD_X) / 2, y: WIRE_TOP_Y,  'text-anchor': 'middle' }, [' ']);
-    const wireEtcdAck       = text({ class: 'scheme-label code dim', x: (API_R + ETCD_X) / 2, y: BACK_Y + 18, 'text-anchor': 'middle' }, [' ']);
-    const wireController    = text({ class: 'scheme-label code dim', x: CM_CX + 120, y: 194, 'text-anchor': 'middle' }, [' ']);
-    const wireSchedule      = text({ class: 'scheme-label code dim', x: SCHED_CX - 140, y: 194, 'text-anchor': 'middle' }, [' ']);
-    const wireKubeletWatch  = text({ class: 'scheme-label code dim', x: 500, y: 380, 'text-anchor': 'middle' }, [' ']);
+    const wirePost          = text({ class: 'scheme-label code dim', x: KCTL_GAP_CX, y: WIRE_REQ_Y, 'text-anchor': 'middle' }, [' ']);
+    const wireApiAck        = text({ class: 'scheme-label code dim', x: KCTL_GAP_CX, y: WIRE_ACK_Y, 'text-anchor': 'middle' }, [' ']);
+    const wirePersist       = text({ class: 'scheme-label code dim', x: ETCD_GAP_CX, y: WIRE_REQ_Y, 'text-anchor': 'middle' }, [' ']);
+    const wireEtcdAck       = text({ class: 'scheme-label code dim', x: ETCD_GAP_CX, y: WIRE_ACK_Y, 'text-anchor': 'middle' }, [' ']);
+    // The controller label describes the watch going OUT, so it takes the out register. The
+    // Scheduler label describes the Binding coming BACK, so it takes the return one.
+    const wireController    = text({ class: 'scheme-label code dim', x: CM_CX + 120, y: WIRE_T2_OUT_Y, 'text-anchor': 'middle' }, [' ']);
+    const wireSchedule      = text({ class: 'scheme-label code dim', x: SCHED_CX - 160, y: WIRE_T2_BACK_Y, 'text-anchor': 'middle' }, [' ']);
+    // Beside the spine, not centred on it: see WIRE_KUBELET_X.
+    const wireKubeletWatch  = text({ class: 'scheme-label code dim', x: WIRE_KUBELET_X, y: WIRE_KUBELET_Y, 'text-anchor': 'end' }, [' ']);
     [wirePost, wireApiAck, wirePersist, wireEtcdAck, wireController, wireSchedule, wireKubeletWatch].forEach(t => root.appendChild(t));
 
     const packetLayer = g({ id: 'packetLayer' });
@@ -183,7 +259,9 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.client.classList.add('highlight');
-      setWire(s, 'post', 'POST /apis/apps/v1/namespaces/default/deployments');
+      // Elided to fit between the blocks, the card's own idiom (step 5 writes POST .../binding).
+      // Nothing is lost: the step narration spells the full path out.
+      setWire(s, 'post', 'POST .../deployments');
       if (ctx.reduced) { s.refs.apisrv.classList.add('highlight'); return; }
       const pkt = routePacket(s, ctx, POST, { role: 'cluster' });
       lightBoxAt(s.refs.apisrv, ctx, pkt.arrivalMs);
@@ -192,13 +270,16 @@ const STEPS = [
   {
     id: 'persist',
     duration: 1700,
-    narration: 'The API authenticates the caller using credentials from your kubeconfig, runs admission and schema validation, then writes the new Deployment "my-app" to ETCD. ETCD commits the write via Raft quorum at rv=842.',
+    narration: 'The API authenticates the caller from your kubeconfig, checks RBAC, runs admission and schema validation, then writes the new Deployment "my-app" to ETCD. ETCD commits the write via Raft quorum at rv=842.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       s.refs.apisrv.classList.add('highlight');
-      setWire(s, 'persist', 'write committed · rv=842');
+      // The REQUEST, not its outcome. This register sits above the outbound lane, so a label
+      // reading write committed claimed the commit while the ball was still in flight, and the
+      // commit is what step 3 brings back on the ack register as ack · rv=842.
+      setWire(s, 'persist', 'write Deployment my-app');
       if (ctx.reduced) { s.refs.etcd.classList.add('highlight'); return; }
       const pkt = routePacket(s, ctx, PERSIST, { role: 'cluster' });
       lightBoxAt(s.refs.etcd, ctx, pkt.arrivalMs);
@@ -245,8 +326,11 @@ const STEPS = [
   },
   {
     id: 'schedule',
-    duration: 2200,
-    narration: 'The Scheduler picks up my-app-7d4-abc, filters candidate Nodes (taints, resources, affinity), scores the survivors, and posts a Binding that pins the Pod to Node-1.',
+    // 2400, not 2200: widening the tier-2 lane band lengthened the out-and-back pair, and
+    // routeDur is length-based, so the span went to 2211 and the auto-advance would have cut
+    // the Binding off mid-flight.
+    duration: 2400,
+    narration: 'The Scheduler picks up my-app-7d4-abc, filters candidate Nodes (taints, resources, affinity), scores the survivors on free resources and topology spread, then posts a Binding that pins the Pod to Node-1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -265,7 +349,7 @@ const STEPS = [
   {
     id: 'kubelet-watch',
     duration: 2400,
-    narration: 'The Kubelet on Node-1 has a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-1. The API streams my-app-7d4-abc to it, and the Kubelet prepares to start the Pod.',
+    narration: 'The Kubelet on Node-1 has a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-1. The API streams my-app-7d4-abc down that watch to Node-1, where the Kubelet picks it up.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -280,7 +364,7 @@ const STEPS = [
   {
     id: 'create-pod',
     duration: 2500,
-    narration: 'The Kubelet pulls the nginx:1.27 image and starts the container. The Pod my-app-7d4-abc transitions to Running on Node-1.',
+    narration: 'The Kubelet asks the container runtime for a Pod sandbox, which gets the Pod its network namespace and IP, then pulls nginx:1.27 and starts the container in it. The Pod my-app-7d4-abc is Running on Node-1.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
