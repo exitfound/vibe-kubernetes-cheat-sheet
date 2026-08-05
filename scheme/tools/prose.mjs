@@ -245,9 +245,15 @@ export function chipValues(src, chips) {
     fns.push({ name: m[1], params: splitTop(code.slice(open + 1, parEnd - 1)), start: brace, end: matchBracket(code, brace) });
   }
 
-  // setVal-equivalents: a card-local `setChip(chip, val)` that forwards both parameters straight
-  // through is the same write as far as a reader is concerned. Grown to a fixpoint for 3-hop cards.
-  const equiv = new Set(['setVal']);
+  // setVal-equivalents: a function that forwards both parameters straight through is the same
+  // write as far as a reader is concerned. Grown to a fixpoint below for 3-hop cards.
+  //
+  // The seed carries `setChip` because the fixpoint can only find CARD-LOCAL declarations, and
+  // setChip is now imported from the kit rather than declared 29 times. Losing it is silent and
+  // large: without this name the resolver drops from 321 resolved chip values to 114, and both
+  // check-inline and check-labels keep printing "0 finding(s)" over the 207 they stopped reading.
+  // Measured, not guessed. Any setter that moves out of the cards and into the kit belongs here.
+  const equiv = new Set(['setVal', 'setChip']);
   for (let grew = true; grew;) {
     grew = false;
     for (const f of fns) {

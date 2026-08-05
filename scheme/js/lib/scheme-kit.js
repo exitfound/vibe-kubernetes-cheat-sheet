@@ -25,6 +25,22 @@ export function valChip({ x, y, w, h = 32, name, value, role = '' }) {
   return grp;
 }
 export function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
+
+// setVal, plus the diff that decides whether the chip glows for this step: a chip whose value
+// CHANGES lights, a chip that stays the same does not. Steps are always entered in order, so
+// comparing against what the chip currently reads is deterministic.
+//
+// This was 29 byte-identical copies, one per storage card. Note for anything that reads card
+// sources rather than running them: prose.mjs resolves chip VALUES by finding a card-local
+// function that forwards both parameters to a known setter, and an imported one is invisible to
+// that search. It seeds `setChip` by name for exactly this reason. A future rename here has to
+// rename it there too, or check-inline and check-labels quietly stop seeing two thirds of the
+// values drawn on storage cards while still reporting zero findings.
+export function setChip(chip, val) {
+  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
+  setVal(chip, val);
+  if (changed) chip.classList.add('highlight');
+}
 export function setBoxLabel(boxEl, txt) {
   const l = boxEl && boxEl.querySelector('.scheme-box-label');
   if (l) l.textContent = txt;

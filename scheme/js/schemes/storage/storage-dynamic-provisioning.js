@@ -1,6 +1,6 @@
 import { svg, g, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
+import { valChip, setVal, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-dynamic-provisioning
 
 
@@ -138,11 +138,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-function setChip(chip, val) {
-  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
-  setVal(chip, val);
-  if (changed) chip.classList.add('highlight');
-}
 function setChips(s, { pvc, sc, disk, pv }) {
   setChip(s.refs.pvcChip, pvc);
   setChip(s.refs.scChip, sc);

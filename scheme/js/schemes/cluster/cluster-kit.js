@@ -1,5 +1,5 @@
 export {
-  valChip, setVal, setBoxLabel, setBoxSublabel, makeInit, packetAlong,
+  valChip, setVal, setChip, setBoxLabel, setBoxSublabel, makeInit, packetAlong,
   routePacket, segmentPacket, routeDur, routeLength, packetArrival,
   topPacket, setConnectorDir, clearPodHighlight,
   arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, podShell, cylinder, node, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { valChip, setVal, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-access-modes
 
 
@@ -165,11 +165,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-function setChip(chip, val) {
-  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
-  setVal(chip, val);
-  if (changed) chip.classList.add('highlight');
-}
 function setChips(s, { mode, attach, share, enforcer = 'CSI driver' }) {
   setChip(s.refs.modeChip, mode);
   setChip(s.refs.attachChip, attach);

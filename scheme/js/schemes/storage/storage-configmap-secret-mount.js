@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
+import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-configmap-secret-mount
 
 
@@ -140,11 +140,6 @@ class Scene {
 
 // Sets each chip and statically highlights the ones whose value CHANGES on this step (the family
 // standard): a chip that changes glows for the step, a chip that stays the same does not.
-function setChip(chip, val) {
-  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
-  setVal(chip, val);
-  if (changed) chip.classList.add('highlight');
-}
 function setChips(s, { mode, swap, value }) {
   setChip(s.refs.modeChip, mode);
   setChip(s.refs.swapChip, swap);

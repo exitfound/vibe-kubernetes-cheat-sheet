@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, node, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
+import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-csi-attach-mount
 
 
@@ -159,11 +159,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-function setChip(chip, val) {
-  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
-  setVal(chip, val);
-  if (changed) chip.classList.add('highlight');
-}
 // Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how this
 // card once showed a staging mount on the step that was explaining the disk did not exist yet.
 function setChips(s, { disk, device, staging, binds }) {

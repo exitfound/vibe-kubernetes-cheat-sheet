@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from './storage-kit.js';
+import { valChip, setVal, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-csi-capacity-tracking
 
 
@@ -150,11 +150,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-function setChip(chip, val) {
-  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
-  setVal(chip, val);
-  if (changed) chip.classList.add('highlight');
-}
 
 // Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how a card
 // comes to claim it is capacity-aware on the step that is still explaining the blind path.

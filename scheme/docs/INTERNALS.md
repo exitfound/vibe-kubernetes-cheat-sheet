@@ -116,6 +116,19 @@ finally inline generic ephemeral volumes, which close the loop back to the ephem
 
 ## scheme/js/lib/scheme-kit.js
 
+### before `export function setChip(chip, val) {`
+
+```
+A chip whose value CHANGED this step also lights, as a static highlight and never a flash.
+valueText still holds the previous step's text at call time, because clearHL clears the highlight
+class and not the text, and steps are always entered in order (gotoStep rebuilds, then replays
+0..target), so comparing against what the chip currently reads is a deterministic per-step diff.
+
+This is the catalog-wide chip pattern. It used to be 29 identical copies of the function across
+the storage cards, each with its own near-identical paragraph in CARDS.md saying this; those 27
+notes were folded into this one when the function moved here.
+```
+
 ### before `export const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));`
 
 ```

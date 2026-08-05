@@ -2,10 +2,7 @@ import { svg, g, rect } from '../../lib/svg.js';
 import { arrowDefs, box, node, pathArrow, podShell } from '../../lib/primitives.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-attach-limits
 
-import {
-  valChip, setVal, setBoxLabel, setBoxSublabel, setPodSublabel, pulsePod,
-  routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel} from './storage-kit.js';
+import { valChip, setVal, setChip, setBoxLabel, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel } from './storage-kit.js';
 
 const LEFT_X = 400;
 const CONTENT_W = 400;
@@ -191,11 +188,6 @@ class Scene {
   reset() { this.build(); }
 }
 
-function setChip(chip, val) {
-  const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
-  setVal(chip, val);
-  if (changed) chip.classList.add('highlight');
-}
 function setChips(s, { cap = '8 per node', attached, pod: podVal, blocked }) {
   setChip(s.refs.capChip, cap);
   setChip(s.refs.attChip, attached);

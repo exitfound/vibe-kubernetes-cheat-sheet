@@ -6553,14 +6553,6 @@ sit above their node, then the wires and their labels above the blocks, then the
 then the packet layer so every ball rides above everything.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `function setChips(s, { mode, attach, share, enforcer = 'CSI driver' }) {`
 
 ```
@@ -6938,14 +6930,6 @@ them, then wire captions, then chips, then the packet layer on top so every ball
 everything.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText
-still holds the previous step's text at call time (clearHL clears the class, not the text) and
-steps are always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `function setChips(s, { core, ctrl, node, bridge }) {`
 
 ```
@@ -7223,14 +7207,6 @@ rides on top. The ladder goes last of all: it is the reader's index into the sto
 rung must stay crisp even when a ball is passing (nothing overlaps it, but the intent is stated).
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `function setBorn(s, { device = 0, podA = 0, podB = 0 } = {}) {`
 
 ```
@@ -7369,14 +7345,6 @@ of padding is 210 against the 232 available.
 Z-order (bottom -> top): the node frames, then the scheduler and pools and capacity objects,
 then the Pod, then the lanes and their captions, then the chip strip, then the packet layer so
 every ball rides above everything.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `const DECIDE_DUR = 850, BIND_DUR = 1000, READ_DUR = 1000;`
@@ -7522,15 +7490,6 @@ blocks above use. Hand-placed x values had it spanning 90..1080, a center of 585
 bottom row sat 15px left of the diagram it belongs to.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the highlight class, not the text), and
-steps are always entered in order (gotoStep rebuilds then replays 0..target), so the diff is
-deterministic. Same helper as storage-pvc-binding, this is the catalog-wide chip pattern.
-```
-
 ### before `narration: 'With static provisioning an administrator has to create the volume by hand before anyone can claim`
 
 ```
@@ -7586,14 +7545,6 @@ through its SIDE. Traffic here is one-way per container (the app only writes, th
 reads), so each side carries a SINGLE lane with an arrowhead for its one direction: the app lane
 points into the cylinder, the worker lane points into the container. The containers are pushed
 toward the Pod edges so their centers land outside the cylinder span, symmetric about the spine.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-Sets each chip and statically highlights the ones whose value CHANGES on this step (the standard
-set by the volume-model anchor): a chip that changes glows for the step, a chip that stays the
-same does not. Steps are always entered in order, so the diff is deterministic.
 ```
 
 ### before `setChips(s, { ed: 'empty', medium: 'node disk', limit: 'none' });`
@@ -7709,15 +7660,6 @@ they stay clear, and every volume sits below y=306, well under the overlay. The 
 ephemeral and persistent halves starts under the Pod (POD_BOTTOM + 16) rather than at a typed 206,
 so it can never poke into the Pod when the Pod moves. The three state chips are a single width on
 one pitch, centred on the canvas.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-Sets each chip and statically highlights the ones whose value CHANGES on this step (highlight,
-never flash). clearHL wipes the highlight class but not the text, and steps replay in order, so
-comparing against the chip's current text is a deterministic per-step diff. Mirrors the
-volume-model card and the shared chip convention: a status chip that changes is lit for the step.
 ```
 
 ### before `s.refs.ed.classList.add('highlight');`
@@ -7902,14 +7844,6 @@ IS traffic down that line and it earns its arrowhead like any other.
 Z-order (bottom -> top): the disk and the tree, then the listing rows so they sit on the tree
 face, then kubelet and the Pod, then the backing link and the lanes above every block, then
 the disk caption, then the chip strip, then the packet layer so every ball rides above all.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText
-still holds the previous step's text at call time (clearHL clears the class, not the text) and
-steps are always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `function setRows(s, chowned) {`
@@ -8150,14 +8084,6 @@ captions above them, then the chip strip, then the packet layer so every ball ri
 everything.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `const LANES = ['wClaimProv', 'wCreate', 'wDownHigh', 'wDownLow', 'wUpHigh', 'wUpLow'];`
 
 ```
@@ -8234,14 +8160,6 @@ same beat. The cylinder is infrastructure: it lights, never pulses.
 
 WIRES: two directed L-lanes, exactly emptyDir's, each shared by its static pathArrow and its ball.
 The app writes DOWN into the cylinder side, the agent reads UP out of the far side.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-Sets each chip and statically highlights the ones whose value CHANGES on this step (the standard
-set by the volume-model anchor): a chip that changes glows for the step, a chip that stays the
-same does not. Steps are always entered in order, so the diff is deterministic.
 ```
 
 ### before `s.refs.hp.classList.add('highlight');`
@@ -8433,14 +8351,6 @@ the canvas and only ever replaces it, never joins it.
 Z-order (bottom -> top): the disk and the staging band, then the bind boxes, then the Pods,
 then the lanes and their captions above the blocks, then the chip strip, then the packet layer
 so every ball rides above everything.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText
-still holds the previous step's text at call time (clearHL clears the class, not the text) and
-steps are always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `function setChips(s, { device, mounted, binds, copies }) {`
@@ -8763,14 +8673,6 @@ uppercase rendering is catalog-wide styling and is left alone.
 Z-order (bottom -> top): the node frames, then the band, the VA row and the disk, then the Pods
 so they sit above their node frame, then the lanes and their captions above the blocks, then
 the chip strip, then the packet layer so every ball rides above everything.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `function setChips(s, { mode = 'ReadWriteOnce', attached, newPod, blocked }) {`
@@ -9210,14 +9112,6 @@ from a forward gap. Parking it in the Available-to-Bound gap, which is what the 
 put the caption for a right-to-left event on the one lane that runs left to right.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step value at call time and steps are always entered in order, so the diff is
-deterministic. Catalog-wide chip pattern.
-```
-
 ### before `s.refs.stAvail.classList.remove('highlight');`
 
 ```
@@ -9343,15 +9237,6 @@ mode is identical on all three on purpose: the two rejections must turn on size 
 Z-order (bottom -> top): the blocks, then the wires and their labels ABOVE them (so a
 connector that crosses a block stays visible and the text stays legible), then the static
 disk specs, then the chip strip, then the packet layer so every ball rides above everything.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-Every enter() calls this, so no chip can ever keep a stale value from the previous step. A chip
-whose value CHANGED this step also lights (static highlight, never a flash): valueText still holds
-the previous step's text at call time (clearHL clears the highlight class, not the text), and steps
-are always entered in order (gotoStep rebuilds then replays 0..target), so the diff is deterministic.
 ```
 
 ### before `function clearHL(s) {`
@@ -9564,14 +9449,6 @@ links and lanes and their captions above them, then the chip strip, then the pac
 every ball rides above everything.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `function setStage(s, { clone = OPACITY.pending, cloneDisk = OPACITY.pending, bound = 0, ds = 0, lanes = [] } = {}) {`
 
 ```
@@ -9754,14 +9631,6 @@ captions, then the Pod so it sits above the axis that ends on its edge, then the
 then the chip strip, then the packet layer so every ball rides above everything.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step value at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `s.refs.app.classList.remove('highlight');`
 
 ```
@@ -9854,14 +9723,6 @@ the shape uniform with the family even though no Pod on this card ever pulses.
 CHIP_W 232 is the storage family default. Worst case here is 'disks' + '3 kept, 1 leaks' at 20
 characters, and .scheme-chip-text runs 6.89 viewBox units per character, so 20 * 6.89 + 24 of
 padding is 162 against the 232 available.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `function setStage(s, { pods = [1, 1, 1], claims = [1, 1, 1], disks = [1, 1, 1], govern = false } = {}) {`
@@ -10041,14 +9902,6 @@ keep their reclaim policy as a fixed sublabel instead of flipping between the tw
 The spec line is a sibling of the cylinder, not a child of it, so it has to be faded BY HAND
 when the disk it describes is deleted. It used to be left alone, which left a bright
 "real disk, EBS" hanging under a disk the step had just wiped out of existence.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time and steps are always entered in order, so the diff is
-deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `s.refs.delPv.classList.add('highlight');`
@@ -10267,14 +10120,6 @@ padding is 189 against the 232 available.
 Z-order (bottom -> top): the zone frames, then the class and claim and disks, then the Pod so it
 sits above its node, then the lanes and their captions, then the chip strip, then the packet
 layer so every ball rides above everything.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `pulsePodDim(s.refs.podB, ctx, BEAT.lead, { from: OPACITY.pending, peak: 0.95 });`
@@ -10571,14 +10416,6 @@ Z-order (bottom -> top): the node frames (which carry their own slot strips), th
 boxes so they sit above their frame, then the CSINode row and the Scheduler, then the Pod, then
 every lane above the blocks, then the chip strip, then the packet layer so every ball rides
 above everything.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `function setChips(s, { cap = '8 per node', attached, pod: podVal, blocked }) {`
@@ -10937,14 +10774,6 @@ the packet lanes do not overlap at all (the lanes live above y 478, the ladder b
 so the ladder needs no exemption from the packet layer.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText
-still holds the previous step's text at call time (clearHL clears the class, not the text) and
-steps are always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `function setChips(s, { nodeA, volume, newPod }) {`
 
 ```
@@ -11125,14 +10954,6 @@ captions, then the Pod so it sits above the axis that ends on its edge, then the
 then the packet layer so every ball rides above everything.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step value at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ---
 
 ## storage-volume-mode
@@ -11251,14 +11072,6 @@ they sit above their node, then the lanes and their labels above the blocks, the
 strip, then the packet layer so every ball rides above everything.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText
-still holds the previous step's text at call time (clearHL clears the class, not the text) and
-steps are always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `function publishUp(s, ctx, { podEl, points, tag, lead = BEAT.lead }) {`
 
 ```
@@ -11364,16 +11177,6 @@ LANE_DX around the container center (the pair is centered on its block) and LANE
 cylinder midline so the horizontal runs do not overlap. Each lane has its own arrowhead showing
 its one direction: the UP lane points into the container (mount, read), the DOWN lane points
 into the cylinder side (write). Every array is shared by the static pathArrow and its ball.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-Sets each chip and statically highlights the ones whose value CHANGES on this step: a status chip
-that changes is lit for the step, a chip that stays the same is not. The chip still holds the
-previous step's text at call time (clearHL clears the highlight class, not the text), and steps are
-always entered in order (gotoStep rebuilds then replays 0..target), so this diff is deterministic.
-Highlight, never flash: chips glow within the steps that touch them.
 ```
 
 ### before `s.refs.volume.classList.add('highlight');`
@@ -11587,14 +11390,6 @@ padding is 183 against the 232 available.
 Z-order (bottom -> top): the backend frame, then the blocks and disks, then the lanes and their
 captions above them, then the chip strip, then the packet layer so every ball rides above
 everything.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### before `function setStage(s, { vsc = OPACITY.pending, restore = 0, snapData = OPACITY.pending, restored = OPACITY.pending, ds = 0, lanes = [] } = {}) {`
@@ -11939,14 +11734,6 @@ Pod and kubelet so they sit above their node, then the lanes and their captions 
 blocks, then the chip strip, then the packet layer so every ball rides above everything.
 ```
 
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
-```
-
 ### before `function setChips(s, { va, attached, disk, kubelet }) {`
 
 ```
@@ -12140,14 +11927,6 @@ spine appears once the template stamps.
 CHIP_W 232 is the storage family default. Worst case here is 'on delete' + 'kept, leaks' at 20
 characters, and .scheme-chip-text runs 6.89 viewBox units per character, so 20 * 6.89 + 24 of
 padding is 162 against the 232 available.
-```
-
-### before `function setChip(chip, val) {`
-
-```
-A chip whose value CHANGED this step also lights (static highlight, never a flash): valueText still
-holds the previous step's text at call time (clearHL clears the class, not the text) and steps are
-always entered in order, so the diff is deterministic. Catalog-wide chip pattern.
 ```
 
 ### opacity phases (was `const POD_PRESENT = 1`)
