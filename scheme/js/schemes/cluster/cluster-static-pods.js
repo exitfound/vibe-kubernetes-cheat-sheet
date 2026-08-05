@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-static-pods
 
@@ -115,10 +115,8 @@ class Scene {
     const kubelet = box({ x: KUBE_X, y: BOX_TOP, w: BOX_W, h: BOX_H, label: 'Kubelet', sublabel: 'scans the directory', role: 'cluster' });
 
     const mkPod = (id, x, y, name, sub) => {
-      const shell = pod({ x, y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
+      const shell = podShell({ x, y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
       shell.style.setProperty('--workloads-color', VIOLET);
-      const shellRect = shell.querySelector('.scheme-pod-rect');
-      if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
       const inner = box({ x: x + POD_INNER.dx, y: y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: name, sublabel: sub, role: 'workloads' });
       inner.style.setProperty('--workloads-color', VIOLET);
       const wrap = g({ id });

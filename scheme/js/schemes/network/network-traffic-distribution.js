@@ -1,5 +1,5 @@
 import { svg, g } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, lightBoxAt, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-traffic-distribution
 
@@ -35,9 +35,7 @@ const FAN_B1 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B1Y], [POD_L, B1Y]];
 const FAN_B2 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B2Y], [POD_L, B2Y]];
 
 function podBlock({ x, y, w = POD_W, h = POD_H, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 18, y: y + 30, w: w - 36, h: 44, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
@@ -46,9 +44,7 @@ function podBlock({ x, y, w = POD_W, h = POD_H, label, ip }) {
 }
 
 function clientBlock({ x, y, w, h }) {
-  const shell = pod({ x, y, w, h, label: 'Client . zone-a', sublabel: '10.244.2.50', containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label: 'Client . zone-a', sublabel: '10.244.2.50', containers: 0, role: 'network' });
   const innerBox = box({ x: x + 16, y: y + 34, w: w - 32, h: 48, label: 'app', sublabel: 'to Service web', role: 'network' });
   const group = g({});
   group.appendChild(shell);

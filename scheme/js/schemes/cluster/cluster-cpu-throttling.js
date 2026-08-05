@@ -1,5 +1,5 @@
 import { svg, g, text, rect } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, arrow } from '../../lib/primitives.js';
+import { arrowDefs, pod, podShell, node, box, arrow } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, at, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-cpu-throttling
 
@@ -132,10 +132,8 @@ class Scene {
 
     const nodeEl = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-    podShell.style.setProperty('--workloads-color', '#c0b0ff');
-    const podShellRect = podShell.querySelector('.scheme-pod-rect');
-    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
+    shellEl.style.setProperty('--workloads-color', '#c0b0ff');
 
     const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'requests.cpu 250m · limits.cpu 500m', role: 'workloads' });
     containerBox.style.setProperty('--workloads-color', '#c0b0ff');
@@ -144,7 +142,7 @@ class Scene {
     // descendants only, so a bare pod() pulses at half strength. Nothing on this card ever fades
     // this group, which is the whole point of the pair with cluster-oom-kill.
     const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(podShell);
+    podGroup.appendChild(shellEl);
     podGroup.appendChild(containerBox);
 
     root.appendChild(relationPath({ points: NODE_RELATION, role: 'cluster' }));

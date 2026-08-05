@@ -1,5 +1,5 @@
 import { svg, g } from '../../lib/svg.js';
-import { arrowDefs, box, pod, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dualstack
 
@@ -88,9 +88,7 @@ class Scene {
 }
 
 function clientBlock({ x, y, w, h }) {
-  const shell = pod({ x, y, w, h, label: 'Client Pod', sublabel: 'dual-stack', containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label: 'Client Pod', sublabel: 'dual-stack', containers: 0, role: 'network' });
   const innerBox = box({ x: x + 16, y: y + 36, w: w - 32, h: 50, label: 'app', sublabel: 'to Service web', role: 'network' });
   const group = g({});
   group.appendChild(shell);
@@ -99,9 +97,7 @@ function clientBlock({ x, y, w, h }) {
 }
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 22, y: y + 42, w: w - 44, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);

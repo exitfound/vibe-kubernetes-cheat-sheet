@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, pulsePod, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
@@ -87,14 +87,12 @@ class Scene {
 
     const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-    const podShellRect = podShell.querySelector('.scheme-pod-rect');
-    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
 
     const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(podShell);
+    podGroup.appendChild(shellEl);
     podGroup.appendChild(containerBox);
 
     // Connector packet layer.

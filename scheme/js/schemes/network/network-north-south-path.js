@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-north-south-path
 
@@ -57,9 +57,7 @@ const LB2C = [[LB_X, RET_Y], [CLIENT_RIGHT, RET_Y]];
 const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
 
 function podBlock({ x, y, w, h, label }) {
-  const shell = pod({ x, y, w, h, label, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);

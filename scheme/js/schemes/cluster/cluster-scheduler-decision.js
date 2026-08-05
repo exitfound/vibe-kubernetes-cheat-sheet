@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, pod, box, cylinder, chainList, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, cylinder, chainList, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Design notes for this card: scheme/docs/CARDS.md#cluster-scheduler-decision
@@ -123,10 +123,8 @@ class Scene {
     const verdicts = nx.map((x) => valChip({ x, y: VERDICT_Y, w: nodeW, h: VERDICT_H, name: 'verdict', value: 'none', role: 'cluster' }));
     verdicts.forEach(v => root.appendChild(v));
 
-    const placedPodShell = pod({ x: PLACED_X, y: PLACED_Y, w: PLACED_W, h: PLACED_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
+    const placedPodShell = podShell({ x: PLACED_X, y: PLACED_Y, w: PLACED_W, h: PLACED_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     placedPodShell.style.setProperty('--workloads-color', '#c0b0ff');
-    const placedPodShellRect = placedPodShell.querySelector('.scheme-pod-rect');
-    if (placedPodShellRect) placedPodShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     // Inner box matches the workloads canon for a 216-wide shell: 10px side insets (w=196).
     const placedPodBox = box({ x: PLACED_X + PLACED_INNER.dx, y: PLACED_Y + PLACED_INNER.dy, w: PLACED_INNER.w, h: PLACED_INNER.h, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', role: 'workloads' });

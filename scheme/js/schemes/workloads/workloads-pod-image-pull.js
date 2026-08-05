@@ -1,5 +1,5 @@
 import { svg, g, rect, path, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, pulsePodDim, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=379 (worst of
@@ -87,14 +87,12 @@ class Scene {
 
     const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-    const podShellRect = podShell.querySelector('.scheme-pod-rect');
-    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
 
     const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(podShell);
+    podGroup.appendChild(shell);
     podGroup.appendChild(containerBox);
     podGroup.style.opacity = String(OPACITY.pending);
 

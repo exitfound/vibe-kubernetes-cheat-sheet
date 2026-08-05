@@ -1,5 +1,5 @@
 import { svg, g, rect } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, pathArrow, podShell } from '../../lib/primitives.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-attach-limits
 
 import {
@@ -87,12 +87,10 @@ const SLOT_STROKE = 'rgba(94, 202, 148, 0.35)';
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock() {
-  const shell = pod({
+  const shell = podShell({
     x: POD_X, y: POD_Y, w: POD_W, h: POD_H,
     label: 'Pod web-0', sublabel: 'not created', containers: 0, role: 'storage',
   });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
   const innerBox = box({
     x: POD_X + 16, y: POD_Y + PVC_DY, w: POD_W - 32, h: PVC_H,
     label: 'PVC data-web-0', sublabel: 'needs one slot', role: 'storage',

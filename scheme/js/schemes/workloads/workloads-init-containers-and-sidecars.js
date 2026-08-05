@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT, WL } from './workloads-kit.js';
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
@@ -89,9 +89,7 @@ class Scene {
 
     // These four are containers of ONE Pod, so the Pod has to be on the canvas: without a shell
     // there was nothing for a pulse to belong to.
-    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-7d4', sublabel: ' ', containers: 0, role: 'workloads' });
-    const podShellRect = podShell.querySelector('.scheme-pod-rect');
-    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-7d4', sublabel: ' ', containers: 0, role: 'workloads' });
 
     const cx = i => POD_X + C_PAD + i * (C_W + C_GAP);
     const containerWaitDb   = box({ x: cx(0), y: C_Y, w: C_W, h: C_H, label: 'wait-for-db',    sublabel: 'init container',       role: 'cluster'   });
@@ -100,7 +98,7 @@ class Scene {
     const containerMain     = box({ x: cx(3), y: C_Y, w: C_W, h: C_H, label: 'main',           sublabel: 'app-server',           role: 'cluster'   });
 
     const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(podShell);
+    podGroup.appendChild(shellEl);
     [containerWaitDb, containerMigrate, containerSidecar, containerMain].forEach(c => podGroup.appendChild(c));
 
     // Connector from the Kubelet box into the Pod, down the central corridor.
@@ -126,7 +124,7 @@ class Scene {
       svg: root,
       kubelet, runtime, chain, nodeEl, connector,
       waitDbChip, migrateChip, sidecarChip, mainChip,
-      podShell, podGroup, containerWaitDb, containerMigrate, containerSidecar, containerMain,
+      shellEl, podGroup, containerWaitDb, containerMigrate, containerSidecar, containerMain,
       packetLayer,
       wires: { req: wireReq },
     };

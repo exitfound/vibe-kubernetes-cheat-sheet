@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, cylinder, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Every row is centred on CX and symmetric about it, the sibling cluster-apply-flow card's grammar. Measured
@@ -160,10 +160,8 @@ class Scene {
     const kubelet = box({ x: KUBELET_X, y: KUBELET_Y, w: KUBELET_W, h: KUBELET_H, label: 'Kubelet', role: 'cluster' });
     root.appendChild(kubelet);
 
-    const placedPodShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
+    const placedPodShell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     placedPodShell.style.setProperty('--workloads-color', '#c0b0ff');
-    const placedPodShellRect = placedPodShell.querySelector('.scheme-pod-rect');
-    if (placedPodShellRect) placedPodShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     const placedPodBox = box({ x: POD_X + 30, y: POD_Y + 28, w: POD_W - 60, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', role: 'workloads' });
     placedPodBox.style.setProperty('--workloads-color', '#c0b0ff');

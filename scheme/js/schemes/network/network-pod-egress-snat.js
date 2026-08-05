@@ -1,5 +1,5 @@
 import { svg, g } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-pod-egress-snat
 
@@ -57,9 +57,7 @@ class Scene {
 
     const theNode = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node   ·   192.168.1.20' });
 
-    const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
-    const shellRect = shell.querySelector('.scheme-pod-rect');
-    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
     const podGroup = g({});
     podGroup.appendChild(shell);
     // eth0 lives INSIDE podGroup so pulsePod (which pulses .scheme-pod-rect + .scheme-box-rect within

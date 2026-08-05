@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-generic-ephemeral-volume
 
@@ -39,9 +39,7 @@ function vanishAt(el, ctx, delay = 0, to = OPACITY.terminated) {
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock() {
-  const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'ephemeral: volumeClaimTemplate', containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'ephemeral: volumeClaimTemplate', containers: 0, role: 'storage' });
   // Centred in the band the pod primitive leaves free between its label (baseline 16) and its
   // sublabel (baseline h - 8).
   const innerBox = box({ x: POD_X + 24, y: POD_Y + 33, w: POD_W - 48, h: 44, label: 'app', sublabel: 'writes /scratch', role: 'storage' });

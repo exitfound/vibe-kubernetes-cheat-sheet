@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-pod-to-pod-same-node
 
@@ -14,9 +14,7 @@ const HOP = 800;              // ball travel per veth hop, a touch slower than t
 // Build one Pod as a shell (translucent outer) wrapping an eth0 container box, in a
 // group so pulsePod animates both rects together. Returns { group, innerBox }.
 function podBlock({ x, label, ip }) {
-  const shell = pod({ x, y: 315, w: 200, h: 130, label, sublabel: ip, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y: 315, w: 200, h: 130, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: 352, w: 160, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);

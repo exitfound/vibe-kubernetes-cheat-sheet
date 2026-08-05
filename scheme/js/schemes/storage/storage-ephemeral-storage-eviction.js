@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, pod, podShell, node, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-ephemeral-storage-eviction
 
@@ -40,9 +40,7 @@ const W_LD = [[LG_CX, CB_BOTTOM], [LG_CX, DISK_TOP]];
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock({ x, y, w, h, label, sublabel }) {
-  const shell = pod({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 22, y: y + 46, w: w - 44, h: 58, label: 'app', sublabel: 'writes logs and temp', role: 'storage' });
   const group = g({});
   group.appendChild(shell);

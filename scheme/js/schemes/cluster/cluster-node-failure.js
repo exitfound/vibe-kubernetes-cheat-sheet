@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, cylinder, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, laneOf, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-failure
 
@@ -158,10 +158,8 @@ class Scene {
     const nodeB = node({ x: NODE_B_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' });
 
     // Failing node hosts the running Pod that gets evicted.
-    const podAShell = pod({ x: POD_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: ' ', containers: 0, role: 'workloads' });
+    const podAShell = podShell({ x: POD_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: ' ', containers: 0, role: 'workloads' });
     podAShell.style.setProperty('--workloads-color', '#c0b0ff');
-    const podAShellRect = podAShell.querySelector('.scheme-pod-rect');
-    if (podAShellRect) podAShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     const podABox = box({ x: POD_A_X + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app-pod', sublabel: 'nginx:1.27', role: 'workloads' });
     podABox.style.setProperty('--workloads-color', '#c0b0ff');
@@ -171,10 +169,8 @@ class Scene {
     podA.appendChild(podABox);
 
     // Target node receives the rescheduled replacement Pod (hidden until reschedule).
-    const podBShell = pod({ x: POD_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: ' ', containers: 0, role: 'workloads' });
+    const podBShell = podShell({ x: POD_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: ' ', containers: 0, role: 'workloads' });
     podBShell.style.setProperty('--workloads-color', '#c0b0ff');
-    const podBShellRect = podBShell.querySelector('.scheme-pod-rect');
-    if (podBShellRect) podBShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     const podBBox = box({ x: POD_B_X + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app-pod', sublabel: 'nginx:1.27', role: 'workloads' });
     podBBox.style.setProperty('--workloads-color', '#c0b0ff');

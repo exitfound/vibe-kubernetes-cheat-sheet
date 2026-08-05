@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, node, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, cylinder, node, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, revealAt, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-multi-attach-error
 
@@ -76,9 +76,7 @@ const W_VAB_DISK  = [[VA_B_CX, VA_BOTTOM], [VA_B_CX, DK_SIDE_Y], [DK_RIGHT, DK_S
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock({ x, label, sublabel }) {
-  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 14, y: POD_Y + APP_DY, w: POD_W - 28, h: APP_H, label: 'app', sublabel: 'uses PV-web', role: 'storage' });
   const group = g({});
   group.appendChild(shell);

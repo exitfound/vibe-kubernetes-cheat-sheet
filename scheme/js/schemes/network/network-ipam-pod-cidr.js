@@ -1,5 +1,5 @@
 import { svg, g } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-ipam-pod-cidr
 
@@ -36,9 +36,7 @@ const IPAM2 = [[SPINE_X, SLICE_BOTTOM], [SPINE_X, POD_Y]];         // Node-2 IPA
 // One Pod as a translucent shell wrapping an eth0 container box, grouped so pulsePod
 // animates both rects together. Returns { group, innerBox }.
 function podBlock({ x, y, label, ip }) {
-  const shell = pod({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 37, w: POD_W - 40, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);

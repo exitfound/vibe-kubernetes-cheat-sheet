@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel} from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-pod-localhost
 
@@ -27,9 +27,7 @@ const EXT_PATH = [[CLIENT_EDGE, SHELL_CY], [SHELL_X, SHELL_CY]];
 const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'Client', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
@@ -54,9 +52,7 @@ class Scene {
 
     const client = podBlock({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.4.2' });
 
-    const shell = pod({ x: SHELL_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod', sublabel: 'one netns · 10.244.1.5', containers: 0, role: 'network' });
-    const shellRect = shell.querySelector('.scheme-pod-rect');
-    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: SHELL_X, y: SHELL_Y, w: SHELL_W, h: SHELL_H, label: 'Pod', sublabel: 'one netns · 10.244.1.5', containers: 0, role: 'network' });
     const podGroup = g({});
     podGroup.appendChild(shell);
 

@@ -1,5 +1,5 @@
 import { svg, g } from '../../lib/svg.js';
-import { arrowDefs, box, pod, arrow, pathArrow, chainList, setChainActive } from '../../lib/primitives.js';
+import { arrowDefs, box, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dns-records
 
@@ -117,9 +117,7 @@ class Scene {
 }
 
 function clientBlock({ x, y, w, h }) {
-  const shell = pod({ x, y, w, h, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 36, w: w - 40, h: 50, label: 'Resolver', sublabel: 'getaddrinfo', role: 'network' });
   const group = g({});
   group.appendChild(shell);

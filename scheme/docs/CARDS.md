@@ -3832,7 +3832,7 @@ shortened the zigzag by another 10 units, still under the `routeDur` floor.
 
 ---
 
-### before `const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });`
+### before `const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });`
 
 ```
 The Pod sandbox: shell holds the pause container (created at RunPodSandbox)
@@ -4334,7 +4334,7 @@ resolv.conf hangs under the client and the two readouts stack above CoreDNS, so 
 spans CONTENT_L..CONTENT_R and centres on 600 as well.
 ```
 
-### before `const corednsShell = pod({ x: DNS_LEFT, y: DNS_Y, w: DNS_W, h: DNS_H, label: 'CoreDNS Pod', sublabel: '10.24`
+### before `const corednsShell = podShell({ x: DNS_LEFT, y: DNS_Y, w: DNS_W, h: DNS_H, label: 'CoreDNS Pod', sublabel: '10.24`
 
 ```
 CoreDNS Pod centered on FLOW_Y (DNS_Y = FLOW_Y - DNS_H/2), so the query lane enters at its middle.
@@ -7166,7 +7166,7 @@ descendants only and never the element itself, so pulsing a bare pod() would cat
 .scheme-pod-rect child but not the group, and the pulse would silently fire at half strength.
 ```
 
-### before `const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'private bind mount', containers: 0, role: 'storage' });`
+### before `const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'private bind mount', containers: 0, role: 'storage' });`
 
 ```
 The sublabel names what NodePublishVolume actually creates for this Pod, a per-Pod bind mount off
@@ -12118,7 +12118,7 @@ descendants only and never the element itself, so pulsing a bare pod() would cat
 .scheme-pod-rect child but not the group, and the pulse would silently fire at half strength.
 ```
 
-### before `const shell = pod({ x: POD_X, y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'sto`
+### before `const shell = podShell({ x: POD_X, y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'sto`
 
 ```
 A full Pod window like the rest of the storage cards: the ordinal name on top, a real container

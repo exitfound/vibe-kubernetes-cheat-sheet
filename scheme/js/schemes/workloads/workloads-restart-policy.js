@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, chainList, setChainActive, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, chainList, setChainActive, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=355 (worst of
@@ -88,9 +88,7 @@ class Scene {
     const POD_SUBS  = ['restartPolicy: Always', 'restartPolicy: OnFailure', 'restartPolicy: Never'];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
-      const shell = pod({ x: px, y: POD_Y, w: POD_W, h: POD_H, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
-      const shellRect = shell.querySelector('.scheme-pod-rect');
-      if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+      const shell = podShell({ x: px, y: POD_Y, w: POD_W, h: POD_H, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
 
       const innerBox = box({ x: px + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: POD_SUBS[i], role: 'workloads' });
 

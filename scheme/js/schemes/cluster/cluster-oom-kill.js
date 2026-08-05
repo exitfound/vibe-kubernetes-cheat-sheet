@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, lightBoxAt, OPACITY, at } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-oom-kill
 
@@ -108,10 +108,8 @@ class Scene {
 
     const nodeEl = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-    podShell.style.setProperty('--workloads-color', '#c0b0ff');
-    const podShellRect = podShell.querySelector('.scheme-pod-rect');
-    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
+    shellEl.style.setProperty('--workloads-color', '#c0b0ff');
 
     const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'using 100Mi of 256Mi', role: 'workloads' });
     containerBox.style.setProperty('--workloads-color', '#c0b0ff');
@@ -123,7 +121,7 @@ class Scene {
     // does not have to argue with it. Opacity lives on the GROUP, never on containerBox, or the two
     // multiply and the container lands on a shade that is in no vocabulary.
     const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(podShell);
+    podGroup.appendChild(shellEl);
     podGroup.appendChild(containerBox);
 
     const connector = pathArrow({

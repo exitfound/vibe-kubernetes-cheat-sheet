@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Layout C: the panel leaves no column under it, so the pipeline keeps the right band and the chips
@@ -127,10 +127,8 @@ class Scene {
     ];
     const podBoxes = [];
     const podWrappers = POD_DEFS.map((d, i) => {
-      const shell = pod({ x: d.x, y: POD_Y, w: SLOT_W, h: POD_H, label: d.name, sublabel: '', containers: 0, role: 'workloads' });
+      const shell = podShell({ x: d.x, y: POD_Y, w: SLOT_W, h: POD_H, label: d.name, sublabel: '', containers: 0, role: 'workloads' });
       shell.style.setProperty('--workloads-color', POD_VIOLET);
-      const shellRect = shell.querySelector('.scheme-pod-rect');
-      if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
       const innerBox = box({ x: d.x + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: d.sub, role: 'workloads' });
       innerBox.style.setProperty('--workloads-color', POD_VIOLET);

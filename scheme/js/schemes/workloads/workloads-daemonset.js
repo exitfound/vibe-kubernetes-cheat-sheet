@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, a bus tapping every Pod.
@@ -106,9 +106,7 @@ class Scene {
     const podWrappers = [];
     const podBoxes = [];
     POD_XS.forEach((nx, i) => {
-      const shell = pod({ x: nx + N_POD_DX, y: POD_Y, w: N_POD_W, h: POD_H, label: 'fluentd', sublabel: '', containers: 0, role: 'workloads' });
-      const shellRect = shell.querySelector('.scheme-pod-rect');
-      if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+      const shell = podShell({ x: nx + N_POD_DX, y: POD_Y, w: N_POD_W, h: POD_H, label: 'fluentd', sublabel: '', containers: 0, role: 'workloads' });
 
       const innerBox = box({ x: nx + N_INNER_DX, y: POD_Y + POD_INNER.dy, w: N_INNER_W, h: POD_INNER.h, label: 'fluentd', sublabel: 'log agent', role: 'workloads' });
 

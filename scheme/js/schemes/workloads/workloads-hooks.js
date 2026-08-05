@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C of the Workloads canon (WL): the deepest panel in the category leaves room for no column.
@@ -95,14 +95,12 @@ class Scene {
 
     const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-    const podShellRect = podShell.querySelector('.scheme-pod-rect');
-    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
 
     const containerBox = box({ x: CONT_X, y: POD_Y + POD_INNER.dy, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'terminationGracePeriod: 30s', role: 'workloads' });
 
     const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(podShell);
+    podGroup.appendChild(shell);
     podGroup.appendChild(containerBox);
 
     const connector = pathArrow({
@@ -124,7 +122,7 @@ class Scene {
     this.host.appendChild(root);
     this.refs = {
       svg: root,
-      kubelet, runtime, chain, nodeEl, podGroup, podShell, containerBox, connector,
+      kubelet, runtime, chain, nodeEl, podGroup, shell, containerBox, connector,
       postStartChip, entrypointChip, preStopChip, stateChip, graceChip,
       packetLayer,
       wires: { req: wireReq },
@@ -136,7 +134,7 @@ class Scene {
 
 function clearHL(s) {
   clearHighlights(s,
-    ['kubelet','runtime','postStartChip','entrypointChip','preStopChip','stateChip','graceChip','podShell','containerBox'],
+    ['kubelet','runtime','postStartChip','entrypointChip','preStopChip','stateChip','graceChip','shell','containerBox'],
     [s.refs.podGroup]);
 }
 

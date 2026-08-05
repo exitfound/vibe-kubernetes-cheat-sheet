@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, node, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, cylinder, node, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-mode
 
@@ -54,9 +54,7 @@ const W_BLK_DEV   = laneUp(BLK_CX, PV_TOP, BAND_BOTTOM);
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock({ x, label, sublabel, ctr, ctrSub }) {
-  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 14, y: POD_Y + 44, w: POD_W - 28, h: 52, label: ctr, sublabel: ctrSub, role: 'storage' });
   const group = g({});
   group.appendChild(shell);

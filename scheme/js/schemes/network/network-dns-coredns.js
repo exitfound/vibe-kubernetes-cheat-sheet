@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dns-coredns
 
@@ -39,9 +39,7 @@ const ANSWER = [[DNS_LEFT, RET_Y], [CLIENT_EDGE, RET_Y]];
 const CHAIN_HOP = [[DNS_CX, PLUGIN_Y[0] + PLUGIN_H], [DNS_CX, PLUGIN_Y[1]]];   // cache -> kubernetes
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 48, w: w - 40, h: 60, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);
@@ -71,9 +69,7 @@ class Scene {
     const rcNdots = valChip({ x: RC_X, y: RC_Y[2], w: RC_W, h: RC_H, name: 'options', value: 'ndots:5', role: 'network' });
     const rcLabel = text({ class: 'scheme-label code dim', x: RC_X + RC_W / 2, y: RC_Y[0] - 12, 'text-anchor': 'middle' }, ['/etc/resolv.conf']);
 
-    const corednsShell = pod({ x: DNS_LEFT, y: DNS_Y, w: DNS_W, h: DNS_H, label: 'CoreDNS Pod', sublabel: '10.244.4.2', containers: 0, role: 'network' });
-    const corednsRect = corednsShell.querySelector('.scheme-pod-rect');
-    if (corednsRect) corednsRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const corednsShell = podShell({ x: DNS_LEFT, y: DNS_Y, w: DNS_W, h: DNS_H, label: 'CoreDNS Pod', sublabel: '10.244.4.2', containers: 0, role: 'network' });
     const coredns = g({});
     coredns.appendChild(corednsShell);
     const pCache = box({ x: PLUGIN_X, y: PLUGIN_Y[0], w: PLUGIN_W, h: PLUGIN_H, label: 'Cache', sublabel: 'answers within TTL', role: 'network' });

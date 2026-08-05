@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, node, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, pod, podShell, cylinder, node, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-access-modes
 
@@ -81,9 +81,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 // A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
 // matches descendants only, so pulsing a bare pod() would fire at half strength.
 function podBlock({ x, label }) {
-  const shell = pod({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'storage' });
   // Inset 14 rather than 20: at this POD_W the old inset left the sublabel close to the box sides.
   // 'read/write' is 59 units wide against a 100-wide box, so it keeps ~20 units of air either side.
   const innerBox = box({ x: x + 14, y: POD_Y + 46, w: POD_W - 28, h: 52, label: 'ctr', sublabel: 'read/write', role: 'storage' });

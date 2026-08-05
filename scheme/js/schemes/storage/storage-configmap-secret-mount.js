@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-configmap-secret-mount
 
@@ -60,9 +60,7 @@ class Scene {
 
     // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:
     // it takes the whole Pod group, so the app box blinks with the Pod it belongs to (2026-07-29).
-    const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'mounts /etc/config', containers: 0, role: 'storage' });
-    const shellRect = shell.querySelector('.scheme-pod-rect');
-    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'mounts /etc/config', containers: 0, role: 'storage' });
     // Nudge the mounts /etc/config sublabel up 2px off the pod bottom edge.
     const shellSub = shell.querySelector('.scheme-pod-sublabel');
     if (shellSub) shellSub.setAttribute('y', String(POD_H - 10));

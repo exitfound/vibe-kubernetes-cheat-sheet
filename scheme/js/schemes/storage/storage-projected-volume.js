@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-projected-volume
 
@@ -41,9 +41,7 @@ const W_READ = [[DIR_CX, DIR_Y], [DIR_CX, READ_ELBOW_Y], [POD_CX + POD_LANE, REA
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock({ x, y, w, h, label, sublabel }) {
-  const shell = pod({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + (w - 260) / 2, y: y + 34, w: 260, h: 56, label: 'app', sublabel: 'reads /var/run/secrets', role: 'storage' });
   const group = g({});
   group.appendChild(shell);

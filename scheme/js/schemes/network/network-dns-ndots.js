@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, arrow, chainList } from '../../lib/primitives.js';
+import { arrowDefs, box, arrow, chainList, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dns-ndots
 
@@ -58,9 +58,7 @@ class Scene {
     root.appendChild(arrowDefs());
 
     // Client Pod and CoreDNS both centred on FLOW_Y, so the two lanes meet each at its middle.
-    const shell = pod({ x: POD_X, y: FLOW_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Client Pod', sublabel: 'curl api', containers: 0, role: 'network' });
-    const shellRect = shell.querySelector('.scheme-pod-rect');
-    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: POD_X, y: FLOW_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Client Pod', sublabel: 'curl api', containers: 0, role: 'network' });
     // The resolver box lives INSIDE podGroup: pulsePod walks descendants, so a box appended to the root
     // beside the shell would be left out of the pulse and the Pod would blink with a dead centre.
     const podBox = box({ x: POD_X + 20, y: FLOW_Y - 26, w: POD_W - 40, h: 52, label: 'Resolver', sublabel: 'getaddrinfo', role: 'network' });

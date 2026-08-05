@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, one trunk, one tap per Node.
@@ -107,9 +107,7 @@ class Scene {
     const node1 = node({ x: N_A_X, y: NODE_Y, w: N_W, h: NODE_H, label: 'Node-1' });
     const node2 = node({ x: N_B_X, y: NODE_Y, w: N_W, h: NODE_H, label: 'Node-2' });
 
-    const podOldShell = pod({ x: P_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod A', sublabel: '', containers: 0, role: 'workloads' });
-    const podOldShellRect = podOldShell.querySelector('.scheme-pod-rect');
-    if (podOldShellRect) podOldShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const podOldShell = podShell({ x: P_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod A', sublabel: '', containers: 0, role: 'workloads' });
 
     const podOldBox = box({ x: P_A_X + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'StatefulSet Pod', role: 'workloads' });
 
@@ -117,9 +115,7 @@ class Scene {
     podOld.appendChild(podOldShell);
     podOld.appendChild(podOldBox);
 
-    const podNewShell = pod({ x: P_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod B', sublabel: '', containers: 0, role: 'workloads' });
-    const podNewShellRect = podNewShell.querySelector('.scheme-pod-rect');
-    if (podNewShellRect) podNewShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const podNewShell = podShell({ x: P_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod B', sublabel: '', containers: 0, role: 'workloads' });
 
     const podNewBox = box({ x: P_B_X + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'recreated replica', role: 'workloads' });
 

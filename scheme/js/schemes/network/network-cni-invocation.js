@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow, pathArrow, chainList, setChainActive } from '../../lib/primitives.js';
+import { arrowDefs, box, node, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-cni-invocation
 
@@ -58,9 +58,7 @@ class Scene {
     const cri = box({ x: CRI[0], y: CRI[1], w: CRI[2], h: CRI[3], label: 'CRI . containerd', sublabel: 'sandbox runtime', role: 'network' });
 
     // Pod sandbox = a pod shell (loopback-only netns) wrapping an inner pause/eth0 box.
-    const sandboxShell = pod({ x: SBX[0], y: SBX[1], w: SBX[2], h: SBX[3], label: 'Pod sandbox', sublabel: 'netns: lo only', containers: 0, role: 'network' });
-    const sandboxRect = sandboxShell.querySelector('.scheme-pod-rect');
-    if (sandboxRect) sandboxRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const sandboxShell = podShell({ x: SBX[0], y: SBX[1], w: SBX[2], h: SBX[3], label: 'Pod sandbox', sublabel: 'netns: lo only', containers: 0, role: 'network' });
     const sandboxInner = box({ x: SBX[0] + 22, y: PAUSE_Y - 30, w: SBX[2] - 44, h: 60, label: 'pause', sublabel: 'eth0', role: 'network' });
     const sandbox = g({});
     sandbox.appendChild(sandboxShell);

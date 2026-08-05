@@ -1,5 +1,5 @@
 import { svg, g, text, path } from '../../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, relationPath, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-model
 
@@ -60,9 +60,7 @@ class Scene {
 
     // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:
     // it takes the whole Pod group, so the containers blink with the Pod they belong to (2026-07-29).
-    const shell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'spec.volumes: cache', containers: 0, role: 'storage' });
-    const shellRect = shell.querySelector('.scheme-pod-rect');
-    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'spec.volumes: cache', containers: 0, role: 'storage' });
     const shellWrap = g({});
     shellWrap.appendChild(shell);
 

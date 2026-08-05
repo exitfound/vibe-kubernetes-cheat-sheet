@@ -1,5 +1,5 @@
 import { svg, g } from '../../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-ephemeral-vs-persistent
 
@@ -43,9 +43,7 @@ const W_R_MOUNT = [[RIGHT_CX - LANE, PVC_TOP], [RIGHT_CX - LANE, POD_BOTTOM]];  
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock({ x, y, w, h, label, sublabel }) {
-  const shell = pod({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   // Raise the Pod sublabel a couple pixels off its default baseline so it sits tighter under the box.
   const sub = shell.querySelector('.scheme-pod-sublabel');
   if (sub) sub.setAttribute('y', h - 12);

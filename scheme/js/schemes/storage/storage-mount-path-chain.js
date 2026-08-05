@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-mount-path-chain
 
@@ -60,9 +60,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 const RIDE_UP = { dy: 18 };      // trailing side of an ascending ball
 
 function podBlock({ x, label }) {
-  const shell = pod({ x, y: POD_Y, w: COL_W, h: POD_H, label, sublabel: 'uses vol-1 at /data', containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y: POD_Y, w: COL_W, h: POD_H, label, sublabel: 'uses vol-1 at /data', containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 14, y: POD_Y + 40, w: COL_W - 28, h: 50, label: '/data', sublabel: 'mount point', role: 'storage' });
   const group = g({});
   group.appendChild(shell);

@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C, and the tightest card in the catalog. It carries the longest narration (the terminal
@@ -87,15 +87,13 @@ class Scene {
 
     const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-    const podShellRect = podShell.querySelector('.scheme-pod-rect');
-    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
 
     const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'no container yet', role: 'workloads' });
 
     // Wrap shell + container in a group so opacity animates uniformly.
     const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(podShell);
+    podGroup.appendChild(shellEl);
     podGroup.appendChild(containerBox);
     podGroup.style.opacity = String(OPACITY.pending);
 
@@ -113,7 +111,7 @@ class Scene {
     this.host.appendChild(root);
     this.refs = {
       svg: root,
-      kubelet, chain, nodeEl, podGroup, podShell, containerBox, connector,
+      kubelet, chain, nodeEl, podGroup, shellEl, containerBox, connector,
       phaseChip, cStateChip, restartChip, policyChip,
       packetLayer,
       wires: { req: wireReq },
@@ -125,7 +123,7 @@ class Scene {
 
 function clearHL(s) {
   clearHighlights(s,
-    ['kubelet','phaseChip','cStateChip','restartChip','policyChip','podShell','containerBox'],
+    ['kubelet','phaseChip','cStateChip','restartChip','policyChip','shellEl','containerBox'],
     [s.refs.podGroup]);
 }
 function setChips(s, { phase, cstate, restart, policy = 'OnFailure' }) {

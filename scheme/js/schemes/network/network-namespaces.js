@@ -1,5 +1,5 @@
 import { svg, g, text, rect } from '../../lib/svg.js';
-import { arrowDefs, box, pod, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-namespaces
 
@@ -52,9 +52,7 @@ class Scene {
 
     const host = box({ x: 150, y: HOST_Y, w: 260, h: HOST_H, label: 'Host NETNS', sublabel: 'node NICs · routes · iptables', role: 'network' });
 
-    const shell = pod({ x: POD_LEFT, y: POD_TOP, w: POD_W, h: POD_H, label: 'Pod NETNS', sublabel: 'isolated stack · 10.244.1.5', containers: 0, role: 'network' });
-    const shellRect = shell.querySelector('.scheme-pod-rect');
-    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: POD_LEFT, y: POD_TOP, w: POD_W, h: POD_H, label: 'Pod NETNS', sublabel: 'isolated stack · 10.244.1.5', containers: 0, role: 'network' });
 
     // Containers (tenants) on top, the shared stack (eth0 + lo) on the row below.
     const app  = box({ x: COL_L - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'app',     sublabel: 'container', role: 'network' });

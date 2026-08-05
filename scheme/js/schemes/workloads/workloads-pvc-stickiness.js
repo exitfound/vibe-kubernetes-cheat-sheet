@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, cylinder, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=330 (worst of
@@ -118,9 +118,7 @@ class Scene {
     const nodeB = node({ x: N_B_X, y: NODE_Y, w: N_W, h: NODE_H, label: 'Node-2' });
 
     // Pod web-0 on Node-1: starts visible, fades on evict.
-    const podAShell = pod({ x: P_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'web-0', sublabel: '', containers: 0, role: 'workloads' });
-    const podAShellRect = podAShell.querySelector('.scheme-pod-rect');
-    if (podAShellRect) podAShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const podAShell = podShell({ x: P_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'web-0', sublabel: '', containers: 0, role: 'workloads' });
     const podABox = box({ x: P_A_X + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'mount: /data', role: 'workloads' });
 
     const podA = g({ id: 'podA' });
@@ -128,9 +126,7 @@ class Scene {
     podA.appendChild(podABox);
 
     // Pod web-0 on Node-2: hidden initially, fades in on recreate.
-    const podBShell = pod({ x: P_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'web-0', sublabel: '', containers: 0, role: 'workloads' });
-    const podBShellRect = podBShell.querySelector('.scheme-pod-rect');
-    if (podBShellRect) podBShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const podBShell = podShell({ x: P_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'web-0', sublabel: '', containers: 0, role: 'workloads' });
     const podBBox = box({ x: P_B_X + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'mount: /data', role: 'workloads' });
 
     const podB = g({ id: 'podB' });

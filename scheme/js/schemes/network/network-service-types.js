@@ -1,5 +1,5 @@
 import { svg, g } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { pulsePod, segmentPacket, makeInit, clearHighlights, lightBoxAt, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-service-types
 
@@ -32,9 +32,7 @@ const ridingLabel = makeRidingLabel({ role: 'network' });
 // Core-networking pod build: a shell plus an inner app/eth0 box, grouped so pulsePod animates both
 // (identical shape to network-model / network-service-clusterip).
 function podBlock({ x, y, label, ip }) {
-  const shell = pod({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 18, y: y + 34, w: POD_W - 36, h: 50, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);

@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, cylinder, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-fsgroup-ownership
 
@@ -86,9 +86,7 @@ const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 function podBlock({ x, y }) {
-  const shell = pod({ x, y, w: POD_W, h: POD_H, label: 'Pod app-0', containers: 0, role: 'storage' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w: POD_W, h: POD_H, label: 'Pod app-0', containers: 0, role: 'storage' });
   const appBox = box({
     x: x + IN_INSET, y: y + IN_APP_DY, w: IN_W, h: IN_H,
     label: 'app', sublabel: 'runAsUser: 1000', role: 'storage',

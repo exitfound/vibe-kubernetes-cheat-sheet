@@ -1,5 +1,5 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, chip, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, chip, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, WL } from './workloads-kit.js';
 
 // Layout C of the Workloads canon (WL): full-width chip strip, ticks in the left band.
@@ -127,9 +127,7 @@ class Scene {
       .map((job, i) => ({ x: SLOT_X(i), job }));
     const podBoxes = [];
     const podWrappers = POD_DEFS.map((d, i) => {
-      const shell = pod({ x: d.x, y: POD_Y, w: SLOT_W, h: POD_H, label: d.job, sublabel: '', containers: 0, role: 'workloads' });
-      const shellRect = shell.querySelector('.scheme-pod-rect');
-      if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+      const shell = podShell({ x: d.x, y: POD_Y, w: SLOT_W, h: POD_H, label: d.job, sublabel: '', containers: 0, role: 'workloads' });
 
       const innerBox = box({ x: d.x + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: SLOT_W - POD_INNER.dx * 2, h: POD_INNER.h, label: 'Pod', sublabel: 'pending', role: 'workloads' });
 

@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
@@ -115,10 +115,8 @@ class Scene {
     // Full content width, so its top face midpoint is CX and the zigzag lands dead centre on it.
     const nodeEl = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
-    const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });
-    podShell.style.setProperty('--workloads-color', '#c0b0ff');
-    const podShellRect = podShell.querySelector('.scheme-pod-rect');
-    if (podShellRect) podShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });
+    shellEl.style.setProperty('--workloads-color', '#c0b0ff');
 
     const pauseBox = box({ x: PAUSE_X, y: INNER_Y, w: INNER_W, h: INNER_H, label: 'pause', sublabel: 'netns · IPC · UTS', role: 'workloads' });
     pauseBox.style.setProperty('--workloads-color', '#c0b0ff');
@@ -127,7 +125,7 @@ class Scene {
 
     // sandboxGroup (shell + pause) appears together at RunPodSandbox; appGroup later.
     const sandboxGroup = g({ id: 'sandboxGroup' });
-    sandboxGroup.appendChild(podShell);
+    sandboxGroup.appendChild(shellEl);
     sandboxGroup.appendChild(pauseBox);
     const appGroup = g({ id: 'appGroup' });
     appGroup.appendChild(appBox);
@@ -156,7 +154,7 @@ class Scene {
     this.refs = {
       svg: root,
       kubelet, runtime, cni, chain, nodeEl, connector,
-      sandboxGroup, appGroup, podShell, pauseBox, appBox,
+      sandboxGroup, appGroup, shellEl, pauseBox, appBox,
       sandboxChip, ipChip, statusChip, lastOpChip,
       packetLayer,
       wires: { kr: wireKR, rc: wireRC },
@@ -196,7 +194,7 @@ const STEPS = [
       clearWires(s);
       s.refs.sandboxGroup.style.opacity = '0';
       s.refs.appGroup.style.opacity = '0';
-      setPodSublabel(s.refs.podShell, ' ');
+      setPodSublabel(s.refs.shellEl, ' ');
       setBoxSublabel(s.refs.appBox, 'ENTRYPOINT');
       setVal(s.refs.sandboxChip, 'none');
       setVal(s.refs.ipChip, 'none');
@@ -214,7 +212,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.appGroup.style.opacity = '0';
-      setPodSublabel(s.refs.podShell, 'sandbox ready');
+      setPodSublabel(s.refs.shellEl, 'sandbox ready');
       setVal(s.refs.sandboxChip, 'pause-7f3a');
       setVal(s.refs.statusChip, 'sandbox ready');
       setVal(s.refs.lastOpChip, 'RunPodSandbox');
@@ -244,7 +242,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.appGroup.style.opacity = '0';
-      setPodSublabel(s.refs.podShell, 'IP 10.244.1.5');
+      setPodSublabel(s.refs.shellEl, 'IP 10.244.1.5');
       setVal(s.refs.ipChip, '10.244.1.5');
       setVal(s.refs.statusChip, 'sandbox ready · IP set');
       setVal(s.refs.lastOpChip, 'CNI ADD');

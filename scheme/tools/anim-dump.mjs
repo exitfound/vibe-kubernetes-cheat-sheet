@@ -4,7 +4,7 @@
 // node anim-dump.mjs <id> [step] [--samples=0,50,100] [--json] [--base=URL]
 // node anim-dump.mjs --all --out=DIR [--samples=...]   one JSON per card, the motion oracle
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launch, setInspect, stepCount, enterStep, stepSpan, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 
@@ -223,6 +223,11 @@ async function dumpCard(ctx, id, only) {
     const ids = await discoverIds(probe, baseUrl);
     await probe.close();
     if (!ids.length) { console.error(`No cards discovered. base=${baseUrl}`); await browser.close(); process.exit(2); }
+    // Wipe first, and write _complete only at the end. Without both, a run that dies partway
+    // leaves the previous run's files in place, the directory still holds 108 of them, and
+    // `diff -rq` against the baseline reports no changes over dumps that were never taken. That
+    // is not theoretical: it happened here, and it passed a refactor that had broken 11 cards.
+    await rm(outDir, { recursive: true, force: true });
     await mkdir(outDir, { recursive: true });
 
     let degradedAny = 0, steps = 0;
@@ -237,6 +242,7 @@ async function dumpCard(ctx, id, only) {
     process.stderr.write('\r'.padEnd(61) + '\r');
     await browser.close();
     if (degradedAny) console.error(`WARN: ${degradedAny} card(s) fell back to static state (no _timeline).`);
+    await writeFile(join(outDir, '_complete'), `${ids.length} cards, ${steps} steps\n`);
     console.log(`anim-dump --all: ${ids.length} cards, ${steps} steps -> ${outDir}`);
     return;
   }

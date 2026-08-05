@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, node, arrow } from '../../lib/primitives.js';
+import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { at, valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-nodelocal-dnscache
 
@@ -30,9 +30,7 @@ class Scene {
 
     const theNode = node({ x: 70, y: 200, w: 620, h: 220, label: 'Node   ·   192.168.1.20' });
 
-    const shell = pod({ x: 110, y: FLOW_Y - 60, w: 180, h: 120, label: 'Client Pod', sublabel: 'curl api', containers: 0, role: 'network' });
-    const shellRect = shell.querySelector('.scheme-pod-rect');
-    if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+    const shell = podShell({ x: 110, y: FLOW_Y - 60, w: 180, h: 120, label: 'Client Pod', sublabel: 'curl api', containers: 0, role: 'network' });
     // The resolver box lives INSIDE podGroup: pulsePod walks descendants, so a box appended beside the
     // shell would be left out of the pulse and the Pod would blink with a dead centre.
     const podBox = box({ x: 130, y: FLOW_Y - 26, w: 140, h: 52, label: 'Resolver', sublabel: 'getaddrinfo', role: 'network' });

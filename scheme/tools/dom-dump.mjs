@@ -12,7 +12,7 @@
 // see a static block that moved, a chip that got relabelled, or a wrapping <g> that gained a
 // level. A refactor is only proven safe when BOTH diffs are empty.
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launch, setInspect, stepCount, enterStep, stepSpan, seekStep, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 
@@ -105,6 +105,9 @@ async function dumpCard(ctx, id, only) {
     const ids = await discoverIds(probe, baseUrl);
     await probe.close();
     if (!ids.length) { console.error(`No cards discovered. base=${baseUrl}`); await browser.close(); process.exit(2); }
+    // Wipe first, sentinel last. See the same block in anim-dump.mjs for what a half-written
+    // output directory did to a refactor that had broken 11 cards.
+    await rm(outDir, { recursive: true, force: true });
     await mkdir(outDir, { recursive: true });
 
     let degradedAny = 0, steps = 0;
@@ -119,6 +122,7 @@ async function dumpCard(ctx, id, only) {
     process.stderr.write('\r'.padEnd(61) + '\r');
     await browser.close();
     if (degradedAny) console.error(`WARN: ${degradedAny} card(s) fell back to static state (no _timeline).`);
+    await writeFile(join(outDir, '_complete'), `${ids.length} cards, ${steps} steps\n`);
     console.log(`dom-dump --all: ${ids.length} cards, ${steps} steps -> ${outDir}`);
     return;
   }

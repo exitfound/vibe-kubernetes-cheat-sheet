@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, arrow, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-ebpf-dataplane
 
@@ -43,9 +43,7 @@ const CHIP_X2 = CHIP_X1 + CHIP_W + CHIP_GAP;                 // 430
 const CHIP_X3 = CHIP_X2 + CHIP_W + CHIP_GAP;                 // 790, ends on CONTENT_R
 
 function clientBlock({ x, y, w, h }) {
-  const shell = pod({ x, y, w, h, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
   // The socket dials the Service ClusterIP (10.96.0.20), not a Pod: shown here against the client own
   // Pod IP on the shell, so the two address kinds read side by side. Fits the 160-wide inner box.
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'Socket', sublabel: 'connect() 10.96.0.20', role: 'network' });
@@ -56,9 +54,7 @@ function clientBlock({ x, y, w, h }) {
 }
 
 function podBlock({ x, y, w, h, label, ip }) {
-  const shell = pod({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const shellRect = shell.querySelector('.scheme-pod-rect');
-  if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
+  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
   const group = g({});
   group.appendChild(shell);

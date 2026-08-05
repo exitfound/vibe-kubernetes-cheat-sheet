@@ -1,5 +1,5 @@
 import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, pod, node, box, cylinder, pathArrow } from '../../lib/primitives.js';
+import { arrowDefs, node, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from './cluster-kit.js';
 
 // One grid with cluster-architecture, minus the cloud-controller-manager. Every control-plane
@@ -132,10 +132,8 @@ class Scene {
     root.appendChild(runtime);
 
     // The placed Pod (violet workloads tint) appears inside the node once the Kubelet starts it.
-    const placedPodShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
+    const placedPodShell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
     placedPodShell.style.setProperty('--workloads-color', '#c0b0ff');
-    const placedPodShellRect = placedPodShell.querySelector('.scheme-pod-rect');
-    if (placedPodShellRect) placedPodShellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
     const placedPodBox = box({ x: POD_X + 30, y: POD_Y + 28, w: POD_W - 60, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27', role: 'workloads' });
     placedPodBox.style.setProperty('--workloads-color', '#c0b0ff');
