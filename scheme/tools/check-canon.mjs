@@ -95,6 +95,10 @@ const ENFORCED = new Set([
   // Queue drained by the R5 cluster rebuild: all 108 cards are on '0 0 1200 640' now, so a
   // shifted camera can only ever be a regression.
   'R-viewbox',
+  // Enforced on arrival: it states the convention that replaced data.js's `module` field, and it
+  // was clean the moment the field was deleted. Anything it finds is a card the browser cannot
+  // import or a file nothing reads.
+  'R-modulepath',
 ]);
 const advisories = [];
 const violations = [];
@@ -243,6 +247,49 @@ for (const { base: f, path } of files) {
       report('R-kitparity', `${k} re-exports a different set than ${ref}` +
         (missing.length ? `, missing: ${missing.join(', ')}` : '') +
         (extra.length ? `, extra: ${extra.join(', ')}` : ''));
+    }
+  }
+}
+
+// ---- R-modulepath ----
+// data.js no longer stores a path. app.js imports `./schemes/${category}/${id}.js` and catalog.mjs
+// builds the same string for every linter, so the convention IS the wiring and has to be checked
+// rather than assumed. Two halves, and only the first one is obvious:
+//   catalog -> disk  every catalogued card resolves to a file whose id starts with its category.
+//                    The id prefix is not decoration: it is the folder name. This can genuinely
+//                    break, and once did, when workloads-pod-priority-preemption became
+//                    cluster-pod-priority-preemption.
+//   disk -> catalog  no .js under a category folder that the catalog does not claim. This half
+//                    used to come free: every check walked the directory, so a stray card was
+//                    linted like any other and check-notes said NO NOTE about it. Now that the
+//                    walkers read data.js, a file nobody lists is a file nobody reads, and the
+//                    grid never renders it either. Without this line it would be invisible.
+// The kits are exempt by name: they live in the folder on purpose and are not cards.
+{
+  const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
+  const SCHEMES_DIR = join(__dirname, '..', 'js', 'schemes');
+  const claimed = new Set();
+  for (const s of SCHEMES) {
+    // A leftover `module` field means this data.js predates the convention, which in practice means
+    // a revert or a bad merge put an old copy back. Worth a line of its own because the field is
+    // now read by nobody: app.js derives the path and so does catalog.mjs, so the whole catalog
+    // can quietly regain a dead field and every check in this gate stays green over it. That is
+    // not hypothetical, it happened once during the refactor that removed the field.
+    if (s.module !== undefined) report('R-modulepath', `${s.id}  still carries a module field ("${s.module}"), which nothing reads: the path is derived from category + id`);
+    const prefix = s.id.split('-')[0];
+    if (prefix !== s.category) {
+      report('R-modulepath', `${s.id}  id starts with "${prefix}" but category is "${s.category}", so app.js would import js/schemes/${s.category}/${s.id}.js`);
+      continue;
+    }
+    claimed.add(`${s.category}/${s.id}.js`);
+  }
+  for (const c of [...new Set(SCHEMES.map(s => s.category))].sort()) {
+    let entries;
+    try { entries = await readdir(join(SCHEMES_DIR, c)); }
+    catch (_) { report('R-modulepath', `${c}: no such folder, but ${SCHEMES.filter(s => s.category === c).length} card(s) claim it`); continue; }
+    for (const n of entries) {
+      if (!n.endsWith('.js') || n === `${c}-kit.js`) continue;
+      if (!claimed.has(`${c}/${n}`)) report('R-modulepath', `js/schemes/${c}/${n}  is on disk but no SCHEMES entry claims it (nothing lints it and the grid never shows it)`);
     }
   }
 }

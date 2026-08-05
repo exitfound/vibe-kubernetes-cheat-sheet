@@ -22,14 +22,15 @@ export const ROOT = join(__dirname, '..');
 // matches what these checks printed before). Each entry carries the id, so no caller has to derive
 // one by stripping '.js' off a filename.
 //
-// `path` follows data.js's own `module` field rather than rebuilding the path from a convention:
-// whatever the browser loads is what the linters read, and a card that moves cannot leave them
-// behind. When `module` goes away, this is the single line that has to learn the convention.
+// `path` is built from the same convention app.js uses to import a card, js/schemes/<cat>/<id>.js,
+// so the linters read exactly what the browser loads. The convention itself is not assumed here:
+// R-modulepath in check-canon asserts both halves of it, that every id starts with its category
+// and that the folders hold no file the catalog does not claim.
 export async function cards() {
   const { SCHEMES } = await import(pathToFileURL(join(ROOT, 'js', 'data.js')).href);
   const list = SCHEMES
     .map(s => {
-      const rel = join('js', s.module);              // './schemes/x.js' -> 'js/schemes/x.js'
+      const rel = join('js', 'schemes', s.category, `${s.id}.js`);
       return { id: s.id, category: s.category, base: `${s.id}.js`, rel, path: join(ROOT, rel) };
     })
     .sort((a, b) => (a.base < b.base ? -1 : a.base > b.base ? 1 : 0));

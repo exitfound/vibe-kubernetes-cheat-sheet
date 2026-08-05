@@ -491,7 +491,11 @@ async function openScheme(id, initialStep = null) {
 
   let mod;
   try {
-    mod = await import(scheme.module);
+    // A card lives at js/schemes/<category>/<id>.js and its id starts with its category, so the
+    // path is derivable and data.js no longer carries a `module` field to drift out of step with
+    // the disk. R-modulepath in check-canon holds both halves of that convention, and a path that
+    // resolves to nothing lands in the catch below, which smoke-all turns into a failed gate.
+    mod = await import(`./schemes/${scheme.category}/${scheme.id}.js`);
   } catch (e) {
     console.error('Failed to load scheme:', e);
     showLoadError(dialog);
