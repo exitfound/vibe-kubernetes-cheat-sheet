@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sentences, sentenceStarts, termRegex, termIssues } from './prose.mjs';
-import { cards } from './catalog.mjs';
+import { cards, manifest } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -22,11 +22,17 @@ const wanted = id => argIds.size === 0 || argIds.has(id);
 // string to open, and `line` points into the file that holds it.
 const prose = [];
 {
-  const dataSrc = await readFile(join(__dirname, '..', 'js', 'data.js'), 'utf8');
+  // A desc is declared in its category's manifest, not in data.js, which is now a barrel. Reading
+  // the wrong file here would not lose a finding, it would print every one of them as
+  // "js/data.js:0" and send the reader to a file that does not contain the sentence.
+  const srcOf = new Map();
   for (const s of SCHEMES) {
     if (!wanted(s.id)) continue;
-    const at = dataSrc.indexOf(s.desc);
-    prose.push({ id: s.id, where: 'desc', file: 'js/data.js', line: at < 0 ? 0 : dataSrc.slice(0, at).split('\n').length, text: s.desc });
+    const m = manifest(s.category);
+    if (!srcOf.has(m.rel)) srcOf.set(m.rel, await readFile(m.path, 'utf8'));
+    const src = srcOf.get(m.rel);
+    const at = src.indexOf(s.desc);
+    prose.push({ id: s.id, where: 'desc', file: m.rel, line: at < 0 ? 0 : src.slice(0, at).split('\n').length, text: s.desc });
   }
 }
 // The walk is over the whole catalog and cards() refuses to return a partial one. The `wanted`

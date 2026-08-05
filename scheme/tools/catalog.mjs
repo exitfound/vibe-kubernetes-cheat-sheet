@@ -48,6 +48,13 @@ export async function cards() {
   return list;
 }
 
+// Where a category's card entries are declared. A finding about a `desc` has to name the file that
+// holds it, and since the split that is no longer data.js.
+export function manifest(category) {
+  const rel = join('js', 'schemes', category, 'cards.js');
+  return { rel, path: join(ROOT, rel) };
+}
+
 // Assert a check collected the whole catalog AFTER its own filter. Only for the checks that have
 // one (an id subset from argv); a check that walks `cards()` straight through is already covered
 // by the existence guard above, and calling this with the same number on both sides would be an

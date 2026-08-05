@@ -264,7 +264,8 @@ for (const { base: f, path } of files) {
 //                    linted like any other and check-notes said NO NOTE about it. Now that the
 //                    walkers read data.js, a file nobody lists is a file nobody reads, and the
 //                    grid never renders it either. Without this line it would be invisible.
-// The kits are exempt by name: they live in the folder on purpose and are not cards.
+// A category folder holds two .js files that are not cards and are exempt by name: its kit, and
+// cards.js, the manifest listing the very entries this rule reads.
 {
   const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
   const SCHEMES_DIR = join(__dirname, '..', 'js', 'schemes');
@@ -288,7 +289,7 @@ for (const { base: f, path } of files) {
     try { entries = await readdir(join(SCHEMES_DIR, c)); }
     catch (_) { report('R-modulepath', `${c}: no such folder, but ${SCHEMES.filter(s => s.category === c).length} card(s) claim it`); continue; }
     for (const n of entries) {
-      if (!n.endsWith('.js') || n === `${c}-kit.js`) continue;
+      if (!n.endsWith('.js') || n === `${c}-kit.js` || n === 'cards.js') continue;
       if (!claimed.has(`${c}/${n}`)) report('R-modulepath', `js/schemes/${c}/${n}  is on disk but no SCHEMES entry claims it (nothing lints it and the grid never shows it)`);
     }
   }
@@ -352,13 +353,22 @@ for (const dir of ['scheme/js/lib', 'scheme/css']) {
     if (/\.(js|css)$/.test(n)) dashTargets.push(`${dir}/${n}`);
   }
 }
-// The four category kits sit beside their cards, not in js/lib, so the directory walk above no
-// longer reaches them. Named explicitly because the alternative failure is silent: this loop
-// scans whatever a directory happens to hold, and a file that leaves one simply stops being
-// checked, with no finding and no error to say so. The read below also swallows a missing file,
-// so a typo here would be silent too: keep these four in step with the kit locations.
-for (const c of ['workloads', 'cluster', 'network', 'storage']) {
-  dashTargets.push(`scheme/js/schemes/${c}/${c}-kit.js`);
+// Everything in a category folder that is NOT a card: the kit, and the manifest holding that
+// category's descriptions. Cards themselves are dash-checked in the main loop above, so they are
+// excluded here rather than scanned twice.
+//
+// Walked rather than listed, and that is the whole point. Twice during one refactor a file moved
+// into these folders and silently left the dash scan behind: first the four kits when they left
+// js/lib, then all 108 card descriptions when they left js/data.js for the per-category manifests.
+// Neither produced a finding or an error, because this list is built from whatever a directory
+// happens to hold, and the read below swallows a path that does not resolve. A walk cannot forget.
+{
+  const cardBases = new Set(files.map(f => f.base));
+  for (const c of [...new Set(files.map(f => f.category))].sort()) {
+    for (const n of await readdir(join(ROOT, 'scheme/js/schemes', c))) {
+      if (/\.js$/.test(n) && !cardBases.has(n)) dashTargets.push(`scheme/js/schemes/${c}/${n}`);
+    }
+  }
 }
 for (const rel of dashTargets.sort()) {
   let src;
