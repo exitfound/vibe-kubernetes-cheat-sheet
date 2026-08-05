@@ -90,9 +90,9 @@ class Scene {
 
     // What each Node announces for the address. All three sit on the same baseline so they read as a
     // row, low enough to clear the Pod above (its bottom edge is 460) and to stay inside the Node.
-    const n1Note = text({ class: 'scheme-label code dim', x: N1_CX, y: 482, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
-    const n2Note = text({ class: 'scheme-label code dim', x: N2_CX, y: 482, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
-    const n3Note = text({ class: 'scheme-label code dim', x: N3_CX, y: 482, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
+    const n1Note = text({ class: 'scheme-label code dim', x: N1_CX, y: 482, 'text-anchor': 'middle' }, [' ']);
+    const n2Note = text({ class: 'scheme-label code dim', x: N2_CX, y: 482, 'text-anchor': 'middle' }, [' ']);
+    const n3Note = text({ class: 'scheme-label code dim', x: N3_CX, y: 482, 'text-anchor': 'middle' }, [' ']);
 
     const statusChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 300, h: CHIP_H, name: 'status.loadBalancer', value: 'pending', role: 'network' });
     const poolChip   = valChip({ x: 370, y: CHIP_Y, w: 260, h: CHIP_H, name: 'address pool', value: 'none', role: 'network' });

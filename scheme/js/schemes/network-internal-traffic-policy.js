@@ -88,8 +88,8 @@ class Scene {
 
     // What each backend is to the kube-proxy on Node-1. Both notes sit on one baseline under the Pods,
     // inside their Nodes, so they read as a pair that the policy flips.
-    const aNote = text({ class: 'scheme-label code dim', x: PODA_X + POD_W / 2, y: 480, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
-    const bNote = text({ class: 'scheme-label code dim', x: PODB_CX, y: 480, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
+    const aNote = text({ class: 'scheme-label code dim', x: PODA_X + POD_W / 2, y: 480, 'text-anchor': 'middle' }, [' ']);
+    const bNote = text({ class: 'scheme-label code dim', x: PODB_CX, y: 480, 'text-anchor': 'middle' }, [' ']);
 
     const policyChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 290, h: CHIP_H, name: 'internalTrafficPolicy', value: 'Cluster', role: 'network' });
     const scopeChip  = valChip({ x: 350, y: CHIP_Y, w: 300, h: CHIP_H, name: 'endpoints in scope', value: 'none', role: 'network' });

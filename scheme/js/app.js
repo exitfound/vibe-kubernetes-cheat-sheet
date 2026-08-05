@@ -457,6 +457,8 @@ const SCHEME_ALIASES = {
   'lifecycle-crashloopbackoff': 'workloads-crashloopbackoff',
   'lifecycle-graceful-shutdown': 'workloads-graceful-shutdown',
   'lifecycle-force-deletion': 'workloads-force-deletion',
+  // Preemption is the PostFilter stage of the scheduler, so the card moved to Cluster on 2026-08-04.
+  'workloads-pod-priority-preemption': 'cluster-pod-priority-preemption',
   'deployment-rolling-update': 'workloads-rolling-update',
   'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',
   'service-cluster-ip': 'network-service-clusterip',

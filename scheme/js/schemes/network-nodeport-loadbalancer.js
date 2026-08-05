@@ -73,7 +73,7 @@ class Scene {
     const fan2 = pathArrow({ points: TO_N2, dashed: true, dim: true, role: 'network' });
     const fan3 = pathArrow({ points: TO_N3, dashed: true, dim: true, role: 'network' });
     const dnatWire = arrow({ x1: NP_TO_POD[0][0], y1: NP_TO_POD[0][1], x2: NP_TO_POD[1][0], y2: NP_TO_POD[1][1], dashed: true, dim: true, role: 'network' });
-    const cWireLabel = text({ class: 'scheme-label code dim', x: CX + 60, y: LB_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const cWireLabel = text({ class: 'scheme-label code dim', x: CX + 60, y: LB_Y - 12, 'text-anchor': 'middle' }, [' ']);
 
     const node1 = node({ x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
     const node2 = node({ x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' });

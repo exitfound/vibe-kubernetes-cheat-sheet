@@ -63,7 +63,7 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const ruleTitle = text({ class: 'scheme-label code dim', x: RULE_CX, y: 56, 'text-anchor': 'middle', 'font-size': 11 }, ['Ingress "shop" · ingressClassName nginx']);
+    const ruleTitle = text({ class: 'scheme-label code dim', x: RULE_CX, y: 56, 'text-anchor': 'middle' }, ['Ingress "shop" · ingressClassName nginx']);
     const ruleA = valChip({ x: RULE_X, y: 66,  w: RULE_W, h: 36, name: 'shop.io/', value: '-> Service web:80', role: 'network' });
     const ruleB = valChip({ x: RULE_X, y: 110, w: RULE_W, h: 36, name: 'shop.io/api', value: '-> Service api:80', role: 'network' });
 
@@ -84,9 +84,9 @@ class Scene {
     const podWebWire = arrow({ x1: WEB_HOP[0][0], y1: WEB_HOP[0][1], x2: WEB_HOP[1][0], y2: WEB_HOP[1][1], dashed: true, dim: true, role: 'network' });
     const podApiWire = arrow({ x1: API_HOP[0][0], y1: API_HOP[0][1], x2: API_HOP[1][0], y2: API_HOP[1][1], dashed: true, dim: true, role: 'network' });
 
-    const entryLabel = text({ class: 'scheme-label code dim', x: (LB_RIGHT + CTRL_X) / 2, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const webLabel = text({ class: 'scheme-label code dim', x: SVC_X + SVC_W / 2, y: WEB_Y - SVC_H / 2 - 10, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const apiLabel = text({ class: 'scheme-label code dim', x: SVC_X + SVC_W / 2, y: API_Y + SVC_H / 2 + 18, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const entryLabel = text({ class: 'scheme-label code dim', x: (LB_RIGHT + CTRL_X) / 2, y: FLOW_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const webLabel = text({ class: 'scheme-label code dim', x: SVC_X + SVC_W / 2, y: WEB_Y - SVC_H / 2 - 10, 'text-anchor': 'middle' }, [' ']);
+    const apiLabel = text({ class: 'scheme-label code dim', x: SVC_X + SVC_W / 2, y: API_Y + SVC_H / 2 + 18, 'text-anchor': 'middle' }, [' ']);
 
     const hostChip = valChip({ x: LB_X, y: CHIP_Y, w: 310, h: 34, name: 'Host', value: 'none', role: 'network' });
     const pathChip = valChip({ x: 370,  y: CHIP_Y, w: 290, h: 34, name: 'path', value: 'none', role: 'network' });

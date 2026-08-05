@@ -44,7 +44,8 @@ const SCHIP_Y = i => GVR_Y + i * (SCHIP_H + SCHIP_GAP);  // 217 / 255 / 293, lev
 // Centre column under the API: the Informer feeds the Indexer down the CX spine.
 const COL_W = 180, COL_X = CX - COL_W / 2;               // 510..690
 const INF_Y = 235, INF_H = 72, INF_BOTTOM = INF_Y + INF_H;   // 235..307
-const IDX_Y = 390, IDX_H = 110;                          // 390..500
+// The Indexer is a BOX, never a cylinder: that glyph is ETCD's, 400 units to the right.
+const IDX_Y = 390, IDX_H = 80;                           // 390..470, level with the Client
 const LANE_INSET = 4;
 const WATCH_LANE = [[CX, TOP_BOTTOM + LANE_INSET], [CX, INF_Y - LANE_INSET]];
 const FEED_LANE  = [[CX, INF_BOTTOM + LANE_INSET], [CX, IDX_Y - LANE_INSET]];
@@ -55,6 +56,9 @@ const SLOT_SPAN = SLOT_N * SLOT_W + (SLOT_N - 1) * SLOT_GAP;   // 620
 const SLOT_X = i => CX - SLOT_SPAN / 2 + i * (SLOT_W + SLOT_GAP);
 const SLOT_Y = 548, STREAM_LABEL_Y = SLOT_Y - 12;
 const WIRE_REQ_Y = (INF_BOTTOM + IDX_Y) / 2;             // 348, between the Informer and the Indexer
+// Centred in the API-to-Informer gap rather than pinned: the +4 puts the glyph MIDDLE on the gap
+// centre, because measured that middle sits 3.9 above the baseline y sets. It read 200, i.e. 8.6 low.
+const WIRE_WATCH_Y = (TOP_BOTTOM + INF_Y) / 2 + 4;       // 191.5, visual centre 187.6 against 187.5
 // Design notes for this card: scheme/docs/CARDS.md#cluster-api-structure
 
 
@@ -104,9 +108,7 @@ class Scene {
 
     // Centre spine under Api (cx=600), generous vertical spacing: Informer feeds the Indexer.
     const informer = box({ x: COL_X, y: INF_Y, w: COL_W, h: INF_H, label: 'Informer', sublabel: 'shared list-watch', role: 'cluster' });
-    const cache = cylinder({ x: COL_X, y: IDX_Y, w: COL_W, h: IDX_H, label: 'Indexer', role: 'cluster' });
-    const cacheLbl = cache.querySelector('.scheme-cylinder-label');
-    if (cacheLbl) cacheLbl.setAttribute('y', 66);
+    const cache = box({ x: COL_X, y: IDX_Y, w: COL_W, h: IDX_H, label: 'Indexer', sublabel: 'in-memory cache', role: 'cluster' });
     root.appendChild(cache);
 
     const gvr = chainList({
@@ -158,7 +160,7 @@ class Scene {
     // could be labelling. Nothing noticed for as long as both registers stayed empty.
     const wireApiEtcd  = text({ class: 'scheme-label code dim', x: (RISER_OUT_X + ETCD_X) / 2, y: ETCD_CY - ETCD_LANE_DY - 10, 'text-anchor': 'middle' }, [' ']);
     // Left of the watch arrow: the corridor on its right now carries the two ETCD risers.
-    const wireWatch    = text({ class: 'scheme-label code dim', x: 580, y: 200, 'text-anchor': 'end'  }, [' ']);
+    const wireWatch    = text({ class: 'scheme-label code dim', x: 580, y: WIRE_WATCH_Y, 'text-anchor': 'end'  }, [' ']);
     const wireEtcdRet  = text({ class: 'scheme-label code dim', x: (RISER_BACK_X + ETCD_X) / 2, y: ETCD_CY + ETCD_LANE_DY + 18, 'text-anchor': 'middle' }, [' ']);
     const wireGvr      = text({ class: 'scheme-label code dim', x: GVR_X + GVR_W / 2, y: GVR_Y - 12, 'text-anchor': 'middle' }, [' ']);
     [wireReq, wireApiEtcd, wireWatch, wireEtcdRet, wireGvr].forEach(t => root.appendChild(t));
@@ -248,17 +250,21 @@ const STEPS = [
       setVal(s.refs.cacheChip, '0');
       setWire(s, 'req', 'GET /api  +  GET /apis');
       setWire(s, 'gvr', 'GVR catalogue');
+      // Only the CLIENT is lit at entry. The API is the receiver of the one ball this step draws, and
+      // it used to be lit from entry too, which showed the answer 1156ms before the question landed.
       s.refs.client.classList.add('highlight');
-      s.refs.api.classList.add('highlight');
-      if (ctx.reduced) return;
+      if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
       // The client calls /api and /apis on the Api to fetch the GVR catalogue.
-      routePacket(s, ctx, CLIENT_TO_API, { role: 'cluster' });
+      const pkt = routePacket(s, ctx, CLIENT_TO_API, { role: 'cluster' });
+      lightBoxAt(s.refs.api, ctx, pkt.arrivalMs);
     },
   },
   {
     id: 'list',
-    // Motion: the LIST read goes out to ETCD, the full set comes back, then the stream reaches the
-    // informer and its cache fills, ending at 5140. Drawing the read itself cost 1340ms.
+    // Motion: the answer goes straight down the watch lane to the informer and its cache fills, with
+    // the API's own list-watch on ETCD running alongside. Ends at 3460, down from 5140 when the
+    // answer was still chained behind the ETCD round trip. `duration` is deliberately NOT cut to
+    // match: this is the longest narration on the card and 5400 is reading time, not motion time.
     duration: 5400,
     narration: 'The informer fires the initial LIST at resourceVersion 0. The API keeps its watch cache filled from ETCD and answers the list from there, with no quorum read, so the full set lands in the Indexer at rv=842 and the controller reconciles from local memory.',
     enter(s, ctx) {
@@ -270,15 +276,16 @@ const STEPS = [
       setVal(s.refs.rvChip, '842');
       setVal(s.refs.cacheChip, '3');
       setWire(s, 'req', 'LIST /api/v1/pods · rv=0');
-      // The two ETCD lanes are the API keeping its OWN cache current, and they are labelled as that
-      // now: a reflector lists at rv=0, which the reference says is always served from the watch
-      // cache, so the ball crossing to ETCD is not this request being read through.
+      // The two ETCD lanes are the API keeping its OWN cache current, and they are labelled as that.
+      // Verified in apiserver/pkg/storage/cacher/delegator: ShouldDelegateList with an empty
+      // ResourceVersionMatch, no Continue token and ResourceVersion "0" falls through to
+      // `Result{ShouldDelegate: false}`, so the LIST is answered by the Cacher and never reaches
+      // etcd. The ball crossing to ETCD is therefore not this request being read through.
       setWire(s, 'api-etcd', 'list-watch on ETCD');
       setWire(s, 'etcd-ret', 'objects · rv=842');
-      // Nobody is lit from entry on this step any more: the API sends the read, so ETCD RECEIVES it
-      // before it answers, and every one of the three actors here acts only on what reaches it. The
-      // API was the source before the read itself was drawn (review stage 2.4 family B), and it is the
-      // source of the outbound ball still, which is why it stays lit at entry below the guard.
+      // The API is the SOURCE of both balls this step draws (the answer down the watch lane and the
+      // outbound list-watch), so it alone is lit at entry. ETCD, the Informer and the Indexer each
+      // receive, so each lights on arrival.
       s.refs.rvChip.classList.add('highlight');
       s.refs.cacheChip.classList.add('highlight');
       const labels = [['ADDED', 'pod-a · rv=840'], ['ADDED', 'pod-b · rv=841'], ['ADDED', 'pod-c · rv=842']];
@@ -295,17 +302,21 @@ const STEPS = [
         s.refs.cache.classList.add('highlight');
         return;
       }
-      // "The API reads from ETCD and returns the full set": only the return was ever drawn, so the read
-      // itself goes out first down the lane the card draws for it, and ETCD lights when it lands.
       s.refs.api.classList.add('highlight');
-      const ask     = routePacket(s, ctx, API_TO_ETCD, { role: 'cluster' });
-      lightBoxAt(s.refs.etcdC, ctx, ask.arrivalMs);
-      const read    = routePacket(s, ctx, ETCD_TO_API, { delay: ask.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      lightBoxAt(s.refs.api, ctx, read.arrivalMs);
-      const stream  = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], delay: read.arrivalMs + BEAT.afterHop, role: 'cluster' });
+      // The answer to an rv=0 LIST comes out of the watch cache, which is exactly what the sentence
+      // above says, so it leaves the API AT ONCE and is gated on nothing. The stream used to wait on
+      // the ETCD return, which drew this request being read through and made the picture contradict
+      // its own narration: the reader watched a ball go out to ETCD and come back before the
+      // Informer was answered, under a panel saying no quorum read happened.
+      const stream  = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], role: 'cluster' });
       lightBoxAt(s.refs.informer, ctx, stream.arrivalMs);
       const toCache = segmentPacket(s, ctx, { from: FEED_LANE[0], to: FEED_LANE[1], delay: stream.arrivalMs + BEAT.afterHop, role: 'cluster' });
       lightBoxAt(s.refs.cache, ctx, toCache.arrivalMs);
+      // The API keeping its own cache current, running ALONGSIDE the answer rather than under it.
+      // Background traffic: nothing waits on it and it waits on nothing.
+      const ask = routePacket(s, ctx, API_TO_ETCD, { role: 'cluster' });
+      lightBoxAt(s.refs.etcdC, ctx, ask.arrivalMs);
+      routePacket(s, ctx, ETCD_TO_API, { delay: ask.arrivalMs + BEAT.afterHop, role: 'cluster' });
       s.refs.slots.slice(0, 3).forEach((slot, i) => {
         ctx.register(slot.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400 + i * 120, delay: toCache.arrivalMs, fill: 'both' }));
       });
@@ -413,6 +424,12 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       hideAllSlots(s);
+      // The 410 step is a conditional aside (its own sentence opens with If), so the informer is
+      // back in the steady state `event` left it in. Without these three the coda ran under
+      // `410 Gone · re-listing`, which is the previous step leaking into a summary about CRDs.
+      setVal(s.refs.rvChip, '843');
+      setVal(s.refs.watchChip, 'open · streaming');
+      setVal(s.refs.cacheChip, '4');
       setWire(s, 'gvr', 'CRD · widgets · watchable');
       const rows = s.refs.gvr.querySelectorAll('.scheme-chip');
       rows.forEach(r => r.classList.add('highlight'));

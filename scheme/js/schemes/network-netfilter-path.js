@@ -108,7 +108,7 @@ class Scene {
 
     // One wire label, under the NIC: where this packet is actually headed once it is on the wire. Blank at
     // build, filled per step.
-    const exitLabel = text({ class: 'scheme-label code dim', x: ETH_CX, y: ROW_BOTTOM + 20, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const exitLabel = text({ class: 'scheme-label code dim', x: ETH_CX, y: ROW_BOTTOM + 20, 'text-anchor': 'middle' }, [' ']);
 
     const hookChip = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'hook', value: 'none', role: 'network' });
     const dstChip  = valChip({ x: CHIP_X[1], y: CHIP_Y, w: CHIP_W[1], h: CHIP_H, name: 'dst', value: '10.96.0.20:80', role: 'network' });

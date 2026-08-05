@@ -97,8 +97,8 @@ class Scene {
     const fanX = pathArrow({ points: TO_PODX, dashed: true, dim: true });
     const fanY = pathArrow({ points: TO_PODY, dashed: true, dim: true });
     // No connect-wire label: the connect target (ClusterIP) now lives on the client socket box.
-    const lLookup = text({ class: 'scheme-label code dim', x: LOOKUP_X + 15, y: 238, 'text-anchor': 'start', 'font-size': 10 }, [' ']);
-    const lDeliver = text({ class: 'scheme-label code dim', x: (HOOK_RIGHT + FAN_X) / 2, y: FLOW_Y + 20, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const lLookup = text({ class: 'scheme-label code dim', x: LOOKUP_X + 15, y: 238, 'text-anchor': 'start' }, [' ']);
+    const lDeliver = text({ class: 'scheme-label code dim', x: (HOOK_RIGHT + FAN_X) / 2, y: FLOW_Y + 20, 'text-anchor': 'middle' }, [' ']);
 
     // Info chips: three equal widths spanning the diagram content exactly, from the client left edge
     // to the backend Pod right edge, so the strip lines up with the blocks above it.

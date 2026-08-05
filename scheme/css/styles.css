@@ -829,17 +829,24 @@ body.sidebar-collapsed .side-expand { display: grid; }
   --tint-fill:      rgba(20, 40, 32, 0.72);
   --tint-fill-node: rgba(13, 28, 22, 0.62);
 }
+/* Every shade below is DERIVED from the four channel-list triples each category declares above.
+   The fallbacks are a safety net, not a palette: a category that forgets one of its four triples
+   would otherwise make `rgb(var(--missing))` invalid at computed-value time, which takes the custom
+   property down to the guaranteed-invalid value and blanks FIVE shades at once, --tint-panel (the
+   narration panel background) among them. Nothing in the gate would catch that. The fallback greys
+   are deliberately neutral so a missed declaration reads as unstyled rather than as another
+   category, and they are never the right answer: declare the triples. */
 .scheme-dialog[data-tinted="true"] {
-  --tint-deep:      rgb(var(--tint-deep-rgb));
-  --tint-base:      rgb(var(--tint-base-rgb));
-  --tint-bright:    rgb(var(--tint-bright-rgb));
-  --tint-canvas:    rgb(var(--tint-canvas-rgb));
+  --tint-deep:      rgb(var(--tint-deep-rgb,    70, 72, 90));
+  --tint-base:      rgb(var(--tint-base-rgb,   150, 154, 178));
+  --tint-bright:    rgb(var(--tint-bright-rgb, 200, 203, 222));
+  --tint-canvas:    rgb(var(--tint-canvas-rgb,  16, 15, 26));
 
-  --tint-glow:      rgba(var(--tint-base-rgb), 0.15);
-  --tint-border:    rgba(var(--tint-bright-rgb), 0.42);
-  --tint-active:    rgba(var(--tint-bright-rgb), 0.28);
-  --tint-edge:      rgba(var(--tint-deep-rgb), 0.5);
-  --tint-panel:     rgba(var(--tint-canvas-rgb), 0.86);
+  --tint-glow:      rgba(var(--tint-base-rgb,   150, 154, 178), 0.15);
+  --tint-border:    rgba(var(--tint-bright-rgb, 200, 203, 222), 0.42);
+  --tint-active:    rgba(var(--tint-bright-rgb, 200, 203, 222), 0.28);
+  --tint-edge:      rgba(var(--tint-deep-rgb,    70, 72, 90), 0.5);
+  --tint-panel:     rgba(var(--tint-canvas-rgb,  16, 15, 26), 0.86);
 
   --accent:        var(--tint-bright);
   --accent-glow:   var(--tint-glow);
@@ -872,11 +879,18 @@ body.sidebar-collapsed .side-expand { display: grid; }
   background: var(--tint-chrome, var(--tint-fill-node));
   border-top-color: var(--tint-border);
 }
-/* --tint-panel is the canvas at 86%, so only the border and the accent edge draw the box. */
+/* --tint-panel is the canvas at 86%, so only the border and the accent edge draw the box.
+   NO border-left-color here. It carried `var(--tint-bright)` and was DEAD: the four
+   `.scheme-dialog[data-cat="..."] .narration-overlay` rules further down have the identical
+   specificity (0,3,0) and come later, so source order hands them the win. Measured on
+   cluster-node-drain, the left edge computes to rgb(125, 134, 255), which is --tint-base, not the
+   --tint-bright rgb(171, 176, 245) this line asked for. Every card is tinted, so those four rules
+   resolve their --<cat>-color to --tint-base and the edge is the base tone catalog-wide.
+   Restoring the brighter edge is a VISUAL change to all 107 cards, not a cleanup: it means moving
+   this block below those four rules. Left as it renders. */
 .scheme-dialog[data-tinted="true"] .narration-overlay {
   background: var(--tint-panel);
   border-color: var(--tint-border);
-  border-left-color: var(--tint-bright);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 

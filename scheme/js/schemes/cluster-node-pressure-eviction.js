@@ -1,11 +1,13 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT } from '../lib/cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, at, BEAT, OPACITY } from '../lib/cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-pressure-eviction
 
 // Layout B: chips in the left column under the panel, ladder right, Node frame full width at the
 // bottom. Panel worst case over 1600/1280/1100 is x<=397, y<=280, and the chip column starts at
-// y=300, so there are 20 units of headroom: no narration here may pass 383 characters.
+// y=296 (CHIPS_Y is derived, so read it there rather than trusting this line), so there are 16
+// units of headroom. The longest narration on the card is 383 characters and produces that 280:
+// do not pass it without re-measuring with VW=1100 VH=800 node overlay-measure.mjs.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
@@ -27,20 +29,28 @@ const API_W = 232, API_X = CONTENT_R - API_W;            // 908..1140
 // The victim goes out slower than the catalog FADE.out (700). At 700 the Pod is gone 200ms before
 // its own pulse ends, so the kill reads as a cut rather than as a death. 1200 lands the fade after
 // the pulse and still finishes inside the step span, which the report packet already sets at 2142.
+// It ends on OPACITY.terminated rather than on 0: an evicted Pod removed outright leaves a
+// block-sized hole in the Node frame. See docs/CARDS.md.
 const VICTIM_FADE = 1200;
+// 834 is the gap midpoint, but the label is NOT contained by that gap and nothing here should be
+// derived as if it were: the longest string (PATCH Node.status.conditions · MemoryPressure=False)
+// measures 351 units against a 148 unit gap, so it overhangs both columns by about 102. That is why
+// WIRE_Y sits above the row rather than on it, where the overhang crosses only empty canvas. The
+// labels render at 11px from `.scheme-label.code`, never at the `font-size` a presentation attribute
+// asks for, because that attribute has specificity 0 and loses to the rule.
 const WIRE_X = (KUBE_R + API_X) / 2;                     // 834, the gap midpoint
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row
 
 const COL_BOTTOM = 456;                                  // both columns end here, 16 above the frame
 const LADDER_X = 660, LADDER_W = 480;                    // 660..1140
 const ROW_H = 32, ROW_GAP = 10, LADDER_ROWS = 5;
-const LADDER_Y = COL_BOTTOM - (LADDER_ROWS * ROW_H + (LADDER_ROWS - 1) * ROW_GAP);   // 260..460
+const LADDER_Y = COL_BOTTOM - (LADDER_ROWS * ROW_H + (LADDER_ROWS - 1) * ROW_GAP);   // 256..456
 
 // Chips as a left column, 480 wide: four across the bottom left 258 units and the names
 // overlapped their own values.
 const CHIP_H = 34, CHIP_VGAP = 8, CHIP_COUNT = 4;
 const CHIP_X = CONTENT_L, CHIP_W = 480;                  // 60..540, clear of the spine
-const CHIPS_Y = COL_BOTTOM - (CHIP_COUNT * CHIP_H + (CHIP_COUNT - 1) * CHIP_VGAP);   // 300..460
+const CHIPS_Y = COL_BOTTOM - (CHIP_COUNT * CHIP_H + (CHIP_COUNT - 1) * CHIP_VGAP);   // 296..456
 const CHIP_Y = i => CHIPS_Y + i * (CHIP_H + CHIP_VGAP);
 
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
@@ -57,6 +67,21 @@ const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 // the Kubelet bottom face midpoint to the Node frame top face midpoint, both on the spine at x=600.
 // Which Pod the kill lands on is carried by the pulse, not by a tap into the Pod row.
 const CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
+
+// The Kubelet owns EVERY row of the ladder: detect, condition, rank, evict and relieve are all its
+// own eviction manager, and the API next to it performs none of them (it only records what the
+// Kubelet writes). So the two are tied by a relationship line, the way the API is tied to its
+// admission pipeline on cluster-admission-webhooks. No ball rides it and it takes no arrowhead: a
+// marker with no traffic under it would turn the ladder into a destination.
+// Face midpoint to face midpoint, with the turn on the line halfway between the two faces. It
+// leaves on the spine, so its first 70 units lie under the drop into the Node and the pair reads as
+// one line that branches at y=190: the Kubelet does own both ends of that branch, the ladder and
+// the kill. Off-centre departures were tried and are not the house shape, whatever the local
+// crowding argues.
+const TIE_X = SPINE_X;                                   // 600
+const TIE_LAND_X = LADDER_X + LADDER_W / 2;              // 900
+const TIE_JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2;           // 188
+const KUBE_TO_CHAIN = [[TIE_X, TOP_BOTTOM], [TIE_X, TIE_JOG_Y], [TIE_LAND_X, TIE_JOG_Y], [TIE_LAND_X, LADDER_Y]];
 
 
 
@@ -79,7 +104,7 @@ class Scene {
     const kubelet = box({ x: KUBE_X, y: TOP_Y, w: KUBE_W, h: KUBE_H, label: 'Kubelet', sublabel: 'eviction manager + cAdvisor', role: 'cluster' });
     const api     = box({ x: API_X,  y: TOP_Y, w: API_W,  h: KUBE_H, label: 'API',     sublabel: 'Node and Pod status',        role: 'cluster' });
     root.appendChild(arrow({ x1: KUBE_R, y1: TOP_CY, x2: API_X, y2: TOP_CY, dim: true, dashed: true, role: 'cluster' }));
-    const wireApi = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireApi = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireApi);
 
     // State chips, one column in the free band left of the spine and below the panel.
@@ -131,6 +156,9 @@ class Scene {
     });
     root.appendChild(connector);
 
+    // Kubelet.bottom -> ladder.top: the eviction loop below belongs to this box. See KUBE_TO_CHAIN.
+    root.appendChild(relationPath({ points: KUBE_TO_CHAIN, role: 'cluster' }));
+
     // Packet layer.
     const packetLayer = g({ id: 'packetLayer' });
     root.appendChild(packetLayer);
@@ -147,7 +175,7 @@ class Scene {
     this.host.appendChild(root);
     this.refs = {
       svg: root,
-      kubelet, api, chain, nodeEl, connector,
+      kubelet, api, chain, nodeEl,
       memChip, thresholdChip, pressureChip, victimChip,
       pod1, pod2, pod3, pod1Box, pod2Box, pod3Box,
       packetLayer,
@@ -174,12 +202,19 @@ function setVictim(s, v) {
   s.refs.pod1.style.opacity = String(v);
 }
 
-// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
+
+// Every enter() writes EVERY chip through this. The threshold is a Kubelet flag rather than a
+// per-step reading, so it carries its one value as a default. The rest is what makes the deferred
+// turnovers above safe: Timeline cancels a step's animations on the way out and cancel() fires
+// oncancel, never onfinish, so a reader who clicks Next while the condition PATCH is still in flight
+// loses that at(). MemoryPressure was written on condition alone and rolled back below its guard, so
+// that reader saw the card run rank, evict and relieve without it ever reading True.
+const THRESHOLD = 'memory.available<1Gi';
+function setChips(s, { mem, pressure, victim }) {
+  setVal(s.refs.memChip, mem);
+  setVal(s.refs.thresholdChip, THRESHOLD);
+  setVal(s.refs.pressureChip, pressure);
+  setVal(s.refs.victimChip, victim);
 }
 
 const STEPS = [
@@ -191,10 +226,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setVal(s.refs.memChip, '4Gi');
-      setVal(s.refs.thresholdChip, 'memory.available<1Gi');
-      setVal(s.refs.pressureChip, 'False');
-      setVal(s.refs.victimChip, 'none');
+      setChips(s, { mem: '4Gi', pressure: 'False', victim: 'none' });
       setChainActive(s.refs.chain, -1);
     },
   },
@@ -207,9 +239,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setVal(s.refs.memChip, '500Mi');
-      setVal(s.refs.pressureChip, 'False');
-      setVal(s.refs.victimChip, 'none');
+      setChips(s, { mem: '500Mi', pressure: 'False', victim: 'none' });
       s.refs.kubelet.classList.add('highlight');
       s.refs.memChip.classList.add('highlight');
       s.refs.thresholdChip.classList.add('highlight');
@@ -227,8 +257,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setVal(s.refs.memChip, '500Mi');
-      setVal(s.refs.pressureChip, 'True');
+      setChips(s, { mem: '500Mi', pressure: 'True', victim: 'none' });
       setWire(s, 'api', 'PATCH Node.status.conditions · MemoryPressure=True');
       s.refs.kubelet.classList.add('highlight');
       s.refs.pressureChip.classList.add('highlight');
@@ -245,13 +274,13 @@ const STEPS = [
   {
     id: 'rank',
     duration: 2200,
-    narration: 'Eviction manager ranks running Pods by three things in order: whether each is using more of the starved resource than it requested, then Pod Priority, then how far over the request it sits. QoS class does not decide that order, it only estimates it, because a class derived from CPU and memory says nothing about the resource under pressure.',
+    narration: 'Eviction manager ranks running Pods by three things in order: whether each is using more of the starved resource than it requested, then Pod Priority, then how far over the request it sits. QoS class does not decide that order, it only estimates it, because a class derived from CPU and memory says nothing about the resource under pressure. See the Pod QoS Classes card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       resetPodOpacity(s);
-      setVal(s.refs.victimChip, 'BestEffort Pod selected');
+      setChips(s, { mem: '500Mi', pressure: 'True', victim: 'BestEffort Pod selected' });
       s.refs.kubelet.classList.add('highlight');
       s.refs.victimChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
@@ -268,12 +297,13 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.victimChip, 'BestEffort Pod evicted');
+      setChips(s, { mem: '500Mi', pressure: 'True', victim: 'BestEffort Pod evicted' });
       setWire(s, 'api', 'PATCH Pod status · phase=Failed reason=Evicted');
       s.refs.kubelet.classList.add('highlight');
       s.refs.victimChip.classList.add('highlight');
-      // Pin final state so cancel does not snap back to opacity 1.
-      setVictim(s, 0);
+      // Pin final state so cancel does not snap back to opacity 1. The victim stays on screen as a
+      // ghost at the terminated shade rather than leaving a hole in the Pod row.
+      setVictim(s, OPACITY.terminated);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
@@ -287,7 +317,7 @@ const STEPS = [
       at(s, ctx, kill.arrivalMs, () => setVal(s.refs.victimChip, 'BestEffort Pod evicted'));
       pulsePod(s.refs.pod1, ctx, kill.arrivalMs);
       ctx.register(s.refs.pod1.animate(
-        [{ opacity: 1 }, { opacity: 0 }], { duration: VICTIM_FADE, delay: kill.arrivalMs, fill: 'both', easing: 'ease-in' }));
+        [{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: VICTIM_FADE, delay: kill.arrivalMs, fill: 'both', easing: 'ease-in' }));
       // The status report is the LAST thing the sentence says, and it can only be sent once the Pod
       // is actually dead, so it leaves after the kill lands rather than alongside it.
       const report = topPacket(s, ctx, { from: KUBE_R, to: API_X, y: TOP_CY, delay: kill.arrivalMs + BEAT.afterHop, role: 'cluster' });
@@ -302,16 +332,18 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.memChip, '3.5Gi');
-      setVal(s.refs.pressureChip, 'False');
-      setVal(s.refs.victimChip, 'none');
+      setChips(s, { mem: '3.5Gi', pressure: 'False', victim: 'none' });
       setWire(s, 'api', 'PATCH Node.status.conditions · MemoryPressure=False');
-      setVictim(s, 0);
+      // The evicted Pod is still drawn, at the terminated shade: gone from the Node, not a hole.
+      setVictim(s, OPACITY.terminated);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       s.refs.kubelet.classList.add('highlight');
       s.refs.memChip.classList.add('highlight');
       s.refs.pressureChip.classList.add('highlight');
+      // The victim record clears here too, which is half of what "reset" in ladder row 5 means.
+      // It used to drop from "BestEffort Pod selected" to "none" with nothing marking it.
+      s.refs.victimChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
       // Pressure cleared: the survivors pulse together, and only THEN does the condition flip back

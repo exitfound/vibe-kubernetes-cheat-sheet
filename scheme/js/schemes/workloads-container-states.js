@@ -61,7 +61,7 @@ class Scene {
     root.appendChild(connectorUp);
 
     // Single wire label pinned just below the Kubelet box, set per step.
-    const wireReq = text({ class: 'scheme-label code dim', x: WL.CX, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WL.CX, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     // Pipeline chain on the right. Row 0 is the baseline shown at idle.

@@ -5,7 +5,7 @@ import { arrowDefs, box, pod, node, pathArrow } from '../lib/primitives.js';
 import {
   valChip, setVal, setBoxLabel, setBoxSublabel, setPodSublabel, pulsePod,
   routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, makeRidingLabel} from '../lib/storage-kit.js';
+  makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel} from '../lib/storage-kit.js';
 
 const LEFT_X = 400;
 const CONTENT_W = 400;
@@ -218,13 +218,6 @@ function setSlots(s, counts) {
   });
 }
 
-// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
-}
 
 function clearHL(s) {
   clearHighlights(s, ['sched', 'csinode', 'cnt0', 'cnt1', 'cnt2', 'podBox',

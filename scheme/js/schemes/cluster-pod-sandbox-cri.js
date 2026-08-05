@@ -3,24 +3,39 @@ import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow 
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=195, so the reserved corner is
-// 400 x 215. A longer narration on any step invalidates that bottom.
+// Measured worst case over 1600/1440/1280/1100 at heights 1000/860/800 is x<=397, y<=213, and the
+// two do NOT peak together: the panel is widest where it is shallow (397 x 92 at 1100x1000) and
+// deepest where it is narrow (189 x 213 at 1600x800). Both edges bind something different here,
+// the right edge caps the top row at x=404 and the bottom clears the columns at y=235.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
-const PANEL_R = 400, PANEL_B = 215;                      // the reserved corner
 
-// Three actors in the top row, all clear of the panel.
+// Three actors in the top row, all clear of the panel. The row is anchored on its RIGHT edge and
+// built leftwards: CNI ends on CONTENT_R, and the gaps take whatever is left. It used to start at a
+// fixed KUBE_X=420 with 30 unit gaps, and read as three boxes shoved together.
+//
+// 404 is the hard left stop, not a taste. The panel measures x<=397 at 1100 width across every
+// height, and the top row lives at y 40..120, which is inside the panel band at that width. Seven
+// units is the entire clearance, confirmed on a 1100x1000 render and not just on the number. That
+// cap is a viewport-width effect (the panel hits its own max width), not a text-length one, so a
+// longer narration cannot eat it: it grows downwards.
+//
+// So the room for the arrows comes out of the BOXES, which had 70 to 95 units of dead padding per
+// side. Measured widest inner label: Kubelet 60 units, containerd 90 ("CRI gRPC server"), CNI 66
+// ("veth + IPAM"). The widths below leave 60 / 60 / 57 per side, which is the tight end of the
+// family and exactly what CNI already shipped. That buys 83 unit gaps in place of 38, so each
+// call/return lane pair has better than twice the run it had.
 const TOP_Y = 40, BOX_H = 80, TOP_BOTTOM = TOP_Y + BOX_H;// 40 / 120
-const KUBE_W = 200, RT_W = 280, CNI_W = 180, TOP_GAP = 30;
-const KUBE_X = 420, KUBE_R = KUBE_X + KUBE_W;            // 420..620
-const RT_X = KUBE_R + TOP_GAP, RT_R = RT_X + RT_W;       // 650..930
-const CNI_X = RT_R + TOP_GAP, CNI_R = CNI_X + CNI_W;     // 960..1140
+const KUBE_W = 180, RT_W = 210, CNI_W = 180, TOP_GAP = 83;
+const CNI_X = CONTENT_R - CNI_W, CNI_R = CONTENT_R;      // 960..1140
+const RT_R = CNI_X - TOP_GAP, RT_X = RT_R - RT_W;        // 667..877
+const KUBE_R = RT_X - TOP_GAP, KUBE_X = KUBE_R - KUBE_W; // 404..584
 const LANE_DY = 12, TOP_CY = TOP_Y + BOX_H / 2;          // 80
 const CALL_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;  // 68 / 92
 const WIRE_Y = TOP_BOTTOM + 24;                          // 144
-const WIRE_KR_X = (KUBE_R + RT_X) / 2;                   // 635
-const WIRE_RC_X = (RT_R + CNI_X) / 2;                    // 945
+const WIRE_KR_X = (KUBE_R + RT_X) / 2;                   // 625.5
+const WIRE_RC_X = (RT_R + CNI_X) / 2;                    // 918.5
 
 // The left band opens below the panel.
 const LADDER_X = CONTENT_L, LADDER_W = 430;              // 60..490, clear of the spine
@@ -39,17 +54,14 @@ const INNER_W = 190, INNER_H = 54, INNER_Y = POD_Y + 30; // 514..568
 const PAUSE_X = POD_X + 22;                              // 392..582
 const APP_X = POD_X + POD_W - 22 - INNER_W;              // 618..808
 
-// The lane from the RUNTIME down into the sandbox. Moving its start right by 270 units added
-// 244ms to every ball that rides it, which put all four steps 131ms over their 2800 budget:
-// they are 3100 now. routeDur is length-based, so a start point IS a timing decision.
-// The lane from the RUNTIME down into the sandbox. It leaves the box on its midpoint and runs in the
-// corridor between the ladder and the chip column, so it crosses nothing.
+// The lane from the RUNTIME down into the Node. Moving its start right by 270 units added 244ms to
+// every ball that rides it, which put all four steps 131ms over their 2800 budget: they are 3100
+// now. routeDur is length-based, so a start point IS a timing decision.
 //
-// It used to leave Kubelet, which is the one thing on this card that never touches the sandbox: the
-// whole subject is that Kubelet is a CRI CLIENT and containerd is what materialises the pause
-// container, pulls, creates and starts. All four steps that ride this lane say so in their own
-// narration, and one says it in a code comment two lines above the call.
-const SPINE_X = RT_X + RT_W / 2;                         // 790
+// It leaves Kubelet no longer: Kubelet is the one block on this card that never touches the sandbox.
+// The whole subject is that it is a CRI CLIENT and containerd is what materialises the pause
+// container, pulls, creates and starts. All four steps that ride this lane say so in their narration.
+const SPINE_X = RT_X + RT_W / 2;                         // 772
 // Design notes for this card: scheme/docs/CARDS.md#cluster-pod-sandbox-cri
 
 
@@ -78,8 +90,8 @@ class Scene {
     root.appendChild(arrow({ x1: RT_R, y1: CALL_Y, x2: CNI_X, y2: CALL_Y, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(arrow({ x1: CNI_X, y1: BACK_Y, x2: RT_R, y2: BACK_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    const wireKR = text({ class: 'scheme-label code dim', x: WIRE_KR_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
-    const wireRC = text({ class: 'scheme-label code dim', x: WIRE_RC_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireKR = text({ class: 'scheme-label code dim', x: WIRE_KR_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
+    const wireRC = text({ class: 'scheme-label code dim', x: WIRE_RC_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     [wireKR, wireRC].forEach(t => root.appendChild(t));
 
     const chain = chainList({
@@ -100,7 +112,7 @@ class Scene {
     const lastOpChip  = valChip({ x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'last op',    value: 'none', role: 'cluster' });
     [sandboxChip, ipChip, statusChip, lastOpChip].forEach(c => root.appendChild(c));
 
-    // Node centred under Containerd (centre x=700) so the connector drops straight in.
+    // Full content width, so its top face midpoint is CX and the zigzag lands dead centre on it.
     const nodeEl = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
 
     const podShell = pod({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });
@@ -160,10 +172,19 @@ function clearHL(s) {
     [s.refs.sandboxGroup, s.refs.appGroup]);
 }
 
-// It ends ON the Pod sandbox, not on the Node frame edge above it: the drop turns onto the Pod's
-// top midpoint through the gutter between the ladder and the chip column.
-const BUS_Y = NODE_Y - 16;                               // 446, below both columns, above the frame
-const SANDBOX_CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, BUS_Y], [CX, BUS_Y], [CX, POD_Y]];
+// A centred zigzag into the NODE, not into the Pod inside it: off the containerd bottom face
+// midpoint, across, then straight down onto the Node frame top face midpoint. Which container the
+// step lands on is carried by the pulse, the same correction the four sibling Node cards took.
+//
+// The turn goes ABOVE both columns, and that is the load-bearing part. containerd sits at x=772,
+// which is inside the chip column (620..1140, y 235..437), so the old lane, which turned at y=446
+// just above the Node frame, ran its whole 326 unit drop straight through all four chips. The file
+// claimed the opposite in a comment ("runs in the corridor ... so it crosses nothing") and every
+// check agreed, because check-geometry THROUGH scores blocks and value chips are not blocks. The
+// only free horizontal band is 120..235, between the top row and the columns, so the turn sits on
+// its midpoint. That leaves the long leg on x=600, in the 490..620 gutter between ladder and chips.
+const JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2;               // 177.5, clear of the wire labels at y=144
+const SANDBOX_CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, JOG_Y], [CX, JOG_Y], [CX, NODE_Y]];
 
 const STEPS = [
   {
@@ -254,7 +275,10 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.appGroup.style.opacity = '0';
-      setVal(s.refs.statusChip, 'image cached');
+      // "pulled", not "cached": this step draws Kubelet making the PullImage call, and under the
+      // default IfNotPresent a cached image is one Kubelet never calls for at all. The chip said
+      // cached while the ball said called. The ladder row keeps the cached case in its parenthesis.
+      setVal(s.refs.statusChip, 'image pulled');
       setVal(s.refs.lastOpChip, 'PullImage');
       s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'kr', 'PullImage · nginx:1.27');

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt } from '../lib/cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, at, OPACITY } from '../lib/cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-graceful-node-shutdown
 
 // Laid out on the L, the way network and storage are: the narration panel owns the top-left
@@ -73,8 +73,10 @@ class Scene {
     root.appendChild(arrow({ x1: SYS_X, y1: SIG_Y, x2: KUBE_X + BOX_W, y2: SIG_Y, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(arrow({ x1: KUBE_X + BOX_W, y1: REL_Y, x2: SYS_X, y2: REL_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    // Wire label (font-size: 9) centred in the 40px gap below the top row, populated per step.
-    const wireSig = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    // Wire label centred in the gap below the top row, populated per step. It renders at 11px from
+    // `.scheme-label.code`: a `font-size` presentation attribute has specificity 0 and loses to that
+    // rule, so do not add one back and do not size a gap against one.
+    const wireSig = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireSig);
 
     const lockChip     = valChip({ x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'inhibitor lock',                   value: 'held by Kubelet', role: 'cluster' });
@@ -86,11 +88,14 @@ class Scene {
     const chain = chainList({
       x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
-        '1. signal   ·  systemd PrepareForShutdown over D-Bus',
+        // The separator column is set by the longest stage name, "condition" at 9 characters, so
+        // every row pads its name field to that width and the dots line up at index 13. This is the
+        // same column the sibling cluster-node-pressure-eviction ladder uses, for the same reason.
+        '1. signal    ·  systemd PrepareForShutdown over D-Bus',
         '2. condition ·  set NotReady, bucket by priority',
-        '3. normal   ·  SIGTERM non-critical, await up to 40s',
-        '4. critical ·  SIGTERM critical, await up to 20s',
-        '5. release  ·  drop lock, OS proceeds with shutdown',
+        '3. normal    ·  SIGTERM non-critical, await up to 40s',
+        '4. critical  ·  SIGTERM critical, await up to 20s',
+        '5. release   ·  drop lock, OS proceeds with shutdown',
       ],
       role: 'cluster',
     });
@@ -135,7 +140,7 @@ class Scene {
     this.host.appendChild(root);
     this.refs = {
       svg: root,
-      systemd, kubelet, chain, nodeEl, sigLane,
+      systemd, kubelet, chain, nodeEl,
       lockChip, gpChip, gpCritChip, phaseChip,
       pod1, pod2, pod3, pod1Box, pod2Box, pod3Box,
       packetLayer,
@@ -160,19 +165,14 @@ function setPods(s, ...vals) {
 
 // The grace-period drain reads as a long dim rather than a snap, and at 1200 against a 900ms pulse
 // the Pod is still on screen while it blinks instead of vanishing mid-blink.
+// It settles on OPACITY.terminated, not on 0: a terminated Pod removed outright leaves a block-sized
+// hole in the Node frame, which reads as a rendering fault. See docs/CARDS.md.
 const POD_FADE = 1200;
 function fadeOut(s, ctx, key, delay) {
   ctx.register(s.refs[key].animate(
-    [{ opacity: 1 }, { opacity: 0 }], { duration: POD_FADE, delay, fill: 'both', easing: 'ease-in' }));
+    [{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: POD_FADE, delay, fill: 'both', easing: 'ease-in' }));
 }
 
-// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
-}
 
 const STEPS = [
   {
@@ -242,8 +242,9 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       s.refs.gpChip.classList.add('highlight');
-      // Pin final state so cancel between steps does not flash to default. The critical Pod survives.
-      setPods(s, 0, 0, 1);
+      // Pin final state so cancel between steps does not flash to default. The two non-critical Pods
+      // stay on screen as ghosts at the terminated shade, the critical Pod survives at full.
+      setPods(s, OPACITY.terminated, OPACITY.terminated, 1);
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) return;
       // ONE SIGTERM down the one lane, and BOTH non-critical Pods react to it on arrival, which is
@@ -269,8 +270,9 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       s.refs.gpCritChip.classList.add('highlight');
-      // Pin final state. Nothing is left in the Node frame.
-      setPods(s, 0, 0, 0);
+      // Pin final state. Nothing is left running in the Node frame, and all three Pods hold the
+      // terminated shade rather than leaving three block-sized holes in the Pod row.
+      setPods(s, OPACITY.terminated, OPACITY.terminated, OPACITY.terminated);
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
       setVal(s.refs.phaseChip, 'terminating non-critical · 40s');
@@ -295,8 +297,8 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       s.refs.lockChip.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
-      // Pin final state.
-      setPods(s, 0, 0, 0);
+      // Pin final state. All three Pods stay on screen at the terminated shade.
+      setPods(s, OPACITY.terminated, OPACITY.terminated, OPACITY.terminated);
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.systemd.classList.add('highlight'); return; }
       // systemd is not free to proceed until the release actually reaches it, so both chips wait.

@@ -69,8 +69,8 @@ class Scene {
     const cRep = arrow({ x1: NF_LEFT,     y1: REP_Y, x2: CLIENT_EDGE, y2: REP_Y, dashed: true, dim: true, role: 'network' });
     const sReq = arrow({ x1: NF_RIGHT,    y1: REQ_Y, x2: SERVER_LEFT, y2: REQ_Y, dashed: true, dim: true, role: 'network' });
     const sRep = arrow({ x1: SERVER_LEFT, y1: REP_Y, x2: NF_RIGHT,    y2: REP_Y, dashed: true, dim: true, role: 'network' });
-    const cLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + NF_LEFT) / 2, y: FLOW_Y + 3, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const sLabel = text({ class: 'scheme-label code dim', x: (NF_RIGHT + SERVER_LEFT) / 2, y: FLOW_Y + 3, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const cLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + NF_LEFT) / 2, y: FLOW_Y + 3, 'text-anchor': 'middle' }, [' ']);
+    const sLabel = text({ class: 'scheme-label code dim', x: (NF_RIGHT + SERVER_LEFT) / 2, y: FLOW_Y + 3, 'text-anchor': 'middle' }, [' ']);
 
     const origChip  = valChip({ x: CHIP_X_ORIG,  y: CHIP_Y, w: CHIP_W_OUT, h: CHIP_H, name: 'orig dst',   value: '10.96.0.20:80', role: 'network' });
     const stateChip = valChip({ x: CHIP_X_STATE, y: CHIP_Y, w: CHIP_W_MID, h: CHIP_H, name: 'ct state',   value: 'none',          role: 'network' });

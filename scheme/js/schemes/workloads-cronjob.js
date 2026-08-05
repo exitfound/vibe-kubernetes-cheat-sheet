@@ -83,7 +83,7 @@ class Scene {
     // travelling back from the API, so it carries no arrowhead and sits behind the live lane.
     root.appendChild(relationPath({ points: [[TOP2_X, RESP_Y], [TOP1_X + TOP1_W, RESP_Y]], role: 'cluster' }));
 
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     const scheduleChip = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'schedule',           value: '*/5 * * * *', role: 'workloads' });
@@ -92,7 +92,7 @@ class Scene {
     const lastChip     = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'lastScheduleTime',   value: 'none', role: 'workloads' });
     [scheduleChip, concChip, activeChip, lastChip].forEach(c => root.appendChild(c));
 
-    const ladderCaption = text({ class: 'scheme-label code dim', x: TICK_X + TICK_SPAN / 2, y: TICK_Y - TICK_CAPTION_DY, 'text-anchor': 'middle', 'font-size': 10 }, ['schedule ticks · every 5 min']);
+    const ladderCaption = text({ class: 'scheme-label code dim', x: TICK_X + TICK_SPAN / 2, y: TICK_Y - TICK_CAPTION_DY, 'text-anchor': 'middle' }, ['schedule ticks · every 5 min']);
     root.appendChild(ladderCaption);
     const tickLabels = ['12:00', '12:05', '12:10', '12:15', '12:20', '12:25'];
     const tickX = TICK_X, tickY = TICK_Y, tickW = TICK_W, tickGap = TICK_GAP;

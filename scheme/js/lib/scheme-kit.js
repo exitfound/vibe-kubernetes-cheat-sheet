@@ -206,11 +206,50 @@ export function revealAt(el, ctx, delay = 0, from = 0) {
     { duration: REVEAL_MS, delay, fill: 'forwards', easing: 'ease-out' }));
 }
 
+// The keyframe list is EMPTY, and that is the whole point: this animation is a timer, it must not
+// name a property. It used to be `[{ opacity: 1 }, { opacity: 1 }]`, which draws nothing and yet
+// costs the block its rendering, because Chrome composites an element for as long as an opacity
+// animation is attached to it, delay phase included. lightBoxAt is pending for exactly the flight
+// of the ball, so every block about to light was promoted to its own layer while the ball
+// travelled and dropped back on arrival, and its 72% opaque fill was blended by the compositor
+// instead of in the raster pass for that window: the canvas of the block shifts tone for a beat
+// and snaps back. Confirmed on cluster-architecture with CDP LayerTree (`g.scheme-box 222x82`
+// appears mid-flight and is gone after), and it cascades, because anything painted above a
+// composited layer and overlapping it is promoted too, which took three lanes and a wire label
+// with it. Empty keyframes animate nothing, so there is nothing to composite.
 export function lightBoxAt(boxEl, ctx, delay = 0) {
   if (!boxEl) return;
   if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
-  const a = boxEl.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  const a = boxEl.animate([], { duration: 1, delay });
   a.onfinish = () => boxEl.classList.add('highlight');
+  ctx.register(a);
+}
+
+// Run fn at a point INSIDE a step, or at once on the static path so the reduced end-state stays
+// right. The sibling of lightBoxAt: same zero-effect 1ms animation used purely as a timer, but
+// carrying an arbitrary callback instead of a class. It is what turns a chip over on the beat that
+// earns its value, so a chip does not run ahead of the motion that produces it.
+//
+// This had TWELVE copies in twelve cards with four different bodies, differing only in which
+// element they hung the timer on (svg / chain / agent / packetLayer, all arbitrary since the
+// animation has no visible effect) and in whether they had the reduced guard at all: the
+// workloads-job-parallelism copy did not. That one happened to be harmless because its only call
+// site sits below the step's `ctx.reduced` guard, but it was one edit away from breaking prev/reset.
+// Same retirement as lightBoxAt (52 copies) and ridingLabel (51).
+//
+// Note what it CANNOT do: Timeline cancels a step's animations on the way out, and cancel() fires
+// oncancel, never onfinish, so a pending callback is dropped when the reader steps away mid-flight.
+// Do not "fix" that with an oncancel handler: _cancelAnims runs BEFORE the next step's enter(), and
+// the event is asynchronous, so the callback would land on top of the step the reader moved TO.
+// The guarantee has to come from the card instead: every enter() writes every chip.
+//
+// Empty keyframes for the reason written over lightBoxAt, and here the cost was the whole card
+// rather than one block: the timer hangs on the SVG ROOT, so an opacity keyframe promoted the
+// entire diagram to its own layer for the length of the wait.
+export function at(s, ctx, delay, fn) {
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = s.refs.svg.animate([], { duration: 1, delay });
+  a.onfinish = fn;
   ctx.register(a);
 }
 

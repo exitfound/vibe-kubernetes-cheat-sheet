@@ -1,12 +1,14 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, topPacket, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/cluster-kit.js';
+import { valChip, setVal, topPacket, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, at } from '../lib/cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-kubelet-sync-loop
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=230, so the API moves into the freed
+// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=255, so the API moves into the freed
 // bottom-left and reaches Kubelet up a riser that clears the panel. That is what lets the content
 // still span 60..1140 and centre on CX. The API box at y=300 is what the panel bottom must clear.
+// Re-measured 2026-08-04 after the pleg step grew: 177/197/214/255, and 269 at 1024x768, where the
+// CEILING is 360 characters per narration. 362 costs one more line and lands 1024x768 on 296.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
@@ -31,6 +33,26 @@ const KUBE_TO_API = [[KUBE_X, BACK_Y], [RISER_BACK_X, BACK_Y], [RISER_BACK_X, AP
 
 const LADDER_X = 640, LADDER_W = CONTENT_R - LADDER_X;   // 500, 640..1140
 const LADDER_Y = 190, ROW_H = 32, ROW_GAP = 10;          // 5 rows -> 190..390
+
+// The Kubelet owns EVERY row of the ladder below it: watch, PLEG, SyncPod, CRI and status are all
+// its own loop, and no other actor on the card performs any of them. So the two are tied by a
+// relationship line, exactly as the API is tied to its admission pipeline on
+// cluster-admission-webhooks. It carries no ball on any step and takes no arrowhead, because a
+// marker with nothing riding it turns a list into a destination.
+//
+// Face midpoint to face midpoint, and the turn on the line halfway between the two faces: the same
+// L that cluster-scheduler-decision draws, and the shape every tie in the catalog now uses. Neither
+// end may sit off-centre and the horizontal may not hug either block.
+//
+// That midline is what moved the CRI wire label. It used to sit at TOP_BOTTOM + 28, measuring
+// x 713..968, y 137..152 at its longest (step 4), and the horizontal at y=155 would have run 3
+// units under those glyphs. The label is now above the top row on TOP_Y - 14, which is where the
+// four sibling Node cards put theirs anyway, so the whole band between the row and the ladder is
+// free for the tie.
+const KUBE_CX = KUBE_X + KUBE_W / 2;                     // 670
+const LADDER_CX = LADDER_X + LADDER_W / 2;               // 890
+const TIE_JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2;           // 155
+const KUBE_TO_CHAIN = [[KUBE_CX, TOP_BOTTOM], [KUBE_CX, TIE_JOG_Y], [LADDER_CX, TIE_JOG_Y], [LADDER_CX, LADDER_Y]];
 
 const CHIP_X = CONTENT_L, CHIP_W = 480;                  // 60..540, the category column width
 const CHIP_H = 34, CHIP_GAP = 8;
@@ -63,12 +85,20 @@ class Scene {
     content.appendChild(arrow({ x1: KUBE_R, y1: OUT_Y, x2: RT_X, y2: OUT_Y, dim: true, dashed: true, role: 'cluster' }));
     content.appendChild(arrow({ x1: RT_X, y1: BACK_Y, x2: KUBE_R, y2: BACK_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    // Wire labels (font-size: 9) in the gap between top row and pipeline.
+    // Kubelet.bottom -> ladder.top: the loop below belongs to this box. See KUBE_TO_CHAIN above.
+    content.appendChild(relationPath({ points: KUBE_TO_CHAIN, role: 'cluster' }));
+
+    // Wire labels in the gap between top row and pipeline. They render at 11px, from
+    // `.scheme-label.code` in diagrams.css: a `font-size` presentation attribute has specificity 0
+    // and loses to that rule, so the 9 these carried was dead and every width derived from it was
+    // about 22% short. Measure, do not compute from a font size the element does not have.
     // Right-anchored just left of the out riser and above the API box: the longest string here is
-    // ~135 units, three times the 112 unit gap it used to be centred in, so a centred label ran
-    // through both risers.
-    const wireApi = text({ class: 'scheme-label code dim', x: RISER_OUT_X - 8, y: API_Y - 12, 'text-anchor': 'end', 'font-size': 9 }, [' ']);
-    const wireRT  = text({ class: 'scheme-label code dim', x: (KUBE_R + RT_X) / 2, y: TOP_BOTTOM + 28, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    // 193 units (PATCH .../pods/{name}/status), far wider than the 112 unit gap it used to be
+    // centred in, so a centred label ran through both risers.
+    const wireApi = text({ class: 'scheme-label code dim', x: RISER_OUT_X - 8, y: API_Y - 12, 'text-anchor': 'end' }, [' ']);
+    // ABOVE the top row, not below it: the band below belongs to the Kubelet-to-ladder tie now.
+    // TOP_Y - 14 is where cluster-node-drain, cluster-oom-kill and cluster-node-failure put theirs.
+    const wireRT  = text({ class: 'scheme-label code dim', x: (KUBE_R + RT_X) / 2, y: TOP_Y - 14, 'text-anchor': 'middle' }, [' ']);
     [wireApi, wireRT].forEach(t => content.appendChild(t));
 
     // Pipeline chain: 5 stages of the Kubelet sync cycle.
@@ -121,15 +151,22 @@ function clearHL(s) {
   clearHighlights(s, ['api','kubelet','runtime','podChip','desiredChip','observedChip','lastOpChip']);
 }
 
-// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
 // Every chip on this card reports something the Kubelet has LEARNED or DONE, so each one waits for
-// the packet that earns it rather than being true from step entry.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
+// the packet that earns it rather than being true from step entry. That is what the `at` calls in
+// the steps below are for: the helper itself is shared, see `at` in scheme-kit.js.
+//
+// Every enter() writes EVERY chip through this, which is the catalog rule and here it is also what
+// makes the deferred turnovers above safe. Timeline cancels a step's animations on the way out, and
+// cancel() fires oncancel, never onfinish, so a reader who clicks Next mid-flight loses whatever
+// at() was still holding. Pod and desired were written on the watch step alone, so that reader kept
+// a column reading none for the rest of the card while syncpod narrated a comparison against it.
+function setChips(s, { pod, desired, observed, lastOp }) {
+  setVal(s.refs.podChip, pod);
+  setVal(s.refs.desiredChip, desired);
+  setVal(s.refs.observedChip, observed);
+  setVal(s.refs.lastOpChip, lastOp);
 }
+const POD_NAME = 'my-app-7d4-abc', SPEC = '1 container';
 
 const STEPS = [
   {
@@ -139,10 +176,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.podChip, 'none');
-      setVal(s.refs.desiredChip, 'none');
-      setVal(s.refs.observedChip, 'none');
-      setVal(s.refs.lastOpChip, 'none');
+      setChips(s, { pod: 'none', desired: 'none', observed: 'none', lastOp: 'none' });
       setChainActive(s.refs.chain, -1);
     },
   },
@@ -154,10 +188,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.podChip, 'my-app-7d4-abc');
-      setVal(s.refs.desiredChip, '1 container');
-      setVal(s.refs.observedChip, 'none');
-      setVal(s.refs.lastOpChip, 'none');
+      setChips(s, { pod: POD_NAME, desired: SPEC, observed: 'none', lastOp: 'none' });
       setWire(s, 'api', 'watch ADDED');
       s.refs.api.classList.add('highlight');
       s.refs.podChip.classList.add('highlight');
@@ -179,13 +210,12 @@ const STEPS = [
   {
     id: 'pleg',
     duration: 2200,
-    narration: 'PLEG (Pod Lifecycle Event Generator) wakes on its 1s timer, calls ListContainers on the runtime, and sees no containers for the new Pod. The empty observed state is recorded for SyncPod to act on.',
+    narration: 'PLEG (Pod Lifecycle Event Generator) wakes on its 1s timer, calls ListContainers on the runtime, and sees no containers for the new Pod. The empty observed state is recorded for SyncPod. The EventedPLEG feature gate (alpha, off by default) has the runtime push lifecycle events over CRI, so the Kubelet relists at a reduced rate rather than on its 1s timer.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.observedChip, '0 containers');
-      setVal(s.refs.lastOpChip, 'ListContainers');
+      setChips(s, { pod: POD_NAME, desired: SPEC, observed: '0 containers', lastOp: 'ListContainers' });
       setWire(s, 'rt', 'ListContainers');
       s.refs.kubelet.classList.add('highlight');
       s.refs.observedChip.classList.add('highlight');
@@ -213,6 +243,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
+      setChips(s, { pod: POD_NAME, desired: SPEC, observed: '0 containers', lastOp: 'ListContainers' });
       s.refs.kubelet.classList.add('highlight');
       s.refs.desiredChip.classList.add('highlight');
       s.refs.observedChip.classList.add('highlight');
@@ -230,7 +261,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.lastOpChip, 'StartContainer');
+      setChips(s, { pod: POD_NAME, desired: SPEC, observed: '0 containers', lastOp: 'StartContainer' });
       setWire(s, 'rt', 'RunPodSandbox · Pull · Create · Start');
       s.refs.kubelet.classList.add('highlight');
       s.refs.lastOpChip.classList.add('highlight');
@@ -260,8 +291,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.observedChip, '1 container running');
-      setVal(s.refs.lastOpChip, 'ListContainers');
+      setChips(s, { pod: POD_NAME, desired: SPEC, observed: '1 container running', lastOp: 'ListContainers' });
       s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'api', 'PATCH .../pods/{name}/status');
       s.refs.kubelet.classList.add('highlight');

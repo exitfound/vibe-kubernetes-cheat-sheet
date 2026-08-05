@@ -51,8 +51,8 @@ class Scene {
     const vethB  = arrow({ x1: 675, y1: TOP_Y, x2: 850, y2: TOP_Y, dashed: true, dim: true }); // cni0 -> B
     const vethBr = arrow({ x1: 850, y1: BOT_Y, x2: 675, y2: BOT_Y, dashed: true, dim: true }); // B  -> cni0 (reply)
     const vethAr = arrow({ x1: 505, y1: BOT_Y, x2: 350, y2: BOT_Y, dashed: true, dim: true }); // cni0 -> A (reply)
-    const wireA = text({ class: 'scheme-label code dim', x: 427, y: TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const wireB = text({ class: 'scheme-label code dim', x: 762, y: TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const wireA = text({ class: 'scheme-label code dim', x: 427, y: TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const wireB = text({ class: 'scheme-label code dim', x: 762, y: TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
 
     const srcChip  = valChip({ x: 80,  y: 540, w: 250, h: 34, name: 'src',      value: '10.244.1.5', role: 'network' });
     const dstChip  = valChip({ x: 350, y: 540, w: 250, h: 34, name: 'dst',      value: '10.244.1.6', role: 'network' });

@@ -107,7 +107,7 @@ class Scene {
 
     // The veth is the thing the two Pods differ by, so the wire that carries it is the one wire that is
     // named. Everything else a step needs to say rides the chips or the Pod sublabels.
-    const vethLabel = text({ class: 'scheme-label code dim', x: (BR_X + APP_RIGHT) / 2, y: POD_CY - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const vethLabel = text({ class: 'scheme-label code dim', x: (BR_X + APP_RIGHT) / 2, y: POD_CY - 12, 'text-anchor': 'middle' }, [' ']);
 
     const nsChip   = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 260, h: CHIP_H, name: 'netns', value: 'own', role: 'network' });
     const ipChip   = valChip({ x: 320, y: CHIP_Y, w: 300, h: CHIP_H, name: 'Pod IP', value: '10.244.1.5', role: 'network' });

@@ -85,8 +85,8 @@ class Scene {
     const podW = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.5' });
     // What the healthCheckNodePort reports on each Node. Both sit on the same baseline so they read as a
     // pair, low enough to clear the Pod above (sublabel baseline 423) and the crossWire arrowhead below.
-    const node1Note = text({ class: 'scheme-label code dim', x: N1_CX, y: 448, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
-    const node2Note = text({ class: 'scheme-label code dim', x: N2_CX, y: 448, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
+    const node1Note = text({ class: 'scheme-label code dim', x: N1_CX, y: 448, 'text-anchor': 'middle' }, [' ']);
+    const node2Note = text({ class: 'scheme-label code dim', x: N2_CX, y: 448, 'text-anchor': 'middle' }, [' ']);
 
     // The four chips span the scheme 1:1, from the Node-1 left edge to the Node-2 right edge, with even
     // 20px gaps. Widths are tuned to their content (externalTrafficPolicy carries the longest name).

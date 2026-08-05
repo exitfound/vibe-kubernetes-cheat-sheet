@@ -8,7 +8,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { extractInline } from './prose.mjs';
+import { extractInline, extractIndirect } from './prose.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIR = join(__dirname, '..', 'js', 'schemes');
@@ -23,7 +23,6 @@ const files = (await readdir(DIR)).filter(n => n.endsWith('.js')).sort()
   .filter(n => !only.size || only.has(n.replace(/\.js$/, '')));
 
 // key -> surface form -> [{card, kind}]
-const byCase = new Map(), byShape = new Map();
 const add = (map, key, surface, card, kind) => {
   if (!map.has(key)) map.set(key, new Map());
   const forms = map.get(key);
@@ -31,18 +30,32 @@ const add = (map, key, surface, card, kind) => {
   forms.get(surface).push({ card, kind });
 };
 
-let total = 0;
+// Every drawn string once, so the same list can be indexed with and without the report-only
+// class. `indirect` is a chip value that reaches the canvas through a card-local wrapper and
+// that no INLINE_SITE can see (see prose.mjs); it never enters the enforced pass.
+const hits = [];
 for (const f of files) {
   const card = f.replace(/\.js$/, '');
-  for (const hit of extractInline(await readFile(join(DIR, f), 'utf8'))) {
-    const s = hit.text.trim();
-    if (!s) continue;
-    total++;
-    // The position class is part of the key: heading against heading, body against body.
-    add(byCase, `${hit.want}\t${s.toLowerCase()}`, s, card, hit.kind);
-    add(byShape, `${hit.want}\t${s.toLowerCase().replace(/[\s.\-_]/g, '')}`, s, card, hit.kind);
-  }
+  const src = await readFile(join(DIR, f), 'utf8');
+  for (const h of extractInline(src)) hits.push({ card, s: h.text.trim(), want: h.want, kind: h.kind, indirect: false });
+  // `.values` only: the resolver's unresolved writes are printed by check-inline, which runs in the
+  // same gate, and saying it twice per run buys nothing.
+  for (const h of extractIndirect(src).values) hits.push({ card, s: h.text.trim(), want: h.want, kind: `indirect ${h.via}`, indirect: true });
 }
+const index = (list) => {
+  const bc = new Map(), bs = new Map();
+  for (const h of list) {
+    if (!h.s) continue;
+    // The position class is part of the key: heading against heading, body against body.
+    add(bc, `${h.want}\t${h.s.toLowerCase()}`, h.s, h.card, h.kind);
+    add(bs, `${h.want}\t${h.s.toLowerCase().replace(/[\s.\-_]/g, '')}`, h.s, h.card, h.kind);
+  }
+  return [bc, bs];
+};
+const total = hits.filter(h => !h.indirect && h.s).length;
+const indirectTotal = hits.filter(h => h.indirect && h.s).length;
+const [byCase, byShape] = index(hits.filter(h => !h.indirect));
+const [allCase, allShape] = index(hits);
 
 function collect(map, skipIfSameCase) {
   const rows = [];
@@ -73,13 +86,24 @@ function print(rows, title) {
 // MemoryPressure False is a Node condition and cordon false is a boolean, Terminated is a
 // container state and terminated is what TLS did. Nothing here can tell those apart, so the value
 // class is printed for a human exactly like the SOFT block of check-terms and never fails.
-const rows = [...collect(byCase, false), ...collect(byShape, true)];
+const tag = (rows, t) => rows.map(r => ({ ...r, tag: t }));
+const rows = [...tag(collect(byCase, false), 'case'), ...tag(collect(byShape, true), 'shape')];
 const hard = rows.filter(r => r.want === 'title');
 const soft = rows.filter(r => r.want === 'lower');
 
 print(hard, 'DRIFT, one object labelled two ways');
 print(soft, 'AMBIGUOUS values, an API literal and an English word look alike, a human judges');
 
+// REPORT-ONLY, never in the exit code: the drift rows that only appear once the indirect class
+// joins the index. A row already reported above is dropped, and so is one no indirect string
+// takes part in, so what is left is exactly what the literal scan could not have found.
+const seen = new Set(rows.map(r => `${r.tag}\t${r.want}\t${r.norm}`));
+const extra = [...tag(collect(allCase, false), 'case'), ...tag(collect(allShape, true), 'shape')]
+  .filter(r => !seen.has(`${r.tag}\t${r.want}\t${r.norm}`))
+  .filter(r => [...r.forms.values()].some(uses => uses.some(u => u.kind.startsWith('indirect '))));
+print(extra, 'REPORT-ONLY, not in the exit code: drift involving a string drawn through a card-local wrapper');
+
 console.log(`\nlabels check: ${files.length} cards, ${total} drawn strings, ${hard.length} drift + ${soft.length} ambiguous`);
 if (!verbose && rows.length) console.log('  --verbose lists which cards use which form');
+console.log(`  report-only (indirect): ${indirectTotal} strings, ${extra.length} finding(s), NOT enforced`);
 process.exit(hard.length ? 1 : 0);

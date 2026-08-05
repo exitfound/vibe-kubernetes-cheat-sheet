@@ -332,6 +332,33 @@ a non-positive delay) it applies immediately, which keeps the reduced-motion sta
 end-state correct. This is how a box or a cylinder "receives" a packet without
 pulsing, honouring the rule that only Pods pulse. Was copy-pasted byte-identically
 into 52 cards before it was hoisted here.
+
+THE KEYFRAME LIST IS EMPTY, AND THAT IS LOAD-BEARING (2026-08-05). It used to be
+[{opacity: 1}, {opacity: 1}], which draws nothing and yet cost the block its
+rendering: Chrome composites an element for as long as an opacity animation is
+attached to it, delay phase included, and this timer is pending for exactly the
+flight of the ball. So every block about to light was promoted to its own layer
+while the ball travelled and dropped back on arrival, and its 72% opaque fill was
+blended by the compositor instead of in the raster pass for that window. The
+symptom the author reported is the canvas of the block shifting to a bluer tone for
+a beat and snapping back, on cluster-architecture and cluster-apply-flow, where
+every block sits inside a node() frame and so carries two translucent surfaces.
+
+Confirmed with CDP LayerTree rather than by pixel diff, because headless software
+rendering blends both ways identically and shows nothing: `g.scheme-box 222x82`
+appears in the layer list mid-flight and is gone after. It cascades, because
+anything painted above a composited layer and overlapping it is promoted too, which
+took three lanes and a wire label with it. Empty keyframes animate nothing, so
+there is nothing to composite, and the animation stays a first-class WAAPI object:
+same delay and duration, still in document.getAnimations(), still fires onfinish,
+so check-reduced, anim-dump and the deterministic seek in _shared.mjs are unaffected.
+
+`at()` below takes the same treatment for the same reason, and there it mattered
+more: its timer hangs on the SVG ROOT, so an opacity keyframe promoted the whole
+diagram. Three cards had hand-rolled copies of the idiom that the `at` retirement
+missed (network-dns-records, storage-fsgroup-ownership, storage-multi-attach-error);
+all three were converted on the same day. Do not put a property back on any of them:
+grep for `animate([{ opacity: 1 }, { opacity: 1 }]` to check none has come back.
 ```
 
 ### before `const HOP_MS = 700;`
@@ -513,7 +540,7 @@ the round trip, so it stays lit at entry and does not light again on arrival.
 Where no step names anything coming back, the lane is a relationship and goes through
 `relationPath`: no arrowhead, `stroke-opacity: 0.45`, category tint kept. Five cards:
 workloads-statefulset-ordered-startup, workloads-cronjob, workloads-rolling-update,
-workloads-deployment-rollback, workloads-pod-priority-preemption. Do not read a relation line on one
+workloads-deployment-rollback, cluster-pod-priority-preemption. Do not read a relation line on one
 card and an arrow on another as drift: the difference IS the content.
 
 Two things learned the hard way here. First, an added hop costs ~800ms (the 60-unit gap sits on the
@@ -541,7 +568,7 @@ box writes to the API and stops there, so the lane into the Node band belongs to
 | `cluster-node-drain` | kubectl | API | kubectl POSTs to the eviction subresource, the API reads the PDB and deletes the Pod |
 | `workloads-rolling-update` | Deployment | API | the Deployment PATCHes .scale, Pods appear and leave through the API |
 | `workloads-pvc-stickiness` | StatefulSet | API | the eviction and the binding are both API writes taking effect on a Node |
-| `workloads-pod-priority-preemption` | Scheduler | Scheduler AND API | two actors reach one slot, so it draws TWO lanes sharing the drop |
+| `cluster-pod-priority-preemption` | Scheduler | Scheduler AND API | two actors reach one slot, so it draws TWO lanes sharing the drop |
 
 Three things this cost that are worth knowing before repeating it:
 
@@ -551,7 +578,7 @@ Three things this cost that are worth knowing before repeating it:
 2. **A box can be derived FROM the lane.** `cluster-node-drain` sets `KUBECTL_X = SPINE_X - BOX_W / 2`,
    so redefining `SPINE_X` would have moved the box instead of the lane. It needed its own `API_CX`.
    That derivation is why the original plan listed this card as "cannot be moved, ask the author".
-3. **Two actors, two lanes.** On `workloads-pod-priority-preemption` the preemption scan really is the
+3. **Two actors, two lanes.** On `cluster-pod-priority-preemption` the preemption scan really is the
    Scheduler evaluating Pods on that Node, while the delete and the bind are the API acting. Picking
    one owner would have lied about the other, so it draws `SCAN_LANE` and `NODE_LANE` over a shared
    drop, which is the same construction as this card's own three worker lanes.
@@ -579,9 +606,12 @@ family G, still open on an author decision.
 other than its name (see the Chips rules in `../CLAUDE.md`), or it shows the outcome before the motion
 that earns it. The second is the one worth knowing the pattern for, because the reduced contract
 pushes you into it: pin the end value above the guard, then on the played path set the chip back to the
-value the step starts from and turn it over on `pkt.arrivalMs`. Four cards needed a tiny local
-`at(s, ctx, delay, fn)` for that, a 1ms zero-effect animation carrying an `onfinish`, copied from
-`network-dns-ndots`. Also settled here: a card must not leave one chip unwritten (`network-kube-proxy-modes/scale`
+value the step starts from and turn it over on `pkt.arrivalMs`. Four cards needed
+`at(s, ctx, delay, fn)` for that, a 1ms zero-effect animation carrying an `onfinish`. It started as a
+local helper on `network-dns-ndots` and was copied card by card until twelve identical copies existed.
+It now lives in `scheme-kit.js`, is re-exported by all four category kits, and every card that used a
+copy imports it instead: **import it, never write another local one.** Nothing in `check-canon` looks
+for this, so a thirteenth copy would pass the gate. Also settled here: a card must not leave one chip unwritten (`network-kube-proxy-modes/scale`
 carried an IPVS-specific selection value into a step about both modes, `network-tls-termination/modes`
 carried `presented` into a step where passthrough hands the certificate to the Pod).
 

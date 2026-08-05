@@ -5,7 +5,10 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { sentences } from './prose.mjs';
+// stripComments comes from prose.mjs, the same place `sentences` does. It used to be a second copy
+// here, and prose.mjs's was that copy minus the regex-literal mode, which silently shrank the input
+// of every check that reads a stripped source. One copy cannot drift from itself.
+import { sentences, stripComments } from './prose.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCHEMES = join(__dirname, '..', 'js', 'schemes');
@@ -88,7 +91,7 @@ const ENFORCED = new Set([
   // Queue drained by the R4 fade-phase pass, and the rule was rewritten to judge the EXPRESSION
   // rather than the number, so a named constant can no longer smuggle a shade past it.
   'R-opacity',
-  // Queue drained by the R5 cluster rebuild: all 103 cards are on '0 0 1200 640' now, so a
+  // Queue drained by the R5 cluster rebuild: all 108 cards are on '0 0 1200 640' now, so a
   // shifted camera can only ever be a regression.
   'R-viewbox',
 ]);
@@ -104,42 +107,9 @@ const DASH_RE = new RegExp(`[${EM_DASH}${EN_DASH}]`, 'g');
 const DASH_NAME = { [EM_DASH]: 'em-dash', [EN_DASH]: 'en-dash' };
 const CANON_VIEWBOX = '0 0 1200 640';
 
-// Blank comments out, keeping byte offsets so line numbers stay right. Load-bearing: this
-// project's prose names the very things the rules hunt for. Strings are kept, labels live there.
-function stripComments(src) {
-  let out = '';
-  // 0 code, 1 line comment, 2 block comment, 3 single quote, 4 double quote, 5 template, 6 regex
-  let mode = 0;
-  // A regex literal can hold `//` (a URL pattern), which read as a comment start and blanked the
-  // rest of that line for every code rule. `prev` tells a literal from a division operator.
-  let prev = '';
-  for (let i = 0; i < src.length;) {
-    const c = src[i], c2 = src[i + 1];
-    if (mode === 0) {
-      if (c === '/' && c2 === '/') { mode = 1; out += '  '; i += 2; continue; }
-      if (c === '/' && c2 === '*') { mode = 2; out += '  '; i += 2; continue; }
-      if (c === '/' && !'})]'.includes(prev) && !/[\w$]/.test(prev)) { mode = 6; out += c; i++; continue; }
-      if (c === "'") mode = 3; else if (c === '"') mode = 4; else if (c === '`') mode = 5;
-      if (!/\s/.test(c)) prev = c;
-      out += c; i++; continue;
-    }
-    if (mode === 6) {
-      if (c === '\\') { out += c + (c2 === undefined ? '' : c2); i += 2; continue; }
-      if (c === '/') { mode = 0; prev = c; }
-      if (c === '\n') mode = 0;                 // unterminated: bail rather than eat the file
-      out += c; i++; continue;
-    }
-    if (mode === 1) { if (c === '\n') { mode = 0; out += c; } else out += ' '; i++; continue; }
-    if (mode === 2) {
-      if (c === '*' && c2 === '/') { mode = 0; out += '  '; i += 2; continue; }
-      out += (c === '\n' ? c : ' '); i++; continue;
-    }
-    if (c === '\\') { out += c + (c2 === undefined ? '' : c2); i += 2; continue; }
-    if ((mode === 3 && c === "'") || (mode === 4 && c === '"') || (mode === 5 && c === '`')) mode = 0;
-    out += c; i++;
-  }
-  return out;
-}
+// stripComments (imported above) blanks comments keeping byte offsets, so line numbers stay right.
+// Load-bearing: this project's prose names the very things the rules hunt for. Strings are kept,
+// labels live there.
 
 for (const f of files) {
   const src = await readFile(join(SCHEMES, f), 'utf8');

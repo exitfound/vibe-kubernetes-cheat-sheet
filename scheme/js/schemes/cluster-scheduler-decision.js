@@ -34,6 +34,9 @@ const CHIP_Y = i => LADDER_Y + i * (ROW_H + ROW_GAP);    // chips share the ladd
 // sits halfway between the two faces (140 and 220) rather than hugging the ladder.
 const JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2;    // 180
 const API_TO_CHAIN = [[API_CX, TOP_BOTTOM], [API_CX, JOG_Y], [LADDER_CX, JOG_Y], [LADDER_CX, LADDER_Y]];
+// Centred in the band between the top row and that dashed jog, not pinned under the boxes: the +4
+// puts the glyph MIDDLE on the band centre, where y=158 sat 7 under the row and 19 clear of the jog.
+const WIRE_RESP_Y = (TOP_BOTTOM + JOG_Y) / 2 + 4;        // 164, visual centre 160.1 against 160
 
 const NODE_Y = 410, NODE_H = 130, NODE_W = 240;
 const NODE_XS = [60, 340, 620, 900];
@@ -97,7 +100,7 @@ class Scene {
 
     // Wire labels at fixed positions, populated per step.
     const wireReq     = text({ class: 'scheme-label code dim', x: WIRE_SA_X, y: 46,  'text-anchor': 'middle' }, [' ']);
-    const wireResp    = text({ class: 'scheme-label code dim', x: WIRE_SA_X, y: 158, 'text-anchor': 'middle' }, [' ']);
+    const wireResp    = text({ class: 'scheme-label code dim', x: WIRE_SA_X, y: WIRE_RESP_Y, 'text-anchor': 'middle' }, [' ']);
     const wirePersist = text({ class: 'scheme-label code dim', x: WIRE_AE_X, y: 46,  'text-anchor': 'middle' }, [' ']);
     [wireReq, wireResp, wirePersist].forEach(t => root.appendChild(t));
 
@@ -257,7 +260,7 @@ const STEPS = [
     // 1400ms was the shortest step on the card and it carries the densest text with no motion at
     // all, so nothing but reading time sets it: 2200 matches the packet-less pace of the siblings.
     duration: 2200,
-    narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 for a Node and the weighted sum is the final score: Node-3 gets 78, Node-4 gets 92.',
+    narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 for a Node and the weighted sum is the final score: Node-3 gets 78, Node-4 gets 92. See the Pod Priority and Preemption card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -295,6 +298,9 @@ const STEPS = [
       s.refs.sched.classList.add('highlight');
       s.refs.winnerChip.classList.add('highlight');
       s.refs.n4.classList.add('highlight');
+      // Lit on score, lit on placed, so it stays lit here: the verdict chip follows the Node above
+      // it, and going dark for one step in the middle read as the winner being un-chosen.
+      s.refs.v4.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[3]) rows[3].classList.add('highlight');
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); s.refs.etcdC.classList.add('highlight'); return; }
@@ -321,6 +327,9 @@ const STEPS = [
       s.refs.n1.style.opacity = String(OPACITY.notready);
       s.refs.n2.style.opacity = String(OPACITY.notready);
       s.refs.n4.classList.add('highlight');
+      // The verdict chip belongs to the Node above it, so it takes the same highlight: without it
+      // the winning column ended with a lit frame over a chip shaded like the two filtered ones.
+      s.refs.v4.classList.add('highlight');
       s.refs.placedPodBox.classList.add('highlight');
       // Hide node-4's own label and sublabel so the inner box reads cleanly inside the slot.
       setN4TextOpacity(s, '0');

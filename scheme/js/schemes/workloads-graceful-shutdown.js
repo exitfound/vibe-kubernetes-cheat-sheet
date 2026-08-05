@@ -76,7 +76,7 @@ class Scene {
     root.appendChild(connectorUp);
 
     // Single wire label centered above the top row, clear of the connector below it.
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     const chain = chainList({

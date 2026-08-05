@@ -71,7 +71,7 @@ class Scene {
     // travelling back from the API, so it carries no arrowhead and sits behind the live lane.
     root.appendChild(relationPath({ points: [[TOP2_X, RESP_Y], [TOP1_X + TOP1_W, RESP_Y]], role: 'cluster' }));
 
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     const rs1Chip  = valChip({ x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'RS-v1 (rev 1) · Ready', value: '3 / 3', role: 'workloads' });

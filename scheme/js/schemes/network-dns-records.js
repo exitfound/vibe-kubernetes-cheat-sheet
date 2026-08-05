@@ -152,7 +152,9 @@ function resolve(s, ctx, rowIdx) {
   // CoreDNS is the answering infra: it lights on query arrival, then the answer leaves for its row.
   lightBoxAt(s.refs.coredns, ctx, q.arrivalMs);
   const ans = routePacket(s, ctx, ANS[rowIdx], { delay: q.arrivalMs + BEAT.afterHop, role: 'network' });
-  const row = s.refs.coredns.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay: ans.arrivalMs });
+  // Empty keyframes: a timer must name no property, or the browser composites CoreDNS on its own
+  // layer for the whole flight and its fill shifts tone. Reasoning at lightBoxAt in scheme-kit.js.
+  const row = s.refs.coredns.animate([], { duration: 1, delay: ans.arrivalMs });
   row.onfinish = () => setChainActive(s.refs.records, rowIdx);
   ctx.register(row);
   // The record lights in the ladder, and THEN the same answer goes home: every step on this card says

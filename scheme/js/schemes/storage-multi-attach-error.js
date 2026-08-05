@@ -211,10 +211,12 @@ function clearHL(s) {
     'modeChip', 'attChip', 'podChip', 'blockChip'], [s.refs.podOld, s.refs.podNew]);
 }
 
+// The mirror of lightBoxAt, and it takes its empty keyframe list for the same reason: a timer that
+// names a property costs its target a composited layer for the wait. Reasoning is in scheme-kit.js.
 function unlightAt(el, ctx, delay = 0) {
   if (!el) return;
   if (ctx.reduced || delay <= 0) { el.classList.remove('highlight'); return; }
-  const a = el.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
+  const a = el.animate([], { duration: 1, delay });
   a.onfinish = () => el.classList.remove('highlight');
   ctx.register(a);
 }

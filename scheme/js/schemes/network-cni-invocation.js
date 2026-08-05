@@ -84,11 +84,11 @@ class Scene {
     const wResult = arrow({ x1: RESULT[0][0], y1: RESULT[0][1], x2: RESULT[1][0], y2: RESULT[1][1], dashed: true, dim: true });
     const wJoin   = pathArrow({ points: JOIN, dashed: true, dim: true });
 
-    const lRun    = text({ class: 'scheme-label code dim', x: 309, y: ROW_Y - 10, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const lAdd    = text({ class: 'scheme-label code dim', x: 685, y: ROW_Y - 10, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const lNetns  = text({ class: 'scheme-label code dim', x: CRI_CX + 12, y: CRI[1] + CRI[3] + 30, 'text-anchor': 'start', 'font-size': 10 }, [' ']);
-    const lResult = text({ class: 'scheme-label code dim', x: 690, y: PAUSE_Y - 10, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const lJoin   = text({ class: 'scheme-label code dim', x: 254, y: PAUSE_Y + 16, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const lRun    = text({ class: 'scheme-label code dim', x: 309, y: ROW_Y - 10, 'text-anchor': 'middle' }, [' ']);
+    const lAdd    = text({ class: 'scheme-label code dim', x: 685, y: ROW_Y - 10, 'text-anchor': 'middle' }, [' ']);
+    const lNetns  = text({ class: 'scheme-label code dim', x: CRI_CX + 12, y: CRI[1] + CRI[3] + 30, 'text-anchor': 'start' }, [' ']);
+    const lResult = text({ class: 'scheme-label code dim', x: 690, y: PAUSE_Y - 10, 'text-anchor': 'middle' }, [' ']);
+    const lJoin   = text({ class: 'scheme-label code dim', x: 254, y: PAUSE_Y + 16, 'text-anchor': 'middle' }, [' ']);
 
     // Status chips docked under the block each describes: the allocated Pod IP under the sandbox,
     // the live CNI operation under the plugin container.

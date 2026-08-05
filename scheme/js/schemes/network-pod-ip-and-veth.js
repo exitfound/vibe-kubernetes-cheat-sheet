@@ -58,13 +58,13 @@ class Scene {
     // veth pair: cni0 peer to the Pod eth0 (right edge of the shell). The CNI configures the
     // IP and link into the Pod, so the arrow points cni0 -> Pod and the packet rides with it.
     const veth = arrow({ x1: VETH[0][0], y1: VETH[0][1], x2: VETH[1][0], y2: VETH[1][1], dashed: true, dim: true, role: 'network' });
-    const vethLabel = text({ class: 'scheme-label code dim', x: (POD_R + BR_X) / 2, y: LINK_Y + WIRE_LABEL_DY, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const vethLabel = text({ class: 'scheme-label code dim', x: (POD_R + BR_X) / 2, y: LINK_Y + WIRE_LABEL_DY, 'text-anchor': 'middle' }, [' ']);
     // CNI plugin exec wire down to the bridge.
     const cniWire = arrow({ x1: CNI_EXEC[0][0], y1: CNI_EXEC[0][1], x2: CNI_EXEC[1][0], y2: CNI_EXEC[1][1], dashed: true, dim: true, role: 'network' });
     // localhost loopback inside the shared namespace: a plain dashed link (no direction),
     // both containers simply share one loopback.
     const loWire = relationPath({ points: [[LOOPBACK[0][0], LINK_Y], [LOOPBACK[1][0], LINK_Y]], role: 'network' });
-    const loLabel = text({ class: 'scheme-label code dim', x: (PAUSE_R + APP_X) / 2, y: LINK_Y + WIRE_LABEL_DY, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const loLabel = text({ class: 'scheme-label code dim', x: (PAUSE_R + APP_X) / 2, y: LINK_Y + WIRE_LABEL_DY, 'text-anchor': 'middle' }, [' ']);
 
     const nsChip   = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'namespace', value: 'not ready', role: 'network' });
     const ipChip   = valChip({ x: CHIP_X[1], y: CHIP_Y, w: CHIP_W[1], h: CHIP_H, name: 'Pod IP',    value: 'none',      role: 'network' });

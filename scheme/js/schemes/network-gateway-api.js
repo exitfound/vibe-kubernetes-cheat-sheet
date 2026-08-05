@@ -84,17 +84,17 @@ class Scene {
 
     // Static field names on the two stack wires: they say WHY the boxes are joined. Both sit beside
     // the spine, never on it. The backendRef gap is only 60 wide, so that one is carried by its chip.
-    const classField  = text({ class: 'scheme-label code dim', x: STACK_CX + 16, y: (CLASS_BOTTOM + GW_TOP) / 2 + 4, 'text-anchor': 'start', 'font-size': 10 }, ['gatewayClassName']);
-    const parentField = text({ class: 'scheme-label code dim', x: STACK_CX + 16, y: (GW_BOTTOM + ROUTE_Y) / 2 + 4, 'text-anchor': 'start', 'font-size': 10 }, ['match rules']);
+    const classField  = text({ class: 'scheme-label code dim', x: STACK_CX + 16, y: (CLASS_BOTTOM + GW_TOP) / 2 + 4, 'text-anchor': 'start' }, ['gatewayClassName']);
+    const parentField = text({ class: 'scheme-label code dim', x: STACK_CX + 16, y: (GW_BOTTOM + ROUTE_Y) / 2 + 4, 'text-anchor': 'start' }, ['match rules']);
 
-    const roleA = text({ class: 'scheme-label code dim', x: ROLE_X, y: CLASS_Y + CLASS_H / 2 + 4, 'text-anchor': 'start', 'font-size': 11 }, ['owned by: infra provider']);
-    const roleB = text({ class: 'scheme-label code dim', x: ROLE_X, y: FLOW_Y + 4,   'text-anchor': 'start', 'font-size': 11 }, ['owned by: cluster operator']);
-    const roleC = text({ class: 'scheme-label code dim', x: STACK_X - 24, y: ROUTE_CY + 4, 'text-anchor': 'end', 'font-size': 11 }, ['owned by: app team']);
+    const roleA = text({ class: 'scheme-label code dim', x: ROLE_X, y: CLASS_Y + CLASS_H / 2 + 4, 'text-anchor': 'start' }, ['owned by: infra provider']);
+    const roleB = text({ class: 'scheme-label code dim', x: ROLE_X, y: FLOW_Y + 4,   'text-anchor': 'start' }, ['owned by: cluster operator']);
+    const roleC = text({ class: 'scheme-label code dim', x: STACK_X - 24, y: ROUTE_CY + 4, 'text-anchor': 'end' }, ['owned by: app team']);
 
     // Blank at build, filled per step: the request line rides above the entry hop, and the backend Pod
     // is tagged as the endpoint the route resolved to.
-    const entryLabel = text({ class: 'scheme-label code dim', x: (CLIENT_RIGHT + STACK_X) / 2, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const podLabel   = text({ class: 'scheme-label code dim', x: POD_X + POD_W / 2, y: ROUTE_CY - POD_H / 2 - 11, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const entryLabel = text({ class: 'scheme-label code dim', x: (CLIENT_RIGHT + STACK_X) / 2, y: FLOW_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const podLabel   = text({ class: 'scheme-label code dim', x: POD_X + POD_W / 2, y: ROUTE_CY - POD_H / 2 - 11, 'text-anchor': 'middle' }, [' ']);
 
     const listenerChip  = valChip({ x: CLIENT_X, y: CHIP_Y, w: 200, h: 34, name: 'listener', value: ':443 HTTPS', role: 'network' });
     const hostnamesChip = valChip({ x: 260, y: CHIP_Y, w: 180, h: 34, name: 'hostnames', value: 'shop.io', role: 'network' });

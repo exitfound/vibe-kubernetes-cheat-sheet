@@ -1,15 +1,19 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt } from '../lib/cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, OPACITY } from '../lib/cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-drain
 
-// Layout C: this card carries the tallest narration panel in the category (x<=397, y<=380), so the
-// Node frame sits on the panel bottom and the ladder keeps the right column.
+// Layout C: the ladder keeps the right column and the Node frame sits under the panel. Panel worst
+// case over 1600/1280/1100 at heights 1000/860/800 is x<=397, y<=304, at 1100x800 on the cordon
+// step, the longest narration on the card at 396 characters. The frame top is 380, so the clearance
+// is 76 units. The 2026-08-04 narration trims bought that clearance and the frame did NOT move up to
+// spend it: 380 is a route length and therefore a packet timing. The CEILING is a property of the
+// frame, not of the current text, so it is unchanged: no narration here may pass 528 characters.
+// Re-measure with VW=1100 VH=800 node overlay-measure.mjs after any prose edit on this card.
 // The top row is the deliberate exception, see the OCCLUDED note in scheme/docs/CARDS.md.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
-const PANEL_B = 380;                                     // the measured panel bottom, and the Node frame sits on it
 
 const BOX_W = 232, BOX_H = 80;
 const TOP_Y = 40, TOP_BOTTOM = TOP_Y + BOX_H;            // 40 / 120
@@ -20,8 +24,11 @@ const API_X = CX - BOX_W / 2;                            // 484..716, centred on
 const KUBECTL_X = API_X - TOP_GAP - BOX_W;               // 196..428
 const LANE_DY = 12, TOP_CY = TOP_Y + BOX_H / 2;          // 80
 const REQ_Y = TOP_CY - LANE_DY, RESP_Y = TOP_CY + LANE_DY;   // 68 / 92
-// Over the API, NOT over the gap between the boxes. The label runs about 300 units wide against a
-// 56 unit gap, so a gap-centred label reaches back to x=305 and the panel eats its first 89 units.
+// Over the API, NOT over the gap between the boxes. Measured, the longest label runs 365 units
+// against a 56 unit gap, so a gap-centred label would reach back to x=273 and the panel (x<=397)
+// would eat its first 124 characters worth. Centred on the API it spans 417..783 and clears the
+// panel outright. The label renders at 11px from `.scheme-label.code`: a `font-size` presentation
+// attribute has specificity 0 and loses to that rule, so do not derive a width from one.
 const WIRE_X = CX;                                       // 600
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row: the spine owns below it
 
@@ -29,7 +36,7 @@ const LADDER_X = 660, LADDER_W = 480;                    // 660..1140, right of 
 const LADDER_Y = 170, ROW_H = 32, ROW_GAP = 10;          // 5 rows -> 170..370
 
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
-const NODE_Y = PANEL_B, NODE_H = 152;                    // 380..532, the first row clear of the panel
+const NODE_Y = 380, NODE_H = 152;                        // 380..532, clear of the panel by 76 since 2026-08-04
 const POD_W = 300, POD_H = 106, POD_Y = NODE_Y + 34;     // 414..520
 const POD_PAD = 24;
 const POD_XS = [0, 1, 2].map(i => NODE_X + POD_PAD + i * ((NODE_W - POD_PAD * 2 - POD_W) / 2));
@@ -76,7 +83,7 @@ class Scene {
     root.appendChild(arrow({ x1: KUBECTL_X + BOX_W, y1: REQ_Y,  x2: API_X, y2: REQ_Y,  dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(arrow({ x1: API_X, y1: RESP_Y, x2: KUBECTL_X + BOX_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     // State chips, one bottom strip across the content width.
@@ -91,7 +98,7 @@ class Scene {
       x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
         '1. cordon   ·  PATCH Node spec.unschedulable=true',
-        '2. list     ·  enumerate Pods, skip DaemonSet / mirror',
+        '2. list     ·  --ignore-daemonsets --delete-emptydir-data --force',
         '3. evict    ·  POST .../pods/{name}/eviction',
         '4. PDB gate ·  API reads disruptionsAllowed, 200 or 429',
         '5. drained  ·  app Pods gone, DaemonSet stays',
@@ -143,7 +150,7 @@ class Scene {
     this.host.appendChild(root);
     this.refs = {
       svg: root,
-      kubectl, apiserver, chain, nodeEl, evictLane,
+      kubectl, apiserver, chain, nodeEl,
       cordonChip, pdbChip, healthyChip, lastChip,
       pod1, pod2, pod3, pod1Box, pod2Box, pod3Box,
       packetLayer,
@@ -167,13 +174,22 @@ function resetPodOpacity(s) {
 // The lane ends on the Node frame, which is on screen for the whole card, so it never has to be
 // pinned to the presence of a Pod: nothing it points at can go away under it.
 
-// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
+// The evicted Pod goes out slower than the catalog FADE.out (700). At 700 the Pod is gone 200ms
+// before its own pulse ends, so the eviction reads as a cut rather than as a death. 1200 lands the
+// fade after the pulse. This is the same constant, for the same reason, that the two sibling Node
+// cards carry: POD_FADE on cluster-graceful-node-shutdown, VICTIM_FADE on
+// cluster-node-pressure-eviction. This card was the one left behind when they were converted.
+// It fades to OPACITY.terminated, not to 0: an evicted Pod that is removed outright leaves a
+// block-sized hole in the Node frame. The onfinish is the removeAt shape, see docs/CARDS.md.
+const POD_FADE = 1200;
+function fadeOut(s, ctx, key, boxKey, delay) {
+  const box = s.refs[boxKey];
+  const a = s.refs[key].animate(
+    [{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: POD_FADE, delay, fill: 'both', easing: 'ease-in' });
+  a.onfinish = () => { if (box) box.classList.remove('highlight'); };
   ctx.register(a);
 }
+
 
 const STEPS = [
   {
@@ -215,7 +231,7 @@ const STEPS = [
   {
     id: 'list',
     duration: 1900,
-    narration: 'The drain command lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. DaemonSet-owned Pods need --ignore-daemonsets (kubectl refuses to proceed without it when DS Pods are present). Mirror Pods (the API representation of static Pods) are skipped because Kubelet would recreate them immediately. Pods with emptyDir volumes need --delete-emptydir-data, and bare Pods with no owning controller need --force. The remaining set, two Deployment-backed Pods here, queues for the Eviction API.',
+    narration: 'The drain command lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. A drain never evicts DaemonSet Pods. Mirror Pods (the API record of static Pods) are skipped because Kubelet would recreate them. Pods with emptyDir volumes and bare Pods with no owner abort the drain until the matching flag is passed. Two Deployment-backed Pods are left for the Eviction API.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -232,9 +248,10 @@ const STEPS = [
   {
     id: 'evict-A',
     // The eviction leaves the API, not kubectl. Its route is one 260 unit drop since the API moved
-    // over the Node frame, so the step runs to 2400ms and duration follows it down.
-    duration: 2550,
-    narration: 'The drain command POSTs to /api/v1/namespaces/default/pods/web-1/eviction. The API reads the matching PDB, whose status the disruption controller keeps at disruptionsAllowed=1 (currentHealthy=2 minus minAvailable=1). The eviction is granted with 200 OK, disruptionsAllowed atomically decrements to 0 via optimistic concurrency on the PDB status, and the Pod is deleted with the standard grace period. The owning ReplicaSet observes the deletion and creates a replacement elsewhere, covered in the Deployment rolling update card.',
+    // over the Node frame. The step ends on the Pod fade, which is POD_FADE (1200) rather than
+    // FADE.out now, so it runs to 2700ms and duration follows it back up.
+    duration: 2800,
+    narration: 'The drain command POSTs an eviction for web-1. The API reads the matching PDB, whose status the disruption controller keeps at disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed decrements to 0 under optimistic concurrency, and the Pod is deleted with its grace period. The owning ReplicaSet replaces it elsewhere, covered in the Deployment rolling update card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -247,12 +264,13 @@ const STEPS = [
       s.refs.pdbChip.classList.add('highlight');
       s.refs.healthyChip.classList.add('highlight');
       s.refs.lastChip.classList.add('highlight');
-      // Pin final state so cancel between steps does not flash to default.
-      s.refs.pod1.style.opacity = '0';
+      // Pin final state so cancel between steps does not flash to default. The evicted Pod ends at
+      // the terminated shade, so the static path must NOT stand a highlight in for the pulse here.
+      s.refs.pod1.style.opacity = String(OPACITY.terminated);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       // The count the API READS is 2, and the eviction is what takes it to 1, so the chip stays at
       // what the previous step left and turns over when the eviction ball lands on web-1.
       setVal(s.refs.healthyChip, '2 of 2');
@@ -272,15 +290,14 @@ const STEPS = [
       const evict = routePacket(s, ctx, EVICT_ROUTE, { delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
       at(s, ctx, evict.arrivalMs, () => setVal(s.refs.healthyChip, '1 of 2'));
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
-      ctx.register(s.refs.pod1.animate(
-        [{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      fadeOut(s, ctx, 'pod1', 'pod1Box', evict.arrivalMs);
     },
   },
   {
     id: 'evict-B-retry',
-    // Four hops plus the drop: 4000ms after the shortened lane, against 4638 before it.
-    duration: 4150,
-    narration: 'The drain command POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so disruptionsAllowed is 0 and the API server returns 429 Too Many Requests, denying the request. The drain command retries the eviction every 5 seconds. Once the replacement web-1 turns Ready elsewhere, currentHealthy bumps back to 2 and the next retry returns 200 OK, freeing web-2 to be evicted.',
+    // Four hops plus the drop, ending on the POD_FADE dissolve: 4300ms.
+    duration: 4400,
+    narration: 'The drain command POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so disruptionsAllowed is 0 and the API returns 429 Too Many Requests. The drain command retries every 5 seconds. Once the replacement turns Ready elsewhere, currentHealthy is back to 2 and the next retry returns 200 OK, evicting web-2.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -293,12 +310,13 @@ const STEPS = [
       s.refs.pdbChip.classList.add('highlight');
       s.refs.healthyChip.classList.add('highlight');
       s.refs.lastChip.classList.add('highlight');
-      // Pin final state.
-      s.refs.pod1.style.opacity = '0';
-      s.refs.pod2.style.opacity = '0';
+      // Pin final state. Both evicted Pods hold the terminated shade, so neither takes a stand-in
+      // highlight on the static path.
+      s.refs.pod1.style.opacity = String(OPACITY.terminated);
+      s.refs.pod2.style.opacity = String(OPACITY.terminated);
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); s.refs.pod2Box.classList.add('highlight'); return; }
+      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       // Both chips roll back to what the step STARTS from and turn over on the beats that earn them,
       // the same shape evict-A uses. The pinned values above the guard are transitions, so showing
       // them at entry announced the 429 and the retry that clears it before either was drawn.
@@ -317,8 +335,7 @@ const STEPS = [
       const evict = routePacket(s, ctx, EVICT_ROUTE, { delay: retry.arrivalMs + BEAT.afterHop, role: 'cluster' });
       at(s, ctx, evict.arrivalMs, () => setVal(s.refs.lastChip, 'web-2 · 429 → 200 OK'));
       pulsePod(s.refs.pod2, ctx, evict.arrivalMs);
-      ctx.register(s.refs.pod2.animate(
-        [{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      fadeOut(s, ctx, 'pod2', 'pod2Box', evict.arrivalMs);
     },
   },
   {
@@ -331,6 +348,9 @@ const STEPS = [
       clearWires(s);
       resetPodOpacity(s);
       setVal(s.refs.healthyChip, '2 of 2');
+      // currentHealthy climbing back to 2 of 2 is the point of the step (the budget is satisfied
+      // again, so the drain is safe to call done), and it used to change with no cue on it.
+      s.refs.healthyChip.classList.add('highlight');
       // A chip means what its name says: this one holds the LAST eviction, so it sheds the retry
       // marker and settles on web-2. The tally the step is about is carried by ladder row 5 and by
       // the wire label, which is where a summary belongs.
@@ -339,9 +359,9 @@ const STEPS = [
       s.refs.kubectl.classList.add('highlight');
       s.refs.cordonChip.classList.add('highlight');
       s.refs.lastChip.classList.add('highlight');
-      // Pin final state.
-      s.refs.pod1.style.opacity = '0';
-      s.refs.pod2.style.opacity = '0';
+      // Pin final state. Both evicted Pods stay on screen at the terminated shade.
+      s.refs.pod1.style.opacity = String(OPACITY.terminated);
+      s.refs.pod2.style.opacity = String(OPACITY.terminated);
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) return;

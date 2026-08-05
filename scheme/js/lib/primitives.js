@@ -17,12 +17,14 @@ export function arrowDefs() {
 export function box({ x = 0, y = 0, w = 100, h = 60, rx = 6, label = '', sublabel = '', cls = '', role = '' } = {}) {
   const group = g({ class: ('scheme-box ' + cls).trim(), 'data-role': role || null, transform: `translate(${x},${y})` });
   group.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: w, height: h, rx, ry: rx }));
+  // Optically centred, measured rather than eyeballed: the ink of a label+sublabel pair sat 1.22
+  // units below the box centre and a lone label 0.67, at EVERY height from 38.75 to 81.38 (2026-08-04).
   if (label) {
-    const ly = sublabel ? h / 2 - 2 : h / 2 + 5;
+    const ly = sublabel ? h / 2 - 3.22 : h / 2 + 4.33;
     group.appendChild(text({ class: 'scheme-box-label', x: w / 2, y: ly, 'text-anchor': 'middle' }, [label]));
   }
   if (sublabel) {
-    group.appendChild(text({ class: 'scheme-box-sublabel', x: w / 2, y: h / 2 + 14, 'text-anchor': 'middle' }, [sublabel]));
+    group.appendChild(text({ class: 'scheme-box-sublabel', x: w / 2, y: h / 2 + 12.78, 'text-anchor': 'middle' }, [sublabel]));
   }
   return group;
 }

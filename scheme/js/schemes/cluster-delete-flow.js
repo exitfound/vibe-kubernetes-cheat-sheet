@@ -2,7 +2,7 @@ import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, pathArrow } from '../lib/primitives.js';
 import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
 
-// Every row is centred on CX and symmetric about it, the sibling Apply Flow card's grammar. Measured
+// Every row is centred on CX and symmetric about it, the sibling cluster-apply-flow card's grammar. Measured
 // per step over 1600x1000 / 1280x860 / 1100x800, the panel is x<=397 on every step and its bottom
 // reaches 282 on the gc-cascade step, the deepest narration in the pair.
 // An earlier version of this card kept the top row RIGHT of the panel (420..1080) so nothing was
@@ -19,7 +19,7 @@ const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
 // tier-2 wire labels), tier 2, band 2 and the Node frame, and tier 2 cannot rise because the panel
 // reaches 282. The cost: kubectl at 170..330 and the two labels in the left gap are inside the
 // panel's column, so on this card they are covered rather than merely clipped. That is the price of
-// a centred API here and it was taken knowingly, exactly as on Apply Flow.
+// a centred API here and it was taken knowingly, exactly as on cluster-apply-flow.
 const TOP_Y = 110, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 110 / 190
 const TOP_CY = TOP_Y + TOP_H / 2;                        // 150
 const LANE_DY = 10;
@@ -30,13 +30,13 @@ const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 140 / 160
 const KCTL_W = 160, API_W = 220, ETCD_W = 130;
 const GAP = 190;
 const API_X = CX - API_W / 2, API_R = API_X + API_W, API_CX = CX;   // 490..710
-// kubectl is the ONE block in the row not derived from GAP, and it matches the Apply Flow card:
+// kubectl is the ONE block in the row not derived from GAP, and it matches the cluster-apply-flow card:
 // its LEFT edge is pinned at 170, where the symmetric 130-wide version left it, and it grows to the
 // RIGHT only. So the row is no longer symmetric, kubectl is 160 wide against ETCD's 130 and its gap
 // is 160 against 190, and that is deliberate on both cards. 160 is near the ceiling: the gap has to
 // keep holding HTTP 202 Accepted, measured at 113 units, which leaves 23.5 a side.
 const KCTL_X = 170, KCTL_R = KCTL_X + KCTL_W;            // 170..330
-const ETCD_X = API_R + GAP, ETCD_R = ETCD_X + ETCD_W;    // 900..1030
+const ETCD_X = API_R + GAP;                              // 900..1030
 
 // Tier 2 is mirrored about CX, which is both the centre the Node frame sets and the API's own
 // centre, so every row on the card shares one axis. The old comment here claimed a spine at x=500
@@ -50,7 +50,7 @@ const T2_D = CX - (110 + M) - T2_W / 2;                  // 310
 const CM_CX = CX - T2_D, CM_X = CM_CX - T2_W / 2;        // 290, 170..410
 const GC_CX = CX + T2_D, GC_X = GC_CX - T2_W / 2;        // 910, 790..1030
 
-// The frame and its contents are the Apply Flow card's, to the unit, because the two cards draw the
+// The frame and its contents are the cluster-apply-flow card's, to the unit, because the two cards draw the
 // same Node and should not disagree about it. NODE_PAD is applied to BOTH walls, which is what the
 // hand-placed KUBELET_X=135 / POD_X=720 could not hold: they left 25 of inset on the left and 154
 // on the right, so the pair read as having slid leftwards inside the frame.
@@ -74,6 +74,14 @@ const BAND1_CY = (TOP_BOTTOM + T2_Y) / 2;                // 245
 const BAND2_CY = (T2_Y + T2_H + NODE_Y) / 2;             // 410
 const LANE_HALF = 8;
 const LANE1_OUT = BAND1_CY - LANE_HALF, LANE1_BACK = BAND1_CY + LANE_HALF;   // 237 / 253
+// TWO registers for the band-1 labels, the same idiom the top row and the sibling cluster-apply-flow card
+// use: a label describing traffic that goes OUT sits above the out lane, a label describing traffic
+// that comes BACK sits below the return lane. Both band-1 labels used to share the out register,
+// which put wireGc over TO_GC, the watch that carries the event INTO the Garbage collector, while
+// both strings it ever holds are FROM_GC traffic leaving it (DELETE replicasets · pods on the
+// cascade step, clear finalizer on the finalizer step).
+const WIRE_T2_OUT_Y = LANE1_OUT - 8;                     // 229, above the out lane
+const WIRE_T2_BACK_Y = LANE1_BACK + 14;                  // 267, below the return lane
 
 // Five lanes meet the API's bottom face at 540 / 590 / 610 / 630 / 660. The ORDER across that face
 // is forced rather than chosen, and getting it wrong is what produced a crossing: every lane except
@@ -84,7 +92,7 @@ const D20 = 20, D30 = 30, D60 = 60;
 const TO_CM       = [[API_CX - D60, TOP_BOTTOM], [API_CX - D60, LANE1_OUT], [CM_CX, LANE1_OUT], [CM_CX, T2_Y]];
 const TO_GC       = [[API_CX + D60, TOP_BOTTOM], [API_CX + D60, LANE1_OUT], [GC_CX + D20, LANE1_OUT], [GC_CX + D20, T2_Y]];
 const FROM_GC     = [[GC_CX - D20, T2_Y], [GC_CX - D20, LANE1_BACK], [API_CX + D30, LANE1_BACK], [API_CX + D30, TOP_BOTTOM]];
-// Addressed to the NODE, not to the Kubelet, the same decision the Apply Flow card records: a watch
+// Addressed to the NODE, not to the Kubelet, the same decision the cluster-apply-flow card records: a watch
 // stream arrives at a Node and a status report leaves one, and what the Kubelet does with it is
 // drawn INSIDE the frame on its own step. They stay a mirrored pair on the FRAME's top face
 // whatever else moves, because one endpoint alone on a face has to sit on that face's midpoint and
@@ -99,7 +107,7 @@ const DELETE_ACK  = [[API_X, BACK_Y], [KCTL_R, BACK_Y]];
 const PERSIST     = [[API_R, OUT_Y], [ETCD_X, OUT_Y]];
 const PERSIST_ACK = [[ETCD_X, BACK_Y], [API_R, BACK_Y]];
 const STOP_POD    = [[KUBELET_R, LANE_Y], [POD_X, LANE_Y]];
-// Two registers, SPLIT by what fits. The acks go between the blocks like the Apply Flow card's,
+// Two registers, SPLIT by what fits. The acks go between the blocks like the cluster-apply-flow card's,
 // because they are short (HTTP 202 Accepted measures 115 against a 190 gap). The requests cannot:
 // DELETE /apis/apps/v1/.../deployments/my-app measures 287 and patch deletionTimestamp rv=843
 // measures 213, so both ride ABOVE the row instead. They used to sit at BACK_Y + 26, INSIDE the
@@ -121,7 +129,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'kubectl delete flow from the client through the control plane to the Kubelet on a Node',
+      'aria-label': 'How a cascading delete unwinds through finalizers, from the client through the control plane to the Kubelet on a Node',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -190,8 +198,8 @@ class Scene {
     const wireEtcdAck      = text({ class: 'scheme-label code dim', x: ETCD_GAP_CX, y: WIRE_ACK_Y, 'text-anchor': 'middle' }, [' ']);
     // Band 1 carries one label per side, each centred on the horizontal run it names and sitting 8
     // above the OUT level. The Garbage collector label names the BACK lane from over its own pair.
-    const wireController   = text({ class: 'scheme-label code dim', x: (CM_CX + API_CX - D60) / 2, y: LANE1_OUT - 8, 'text-anchor': 'middle' }, [' ']);
-    const wireGc           = text({ class: 'scheme-label code dim', x: (API_CX + D30 + GC_CX - D20) / 2, y: LANE1_OUT - 8, 'text-anchor': 'middle' }, [' ']);
+    const wireController   = text({ class: 'scheme-label code dim', x: (CM_CX + API_CX - D60) / 2, y: WIRE_T2_OUT_Y, 'text-anchor': 'middle' }, [' ']);
+    const wireGc           = text({ class: 'scheme-label code dim', x: (API_CX + D30 + GC_CX - D20) / 2, y: WIRE_T2_BACK_Y, 'text-anchor': 'middle' }, [' ']);
     // Band 2. Its lane is a straight VERTICAL, and a horizontal string centred on a vertical lane is
     // cut in half by it, so this one is right-anchored just left of the lane, on the band's centre.
     const wireKubeletWatch = text({ class: 'scheme-label code dim', x: NODE_CX - LANE_DY - 14, y: BAND2_CY + 4, 'text-anchor': 'end' }, [' ']);

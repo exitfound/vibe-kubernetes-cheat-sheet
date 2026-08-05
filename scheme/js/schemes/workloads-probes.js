@@ -58,7 +58,7 @@ class Scene {
     root.appendChild(connectorDown);
     root.appendChild(connectorUp);
 
-    const wireReq = text({ class: 'scheme-label code dim', x: WL.CX, y: WL.TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WL.CX, y: WL.TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     const chain = chainList({

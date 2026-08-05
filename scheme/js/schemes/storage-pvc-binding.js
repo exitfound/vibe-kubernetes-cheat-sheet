@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, makeRidingLabel, OPACITY } from '../lib/storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-pvc-binding
 
 
@@ -162,14 +162,6 @@ function setChips(s, { pvc, pv, bind, mount }) {
   setChip(s.refs.mountChip, mount);
 }
 
-// Runs fn at a point inside the step, or at once on the static path so the end state is right.
-// Same construction as network-dns-ndots: a zero-effect 1ms animation carrying an onfinish.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
-}
 
 function clearHL(s) {
   clearHighlights(s, ['ctrl', 'pvc', 'pvcB', 'pvSmall', 'pvMatchCyl', 'pvSlow', 'appBox',

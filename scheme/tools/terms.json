@@ -234,6 +234,19 @@
       "db",
       "cache"
     ],
+    "_apiWordsDoc": [
+      "A first token whose casing belongs to Kubernetes, Linux or a protocol rather than to this",
+      "project, so system A leaves the string alone. Most are ordinary English words that are also",
+      "legal API enum values: filesystem and block for volumeMode, retain and delete for the reclaim",
+      "policy, true and false for a condition status.",
+      "memory: the value Memory, the only NON-EMPTY legal value of emptyDir.medium, drawn on the",
+      "medium chip of storage-emptydir. That one string is all this entry exempts today, and the",
+      "empty medium is drawn as node disk on the same chip, so the chip is not a pure literal.",
+      "KNOWN LIMITATION of the whole list, not of any one entry: untouchable() in check-inline.mjs",
+      "short-circuits BEFORE the want check, so an entry exempts want title as well as want lower.",
+      "A future BLOCK LABEL whose first token matches any word here will never be told to take its",
+      "capital. Weigh that before adding one, and prefer a token isIdentifier already accepts."
+    ],
     "apiWords": [
       "pod",
       "service",
@@ -338,7 +351,8 @@
       "flannel",
       "weave",
       "sigterm",
-      "sigkill"
+      "sigkill",
+      "memory"
     ],
     "_homographsDoc": [
       "Two spellings that are two different objects, so check-labels must not merge them.",

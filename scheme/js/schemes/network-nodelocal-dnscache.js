@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
+import { at, valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-nodelocal-dnscache
 
 
@@ -12,14 +12,6 @@ const POD_EDGE = 290;
 const AGENT_LEFT = 430;
 const AGENT_RIGHT = 630;
 const DNS_LEFT = 880;
-
-// Run fn at a point in the step, or immediately under reduced replay so the static end-state is right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.agent.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
-}
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -58,10 +50,10 @@ class Scene {
     const uWire = arrow({ x1: AGENT_RIGHT, y1: FWD_Y, x2: DNS_LEFT, y2: FWD_Y, dashed: true, dim: true, role: 'network' });
     const dWire = arrow({ x1: DNS_LEFT, y1: RET_Y, x2: AGENT_RIGHT, y2: RET_Y, dashed: true, dim: true, role: 'network' });
 
-    const qLabel = text({ class: 'scheme-label code dim', x: 360, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const aLabel = text({ class: 'scheme-label code dim', x: 360, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const uLabel = text({ class: 'scheme-label code dim', x: 755, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const dLabel = text({ class: 'scheme-label code dim', x: 755, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const qLabel = text({ class: 'scheme-label code dim', x: 360, y: FWD_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const aLabel = text({ class: 'scheme-label code dim', x: 360, y: RET_Y + 22, 'text-anchor': 'middle' }, [' ']);
+    const uLabel = text({ class: 'scheme-label code dim', x: 755, y: FWD_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const dLabel = text({ class: 'scheme-label code dim', x: 755, y: RET_Y + 22, 'text-anchor': 'middle' }, [' ']);
 
     const pathChip = valChip({ x: 80, y: 450, w: 250, h: 34, name: 'query path', value: 'idle', role: 'network' });
     const cacheChip = valChip({ x: 350, y: 450, w: 250, h: 34, name: 'cache', value: 'empty', role: 'network' });

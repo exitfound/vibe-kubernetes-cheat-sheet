@@ -63,7 +63,7 @@ class Scene {
 
     // Wire label sits ABOVE the Kubelet box: below it the spine runs through the same point and
     // would split the string in two.
-    const wireReq = text({ class: 'scheme-label code dim', x: SPINE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: SPINE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     const chain = chainList({

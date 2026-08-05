@@ -54,10 +54,10 @@ class Scene {
     // The cni0-to-cni0 link is ONE continuous turning arrow that drops to the underlay, runs
     // across, and rises into the remote cni0. The packet rides this same UNDERLAY_PATH.
     const underlay = pathArrow({ points: UNDERLAY_PATH, dashed: true, dim: true, role: 'network' });
-    const underlayLabel = text({ class: 'scheme-label code dim', x: 600, y: UNDERLAY_Y - 14, 'text-anchor': 'middle', 'font-size': 11 }, ['physical network']);
-    const vethALabel = text({ class: 'scheme-label code dim', x: 324, y: VETH_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const vethBLabel = text({ class: 'scheme-label code dim', x: 876, y: VETH_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const encapLabel = text({ class: 'scheme-label code dim', x: 600, y: UNDERLAY_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const underlayLabel = text({ class: 'scheme-label code dim', x: 600, y: UNDERLAY_Y - 14, 'text-anchor': 'middle' }, ['physical network']);
+    const vethALabel = text({ class: 'scheme-label code dim', x: 324, y: VETH_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const vethBLabel = text({ class: 'scheme-label code dim', x: 876, y: VETH_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const encapLabel = text({ class: 'scheme-label code dim', x: 600, y: UNDERLAY_Y + 22, 'text-anchor': 'middle' }, [' ']);
 
     // Chip strip: first chip left edge == Node-1 left (x70), last chip right edge == Node-2 right
     // (x1130). Four equal chips of 250 with 20px gaps span the full 1060 between the node edges.

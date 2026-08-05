@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=330 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
@@ -92,7 +92,7 @@ class Scene {
     root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     const podChip  = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'pod identity',  value: 'web-0 · Running', role: 'workloads' });
@@ -190,13 +190,6 @@ function setLanes(s, { toA, toB }) {
   s.refs.pvConnector.style.opacity = toB ? '1' : '0';
 }
 
-// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
-}
 
 function clearHL(s) {
   clearHighlights(s,

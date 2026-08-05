@@ -227,7 +227,9 @@ function walkRows(s, ctx, { delay = 0, only = ROW_COUNT, chown = false } = {}) {
   for (let i = 0; i < only; i++) {
     const t = Math.round(delay + dur * (rowCy(i) - WALK_Y0) / (endY - WALK_Y0));
     if (chown) s.refs.rowOwners[i].textContent = OWNER_BEFORE;
-    const mark = s.refs.rows[i].animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay: t });
+    // Empty keyframes: a timer must name no property, or every row the scan has not reached yet
+    // sits on its own composited layer. Reasoning at lightBoxAt in scheme-kit.js.
+    const mark = s.refs.rows[i].animate([], { duration: 1, delay: t });
     mark.onfinish = () => visit(i);
     ctx.register(mark);
   }

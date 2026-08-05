@@ -127,8 +127,8 @@ class Scene {
     const podA = podBlock({ x: POD_X, y: PODA_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.2.7:8080' });
     const podB = podBlock({ x: POD_X, y: PODB_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.3.9:8080' });
 
-    const iptTag  = text({ class: 'scheme-label code dim', x: ENGINE_L + ENGINE_W / 2, y: TOP_Y + ROW_H, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
-    const ipvsTag = text({ class: 'scheme-label code dim', x: ENGINE_L + ENGINE_W / 2, y: BOT_Y - IPVS_H / 2 - 14, 'text-anchor': 'middle', 'font-size': 11 }, [' ']);
+    const iptTag  = text({ class: 'scheme-label code dim', x: ENGINE_L + ENGINE_W / 2, y: TOP_Y + ROW_H, 'text-anchor': 'middle' }, [' ']);
+    const ipvsTag = text({ class: 'scheme-label code dim', x: ENGINE_L + ENGINE_W / 2, y: BOT_Y - IPVS_H / 2 - 14, 'text-anchor': 'middle' }, [' ']);
 
     const iptChip  = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'iptables', value: 'rule walk O(n)', role: 'network' });
     const pickChip = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'selection', value: 'one backend', role: 'network' });

@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // inline-dump.mjs: a card as TEXT, for reading the drawn layer for truth rather than for casing.
-// check-inline and check-labels answer "is this spelled right"; nothing answered "is this true".
-// Reading the .js for that is hard because a chip's name is declared 200 lines above the values it
-// takes, so this prints them together, with each step's narration beside the strings it sets.
+// A chip's name is declared 200 lines above the values it takes, so this prints them together.
+// Chip values are RESOLVED through the card's own setChips/setChip wrappers, not just literal-scanned.
 // node inline-dump.mjs <id> [<id> ...]
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+// The chip-value resolver lives in prose.mjs, next to INLINE_SITES, so this reader and the two
+// checks that now report on the same strings cannot disagree about what a drawn string is.
+import { chipDecls, chipValues } from './prose.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIR = join(__dirname, '..', 'js', 'schemes');
@@ -48,17 +50,18 @@ for (const f of files) {
   for (const l of bare) if (!withSub.has(l)) console.log(`  ${JSON.stringify(l)}`);
 
   // Chips: the name, then every value it is ever given. A chip must mean what its name says.
-  const chipName = new Map();                            // ref -> name
-  for (const m of src.matchAll(/\b(\w+)\s*=\s*valChip\(\{[^}]*?name:\s*'([^']*)'[^}]*?value:\s*'([^']*)'/g)) {
-    chipName.set(m[1], { name: m[2], values: [m[3]] });
-  }
-  for (const m of src.matchAll(/setVal\(\s*s\.refs\.(\w+)\s*,\s*'([^']*)'/g)) {
-    const c = chipName.get(m[1]);
-    if (c && !c.values.includes(m[2])) c.values.push(m[2]);
-  }
+  const chipName = chipDecls(src);                       // ref -> { name, values, how, unresolved }
+  const chipNotes = chipValues(src, chipName);
   if (chipName.size) {
-    console.log('\nCHIPS   name -> every value it takes');
-    for (const c of chipName.values()) console.log(`  ${JSON.stringify(c.name).padEnd(26)} ${c.values.map(v => JSON.stringify(v)).join('  |  ')}`);
+    console.log('\nCHIPS   name -> every value it takes    (via = resolved through a card-local wrapper)');
+    for (const c of chipName.values()) {
+      const tail = [...c.how].join(', ') + (c.unresolved.length ? `  UNRESOLVED: ${c.unresolved.join(' ; ')}` : '');
+      console.log(`  ${JSON.stringify(c.name).padEnd(26)} ${c.values.map(v => JSON.stringify(v)).join('  |  ')}${tail.trim() ? `   <- ${tail}` : ''}`);
+    }
+    if (chipNotes.length) {
+      console.log(`  INCOMPLETE: ${chipNotes.length} write(s) could not be read off the source, so a chip above may take values this list does not show:`);
+      for (const n of [...new Set(chipNotes)]) console.log(`    ${n}`);
+    }
   }
 
   const wires = [...src.matchAll(/setWire\(\s*s\s*,\s*'([^']*)'\s*,\s*'([^']*)'/g)];
@@ -74,10 +77,18 @@ for (const f of files) {
   if (tags.length) console.log(`\nRIDING TAGS\n  ${tags.map(t => JSON.stringify(t)).join(', ')}`);
 
   console.log('\nSTEPS');
-  // Anchored on the step-object indentation, and NOT requiring id/duration/narration on three
-  // consecutive lines: a comment between them (several cards carry a `// Motion:` note there) used
-  // to drop the step from this listing silently, on 19 cards, worst case 1 step of 4.
-  for (const m of src.matchAll(/^ {4}id: '([^']+)',[\s\S]*?^\s*narration: '([^']*)'/gm)) {
-    console.log(`  [${m[1]}] ${m[2]}`);
+  // Ids first, then each step's OWN narration, searched only within that step's own text (from its
+  // id up to the next step's id). One regex spanning both cannot do this: since step 0 lost its
+  // narration in 2026-07-29, a lazy `[\s\S]*?` walked out of the idle step into step 1 and printed
+  // step 1's text under `[idle]`, swallowing step 1's id entirely. It was wrong on 102 of 108 cards.
+  // A step with no narration of its own prints empty and NEVER borrows the next one's. The search
+  // is still over the whole step, not over three consecutive lines: a comment between id and
+  // narration (several cards carry a `// Motion:` note there) used to drop the step silently.
+  const stepIds = [...src.matchAll(/^ {4}id: '([^']+)',/gm)];
+  for (let i = 0; i < stepIds.length; i++) {
+    const from = stepIds[i].index + stepIds[i][0].length;
+    const to = i + 1 < stepIds.length ? stepIds[i + 1].index : src.length;
+    const n = /^ {4}narration: '([^']*)'/m.exec(src.slice(from, to));
+    console.log(`  [${stepIds[i][1]}] ${n ? n[1] : ''}`);
   }
 }

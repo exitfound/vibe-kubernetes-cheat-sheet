@@ -7,7 +7,7 @@
 import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { extractInline } from './prose.mjs';
+import { extractInline, extractIndirect } from './prose.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIR = join(__dirname, '..', 'js', 'schemes');
@@ -38,6 +38,9 @@ const isIdentifier = t =>
   /^[A-Z][a-z]+[A-Z]/.test(t) ||  // RunPodSandbox, ReadWriteOnce
   /^[A-Z][?!]?$/.test(t);       // a lone capital is a type letter: DNS record A, A?
 // Returns the reason the string is left alone, or null when the casing rule applies to it.
+// Note the order: this runs BEFORE verdict() reads `want`, so an apiWords or names entry exempts a
+// block LABEL (want 'title') as much as body text, and a common word here gives up the capitalise
+// rule for every future label opening with it. Per-entry reasoning in terms.json _apiWordsDoc.
 const untouchable = (s) => {
   const t = firstToken(s);
   if (!t) return 'empty';
@@ -79,11 +82,31 @@ const files = (await readdir(DIR)).filter(n => n.endsWith('.js')).sort()
   .filter(n => !only.size || only.has(n.replace(/\.js$/, '')));
 
 let found = 0, changed = 0, nameFound = 0, scanned = 0;
+// ENFORCED since 2026-08-04: a chip value that reaches the canvas only as a property of a
+// card-local wrapper call, which no INLINE_SITE can see. It landed report-only, its queue drained
+// to zero the same day, and it joined the exit code as a regression guard. See scheme/CLAUDE.md.
+let indirectScanned = 0;
+const indirect = [];
+// Writes the resolver could not read. NOT findings and NOT in the exit code: they are the part of
+// the input this check did not see, and a run that hides them reports "0 finding(s), enforced" over
+// a set it never read. Printed loudly and counted on the summary line every run instead.
+const unread = [];
 const byKind = new Map();
 const byReason = new Map();
 for (const f of files) {
   const src = await readFile(join(DIR, f), 'utf8');
   const edits = [], names = [];
+  const ind = extractIndirect(src);
+  // Identical notes are folded into one line with a count, because three write sites spelled the
+  // same way print the same sentence. The COUNT stays the number of writes, not of lines.
+  const seen = new Map();
+  for (const n of ind.unresolved) seen.set(n, (seen.get(n) || 0) + 1);
+  for (const [note, n] of seen) unread.push({ card: f.replace(/\.js$/, ''), note, n });
+  for (const hit of ind.values) {
+    indirectScanned++;
+    const nm = componentIssues(hit.text), v = verdict(hit.text, hit.want);
+    if (v || nm.length) indirect.push({ card: f.replace(/\.js$/, ''), hit, v, nm });
+  }
   for (const hit of extractInline(src)) {
     scanned++;
     for (const c of componentIssues(hit.text)) names.push({ kind: hit.kind, text: hit.text, ...c });
@@ -118,7 +141,31 @@ for (const f of files) {
   }
 }
 
+if (indirect.length) {
+  // Never auto-fixed even under --fix: the string sits at a wrapper call site, not at an INLINE_SITE,
+  // so there is no offset to rewrite and the edit is a judgement about which chip owns the value.
+  console.log(`\n--- strings drawn through a card-local wrapper (${indirect.length}), fix by hand ---`);
+  for (const r of indirect) {
+    const tag = r.v ? (r.v.manual ? 'MANUAL' : r.v.want === 'title' ? 'UP    ' : 'DOWN  ') : 'NAME  ';
+    const fixes = r.nm.map(n => `  ${n.from} -> ${n.to}`).join('');
+    console.log(`  ${r.card.padEnd(38)} ${tag}  ${JSON.stringify(r.hit.text).padEnd(28)} chip ${JSON.stringify(r.hit.chip)} <- ${r.hit.via}${fixes}`);
+  }
+}
+
+const unreadWrites = unread.reduce((a, u) => a + u.n, 0);
+if (unread.length) {
+  console.log(`\n--- COULD NOT RESOLVE (${unreadWrites} write(s) on ${new Set(unread.map(u => u.card)).size} card(s)) ---`);
+  console.log('These are NOT findings. They are chip writes this check could not read off the source,');
+  console.log('so a value they put on the canvas was never classified. Read them by hand.');
+  for (const u of unread) console.log(`  ${u.card.padEnd(34)} ${u.note}${u.n > 1 ? `  (x${u.n})` : ''}`);
+}
+
 console.log(`\ninline check: ${files.length} cards, ${scanned} strings, ${found} casing + ${nameFound} name finding(s)${fix ? `, ${changed} fixed` : ''}`);
 if (byKind.size) console.log('  ' + [...byKind].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '));
 if (audit) console.log('  left alone: ' + [...byReason].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '));
-process.exit(!fix && (found || nameFound) ? 1 : 0);
+console.log(`  indirect (through a wrapper): ${indirectScanned} strings, ${indirect.length} finding(s), enforced`);
+// Unresolved writes are printed and counted but stay OUT of the exit code: 18 exist on 2026-08-04,
+// so failing on them would get the check switched off rather than the writes read. The count on
+// this line is the guard, it is in every run and a rise in it is visible.
+console.log(`  could not resolve: ${unreadWrites} write(s), reported only, not in the exit code`);
+process.exit(!fix && (found || nameFound || indirect.length) ? 1 : 0);

@@ -4,11 +4,16 @@ import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights,
 
 // Design notes for this card: scheme/docs/CARDS.md#cluster-admission-webhooks
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=205, so kubectl moves into the
-// freed bottom-left (the storage grammar) and the API row starts at 420.
+// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=230, so kubectl moves into the
+// freed bottom-left (the storage grammar) and the API row starts at 420. It read 205 until
+// 2026-08-04, when the validating step went 211 to 284 characters. The nearest thing under that
+// corner is kubectl at KCTL_Y = 300, so there are 70 units of clearance and the ceiling is roughly
+// 480 characters per narration. The wrap is token-bound, not character-bound: 257 characters on
+// that step still measured 205 and 274 tipped it to 230, so re-measure with
+// VW=1100 VH=800 node overlay-measure.mjs after any prose edit here rather than counting.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-// Reserved narration corner: 400 x 205. Nothing on this card derives from it, and the measured
+// Reserved narration corner: 400 x 230. Nothing on this card derives from it, and the measured
 // worst case per viewport is in the header note above.
 
 // The flanks stand on one inset band rather than on the content edges: kubectl, ETCD and the chip
@@ -37,12 +42,19 @@ const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 85 / 115
 // Both lanes leave the kubectl TOP face, straddling its centre by LANE_DY exactly as they straddle
 // the API face centre by LANE_DY at the other end, and each makes ONE right-angle turn: up, then
 // across. Out is left of back at both ends, which is what keeps the two from crossing.
-// The cost is stated rather than designed around, on the author's call: x=205 and x=235 are both
-// inside the narration panel (x<=397, y<=205), so between y=205 and the turn each riser runs behind
-// the overlay, as does the left third of the out lane's crossing at y=85. A staircase into the free
-// 404..416 corridor was built first and rejected as a zigzag. There is no third option: the API
-// face it must reach sits at y=85/115, above the panel bottom, and every kubectl position whose
-// centre clears x=397 collides with the ladder column at 420..820 or with the chip strip at y=520.
+// The cost is stated rather than designed around, on the author's call, and it is LARGER than the
+// note here used to claim. Measured against the panel worst case (x<=397, y<=205), with each lane
+// 430 and 370 units long:
+//   KCTL_TO_API  120 of the 215 unit riser plus 192 of the 215 unit crossing at y=85  =  73% hidden
+//   API_TO_KCTL  162 of the 185 unit crossing at y=115 plus 90 of the 185 unit riser =  68% hidden
+// So it is not "the left third of the out lane" and it is not the out lane alone: on the two steps
+// that carry these balls the reader sees a stub leaving kubectl and an arrowhead arriving beside the
+// API with most of the flight in between behind the overlay. Nothing measures this, because OCCLUDED
+// scores BLOCKS and never lanes or packets.
+// A staircase into the free 404..416 corridor was built first and rejected as a zigzag. There is no
+// third option: the API face it must reach sits at y=85/115, above the panel bottom, and every
+// kubectl position whose centre clears x=397 collides with the ladder column at 420..820 or with the
+// chip strip at y=520. Reopening this means moving the API row, not the lanes.
 const KCTL_OUT_X = KCTL_CX - LANE_DY, KCTL_BACK_X = KCTL_CX + LANE_DY;   // 205 / 235
 const KCTL_TO_API = [[KCTL_OUT_X, KCTL_Y], [KCTL_OUT_X, OUT_Y], [API_X, OUT_Y]];
 const API_TO_KCTL = [[API_X, BACK_Y], [KCTL_BACK_X, BACK_Y], [KCTL_BACK_X, KCTL_Y]];
@@ -50,7 +62,7 @@ const API_TO_KCTL = [[API_X, BACK_Y], [KCTL_BACK_X, BACK_Y], [KCTL_BACK_X, KCTL_
 const LADDER_X = API_X, LADDER_W = API_W;                // the pipeline hangs under the API
 const LADDER_Y = 220;
 // A relationship line, not a route, the same call the sibling cluster-scheduler-decision makes: the
-// six stages below ARE the API, so nothing travels down there. No arrowhead, and it lands ON the
+// five stages below ARE the API, so nothing travels down there. No arrowhead, and it lands ON the
 // ladder edge at LADDER_Y rather than 2 short of it, because the 2 was clearance for that arrowhead.
 const API_TO_CHAIN = [[API_CX, TOP_BOTTOM], [API_CX, LADDER_Y]];
 
@@ -68,7 +80,7 @@ class Scene {
       class: 'diagram',
       viewBox: '0 0 1200 640',
       preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Admission chain: six stages from API request to ETCD',
+      'aria-label': 'Admission chain: five stages from API request to ETCD',
       'data-style': 'outline',
     });
     root.appendChild(arrowDefs());
@@ -85,13 +97,20 @@ class Scene {
 
     const chain = chainList({
       x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: 32, gap: 12,
+      // ONE row per STEP. authn and authz shared a step and had a row each, so the ladder ran to 6
+      // against 5 steps and every number after the first was one ahead of the step counter the
+      // reader was watching.
+      // The runs of spaces are SOURCE alignment only and reach nothing on screen: an SVG <text>
+      // collapses consecutive whitespace unless xml:space is set, which it is not here, so every
+      // row renders with a single space around the dot and the dots have never lined up in a
+      // column. Verified in the browser rather than assumed. Keep the padding for the diff, but do
+      // not size anything against it.
       items: [
-        '1. authn      ·  identity from x509 / token / OIDC',
-        '2. authz      ·  RBAC + Node + Webhook chain',
-        '3. mutating   ·  plugins and webhooks rewrite it',
-        '4. schema     ·  types and required fields checked',
-        '5. validating ·  plugins, policies and webhooks',
-        '6. persist    ·  write final object to ETCD',
+        '1. authn, authz ·  who the caller is, what they may do',
+        '2. mutating     ·  plugins and webhooks rewrite it',
+        '3. schema       ·  types and required fields checked',
+        '4. validating   ·  plugins, policies and webhooks',
+        '5. persist      ·  write final object to ETCD',
       ],
       role: 'cluster',
     });
@@ -99,7 +118,11 @@ class Scene {
     // Chip strip: it spans the same inset band as the flanks, so its left edge is the kubectl left
     // edge and its right edge is the ETCD right edge, one vertical line down each side.
     const objChip       = valChip({ x: CHIP_X(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Pod object',    value: '{cpu=100m}', role: 'cluster' });
-    const failurePolicy = valChip({ x: CHIP_X(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'failurePolicy', value: 'none', role: 'cluster' });
+    // A STANDING configuration value, not a per-step state: failurePolicy is a field on the webhook
+    // configurations and it does not become "none" while the request sits in the schema step. It
+    // used to flip to none on every non-webhook step, so a named API field read as a phase
+    // indicator AND changed value twice with nothing marking either change.
+    const failurePolicy = valChip({ x: CHIP_X(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'failurePolicy', value: 'Fail | Ignore', role: 'cluster' });
 
     root.appendChild(objChip);
     root.appendChild(failurePolicy);
@@ -155,7 +178,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setVal(s.refs.objChip, '{cpu=100m}');
-      setVal(s.refs.failurePolicy, 'none');
+      setVal(s.refs.failurePolicy, 'Fail | Ignore');
     },
   },
   {
@@ -164,20 +187,19 @@ const STEPS = [
     // briefly pushed this step past its budget until the ladder ball went away with the arrowhead.
     // One ball now, span 1516, so the original pace stands.
     duration: 2200,
-    narration: 'Built-in. Authn binds an identity (cert, token, or OIDC), then authz consults RBAC, Node, and Webhook. A failure here aborts the request with HTTP 401 (authn) or 403 (authz).',
+    narration: 'Built-in, and already done. The request arrives authenticated, so admission never sees an anonymous caller. Authorizers run in configured order, commonly Node then RBAC, and the first to allow or to deny ends it, so no later one runs. Nothing allowing it means 403.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.failurePolicy, 'none');
-      setWire(s, 'req', 'POST /api/v1/pods');
+      setVal(s.refs.failurePolicy, 'Fail | Ignore');
+      setWire(s, 'req', 'POST /api/v1/namespaces/default/pods');
       s.refs.kubectl.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[0]) rows[0].classList.add('highlight');
-      if (rows[1]) rows[1].classList.add('highlight');
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
       // One hop, Kubectl → Api. The Api is its receiver, so it lights when the request lands rather
-      // than at entry. Nothing rides down to the ladder: those six stages are the Api itself.
+      // than at entry. Nothing rides down to the ladder: those five stages are the Api itself.
       const req = routePacket(s, ctx, KCTL_TO_API, { role: 'cluster' });
       lightBoxAt(s.refs.api, ctx, req.arrivalMs);
     },
@@ -185,13 +207,13 @@ const STEPS = [
   {
     id: 'mutating',
     duration: 1700,
-    narration: 'Pluggable plus built-in. Always-on mutating plugins like ServiceAccount and DefaultTolerationSeconds rewrite the Pod here, and MutatingWebhookConfiguration adds external policy webhooks (Kyverno, OPA Gatekeeper, sidecar injectors) on top, all before validation.',
+    narration: 'Pluggable plus built-in. Always-on mutating plugins like ServiceAccount, LimitRanger and DefaultTolerationSeconds rewrite the Pod here, and MutatingWebhookConfiguration adds external policy webhooks (Kyverno, OPA Gatekeeper, sidecar injectors) on top, all before validation.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[2]) rows[2].classList.add('highlight');
+      if (rows[1]) rows[1].classList.add('highlight');
       setVal(s.refs.objChip, '{cpu=100m, runAsNonRoot=true}');
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
       s.refs.objChip.classList.add('highlight');
@@ -210,9 +232,9 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.failurePolicy, 'none');
+      setVal(s.refs.failurePolicy, 'Fail | Ignore');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[3]) rows[3].classList.add('highlight');
+      if (rows[2]) rows[2].classList.add('highlight');
       // Schema validation happens inside the Api, so the Api is lit and the object under check
       // stays statically highlighted, no block flash.
       s.refs.objChip.classList.add('highlight');
@@ -222,13 +244,17 @@ const STEPS = [
   {
     id: 'validating',
     duration: 1700,
-    narration: 'Pluggable plus built-in. Always-on plugins like ResourceQuota and LimitRanger check the final object, ValidatingAdmissionPolicy runs CEL rules in process, and validating webhooks are called last. None may mutate, and any deny aborts the request.',
+    // "Validating webhooks are called last" was wrong about the plugin this same sentence names
+    // first. AllOrderedPlugins ends mutatingwebhook, validatingadmissionpolicy, validatingwebhook,
+    // resourcequota, deny, under the source comment "webhook, resourcequota, and deny plugins must
+    // go at the end", so a webhook that admits an object can still be followed by a quota denial.
+    narration: 'Pluggable plus built-in. LimitRanger is back to check min and max, ValidatingAdmissionPolicy runs in process, validating webhooks call out over HTTP, and ResourceQuota runs after all of them. None may mutate, and any deny aborts the request. See the ResourceQuota and LimitRange card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[4]) rows[4].classList.add('highlight');
+      if (rows[3]) rows[3].classList.add('highlight');
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
       s.refs.failurePolicy.classList.add('highlight');
       // Validating webhooks may only allow or deny; the policy chip stays statically
@@ -244,10 +270,10 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setVal(s.refs.failurePolicy, 'none');
+      setVal(s.refs.failurePolicy, 'Fail | Ignore');
       setWire(s, 'resp', 'HTTP 201 Created');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
-      if (rows[5]) rows[5].classList.add('highlight');
+      if (rows[4]) rows[4].classList.add('highlight');
       s.refs.api.classList.add('highlight');
       if (ctx.reduced) { s.refs.etcdC.classList.add('highlight'); s.refs.kubectl.classList.add('highlight'); return; }
       // Three arrow segments, sequenced. Each packet is visible only on its own arrow. The Api is

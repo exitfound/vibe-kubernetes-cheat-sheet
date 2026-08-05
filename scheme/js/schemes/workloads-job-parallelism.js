@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout C of the Workloads canon (WL): full-width chip strip, a bus tapping all three workers.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
@@ -73,7 +73,7 @@ class Scene {
     root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     const parChip       = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'parallelism',  value: '3', role: 'workloads' });
@@ -174,13 +174,6 @@ function setUnits(s, a, b, c) {
   setBoxSublabel(s.refs.pod1Box, a);
   setBoxSublabel(s.refs.pod2Box, b);
   setBoxSublabel(s.refs.pod3Box, c);
-}
-// A 1ms zero-effect animation used purely to carry an onfinish at a chosen time, so a chip can turn
-// over on the beat the motion earns it instead of at step entry.
-function at(s, ctx, delay, fn) {
-  const a = s.refs.packetLayer.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
 }
 
 const STEPS = [

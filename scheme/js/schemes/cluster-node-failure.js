@@ -1,14 +1,16 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, laneOf, OPACITY } from '../lib/cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-failure
 
-// Layout C: six ladder rows plus two Node frames plus five chips do not leave room for a left
+// Layout C: six ladder rows plus two Node frames plus six chips do not leave room for a left
 // column, so the ladder stays right and the chips take a two-row bottom strip. Panel x<=397, y<=280.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
-const PANEL_R = 400, PANEL_B = 280;                      // the reserved corner, measured
+// Reserved narration corner: 400 x 280, measured. Nothing on this card derives from it, so it is a
+// note rather than a constant. It used to be `const PANEL_R = 400, PANEL_B = 280;` that nothing
+// read, which is the declaration style a scan for `^const NAME` cannot see past the first name.
 
 const TOP_Y = 40, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;    // 40 / 120
 const CTRL_W = 300, LEASE_W = 130, TOP_GAP = 70;
@@ -22,19 +24,27 @@ const WIRE_Y = TOP_Y - 14;                               // 26, above the row: t
 const LADDER_X = 660, LADDER_W = 480;                    // 660..1140
 const LADDER_Y = 152, ROW_H = 32, ROW_GAP = 10;          // 6 rows -> 152..394
 
-// Two Nodes side by side, the pair centred on CX and using the full content width.
-const NODE_W = 520, NODE_H = 132, NODE_GAP = 40;
+// Two Nodes side by side, the pair centred on CX. Each frame is anchored on its OUTER edge, Node-1
+// on CONTENT_L and Node-2 on CONTENT_R, and shrinks inwards: 520 less 15% is 442, so the two inner
+// edges land on 502 and 698, still mirrored about CX. The corridor between them goes 40 -> 196,
+// which is what finally gives the reschedule lane a real run into Node-2 instead of a stub.
+const NODE_W = 442, NODE_H = 132;                        // 520 shrunk 15% from the inner edge
 const NODE_Y = 406, NODE_BOTTOM = NODE_Y + NODE_H;       // 406..538
-const NODE_A_X = CONTENT_L, NODE_A_R = NODE_A_X + NODE_W;// 60..580
-const NODE_B_X = NODE_A_R + NODE_GAP;                    // 620..1140
+const NODE_A_X = CONTENT_L, NODE_A_R = NODE_A_X + NODE_W;// 60..502
+const NODE_B_X = CONTENT_R - NODE_W;                     // 698..1140
 const POD_W = 300, POD_H = 106, POD_Y = NODE_Y + 16;     // 422..528
-const POD_A_X = NODE_A_X + (NODE_W - POD_W) / 2;         // 170..470
-const POD_B_X = NODE_B_X + (NODE_W - POD_W) / 2;         // 730..1030
-const POD_A_CX = POD_A_X + POD_W / 2;                    // 320
-const POD_CY = POD_Y + POD_H / 2;                        // 475
+const POD_A_X = NODE_A_X + (NODE_W - POD_W) / 2;         // 131..431
+const POD_B_X = NODE_B_X + (NODE_W - POD_W) / 2;         // 769..1069
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
+// Frame midpoints, which is where every lane on this card now starts and ends.
+const NODE_A_CX = NODE_A_X + NODE_W / 2;                 // 281
+const NODE_CY = NODE_Y + NODE_H / 2;                     // 472
 
 // Bottom strip, THREE per row: five across leaves 206 units and the taint value alone needs 335.
+// SIX chips, not five: the grid is 3 wide, so five left a hole, and the missing one was the
+// threshold that the whole first half of the card turns on. Rows are meaningful now rather than
+// arbitrary: Ready / Lease age / grace period is "is the Node alive", and Taint / Toleration /
+// eviction timer is "what happens to its Pods".
 const CHIP_H = 32, CHIP_GAP = 14, CHIP_VGAP = 8, CHIP_COLS = 3;
 const CHIPS_Y = NODE_BOTTOM + 14;                        // 552, second row ends on 624
 const CHIPS_W = CONTENT_R - CONTENT_L;                   // 1080
@@ -42,19 +52,36 @@ const CHIP_W = (CHIPS_W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;    // 350.67
 const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
-// Every lane ends ON the Pod it addresses, never on the frame edge above it, and none of them may
-// cross the ladder, so every vertical stays left of LADDER_X.
-const LANE_DX = 12;                                      // the two lanes share the Pod top face
-const GUTTER_X = LADDER_X - 40;                          // 620, the corridor between Pods and ladder
+// Every lane starts and ends on a NODE FRAME face, never on a Pod inside one. Which Pod the step
+// lands on is carried by the pulse: the arrowhead reaching inside the frame was the shape every
+// sibling Node card was corrected away from. None of them may cross the ladder, so every vertical
+// stays left of LADDER_X.
+//
+// The heartbeat gains accuracy from the same move. It used to leave the POD, and no Pod renews a
+// Lease: the Kubelet on the Node does, which is what the narration says in its first six words.
+const LANE_DX = 12;                                      // the two lanes share the Node-1 top face
+// The heartbeat riser and the reschedule drop are both stuck in the 502..660 band (left of the
+// ladder, inside the corridor), so they have to be spaced deliberately. 640 keeps 20 off the ladder
+// and 40 off the drop, which is wide enough that the two do not read as one of the card's
+// LANE_DX pairs, and it was 620 when the corridor was 40 wide and there was nowhere else to be.
+const GUTTER_X = LADDER_X - 20;                          // 640, between the drop and the ladder
 const UNDER_TOP_Y = TOP_BOTTOM + 16;                     // 136, below the top row, above the ladder
 const EV_JOG_Y = NODE_Y - 66;                            // 340, the outbound lane of the corridor
 const HB_JOG_Y = NODE_Y - 44;                            // 362, the return lane, 22 below it
 
-const HEARTBEAT_CONNECTOR = [[POD_A_CX + LANE_DX, POD_Y], [POD_A_CX + LANE_DX, HB_JOG_Y], [GUTTER_X, HB_JOG_Y], [GUTTER_X, UNDER_TOP_Y], [LEASE_CX, UNDER_TOP_Y], [LEASE_CX, TOP_BOTTOM]];
-// Both Node-band lanes leave the controller, the actor both steps name, as a mirrored pair on its
-// bottom face. The reschedule lane drops the 580..620 corridor between the frames, not EV_JOG_Y.
-const EVICT_CONNECTOR     = [[CX - LANE_DX, TOP_BOTTOM], [CX - LANE_DX, EV_JOG_Y], [POD_A_CX - LANE_DX, EV_JOG_Y], [POD_A_CX - LANE_DX, POD_Y]];
-const RESCHED_CONNECTOR   = [[CX + LANE_DX, TOP_BOTTOM], [CX + LANE_DX, POD_CY], [POD_B_X, POD_CY]];
+const HEARTBEAT_CONNECTOR = [[NODE_A_CX + LANE_DX, NODE_Y], [NODE_A_CX + LANE_DX, HB_JOG_Y], [GUTTER_X, HB_JOG_Y], [GUTTER_X, UNDER_TOP_Y], [LEASE_CX, UNDER_TOP_Y], [LEASE_CX, TOP_BOTTOM]];
+// Both Node-band lanes leave the controller, the actor both steps name, on its bottom face.
+//
+// They are NOT a mirrored pair, and the reason is Node-2. Its top face midpoint is x=919, directly
+// under the ladder (660..1140, y 152..394), with only the 12 units between the ladder floor and the
+// frame left over, so that face cannot be reached at all. The reschedule enters the LEFT face
+// midpoint instead, and to get there its vertical has to fall inside the 502..698 corridor between
+// the two frames. The corridor centre is 600, which is also the controller bottom face midpoint,
+// so the reschedule takes the midpoint outright and the eviction steps aside by twice LANE_DX.
+const RS_X = CX;                                         // 600, corridor centre and face midpoint
+const EV_X = CX - LANE_DX * 2;                           // 576, clear of it by 24
+const EVICT_CONNECTOR     = [[EV_X, TOP_BOTTOM], [EV_X, EV_JOG_Y], [NODE_A_CX - LANE_DX, EV_JOG_Y], [NODE_A_CX - LANE_DX, NODE_Y]];
+const RESCHED_CONNECTOR   = [[RS_X, TOP_BOTTOM], [RS_X, NODE_CY], [NODE_B_X, NODE_CY]];
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }
@@ -71,7 +98,12 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const ctrl  = box({ x: CTRL_X, y: TOP_Y, w: CTRL_W, h: TOP_H, label: 'controller-manager', sublabel: 'node-lifecycle-controller', role: 'cluster' });
+    // The sublabel names BOTH, because since 1.29 they are two independent components and this card
+    // makes them do different things one step apart: node-lifecycle-controller flips Ready and adds
+    // the taint, taint-eviction-controller is what issues the DELETE. Naming only the first made the
+    // box deny the actor its own next step names. (Step 6 is a third one again, the replicaset
+    // controller, which its narration calls out as "the owning controller" rather than the box.)
+    const ctrl  = box({ x: CTRL_X, y: TOP_Y, w: CTRL_W, h: TOP_H, label: 'controller-manager', sublabel: 'node-lifecycle + taint-eviction', role: 'cluster' });
     // The heartbeat lane climbs into the Lease on its bottom midpoint, LEASE_CX.
     const lease = cylinder({ x: LEASE_X, y: TOP_Y, w: LEASE_W, h: TOP_H, label: 'Lease', role: 'cluster' });
 
@@ -85,14 +117,14 @@ class Scene {
     const hbLane = pathArrow({ points: HEARTBEAT_CONNECTOR, dim: true, dashed: true, role: 'cluster' });
     root.appendChild(hbLane);
 
-    // Two controller-sourced lanes into the Node band: the eviction DELETE drops onto the Pod on
-    // Node-1, and the creation of the replacement drops onto the new Pod on Node-2.
+    // Two controller-sourced lanes into the Node band: the eviction DELETE drops onto the Node-1
+    // frame, and the creation of the replacement turns into the Node-2 frame.
     const evictLane = pathArrow({ points: EVICT_CONNECTOR,   dim: true, dashed: true, role: 'cluster' });
     const reschedLane = pathArrow({ points: RESCHED_CONNECTOR, dim: true, dashed: true, role: 'cluster' });
     root.appendChild(evictLane);
     root.appendChild(reschedLane);
 
-    const wireCtrl = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireCtrl = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireCtrl);
 
     const chain = chainList({
@@ -108,13 +140,18 @@ class Scene {
       role: 'cluster',
     });
 
-    // State chips column on the right, each tracking one Node/Lease/Taint field.
-    const readyChip = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'Ready',          value: 'True', role: 'cluster' });
-    const leaseChip = valChip({ x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'Lease age',      value: '2s · Fresh', role: 'cluster' });
-    const taintChip = valChip({ x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'Taint',          value: 'none', role: 'cluster' });
-    const tolerChip = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'Toleration',     value: 'none', role: 'cluster' });
-    const evictChip = valChip({ x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: CHIP_H, name: 'eviction timer', value: 'none', role: 'cluster' });
-    [readyChip, leaseChip, taintChip, tolerChip, evictChip].forEach(c => root.appendChild(c));
+    // Row 1, the detection trio. The grace period is the THRESHOLD the Lease age is measured
+    // against, the same relationship --eviction-hard has with memory.available on
+    // cluster-node-pressure-eviction. It is what makes 30s stale harmless and 52s fatal, which two
+    // steps narrate and nothing on the canvas used to show.
+    const readyChip = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'Ready',      value: 'True', role: 'cluster' });
+    const leaseChip = valChip({ x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'Lease age',  value: '2s · Fresh', role: 'cluster' });
+    const graceChip = valChip({ x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'grace period', value: '50s · not reached', role: 'cluster' });
+    // Row 2, the eviction trio.
+    const taintChip = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'Taint',          value: 'none', role: 'cluster' });
+    const tolerChip = valChip({ x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: CHIP_H, name: 'Toleration',     value: 'none', role: 'cluster' });
+    const evictChip = valChip({ x: CHIP_X(5), y: CHIP_Y(5), w: CHIP_W, h: CHIP_H, name: 'eviction timer', value: 'none', role: 'cluster' });
+    [readyChip, leaseChip, graceChip, taintChip, tolerChip, evictChip].forEach(c => root.appendChild(c));
 
     // Bottom row: two worker nodes side-by-side. Node-1 is the failing one, Node-2 the target.
     const nodeA = node({ x: NODE_A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
@@ -162,7 +199,7 @@ class Scene {
     this.refs = {
       svg: root,
       ctrl, lease,
-      readyChip, leaseChip, taintChip, tolerChip, evictChip,
+      readyChip, leaseChip, graceChip, taintChip, tolerChip, evictChip,
       chain,
       nodeA, nodeB, podA, podB, podABox, podBBox,
       hbLane, evictLane, reschedLane,
@@ -176,21 +213,36 @@ class Scene {
 
 function clearHL(s) {
   clearHighlights(s,
-    ['ctrl', 'lease', 'readyChip', 'leaseChip', 'taintChip', 'tolerChip', 'evictChip'],
+    ['ctrl', 'lease', 'readyChip', 'leaseChip', 'graceChip', 'taintChip', 'tolerChip', 'evictChip'],
     [s.refs.podA, s.refs.podB]);
 }
 function resetNodeOpacity(s) {
   s.refs.nodeA.style.opacity = '1';
   s.refs.nodeB.style.opacity = '1';
   s.refs.podA.style.opacity = '1';
-  // A lane is only drawn while the Pod on its end exists: both Node-1 lanes end on the Pod that
-  // gets evicted, and the reschedule lane ends on a replacement that does not exist yet.
-  setLanes(s, 1, 1, 0);
+  // Nothing has travelled controller -> Node-2 until the reschedule, and an arrowhead into Node-2
+  // five steps early promises a delivery that never comes, so that lane starts dark.
+  setLanes(s, 1, 0);
 }
-function setLanes(s, hb, evict, resched) {
-  s.refs.hbLane.style.opacity = String(hb);
-  s.refs.evictLane.style.opacity = String(evict);
+// A lane carries the shade of the dimmer of its two ends. Both Node-1 lanes END on the Node-1 frame
+// and start on a top row that stays at full for the whole card, so the frame alone decides both:
+// pass the FRAME shade here. The reschedule lane never touches Node-1 and is drawn or it is not.
+function setLanes(s, nodeA, resched) {
+  s.refs.hbLane.style.opacity = laneOf(nodeA, OPACITY.running);
+  s.refs.evictLane.style.opacity = laneOf(nodeA, OPACITY.running);
   s.refs.reschedLane.style.opacity = String(resched);
+}
+
+// Every enter() writes EVERY chip through this, the poster step included. A chip left unset keeps
+// the previous step value, which left the last step counting an eviction timer down on a Pod its
+// own narration had already replaced.
+function setChips(s, { ready, lease, grace, taint, toler, evict }) {
+  setVal(s.refs.readyChip, ready);
+  setVal(s.refs.leaseChip, lease);
+  setVal(s.refs.graceChip, grace);
+  setVal(s.refs.taintChip, taint);
+  setVal(s.refs.tolerChip, toler);
+  setVal(s.refs.evictChip, evict);
 }
 
 const STEPS = [
@@ -202,11 +254,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       resetNodeOpacity(s);
-      setVal(s.refs.readyChip, 'True');
-      setVal(s.refs.leaseChip, '2s · Fresh');
-      setVal(s.refs.taintChip, 'none');
-      setVal(s.refs.tolerChip, 'none');
-      setVal(s.refs.evictChip, 'none');
+      setChips(s, { ready: 'True', lease: '2s · Fresh', grace: '50s · not reached', taint: 'none', toler: 'none', evict: 'none' });
       s.refs.podB.style.opacity = '0';
       // Idle baseline: nothing is happening yet, no chain row highlighted.
       setChainActive(s.refs.chain, -1);
@@ -221,8 +269,7 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       resetNodeOpacity(s);
-      setVal(s.refs.readyChip, 'True');
-      setVal(s.refs.leaseChip, '2s · Fresh · renewed');
+      setChips(s, { ready: 'True', lease: '2s · Fresh · renewed', grace: '50s · not reached', taint: 'none', toler: 'none', evict: 'none' });
       s.refs.podB.style.opacity = '0';
       setWire(s, 'ctrl', 'Kubelet · PUT lease renewTime · every 10s');
       s.refs.leaseChip.classList.add('highlight');
@@ -242,15 +289,20 @@ const STEPS = [
       clearWires(s);
       resetNodeOpacity(s);
       s.refs.podB.style.opacity = '0';
-      setVal(s.refs.readyChip, 'True (Stale Lease)');
-      setVal(s.refs.leaseChip, '30s · Stale');
+      setChips(s, { ready: 'True (Stale Lease)', lease: '30s · Stale', grace: '50s · not reached', taint: 'none', toler: 'none', evict: 'none' });
       s.refs.readyChip.classList.add('highlight');
       s.refs.leaseChip.classList.add('highlight');
-      // Pin opacity inline so cancel between steps does not flash to default.
+      // The threshold is the whole reason this step changes nothing else: 30s of staleness is
+      // under 50s, so Ready is still True and no Pod has been touched.
+      s.refs.graceChip.classList.add('highlight');
+      // Pin opacity inline so cancel between steps does not flash to default. The two lanes that end
+      // on the frame take its new shade with it, here and on every step after this one.
       s.refs.nodeA.style.opacity = String(OPACITY.notready);
+      setLanes(s, OPACITY.notready, 0);
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) return;
-      ctx.register(s.refs.nodeA.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
+      [s.refs.nodeA, s.refs.hbLane, s.refs.evictLane].forEach(el => ctx.register(
+        el.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' })));
     },
   },
   {
@@ -265,10 +317,11 @@ const STEPS = [
       s.refs.nodeB.style.opacity = '1';
       s.refs.podA.style.opacity = '1';
       s.refs.podB.style.opacity = '0';
-      setVal(s.refs.readyChip, 'Unknown · unreachable');
-      setVal(s.refs.leaseChip, '52s · Expired');
+      setChips(s, { ready: 'Unknown · unreachable', lease: '52s · Expired', grace: '50s · exceeded', taint: 'none', toler: 'none', evict: 'none' });
+      setLanes(s, OPACITY.notready, 0);
       s.refs.leaseChip.classList.add('highlight');
       s.refs.readyChip.classList.add('highlight');
+      s.refs.graceChip.classList.add('highlight');
       s.refs.ctrl.classList.add('highlight');
       setWire(s, 'ctrl', 'PATCH /api/v1/nodes/Node-1/status');
       setChainActive(s.refs.chain, 2);
@@ -279,7 +332,7 @@ const STEPS = [
   {
     id: 'taint-applied',
     duration: 2100,
-    narration: 'The controller adds the taint node.kubernetes.io/unreachable:NoExecute. The DefaultTolerationSeconds admission plugin already gave every Pod a 300s toleration for this taint, and that timer now ticks down.',
+    narration: 'The node-lifecycle-controller adds the taint node.kubernetes.io/unreachable:NoExecute. Kubernetes had already given this Pod a 300s toleration for it, which it does for any Pod that does not set one itself. DaemonSet Pods set theirs with no tolerationSeconds, so this never evicts them. The 300s now ticks down.',
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -288,9 +341,8 @@ const STEPS = [
       s.refs.nodeB.style.opacity = '1';
       s.refs.podA.style.opacity = '1';
       s.refs.podB.style.opacity = '0';
-      setVal(s.refs.taintChip, 'node.kubernetes.io/unreachable:NoExecute');
-      setVal(s.refs.tolerChip, 'NoExecute · 300s');
-      setVal(s.refs.evictChip, '300s · Counting down');
+      setChips(s, { ready: 'Unknown · unreachable', lease: '52s · Expired', grace: '50s · exceeded', taint: 'node.kubernetes.io/unreachable:NoExecute', toler: 'NoExecute · 300s', evict: '300s · Counting down' });
+      setLanes(s, OPACITY.notready, 0);
       s.refs.taintChip.classList.add('highlight');
       s.refs.tolerChip.classList.add('highlight');
       s.refs.evictChip.classList.add('highlight');
@@ -312,22 +364,22 @@ const STEPS = [
       s.refs.nodeA.style.opacity = String(OPACITY.notready);
       s.refs.nodeB.style.opacity = '1';
       s.refs.podB.style.opacity = '0';
-      setVal(s.refs.evictChip, '0s · Terminating');
+      setChips(s, { ready: 'Unknown · unreachable', lease: '52s · Expired', grace: '50s · exceeded', taint: 'node.kubernetes.io/unreachable:NoExecute', toler: 'NoExecute · 300s', evict: '0s · Terminating' });
       s.refs.evictChip.classList.add('highlight');
       s.refs.ctrl.classList.add('highlight');
       setWire(s, 'ctrl', 'DELETE /api/v1/.../pods/{name} · taint-eviction');
       setChainActive(s.refs.chain, 4);
-      // Pin final state so cancel does not snap back to opacity 1. Terminating is a phase and not
-      // an absence, so the Pod and both its lanes stay drawn at the Terminating shade.
+      // Pin final state so cancel does not snap back to opacity 1. Terminating is a phase and not an
+      // absence, so the Pod stays drawn at the Terminating shade. Its two lanes do NOT follow it:
+      // both end on the Node-1 frame, so they hold the frame shade whatever the Pod inside it does.
       s.refs.podA.style.opacity = String(OPACITY.terminating);
-      setLanes(s, OPACITY.terminating, OPACITY.terminating, 0);
+      setLanes(s, OPACITY.notready, 0);
       if (ctx.reduced) return;
       // The DELETE travels from the controller down the left margin to the Pod on
       // Node-1; the Pod flinches and sinks to Terminating when the packet reaches it.
       const del = routePacket(s, ctx, EVICT_CONNECTOR, { role: 'cluster' });
       pulsePod(s.refs.podA, ctx, del.arrivalMs);
-      [s.refs.podA, s.refs.hbLane, s.refs.evictLane].forEach(el => ctx.register(
-        el.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' })));
+      ctx.register(s.refs.podA.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: del.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
   },
   {
@@ -340,15 +392,21 @@ const STEPS = [
       clearWires(s);
       s.refs.nodeA.style.opacity = String(OPACITY.notready);
       s.refs.nodeB.style.opacity = '1';
-      // The old Pod is still Terminating, not gone, so it and its two lanes keep that shade.
+      // The old Pod is still Terminating, not gone, so it keeps that shade. Its lanes keep the
+      // Node-1 frame shade, which is what they end on.
       s.refs.podA.style.opacity = String(OPACITY.terminating);
+      setChips(s, { ready: 'Unknown · unreachable', lease: 'over 350s · Expired', grace: '50s · exceeded', taint: 'node.kubernetes.io/unreachable:NoExecute', toler: 'NoExecute · 300s', evict: 'none · Node-2 has no taint' });
+      // The two chips that move on this step carry the card's usual cue. The Lease age IS the
+      // 50s plus 300s the narration adds up, and the timer has nothing left to run against.
+      s.refs.leaseChip.classList.add('highlight');
+      s.refs.evictChip.classList.add('highlight');
       s.refs.ctrl.classList.add('highlight');
       setWire(s, 'ctrl', 'Deployment recreates replica · Scheduler binds Node-2');
       setChainActive(s.refs.chain, 5);
-      // Pin final state inline. The reschedule lane joins the two Terminating ones: it ends on
-      // the replacement, which exists from this step on.
+      // Pin final state inline. The reschedule lane comes on now: it ends on the Node-2 frame, and
+      // this is the first step on which anything travels there.
       s.refs.podB.style.opacity = '1';
-      setLanes(s, OPACITY.terminating, OPACITY.terminating, 1);
+      setLanes(s, OPACITY.notready, 1);
       if (ctx.reduced) return;
       // Nothing moves from the dying Pod: the controller CREATES a replacement, so the ball leaves
       // the controller and the new Pod materialises and pulses only when it arrives on Node-2.

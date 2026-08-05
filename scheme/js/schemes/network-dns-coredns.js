@@ -69,7 +69,7 @@ class Scene {
     const rcNS    = valChip({ x: RC_X, y: RC_Y[0], w: RC_W, h: RC_H, name: 'nameserver', value: '10.96.0.10', role: 'network' });
     const rcSearch = valChip({ x: RC_X, y: RC_Y[1], w: RC_W, h: RC_H, name: 'search', value: 'default.svc / svc / cluster.local', role: 'network' });
     const rcNdots = valChip({ x: RC_X, y: RC_Y[2], w: RC_W, h: RC_H, name: 'options', value: 'ndots:5', role: 'network' });
-    const rcLabel = text({ class: 'scheme-label code dim', x: RC_X + RC_W / 2, y: RC_Y[0] - 12, 'text-anchor': 'middle', 'font-size': 11 }, ['/etc/resolv.conf']);
+    const rcLabel = text({ class: 'scheme-label code dim', x: RC_X + RC_W / 2, y: RC_Y[0] - 12, 'text-anchor': 'middle' }, ['/etc/resolv.conf']);
 
     const corednsShell = pod({ x: DNS_LEFT, y: DNS_Y, w: DNS_W, h: DNS_H, label: 'CoreDNS Pod', sublabel: '10.244.4.2', containers: 0, role: 'network' });
     const corednsRect = corednsShell.querySelector('.scheme-pod-rect');
@@ -83,8 +83,8 @@ class Scene {
     // Forward query lane and its return answer lane, offset around FLOW_Y so the round trip is a loop.
     const qWire = arrow({ x1: QUERY[0][0], y1: QUERY[0][1], x2: QUERY[1][0], y2: QUERY[1][1], dashed: true, dim: true, role: 'network' });
     const aWire = arrow({ x1: ANSWER[0][0], y1: ANSWER[0][1], x2: ANSWER[1][0], y2: ANSWER[1][1], dashed: true, dim: true, role: 'network' });
-    const fwdLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + DNS_LEFT) / 2, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const retLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + DNS_LEFT) / 2, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const fwdLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + DNS_LEFT) / 2, y: FWD_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const retLabel = text({ class: 'scheme-label code dim', x: (CLIENT_EDGE + DNS_LEFT) / 2, y: RET_Y + 22, 'text-anchor': 'middle' }, [' ']);
     // Internal hop: cache bottom -> kubernetes top, on the Pod spine.
     const cWire = arrow({ x1: CHAIN_HOP[0][0], y1: CHAIN_HOP[0][1], x2: CHAIN_HOP[1][0], y2: CHAIN_HOP[1][1], dashed: true, dim: true, role: 'network' });
 

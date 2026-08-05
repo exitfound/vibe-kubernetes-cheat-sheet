@@ -64,7 +64,7 @@ class Scene {
 
     const band = rect({ class: 'netns-stack-band', x: BAND_CX - 204, y: 276, w: 408, h: 122, rx: 10,
       style: 'fill:rgba(79,229,255,0.035);stroke:rgba(79,229,255,0.28);stroke-width:1' });
-    const bandLabel = text({ class: 'scheme-label code dim', x: BAND_CX, y: 420, 'text-anchor': 'middle', 'font-size': 11 }, ['shared network stack']);
+    const bandLabel = text({ class: 'scheme-label code dim', x: BAND_CX, y: 420, 'text-anchor': 'middle' }, ['shared network stack']);
     const rail   = dashLink(COL_L, RAIL_Y, COL_R, RAIL_Y);        // the shared stack bus
     const tapApp = dashLink(COL_L, ROW_TOP_BOT, COL_L, RAIL_Y);   // app     -> rail
     const tapSide= dashLink(COL_R, ROW_TOP_BOT, COL_R, RAIL_Y);   // sidecar -> rail
@@ -76,8 +76,8 @@ class Scene {
     // veth pair host stack -> Pod namespace: the only cross-namespace link, a single dashed cable
     // that plugs into the Pod netns boundary (its in-Pod end is eth0, just inside).
     const vethWire  = arrow({ x1: HOST_EDGE, y1: AXIS_Y, x2: POD_LEFT, y2: AXIS_Y, dashed: true, dim: true, role: 'network' });
-    const vethLabel = text({ class: 'scheme-label code dim', x: 505, y: AXIS_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const localLabel = text({ class: 'scheme-label code dim', x: BAND_CX, y: RAIL_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const vethLabel = text({ class: 'scheme-label code dim', x: 505, y: AXIS_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const localLabel = text({ class: 'scheme-label code dim', x: BAND_CX, y: RAIL_Y - 12, 'text-anchor': 'middle' }, [' ']);
 
     // Info chips centered under the diagram: the row spans exactly host-left (150) to Pod-right (1048).
     const scopeChip = valChip({ x: 150, y: 500, w: 210, h: 34, name: 'namespace', value: 'host', role: 'network' });

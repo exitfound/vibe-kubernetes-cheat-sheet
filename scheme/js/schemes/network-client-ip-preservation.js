@@ -70,7 +70,7 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const panelTitle = text({ class: 'scheme-label code dim', x: PROXY_CX, y: 100, 'text-anchor': 'middle', 'font-size': 11 }, ['headers written by the edge']);
+    const panelTitle = text({ class: 'scheme-label code dim', x: PROXY_CX, y: 100, 'text-anchor': 'middle' }, ['headers written by the edge']);
     const xffChip = valChip({ x: PANEL_X, y: 110, w: PANEL_W, h: 36, name: 'X-Forwarded-For', value: 'none', role: 'network' });
     const fwdChip = valChip({ x: PANEL_X, y: 154, w: PANEL_W, h: 36, name: 'Forwarded', value: 'none', role: 'network' });
 

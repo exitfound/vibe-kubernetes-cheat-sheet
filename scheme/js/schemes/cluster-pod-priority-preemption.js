@@ -1,41 +1,59 @@
-import { svg, g, rect, text } from '../lib/svg.js';
+import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from '../lib/cluster-kit.js';
 
-// Layout C on the Workloads canon (WL in the kit): the panel reaches y<=404 (worst of
-// 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
-// band and the chips form a two-across bottom strip.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-pod-priority-preemption
-const PANEL_B = 404;
+// Layout C: the panel leaves no column under it, so the pipeline keeps the right band and the chips
+// form a two-across bottom strip. Panel worst case over 1600/1440/1280/1100 at heights
+// 1000/900/860/800 is x<=397, y<=280, at 1100x800 on the delete step (357 characters, the card
+// wraps it widest), against a longest narration of 360 on bind. NODE_Y is 404, so the clearance is
+// 124 units and the frame does NOT move up to spend it: 404 is a route length and therefore a
+// packet timing. The CEILING is 360 characters per narration, and it is the tightest in the
+// category: until the 2026-08-04 prose pass the longest step here ran 607 characters and the panel
+// measured exactly 404, ZERO clearance, sitting on the Node frame top edge. NOTHING in the gate
+// reports that, because check-geometry --rules=occluded scores occluded AREA and a strip off a 128
+// tall frame is under its bar. Roughly 0.5 units of panel per character is what growth costs.
+// Re-measure with VW=1100 VH=800 node overlay-measure.mjs after any prose edit on this card.
+// Design notes for this card: scheme/docs/CARDS.md#cluster-pod-priority-preemption
+
+// The X grammar the card was built on, restated locally when it moved to Cluster: same numbers.
+const M = 60;
+const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
+const CONTENT_W = CONTENT_R - CONTENT_L;                 // 1080
+const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
 
 // Scheduler leads the row and is centred on CX, so the lane to the Node leaves its bottom
 // midpoint and clears the pipeline column.
-const TOP1_X = 420, TOP1_W = 2 * (WL.CX - 420);          // 420..780, centred on CX
+const TOP_Y = 40, BOX_H = 80, TOP_BOTTOM = TOP_Y + BOX_H;// 40 / 80 / 120
+const TOP1_X = 420, TOP1_W = 2 * (CX - 420);             // 420..780, centred on CX
 const TOP_GAP = 60;
-const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = WL.R - (TOP1_X + TOP1_W + TOP_GAP);
-const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
-const REQ_Y = TOP_CY - WL.LANE_DY, RESP_Y = TOP_CY + WL.LANE_DY;
+const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = CONTENT_R - (TOP1_X + TOP1_W + TOP_GAP);
+const TOP_CY = TOP_Y + BOX_H / 2;
+const LANE_DY = 12;
+const REQ_Y = TOP_CY - LANE_DY, RESP_Y = TOP_CY + LANE_DY;
 const WIRE_X = (TOP1_X + TOP1_W + TOP2_X) / 2;
 
-const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+const LAD_X = 660, LAD_W = 480;                          // 660..1140, the pipeline
 const LAD_Y = 150;                                       // 5 rows -> 150..350
+const ROW_H = 32, ROW_GAP = 10;
 
 // Chips two across, 532 wide: four across was 258 and every name ran into its own value.
-const CHIP_COLS = 2, CHIP_GAP = 16, CHIP_VGAP = 8;
-const CHIP_W = (WL.W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;
+const CHIP_COLS = 2, CHIP_GAP = 16, CHIP_VGAP = 8, CHIP_H = 34;
+const CHIP_W = (CONTENT_W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;
 const CHIPS_Y = 548;                                     // 2 rows -> 548..582 / 590..624
-const CHIP_X = i => WL.L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
-const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (WL.CHIP_H + CHIP_VGAP);
+const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
+const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
 const NODE_Y = 404, NODE_H = 128;                        // 404..532, clear of the panel
 const POD_W = 300, POD_H = 82, POD_Y = NODE_Y + 34;      // 438..520
 const POD_PAD = 24;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 24, h: 46 };
+// Cluster draws its Pods in the family violet rather than the Workloads blue.
+const POD_VIOLET = '#c0b0ff';
 
 // Pod slots spread across the frame's inner width, so the row centres on CX.
 const SLOT_N = 3, SLOT_W = POD_W;
-const SLOT_SPAN = WL.W - POD_PAD * 2;
-const SLOT_X = i => WL.L + POD_PAD + i * ((SLOT_SPAN - SLOT_W) / (SLOT_N - 1));
+const SLOT_SPAN = CONTENT_W - POD_PAD * 2;
+const SLOT_X = i => CONTENT_L + POD_PAD + i * ((SLOT_SPAN - SLOT_W) / (SLOT_N - 1));
 const SLOT_CX = i => SLOT_X(i) + SLOT_W / 2;             // 234 / 600 / 966
 
 // Everything the Scheduler sends down addresses slot 0: it is the victim it preempts and the
@@ -50,9 +68,9 @@ const VICTIM_SLOT = 0;
 // reaches a Node, it writes to the API and the Node acts on what it reads. Both share the drop, so
 // they read as one wiring tree with two sources, the same construction as workloads-force-deletion.
 const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 990
-const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the pipeline
-const SCAN_LANE = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y], [SLOT_CX(VICTIM_SLOT), BUS_Y], [SLOT_CX(VICTIM_SLOT), POD_Y]];
-const NODE_LANE = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.CX, JOG_Y], [WL.CX, BUS_Y], [SLOT_CX(VICTIM_SLOT), BUS_Y], [SLOT_CX(VICTIM_SLOT), POD_Y]];
+const JOG_Y = TOP_BOTTOM + 20;                           // 140, below the boxes, above the pipeline
+const SCAN_LANE = [[CX, TOP_BOTTOM], [CX, BUS_Y], [SLOT_CX(VICTIM_SLOT), BUS_Y], [SLOT_CX(VICTIM_SLOT), POD_Y]];
+const NODE_LANE = [[TOP2_CX, TOP_BOTTOM], [TOP2_CX, JOG_Y], [CX, JOG_Y], [CX, BUS_Y], [SLOT_CX(VICTIM_SLOT), BUS_Y], [SLOT_CX(VICTIM_SLOT), POD_Y]];
 
 
 class Scene {
@@ -70,25 +88,25 @@ class Scene {
     });
     root.appendChild(arrowDefs());
 
-    const scheduler = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Scheduler', sublabel: 'filter + Score + Preempt', role: 'cluster' });
-    const apiserver = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'PriorityClass + delete + bind', role: 'cluster' });
+    const scheduler = box({ x: TOP1_X, y: TOP_Y, w: TOP1_W, h: BOX_H, label: 'Scheduler', sublabel: 'filter + Score + Preempt', role: 'cluster' });
+    const apiserver = box({ x: TOP2_X, y: TOP_Y, w: TOP2_W, h: BOX_H, label: 'API', sublabel: 'PriorityClass + delete + bind', role: 'cluster' });
 
     root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
     // The answer lane is a relationship here, not a route: no step on this card names anything
     // travelling back from the API, so it carries no arrowhead and sits behind the live lane.
     root.appendChild(relationPath({ points: [[TOP2_X, RESP_Y], [TOP1_X + TOP1_W, RESP_Y]], role: 'cluster' }));
 
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
-    const newPodChip  = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'Pod NEW · pri', value: '2e9 (system-cluster-critical)', role: 'workloads' });
-    const attemptChip = valChip({ x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'sched attempt',      value: 'none', role: 'workloads' });
-    const victimChip  = valChip({ x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'victim',             value: 'none', role: 'workloads' });
-    const focusChip   = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'focus',              value: 'none', role: 'workloads' });
+    const newPodChip  = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'Pod NEW · pri', value: '2e9 (system-cluster-critical)', role: 'cluster' });
+    const attemptChip = valChip({ x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'sched attempt',      value: 'none', role: 'cluster' });
+    const victimChip  = valChip({ x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'victim',             value: 'none', role: 'cluster' });
+    const focusChip   = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'focus',              value: 'none', role: 'cluster' });
     [newPodChip, attemptChip, victimChip, focusChip].forEach(c => root.appendChild(c));
 
     const chain = chainList({
-      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
+      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
         '1. spec    ·  priorityClassName → spec.priority',
         '2. attempt ·  Filter + Score · NoFit on every node',
@@ -99,7 +117,7 @@ class Scene {
       role: 'cluster',
     });
 
-    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
+    const nodeEl = node({ x: CONTENT_L, y: NODE_Y, w: CONTENT_W, h: NODE_H, label: 'Node-1' });
 
     const POD_DEFS = [
       { name: 'Pod A',   sub: 'priority: 100',  x: SLOT_X(0) },
@@ -110,10 +128,12 @@ class Scene {
     const podBoxes = [];
     const podWrappers = POD_DEFS.map((d, i) => {
       const shell = pod({ x: d.x, y: POD_Y, w: SLOT_W, h: POD_H, label: d.name, sublabel: '', containers: 0, role: 'workloads' });
+      shell.style.setProperty('--workloads-color', POD_VIOLET);
       const shellRect = shell.querySelector('.scheme-pod-rect');
       if (shellRect) shellRect.style.fill = 'rgba(255, 255, 255, 0.03)';
 
       const innerBox = box({ x: d.x + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: d.sub, role: 'workloads' });
+      innerBox.style.setProperty('--workloads-color', POD_VIOLET);
 
       const wrap = g({ id: d.name === 'Pod NEW' ? 'podNew' : `pod${i + 1}` });
       wrap.appendChild(shell);
@@ -183,7 +203,7 @@ const STEPS = [
   {
     id: 'spec',
     duration: 1900,
-    narration: 'Pod NEW arrives at the API. The PriorityClass admission plugin resolves spec.priorityClassName to a numeric value (system-cluster-critical → 2000000000) and writes it into spec.priority on the Pod object. PriorityClass is the only sanctioned way to express priority, raw spec.priority on a user Pod is rejected by validation. Built-in classes are system-cluster-critical and system-node-critical (slightly higher).',
+    narration: 'Pod NEW arrives at the API. The PriorityClass admission plugin resolves spec.priorityClassName to a number, system-cluster-critical being 2000000000, and writes it into spec.priority. A raw spec.priority on a user Pod is rejected by validation, so PriorityClass is the only route. The other built-in class, system-node-critical, is slightly higher.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -209,7 +229,7 @@ const STEPS = [
   {
     id: 'attempt',
     duration: 2000,
-    narration: 'Scheduler picks Pod NEW from its queue and runs the scheduling cycle. Filter plugins drop every Node that fails predicates (taints, ports, requests vs allocatable, etc.). Every Node here fails on capacity. Scheduler records the Pod as Unschedulable. If the Pod PriorityClass has preemptionPolicy=PreemptLowerPriority (the default), Scheduler enters preemption mode. PriorityClasses with preemptionPolicy=Never never preempt anyone, those Pods just wait in the queue.',
+    narration: 'Scheduler takes Pod NEW off its queue and runs a scheduling cycle. Filter plugins drop every Node failing a predicate (taints, ports, requests against allocatable), and here all of them fail on capacity, so Pod NEW is recorded Unschedulable. The default preemptionPolicy=PreemptLowerPriority opens preemption mode. A class set to Never would leave it queued.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -234,7 +254,7 @@ const STEPS = [
   {
     id: 'preempt',
     duration: 2600,
-    narration: 'Preemption enumerates running Pods on each Node and looks for the smallest victim set whose deletion would let Pod NEW fit, with the constraint that every victim has strictly lower priority. Greedy: try lowest-priority candidates first. Pod A (priority 100) is enough on its own, freeing its 1 CPU and 1Gi memory matches Pod NEW requests. Pod C is also priority 100 but unnecessary (Pod A alone fits the resource ask). Pod B at 1000 is a valid candidate by priority but the greedy strategy prefers lower-priority victims first.',
+    narration: 'Preemption scans the running Pods on each Node for the smallest victim set whose deletion lets Pod NEW fit, every victim at strictly lower priority, lowest tried first. Pod A at 100 is enough alone: freeing its 1 CPU and 1Gi memory matches the Pod NEW requests. Pod C is also 100 but unneeded, and Pod B at 1000 is a candidate the greedy order never reaches.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -256,7 +276,7 @@ const STEPS = [
       if (ctx.reduced) return;
       // Scheduler scans the node over the connector to find the victim set.
       // Pod A pulses when the scan reaches it (victim flagged in victimChip).
-      const scan = routePacket(s, ctx, SCAN_LANE, { role: 'workloads' });
+      const scan = routePacket(s, ctx, SCAN_LANE, { role: 'cluster' });
       pulsePod(s.refs.pod1, ctx, scan.arrivalMs);
     },
   },
@@ -265,7 +285,7 @@ const STEPS = [
     // The node-band ball now leaves the API rather than the Scheduler, which is 390 units
     // further along and 867ms slower end to end: 3400 cut it off mid-flight.
     duration: 4200,
-    narration: 'Scheduler issues a standard DELETE to /api/v1/.../pods/pod-a. Preemption uses delete (not the eviction API), so PodDisruptionBudget gates are bypassed at the API layer. The preemption algorithm does try to minimize PDB violations when picking victims, but it can violate them when no PDB-friendly victim set fits. Pod A enters Terminating with its terminationGracePeriodSeconds (preStop hook → SIGTERM → SIGKILL fallback after grace expires). Pod NEW gets status.nominatedNodeName=Node-1 written by the scheduler so other Pods do not race into the freed slot during this window.',
+    narration: 'Scheduler sends a standard DELETE for Pod A, not an eviction, so PodDisruptionBudget gates are bypassed, though victim choice prefers PDB-friendly sets. Pod A enters Terminating for its terminationGracePeriodSeconds: preStop, SIGTERM, SIGKILL. Pod NEW gets status.nominatedNodeName=Node-1, a hint, not a reservation: a higher priority Pod can still take it.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -289,9 +309,9 @@ const STEPS = [
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       // DELETE hits the apiserver (top hop), then travels down the connector.
       // Pod A pulses and sinks to Terminating only when the DELETE reaches the node.
-      const del = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      const del = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'cluster' });
       lightBoxAt(s.refs.apiserver, ctx, del.arrivalMs);
-      const evict = routePacket(s, ctx, NODE_LANE, { delay: del.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
+      const evict = routePacket(s, ctx, NODE_LANE, { delay: del.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'cluster' });
       pulsePod(s.refs.pod1, ctx, evict.arrivalMs);
       ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: evict.arrivalMs, fill: 'both', easing: 'ease-in' }));
     },
@@ -301,7 +321,7 @@ const STEPS = [
     // The node-band ball now leaves the API rather than the Scheduler, which is 390 units
     // further along and 867ms slower end to end: 3400 cut it off mid-flight.
     duration: 4200,
-    narration: 'Pod A has exited gracefully and is gone. Its allocatable capacity returns to Node-1. Scheduler picks Pod NEW again, Filter+Score now passes, and binds via POST /api/v1/.../pods/pod-new/binding. Pod NEW then starts on Node-1. The controller that owns Pod A (Deployment, StatefulSet) creates a replacement which the scheduler may place on another Node, or queue if no Node has capacity. Preemption is distinct from node-pressure eviction (covered separately), where the Kubelet evicts Pods that are over their requests first, which puts BestEffort at the front, and uses Pod priority only to order that queue.',
+    narration: 'Pod A exited gracefully, its capacity back on Node-1. Scheduler retries Pod NEW, Filter and Score now pass, and it binds to Node-1. The controller owning Pod A puts a replacement elsewhere or queues it. This is not node-pressure eviction, covered separately, where Kubelet evicts over-request Pods first, BestEffort leading, and priority only orders the queue.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
@@ -324,9 +344,9 @@ const STEPS = [
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       // Bind hits the apiserver (top hop), then travels down the connector.
       // Pod NEW pulses once (pulse fades) and materializes in the freed slot when the bind reaches the node.
-      const bind = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
+      const bind = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'cluster' });
       lightBoxAt(s.refs.apiserver, ctx, bind.arrivalMs);
-      const place = routePacket(s, ctx, NODE_LANE, { delay: bind.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'workloads' });
+      const place = routePacket(s, ctx, NODE_LANE, { delay: bind.arrivalMs + BEAT.afterHop, fadeIn: true, role: 'cluster' });
       pulsePod(s.refs.podNew, ctx, place.arrivalMs);
       ctx.register(s.refs.podNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: place.arrivalMs, fill: 'both', easing: 'ease-out' }));
     },

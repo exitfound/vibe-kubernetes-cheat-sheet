@@ -158,15 +158,19 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { src: '4 into one dir', tok: 'audience-bound', exp: 'short-lived' });
-      s.refs.dir.classList.add('highlight');
       // The four sources are the actors of this step: they light at entry, their balls depart.
       ['srcDown', 'srcCM', 'srcSec', 'srcTok'].forEach(k => s.refs[k].classList.add('highlight'));
       if (ctx.reduced) {
+        s.refs.dir.classList.add('highlight');
         ['rowCfg', 'rowPwd', 'rowLbl', 'rowTok'].forEach(k => s.refs[k].classList.add('highlight'));
         return;
       }
       // The fan-in: four sources land at once, each on its own lane, each lighting its file row.
+      // The dir lights WITH them, not at entry. It is a container rather than a destination (a box()
+      // playing the part node() plays elsewhere, which is why check-arrival R3 judges it at all), but
+      // pre-lighting it still announced the delivery a full second before any of it landed.
       const c = routePacket(s, ctx, W_CM,   { role: 'storage' }); lightBoxAt(s.refs.rowCfg, ctx, c.arrivalMs);
+      lightBoxAt(s.refs.dir, ctx, c.arrivalMs);
       const p = routePacket(s, ctx, W_SEC,  { role: 'storage' }); lightBoxAt(s.refs.rowPwd, ctx, p.arrivalMs);
       const d = routePacket(s, ctx, W_DOWN, { role: 'storage' }); lightBoxAt(s.refs.rowLbl, ctx, d.arrivalMs);
       const t = routePacket(s, ctx, W_TOK,  { role: 'storage' }); lightBoxAt(s.refs.rowTok, ctx, t.arrivalMs);
@@ -223,7 +227,11 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { src: '4 into one dir', tok: 'bound to audience', exp: 'short-lived' });
+      // The chip tracks WHICH source is in play, the way the two steps before it do. It used to snap
+      // back to the standing value here and stay there, so it changed with no cue on the one step
+      // that introduces the token source, and then never moved again.
+      setChips(s, { src: 'serviceAccountToken', tok: 'bound to audience', exp: 'short-lived' });
+      s.refs.srcChip.classList.add('highlight');
       s.refs.tokChip.classList.add('highlight');
       s.refs.srcTok.classList.add('highlight');
       if (ctx.reduced) { s.refs.rowTok.classList.add('highlight'); return; }
@@ -240,7 +248,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { src: '4 into one dir', tok: 'rotated in place', exp: 'refreshed before expiry' });
+      setChips(s, { src: 'serviceAccountToken', tok: 'rotated in place', exp: 'refreshed before expiry' });
       s.refs.expChip.classList.add('highlight');
       s.refs.tokChip.classList.add('highlight');
       s.refs.srcTok.classList.add('highlight');
@@ -259,7 +267,7 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      setChips(s, { src: '4 into one dir', tok: 'rotated, scoped', exp: 'legacy token never expired' });
+      setChips(s, { src: 'serviceAccountToken', tok: 'rotated, scoped', exp: 'legacy token never expired' });
       s.refs.expChip.classList.add('highlight');
       s.refs.tokChip.classList.add('highlight');
       s.refs.rowTok.classList.add('highlight');

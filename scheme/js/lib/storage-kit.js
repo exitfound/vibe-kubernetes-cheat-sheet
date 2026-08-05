@@ -2,7 +2,7 @@ export {
   valChip, setVal, setBoxLabel, setBoxSublabel, makeInit, packetAlong,
   routePacket, segmentPacket, routeDur, routeLength, packetArrival,
   topPacket, setConnectorDir, clearPodHighlight,
-  arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, makeRidingLabel,
+  arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
   relationPath, revealAt, laneOf, REVEAL_MS,
   setPodSublabel, FADE, BEAT, OPACITY,
 } from './scheme-kit.js';

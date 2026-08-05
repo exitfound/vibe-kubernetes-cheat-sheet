@@ -1,6 +1,6 @@
 import { svg, g, text } from '../lib/svg.js';
 import { arrowDefs, box, pod, arrow, chainList } from '../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from '../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dns-ndots
 
 
@@ -36,13 +36,6 @@ const LANE_CX = (POD_EDGE + DNS_LEFT) / 2;   // 600, where both lane labels sit
 
 const CANDIDATES = ['api.ns.svc.cluster.local', 'api.svc.cluster.local', 'api.cluster.local', 'api'];
 
-// Run fn at a point in the step, or immediately under reduced replay so the static end-state is right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.chain.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
-}
 
 function lightRow(s, i) {
   const row = s.refs.chain && s.refs.chain.querySelector(`[data-idx="${i}"]`);
@@ -82,13 +75,18 @@ class Scene {
 
     const qWire = arrow({ x1: QUERY[0][0], y1: QUERY[0][1], x2: QUERY[1][0], y2: QUERY[1][1], dashed: true, dim: true, role: 'network' });
     const aWire = arrow({ x1: ANSWER[0][0], y1: ANSWER[0][1], x2: ANSWER[1][0], y2: ANSWER[1][1], dashed: true, dim: true, role: 'network' });
-    // font-size 10 and no `A? ` prefix: the longest name here, api.ns.svc.cluster.local, is ~144px at
-    // this size, which keeps it clear of both block edges even on the shortest name in the list.
-    const qLabel = text({ class: 'scheme-label code dim', x: LANE_CX, y: FWD_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const aLabel = text({ class: 'scheme-label code dim', x: LANE_CX, y: RET_Y + 22, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    // No `A? ` prefix on the query label. Both lane labels render at 11px from `.scheme-label.code`
+    // in diagrams.css: the `font-size: 10` they used to carry was dead, because a presentation
+    // attribute has specificity 0 and always lost to that rule, so the ~144px it was sized against
+    // was never the rendered width. Measured at 11px, the longest string either label ever takes is
+    // api.ns.svc.cluster.local. (the absolute step, trailing dot included) at 172 units. Centred on
+    // LANE_CX it spans 514..686 and clears both block edges (410 and 790) by 104. Measure, do not
+    // compute from a font size the element does not have.
+    const qLabel = text({ class: 'scheme-label code dim', x: LANE_CX, y: FWD_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const aLabel = text({ class: 'scheme-label code dim', x: LANE_CX, y: RET_Y + 22, 'text-anchor': 'middle' }, [' ']);
 
     // resolv.conf, drawn as the file it is: the two lines that decide everything on this card.
-    const rcLabel = text({ class: 'scheme-label code dim', x: RC_X + RC_W / 2, y: RC_Y - 12, 'text-anchor': 'middle', 'font-size': 11 }, ['/etc/resolv.conf']);
+    const rcLabel = text({ class: 'scheme-label code dim', x: RC_X + RC_W / 2, y: RC_Y - 12, 'text-anchor': 'middle' }, ['/etc/resolv.conf']);
     const rcSearch = valChip({ x: RC_X, y: RC_Y, w: RC_W, h: RC_H, name: 'search', value: 'ns.svc / svc / cluster.local', role: 'network' });
     const rcNdots = valChip({ x: RC_X, y: RC_Y2, w: RC_W, h: RC_H, name: 'options', value: 'ndots:5', role: 'network' });
 

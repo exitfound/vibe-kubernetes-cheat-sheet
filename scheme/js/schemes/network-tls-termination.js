@@ -52,8 +52,8 @@ class Scene {
     const cWireBack = arrow({ x1: ING_LEFT, y1: HS_BACK_Y, x2: CLIENT_EDGE, y2: HS_BACK_Y, dashed: true, dim: true, role: 'network' });
     const pWire = arrow({ x1: ING_RIGHT, y1: FLOW_Y, x2: POD_LEFT, y2: FLOW_Y, dashed: true, dim: true, role: 'network' });
     const sWire = arrow({ x1: SECRET_X, y1: 206, x2: SECRET_X, y2: 276, dashed: true, dim: true, role: 'network' });
-    const cLabel = text({ class: 'scheme-label code dim', x: 370, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
-    const pLabel = text({ class: 'scheme-label code dim', x: 810, y: FLOW_Y - 12, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const cLabel = text({ class: 'scheme-label code dim', x: 370, y: FLOW_Y - 12, 'text-anchor': 'middle' }, [' ']);
+    const pLabel = text({ class: 'scheme-label code dim', x: 810, y: FLOW_Y - 12, 'text-anchor': 'middle' }, [' ']);
 
     const schemeChip = valChip({ x: 70,  y: 440, w: 210, h: 34, name: 'wire', value: 'idle', role: 'network' });
     const tlsChip    = valChip({ x: 300, y: 440, w: 340, h: 34, name: 'TLS', value: 'none', role: 'network' });

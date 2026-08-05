@@ -69,7 +69,7 @@ class Scene {
     const extWire   = arrow({ x1: CLIENT_EDGE, y1: SHELL_CY, x2: SHELL_X, y2: SHELL_CY, dashed: true, dim: true, role: 'network' });
     // localhost label rides ABOVE the two containers (the 40px lane between them is too narrow for
     // the full address), so it never overlaps app or sidecar. The external dst rides on the ball.
-    const localLabel = text({ class: 'scheme-label code dim', x: GRID_MID_X, y: ROW_TOP - 18, 'text-anchor': 'middle', 'font-size': 10 }, [' ']);
+    const localLabel = text({ class: 'scheme-label code dim', x: GRID_MID_X, y: ROW_TOP - 18, 'text-anchor': 'middle' }, [' ']);
 
     const pathChip = valChip({ x: 80,  y: 530, w: 250, h: 34, name: 'path', value: 'idle', role: 'network' });
     const portChip = valChip({ x: 350, y: 530, w: 250, h: 34, name: 'ports', value: 'shared', role: 'network' });

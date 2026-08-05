@@ -48,8 +48,8 @@ class Scene {
 
     // Wire labels above and below the Kubelet block, set per step via setWire. The lower one
     // hangs off the SIDE of the spine, because a centred one sits on the lane and is struck out.
-    const wireOut = text({ class: 'scheme-label code dim', x: WL.CX, y: WIRE_OUT_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
-    const wireIn  = text({ class: 'scheme-label code dim', x: WL.SPINE_X + WIRE_IN_DX, y: WIRE_IN_Y, 'text-anchor': 'start', 'font-size': 9 }, [' ']);
+    const wireOut = text({ class: 'scheme-label code dim', x: WL.CX, y: WIRE_OUT_Y, 'text-anchor': 'middle' }, [' ']);
+    const wireIn  = text({ class: 'scheme-label code dim', x: WL.SPINE_X + WIRE_IN_DX, y: WIRE_IN_Y, 'text-anchor': 'start' }, [' ']);
 
     const connectorDown = pathArrow({
       points: SPINE,

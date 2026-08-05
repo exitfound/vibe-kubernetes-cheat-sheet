@@ -1,6 +1,6 @@
 import { svg, g } from '../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow, pathArrow } from '../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt } from '../lib/network-kit.js';
+import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt } from '../lib/network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-ipam-pod-cidr
 
 
@@ -112,14 +112,6 @@ class Scene {
   }
 
   reset() { this.build(); }
-}
-
-// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
 }
 
 function clearHL(s) {

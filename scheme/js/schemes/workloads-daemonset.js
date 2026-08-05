@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from '../lib/workloads-kit.js';
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, a bus tapping every Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
@@ -70,7 +70,7 @@ class Scene {
     root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle', 'font-size': 9 }, [' ']);
+    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireReq);
 
     const desiredChip = valChip({ x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'desiredNumberScheduled', value: '3', role: 'workloads' });
@@ -161,13 +161,6 @@ function clearHL(s) {
 // A lane into a Node that is not in the cluster points at nothing, so it is pinned out.
 function setLanes(s, on) { s.refs.lanes.forEach((l, i) => { l.style.opacity = String(on[i]); }); }
 
-// Runs fn at a point inside the step, or at once on the static path so the end state stays right.
-function at(s, ctx, delay, fn) {
-  if (ctx.reduced || delay <= 0) { fn(); return; }
-  const a = s.refs.svg.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, delay });
-  a.onfinish = fn;
-  ctx.register(a);
-}
 
 const STEPS = [
   {
