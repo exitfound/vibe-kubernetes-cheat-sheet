@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 // here, and prose.mjs's was that copy minus the regex-literal mode, which silently shrank the input
 // of every check that reads a stripped source. One copy cannot drift from itself.
 import { sentences, stripComments } from './prose.mjs';
-import { cards } from './catalog.mjs';
+import { cards, folderModules } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -99,6 +99,8 @@ const ENFORCED = new Set([
   // was clean the moment the field was deleted. Anything it finds is a card the browser cannot
   // import or a file nothing reads.
   'R-modulepath',
+  // Enforced on arrival: 108 cards, 108 posters, an exact bijection the day the map was split.
+  'R-poster',
 ]);
 const advisories = [];
 const violations = [];
@@ -264,8 +266,7 @@ for (const { base: f, path } of files) {
 //                    linted like any other and check-notes said NO NOTE about it. Now that the
 //                    walkers read data.js, a file nobody lists is a file nobody reads, and the
 //                    grid never renders it either. Without this line it would be invisible.
-// A category folder holds two .js files that are not cards and are exempt by name: its kit, and
-// cards.js, the manifest listing the very entries this rule reads.
+// The non-card modules a category folder may hold are named by folderModules in catalog.mjs.
 {
   const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
   const SCHEMES_DIR = join(__dirname, '..', 'js', 'schemes');
@@ -285,14 +286,29 @@ for (const { base: f, path } of files) {
     claimed.add(`${s.category}/${s.id}.js`);
   }
   for (const c of [...new Set(SCHEMES.map(s => s.category))].sort()) {
+    const allowed = folderModules(c);
     let entries;
     try { entries = await readdir(join(SCHEMES_DIR, c)); }
     catch (_) { report('R-modulepath', `${c}: no such folder, but ${SCHEMES.filter(s => s.category === c).length} card(s) claim it`); continue; }
     for (const n of entries) {
-      if (!n.endsWith('.js') || n === `${c}-kit.js` || n === 'cards.js') continue;
+      if (!n.endsWith('.js') || allowed.has(n)) continue;
       if (!claimed.has(`${c}/${n}`)) report('R-modulepath', `js/schemes/${c}/${n}  is on disk but no SCHEMES entry claims it (nothing lints it and the grid never shows it)`);
     }
   }
+}
+
+// ---- R-poster ----
+// Every card has a poster and every poster has a card. Cheap, and nothing else covers it:
+// renderPoster resolves `POSTERS[scheme.id] || FALLBACK_POSTER`, so a card whose poster went
+// missing draws the generic placeholder instead of failing. The grid still renders 108 cards,
+// smoke-all still passes, and both oracles look inside the DIALOG, never at the grid thumbnail.
+// A dropped key is invisible end to end, which is precisely the shape of defect worth a rule.
+{
+  const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
+  const { POSTERS } = await import(pathToFileURL(join(__dirname, '..', 'js', 'posters.js')).href);
+  const ids = new Set(SCHEMES.map(s => s.id));
+  for (const s of SCHEMES) if (!(s.id in POSTERS)) report('R-poster', `${s.id}  has no poster, so the grid draws FALLBACK_POSTER for it`);
+  for (const k of Object.keys(POSTERS)) if (!ids.has(k)) report('R-poster', `${k}  is a poster with no card, so nothing ever renders it`);
 }
 
 // ---- R-desc ----

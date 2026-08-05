@@ -48,6 +48,13 @@ export async function cards() {
   return list;
 }
 
+// What a category folder is allowed to hold besides its cards: the kit it paints with, the
+// manifest declaring its entries, and its poster map. Listed rather than inferred on purpose.
+// R-modulepath reports every other .js in the folder as unclaimed, and that is the right
+// behaviour: a module nobody imports and nobody lists, sitting next to the cards, is exactly the
+// thing worth a red gate. Adding a name here is a deliberate widening of the folder contract.
+export const folderModules = (category) => new Set([`${category}-kit.js`, 'cards.js', 'posters.js']);
+
 // Where a category's card entries are declared. A finding about a `desc` has to name the file that
 // holds it, and since the split that is no longer data.js.
 export function manifest(category) {
