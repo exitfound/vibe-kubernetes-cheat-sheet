@@ -105,9 +105,11 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['coredns', 'svc', 'vipChip', 'dnsChip', 'connChip', 'clientBox', 'w0Box', 'w1Box', 'w2Box'],
     [s.refs.client, s.refs.w0, s.refs.w1, s.refs.w2]);
+  clearWires(s);
 }
 
 // Every step repaints all three readouts, so no value can survive from the previous step.
@@ -123,9 +125,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vip: 'None', dns: 'pending', conn: 'none' });
     },
   },
@@ -134,9 +134,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The client looks up the Service by name, web.default.svc.cluster.local. Because there is no ClusterIP, the answer cannot be a single virtual address, so this query has to resolve to the Pods themselves.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.svc.classList.add('highlight');
       setChips(s, { vip: 'None', dns: 'pending', conn: 'none' }, ['vipChip']);
       if (ctx.reduced) { s.refs.coredns.classList.add('highlight'); return; }
@@ -152,9 +150,7 @@ const STEPS = [
     duration: 3000,
     narration: 'CoreDNS reads the ready endpoints and returns one A record for every backing Pod, three addresses in this answer rather than a single VIP. The client receives the whole set of Pod IPs and picks one itself, which is why a headless Service does no load balancing of its own.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.coredns.classList.add('highlight');
       s.refs.w0Box.classList.add('highlight');
       s.refs.w1Box.classList.add('highlight');
@@ -171,9 +167,7 @@ const STEPS = [
     duration: 3600,
     narration: 'The client opens the connection straight to one of those Pod IPs, here web-1 at 10.244.3.4. There is no ClusterIP in the path and kube-proxy does no DNAT, so the traffic goes directly Pod to Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vip: 'None', dns: '.2.7 .3.4 .1.9', conn: '10.244.3.4' }, ['connChip']);
       if (ctx.reduced) { s.refs.w1Box.classList.add('highlight'); return; }
       // Up-arrow: client pulses first, the connection leaves and the chosen Pod pulses on arrival.
@@ -189,9 +183,7 @@ const STEPS = [
     duration: 4200,
     narration: 'A headless Service also gives each StatefulSet Pod its own stable name, so web-0.web.default.svc.cluster.local resolves to that one Pod and nothing else. That is how a client addresses one specific replica, which is what stateful systems with a known primary depend on.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vip: 'None', dns: 'web-0 only: .2.7', conn: '10.244.2.7' }, ['dnsChip', 'connChip']);
       if (ctx.reduced) { s.refs.w0Box.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);

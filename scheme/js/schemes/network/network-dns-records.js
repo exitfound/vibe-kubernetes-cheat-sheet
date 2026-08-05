@@ -121,9 +121,11 @@ function clientBlock({ x, y, w, h }) {
   return { group, innerBox };
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['coredns', 'seg1', 'seg2', 'seg3', 'seg4', 'qChip', 'ansChip', 'clientBox'], [s.refs.client]);
   setChainActive(s.refs.records, -1);
+  clearWires(s);
 }
 
 // Rewrite the FQDN band to the name this step actually asks for, and light it. Blocks light, they never
@@ -163,9 +165,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       askName(s, NAME_SVC, { light: false });
       setVal(s.refs.qChip, '-');
       setVal(s.refs.ansChip, '-');
@@ -176,9 +176,7 @@ const STEPS = [
     duration: 2500,
     narration: 'The full name is web.default.svc.cluster.local: the Service, its namespace, the literal svc, then the cluster domain. A Pod resolv.conf carries search domains and ndots:5, so a short name like web is expanded to this fully qualified form before it leaves the Pod. Every record below is a variation on these four segments.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       askName(s, NAME_SVC);
       setVal(s.refs.qChip, 'web expands to web.default.svc.cluster.local');
       setVal(s.refs.ansChip, '-');
@@ -196,9 +194,7 @@ const STEPS = [
     duration: 4400,
     narration: 'Ask for the name itself and you get an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: a name in, the stable virtual IP out, which kube-proxy then load-balances to a Pod. Note that this is the web Service address, not 10.96.0.10, which is the kube-dns ClusterIP the query was sent to.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       askName(s, NAME_SVC);
       setVal(s.refs.qChip, 'web.default.svc.cluster.local  IN A');
       setVal(s.refs.ansChip, '1 record');
@@ -212,9 +208,7 @@ const STEPS = [
     duration: 4400,
     narration: 'A named port also publishes an SRV record. The name grows a prefix, _http._tcp, naming the port and the protocol, and the answer carries the port number and the target host. It lets a client discover which port a Service exposes without that port being hard-coded anywhere.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       askName(s, NAME_SRV);
       setVal(s.refs.qChip, '_http._tcp.web.default.svc.cluster.local  IN SRV');
       setVal(s.refs.ansChip, '1 record');
@@ -228,9 +222,7 @@ const STEPS = [
     duration: 4400,
     narration: 'If the Service is headless, the name does not change at all: the client asks exactly what it asked for the A record. What changes is the answer, one A record per ready Pod instead of a single virtual IP, here three of them, and the client chooses an endpoint itself.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       askName(s, NAME_HEADLESS);
       setVal(s.refs.qChip, 'web.default.svc.cluster.local  IN A');
       setVal(s.refs.ansChip, '3 records');
@@ -244,9 +236,7 @@ const STEPS = [
     duration: 4400,
     narration: 'Finally a Pod can be addressed directly, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves this when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode it reads the address straight back out of the name without checking that such a Pod exists. The stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       askName(s, NAME_POD);
       setVal(s.refs.qChip, '10-244-2-7.default.pod.cluster.local  IN A');
       setVal(s.refs.ansChip, '1 record');

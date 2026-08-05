@@ -97,9 +97,11 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['ci', 'np', 'lb', 'en', 'hl', 'backends', 'extHost', 'podIps', 'podTopBox', 'podBotBox'],
     [s.refs.podTop, s.refs.podBot]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -107,9 +109,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
     },
   },
   {
@@ -117,9 +117,7 @@ const STEPS = [
     duration: 2300,
     narration: 'ClusterIP is the base. It hands the Service a stable virtual IP that only works inside the cluster, and kube-proxy load-balances it across the backend Pods. Every other proxy type is built on top of this one.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.ci.classList.add('highlight');
       if (ctx.reduced) { s.refs.backends.classList.add('highlight'); s.refs.podTopBox.classList.add('highlight'); return; }
       // Down-arrow: the Service forwards to a backend, so the packet goes first, the backend node
@@ -136,9 +134,7 @@ const STEPS = [
     duration: 2400,
     narration: 'NodePort builds straight on ClusterIP. It keeps that internal VIP and also opens the same high port on every Node, so a client outside the cluster can hit any Node on that port and still land on a backing Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.np.classList.add('highlight');
       s.refs.ci.classList.add('highlight');   // it still contains a ClusterIP
       if (ctx.reduced) { s.refs.backends.classList.add('highlight'); s.refs.podTopBox.classList.add('highlight'); return; }
@@ -154,9 +150,7 @@ const STEPS = [
     duration: 2400,
     narration: 'LoadBalancer builds on NodePort. It gets an external load balancer provisioned by the cloud-controller-manager, with those Node ports as its targets, so clients get one stable public address instead of a list of Nodes. It is ClusterIP plus NodePort plus a cloud VIP.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.lb.classList.add('highlight');
       s.refs.np.classList.add('highlight');   // the whole stack underneath
       s.refs.ci.classList.add('highlight');
@@ -173,9 +167,7 @@ const STEPS = [
     duration: 2300,
     narration: 'ExternalName is the odd one out. It has no selector, no Pods and no proxy. A lookup of the Service name simply returns a CNAME that points at an external host, so the Service is just a stable in-cluster alias for something living outside.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.en.classList.add('highlight');
       if (ctx.reduced) { s.refs.extHost.classList.add('highlight'); return; }
       // A packet rides the CNAME alias out to the external host. No Pod, so no pulse: the arrival
@@ -191,9 +183,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Headless is set with clusterIP None. There is no virtual IP and kube-proxy does nothing, instead DNS returns the Pod IPs directly and the client connects to a Pod itself. This is how a StatefulSet gives each Pod a stable, individually addressable name.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.hl.classList.add('highlight');
       if (ctx.reduced) { s.refs.podIps.classList.add('highlight'); return; }
       // DNS returns the Pod IPs directly, so the client goes straight to a Pod with no proxy. The

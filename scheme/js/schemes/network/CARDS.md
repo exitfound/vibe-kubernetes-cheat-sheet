@@ -82,10 +82,10 @@ outcome of a request, so those three read none until traffic flows. The edge mod
 the setup, so it is true from the start.
 ```
 
-### before `function clearHL(s) {`
+### before `function resetStep(s) {`
 
 ```
-proxyBox and podWBox are listed so their .highlight is cleared every step. See the clearHL rule in
+proxyBox and podWBox are listed so their .highlight is cleared every step. See the resetStep rule in
 the category contract.
 ```
 
@@ -854,7 +854,7 @@ actually change, and each is a property of the SETUP rather than of a request, s
 the ordinary-Pod truth from the start and the steps flip them.
 ```
 
-### before `function clearHL(s) {`
+### before `function resetStep(s) {`
 
 ```
 The inner app boxes are listed by key so a reduced replay's .highlight is cleared too, and every
@@ -937,7 +937,7 @@ Host and path are properties of the REQUEST being served, so they read none unti
 
 ```
 ctrlBox, podWebBox and podApiBox are listed so their .highlight is cleared every step. See the
-clearHL rule in the category contract.
+resetStep rule in the category contract.
 ```
 
 ### before `setVal(s.refs.hostChip, 'shop.io');`
@@ -1008,7 +1008,7 @@ it is true from the start. The scope, the hop and the result are outcomes of a c
 none until traffic flows.
 ```
 
-### before `function clearHL(s) {`
+### before `function resetStep(s) {`
 
 ```
 The inner app boxes are listed by key, and every Node and Pod opacity goes back to full so a dim set
@@ -1163,7 +1163,7 @@ means nothing until an implementation exists, and the mode and the path are outc
 so all three read none at the start.
 ```
 
-### before `function clearHL(s) {`
+### before `function resetStep(s) {`
 
 ```
 The inner app boxes are listed by key, and every Node and Pod opacity goes back to full so the dim
@@ -1371,7 +1371,7 @@ and conntrack is what the kernel remembers about it. All four are outcomes of a 
 so they read the values it starts with and the steps rewrite them exactly where the kernel does.
 ```
 
-### before `function clearHL(s) {`
+### before `function resetStep(s) {`
 
 ```
 The inner app box is listed by key, and every dimmable block goes back to full opacity so the dim

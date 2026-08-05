@@ -186,10 +186,12 @@ function setDisk(s, v) {
   [s.refs.disk, s.refs.wPublish, s.refs.wOnNode].forEach(el => { el.style.opacity = String(v); });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['adc', 'va', 'att', 'kube', 'disk', 'appBox',
     'vaChip', 'attrChip', 'diskChip', 'kubeChip'], [s.refs.appPod]);
   setDisk(s, 1);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -197,9 +199,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { va: 'none', attached: 'no object', disk: 'no', kubelet: 'blocked' });
       setBoxSublabel(s.refs.va, 'not created yet');
       setWire(s, 'disk', 'not attached to any node');
@@ -213,9 +213,7 @@ const STEPS = [
     duration: 2200,
     narration: 'It is not Kubelet that decides a volume needs attaching. The attach and detach controller runs inside kube-controller-manager, sees a Pod bound to a Node with a volume that is not attached there, and takes ownership of making it happen.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { va: 'none', attached: 'no object', disk: 'no', kubelet: 'blocked' });
       setBoxSublabel(s.refs.va, 'not created yet');
       setWire(s, 'disk', 'not attached to any node');
@@ -228,9 +226,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The controller writes a VolumeAttachment. It names the volume and the Node, and it starts with status.attached set to false. This object is now the single cluster record that vol-1 is meant to live on Node-1. Nothing physical has happened yet.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { va: 'va-7f', attached: 'false', disk: 'no', kubelet: 'blocked' });
       setBoxSublabel(s.refs.va, 'node-1, attached: false');
       setWire(s, 'write', 'create');
@@ -253,9 +249,7 @@ const STEPS = [
     duration: 4800,
     narration: 'The external-attacher watches VolumeAttachment objects. It picks this one up and calls ControllerPublishVolume on the driver, and that call is what gets vol-1 attached to Node-1 in the storage backend. The device is physically on the Node now, and Kubelet still will not touch it, because the object still says false.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The chip strip is the whole point of this step: the disk IS on node-1 and status.attached is
       // STILL false. Reading those two chips side by side is the card in one line.
       setChips(s, { va: 'va-7f', attached: 'false', disk: 'yes', kubelet: 'blocked' });
@@ -279,9 +273,7 @@ const STEPS = [
     duration: 2600,
     narration: 'When the backend confirms the attach, the attacher writes status.attached true back onto the same VolumeAttachment. That one field is the signal everything downstream waits for. The object did not move and nothing was recreated, one field changed.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { va: 'va-7f', attached: 'true', disk: 'yes', kubelet: 'blocked' });
       setBoxSublabel(s.refs.va, 'node-1, attached: true');
       setWire(s, 'disk', 'attached to node-1');
@@ -301,9 +293,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Kubelet has been blocked this whole time, watching that one field. The moment status.attached reads true it stops waiting, mounts the disk into the Pod at /data, and the Pod starts. The VolumeAttachment gated the mount.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { va: 'va-7f', attached: 'true', disk: 'yes', kubelet: 'mounted' });
       setBoxSublabel(s.refs.va, 'node-1, attached: true');
       setWire(s, 'disk', 'attached to node-1, mounted at /data');
@@ -326,9 +316,7 @@ const STEPS = [
     duration: 5400,
     narration: 'Because the object is the record, deleting it is what tears the attach down. Once the Pod is gone the controller deletes the VolumeAttachment, the attacher sees the deletion mark, calls ControllerUnpublishVolume, and only when the backend has detached vol-1 from Node-1 does the object finally go. No object, no attach.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { va: 'deleted', attached: 'gone', disk: 'no', kubelet: 'released' });
       setBoxSublabel(s.refs.va, 'deleted after detach');
       setWire(s, 'disk', 'detached from node-1');

@@ -160,10 +160,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['scheduler','apiserver','newPodChip','attemptChip','victimChip','focusChip','pod1Box','pod2Box','pod3Box','podNewBox'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.podNew]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -171,9 +173,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
       setVal(s.refs.attemptChip, 'none');
       setVal(s.refs.victimChip,  'none');
@@ -190,9 +190,7 @@ const STEPS = [
     duration: 1900,
     narration: 'Pod NEW arrives at the API. The PriorityClass admission plugin resolves spec.priorityClassName to a number, system-cluster-critical being 2000000000, and writes it into spec.priority. A raw spec.priority on a user Pod is rejected by validation, so PriorityClass is the only route. The other built-in class, system-node-critical, is slightly higher.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
       setVal(s.refs.attemptChip, 'pending');
       s.refs.attemptChip.classList.add('highlight');
@@ -216,9 +214,7 @@ const STEPS = [
     duration: 2000,
     narration: 'Scheduler takes Pod NEW off its queue and runs a scheduling cycle. Filter plugins drop every Node failing a predicate (taints, ports, requests against allocatable), and here all of them fail on capacity, so Pod NEW is recorded Unschedulable. The default preemptionPolicy=PreemptLowerPriority opens preemption mode. A class set to Never would leave it queued.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
       setVal(s.refs.attemptChip, 'NoFit on all nodes');
       setVal(s.refs.victimChip,  'none');
@@ -241,9 +237,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Preemption scans the running Pods on each Node for the smallest victim set whose deletion lets Pod NEW fit, every victim at strictly lower priority, lowest tried first. Pod A at 100 is enough alone: freeing its 1 CPU and 1Gi memory matches the Pod NEW requests. Pod C is also 100 but unneeded, and Pod B at 1000 is a candidate the greedy order never reaches.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
       setVal(s.refs.attemptChip, 'preempt mode');
       s.refs.attemptChip.classList.add('highlight');
@@ -272,9 +266,7 @@ const STEPS = [
     duration: 4200,
     narration: 'Scheduler sends a standard DELETE for Pod A, not an eviction, so PodDisruptionBudget gates are bypassed, though victim choice prefers PDB-friendly sets. Pod A enters Terminating for its terminationGracePeriodSeconds: preStop, SIGTERM, SIGKILL. Pod NEW gets status.nominatedNodeName=Node-1, a hint, not a reservation: a higher priority Pod can still take it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
       setVal(s.refs.attemptChip, 'preempt · nominated Node-1');
       s.refs.attemptChip.classList.add('highlight');
@@ -308,9 +300,7 @@ const STEPS = [
     duration: 4200,
     narration: 'Pod A exited gracefully, its capacity back on Node-1. Scheduler retries Pod NEW, Filter and Score now pass, and it binds to Node-1. The controller owning Pod A puts a replacement elsewhere or queues it. This is not node-pressure eviction, covered separately, where Kubelet evicts over-request Pods first, BestEffort leading, and priority only orders the queue.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
       setVal(s.refs.attemptChip, 'bound to Node-1');
       setVal(s.refs.victimChip,  'Pod A · gone');

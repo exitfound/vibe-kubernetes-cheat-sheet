@@ -102,8 +102,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['masq', 'net', 'eth0', 'srcChip', 'snatChip', 'ctChip', 'dstChip'], [s.refs.podGroup]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -111,9 +113,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.srcChip, '10.244.1.5');
       setVal(s.refs.snatChip, 'none');
       setVal(s.refs.ctChip, 'none');
@@ -125,9 +125,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The Pod sends to 1.1.1.1 out its eth0. The packet carries src 10.244.1.5 and rides the veth into the Node, where it heads for the egress path on its way off the host.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The src chip is what the ball currently carries.
       s.refs.srcChip.classList.add('highlight');
       setVal(s.refs.srcChip, '10.244.1.5');
@@ -145,9 +143,7 @@ const STEPS = [
     duration: 2600,
     narration: 'As the packet leaves the Node, a MASQUERADE rule rewrites the source from the Pod IP to the Node IP, 192.168.1.20, and conntrack records the mapping. The packet now looks like it came from the Node itself, an address the reply can be routed back to.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // SNAT and conntrack both update here, and the packet reaches the internet (dst).
       s.refs.masq.classList.add('highlight');
       s.refs.snatChip.classList.add('highlight');
@@ -168,9 +164,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The server replies to 192.168.1.20, the only address it ever saw. The reply arrives at the Node, where conntrack matches the stored flow and reverses the translation, rewriting the destination back to 10.244.1.5.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The reply originates at the Internet server (net stays lit as the ball departs it) and
       // conntrack reverses the mapping.
       s.refs.net.classList.add('highlight');
@@ -188,9 +182,7 @@ const STEPS = [
     duration: 2400,
     narration: 'With the destination restored to the Pod IP, the reply is delivered back down the veth into the Pod. The Pod only ever used its own source address, the SNAT and its reversal happened entirely on the Node, invisible to both ends.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Delivered back to the src Pod.
       s.refs.masq.classList.add('highlight');
       s.refs.srcChip.classList.add('highlight');

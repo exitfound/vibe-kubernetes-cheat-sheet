@@ -112,10 +112,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['kproxy', 'modeChip', 'pinChip', 'clientBox', 'a1Box', 'a2Box', 'b1Box', 'b2Box'],
     [s.refs.client, s.refs.a1, s.refs.a2, s.refs.b1, s.refs.b2]);
   [s.refs.a1, s.refs.a2, s.refs.b1, s.refs.b2].forEach(p => { p.style.opacity = '1'; });
+  clearWires(s);
 }
 
 // The client's connection arrives at kube-proxy: client pulses, a packet rides client -> kube-proxy.
@@ -141,9 +143,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.modeChip, 'unset . spread');
       setVal(s.refs.pinChip, 'None');
     },
@@ -153,9 +153,7 @@ const STEPS = [
     duration: 4600,
     narration: 'With both fields unset, kube-proxy spreads connections roughly evenly across every ready endpoint and ignores zones. Two connections from the same client can land on Pods in different zones, here one in zone-a and one in zone-b. Load is balanced but traffic may cross the zone boundary.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'unset . spread all');
       setVal(s.refs.pinChip, 'None');
@@ -175,9 +173,7 @@ const STEPS = [
     duration: 4600,
     narration: 'First lever: stickiness. Set sessionAffinity to ClientIP and the opening connection still picks a backend freely, then kube-proxy pins that client source IP to the chosen Pod, here 10.244.2.7. Every later connection from the same client returns to that one Pod, so a session stays put.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.pinChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'unset . spread all');
       setVal(s.refs.pinChip, 'ClientIP . pin .2.7');
@@ -195,9 +191,7 @@ const STEPS = [
     duration: 4000,
     narration: 'Second lever: locality, independent of the first. Set trafficDistribution to PreferSameZone (older clusters spell it PreferClose) and kube-proxy favors endpoints in the same zone as the client. The zone-a client is routed to a zone-a Pod, keeping traffic in-zone, which cuts latency and the cross-zone data charges a cloud would bill.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'PreferSameZone . in-zone');
       setVal(s.refs.pinChip, 'None');
@@ -217,9 +211,7 @@ const STEPS = [
     duration: 3800,
     narration: 'PreferSameZone is a preference, not a hard rule. The field is still PreferSameZone, but if zone-a has no ready endpoint kube-proxy falls back to a Pod in another zone rather than dropping the connection, so the client still reaches zone-b. Availability wins over locality.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'PreferSameZone . fallback');
       setVal(s.refs.pinChip, 'None');

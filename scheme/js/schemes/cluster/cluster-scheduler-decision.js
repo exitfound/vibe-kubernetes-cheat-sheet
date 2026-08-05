@@ -160,9 +160,11 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['sched','api','etcdC','queueChip','candChip','winnerChip','n1','n2','n3','n4','v1','v2','v3','v4','placedPodBox']);
+  clearWires(s);
 }
 
 function setN4TextOpacity(s, op) {
@@ -185,9 +187,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetNodeOpacity(s);
       resetVerdicts(s);
       setVal(s.refs.queueChip, 'none');
@@ -201,9 +201,7 @@ const STEPS = [
     duration: 2800,
     narration: 'A new Pod my-app-7d4-abc reaches the Scheduler on its watch with spec.nodeName empty. Until that field is set, no Kubelet will start it. The Scheduler pops it off the active queue and runs one scheduling cycle.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetNodeOpacity(s);
       resetVerdicts(s);
       setVal(s.refs.queueChip, 'my-app-7d4-abc');
@@ -227,9 +225,7 @@ const STEPS = [
     duration: 2300,
     narration: 'Filter plugins test each Node against the Pod requirements, and in a large cluster they stop once enough Nodes fit. Node-1 carries a NoSchedule taint without a matching toleration, Node-2 lacks the requested memory. Both are dropped before scoring.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.candChip, '2 of 4');
       setVal(s.refs.v1, 'filtered · taint');
       setVal(s.refs.v2, 'filtered · resources');
@@ -259,9 +255,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 for a Node and the weighted sum is the final score: Node-3 gets 78, Node-4 gets 92. See the Pod Priority and Preemption card.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.v3, 'score 78');
       setVal(s.refs.v4, 'score 92');
       s.refs.n1.style.opacity = String(OPACITY.notready);
@@ -283,9 +277,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Highest score wins, ties broken at random. The Scheduler assumes the placement so the next Pod sees Node-4 as taken. It POSTs a Binding to the binding subresource, not a Pod patch, and the API writes it into ETCD, which acks the Raft commit.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.winnerChip, 'Node-4 · 92');
       setWire(s, 'req', 'POST .../pods/my-app-7d4-abc/binding');
       setWire(s, 'persist', 'spec.nodeName=Node-4 · rv=903');
@@ -314,9 +306,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The Kubelet on Node-4 watches /api/v1/pods?fieldSelector=spec.nodeName=Node-4, so the write arrives there as an ADDED event. It pulls the image and starts the containers, and the Pod goes from Pending to Running.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.winnerChip, 'Node-4 · 92');
       s.refs.n1.style.opacity = String(OPACITY.notready);
       s.refs.n2.style.opacity = String(OPACITY.notready);

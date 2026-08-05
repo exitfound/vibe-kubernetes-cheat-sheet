@@ -161,9 +161,11 @@ function setClaimLabels(s, labels) {
   [s.refs.v0, s.refs.v1, s.refs.v2].forEach((v, i) => setBoxSublabel(v, labels[i]));
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['src', 'v0', 'v1', 'v2', 'd0', 'd1', 'd2',
     'replChip', 'wsChip', 'wdChip', 'diskChip'], [s.refs.p0, s.refs.p1, s.refs.p2]);
+  clearWires(s);
 }
 
 const BOUND = ['Bound', 'Bound', 'Bound'];
@@ -202,9 +204,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '3', ws: 'Retain', wd: 'Retain', disks: '3 kept' });
       setStage(s);
       setClaimLabels(s, BOUND);
@@ -215,9 +215,7 @@ const STEPS = [
     duration: 3900,
     narration: 'One policy governs all three claims. It has two independent knobs: whenScaled decides the fate of a claim when its replica is scaled away, and whenDeleted decides it when the entire StatefulSet is deleted. Each is set to Retain or Delete on its own.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '3', ws: 'Retain', wd: 'Retain', disks: '3 kept' });
       setStage(s, { govern: true });
       setClaimLabels(s, BOUND);
@@ -242,9 +240,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Scale down to two with whenScaled set to Retain. Pod web-2 is removed, but claim data-web-2 stays and pv-web-2 keeps its data. This is what an unset field gives you and it is safe, yet every scale-down that is never cleaned up leaves a disk behind that still costs money.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '2', ws: 'Retain', wd: 'Retain', disks: '3 kept, 1 leaks' });
       setStage(s, { pods: [1, 1, OPACITY.terminated] });
       setClaimLabels(s, ['Bound', 'Bound', 'kept, no Pod']);
@@ -260,9 +256,7 @@ const STEPS = [
     duration: 4600,
     narration: 'Flip whenScaled to Delete and scale down again. Now removing web-2 also removes claim data-web-2, and its disk is reclaimed by the storage backend. No orphan is left behind, which is what most people actually want, at the cost of that data being gone for good.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '2', ws: 'Delete', wd: 'Retain', disks: '2 kept' });
       setStage(s, { pods: [1, 1, OPACITY.terminated], claims: [1, 1, OPACITY.terminated], disks: [1, 1, OPACITY.terminated] });
       setClaimLabels(s, BOUND);
@@ -279,9 +273,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Now consider deleting the whole StatefulSet with whenDeleted set to Retain. All three Pods vanish, but every claim and every disk is left standing. The data outlives the workload, which is exactly what you want before a risky upgrade or a rename.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '0', ws: 'Delete', wd: 'Retain', disks: '3 kept' });
       setStage(s, { pods: [OPACITY.terminated, OPACITY.terminated, OPACITY.terminated] });
       setClaimLabels(s, ['kept, no owner', 'kept, no owner', 'kept, no owner']);
@@ -297,9 +289,7 @@ const STEPS = [
     duration: 4600,
     narration: 'With whenDeleted set to Delete, removing the StatefulSet garbage-collects all three claims and every disk goes with them. This is the clean teardown, and the reason Retain on both knobs is the conservative default: deleting data is irreversible, so Kubernetes will not do it unless you ask.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '0', ws: 'Delete', wd: 'Delete', disks: '0 kept' });
       setStage(s, { pods: [OPACITY.terminated, OPACITY.terminated, OPACITY.terminated], claims: [OPACITY.terminated, OPACITY.terminated, OPACITY.terminated], disks: [OPACITY.terminated, OPACITY.terminated, OPACITY.terminated] });
       setClaimLabels(s, BOUND);

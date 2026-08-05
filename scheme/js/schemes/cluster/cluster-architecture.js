@@ -159,8 +159,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['apisrv','etcdC','ctrlMgr','ccm','sched','kubelet','runtime','kproxy']);
+  clearWires(s);
 }
 
 // One helper writes BOTH groups, so they cannot drift. The treatments differ DELIBERATELY: a
@@ -175,9 +177,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setLanes(s, { cp: true, nodeTier: false });
     },
   },
@@ -186,9 +186,7 @@ const STEPS = [
     duration: 1700,
     narration: 'The API is the only way in for clients and controllers. Every read and every write passes through it, and a write clears authentication, authorization and admission before it is stored. Replicas are stateless and scale horizontally. The one path that skips it is a static Pod, which the Kubelet reads off the Node.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setLanes(s, { cp: true, nodeTier: false });
       s.refs.apisrv.classList.add('highlight');
     },
@@ -198,9 +196,7 @@ const STEPS = [
     duration: 1700,
     narration: 'ETCD is the only durable store in the cluster, and the API is its only client. Every change is replicated through Raft, where a quorum of replicas must agree before the write is committed and the revision moves forward.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setLanes(s, { cp: true, nodeTier: false });
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'etcd-write', 'write · Raft quorum commit');
@@ -214,9 +210,7 @@ const STEPS = [
     duration: 1700,
     narration: 'On the way back ETCD serves reads to the API, which is a separate exchange rather than the answer to that write. A watch keeps the stream open and pushes later changes through it without another round trip. Clients watch the API, never ETCD, and it answers them from its own cache.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setLanes(s, { cp: true, nodeTier: false });
       s.refs.etcdC.classList.add('highlight');
       setWire(s, 'etcd-read', 'read · watch stream');
@@ -230,9 +224,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The controller-manager runs one control loop per resource kind (Deployment, ReplicaSet, Job and so on). Each watches the API, never ETCD, and writes back to reconcile observed state with desired state.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setLanes(s, { cp: true, nodeTier: false });
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'controllers', 'watch · reconcile loop');
@@ -249,9 +241,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The cloud-controller-manager runs the loops that talk to a cloud provider: Node lifecycle, cloud routes and Service load balancers. It is optional and a cluster on your own hardware has none. It writes what it learns back to the API, and it is split out so provider code lives outside the core.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setLanes(s, { cp: true, nodeTier: false });
       s.refs.apisrv.classList.add('highlight');
       // The lane pair runs API to CCM and back, so the label names what rides it. The call to the
@@ -269,9 +259,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The Scheduler watches Pods that have no Node assignment yet, filters and scores the candidates, then posts a Binding back to the API. On the ordinary path that one write is all it does, and preemption is the exception where it also deletes victims. The Kubelet on the chosen Node takes it from there.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setLanes(s, { cp: true, nodeTier: false });
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'scheduler', 'watch Pods · post Binding');
@@ -287,9 +275,7 @@ const STEPS = [
     duration: 3100,
     narration: 'The Kubelet watches the API for Pods assigned to its Node, then calls the Runtime over CRI to start their containers. Beside it kube-proxy watches the API on its own, for Services and EndpointSlices, and programs the local rules. It is optional too, and an eBPF dataplane can replace it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The Node half takes over: the two lanes into the Node band are DRAWN for the first time
       // here, at full strength, and the control-plane exchanges mute behind them.
       setLanes(s, { cp: false, nodeTier: true });

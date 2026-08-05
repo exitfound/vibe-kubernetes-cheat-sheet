@@ -107,9 +107,11 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['podBox', 'dns', 'rcSearch', 'rcNdots', 'namesChip', 'answerChip'], [s.refs.podGroup]);
   s.refs.chain.querySelectorAll('.scheme-chip').forEach(r => r.classList.remove('highlight'));
+  clearWires(s);
 }
 
 function roundTrip(s, ctx, { start, lead, name, result, row = -1, pulseOnSend = true }) {
@@ -132,9 +134,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.namesChip, '0');
       setVal(s.refs.answerChip, 'none');
     },
@@ -144,9 +144,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The default resolv.conf points at the kube-dns Service and lists the namespace search domains, ending with ndots set to 5. The rule is simple: if a name has fewer than ndots dots, treat it as relative and try the search domains first.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.rcSearch.classList.add('highlight');
       s.refs.rcNdots.classList.add('highlight');
       setVal(s.refs.namesChip, '0');
@@ -164,9 +162,7 @@ const STEPS = [
     duration: 3600,
     narration: 'The name api has zero dots, well under ndots 5, so the resolver does not send it as is. It appends the first search domain and asks for api.ns.svc.cluster.local. Here that name exists, CoreDNS answers, and the lookup is done in a single round trip.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       lightRow(s, 0);
       s.refs.namesChip.classList.add('highlight');
       s.refs.answerChip.classList.add('highlight');
@@ -191,9 +187,7 @@ const STEPS = [
     duration: 10400,
     narration: 'But if that first guess misses, the resolver does not give up, it walks the whole list: api.svc.cluster.local, then api.cluster.local, then finally api on its own. Every miss is a full round trip that ends in NXDOMAIN, so one name that does not exist costs four of them, and because the resolver asks for IPv4 and IPv6 the real total doubles again.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.namesChip.classList.add('highlight');
       s.refs.answerChip.classList.add('highlight');
       if (ctx.reduced) {
@@ -236,9 +230,7 @@ const STEPS = [
     duration: 3600,
     narration: 'A trailing dot makes the name absolute no matter what ndots says, as in api.ns.svc.cluster.local., so the resolver skips the search list entirely and not one candidate below is tried. The name goes on the wire exactly once. Fully qualifying hot names, or lowering ndots, is the usual fix for noisy cluster DNS.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Deliberately NO ladder row lights here: an absolute name never touches the search list, and
       // lighting the first candidate would say the opposite of what the step is about.
       s.refs.namesChip.classList.add('highlight');

@@ -156,11 +156,13 @@ function setChips(s, { pvc, pv, bind, mount }) {
 }
 
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['ctrl', 'pvc', 'pvcB', 'pvSmall', 'pvMatchCyl', 'pvSlow', 'appBox',
     'pvcChip', 'pvChip', 'bindChip', 'mountChip'], [s.refs.appPod]);
   s.refs.pvSmall.style.opacity = '1';
   s.refs.pvSlow.style.opacity = '1';
+  clearWires(s);
 }
 
 const BOUND = 'data-claim <-> PV-x73a';
@@ -170,9 +172,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
       s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
@@ -184,9 +184,7 @@ const STEPS = [
     duration: 2000,
     narration: 'A PersistentVolumeClaim is a request, not storage. It states only what the workload needs: at least 5Gi, ReadWriteOnce access, and the local-ssd StorageClass. The scheduler will not place the Pod while the claim it references is still unbound.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
       s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
@@ -199,9 +197,7 @@ const STEPS = [
     duration: 2100,
     narration: 'The binding controller watches every claim in the cluster. It picks this one up because it is Pending, and reads the three things it has to satisfy: capacity, access mode and StorageClass.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
       s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
@@ -219,9 +215,7 @@ const STEPS = [
     duration: 3400,
     narration: 'The controller checks every Available volume in one sweep. PV-a01 is only 2Gi, which is under what the claim asks for, and PV-b22 is the local-hdd class rather than local-ssd. Only PV-x73a satisfies all three conditions, so it is the candidate.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'candidate PV-x73a', mount: 'none' });
       s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
@@ -260,9 +254,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Binding is written on both objects. The claim gets a volumeName pointing at PV-x73a, and the volume gets a claimRef pointing back at data-claim. Both turn Bound, and because the volume now names its claim, no other claim can ever take it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Bound', pv: 'Bound', bind: BOUND, mount: 'none' });
       s.refs.appPod.style.opacity = String(OPACITY.pending);
       s.refs.pvcB.style.opacity = '0';
@@ -287,9 +279,7 @@ const STEPS = [
     duration: 3400,
     narration: 'Only now can the volume be used. Kubelet resolves the claim to the volume it is bound to, mounts it at /data inside the container, and the Pod finally starts. The claim is the handle the Pod holds, and the volume behind it is what actually stores the bytes.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Bound', pv: 'Bound', bind: BOUND, mount: 'mounted at /data' });
       s.refs.pvcB.style.opacity = '0';
       s.refs.wCtrlToPvcB.style.opacity = '0';
@@ -320,9 +310,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Binding is one to one and it is permanent. A second claim asking for exactly the same thing finds PV-x73a already carrying a claimRef, so that volume is no longer Available to anyone. These volumes were pre-created by an administrator and the class has no provisioner behind it, so nothing builds a new one. The second claim just stays Pending.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Bound', pv: 'Bound', bind: BOUND, mount: 'mounted at /data' });
       s.refs.appPod.style.opacity = '1';
       s.refs.pvcB.style.opacity = '1';

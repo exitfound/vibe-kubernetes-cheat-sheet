@@ -146,10 +146,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubectl','apiserver','cordonChip','pdbChip','healthyChip','lastChip','pod1Box','pod2Box','pod3Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
+  clearWires(s);
 }
 
 function resetPodOpacity(s) {
@@ -176,9 +178,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setVal(s.refs.cordonChip, 'false');
       setVal(s.refs.pdbChip, '1');
@@ -192,9 +192,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The drain command PATCHes Node-1 with spec.unschedulable=true. The Scheduler stops placing new Pods on this Node unless they tolerate the node.kubernetes.io/unschedulable taint the way DaemonSet Pods do, and the status shows SchedulingDisabled. Already-running Pods stay put for now. Cordon is also exposed as a separate verb (kubectl cordon Node-1), drain just bundles it with the eviction loop.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setVal(s.refs.cordonChip, 'true · SchedulingDisabled');
       setWire(s, 'req', 'PATCH /api/v1/nodes/Node-1 · spec.unschedulable=true');
@@ -213,9 +211,7 @@ const STEPS = [
     duration: 1900,
     narration: 'The drain command lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. A drain never evicts DaemonSet Pods. Mirror Pods (the API record of static Pods) are skipped because Kubelet would recreate them. Pods with emptyDir volumes and bare Pods with no owner abort the drain until the matching flag is passed. Two Deployment-backed Pods are left for the Eviction API.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setWire(s, 'req', 'GET /api/v1/pods · fieldSelector=spec.nodeName=Node-1');
       s.refs.kubectl.classList.add('highlight');
@@ -232,9 +228,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The drain command POSTs an eviction for web-1. The API reads the matching PDB, whose status the disruption controller keeps at disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed decrements to 0 under optimistic concurrency, and the Pod is deleted with its grace period. The owning ReplicaSet replaces it elsewhere, covered in the Deployment rolling update card.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setVal(s.refs.healthyChip, '1 of 2');
       setVal(s.refs.lastChip, 'web-1 · 200 OK');
@@ -276,9 +270,7 @@ const STEPS = [
     duration: 4400,
     narration: 'The drain command POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so disruptionsAllowed is 0 and the API returns 429 Too Many Requests. The drain command retries every 5 seconds. Once the replacement turns Ready elsewhere, currentHealthy is back to 2 and the next retry returns 200 OK, evicting web-2.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setVal(s.refs.healthyChip, '1 of 2 → 2 of 2');
       setVal(s.refs.lastChip, 'web-2 · 429 → 200 OK');
@@ -319,9 +311,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Node-1 carries only the DaemonSet Pod now. Application traffic runs on the replacement web-1 and web-2 elsewhere. The Node is safe for kernel patch, reboot, or removal. To bring it back, kubectl uncordon Node-1 flips spec.unschedulable=false and the Scheduler can place new Pods on it again.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setVal(s.refs.healthyChip, '2 of 2');
       // currentHealthy climbing back to 2 of 2 is the point of the step (the budget is satisfied

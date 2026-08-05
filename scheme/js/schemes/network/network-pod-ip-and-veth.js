@@ -100,11 +100,13 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['cni0', 'cniPlugin', 'pauseBox', 'appBox', 'nsChip', 'ipChip', 'vethChip', 'reachChip'], [s.refs.podGroup]);
   // The loopback is drawn as a relationship (shared facility, no direction, no arrowhead) and so
   // sits recessed, but one step sends a ball along it. Reset here, raised in that step.
   s.refs.loWire.style.strokeOpacity = '';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -112,9 +114,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPodSublabel(s.refs.podShell, 'netns: not ready');
       setVal(s.refs.nsChip, 'not ready');
       setVal(s.refs.ipChip, 'none');
@@ -127,9 +127,7 @@ const STEPS = [
     duration: 2100,
     narration: 'The pause container is started first by the runtime, and it holds the Pod network namespace open. Because pause owns that namespace, every other container in the Pod is later joined into it rather than getting its own, which is what makes them one network endpoint.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPodSublabel(s.refs.podShell, 'netns: open');
       setVal(s.refs.nsChip, 'shared · owned by pause');
       // The pause box and the namespace chip keep a static highlight border for the whole
@@ -143,9 +141,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The CNI plugin is then called by the runtime with the namespace path. It allocates one IP for the Pod through its IPAM, creates a veth pair, moves one end into the namespace as eth0 and attaches the peer to cni0 on the host. The Pod now has a single routable address and a link to the Node.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPodSublabel(s.refs.podShell, 'IP 10.244.1.5');
       setWire(s, 'veth', 'eth0 <-> veth');
       setVal(s.refs.ipChip, '10.244.1.5');
@@ -167,9 +163,7 @@ const STEPS = [
     duration: 2200,
     narration: 'With the namespace in place, the app container is joined into it instead of getting its own. Every container in the Pod now shares one IP, one routing table and one loopback, so they reach each other over localhost. To the rest of the cluster the whole Pod is a single endpoint at 10.244.1.5.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPodSublabel(s.refs.podShell, 'IP 10.244.1.5');
       setWire(s, 'lo', '127.0.0.1');
       setVal(s.refs.reachChip, 'localhost');

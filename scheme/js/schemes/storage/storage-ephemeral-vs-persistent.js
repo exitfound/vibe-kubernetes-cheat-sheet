@@ -127,9 +127,11 @@ function setPresence(s, { pod = 1, ed = 1 } = {}) {
   s.refs.lanes.forEach(el => { el.style.opacity = String(pod); });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['ed', 'pvc', 'pv', 'podBox', 'edChip', 'pvcChip', 'podChip'], [s.refs.pod]);
   setPresence(s);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -137,9 +139,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'empty', pvc: 'Bound', pod: 'on Node-1' });
     },
   },
@@ -148,9 +148,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The app writes to both. A log line goes into the emptyDir on the Node, and a database row goes through the claim onto the PersistentVolume. Right now both look the same, each holds the byte it was given.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'log written', pvc: 'row written', pod: 'on Node-1' });
       if (ctx.reduced) { s.refs.ed.classList.add('highlight'); s.refs.pvc.classList.add('highlight'); s.refs.pv.classList.add('highlight'); return; }
       // Pod to both disks: an up-arrow, so the Pod pulses first and both writes descend at afterPulse.
@@ -169,9 +167,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The Pod is deleted off Node-1. Its emptyDir was part of the Node, so it is wiped with the Pod. The PersistentVolume is a separate object with its own disk, so it simply detaches and keeps every byte.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The chip is the CLAIM, and a claim does not detach: the disk does. What the claim does here is
       // survive the Pod and stay bound, which is the whole contrast with the emptyDir beside it.
       setChips(s, { ed: 'wiped', pvc: 'kept, still Bound', pod: 'deleted' });
@@ -192,9 +188,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The controller recreates the Pod, and the scheduler places it on Node-2. This is where the two volumes stop looking alike, because one is tied to a Node it is no longer on and the other is tied to nothing but the claim.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'empty again', pvc: 'reattaching', pod: 'on Node-2' });
       s.refs.pv.classList.add('highlight');
       if (ctx.reduced) return;
@@ -210,9 +204,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The emptyDir comes back empty. It is a brand new directory on Node-2 and knows nothing about Node-1. The claim reattaches the very same PersistentVolume, so /data still has the database row. Same Pod spec, two completely different outcomes.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'empty', pvc: 'reattached, intact', pod: 'on Node-2' });
       s.refs.ed.classList.add('highlight');
       s.refs.pvc.classList.add('highlight');
@@ -230,9 +222,7 @@ const STEPS = [
     duration: 2200,
     narration: 'That is the whole distinction. Ephemeral storage is scratch that resets whenever the Pod is rescheduled, persistent storage follows the claim across Nodes and restarts. Put throwaway data in an emptyDir and anything you must not lose behind a PVC.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'resets on move', pvc: 'follows the claim', pod: 'on Node-2' });
       // Verdict is a plain recap: only the Pod pulses, no block stays lit.
       if (ctx.reduced) return;

@@ -133,10 +133,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','kernel','memChip','oomScoreChip','terminationChip','restartChip'],
     [s.refs.podGroup]);
+  clearWires(s);
 }
 
 // Every enter() writes EVERY chip through this, idle included. oom_score_adj is a standing value
@@ -156,9 +158,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setBoxSublabel(s.refs.containerBox, 'using 100Mi of 256Mi');
       setChips(s, { mem: '100Mi / 256Mi', state: 'Running', restarts: '0' });
@@ -170,9 +170,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The workload grows, and memory.current keeps rising toward memory.max as the container allocates anonymous pages, page cache, and slab. The cgroup memory controller accounts every byte against the limit.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setBoxSublabel(s.refs.containerBox, 'using 220Mi of 256Mi');
       setChips(s, { mem: '220Mi / 256Mi · climbing', state: 'Running', restarts: '0' });
@@ -189,9 +187,7 @@ const STEPS = [
     duration: 2000,
     narration: 'Usage in memory.current reaches memory.max. The cgroup memory controller cannot reclaim enough (swap is disabled on most Kubernetes Nodes), so the kernel raises an out-of-memory event scoped to this one cgroup.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setBoxSublabel(s.refs.containerBox, 'using 256Mi of 256Mi · at limit');
       setChips(s, { mem: '256Mi / 256Mi · at limit', state: 'Running', restarts: '0' });
@@ -211,9 +207,7 @@ const STEPS = [
     // the singleProcessOOMKill footnote are in ./CARDS.md.
     narration: 'Reclaim has failed at memory.max, so the kernel invokes the cgroup-scoped OOM killer. The runtime sets memory.oom.group on that cgroup under cgroup v2, so the kernel SIGKILLs every process in the container as one unit rather than the single worst offender. The oom_score_adj applied at container start from the QoS class ranks containers when the whole Node runs out, not inside one cgroup.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // containerStatuses[].state is still Running at this instant: the kernel killed the process
       // and the Kubelet has not told the API yet, which is the observe step.
       setChips(s, { mem: '256Mi / 256Mi · at limit', state: 'Running · not yet observed', restarts: '0' });
@@ -239,9 +233,7 @@ const STEPS = [
     duration: 2100,
     narration: 'PLEG (Pod Lifecycle Event Generator) spots the dead container on its next relist of the container runtime. Kubelet PATCHes the container status to terminated with reason OOMKilled and exitCode 137 (128 + 9 for SIGKILL). After the restart this record moves to lastState.terminated, which is what kubectl describe and get show.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.terminated);
       setBoxSublabel(s.refs.containerBox, 'terminated · exit 137');
       // memory.current fell away with the processes the SIGKILL took: it read at limit here for as
@@ -266,9 +258,7 @@ const STEPS = [
     duration: 2500,
     narration: 'The restartPolicy is Always (the default), so Kubelet starts a fresh container inside the same Pod sandbox. The Pod IP and Linux namespaces are preserved and restartCount increments. Repeated OOMKills trip CrashLoopBackOff, so each retry is delayed exponentially from 10s up to a 5 min cap, and 10 minutes of clean running resets it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.containerBox, 'using 120Mi of 256Mi');
       setChips(s, { mem: '120Mi / 256Mi', state: 'Running (restarted)', restarts: '1' });
       // "applied", not "written": Kubelet passes both in the CRI create call and the runtime is what

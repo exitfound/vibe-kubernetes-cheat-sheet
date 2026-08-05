@@ -148,9 +148,11 @@ function setChips(s, { mode, nodeDoes, container, fsgroup }) {
   setChip(s.refs.fsgChip, fsgroup);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['band', 'pvFs', 'pvBlk', 'ctrFs', 'ctrBlk',
     'modeChip', 'nodeChip', 'ctrChip', 'fsgChip'], [s.refs.podFs, s.refs.podBlk]);
+  clearWires(s);
 }
 
 // The Pod states what it wants: the Pod blinks first (it is the actor), then the request drops to
@@ -184,9 +186,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Filesystem', nodeDoes: 'nothing yet', container: 'nothing yet', fsgroup: 'applied' });
     },
   },
@@ -195,9 +195,7 @@ const STEPS = [
     duration: 2900,
     narration: 'Pod web-0 takes the default. A volumeMode of Filesystem is what you get whenever the field is absent, and it is what almost every workload wants. The Pod consumes the volume under volumeMounts, naming a mountPath, and what it expects to find at that path is a directory.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Filesystem', nodeDoes: 'nothing yet', container: 'nothing yet', fsgroup: 'applied' });
       setWire(s, 'fs', 'no filesystem yet');
       if (ctx.reduced) { s.refs.band.classList.add('highlight'); return; }
@@ -209,9 +207,7 @@ const STEPS = [
     duration: 2900,
     narration: 'Before anything can be mounted the CSI node service stages the volume. If the device carries no filesystem yet, this is where mkfs runs and creates one, ext4 unless the StorageClass asks for something else. It happens once, on first use, and a disk that already holds data is left alone.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Filesystem', nodeDoes: 'mkfs then mount', container: 'nothing yet', fsgroup: 'applied' });
       setWire(s, 'fs', 'ext4 created');
       setWire(s, 'band', 'stage: mkfs then mount');
@@ -228,9 +224,7 @@ const STEPS = [
     duration: 3400,
     narration: 'Now the staged filesystem is mounted into the container at /data, and inside the container that is an ordinary directory. Files, directory permissions and the fsGroup ownership walk all apply here, because there is a filesystem for Kubernetes to apply them to.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Filesystem', nodeDoes: 'mounted on node', container: 'directory /data', fsgroup: 'applied' });
       setWire(s, 'fs', 'ext4');
       setWire(s, 'band', 'mount into the Pod');
@@ -245,9 +239,7 @@ const STEPS = [
     duration: 2900,
     narration: 'Pod db-0 asks for an identical disk with volumeMode set to Block. Nothing about the storage request changed: same size, same class, same backend. What changed is that the Pod consumes it under volumeDevices with a devicePath, instead of volumeMounts with a mountPath.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Block', nodeDoes: 'nothing yet', container: 'nothing yet', fsgroup: 'not applied' });
       setWire(s, 'blk', 'raw, unformatted');
       if (ctx.reduced) { s.refs.band.classList.add('highlight'); return; }
@@ -259,9 +251,7 @@ const STEPS = [
     duration: 4200,
     narration: 'No mkfs and no mount. The node service publishes the device itself into the container, so the disk arrives exactly as the backend handed it over, unformatted and untouched. The container finds a raw block device at /dev/xvda, and everything above the first byte is now its own business.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Block', nodeDoes: 'no mkfs, no mount', container: 'device /dev/xvda', fsgroup: 'not applied' });
       setWire(s, 'blk', 'raw, unformatted');
       setWire(s, 'band', 'publish the device');
@@ -283,9 +273,7 @@ const STEPS = [
     duration: 3800,
     narration: 'That is the trade. A database that manages its own layout gets the device with no filesystem in the way, and in exchange every filesystem level feature stops working: fsGroup has no ownership to walk, subPath has no paths to choose from, and file permissions have no files. The volumeMode field is also immutable once the claim exists, and a claim asking for Block will never bind to a volume offering Filesystem, so this is a decision you make when you create the claim.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Block', nodeDoes: 'no mkfs, no mount', container: 'device /dev/xvda', fsgroup: 'not applied' });
       setWire(s, 'fs', 'ext4');
       setWire(s, 'blk', 'raw, unformatted');

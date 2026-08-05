@@ -104,9 +104,11 @@ function podBlock({ x, y, w, h, label, ip }) {
   return { group, innerBox };
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['config', 'svc', 'famChip', 'v4Chip', 'v6Chip', 'clientBox', 'podBox'],
     [s.refs.client, s.refs.pod]);
+  clearWires(s);
 }
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
@@ -117,9 +119,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.famChip, 'SingleStack');
       setVal(s.refs.v4Chip, '10.96.0.20');
       setVal(s.refs.v6Chip, 'none');
@@ -132,9 +132,7 @@ const STEPS = [
     duration: 2300,
     narration: 'Dual-stack is enabled cluster-wide: the API server and controller-manager take an IPv4 and an IPv6 service CIDR, the controller-manager and kube-proxy take both pod CIDRs, the Kubelet takes a Node IP of each family, and the CNI has to support both. Nothing has a second address yet, but the address space for one now exists.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.config.classList.add('highlight');
       setVal(s.refs.famChip, 'SingleStack');
     },
@@ -144,9 +142,7 @@ const STEPS = [
     duration: 2500,
     narration: 'When the Pod is created, the CNI now allocates one address from each family, an IPv4 from the v4 pod CIDR and an IPv6 from the v6 pod CIDR. Both live on the same eth0, and the Pod can speak either protocol.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The dual-stack config (its CNI plus the v6 pod CIDR) is the source of the new address, so the
       // band stays lit as the allocation flows out of it.
       s.refs.config.classList.add('highlight');
@@ -163,9 +159,7 @@ const STEPS = [
     duration: 2500,
     narration: 'A Service with ipFamilyPolicy PreferDualStack is given one ClusterIP per family, ordered by its ipFamilies list, here IPv4 then IPv6. Each ClusterIP is backed by the same set of Pods, just reached over a different protocol.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.config.classList.add('highlight');
       s.refs.famChip.classList.add('highlight');
       s.refs.v4Chip.classList.add('highlight');
@@ -183,9 +177,7 @@ const STEPS = [
     duration: 3300,
     narration: 'A client resolving the Service gets both an A and an AAAA record, and connects over whichever family it prefers. Here it dials the IPv6 ClusterIP, and kube-proxy forwards the connection to the Pod IPv6 address. The same Service is reachable both ways.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.v6Chip.classList.add('highlight');
       setVal(s.refs.famChip, 'PreferDualStack');
       setVal(s.refs.v6Chip, 'fd00:96::a');

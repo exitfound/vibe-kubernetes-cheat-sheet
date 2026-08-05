@@ -56,7 +56,7 @@ its own note in `./CARDS.md` says otherwise.
 - **N destinations get N wires.** A fan to three candidate backends draws all three even though a
   step takes one, so the reader sees the choice was made among drawn alternatives. Those unridden
   legs are NOT a defect and several card records say so.
-- **`clearHL` must list the inner app boxes by key.** `clearPodHighlight` only resets inline strokes,
+- **`resetStep` must list the inner app boxes by key.** `clearPodHighlight` only resets inline strokes,
   so a `.highlight` set inside a reduced-replay block leaks into later steps: reduced replay never
   runs the forward motion path that would re-clear it.
 

@@ -202,8 +202,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client','apisrv','etcd','cm','sched','kubelet','runtime','placedPodBox']);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -211,9 +213,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.placedPod.style.opacity = '0';
       s.refs.kubeletCriArrow.style.opacity = '0';
       s.refs.kubeletPodArrow.style.opacity = '0';
@@ -226,9 +226,7 @@ const STEPS = [
     duration: 2400,
     narration: 'You run kubectl apply -f deploy.yaml. The client serializes the manifest as JSON and POSTs it to /apis/apps/v1/namespaces/default/deployments on the API. On an object that already exists it is a PATCH, see Server-side Apply.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.client.classList.add('highlight');
       // Elided to fit between the blocks, the card's own idiom (step 5 writes POST .../binding).
       // Nothing is lost: the step narration spells the full path out.
@@ -243,9 +241,7 @@ const STEPS = [
     duration: 1700,
     narration: 'The API authenticates the caller from your kubeconfig, checks RBAC, runs admission and schema validation, then writes the new Deployment my-app to ETCD. ETCD commits the write via Raft quorum at rv=842.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.apisrv.classList.add('highlight');
       // The REQUEST, not its outcome: this register sits above the OUTBOUND lane. The commit is
       // what step 3 brings back, on the ack register, as ack · rv=842.
@@ -262,9 +258,7 @@ const STEPS = [
     duration: 3000,
     narration: 'ETCD acks the committed write back to the API at rv=842, and the API returns HTTP 201 Created to the kubectl client. The Deployment now exists in cluster state, but no Pods have been created yet.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.etcd.classList.add('highlight');
       setWire(s, 'etcd-ack', 'ack · rv=842');
       setWire(s, 'api-ack', 'HTTP 201 Created');
@@ -284,9 +278,7 @@ const STEPS = [
     duration: 4400,
     narration: 'The Deployment controller, inside the controller-manager, sees my-app via its watch on the API and creates a ReplicaSet (my-app-7d4). The ReplicaSet controller sees THAT on a watch of its own and creates a Pod (my-app-7d4-abc) with no nodeName yet. Nobody calls anybody.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.apisrv.classList.add('highlight');
       // End value above the guard, the second watch, because that is where the step lands.
       setWire(s, 'controller', 'watch ADDED ReplicaSet my-app-7d4');
@@ -309,9 +301,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The Scheduler picks up my-app-7d4-abc, filters candidate Nodes (taints, resources, affinity), scores the survivors on free resources and topology spread, then posts a Binding that pins the Pod to Node-1.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'schedule', 'POST .../binding · node=Node-1');
       if (ctx.reduced) { s.refs.sched.classList.add('highlight'); return; }
@@ -327,9 +317,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The Kubelet on Node-1 has a filtered watch on /api/v1/pods?fieldSelector=spec.nodeName=Node-1. The API streams my-app-7d4-abc down that watch to Node-1, where the Kubelet picks it up.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'kubelet-watch', 'watch ADDED my-app-7d4-abc');
       if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
@@ -343,9 +331,7 @@ const STEPS = [
     duration: 3300,
     narration: 'The Kubelet calls the Runtime over CRI. The Runtime creates a Pod sandbox, which gets the Pod its network namespace and IP, then pulls nginx:1.27 and starts the container inside that sandbox. The Pod my-app-7d4-abc is Running on Node-1.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.kubelet.classList.add('highlight');
       // Pin the arrows/pod visible so cancel returns cleanly. The Pod appears in its
       // normal (thin) outline, pulses once on arrival, then eases back to it.

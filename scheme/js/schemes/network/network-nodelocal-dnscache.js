@@ -81,8 +81,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['podBox', 'agent', 'dns', 'pathChip', 'cacheChip', 'upChip', 'ctChip'], [s.refs.podGroup]);
+  clearWires(s);
 }
 
 function setChips(s, { path, cache, up, ct }, lit = []) {
@@ -115,9 +117,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The rest state is the world BEFORE the agent exists, which is exactly what this step narrates.
       setChips(s, { path: 'cluster hop', cache: 'none', up: 'UDP per lookup', ct: 'entry per lookup' });
     },
@@ -127,9 +127,7 @@ const STEPS = [
     duration: 2600,
     narration: 'NodeLocal DNSCache runs as a DaemonSet, so a DNS agent sits on every Node listening on a link-local address such as 169.254.20.10, and the Kubelet cluster-dns setting points every Pod resolv.conf at it. A query now travels only to this agent on the same Node, never leaving the host to start with. In iptables mode the agent can bind the kube-dns ClusterIP too, so Pods reach it either way.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { path: 'on-node agent', cache: 'empty', up: 'not used', ct: 'no entry' }, ['pathChip', 'cacheChip', 'upChip', 'ctChip']);
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
@@ -145,9 +143,7 @@ const STEPS = [
     duration: 3600,
     narration: 'If the name is already cached, the agent answers right there on the Node. No packet crosses the cluster, no DNAT happens, and because the agent installs NOTRACK rules for its own traffic, no conntrack entry is created either. This is the fast path that most repeated lookups take.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { path: 'on-node agent', cache: 'hit', up: 'not used', ct: 'no entry' }, ['cacheChip', 'ctChip']);
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
@@ -167,9 +163,7 @@ const STEPS = [
     duration: 5400,
     narration: 'On a cache miss the agent forwards the query upstream to CoreDNS, but over a long-lived TCP connection rather than a fresh UDP flow per lookup. It caches the answer it gets back before passing it to the Pod, so the next Pod on this Node asking for the same name is served locally.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { path: 'agent -> CoreDNS', cache: 'miss -> fill', up: 'TCP keep-alive', ct: '1 long-lived' }, ['cacheChip', 'upChip', 'ctChip', 'pathChip']);
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
@@ -195,9 +189,7 @@ const STEPS = [
     duration: 3600,
     narration: 'The payoff is two-fold: a warm name is served from the Node without a single packet leaving it, and the flood of short-lived UDP flows that used to fill the conntrack table is gone. On busy clusters this is one of the simplest ways to make DNS stop being the bottleneck.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { path: 'on-node agent', cache: 'warm', up: 'idle', ct: 'pressure gone' }, ['pathChip', 'cacheChip', 'ctChip', 'upChip']);
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');

@@ -158,9 +158,11 @@ function setStage(s, { diskA = 0, diskB = 0, podOn = 0, cross = 0, nodeA = 1, no
   setBoxSublabel(s.refs.pvc, pvcState);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['sc', 'pvc', 'nodeA', 'nodeB', 'diskA', 'diskB', 'podBox',
     'modeChip', 'pvcChip', 'podChip', 'zoneChip'], [s.refs.podB]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -168,9 +170,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Immediate', pvc: 'Pending', pod: 'Pending', zones: 'unset' });
       setStage(s);
     },
@@ -182,9 +182,7 @@ const STEPS = [
     duration: 4400,
     narration: 'With Immediate the volume is provisioned the moment the claim appears, long before any Pod is scheduled. With no Pod to guide it, provisioning just picks a zone. Here it lands in zone-a, and the claim is Bound to a disk that now physically lives in zone-a, reachable only by Node-1.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'Pending', zones: 'disk in zone-a' });
       setStage(s, { diskA: 1, pvcState: 'Bound', lanes: ['wProvA'] });
       // The class is where the ball departs from, so it is lit at step entry. The disk is the receiver
@@ -207,9 +205,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Only now is the Pod created, and it has to be placed around a disk that already lives in zone-a. This Pod fits Node-2 in zone-b on capacity and affinity, but a zone-a disk cannot attach to a Node in zone-b. Volume topology is read during scheduling, so Node-2 is rejected, while Node-1 in zone-a has no room for the Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'Pending', zones: 'no node fits' });
       // node-1 is filtered out (no room), node-2 is reachable but wrong zone for the disk. The Pod is
       // admitted to neither, so it stays a Pending Pod hovering at node-2, the only node it fits on cpu.
@@ -228,9 +224,7 @@ const STEPS = [
     duration: 3200,
     narration: 'No Node satisfies both the Pod and its zone-a disk, so the Pod is never scheduled at all. It stays Pending forever with the event Node(s) had volume node affinity conflict, the disk healthy but unreachable in zone-a. This is the single most common multi-zone storage bug, and its one-line fix is next.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Immediate', pvc: 'Bound', pod: 'unschedulable', zones: 'zone-a vs zone-b' });
       setStage(s, { diskA: 1, podOn: OPACITY.pending, cross: 1, nodeA: OPACITY.notready, pvcState: 'Bound' });
       s.refs.diskA.classList.add('highlight');
@@ -245,9 +239,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Set volumeBindingMode to WaitForFirstConsumer and start over. Binding is now deferred, so the claim stays Pending on purpose while no disk exists yet. The Pod is scheduled first and lands on Node-2 in zone-b, and that choice is recorded on the claim.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'WaitForFirstConsumer', pvc: 'Pending, waiting', pod: 'node-2 zone-b', zones: 'Pod zone-b' });
       setStage(s, { podOn: OPACITY.pending, mode: 'WaitForFirstConsumer', pvcState: 'Pending' });
       s.refs.sc.classList.add('highlight');
@@ -263,9 +255,7 @@ const STEPS = [
     duration: 5800,
     narration: 'Now that the Pod has a Node, the zone to build in is no longer a guess. The volume is created in zone-b, bound to the claim, and attached to Node-2 right above it. The Pod mounts it and starts, because the order was reversed so the disk could follow the Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'WaitForFirstConsumer', pvc: 'Bound', pod: 'Running', zones: 'both zone-b' });
       setStage(s, { diskB: 1, podOn: 1, mode: 'WaitForFirstConsumer', pvcState: 'Bound', lanes: ['wProvB', 'wMountB'] });
       s.refs.sc.classList.add('highlight');

@@ -1330,7 +1330,7 @@ CONTENT  `rank` names the QoS card (`See the Pod QoS Classes card.`) because the
 NOTE     The stand-in highlight is already in the right place, which is worth recording because it
          had to be repaired on cluster-node-drain. `rank` is the one step whose reduced branch lights
          pod1Box in place of the pulse, and rank leaves the Pod at full; by evict the class is gone
-         because pod1Box is in clearHL's key list. So nothing holds .highlight at the terminated
+         because pod1Box is in resetStep's key list. So nothing holds .highlight at the terminated
          shade and the fade needs no onfinish. If a stand-in is ever added to evict, it has to be
          dropped on BOTH paths.
 ```

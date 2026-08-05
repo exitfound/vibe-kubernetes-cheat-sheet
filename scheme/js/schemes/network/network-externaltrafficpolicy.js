@@ -117,10 +117,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // podWBox is listed so its .highlight is cleared every step: clearPodHighlight only resets inline
   // strokes, so without it a highlight set in a reduced-replay block leaks into later steps.
   clearHighlights(s, ['client', 'lb', 'modeChip', 'srcChip', 'hopChip', 'hcChip', 'podWBox'], [s.refs.podW]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -128,9 +130,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Cluster is the default policy, so the mode chip is true from the start. Its consequences are
       // not: nothing has been SNAT-ed or hopped yet.
       setVal(s.refs.modeChip, 'Cluster');
@@ -146,9 +146,7 @@ const STEPS = [
     duration: 4200,
     narration: 'With the default policy Cluster, every Node accepts the traffic even with no local Pod. The balancer happens to pick Node-2, which has no backend, so the Node SNATs the packet and forwards it across the cluster network to the Pod on Node-1. Load spreads evenly over every backend, wherever it runs.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.modeChip, 'Cluster');
       // The SNAT and the Node-to-Node hop both happen in THIS step, so their chips take their values
       // here. The next step is the one that highlights them and talks about what they cost.
@@ -179,9 +177,7 @@ const STEPS = [
     duration: 2300,
     narration: 'That convenience has a cost. The extra Node-to-Node hop adds latency, and because Node-2 had to SNAT, the Pod sees the packet as coming from the Node, not from 198.51.100.9. The real client IP is gone, which breaks source-IP allowlists and access logs.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.modeChip, 'Cluster');
       setVal(s.refs.srcChip, 'lost (SNAT)');
       setVal(s.refs.hopChip, 'yes');
@@ -197,9 +193,7 @@ const STEPS = [
     duration: 3100,
     narration: 'Switching to externalTrafficPolicy Local changes the rules. A Node only serves the request from its own local Pods, never forwarding to another Node. The balancer sends to Node-1, the packet goes straight to its Pod with no SNAT, so the Pod sees the true client IP 198.51.100.9 and there is no extra hop.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.modeChip, 'Local');
       setVal(s.refs.srcChip, 'preserved');
       setVal(s.refs.hopChip, 'no');
@@ -224,9 +218,7 @@ const STEPS = [
     duration: 3100,
     narration: 'But Local would silently drop traffic that lands on Node-2, which has no Pod to serve it. To avoid that, Local exposes a healthCheckNodePort that reports healthy only on Nodes with a local backend, so the load balancer stops sending to Node-2 and targets only Node-1.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The probe answers on BOTH Nodes, healthy only where a local backend exists. Showing only the
       // failing Node would assert the rule instead of demonstrating it.
       setWire(s, 'n1', 'health: 1 local pod');

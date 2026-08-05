@@ -172,9 +172,11 @@ function setBorn(s, { device = 0, podA = 0, podB = 0 } = {}) {
     [s.refs.podB, podB], [s.refs.wPubB, podB]].forEach(([el, v]) => { el.style.opacity = String(v); });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['ctrl', 'cdisk', 'dev', 'nd', 'stg', 'podABox', 'podBBox',
     'diskChip', 'devChip', 'stageChip', 'bindChip'], [s.refs.podA, s.refs.podB]);
+  clearWires(s);
 }
 
 function call(s, ctx, { points, tag, target, delay = BEAT.lead }) {
@@ -199,9 +201,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, -1);
       setChips(s, { disk: 'none', device: 'none', staging: 'none', binds: 'none' });
       setBorn(s, {});
@@ -212,9 +212,7 @@ const STEPS = [
     duration: 3400,
     narration: 'CreateVolume runs first, on the controller side. The provisioner asks the driver to carve a real disk out of the cloud backend. When it returns, a disk called vol-1 exists somewhere in the provider, but it is not near any Node yet and nothing can read a byte of it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 0);
       setChips(s, { disk: 'vol-1 in the cloud', device: 'none', staging: 'none', binds: 'none' });
       setBorn(s, {});
@@ -228,9 +226,7 @@ const STEPS = [
     duration: 2800,
     narration: 'ControllerPublishVolume runs next, still on the controller side. The external-attacher asks the driver to attach vol-1 to the Node the Pod was scheduled on. This is a cloud operation: the disk shows up on the Node as a raw block device, here /dev/nvme1n1. It is still unformatted.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 1);
       setChips(s, { disk: 'attached to node-1', device: '/dev/nvme1n1', staging: 'none', binds: 'none' });
       // The device exists on the node by the END of this step, so visible is the static end-state and
@@ -250,9 +246,7 @@ const STEPS = [
     duration: 3000,
     narration: 'NodeStageVolume is the first Node call. The node plugin formats the raw device if needed and mounts it once, at a global staging path under the Kubelet directory. This happens a single time per Node no matter how many Pods will use the volume, which is the whole reason stage and publish are two calls, not one.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 2);
       setChips(s, { disk: 'attached to node-1', device: '/dev/nvme1n1', staging: 'mounted once', binds: 'none' });
       setBorn(s, { device: 1 });
@@ -268,9 +262,7 @@ const STEPS = [
     duration: 3200,
     narration: 'NodePublishVolume is the last call, once per Pod. It does not re-mount the disk. It bind-mounts the already staged filesystem into this Pod private directory, which surfaces as /data inside the container. Only now does Pod A start and begin writing.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 3);
       setChips(s, { disk: 'attached to node-1', device: '/dev/nvme1n1', staging: 'mounted once', binds: '1 (Pod A)' });
       // Pod A starts on this step, so it and its lane are present by the end of it.
@@ -288,9 +280,7 @@ const STEPS = [
     duration: 3200,
     narration: 'A second Pod lands on the same Node and asks for the same volume. The disk is already attached and already staged, so those two calls are skipped entirely. Only one more NodePublishVolume runs, a second bind-mount off the same global staging path. That is how several Pods on one Node share a single attached disk.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 3);
       setChips(s, { disk: 'attached to node-1', device: '/dev/nvme1n1', staging: 'mounted once', binds: '2 (Pod A + Pod B)' });
       // Pod A stays exactly as step 4 left it. Pod B lands on this step, so it and its lane are present

@@ -149,12 +149,14 @@ function setStage(s, { pods = [1, 1, 1], claims = [OPACITY.pending, OPACITY.pend
   s.refs.trunkW.forEach(w => { w.style.opacity = mint ? '1' : '0'; });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['src', 'v0', 'v1', 'v2', 'd0', 'd1', 'd2', 'b0', 'b1', 'b2',
     'replChip', 'pvcChip', 'nameChip', 'retChip'], [s.refs.p0, s.refs.p1, s.refs.p2]);
   // Reset every Pod sublabel to its resting mount path so the rebind step's 'deleted' / 'recreated'
   // text cannot leak into a later step (forward steps mutate one scene, they do not rebuild).
   [s.refs.p0, s.refs.p1, s.refs.p2].forEach(p => setPodSublabel(p, 'mounts /data'));
+  clearWires(s);
 }
 
 function mountRow(s, ctx, i, { delay = 0, tag = null } = {}) {
@@ -174,9 +176,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '3', pvcs: 'none yet', naming: 'data-web-N', ret: 'retained' });
       setStage(s);
       [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'not created yet'));
@@ -187,9 +187,7 @@ const STEPS = [
     duration: 3900,
     narration: 'For each ordinal the template stamps out one claim, and the name is not random. It is the template name joined to the Pod name: data-web-0, data-web-1, data-web-2. Three separate PVC objects now exist, each asking for its own 1Gi of gp3.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '3', pvcs: '3 minted', naming: 'data-web-N', ret: 'retained' });
       setStage(s, { claims: [1, 1, 1], mint: true });
       [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Pending'));
@@ -221,9 +219,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Each claim is bound to its own PersistentVolume, so ordinal 0 gets pv-web-0 and never touches ordinal 1. The claim is the durable name the workload holds, and the disk behind it is what stores the bytes. Nothing is shared between the ordinals.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '3', pvcs: '3 bound', naming: 'data-web-N', ret: 'retained' });
       setStage(s, { claims: [1, 1, 1] });
       [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Bound'));
@@ -245,9 +241,7 @@ const STEPS = [
     duration: 3800,
     narration: 'Now each Pod starts and mounts the volume behind its own claim. Replica web-0 reads and writes data-web-0 alone, web-1 reads data-web-1, and so on. The bind is exclusive, so no two Pods ever land on the same disk.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { repl: '3', pvcs: '3 in use', naming: 'data-web-N', ret: 'retained' });
       setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1] });
       [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Bound'));
@@ -267,9 +261,7 @@ const STEPS = [
     duration: 4900,
     narration: 'Delete web-1 and the StatefulSet recreates it, perhaps on another Node. The claim data-web-1 is not deleted with the Pod, it stays Bound to pv-web-1. Because the new Pod derives the exact same claim name from its ordinal, it rebinds the very same disk and sees the very same data.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The naming chip holds the PATTERN, which does not change here. Retention is already on the
       // `on delete` chip: a chip must not answer a question it was not asked.
       setChips(s, { repl: '3', pvcs: '3 in use', naming: 'data-web-N', ret: 'retained' });
@@ -296,9 +288,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Scale web down to two and Pod web-2 is removed, but claim data-web-2 is left behind on purpose. The default retention keeps it, so its disk is not reclaimed and its data is safe. Scale back up and web-2 reattaches the same claim, which is also why a forgotten scale-down silently leaks disks.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // `on delete` holds the POLICY, and the policy has not changed: it is still the default retain.
       // The leak this step is about is carried by the PVC count and by the idle claim sublabel.
       setChips(s, { repl: '2', pvcs: '3 (1 idle)', naming: 'data-web-N', ret: 'retained' });

@@ -131,10 +131,12 @@ function setBackends(s, localOp, remoteOp) {
   [s.refs.podB, s.refs.node2, s.refs.remoteWire].forEach(el => { el.style.opacity = String(remoteOp); });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['svc', 'kproxy', 'policyChip', 'scopeChip', 'hopChip', 'resultChip', 'clientBox', 'podABox', 'podBBox'], [s.refs.client, s.refs.podA, s.refs.podB]);
   ['node1', 'client'].forEach(k => { s.refs[k].style.opacity = '1'; });
   setBackends(s, 1, 1);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -142,9 +144,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.policyChip, 'Cluster');
       setVal(s.refs.scopeChip, 'none');
       setVal(s.refs.hopChip, 'none');
@@ -158,9 +158,7 @@ const STEPS = [
     duration: 4400,
     narration: 'With the default Cluster, kube-proxy on Node-1 programs every ready endpoint of the Service, on any Node. The client dials the ClusterIP and the packet is DNAT-ed to the backend on Node-2, so it leaves the Node and crosses the cluster network. Load spreads evenly over all backends, at the price of a cross-node, and possibly cross-zone, hop.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.policyChip, 'Cluster');
       setVal(s.refs.scopeChip, 'all ready (2)');
       setVal(s.refs.hopChip, 'yes');
@@ -192,9 +190,7 @@ const STEPS = [
     duration: 3600,
     narration: 'Set internalTrafficPolicy to Local and kube-proxy keeps only the endpoints that live on Node-1 itself. The same call to the same ClusterIP now goes to the local Pod, the packet never leaves the Node, and the cross-node hop is gone. This is how a Pod reaches the node-local agent of a DaemonSet, a log shipper or a per-node cache, without paying to cross the cluster.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.policyChip, 'Local');
       setVal(s.refs.scopeChip, 'node-local (1)');
       setVal(s.refs.hopChip, 'no');
@@ -227,9 +223,7 @@ const STEPS = [
     duration: 2900,
     narration: 'The catch is that Local has no fallback. If Node-1 runs no backend of its own the endpoint set is empty, kube-proxy has nothing to DNAT to, and it drops the packets rather than forwarding them to Node-2, so the caller just hangs until it times out. There is no health check to steer callers elsewhere, which is the real difference from externalTrafficPolicy, so Local is safe only when a backend is guaranteed on every Node, as a DaemonSet gives.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.policyChip, 'Local');
       setVal(s.refs.scopeChip, 'node-local (0)');
       setVal(s.refs.hopChip, 'no');

@@ -181,10 +181,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['ctrl', 'lease', 'readyChip', 'leaseChip', 'graceChip', 'taintChip', 'tolerChip', 'evictChip'],
     [s.refs.podA, s.refs.podB]);
+  clearWires(s);
 }
 function resetNodeOpacity(s) {
   s.refs.nodeA.style.opacity = '1';
@@ -218,9 +220,7 @@ const STEPS = [
     id: 'healthy',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetNodeOpacity(s);
       setChips(s, { ready: 'True', lease: '2s · Fresh', grace: '50s · not reached', taint: 'none', toler: 'none', evict: 'none' });
       s.refs.podB.style.opacity = '0';
@@ -233,9 +233,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Kubelet on Node-1 proves liveness with two heartbeats. It renews its Lease in kube-node-lease every 10s and PATCHes Node.status every 5 min. The Node-lifecycle-controller treats the fast Lease renewal as its primary liveness signal.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetNodeOpacity(s);
       setChips(s, { ready: 'True', lease: '2s · Fresh · renewed', grace: '50s · not reached', taint: 'none', toler: 'none', evict: 'none' });
       s.refs.podB.style.opacity = '0';
@@ -252,9 +250,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The Kubelet on Node-1 stops renewing (kernel panic, network partition, or Kubelet crash). The Lease grows stale, but Pods on the Node keep running for now.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetNodeOpacity(s);
       s.refs.podB.style.opacity = '0';
       setChips(s, { ready: 'True (Stale Lease)', lease: '30s · Stale', grace: '50s · not reached', taint: 'none', toler: 'none', evict: 'none' });
@@ -278,9 +274,7 @@ const STEPS = [
     duration: 2000,
     narration: 'After --node-monitor-grace-period (default 50s), the Node-lifecycle-controller flips Ready from True to Unknown: it cannot tell whether Node-1 died or is just unreachable. Pods are still on the Node, and eviction has not started.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.nodeA.style.opacity = String(OPACITY.notready);
       s.refs.nodeB.style.opacity = '1';
       s.refs.podA.style.opacity = '1';
@@ -302,9 +296,7 @@ const STEPS = [
     duration: 2100,
     narration: 'The node-lifecycle-controller adds the taint node.kubernetes.io/unreachable:NoExecute. Kubernetes had already given this Pod a 300s toleration for it, which it does for any Pod that does not set one itself. DaemonSet Pods set theirs with no tolerationSeconds, so this never evicts them. The 300s now ticks down.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.nodeA.style.opacity = String(OPACITY.notready);
       s.refs.nodeB.style.opacity = '1';
       s.refs.podA.style.opacity = '1';
@@ -326,9 +318,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Toleration expires. The taint-eviction-controller deletes the Pod with a plain DELETE that bypasses PodDisruptionBudgets (unlike kubectl drain, which uses the PDB-aware Eviction API). The Pod gets a deletionTimestamp and sits in Terminating, because the API can only finish the delete once the Kubelet confirms it, and the unreachable Node-1 still holds the orphaned container.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.nodeA.style.opacity = String(OPACITY.notready);
       s.refs.nodeB.style.opacity = '1';
       s.refs.podB.style.opacity = '0';
@@ -354,9 +344,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The owning controller (Deployment via its ReplicaSet) sees the missing replica and creates a replacement Pod. Scheduler picks the healthy Node-2 and Kubelet there starts it. End-to-end recovery takes about 50s plus 300s by default, the grace period plus the toleration.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.nodeA.style.opacity = String(OPACITY.notready);
       s.refs.nodeB.style.opacity = '1';
       // The old Pod is still Terminating, not gone, so it keeps that shade. Its lanes keep the

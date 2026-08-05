@@ -88,10 +88,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // The two inner Pod boxes belong in the KEY list, not in the pod-group list: a pod group only has
   // its inline pulse strokes reset, so a .highlight put on a container would never come off again.
   clearHighlights(s, ['cni1', 'cni2', 'podABox', 'podBBox', 'innerChip', 'outerChip', 'encapChip', 'modeChip'], [s.refs.podA, s.refs.podB]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -99,9 +101,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.innerChip, '.1.5 -> .2.7');
       setVal(s.refs.outerChip, 'node IPs');
       setVal(s.refs.encapChip, 'none');
@@ -113,9 +113,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Pod A sends to 10.244.2.7 out its eth0. The frame rides the veth into the Node-1 network stack, which consults its routing table. The destination is not in the local Pod subnet, so the route points at the CNI dataplane that handles off-Node traffic rather than the local bridge path.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'va', 'veth · eth0');
       s.refs.innerChip.classList.add('highlight');
       setVal(s.refs.innerChip, '.1.5 -> .2.7');
@@ -132,9 +130,7 @@ const STEPS = [
     duration: 2600,
     narration: 'In overlay mode the CNI dataplane wraps the original frame inside a VXLAN header carried over UDP to the Node-2 address. The outer headers are Node IPs the physical network already knows how to route, dport 8472 for flannel, while the inner Pod IPs ride untouched. The wrapped packet crosses the underlay to Node-2.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'encap', 'VXLAN over UDP · dport 8472');
       s.refs.cni1.classList.add('highlight'); // the overlay device acts; infra stays lit, never pulses
       s.refs.outerChip.classList.add('highlight');
@@ -154,9 +150,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Node-2 receives the UDP packet on the VXLAN port and its kernel strips the outer headers. The bare inner frame, still addressed to 10.244.2.7, is bridged across the local cni0 and out the veth into Pod B, exactly as a same-node frame would be delivered.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'vb', 'veth · eth0');
       setWire(s, 'encap', 'decap · inner frame restored');
       s.refs.cni2.classList.add('highlight');
@@ -174,9 +168,7 @@ const STEPS = [
     duration: 4700,
     narration: 'Not every CNI encapsulates. A routed plugin such as Calico with BGP advertises each Node Pod subnet to the network, so the packet crosses the underlay carrying its real Pod IPs with no outer headers at all. It travels Pod A to Pod B in one routed path. This drops the encapsulation cost and the MTU overhead, at the price of the network having to carry Pod routes.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'va', 'veth');
       setWire(s, 'vb', 'veth');
       setWire(s, 'encap', 'routed · no outer headers');

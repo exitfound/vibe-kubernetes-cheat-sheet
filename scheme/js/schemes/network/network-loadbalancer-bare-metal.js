@@ -137,9 +137,11 @@ function setNodes(s, opacities) {
   });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client', 'router', 'statusChip', 'poolChip', 'modeChip', 'pathChip', 'pod1Box', 'pod2Box', 'pod3Box'], [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
   setNodes(s, [1, 1, 1]);
+  clearWires(s);
 }
 
 const pods = (s) => [s.refs.pod1, s.refs.pod2, s.refs.pod3];
@@ -149,9 +151,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.statusChip, 'pending');
       setVal(s.refs.poolChip, 'none');
       setVal(s.refs.modeChip, 'none');
@@ -163,9 +163,7 @@ const STEPS = [
     duration: 2400,
     narration: 'On bare metal there is no cloud-controller-manager, so nothing answers a Service of type LoadBalancer and it sits pending. That gap is filled in-cluster instead, by an implementation such as MetalLB. The cluster operator declares an address pool, and an address out of it is written into status.loadBalancer.ingress, so the Service finally has 203.0.113.9. An allocated address is not a reachable one: something still has to tell the network where to send it.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.statusChip, '203.0.113.9');
       setVal(s.refs.poolChip, '203.0.113.0/24');
       setVal(s.refs.modeChip, 'none');
@@ -181,9 +179,7 @@ const STEPS = [
     duration: 3300,
     narration: 'In layer 2 mode one Node is elected to own the address and answers ARP for it, so as far as the router is concerned 203.0.113.9 simply lives on Node-1. Every packet for the address goes there, and kube-proxy spreads them onward from that Node. No router configuration at all, which is why this is the usual place to start.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.statusChip, '203.0.113.9');
       setVal(s.refs.poolChip, '203.0.113.0/24');
       setVal(s.refs.modeChip, 'L2 (ARP)');
@@ -212,9 +208,7 @@ const STEPS = [
     duration: 2900,
     narration: 'That single owner is also the ceiling. All inbound traffic funnels through Node-1, so the ingress bandwidth of the whole Service is the bandwidth of one Node, and that Node is a single point of failure. When it goes away another Node claims the address and sends a gratuitous ARP so the router updates its table. The address comes back within seconds, but every connection that was riding the old Node is gone.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.statusChip, '203.0.113.9');
       setVal(s.refs.poolChip, '203.0.113.0/24');
       setVal(s.refs.modeChip, 'L2 (ARP)');
@@ -242,9 +236,7 @@ const STEPS = [
     duration: 3700,
     narration: 'BGP mode changes the shape. Every Node peers with the router and advertises the same address, so the router installs an equal-cost route and hashes each new flow across all of them. Ingress is no longer one Node wide, and router hashes are rarely stable, so losing a Node breaks most active connections and not only the ones it was carrying. The price is a router that speaks BGP with the cluster, and a change in the Node set can rehash live flows onto a different Node.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.statusChip, '203.0.113.9');
       setVal(s.refs.poolChip, '203.0.113.0/24');
       setVal(s.refs.modeChip, 'BGP (ECMP)');

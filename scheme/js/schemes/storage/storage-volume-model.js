@@ -122,7 +122,8 @@ function setChips(s, { vol, mounts, data }) {
   setChip(s.refs.dataChip, data);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['appBox', 'sideBox', 'volume', 'volChip', 'mountChip', 'dataChip'],
     [s.refs.shellWrap, s.refs.appC, s.refs.sideC]);
   s.refs.pod.style.opacity = '1';
@@ -133,6 +134,7 @@ function clearHL(s) {
   // other step starts by restoring them.
   [s.refs.spine, s.refs.wAppUp, s.refs.wAppDown, s.refs.wSideUp, s.refs.wSideDown, s.refs.ownLbl]
     .forEach(el => { el.style.opacity = '1'; });
+  clearWires(s);
 }
 
 const MOUNTS = 'app /data  log /backup';
@@ -142,9 +144,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vol: 'declared', mounts: MOUNTS, data: 'empty' });
     },
   },
@@ -153,9 +153,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The declaration lives at Pod level. The spec.volumes list names the volume once, cache, and that one declaration is what every container in the Pod is allowed to reach. Where each container puts it is a separate decision, taken next, and the volume exists as part of the Pod either way.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vol: 'declared', mounts: MOUNTS, data: 'empty' });
       // The Pod is not acting on this step, so it does not pulse. Only the volume lights.
       s.refs.volume.classList.add('highlight');
@@ -166,9 +164,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Each container opts in with its own volumeMounts entry and may choose its own path. The app sees the volume at /data and the log shipper sees the very same bytes at /backup. Two mounts, two paths, one underlying volume.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vol: 'mounted x2', mounts: MOUNTS, data: 'empty' });
       // Both containers mount the volume, so all three light for the whole step (static, so it also
       // holds under reduced motion). The Pod pulse fires at the same instant, one beat.
@@ -190,9 +186,7 @@ const STEPS = [
     duration: 3400,
     narration: 'Because both containers mount one volume, a write by one is immediately visible to the other. The app writes foo under /data and the log shipper reads it back under /backup. This is how a sidecar shares files with the main container.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vol: 'mounted x2', mounts: MOUNTS, data: 'foo written' });
       // The app container is the writer, so it is lit from entry. The volume takes the write before
       // it can serve the read, so it lights when the ball lands on it, like the sidecar box below.
@@ -214,9 +208,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The volume outlives a container. When the app container crashes and Kubelet restarts it, the fresh container remounts the same volume and foo is still there. A container is disposable, the Pod volume is not.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vol: 'survives restart', mounts: MOUNTS, data: 'foo intact' });
       s.refs.volume.classList.add('highlight');
       if (ctx.reduced) { s.refs.appBox.classList.add('highlight'); return; }
@@ -232,9 +224,7 @@ const STEPS = [
     duration: 2200,
     narration: 'An ephemeral volume like cache is scoped to the Pod, so it dies with the Pod. Delete the Pod and the volume is gone for good along with everything written to it. To outlive a Pod you need persistent storage, which the rest of this category covers.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { vol: 'gone with Pod', mounts: 'unmounted', data: 'lost' });
       const GONE = [s.refs.pod, s.refs.volume, s.refs.spine, s.refs.wAppUp, s.refs.wAppDown, s.refs.wSideUp, s.refs.wSideDown, s.refs.ownLbl];
       GONE.forEach(el => { el.style.opacity = String(OPACITY.terminated); });

@@ -159,9 +159,11 @@ function setStage(s, { pvc, ctrl, admin, bindLane, reclaimLane, adminLane, recov
   s.refs.lRecover.style.opacity = String(recoverLane);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['stAvail', 'stBound', 'stReleased', 'stFailed', 'pvc', 'ctrl', 'admin',
     'phaseChip', 'claimRefChip', 'policyChip', 'objChip'], []);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -169,9 +171,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Available', claimRef: 'none', policy: 'Delete', obj: 'exists' });
       setStage(s, { pvc: 0, ctrl: 0, admin: 0, bindLane: 0, reclaimLane: 0, adminLane: 0, recoverLane: 0 });
       s.refs.stAvail.classList.add('highlight');
@@ -182,9 +182,7 @@ const STEPS = [
     duration: 3200,
     narration: 'A matching claim asks for the volume. That claim is written into the claimRef field of the PV, and the phase moves to Bound. From here the volume is reserved for exactly one claim and no other claim can take it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Bound', claimRef: 'default/data', policy: 'Delete', obj: 'exists' });
       setStage(s, { pvc: 1, ctrl: 0, admin: 0, bindLane: 1, reclaimLane: 0, adminLane: 0, recoverLane: 0 });
       setWire(s, 'bind', 'claimRef written');
@@ -208,9 +206,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The claim is deleted. The volume does not go back to Available: it moves to Released. The claimRef is still on the PV and now names a claim that no longer exists, and that stale reference is precisely what stops any other claim from binding.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Released', claimRef: 'default/data stale', policy: 'Delete', obj: 'exists' });
       setStage(s, { pvc: 0, ctrl: 0, admin: 0, bindLane: 0, reclaimLane: 0, adminLane: 0, recoverLane: 0 });
       setWire(s, 'rel', 'claim deleted');
@@ -231,9 +227,7 @@ const STEPS = [
     duration: 3600,
     narration: 'Now the PV controller reads the reclaim policy on the released volume. Under Delete, the default for anything dynamically provisioned, it calls DeleteVolume on the driver, and on success both the storage asset and the PersistentVolume object itself are removed. Released is where this volume ends its life rather than a phase it passes through.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'none, object gone', claimRef: 'gone with the PV', policy: 'Delete', obj: 'deleted' });
       setStage(s, { pvc: 0, ctrl: 1, admin: 0, bindLane: 0, reclaimLane: 1, adminLane: 0, recoverLane: 0 });
       setWire(s, 'verdict', 'PV object removed');
@@ -253,9 +247,7 @@ const STEPS = [
     duration: 3600,
     narration: 'Take that same call and let the backend reject it. The volume has failed its automated reclamation, so it moves to Failed. This is where automatic cleanup gives up, and the volume sits in Failed until a person works out what went wrong and sorts it out by hand.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Failed', claimRef: 'default/data stale', policy: 'Delete', obj: 'exists' });
       setStage(s, { pvc: 0, ctrl: 1, admin: 0, bindLane: 0, reclaimLane: 1, adminLane: 0, recoverLane: 0 });
       setWire(s, 'fail', 'reclaim error');
@@ -277,9 +269,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Set the policy to Retain, the default for a volume you create by hand, and the controller makes no call at all. Nothing errors, so nothing moves: the volume parks in Released holding the stale claimRef, and every fresh claim that asks for it is skipped. The data is intact and completely out of reach.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Released', claimRef: 'default/data stale', policy: 'Retain', obj: 'exists' });
       setStage(s, { pvc: 0, ctrl: 1, admin: 0, bindLane: 0, reclaimLane: 1, adminLane: 0, recoverLane: 0 });
       setWire(s, 'verdict', 'no DeleteVolume call');
@@ -299,9 +289,7 @@ const STEPS = [
     duration: 3400,
     narration: 'The only edge that leads back is manual. An administrator patches the PV and removes the stale claimRef, and with no reference left the volume returns to Available and can be bound again. Every other transition here happens on its own, this is the one that needs a person.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Available', claimRef: 'cleared', policy: 'Retain', obj: 'exists' });
       setStage(s, { pvc: 0, ctrl: 0, admin: 1, bindLane: 0, reclaimLane: 0, adminLane: 1, recoverLane: 1 });
       setWire(s, 'recover', 'claimRef cleared, Available again');

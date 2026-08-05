@@ -129,12 +129,14 @@ function setChips(s, { usage, limit, nodefs }) {
   setVal(s.refs.nodeChip, nodefs);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['bWrite', 'bEmpty', 'bLogs', 'disk', 'focusBox', 'otherB', 'otherC',
     'usageChip', 'limitChip', 'nodeChip'], [s.refs.focusPod, s.refs.otherBG, s.refs.otherCG]);
   s.refs.focusPod.style.opacity = '1';
   s.refs.otherB.style.opacity = '1';
   s.refs.otherC.style.opacity = '1';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -142,9 +144,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { usage: 'writable + emptyDir + logs', limit: '1Gi', nodefs: 'below threshold' });
     },
   },
@@ -153,9 +153,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The Pod ephemeral usage is the sum of three things on the Node disk: what its writable layer holds, what it wrote to an emptyDir, and the container logs. Kubelet adds them up continuously as the container runs.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { usage: 'writable + emptyDir + logs', limit: '1Gi', nodefs: 'filling' });
       s.refs.nodeChip.classList.add('highlight');
       s.refs.bWrite.classList.add('highlight');
@@ -176,9 +174,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The requests.ephemeral-storage value is what the Pod reserves on the Node when it is placed, the same way it reserves CPU and memory. The Pod lands only on a Node with room for that request, but the request alone does not cap what it may actually use.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { usage: 'reserved by request', limit: '1Gi', nodefs: 'filling' });
       s.refs.usageChip.classList.add('highlight');
       s.refs.focusBox.classList.add('highlight');
@@ -191,9 +187,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The limits.ephemeral-storage value does cap it. The moment the writable layer plus emptyDir plus logs go over the limit, Kubelet evicts this one Pod, right away and regardless of how healthy the Node is. This is the per-Pod path, and it only ever touches the Pod that overran.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { usage: 'over 1Gi', limit: '1Gi exceeded, evicted', nodefs: 'below threshold' });
       s.refs.limitChip.classList.add('highlight');
       s.refs.nodeChip.classList.add('highlight');
@@ -223,9 +217,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The second path is node-wide. When actual usage of the Node filesystem crosses the eviction threshold, Kubelet reports the DiskPressure condition on the Node and the node controller taints it, no matter whose data filled the disk.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { usage: 'within its own limit', limit: '1Gi', nodefs: 'over threshold' });
       s.refs.limitChip.classList.add('highlight');
       s.refs.nodeChip.classList.add('highlight');
@@ -243,9 +235,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Now Kubelet has to reclaim space, so it ranks the Pods for eviction. The Pods using more ephemeral storage than they requested go first, ordered by Pod Priority and then by how far over the request each one sits. A Pod that declared no ephemeral-storage request is over the moment it writes anything, so pod-b goes first, then pod-c which sits over its own 1Gi, while app-0 stays within its request and goes last. QoS class is derived from CPU and memory alone, so it does not decide this order. A Pod with no offending usage of its own can still be taken here.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { usage: 'within its own limit', limit: '1Gi', nodefs: 'reclaiming space' });
       s.refs.nodeChip.classList.add('highlight');
       s.refs.disk.classList.add('highlight');
@@ -272,9 +262,7 @@ const STEPS = [
     duration: 2400,
     narration: 'So keep the two apart. A per-Pod limit is a promise about one Pod, enforced on that Pod alone. Node DiskPressure is a whole-node emergency that evicts by Pod Priority and by how far each Pod is over its request, and can take out a Pod that was well within its own limit.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { usage: 'writable + emptyDir + logs', limit: 'per-Pod limit', nodefs: 'node-wide pressure' });
       s.refs.limitChip.classList.add('highlight');
       s.refs.nodeChip.classList.add('highlight');

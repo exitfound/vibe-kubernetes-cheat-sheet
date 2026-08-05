@@ -174,9 +174,11 @@ function setPods(s, { a1, a2, b1 }) {
   s.refs.podB1.style.opacity = String(b1);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['driver', 'pvBlock', 'pvNfs', 'appA1', 'appA2', 'appB1',
     'modeChip', 'attachChip', 'shareChip', 'driverChip'], [s.refs.podA1, s.refs.podA2, s.refs.podB1]);
+  clearWires(s);
 }
 
 // One attach that succeeds: the Pod blinks first (it is the actor), the request rises to the driver,
@@ -205,9 +207,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ReadWriteOnce', attach: 'none', share: 'none' });
       setPods(s, { a1: 1, a2: 1, b1: 1 });          // idle: nobody is refused anything yet
     },
@@ -217,9 +217,7 @@ const STEPS = [
     duration: 3100,
     narration: 'Pod app-1 mounts the volume. ReadWriteOnce attaches the disk to one Node, Node-1, and lets a Pod there read and write it. So far this looks exactly like a per-Pod lock, but that is not what ReadWriteOnce actually means.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ReadWriteOnce', attach: 'node-1', share: 'app-1' });
       setPods(s, { a1: 1, a2: 1, b1: 1 });          // app-2 and app-3 are healthy, just not shown mounting
       setWire(s, 'block', 'attached: node-1');
@@ -232,9 +230,7 @@ const STEPS = [
     duration: 3100,
     narration: 'Pod app-2 sits on the same Node and it can mount the volume too. ReadWriteOnce is per Node, not per Pod. Once the disk is attached to Node-1, any number of Pods scheduled onto Node-1 can share it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ReadWriteOnce', attach: 'node-1', share: 'app-1, app-2' });
       setPods(s, { a1: 1, a2: 1, b1: 1 });          // app-3 is not refused until the next step
       setWire(s, 'block', 'attached: node-1');
@@ -247,9 +243,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Pod app-3 lives on Node-2 and asks for the same volume. This one is refused. The disk is already attached to Node-1, and a block disk can be attached to only one Node at a time, so app-3 gets a Multi-Attach error and never starts.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ReadWriteOnce', attach: 'node-1', share: 'app-1, app-2' });
       setPods(s, { a1: 1, a2: 1, b1: OPACITY.pending });        // app-3 refused: Multi-Attach
       setWire(s, 'block', 'attached: node-1');
@@ -264,9 +258,7 @@ const STEPS = [
     duration: 2600,
     narration: 'ReadWriteOncePod is the strict one. Now even app-2 on the same Node is refused, because the volume is bound to a single Pod and nothing else. It is also the one mode Kubernetes enforces itself rather than leaving to the driver, and it is what you reach for when two Pods writing the same files would corrupt each other.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ReadWriteOncePod', attach: 'node-1', share: 'app-1 only', enforcer: 'Kubernetes' });
       setPods(s, { a1: 1, a2: OPACITY.pending, b1: OPACITY.pending });      // RWOP refuses everyone but app-1
       setWire(s, 'block', 'held by app-1');
@@ -281,9 +273,7 @@ const STEPS = [
     duration: 2600,
     narration: 'ReadWriteMany asks for the volume on many Nodes at once. On the block disk that request cannot be honoured at all: a raw block device simply cannot attach to more than one Node. Kubernetes will accept the access mode on the object, but the driver is where it fails.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // attach is 'none', not 'node-1': the narration says this request cannot be honoured at all, so
       // leaving the previous step's node-1 in the chip would have the strip contradict the sentence.
       setChips(s, { mode: 'ReadWriteMany', attach: 'none', share: 'none' });
@@ -302,9 +292,7 @@ const STEPS = [
     duration: 3800,
     narration: 'Point the claim at a shared filesystem instead, PV-nfs on NFS or CephFS, and ReadWriteMany works. The driver attaches it to both Nodes, and all three Pods mount it at once, on either Node, with nobody refused. The mode was always allowed by Kubernetes, what changed is a backend that can deliver it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ReadWriteMany', attach: 'node-1, node-2', share: 'app-1, app-2, app-3' });
       // Every Pod is at full opacity here: ReadWriteMany on a shared filesystem excludes nobody, so
       // there is no Pod left in the not-holding-it state that OPACITY.pending exists to mark.

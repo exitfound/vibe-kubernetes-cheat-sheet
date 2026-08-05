@@ -87,11 +87,13 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // The inner pod boxes (podABox etc.) light in the reduced-motion end-states, so they must be
   // cleared here too or a replayed prior step leaks its .highlight into the next one.
   clearHighlights(s, ['service', 'ctlr', 'kproxy', 'ep1', 'ep2', 'ep3', 'podABox', 'podBBox', 'podCBox'], [s.refs.podA, s.refs.podB, s.refs.podC]);
   s.refs.podB.style.opacity = '1';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -99,9 +101,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       setVal(s.refs.ep1, '(empty)');
       setVal(s.refs.ep2, '(empty)');
@@ -113,9 +113,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The Service holds only a selector, app=web, and no addresses of its own. Every Pod carrying that label is a candidate backend, here three of them, but a Pod has to be Ready before it should receive traffic. Two are Ready, one is not.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.service.classList.add('highlight');
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
@@ -129,9 +127,7 @@ const STEPS = [
     duration: 2700,
     narration: 'The EndpointSlice controller watches every matching Pod and writes the Ready ones into the slice as an IP and port, one endpoint each. So 10.244.1.5 and 10.244.2.7 are added. The third Pod is recorded too, but flagged notReady, so it stays out of the serving set.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.ctlr.classList.add('highlight');
       setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
@@ -154,9 +150,7 @@ const STEPS = [
     duration: 2500,
     narration: 'Membership is gated on readiness, not liveness. When Pod 10.244.2.7 starts failing its readiness probe, the controller flips that endpoint to notReady and drops it from the serving set, so no new traffic is sent to it. The container is never restarted, and it rejoins the moment it reports Ready again.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       // Pod B is what this step flips, so its shade is static end-state, not motion.
       s.refs.podB.style.opacity = String(OPACITY.notready);
@@ -179,9 +173,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The kube-proxy on every Node watches the EndpointSlice, never the Pods directly. When the slice changes it reprograms the Node dataplane so traffic to the Service only ever lands on a currently Ready endpoint. The slice is the contract between what is healthy and where packets go.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.podB.style.opacity = String(OPACITY.notready);
       s.refs.ep1.classList.add('highlight');

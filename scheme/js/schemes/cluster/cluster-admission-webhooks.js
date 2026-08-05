@@ -134,8 +134,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['kubectl','api','etcdC','objChip','failurePolicy']);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -143,9 +145,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.objChip, '{cpu=100m}');
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
     },
@@ -156,9 +156,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Built-in, and already done. The request arrives authenticated, so admission never sees an anonymous caller. Authorizers run in configured order, commonly Node then RBAC, and the first to allow or to deny ends it, so no later one runs. Nothing allowing it means 403.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
       setWire(s, 'req', 'POST /api/v1/namespaces/default/pods');
       s.refs.kubectl.classList.add('highlight');
@@ -176,9 +174,7 @@ const STEPS = [
     duration: 1700,
     narration: 'Pluggable plus built-in. Always-on mutating plugins like ServiceAccount, LimitRanger and DefaultTolerationSeconds rewrite the Pod here, and MutatingWebhookConfiguration adds external policy webhooks (Kyverno, OPA Gatekeeper, sidecar injectors) on top, all before validation.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[1]) rows[1].classList.add('highlight');
       setVal(s.refs.objChip, '{cpu=100m, runAsNonRoot=true}');
@@ -195,9 +191,7 @@ const STEPS = [
     duration: 1700,
     narration: 'Built-in. The API validates the mutated object for its kind, so bad types and missing required fields fail here, before any validating webhook runs.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[2]) rows[2].classList.add('highlight');
@@ -214,9 +208,7 @@ const STEPS = [
     // that admits an object can still be followed by a quota denial.
     narration: 'Pluggable plus built-in. LimitRanger is back to check min and max, ValidatingAdmissionPolicy runs in process, validating webhooks call out over HTTP, and ResourceQuota runs after all of them. None may mutate, and any deny aborts the request. See the ResourceQuota and LimitRange card.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[3]) rows[3].classList.add('highlight');
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
@@ -231,9 +223,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Built-in. The API writes the final object to ETCD via Raft. Once ETCD commits, the API returns HTTP 201 Created to the client and every open watch receives an ADDED event so informers can update their caches.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
       setWire(s, 'resp', 'HTTP 201 Created');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');

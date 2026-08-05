@@ -96,8 +96,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['clientBox', 'app', 'side', 'eth0', 'lo', 'pathChip', 'portChip', 'bindChip', 'ipChip'], [s.refs.client, s.refs.podGroup]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -105,9 +107,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.pathChip, 'idle');
       setVal(s.refs.portChip, 'shared');
       setVal(s.refs.bindChip, 'free');
@@ -119,9 +119,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The app talks to its sidecar over 127.0.0.1:15001. Because both containers share the namespace, the call goes through the loopback interface lo and never touches eth0 or the network. There is no veth hop, no routing, just a loopback delivery inside the Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'local', '127.0.0.1:15001');
       s.refs.app.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
@@ -139,9 +137,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Sharing the namespace also means sharing the port space. The sidecar already holds :15001, and if the app tried to bind that same port the kernel would reject it with address already in use. Two containers in one Pod cannot both listen on the same port.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The sidecar owns :15001, so it stays lit as the holder alongside the app that is refused
       // the same port. This is a static conflict state, no motion (nothing pulses).
       s.refs.side.classList.add('highlight');
@@ -157,9 +153,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Traffic from outside still arrives on the single shared eth0 at the Pod IP. Whichever container is listening on the target port answers, here the app on :8080. From the outside the Pod looks like one host with one address, regardless of how many containers run inside.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.ipChip.classList.add('highlight');
       setVal(s.refs.pathChip, 'eth0');
       s.refs.pathChip.classList.add('highlight');
@@ -180,9 +174,7 @@ const STEPS = [
     duration: 2400,
     narration: 'So the network is shared, one IP, one loopback, one port space, while each container keeps its own filesystem and process tree. This is exactly what lets a sidecar proxy intercept the app traffic on localhost without either container leaving the Pod.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.eth0.classList.add('highlight');
       s.refs.lo.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');

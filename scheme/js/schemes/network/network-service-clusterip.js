@@ -121,10 +121,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['vip', 'kproxy', 'vipChip', 'dnatChip', 'ctChip', 'backChip', 'clientBox', 'podXBox', 'podYBox'], [s.refs.client, s.refs.podX, s.refs.podY]);
   s.refs.podX.style.opacity = '1';
   s.refs.podY.style.opacity = '1';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -132,9 +134,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.ctChip, 'none');
       setVal(s.refs.backChip, 'none');
@@ -145,9 +145,7 @@ const STEPS = [
     duration: 2100,
     narration: 'The ClusterIP is virtual. No network interface holds it and no Pod answers ARP for it, so it never appears on a wire. It exists only as a target that kube-proxy has taught every Node how to intercept.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Infrastructure block: it lights via .highlight, it never blinks. Only Pods pulse.
       s.refs.vip.classList.add('highlight');
     },
@@ -157,9 +155,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The kube-proxy watches the Service and its EndpointSlices and installs the dataplane rules: any packet whose destination is 10.96.0.20:80 should be DNAT-ed to one of the backend Pod IPs. The rules are in place before any traffic arrives.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.kproxy.classList.add('highlight');
       s.refs.dnatChip.classList.add('highlight');
       setVal(s.refs.dnatChip, '-> .2.7 / .3.9');
@@ -170,9 +166,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The client opens a connection to the ClusterIP 10.96.0.20:80. As the packet leaves the client it is caught by the kube-proxy rules on the Node before it can go anywhere, because there is no real host at that address to route to.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.vipChip.classList.add('highlight');
       setVal(s.refs.vipChip, '10.96.0.20:80');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.kproxy.classList.add('highlight'); return; }
@@ -189,9 +183,7 @@ const STEPS = [
     duration: 2500,
     narration: 'The kube-proxy picks one backend and rewrites the destination to that Pod IP, here 10.244.2.7:8080. Connection tracking records the mapping so every later packet of the same flow takes the same backend. The DNAT-ed packet is then delivered to the chosen Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.kproxy.classList.add('highlight');
       s.refs.dnatChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
@@ -214,9 +206,7 @@ const STEPS = [
     duration: 3800,
     narration: 'The Pod replies from its own IP, but conntrack reverses the translation on the way back so the source looks like 10.96.0.20 again. The client only ever sees the ClusterIP it dialed, never the Pod address it was actually served by.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.ctChip.classList.add('highlight');
       setVal(s.refs.ctChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.2.7');
@@ -237,9 +227,7 @@ const STEPS = [
     duration: 3800,
     narration: 'A second connection to the same ClusterIP is a brand new flow, so kube-proxy is free to pick the other backend. It DNATs this one to 10.244.3.9 and conntrack pins it there, while the first flow stays on 10.244.2.7. Each connection sticks to its own Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.dnatChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
       s.refs.backChip.classList.add('highlight');
@@ -266,9 +254,7 @@ const STEPS = [
     duration: 3800,
     narration: 'The second backend Pod replies from its own 10.244.3.9, and conntrack reverses this second flow the same way, rewriting the source back to 10.96.0.20 before the reply reaches the client. Two Pods served two connections, and the client only ever saw the single ClusterIP.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.ctChip.classList.add('highlight');
       setVal(s.refs.ctChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.3.9');

@@ -139,9 +139,11 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client', 'eth', 'portmap', 'bridge', 'nsChip', 'ipChip', 'vethChip', 'portChip', 'podAppBox', 'podAgentBox'], [s.refs.podApp, s.refs.podAgent]);
   ['podApp', 'podAgent', 'portmap', 'bridge'].forEach(k => { s.refs[k].style.opacity = '1'; });
+  clearWires(s);
 }
 
 // The ordinary wiring (bridge, veth Pod, and the portmap rule that exists only for hostPort) is not what a
@@ -156,9 +158,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.portmap, 'none');
       setPodSublabel(s.refs.podApp, '10.244.1.5');
       setVal(s.refs.nsChip, 'own');
@@ -174,9 +174,7 @@ const STEPS = [
     duration: 3000,
     narration: 'With hostNetwork true the Pod gets no namespace of its own at all. It runs inside the Node namespace, so there is no veth, no Pod IP and no bridge in the path: the container binds straight to the Node interfaces. A client that dials 192.168.1.20:80 is served by the Pod with no NAT anywhere, which is exactly how kube-proxy, the CNI agent and node-exporter run.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       only(s, 'hostnet');
       setBoxSublabel(s.refs.portmap, 'none');
       setPodSublabel(s.refs.podApp, '10.244.1.5');
@@ -206,9 +204,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The price is the Node port space and the isolation. The container listens on the Node itself, so a second Pod that wants the same port cannot be scheduled here at all, and the Pod sees every Node interface with nothing of its own between it and the host. That is a privilege for the agents that must see the Node, not for applications.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       only(s, 'hostnet');
       setBoxSublabel(s.refs.portmap, 'none');
       setVal(s.refs.nsChip, 'the Node one');
@@ -229,9 +225,7 @@ const STEPS = [
     duration: 4400,
     narration: 'The hostPort field is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds one DNAT rule on the Node: anything arriving at 192.168.1.20:8080 is rewritten to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN and still never learns that it was.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       only(s, 'hostport');
       setBoxSublabel(s.refs.portmap, 'nodeIP:8080 -> pod:80');
       setPodSublabel(s.refs.podApp, '10.244.1.5 · hostPort 8080');
@@ -270,9 +264,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Both fields spend the same scarce thing, a port on the Node, so the scheduler counts a hostPort as a Node resource and only one replica of that Pod can land here. The difference is what you give up: hostNetwork hands the Node namespace to the container and suits the agents that must see it, while hostPort keeps the Pod isolated and punches a single port through to it. Everything else belongs behind a Service.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Both cases are on screen side by side for the comparison, so nothing is dimmed here.
       setBoxSublabel(s.refs.portmap, 'nodeIP:8080 -> pod:80');
       setPodSublabel(s.refs.podApp, '10.244.1.5 · hostPort 8080');

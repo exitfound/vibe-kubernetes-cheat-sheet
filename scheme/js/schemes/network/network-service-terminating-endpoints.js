@@ -83,12 +83,14 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // Inner app boxes are listed so a .highlight set in a reduced-replay block does not leak into later
   // steps. Both backend opacities reset to 1 so a dim set by an earlier step does not persist.
   clearHighlights(s, ['kproxy', 'condChip', 'newChip', 'graceChip', 'clientBox', 'podABox', 'podCBox'], [s.refs.client, s.refs.podA, s.refs.podC]);
   s.refs.podA.style.opacity = '1';
   s.refs.podC.style.opacity = '1';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -96,9 +98,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.condChip, 'ready · serving');
       setVal(s.refs.newChip, 'web-a and web-c');
       setVal(s.refs.graceChip, 'not draining');
@@ -110,9 +110,7 @@ const STEPS = [
     duration: 3500,
     narration: 'Both Pods are Ready endpoints in the slice, so kube-proxy spreads new connections across the two of them. This is the normal state, before anything starts to change.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.condChip, 'ready · serving');
       setVal(s.refs.newChip, 'web-a and web-c');
       setVal(s.refs.graceChip, 'not draining');
@@ -134,9 +132,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The rollout deletes Pod web-c. Its preStop hook runs first and SIGTERM follows from the Kubelet, but the container does not vanish at once. It enters Terminating and keeps serving whatever it is already handling.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.condChip, 'terminating · serving');
       s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a and web-c');
@@ -158,9 +154,7 @@ const STEPS = [
     duration: 3500,
     narration: 'Almost at once that endpoint flips in the slice: ready becomes false while serving and terminating stay true. The kube-proxy reads the change and stops handing NEW connections to web-c, so fresh traffic now goes to web-a only.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.condChip, 'notReady · serving');
       s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a only');
@@ -186,9 +180,7 @@ const STEPS = [
     duration: 4600,
     narration: 'The connection already established on web-c is not cut. With terminating endpoints kube-proxy keeps forwarding that in-flight flow to web-c for the grace window, while every new connection lands on web-a. That overlap is what lets a rollout finish without dropped requests.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.kproxy.classList.add('highlight');
       setVal(s.refs.condChip, 'notReady · draining');
       s.refs.condChip.classList.add('highlight');
@@ -215,9 +207,7 @@ const STEPS = [
     duration: 3500,
     narration: 'When the grace period ends web-c exits and its endpoint leaves the slice. Its replacement is already Ready elsewhere in the ReplicaSet, so the Service never dropped below its backend count. Traffic carried on throughout, and no client saw a reset.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.condChip, 'removed');
       s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a + replica');

@@ -112,11 +112,13 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['clusterBox', 'kcm', 'slice1', 'slice2', 'slice3', 'podABox', 'podBBox'], [s.refs.podA, s.refs.podB]);
   // The Node-2 pod and its IPAM arrow are revealed only on the final uniqueness step.
   s.refs.podB.style.opacity = '0';
   s.refs.ipam2Arrow.style.opacity = '0';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -124,9 +126,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.slice1, 'pending');
       setVal(s.refs.slice2, 'pending');
       setVal(s.refs.slice3, 'pending');
@@ -138,9 +138,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The cluster pod CIDR is configured once, on the controller-manager, with the --cluster-cidr flag. It is the single pool every Pod IP in the cluster will eventually come from, and on its own it belongs to no Node yet.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.clusterBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.kcm.classList.add('highlight'); return; }
       // The pool registers into the controller-manager; arrival ripple marks the kcm.
@@ -153,9 +151,7 @@ const STEPS = [
     duration: 2600,
     narration: 'With --allocate-node-cidrs set, the controller-manager carves a smaller, non-overlapping block out of the pool for every Node and writes it into node.spec.podCIDR. Here each Node gets its own /24, so Node-1 owns 10.244.1.0/24, Node-2 owns 10.244.2.0/24 and Node-3 owns 10.244.3.0/24.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.kcm.classList.add('highlight');
       s.refs.slice1.classList.add('highlight');
       s.refs.slice2.classList.add('highlight');
@@ -183,9 +179,7 @@ const STEPS = [
     duration: 2400,
     narration: 'When a Pod is scheduled to Node-1, its address is drawn by the CNI IPAM strictly out of that Node slice, 10.244.1.0/24, so the Pod gets 10.244.1.5. Allocation never reaches outside the block a Node owns, which is exactly what stops two Nodes from colliding.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.slice1.classList.add('highlight');
       setVal(s.refs.slice1, '10.244.1.0/24');
       setVal(s.refs.slice2, '10.244.2.0/24');
@@ -203,9 +197,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Every other Node assigns the same way, out of its own slice. A Pod scheduled to Node-2 gets 10.244.2.8 from 10.244.2.0/24, a different /24 that can never overlap the addresses on Node-1. So every Pod IP is unique across the whole cluster, which is what lets any Pod be reached directly while routing only has to track which Node owns which /24.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.slice1.classList.add('highlight');
       s.refs.slice2.classList.add('highlight');
       s.refs.slice3.classList.add('highlight');

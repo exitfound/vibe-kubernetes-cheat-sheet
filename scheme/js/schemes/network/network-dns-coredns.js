@@ -110,8 +110,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pCache', 'pK8s', 'pFwd', 'rcNS', 'rcSearch', 'rcNdots', 'queryChip', 'ansChip', 'clientBox'], [s.refs.client, s.refs.coredns]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -119,9 +121,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.queryChip, '-');
       setVal(s.refs.ansChip, '-');
     },
@@ -131,9 +131,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The Pod /etc/resolv.conf was written by the Kubelet at startup. Its nameserver is the kube-dns Service ClusterIP, it lists cluster search domains, and it sets ndots:5. Those three lines are what make in-cluster name resolution work without the app knowing anything about CoreDNS.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.rcNS.classList.add('highlight');
       s.refs.rcSearch.classList.add('highlight');
       s.refs.rcNdots.classList.add('highlight');
@@ -149,9 +147,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Because the short name web has fewer than 5 dots, the resolver tries the search domains first, expanding it to web.default.svc.cluster.local. That query is sent to the kube-dns ClusterIP, which is itself a Service, so it is load balanced to one of the CoreDNS Pods.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'q', 'A? web.default.svc...');
       // Both lines the expansion rule reads: the search list supplies the suffix, ndots decides that
       // the list is tried first. Highlighting only ndots would leave the narration half unillustrated.
@@ -172,9 +168,7 @@ const STEPS = [
     duration: 2500,
     narration: 'Inside CoreDNS the request runs down the plugin chain, whose order is compiled into the binary rather than taken from the Corefile. The cache plugin checks first and misses on a fresh name, so it passes to the kubernetes plugin, which watches Services and EndpointSlices on the API and answers the cluster zone from that local cache, never querying the API per lookup. Names outside the cluster zone would instead fall through to forward.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.pCache.classList.add('highlight');
       if (ctx.reduced) { s.refs.pK8s.classList.add('highlight'); return; }
       // The request falls from cache to the kubernetes plugin: a clean hop between the two boxes.
@@ -187,9 +181,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The kubernetes plugin returns an A record holding the Service ClusterIP, 10.96.0.20, and cache stores it for the next lookup. The client now has an address and opens its connection to that ClusterIP, which is where the kube-proxy path takes over.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'a', 'A 10.96.0.20');
       // The narration credits two plugins on the way out: kubernetes produces the record, cache stores
       // it. Both stay lit so the answer visibly leaves the chain it was built in.

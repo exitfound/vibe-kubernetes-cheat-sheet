@@ -166,12 +166,14 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, [
     'kubelet', 'api', 'sched', 'capBar',
     'segKubeBox', 'segSysBox', 'segEvictBox', 'segAllocBox', 'reqBar',
     'capChip', 'allocChip', 'fitChip', 'enforceChip',
   ]);
+  clearWires(s);
 }
 
 // Every step writes every chip. A chip left alone keeps the previous step's reading, and on this
@@ -202,9 +204,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cap: 'not reported', alloc: 'not computed', fit: 'not evaluated' });
       setSegs(s, {});
       setChainActive(s.refs.chain, -1);
@@ -215,9 +215,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Node-1 is a machine with 16Gi of RAM, and the Kubelet reports that whole number into status.capacity on the Node object. Capacity is the total the Node has, and it says nothing about who may use it. By default Pods can consume all of it, and competing with the daemons that keep the machine alive is exactly the problem the rest of this card solves.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cap: '16Gi', alloc: 'not computed', fit: 'not evaluated' });
       setSegs(s, {});
       setWire(s, 'ka', 'PATCH status.capacity');
@@ -238,9 +236,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Two reservations come off the top, both of them Kubelet settings. The kubeReserved budget covers the Kubernetes daemons that are not Pods, meaning the Kubelet and the container runtime, and here it is 1Gi. The systemReserved budget covers the OS daemons like sshd and udev, plus the kernel itself, and here it is 512Mi. Both are always subtracted from the arithmetic, but neither becomes a real cgroup cap unless you name it in enforceNodeAllocatable.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cap: '16Gi', alloc: 'not computed', fit: 'not evaluated' });
       setSegs(s, { kube: 1, sys: 1 });
       s.refs.kubelet.classList.add('highlight');
@@ -259,9 +255,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The hard eviction threshold comes off as well. The evictionHard setting for memory.available is the margin the Kubelet keeps free so the machine is much less likely to reach a kernel out-of-memory event, 512Mi on this Node. Even with no daemons on it at all, Pods could not use more than capacity minus this threshold, so the memory behind it counts as unavailable to Pods rather than as spare room.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cap: '16Gi', alloc: 'not computed', fit: 'not evaluated' });
       setSegs(s, { kube: 1, sys: 1, evict: 1 });
       s.refs.kubelet.classList.add('highlight');
@@ -276,9 +270,7 @@ const STEPS = [
     duration: 3000,
     narration: 'What survives is Allocatable. 16Gi minus 1Gi minus 512Mi minus 512Mi leaves 14Gi, and the Kubelet publishes that in status.allocatable beside status.capacity, which is why kubectl describe node prints the two blocks one under the other. Allocatable is the amount on this Node available to be consumed by ordinary Pods.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cap: '16Gi', alloc: '14Gi', fit: 'not evaluated' });
       setSegs(s, { kube: 1, sys: 1, evict: 1, alloc: 1 });
       setWire(s, 'ka', 'PATCH status.allocatable');
@@ -301,9 +293,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The Scheduler reads status.allocatable, never status.capacity, and it does not over-subscribe it: the sum of Pod requests on a Node has to stay under Allocatable. So Pod cache-0 asking for 15Gi is turned away by a Node advertising 16Gi, with a FailedScheduling event naming Insufficient memory, because the number it is measured against is 14Gi.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cap: '16Gi', alloc: '14Gi', fit: '15Gi > 14Gi · Insufficient memory' });
       setReqWidth(s, 15);
       setSegs(s, { kube: 1, sys: 1, evict: 1, alloc: 1, req: 1 });
@@ -327,9 +317,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Only requests are summed. Limits may add up far past Allocatable, which is what kubectl describe node means when it warns that total limits may be over 100 percent. Three Pods requesting 4Gi each fit inside 14Gi while their 8Gi limits total 24Gi. By default the Kubelet enforces Allocatable across Pods alone, and it enforces it by evicting once their real usage passes it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cap: '16Gi', alloc: '14Gi', fit: '12Gi of 14Gi · fits' });
       setReqWidth(s, 12);
       setSegs(s, { kube: 1, sys: 1, evict: 1, alloc: 1, req: 1 });

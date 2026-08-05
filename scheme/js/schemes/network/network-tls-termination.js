@@ -79,10 +79,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // podXBox is a key, not a pod group: the pod-group list only resets inline pulse strokes, so a
   // .highlight on the backend container would stay lit through every later step.
   clearHighlights(s, ['client', 'secret', 'ingress', 'podXBox', 'schemeChip', 'tlsChip', 'certChip', 'backChip'], [s.refs.podX]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -90,9 +92,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.schemeChip, 'idle');
       setVal(s.refs.tlsChip, 'none');
       setVal(s.refs.certChip, 'in Secret');
@@ -106,9 +106,7 @@ const STEPS = [
     duration: 3200,
     narration: 'The client opens a TLS connection to the Ingress. The controller presents the certificate loaded from a Kubernetes Secret, the one named in the Ingress tls section, and the two complete the handshake. The bytes on this leg are encrypted end to edge.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'c', 'TLS handshake · https');
       s.refs.secret.classList.add('highlight');
       s.refs.schemeChip.classList.add('highlight');
@@ -134,9 +132,7 @@ const STEPS = [
     duration: 2400,
     narration: 'With the session established, the Ingress decrypts the request. This is the termination point: the encrypted stream ends here and the controller now holds the plain HTTP request, headers and body in the clear, ready to be routed by host and path.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.ingress.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
       s.refs.schemeChip.classList.add('highlight');
@@ -151,9 +147,7 @@ const STEPS = [
     duration: 2500,
     narration: 'The Ingress proxies the plaintext request over the internal network to the backend Pod. Inside the cluster the traffic is plain HTTP, which is why backend apps can stay simple and never see a certificate. The Pod serves the request on its normal port.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'p', 'http plaintext');
       s.refs.ingress.classList.add('highlight');
       s.refs.backChip.classList.add('highlight');
@@ -172,9 +166,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Terminating at the edge is the common choice, but not the only one. Re-encrypt opens a fresh TLS connection to the backend so traffic stays encrypted inside the cluster too, and passthrough forwards the raw TLS bytes untouched, letting the Pod hold the certificate and terminate the session itself.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.ingress.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
       setVal(s.refs.tlsChip, 'terminate / re-encrypt / passthru');

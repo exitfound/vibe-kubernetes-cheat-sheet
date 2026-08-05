@@ -175,9 +175,11 @@ function setStage(s, { caps = [0, 0], nodes = [1, 1], pools = [1, 1], lanes = []
   all.forEach(k => { s.refs[k].style.opacity = lanes.includes(k) ? '1' : '0'; });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['sched', 'node1', 'node2', 'cap1', 'cap2', 'pool1', 'pool2', 'podBox',
     'podChip', 'needChip', 'awareChip', 'resChip'], [s.refs.podB]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -185,9 +187,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Pending', need: 'needs 20Gi', aware: 'no', res: 'unscheduled' });
       setStage(s);
       s.refs.podB.style.opacity = String(OPACITY.pending);
@@ -198,9 +198,7 @@ const STEPS = [
     duration: 4300,
     narration: 'Without capacity tracking the scheduler scores the Nodes on cpu, memory and affinity only, and Node-1 wins on those. Node-1 is recorded on the claim as the chosen one, with no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'node-1 selected', need: 'needs 20Gi', aware: 'no', res: 'scheduling' });
       setStage(s, { lanes: ['wDecide', 'bind1'] });
       s.refs.podB.style.opacity = String(OPACITY.pending);
@@ -224,9 +222,7 @@ const STEPS = [
     duration: 3600,
     narration: 'Provisioning is now triggered on Node-1, where the pool has 5Gi against a 20Gi request. There is no room, so the volume is never created and the claim stays unbound. The Pod cannot bind until its volume does, so it never schedules and sits Pending, and with no capacity signal the Node choice is reset and the scheduler keeps landing back on Node-1.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Pending', need: 'needs 20Gi', aware: 'no', res: 'provision fails' });
       setStage(s, { lanes: ['prov1'] });
       s.refs.podB.style.opacity = String(OPACITY.pending);
@@ -247,9 +243,7 @@ const STEPS = [
     duration: 3600,
     narration: 'Turn on capacity tracking, which means storageCapacity true on the CSIDriver, and a CSIStorageCapacity object appears for each Node, published by the driver from the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Pending', need: 'needs 20Gi', aware: 'yes', res: 'rescheduling' });
       setStage(s, { caps: [1, 1], lanes: ['pub1', 'pub2'] });
       s.refs.podB.style.opacity = String(OPACITY.pending);
@@ -273,9 +267,7 @@ const STEPS = [
     duration: 3800,
     narration: 'This time the scheduler reads both capacity objects during its filter phase, which it does for a claim whose class binds on WaitForFirstConsumer. Node-1 cannot fit 20Gi in 5Gi, so it is filtered out before scoring even begins. Node-2 has ample room and survives the filter, so it becomes the only candidate.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Pending', need: 'needs 20Gi', aware: 'yes', res: 'node-1 filtered out' });
       // node-1 is filtered out, so its WHOLE subtree (frame, pool, capacity object) ends dimmed and
       // unlit. Only node-2, the survivor, keeps its capacity object highlighted.
@@ -303,9 +295,7 @@ const STEPS = [
     duration: 5500,
     narration: 'The scheduler selects Node-2, where the pool has room. Provisioning succeeds there, so the Pod is bound to the Node, the volume is mounted, and the Pod starts. Capacity tracking turned blind retries into a clean placement, simply by letting the scheduler look before it leaped.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Running on node-2', need: 'needs 20Gi', aware: 'yes', res: 'scheduled and mounted' });
       setStage(s, { caps: [OPACITY.notready, 1], nodes: [OPACITY.notready, 1], pools: [OPACITY.notready, 1], lanes: ['wDecide', 'bind2', 'prov2'] });
       s.refs.sched.classList.add('highlight');

@@ -193,13 +193,15 @@ function setChips(s, { owner, write, policy }) {
 function setRows(s, chowned) {
   s.refs.rowOwners.forEach((ow, i) => { ow.textContent = chowned ? OWNER_AFTER[i] : OWNER_BEFORE; });
   // Rows are chips, so 'visited by the scan' is a .highlight like any other. Clearing it here rather
-  // than in clearHL keeps the listing's reset in one place with the values it belongs to.
+  // than in resetStep keeps the listing's reset in one place with the values it belongs to.
   s.refs.rows.forEach(r => r.classList.remove('highlight'));
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['kube', 'cyl', 'tree', 'appBox', 'secBox',
     'ownerChip', 'writeChip', 'policyChip'], [s.refs.appPod]);
+  clearWires(s);
 }
 
 function walkRows(s, ctx, { delay = 0, only = ROW_COUNT, chown = false } = {}) {
@@ -234,9 +236,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { owner: 'root:root', write: 'denied', policy: 'unset' });
       setBoxSublabel(s.refs.secBox, 'fsGroup not set');
       setBoxSublabel(s.refs.tree, 'owned root:root');
@@ -249,9 +249,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Start the Pod with no fsGroup and it comes up, but the first write to the volume fails with permission denied. The disk is fine, the mount is fine. The ownership is simply wrong for a non-root process, and nothing in the container can fix a root-owned tree.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { owner: 'root:root', write: 'denied', policy: 'unset' });
       setBoxSublabel(s.refs.secBox, 'fsGroup not set');
       setBoxSublabel(s.refs.tree, 'owned root:root');
@@ -269,9 +267,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The fix is one field. Setting securityContext.fsGroup: 2000 asks Kubernetes to make the volume usable by group 2000, and every container in the Pod is added to that supplemental group. Kubelet reads this before it ever starts the container.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The policy becomes meaningful the moment fsGroup is set, and its default is Always. It was
       // 'unset' up to here because with no fsGroup there is nothing for a change policy to govern.
       setChips(s, { owner: 'root:root', write: 'denied', policy: 'Always (default)' });
@@ -294,9 +290,7 @@ const STEPS = [
     duration: 4200,
     narration: 'Before the container starts, Kubelet walks the volume tree and chowns every entry to group 2000, setting the setgid bit on directories so new files inherit it too. The owner stays root, the group becomes 2000. This is real work on real inodes, done once at mount time.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { owner: 'root:2000 g+s', write: 'denied', policy: 'Always (default)' });
       setBoxSublabel(s.refs.secBox, 'fsGroup: 2000');
       setBoxSublabel(s.refs.tree, 'chown + setgid, entry by entry');
@@ -325,9 +319,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Now the container starts and its first write succeeds. Its process is in group 2000, the tree is group 2000, and the setgid bit keeps every new file in the same group. The permission problem is gone, paid for once at startup.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { owner: 'root:2000 g+s', write: 'allowed', policy: 'Always (default)' });
       setBoxSublabel(s.refs.secBox, 'fsGroup: 2000');
       setBoxSublabel(s.refs.tree, 'owned root:2000, setgid');
@@ -346,9 +338,7 @@ const STEPS = [
     duration: 3200,
     narration: 'There is a cost. The default policy, Always, walks and re-checks the entire tree on every single Pod start. On a small volume that is nothing. On a volume with millions of files it can add minutes to each start, and the Pod sits waiting the whole time.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The policy value does not change here: Always was already in force. This step explains what
       // it costs, and inventing a new chip value to make something light would be a lie.
       setChips(s, { owner: 'root:2000 g+s', write: 'allowed', policy: 'Always (default)' });
@@ -372,9 +362,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The fsGroupChangePolicy: OnRootMismatch setting is the escape. Kubelet checks only the ownership of the top-level directory. If it already matches the expected fsGroup, it assumes the tree was set on a previous start and skips the walk entirely. The next start is fast no matter how many files sit below.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { owner: 'root:2000 g+s', write: 'allowed', policy: 'OnRootMismatch' });
       setBoxSublabel(s.refs.secBox, 'fsGroup: 2000');
       setBoxSublabel(s.refs.tree, 'top dir matches, walk skipped');

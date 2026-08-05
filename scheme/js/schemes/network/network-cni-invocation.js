@@ -118,9 +118,11 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['kubelet', 'cri', 'ipChip', 'opChip', 'sandboxInner'], [s.refs.sandbox]);
   setChainActive(s.refs.chain, -1);
+  clearWires(s);
 }
 
 // Light one or more plugin rows. When the ball hops between two rows, both the row it leaves and the
@@ -136,9 +138,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.ipChip, 'pending');
       setVal(s.refs.opChip, 'idle');
       setPodSublabel(s.refs.sandbox, 'netns: lo only');
@@ -149,9 +149,7 @@ const STEPS = [
     duration: 2600,
     narration: 'First the Kubelet asks the CRI runtime, here containerd, to create the Pod sandbox. The runtime starts the pause container, which owns a fresh network namespace that every container in the Pod will share. For now that namespace holds loopback only and no Pod IP.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Both actors are in the handoff, but the kubelet initiates it: the runtime lights when the
       // RunPodSandbox call reaches it, one hop before it creates anything.
       s.refs.kubelet.classList.add('highlight');
@@ -174,9 +172,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The runtime then invokes the CNI ADD operation on the main plugin, a bridge here. It passes the sandbox namespace path and the network config from /etc/cni/net.d, handing off the actual plumbing instead of doing it itself.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.cri.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       s.refs.opChip.classList.add('highlight');
@@ -192,9 +188,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The bridge plugin creates a veth pair and attaches the host end to the cni0 bridge, then delegates to its IPAM plugin. The host-local plugin allocates 10.244.1.5 from this Node range and hands the address back.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The ball leaves bridge for IPAM: light both, so the row it departs is not dark.
       lightChain(s, 0, 1);
       s.refs.ipChip.classList.add('highlight');
@@ -212,9 +206,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The chain finishes and the plugin assembles a single CNI result. It carries everything that was produced, the IP, the routes and the DNS, and is handed back up to the runtime.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The ball leaves IPAM for result: light both, so the row it departs is not dark.
       lightChain(s, 1, 2);
       s.refs.ipChip.classList.add('highlight');
@@ -232,9 +224,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The veth end the plugin placed in the sandbox namespace now comes up as eth0, carrying 10.244.1.5. The Pod has its single network identity, and the runtime records the CNI result.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 2);
       s.refs.ipChip.classList.add('highlight');
       s.refs.opChip.classList.add('highlight');
@@ -254,9 +244,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Only now does the Kubelet start the app containers, and they join the namespace the sandbox already set up, so they all share that one Pod IP. When the Pod is later deleted, the runtime calls CNI DEL to release the address and remove the veth.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.kubelet.classList.add('highlight');
       setWire(s, 'join', 'start app containers');
       setPodSublabel(s.refs.sandbox, 'eth0: 10.244.1.5');

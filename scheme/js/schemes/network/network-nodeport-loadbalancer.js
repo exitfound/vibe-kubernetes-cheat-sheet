@@ -117,10 +117,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // pod1Box is a key, not a pod group: the pod-group list only resets inline pulse strokes, so the
   // .highlight the client-hit step puts on the container never came off.
   clearHighlights(s, ['client', 'lb', 'ccm', 'np1', 'np2', 'np3', 'pod1Box', 'rangeChip', 'vipChip', 'chainChip'], [s.refs.pod1, s.refs.pod2]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -128,9 +130,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.vipChip, 'pending');
     },
   },
@@ -139,9 +139,7 @@ const STEPS = [
     duration: 2300,
     narration: 'A NodePort Service reserves the same high port, here 31000 out of the 30000 to 32767 range, on every Node in the cluster. The kube-proxy adds a KUBE-NODEPORTS rule so a packet arriving on that port at any Node is treated as Service traffic, even on Nodes that run no backend Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.np1.classList.add('highlight');
       s.refs.np2.classList.add('highlight');
       s.refs.np3.classList.add('highlight');
@@ -154,9 +152,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Asking for type LoadBalancer makes the cloud-controller-manager provision an external load balancer in the cloud, with its backends set to every Node on the nodePort. When the balancer is ready its address is written back into status.loadBalancer.ingress, giving clients one stable VIP.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.ccm.classList.add('highlight');
       s.refs.vipChip.classList.add('highlight');
       setVal(s.refs.vipChip, '203.0.113.7');
@@ -171,9 +167,7 @@ const STEPS = [
     duration: 2400,
     narration: 'An external client connects to the load balancer VIP. The balancer forwards the connection to one of its Node targets on port 31000, spreading load across the Nodes without knowing or caring which of them actually hosts a backend Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.client.classList.add('highlight');
       // The client dials, so only the client is lit at entry. The balancer and the nodePort each
       // light as the connection reaches them, which is what makes the two hops read as one path.
@@ -192,9 +186,7 @@ const STEPS = [
     duration: 2400,
     narration: 'On the Node that received it, the nodePort rule DNATs the packet to a backend Pod IP. That Pod can sit on this same Node, as here, or on another Node reached across the cluster network, since kube-proxy load-balances across every backend. A single external address has now reached a private Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.np1.classList.add('highlight');
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       // nodePort DNATs to the local backend Pod (one hop), which pulses on arrival.

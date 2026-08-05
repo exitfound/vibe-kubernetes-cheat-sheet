@@ -136,9 +136,11 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pre', 'rt', 'fw', 'po', 'eth', 'ct', 'hookChip', 'dstChip', 'srcChip', 'ctChip', 'podCBox'], [s.refs.podC]);
   ['pre', 'rt', 'fw', 'po', 'eth', 'ct'].forEach(k => { s.refs[k].style.opacity = '1'; });
+  clearWires(s);
 }
 
 const STEPS = [
@@ -146,9 +148,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.ct, 'no flow yet');
       setVal(s.refs.hookChip, 'none');
       setVal(s.refs.dstChip, '10.96.0.20:80');
@@ -163,9 +163,7 @@ const STEPS = [
     duration: 2900,
     narration: 'The client Pod opens a connection to a Service. The packet leaves the Pod and enters the Node kernel at PREROUTING, the very first hook, before any routing decision has been made. The conntrack table sees a flow it has never seen and records it, which is what will let the reply be untangled later with no work at all.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.ct, '10.244.1.5 -> 10.96.0.20:80');
       setVal(s.refs.hookChip, 'PREROUTING');
       setVal(s.refs.dstChip, '10.96.0.20:80');
@@ -188,9 +186,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Still inside PREROUTING, the nat table runs and the KUBE-SERVICES chain matches the ClusterIP. It DNATs the destination to a real backend, 10.244.2.7:8080 on Node-2, and conntrack stores the translation next to the flow. The packet that leaves this hook is no longer addressed to a Service at all.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
       setVal(s.refs.hookChip, 'PREROUTING (nat)');
       s.refs.hookChip.classList.add('highlight');
@@ -214,9 +210,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Only now does the kernel decide where to send the packet, and it decides on the rewritten address: 10.244.2.7 lives on another Node, so this is not local traffic and it goes out. That is the whole reason DNAT sits in PREROUTING. Run it after routing and the kernel would first try to route to a ClusterIP that no interface anywhere owns.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
       setVal(s.refs.hookChip, 'routing decision');
       setVal(s.refs.dstChip, '10.244.2.7:8080');
@@ -238,9 +232,7 @@ const STEPS = [
     duration: 2800,
     narration: 'A packet that is only passing through the Node crosses FORWARD, which is the filter table and where an iptables NetworkPolicy implementation drops what is not allowed. Then comes POSTROUTING, the last hook before the wire. MASQUERADE lives here and nowhere else, because only now are the outgoing interface and the source address it implies actually known. Traffic staying inside the cluster is excluded from it, so this packet keeps its Pod source and leaves untouched.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'exit', 'to Node-2');
       setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
       setVal(s.refs.hookChip, 'FORWARD, POSTROUTING');
@@ -267,9 +259,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The backend answers, and the reply arrives on the wire addressed from 10.244.2.7 to the Pod. At PREROUTING conntrack matches it against the flow it recorded and sees an established connection, so the stored translation is reversed automatically on the way back out: the source becomes 10.96.0.20 again, the address the Pod dialed. Not a single Service rule is walked, which is why the rule walk is a first-packet cost and nothing more.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
       setVal(s.refs.hookChip, 'PREROUTING');
       s.refs.hookChip.classList.add('highlight');
@@ -293,9 +283,7 @@ const STEPS = [
     duration: 2600,
     narration: 'An eBPF dataplane does not walk this chain at all. It attaches to the socket hook instead, above netfilter, and rewrites the destination at connect time, before the first packet is even built. The hooks below stay empty, which is exactly what lets kube-proxy and its iptables chains be removed from the Node entirely.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.ct, 'kept in BPF maps instead');
       setVal(s.refs.hookChip, 'socket, above netfilter');
       setVal(s.refs.dstChip, '10.244.2.7:8080');

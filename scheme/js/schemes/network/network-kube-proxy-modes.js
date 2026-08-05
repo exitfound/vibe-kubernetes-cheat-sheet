@@ -155,13 +155,15 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['ks', 'svc', 'sep', 'ipvs', 'iptChip', 'pickChip', 'ipvsChip', 'clientBox', 'podABox', 'podBBox'],
     [s.refs.client, s.refs.podA, s.refs.podB]);
   s.refs.iptLane.style.opacity = '1';
   s.refs.ipvsLane.style.opacity = '1';
   s.refs.podA.style.opacity = '1';
   s.refs.podB.style.opacity = '1';
+  clearWires(s);
 }
 
 function baseComplexity(s) {
@@ -174,9 +176,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       baseComplexity(s);
       setVal(s.refs.pickChip, 'one backend');
     },
@@ -186,9 +186,7 @@ const STEPS = [
     duration: 5400,
     narration: 'In iptables mode the packet walks a chain box by box. It enters KUBE-SERVICES, jumps to the per-Service KUBE-SVC chain that picks an endpoint by statistic random, then a KUBE-SEP chain DNATs it to that Pod, here 10.244.2.7. The kernel walks these rules in sequence, so the chain grows O(n) with the number of Services.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       baseComplexity(s);
       s.refs.iptChip.classList.add('highlight');
       s.refs.pickChip.classList.add('highlight');
@@ -217,9 +215,7 @@ const STEPS = [
     duration: 3500,
     narration: 'In IPVS mode the same kind of connection skips the walk. The Service is a virtual server and its endpoints are real servers in an in-kernel hash table, so a backend is found in one constant-time lookup no matter how many Services exist, here 10.244.3.9, scheduled with real algorithms like round-robin and least-connection.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       baseComplexity(s);
       s.refs.ipvsChip.classList.add('highlight');
       s.refs.pickChip.classList.add('highlight');
@@ -242,9 +238,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Either mode turns the ClusterIP into a ready backend, so the only real difference is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new Service slows the walk, while the IPVS hash stays one step. That constant-time behaviour is why large clusters long preferred IPVS, though Kubernetes deprecated the IPVS mode in v1.35 in favour of the newer nftables mode.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       [s.refs.ks, s.refs.svc, s.refs.sep].forEach(b => b.classList.add('highlight'));
       s.refs.ipvs.classList.add('highlight');
       s.refs.iptChip.classList.add('highlight');

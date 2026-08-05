@@ -180,9 +180,11 @@ function setStage(s, { vsc = OPACITY.pending, restore = 0, snapData = OPACITY.pe
   s.refs.LANES.forEach(k => { s.refs[k].style.opacity = lanes.includes(k) ? '1' : '0'; });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['req', 'restore', 'ctrl', 'vsc', 'snapper', 'src', 'snapData', 'restored',
     'contChip', 'handChip', 'readyChip', 'storeChip'], []);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -190,9 +192,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cont: 'none', hand: 'none', ready: 'false', store: 'same system' });
       setStage(s);
       setBoxSublabel(s.refs.req, 'volumeSnapshotClassName: ebs-snapclass');
@@ -205,9 +205,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The snapshot names a VolumeSnapshotClass, and that class carries the driver field naming the CSI plugin that knows how to take snapshots, plus a deletionPolicy of Delete or Retain that decides whether the real snapshot outlives the object. It is the same shape as a StorageClass one level up: the request states intent, the class states which driver carries it out.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cont: 'none', hand: 'none', ready: 'false', store: 'same system' });
       setStage(s);
       setWire(s, 'srcCap', 'claim data-1');
@@ -224,9 +222,7 @@ const STEPS = [
     duration: 4400,
     narration: 'The snapshot controller runs once per cluster, independent of any driver, and watches both kinds of object. It picks up the new request, creates a VolumeSnapshotContent for it and binds the two one to one. This cluster-scoped object is the counterpart of a PV, and it exists before any snapshot has been taken.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cont: 'snapcontent-9f2', hand: 'none', ready: 'false', store: 'same system' });
       setStage(s, { vsc: 1, lanes: ['wReqCtrl', 'wCtrlVsc'] });
       setBoxSublabel(s.refs.req, 'bound to snapcontent-9f2');
@@ -252,9 +248,7 @@ const STEPS = [
     duration: 5200,
     narration: 'Creating that content is what wakes the CSI snapshotter sidecar. It watches VolumeSnapshotContent objects and never the request itself, and it calls CreateSnapshot on the driver. The backend freezes a point in time copy beside the source, usually by reference rather than by duplicating every byte.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cont: 'snapcontent-9f2', hand: 'creating', ready: 'false', store: 'same system' });
       setStage(s, { vsc: 1, snapData: 1, lanes: ['wVscSnap', 'wCreate', 'wCopy'] });
       setBoxSublabel(s.refs.req, 'bound to snapcontent-9f2');
@@ -288,9 +282,7 @@ const STEPS = [
     duration: 5000,
     narration: 'A snapshot handle comes back from the driver. The sidecar writes it into the content status and flips readyToUse to true, and the controller mirrors that status up onto snap-1, which can now be consumed. Note where the data sits: on the same storage system as the source, right beside it. If that system fails both are lost, so a snapshot is not a backup.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cont: 'snapcontent-9f2', hand: 'snap-0c41', ready: 'true', store: 'not a backup' });
       setStage(s, { vsc: 1, snapData: 1, lanes: ['wAck', 'wSnapVsc', 'wVscReq'] });
       setBoxSublabel(s.refs.req, 'bound to snapcontent-9f2');
@@ -322,9 +314,7 @@ const STEPS = [
     duration: 3600,
     narration: 'To restore, create a brand new PVC whose dataSource names snap-1. That claim resolves through the bound content, and provisioning asks the driver for a fresh volume seeded from the snapshot. The original is untouched, the restore is a separate independent disk, and all three of them still sit in the same backend.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { cont: 'snapcontent-9f2', hand: 'snap-0c41', ready: 'true', store: 'not a backup' });
       setStage(s, { vsc: 1, snapData: 1, restored: 1, restore: 1, ds: 1, lanes: ['wSeed'] });
       setBoxSublabel(s.refs.req, 'bound to snapcontent-9f2');

@@ -161,10 +161,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','api','memChip','thresholdChip','pressureChip','victimChip','pod1Box','pod2Box','pod3Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
+  clearWires(s);
 }
 
 function resetPodOpacity(s) {
@@ -193,9 +195,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { mem: '4Gi', pressure: 'False', victim: 'none' });
       setChainActive(s.refs.chain, -1);
@@ -206,9 +206,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The cAdvisor stats report memory.available has dropped to 500Mi. Eviction manager polls these stats every 10s in its own synchronize loop (separate from cAdvisor housekeeping) and compares against the --eviction-hard signals. The threshold is breached.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { mem: '500Mi', pressure: 'False', victim: 'none' });
       s.refs.kubelet.classList.add('highlight');
@@ -224,9 +222,7 @@ const STEPS = [
     duration: 2000,
     narration: 'Kubelet PATCHes Node.status.conditions: MemoryPressure flips from False to True. The node controller translates this into a NoSchedule taint (node.kubernetes.io/memory-pressure), so Pods that do not tolerate it can no longer be scheduled here. By default only BestEffort workloads carry no such toleration, the control plane adds it to every Pod in the Burstable or Guaranteed class.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { mem: '500Mi', pressure: 'True', victim: 'none' });
       setWire(s, 'api', 'PATCH Node.status.conditions · MemoryPressure=True');
@@ -247,9 +243,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Eviction manager ranks running Pods by three things in order: whether each is using more of the starved resource than it requested, then Pod Priority, then how far over the request it sits. QoS class does not decide that order, it only estimates it, because a class derived from CPU and memory says nothing about the resource under pressure. See the Pod QoS Classes card.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { mem: '500Mi', pressure: 'True', victim: 'BestEffort Pod selected' });
       s.refs.kubelet.classList.add('highlight');
@@ -265,9 +259,7 @@ const STEPS = [
     duration: 2700,
     narration: 'Kubelet evicts the BestEffort Pod itself rather than through the Eviction API, so no PodDisruptionBudget is consulted and the terminationGracePeriodSeconds in the spec is ignored. For hard thresholds the grace period is forced to 0, an immediate SIGKILL, where normal termination gives 30s after SIGTERM. The Pod phase is set to Failed with reason Evicted and reported to the API.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mem: '500Mi', pressure: 'True', victim: 'BestEffort Pod evicted' });
       setWire(s, 'api', 'PATCH Pod status · phase=Failed reason=Evicted');
       s.refs.kubelet.classList.add('highlight');
@@ -300,9 +292,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Memory frees up, and cAdvisor reports memory.available back above the threshold. After --eviction-pressure-transition-period (default 5min) of staying clear, Kubelet flips MemoryPressure back to False. Scheduling resumes for new Pods.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mem: '3.5Gi', pressure: 'False', victim: 'none' });
       setWire(s, 'api', 'PATCH Node.status.conditions · MemoryPressure=False');
       // The evicted Pod is still drawn, at the terminated shade: gone from the Node, not a hole.

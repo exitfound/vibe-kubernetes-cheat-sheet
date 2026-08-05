@@ -126,8 +126,10 @@ class Scene {
 
 // podWBox is listed by key so the .highlight a reduced replay puts on the inner app box is cleared
 // too: clearPodHighlight only resets inline strokes.
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client', 'gwClass', 'gw', 'route', 'svc', 'podWBox', 'listenerChip', 'hostnamesChip', 'matchChip', 'backendChip', 'requestChip'], [s.refs.podW]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -135,9 +137,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.requestChip, 'none');
     },
   },
@@ -146,9 +146,7 @@ const STEPS = [
     duration: 2100,
     narration: 'At the base, a cluster-scoped GatewayClass names in controllerName which controller implementation will serve Gateways of this class, much like a StorageClass names a provisioner. It is installed by the infrastructure provider and rarely touched after that.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.requestChip, 'none');
       // Nothing references the class yet, so nothing moves: the block only lights. No flash, by design.
       s.refs.gwClass.classList.add('highlight');
@@ -159,9 +157,7 @@ const STEPS = [
     duration: 2200,
     narration: 'A Gateway names that class in gatewayClassName and declares the actual listeners: which ports, protocols and TLS the cluster accepts traffic on, here HTTPS on 443. It is owned by the cluster operator, who controls the entry points and, through allowedRoutes on each listener, which namespaces may attach routes to them. What those routes actually match is not the operator decision.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.requestChip, 'none');
       s.refs.gw.classList.add('highlight');
       s.refs.listenerChip.classList.add('highlight');
@@ -177,9 +173,7 @@ const STEPS = [
     duration: 2200,
     narration: 'An HTTPRoute attaches to the Gateway through parentRefs. A top-level hostnames list selects shop.io, and each rule matches on a path, here the default PathPrefix type, then forwards to a backendRef, which is a Service unless another kind is named. The route is owned by the application team, so developers manage their own routing without needing rights on the shared Gateway.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.requestChip, 'none');
       // The Gateway it attaches to lights with it: the two are now one parent-child pair.
       s.refs.gw.classList.add('highlight');
@@ -202,9 +196,7 @@ const STEPS = [
     duration: 4400,
     narration: 'With all three objects in place a live request finally has a path. A client hits the Gateway listener, the controller matches the request against the HTTPRoute rule and follows the backendRef to the Service. Most implementations then skip the ClusterIP and send straight to a Ready endpoint read from the EndpointSlice. A backendRef in another namespace would need a ReferenceGrant, while a route from another namespace is admitted by the listener allowedRoutes instead.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'entry', 'GET shop.io/');
       setWire(s, 'pod', 'Ready endpoint');
       setVal(s.refs.requestChip, 'GET shop.io/');

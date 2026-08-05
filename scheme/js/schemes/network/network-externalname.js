@@ -108,10 +108,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // clientABox/clientBBox are listed so a highlight set in a reduced-replay branch is cleared every
   // step and does not leak forward (reduced replay never runs the forward path that would re-clear it).
   clearHighlights(s, ['dns', 'host', 'proxy', 'ep', 'clientABox', 'clientBBox', 'typeChip', 'vipChip', 'epChip', 'proxyChip'], [s.refs.clientA, s.refs.clientB]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -119,9 +121,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.typeChip, 'idle');
       setVal(s.refs.vipChip, 'none');
       setVal(s.refs.epChip, 'none');
@@ -133,9 +133,7 @@ const STEPS = [
     duration: 5700,
     narration: 'A type ExternalName Service has no ClusterIP at all. When a client looks it up, CoreDNS simply returns a CNAME to an external name such as db.example.com, and the client connects straight there. The kube-proxy is never involved, the Service is purely a name pointing at another name.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.typeChip.classList.add('highlight');
       s.refs.vipChip.classList.add('highlight');
       setVal(s.refs.typeChip, 'ExternalName');
@@ -163,9 +161,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The other case keeps a real ClusterIP but defines no selector, so Kubernetes creates no endpoints automatically. You attach an EndpointSlice yourself, listing the external IP. The kube-proxy then DNATs the ClusterIP to that address exactly as it would to a Pod, so a fixed external server looks like an in-cluster Service.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.typeChip.classList.add('highlight');
       s.refs.vipChip.classList.add('highlight');
       s.refs.epChip.classList.add('highlight');
@@ -189,9 +185,7 @@ const STEPS = [
     duration: 2400,
     narration: 'So ExternalName is resolution only, a CNAME with no proxy and no virtual IP, and it breaks if the client expects to talk TLS to the original name. The no-selector ClusterIP is a real proxied Service whose backends you curate by hand. Same Service object, two very different jobs.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.dns.classList.add('highlight');
       s.refs.proxy.classList.add('highlight');
       s.refs.typeChip.classList.add('highlight');

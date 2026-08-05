@@ -124,8 +124,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['api','kubelet','runtime','podChip','desiredChip','observedChip','lastOpChip']);
+  clearWires(s);
 }
 
 // Every chip reports what the Kubelet has LEARNED or DONE, so each waits for the packet that earns
@@ -143,9 +145,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'none', desired: 'none', observed: 'none', lastOp: 'none' });
       setChainActive(s.refs.chain, -1);
     },
@@ -155,9 +155,7 @@ const STEPS = [
     duration: 1900,
     narration: 'The API streams an ADDED event for Pod my-app-7d4-abc bound to Node-1. The Kubelet merges its spec sources into one update channel, and the sync loop records the Pod in podManager as desired state.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: POD_NAME, desired: SPEC, observed: 'none', lastOp: 'none' });
       setWire(s, 'api', 'watch ADDED');
       s.refs.api.classList.add('highlight');
@@ -182,9 +180,7 @@ const STEPS = [
     duration: 2200,
     narration: 'PLEG (Pod Lifecycle Event Generator) wakes on its 1s timer, calls ListContainers on the runtime, and sees no containers for the new Pod. The empty observed state is recorded for SyncPod. The EventedPLEG feature gate (alpha, off by default) has the runtime push lifecycle events over CRI, so the Kubelet relists at a reduced rate rather than on its 1s timer.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: POD_NAME, desired: SPEC, observed: '0 containers', lastOp: 'ListContainers' });
       setWire(s, 'rt', 'ListContainers');
       s.refs.kubelet.classList.add('highlight');
@@ -208,9 +204,7 @@ const STEPS = [
     duration: 1900,
     narration: 'SyncPod runs for the new Pod, comparing desired state (1 container in spec) against observed state (0 containers). The diff is a single action: create and start the missing container. The per-Pod worker goroutine drives that sequence directly, with no separate action queue involved.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: POD_NAME, desired: SPEC, observed: '0 containers', lastOp: 'ListContainers' });
       s.refs.kubelet.classList.add('highlight');
       s.refs.desiredChip.classList.add('highlight');
@@ -226,9 +220,7 @@ const STEPS = [
     duration: 3800,
     narration: 'Kubelet issues CRI gRPC calls in sequence: RunPodSandbox creates the pause container with shared namespaces, PullImage fetches the image unless it is already on the Node, then CreateContainer and StartContainer launch each container in the spec. Details of the sandbox setup are covered in the Pod Sandbox via CRI card.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: POD_NAME, desired: SPEC, observed: '0 containers', lastOp: 'StartContainer' });
       setWire(s, 'rt', 'RunPodSandbox · Pull · Create · Start');
       s.refs.kubelet.classList.add('highlight');
@@ -255,9 +247,7 @@ const STEPS = [
     duration: 3600,
     narration: 'Next PLEG cycle observes the running container, observed state catches up to desired state, and SyncPod issues no new CRI calls. Kubelet PATCHes Pod status (containerStatuses) back to the API. The loop is ready for the next change.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: POD_NAME, desired: SPEC, observed: '1 container running', lastOp: 'ListContainers' });
       s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'api', 'PATCH .../pods/{name}/status');

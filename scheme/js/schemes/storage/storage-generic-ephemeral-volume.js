@@ -140,9 +140,11 @@ function setStage(s, { podOn = OPACITY.pending, claim = OPACITY.pending, disk = 
   LANES.forEach(k => { s.refs[k].style.opacity = lanes.includes(k) ? '1' : '0'; });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pvc', 'sc', 'prov', 'pv', 'podBox',
     'podChip', 'pvcChip', 'backChip', 'lifeChip'], [s.refs.podB]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -150,9 +152,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Pending', pvc: 'none', back: 'CSI dynamic', life: 'tied to Pod' });
       setStage(s);
       setBoxSublabel(s.refs.pvc, 'owned by Pod');
@@ -163,9 +163,7 @@ const STEPS = [
     duration: 3000,
     narration: 'When the Pod is created, that inline template becomes a real PVC, in the same namespace and named after the Pod and the volume with a hyphen between them: app-0-scratch. It carries an ownerReference straight back at the Pod that spawned it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Pending', pvc: 'Pending', back: 'CSI dynamic', life: 'tied to Pod' });
       setStage(s, { claim: 1, lanes: ['wDownHigh'] });
       // The claim is the RECEIVER here, so it earns its highlight on arrival, not at entry. The
@@ -183,9 +181,7 @@ const STEPS = [
     duration: 4200,
     narration: 'The claim names a real StorageClass, so the provisioner treats it like any other and calls CreateVolume for a fresh disk of the size and class asked for. This is what emptyDir cannot do: the volume can be large, on fast SSD, on any driver, and it can be snapshotted, cloned or resized.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Pending', pvc: 'Pending', back: 'real disk, fast-ssd', life: 'tied to Pod' });
       setStage(s, { claim: 1, disk: 1, lanes: ['wClaimProv', 'wCreate'] });
       setWire(s, 'owner', 'ownerReference');
@@ -209,9 +205,7 @@ const STEPS = [
     duration: 4200,
     narration: 'The volume is attached and mounted at /scratch inside the container over CSI, exactly as it would be for any ordinary PVC. The Pod starts and writes to a real, dynamically provisioned volume. Nothing about this path is a shortcut.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Running', pvc: 'Bound', back: 'mounted at /scratch', life: 'tied to Pod' });
       setStage(s, { podOn: 1, claim: 1, disk: 1, lanes: ['wUpLow', 'wUpHigh'] });
       setBoxSublabel(s.refs.pvc, 'Bound');
@@ -235,9 +229,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The ownerReference is what makes this ephemeral. A normal PVC outlives the Pods that use it, but this one belongs to the Pod, the way a container belongs to it. It also means anyone who can create a Pod can create a claim indirectly, without the right to create one directly.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pod: 'Running', pvc: 'Bound', back: 'mounted at /scratch', life: 'owned by Pod' });
       setStage(s, { podOn: 1, claim: 1, disk: 1 });
       setBoxSublabel(s.refs.pvc, 'Bound');
@@ -252,9 +244,7 @@ const STEPS = [
     duration: 4200,
     narration: 'Delete the Pod and the ownerReference does the rest. Garbage collection removes the PVC, and since the default reclaim policy is Delete, the volume goes with it. The scratch data lived exactly as long as the Pod did. A class set to Retain would leave the disk behind instead.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The chip names what BACKS the volume, so after garbage collection it reports the backing's
       // fate in those terms rather than the policy that caused it: the disk went with the claim.
       setChips(s, { pod: 'deleted', pvc: 'deleted by GC', back: 'deleted with claim', life: 'ended with Pod' });

@@ -209,9 +209,11 @@ function setSlots(s, counts) {
 }
 
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['sched', 'csinode', 'cnt0', 'cnt1', 'cnt2', 'podBox',
     'capChip', 'attChip', 'podChip', 'blockChip'], [s.refs.podNew]);
+  clearWires(s);
 }
 
 function setStage(s, {
@@ -233,9 +235,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, {});
       setSlots(s, [2, 1, 1]);
       setChips(s, { attached: '4 of 24', pod: 'not created', blocked: 'nothing' });
@@ -246,9 +246,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The ceiling is not a Kubernetes setting. It is reported by the CSI node plugin as max_volumes_per_node in its NodeGetInfo answer, then written by the Kubelet into the CSINode object for that Node as allocatable.count. Real drivers report anything from a handful on a small VM to a hundred and twenty seven on GCE.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, {});
       setSlots(s, [2, 1, 1]);
       setChips(s, { attached: '4 of 24', pod: 'not created', blocked: 'nothing' });
@@ -268,9 +266,7 @@ const STEPS = [
     // the motion, and it is the only step on the card where the gauge moves on its own.
     narration: 'Now the cluster fills. More Pods with claims are provisioned, more disks attach, and every Node walks up to its own ceiling: eight of eight on all three, twenty four of twenty four across the cluster. No alarm fires, because a Node sitting exactly at its ceiling is a healthy Node.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, {});
       setSlots(s, [8, 8, 8]);
       setChips(s, { attached: '24 of 24', pod: 'not created', blocked: 'nothing' });
@@ -296,9 +292,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Now Pod web-0 is created and it asks for one volume of its own. Before the scheduler can score any Node it has to filter out the ones that cannot take the Pod at all, and one filter exists purely for this ceiling. It is called NodeVolumeLimits, and it skips Pods that ask for no volumes.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { podOp: 1, podSub: 'Pending', linkPod: 1 });
       setSlots(s, [8, 8, 8]);
       setChips(s, { attached: '24 of 24', pod: 'Pending', blocked: 'nothing' });
@@ -318,9 +312,7 @@ const STEPS = [
     duration: 3200,
     narration: 'The filter reads allocatable.count out of each CSINode and compares it with what that Node already owes: the volumes of the Pods assigned to it, plus every VolumeAttachment still live on it. Eight against a ceiling of eight, so all three are rejected before scoring runs at all.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { podOp: 1, podSub: 'Pending', linkPod: 1, linkRead: 1 });
       setSlots(s, [8, 8, 8]);
       setChips(s, { attached: '24 of 24', pod: 'Pending', blocked: 'max volume count' });
@@ -341,9 +333,7 @@ const STEPS = [
     duration: 3000,
     narration: 'So web-0 stays Pending, and its event reads zero of three Nodes are available, three Nodes exceed max volume count. Every one of those Nodes has spare CPU and spare memory, which is what makes this hard to recognise: the cluster looks half empty and the Pod will not schedule.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { podOp: 1, podSub: 'FailedScheduling', linkPod: 1, linkBack: 1, linkRead: 1 });
       setSlots(s, [8, 8, 8]);
       setChips(s, { attached: '24 of 24', pod: 'FailedScheduling', blocked: 'max volume count' });
@@ -361,9 +351,7 @@ const STEPS = [
     // an ATTACHMENT, not by a Pod, so the two are not freed at the same moment.
     narration: 'What clears it is a detach completing. The slot is held by the VolumeAttachment, not by the Pod, so deleting a Pod frees nothing until that object is gone, and a detach takes seconds to tens of seconds. One finishes on Node-3, the count drops to seven, and web-0 is placed there at once.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { podOp: 1, podSub: 'Running on node-3', pvcSub: 'attached on node-3', linkPod: 1, linkBack: 1, linkRead: 1 });
       setSlots(s, [8, 8, { used: 8, fresh: true }]);
       setChips(s, { attached: '24 of 24', pod: 'Running on node-3', blocked: 'nothing' });
@@ -385,9 +373,7 @@ const STEPS = [
     duration: 3400,
     narration: 'Every lever here is about the ceiling and none is about CPU. Fewer volumes per Pod is the cheapest, since a Pod mounting four claims eats four slots wherever it lands. More Nodes buys more slots, and an instance type that reports a higher ceiling buys more per Node.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { podOp: 1, podSub: 'Running on node-3', pvcSub: 'attached on node-3', linkPod: 1, linkBack: 1, linkRead: 1 });
       setSlots(s, [8, 8, { used: 8, fresh: true }]);
       setChips(s, { attached: '24 of 24', pod: 'Running on node-3', blocked: 'nothing' });

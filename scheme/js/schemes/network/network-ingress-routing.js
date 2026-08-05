@@ -122,10 +122,12 @@ const BRANCH = {
   api: ['svcApi', 'podApi', 'fanApi', 'podApiWire'],
 };
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['extLB', 'ruleA', 'ruleB', 'svcWeb', 'svcApi', 'hostChip', 'pathChip', 'tlsChip', 'ctrlBox', 'podWebBox', 'podApiBox'], [s.refs.ctrl, s.refs.podWeb, s.refs.podApi]);
   // Both branches back to full: each step re-dims the one it is not using, so a dim never leaks.
   [...BRANCH.web, ...BRANCH.api].forEach(k => { s.refs[k].style.opacity = '1'; });
+  clearWires(s);
 }
 
 // Dim the branch the current request is not taking, so the chosen path reads clearly. 'both' leaves
@@ -141,9 +143,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.hostChip, 'none');
       setVal(s.refs.pathChip, 'none');
     },
@@ -153,9 +153,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The controller watches the Ingress objects that name its ingressClassName. This Ingress shop says that requests to shop.io/ go to Service web and shop.io/api go to Service api. The controller compiles those rules into its proxy config and waits for traffic.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // No request yet, so the request chips stay empty and both branches stay neutral.
       setVal(s.refs.hostChip, 'none');
       setVal(s.refs.pathChip, 'none');
@@ -171,9 +169,7 @@ const STEPS = [
     duration: 2200,
     narration: 'External traffic does not reach the controller magically: it arrives through a Service of its own, usually a LoadBalancer or NodePort in front of it. A client request for shop.io lands on the controller Pod, and it terminates TLS here before looking at anything else.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'w', 'GET shop.io/');
       setVal(s.refs.hostChip, 'shop.io');
       s.refs.hostChip.classList.add('highlight');
@@ -194,9 +190,7 @@ const STEPS = [
     duration: 3600,
     narration: 'The controller reads the request Host header, shop.io, and the path, /, and matches them against its compiled rules. Only the / rule matches, so it proxies the request to Service web, and most controllers skip the ClusterIP and send straight to a Ready Pod IP read from the EndpointSlice. The api branch stays idle for this request.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       branch(s, 'web');
       setWire(s, 'web', 'proxy -> web');
       s.refs.ruleA.classList.add('highlight');
@@ -219,9 +213,7 @@ const STEPS = [
     duration: 2400,
     narration: 'A second request arrives through the same entry point, this time for shop.io/api. Same host, same controller, same terminated TLS. Only the request path is different, and no rule has been picked yet.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Exact mirror of the entry step: a request lands and TLS is terminated, nothing is matched yet,
       // so no rule chip lights and BOTH branches stay neutral. The rule is chosen in api-proxy.
       branch(s, 'both');
@@ -242,9 +234,7 @@ const STEPS = [
     duration: 3600,           // same beat budget as match-proxy, which it mirrors
     narration: 'This time both rules match, because the Prefix path / is a prefix of every path. Kubernetes breaks the tie by longest matching path, so shop.io/api wins and the controller proxies down the other branch, to Service api and on to a Ready Pod behind it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       branch(s, 'api');
       setWire(s, 'api', 'proxy -> api');
       setVal(s.refs.hostChip, 'shop.io');

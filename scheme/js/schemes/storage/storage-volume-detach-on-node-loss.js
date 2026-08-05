@@ -154,9 +154,11 @@ function setPods(s, { oldSub, newSub }) {
   setPodSublabel(s.refs.newShell, newSub);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['disk', 'escape', 'oldBox', 'newBox',
     'nodeChip', 'diskChip', 'podChip'], [s.refs.oldPod, s.refs.newPod]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -164,9 +166,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, -1);
       setChips(s, { nodeA: 'Ready', volume: 'attached to node-1', newPod: 'not created' });
       setPods(s, { oldSub: 'Running', newSub: 'Pending' });
@@ -184,9 +184,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Node-1 stops answering. Its Kubelet goes silent and the Node is marked NotReady, but there is no word from Node-1 about whether the old Pod actually stopped. It might be dead. It might be a network blip with the Pod still writing.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, -1);
       setChips(s, { nodeA: 'NotReady', volume: 'attached to node-1', newPod: 'not created' });
       setPods(s, { oldSub: 'status unknown', newSub: 'Pending' });
@@ -209,9 +207,7 @@ const STEPS = [
     duration: 2800,
     narration: 'So Kubernetes refuses to detach the disk. Notice what it is not waiting on: no other Pod holds the volume and nothing is contending for it. It is waiting on doubt. Pull PV-web off Node-1 while the old Pod might still be writing and two Nodes write one filesystem, which corrupts it. Refusing is the safe answer to a question that cannot be answered.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, -1);
       setChips(s, { nodeA: 'NotReady', volume: 'held on node-1', newPod: 'not created' });
       setPods(s, { oldSub: 'may still write', newSub: 'Pending' });
@@ -230,9 +226,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The clocks start. First the eviction wait: Node-1 takes the unreachable taint, and the old Pod tolerates that for 300 seconds by default before it is marked for deletion. On a reachable Node that would delete the Pod cleanly and release the volume. On an unreachable Node the deletion cannot be confirmed, so the disk is still held. That same deletion mark is what finally lets a replacement be created on Node-2, where it sits in ContainerCreating waiting for a disk it cannot have.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 0);
       setChips(s, { nodeA: 'NotReady', volume: 'held on node-1', newPod: 'ContainerCreating' });
       setPods(s, { oldSub: 'marked for deletion', newSub: 'ContainerCreating' });
@@ -261,9 +255,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Then the force-detach timeout, roughly six minutes after that Pod deletion fails to complete. At that point Kubernetes gives up waiting for Node-1 and rips the attachment away, on the assumption that after this long the old Pod cannot still be running. Only now is the disk free.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 1);
       setChips(s, { nodeA: 'NotReady', volume: 'force-detached', newPod: 'ContainerCreating' });
       setPods(s, { oldSub: 'assumed gone', newSub: 'ContainerCreating' });
@@ -286,9 +278,7 @@ const STEPS = [
     duration: 3400,
     narration: 'With PV-web detached, it attaches to Node-2 and is mounted there, and the new Pod finally starts. Nothing in that sequence was slow. The entire outage was the safety margin: the eviction wait and then six more minutes of deliberate doubt about a Node that could not be asked.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChainActive(s.refs.chain, 2);
       setChips(s, { nodeA: 'NotReady', volume: 'attached to node-2', newPod: 'Running' });
       setPods(s, { oldSub: 'assumed gone', newSub: 'Running' });
@@ -312,9 +302,7 @@ const STEPS = [
     duration: 3200,
     narration: 'If an operator knows the Node is really dead, waiting out both clocks is wasted downtime. Non-graceful node shutdown is the escape hatch: tainting the Node out-of-service tells Kubernetes to stop assuming the Pod might live, so it deletes the Pod and detaches the volume at once. The safety wait exists for uncertainty, and the taint is how you remove the uncertainty by hand.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The ladder is deliberately left with NO active rung. This step is not the next rung, it is
       // the path that skips the ladder, and lighting rung 3 here would say the opposite.
       setChainActive(s.refs.chain, -1);

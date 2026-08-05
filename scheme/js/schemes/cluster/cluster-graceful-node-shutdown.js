@@ -142,10 +142,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['systemd','kubelet','lockChip','gpChip','gpCritChip','phaseChip'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
+  clearWires(s);
 }
 
 // The lane ends on the Node frame, which is on screen for the whole card, so it is never pinned to a
@@ -168,9 +170,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPods(s, 1, 1, 1);
       setVal(s.refs.lockChip, 'held by Kubelet');
       setVal(s.refs.gpChip, '60s');
@@ -185,9 +185,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The Node is about to shut down (poweroff, reboot, or hibernate), and systemd emits PrepareForShutdown over D-Bus. Kubelet catches the signal via its logind subscription. Its delay-type inhibitor lock makes systemd pause the actual shutdown, so Kubelet can enter shutdown mode rather than let the OS kill processes outright.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPods(s, 1, 1, 1);
       setVal(s.refs.phaseChip, 'shutdown signal received');
       setWire(s, 'sig', 'PrepareForShutdown · D-Bus');
@@ -207,9 +205,7 @@ const STEPS = [
     duration: 1900,
     narration: 'Kubelet sets a NotReady condition on the Node with the reason node is shutting down, which is what stops the Scheduler placing anything here, and its admission handler rejects Pods that were already bound. Existing Pods are bucketed by priority: at or above 2,000,000,000 is the critical bucket, the rest are non-critical.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPods(s, 1, 1, 1);
       setVal(s.refs.phaseChip, 'NotReady · bucketing pods');
       s.refs.kubelet.classList.add('highlight');
@@ -224,9 +220,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Kubelet sends SIGTERM to every non-critical Pod in parallel. They get shutdownGracePeriod minus shutdownGracePeriodCriticalPods to finish (40s with this configuration). Each ends up with the status reason Terminated.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.phaseChip, 'terminating non-critical · 40s');
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
@@ -252,9 +246,7 @@ const STEPS = [
     duration: 2400,
     narration: 'After non-critical Pods are gone (or their grace expired), Kubelet sends SIGTERM to system-critical Pods. They get shutdownGracePeriodCriticalPods (20s here). DaemonSet infra workloads such as CNI or kube-proxy usually sit in this bucket.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.phaseChip, 'terminating critical · 20s');
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
@@ -277,9 +269,7 @@ const STEPS = [
     duration: 2200,
     narration: 'All Pods are gone or their grace expired. Kubelet releases the inhibitor lock, and systemd resumes the shutdown sequence. The Node has carried NotReady since the Kubelet set that condition, and once Lease renewals in kube-node-lease stop the control plane treats it as unreachable as well.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.lockChip, 'released');
       setVal(s.refs.phaseChip, 'lock released · OS shutdown');
       setWire(s, 'sig', 'release lock');

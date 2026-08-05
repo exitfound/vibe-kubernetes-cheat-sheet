@@ -123,10 +123,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['hook', 'bpfmap', 'svcChip', 'modeChip', 'kpChip', 'clientBox', 'w1Box', 'w2Box'],
     [s.refs.client, s.refs.w1, s.refs.w2]);
   s.refs.w2.style.opacity = '1';
+  clearWires(s);
 }
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
@@ -137,9 +139,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.svcChip, 'pending');
       setVal(s.refs.modeChip, 'per-packet DNAT');
       setVal(s.refs.kpChip, 'present');
@@ -150,9 +150,7 @@ const STEPS = [
     duration: 2300,
     narration: 'Instead of installing iptables rules, the CNI agent attaches small eBPF programs directly to kernel hooks, at the socket layer and on the network interfaces. There are no Service rule chains to traverse at all.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.hook.classList.add('highlight');
       setVal(s.refs.kpChip, 'present');
     },
@@ -162,9 +160,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Service and endpoint state lives in BPF maps, kept in sync from the API by the agent. A lookup of 10.96.0.20 returns the backend set, here 10.244.2.7 and 10.244.3.9, as a constant-time hash lookup no matter how many Services exist.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.bpfmap.classList.add('highlight');
       s.refs.svcChip.classList.add('highlight');
       setVal(s.refs.svcChip, '10.96.0.20 -> .2.7 .3.9');
@@ -177,9 +173,7 @@ const STEPS = [
     duration: 4000,
     narration: 'When the client calls connect to the ClusterIP, the socket-level eBPF program looks the address up in the map and rewrites the destination to a chosen Pod right there, before the packet is even built. This is connect-time load balancing, not per-packet DNAT.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.modeChip.classList.add('highlight');
       setWire(s, 'lookup', 'map lookup');
       setVal(s.refs.modeChip, 'connect-time');
@@ -201,9 +195,7 @@ const STEPS = [
     duration: 2500,
     narration: 'The connection then goes straight to the Pod address, 10.244.2.7. Because the destination was chosen at the socket, this in-cluster connection needs no connection-tracking reversal on the way back, the socket talks to the Pod as if it had dialed that address directly.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.hook.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
       setWire(s, 'deliver', 'to .2.7');
@@ -222,9 +214,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Because the whole dataplane is eBPF programs plus maps, kube-proxy and its iptables chains can be removed entirely. Lookups stay constant-time as the cluster grows to thousands of Services, which is the main reason large clusters adopt this mode.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.hook.classList.add('highlight');
       s.refs.bpfmap.classList.add('highlight');
       s.refs.kpChip.classList.add('highlight');

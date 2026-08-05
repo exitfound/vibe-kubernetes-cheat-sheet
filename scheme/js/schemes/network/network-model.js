@@ -149,7 +149,8 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // The four container boxes are keys, not pod groups: the pod-group list only resets inline pulse
   // strokes, so a .highlight put on a container stayed on for the rest of the card.
   clearHighlights(s, ['bus', 'kubelet', 'cni', 'podABox', 'podBBox', 'podCBox', 'podDBox',
@@ -162,6 +163,7 @@ function clearHL(s) {
   s.refs.cni.style.opacity = '0';
   s.refs.cniWire.style.opacity = '0';
   s.refs.busRailExt.style.opacity = '0';
+  clearWires(s);
 }
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
@@ -197,9 +199,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       pendingIps(s);
       setVal(s.refs.ipChip, 'one per Pod');
       setVal(s.refs.natChip, 'none');
@@ -211,9 +211,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Rule one: every Pod gets its own IP, unique across the entire cluster. A Pod sees that same address as the one other Pods use to reach it, so there is no port mapping and no rewriting to reason about.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.ipChip.classList.add('highlight');
       setVal(s.refs.ipChip, 'unique, cluster-wide');
       // The address appears here: x.x.x.x at idle becomes the real Pod IP on this step.
@@ -234,9 +232,7 @@ const STEPS = [
     duration: 3300,
     narration: 'Rule two: any Pod can reach any other Pod on any Node directly, with no NAT on the way. The source address that arrives is the real Pod IP, here 10.244.1.5, even when the packet crosses to another Node.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.natChip.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
       setVal(s.refs.natChip, 'none, src 10.244.1.5');
@@ -256,9 +252,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Same address space on one Node too. Pod 10.244.1.5 reaches its neighbour 10.244.1.6, both on Node-1, with the same flat addressing and no NAT. The traffic never leaves the Node, but to the Pods it is the very same model, no special case to reason about.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // NAT still applies on the same-Node path: the src arrives unchanged, so the chip stays
       // highlighted and current, not dropped while its neighbour stays lit.
       s.refs.natChip.classList.add('highlight');
@@ -280,9 +274,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Rule three is narrower: the Node agent, the Kubelet, reaches only the Pods on its own Node. The Kubelet on Node-2 talks to Pod 10.244.2.7, its local Pod, to run the HTTP and TCP probes that decide whether it is live and ready. Pods on other Nodes are out of this guarantee.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.kubelet.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
       setVal(s.refs.reachChip, 'agent to local Pod');
@@ -305,9 +297,7 @@ const STEPS = [
     duration: 2600,
     narration: 'None of this is hard-wired into the core. A CNI plugin, such as Calico, Cilium or Flannel, is what attaches every Pod to the flat space and upholds all of these rules. Here it lights up the whole fabric. Swap the plugin and the model stays the same.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.bus.classList.add('highlight');
       setBoxSublabel(s.refs.bus, 'implemented by your CNI plugin');
       // Reveal the CNI badge and let it energize the fabric: the bus spine and every Pod wire

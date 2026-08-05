@@ -186,8 +186,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client','apisrv','etcd','cm','gc','kubelet','placedPodBox']);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -195,9 +197,7 @@ const STEPS = [
     id: 'idle',
     duration: 1400,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.placedPod.style.opacity = '1';
       s.refs.kubeletPodArrow.style.opacity = '1';
     },
@@ -207,9 +207,7 @@ const STEPS = [
     duration: 1700,
     narration: 'You run "kubectl delete deployment my-app --cascade=foreground". The client sends an HTTP DELETE to /apis/apps/v1/namespaces/default/deployments/my-app on the API with propagationPolicy=Foreground in the request body.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.client.classList.add('highlight');
       setWire(s, 'delete', 'DELETE /apis/apps/v1/.../deployments/my-app');
       if (ctx.reduced) { s.refs.apisrv.classList.add('highlight'); return; }
@@ -222,9 +220,7 @@ const STEPS = [
     duration: 1900,
     narration: 'The API does not remove the object. It patches metadata.deletionTimestamp and adds the foregroundDeletion finalizer, then commits the change to ETCD via Raft at rv=843. The Deployment is now marked for deletion but still exists in cluster state.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'persist', 'patch deletionTimestamp · rv=843');
       if (ctx.reduced) { s.refs.etcd.classList.add('highlight'); return; }
@@ -237,9 +233,7 @@ const STEPS = [
     duration: 2200,
     narration: 'ETCD acks the committed write back to the API, and the API returns HTTP 202 Accepted to kubectl. From the caller perspective the call already returned, but the object lifecycle is only just beginning.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.etcd.classList.add('highlight');
       s.refs.wires['etcd-ack'].textContent = 'ack · rv=843';
       s.refs.wires['api-ack'].textContent  = 'HTTP 202 Accepted';
@@ -258,9 +252,7 @@ const STEPS = [
     duration: 3200,
     narration: 'The API broadcasts a MODIFIED event for the Deployment to its watchers. The Deployment controller in the controller-manager sees the deletionTimestamp and stops issuing rollouts. The Garbage collector walks the ownerReferences, then issues foreground DELETEs for ReplicaSet my-app-7d4 and Pod my-app-7d4-abc, which only stamp a deletionTimestamp on each rather than removing it from ETCD yet.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.apisrv.classList.add('highlight');
       s.refs.wires['controller'].textContent = 'watch MODIFIED · Deployment';
       s.refs.wires['gc'].textContent         = 'DELETE replicasets · pods';
@@ -284,9 +276,7 @@ const STEPS = [
     duration: 2500,
     narration: 'The Kubelet on Node-1 has a filtered watch for Pods bound to it. The API streams a MODIFIED event for my-app-7d4-abc carrying its new deletionTimestamp down that watch to Node-1, and the Kubelet starts the termination procedure.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.apisrv.classList.add('highlight');
       setWire(s, 'kubelet-watch', 'watch MODIFIED · Pod');
       if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
@@ -299,9 +289,7 @@ const STEPS = [
     duration: 4100,
     narration: 'The Kubelet starts the terminationGracePeriodSeconds budget (30s by default), inside which the container gets SIGTERM and then SIGKILL only if it outlives the timer, then reports the terminated Pod up to the API. What the budget is spent on is covered in the Graceful Pod Shutdown card.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.kubelet.classList.add('highlight');
       setWire(s, 'stop-pod', 'SIGTERM · grace 30s');
       // Pin final state inline so cancel between steps doesn't flash to default opacity.
@@ -328,9 +316,7 @@ const STEPS = [
     duration: 2500,
     narration: 'With the Pod terminated and dependents accounted for, the Garbage collector clears the foregroundDeletion finalizer up the chain. The API issues real DELETEs to ETCD, removing Pod, ReplicaSet, and Deployment in turn. Watchers receive DELETED events. The objects are now truly gone.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.gc.classList.add('highlight');
       setWire(s, 'gc', 'clear finalizer');
       setWire(s, 'persist', 'DELETE · finalizers=[] · rv=856');

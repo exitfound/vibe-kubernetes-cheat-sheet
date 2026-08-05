@@ -181,9 +181,11 @@ function setChips(s, { core, ctrl, node, bridge }) {
   setChip(s.refs.brdgChip, bridge);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['api', 'prov', 'att', 'res', 'snap', 'drv', 'cloud', 'kube', 'reg', 'nd', 'fs',
     'coreChip', 'ctrlChip', 'nodeChip', 'brdgChip'], []);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -191,9 +193,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { core: 'vendor-agnostic', ctrl: 'idle', node: 'idle', bridge: 'sidecars' });
     },
   },
@@ -204,9 +204,7 @@ const STEPS = [
     // none, so an infrastructure box states itself with a steady .highlight outline and nothing else.
     narration: 'Kubernetes core deals only in objects: a PVC, a PersistentVolume, a VolumeAttachment. It has no idea how any particular disk is made or attached. That deliberate ignorance is what lets one Kubernetes talk to dozens of storage backends it was never taught about.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { core: 'objects only', ctrl: 'idle', node: 'idle', bridge: 'sidecars' });
       s.refs.api.classList.add('highlight');
     },
@@ -218,9 +216,7 @@ const STEPS = [
     // the core step: this is a set of four boxes to be read side by side, not a beat to be noticed.
     narration: 'The controller plugin runs as a Deployment or a StatefulSet, and inside it ride the sidecars. Each watches one kind of object and does one job: provisioner for claims, attacher for attachments, resizer for resizes, snapshotter for snapshots. All four call one driver.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { core: 'objects only', ctrl: 'four sidecars', node: 'idle', bridge: 'one call each' });
       s.refs.prov.classList.add('highlight');
       s.refs.att.classList.add('highlight');
@@ -233,9 +229,7 @@ const STEPS = [
     duration: 3600,
     narration: 'Follow one sidecar. The external-provisioner sees a Pending PVC in the API server and turns it into a single gRPC call, CreateVolume, into the vendor driver. The driver is the only part that speaks to the cloud API and asks it to carve out a real disk. Object in, gRPC out.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { core: 'PVC Pending', ctrl: 'CreateVolume', node: 'idle', bridge: 'object -> gRPC' });
       s.refs.api.classList.add('highlight');
       setWire(s, 'watch', 'PVC Pending');
@@ -257,9 +251,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The other half is the node plugin, a DaemonSet, so a copy runs on every Node. It cannot mount anything until Kubelet knows it exists, so the node-driver-registrar sidecar registers the driver with the local Kubelet. From then on Kubelet routes mount requests for this driver to this node plugin.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { core: 'objects only', ctrl: 'idle', node: 'registered', bridge: 'registrar sidecar' });
       s.refs.reg.classList.add('highlight');
       setWire(s, 'reg', 'plugin socket');
@@ -274,9 +266,7 @@ const STEPS = [
     duration: 2800,
     narration: 'One rule holds the whole design together: only the node plugin ever mounts the volume on the Node. The controller talks to the cloud and never sees a mount, and Kubelet never mounts vendor storage itself. When bytes finally land on disk, it is the CSI node driver that put them there.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { core: 'objects only', ctrl: 'never mounts', node: 'mounts the disk', bridge: 'gRPC NodePublish' });
       s.refs.nd.classList.add('highlight');
       setWire(s, 'fs', 'mount');
@@ -291,9 +281,7 @@ const STEPS = [
     duration: 2600,
     narration: 'So the sidecars are the bridge. Kubernetes core writes plain objects and knows nothing about the vendor. The sidecars translate each object into a gRPC call, the driver runs it, and the node plugin does the one privileged thing of touching the disk. Swap the driver, keep the objects.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { core: 'objects only', ctrl: 'translates', node: 'mounts the disk', bridge: 'the sidecars' });
       s.refs.api.classList.add('highlight');
       s.refs.prov.classList.add('highlight');

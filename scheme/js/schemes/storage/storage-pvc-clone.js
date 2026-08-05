@@ -152,9 +152,11 @@ function setStage(s, { clone = OPACITY.pending, cloneDisk = OPACITY.pending, bou
   ['wReq', 'wCall', 'wCopy'].forEach(k => { s.refs[k].style.opacity = lanes.includes(k) ? '1' : '0'; });
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['prov', 'srcPvc', 'clonePvc', 'srcDisk', 'cloneDisk',
     'srcChip', 'destChip', 'methodChip', 'copyChip'], []);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -162,9 +164,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'Bound', dest: 'none', method: 'none', copy: 'none' });
       setStage(s);
       setBoxSublabel(s.refs.clonePvc, 'dataSource: data-src');
@@ -177,9 +177,7 @@ const STEPS = [
     duration: 3000,
     narration: 'You create a new PVC named clone-1 whose dataSource is not a snapshot but the existing claim data-src, with kind PersistentVolumeClaim. That single field turns an ordinary claim into a clone request pointing straight at another live volume.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'Bound', dest: 'Pending', method: 'kind: PVC', copy: 'none' });
       setStage(s, { clone: 1, ds: 1 });
       setWire(s, 'srcCap', 'holds real data');
@@ -199,9 +197,7 @@ const STEPS = [
     duration: 3400,
     narration: 'A clone is only allowed within limits. Both claims must live in the same namespace and use the same volumeMode, the new claim must ask for at least the size of the source, and the source must be bound and not in use. The StorageClass is free to differ.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'Bound', dest: 'Pending', method: 'kind: PVC', copy: 'none' });
       setStage(s, { clone: 1, ds: 1 });
       setWire(s, 'ns', 'same namespace');
@@ -221,9 +217,7 @@ const STEPS = [
     duration: 5900,
     narration: 'The external-provisioner sees a dataSource of kind PVC on a claim it owns, and calls CreateVolume on the driver naming the source volume. The storage system makes an exact duplicate of it, server-side, with no snapshot object created along the way and nothing copied out through the cluster.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'Bound', dest: 'Pending', method: 'kind: PVC', copy: 'server-side' });
       setStage(s, { clone: 1, ds: 1, cloneDisk: 1, lanes: ['wReq', 'wCall', 'wCopy'] });
       setWire(s, 'srcCap', 'read as the source');
@@ -259,9 +253,7 @@ const STEPS = [
     duration: 3200,
     narration: 'A PV is created for the new volume and clone-1 binds to it. From that moment the clone is an independent object: it can be consumed, cloned, snapshotted or deleted on its own, and the source can be modified or deleted without affecting it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'Bound', dest: 'Bound', method: 'kind: PVC', copy: 'complete' });
       setStage(s, { clone: 1, ds: 1, cloneDisk: 1, bound: 1 });
       setBoxSublabel(s.refs.clonePvc, 'Bound, 10Gi gp3');
@@ -281,9 +273,7 @@ const STEPS = [
     duration: 3200,
     narration: 'This is the difference from a snapshot restore. A snapshot needs its own VolumeSnapshot and VolumeSnapshotContent objects in between, and can be kept and restored many times. A clone is a one-shot claim to claim copy with nothing in the middle, so use it when you just want a duplicate now.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'Bound', dest: 'Bound', method: 'kind: PVC', copy: 'complete' });
       setStage(s, { clone: 1, ds: 1, cloneDisk: 1, bound: 1 });
       setBoxSublabel(s.refs.clonePvc, 'Bound, 10Gi gp3');

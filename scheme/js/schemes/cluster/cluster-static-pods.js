@@ -147,10 +147,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['apiserver', 'kubectl', 'fileBox', 'kubelet', 'pathChip', 'fileChip', 'podChip', 'mirrorChip', 'staticPodBox', 'mirrorBox'],
     [s.refs.staticPod, s.refs.mirrorPod]);
+  clearWires(s);
 }
 
 // Presence in ONE helper: three blocks born on three beats drift the moment a step is added. An
@@ -192,9 +194,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { file: false, pod: false, mirror: false });
       setChips(s, { file: 'none', staticPod: 'none', mirror: 'none' });
     },
@@ -204,9 +204,7 @@ const STEPS = [
     duration: 2400,
     narration: 'A Pod manifest appears in the directory the Kubelet watches on Node-1, named by staticPodPath in the KubeletConfiguration and conventionally /etc/kubernetes/manifests. The Kubelet rescans it and reads every file whose name does not start with a dot.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { file: true, pod: false, mirror: false });
       setChips(s, { file: 'static-web.yaml', staticPod: 'none', mirror: 'none' });
       s.refs.fileBox.classList.add('highlight');
@@ -226,9 +224,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The Kubelet starts the container itself. No Scheduler placed this Pod and no controller owns it, so the Kubelet supervises it directly and restarts it when it fails. That is how a kubeadm control plane comes up: the API server, the controller-manager, the Scheduler and ETCD all run as static Pods.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { file: true, pod: true, mirror: false });
       setChips(s, { file: 'static-web.yaml', staticPod: 'static-web · Running', mirror: 'none' });
       s.refs.fileBox.classList.add('highlight');
@@ -256,9 +252,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The Kubelet also creates a mirror Pod in the API for it, so kubectl get pods lists it like any other Pod. The name takes the Node name as a suffix, the kubernetes.io/config.mirror annotation marks it, and the labels on the file are copied across so selectors match it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { file: true, pod: true, mirror: true });
       setChips(s, { file: 'static-web.yaml', staticPod: 'static-web · Running', mirror: 'static-web-Node-1' });
       setWire(s, 'mirror', 'POST /api/v1/namespaces/default/pods');
@@ -287,9 +281,7 @@ const STEPS = [
     duration: 4700,
     narration: 'Deleting the mirror Pod with kubectl removes the API object and nothing else. The container on Node-1 keeps running, because the file on disk is what the Kubelet reads, and its next scan recreates the mirror. Nothing done to the object reaches the container.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { file: true, pod: true, mirror: true });
       setChips(s, { file: 'static-web.yaml', staticPod: 'static-web · Running', mirror: 'deleted, then recreated' });
       setWire(s, 'top', 'DELETE /api/v1/namespaces/default/pods/static-web-Node-1');
@@ -335,9 +327,7 @@ const STEPS = [
     duration: 3000,
     narration: 'To change a static Pod you change its file. The Kubelet applies the new spec on its next scan and restarts the container, and moving the file out of the directory removes the Pod. The spec cannot refer to a ConfigMap, a Secret or a ServiceAccount, so everything it needs comes off the file or the Node filesystem.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { file: true, pod: true, mirror: true });
       setChips(s, { file: 'static-web.yaml · image nginx:1.27', staticPod: 'static-web · restarted', mirror: 'static-web-Node-1' });
       s.refs.fileBox.classList.add('highlight');
@@ -359,9 +349,7 @@ const STEPS = [
     duration: 2800,
     narration: 'A drain evicts or deletes the Pods on Node-1 and skips every mirror Pod, because removing one through the API would stop nothing. DaemonSet Pods are left alone too, and the Node Drain card covers the rest of that loop. So a static Pod rides out a drain and a kubeadm control plane keeps serving while its Node is cordoned.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { file: true, pod: true, mirror: true });
       setChips(s, { file: 'static-web.yaml · image nginx:1.27', staticPod: 'static-web · restarted', mirror: 'static-web-Node-1 · drain skips it' });
       setWire(s, 'top', 'kubectl drain Node-1 · mirror Pods are skipped');

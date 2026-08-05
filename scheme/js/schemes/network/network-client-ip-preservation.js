@@ -107,8 +107,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client', 'xffChip', 'fwdChip', 'srcChip', 'readsChip', 'modeChip', 'ipChip', 'proxyBox', 'podWBox'], [s.refs.proxy, s.refs.podW]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -116,9 +118,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.xffChip, 'none');
       setVal(s.refs.fwdChip, 'none');
       setVal(s.refs.srcChip, 'none');
@@ -132,9 +132,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The client opens the connection to the edge, an Ingress or Gateway proxy Pod. On this leg the source address is still the real one, 198.51.100.9, so the edge is the last place on the path that sees the client without having to be told.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.xffChip, 'none');
       setVal(s.refs.fwdChip, 'none');
       setVal(s.refs.srcChip, 'none');
@@ -156,9 +154,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The proxy terminates that connection and opens a brand new one to the backend, out of its own Pod address. The packet the app receives has source 10.244.0.9, the proxy, and nothing in it mentions the client. Read from the socket, the client address is simply lost.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.xffChip, 'none');
       setVal(s.refs.fwdChip, 'none');
       setVal(s.refs.srcChip, 'proxy 10.244.0.9');
@@ -180,9 +176,7 @@ const STEPS = [
     duration: 2800,
     narration: 'So the edge writes the address down instead. Before proxying it adds X-Forwarded-For with the client address, and the standard Forwarded header carries the same value. The socket still says 10.244.0.9, but the application reads the header and logs the real client.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.xffChip, '198.51.100.9');
       setVal(s.refs.fwdChip, 'for=198.51.100.9');
       setVal(s.refs.srcChip, 'proxy 10.244.0.9');
@@ -207,9 +201,7 @@ const STEPS = [
     duration: 2600,
     narration: 'A header is only data, and a client can send an X-Forwarded-For of its own to claim any address it likes. That is why the edge overwrites the header rather than appending to whatever arrived, and why an app should believe the value only when it comes from a proxy it trusts. Behind two proxies the header becomes a list, and only the hop written by your own edge can be trusted.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Short by necessity: the chip name is the longest on the card, so a value beyond ~12 characters
       // collides with it. "rewritten" is the whole point anyway: the forged claim did not survive.
       setVal(s.refs.xffChip, 'rewritten');
@@ -234,9 +226,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Not every protocol has a header to write into. With raw TCP, or with TLS passed through untouched, the edge cannot add anything to the payload. The PROXY protocol solves it by prepending a short preamble ahead of the first bytes, carrying the original source and destination, and the backend has to be configured to expect it or it reads that preamble as part of the request. At layer 4 there is one more option: externalTrafficPolicy Local keeps the real source on the packet itself, with no header and no preamble.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // A raw TCP stream carries no headers, so the panel goes back to none and stays unlit: this mode
       // recovers the address a different way.
       setVal(s.refs.xffChip, 'none');

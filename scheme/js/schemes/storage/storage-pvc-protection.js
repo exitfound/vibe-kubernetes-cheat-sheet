@@ -165,9 +165,11 @@ function setStage(s, { web, pvc, kubectl, ctrl, mountLow, mountHigh, delPvc, del
 
 // app is listed so its .highlight is cleared every step: without it a highlight set during a reduced
 // replay would leak forward, since replay never runs the motion path that would re-clear it.
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pvc', 'kubectl', 'ctrl', 'disk', 'app',
     'tsChip', 'shownChip', 'finalChip', 'usersChip'], [s.refs.web]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -175,9 +177,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ts: 'none', shown: 'Bound', finalizers: 'pvc-protection', users: '1 Pod' });
       setBoxSublabel(s.refs.pvc, 'phase Bound');
       setStage(s, { web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
@@ -188,9 +188,7 @@ const STEPS = [
     duration: 3400,
     narration: 'The claim is a handle, and the volume behind it is what stores the bytes. Kubelet resolved data-claim to data-vol and mounted it at slash data, so the app writes through the claim into the disk. That live mount is the thing the finalizer is guarding.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ts: 'none', shown: 'Bound', finalizers: 'pvc-protection', users: '1 Pod' });
       setBoxSublabel(s.refs.pvc, 'phase Bound');
       setStage(s, { web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
@@ -218,9 +216,7 @@ const STEPS = [
     duration: 3200,
     narration: 'You run kubectl delete pvc data-claim. The API accepts it and writes a deletionTimestamp onto the object. That is all a delete does when finalizers are present: it is a request, recorded on the object, and nothing has been removed yet.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'pvc-protection', users: '1 Pod' });
       setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
       setStage(s, { web: 1, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 1, delPod: 0, rmFinal: 0 });
@@ -241,9 +237,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Now watch what does not happen. The finalizers list is not empty, so the API server refuses to complete the delete and the object stays exactly where it was. The Pod never noticed: the volume is still mounted and the app is still writing to it, straight through a claim you already deleted.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'pvc-protection', users: '1 Pod' });
       setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
       setStage(s, { web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
@@ -264,9 +258,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The protection is deliberate. Taking the claim away under a running Pod would pull the mount out from beneath it and could lose writes that are still in flight. The same rule works forwards too: a new Pod that asks for a claim with a deletionTimestamp on it is refused and will not start.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'pvc-protection', users: '1 Pod' });
       setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
       setStage(s, { web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
@@ -284,9 +276,7 @@ const STEPS = [
     duration: 3400,
     narration: 'So remove the reason. The Pod is deleted, or it finishes and is cleaned up, and as it goes Kubelet unmounts the volume and the claim loses its last consumer. This is the event the protection controller has been waiting for the whole time.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'pvc-protection', users: '0 Pods' });
       setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
       // The Pod and its half of the axis both end this step gone.
@@ -312,9 +302,7 @@ const STEPS = [
     duration: 3400,
     narration: 'The pvc-protection controller checks whether any Pod still uses the claim, finds none, and does its one job: it patches the finalizer off the object. The finalizers list is now empty and nothing is holding the outstanding delete back any more.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'none', users: '0 Pods' });
       setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
       setStage(s, { web: OPACITY.terminated, pvc: 1, kubectl: 0, ctrl: 1, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 1 });
@@ -334,9 +322,7 @@ const STEPS = [
     duration: 3000,
     narration: 'With a deletionTimestamp set and an empty finalizers list, the API server completes the delete it accepted five steps ago and the record leaves ETCD. The disk itself is a separate question, settled by the reclaim policy on the volume. The lesson of a stuck Terminating claim is short: go and find the Pod that is still mounting it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ts: 'gone with object', shown: 'not found', finalizers: 'none', users: '0 Pods' });
       // The claim and the rest of the axis end this step gone. The disk stays: it outlives the claim.
       setStage(s, { web: OPACITY.terminated, pvc: OPACITY.terminated, kubectl: 0, ctrl: 0, mountLow: 0, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 0 });

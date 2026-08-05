@@ -149,9 +149,11 @@ function setStage(s, { kubectl, klass, resizer, kubelet, toPvc, ctrlExp, nodeExp
 
 // app is listed so its .highlight is cleared every step: without it a highlight set during a reduced
 // replay would leak forward, since replay never runs the motion path that would re-clear it.
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pvc', 'kubectl', 'klass', 'resizer', 'kubelet', 'disk', 'app',
     'reqChip', 'diskChip', 'fsChip', 'seesChip'], [s.refs.web]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -159,9 +161,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { req: '5Gi', disk: '5Gi', fs: '5Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'requests 5Gi');
       setStage(s, { kubectl: 0, klass: 0, resizer: 0, kubelet: 0, toPvc: 0, ctrlExp: 0, nodeExp: 0 });
@@ -173,9 +173,7 @@ const STEPS = [
     duration: 3200,
     narration: 'You raise spec.resources.requests.storage on the claim from 5Gi to 20Gi. That single field is the only thing anybody changes by hand in this whole card. The request now says 20Gi and nothing physical has moved: the device and the filesystem are both still 5Gi.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { req: '20Gi', disk: '5Gi', fs: '5Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'requests 20Gi');
       setStage(s, { kubectl: 1, klass: 0, resizer: 0, kubelet: 0, toPvc: 1, ctrlExp: 0, nodeExp: 0 });
@@ -196,9 +194,7 @@ const STEPS = [
     duration: 3200,
     narration: 'That edit was accepted only because of one field on the StorageClass the claim was provisioned from: allowVolumeExpansion is true. The check runs at admission, on the API server, so with the flag false or absent the edit itself is rejected and no resizer ever hears about it. The gate is on the way in, not further down.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { req: '20Gi', disk: '5Gi', fs: '5Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'requests 20Gi');
       setStage(s, { kubectl: 0, klass: 1, resizer: 0, kubelet: 0, toPvc: 1, ctrlExp: 0, nodeExp: 0 });
@@ -218,9 +214,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Phase one runs on the control plane side. The external-resizer sees the accepted request and calls ControllerExpandVolume on the driver, which tells the backend to grow the real block device from 5Gi to 20Gi. The device is now bigger and the PV capacity follows it. The filesystem sitting on that device has no idea and is still 5Gi.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { req: '20Gi', disk: '20Gi', fs: '5Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'FileSystemResizePending');
       setStage(s, { kubectl: 0, klass: 0, resizer: 1, kubelet: 0, toPvc: 0, ctrlExp: 1, nodeExp: 0 });
@@ -241,9 +235,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Phase two runs on the Node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device until it fills the larger disk. This half can only happen where the Pod actually is, because a filesystem is only growable where it is mounted. A raw block volume has no filesystem at all, so it skips this phase entirely.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { req: '20Gi', disk: '20Gi', fs: '20Gi', sees: '5Gi' });
       setBoxSublabel(s.refs.pvc, 'filesystem resized');
       setStage(s, { kubectl: 0, klass: 0, resizer: 0, kubelet: 1, toPvc: 0, ctrlExp: 0, nodeExp: 1 });
@@ -263,9 +255,7 @@ const STEPS = [
     duration: 3400,
     narration: 'Only now does the space reach the workload. The device grew, then the filesystem grew, and the extra room shows up inside the running container with no restart, so df in web-0 finally reads 20Gi. The order is the whole point: a filesystem can never grow past the device underneath it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { req: '20Gi', disk: '20Gi', fs: '20Gi', sees: '20Gi' });
       setBoxSublabel(s.refs.pvc, 'Bound, 20Gi');
       setStage(s, { kubectl: 0, klass: 0, resizer: 0, kubelet: 0, toPvc: 0, ctrlExp: 0, nodeExp: 0 });
@@ -292,9 +282,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Growing works, going back does not. Ask for less than the volume already has and the API refuses the edit, because there is no safe general way to shrink a filesystem with live data on it. Walking a request back down while an expansion is still pending is a different thing: that cancels a grow that has not happened, it does not make any volume smaller.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { req: '20Gi', disk: '20Gi', fs: '20Gi', sees: '20Gi' });
       setBoxSublabel(s.refs.pvc, 'shrink refused');
       setStage(s, { kubectl: 1, klass: 0, resizer: 0, kubelet: 0, toPvc: 1, ctrlExp: 0, nodeExp: 0 });

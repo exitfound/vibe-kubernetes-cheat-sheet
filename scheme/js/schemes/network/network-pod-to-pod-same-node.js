@@ -83,8 +83,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['cni0', 'podABox', 'podBBox', 'srcChip', 'dstChip', 'pathChip', 'natChip'], [s.refs.podA, s.refs.podB]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -92,9 +94,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.pathChip, 'L2 bridge');
       setVal(s.refs.natChip, 'none');
     },
@@ -104,9 +104,7 @@ const STEPS = [
     duration: 5300,
     narration: 'A does not yet know the MAC behind 10.244.1.6, so it broadcasts an ARP request out eth0. The veth peer hands it to cni0, the Node Linux bridge, which floods it out every other port. B sees its own IP and unicasts an ARP reply with its MAC back to A, and from that reply the bridge learns which port B sits on.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'a', 'veth · eth0');
       setWire(s, 'b', 'veth · eth0');
       setVal(s.refs.pathChip, 'ARP who-has .6');
@@ -127,9 +125,7 @@ const STEPS = [
     duration: 3500,
     narration: 'With the MAC for B resolved and its bridge port learned, A sends the actual data frame as a unicast. It crosses the veth onto cni0, which switches it straight out the veth peer to B eth0. This is plain layer 2 forwarding inside the Node, so the packet never touches the physical NIC.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'a', 'veth · eth0');
       setWire(s, 'b', 'veth · eth0');
       setVal(s.refs.pathChip, 'L2 bridge');
@@ -149,9 +145,7 @@ const STEPS = [
     duration: 2100,
     narration: 'B receives the packet with A real source IP intact. Same-node Pod-to-Pod traffic is never rewritten: there is no SNAT, no DNAT and no overlay encapsulation, just one bridge hop between two veth ports. Every Pod IP is routable inside the cluster, which is the flat-network promise of the Kubernetes model.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'b', 'veth · eth0');
       s.refs.srcChip.classList.add('highlight');
       s.refs.dstChip.classList.add('highlight');

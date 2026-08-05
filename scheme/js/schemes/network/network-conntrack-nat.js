@@ -93,10 +93,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   // The inner boxes are keys, not pod groups: a pod group only has its pulse strokes reset, so a
   // .highlight left on a container would ride along into every later step.
   clearHighlights(s, ['nf', 'clientBox', 'serverBox', 'origChip', 'natChip', 'stateChip', 'dirChip'], [s.refs.client, s.refs.server]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -104,9 +106,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.origChip, '10.96.0.20:80');
       setVal(s.refs.natChip, 'none');
       setVal(s.refs.stateChip, 'none');
@@ -118,9 +118,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The client opens a connection to a Service address and the first packet leaves its eth0. On the way out it enters netfilter, where the NAT rules will decide what to do with a destination that no real host owns.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'c', 'dst 10.96.0.20:80');
       s.refs.origChip.classList.add('highlight');
       setVal(s.refs.origChip, '10.96.0.20:80');
@@ -137,9 +135,7 @@ const STEPS = [
     duration: 2500,
     narration: 'This is the first packet of an unseen flow, so conntrack creates a NEW entry. It records the original tuple and the translated one, rewrites the destination to the backend Pod IP, and forwards the packet on. The mapping is now stored for the life of the connection.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 's', 'dst 10.244.2.7:8080');
       s.refs.nf.classList.add('highlight');
       s.refs.natChip.classList.add('highlight');
@@ -158,9 +154,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The server replies from its own IP, and conntrack matches the packet against the reverse tuple of the stored entry. The translation is undone automatically, so the source becomes the Service address again and seeing this reply flips the entry to ESTABLISHED. The reply is never re-evaluated against the NAT rules, the recorded mapping is simply reversed.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'c', 'src restored to 10.96.0.20');
       s.refs.stateChip.classList.add('highlight');
       s.refs.dirChip.classList.add('highlight');
@@ -180,9 +174,7 @@ const STEPS = [
     duration: 3300,
     narration: 'From now on every packet of this flow hits the existing ESTABLISHED entry and is translated the same way with no rule walk at all. This is why a flow always sticks to one backend, and why a Node under heavy churn can exhaust its conntrack table and start dropping new connections.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'c', 'dst 10.96.0.20:80');
       setWire(s, 's', '-> 10.244.2.7:8080');
       s.refs.natChip.classList.add('highlight');

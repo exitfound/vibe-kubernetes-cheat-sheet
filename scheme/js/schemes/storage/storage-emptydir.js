@@ -123,7 +123,8 @@ function setChips(s, { ed, medium, limit }) {
   setChip(s.refs.limitChip, limit);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['appBox', 'sideBox', 'ed', 'edChip', 'mediumChip', 'limitChip'],
     [s.refs.shellWrap, s.refs.appC, s.refs.sideC]);
   s.refs.pod.style.opacity = '1';
@@ -135,6 +136,7 @@ function clearHL(s) {
   // The memory step rewrites both the cylinder label and the disk label, so restore both.
   s.refs.diskLbl.textContent = 'on the node disk';
   setCylinderLabel(s.refs.ed, 'emptyDir');
+  clearWires(s);
 }
 
 const STEPS = [
@@ -142,9 +144,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'empty', medium: 'node disk', limit: 'none' });
     },
   },
@@ -153,9 +153,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The moment the Pod is placed on Node-1, an empty directory is created for it on the Node disk. There is nothing to provision and nothing to bind, the directory simply appears, owned by this one Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'created empty', medium: 'node disk', limit: 'none' });
       // The step is told by the highlight and the chips: the disk lights as the thing kubelet
       // just created, the shell pulses in the same beat. No materialize animation.
@@ -169,9 +167,7 @@ const STEPS = [
     duration: 3800,
     narration: 'Every container in the Pod mounts the same emptyDir, so it is a shared scratch space. The app writes a chunk under /cache and the worker reads it straight back. And because the directory is tied to the Pod rather than to a container, a container crash and restart leaves it untouched.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'shared scratch', medium: 'node disk', limit: 'none' });
       s.refs.ed.style.opacity = '1';
       // The app container is the writer and is lit at entry. The directory and the worker box are
@@ -194,9 +190,7 @@ const STEPS = [
     duration: 2600,
     narration: 'When the Pod is removed from the Node the emptyDir is deleted forever, and the diagram dims them out together: nothing of the Pod or its directory stays on the Node. A container crash it survives, a Pod deletion it does not. That single rule is the whole lifecycle of an emptyDir.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'deleted forever', medium: 'node disk', limit: 'none' });
       const GONE = [s.refs.pod, s.refs.ed, s.refs.spine, s.refs.wWrite, s.refs.wRead, s.refs.diskLbl];
       GONE.forEach(el => { el.style.opacity = String(OPACITY.terminated); });
@@ -211,9 +205,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Set medium to Memory and the same emptyDir is backed by a tmpfs instead of the Node disk. Reads and writes are fast, but every byte counts against the Pod memory limit, and filling it can get the Pod OOM-killed the way a heap leak would.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // No sizeLimit is set in this scenario, so that chip stays none: chips report state, not
       // trivia. The 512Mi cap belongs to the next step only.
       setChips(s, { ed: 'backed by RAM', medium: 'Memory (tmpfs)', limit: 'none' });
@@ -235,9 +227,7 @@ const STEPS = [
     duration: 3600,
     narration: 'A sizeLimit caps how large the emptyDir may grow. On the Node disk, writing past the limit gets the Pod evicted rather than left to fill the disk, while on tmpfs the limit sizes the filesystem itself and the write fails instead. Either way an unbounded emptyDir is a way to lose the Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { ed: 'over limit', medium: 'node disk', limit: '512Mi, evicted' });
       s.refs.ed.style.opacity = '1';
       // The app writes past the cap into the disk: both light at entry, the shell pulses same

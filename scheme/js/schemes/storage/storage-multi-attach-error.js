@@ -196,9 +196,11 @@ function setStage(s, {
   s.refs.wNodeBand.style.opacity = String(linkNew);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['ctrl', 'vaA', 'vaB', 'disk', 'oldApp', 'newApp',
     'modeChip', 'attChip', 'podChip', 'blockChip'], [s.refs.podOld, s.refs.podNew]);
+  clearWires(s);
 }
 
 // The mirror of lightBoxAt, and it takes its empty keyframe list for the same reason: a timer that
@@ -216,9 +218,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, {});
       setChips(s, { attached: 'node-1', newPod: 'not scheduled', blocked: 'nothing' });
     },
@@ -228,9 +228,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Now the Pod moves. A rolling update stands the replacement up on Node-2 while the old one is still running, which is exactly what RollingUpdate is designed to do. Node-1 stays healthy throughout. A second Pod now exists on the other Node, and it wants the same volume.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { nodeBOp: 1, newOp: 1 });
       setChips(s, { attached: 'node-1', newPod: 'scheduled on node-2', blocked: 'nothing' });
       if (ctx.reduced) return;
@@ -249,9 +247,7 @@ const STEPS = [
     duration: 3200,
     narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV-web is ReadWriteOnce and the first attachment is still live, so the refusal comes before anything is written and va-2 stays a want rather than an object.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { nodeBOp: 1, newOp: 1, linkNew: 1, vaBOp: OPACITY.pending });
       setChips(s, { attached: 'node-1', newPod: 'ContainerCreating', blocked: 'va-1 on node-1' });
       setWire(s, 'band', 'RWO: cannot attach twice');
@@ -280,9 +276,7 @@ const STEPS = [
     // blocker: the reader should be looking at the OLD attachment while reading this sentence.
     narration: 'So the new Pod hangs. Its events read Multi-Attach error for volume PV-web, already used by the old Pod on Node-1. The container never starts, because Kubelet will not mount a disk that is not attached to the Node it runs on, and the attach is refused.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, { nodeBOp: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: OPACITY.pending });
       setChips(s, { attached: 'node-1', newPod: 'Multi-Attach error', blocked: 'va-1 on node-1' });
       setWire(s, 'band', 'first attachment still live');
@@ -296,9 +290,7 @@ const STEPS = [
     duration: 2800,
     narration: 'What clears it is the old attachment going away, and nothing else will. The controller will not delete va-1 while the old Pod runs, and the rollout will not delete that Pod until the new one is ready. Each side waits on the other, which is why this reads as a hang.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, {
         nodeBOp: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: OPACITY.pending,
         vaASub: 'node-1, still held',
@@ -313,9 +305,7 @@ const STEPS = [
     duration: 3400,
     narration: 'Nothing inside the rollout can break the deadlock, so it takes a hand from outside: the old Pod is deleted. The controller removes va-1, the volume detaches, and for a moment it belongs to nobody. On a healthy Node this takes seconds, because Node-1 can be asked to unmount and it answers.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Static end state: va-1 and its lanes are gone, the old Pod with them, the disk is free.
       setStage(s, {
         nodeBOp: 1, oldOp: OPACITY.terminated, oldSub: 'deleted',
@@ -349,9 +339,7 @@ const STEPS = [
     duration: 3800,
     narration: 'With the volume free the controller writes va-2, the driver attaches the disk to Node-2, Kubelet mounts it, and the new Pod starts. None of that was slow. The whole stall went on waiting for the old Pod to be deleted, not on any storage operation.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, {
         nodeBOp: 1, oldOp: OPACITY.terminated, oldSub: 'deleted',
         newOp: 1, newSub: 'Running', linkNew: 1,
@@ -381,9 +369,7 @@ const STEPS = [
     duration: 3400,
     narration: 'This is why a Deployment on ReadWriteOnce storage stalls whenever the replacement Pod lands on another Node. RollingUpdate creates the new Pod before deleting the old one, so both want one single-node volume and the new one is refused. Set it to Recreate, which deletes the old Pod before making the new one, the way a StatefulSet handles an ordinal.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setStage(s, {
         nodeBOp: 1, oldOp: OPACITY.terminated, oldSub: 'deleted',
         newOp: 1, newSub: 'Running', linkNew: 1,

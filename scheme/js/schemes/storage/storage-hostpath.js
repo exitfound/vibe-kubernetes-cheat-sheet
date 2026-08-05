@@ -113,7 +113,8 @@ function setChips(s, { host, lives, exposure }) {
   setChip(s.refs.expChip, exposure);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['appBox', 'sideBox', 'hp', 'hostChip', 'livesChip', 'expChip'],
     [s.refs.shellWrap, s.refs.appC, s.refs.sideC]);
   s.refs.pod.style.opacity = '1';
@@ -125,6 +126,7 @@ function clearHL(s) {
   // The security and reschedule steps rewrite the cylinder label and the disk label, so restore both.
   s.refs.diskLbl.textContent = 'the node filesystem';
   setCylinderLabel(s.refs.hp, '/var/log');
+  clearWires(s);
 }
 
 const STEPS = [
@@ -132,9 +134,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { host: 'mounts /var/log', lives: 'on the node', exposure: 'one directory' });
     },
   },
@@ -143,9 +143,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The Pod names a hostPath with a path and a type. Kubelet checks the Node first: type Directory requires /var/log to already exist, while DirectoryOrCreate makes it, owned by Kubelet. It then bind-mounts that host directory into the container.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { host: 'bind-mounted in', lives: 'on the node', exposure: 'one directory' });
       s.refs.hp.classList.add('highlight');
       s.refs.appBox.classList.add('highlight');
@@ -159,9 +157,7 @@ const STEPS = [
     duration: 3800,
     narration: 'Inside the container /var/log is the real log directory of the Node. The app writes an entry and the agent reads it straight back, and every byte lands in the Node filesystem where it stays after the Pod is gone. This is live host state, not private scratch.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { host: 'reads host files', lives: 'on the node', exposure: 'one directory' });
       // The app container is the writer and is lit at entry. The host directory and the agent box
       // are receivers, so each lights as its own ball lands, and the pulse fires on the same beat.
@@ -182,9 +178,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The directory belongs to the Node, not the Pod, so deleting the Pod leaves /var/log untouched on Node-1, and here the Pod dims out while the directory stays lit. Schedule a replacement onto another Node and the /var/log it finds there is a different directory that belongs to that Node. The data did not travel. A hostPath volume looks like persistence and is not.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { host: 'stays behind', lives: 'on the old node', exposure: 'one directory' });
       // The exact inversion of emptyDir dies: only the Pod and its mount lanes ghost. The host
       // directory stays at full opacity and lit, because it belongs to the node and outlives the Pod.
@@ -203,9 +197,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Point a hostPath at a sensitive path and the risk is plain. Mounting the host root or the container runtime socket gives the Pod control of the Node itself, a container escape. This is why the Baseline and Restricted Pod Security Standards forbid hostPath outright.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { host: 'mounts / (root)', lives: 'on the node', exposure: 'the whole node' });
       // The cylinder now stands for the host root, and the reach into it is what the ball carries.
       setCylinderLabel(s.refs.hp, 'host /');
@@ -225,9 +217,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Used narrowly, hostPath is right: a Node agent in a DaemonSet reading /var/log or /proc genuinely needs the host. For an ordinary Pod that wants node-local storage to survive a reschedule, the portable answer is a local PersistentVolume, whose node affinity keeps the Pod pinned to its data. That is where the rest of this category begins.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { host: 'for node agents', lives: 'on the node', exposure: 'one directory' });
       s.refs.hp.classList.add('highlight');
       if (ctx.reduced) { s.refs.sideBox.classList.add('highlight'); return; }

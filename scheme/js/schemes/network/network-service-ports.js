@@ -75,8 +75,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['svc', 'clientBox', 'podXBox', 'dialChip', 'portChip', 'targetChip', 'contChip'], [s.refs.client, s.refs.podX]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -84,9 +86,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.dialChip, 'web:80');
       setVal(s.refs.portChip, '80');
       setVal(s.refs.targetChip, 'http');
@@ -98,9 +98,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The client connects to the Service name on port 80. That is the only number it knows. It has no idea what port the container behind the Service is really listening on, and it does not need to.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.dialChip.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
       setVal(s.refs.portChip, '80');
@@ -118,9 +116,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The Service definition maps port 80 to its targetPort. That mapping becomes a DNAT rule on the Node, written by kube-proxy, so the destination port is rewritten as the packet goes to a backend Pod IP. The port the client used and the port the container listens on are now two independent values joined only by this rule.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Packet-less, pod-less: the Service box lights via .highlight where the port translation lives.
       // Blocks light, they never blink. Only Pods pulse.
       s.refs.svc.classList.add('highlight');
@@ -135,9 +131,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Here the targetPort is the name http rather than a number. Each Pod resolves that name to its own containerPort, so different Pods could expose http on different numbers and the Service still finds the right one. The packet is delivered to the container on its real listening port, 8080.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.targetChip.classList.add('highlight');
       s.refs.contChip.classList.add('highlight');
       setVal(s.refs.targetChip, 'http');
@@ -153,9 +147,7 @@ const STEPS = [
     duration: 2400,
     narration: 'So the client dials 80, the container listens on 8080, and the Service quietly bridges the two. The container port can move behind the Service without the client noticing, because it always keeps dialing the same stable Service port.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.dialChip.classList.add('highlight');
       s.refs.contChip.classList.add('highlight');
       setVal(s.refs.dialChip, 'web:80');

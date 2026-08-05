@@ -159,10 +159,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','kernel','weightChip','maxChip','statChip','stateChip'],
     [s.refs.podGroup]);
+  clearWires(s);
 }
 
 // container state never moves on this card. It is the answer to the question the description asks,
@@ -194,9 +196,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.scaleG.style.opacity = String(OPACITY.pending);
       setBars(s, [0, 0, 0], NO_CAPS);
       setBoxSublabel(s.refs.containerBox, 'requests.cpu 250m · limits.cpu 500m');
@@ -208,9 +208,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The Kubelet hands the CPU request to the container runtime, which turns it into a cgroup v2 cpu.weight. A weight is not a reservation. It only decides how the runnable cgroups on this Node divide the CPUs when they all want to run at once, so on a quiet Node this container may use far more than its 250m.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.scaleG.style.opacity = String(OPACITY.pending);
       setBars(s, [0, 0, 0], NO_CAPS);
       setBoxSublabel(s.refs.containerBox, 'requests.cpu 250m · limits.cpu 500m');
@@ -232,9 +230,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The CPU limit becomes a quota. On cgroup v2 the runtime writes one line, cpu.max, carrying the quota and the period together, so limits.cpu 500m against the default 100ms period is 50000 100000. That is 50ms of run time this cgroup may spend inside every 100ms period, and the period repeats for as long as the container lives.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.containerBox, 'requests.cpu 250m · limits.cpu 500m');
       setChips(s, { weight: WEIGHT_SET, max: MAX_SET, stat: STAT_IDLE });
       setWire(s, 'kernel', 'limits.cpu 500m · cpu.max 50000 100000');
@@ -257,9 +253,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The container runs, and every microsecond of CPU time it burns is charged against the 50ms budget. One busy thread on one CPU empties it 50ms into the period. Nothing is wrong with the code, it has simply reached the ceiling that the limit bought.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.scaleG.style.opacity = '1';
       setBoxSublabel(s.refs.containerBox, 'running · 50ms of CPU this period');
       // cpu.stat does not move yet: the kernel increments both counters from the period TIMER, so
@@ -288,9 +282,7 @@ const STEPS = [
     duration: 3400,
     narration: 'With the budget gone the kernel takes the cgroup off the run queues until the period timer refills it, so for 50ms of every 100ms the container is runnable and not running. Threads share one budget, so four busy threads would empty it 12.5ms in and stall for the remaining 87.5ms.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.scaleG.style.opacity = '1';
       setBoxSublabel(s.refs.containerBox, 'throttled · waiting for the next period');
       setChips(s, { weight: WEIGHT_SET, max: MAX_SET, stat: 'nr_throttled 3 of 3 · throttled_usec 150000' });
@@ -323,9 +315,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Nothing died. The Pod stays Running, restartCount stays 0, and kubectl describe shows no event and no condition, because throttling is not a state any Kubernetes object carries. The kernel counts it in cpu.stat, which cAdvisor inside the Kubelet exports as container_cpu_cfs_throttled_seconds_total. Here that is 5 seconds of stall in the last 10, and all the workload lost was latency.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.scaleG.style.opacity = '1';
       setBars(s, [RUN_W, RUN_W, RUN_W], ['throttled 50ms', 'throttled 50ms', 'throttled 50ms']);
       setBoxSublabel(s.refs.containerBox, 'running · latency up, no restart');

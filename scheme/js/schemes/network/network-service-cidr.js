@@ -113,12 +113,14 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pool', 'cidr2', 'staticBand', 'dynamicBand', 'svcK8s', 'svcDns', 'svcWeb', 'ipaddrChip']);
   // The add-on CIDR, its wire and the IPAddress object are revealed only on later steps.
   s.refs.cidr2.style.opacity = '0';
   s.refs.aExtend.style.opacity = '0';
   s.refs.ipaddrChip.style.opacity = '0';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -126,9 +128,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.svcK8s, 'clusterIP pending');
       setBoxSublabel(s.refs.svcDns, 'clusterIP pending');
       setBoxSublabel(s.refs.svcWeb, 'clusterIP pending');
@@ -140,9 +140,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The range is divided into two bands. A small low static band is left for hand-picked addresses, and the much larger high dynamic band is used for automatic assignment, so a manual IP taken from the low band is very unlikely to collide with an auto-assigned one. Only once the dynamic band is exhausted does the allocator fall back to the low one.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.pool.classList.add('highlight');
       setBoxSublabel(s.refs.svcK8s, 'clusterIP pending');
       setBoxSublabel(s.refs.svcDns, 'clusterIP pending');
@@ -161,9 +159,7 @@ const STEPS = [
     duration: 2600,
     narration: 'At cluster bootstrap two addresses are taken from the static band. 10.96.0.1 is the first address of the range and always fronts the kubernetes API Service, while installers assign kube-dns the tenth by convention, here 10.96.0.10, which is why those two IPs are predictable in most clusters.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.staticBand.classList.add('highlight');
       setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
       setBoxSublabel(s.refs.svcDns, 'clusterIP 10.96.0.10');
@@ -184,9 +180,7 @@ const STEPS = [
     duration: 2600,
     narration: 'A new Service web is created with no clusterIP, so the allocator picks the next free address from the dynamic band, here 10.96.137.42, and records it as an IPAddress object that points back to the Service. Every ClusterIP in the cluster is now tracked by one of these objects.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.dynamicBand.classList.add('highlight');
       s.refs.ipaddrChip.classList.add('highlight');
       setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
@@ -206,9 +200,7 @@ const STEPS = [
     duration: 2600,
     narration: 'When the whole range fills up, the old fix was to resize the API server service-cluster-ip-range and restart it, a disruptive operation. Now you add a second ServiceCIDR object, here 10.97.0.0/16, and fresh ClusterIPs are drawn from it. The Service IP space grows with no downtime.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Keep the earlier assignments visible.
       setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
       setBoxSublabel(s.refs.svcDns, 'clusterIP 10.96.0.10');

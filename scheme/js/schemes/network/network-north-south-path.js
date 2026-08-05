@@ -131,8 +131,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client', 'lb', 'kproxy', 'conntrack', 'podXBox', 'stageChip', 'svcChip', 'dnatChip', 'backChip'], [s.refs.podX]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -140,9 +142,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.stageChip, 'idle');
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.backChip, 'none');
@@ -154,9 +154,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The client connects to the public IP, which belongs to a cloud load balancer provisioned for the LoadBalancer Service. The LB is the only address exposed to the internet, and it is still outside the cluster. It picks one healthy Node to forward the connection to.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.stageChip, 'cloud LB');
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.backChip, 'none');
@@ -176,9 +174,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The load balancer rewrites the destination to a Node and the Service NodePort, a high port opened on every Node, and the packet crosses the cluster edge. The kube-proxy programmed the rules that catch that port, so the packet is matched on arrival with the destination still the Node IP and that port.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.stageChip, 'NodePort');
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.backChip, 'none');
@@ -198,9 +194,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The Service rules DNAT the destination to a backing Pod IP, and conntrack records the flow so every later packet of this connection takes the same backend and the reply can be unwound. The rewritten packet is delivered to the Pod, which serves the request on its real port.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.stageChip, 'DNAT');
       setVal(s.refs.dnatChip, '-> 10.244.2.7:8080');
       setVal(s.refs.backChip, '10.244.2.7:8080');
@@ -226,9 +220,7 @@ const STEPS = [
     duration: 3700,
     narration: 'The Pod replies, and the answer retraces the same chain in reverse, drawn here as its own lane. The conntrack table matches the reply to the flow it pinned and undoes the DNAT, so the source becomes the Node and its NodePort again, then the load balancer rewrites it once more and the client sees an answer from the public IP it dialed. The client never learns the Pod address, and every rewrite the request crossed is unwound on the way out.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.stageChip, 'reply unwinds');
       setVal(s.refs.dnatChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.2.7:8080');

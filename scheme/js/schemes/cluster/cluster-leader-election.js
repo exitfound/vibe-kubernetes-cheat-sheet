@@ -113,8 +113,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['r1','r2','r3','v1','v2','v3','lease','holderChip','durChip','renewChip','transChip']);
+  clearWires(s);
 }
 
 function resetReplicaOpacity(s) {
@@ -139,9 +141,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetReplicaOpacity(s);
       setVal(s.refs.v1, 'standby');
       setVal(s.refs.v2, 'standby');
@@ -157,9 +157,7 @@ const STEPS = [
     duration: 2700,
     narration: 'All three replicas race for the Lease. The first write creates the object, so Controller-mgr-1 becomes holder and the other two get 409. Every write after that is a compare-and-swap on resourceVersion.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetReplicaOpacity(s);
       setVal(s.refs.v1, 'leader');
       // The role chip holds a ROLE. The 409 is a response code and already rides both wires below,
@@ -199,9 +197,7 @@ const STEPS = [
     // RetryPeriod, so the standbys are not idle. Do not reword the sentence to match empty lanes.
     narration: 'Only the leader runs control loops (Deployment, ReplicaSet, Job and the rest). It PUTs a fresh renewTime well inside leaseDurationSeconds (15s), and the standbys only GET the Lease to check it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetReplicaOpacity(s);
       setVal(s.refs.v1, 'leader · reconciling');
       setVal(s.refs.v2, 'standby · polling');
@@ -234,9 +230,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Controller-mgr-1 crashes or its network partitions, so renewals stop. Once leaseDurationSeconds passes with no new renewTime, the Lease counts as expired and any replica may CAS-acquire it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.v1, 'unreachable');
       // Not "polling": this step animates nothing, so a chip naming traffic points at two empty
       // lanes. What actually changes here is that both standbys become eligible to take the Lease.
@@ -263,9 +257,7 @@ const STEPS = [
     duration: 2700,
     narration: 'With the Lease expired, both survivors race again. Controller-mgr-2 wins the CAS, holderIdentity flips to its name and leaseTransitions increments. Control loops resume there within about a lease duration.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.v1, 'unreachable');
       setVal(s.refs.v2, 'leader');
       setVal(s.refs.v3, 'standby');

@@ -130,10 +130,12 @@ function setChips(s, { src, tok, exp }) {
   setVal(s.refs.expChip, exp);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['srcCM', 'srcSec', 'srcDown', 'srcTok', 'dir', 'rowCfg', 'rowPwd', 'rowLbl', 'rowTok', 'podBox',
     'srcChip', 'tokChip', 'expChip'], [s.refs.pod]);
   s.refs.pod.style.opacity = '1';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -141,9 +143,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: '4 into one dir', tok: 'audience-bound', exp: 'short-lived' });
     },
   },
@@ -152,9 +152,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Four sources feed this one directory at once: a ConfigMap, a Secret, the downwardAPI and a serviceAccountToken. Kubelet gathers them and lays each out as a file, so the app opens files and never has to call the API for any of it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: '4 into one dir', tok: 'audience-bound', exp: 'short-lived' });
       // The four sources are the actors of this step: they light at entry, their balls depart.
       ['srcDown', 'srcCM', 'srcSec', 'srcTok'].forEach(k => s.refs[k].classList.add('highlight'));
@@ -177,9 +175,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The ConfigMap and the Secret contribute the plain material. A config key lands as config.yaml and a secret key lands as password, exactly as they would from a standalone volume, just sharing one directory here.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'ConfigMap + Secret', tok: 'audience-bound', exp: 'short-lived' });
       s.refs.srcChip.classList.add('highlight');
       s.refs.srcCM.classList.add('highlight');
@@ -198,9 +194,7 @@ const STEPS = [
     duration: 3400,
     narration: 'The downwardAPI projects facts about the Pod itself. Its labels, its name, its namespace, even a resource limit, are written out as files, computed by Kubelet from the Pod object rather than fetched from anywhere.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'downwardAPI: Pod metadata', tok: 'audience-bound', exp: 'short-lived' });
       s.refs.srcChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.srcDown.classList.add('highlight'); s.refs.rowLbl.classList.add('highlight'); return; }
@@ -219,9 +213,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The serviceAccountToken source writes a bearer token the Pod uses to call the API. It is short-lived and bound to a specific audience, so a token minted for one service cannot be replayed against another.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The chip tracks WHICH source is in play, as the two steps before it do: snapping back to the
       // standing value changes it with no cue on the one step that introduces the token source.
       setChips(s, { src: 'serviceAccountToken', tok: 'bound to audience', exp: 'short-lived' });
@@ -239,9 +231,7 @@ const STEPS = [
     duration: 2800,
     narration: 'Because the token is short-lived, Kubelet refreshes it in place well before it expires, rewriting the same token file with a new one. The app just keeps reading the file and always finds a valid token, with no restart.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'serviceAccountToken', tok: 'rotated in place', exp: 'refreshed before expiry' });
       s.refs.expChip.classList.add('highlight');
       s.refs.tokChip.classList.add('highlight');
@@ -258,9 +248,7 @@ const STEPS = [
     duration: 2600,
     narration: 'This is the whole reason to use the projected token over the old style. A legacy Secret-based service account token never expired and stayed valid forever if leaked, while a projected token rotates, expires, and is scoped to an audience.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { src: 'serviceAccountToken', tok: 'rotated, scoped', exp: 'legacy token never expired' });
       s.refs.expChip.classList.add('highlight');
       s.refs.tokChip.classList.add('highlight');

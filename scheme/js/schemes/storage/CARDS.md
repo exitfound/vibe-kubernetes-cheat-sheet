@@ -1789,7 +1789,7 @@ Family z-order, with the wires and their labels ABOVE the blocks so a connector 
 stays visible and the text stays legible, and the static disk specs above those.
 ```
 
-### before `function clearHL(s) {`
+### before `function resetStep(s) {`
 
 ```
 appBox is listed so its .highlight is cleared every step.

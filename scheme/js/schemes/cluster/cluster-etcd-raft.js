@@ -139,8 +139,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['api','e1','e2','e3','r1','r2','r3','l1','l2','l3','termChip','acksChip','quorumChip']);
+  clearWires(s);
 }
 
 // Written by EVERY step, not only the ones that move them: a carried counter is indistinguishable
@@ -166,9 +168,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.r1, 'Leader');
       setVal(s.refs.r2, 'Follower');
       setVal(s.refs.r3, 'Follower');
@@ -184,9 +184,7 @@ const STEPS = [
     duration: 1900,
     narration: 'The API issues a write for a new Pod, the only path by which Kubernetes state ever reaches ETCD. Every write is funneled through the Leader so the cluster has a single point that orders all changes. A request that lands on a Follower is not served there but forwarded to the Leader, so a linearizable read never observes a split view.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSummary(s, { acks: 'idle', quorum: QUORUM });
       setReplicas(s, OPACITY.running);
       s.refs.api.classList.add('highlight');
@@ -201,9 +199,7 @@ const STEPS = [
     duration: 1700,
     narration: 'The Leader appends the write as entry 9 in its own log, right after the 8 entries already stored. For now the entry lives on a single replica and stays uncommitted, so commitIndex is still 8 and the new Pod is invisible to readers. Nothing becomes durable until a majority of replicas also hold it.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.l1, '9 / 8');
       setSummary(s, { acks: '0 of 2', quorum: QUORUM });
       setReplicas(s, OPACITY.running);
@@ -218,9 +214,7 @@ const STEPS = [
     duration: 3800,
     narration: 'The Leader sends an AppendEntries RPC carrying entry 9 to both Followers at once. Each Follower verifies that the term matches and that its log already lines up at index 8 before accepting, which is what keeps the replicas from ever diverging. After writing entry 9 to its own log, each Follower returns an ack to the Leader.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.l2, '9 / 8');
       setVal(s.refs.l3, '9 / 8');
       // Both acks land inside this step, so the counter ends on 2 and says so in the same notation
@@ -251,9 +245,7 @@ const STEPS = [
     duration: 2500,
     narration: 'The Leader counts how many replicas now hold entry 9: itself plus at least one Follower makes 2 of 3, which meets quorum. With a majority persisted, entry 9 is committed and can no longer be lost, so the Leader advances commitIndex to 9 and reports the write back to the API as durable.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.l1, '9 / 9');
       // The acks chip COUNTS, it does not judge: Raft commits on the FIRST ack, because Leader plus
       // one Follower is already the majority. The verdict belongs to the chip whose threshold it is.
@@ -276,9 +268,7 @@ const STEPS = [
     duration: 2500,
     narration: 'On the next heartbeat the Leader carries the new commitIndex to the Followers, signalling that entry 9 is safe to apply. Each Follower applies entry 9 to its state machine, the key-value view that clients actually read from. All three replicas now hold the Pod at index 9, and while quorum holds every read returns it consistently.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.l2, '9 / 9');
       setVal(s.refs.l3, '9 / 9');
       setSummary(s, { acks: '2 of 2', quorum: QUORUM_MET });
@@ -305,9 +295,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Both Followers go silent, so the Leader holds one vote of three and quorum is lost. Entry 10 appends but never commits, the write fails with etcdserver: request timed out, and an election timeout later the Leader steps down. Linearizable reads stop, while serializable reads answer locally from stale data until a majority returns.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.r1, 'Follower');
       setVal(s.refs.l1, '10 / 9');
       setSummary(s, { acks: '0 of 2', quorum: QUORUM_LOST });

@@ -196,12 +196,14 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, [
     'rs', 'api', 'lr', 'bar', 'slot0', 'slot1', 'over',
     'list0', 'list1', 'list2',
     'hardChip', 'usedChip', 'admitChip', 'rsChip',
   ]);
+  clearWires(s);
 }
 
 // Every step writes every chip. A chip left alone keeps the previous step's reading, and on this
@@ -259,9 +261,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { used: 'requests.cpu 0', admission: 'none', rs: '3 desired · 0 ready' });
       setBudget(s, {});
       setList(s, [PENDING_ROW, PENDING_ROW, PENDING_ROW]);
@@ -273,9 +273,7 @@ const STEPS = [
     duration: 2600,
     narration: 'A ResourceQuota caps what one namespace may request in total. The field spec.hard is the ceiling and status.used is the running sum, and this one allows requests.cpu 1 across the namespace team-a. A quota can count objects as well, like count/pods 10 or count/deployments.apps 5.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { used: 'requests.cpu 0', admission: 'none', rs: '3 desired · 0 ready' });
       setBudget(s, {});
       setList(s, [PENDING_ROW, PENDING_ROW, PENDING_ROW]);
@@ -291,9 +289,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The Pod template names no cpu at all, so the LimitRange in this namespace supplies one. LimitRanger runs in both phases: it injects defaultRequest.cpu 500m while the object can still be rewritten, then checks min, max and maxLimitRequestRatio once it cannot.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { used: 'requests.cpu 0', admission: 'mutating · requests.cpu 500m injected', rs: '3 desired · 0 ready' });
       setBudget(s, {});
       setList(s, [PENDING_ROW, PENDING_ROW, PENDING_ROW]);
@@ -318,9 +314,7 @@ const STEPS = [
     duration: 3400,
     narration: 'ResourceQuota runs after every other validating plugin, and it admits web-1 because 0 plus 500m is inside the ceiling. Admission itself adds that 500m to status.used, so the count is not a controller catching up afterwards. Pod web-2 follows the same way and takes used to 1.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { used: 'requests.cpu 1', admission: 'admitted · web-1 and web-2', rs: '3 desired · 2 ready' });
       setBudget(s, {
         slot0: { label: 'web-1', sublabel: REQ_500 },
@@ -363,9 +357,7 @@ const STEPS = [
     duration: 4000,
     narration: 'Pod web-3 would take used to 1.5 against a ceiling of 1, so admission answers 403 with exceeded quota and no Pod object is ever written. The ReplicaSet asked for it, so the ReplicaSet is what hears the refusal, as a FailedCreate event and a ReplicaFailure condition. There is no third Pod for kubectl get pods to list and none to describe.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { used: 'requests.cpu 1', admission: '403 · exceeded quota', rs: 'ReplicaFailure · FailedCreate' });
       setBudget(s, {
         slot0: { label: 'web-1', sublabel: REQ_500 },
@@ -402,9 +394,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Take the LimitRange away and web-1 would not have got in either. Once a quota constrains requests.cpu, every new Pod in that namespace must name requests.cpu or limits.cpu, because a Pod carrying neither is a Pod the quota cannot count. That is what makes a LimitRange structural here rather than a convenience.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { used: 'requests.cpu 0', admission: '403 · no requests.cpu on the Pod', rs: '3 desired · 0 ready' });
       // The counterfactual: with no LimitRange nothing was ever admitted, so the first request sits
       // outside the bar, refused for being uncountable rather than for being too big.

@@ -152,9 +152,11 @@ function setChips(s, { device, mounted, binds, copies }) {
   setChip(s.refs.copyChip, copies);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['bindA', 'bindB', 'stg', 'dev',
     'devChip', 'mountChip', 'bindChip', 'copyChip'], [s.refs.podA, s.refs.podB]);
+  clearWires(s);
 }
 
 function setStage(s, { podB = 0, binds = 0, descent = 0, podA = 1 }) {
@@ -182,9 +184,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'not yet', binds: 'none', copies: 'none' });
       setStage(s, { podA: OPACITY.pending });
       setWire(s, 'disk', 'attached to node-1');
@@ -195,9 +195,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The device is mounted exactly once, at a global staging path under the Kubelet plugins directory. This is the only place the filesystem itself is mounted on the Node. Everything above this point is not another mount of the disk, it is a view onto this one.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'once', binds: 'none', copies: 'none' });
       setStage(s, { podA: OPACITY.pending });
       setWire(s, 'disk', 'mounted once, here');
@@ -215,9 +213,7 @@ const STEPS = [
     duration: 2800,
     narration: 'NodePublish does not touch the disk again. It bind-mounts the staged directory into a directory that belongs to Pod A alone, under /var/lib/kubelet/pods and the Pod uid. A bind mount is a second doorway onto the exact same files, not a copy.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'once', binds: 'Pod A', copies: 'none' });
       setStage(s, { podA: OPACITY.pending });
       setWire(s, 'bind', 'NodePublish: bind mount');
@@ -234,9 +230,7 @@ const STEPS = [
     duration: 3000,
     narration: 'That per-Pod directory is what the container runtime maps to /data inside Pod A. From the container it looks like a plain folder. Underneath, it is a bind mount of a bind mount of one staged device. Pod A can now read and write.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'once', binds: 'Pod A', copies: 'none' });
       setStage(s, {});                                  // Pod A comes up to full opacity here
       setWire(s, 'pod', 'the runtime maps it');
@@ -254,9 +248,7 @@ const STEPS = [
     duration: 3600,
     narration: 'A second Pod on the same Node gets its own directory and its own bind mount off the same global staging path. The disk is not attached twice and not staged twice. Two Pods, two bind mounts, one device underneath. That is how a single disk is shared across Pods on a Node.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'once', binds: 'Pod A and Pod B', copies: 'none' });
       setStage(s, { podB: 1, binds: 1 });
       setWire(s, 'bind', 'a second bind mount');
@@ -282,9 +274,7 @@ const STEPS = [
     duration: 4400,
     narration: 'Follow a write the other way. Pod A writes to /data, and the bytes pass down through its bind mount, into the global staging mount, and onto the device. No copy is made at any hop. All the mounts are windows onto the same blocks on the same disk.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { device: '/dev/nvme1n1', mounted: 'once', binds: 'Pod A and Pod B', copies: 'none' });
       setStage(s, { podB: 1, binds: 1, descent: 1 });
       setWire(s, 'pod', 'same files, no copy');

@@ -143,10 +143,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','runtime','cni','sandboxChip','ipChip','statusChip','lastOpChip'],
     [s.refs.sandboxGroup, s.refs.appGroup]);
+  clearWires(s);
 }
 
 // A centred zigzag into the NODE, not the Pod inside it. THE TURN GOES ABOVE BOTH COLUMNS, or the
@@ -159,9 +161,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.sandboxGroup.style.opacity = '0';
       s.refs.appGroup.style.opacity = '0';
       setPodSublabel(s.refs.shellEl, ' ');
@@ -178,9 +178,7 @@ const STEPS = [
     duration: 3100,
     narration: 'Kubelet calls RunPodSandbox with the Pod namespace, labels, and resource hints. The runtime creates a pause container that holds the network, IPC, and UTS namespaces every workload container will share by default. The PID namespace is shared only when spec.shareProcessNamespace is set.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.appGroup.style.opacity = '0';
       setPodSublabel(s.refs.shellEl, 'sandbox ready');
       setVal(s.refs.sandboxChip, 'pause-7f3a');
@@ -208,9 +206,7 @@ const STEPS = [
     duration: 3100,
     narration: 'As part of sandbox setup the runtime invokes the configured CNI plugin with the sandbox netns path. The plugin creates a veth pair, allocates an IP via IPAM, configures routes, and returns the result. The Pod IP is now set on the sandbox.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.appGroup.style.opacity = '0';
       setPodSublabel(s.refs.shellEl, 'IP 10.244.1.5');
       setVal(s.refs.ipChip, '10.244.1.5');
@@ -239,9 +235,7 @@ const STEPS = [
     duration: 1900,
     narration: 'Kubelet calls PullImage for each container in the Pod, respecting imagePullPolicy and imagePullSecrets. The runtime fetches the image from the registry into the Node image store, or reuses a cached layer set if it is already local. No container exists yet.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.appGroup.style.opacity = '0';
       // `pulled`, not `cached`: this step draws the PullImage call, and under IfNotPresent a cached
       // image is one Kubelet never calls for. The ladder row keeps the cached case in its parenthesis.
@@ -264,9 +258,7 @@ const STEPS = [
     duration: 3100,
     narration: 'Kubelet calls CreateContainer with the sandbox id, container config (command, env, mounts), and resource limits. The runtime sets up cgroups, prepares the mounts, and returns a container id. The container now exists in the sandbox but is not yet running.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.appBox, 'created · not started');
       setVal(s.refs.statusChip, 'created (not started)');
       setVal(s.refs.lastOpChip, 'CreateContainer');
@@ -294,9 +286,7 @@ const STEPS = [
     duration: 3100,
     narration: 'Kubelet calls StartContainer with the container id. The runtime forks the container ENTRYPOINT process inside the shared namespaces of the sandbox. The Pod workload is now running and the Pod reports Ready once its probes pass.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setBoxSublabel(s.refs.appBox, 'running');
       setVal(s.refs.statusChip, 'running');
       setVal(s.refs.lastOpChip, 'StartContainer');

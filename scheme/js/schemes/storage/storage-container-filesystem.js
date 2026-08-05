@@ -108,10 +108,12 @@ function setChips(s, { fs, write, persist }) {
   setChip(s.refs.persistChip, persist);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['writable', 'l3', 'l2', 'l1', 'volume', 'ctrBox', 'fsChip', 'writeChip', 'persistChip'],
     [s.refs.ctrShell]);
   s.refs.ctr.style.opacity = '1';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -119,9 +121,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The writable layer is hidden on the poster, so the chip must not claim an RW top yet.
       setChips(s, { fs: 'read-only image layers', write: 'none', persist: 'no, in writable' });
       s.refs.writable.style.opacity = '0';
@@ -133,9 +133,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The image layers are read-only. They come straight from the image and are shared between every container built on it, so nothing a container does can change them. This is the lower half of the overlay.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { fs: 'read-only image layers', write: 'none', persist: 'no, in writable' });
       s.refs.writable.style.opacity = '0';
       s.refs.wCopyup.style.opacity = '0';
@@ -152,9 +150,7 @@ const STEPS = [
     duration: 2200,
     narration: 'On top sits one thin writable layer, the upperdir. Every file the container creates or changes at runtime lands here, and it starts empty. Nothing else in the root filesystem can be written to.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { fs: 'RO image + RW top', write: 'none', persist: 'no, in writable' });
       s.refs.writable.classList.add('highlight');
       // The writable layer and its copy-up wire are present by the end of the step, so full opacity
@@ -173,9 +169,7 @@ const STEPS = [
     duration: 2800,
     narration: 'A write to a path that lives in an image layer does not touch the image. The overlayfs driver copies the file up into the writable layer first, then applies the change there. The read-only layer underneath is left exactly as it was.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { fs: 'RO image + RW top', write: '/app/config', persist: 'no, in writable' });
       s.refs.writable.style.opacity = '1';
       s.refs.wCopyup.style.opacity = '1';
@@ -194,9 +188,7 @@ const STEPS = [
     duration: 2600,
     narration: 'When the container is removed, its writable layer is thrown away with it. That is why anything written to the root filesystem, such as logs, temp files or a scratch database, is gone the moment the container restarts. The image layers remain, empty of your changes.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { fs: 'RO image + RW top', write: 'discarded', persist: 'no, in writable' });
       // The writable layer is discarded and its copy-up wire goes with it: no layer, no wire.
       // The Container block itself stays at full strength, the story is the vanishing layer.
@@ -214,9 +206,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The container comes back and gets a brand new empty writable layer, everything the old one held is gone. A mounted volume is a hole punched through the overlay straight to real storage: a write under /data skips the writable layer entirely and lands on the volume, so it survives the container being replaced. Persist anything you care about on a volume, never on the root filesystem.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { fs: 'RO image + RW top', write: '/data on volume', persist: 'yes, on volume' });
       s.refs.writable.style.opacity = '1';
       s.refs.wCopyup.style.opacity = '1';

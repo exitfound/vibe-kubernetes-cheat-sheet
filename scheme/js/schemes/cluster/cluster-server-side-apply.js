@@ -155,13 +155,15 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, [
     'kctl', 'api', 'hpa', 'obj',
     'f0', 'f1', 'f2', 'f3', 'v0', 'v1', 'v2', 'v3', 'm0', 'm1', 'm2', 'm3',
     'leg0', 'leg1', 'leg2',
     'applyChip', 'ledgerChip', 'conflictChip', 'requestChip',
   ]);
+  clearWires(s);
 }
 
 // The three row phases. A field that has left the object dims rather than vanishing, because a
@@ -215,9 +217,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setRows(s, IDLE_ROWS);
       setChips(s, { apply: 'none', ledger: 'no entries', conflict: 'none' });
       setLegacy(s, false);
@@ -228,9 +228,7 @@ const STEPS = [
     duration: 2400,
     narration: 'You run kubectl apply --server-side, a PATCH sent with the content type application/apply-patch+yaml. Every apply has to name a field manager, and kubectl sends the name kubectl by default. The API records that name against every field the request sets, so all four fields of Deployment web end up owned by kubectl.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setRows(s, OWNED_ROWS);
       setChips(s, { apply: 'kubectl · 201 Created', ledger: '1 entry · kubectl owns 4 fields', conflict: 'none' });
       setLegacy(s, false);
@@ -264,9 +262,7 @@ const STEPS = [
     duration: 2800,
     narration: 'The ledger sits on the object under metadata.managedFields, one entry per manager: its name, the operation Apply or Update, the apiVersion and a fieldsV1 tree of the paths it owns. It is hidden unless you pass --show-managed-fields. Non-apply writes land here as operation Update, where the name is optional and the API infers it from the User-Agent.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setRows(s, OWNED_ROWS);
       setChips(s, { apply: 'kubectl · 201 Created', ledger: '1 entry · kubectl owns 4 fields', conflict: 'none' });
       setLegacy(s, false);
@@ -283,9 +279,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Delete spec.minReadySeconds from the file and apply again. The API compares the request against what you owned last time, so a field you stop sending is deleted from the live object, or reset to its default if it has one. That happens only when no other manager owns it too. If one does, you drop out of that entry and the value stays.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setRows(s, DROPPED_ROWS);
       setChips(s, { apply: 'kubectl · 200 OK', ledger: '1 entry · kubectl owns 3 fields', conflict: 'none' });
       setLegacy(s, false);
@@ -317,9 +311,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The autoscaler applies spec.replicas 5 under the field manager name hpa-controller, but kubectl owns that field at 3, so the API refuses the whole request with HTTP 409 and names the conflict. Nothing on the object changes. A plain update never fails this way, it takes the field quietly and your next apply is what finds out.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setRows(s, DROPPED_ROWS);
       setChips(s, { apply: 'hpa-controller · 409 Conflict', ledger: '1 entry · kubectl owns 3 fields', conflict: 'spec.replicas · refused with 409' });
       setLegacy(s, false);
@@ -349,9 +341,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Repeating it with --force-conflicts sets force=true in the query and the apply lands: spec.replicas becomes 5 and the field moves from kubectl to hpa-controller. Controllers are told to force on objects they own, since they cannot resolve a conflict alone. Two appliers setting the same value share the field, and the next change by either conflicts.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setRows(s, FORCED_ROWS);
       setChips(s, { apply: 'hpa-controller · 200 OK', ledger: '2 entries · kubectl 2 · hpa-controller 1', conflict: 'spec.replicas · forced through' });
       setLegacy(s, false);
@@ -388,9 +378,7 @@ const STEPS = [
     duration: 3000,
     narration: 'This is what server-side apply replaces. Plain kubectl apply keeps your file in the kubectl.kubernetes.io/last-applied-configuration annotation and diffs the annotation, the file and the live object on your own machine. Removals are found by reading the annotation, so a value another actor wrote is invisible to it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setRows(s, FORCED_ROWS);
       setChips(s, { apply: 'hpa-controller · 200 OK', ledger: '2 entries · kubectl 2 · hpa-controller 1', conflict: 'spec.replicas · forced through' });
       setLegacy(s, true);

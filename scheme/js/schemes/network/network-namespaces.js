@@ -108,8 +108,10 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['host', 'app', 'side', 'lo', 'eth0', 'scopeChip', 'ifaceChip', 'portChip', 'reachChip'], [s.refs.podGroup]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -117,9 +119,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.scopeChip, 'host');
       setVal(s.refs.ifaceChip, 'node NICs');
       setVal(s.refs.portChip, 'shared');
@@ -131,9 +131,7 @@ const STEPS = [
     duration: 2200,
     narration: 'When the Pod sandbox starts, the pause container is handed a brand new network namespace. At first it holds only a loopback device and nothing else, fully cut off from the host stack and from every other Pod. It cannot yet reach anything outside itself.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // Only lo is live yet: every block and wire is drawn, but lo is the one that lights.
       s.refs.lo.classList.add('highlight');
       s.refs.ifaceChip.classList.add('highlight');
@@ -150,9 +148,7 @@ const STEPS = [
     duration: 2400,
     narration: 'CNI then adds a veth pair: one end becomes eth0 inside the Pod namespace with the Pod IP, the peer stays in the host namespace, plugged straight into the host stack. That single cable is the only path between the two stacks, so all Pod traffic to the Node and beyond crosses it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'veth', 'veth pair');
       // The host link comes alive: the host stack lights, and the packet that rides the veth lights eth0.
       s.refs.host.classList.add('highlight');
@@ -174,9 +170,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Every container in the Pod joins this same namespace, so app and sidecar share one eth0 and one set of ports. They reach each other over 127.0.0.1 with no network hop, which is why two containers in a Pod cannot both bind the same port.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setWire(s, 'local', 'localhost');
       // Every container now shares the one stack: app, sidecar and eth0 all light, lo lights on arrival.
       s.refs.app.classList.add('highlight');
@@ -195,9 +189,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Because the stack is private, the Pod has its own routing table, its own iptables and its own port space, all separate from the host and from other Pods. Delete the Pod and the namespace is torn down, releasing the veth and the IP in one move.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       // The veth still links the two stacks here, so keep the host lit and the cable bright instead of
       // letting it read as a dead line: this is the contrast the step is about (pod-private vs host).
       s.refs.host.classList.add('highlight');

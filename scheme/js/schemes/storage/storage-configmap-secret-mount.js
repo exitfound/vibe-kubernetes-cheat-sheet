@@ -156,10 +156,12 @@ function setStage(s, { symOld = 1, symNew = 0, dirNew = 0, writeNew = 0, subpath
 }
 const STAGE_FLIPPED = { symOld: 0, symNew: 1, dirNew: 1, writeNew: 1 };
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['kubelet', 'cm', 'sec', 'dataLink', 'dirOld', 'dirNew', 'appBox', 'modeChip', 'swapChip', 'valueChip'],
     [s.refs.shellWrap]);
   s.refs.pod.style.opacity = '1';
+  clearWires(s);
 }
 
 const STEPS = [
@@ -167,9 +169,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ConfigMap', swap: 'symlink to v1', value: 'app.conf v1' });
       setStage(s, {});
     },
@@ -179,9 +179,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Kubelet reads the keys from the ConfigMap and writes them as files into a timestamped directory on the Node. Every key becomes one file, and the value of the key becomes the contents of that file.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ConfigMap', swap: 'v1 written to disk', value: 'app.conf v1' });
       setStage(s, {});
       s.refs.cm.classList.add('highlight');
@@ -201,9 +199,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The path the app opens is a chain of symlinks. The app.conf symlink points into ..data, and ..data points at the current timestamped directory. So one symlink, ..data, decides which version every file resolves to.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ConfigMap', swap: 'files are symlinks', value: 'app.conf v1' });
       setStage(s, {});
       s.refs.dataLink.classList.add('highlight');
@@ -222,9 +218,7 @@ const STEPS = [
     duration: 2800,
     narration: 'On update Kubelet does not edit the live files. It writes a whole new timestamped directory, then flips the single ..data symlink to point at it in one atomic step. A reader either sees all of v1 or all of v2, never a half-written mix.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ConfigMap', swap: 'atomic symlink flip', value: 'v2 on next read' });
       // After the flip: the new dir exists and ..data points at it. That is the static end-state.
       setStage(s, STAGE_FLIPPED);
@@ -253,9 +247,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The flip is not instant across the cluster. A ConfigMap change reaches the file on the Kubelet sync period, up to about a minute, and even then nothing restarts the app. The process has to notice the file changed and re-read it on its own.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ConfigMap', swap: 'up to 60s to propagate', value: 'app.conf v2' });
       setStage(s, STAGE_FLIPPED);
       s.refs.dirNew.classList.add('highlight');
@@ -273,9 +265,7 @@ const STEPS = [
     duration: 2600,
     narration: 'A subPath mount takes a single file out of the volume and mounts it directly, bypassing the ..data symlink. Because it points straight at one timestamped file, the flip never reaches it, so a subPath-mounted key is frozen at the value it had when the container started.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'ConfigMap', swap: 'subPath opts out', value: 'app.conf v1 forever' });
       setStage(s, { ...STAGE_FLIPPED, subpath: 1 });
       s.refs.dirOld.classList.add('highlight');
@@ -291,9 +281,7 @@ const STEPS = [
     duration: 2400,
     narration: 'A Secret mounted as a volume works exactly the same way, keys become files behind the atomic symlink swap. The one difference is that a Secret directory defaults to tmpfs, so its files live in memory and never get written to the Node disk.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { mode: 'Secret (tmpfs)', swap: 'same symlink swap', value: 'tls.crt from RAM' });
       setStage(s, { ...STAGE_FLIPPED, sec: 1 });
       s.refs.sec.classList.add('highlight');

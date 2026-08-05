@@ -174,9 +174,11 @@ function setStage(s, { delPvc, delPv, delDisk, retPvc, retPvc2, admin, delBound,
   s.refs.wAdminPv.style.opacity = String(adminLane);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['delPvc', 'delPv', 'delDisk', 'retPvc', 'retPvc2', 'retPv', 'retDisk', 'band', 'admin',
     'delChip', 'delDiskChip', 'retChip', 'retDiskChip'], []);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -184,9 +186,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { del: 'Bound', delDisk: 'exists', ret: 'Bound', retDisk: 'exists' });
       setBoxSublabel(s.refs.delPvc, 'Bound');
       setBoxSublabel(s.refs.retPvc, 'Bound');
@@ -200,9 +200,7 @@ const STEPS = [
     // Packet-less and Pod-less: a box flash on the two claims is the sanctioned cue.
     narration: 'You delete both claims with kubectl delete pvc. The Bound links break and both volumes move to the Released phase, which means only that the claim they belonged to is gone. Nothing has touched the disks yet. What happens next is decided entirely by the reclaim policy.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { del: 'Released', delDisk: 'exists', ret: 'Released', retDisk: 'exists' });
       setBoxSublabel(s.refs.delPvc, 'Terminating');
       setBoxSublabel(s.refs.retPvc, 'Terminating');
@@ -217,9 +215,7 @@ const STEPS = [
     duration: 3400,
     narration: 'The controller reads Delete on the left volume and cleans everything up. It calls DeleteVolume on the CSI driver, the real disk is wiped, and then the PV object itself is removed. Convenient for scratch data and unforgiving for anything you meant to keep, because the disk is gone for good.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'exists' });
       setBoxSublabel(s.refs.delPvc, 'Terminating');
       setBoxSublabel(s.refs.retPvc, 'Terminating');
@@ -255,9 +251,7 @@ const STEPS = [
     duration: 3000,
     narration: 'The same controller reads Retain on the right volume and deliberately does nothing. No call ever reaches the driver, so the disk and every byte on it survive. The volume stays parked in Released, still carrying the claimRef of a claim that no longer exists.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'data intact' });
       setWire(s, 'ret', 'nothing touched, data kept');
       setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: OPACITY.terminated, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
@@ -279,9 +273,7 @@ const STEPS = [
     duration: 3000,
     narration: 'A brand new claim asks for the same storage and cannot have it. The binding controller sees the leftover claimRef, decides the volume is already spoken for, and skips it. The new claim stays Pending: the disk is sitting right there, full of data, and nothing can reach it.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'unusable' });
       setBoxSublabel(s.refs.retPvc2, 'Pending');
       setWire(s, 'ret', 'skipped: stale claimRef');
@@ -302,9 +294,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Only a human breaks the deadlock. An administrator patches the PV and removes the stale claimRef by hand. With the reference cleared the volume goes back to Available, which is the first moment anything is allowed to bind to it again.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Available', retDisk: 'reusable' });
       setBoxSublabel(s.refs.retPvc2, 'Pending');
       setWire(s, 'ret', 'claimRef cleared, Available');
@@ -322,9 +312,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Now the waiting claim binds, and the data that survived the whole story is reachable again. That is the trade Retain makes: it never loses your data, and it never hands it back on its own, so reuse is always a deliberate manual act.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Bound', retDisk: 'in use again' });
       setBoxSublabel(s.refs.retPvc2, 'Bound');
       setWire(s, 'ret', 'bound to PVC data-c');

@@ -145,8 +145,10 @@ function setChips(s, { pvc, sc, disk, pv }) {
   setChip(s.refs.pvChip, pv);
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pvc', 'sc', 'prov', 'cloud', 'pv', 'pvcChip', 'scChip', 'diskChip', 'pvChip'], []);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -154,9 +156,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'none', pv: 'none' });
       s.refs.pv.style.opacity = '0';
       s.refs.wProvToPv.style.opacity = '0';
@@ -168,9 +168,7 @@ const STEPS = [
     duration: 2100,
     narration: 'With static provisioning an administrator has to create the volume by hand before anyone can claim it. Here nobody did, so there is no candidate to bind to. What saves the claim is the class it names, because that class knows who can build a volume on demand.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'none', pv: 'none' });
       s.refs.pv.style.opacity = '0';
       s.refs.wProvToPv.style.opacity = '0';
@@ -184,9 +182,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The StorageClass is the piece of configuration that names a provisioner and the parameters to build with. The external-provisioner sidecar watches for Pending claims that point at a class it owns, picks this one up, and reads both the size the claim asks for and the settings the class carries.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'none', pv: 'none' });
       s.refs.pv.style.opacity = '0';
       s.refs.wProvToPv.style.opacity = '0';
@@ -206,9 +202,7 @@ const STEPS = [
     duration: 3400,
     narration: 'The provisioner calls CreateVolume on the driver, which asks the storage backend for a real disk of the requested size. The backend carves one out and hands back the identifier it can be addressed by later. This is the only step where anything physical actually happens.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'vol-0abc123', pv: 'none' });
       s.refs.pv.style.opacity = '0';
       s.refs.wProvToPv.style.opacity = '0';
@@ -232,9 +226,7 @@ const STEPS = [
     duration: 3000,
     narration: 'A disk on its own is invisible to Kubernetes. The provisioner writes a PersistentVolume object carrying the identifier it just got back, and that object is the cluster representation of the disk. Only now does the volume exist as something a claim can be paired with.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Pending', sc: 'gp3', disk: 'vol-0abc123', pv: 'PV-a7f2 created' });
       s.refs.wProvToPv.style.opacity = '1';
       s.refs.boundLink.style.opacity = '0';
@@ -255,9 +247,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The new volume was built for this one claim, so the provisioner already stamped it with a claimRef pointing back at the claim. There is nothing to search for and no shelf to pick from, so the pair goes straight to Bound. The volume was made to order.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { pvc: 'Bound', sc: 'gp3', disk: 'vol-0abc123', pv: 'Bound' });
       s.refs.pv.style.opacity = '1';
       s.refs.pvc.classList.add('highlight');
