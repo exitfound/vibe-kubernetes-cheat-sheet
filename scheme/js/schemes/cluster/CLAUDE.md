@@ -5,6 +5,10 @@ the card construction standard, the motion canon, the opacity vocabulary, the re
 contract, the writing rules and the gate. If a rule here would also be true of another category,
 it is in the wrong file.
 
+**A comment in a card is at most TWO lines**, saying what the line beside it does or where a number
+came from. It carries no date, no past defect and no account of an earlier version. Anything longer
+is a rule (this file), a measurement (`./CARDS.md`) or history (delete it).
+
 ## The folder
 
 | File | Owns |

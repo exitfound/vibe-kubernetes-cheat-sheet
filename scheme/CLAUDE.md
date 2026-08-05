@@ -1,75 +1,71 @@
 # CLAUDE.md `/scheme/` (Animated architecture diagrams)
 
-This file is the source of truth for the `scheme/` sub-app. Read it before editing anything here. The root `../CLAUDE.md` has the repo overview, Running/Deployment, and shared chrome (left sidebar switcher, chrome parity, first-paint flash) that this page inherits.
+Source of truth for the `scheme/` sub-app. The root `../CLAUDE.md` has the repo overview, running,
+shipping and the chrome this page inherits.
 
-## What it is
+A card grid of Kubernetes architecture concepts. Click a card, a native `<dialog>` opens, an SVG
+diagram plays a step-by-step animation with narration and play/pause/prev/next/reset/speed controls.
+Static only: ES modules + Web Animations API + native `<dialog>`. Deliberately **not** used:
+React/Vue/Svelte, D3, Three.js, Canvas/WebGL, Mermaid, GSAP, Lottie, Rive. SVG is hand-built through
+a tiny `createElementNS` helper.
 
-A card grid of Kubernetes architecture concepts. Click a card, a native `<dialog>` opens, an SVG diagram plays a step-by-step animation with narration text and play/pause/prev/next/reset/speed controls. Static-only: ES modules + Web Animations API (WAAPI) + native `<dialog>`. No backend, no bundler, no framework.
+## Where to look
 
-Deliberately **not** used: React/Vue/Svelte, D3, Three.js, Canvas/WebGL, Mermaid, GSAP, Lottie, Rive. SVG diagrams are hand-built via a tiny `createElementNS` helper. IntersectionObserver, localStorage, and URL hash are all built-ins.
+| Task | Read | Edit | Verify |
+|---|---|---|---|
+| add a card | `js/schemes/<cat>/CLAUDE.md` | `cards.js`, `<id>.js`, `posters.js`, `./CARDS.md` | `npm run gate` |
+| change a card's geometry | that card's section in `./CARDS.md` | `<id>.js` | `anim-dump`, rendered frames, gate |
+| change narration or a label | "Writing rules" below | `<id>.js` | `check-terms`, `overlay-measure` |
+| touch a shared helper | `scheme/INTERNALS.md` | `js/lib/*` | `npm run oracle:diff`, then gate |
+| retint a category | "Catalog and categories" below | `css/tokens.css`, `css/styles.css`, the kit | `check-palette` |
+| draw a poster | "Posters" below | `js/schemes/<cat>/posters.js` | montage against two siblings |
+
+**A green check is not a looked-at card.** Most of what can go wrong here (a lane ending in empty
+space, a composition pushed off centre, a tag drifting off its ball) is invisible to every rule in
+the gate. Open the rendered frames of every card you touched, not a sample.
 
 ## Directory layout
 
 ```
 scheme/
-  index.html              standalone, all paths relative
-  favicon.svg             own icon (network-graph motif)
-  css/
-    tokens.css            :root vars (category colors) + diagram tokens
-    styles.css            layout, header, grid, dialog
-    diagrams.css          SVG primitive classes + per-category theming
+  index.html  favicon.svg
+  css/        tokens.css (category colors), styles.css (layout/dialog), diagrams.css (SVG classes)
+  INTERNALS.md  the design record for everything that is NOT one card
   js/
-    app.js                router, grid, modal lifecycle, keyboard, hash routing
-    data.js               barrel: CATEGORIES (the registry of what a category IS) + the four
-                          category manifests concatenated into SCHEMES and SUBCATEGORIES
-    posters.js            barrel: the four category poster maps merged into POSTERS
-    lib/
-      svg.js              el(tag, attrs, children) + named factories
-      primitives.js       pod, node, box, chip, cylinder, arrow, pathArrow, packet, chainList/setChainActive, animateAlong, fadeIn, arrowDefs
-      timeline.js         Timeline class: play/pause/step/reset/setSpeed/destroy/isPlaying + cancellable autoPlay
-      motion.js           reducedMotion() + onReducedMotionChange()
-      sidebar.js          setupSidebar() (copy of cli sidebar; duplicated, not symlinked)
-      scheme-kit.js       the shared BASE kit, no category of its own: valChip/setVal/setChip/setBox,
-                          makeInit, pulsePodWithTint, packetAlong + top/route wrappers, clearHighlights/
-                          clearWires/setWire, lightBoxAt, makeRidingLabel, setPodSublabel, BEAT/FADE/OPACITY
-      inspector.js        ?inspect=1 grid + bbox overlay, exposes window.__schemeCtl
-      tokens.js         dependency-free animation magnitude tokens (PULSE_POD, PULSE_BLOCK, OPACITY, BEAT, FADE) shared by timeline.js + the kits, no import cycle.
-                        OPACITY is the FADE-PHASE VOCABULARY, five shades, one per lifecycle phase
-    schemes/<category>/   one folder per category, the unit of context (see "The folder contract")
-      CLAUDE.md           what is true of THIS category only. NOT shipped
-      cards.js            that category's SCHEMES entries + its SUBCATEGORIES list
-      posters.js          that category's POSTERS entries
-      <category>-kit.js   the tint, pulsePod/pulsePodDim, and any category-only helper
-      <id>.js             one module per diagram
-  docs/                   NOT shipped (see "Where card notes live")
-    CARDS-<category>.md   per-card design record: geometry derivations, measured overlay extents,
-                          rejected alternatives, plus one "### poster" subsection per card
-    INTERNALS.md          the same record for the shared files: data.js, the four kits,
-                          scheme-kit, timeline, tokens, styles.css, diagrams.css
-  tools/                  dev harness, NOT shipped
+    app.js    router, grid, modal lifecycle, keyboard, hash routing
+    data.js   barrel: CATEGORIES registry + the four manifests as SCHEMES / SUBCATEGORIES
+    posters.js  barrel: the four poster maps merged into POSTERS
+    lib/      svg, primitives, timeline, motion, sidebar, inspector,
+              tokens.js       magnitudes: PULSE_POD, PULSE_BLOCK, OPACITY, BEAT, FADE
+              scheme-kit.js   the shared BASE kit, carries no category and no card imports it
+    schemes/<category>/       one folder per category, the unit of context
+      CLAUDE.md               what is true of THIS category only
+      CARDS.md                the design record for THIS category's cards
+      cards.js posters.js     that category's SCHEMES + SUBCATEGORIES, and its grid thumbnails
+      <category>-kit.js       the tint, pulsePod/pulsePodDim, any category-only helper
+      <id>.js                 one module per diagram
+  tools/      dev harness, README.md is the reference for every check and what it cannot see
 ```
+
+**A record lives in the folder it describes.** One category's card notes are its `CARDS.md`;
+anything that is not one card (the barrels, `js/lib/`, the kits, the CSS) is in `scheme/INTERNALS.md`.
+`tools/`, and every `CLAUDE.md`, `CARDS.md` and `INTERNALS.md`, are stripped from both shipping
+artifacts.
 
 ## The folder contract
 
-`js/schemes/<category>/` is the unit of context. Adding a card is a one-folder operation: an entry
-in `cards.js`, a `<id>.js` beside it, a poster in `posters.js`, a note in
-`docs/CARDS-<category>.md`.
+`js/schemes/<category>/` is the unit of context. Adding a card is a one-folder operation.
 
 A folder may hold exactly four kinds of `.js`: its cards, its `<category>-kit.js`, its `cards.js`
-and its `posters.js`. `R-modulepath` reports anything else as unclaimed, and it means it: a module
-that no entry lists is a module no linter reads and no grid renders. Widening that list is a
-deliberate edit to `folderModules` in `tools/catalog.mjs`.
+and its `posters.js`. `R-modulepath` reports anything else as unclaimed and it means it: a module no
+entry lists is a module no linter reads and no grid renders.
 
-**A card imports its own kit and nothing past it.** `../../lib/svg.js`, `../../lib/primitives.js`,
-`./<category>-kit.js`. `lib/` holds only what every category shares; `scheme-kit.js` carries no
-category and no card imports it directly.
+**A card imports its own kit and nothing past it**: `../../lib/svg.js`, `../../lib/primitives.js`,
+`./<category>-kit.js`. `lib/` holds only what every category shares.
 
-Each folder carries a `CLAUDE.md` for what is true of that category ALONE: its tint, its layout
-grammar, its exemplar card, its kit surface beyond the shared list, its subcategories. The rule
-that keeps those four files from becoming four copies of this one: **anything that would be a
-DEFECT if it differed between two categories belongs here, not there.** A rule two categories share
-is still one rule, so it stays here and the folder points at it. A pointer is not duplication; a
-paragraph is.
+Each folder's `CLAUDE.md` carries what is true of that category ALONE. The rule that keeps those
+four files from becoming four copies of this one: **anything that would be a DEFECT if it differed
+between two categories belongs here, not there.** A pointer is not duplication; a paragraph is.
 
 | Folder | Cards | Tint | Kit surface beyond the shared list |
 |---|---|---|---|
@@ -78,518 +74,368 @@ paragraph is.
 | `network/` | 37 | cyan `rgb(79, 229, 255)` | none |
 | `storage/` | 31 | jade `rgb(94, 202, 148)` | `setCylinderLabel` |
 
-
 ## Catalog and categories
 
-`js/data.js` exports `SCHEMES` (currently 108 entries), plus `CATEGORIES` and `SUBCATEGORIES` (per-category sub-tab keys + labels). `CATEGORY_LABEL`, `CATEGORY_ICONS` and `CATEGORY_TAGLINE` are **projections** of `CATEGORIES` via one `byKey(field)` helper, not separate data: add a category in one place only. The tagline (`Traffic flow`) is deliberately called `tagline`, not `sub`: `SUBCATEGORIES` is the subcategory list, and one word for both is how a dead `sc.sub ||` branch got written on the assumption that subcategories have taglines. None do.
+`js/data.js` exports `SCHEMES` (108 entries), `CATEGORIES`, and `SUBCATEGORIES`. `CATEGORY_LABEL`,
+`CATEGORY_ICONS` and `CATEGORY_TAGLINE` are **projections** of `CATEGORIES` through one `byKey(field)`
+helper, so a category is added in one place only.
 
-**The tagline does not currently render anywhere.** `buildUnits` subtitles a subcategory row with its CATEGORY label, and the two places that read `CATEGORY_TAGLINE` are fallbacks for shapes no category has today: an orphan row (a scheme whose `subcategory` is missing or unknown) and a category with no `SUBCATEGORIES` entry at all. Both are legitimate future states, so the code stays, but do not expect a tagline you add to appear until a category has no subcategories. Four active categories (label / key / color token in `css/tokens.css`):
+**Every category key matches its label 1:1, and no subcategory key is shared between categories.**
+Otherwise a `subcategory` value cannot be read without also reading `category`.
 
-**Every key matches its label 1:1.** That is a rule, not a coincidence: the category key was `control` while the label said `Cluster`, and `foundations` was used by two categories with different labels, so `subcategory: 'foundations'` could not be read without also reading `category`. Both are fixed; keep it that way.
-
-| Label | key | color | cards | subcategories (`key` -> label) |
+| Label | key | color | cards | subcategories (`key` to label) |
 |---|---|---|---|---|
-| Cluster | `cluster` | `#7d86ff` indigo | 21 | `control-plane` Control Plane, `node-runtime` Node Runtime, `node-lifecycle` Node Lifecycle |
-| Workloads | `workloads` | `#5bb8ff` sky blue | 19 | `pods-bootstrap` Pods Bootstrap, `pods-lifecycle` Pods Lifecycle, `controllers` Controllers |
-| Networking | `network` | `#4fe5ff` cyan | 37 | `network-foundations` Network Foundations, `pod-networking` Pod Networking, `services-endpoints` Services & Endpoints, `external-traffic` External Traffic, `dns-service-discovery` DNS & Service Discovery |
-| Storage | `storage` | `#5eca94` jade | 31 | `volume-foundations` Volume Foundations, `volumes-claims` Volumes & Claims, `csi-mount-path` CSI & Mount Path, `stateful-data` Stateful Data |
+| Cluster | `cluster` | `#7d86ff` indigo | 21 | `control-plane`, `node-runtime`, `node-lifecycle` |
+| Workloads | `workloads` | `#5bb8ff` sky blue | 19 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
+| Networking | `network` | `#4fe5ff` cyan | 37 | `network-foundations`, `pod-networking`, `services-endpoints`, `external-traffic`, `dns-service-discovery` |
+| Storage | `storage` | `#5eca94` jade | 31 | `volume-foundations`, `volumes-claims`, `csi-mount-path`, `stateful-data` |
 
-The retired Lifecycle category (coral `#ff668c`) is reserved in `tokens.css`, not active. To activate a reserved category, add a `{ key, label, tagline, icon }` entry to `CATEGORIES`; the `[data-cat="<key>"]` chrome CSS already exists.
+Labels for the subcategory keys live in each folder's `cards.js` and `CLAUDE.md`. The retired
+Lifecycle category (coral `#ff668c`) is reserved in `tokens.css`, not active. `CATEGORY_TAGLINE`
+renders nowhere today: both readers are fallbacks for shapes no category currently has (an orphan
+row, a category with no subcategories). The code stays, do not expect a new tagline to appear.
 
-Each `SCHEMES` entry: `id`, `title`, `category`, `subcategory`, `desc`, `k8sVersion`, `tinted: true`, `sources: [{ label, href }]`. There is no path field: `app.js` imports ``./schemes/${category}/${id}.js``, and `R-modulepath` holds both halves of that convention. **All 108 cards are tinted**; Cluster was the last holdout and is no longer an exception.
+Each `SCHEMES` entry: `id`, `title`, `category`, `subcategory`, `desc`, `k8sVersion`, `tinted: true`,
+`sources: [{ label, href }]`. There is no path field: `app.js` imports
+``./schemes/${category}/${id}.js``, and `R-modulepath` holds both halves of that convention.
 
-Renaming a card id is fine as long as `SCHEME_ALIASES` in `app.js` keeps the old one resolving. It currently holds 29 entries (resolving to 28 distinct card ids, because `control-node-drain` and `lifecycle-node-drain` both point at `cluster-node-drain`), including all 15 `control-*` ids from before the Cluster rename.
+Renaming a card id is fine as long as `SCHEME_ALIASES` in `app.js` keeps the old one resolving.
 
 ## Scheme module contract
 
-Each `js/schemes/<category>/<id>.js` is lazy-imported by `app.js` on dialog open and exports `init(root, callbacks)` returning a controller:
+Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open and exports `init(root, cb)`:
 
 ```js
-export function init(root, { onStepChange, onPlayingChange } = {}) {
-  const scene = new Scene(root);          // builds initial SVG into root
-  const tl = new Timeline({
-    steps: STEPS,
-    scene,
-    onSceneReset: () => scene.reset(),
-    onChange: onStepChange,               // (idx, step, total)
-    onPlayingChange,
-  });
-  return {
-    play, pause, reset,
-    step: (dir) => tl.step(dir),          // 'next' | 'prev'
-    setSpeed: (rate) => tl.setSpeed(rate),
-    isPlaying: () => tl.isPlaying(),
-    destroy,
-  };
-}
+export const init = makeInit(Scene, STEPS, { posterFirst: true });
+// returns { play, pause, reset, step('next'|'prev'), setSpeed, isPlaying, destroy }
 ```
 
-Each step:
 ```js
 {
   id: 'string',
   duration: 1500,            // ms at 1x speed
   narration: 'Text shown in the narration panel.',
-  enter(scene, ctx) {
+  enter(s, ctx) {
     // ctx.reduced: true under prefers-reduced-motion or when prev/reset replays
-    // ctx.speed: current speed multiplier
+    // ctx.speed:   current speed multiplier
     // ctx.register(animation): track a WAAPI animation for cancel-on-step-change
   },
 }
 ```
 
-`Scene.build()` paints the **idle / step-0 visual state**. Step 0's `enter()` is essentially a no-op (clears packet layer, removes `.highlight`). Forward steps mutate state and register animations. Going prev calls `scene.reset()` (rebuild) then replays steps 0..target with `ctx.reduced = true` so they snap to final state without animating.
+`Scene.build()` paints the idle / step-0 visual state. Going prev calls `scene.reset()` then replays
+steps 0..target with `ctx.reduced = true` so they snap to their final state without animating.
 
-Every card is built on its own category kit (`workloads-kit.js` / `cluster-kit.js` / `network-kit.js` / `storage-kit.js`), which wraps the shared `scheme-kit.js`, with flat `<category>-<name>` ids. Motion stays **local** in each card.
+**Poster-first model.** Idle is a static poster, a deliberate beat before anything moves. After about
+1s the card auto-plays step 1 through the cancellable `Timeline.autoPlay`. The poster previews step
+1's TEXT immediately (animation is delayed, text is not). `Next` from the last step wraps to poster,
+then step 1. On all 108 cards.
 
-## Card construction standard (shared grammar)
+**Keyboard and routing.** `#scheme=<id>` opens that dialog on load or via a direct link; browser back
+closes it; closing clears the hash. Search filters `title + desc + category`, debounced 80ms. Inside
+a dialog: `Space` play/pause, arrows prev/next, `R` reset, `Esc` close.
 
-Cards are not byte-identical, but they share one behavioral skeleton. When building or fixing a card, match these patterns rather than inventing a new shape. Each category names its own exemplar to copy from, in its folder's `CLAUDE.md`.
+## Card construction standard
 
-What is **the same** in all four (this is the standard):
+Cards are not byte-identical, but they share one skeleton. Match it rather than inventing a shape.
+Each category names its own exemplar to copy from, in its folder's `CLAUDE.md`.
 
-1. **Module skeleton.** `class Scene { constructor(host){ this.host=host; this.refs={}; this.build(); } build(){...} reset(){ this.build(); } }`, then `const STEPS = [...]`, then `export const init = makeInit(Scene, STEPS, { posterFirst: true })`. Import primitives from `svg.js` + `primitives.js` and all chip/packet/pulse helpers from the **category kit**, never past it into `scheme-kit` directly. All four categories now have a kit, so there is no exception: `scheme-kit` carries no category and no card imports it.
-2. **`build()` shape.** `this.host.replaceChildren(); this.refs = {};` then a root `svg` with `viewBox: '0 0 1200 640'`, `preserveAspectRatio: 'xMidYMid meet'`, a full-sentence `aria-label`, `data-style: 'outline'`, and `root.appendChild(arrowDefs())` first. Build blocks, append in a deliberate **commented z-order**, `this.host.appendChild(root)`, then populate `this.refs = { svg: root, ...blocks, packetLayer, wires: {...} }`.
-3. **Z-order discipline.** Body blocks first, then wires + wire-labels above them, then chips, then `packetLayer = g({ id: 'packetLayer' })` on top so packets ride above static content. Blocks that must sit above packets (top-row infra, the chain ladder) are appended **after** the packet layer. Each card states its z-order in a comment.
-4. **Building blocks.** Pods = a `pod(...)` shell + an inner `box(...)` (container / eth0), wrapped in a `g` so `pulsePod` animates both; shell rect fill overridden to `rgba(255,255,255,0.03)`. State shown as a `valChip(...)` strip updated with `setVal`. A `chainList(...)` numbered ladder with one row highlighted per step. Wire labels are dim `text` at fixed positions, blank (`' '`) at build, filled per step with `setWire`. Connectors are `arrow`/`pathArrow`; the **same points array** feeds both the static wire and the packet route so they agree.
-5. **Step object.** `{ id, duration, narration, enter(s, ctx) }`. Step 0 is `id: 'idle'`, `duration: 1500`, a pure reset (no motion, often `enter(s)` with no `ctx`), and it carries **no `narration`**: the poster shows step 1's text (see "Poster-first model"), so a string written for step 0 is read by nobody. All 103 had one anyway, 26449 characters of prose that no viewer had ever seen and every linter had been scanning; they were deleted on 2026-07-29. Do not add one back to a new card.
+1. **Module skeleton.** `class Scene { constructor(host){ this.host=host; this.refs={}; this.build(); }
+   build(){...} reset(){ this.build(); } }`, then `const STEPS = [...]`, then the `makeInit` export.
+2. **`build()` shape.** `this.host.replaceChildren(); this.refs = {};` then a root `svg` with
+   `viewBox: '0 0 1200 640'` (`R-viewbox`, no exceptions), `preserveAspectRatio: 'xMidYMid meet'`, a
+   full-sentence `aria-label`, `data-style: 'outline'`, and `arrowDefs()` appended first.
+3. **Z-order discipline.** Body blocks, then wires and wire labels, then chips, then
+   `packetLayer = g({ id: 'packetLayer' })` on top. Blocks that must sit above packets (top-row
+   infra, the chain ladder) are appended **after** the packet layer. State the z-order in a comment.
+4. **Building blocks.** Pods are a `pod()` shell plus inner `box()`es wrapped in a `g`. State shows
+   as a `valChip()` strip updated with `setVal`. Wire labels are dim `text` at fixed positions, blank
+   (`' '`) at build, filled per step with `setWire`. Connectors are `arrow` / `pathArrow`, and the
+   **same points array** feeds both the static wire and the packet route so they cannot drift.
+5. **Step 0 is `id: 'idle'`, a pure reset, carries no `narration` and must not DRAW.** The poster
+   shows step 1's text, so a slot-0 string is read by nobody and a slot-0 wire label or lit block
+   sits under the panel text of the step AFTER it. Nothing checks this: if a slot-0 `enter()` is
+   longer than the prologue plus its chip resets, look at what it puts on screen.
+6. **Every `enter()` repaints from scratch**, opening with
+   `s.refs.packetLayer.replaceChildren(); clearHL(s); clearWires(s);`. Then it sets all chip values,
+   wire labels, `.highlight` classes and **pins final opacities inline**, so a cancel mid-step lands
+   on the right value.
+7. **The reduced-motion split is the load-bearing line.** Everything **above** `if (ctx.reduced)
+   return;` is the complete static end-state; everything **below** is motion, and every animation
+   goes through `ctx.register(...)`. Never animate state that is not also pinned statically above it.
 
-   **The other half of that rule is that slot 0 must not DRAW either, and one card was breaking it silently until 2026-08-01.** `cluster-api-structure` had a real step there (`discovery`), so at the poster position the card set two wire labels, lit two blocks and registered a packet, all under the panel text of the step AFTER it. The packet never even ran, because the poster position is entered reduced, so the only visible symptom was a diagram saying one thing while the panel said another. Nothing checks this: `smoke-all` walks the step, `check-reduced` compares it against itself, and both pass. If a slot-0 `enter()` is longer than the three-line prologue plus its chip resets, look at what it is putting on screen.
-6. **Every `enter()` repaints from scratch.** It opens with the same three lines: `s.refs.packetLayer.replaceChildren(); clearHL(s); clearWires(s);`. Then it sets all chip values, wire labels, `.highlight` classes, and **pins final opacities inline** (`s.refs.x.style.opacity = ...`) so a cancel mid-step lands on the right value, not the default. A card-local `clearHL(s)` delegates to `clearHighlights(s, [refKeys], [podGroups])`.
-7. **The reduced-motion split is the load-bearing line.** Everything **above** `if (ctx.reduced) return;` is the complete static end-state of the step; everything **below** is motion, and every animation goes through `ctx.register(...)`. Prev/reset replays steps with `ctx.reduced = true`, so they snap to that static state. Never animate state that is not also pinned statically above the guard.
-8. **Motion canon (all via the kit).** Only pods pulse (`pulsePod` / `pulsePodDim` for dim pods); infrastructure blocks light via `.highlight` and never pulse. **Nothing but a Pod blinks, and that is now measured, not assumed:** a probe walks every step's play path and asserts that each `filter: brightness(...)` animation targets an element inside a Pod (711 of them, all clean). The hand-rolled `flashBox` copies were removed in 2026-07 and `flashChips` lost every call site, because each one was blinking a value chip, which the rule forbids. `flashChips` itself is still exported by `scheme-kit.js` and still sits in the four kits' 30-name parity list with **zero callers**: do not call it, and do not drop the export without updating all four kits together, or `R-kitparity` fails. A packet-less, pod-less step carries its beat with `.highlight` instead. Packets: in-diagram hops use `segmentPacket` (linear), multi-point right-angle routes use `routePacket` / connector wrappers (eased, distance-normalized), top-row request/ack hops use `topPacket` (eased). Every packet returns `arrivalMs`; anchor pulses, next hops, and box-lights to `pkt.arrivalMs` + `BEAT.*`, never hard-coded delays.
-9. **Packet vs pulse ordering.** Up-arrow (pod to infra): `pulsePod(...,0)` first, packet leaves at `delay: BEAT.afterPulse`. Down-arrow (infra to pod): packet first, `pulsePod(..., pkt.arrivalMs)` on arrival. Chained hops: `delay: prevHop.arrivalMs + BEAT.afterHop`. A rewrite "inside" a box (DNAT, conntrack) hides the ball at one edge and re-emerges it at the far edge instead of sliding over the box.
-10. **Narration safe-zone.** Keep essential geometry out of the TOP-LEFT CORNER where the overlay sits, and read it as an **L**, not a box: the full width below the overlay's bottom is free, and so is the full height right of its right edge. The blanket `x<=380, y<=300` that used to stand here is **wrong and was never measured**: the panel reaches `x<=397`, and on the longest narration in the catalog it reaches `y<=504`. See "The narration panel is measured per card" below.
+Do not try to unify what varies: the kit and pod tint, the `role` passed to primitives, block size,
+geometry, step count, connector style.
 
-What **varies by card / category** (do not try to unify these):
+**`role` is a palette slot, not the card's category**: a workloads card writes `role: 'cluster'` on
+its kubelet box on purpose. **Pass it explicitly, always**, because the kit defaults it to nothing
+(`role || null`). A tinted dialog collapses most roles onto the one tint, so a wrong role is usually
+invisible, but `.scheme-packet` and `.scheme-ripple` hold literal colours and will show it.
+`check-palette` catches a role that resolves inconsistently, never a role that was the wrong one to
+ask for.
 
-- Which kit is imported, and the pod tint: workloads blue (`#5bb8ff`), cluster violet (`#c0b0ff`), network cyan (`#4fe5ff`), storage jade (`#5eca94`). Each kit owns its `*_TINT` and its own `pulsePod` / `pulsePodDim`; everything else is re-exported from `scheme-kit` through an explicit 30-name list that is duplicated in all four kits **on purpose**. Collapsing it into `export * from './scheme-kit.js'` would work (a local export shadows a star export) and save 28 lines, but it would erase the boundary this project relies on: the list is what documents what a kit offers, and a card must never reach past its kit. `R-kitparity` keeps the four lists from drifting apart, which was the only real argument for collapsing them. The pulse `base` must equal the pod's **resting** stroke, which is the CSS value before any pulse has run: measure it under `reducedMotion` or a forwards-filled pulse will make you read its own end state back.
-- The `role` passed to pods, boxes, chips, cylinders, arrows and packets (`'cluster' | 'workloads' | 'network' | 'storage'`), which lands on the element as `data-role`.
+## Motion and design canon
 
-  **`role` is a palette slot, not the card's category.** A workloads card writes `role: 'cluster'` on its kubelet box on purpose, to paint it in the control-plane colour. The chrome (card, section, nav button, dialog) uses `data-cat` for the real category; diagram elements use `data-role`. Two attributes, two namespaces, deliberately different names: they were both `data-cat` until the collision was split.
+- **Only Pods pulse.** Block auto-pulse is off catalog-wide (`autoPulse: false` is the `makeInit`
+  default). Infrastructure lights through `.highlight` or `lightBoxAt` and never pulses. Value chips
+  never flash. A packet-less, pod-less step carries its beat with `.highlight`.
+- **A Pod pulses with everything inside it.** The pulsed element is always the `g` holding the shell
+  AND its inner boxes. `pulsePod` finds targets with `querySelectorAll`, which matches descendants
+  only and never the element itself, so pulsing a bare `pod()` fires at half strength. The
+  `anim-dump` symptom is `strokeOpacity` rows with no `filter` row.
+- **Pulse uses `filter: brightness(...)`, never `transform: scale(...)`**: diagram elements carry a
+  `translate` a scale would compose-clobber. The pulse `base` must equal the Pod's RESTING stroke, so
+  measure it under `reducedMotion` or a forwards-filled pulse hands you its own end state.
+- **Packets animate `transform: translate(Xpx, Ypx)`** on a `cx=0, cy=0` circle, never SVG `cx`/`cy`.
+  Each packet must represent literal traffic the step narrates, not decoration on a connector.
+  In-diagram hops use `segmentPacket` (linear), right-angle routes `routePacket` (eased,
+  distance-normalized), top-row request/ack hops `topPacket` (eased). Routes take no explicit `dur`.
+- **Packet vs pulse ordering.** Up-arrow (Pod to infra): `pulsePod(..., 0)` first, packet leaves at
+  `BEAT.afterPulse`. Down-arrow: packet first, `pulsePod(..., pkt.arrivalMs)` on arrival. Chained
+  hops: `delay: prevHop.arrivalMs + BEAT.afterHop`. Never hard-code a delay. Dim Pods need an
+  opacity lift (`pulsePodDim`) or the blink is invisible against the 0.55 they sit at.
+- **Every ball rides a drawn wire, and return traffic gets its own lane** offset by `LANE_DY`. One
+  wire per destination. A return re-using the outbound arrow reads as the query bouncing, not as an
+  answer coming home.
+- **A wire nothing rides carries no arrowhead**, so use `relationPath({ points, d, role, dash })`
+  (`arrow()` always attaches a marker). **Which of the two a lane IS is decided by the step's own
+  words**: if a step NAMES something travelling that way it earns a ball, otherwise it is a
+  relationship. Do not read an arrow on one card and a relation line on the next as drift. Audit by
+  grepping `class: '...scheme-arrow`, not `arrow(`: a copy spelled with `line()` loses the dash and
+  the dim and draws brighter than the lanes that carry balls.
+- **A lane leaves the box that ACTS**, which on a control-plane card is almost never the leftmost
+  box. A controller writes to the API and stops there; what then happens on a Node is that write
+  taking effect, so the lane into the Node band leaves the API.
+- **A block that does not exist yet dims, its lanes pin to 0.** Cutting an absent block out leaves a
+  block-sized hole that reads as a rendering fault, so draw it dim with a sublabel saying so. A lane
+  leaves no hole and an arrow into nothing points at nothing. **A lane's shade is `min(source,
+  sink)`**, never one end alone, and Pod opacity and lane opacity are pinned in ONE helper
+  (`setLanes` / `setPods`): two independent assignments drift the moment a step is added.
+- **A lane carrying a ball must be visible during the flight**: pin its final value above the guard,
+  then animate `[{opacity:1},{opacity:0}]` with `fill: 'both'` and the same delay/duration as the
+  fade below it, so keyframe one holds through the delay window.
+- **Geometry changes are timing changes**, because `routeDur` is length-based. After ANY geometry
+  change re-run `anim-dump` on every step, not just the one you moved, and check that each step's
+  `span=` still fits its `duration`. Fix an overrun by raising `duration`, never by shortening
+  motion: the pace is `routeLength / 0.45` and a longer arrow takes longer on purpose. `routeDur`
+  clamps to `[700, 2600]` and most packets sit on the floor, so from 24 to 314 units it is flat.
+- **Fade phases.** Every opacity between 0 and 1 comes from `OPACITY` in `tokens.js`, so a shade
+  learned on one card reads correctly on the next. A bare `0` or `1` (drawn or not) is fine.
 
-  Note what `role` does and does not do. Inside a tinted dialog `styles.css` remaps all four category colour tokens to the one `--tint-base`, so any role that paints through a token resolves to the same colour, and every card is tinted. Roles still differ where the CSS pins a literal: `.scheme-packet` and `.scheme-ripple` hold `#abb0f5` (cluster) and `#4fe5ff` (network) on purpose, because the tint stop made the ball read washed out. Do not "fix" those into tokens.
+  | Token | Value | Means |
+  |---|---|---|
+  | `OPACITY.running` | 1.00 | in focus and working |
+  | `OPACITY.pending` | 0.55 | declared, not working yet |
+  | `OPACITY.notready` | 0.40 | alive but not serving, not observed, or outside this path |
+  | `OPACITY.terminating` | 0.25 | `deletionTimestamp` set, eviction or shutdown under way |
+  | `OPACITY.terminated` | 0.12 | gone from the API, or finished |
 
-  Pass `role` explicitly, always. Nothing in the kit defaults it to a category any more, and the reason is worth knowing: `valChip` and every packet wrapper used to default to `'cluster'`. On the chips (388 calls, 82 of them workloads) and on the packets that was invisible, because a tinted dialog collapses those onto one tint. On the **arrival ripple** it was not: `.scheme-ripple[data-role="cluster"]` carries a literal, so 20 workloads cards drew indigo ripples inside a blue card. All 388 chip calls and all 527 packet-wrapper calls now name their role, and the default is neutral (`role || null`, the shape `box` / `chip` / `chainList` always used), which resolves to the card's own tint.
+  A pulse peak is a motion magnitude (`PULSE_POD.dimPeak`) and a presentation shade belongs in CSS.
+  Neither is a phase, do not force them into the vocabulary.
 
-  `check-palette` cannot catch that class of bug, and it is worth understanding why before trusting it: `role` is part of its key, so `(workloads, .scheme-ripple, cluster, rest)` was perfectly self-consistent across all 20 cards. It catches a role that resolves inconsistently, not a role that is the wrong one to have asked for.
-- Block size. `storage-csi-architecture` sets the storage family's "server box" at `232 x 76` and `storage-volumeattachment` matches it; Pods are `226 x 110` (`storage-csi-attach-mount`). Where a Pod and a plain block stack on one centre line, give the block the Pod's width rather than the family width: a 6 unit difference is invisible between columns and reads as a rendering slip within one.
-- Diagram geometry, step count, and the connector style: a vertical down/up connector with `setConnectorDir` (workloads-probes), a top-row request/persist arrow strip (cluster-scheduler-decision), parallel forward/return flow lanes plus a right-angle fan (network-service-clusterip), or a centered vertical stack with a dim ownership spine plus L-shaped mount lanes into a `cylinder` disk (storage-volume-model).
+### Riding labels, `lightBoxAt` and `at`
 
-Pre-flight checklist before declaring a card done (these are the recurring mistakes the checks below catch):
+All three live in `scheme-kit.js` and are re-exported by every kit. **Never write a local copy.**
 
-- [ ] Every `enter()` opens with `replaceChildren` + `clearHL` + `clearWires`, and all per-step state is set above the `ctx.reduced` guard.
-- [ ] Every `enter()` repaints **every** chip, not only the ones this step talks about (see "Chips" below).
-- [ ] All motion is `ctx.register`-ed; nothing animates that is not also pinned statically.
-- [ ] No block or value chip pulses; only pods. Block flash only on a packet-less, pod-less step.
-- [ ] Pulse/packet ordering matches the up/down arrow rule, timed off `arrivalMs` + `BEAT.*`.
-- [ ] Every pulsed pod is a **wrapping `g`**, never a bare `pod()` (see "The `pulsePod` descendant trap" below).
-- [ ] Every ball rides a **drawn wire**, and return traffic has its **own** lane (see "Wires" below).
-- [ ] `anim-dump`'s `span=` for each step is **less than that step's `duration`** (see "Duration" below).
-- [ ] Pod tint base equals the resting stroke for the category (no settling on a paler color).
-- [ ] No apostrophes or semicolons in `narration` / `wire` / `chain` strings; no em-dashes anywhere.
-- [ ] A `ridingLabel` passes the **same easing** as the ball it rides (see "Riding labels" below).
-- [ ] Every shade between 0 and 1 comes from `OPACITY` (see "The fade-phase vocabulary" below).
-- [ ] `npm run gate` is green (run from `scheme/tools/`, needs a server at `http://localhost:8080`). It chains **thirteen** checks, stopping on the first failure: `check-canon` (source lint) then `check-notes` (every design note still points at code that exists) then `check-terms` (terminology and casing in prose, including every `aria-label`) then `check-inline` (casing AND component names of strings drawn on the diagram) then `check-labels` (one object, one label) then `check-figures` (numbers and addresses inside one card) then `smoke-all` (no console errors across all 108 cards, walked both statically and PLAYED so motion code actually runs) then `check-reduced` (the reduced-motion contract on every step) then `check-palette` (colour consistency, 1891 elements over 29 tuples) then `check-opacity` (the fade-phase vocabulary, measured in the browser) then `check-duration` (every step outlasts its own motion) then `check-chipfit` (no chip name overlaps its own value) then `check-geometry --rules=diagonal,through` (two of the six geometry rules; OFFEDGE is at zero and could be added, OCCLUDED **is not** and must not be, see below). The gate is cheap and baseline-free; the pixel/packet baseline tools were retired.
+- **`ridingLabel(s, ctx, txt, points, { delay, dur, easing })`** paints an address tag that travels
+  with the ball. Bind the card's constants once at module scope with
+  `makeRidingLabel({ role, dy, dx, easing, inMs, outMs, hold, emergeMode })`. **The easing and any
+  explicit `dur` must match the ball it rides** (`segmentPacket` is linear, routes are eased), or the
+  tag drifts off mid-flight and rejoins only at the endpoints and the midpoint, which no static
+  screenshot shows. Compare the two `easing` columns in `anim-dump`.
+- **`lightBoxAt(boxEl, ctx, delay)`** adds `.highlight` on packet ARRIVAL rather than at step entry.
+  **Whatever lights on arrival must also light on the reduced path**, so the class goes in the guard
+  body: `if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }` above,
+  `lightBoxAt(s.refs.api, ctx, pkt.arrivalMs)` below. **When a block dies mid-step, take its
+  highlight back in the fade's `onfinish`** rather than mirroring it onto the static path.
+- **`at(s, ctx, delay, fn)`** is the same shape for anything else deferred. Both are a 1ms animation
+  with an EMPTY keyframe list, and **it has to stay empty**: naming `opacity` composites the target
+  for the whole delay window, and on `at` the target is the SVG root, so every block fill visibly
+  shifts tone for the length of the ball's flight.
+
+### Layout and the narration panel
+
+- **The safe-zone is an L, not a forbidden box.** The overlay covers the top-left quadrant only, so
+  the usable area is the full width below its bottom PLUS the full height right of its right edge.
+  When a card feels cramped, check this first: the room is usually already there.
+- **The panel is measured per card, and never on one viewport.** Its RIGHT edge is `x<=397` on every
+  card, so nothing starts left of 420 unless it also sits below that card's panel bottom. Its BOTTOM
+  is per card and ranges 171 to 504, and it moves **non-monotonically**: the panel is HTML at a
+  fraction of the dialog width while the diagram scales with it, so a WIDER dialog gives a WIDER
+  panel that wraps into FEWER lines and is therefore SHORTER. Sample the whole viewport set.
+- **The panel bottom is often a CHARACTER BUDGET**, and on a tight card that number belongs in the
+  header comment. Editing prose for accuracy spends it silently and
+  `check-geometry --rules=occluded` will not tell you, because it scores occluded AREA and a 25 unit
+  strip off a 152 unit frame is under its bar. Re-measure with
+  `VW=1100 VH=800 node overlay-measure.mjs <id>` after any prose edit on such a card.
+- **That measurement lives in the header comment, not in a constant**: the reserved corner is a fact
+  about the panel, not an input to the layout. Do not re-add a `PANEL_R` nothing reads.
+- **Do not close a `CENTRE` finding by stretching a strip or widening a frame.** If a finding can
+  only be closed by making the picture worse, leave it open and write the reason into the card note.
+- **Never set `font-size` as a presentation attribute on a label**: specificity 0 loses to the
+  `.scheme-label.code` class rule, so the value never renders and a clearance budget sized off it is
+  wrong by 10 to 22 percent. If a label needs another size, add a class in `diagrams.css`. Nothing in
+  the gate measures wire-label width.
+
+### Chips
+
+- **Every `enter()` sets EVERY chip**, not only the ones the step narrates, through one
+  `setChips(s, {...})`. An unset chip keeps the previous step's value and silently lies. This is
+  review-enforced on purpose: a machine can test the convention, not whether a carried-over value is
+  still true.
+- **A chip always means what its name says.** If a step needs to report something else, that is a
+  second chip, not a reused one. Naming a chip for the thing it holds is also what stops it competing
+  with a riding tag for the same word on screen.
+- **A chip must not run ahead of the motion that produces its value.** Pin the end value above the
+  guard, then on the played path set the chip back to what the step STARTS from and turn it over on
+  `pkt.arrivalMs` through `at(...)`. Picking the beat is the whole job: what a component KNOWS moves
+  when the answer reaches it, what a component DID moves when the call lands, object state moves when
+  the write reaches whatever stores it. Where a step is a SEQUENCE, the chip steps through it.
+  **Doing this to one chip and not its neighbour is worse than doing it to neither.**
+- **`frame-strip` cannot see a deferred effect.** Seeking sets `currentTime` and never fires
+  `onfinish`, so every `at(...)` turnover, every `lightBoxAt` arrival class and every deferred
+  `setWire` is missing from its frames and the end frame shows the value the played path was ROLLED
+  BACK to. Do not read that as a chip stuck at its start value: `check-reduced` passing IS the proof
+  the turnover lands. Verify a turnover by sampling a real-time playthrough.
+
+## Posters
+
+- **A poster is one sentence, not a small diagram.** It renders about 200px wide, so a faithful
+  miniature is unreadable. Decide the sentence first, keep only the elements that carry it, and drop
+  the rest even when they are on the card. Give the brightest fill to the one element it is about.
+- viewBox `0 0 320 180`, `stroke="currentColor"`, fills as literal `rgba(255,255,255,...)`, **never**
+  `var(--token)`: SVG presentation attributes do not reliably resolve CSS variables.
+- **A poster is judged next to its siblings, not on its own.** Build a montage of the card plus two
+  neighbours at about 260% before deciding. Siblings are 76 to 80 unit blocks with fills between 0.03
+  and 0.10. Specks at 200px, a track dimmed below its siblings and a quarter of the canvas left as
+  empty air are all invisible on the file and obvious on the montage.
+- **Two house idioms.** The accent is a `rect` with `fill="currentColor"` at `opacity="0.9"` inside
+  the block it belongs to, with the losers carrying the same bar at 0.3, never a bright fill on a
+  whole shape. And **no poster uses an arrowhead**: direction comes from the composition being closed
+  or from a dashed leg.
+- A poster carries **no packet dot**: a ball frozen on a wire reads as a paused animation.
 
 ## Adding a scheme
 
-1. Create `js/schemes/<category>/<id>.js` following the contract (prefer composing `primitives.js` + the relevant kit).
-2. Add a `SCHEMES` entry in `js/schemes/<category>/cards.js` (`id`, `title`, `category`, `subcategory`, `desc`, `k8sVersion`, `tinted: true`, `sources`). The id MUST start with the category: it is the folder name. Target **410-460 characters, 3 sentences** (tolerance one sentence), hard range 400-470, catalog-wide. Enforced by `R-desc` in `check-canon`, so a desc outside 400-470 fails the gate. All 108 are inside it. The band was 400-420 until 2026-07-26 and that ceiling was actively harmful: it forced qualifying conditions out of sentences and was the direct cause of 29 technical defects, because cutting a condition leaves an absolute standing ("the Kubelet never creates it", "they all read ETCD"). If a sentence needs a condition to be true, spend the characters. The row still matters as a tiebreaker, because grid cards stretch to the tallest in their row.
-3. Add per-scheme idle art to the `POSTERS` map in `js/schemes/<category>/posters.js`. **A poster is one sentence, not a small diagram.** It renders about 200px wide on the grid, so a faithful miniature of the scheme is unreadable there: the `storage-volumeattachment` poster was first drawn as the whole card (controller, attacher, node frame, seven lanes, ~19 shapes), every part accurate and none of it legible, and was cut to ~10 shapes carrying one claim. Decide the sentence first, keep only the elements that carry it, and drop the rest even when they are on the card. Give the single brightest fill to the one element the sentence is about (there, the `status.attached` cell) so the eye lands on the idea rather than on the topology. Poster viewBox is `0 0 320 180`, `stroke="currentColor"`, fills as literal `rgba(255,255,255,...)`, never `var(--token)`.
-4. Put the card's design record in `scheme/docs/CARDS-<category>.md` under `## <id>`, and leave a single
-   pointer comment under the card's imports. Anything longer than two comment lines goes there, not
-   into the card. See "Where card notes live".
+1. Create `js/schemes/<category>/<id>.js` following the contract, composing `primitives.js` plus the
+   category kit.
+2. Add the `SCHEMES` entry in that folder's `cards.js`. The id MUST start with the category, which is
+   the folder name. Target **410-460 characters, 3 sentences**; `R-desc` fails the gate outside
+   400-470. **If a sentence needs a condition to be true, spend the characters**: cutting a condition
+   to fit a band leaves a true sentence standing as a false absolute.
+3. Add the poster to that folder's `posters.js` (see "Posters").
+4. Put the design record in `js/schemes/<category>/CARDS.md` under `## <id>` and leave a single pointer
+   comment under the card's imports (see "Where the record lives").
 5. Add a `<url>` to the repo-root `sitemap.xml` if it should be deep-linkable.
 
-## URL routing and keyboard
+## Where the record lives, and how long a comment may be
 
-- `#scheme=<id>` opens that scheme's dialog on load or via direct link.
-- Browser back closes the dialog; closing the dialog clears the hash.
-- Search filters cards by `title + desc + category`, debounced 80ms.
-- Inside an open dialog: `Space` play/pause, `<-` / `->` prev / next, `R` reset, `Esc` close.
+**A card file carries code, not prose. A comment is at most TWO lines.** It says WHAT the line beside
+it does or where a number came from. It does not describe a problem, does not reference a past
+defect, carries no date, and does not explain why an earlier version was different. Anything longer
+is not a comment:
 
-## Poster-first model
+| Material | Home |
+|---|---|
+| a rule true of one category | that folder's `CLAUDE.md` |
+| a rule true of two or more categories | this file, and the folder points at it |
+| a measurement, a rejected alternative with the number that kills it, a `DO NOT` with the defect it prevents | that card's section in `js/schemes/<category>/CARDS.md` |
+| how a number was derived, in two lines | a trailing comment on the constant |
+| history: dates, "used to", reverted decisions, review vocabulary | deleted |
 
-Idle = static poster, a deliberate beat before anything moves so a reader can take in the whole diagram. After ~1s the card auto-plays step 1 via the cancellable `Timeline.autoPlay` (replaces raw `setTimeout`). The poster previews step 1's **text** immediately (animation is delayed, text is not). `Next` from the last step wraps to poster, then step 1. The overlay starts `is-poster` to kill the open-flash. The `posterFirst` flag is on all 108 cards. Tools read total via `__schemeCtl.total`.
-
-## Motion and design canon (load-bearing)
-
-- **Pulse rule**: block auto-pulse is OFF for every card (`autoPulse: false` is the `makeInit` default in `scheme-kit.js`). Only pods pulse, via `pulsePod`. Nothing else blinks at all: `pulseActiveBlocks` and the local `flashBox` copies are deleted, and `flashChips` survives as an uncalled export (see "Motion canon" above). If a card draws a Pod's containers, it must also draw the Pod shell around them, or there is nothing for the pulse to belong to (`workloads-init-containers-and-sidecars` pulsed four bare boxes until it got one).
-- **Pulse helper uses `filter: brightness(...)`**, NOT `transform: scale(...)`, because diagram elements are `<g transform="translate(...)">` and a scale would compose-clobber the existing translate.
-- **Packets use WAAPI `transform: translate(Xpx, Ypx)`** on a `cx=0, cy=0` circle. Never animate SVG `cx`/`cy` directly (Safari support is uneven). Each packet must represent literal traffic the step narrates, not decoration on a connector.
-- **Packet vs pod-pulse ordering**: up-arrow = pod blinks FIRST, packet at `BEAT.afterPulse`; down-arrow = packet first, pulse at `pkt.arrivalMs`; chained hops via `arrivalMs` + `BEAT.afterHop`. Dim pods need an opacity flash so the blink is visible.
-- **Motion canon**: routes glide at `routeDur` speed (`PKT_SPEED` 0.45, no explicit dur); hops = `topPacket` (eased) + `segmentPacket` (linear); ripple always (no flag); wrappers return `arrivalMs`; `BEAT`/`FADE` tokens; the ball-on-top exception is kept for 3 control-plane flow cards.
-- **Narration safe-zone**: keep essential scheme content out of the viewBox top-left corner where the overlay sits, and read it as an **L**. The panel's real extent is `x<=397` on every card, and its bottom is per card, from 171 to 504. Measure, do not assume: see "The narration panel is measured per card".
-- **Fade phases**: every opacity between 0 and 1 comes from `OPACITY` in `tokens.js`, five shades, one per lifecycle phase. `check-opacity` enforces it in the browser.
-- **Posters use literal hex colors**, not `var(--token)`. SVG presentation attributes do not reliably resolve CSS variables in some browsers.
-- **A poster is judged next to its siblings, not on its own.** Build a montage before deciding: `article.card[data-id="..."] .card-poster` screenshotted for the card plus two neighbours, tiled at about 260%. The `cluster-kubelet-sync-loop` poster was rebuilt on 2026-08-03 to an approved concept and still came out wrong, and all three faults were invisible on the file and obvious on the montage: 14 unit marks that are specks at the 200px the grid actually renders, a track dimmed to `opacity="0.45"` where every sibling carries its outline at full strength, and 240 x 116 of empty air where every sibling carries mass. Siblings are built from 76 to 80 unit blocks with fills between 0.03 and 0.10.
-- **Two house idioms that are not obvious from reading one poster.** The accent is not a bright fill on a shape, it is a `rect` with `fill="currentColor"` at `opacity="0.9"`, sitting inside the block it belongs to, with the losers carrying the same bar at 0.3 (`cluster-scheduler-decision` is the exemplar and reads best on any montage for exactly that reason). And **no poster in the catalog uses an arrowhead**: grep for a closing `Z"` and you get nothing. Direction, where a poster needs it, comes from the composition being closed or from a dashed leg, never from a triangle.
-
-### Riding labels and `lightBoxAt` (networking + storage cards)
-
-Both live in `scheme-kit.js` now and are re-exported by every category kit. `lightBoxAt` had 52 byte-identical copies, so there was never anything per-card about it. `ridingLabel` had 51 copies differing along nine axes (`dy` -14/-15/-16, palette role, default easing, fade-in 140/150/160, fade-out 170/180/200, the hold before the fade-out, an `emerge` variant for balls that appear from inside a box, `dx`, and whether `dur` was required), which is why it became a **factory** rather than a function: a card binds its constants once at module scope and its call sites stay unchanged.
+Card-scoped notes (posters included, since `POSTERS` is keyed by card id) go to that category's
+`CARDS.md`, keyed by card id. Notes on everything else go to `scheme/INTERNALS.md` under a
+`## <file path>` heading. Each card links to its section with one pointer under its imports:
 
 ```js
-const ridingLabel = makeRidingLabel({ role: 'storage' });                                  // the common case
-const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 0 });
+// Design notes for this card: ./CARDS.md#storage-multi-attach-error
 ```
 
-Nine distinct bindings cover all 51 cards.
-
-- **`ridingLabel(s, ctx, txt, points, { delay, dur, easing })`** paints an address tag that travels along with the ball instead of sitting as static wire text, so the packet visibly carries `dst 10.96.0.10:80` in and `src 10.244.2.7` back out (in storage it rides the mount lane carrying `mount /data`, `write`, `read`). It lives in the packet layer but is **not** a `.scheme-packet`, so the tools do not count it as a packet. 51 cards use it (31 storage, 20 networking).
-
-  **The easing must match the ball it rides.** `segmentPacket` is `linear`; `routePacket` and the connector wrappers are eased. `animateAlong` defaults to `ease-in-out`, so a label riding a **linear** hop must pass `easing: 'linear'` explicitly. Get this wrong and the tag drifts off the ball mid-flight, rejoining it only at the endpoints and the midpoint, which is exactly why a static screenshot will not catch it. Confirm with `anim-dump` and compare the ball's and the label's `easing` column, not with frames.
-
-  Whenever a ball uses an explicit `dur`, its riding label must be passed the **same** `dur` or the two desync the same way.
-
-- **`makeRidingLabel({ role, dy, dx, easing, inMs, outMs, hold, emergeMode })`** returns the card's `ridingLabel`. It pins the tag at the route START before animating: without that the tag sits at the SVG origin until `animateAlong`'s delay elapses, so its fade-in plays in the top-left corner under the narration panel. 13 networking cards shipped that way and were fixed by the unification. Confirm with `anim-dump`: the tag's `transform` row must sample the route start at 0%, never `t(0,0)`.
-
-- **`lightBoxAt(boxEl, ctx, delay)`** adds `.highlight` to an infrastructure box **on packet arrival** (`pkt.arrivalMs`) rather than at step entry, via a **1ms animation with an EMPTY keyframe list** whose `onfinish` sets the class. Under `ctx.reduced` (or `delay <= 0`) it applies the class immediately, which keeps the reduced-motion static end-state correct. 367 calls across the catalog, all **imported from the category kit**. It is how a box (or a storage cylinder) "receives" a packet without pulsing, honoring the rule that only Pods pulse. The R3 queue that this closed went 101 findings in 41 cards down to 1, and the survivor is correct (an enclosing directory block whose rows light on arrival). A lit block that is itself the packet SOURCE is correct and stays lit at entry; a destination that is a Pod pulses rather than lights.
-
-  **Whatever lights on arrival must also light on the reduced path**, or prev/reset shows a different picture than playing forward. The canonical shape puts the class in the guard body: `if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }` above, `lightBoxAt(s.refs.api, ctx, pkt.arrivalMs)` below.
-
-  This used to be review-only ("no check sees this"). It is machine-checked since 2026-07-28: `check-reduced`'s `HIGHLIGHT` rule diffs the CLASS sets, not just the opacities, and its queue drained to zero on 2026-07-29. Two things it still cannot tell you, so they stay on the reader: a class that both paths carry equally is invisible to it (that is how five networking cards kept a Pod inner box lit for the rest of the card, see `clearHighlights` in `docs/INTERNALS.md`), and a highlight is only wrong at the terminated shade if you know the block is gone, which is `check-opacity`'s `LIT` and reads inline style on the played path alone. **When a block dies mid-step, take its highlight back in the fade's `onfinish`** rather than mirroring it onto the static path: `removeAt` in `storage-reclaim-policy` and `vanishAt` in `storage-pvc-retention-policy` are the shape to copy.
-
-`ridingLabel` is the reason `check-canon`'s `ALLOW_EXPLICIT_DUR` allowlist exists: 4 of its 5 entries deliberately slow a route so the tag stays legible. When adding a card that slows a route, add a `<file>.js:routePacket` entry there with the reason, or the lint fails.
-
-### The fade-phase vocabulary (`OPACITY` in `tokens.js`)
-
-Five shades, one per lifecycle phase, catalog-wide. A card writes a bare `0` or `1` (an element is
-drawn or it is not) and takes **every shade in between** from here, so a reader who learns a shade
-on one card reads it correctly on the next.
-
-| Token | Value | Means |
-|---|---|---|
-| `OPACITY.running` | 1.00 | in focus and working |
-| `OPACITY.pending` | 0.55 | declared, not working yet |
-| `OPACITY.notready` | 0.40 | alive but not serving, not observed, or outside this path |
-| `OPACITY.terminating` | 0.25 | `deletionTimestamp` set, eviction or shutdown under way |
-| `OPACITY.terminated` | 0.12 | gone from the API, or finished |
-
-What it replaced, and why the rule is worth keeping: `GONE` meant 0.1, 0.12, 0.15 AND 0.35 in
-different cards; `DIM` meant 0.4, 0.45, 0.5, 0.6 and 0.75; `workloads-force-deletion` held five
-different phases on one 0.5, and `storage-volumeattachment` used one constant for both "not created
-yet" and "already deleted". Enforced by `R-opacity` (source) and `check-opacity` (browser).
-
-**What is NOT a phase and must not be forced into the vocabulary:** a pulse peak is a motion
-magnitude and lives in `PULSE_POD.dimPeak`; presentation shades (a texture fill, a chip's second
-line) belong in CSS or in a palette token. Both were moved out rather than renamed.
-
-### Category layout canons
-
-Three of the four categories have a layout grammar of their own, and each lives with its cards:
-
-- **Workloads** `WL`, the shared X grammar of all 19 cards, with the A/B/C column choice:
-  `js/schemes/workloads/CLAUDE.md`.
-- **Storage** the vertical stack (Pod over cylinder, dim identity spine, L-shaped mount lanes):
-  `js/schemes/storage/CLAUDE.md`.
-- **Cluster** the Node frame family geometry (`POD_Y = NODE_Y + 34`, `POD_H = 106`,
-  `NODE_H = 152`), which applies to any card drawing Pods inside a `node()` frame regardless of
-  category: `js/schemes/cluster/CLAUDE.md`.
-
-**Do not close a `CENTRE` finding by stretching a strip or widening a frame.** The pass that tried
-it produced 79 chip collisions and went green on a drawing the author rejected. If a finding can
-only be closed by making the picture worse, leave it open and write the reason into the card's
-note. Four in the catalog are left that way.
-
-### Recurring traps (each of these shipped in more than one card)
-
-None of these are caught by the gate. All of them were found by `anim-dump` or by looking at a rendered frame, never by reading the source, which is why they survived review.
-
-**A green rule is not a looked-at card.** In 2026-07 an R5 pass relaid 35 cards to zero findings in `check-geometry` and reported them done on that basis, having actually looked at six rendered frames out of thirty five. All three regressions the author found were invisible to the rules: value chips whose name overlapped their value (79 of them), a composition pushed to the right, and a lane ending in empty space. `CENTRE` measures the bounding box of blocks, and a full-width Node frame dominates that box no matter where everything else sits, so the rule passes while the drawing is unbalanced. **Look at every card you touched, not a sample.**
-
-All three were repaired later the same day, and the repair produced a fourth defect of the same family (taps that outlived their Pods on five cards), which again only a render showed. The rule that came out of it: **a card is done when someone has opened its rendered frames, not when the tool is quiet.** The whole R5 queue across all four categories was closed on that basis, 38 cards, every one looked at.
-
-**The `pulsePod` descendant trap.** `pulsePod` finds its targets with `podEl.querySelectorAll('.scheme-pod, .scheme-box')`, and `querySelectorAll` matches **descendants only, never the element itself**. So a pod passed in as a bare `pod()` element matches its own `.scheme-pod-rect` child (the stroke half of the pulse) but never itself (the brightness half), and the pulse silently fires at half strength. Same bug if the inner box is appended to the root as a *sibling* of the shell instead of into the group. Always wrap: `const g = g({}); g.appendChild(shell); g.appendChild(innerBox);` and pulse the group. Symptom in `anim-dump`: the pod has `strokeOpacity` rows but no `filter` row.
-
-**And "wrap" DOES mean "wrap everything" (author decision, 2026-07-29).** The rule is one sentence: **a Pod pulses, and everything drawn inside that Pod pulses with it.** There is no limit on how many blocks a Pod may hold and no limit on how many Pods a card may pulse at once. So the pulsed element is always the group holding the shell AND its inner boxes, never the shell alone.
-
-This **reverses** the decision of 2026-07-16 (which had been stated on `storage-emptydir`), where the shell pulsed by itself and inner blocks took a static `.highlight`. That rule was implemented by wrapping the shell alone so `pulsePod` could not reach the inner boxes, and it is now gone: nine cards were brought back in line, five that pulsed a `shellWrap` (`storage-emptydir`, `storage-hostpath`, `storage-volume-model`, `storage-configmap-secret-mount`, `storage-container-filesystem`) and three that drew the inner blocks OUTSIDE the Pod group entirely (`network-dns-coredns` with its three plugin boxes, `network-namespaces`, `network-pod-localhost`). `shellWrap` survives in those five as a handle for code that genuinely wants the shell alone, but the pulse is not that code.
-
-Note what this does NOT change: the bare-`pod()` case above is still a real half-strength bug, and the fix is still to wrap. Note also that `network-dns-coredns` no longer has a special defence: it was filed as a defect twice, defended on the 2026-07-16 decision, and under the current rule those filings were right.
-
-The list of violations is measurable rather than readable, because whether a block sits inside a Pod is a fact about the drawing and not about the source: enter every step, find the elements carrying a `filter: brightness` animation, and look for a `.scheme-box` whose rectangle lies inside a pulsing `.scheme-pod` without pulsing itself. One caveat if you rebuild that probe: `cluster-pod-priority-preemption` draws `Pod A` and `Pod NEW` in the SAME slot, so a purely geometric test reports each one's box as an unpulsed block of the other. That pair is a false positive, not a tenth card.
-
-**Every ball rides a drawn wire, and return traffic gets its own lane.** Two separate failures, both common:
-- A ball animated to a target that has no wire under it. It flies over blank canvas. Draw one wire per destination: if a step can send a ball to any of N blocks, draw N wires. Build the wire and the ball from the **same points array** so they cannot drift.
-- A return ball re-using the outbound arrow. It reads as the query bouncing, not as an answer coming home. Give each direction of each hop its own lane, offset by `LANE_DY` (12) around the flow line. Bit `network-dns-records`, `network-nodelocal-dnscache` and `network-headless-service`.
-- **A return the narration promises and the motion never delivers.** The words say the eviction is granted with a 200 OK, the plugin returns the result, the runtime returns a container id, the Follower acks: and nothing comes back. Where the answer lane is already drawn this is a two-line fix (`cluster-node-drain`, `cluster-pod-sandbox-cri`, `workloads-init-containers-and-sidecars`, all closed 2026-07-30), and the ball goes out at `pkt.arrivalMs + BEAT.afterHop`. **Adding it usually flips the sender into a receiver**, so the box that was lit at step entry has to go dark and light on the report instead, or `check-arrival` R3 fires: that happened immediately on `workloads-init-containers-and-sidecars` and is the same repair family E made 65 times. Where no answer lane exists yet, drawing one is a geometry change on the card's main lane and therefore a timing change too, and all six such cards were closed on 2026-07-30: `cluster-etcd-raft` is the one to copy, because Raft is nothing but answers and not one was drawn (two of its five steps animated nothing at all, which no check can see: `check-duration` asks only whether a step outlasts its own motion, and a step without motion passes trivially). The construction is that every exchange becomes a PAIR, requests `LANE_DY` above the row centre and answers the same distance below, mirrored on each face so no endpoint stands alone and OFFEDGE stays quiet. The others are `cluster-kubelet-sync-loop/status`, `network-ebpf-dataplane/connect-time`, `network-tls-termination/handshake` and `network-dns-records` (four record steps whose answers were absorbed into the ladder and never reached the client that each one says receives them). Two were declined: `cluster-oom-kill/observe` promises a PATCH to an API block the card does not draw, and `storage-volume-attach-limits/filter` had its pair built and reverted, because `docs/CARDS-storage.md` records the work of collapsing CSINode onto ONE vertical axis and a pair is by definition two.
-
-A static wire with **no** ball is fine (it is a relationship, not a route), but then it must have **no arrowhead** either, or it reads as traffic. `arrow()` always attaches a marker, so draw those as a bare dashed `path` or `line` carrying `class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim scheme-arrow-<role>'` plus `stroke-dasharray: '5 5'` and `fill: 'none'` (see the Service-to-CoreDNS line in `network-headless-service`). **Use `relationPath({ points, d, role, dash })` from your category kit.** It was added to `scheme-kit.js` on 2026-07-27 to retire 28 hand-rolled copies of that class string spread over 26 cards, and the copies had already drifted: five omitted the `scheme-arrow-<role>` suffix (which drops the stroke to a fallback colour), four omitted the dasharray, and three used `'4 6'` or `'4 4'` where the rest use `'5 5'`. Those values were carried across as they render rather than normalised, because normalising them would have been an undeclared visual change to 28 lines in one pass. Pass `points` (the same array the ball uses, so the two cannot drift); `d` is the escape hatch for the three cards that build a multi-subpath spine by hand. The one line deliberately NOT converted is `network-model`'s `podWire`, which wears the same class string but carries `marker-start` and `marker-end` and is animated as live traffic: it is a route, not a relationship. `network-hostnetwork-hostport` shipped an `arrow()` here whose lane no ball ever rode, on every step, until 2026-07-27.
-
-**That retirement had a blind spot, and it is worth knowing before you trust the count.** The 28 copies were found by looking for `arrow()`, so every copy spelled with `line()` survived it, and a `line()` copy is the worse of the two: it takes the class string verbatim, so it is the one that ends up with no dash, no dim and no relation class at all, drawing SOLIDER and brighter than the lanes that actually carry balls, and in front of them rather than behind. Five such lines were still live on 2026-08-01. Two were closed that day (the three cylinder-to-chip bindings of `cluster-etcd-raft` had already gone the same way, and `cluster-architecture`'s Kubelet-to-Runtime and Kubelet-to-kube-proxy pair followed). `cluster-architecture`'s Kubelet-to-Runtime line has since gone the other way again and is a ROUTE with a ball as of 2026-08-05, because the step names the CRI call: see the trap two paragraphs down. **Three are still open, all in storage**: `boundLink` in `storage-dynamic-provisioning`, and `delBound` / `retBound` in `storage-reclaim-policy`. Grep for `class: '...scheme-arrow` rather than for `arrow(` when you next check.
-
-**A lane leaves the box that ACTS, and on a control-plane card that is almost never the leftmost box.** A controller, kubectl or the Scheduler writes to the API and stops there; what then happens on a Node is the API's write taking effect, so the lane into the Node band leaves the API. `workloads-force-deletion` says it in one line ("Both node-band actions leave the API box") and is the shape to copy. Seven cards had the trunk hanging off the wrong box until 2026-07-30 and the list is under `LANE_DY` in `docs/INTERNALS.md`. Two traps came with it: a card whose actor box is DERIVED from the spine constant (`cluster-node-drain` sets `KUBECTL_X = SPINE_X - BOX_W / 2`) needs a new constant rather than a redefinition, and where two different actors reach the same slot you draw two lanes sharing the drop rather than picking a winner (`cluster-pod-priority-preemption`). **Every one of these is a timing change**: moving a start point 300-400 units right added 250-870ms per ball and put 11 steps over their `duration`, all caught by `check-duration` and none visible in the source.
-
-**Which of the two a lane IS gets decided by the step's own words, not by taste.** If a step NAMES something travelling that way, the lane earns a ball. If no step on the card ever does, it is a relationship and goes through `relationPath`. Do not read an arrow on one card and a relation line on the next as drift: the difference is the content. That rule split the workloads answer lane (`RESP_Y`, drawn on 17 cards and ridden on 6) six ways to five on 2026-07-30, and the per-card split with its evidence is under `LANE_DY` in `docs/INTERNALS.md`. **Two lanes that look alike on one card and mean different things is the version of this that hurts most**, because neither the reader nor any check can tell them apart: `network-headless-service` drew its endpoint fan and its data fan as the same dashed arrow, and the comment above them said both carried balls when only one did. The endpoint fan is now a `relationPath`, which also fixed a direction the arrowhead had backwards. Adding the ball is the expensive half: a top-row hop costs about 800ms (the 60 unit gap sits on the `PKT_DUR_MIN` floor of 700, plus `BEAT.afterHop`), so `duration` usually has to rise, and the receiving box stops being lit at entry because it has become a receiver.
-
-**A block that does not exist yet dims, its lanes disappear.** Two different answers for two different shapes. Removing an absent BLOCK leaves a block-sized hole in its row, which reads as a rendering fault rather than as an absence, so draw it at a placeholder dim (0.45) with a sublabel stating it is not there yet, and bring it to full when it is created. Its LANES are the opposite: an arrow into an object that does not exist points at nothing, and unlike the box it leaves no hole when it goes, so pin lanes to 0. `storage-volumeattachment` pins the two on separate axes for exactly this reason. The same dim doubles as the terminal state after a delete.
-
-**This is catalog-wide, not a storage note, and the trunk-plus-bus shape re-creates it one layer down.** The 2026-07-27 R5-a pass replaced "one spine that stops on the Node frame edge" with "a trunk to a horizontal bus, then one tap down into each Pod", which fixed the lane-into-nothing defect and immediately reproduced it on five cards, because the taps outlived their Pods: `cluster-node-drain` ended its last step drawing two arrowheads into an empty Node frame. Three rules, in order:
-
-1. Pin Pod opacity and lane opacity in **one** helper (`setLanes` / `setPods`, or an `idx === SLOT_N` branch inside the card's existing `setPod`). Two independent assignments drift the moment a step is added. **A lane's shade is `min(source, sink)`**, never one end alone: an ownership lane derived from its claim kept pointing out of a Pod that was a ghost at 0.12, and a fan derived from nothing at all kept arriving at a Node the step had taken out of the path. Nine cards were on the wrong side of this until 2026-07-30 (review stage 2.4 family J, listed under `OPACITY` in `docs/INTERNALS.md`).
-2. **Split the bus.** Hiding only the tap leaves the bus running on to a slot with nothing under it, so cut it at the centre slot and give each half the opacity of the ordinal it reaches.
-3. A lane that CARRIES a ball this step must be visible during the flight: pin its final value above the `ctx.reduced` guard and animate `[{opacity:1},{opacity:0}]` with `fill: 'both'` and the same `delay`/`duration` as the Pod fade below it. `fill: 'both'` holds keyframe one through the delay window, so the lane is on screen while the ball rides it.
-
-Nothing in the gate sees any of this: `check-geometry` scores where a lane ENDS, not whether anything is drawn there. Only a render shows it.
-
-**On the four cluster Node cards the fan itself was withdrawn on 2026-08-03, by author decision, and the whole problem above went with it.** A lane that crosses the Node frame and picks one Pod out of the row reads as plumbing rather than as the thing the step narrates, so `cluster-node-drain`, `cluster-node-pressure-eviction` and `cluster-graceful-node-shutdown` now draw ONE lane that stops on the Node frame **top face midpoint**, and WHICH Pod reacts is carried by the pulse. This is not a reversal of the rule above, it removes the shape the rule exists to police: a lane that ends on a frame which is on screen for the whole card can never outlive what it points at, so `setLanes` / `setPods` stop pinning lane opacity entirely and rule 3 has nothing to hold.
-
-Two things bite when you do this conversion, both paid for on all three cards:
-
-- **The lane must leave the actor box on ITS face midpoint and land on the frame midpoint, and those are usually not the same x.** A Node frame spanning `60..1140` has its midpoint on 600, so the actor above it has to be centred on 600 too or the lane leaves off-centre and OFFEDGE fires. Where the actor's x DERIVES from a spine constant (`KUBE_X = SPINE_X - BOX_W / 2`, on three of these cards) you move the spine to `CX` and the whole top row moves with it. Check the moved row still clears the panel at `x<=397`.
-- **It is a timing change.** Straightening the lane shortened it by 200 to 400 units on every card, which took spans down by 400 to 900ms and left steps sitting on dead air. Whether you then cut `duration` depends on what that card's durations are FOR: on `cluster-node-drain` they track motion and were cut, on `cluster-node-pressure-eviction` three of five steps animate nothing at all and the durations are reading time, so they were left alone deliberately. Decide which, and write down which.
-
-**A lane with no ball passes every check there is, so nothing will tell you the picture stopped matching the words.** `cluster-architecture` said "the Kubelet drives the Runtime over CRI" in its narration AND its `aria-label`, drew the lane as a `relationPath`, and lit the Runtime at `toKubelet.arrivalMs`: measured, the Kubelet and the Runtime both lit at 1227ms, so the drawing said the API lit them both while the words said the Kubelet drove one. `check-duration` only asks whether a step outlasts its own motion and a step passes trivially for the motion it never has; `check-arrival` R3 only scores blocks that RECEIVE a packet. Converting a relation to a route costs a direction check too: those points ran Runtime to Kubelet, the reverse of the sentence, which no arrowhead had ever revealed because a relation has none. **When a step names traffic, dump the step and read which element lights at which millisecond**, not which lanes exist.
-
-**Widening a layout lengthens its routes, which changes its durations.** `routeDur` is length-based, so a composition change is silently also a timing change: re-widening `storage-volumeattachment` took one route from 152 to 952 units, 340ms to 2116ms, and pushed two step spans past their `duration` where the auto-advance would have cut the packet off mid-flight. After ANY geometry change, re-run `anim-dump` on every step, not just the one you moved.
-
-**A step's `duration` must outlast its own motion.** `anim-dump` prints `span=<ms>` per step: that is when the last animation of the step finishes, pulses included. If `span > duration`, auto-advance cuts the step off mid-flight and the card silently under-shows what it narrates (a four-query walk that only ever plays two). Check every step, not just the one you edited: adding a pulse-on-arrival to the last hop pushes `span` out by `PULSE_POD.ms` (900).
-
-This sat in the checklist unmeasured until 2026-07-26, when a sweep found **78 steps across 37 cards** already over budget, the worst at 5220ms against 3600ms. All were fixed by raising `duration`, never by shortening motion: the ball's pace is `routeLength / 0.45`, so a longer arrow takes longer on purpose, and speeding one up to fit a budget would break that. The catalog is at 0 today.
-
-**The pace is only proportional in the middle of its range**, and that is worth knowing before tuning anything: `routeDur` clamps to `[700, 2600]`, and 443 of the catalog's 617 packets sit on the 700ms floor with route lengths from 24 to 314 units. A 24-unit hop and a 314-unit hop therefore take the same time. The floor exists because 24 units at 0.45 is 53ms, which is invisible, so it cannot simply be removed.
-
-**Chips.** Two rules, both about not lying to the reader:
-- Every `enter()` must set **every** chip, not only the ones the step narrates. This one is review-enforced on purpose: a check for it was written in 2026-07-26 and **deleted**, because it cannot tell its true positives from its false ones. It reported 132 steps, and the first checked by hand was correct behaviour (`cluster-admission-webhooks` leaves `objChip` alone on four steps because the object really does stay as the mutating stage left it). A machine can test the coding convention, not whether a carried-over value is still true, and the second is the thing that matters. A chip left unset keeps the previous step's value, which is how a card came to display `conntrack: no entry` on the exact step where it opens a DNAT-ed connection. Give the card one `setChips(s, {...})` helper that writes all of them, and call it from every step.
-- **Matching the narration is a PROXY for being true, and the two come apart.** Review stage 2.4 compares each step's motion against its `narration`, and that is the right yardstick because the prose was fact-checked in four waves. It is still only a yardstick: a sentence can be silent about something real, and a sentence can be loose. Two failure modes, both paid for on 2026-07-30:
-  - **Fitting the picture to a silence.** Five workloads cards had their answer lane demoted to a `relationPath` because no step names anything coming back, yet those controllers really do receive watch events. Defensible, and recorded, but it is the picture being trimmed to the words rather than to the mechanism. Check the `aria-label` too before demoting a lane: it is a separate carrier of the same fact and it often says what the steps left out.
-  - **Fitting a technical claim to one loose phrase.** `network-kube-proxy-modes/scale` says "the only real difference is the lookup", which is about lookup COST. Read as licence, it produced a chip claiming backend selection is `same in both` on a card that spends two earlier steps establishing `statistic random` against a `scheduler rr / lc`, and whose narration names round-robin and least-connection outright. One commit shipped with the card contradicting itself.
-
-  So: **any edit that changes or adds a technical claim gets the internal-contradiction check before it lands.** Grep the claim's keywords across the whole card file and read what its other steps, its chips, its block labels and its `aria-label` already assert. That technique found more than half of every defect in this project's history and it needs no network. Matching one sentence is not the test; not disagreeing with the other twenty carriers is.
-- A chip must always mean what its name says. A chip labelled `DNS answer` showing `connect 10.244.3.4 direct` is not a DNS answer. If a step needs to report something else, that is a second chip, not a reused one. Four cards were carrying an answer to a question they had not been asked until 2026-07-30: a `naming` chip reporting a retention fact, an `on delete` chip blending the policy with its consequence, a `PVC` chip saying the claim `detached` when it is the disk that detaches, and a `backing` chip naming the reclaim policy instead of the backing. A chip named for the thing it holds is also what stops it competing with a riding tag: `network-service-clusterip` had a chip called `dst` showing the dialed address while a tag beside it rode `dst 10.244.2.7:8080`, two answers to one word on screen at once, and renaming the chip `clusterIP` settled it without touching a single frame of motion.
-- **`frame-strip` cannot see a deferred effect, and the frames will look like a defect that is not there.** Seeking sets `currentTime` and never fires `onfinish`, and `finish()` does not help because a paused animation never enters the finished play state (the reasoning is written out in `check-reduced.mjs`, which works around it by capturing the handlers before the seek and replaying the ones the seek went past). `frame-strip` has no such workaround, so **every `at(...)` chip turnover, every `lightBoxAt` arrival class and every deferred `setWire` is missing from its frames.** The end frame of a step therefore shows the value the played path was ROLLED BACK to, not the value it turns over to. Confirmed 2026-07-30 on `storage-pvc-binding/match`, whose three wire verdicts have been correct for a week and render blank. Do not read that as a chip stuck at its start value: `check-reduced` passing IS the proof the turnover lands, because it is the only tool that replays the handlers. This nearly produced a false defect report against a correct fix, and would have produced a "fix" that broke a working card.
-
-- **A chip must not run ahead of the motion that produces its value.** The reduced contract wants the final value pinned above the guard, which is easy to satisfy by writing it once and letting the played path show the answer seconds before the ball that earns it. The shape to copy is `network-dns-ndots`: pin the end value above the guard, then on the played path set the chip back to what the step STARTS from and turn it over on `pkt.arrivalMs` through `at(s, ctx, delay, fn)` (a 1ms animation with an EMPTY keyframe list, carrying an `onfinish`). **The keyframe list has to stay empty, on `at` and on `lightBoxAt` alike**: a timer that names `opacity` gets its target composited for the whole delay window, which on `at` is the SVG root and therefore the whole diagram, and the block fills visibly shift tone for the length of the ball's flight. Full reasoning under `lightBoxAt` in `docs/INTERNALS.md`. **Import `at` from your category kit, do not write a local copy.** It lived as twelve identical local helpers until it moved into `scheme-kit.js` and joined all four kits' re-export list, and every card that used one now imports it. `check-canon` has no rule for this, so nothing stops copy thirteen from being written and nothing will fail the gate if it is: the only thing keeping it a single implementation is this sentence. Four cards did it the wrong way round: three verdicts on screen before the sweep that decides them (`storage-pvc-binding`), an identity chip reading `bound to Node-2` three seconds before the Pod appeared there (`workloads-pvc-stickiness`), three podCIDR slices filled in before the carve (`network-ipam-pod-cidr`), and a gauge reading `24 of 24` while the slots it counts were still filling (`storage-volume-attach-limits`).
-
-  **Four cluster cards were converted wholesale on 2026-08-03** (`cluster-node-drain`, `cluster-kubelet-sync-loop`, `cluster-node-pressure-eviction`, `cluster-graceful-node-shutdown`), and the conversion taught two things the four original findings did not. First, **doing it to one chip and not its neighbour is the tell**: `cluster-node-drain` correctly rolled back `currentHealthy` while `last eviction` beside it read `web-1 · 200 OK` from step entry, and two chips behaving differently in one step is more visibly wrong than both being early. Second, **chips answering different questions turn over on different beats, and picking the beat is the whole job**. The rule of thumb that came out of it: a chip holding what a component KNOWS moves when the answer reaches that component (`last eviction` on the response landing back at kubectl, `observed` on the runtime reply coming home), a chip holding what a component DID moves when the call lands (`last CRI op`), and a chip holding object state moves when the write reaches whatever stores it (`MemoryPressure` on the PATCH reaching the API). Where a step is a SEQUENCE, the chip steps through it: `cluster-kubelet-sync-loop`'s CRI step turns `last CRI op` over four times, once per call as its ball lands, because a chip reading `StartContainer` from entry skips three quarters of what the sentence describes.
-
-  Verify these by **sampling a real-time playthrough**, never by frames: `frame-strip` seeks and never fires `onfinish`, so every `at(...)` turnover is invisible to it (see the frame-strip caveat below). `check-reduced` passing is the proof the END value still lands.
-
-**The safe-zone is an L, not a forbidden box.** The overlay covers the TOP-LEFT quadrant only, so the usable area is L-shaped: the full width below the overlay's bottom, plus the full height right of its right edge. Reading it as a box (content must be both right of x and below y) is how `storage-volumeattachment` ended up with two 176-wide columns squeezed into the middle third of a 1200 unit canvas under a 980 unit chip strip, with the entire bottom-left quadrant and the right third empty. Rebuilt on the L, the same content took 232-wide blocks, a 208 unit corridor, and put the disk in the free bottom-left corner. When a card feels cramped, check this first: the room is usually already there.
-
-**The narration panel is measured per card, and never on one viewport.** The old blanket rule (`x<=380 & y<=300`) was never a measurement, and it is wrong in both directions. Measured over 1600 / 1440 / 1280 / 1100:
-
-- the RIGHT edge is `x<=397` on every card, so **nothing starts left of 420** unless it also sits below that card's panel bottom;
-- the BOTTOM is per card and ranges **171 to 504**. `workloads-pod-phase-machine` carries the longest narration in the catalog and its panel covers more than three quarters of the canvas height on the left.
-
-The extent in viewBox units changes with the viewport **non-monotonically**, which is the part that bites: the panel is HTML at a fraction of the dialog width while the diagram is an SVG that scales with it, so a WIDER dialog gives a WIDER panel that wraps into FEWER lines and is therefore SHORTER. The same card measures `x<=291, y<=212` at 1600 and `x<=397, y<=159` at 1280. A rule that samples one viewport reports false findings in one direction and misses real ones in the other, which is exactly what the first version of `OCCLUDED` did.
-
-Every rebuilt card records its own measurement in its header comment together with the note that a longer narration invalidates it. `node check-geometry.mjs --rules=occluded` is the check; `overlay-measure.mjs` gives the raw numbers per step.
-
-**The panel bottom is often a CHARACTER BUDGET, and on a tight card that budget belongs in the header comment as a number.** What sets the bottom is the longest narration on the card, so on any card where something is drawn close under the panel there is a hard per-step character ceiling, and editing prose for accuracy silently spends it. Three cluster cards carry theirs explicitly since 2026-08-03: `cluster-node-drain` 528 characters (`NODE_Y` IS the panel bottom, one unit of clearance), `cluster-node-pressure-eviction` 383 (chip column 16 units below the panel) and `cluster-graceful-node-shutdown` 323 (ladder and chips 20 units below). The first of those was found by breaking it: three narrations grown for accuracy took the panel from 379 to 404 at 1100x800 and laid it over the Node frame and its label, and **`check-geometry --rules=occluded` stayed CLEAN through all of it**, because it scores occluded AREA and a 25 unit strip off a 152 tall frame is under its bar. Nothing in the gate will tell you. Measure with `VW=1100 VH=800 node overlay-measure.mjs <id>` after any prose edit on such a card, and pay for a new sentence inside the same step.
-
-**The measurement belongs in that comment, not in a constant.** Cards used to open with `const PANEL_R = 400, PANEL_B = <bottom>;` and in most of them nothing ever read either name: the reserved corner is a fact about the panel, not an input to the layout. Both were dropped across the eight control-plane cards on 2026-08-01, with the two numbers folded into the comment on the same line, and the one card that genuinely derives from the measurement keeps its constant (`cluster-leader-election` sets `REP_Y = PANEL_B + 15`, which is the whole reason its narrations are written to hold five lines). Do not re-add a `PANEL_R` nothing reads. Note the declaration style that hid this for months: two names on one `const` line, so a scan for `^const NAME` sees only the first.
-
-**On 2026-07-27 this was measured for the first time and 47 blocks across the catalog were sitting under the panel**, including the Scheduler box of `cluster-scheduler-decision`, the card this file names as the Cluster exemplar. Nothing had ever looked.
-
-**Never set `font-size` as a presentation attribute on a label, and do not size a clearance budget off one (author decision, 2026-08-04).** A presentation attribute has specificity 0, so it loses to any class rule, and every label in this catalog carries `.scheme-label.code`, which sets `font-size: 11px` in `css/diagrams.css`. So the 89 explicit `'font-size'` values that used to sit on wire labels across 48 card files (31 at 9, 40 at 10, 18 at 11) were never once what rendered. All 89 were dropped catalog-wide, and `grep -rho "'font-size': [0-9]*" js/schemes/` now returns nothing. **Nothing about the drawing changed**, because nothing about the drawing had ever obeyed them. What the removal fixed is the reading: an author sizing a gap would compute the label width at 9 or 10 and get a number 10 to 22 percent under the truth. Several comments did exactly that, and each one is now recomputed at 11px (`network-dns-ndots` said a name was `~144px at this size` where the rendered width is 172). If a label genuinely needs a different size, add a class in `diagrams.css` rather than an attribute, or the next author inherits the same lie. Nothing in the gate measures wire-label width: `check-chipfit` measures value chips and `check-geometry` measures blocks, so this is on you.
-
-## Where card notes live (`docs/CARDS-<category>.md`)
-
-**A card file carries code, not prose.** Any comment block of **three lines or more** belongs in
-`scheme/docs/CARDS-<category>.md`, under a `## <card-id>` heading, anchored by the line of code it sat above.
-One and two line clarifications stay next to the code they explain, and trailing comments on a
-constant (`const STACK_TOP = (640 - STACK_H) / 2;  // 18, and the bottom margin matches it`) are
-exactly right where they are. Each card links to its section with a single pointer under its imports:
-
-```js
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-multi-attach-error
-```
-
-The rule covers the whole shipped tree, not only the cards. Card-scoped notes (including each
-card's poster, since `POSTERS` is keyed by card id) go to `CARDS-<category>.md`; notes on the shared files go
-to `docs/INTERNALS.md` under a `## <file path>` heading. `scheme/tools/` does not relocate (a standalone script's header is how you learn to run it) but it
-is **capped at 2 to 3 lines per block**: the long version of any tool's reasoning belongs in the Dev
-tools section below, and writing it in both places is how 330 comment lines piled up across nine
-scripts before they were cut to 152. `cli/` is a different sub-app and outside this review.
-
-This is not tidying, it is where the geometry record lives. **If you need to understand or change a
-card's layout, read its `CARDS-<category>.md` section first, and for anything in `js/lib/` or the CSS read
-`INTERNALS.md`.** It holds what the code cannot say: measured
-overlay extents per viewport, why a width is what it is (`CONTENT_W 400` is solved for, not chosen,
-because it puts `CONTENT_CX` exactly on 600 where the chip strip sets the visual centre), which
-numbers are hard floors and what binds them, and which alternatives were tried and dropped. Deleting
-a note is deleting a measurement someone had to take with a browser.
-
-The split moved 3987 lines out of 86 cards (comment ratio 27% -> 4-7% per category) and a further
-710 lines in 106 blocks out of the 11 shared files: `posters.js` went from 19% to 1%, `scheme-kit.js`
-from 28% to 4%. When a new card or helper grows a design essay, it goes to the matching markdown the
-same way. When a card is renamed, rename its heading too.
-
-Neither markdown ever ships. Three separate exclusions keep the whole `docs/` directory out, and all
-three must hold:
-`deploy.yml` runs `rm -rf _site/scheme/docs` next to where it strips `scheme/tools`; `release.yml`
-lists `scheme/docs/*` in the zip's `-x`; `.dockerignore` lists `scheme/docs`. The three are not symmetric, which is why the rule needs stating rather than inferring:
-`deploy.yml` and `release.yml` work off explicit ALLOWLISTS, so a new internal file at the repo root
-is excluded by default there and only `.dockerignore` has to know about it, while anything under an
-already-copied directory (`scheme/`, `cli/`, `images/`) must be named in all three. The container is
-the cheapest place to catch a miss, because `Dockerfile` is a blanket `COPY . .` and only
-`.dockerignore` stops it: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/scheme/docs/CARDS-cluster.md`
-must return 404. It returned 200 once, which is how this exclusion got found.
-
-## Writing rules (scheme strings)
-
-- **No apostrophes** in narration/wire/chain strings: they are single-quoted JS, and an apostrophe (`container's`, `don't`) breaks the module load. Reword. Verify with a browser smoke, not just `node --check`.
-- **No semicolons** in narration prose: replace `;` with a comma, or a period + capital letter.
-- **No em-dashes** anywhere.
-- **Terminology is a dictionary, not taste.** `scheme/tools/terms.json` is the source of truth and `check-terms` enforces it. Two decisions there are deliberately NOT the upstream ones: the catalogue majority wins (so `Kubelet`, `ETCD` and `Node-1` keep their capitals although kubernetes.io writes them lowercase), and `Node`, `Pod`, `Service` are ALWAYS capitalised including in ordinary phrasing. `kubectl` is always lowercase, because 20 of its 22 prose occurrences are copy-pasteable commands.
-- **Technical text gets read twice, by different eyes.** This is a rule, not a nicety: 87 cards that one reviewer had closed yielded 31 real defects on a second pass. Three techniques, in order of yield: (1) **internal contradiction**, where a card disagrees with its own other steps, its own diagram labels, its own `aria-label` or a sibling card, which found more than half of everything and needs no network; (2) a genuine **second opinion** from someone who did not write it; (3) **checking against kubernetes.io**, which is the expensive one but the only thing that catches staleness like the IPVS deprecation in 1.35 or `node-monitor-grace-period` rising to 50s.
-
-- **An absolute in a narration is a defect waiting to be found, and the counter-case is usually a sibling card.** `only`, `never`, `always`, `the whole of`, `all` and `nothing` are the words to grep for before shipping a sentence. Two of them were live on `cluster-architecture` until 2026-08-05 and BOTH were contradicted by a card in its own category: "The API is the **only** entry point to the cluster" against `cluster-static-pods`, whose whole subject is the path that skips the API, and "That one write is **the whole of** its job" about the Scheduler against `cluster-pod-priority-preemption`, which shows it sending a DELETE for a victim and writing `status.nominatedNodeName`. Neither sentence was wrong about the ordinary path, and that is the trap: the condition gets dropped for length and a true statement becomes a false one. The fix is a clause, not a rewrite ("the only way in for clients and controllers", "on the ordinary path that one write is all it does"). This is the same failure the 400-470 character band was widened to stop, and it keeps coming back because an absolute reads better than a qualified sentence.
-
-- **A component the docs mark `(optional)` must say so on the card, and the doc says it in the first paragraph.** The Components page writes `cloud-controller-manager (optional)` and `kube-proxy (optional)` literally, and Cluster Architecture says an on-premises cluster "does not have a cloud controller manager". `cluster-architecture` gave the cloud-controller-manager the centre column of tier 2, straight under the API, with no qualifier at all: the most prominent slot on the drawing, spent on something many clusters do not run. It carries a `sublabel: 'optional'` now. Which carrier to use is a judgement: put it on the BLOCK when the component is genuinely absent in a large share of clusters, and in the NARRATION when it is near-universal but replaceable (kube-proxy, which `network-ebpf-dataplane` says can be removed entirely). Two `optional` sublabels in one drawing read as a pattern rather than as a fact.
-
-- **If a step NAMES an actor, that actor has to be on the card.** The sibling of "every ball rides a drawn wire", and it fails the same way: `cluster-apply-flow/create-pod` said "the Kubelet asks the container runtime" on a card with no runtime block, so its one ball went Kubelet to Pod and read as the Kubelet building the container itself. The fix was a `Runtime` block in the Node row and a second hop, not a reworded sentence, because the sentence was the true one. Same test for a WIRE LABEL: it may only name traffic that rides THAT lane. `cluster-architecture` labelled a lane pair running API to cloud-controller-manager and back with `call provider API`, and there is no provider on the card.
-
-- **When you do check against kubernetes.io, read the RAW page, not a summary of it.** On 2026-08-03 a summariser was asked for the Note in Taints and Tolerations about the `node.kubernetes.io/memory-pressure` toleration and returned a confident, fully invented answer about the `kube-system` namespace. The real sentence is `The control plane also adds the node.kubernetes.io/memory-pressure toleration on pods that have a QoS class other than BestEffort`, which is a completely different fact and is the one `cluster-node-pressure-eviction` depends on. It was caught only because it contradicted prior knowledge. `curl -sL -A 'Mozilla/5.0' <url>` and strip the tags, or read the copies `check-sources` already leaves under `tools/.cache/pages`, which is offline and free.
-
-- **The highest-yield doc check on a card is the page's own opening paragraphs**, because that is where the doc puts the thing that distinguishes the feature, and it is exactly what a card built from knowledge tends to omit. Two of three cluster cards audited on 2026-08-03 were missing precisely that sentence: `Node-pressure eviction is not the same as API-initiated eviction. The kubelet does not respect your configured PodDisruptionBudget or the pod's terminationGracePeriodSeconds` (and the card sits in the same subcategory as `cluster-node-drain`, which spends five steps on PDB gating, so the omission actively misleads), and `Once the kubelet is notified of a node shutdown, it sets a NotReady condition on the Node, with the reason set to "node is shutting down"` (whose absence had `cluster-graceful-node-shutdown` calling the step `cordon`, a word with no meaning in that feature, and put the NotReady at the END of the card where the doc puts it at the START).
-- **A mass automated pass over text must be followed by reading it.** Four separate times in one session an automated pass produced green linters and broken prose: duplicated prefixes (`The The The startupProbe`), broken grammar after a reworded sentence opening (`You run kubectl set image ... PATCHes`), a word dropped so a question no longer parsed, and 29 conditions cut to fit a character band. The linters check form; what breaks is meaning.
-- **One object, one label, across cards.** Enforced by `check-labels` since 2026-07-26. The same thing must not be `nodefs` on one card and `Node FS` on the next (it was, on `storage-ephemeral-storage-eviction` and `storage-csi-architecture`, until both became `NodeFS`). Block labels capitalize the FIRST word only (settled 2026-07-26 over Title Case, which held 34 labels against 95): a later word takes a capital only when it is an API object, an acronym or an identifier, so `Routing decision`, `CSI controller` and `Global staging mount`, but `ConfigMap app`, `Pod A bind mount` and `Ingress controller Pod`. Hyphenated names capitalize only the first segment (`External-attacher`), and bare identifiers keep their real casing (`va-7f`, `web-0`, `node-1`). A node frame is the exception you cannot fix in the string: `.scheme-node-label` is `text-transform: uppercase` catalog-wide, so `node-1` renders `NODE-1` on every card and must stay that way.
-
-## Dev tools (`scheme/tools/`, Node, not shipped)
-
-**The container serves a SNAPSHOT.** `Dockerfile` is `COPY . .` with no mounts, so after editing
-anything under `scheme/` the container on `:8080` still serves the old files and every tool, the gate
-included, silently checks stale content and passes. This has produced false green runs. Either point
-the tools at the live tree with `BASE=http://localhost:8888 npm run gate` (the python server reads
-from disk), or rebuild first. Confirm with
-`curl -s http://localhost:8080/<path> | md5sum` against `md5sum <path>`.
-
-**Colour is covered by `check-palette`, and that check is baseline-free on purpose.** It asserts
-internal consistency rather than recorded values: one `(category, element class, role, state)`
-tuple must resolve to ONE colour across the whole catalog. A selector typo that drops some cards
-to the fallback stroke shows up as a SPREAD; a misspelled role value shows up as UNKNOWN; an
-element carrying a role that paints nothing shows up as UNPAINTED. Currently 1892 painted elements
-over 29 tuples, all consistent. (It was 1785 over 29 before the 2026-08-04 Cluster review added five cards, and 1775 over 30 until the 2026-08-03 lane work: a tuple
-disappeared when the last bare `line()` bindings became `relationPath`.) It was 1294 over 23 until `.scheme-arrow` joined `PAINTED` and `dim`
-entered the state key, which is what review stage 2.4's S1 needed: nothing had ever checked an arrow's
-colour, which is exactly why a report could claim the catalog had been repainted and no check argued.
-
-Two things it taught on its first run, both worth keeping in mind when extending it: state has to
-be part of the key, because `.highlight` legitimately repaints to the bright tint stop and a lit
-chip next to a resting one is not a defect; and it has to run under `reducedMotion`, because
-`pulsePod` fills forwards onto the tint, so on a played card you read the animation's end state
-back and "the pulse base equals the resting stroke" looks true whether or not it is.
-
-Own `package.json` (Playwright + pngjs). Stripped from the deploy and release artifacts. Verify animation changes with these rather than eyeballed screenshots. When refactoring a card's animation, lead with `anim-dump` (motion as data) and `frame-strip` (motion as frames), then the gate. Browser is auto-resolved by Playwright (no hardcoded path); set `PLAYWRIGHT_CHROMIUM` only to point at a system browser, `BASE` to override the `:8080` dev server.
-
-- `check-canon.mjs`: source lint for the packet-motion canon over all four categories (`COVERED = /^(workloads|cluster|network|storage)-.*\.js$/`). No browser, no baselines. Three rules: (1) no explicit `dur` on the multi-point route wrappers, barring an `ALLOW_EXPLICIT_DUR` allowlist of cards that deliberately slow a route so a riding src-IP tag stays legible. Today that means `routePacket` alone: the lint's `ROUTE_WRAPPERS` still lists `connectorPacket` and `connectorPacketDir`, but both were deleted from the kit in the R5 relayout (see "The Workloads layout canon"), so those two entries are dead names kept only so an old card cannot sneak back past the rule (`segmentPacket` and `topPacket` are not linted, an explicit `dur` there is fine); (2) no removed symbols (`arrowPacket`, `wirePacket`, `pulseActiveBlocks`); (3) no per-call `ripple:` option, since ripple is unconditional. It does **not** check `makeInit` / `posterFirst`, kit-vs-`scheme-kit` imports, the `clearHL` prologue, or `ctx.reduced` guard placement: those are convention, enforced by review. It covers the whole catalog; a new category joins the `COVERED` regex once its cards are on the kit.
-
-  Beyond those three hard rules it carries **report-only** rules, printed with a per-rule count and listed in full under `CANON_VERBOSE=1`. A new rule lands report-only so the gate stays a signal while the queue it opens is drained, and moves into the `ENFORCED` set (becoming a hard failure, hence a regression guard) once its finding list is empty. Current state: **all eleven rules are enforced, none is open.** `R-rawpulse` (no direct `pulse()` from primitives), `R-ridinglabel`, `R-kitparity` (the four category kits must re-export the same set from `scheme-kit`, currently 30 names), `R-desc` (every description inside 400-470 characters and 2 to 4 sentences), `R-dash` (no em-dash or en-dash anywhere, scanning `scheme/` plus `cli/js/data.js`, `cli/css/styles.css`, `cli/js/app.js`, the root `index.html` and `README.md` by agreement; `scheme/docs/*.md` is deliberately outside that area), `R-srclabel` (one source URL carries one label catalog-wide), `R-srcdup` (no card shows two sources under the same label), `R-modulepath` (every id starts with its category, every catalogued card has a file, and no unclaimed `.js` sits in a category folder), `R-poster` (cards and posters are a bijection, which nothing else covers because `renderPoster` falls back to a placeholder), plus `R-opacity` and `R-viewbox`, both closed on 2026-07-27.
-
-  `R-opacity` is worth reading next to `R-ridinglabel` as the second template for a rule that can be enforced. Its first version fired on a literal next to the word `opacity`, which made it blind to the named constants carrying most of the meaning (`GONE` was 0.1 / 0.12 / 0.15 / 0.35, `DIM` was 0.4 / 0.45 / 0.5 / 0.6 / 0.75) and would have blessed the very drift the vocabulary exists to close. It now judges the **expression, not the number**: a bare `0` or `1` passes, `OPACITY.*` passes, anything else is a finding. A named constant cannot smuggle a shade past it by construction rather than by the completeness of a list. Values that reach an element through a helper PARAMETER are out of a source lint's reach entirely, and that is what `check-opacity` is for.
-
-  `R-viewbox` closed the same day: all 108 cards are on `0 0 1200 640`. A shifted camera is how an off-centre composition gets hidden instead of fixed, and `cluster-delete-flow` was a live example, its `-100 7 1200 620` making a composition centred on 500 look centred.
-
-  `R-ridinglabel` is worth reading as a template for writing a rule that can actually be enforced. It began by flagging any `ridingLabel` call with no easing in a card that mentioned `segmentPacket` anywhere: 33 findings, 15 of them false, unenforceable. A tag and its ball are built from the **same points array**, so the rule now looks up that array in the card's packet calls and reads whether THAT ball is linear. 41 tags ride a linear ball, all 41 name their easing, 0 findings, enforced. The lesson: a rule that cannot tell its true positives from its false ones is not a rule, it is a report. Rules about code read a **comment-stripped** copy of the source: this project's comments discuss the very things the rules hunt for, and scanning raw text made `the Pod pulse (900) ends at 2400` read as a `pulse()` call in 17 places.
-- `smoke-all.mjs`: loads every scheme and walks every step **twice**, asserting no console error or page exception either time. The second walk is the load-bearing one: pass 1 uses `gotoStep` under no motion (the static path prev/reset takes), pass 2 uses `_shared.mjs`'s `enterStep`, which runs each step's real `enter()` with `reduced:false` and freezes it. Without pass 2 nothing below `if (ctx.reduced) return;` ever executes, so a ReferenceError in any packet, pulse or riding-label call passes the gate: the whole motion canon was uncovered until this was added. `Timeline` swallows a throwing `enter()` into `console.error`, which the listener turns into a failure. Discovers ids via `discoverIds`.
-- `check-reduced.mjs`: enters every step twice, once played-and-seeked past its own span and once statically via `gotoStep`, and diffs what the two paths settle on. That is the `ctx.reduced` contract: what prev/reset shows must equal what playing forward showed. Given ids it is verbose per card; given none it walks the whole catalog terse, which is the gate path. **In the gate.** Four rules, all at zero as of 2026-07-29: `OPACITY-OWN` (an element's own opacity, the original check, ENFORCED) plus three added 2026-07-28 and drained since, `OPACITY-INHERITED` (the EFFECTIVE opacity, the product down the ancestor chain, which matters because CSS `opacity` does not inherit and at least 19 cards pin state on a wrapping `<g>`), `WIRE-TEXT` (wire label strings) and `HIGHLIGHT` (the `.highlight` class set). `HIGHLIGHT` needs one exception to be usable: where the played path pulses a Pod, the static path substitutes a `.highlight` on its inner box because a pulse cannot be shown statically, and that convention accounted for 130 of the rule's first 146 findings. Its seek path also has to replay `onfinish` handlers that the seek jumped past, because seeking DROPS a `fill: 'none'` animation out of `getAnimations()` entirely.
-- `check-geometry.mjs`: geometry lint in viewBox units over every step. Reports `THROUGH` (a lane crossing a block it neither starts nor ends on), `DIAGONAL` (a slanted segment in an orthogonal grammar), `OFFEDGE` (a lane endpoint **alone** on a face and off its midpoint), `OCCLUDED` (a block whose area sits under the narration panel, judged on area over several viewports, added 2026-07-27 and worth 47 findings on its first run) and `CENTRE` / `CENTRE-LOW`. Three things make its output trustworthy, and all three were fixes to the TOOL, not to cards:
-  - OFFEDGE judges a face as a whole, so two lanes meeting it at mirrored offsets (+d and -d) are a deliberate pair whatever d is. That alone took the count from 179 to 16 (13 until the legacy numeric allowance was dropped, which had been hiding 3 unpaired endpoints at blessed offsets).
-  - `d` is parsed **per subpath**: every `M` starts a new polyline. Reading the numbers as one flat list fabricates a segment from the end of one subpath to the start of the next, and those phantoms were the entire DIAGONAL report (5 findings on `network-cni-invocation` and `network-model`, both of which draw a spine plus its taps in a single path). DIAGONAL is now 0. A phantom can also cross a block and surface as a false THROUGH, so this was never only about diagonals.
-  - CENTRE measures the **real** narration overlay per card instead of assuming the blanket safe-zone, so `CENTRE-LOW` can single out content that sits below the overlay and is still off-centre with the full width free.
-
-  **Each rule counts a different set of elements, and knowing which one decides whether a finding is closable.** Read this before spending an afternoon on a CENTRE-family report:
-
-  | rule | node frames | chips / ladder rows |
-  |---|---|---|
-  | CENTRE (content bbox) | **counted** | not counted |
-  | CENTRE (chip strip) | not counted | **counted**, and `chainList` rows carry `.scheme-chip` |
-  | CENTRE-LOW | **excluded** (`!b.isFrame`) | not counted |
-  | OCCLUDED | excluded | not counted |
-  | OFFEDGE | counted | not counted |
-
-  Both of the opposite traps are live at once, of different rules: a full-width Node frame DOMINATES the CENTRE content bbox (which is how a lopsided drawing passed), while a card whose balance comes from a frame or a ladder is INVISIBLE to CENTRE-LOW (which is why three of the four survivors cannot be closed). The chip-strip rule pooling ladder rows is also useful in the other direction: putting the ladder in one column and the value chips in the other keeps the strip spanning `60..1140`, which is why the A/B layouts pass CENTRE without anything being stretched.
-
-  One asymmetry is a plain inconsistency rather than a design choice: `ovBottom`, the threshold CENTRE-LOW uses for "below the overlay", accumulates **only in the 1600-wide loop**, while the 1280 and 1100 passes feed `ovRects` for OCCLUDED and never update it. So a block can be judged low against the shallowest panel and still be occluded on a narrow viewport. Left as is on purpose: changing it moves the CENTRE-LOW queue, and that is a decision, not a fix.
-
-  **In the gate on `--rules=diagonal,through` only.** A bare `node check-geometry.mjs` over the catalog returns **7 findings, all deliberate**, so DIAGONAL and OFFEDGE are at zero and CENTRE, CENTRE-LOW and OCCLUDED still report. Re-measured 2026-08-05 after ETCD went back to `cluster-apply-flow`'s right wall, which closed that card's OCCLUDED row (it was 46%, and the row is gone rather than reduced):
-
-  | card | rule | why it is left |
-  |---|---|---|
-  | `cluster-apply-flow` | CENTRE | content 150..1190, centre 670. The two frames are cluster-architecture's 150..1050 and centre on 600 exactly; kubectl stands OUTSIDE them because a client is not control plane, and the instruction was to balance the frames alone and let the client hang off the right. Balancing the whole drawing instead was built first, and it dragged both frames left off 600 |
-  | `cluster-apply-flow` | CENTRE-LOW | the same one finding wearing a second rule's name: every block on the card sits below the panel now, so this measures the same 150..1190 span |
-  | `cluster-delete-flow` | OCCLUDED | the same trade on the sibling card, at 100%. `TOP_Y = 110` is as low as the row can go, because tier 2, band 2 and the Node frame are all below it |
-  | `cluster-node-drain` | OCCLUDED | kubectl 86%, the 2026-08-03 author decision recorded under "top row moved under the panel" in CARDS-cluster.md |
-  | `network-ipam-pod-cidr` | CENTRE-LOW | which Node holds the Pod IS the content, and the rule excludes Node frames from its span |
-  | `network-externaltrafficpolicy` | CENTRE-LOW | same: "no local backend on Node-2" is the point, moving the Pod would lie |
-  | `network-cni-invocation` | CENTRE-LOW | the right half is a `node()` frame full of `chainList` rows, and CENTRE-LOW counts neither frames nor chips |
-  | `storage-reclaim-policy` | CENTRE | both columns are pinned by a PVC row that must clear the panel, and the only way to pass is a full-width strip, which is the metric-chasing that caused the R5-a regressions |
-
-  So `--rules=offedge` could join the gate as a regression guard. **OCCLUDED cannot any more**, and that is the change from the R5-era note this replaced: it was at zero on 2026-07-27 and two cards were knowingly put back under the panel on 2026-08-03, so chaining it would fail the gate on decisions that were taken with reasons written down. CENTRE and CENTRE-LOW cannot either, for the same reason. Run it bare to see the current state, and read a new OCCLUDED finding against this table before treating it as a regression.
-
-  `cluster-apply-flow` is the card to read that lesson off, and the lesson has a second half now. Over four days it was an OCCLUDED row for kubectl at 90%, briefly clean when a relayout pushed the top row below the panel floor, an OCCLUDED row for ETCD at 100% when the verticals were copied from cluster-architecture, an OCCLUDED row for ETCD at 46% once the stack had dropped as far as the drawing could afford, and **clean again on 2026-08-05, because ETCD went back to the right wall and simply left the panel's column**. **On a card whose leftmost top-row block sits in the panel's column, spacing and occlusion are the same decision**, and the only currency between them is the air below the row: this card spent 27 units of Node frame buying the cylinder from 100% to 46%. Moving the block out of the column instead cost nothing and closed it outright, which is the cheaper move whenever a slot can be freed. **What it leaves behind is a drop that both cards are still paying for**: `cluster-architecture` copied those rows, so the pair carries a 153 unit Node frame and 100 units of empty band over the top row for a constraint neither card has any more. Raising them is a live decision and also a timing change (`routeDur` is length-based); the trade is written out in `docs/CARDS-cluster.md` under both cards.
-- `check-opacity.mjs`: the fade-phase rule, measured in the browser rather than read off the source. Two things a source lint cannot do: it resolves every helper parameter and ternary (53 cards route their shades through a `setStage`-style helper), and it sees the value a keyframe actually animates to. Three rules. **PHASE**: every opacity a card pins or animates is `0`, `1`, or an `OPACITY.*` shade. It reads `el.style.opacity` and the keyframes of registered animations, never the computed style, so a CSS presentation shade (`.scheme-pod-container`, `.scheme-grid-cell`) is out of scope by construction: those are presentation, the vocabulary is state. **ORDER**: a Pod that fades out must pulse first, because fading a Pod while it is still blinking reads as two events at once. **LIT**: nothing holds `.highlight` while sitting at the terminated shade. Two exclusions are load-bearing and were both false-positive fixes: the packet layer is motion, not state (a ripple opens at 0.95), and an opacity track that returns to where it started is a BLINK, so only its resting value is a phase. **In the gate.**
-- `check-chipfit.mjs`: does a value chip's NAME collide with its VALUE? A chip is name-left, value-right inside one rect, so a chip too narrow for its longest value renders the two strings on top of each other. **Nothing else looks at this**: `check-inline` reads the strings, `check-labels` compares them across cards, `check-geometry` measures blocks, and none of them measures whether a string FITS. Written 2026-07-27 after an R5 pass narrowed value chips to build a full-width bottom strip and produced 79 collisions across 21 cards (`spec.unschedulabSehedulingDisabled`). It measures RENDERED text and walks every step, because a chip only overflows on the step carrying its longest value. Its queue closed on 2026-07-27 at 0 collisions catalog-wide and it went **into the gate** the same day, as a regression guard rather than a report: it is the only check that can tell you a chip has become unreadable. It needs a browser and walks every step of every card, so it is the second most expensive link in the chain after `smoke-all`. `npm run chipfit`.
-
-  One false-positive class was fixed in the tool rather than in the cards, and it matters when reading the historical numbers: a chip that draws two STACKED texts (a heading over a sub-line, as in the event slots of `cluster-api-structure`) is not a name/value pair and cannot overlap horizontally, so texts whose vertical centres differ by more than 4 units are skipped. That plus one chip whose value is a single space means the famous "79 collisions" was really 73.
-- `check-duration.mjs`: a step must outlast its own motion. `routeDur` is length-based, so any geometry change is silently also a timing change, and when `span > duration` the auto-advance cuts the step off mid-flight and the card under-shows what it narrates. This sat in the checklist unenforced until 2026-07-27; the R5 relayout of cluster and workloads pushed 9 steps over budget and this caught all nine. **In the gate.**
-- `check-terms.mjs` + `terms.json`: terminology and casing in PROSE (`SCHEMES[].desc`, every `narration:` string, and every `aria-label`). No browser. **In the gate.** The `aria-label` was added 2026-07-26 and was worth it: 103 of them had never been scanned by anything, and the first run found 89 casing defects plus four cards whose aria-label still asserted what a text pass had just corrected in their narration. `OPEN` deliberately skips them, because an aria-label is a label read aloud rather than a sentence, so opening one with `hostNetwork` or `emptyDir` is right and the only rewrite the rule would allow is `Hostnetwork`. The dictionary has three classes and the difference decides what the tool says about a sentence opening: `hard` is one correct capitalised form, `hardLower` is a NAME that must never be capitalised (so opening a sentence with it is a REWORD, not a casing slip), `soft` is also an ordinary English noun so the tool prints the distribution and a human judges. `exceptions` lists contexts where a term is a literal and its casing is not ours: `kubernetes plugin`, `Service api`, `pod CIDR`, `nat table`, `node affinity`. Add one only after checking every occurrence catalog-wide, or the exception hides real defects.
-- `fix-terms.mjs`: applies the CASE class of `check-terms` in place, importing the same matcher from `prose.mjs` so the fixer cannot disagree with the linter about what a defect is. Only CASE is automated: REWORD and OPEN need a human sentence. `--dry` first, always.
-- `check-inline.mjs`: casing AND component names of strings drawn ON the diagram. Thirteen sites, listed once in `prose.mjs` as `INLINE_SITES` and shared with `check-labels` so the two cannot disagree about what counts as drawn text: `label`, `setBoxLabel`, `sublabel`, `name`, `value`, `setVal`, `set*Sublabel`, `setWire`, the card-local helper params `ip` / `sub` / `tag` / `wire` (34 cards pass one of them and 109 strings reach the canvas that way), and `chainList` rows. Those last two groups were added 2026-07-26 after four chain rows were found rendering `Api` and `Kubectl` beside blocks correctly labelled `API` and `kubectl`: no check had ever looked at a ladder row. **In the gate.** The casing half is system A. The NAME half reads `terms.json`'s `inline.components`, holds only names that are objectively wrong (a missing hyphen, a Title-cased acronym) and never names that are merely inconsistent, because those belong to `check-labels` where a human picks the winner. Its list of never-capitalise names is seeded from `hardLower` rather than repeating it, so correcting a label to `containerd` cannot make the casing rule demand the capital back. `--audit` prints what the classifier LEAVES ALONE with the reason, which is the only way to see what an exception list is hiding: it hid 936 strings and a read of them yielded 12 real fixes. System A: a block label is a heading and takes a capital, everything else on the canvas is body text and stays lowercase. Only the FIRST TOKEN decides, because the rule is about the first character, and a token that is an identifier, an acronym, a gRPC method or a published API word is untouchable. `--fix` applies it. A Title Case string across several words is reported `MANUAL` rather than fixed, because lowering only the first character would leave `root Filesystem`.
-
-  **Since 2026-08-04 it also carries an ENFORCED indirect class**, printed under its own heading and counted on its own summary line. It landed report-only that morning, drained the same day and joined the exit code that afternoon, which is the full arc the `check-canon` rules describe. Thirteen literal sites cannot see a string that reaches the canvas only as a property of a card-local wrapper call, and the project's own chip rule asks every `enter()` to write every chip through one `setChips(s, {...})`, so the best-behaved cards were the least scanned. `extractIndirect` (see `prose.mjs`) makes **321 such strings over 44 cards** visible (319 when the class was written on 2026-08-04), and the same classifier judges them. **Current queue: 0, and it IS enforced.** Its two findings were closed the same day it was written. `storage-emptydir` drew `Memory (tmpfs)` in the `medium` chip, which is a false positive because `Memory` is the only legal value of `emptyDir.medium`, so `memory` went into `terms.json`'s `inline.apiWords` and the card was not touched. `storage-generic-ephemeral-volume` drew `Deleted` in its `Pod` chip where five other cards write `deleted` and no Pod phase is spelled that way: that one was a real defect and the card was fixed. **It is in the exit code as of 2026-08-04**, so it is a regression guard rather than a report: a chip value written through a wrapper can no longer reach the canvas unscanned. The promotion was proved rather than assumed, by putting the `Deleted` defect back and confirming the check names it and exits 1, then restoring and confirming 0. **What it still does NOT see are the 43 non-chip indirect writes below**, so read a green run as "no chip value drawn through a wrapper is wrong", not as "no drawn string is wrong". Resolving `setBoxSublabel`, `setBoxLabel`, `setPodSublabel` and `setWire` the same way is what would close the gap between those two sentences. Auto-fix never applies here even under `--fix`: the string sits at a call site rather than at an `INLINE_SITE`, so there is no offset to rewrite and picking the right spelling is a judgement about which chip owns the value.
-
-  What the classifier hides here is worth knowing, because it is the whole yield argument: of the 321, 109 open with an identifier and 71 with a published API word, and all 76 capitalised ones were read on 2026-08-04 and are correct (`Bound`, `Released`, `WaitForFirstConsumer`, `ContainerCreating`, `OnRootMismatch`). The blind spot this does NOT close is the 43 non-chip drawn-string writes whose argument is also not a literal: `setBoxSublabel` 25, `setBoxLabel` 7, `setPodSublabel` 7, `setWire` 4. Nothing reads those yet.
-- `check-labels.mjs`: the OTHER half of B7, and the one `check-inline` cannot reach. It asks whether the catalog spells ONE object ONE way, which is the "one object, one label" rule below. **In the gate.** Two things make it a rule rather than a report. First, strings are compared only inside their own position class: a heading against a heading, body text against body text. `Conntrack` over a block and `conntrack` in a chip is system A working, not drift, and without that split the tool says otherwise. Second, the value class is printed but never fails, because that is where an API literal and an English word wear the same letters (`MemoryPressure False` against `cordon false`, `Terminated` against `terminated`) and only a human can tell them apart, exactly like the SOFT block of `check-terms`. Verified homographs live in `terms.json` under `inline.homographs`, each with its reason: `forward` is the CoreDNS plugin against the netfilter chain. Its first run found 11 drifts, including `App` on 15 storage cards against `app` on 59.
-
-  **It too carries the REPORT-ONLY indirect class since 2026-08-04, and never in its exit code.** It indexes the catalog twice, once literal-only (the enforced pass, unchanged byte for byte) and once with `extractIndirect`'s 321 strings added, and prints only the drift rows the second index creates. **Current output: 5 rows, and all five are read and blessed rather than open** (re-run 2026-08-05). Six rows appeared on 2026-08-04. One was real and was the same defect `check-inline` reported (`deleted` x5 against `Deleted` x1 on `storage-generic-ephemeral-volume`), and the card was fixed. The other five were read and are homographs, an API literal against an English word wearing the same letters: PV phase `Released` against a kubelet that released a mount, Node condition `True` against the JSON booleans `readyToUse` and `status.attached`, phase `Failed` / `Succeeded` against the Job status FIELDS `failed` and `succeeded` on `workloads-job-parallelism`, and `NotReady` (the kubectl Node status) against `netns: not ready`. Every one of those five is a line that hides a real defect if it was wrong, which is why they were verified by rendering the step that draws them rather than by reading the source.
-
-  **Do not read that as a queue of 5.** An earlier version of this paragraph said the queue was 0 because each of the five had earned an `inline.homographs` entry. It had not: `inline.homographs` holds three names (`forward`, `podb`, `apinssvcclusterlocal`) and none of the five is among them, so all five still print. `HOMOGRAPHS` is consulted at `check-labels.mjs:65` and drops a name from the rows entirely, so adding the five WOULD take the printed count to 0. That was deliberately not done here: the dictionary's own rule is to add an exception only after checking every occurrence catalog-wide, and an entry that silences a name silences it for every future card too. Decide it as a dictionary change, not as a way to make a report quiet.
-
-  **This half can never be enforced in its current shape, and that is structural rather than a queue to drain.** Every indirect string is a chip VALUE, so every one of them carries `want: 'lower'`, so every row it can ever produce lands in the class that is printed and never fails, for exactly the reason that class exists. Making it enforceable means finding a discriminator between an API literal and an English word that `inline.homographs` does not have to be told one entry at a time.
-- `check-figures.mjs`: the arithmetic a reader does across one diagram. Two classes, both of which had only ever been found by accident: one Pod address on two different Pod blocks, and a request above its own limit (a Pod the API server rejects outright). Strings are anchored to the nearest preceding block label so a finding names the two blocks, and owner identity is the label's POSITION, not its text, because one card draws two distinct Pods both labelled `Pod web`. **In the gate.**
-- `check-notes.mjs`: does every design note still point at code that exists? `docs/CARDS-<category>.md` anchors each note to the line it sat above (`### before `<code>``) and **nothing had ever verified those anchors**, so a rename, a codemod or a relayout silently turns a geometry record into a note about a line that is gone. It checks four things: every anchor still occurs in its card, every `## <id>` section has a file, every card has a section, and every section sits in the file for its own category. No browser and no server, so it is the second link in the chain. **In the gate.** Written 2026-07-27; the catalog is at 624 anchors, 0 stale (re-run 2026-08-05), and **no card is without a design record any more** (`cluster-admission-webhooks`, `cluster-etcd-raft` and `cluster-leader-election` were the last three and got theirs during review stage 2.4).
-
-  **It caught five stale anchors during that stage, and under three of them the SENTENCE was the problem rather than the address**: one was a recorded decision the fix superseded (the eviction order on `workloads-pod-qos-classes`), and two were recorded decisions the fix BROKE, which is why a lane pair built for `storage-volume-attach-limits` was reverted and why a `relationPath` conversion on `storage-volume-detach-on-node-loss` was reverted too (its note argues for holding a mirrored pair at one colour and both arrowheads, precisely so the left lane does not read as the lesser one, and sinking half a pair is exactly that). **Twice in one stage the tool's real value was telling me my own fix was wrong**, and both times only because the line it was anchored to happened to move. There is no version of this check that finds the case where it does not. Both were found only because the anchored line happened to move. That is the argument for the truthfulness pass below: an anchor can be perfect and the sentence under it wrong, and nine such sentences were found and corrected on 2026-07-30 by reading the notes of every card the stage had touched. What it cannot check is whether a note is still TRUE: three cards were found recording a narration-panel bottom of `y <= 183` measured only on 900 and 1000 tall viewports, where the real worst case over the rule's own viewport set is 205 to 255. An anchor can be perfect and the sentence under it wrong.
-- `inline-dump.mjs`: not a check, a reader. Prints a card as text with the `aria-label`, every block as `label -> sublabel`, every chip as `name -> every value it ever takes`, wire labels, chain rows, riding tags and each step's narration. Written because a chip's name is declared two hundred lines above the values it takes, so judging "does this chip mean what its name says" from the source is impractical. Still source-only: no browser, no server, instant. `npm run portrait -- <id>`.
-
-  **It RESOLVES a value that reaches a chip through the card's own wrapper, and until 2026-08-04 it did not.** The chip rule asks every `enter()` to write every chip through one `setChips(s, {...})` helper, so on a card that follows it the values stop being literal arguments to `setVal` and become call-site properties two hops away. A literal scan therefore read the best-behaved cards as having one value or none: `storage-pvc-binding` showed four chips with one value each where they take two to three, and every one of the 31 storage cards routes through a `setChip(chip, val)` pass-through that the old regex could not see at all. The resolver walks a comment-stripped copy and handles module constants (`const TERM = '4', QUORUM = '2 of 3';` on one line included), a destructured parameter read back off every call site, renamed and defaulted keys (`{ pod: podVal }`, `{ cap = '8 per node' }`), and pass-through setters grown to a fixpoint so a 3-hop `setChips -> setChip -> setVal` resolves. Provenance is printed after each chip (`<- via setChips{mem}`, `<- const OOM_SCORE`), so a value can be traced back in one grep. It added 311 values over 44 cards and removed none: the other 63 cards are byte-identical.
-
-  **A source reader cannot see a value it never spells, so it says so rather than under-reporting.** Anything it cannot read prints as an `INCOMPLETE` block naming the write, with the expression shown whole (a ternary between two literals usually gives the reader both values on sight). Six cards are in that state and all six are genuine: a template literal (`cluster-cpu-throttling`), a value taken from a local array in a `forEach` (`cluster-kubelet-sync-loop`'s four CRI calls), `String(i + 1)` and a ternary (`network-dns-ndots`, `workloads-daemonset`), a `s.refs[k]` chosen at run time plus four refs with no `valChip` binding (`cluster-scheduler-decision`), and one loop-built listing whose chips carry no literal name (`storage-fsgroup-ownership`). Verified against a real render on 49 cards (every step entered on the played path, the deferred `onfinish` turnovers replayed in time order the way `check-reduced` does, then the static path): 42 matched the tool exactly and all seven differences are declared by the tool itself. One quirk it does NOT declare and that predates this: the `valChip({ value })` declaration seeds the list, so a card whose step 0 overwrites it (`network-nodelocal-dnscache`) lists a value no viewer ever sees. Leave it, it is a string in the source and the reader is reading the source.
-- `check-sources.mjs`: liveness of every `sources` href. Four classes: DEAD, SOFT (landed on an ancestor path, a 404 wearing a 200), MOVED, ANCHOR (the fragment is not in the page). **NOT in the gate**, because it hits the network and the gate must be deterministic. Run it when `sources` changes. It caches every fetched page under `.cache/pages` (gitignored) so a text pass can verify claims offline.
-- `check-arrival.mjs`: the R2/R3 detector. Enters every step frozen at t=0 and reads packet routes, `arrivalMs`, block bboxes, `.highlight` timing and chip values. R3: a block that RECEIVES a packet must not already be lit at step entry, unless it ACTS FIRST (it is the source of some packet that departs no later). R2: a value chip whose value changed must carry `.highlight`. Value chips are deliberately OUT of R3 (author decision). **Not in the gate** while its queue is open: R3 1 / R2 20 on 2026-07-30, R3 2 / R2 22 on 2026-08-03 before the sweep, R3 0 / R2 15 over 7 cards after it, and **R3 0 / R2 29 over 13 cards on 2026-08-04**, once the Cluster buildout took the category from 15 cards to 20.
-
-  The whole queue was walked on 2026-08-03 and nine findings were real. Both R3s: `cluster-api-structure` lit the API at entry on `discovery` while the API is the receiver of the one ball that step draws (the answer showed 1156ms before the question landed), and `storage-projected-volume` lit the `/var/run/secrets` container a second before any of the four files reached it. Five R2s, in two families. **A real event with no cue**: `currentHealthy 1 of 2 -> 2 of 2` on `cluster-node-drain/drained`, which is the whole point of the step, and `victim -> none` on `cluster-node-pressure-eviction/relieve`. **A named API field used as a phase indicator**: `failurePolicy` on `cluster-admission-webhooks` flipped to `none` on every non-webhook step, and the role chips on `cluster-leader-election` carried a `(409)` that already rode both wires and then decayed one step later. Both are now standing values that never change, which is what the fields actually are.
-
-  **Only part of today's queue has been read, so do not treat a green-looking list as blessed.** The 15 blessed on 2026-08-03 are still exactly identifiable, because they sit on the same seven cards and still total 15: `cluster-kubelet-sync-loop` 3, `cluster-node-pressure-eviction` 1, `network-ipam-pod-cidr` 2, `network-endpointslice-reconcile` 3, `network-client-ip-preservation` 2, `storage-fsgroup-ownership` 3, `storage-volume-attach-limits` 1. **Those 15 are not defects and must not be "fixed".** Thirteen of them are the tool's blind spot: R2 samples at t=0 and compares against t=0 of the PREVIOUS step, so it cannot see a turnover that happens mid-step. That covers a chip written on arrival through `at()` (`cluster-kubelet-sync-loop`, `cluster-node-pressure-eviction`, `network-ipam-pod-cidr`, `storage-volume-attach-limits`), a chip whose HIGHLIGHT alone is deferred through `lightBoxAt` (`network-endpointslice-reconcile`), and a listing whose rows flip and light row by row as a scan passes them (`storage-fsgroup-ownership`). In every one of those the change IS cued, on the step where it happens. The last two are a decision recorded in the card: `network-client-ip-preservation/passthrough` sends both header chips to `none` and leaves them unlit on purpose, because a raw TCP stream has no headers and the step is about the address being recovered a different way. Lighting them would point the eye at two chips that say nothing.
-
-  **The other 14 arrived with the Cluster buildout on 2026-08-04 and have NOT been read**: `cluster-server-side-apply` 5, `cluster-api-structure` 3, `cluster-static-pods` 2, `cluster-node-allocatable` 2, `cluster-cpu-throttling` 1, `cluster-oom-kill` 1. Nobody has judged whether any of those is real, so none of them is blessed and none of them is condemned: walk that list before the next sweep. **Expect this rule to report a new false positive every time a card is converted to a deferred chip, and read the finding before believing it.**
-
-  **Its R3 exemption is time-based, and that is load-bearing.** A source block may be lit at entry only if it sends a packet no LATER than it receives one, which is what a round trip looks like. The first version exempted any block adjacent to any packet's `from`, which swallowed every block in the middle of a chain: it receives hop one and only then sends hop two, so it must be dark on the way in. Fixing that in 2026-07-28 took R3 from 1 to **66 findings on 25 cards**, all real, and draining that queue was review stage 2.4 family E.
-- `prose.mjs`: the one sentence splitter plus the term matcher, shared by `check-terms`, `fix-terms` and `R-desc` so they cannot drift. Two guards paid for by a false finding: a version number is not a sentence break, and `e.g.` is not a sentence opening. It also owns `INLINE_SITES` and, since 2026-08-04, the **chip-value resolver** (`stripComments`, `matchBracket`, `splitTop`, `callsOf`, `chipDecls`, `chipValues`, `extractIndirect`), which was written inside `inline-dump.mjs` and moved here the moment a second tool needed it. Same argument as the sentence splitter: `inline-dump` and the two checks now report on the same strings, and a private fork of the resolver would let them disagree about what a drawn string is, which is the exact failure `INLINE_SITES` exists to prevent. `inline-dump`'s output is byte-identical across all 107 cards before and after the move.
-
-  `extractIndirect(src)` is the new part: it returns the chip values whose EVERY provenance is a wrapper parameter or a module constant, so nothing a literal `INLINE_SITES` scan can already see is repeated. Those are the strings the thirteen sites are blind to. It carries `via` (the provenance, `via setChips{mem}` or `const OOM_SCORE`) and `chip` (the chip they land in), so a finding names its own call site.
-- `check-palette.mjs`: the colour half of the gate, see the note above. `node check-palette.mjs [<id> ...]`, verbose with ids and terse over the whole catalog. **In the gate.**
-- `overlay-measure.mjs`: the same overlay measurement standalone, per step, when a layout needs to reclaim room.
-- `anim-dump.mjs`: dump a card's motion AS DATA per step (target, animated props, dur/delay/easing, and transform/opacity sampled at fixed progress %), plus DOM facts (packet count, ball-on-top z-order, highlights, narration). `node anim-dump.mjs <id> [step] [--samples=0,25,50,75,100] [--json]`. Best tool for "is this packet/pulse doing what the narration says" since motion-as-text reads far better than pixels. Diffing two dumps partly replaces the retired play-probe.
-- `frame-strip.mjs`: capture N frames per step and stitch them into one PNG. Frames are DETERMINISTIC (each step's play-path is entered with no auto-advance, then every WAAPI animation is frozen at an exact logical time via `currentTime` seeking, not wall-clock sampling). `node frame-strip.mjs <id> [step] [--frames=N] [--contact] [--inspect]`; `--contact` writes one labelled contact sheet (rows = steps, narration in a left gutter). Output under `output/`, gitignored. Manual aid, not in the gate.
-- `_shared.mjs`: common Playwright plumbing shared by smoke-all + anim-dump + frame-strip so they cannot drift apart: `launch` (no hardcoded browser path), `setInspect`, `stepCount`, and the deterministic-seek trio `enterStep` / `stepSpan` / `seekStep`.
-- The seek path needs a debug handle: `makeInit`'s controller exposes `_timeline` (the `Timeline` instance) on `window.__schemeCtl` under inspect mode, so a tool can run one step's play-path (`tl._enterStep(i, {withTimer:false, reduced:false})`) and seek its animations. Inert in normal use. A bespoke card without `makeInit` lacks it, so the tools fall back to a static frame and warn.
-- `npm run gate` chains `check-canon` + `check-notes` + `check-terms` + `check-inline` + `check-labels` + `check-figures` + `smoke-all` + `check-reduced` + `check-palette` + `check-opacity` + `check-duration` + `check-chipfit` + `check-geometry --rules=diagonal,through` (baseline-free, about 35 minutes). `check-geometry` runs only two of its six rules. OFFEDGE is at zero too and could be added; CENTRE, CENTRE-LOW and OCCLUDED cannot, because their 7 remaining findings are deliberate (see `check-geometry.mjs` above). `check-sources` is deliberately OUT of the gate because it hits the network and the gate must be deterministic. The retired pixel/packet baseline tools (`visual-regression`, `play-probe`) and the one-off scripts (`capframes`, `split-strip`, `pulse-probe`, `frame-strip-patched`, `strip-multiline-comments`) were deleted in the 2026-06-19 tools cleanup.
-- `inspector.js` (`?inspect=1`): grid + bbox overlay in the browser, exposes `window.__schemeCtl`.
+`scheme/tools/` does not relocate, because a standalone script's header is how you learn to run it,
+but it is capped at the same two lines.
+
+**The record holds what the code cannot say**: measured overlay extents per viewport, why a width is
+what it is, which numbers are hard floors and what binds them, which alternatives were tried and
+dropped. Deleting a note deletes a measurement someone took with a browser. `check-notes` anchors
+each note to a line of code with ``### before `<line>` ``, so **an anchor is DATA: never reword
+one**, and when a card is renamed, rename its heading too. Neither markdown ever ships (three
+exclusions have to agree, see the root `CLAUDE.md`).
+
+## Writing rules
+
+- **No apostrophes** in narration/wire/chain strings: they are single-quoted JS and an apostrophe
+  breaks the module load. Reword. Verify with a browser smoke, not just `node --check`.
+- **No semicolons** in narration prose: use a comma, or a period plus a capital.
+- **No em-dashes** anywhere (`R-dash`).
+- **Terminology is a dictionary, not taste.** `tools/terms.json` is the source of truth and
+  `check-terms` enforces it. Two decisions there are deliberately NOT the upstream ones: the
+  catalogue majority wins (`Kubelet`, `ETCD`, `Node-1` keep their capitals), and `Node`, `Pod`,
+  `Service` are ALWAYS capitalised. `kubectl` is always lowercase.
+- **One object, one label, across cards** (`check-labels`). Block labels capitalize the FIRST word
+  only; a later word takes a capital only when it is an API object, an acronym or an identifier, so
+  `Routing decision` and `CSI controller`, but `ConfigMap app` and `Pod A bind mount`. Hyphenated
+  names capitalize only the first segment; bare identifiers keep their real casing. A node frame is
+  the exception you cannot fix in the string: `.scheme-node-label` is uppercase catalog-wide.
+- **An absolute in a narration is a defect waiting to be found**, and the counter-case is usually a
+  sibling card. Grep for `only`, `never`, `always`, `the whole of`, `all`, `nothing` before shipping
+  a sentence. The fix is a clause, not a rewrite: a condition gets dropped for length and a true
+  statement becomes a false one.
+- **If a step NAMES an actor, that actor has to be on the card.** Same test for a WIRE LABEL: it may
+  only name traffic that rides THAT lane.
+- **A component the docs mark `(optional)` must say so on the card.** Put it on the BLOCK when the
+  component is genuinely absent in a large share of clusters, and in the NARRATION when it is
+  near-universal but replaceable. Two `optional` sublabels in one drawing read as a pattern.
+- **Any edit that changes or adds a technical claim gets the internal-contradiction check before it
+  lands**: grep the claim's keywords across the whole card and read what its other steps, its chips,
+  its block labels and its `aria-label` already assert. Matching one sentence is not the test.
+  (The general form of this rule, and the no-regex-over-prose rule, are in the root `CLAUDE.md`.)
+- **Matching the narration is a PROXY for being true.** A sentence can be silent about something real
+  (check the `aria-label` too, it often says what the steps left out) and a sentence can be loose
+  (one phrase read as licence produced a chip contradicting two earlier steps of its own card).
+- **When checking against kubernetes.io, read the RAW page, not a summary of it.** A summariser will
+  return a confident invention and nothing will contradict it. `curl -sL` and strip the tags, or read
+  the copies `check-sources` leaves under `tools/.cache/pages`, which is offline and free. **The
+  highest-yield part is the page's own opening paragraphs**, because that is where the doc puts what
+  distinguishes the feature, and it is exactly what a card built from knowledge omits.
+
+## The checks
+
+`npm run gate` must be green before a change lands. **`tools/README.md` is the reference**: what each
+check catches, what it is BLIND to, the readers (`anim-dump`, `frame-strip`, `inline-dump`,
+`overlay-measure`), the `oracle:base` / `oracle:diff` pair for a refactor that must not change the
+picture, and how to write a new check. The chain itself is defined in `tools/package.json`.
+
+Two things worth knowing before you trust a green run:
+
+- **The container serves a SNAPSHOT** (`Dockerfile` is `COPY . .` with no mounts), so after editing
+  anything under `scheme/` the tools silently check stale content and pass. Point them at the live
+  tree with `BASE=http://localhost:8888 npm run gate`, or rebuild first.
+- **The blind-spot column is the point of that table.** A green gate means these rules hold, not that
+  the card is right.
 
 ## Known constraints
 
-- **No top-level browser globals at module load**, except in `motion.js` and `app.js` (intentional browser-only entry points). `lib/svg.js`, `primitives.js`, `timeline.js`, `data.js` parse cleanly in Node so they can be checked or pre-rendered.
-- **`data-cat` is chrome, `data-role` is diagram.** Never merge them back. `app.js` sets `data-cat`
-  from the card's category on the card, section, nav button and dialog; `primitives.js` and
-  `scheme-kit.js` set `data-role` from the palette slot on diagram elements. `styles.css` selects the
+- **No top-level browser globals at module load**, except in `motion.js` and `app.js`. `svg.js`,
+  `primitives.js`, `timeline.js` and `data.js` parse cleanly in Node so tools can read them.
+- **`data-cat` is chrome, `data-role` is diagram. Never merge them back.** `styles.css` selects the
   former, `diagrams.css` the latter, and the two files do not cross.
-- **A tinted category declares four opaque colours, never an alpha shade.** Since 2026-07-30 each
-  `.scheme-dialog[data-tinted="true"][data-cat="..."]` block in `styles.css` carries
-  `--tint-deep-rgb` / `--tint-base-rgb` / `--tint-bright-rgb` / `--tint-canvas-rgb` as **channel
-  lists** (`76, 79, 146`, not a hex, because `rgba()` cannot take a hex through a `var()`), plus its
-  three hand-mixed surface fills. Every shade WITH an alpha (`--tint-glow`, `--tint-border`,
-  `--tint-active`, `--tint-edge`, `--tint-panel`) is derived once in the shared
-  `[data-tinted="true"]` block, so a category cannot disagree with itself: two did while the
-  literals were restated per category, and the narration panel carried the Workloads navy inside
-  every Cluster card for as long as the category has existed. Adding a shade is one line in the
-  shared block, never four. **Do not re-add a per-category `.narration-overlay` background**:
-  retint a category by changing its `--tint-canvas-rgb` and the panel follows. Full record in
-  `docs/INTERNALS.md` under `styles.css`.
-- **`lib/sidebar.js` is duplicated, not symlinked** with the cli copy. Each path prefix is served in isolation; if you change one copy, change the other.
-- `primitives.js` `animateAlong` honors `options.delay` (a bug dropping it caused packets to teleport invisibly during the delay window; do not regress).
+- **A tinted category declares four opaque colours, never an alpha shade.** Each
+  `.scheme-dialog[data-tinted="true"][data-cat="..."]` block carries `--tint-*-rgb` as channel lists
+  (`rgba()` cannot take a hex through a `var()`). Every shade WITH an alpha is derived once in the
+  shared `[data-tinted="true"]` block, so a category cannot disagree with itself. Adding a shade is
+  one line in the shared block, never four. **Do not re-add a per-category `.narration-overlay`
+  background**: retint through `--tint-canvas-rgb` and the panel follows.
+- **The four kits re-export the same 30 names from `scheme-kit`, duplicated on purpose.** Collapsing
+  them into `export * from './scheme-kit.js'` would work and save 28 lines, but the list is what
+  documents what a kit offers, and a card must never reach past its kit. `R-kitparity` keeps them
+  aligned. `flashChips` is in that list with zero callers: do not call it, and do not drop the export
+  without updating all four kits together.
+- **`lib/sidebar.js` is duplicated, not symlinked** with the cli copy. Change one, change the other.
+- **`animateAlong` honors `options.delay`.** A bug dropping it made packets teleport invisibly during
+  the delay window. Do not regress it.
+- **The card skeleton is deliberately not refactored.** `defineCard` was rejected; `class Scene`,
+  `clearHL` and the step prologue stay duplicated in every card. This is the one large remaining
+  source of duplication in the JS, and it is a decision, not an oversight.
+- **The `OPEN` findings in the four card records are not to be closed without a reason** (17 today:
+  8 cluster, 5 storage, 3 workloads, 1 network). Each carries its own measurement and an explanation
+  of why the rule can only be satisfied by making the picture worse.

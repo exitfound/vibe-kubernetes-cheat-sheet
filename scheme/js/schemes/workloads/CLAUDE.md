@@ -5,6 +5,10 @@ contract, the card construction standard, the motion canon, the opacity vocabula
 reduced-motion contract, the writing rules and the gate. If a rule here would also be true of
 another category, it is in the wrong file.
 
+**A comment in a card is at most TWO lines**, saying what the line beside it does or where a number
+came from. It carries no date, no past defect and no account of an earlier version. Anything longer
+is a rule (this file), a measurement (`./CARDS.md`) or history (delete it).
+
 ## The folder
 
 | File | Owns |
@@ -85,7 +89,7 @@ Node frame label clearance is a catalog-wide rule, not a workloads one: it is in
 
 The pass that introduced the 79 collisions did exactly that, to make the chip strip straddle 600,
 and the rule went green on a drawing the author rejected. If a finding can only be closed by making
-the picture worse, leave it open and write the reason into `docs/CARDS-workloads.md`. Four in the
+the picture worse, leave it open and write the reason into `./CARDS.md`. Four in the
 catalog are left that way.
 
 ## Exemplar
