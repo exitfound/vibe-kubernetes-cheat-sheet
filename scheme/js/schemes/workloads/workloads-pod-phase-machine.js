@@ -2,14 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, OPACITY, WL } from './workloads-kit.js';
 
-// Layout C, and the tightest card in the catalog. It carries the longest narration (the terminal
-// step covers Succeeded, Failed, the Unknown deprecation and the DisruptionTarget path) and the
-// panel measures 397 x 504 at the narrowest viewport, more than three quarters of the canvas
-// height on the left. So the actor row, the pipeline and the chip column all live right of
-// PANEL_R, and only the status.phase chip and the Node frame fit in the 136 unit band below
-// PANEL_B, which is why the Pod is shorter here than the family default.
-// A longer narration on any step invalidates PANEL_B: re-measure.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-pod-phase-machine
+// Design notes for this card: ./CARDS.md#workloads-pod-phase-machine
+
+// Layout C, the TIGHTEST card in the catalog: panel 397 x 504, three quarters of the canvas height,
+// so only the phase chip and the Node frame fit below it. Re-measure after any prose edit.
 const PANEL_R = 420, PANEL_B = 504;
 
 const TOP_W = 280, TOP_X = PANEL_R;                      // 420..700

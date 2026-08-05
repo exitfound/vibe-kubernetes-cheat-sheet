@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chip, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-cronjob
+
 // Layout C of the Workloads canon (WL): full-width chip strip, ticks in the left band.
 // Panel worst case x<=397, y<=330; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-cronjob
 const PANEL_B = 330;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;

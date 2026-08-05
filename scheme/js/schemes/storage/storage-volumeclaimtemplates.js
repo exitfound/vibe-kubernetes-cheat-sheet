@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, laneOf, OPACITY, revealAt } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volumeclaimtemplates
+// Design notes for this card: ./CARDS.md#storage-volumeclaimtemplates
 
 
 const CX = 600;
@@ -138,9 +138,8 @@ function setChips(s, { repl, pvcs, naming, ret }) {
   setChip(s.refs.retChip, ret);
 }
 
-// A lane is only as present as the fainter of the two things it joins, so it is pinned in the same
-// helper as the blocks. The disks are drawn on every step, so a bind lane follows its claim, while a
-// mount lane takes the min: without this a mount arrow stayed at full strength into a ghost Pod.
+// A lane is only as present as its fainter end, so it is pinned in the same helper as the blocks:
+// a bind lane follows its claim, a mount lane takes the MIN, or a mount arrow lands on a ghost Pod.
 
 function setStage(s, { pods = [1, 1, 1], claims = [OPACITY.pending, OPACITY.pending, OPACITY.pending], mint = false } = {}) {
   [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => { p.style.opacity = String(pods[i]); });
@@ -271,9 +270,8 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      // The naming chip holds the PATTERN, which does not change here. That data-web-1 is kept is a
-      // retention fact and it is already on the `on delete` chip and the claim sublabel, so the
-      // chip no longer answers a question it was not asked.
+      // The naming chip holds the PATTERN, which does not change here. Retention is already on the
+      // `on delete` chip: a chip must not answer a question it was not asked.
       setChips(s, { repl: '3', pvcs: '3 in use', naming: 'data-web-N', ret: 'retained' });
       setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1] });
       [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Bound'));

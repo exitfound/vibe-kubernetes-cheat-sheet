@@ -1,7 +1,7 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, OPACITY, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-kube-proxy-modes
+// Design notes for this card: ./CARDS.md#network-kube-proxy-modes
 
 
 const CX = 600;                        // canvas centre: the chip strip is built on it
@@ -251,11 +251,8 @@ const STEPS = [
       s.refs.ipvsChip.classList.add('highlight');
       setVal(s.refs.iptChip, 'thousands of rules');
       setVal(s.refs.ipvsChip, 'still one lookup');
-      // The selection chip was the one chip this step did not write, so it carried the IPVS scheduler
-      // from the step before. What is true HERE is that selection is the thing scale does not touch:
-      // the chain walk grows with every Service, the choice of backend does not. It must not say the
-      // two modes select the SAME way, because this card spends two steps establishing that they do
-      // not (statistic random against a rr / lc scheduler), and it said exactly that for one commit.
+      // What is true HERE is that selection is what scale does NOT touch. It must not say the two
+      // modes select the same way: two earlier steps establish that they do not.
       setVal(s.refs.pickChip, 'unchanged by scale');
       s.refs.pickChip.classList.add('highlight');
       setWire(s, 'ipt', 'grows with every Service');

@@ -1,7 +1,7 @@
 import { svg, g, text, rect } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-csi-architecture
+// Design notes for this card: ./CARDS.md#storage-csi-architecture
 
 
 const M = 60;                                    // one margin, both sides

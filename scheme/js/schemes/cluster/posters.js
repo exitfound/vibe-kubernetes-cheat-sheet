@@ -1,13 +1,9 @@
-// The cluster posters: the still frame each cluster card shows on the grid, keyed by card id.
-// A poster is one sentence, not a small diagram. Design notes for each one:
-// scheme/docs/CARDS-cluster.md, the "### poster" subsection under that card id.
+// The cluster posters, keyed by card id: the still frame each card shows on the grid.
+// A poster is one sentence, not a small diagram. Per-poster notes: ./CARDS.md, "### poster".
 
 export const POSTERS = {
-  // Hub-and-spoke: apiserver in the centre, four control-plane satellites + worker box. The ring
-  // carries a heavier stroke (2 against the 1.4 everything else uses) and the brighter fill, which
-  // is how this poster says the hub is the significant one: it weights by line, not by accent bar.
-  // The two-band rebuild described under `### poster` in CARDS-cluster.md was reverted by author
-  // preference, so read that section as the road not taken.
+  // Hub-and-spoke. The ring carries a heavier stroke (2 against 1.4) and the brighter fill: this
+  // poster weights by LINE, not by accent bar.
   'cluster-architecture': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <circle cx="160" cy="90" r="22" fill="rgba(255,255,255,0.10)" stroke-width="2"/>
@@ -36,11 +32,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Five stage blocks wired head to tail into one closed ring, the reconcile stage lit. The ring
-  // runs 1 watch (20,20), 2 PLEG (120,20), 3 SyncPod (220,20), 4 CRI (220,110), 5 status (20,110),
-  // so reconcile is the THIRD block and the accent belongs there. It sat on position 2 (PLEG) while
-  // this line said reconcile, which is the card's own title: nothing checks a poster against its
-  // comment, and at the ~200px the grid renders, a reader cannot count ring positions to notice.
+  // Five stages head to tail into one closed ring. Reconcile is the THIRD block, so the accent
+  // belongs there: nothing checks a poster against its own comment.
   'cluster-kubelet-sync-loop': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20"  y="20"  width="76" height="50" rx="8" fill="rgba(255,255,255,0.04)"/>
@@ -75,8 +68,7 @@ export const POSTERS = {
   `,
 
   // The file on disk is the real thing and the API object is its shadow: a solid Node band holding
-  // the manifest file (accent bar, it is what the sentence is about) and the container it starts,
-  // with one dim dashed block above it on a single leg.
+  // the manifest file (accent) and its container, with one dim dashed block above on a single leg.
   'cluster-static-pods': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="106" y="14" width="108" height="44" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.45" stroke-dasharray="4 3"/>
@@ -103,9 +95,8 @@ export const POSTERS = {
     <circle cx="270" cy="140" r="3.5" fill="currentColor"/>
   `,
 
-  // Three identical 100ms CFS periods side by side, each with its run time filled from the left and
-  // its stall left empty. The repetition IS the sentence: the budget runs out before the period
-  // does, every period, forever. No clock, no threads, no Node: those are the card, not the claim.
+  // Three identical 100ms CFS periods, each filled from the left with its stall empty. The
+  // REPETITION is the sentence: the budget runs out before the period does, every period, forever.
   'cluster-cpu-throttling': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20"  y="44" width="80" height="92" rx="9" fill="rgba(255,255,255,0.05)"/>
@@ -132,10 +123,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // One capacity bar carved by internal rules into kubeReserved, systemReserved, the eviction
-  // threshold and what is left. Only the last segment carries the bright accent, because it is the
-  // only one a Pod may be scheduled into. Proportions are the card's, widened enough that a 512Mi
-  // slice is a segment rather than a speck at the 200px the grid renders.
+  // One capacity bar carved into four, only the last carrying the accent because it is the only
+  // region a Pod may enter. Proportions are widened so a 512Mi slice is a segment, not a speck.
   'cluster-node-allocatable': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20" y="40" width="280" height="100" rx="8" fill="rgba(255,255,255,0.04)"/>
@@ -185,18 +174,8 @@ export const POSTERS = {
     <rect x="212" y="87" width="58" height="6" rx="1" fill="currentColor" opacity="0.7"/>
   `,
 
-  // A list, then the watch that follows it: three stacked 160 x 22 rows on the left for the objects
-  // the list returns, a short dashed leg off each right edge, and six dots trailing away to the
-  // right in two radii and three opacities, the later changes arriving over the one open connection.
-  // The dots step DOWN rank by rank so the trail reads as a stream moving away rather than as a
-  // column of specks.
-  // This is the original and it is what ships by author decision (2026-08-04). A pipe version was
-  // built to an approved concept the same day, an API block and a cache block joined by one long
-  // horizontal channel of event cells, and the author asked for this shape back after seeing it.
-  // Do not rebuild it as the pipe. Its two known weaknesses are recorded in CARDS-cluster.md under
-  // `poster (reverted 2026-08-04, author preference)`: it reads as rectangles joined by dashes at
-  // grid size, and 2 to 2.5 radius dots are near-invisible at the ~200px the grid renders. Both are
-  // to be worked FROM this shape.
+  // A list, then the watch that follows it. DO NOT rebuild it as the pipe version: that was built
+  // and declined. Its two known weaknesses are open, and are to be worked FROM this shape.
   'cluster-api-structure': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="36" y="48"  width="160" height="22" rx="3" fill="rgba(255,255,255,0.04)"/>
@@ -214,13 +193,8 @@ export const POSTERS = {
     <circle cx="298" cy="123" r="2"   fill="currentColor" opacity="0.5"/>
   `,
 
-  // Two converge into one, and one goes on: a stacked pair on the left merging into a middle block,
-  // then a single run to the right, which is the shape of the card (a manifest and the controllers
-  // that act on it meet in the API, and what leaves it is a Pod on a Node). No arrowheads anywhere,
-  // per the house rule that a line with no ball is a relationship and must not read as traffic. The
-  // two left lanes deliberately SHARE their last segment into the middle block rather than each
-  // taking its own row: the merge is the point. Content spans 14..306 and 22..158, so it centres on
-  // the viewBox centre (160, 90) on both axes.
+  // Two converge into one, and one goes on. The two left lanes SHARE their last segment into the
+  // middle block rather than each taking its own row: the merge is the point. No arrowheads.
   'cluster-apply-flow': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="14"  y="22"  width="76" height="44" rx="7" fill="rgba(255,255,255,0.04)"/>
@@ -239,9 +213,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // A cascade of fading. The owner on top is already gone (dashed and dim), and the three dependents
-  // below it fade left to right, 0.9 then 0.4 then 0.12, so the row reads as a wave of deletion
-  // passing along it. Nothing else in the catalog carries a gradient of ghosts.
+  // A cascade of fading: the owner is already gone, and the three dependents fade 0.9 / 0.4 / 0.12
+  // left to right, so the row reads as a wave of deletion passing along it.
   'cluster-delete-flow': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="112" y="16"  width="96" height="42" rx="8" fill="rgba(255,255,255,0.03)" opacity="0.12" stroke-dasharray="5 4"/>
@@ -259,9 +232,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // A tug of war: two managers, one contested field between them, a dashed leg reaching in from each
-  // side. The field takes the one bright bar because it is what the sentence is about, and both
-  // managers carry the same bar dim.
+  // A tug of war: two managers, one contested field between them. The field takes the one bright
+  // bar and both managers carry the same bar dim.
   'cluster-server-side-apply': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="10"  y="38" width="88" height="104" rx="9" fill="rgba(255,255,255,0.04)"/>
@@ -321,9 +293,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // Three want it, one has it. Three replicas over one wide Lease whose slot row has exactly one
-  // filled cell; the holder's leg is solid and reaches into that cell, the two standbys stop dashed
-  // on the Lease boundary.
+  // Three want it, one has it: the holder's leg is solid into the one filled Lease cell, the two
+  // standbys stop dashed on the boundary.
   'cluster-leader-election': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20"  y="20"  width="80"  height="46" rx="7" fill="rgba(255,255,255,0.04)"/>
@@ -367,9 +338,8 @@ export const POSTERS = {
     </g>
   `,
 
-  // One sentence: what fits is in, and what does not fit is left outside the line. One budget
-  // track carries two filled slots up to a thin hard tick, and the request that would have crossed
-  // it sits past the tick as a dashed block wearing the only bright accent on the poster.
+  // What fits is in, and what does not fit is left outside the line. The refused request sits past
+  // the hard tick as a dashed block wearing the only bright accent.
   'cluster-resource-quota': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20" y="52" width="280" height="76" rx="8" fill="rgba(255,255,255,0.03)"/>

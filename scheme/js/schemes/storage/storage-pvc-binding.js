@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-pvc-binding
+// Design notes for this card: ./CARDS.md#storage-pvc-binding
 
 
 const CX = 600;                                     // canvas + identity-spine center
@@ -245,9 +245,8 @@ const STEPS = [
       dimBoxAt(s.refs.pvSmall, ctx, toSmall.arrivalMs);
       dimBoxAt(s.refs.pvSlow, ctx, toSlow.arrivalMs);
       lightBoxAt(s.refs.pvMatchCyl, ctx, toMatch.arrivalMs);
-      // Each verdict is written when its OWN probe lands. All three used to be on screen at step
-      // entry, so the reader was told which volume wins before the sweep that decides it had run,
-      // and the three probes land 1.4s apart because the three lanes are different lengths.
+      // Each verdict is written when its OWN probe lands, and the three land 1.4s apart because the
+      // lanes differ in length. All three at entry tells the reader the winner before the sweep runs.
       at(s, ctx, toSmall.arrivalMs, () => setWire(s, 'small', 'too small'));
       at(s, ctx, toMatch.arrivalMs, () => {
         setWire(s, 'match', '5Gi, RWO, local-ssd OK');
@@ -303,9 +302,8 @@ const STEPS = [
       // The Pod is running by the end of this step, so full opacity is the static end-state.
       s.refs.appPod.style.opacity = '1';
       if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); s.refs.appBox.classList.add('highlight'); return; }
-      // The ascent: the volume rises PV -> PVC -> Pod. The ball enters the claim at its bottom edge
-      // and re-emerges at its top edge, because the claim is what the mount is resolved THROUGH,
-      // which is also why the claim lights on that first arrival rather than at step entry.
+      // The volume rises PV -> PVC -> Pod, the ball entering the claim at its bottom edge and
+      // re-emerging at the top: the claim is what the mount resolves THROUGH, so it lights on arrival.
       const hop1 = routePacket(s, ctx, W_MOUNT_LOW, { role: 'storage' });
       lightBoxAt(s.refs.pvc, ctx, hop1.arrivalMs);
       const hop2 = routePacket(s, ctx, W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop, role: 'storage' });

@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, BEAT, makeInit, clearHighlights, clearWires, setWire, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-tls-termination
+// Design notes for this card: ./CARDS.md#network-tls-termination
 
 
 const FLOW_Y = 312;
@@ -43,9 +43,8 @@ class Scene {
     const ingress = box({ x: ING_LEFT, y: 276, w: 240, h: 72, label: 'Ingress controller', sublabel: 'TLS terminate', role: 'network' });
     const podX = podBlock({ x: 910, y: 252, w: 210, h: 120, label: 'Pod web', ip: '10.244.2.7' });
 
-    // The client leg is a PAIR, because a handshake completes at the client: the hello goes out above
-    // the flow line and the server side comes back below it. The backend leg stays single, because
-    // nothing on this card ever claims a response from the Pod.
+    // The client leg is a PAIR, because a handshake COMPLETES at the client. The backend leg stays
+    // single, because nothing on this card ever claims a response from the Pod.
     const cWire = arrow({ x1: CLIENT_EDGE, y1: HS_OUT_Y, x2: ING_LEFT, y2: HS_OUT_Y, dashed: true, dim: true, role: 'network' });
     const cWireBack = arrow({ x1: ING_LEFT, y1: HS_BACK_Y, x2: CLIENT_EDGE, y2: HS_BACK_Y, dashed: true, dim: true, role: 'network' });
     const pWire = arrow({ x1: ING_RIGHT, y1: FLOW_Y, x2: POD_LEFT, y2: FLOW_Y, dashed: true, dim: true, role: 'network' });
@@ -124,9 +123,8 @@ const STEPS = [
       // ingress, which lights on arrival along with the Secret it pulled the cert from.
       const hello = segmentPacket(s, ctx, { from: [CLIENT_EDGE, HS_OUT_Y], to: [ING_LEFT, HS_OUT_Y], role: 'network' });
       lightBoxAt(s.refs.ingress, ctx, hello.arrivalMs);
-      // The certificate the controller PRESENTS, on the lane the card drew for it and never used, then
-      // the server side of the handshake reaching the client so the exchange completes where the
-      // narration says it completes.
+      // The certificate the controller PRESENTS, then the server side of the handshake reaching the
+      // client, so the exchange completes where the narration says it completes.
       const cert = segmentPacket(s, ctx, { from: [SECRET_X, 206], to: [SECRET_X, 276], delay: hello.arrivalMs + BEAT.afterHop, role: 'network' });
       segmentPacket(s, ctx, { from: [ING_LEFT, HS_BACK_Y], to: [CLIENT_EDGE, HS_BACK_Y], delay: cert.arrivalMs + BEAT.afterHop, role: 'network' });
     },
@@ -183,9 +181,8 @@ const STEPS = [
       setVal(s.refs.schemeChip, 'http or https');
       s.refs.schemeChip.classList.add('highlight');
       setVal(s.refs.backChip, 'Pod :8080');
-      // The cert chip was the one chip this step left alone, so it still read `presented` from the
-      // handshake step while the narration says passthrough hands the certificate to the Pod instead.
-      // Under three modes at once the honest value is where it MAY live, not where it just was.
+      // Under three modes at once the honest value is where the certificate MAY live, not where it
+      // just was: left alone, this chip reads `presented` into a step about passthrough.
       setVal(s.refs.certChip, 'controller or Pod');
       s.refs.certChip.classList.add('highlight');
       if (ctx.reduced) return;

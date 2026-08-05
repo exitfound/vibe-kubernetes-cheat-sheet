@@ -1,7 +1,7 @@
 import { svg, g, rect, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-model
+// Design notes for this card: ./CARDS.md#network-model
 
 
 const RAISE = 64;                        // band/Pods/chips: net +10% up (lowered 5% from the old 96)

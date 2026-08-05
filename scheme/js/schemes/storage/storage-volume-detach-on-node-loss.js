@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volume-detach-on-node-loss
+// Design notes for this card: ./CARDS.md#storage-volume-detach-on-node-loss
 
 
 const LEFT_X = 400;
@@ -26,10 +26,8 @@ const DK_TOP = DK_Y;                                     // 282
 // Beside the disk, not under it: the taint lane now comes up the spine into the disk floor.
 const DK_LBL_X = 711, DK_LBL_Y = 340;
 
-// The bottom half carries the ladder on the left and the chips on the right, so between them the
-// strip spans the whole content width and centres on it. The escalation box is the only BLOCK down
-// there beside the disk, so it stands on the spine: parked out at the right it dragged the whole
-// low half of the card off centre with it.
+// Ladder left, chips right, so the strip spans the content width and centres on it. The escalation
+// box is the only BLOCK down there beside the disk, so it stands on the SPINE or the half leans.
 const M = 60;
 const CHIP_W = 210, CHIP_GAP = 16, CHIP_COUNT = 3, CHIP_H = 32;
 const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);   // 662
@@ -193,9 +191,8 @@ const STEPS = [
       setChips(s, { nodeA: 'NotReady', volume: 'attached to node-1', newPod: 'not created' });
       setPods(s, { oldSub: 'status unknown', newSub: 'Pending' });
       s.refs.oldPod.style.opacity = '1';
-      // Node-2 stays empty here. A losing Node does not by itself produce a replacement: nothing can
-      // create a second web-0 while the first one is still a live object with no deletionTimestamp.
-      // The replacement appears on the evict step, which is where that timestamp is written.
+      // Node-2 stays empty: nothing can create a second web-0 while the first is still a live object
+      // with no deletionTimestamp. The replacement appears on the evict step, which writes it.
       s.refs.newPod.style.opacity = '0';
       s.refs.disk.classList.add('highlight');
       s.refs.wAttachA.style.opacity = '1';

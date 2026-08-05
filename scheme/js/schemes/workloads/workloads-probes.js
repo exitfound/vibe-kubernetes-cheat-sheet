@@ -26,7 +26,7 @@ const CONT_Y = POD_Y + 30;                               // 548..600
 const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];
 const SPINE_UP = [...SPINE].reverse();
 
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-probes
+// Design notes for this card: ./CARDS.md#workloads-probes
 
 
 class Scene {

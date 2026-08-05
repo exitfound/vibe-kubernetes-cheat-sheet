@@ -2,11 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, cylinder, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
 
-// Layout C on the Workloads canon (WL in the kit): the panel reaches y<=330 (worst of
-// 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
-// band and the chips form a two-across bottom strip. The PV sits between the two Node frames,
-// which is where the story puts it: one disk, detached from Node-1 and attached to Node-2.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-pvc-stickiness
+// Design notes for this card: ./CARDS.md#workloads-pvc-stickiness
+
+// Layout C on the Workloads canon (WL): panel x<=397 y<=330, so pipeline right and chips two-across.
+// The PV sits BETWEEN the two Node frames, which is where the story puts it.
 const PANEL_B = 330;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
@@ -41,12 +40,8 @@ const P_A_X = N_A_X + (N_W - POD_W) / 2;                 // 130
 const P_B_X = N_B_X + (N_W - POD_W) / 2;                 // 770
 const P_A_CX = P_A_X + POD_W / 2, P_B_CX = P_B_X + POD_W / 2;   // 280 / 920
 
-// One control-plane trunk down the corridor left of the pipeline, a bus above the Node band and
-// one tap per Node, each ending on the Pod that reacts. Wires and balls share these points.
-// The trunk leaves the API, not the StatefulSet: every step that sends a ball down here is the API
-// write taking effect on a Node (the eviction deleting web-0, the binding placing it on Node-2), and
-// the controller only ever POSTs to the API on the top row. It steps left into the corridor at the bus
-// junction so both taps stay balanced around it. Same shape as workloads-force-deletion.
+// One trunk down the corridor, a bus above the Node band, one tap per Node ending on the Pod that
+// reacts. It leaves the API, not the StatefulSet: every ball here is an API write taking effect.
 const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 810
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the pipeline
 const BUS_Y = NODE_Y - 20;                               // 372
@@ -57,9 +52,8 @@ const TAP_A = [[P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
 const TAP_B = [[P_B_CX, BUS_Y], [P_B_CX, POD_Y]];
 const NODE1_LANE = [...TRUNK, [P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
 const NODE2_LANE = [...TRUNK, [P_B_CX, BUS_Y], [P_B_CX, POD_Y]];
-// The CSI reattach: the disk itself goes to web-0 on Node-2, out of the PV right face. The
-// mirrored line on the left is the mount web-0 already holds on Node-1, a relationship no ball
-// ever rides, so it carries no arrowhead.
+// The CSI reattach out of the PV right face. The mirrored line on the left is the mount web-0
+// already holds on Node-1, a RELATIONSHIP no ball rides, so it carries no arrowhead.
 const PV_LANE = [[PV_X + PV_W, PV_CY], [P_B_X, PV_CY]];
 const PV_MOUNT_A = [[P_A_X + POD_W, PV_CY], [PV_X, PV_CY]];
 
@@ -275,9 +269,8 @@ const STEPS = [
       s.refs.pvcChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.controller.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
-      // Control-plane only, and in the order the narration gives it: the controller OBSERVES the
-      // missing replica, which is an event arriving down the answer lane, and only then posts the new
-      // Pod object. The Pod is still Pending and unbound, so nothing lands on a node yet.
+      // Control-plane only, in the narration's order: the controller OBSERVES the missing replica
+      // down the answer lane and only THEN posts the new Pod. Still Pending, so nothing lands yet.
       const observe = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
       lightBoxAt(s.refs.controller, ctx, observe.arrivalMs);
       const pkt = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: observe.arrivalMs + BEAT.afterHop, role: 'workloads' });
@@ -307,9 +300,8 @@ const STEPS = [
       s.refs.podB.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      // The identity chip carried the outcome from step entry, three seconds before the Pod appeared
-      // on Node-2, so it read as bound while the slot was still empty. It holds the value the previous
-      // step left and turns over when the binding actually lands.
+      // The identity chip holds the value the previous step left and turns over when the binding
+      // LANDS: at entry it reads as bound while the slot is still empty.
       setVal(s.refs.podChip, 'web-0 · Pending (created again)');
       const bind = connectorPacketB(s, ctx);
       at(s, ctx, bind.arrivalMs, () => setVal(s.refs.podChip, 'web-0 · bound to Node-2'));

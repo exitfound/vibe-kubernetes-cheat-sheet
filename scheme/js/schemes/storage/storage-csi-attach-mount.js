@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, node, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-csi-attach-mount
+// Design notes for this card: ./CARDS.md#storage-csi-attach-mount
 
 
 const M = 60, GUTTER = 48;
@@ -10,9 +10,7 @@ const COL_W = (1200 - 2 * M - GUTTER) / 2;               // 516: solved, see abo
 const LAD_X = M, LAD_W = COL_W, LAD_Y = 388, LAD_ROW = 40, LAD_GAP = 10;
 
 // ---- left column: the controller side, under the narration panel's floor (230 on this card) ----
-// It used to sit inside the Node column, which left every block on the card in the right half and
-// the whole left half below the panel empty. Controller side left, Node side right is also the
-// division the four calls are about.
+// Controller side left, Node side right is the division the four calls are about.
 const CTRL_W = 252, CTRL_H = 64;
 const CTRL_X = M, CTRL_Y = 268;                          // 60..312 / 268..332
 const CTRL_RIGHT = CTRL_X + CTRL_W;                      // 312

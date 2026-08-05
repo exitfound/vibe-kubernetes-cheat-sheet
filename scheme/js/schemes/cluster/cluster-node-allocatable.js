@@ -1,17 +1,10 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow } from '../../lib/primitives.js';
 import { valChip, setVal, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, at, revealAt, REVEAL_MS } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-node-allocatable
+// Design notes for this card: ./CARDS.md#cluster-node-allocatable
 
-// The picture is an ARITHMETIC, not a sequence, so the Node band carries ONE horizontal capacity
-// bar that gets carved segment by segment and the ladder carries the running subtraction.
-// Scale is exact: GI units per Gi, so every segment width IS its number and a reader can measure.
-// Panel measured at 1600x1000 / 1280x860 / 1100x800: x<=291/378/397, y<=212/256/304, worst on the
-// reserved step, the longest narration on the card at 451 characters. Nothing is drawn left of 420
-// above the Node frame, so the binding number is the frame top on 336 and its label on 354. One
-// panel line is 25 units at 1100x800, and 451 -> 304, 510 -> 329, 520 -> 354, which lands on the
-// frame label. The CEILING is therefore 500 characters per narration. Re-measure with
-// VW=1100 VH=800 node overlay-measure.mjs cluster-node-allocatable after any prose edit.
+// An ARITHMETIC, not a sequence: one capacity bar carved segment by segment, scale exact at GI
+// units per Gi. Panel x<=397 y<=304 against a frame label at 354, so the CEILING is 500 characters.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
@@ -43,9 +36,8 @@ const SYS_X = KUBE_X + KUBE_W, SYS_W = GI / 2;           // 208..236, 512Mi
 const EVICT_X = SYS_X + SYS_W, EVICT_W = GI / 2;         // 236..264, 512Mi
 const ALLOC_X = EVICT_X + EVICT_W, ALLOC_W = 14 * GI;    // 264..1048, 14Gi
 
-// The request strip hangs under the bar and starts where Allocatable starts, because that is the
-// only place Pod requests are measured from. A 15Gi request therefore runs to 1104 and overhangs
-// the end of the bar by exactly one Gi, which is the whole answer the card is written to give.
+// Starts where Allocatable starts, the only place Pod requests are measured from, so a 15Gi request
+// overhangs the end of the bar by exactly one Gi: the whole answer the card is written to give.
 const REQ_Y = BAR_Y + BAR_H + 8, REQ_H = 22;             // 442..464
 const REQ_LBL_X = ALLOC_X + 10;                          // 274, start-anchored inside the strip
 
@@ -59,9 +51,8 @@ const CHIP_W = (NODE_W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;   // 532
 const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
-// Residency, not traffic: this Kubelet runs on this Node and is what computes its Allocatable.
-// No ball ever rides it, so it takes no arrowhead. It leaves the Kubelet bottom face midpoint and
-// lands on the Node frame top face midpoint, turning halfway between the two faces.
+// Residency, not traffic: this Kubelet runs on this Node and computes its Allocatable. No ball ever
+// rides it, so no arrowhead. Face midpoint to face midpoint, turning halfway between them.
 const JOG_Y = (TOP_BOTTOM + NODE_Y) / 2;                 // 228
 const KUBELET_CX = KUBELET_X + BOX_W / 2;                // 520
 const KUBELET_TO_NODE = [[KUBELET_CX, TOP_BOTTOM], [KUBELET_CX, JOG_Y], [CX, JOG_Y], [CX, NODE_Y]];

@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-statefulset-ordered-startup
+
 // Layout A on the Workloads canon (WL in the kit): ladder left, chip column right, Node frame
 // full width at the bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-statefulset-ordered-startup
 const PANEL_B = 255, PANEL_GAP = 21;
 
 // The controller is centred on CX so the lane leaves its bottom midpoint and drops down the
@@ -258,10 +259,8 @@ const STEPS = [
       setWire(s, 'svc', 'register web-1.web');
       s.refs.controller.classList.add('highlight');
       s.refs.web1Chip.classList.add('highlight');
-      // web-1 reaching Ready is exactly what opens web-2's gate, and that chip changes value on this
-      // step to say so, so it lights with the event rather than sitting unlit beside it. This was the
-      // one check-arrival R2 finding in the catalog that was a real event rather than a marker being
-      // cleared from the step before.
+      // web-1 reaching Ready is what opens web-2's gate and the chip changes value to say so, so it
+      // lights WITH the event rather than sitting unlit beside it.
       s.refs.web2Chip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);

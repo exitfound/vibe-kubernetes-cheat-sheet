@@ -1,6 +1,5 @@
-// The workloads posters: the still frame each workloads card shows on the grid, keyed by card id.
-// A poster is one sentence, not a small diagram. Design notes for each one:
-// scheme/docs/CARDS-workloads.md, the "### poster" subsection under that card id.
+// The workloads posters, keyed by card id: the still frame each card shows on the grid.
+// A poster is one sentence, not a small diagram. Per-poster notes: ./CARDS.md, "### poster".
 
 export const POSTERS = {
   'workloads-rolling-update': `

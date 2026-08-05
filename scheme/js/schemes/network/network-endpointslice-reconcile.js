@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setPodSublabel, pulsePod, pulsePodDim, segmentPacket, relationPath, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-endpointslice-reconcile
+// Design notes for this card: ./CARDS.md#network-endpointslice-reconcile
 
 
 const CTLR_TOP = 350;                       // top edge of the controller box
@@ -56,11 +56,8 @@ class Scene {
     const b = podBlock({ x: 475, y: 488, w: 250, h: 128, label: 'Pod app=web', ip: '10.244.2.7 · ready' });
     const c = podBlock({ x: 860, y: 488, w: 250, h: 128, label: 'Pod app=web', ip: '10.244.3.9 · notReady' });
 
-    // Wires: Service names the slice (down), controller writes the slice (up), slice is read by
-    // kube-proxy (right), and the controller watches the Pod set (down).
-    // Both of these are standing relationships rather than routes, which the comment above already
-    // says in words: a Service NAMES its slice through a selector and a controller WATCHES a Pod set.
-    // Neither is a message, and neither ever carried a ball, so neither takes an arrowhead.
+    // A Service NAMES its slice through a selector and a controller WATCHES a Pod set: both are
+    // standing RELATIONSHIPS, not messages, so neither takes an arrowhead.
     const declWire  = relationPath({ points: [[600, 122], [600, 152]], role: 'network' });
     const writeWire = arrow({ x1: WRITE_PATH[0][0], y1: WRITE_PATH[0][1], x2: WRITE_PATH[1][0], y2: WRITE_PATH[1][1], dashed: true, dim: true, role: 'network' });
     const readWire  = arrow({ x1: READ_PATH[0][0], y1: READ_PATH[0][1], x2: READ_PATH[1][0], y2: READ_PATH[1][1], dashed: true, dim: true, role: 'network' });
@@ -165,9 +162,8 @@ const STEPS = [
       setVal(s.refs.ep3, '10.244.3.9 · notReady');
       setPodSublabel(s.refs.podB, '10.244.2.7 · notReady');
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); s.refs.ep2.classList.add('highlight'); return; }
-      // Pod B pulses FROM its dimmed state: a plain pulsePod ramps the stroke from the resting tint
-      // and a Pod already sitting at 0.40 barely registers the blink, so it takes the dim variant with
-      // its own opacity flash, the same call shape as storage-csi-capacity-tracking.
+      // Pod B pulses FROM its dimmed state: a plain pulsePod ramps from the resting tint and a Pod
+      // already at 0.40 barely registers it, so it takes the dim variant with its own opacity flash.
       pulsePodDim(s.refs.podB, ctx, 0, { from: OPACITY.notready });
       const upd = segmentPacket(s, ctx, { from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, role: 'network' });
       ridingLabel(s, ctx, '10.244.2.7 notReady', WRITE_PATH, { delay: BEAT.afterPulse, easing: 'linear' });

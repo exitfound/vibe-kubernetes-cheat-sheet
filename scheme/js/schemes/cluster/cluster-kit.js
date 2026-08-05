@@ -7,7 +7,7 @@ export {
   setPodSublabel, FADE, BEAT, OPACITY,
 } from '../../lib/scheme-kit.js';
 import { pulsePodWithTint, pulsePodDimWithTint } from '../../lib/scheme-kit.js';
-// Design notes: scheme/docs/INTERNALS.md#schemejslibcluster-kitjs
+// Design notes: scheme/INTERNALS.md#schemejsschemesclustercluster-kitjs
 
 // Cluster pods are recoloured violet (#c0b0ff), so the pulse
 // stroke tint matches them rather than the workloads blue in scheme-kit.

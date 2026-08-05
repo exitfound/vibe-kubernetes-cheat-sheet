@@ -7,7 +7,7 @@ export {
   setPodSublabel, FADE, BEAT, OPACITY,
 } from '../../lib/scheme-kit.js';
 import { pulsePodWithTint, pulsePodDimWithTint } from '../../lib/scheme-kit.js';
-// Design notes: scheme/docs/INTERNALS.md#schemejslibnetwork-kitjs
+// Design notes: scheme/INTERNALS.md#schemejsschemesnetworknetwork-kitjs
 
 export const NETWORK_TINT = Object.freeze({ base: 'rgb(79, 229, 255)', bright: 'rgb(158, 234, 247)' });
 

@@ -45,14 +45,8 @@ export function pod({ x, y, w = 92, h = 60, label = 'Pod', sublabel = '', contai
   return group;
 }
 
-// A Pod drawn as a SHELL: the same pod(), with its rect washed to the near-transparent fill that
-// says "this is a boundary, the things inside it are the subject". Every card that draws a Pod
-// with blocks inside it wants this, and all 100 sites hand-wrote the same three lines with the
-// same literal, differing only in what they called the local.
-//
-// The fill is set INLINE and must stay that way. Moving it to a CSS class changes how it resolves
-// against the .scheme-pod-rect rules in diagrams.css, which is a picture change wearing the
-// clothes of a cleanup.
+// A Pod drawn as a SHELL: pod() with its rect washed to a near-transparent fill. That fill stays
+// INLINE, because a CSS class resolves differently against the .scheme-pod-rect rules.
 export const POD_SHELL_FILL = 'rgba(255, 255, 255, 0.03)';
 
 export function podShell(opts) {
@@ -84,7 +78,7 @@ export function cylinder({ x, y, w = 80, h = 60, label = '', role = 'storage', c
 }
 
 // role OUTRANKS dim on the marker, deliberately, and diagrams.css says the same about the stroke.
-// Why that is not the bug it looks like: docs/INTERNALS.md#schemecssdiagramscss (2026-07-29).
+// Why that is not the bug it looks like: scheme/INTERNALS.md#schemecssdiagramscss (2026-07-29).
 export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, role = '', cls = '' } = {}) {
   const dashAttr = dashed ? '5 5' : null;
   let markerId = dim ? 'arrowhead-dim' : 'arrowhead';

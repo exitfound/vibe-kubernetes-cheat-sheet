@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, node, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volume-mode
+// Design notes for this card: ./CARDS.md#storage-volume-mode
 
 
 const LEFT_X = 400;
@@ -218,9 +218,8 @@ const STEPS = [
       s.refs.band.classList.add('highlight');
       if (ctx.reduced) { s.refs.pvFs.classList.add('highlight'); return; }
       const staged = actOnDisk(s, ctx, { points: W_FS_STAGE, tag: 'mkfs ext4', disk: s.refs.pvFs });
-      // The disk hands the formatted device back, which is what its own lane comment has always said
-      // and what the block branch beside it already draws (W_BLK_DEV, "device as is"). Without it the
-      // fs branch staged onto the disk and then mounted a device it was never shown receiving.
+      // The disk hands the formatted device back, as the block branch beside it already draws.
+      // Without it the fs branch stages onto the disk and mounts a device it never received.
       actOnDisk(s, ctx, { points: W_FS_DEV, tag: 'ext4 device', disk: s.refs.band, lead: staged + BEAT.afterHop });
     },
   },

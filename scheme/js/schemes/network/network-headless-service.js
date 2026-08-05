@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-headless-service
+// Design notes for this card: ./CARDS.md#network-headless-service
 
 
 const CY = 320;                      // canvas centre line: Pods column + CoreDNS are centred on it
@@ -21,9 +21,8 @@ const DATA_Y = 520;                  // the data trunk runs below CoreDNS and th
 // Pod edge to DATA_Y here, in the free gap between the client and CoreDNS.
 const DATA_STEP_X = 355;
 
-// DNS lane: up out of the client's TOP edge, then square into CoreDNS's left edge. Two lanes, 20px
-// apart on both faces, so the answer comes home on its own wire instead of running back up the
-// query arrow. Both pairs straddle their face midpoint (the Pod centre, and CY at CoreDNS).
+// Up out of the client's TOP edge, then square into CoreDNS's left edge. TWO lanes 20 apart on both
+// faces, so the answer comes home on its own wire, and both pairs straddle their face midpoint.
 const LANE_DX = 10, LANE_DY = 10;
 const CLIENT_CX = CLIENT_X + CLIENT_W / 2;   // 185
 const QUERY = [[CLIENT_CX - LANE_DX, CLIENT_TOP], [CLIENT_CX - LANE_DX, CY - LANE_DY], [CORE_LEFT, CY - LANE_DY]];
@@ -72,10 +71,8 @@ class Scene {
     const w2 = podBlock({ x: POD_X, y: W2 - POD_H / 2, w: POD_W, h: POD_H, label: 'web-2', ip: '10.244.1.9' });
 
     const wSvc = relationPath({ points: [[CORE_CX, SVC_Y], [CORE_CX, CY + CORE_H / 2]], dash: '5 5' });
-    // Two fans, and only one of them is traffic. The DATA fan is what the client opens, drawn from the
-    // exact arrays its balls fly. The ENDPOINT fan is CoreDNS knowing which Pods back the Service, and
-    // nothing discrete travels it in either direction: CoreDNS does not call the Pods, and the reads it
-    // does come from the EndpointSlice, which this card does not draw. So it carries no arrowhead.
+    // TWO fans, and only one is traffic: the DATA fan is what the client opens, the ENDPOINT fan is
+    // CoreDNS knowing which Pods back the Service. Nothing travels the second, so it takes no arrowhead.
     const fans = [W0, W1, W2].map(cy => relationPath({ points: fanTo(cy), role: 'network' }));
     const dataWires = [TO_W0, TO_W1, TO_W2].map(points => pathArrow({ points, dashed: true, dim: true }));
     const wQuery = pathArrow({ points: QUERY, dashed: true, dim: true });

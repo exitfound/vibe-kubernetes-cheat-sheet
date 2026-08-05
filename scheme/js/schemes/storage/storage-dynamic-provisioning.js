@@ -1,7 +1,7 @@
 import { svg, g, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-dynamic-provisioning
+// Design notes for this card: ./CARDS.md#storage-dynamic-provisioning
 
 
 const LEFT_X = 400;                                   // leftmost the TOP ROW may go, all viewports

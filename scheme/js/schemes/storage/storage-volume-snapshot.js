@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volume-snapshot
+// Design notes for this card: ./CARDS.md#storage-volume-snapshot
 
 
 const CX = 600;
@@ -13,10 +13,8 @@ const REQ_MY = REQ_Y + REQ_H / 2, REQ_BOTTOM = REQ_Y + REQ_H;               // 7
 const RST_X = 840, RST_W = 240;
 const RST_CX = RST_X + RST_W / 2;                                           // 960
 
-// The middle row is three 232 wide boxes on one line, so its left box lands at 144..376 whatever the
-// spread, which is under the narration panel (x<=397 down to y=280 on this card). The row therefore
-// starts BELOW the panel floor, and the chain runs right to left so the request from the top row
-// reaches the controller on the free side instead of diving behind the panel to get to it.
+// The middle row's left box lands at 144..376 whatever the spread, under the panel (x<=397 to y=280),
+// so the row starts BELOW the panel floor and the chain runs right to left to reach it on the free side.
 const MID_Y = 282, MID_H = 68, MID_BOTTOM = MID_Y + MID_H;                  // 350
 const MID_W = 232, MID_SPREAD = 340, MID_MY = MID_Y + MID_H / 2;            // 316
 const MID_CX = [CX - MID_SPREAD, CX, CX + MID_SPREAD];                      // 260 / 600 / 940

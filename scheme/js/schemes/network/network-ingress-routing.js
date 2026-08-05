@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-ingress-routing
+// Design notes for this card: ./CARDS.md#network-ingress-routing
 
 
 const FLOW_Y = 343;                  // (RULE_BOTTOM + CHIP_Y) / 2, the spine of the left-to-right flow
@@ -115,9 +115,8 @@ class Scene {
   reset() { this.build(); }
 }
 
-// A branch is its Service, its Pod AND the two lanes that join them, because a lane into a Service
-// the request did not choose is not a route on this step. Listing the blocks without their lanes is
-// how the idle branch kept two arrows at full strength.
+// A branch is its Service, its Pod AND the two lanes joining them: a lane into a Service the request
+// did not choose is not a route on this step, and blocks listed without lanes leave arrows lit.
 const BRANCH = {
   web: ['svcWeb', 'podWeb', 'fanWeb', 'podWebWire'],
   api: ['svcApi', 'podApi', 'fanApi', 'podApiWire'],

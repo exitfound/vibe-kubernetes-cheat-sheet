@@ -1,14 +1,13 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, podShell, node, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-ephemeral-storage-eviction
+// Design notes for this card: ./CARDS.md#storage-ephemeral-storage-eviction
 
 
 const NODE_X = 210, NODE_Y = 45, NODE_W = 780, NODE_H = 485; // 210..990, canvas-centered
 
-// This card carries the longest narration in the storage set: its panel reaches x<=397 all the way
-// down to y=355, so the Pod tier and the contributor tier both live to the right of it. The column
-// centre is 620 rather than the canvas 600 for that reason, and the disk and the chips follow it.
+// The longest narration in the storage set: the panel reaches x<=397 down to y=355, so both upper
+// tiers live right of it and the column centre is 620 rather than the canvas 600.
 const COL_CX = 620;
 
 const POD_X = COL_CX - 145, POD_Y = 85, POD_W = 290, POD_H = 150; // 475..765

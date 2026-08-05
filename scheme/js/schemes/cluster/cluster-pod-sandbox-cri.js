@@ -2,30 +2,14 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
-// Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1440/1280/1100 at heights 1000/860/800 is x<=397, y<=213, and the
-// two do NOT peak together: the panel is widest where it is shallow (397 x 92 at 1100x1000) and
-// deepest where it is narrow (189 x 213 at 1600x800). Both edges bind something different here,
-// the right edge caps the top row at x=404 and the bottom clears the columns at y=235.
+// Laid out on the L. Panel x<=397 y<=213, and the two do NOT peak together: widest where shallow,
+// deepest where narrow. The right edge caps the top row at 404, the bottom clears the columns at 235.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
 
-// Three actors in the top row, all clear of the panel. The row is anchored on its RIGHT edge and
-// built leftwards: CNI ends on CONTENT_R, and the gaps take whatever is left. It used to start at a
-// fixed KUBE_X=420 with 30 unit gaps, and read as three boxes shoved together.
-//
-// 404 is the hard left stop, not a taste. The panel measures x<=397 at 1100 width across every
-// height, and the top row lives at y 40..120, which is inside the panel band at that width. Seven
-// units is the entire clearance, confirmed on a 1100x1000 render and not just on the number. That
-// cap is a viewport-width effect (the panel hits its own max width), not a text-length one, so a
-// longer narration cannot eat it: it grows downwards.
-//
-// So the room for the arrows comes out of the BOXES, which had 70 to 95 units of dead padding per
-// side. Measured widest inner label: Kubelet 60 units, containerd 90 ("CRI gRPC server"), CNI 66
-// ("veth + IPAM"). The widths below leave 60 / 60 / 57 per side, which is the tight end of the
-// family and exactly what CNI already shipped. That buys 83 unit gaps in place of 38, so each
-// call/return lane pair has better than twice the run it had.
+// Anchored on its RIGHT edge and built leftwards, with 404 a HARD left stop. The room for the lanes
+// comes out of the BOXES, not out of that stop: see ./CARDS.md.
 const TOP_Y = 40, BOX_H = 80, TOP_BOTTOM = TOP_Y + BOX_H;// 40 / 120
 const KUBE_W = 180, RT_W = 210, CNI_W = 180, TOP_GAP = 83;
 const CNI_X = CONTENT_R - CNI_W, CNI_R = CONTENT_R;      // 960..1140
@@ -54,15 +38,10 @@ const INNER_W = 190, INNER_H = 54, INNER_Y = POD_Y + 30; // 514..568
 const PAUSE_X = POD_X + 22;                              // 392..582
 const APP_X = POD_X + POD_W - 22 - INNER_W;              // 618..808
 
-// The lane from the RUNTIME down into the Node. Moving its start right by 270 units added 244ms to
-// every ball that rides it, which put all four steps 131ms over their 2800 budget: they are 3100
-// now. routeDur is length-based, so a start point IS a timing decision.
-//
-// It leaves Kubelet no longer: Kubelet is the one block on this card that never touches the sandbox.
-// The whole subject is that it is a CRI CLIENT and containerd is what materialises the pause
-// container, pulls, creates and starts. All four steps that ride this lane say so in their narration.
+// The lane from the RUNTIME down into the Node, not from Kubelet: Kubelet is a CRI CLIENT and never
+// touches the sandbox. routeDur is length-based, so its start point IS a timing decision.
 const SPINE_X = RT_X + RT_W / 2;                         // 772
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-pod-sandbox-cri
+// Design notes for this card: ./CARDS.md#cluster-pod-sandbox-cri
 
 
 class Scene {
@@ -170,17 +149,8 @@ function clearHL(s) {
     [s.refs.sandboxGroup, s.refs.appGroup]);
 }
 
-// A centred zigzag into the NODE, not into the Pod inside it: off the containerd bottom face
-// midpoint, across, then straight down onto the Node frame top face midpoint. Which container the
-// step lands on is carried by the pulse, the same correction the four sibling Node cards took.
-//
-// The turn goes ABOVE both columns, and that is the load-bearing part. containerd sits at x=772,
-// which is inside the chip column (620..1140, y 235..437), so the old lane, which turned at y=446
-// just above the Node frame, ran its whole 326 unit drop straight through all four chips. The file
-// claimed the opposite in a comment ("runs in the corridor ... so it crosses nothing") and every
-// check agreed, because check-geometry THROUGH scores blocks and value chips are not blocks. The
-// only free horizontal band is 120..235, between the top row and the columns, so the turn sits on
-// its midpoint. That leaves the long leg on x=600, in the 490..620 gutter between ladder and chips.
+// A centred zigzag into the NODE, not the Pod inside it. THE TURN GOES ABOVE BOTH COLUMNS, or the
+// vertical leg drops straight through all four chips, which THROUGH cannot see.
 const JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2;               // 177.5, clear of the wire labels at y=144
 const SANDBOX_CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, JOG_Y], [CX, JOG_Y], [CX, NODE_Y]];
 
@@ -273,9 +243,8 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       s.refs.appGroup.style.opacity = '0';
-      // "pulled", not "cached": this step draws Kubelet making the PullImage call, and under the
-      // default IfNotPresent a cached image is one Kubelet never calls for at all. The chip said
-      // cached while the ball said called. The ladder row keeps the cached case in its parenthesis.
+      // `pulled`, not `cached`: this step draws the PullImage call, and under IfNotPresent a cached
+      // image is one Kubelet never calls for. The ladder row keeps the cached case in its parenthesis.
       setVal(s.refs.statusChip, 'image pulled');
       setVal(s.refs.lastOpChip, 'PullImage');
       s.refs.lastOpChip.classList.add('highlight');

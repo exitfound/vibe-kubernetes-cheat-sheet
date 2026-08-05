@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-job-parallelism
+
 // Layout C of the Workloads canon (WL): full-width chip strip, a bus tapping all three workers.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-job-parallelism
 const PANEL_B = 280;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;

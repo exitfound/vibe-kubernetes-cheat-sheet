@@ -1,12 +1,11 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-gateway-api
+// Design notes for this card: ./CARDS.md#network-gateway-api
 
 
-// Panel measured 2026-07-27: right <= 397, bottom <= 330 (this card carries a long narration). The
-// Client is the only block left of 397, so the whole request row hangs below that bottom. A longer
-// narration invalidates the measurement.
+// Panel right <= 397, bottom <= 330 (a long narration here). The Client is the only block left of
+// 397, so the whole request row hangs below that bottom.
 const FLOW_Y = 380;                          // Client + Gateway share this row: a request enters here
 
 const CLIENT_X = 40, CLIENT_W = 260, CLIENT_H = 72;

@@ -1,4 +1,4 @@
-// Design notes: scheme/docs/INTERNALS.md#schemejsdatajs
+// Design notes: scheme/INTERNALS.md#schemejsdatajs
 const ICON_NETWORK   = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><line x1="8.5" y1="6" x2="15.5" y2="6"/><line x1="6" y1="8.5" x2="6" y2="15.5"/><line x1="8.5" y1="18" x2="15.5" y2="18"/><line x1="18" y1="8.5" x2="18" y2="15.5"/></svg>`;
 const ICON_WORKLOADS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 3 21 8 12 13 3 8 12 3"/><polyline points="3 13 12 18 21 13"/></svg>`;
 const ICON_STORAGE   = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="2.5"/><path d="M4 5v6c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5V5"/><path d="M4 11v8c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-8"/></svg>`;
@@ -16,17 +16,8 @@ const byKey = (field) => Object.fromEntries(CATEGORIES.filter(c => c[field]).map
 export const CATEGORY_ICONS = byKey('icon');
 export const CATEGORY_TAGLINE = byKey('tagline');
 
-// The catalogue itself lives with the cards, one manifest per category folder, so adding a card
-// touches one folder instead of this file plus two others. This module stays the registry of what
-// a category IS (order, label, tagline, icon), which is cross-category by nature and cannot be
-// owned by any one of them.
-//
-// The concatenation order below is the CATEGORIES order, and it deliberately does NOT reproduce
-// the old array order: workloads used to sit in two blocks, 2 cards at index 37 and 17 more at
-// index 91, so no per-category split can rebuild it. That is safe, and it is checked rather than
-// argued: buildUnits in app.js groups by category and then by subcategory, and inside a
-// subcategory it filters, which preserves relative order among that category's own cards. All 15
-// (category, subcategory) pairs render in exactly the order they did before.
+// The catalogue lives with the cards, one manifest per category folder. This module is the registry
+// of what a CATEGORY is, which no one folder can own. Order: see scheme/INTERNALS.md.
 import { CARDS as CLUSTER_CARDS, SUBCATEGORIES as CLUSTER_SUBS } from './schemes/cluster/cards.js';
 import { CARDS as WORKLOADS_CARDS, SUBCATEGORIES as WORKLOADS_SUBS } from './schemes/workloads/cards.js';
 import { CARDS as NETWORK_CARDS, SUBCATEGORIES as NETWORK_SUBS } from './schemes/network/cards.js';

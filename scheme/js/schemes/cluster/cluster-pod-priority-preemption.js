@@ -2,18 +2,10 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
-// Layout C: the panel leaves no column under it, so the pipeline keeps the right band and the chips
-// form a two-across bottom strip. Panel worst case over 1600/1440/1280/1100 at heights
-// 1000/900/860/800 is x<=397, y<=280, at 1100x800 on the delete step (357 characters, the card
-// wraps it widest), against a longest narration of 360 on bind. NODE_Y is 404, so the clearance is
-// 124 units and the frame does NOT move up to spend it: 404 is a route length and therefore a
-// packet timing. The CEILING is 360 characters per narration, and it is the tightest in the
-// category: until the 2026-08-04 prose pass the longest step here ran 607 characters and the panel
-// measured exactly 404, ZERO clearance, sitting on the Node frame top edge. NOTHING in the gate
-// reports that, because check-geometry --rules=occluded scores occluded AREA and a strip off a 128
-// tall frame is under its bar. Roughly 0.5 units of panel per character is what growth costs.
-// Re-measure with VW=1100 VH=800 node overlay-measure.mjs after any prose edit on this card.
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-pod-priority-preemption
+// Design notes for this card: ./CARDS.md#cluster-pod-priority-preemption
+
+// Layout C. Panel x<=397 y<=280 against NODE_Y 404, and the CEILING is 360 characters per narration,
+// the tightest in the category. Growth costs about 0.5 units of panel per character.
 
 // The X grammar the card was built on, restated locally when it moved to Cluster: same numbers.
 const M = 60;
@@ -56,17 +48,12 @@ const SLOT_SPAN = CONTENT_W - POD_PAD * 2;
 const SLOT_X = i => CONTENT_L + POD_PAD + i * ((SLOT_SPAN - SLOT_W) / (SLOT_N - 1));
 const SLOT_CX = i => SLOT_X(i) + SLOT_W / 2;             // 234 / 600 / 966
 
-// Everything the Scheduler sends down addresses slot 0: it is the victim it preempts and the
-// slot Pod NEW is bound into. The lane therefore ends on that Pod, and the wire and the ball
-// are built from this one array.
+// Everything the Scheduler sends down addresses slot 0: the victim it preempts and the slot Pod NEW
+// is bound into. Wire and ball are built from this one array.
 const BUS_Y = NODE_Y + 12;
 const VICTIM_SLOT = 0;
-// Two lanes, because two different actors reach that slot and a ball must leave the one that acts.
-// SCAN_LANE is the Scheduler evaluating the Pods already on the Node: it leaves the Scheduler, which
-// is centred on CX for exactly this. NODE_LANE is what the API sets in motion once a write has landed
-// on it, the graceful delete of the victim and the start of the bound Pod: the Scheduler never
-// reaches a Node, it writes to the API and the Node acts on what it reads. Both share the drop, so
-// they read as one wiring tree with two sources, the same construction as workloads-force-deletion.
+// TWO lanes, because two actors reach that slot and a ball must leave the one that ACTS: the
+// Scheduler scans, the API is what the Node then acts on. Both share the drop, one tree, two sources.
 const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 990
 const JOG_Y = TOP_BOTTOM + 20;                           // 140, below the boxes, above the pipeline
 const SCAN_LANE = [[CX, TOP_BOTTOM], [CX, BUS_Y], [SLOT_CX(VICTIM_SLOT), BUS_Y], [SLOT_CX(VICTIM_SLOT), POD_Y]];

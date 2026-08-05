@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-ipam-pod-cidr
+// Design notes for this card: ./CARDS.md#network-ipam-pod-cidr
 
 
 // Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 255. The three Node frames span
@@ -161,10 +161,8 @@ const STEPS = [
       setVal(s.refs.slice2, '10.244.2.0/24');
       setVal(s.refs.slice3, '10.244.3.0/24');
       if (ctx.reduced) return;
-      // The three slices held their /24 from step entry, so the carve arrived at chips that already
-      // showed its result. They hold `pending`, the card's own word for an uncarved slice, until the
-      // allocations land, which they do together: the
-      // three balls share one explicit dur because one sweep writes all three podCIDR fields.
+      // The three slices hold `pending` until the allocations land, or the carve arrives at chips
+      // already showing its result. The three balls share one explicit dur: one sweep, three fields.
       [s.refs.slice1, s.refs.slice2, s.refs.slice3].forEach(c => setVal(c, 'pending'));
       const dur = 1100;
       const a2 = routePacket(s, ctx, ALLOC2, { dur, fadeIn: true, role: 'network' });

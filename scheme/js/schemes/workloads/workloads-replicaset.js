@@ -2,10 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
-// Layout B on the Workloads canon (WL in the kit): the panel reaches y<=305 (worst of
-// 1600/1440/1280/1100, x<=397), which leaves room under it for the chip column but not for the
-// six-row pipeline, so the two columns swap: chips left, ladder right, Node frame full width.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-replicaset
+// Design notes for this card: ./CARDS.md#workloads-replicaset
+
+// Layout B on the Workloads canon (WL): panel x<=397 y<=305 leaves room for the chip column but not
+// the six-row pipeline, so the columns SWAP: chips left, ladder right, Node frame full width.
 const PANEL_B = 305, PANEL_GAP = 20;
 
 // The ReplicaSet is centred on CX so the lane leaves its bottom midpoint and drops down the
@@ -266,10 +266,8 @@ const STEPS = [
       s.refs.actionChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.rs.classList.add('highlight'); s.refs.pod2Box.classList.add('highlight'); s.refs.api.classList.add('highlight'); return; }
-      // web-b2 dies and the loss reaches the controller as a watch event down the answer lane, which
-      // is what the narration means by seeing the count drop THROUGH its Pod watch. The controller is
-      // dark until that event lands: it acts on what it receives. Only then does the create go out,
-      // and the new Pod travels down the connector.
+      // The loss reaches the controller as a watch event down the answer lane, so it is dark until
+      // that lands: it acts on what it RECEIVES. Only then does the create go out.
       ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE.out, delay: 0, fill: 'forwards', easing: 'ease-in' }));
       const watch = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: FADE.out + BEAT.afterHop, role: 'workloads' });
       lightBoxAt(s.refs.rs, ctx, watch.arrivalMs);
@@ -328,9 +326,8 @@ const STEPS = [
       s.refs.actionChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
-      // The DELETE travels to the node, the surplus Pod pulses then is removed on arrival. The whole
-      // fourth slot comes back for the flight, bus tail and tap included: LANE(3) runs along both,
-      // so restoring the Pod alone left the last two legs of the ball on blank canvas.
+      // The whole fourth slot comes back for the flight, bus tail and tap included: LANE(3) runs
+      // along both, so restoring the Pod alone leaves the last two legs of the ball on blank canvas.
       setPod(s, 4, { opacity: 1 });
       const del = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.api, ctx, del.arrivalMs);

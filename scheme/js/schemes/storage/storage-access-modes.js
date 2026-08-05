@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, podShell, cylinder, node, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-access-modes
+// Design notes for this card: ./CARDS.md#storage-access-modes
 
 
 const LEFT_X = 400;                                      // leftmost the NODE ROW may go, all viewports
@@ -21,10 +21,8 @@ const NODE_2_W = NODE_PAD * 2 + POD_W;                   // 160
 const CONTENT_W = NODE_1_W + NODE_GAP + NODE_2_W;        // 494
 const RIGHT_END = LEFT_X + CONTENT_W;                    // 894
 
-// The node row cannot centre on the canvas: it sits in the narration panel's y band (the panel is
-// 397 wide there) so it starts at 400 and its own centre lands at 647. Everything BELOW the panel
-// bottom is free of that, so the driver band, the disks and the chips centre on the canvas instead.
-// The band keeps its right edge flush with the node row and takes the width it gains on the left.
+// The node row sits in the panel's y band, so it starts at 400 and centres on 647. Everything BELOW
+// the panel floor centres on the CANVAS instead: the band takes the width it gains on the left.
 const CANVAS_CX = 600;
 
 const P1_X = NODE_1_X + NODE_PAD;                        // 416, node-1 first Pod
@@ -56,17 +54,15 @@ const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>
   CANVAS_CX - CHIPS_W / 2 + i * (CHIP_W + CHIP_GAP));
 
 
-// Attach request hops: each Pod drops onto a shared bus and the three enter the driver band on its
-// centre line. Dropping straight down instead would land three arrows across the band's face, none
-// of them near it, because the band is centred on the canvas and the Pods are not.
+// Each Pod drops onto a shared bus and the three enter the band on its centre line: dropping
+// straight down lands three arrows across the band's face, because the two rows have different centres.
 const BUS_Y = 260;                                       // clear of the panel bottom (230) and the band
 const podReq = cx => [[cx, POD_BOTTOM], [cx, BUS_Y], [DRV_CX, BUS_Y], [DRV_CX, DRV_TOP]];
 const W_P1_DRV = podReq(P1_CX);
 const W_P2_DRV = podReq(P2_CX);
 const W_P3_DRV = podReq(P3_CX);
-// Attach hops: driver -> disk. The ball re-emerges from the driver at the disk column. The two
-// columns are mirrored about the band, and the three shared-filesystem attaches fan out inside the
-// PV-nfs column rather than off the band, so every lane leaves the band on a face midpoint.
+// driver -> disk, the ball re-emerging at the disk column. The three shared-filesystem attaches fan
+// out INSIDE the PV-nfs column, not off the band, so every lane leaves on a face midpoint.
 const W_DRV_BLOCK = [[BLOCK_CX, DRV_BOTTOM], [BLOCK_CX, PV_TOP]];
 const NFS_LANE = 16;
 const NFS_FAN_Y = (DRV_BOTTOM + PV_TOP) / 2 - 20;        // 392, above the driver caption at 408

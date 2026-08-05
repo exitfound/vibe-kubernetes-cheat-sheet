@@ -1,13 +1,11 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-conntrack-nat
+// Design notes for this card: ./CARDS.md#network-conntrack-nat
 
 
-// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 255. A longer narration invalidates
-// that bottom. The flow row starts at y=252, so the top 3 units of the Client Pod (x 70..260) do
-// overlap the panel corner: far under the OCCLUDED area threshold, and left as measured rather
-// than nudged. Do not read this as a clearance.
+// Panel right <= 397, bottom <= 255. The flow row starts at 252, so the top 3 units of the Client Pod
+// DO overlap the panel corner: measured and left, not a clearance. A longer narration invalidates it.
 const POD_Y = 252, POD_H = 120;                    // both Pod shells stand on one baseline
 const CLIENT_X = 70, CLIENT_W = 190;
 const CLIENT_EDGE = CLIENT_X + CLIENT_W;           // 260
@@ -23,9 +21,8 @@ const LANE_DY = 12;                 // half-gap between the request and reply la
 const REQ_Y = FLOW_Y - LANE_DY;     // 300: request lane (left -> right)
 const REP_Y = FLOW_Y + LANE_DY;     // 324: reply lane (right -> left)
 
-// Chip strip: the outer two are flush with the Pod footprints (CHIP_L is the client left edge,
-// CHIP_R the server right edge) and the middle pair stays centred under netfilter, so the strip
-// spans CHIP_L..CHIP_R and centres on x=600 with every chip still under the block it describes.
+// The outer two chips are flush with the Pod footprints and the middle pair centred under netfilter,
+// so the strip centres on 600 with every chip still under the block it describes.
 const CHIP_L = CLIENT_X, CHIP_Y = 530, CHIP_H = 34;
 const CHIP_W_OUT = 250, CHIP_W_MID = 215, CHIP_GAP_MID = 14;
 const CHIP_X_ORIG = CHIP_L;                                     // 70
@@ -170,9 +167,8 @@ const STEPS = [
       setVal(s.refs.stateChip, 'ESTABLISHED');
       setVal(s.refs.dirChip, 'reverse NAT');
       if (ctx.reduced) { s.refs.nf.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
-      // Reply rides the reply lane: server -> netfilter (reverse NAT inside, ball hidden across the
-      // box) -> client, which pulses on arrival. netfilter lights as the reply enters it, the same
-      // shape the send step uses, so the box is not already lit when its own packet lands.
+      // The reply rides its own lane, the ball hidden across the box for the reverse NAT. netfilter
+      // lights as the reply ENTERS it, so the box is not already lit when its own packet lands.
       const h1 = segmentPacket(s, ctx, { from: [SERVER_LEFT, REP_Y], to: [NF_RIGHT, REP_Y], role: 'network' });
       lightBoxAt(s.refs.nf, ctx, h1.arrivalMs);
       const h2 = segmentPacket(s, ctx, { from: [NF_LEFT, REP_Y], to: [CLIENT_EDGE, REP_Y], delay: h1.arrivalMs + BEAT.afterHop, role: 'network' });

@@ -1,16 +1,10 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-node-drain
+// Design notes for this card: ./CARDS.md#cluster-node-drain
 
-// Layout C: the ladder keeps the right column and the Node frame sits under the panel. Panel worst
-// case over 1600/1280/1100 at heights 1000/860/800 is x<=397, y<=304, at 1100x800 on the cordon
-// step, the longest narration on the card at 396 characters. The frame top is 380, so the clearance
-// is 76 units. The 2026-08-04 narration trims bought that clearance and the frame did NOT move up to
-// spend it: 380 is a route length and therefore a packet timing. The CEILING is a property of the
-// frame, not of the current text, so it is unchanged: no narration here may pass 528 characters.
-// Re-measure with VW=1100 VH=800 node overlay-measure.mjs after any prose edit on this card.
-// The top row is the deliberate exception, see the OCCLUDED note in scheme/docs/CARDS-cluster.md.
+// Layout C, ladder right, Node frame under the panel. Panel x<=397 y<=304, frame top 380: NO
+// NARRATION MAY PASS 528 CHARACTERS, and that ceiling belongs to the frame, not to the current text.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
@@ -24,11 +18,8 @@ const API_X = CX - BOX_W / 2;                            // 484..716, centred on
 const KUBECTL_X = API_X - TOP_GAP - BOX_W;               // 196..428
 const LANE_DY = 12, TOP_CY = TOP_Y + BOX_H / 2;          // 80
 const REQ_Y = TOP_CY - LANE_DY, RESP_Y = TOP_CY + LANE_DY;   // 68 / 92
-// Over the API, NOT over the gap between the boxes. Measured, the longest label runs 365 units
-// against a 56 unit gap, so a gap-centred label would reach back to x=273 and the panel (x<=397)
-// would eat its first 124 characters worth. Centred on the API it spans 417..783 and clears the
-// panel outright. The label renders at 11px from `.scheme-label.code`: a `font-size` presentation
-// attribute has specificity 0 and loses to that rule, so do not derive a width from one.
+// Over the API, NOT over the 56 unit gap: the longest label runs 365 units and gap-centred would
+// reach x=273, inside the panel. Centred on the API it spans 417..783 and clears it outright.
 const WIRE_X = CX;                                       // 600
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row: the spine owns below it
 
@@ -50,12 +41,8 @@ const CHIP_W = (NODE_W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;     // 532
 const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
-// ONE eviction lane, addressed to the Node rather than to a Pod inside it, and with the API centred
-// it is a single vertical drop from the API bottom face to the Node frame top face, both midpoints.
-//
-// It leaves the API, not kubectl: kubectl POSTs to the eviction subresource and the API is what
-// reads the PDB, grants the 200 OK and DELETES the Pod, which the narration of both evict steps says
-// in those words. Same shape as workloads-force-deletion.
+// ONE eviction lane, addressed to the Node rather than a Pod inside it: a single vertical drop,
+// both endpoints on face midpoints. It leaves the API, not kubectl, because the API is what acts.
 const API_CX = API_X + BOX_W / 2;                        // 600
 const EVICT_ROUTE = [[API_CX, TOP_BOTTOM], [API_CX, NODE_Y]];
 
@@ -172,13 +159,8 @@ function resetPodOpacity(s) {
 // The lane ends on the Node frame, which is on screen for the whole card, so it never has to be
 // pinned to the presence of a Pod: nothing it points at can go away under it.
 
-// The evicted Pod goes out slower than the catalog FADE.out (700). At 700 the Pod is gone 200ms
-// before its own pulse ends, so the eviction reads as a cut rather than as a death. 1200 lands the
-// fade after the pulse. This is the same constant, for the same reason, that the two sibling Node
-// cards carry: POD_FADE on cluster-graceful-node-shutdown, VICTIM_FADE on
-// cluster-node-pressure-eviction. This card was the one left behind when they were converted.
-// It fades to OPACITY.terminated, not to 0: an evicted Pod that is removed outright leaves a
-// block-sized hole in the Node frame. The onfinish is the removeAt shape, see docs/CARDS-cluster.md.
+// Slower than FADE.out 700, where the Pod is gone 200ms before its own pulse ends and the eviction
+// reads as a cut. Fades to OPACITY.terminated, not 0, or it leaves a hole in the Node frame.
 const POD_FADE = 1200;
 function fadeOut(s, ctx, key, boxKey, delay) {
   const box = s.refs[boxKey];
@@ -245,9 +227,8 @@ const STEPS = [
   },
   {
     id: 'evict-A',
-    // The eviction leaves the API, not kubectl. Its route is one 260 unit drop since the API moved
-    // over the Node frame. The step ends on the Pod fade, which is POD_FADE (1200) rather than
-    // FADE.out now, so it runs to 2700ms and duration follows it back up.
+    // The eviction leaves the API, not kubectl, one 260 unit drop. The step ends on the Pod fade at
+    // POD_FADE 1200, so it runs to 2700ms and duration follows it.
     duration: 2800,
     narration: 'The drain command POSTs an eviction for web-1. The API reads the matching PDB, whose status the disruption controller keeps at disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed decrements to 0 under optimistic concurrency, and the Pod is deleted with its grace period. The owning ReplicaSet replaces it elsewhere, covered in the Deployment rolling update card.',
     enter(s, ctx) {
@@ -272,17 +253,15 @@ const STEPS = [
       // The count the API READS is 2, and the eviction is what takes it to 1, so the chip stays at
       // what the previous step left and turns over when the eviction ball lands on web-1.
       setVal(s.refs.healthyChip, '2 of 2');
-      // Same treatment for the verdict chip, and for the same reason: it is what kubectl KNOWS, so it
-      // cannot read 200 OK while the POST that earns it is still on the wire. It turns over when the
-      // answer lands back on kubectl, the count when the eviction takes effect on the Pod.
+      // What kubectl KNOWS, so it cannot read 200 OK while the POST is still on the wire: it turns
+      // over when the answer lands back, the count when the eviction takes effect on the Pod.
       setVal(s.refs.lastChip, 'none');
       // Top packet: kubectl → apiserver (POST eviction), then the delete flows
       // down the connector. The Pod reacts only when the ball reaches the node.
       const req = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, role: 'cluster' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
-      // The 200 OK the narration grants: it rides the answer lane back to kubectl, the same lane the
-      // retry step already uses for its 429. Only the grant was missing, so the card showed a request
-      // that was answered on one step and silently swallowed on the other.
+      // The 200 OK rides the answer lane home, the same lane the retry step uses for its 429. A
+      // return the narration promises and the motion never delivers is a defect family here.
       const granted = topPacket(s, ctx, { from: API_X, to: KUBECTL_X + BOX_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
       at(s, ctx, granted.arrivalMs, () => setVal(s.refs.lastChip, 'web-1 · 200 OK'));
       const evict = routePacket(s, ctx, EVICT_ROUTE, { delay: req.arrivalMs + BEAT.afterHop, role: 'cluster' });
@@ -315,9 +294,8 @@ const STEPS = [
       s.refs.pod3.style.opacity = '1';
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      // Both chips roll back to what the step STARTS from and turn over on the beats that earn them,
-      // the same shape evict-A uses. The pinned values above the guard are transitions, so showing
-      // them at entry announced the 429 and the retry that clears it before either was drawn.
+      // Both chips roll back to what the step STARTS from. The pinned values are TRANSITIONS, so at
+      // entry they announce the 429 and the retry that clears it before either is drawn.
       setVal(s.refs.healthyChip, '1 of 2');
       setVal(s.refs.lastChip, 'web-1 · 200 OK');
       // First attempt: blocked. Top packet out, 429 response back, no connector follow-up. kubectl
@@ -349,9 +327,8 @@ const STEPS = [
       // currentHealthy climbing back to 2 of 2 is the point of the step (the budget is satisfied
       // again, so the drain is safe to call done), and it used to change with no cue on it.
       s.refs.healthyChip.classList.add('highlight');
-      // A chip means what its name says: this one holds the LAST eviction, so it sheds the retry
-      // marker and settles on web-2. The tally the step is about is carried by ladder row 5 and by
-      // the wire label, which is where a summary belongs.
+      // A chip means what its name says: this holds the LAST eviction, not a tally. The summary is
+      // carried by ladder row 5 and the wire label.
       setVal(s.refs.lastChip, 'web-2 · 200 OK');
       setWire(s, 'req', 'drain complete · Node safe for maintenance');
       s.refs.kubectl.classList.add('highlight');

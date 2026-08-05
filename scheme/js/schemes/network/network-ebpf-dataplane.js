@@ -1,12 +1,11 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-ebpf-dataplane
+// Design notes for this card: ./CARDS.md#network-ebpf-dataplane
 
 
-// Geometry. The composition spans CONTENT_L..CONTENT_R so it centres on x=600: the client Pod holds
-// the left edge and the backend Pod column the right one. Panel measured 2026-07-27: right <= 397,
-// bottom <= 205, and every block sits clear of it.
+// The composition spans CONTENT_L..CONTENT_R so it centres on 600. Panel right <= 397, bottom <= 205,
+// and every block sits clear of it.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 312;                    // client <-> eBPF program lane
 const CLIENT_X = CONTENT_L, CLIENT_W = 200;
@@ -28,10 +27,8 @@ const CLIENT_IP = 'src 10.244.1.5';
 const TO_PODX = [[HOOK_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, PODX_Y], [POD_X, PODX_Y]];
 const TO_PODY = [[HOOK_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, PODY_Y], [POD_X, PODY_Y]];
 const CONNECT = [[CLIENT_RIGHT, FLOW_Y], [HOOK_X, FLOW_Y]];   // client socket -> the eBPF program
-// A map lookup is a round trip, so the link is a PAIR straddling LOOKUP_X: the question goes up on
-// the left of it, the address comes back down on the right, mirrored so neither endpoint stands alone
-// on the faces they touch. Until 2026-07-30 the up leg was drawn and carried nothing at all, and the
-// map only lit: the sentence "looks the address up in the map" had no motion behind it.
+// A map lookup is a ROUND TRIP, so the link is a PAIR straddling LOOKUP_X: question up on its left,
+// address back down on its right, mirrored so neither endpoint stands alone on the faces it touches.
 const LOOKUP_DX = 12;
 const LOOKUP = [[LOOKUP_X - LOOKUP_DX, HOOK_Y], [LOOKUP_X - LOOKUP_DX, MAP_Y + MAP_H]];   // program -> BPF maps
 const LOOKUP_BACK = [[LOOKUP_X + LOOKUP_DX, MAP_Y + MAP_H], [LOOKUP_X + LOOKUP_DX, HOOK_Y]];  // the answer
@@ -192,9 +189,8 @@ const STEPS = [
       pulsePod(s.refs.client, ctx, 0);
       const send = segmentPacket(s, ctx, { from: CONNECT[0], to: CONNECT[1], delay: BEAT.afterPulse, role: 'network' });
       lightBoxAt(s.refs.hook, ctx, send.arrivalMs);
-      // The lookup itself, which the sentence names and the card drew a lane for without ever using
-      // it: the question goes up to the map, the map lights when it lands, and the address comes back
-      // down the paired lane. The rewrite the sentence ends on happens once it is back.
+      // The lookup the sentence names: question up to the map, the map lights when it lands, address
+      // back down the paired lane. The rewrite the sentence ends on happens once it is back.
       const ask = segmentPacket(s, ctx, { from: LOOKUP[0], to: LOOKUP[1], delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
       lightBoxAt(s.refs.bpfmap, ctx, ask.arrivalMs);
       segmentPacket(s, ctx, { from: LOOKUP_BACK[0], to: LOOKUP_BACK[1], delay: ask.arrivalMs + BEAT.afterHop, role: 'network' });

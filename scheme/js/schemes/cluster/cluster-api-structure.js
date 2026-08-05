@@ -2,10 +2,8 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, fadeIn, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT } from './cluster-kit.js';
 
-// Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=181, so the Client moves into the
-// freed bottom-left and reaches the API up a riser that clears the panel. The Informer/Indexer
-// stack keeps its centre column.
+// Laid out on the L. Panel worst case x<=397 y<=181, so the Client sits in the freed bottom-left
+// and reaches the API up a riser clear of it. The Informer/Indexer stack keeps the centre column.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
@@ -59,7 +57,7 @@ const WIRE_REQ_Y = (INF_BOTTOM + IDX_Y) / 2;             // 348, between the Inf
 // Centred in the API-to-Informer gap rather than pinned: the +4 puts the glyph MIDDLE on the gap
 // centre, because measured that middle sits 3.9 above the baseline y sets. It read 200, i.e. 8.6 low.
 const WIRE_WATCH_Y = (TOP_BOTTOM + INF_Y) / 2 + 4;       // 191.5, visual centre 187.6 against 187.5
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-api-structure
+// Design notes for this card: ./CARDS.md#cluster-api-structure
 
 
 function eventSlot({ x, y, w = 140, h = 44, role = 'cluster' }) {
@@ -136,9 +134,8 @@ class Scene {
       slots.push(slot);
     }
 
-    // The ETCD pair straddles the block centre (out at y=85, return at y=115). The Client link is a
-    // single lane on the centre line, because only the discovery request is ever animated: a second
-    // arrowhead pointing back at the Client would read as traffic that no step sends.
+    // ETCD pair straddles the block centre (out 85, return 115). The Client link is a SINGLE lane:
+    // only the discovery request is animated, and a second arrowhead would be traffic no step sends.
     root.appendChild(pathArrow({ points: CLIENT_TO_API, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: API_TO_ETCD, dim: true, dashed: true, role: 'cluster' }));
     root.appendChild(pathArrow({ points: ETCD_TO_API, dim: true, dashed: true, role: 'cluster' }));
@@ -150,14 +147,11 @@ class Scene {
     // Internal: Informer → Indexer (events feed the cache).
     root.appendChild(pathArrow({ points: FEED_LANE, dim: true, dashed: true, role: 'cluster' }));
 
-    // Wire labels at fixed positions, populated per step.
-    // Beside the riser, not in the 112 unit gap under it: the LIST string is 140 wide, so on the
-    // horizontal leg it overran the Client block on one side and the riser cut it on the other.
+    // Wire labels at fixed positions, populated per step. Beside the riser, not in the 112 unit gap
+    // under it: the LIST string is 140 wide and overran the Client on one side, the riser on the other.
     const wireReq      = text({ class: 'scheme-label code dim', x: RISER_X + 10, y: WIRE_REQ_Y, 'text-anchor': 'start' }, [' ']);
-    // Both ETCD registers sit on the BOTTOM legs, not up on the row. Their old slot was the midpoint
-    // of API_R and the cylinder centre at row height, which the R5-a relayout left stranded: lanes turn down
-    // at 764 and 740, so a label centred on 890 floats in blank canvas 120 units right of anything it
-    // could be labelling. Nothing noticed for as long as both registers stayed empty.
+    // Both ETCD registers sit on the BOTTOM legs, not up on the row: the lanes turn down at 764 and
+    // 740, so a label centred on 890 would float 120 units right of anything it could be labelling.
     const wireApiEtcd  = text({ class: 'scheme-label code dim', x: (RISER_OUT_X + ETCD_X) / 2, y: ETCD_CY - ETCD_LANE_DY - 10, 'text-anchor': 'middle' }, [' ']);
     // Left of the watch arrow: the corridor on its right now carries the two ETCD risers.
     const wireWatch    = text({ class: 'scheme-label code dim', x: 580, y: WIRE_WATCH_Y, 'text-anchor': 'end'  }, [' ']);
@@ -219,9 +213,8 @@ function hideAllSlots(s) {
 
 const STEPS = [
   {
-    // A pure reset, which this card did not have: `discovery` used to sit in slot 0, so the poster
-    // position drew its request lane and its two wire labels under the panel text of the step AFTER
-    // it. Discovery is a step of its own now and slot 0 does nothing but clear.
+    // A pure reset. Slot 0 must not DRAW: a real step here paints under the panel text of the step
+    // AFTER it, and its packet never runs because the poster position is entered reduced.
     id: 'idle',
     duration: 1500,
     enter(s) {
@@ -261,10 +254,8 @@ const STEPS = [
   },
   {
     id: 'list',
-    // Motion: the answer goes straight down the watch lane to the informer and its cache fills, with
-    // the API's own list-watch on ETCD running alongside. Ends at 3460, down from 5140 when the
-    // answer was still chained behind the ETCD round trip. `duration` is deliberately NOT cut to
-    // match: this is the longest narration on the card and 5400 is reading time, not motion time.
+    // The answer goes straight down the watch lane, with the API's own list-watch on ETCD alongside.
+    // Span 3460 against duration 5400: the gap is reading time for the longest narration, not slack.
     duration: 5400,
     narration: 'The informer fires the initial LIST at resourceVersion 0. The API keeps its watch cache filled from ETCD and answers the list from there, with no quorum read, so the full set lands in the Indexer at rv=842 and the controller reconciles from local memory.',
     enter(s, ctx) {
@@ -276,16 +267,12 @@ const STEPS = [
       setVal(s.refs.rvChip, '842');
       setVal(s.refs.cacheChip, '3');
       setWire(s, 'req', 'LIST /api/v1/pods · rv=0');
-      // The two ETCD lanes are the API keeping its OWN cache current, and they are labelled as that.
-      // Verified in apiserver/pkg/storage/cacher/delegator: ShouldDelegateList with an empty
-      // ResourceVersionMatch, no Continue token and ResourceVersion "0" falls through to
-      // `Result{ShouldDelegate: false}`, so the LIST is answered by the Cacher and never reaches
-      // etcd. The ball crossing to ETCD is therefore not this request being read through.
+      // The two ETCD lanes are the API keeping its OWN cache current, not this LIST being read
+      // through: an rv=0 list is answered by the Cacher and never reaches etcd.
       setWire(s, 'api-etcd', 'list-watch on ETCD');
       setWire(s, 'etcd-ret', 'objects · rv=842');
-      // The API is the SOURCE of both balls this step draws (the answer down the watch lane and the
-      // outbound list-watch), so it alone is lit at entry. ETCD, the Informer and the Indexer each
-      // receive, so each lights on arrival.
+      // The API SOURCES both balls, so it alone is lit at entry. ETCD, Informer and Indexer receive,
+      // so each lights on arrival.
       s.refs.rvChip.classList.add('highlight');
       s.refs.cacheChip.classList.add('highlight');
       const labels = [['ADDED', 'pod-a · rv=840'], ['ADDED', 'pod-b · rv=841'], ['ADDED', 'pod-c · rv=842']];
@@ -303,11 +290,8 @@ const STEPS = [
         return;
       }
       s.refs.api.classList.add('highlight');
-      // The answer to an rv=0 LIST comes out of the watch cache, which is exactly what the sentence
-      // above says, so it leaves the API AT ONCE and is gated on nothing. The stream used to wait on
-      // the ETCD return, which drew this request being read through and made the picture contradict
-      // its own narration: the reader watched a ball go out to ETCD and come back before the
-      // Informer was answered, under a panel saying no quorum read happened.
+      // Leaves the API AT ONCE, gated on nothing. Gating it on the ETCD return draws this request
+      // being read through, contradicting the panel that says no quorum read happened.
       const stream  = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], role: 'cluster' });
       lightBoxAt(s.refs.informer, ctx, stream.arrivalMs);
       const toCache = segmentPacket(s, ctx, { from: FEED_LANE[0], to: FEED_LANE[1], delay: stream.arrivalMs + BEAT.afterHop, role: 'cluster' });
@@ -374,9 +358,8 @@ const STEPS = [
         s.refs.cache.classList.add('highlight');
         return;
       }
-      // The ADDED event's journey as three sequenced hops on their real arrows:
-      // etcd -> Api (watch return), Api -> Informer (watch stream), Informer -> Indexer. Each
-      // stage lights as the event reaches it, so the row of lit blocks tracks the ball.
+      // The ADDED event as three sequenced hops on their real arrows. Each stage lights as the
+      // event reaches it, so the row of lit blocks tracks the ball.
       const ret = routePacket(s, ctx, ETCD_TO_API, { role: 'cluster' });
       lightBoxAt(s.refs.api, ctx, ret.arrivalMs);
       const stream = segmentPacket(s, ctx, { from: WATCH_LANE[0], to: WATCH_LANE[1], delay: ret.arrivalMs + BEAT.afterHop, role: 'cluster' });
@@ -424,9 +407,8 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       hideAllSlots(s);
-      // The 410 step is a conditional aside (its own sentence opens with If), so the informer is
-      // back in the steady state `event` left it in. Without these three the coda ran under
-      // `410 Gone · re-listing`, which is the previous step leaking into a summary about CRDs.
+      // The 410 step is a conditional aside, so the informer is back in the steady state `event`
+      // left it in. Without these three the coda runs under `410 Gone . re-listing`.
       setVal(s.refs.rvChip, '843');
       setVal(s.refs.watchChip, 'open · streaming');
       setVal(s.refs.cacheChip, '4');

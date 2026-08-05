@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-pvc-protection
+// Design notes for this card: ./CARDS.md#storage-pvc-protection
 
 
 const CX = 600;                                                // canvas + identity-spine center
@@ -16,10 +16,8 @@ const PVC_BOTTOM = PVC_Y + PVC_H, PVC_MID = PVC_Y + PVC_H / 2, PVC_RIGHT = PVC_X
 const DISK_W = 230, DISK_H = 86, DISK_Y = 389;
 const DISK_TOP = DISK_Y, DISK_BOTTOM = DISK_Y + DISK_H;        // 389 / 475
 
-// Two actors, one footprint, the standard controller box, one on each side of the identity spine so
-// the card is not a stack with everything hanging off its right. Both sit at or below the claim tier,
-// which is what keeps the left one clear of the narration panel (its bottom is 230 on this card).
-// kubectl is level with the claim it deletes, the controller one tier below it.
+// Two actors of one footprint, one each side of the identity spine so the card is not a stack
+// hanging off its right. Both at or below the claim tier, which clears the panel floor at 230.
 const ACT_W = 220, ACT_H = 72;
 const ACT_R_X = 850, ACT_R_CX = ACT_R_X + ACT_W / 2;           // 850..1070 / 960
 const ACT_L_X = 130, ACT_L_CX = ACT_L_X + ACT_W / 2;           // 130..350 / 240
@@ -111,9 +109,8 @@ class Scene {
     const mountLbl = text({ class: 'scheme-label code dim', x: MOUNT_LBL_X, y: MOUNT_LBL_Y, 'text-anchor': 'start' }, [' ']);
     const verdictLbl = text({ class: 'scheme-label code dim', x: VERDICT_LBL_X, y: VERDICT_LBL_Y, 'text-anchor': 'end' }, [' ']);
 
-    // Four chips over the card's own width. They are NOT one width: the first carries the longest
-    // name and the longest value on the card (deletionTimestamp against gone with object) and at the
-    // shared 252 the two strings met with one unit to spare, which is a collision on any re-measure.
+    // Four chips over the card's own width, and NOT one width: the first carries both the longest
+    // name and the longest value, and at a shared 252 the two strings meet with one unit to spare.
     const CHIP_GAP = 24, CHIP_WS = [312, 232, 244, 220];   // 1008 + 3 gaps = the full 60..1140 strip
     const chipX = i => 60 + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);   // 60 / 396 / 652 / 920
     const tsChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_WS[0], h: CHIP_H, name: 'deletionTimestamp', value: 'none', role: 'storage' });

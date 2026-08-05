@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-nodeport-loadbalancer
+// Design notes for this card: ./CARDS.md#network-nodeport-loadbalancer
 
 
 const CX = 600;                        // canvas centre: the client, the LB and the fan origin sit on it

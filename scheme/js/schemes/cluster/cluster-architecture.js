@@ -3,7 +3,7 @@ import { arrowDefs, box, node, cylinder, pathArrow } from '../../lib/primitives.
 import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Two dashed frames of the same width, a control plane over Node-1, each holding its own tiers.
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-architecture
+// Design notes for this card: ./CARDS.md#cluster-architecture
 const BOX_W = 220, BOX_H = 80;
 const CX = 600;
 
@@ -77,7 +77,7 @@ class Scene {
     const cpEl   = node({ x: FRAME_X, y: CP_Y, w: FRAME_W, h: CP_H, label: 'Control plane' });
     const nodeEl = node({ x: FRAME_X, y: NODE_Y, w: FRAME_W, h: NODE_H, label: 'Node-1' });
     // Both frame labels sit on their own frame corner, which is where node() puts them: CONTROL
-    // PLANE at (162, 108) and NODE-1 at (162, 493). What that costs is in docs/CARDS-cluster.md.
+    // PLANE at (162, 108) and NODE-1 at (162, 493). What that costs is in ./CARDS.md.
     root.appendChild(cpEl);
     root.appendChild(nodeEl);
 
@@ -115,9 +115,8 @@ class Scene {
     cpLanes.forEach(el => root.appendChild(el));
     nodeLanes.forEach(el => root.appendChild(el));
 
-    // The Kubelet drives the Runtime over CRI, and the last step NAMES that call, so this is a
-    // route with a ball rather than a relationship. It runs Kubelet to Runtime, the direction the
-    // narration gives it, and it belongs to the Node half and mutes with it.
+    // The last step NAMES the CRI call, so this is a ROUTE with a ball, running Kubelet to Runtime,
+    // the direction the narration gives it. It belongs to the Node half and mutes with it.
     const criLane = lane(KUBELET_TO_RUNTIME);
     nodeLanes.push(criLane);
     root.appendChild(criLane);
@@ -130,9 +129,8 @@ class Scene {
     const wireControllers = text({ class: 'scheme-label code dim', x: CM_CX, y: T2_BELOW, 'text-anchor': 'middle' }, [' ']);
     const wireCloud      = text({ class: 'scheme-label code dim', x: CX, y: T2_BELOW, 'text-anchor': 'middle' }, [' ']);
     const wireScheduler  = text({ class: 'scheme-label code dim', x: SCHED_CX, y: T2_BELOW, 'text-anchor': 'middle' }, [' ']);
-    // The two Node lane labels sit UNDER the block they describe, the same way each tier-2 label
-    // sits under its own box. They used to ride the horizontal run of their lane in the band
-    // between the frames, which put them nowhere near the thing doing the watching.
+    // The two Node lane labels sit UNDER the block they describe, as each tier-2 label does: a watch
+    // label belongs beside the component doing the watching, not out in the band.
     const wireKubelet    = text({ class: 'scheme-label code dim', x: KUBE_CX, y: T3_BELOW, 'text-anchor': 'middle' }, [' ']);
     const wireKproxy     = text({ class: 'scheme-label code dim', x: KP_CX, y: T3_BELOW, 'text-anchor': 'middle' }, [' ']);
     [wireEtcdWrite, wireEtcdRead, wireControllers, wireCloud, wireScheduler, wireKubelet, wireKproxy]
@@ -165,9 +163,8 @@ function clearHL(s) {
   clearHighlights(s, ['apisrv','etcdC','ctrlMgr','ccm','sched','kubelet','runtime','kproxy']);
 }
 
-// One helper writes BOTH groups, so they cannot drift. The two treatments differ deliberately: a
-// control-plane lane out of play dims to OPACITY.notready, a Node-bound lane is not drawn at all
-// and arrives on the step that uses it.
+// One helper writes BOTH groups, so they cannot drift. The treatments differ DELIBERATELY: a
+// control-plane lane out of play dims, a Node-bound lane is not drawn at all.
 function setLanes(s, { cp, nodeTier }) {
   s.refs.cpLanes.forEach(el => { el.style.opacity = cp ? 1 : OPACITY.notready; });
   s.refs.nodeLanes.forEach(el => { el.style.opacity = nodeTier ? 1 : 0; });

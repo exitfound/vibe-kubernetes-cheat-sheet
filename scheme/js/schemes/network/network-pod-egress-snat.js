@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-pod-egress-snat
+// Design notes for this card: ./CARDS.md#network-pod-egress-snat
 
 
 const EGRESS_Y = 360;               // vertical center of the Pod and masquerade boxes: both lanes sit symmetric about it
@@ -15,9 +15,8 @@ const POD_EDGE = POD_X + POD_W;     // 310: right edge of the client Pod SHELL (
 const MASQ_LEFT = 440, MASQ_W = 190, MASQ_H = 62;
 const MASQ_RIGHT = MASQ_LEFT + MASQ_W;   // 630
 const MASQ_Y = EGRESS_Y - MASQ_H / 2;    // 329
-// Internet box: outside the Node, in its own right-hand column, its top level with the Node frame so
-// the whole composition sits below the narration panel (measured bottom <= 181). Its right edge
-// (NET_X + NET_W) equals the dst chip right.
+// Outside the Node, in its own right-hand column, its top level with the Node frame so the whole
+// composition sits below the panel (bottom <= 181). Its right edge equals the dst chip right.
 const NET_X = 890, NET_Y = NODE_Y, NET_W = 230, NET_H = 62;
 const NET_CX = NET_X + NET_W / 2;   // 1005: horizontal center of the Internet box
 const NET_BOTTOM = NET_Y + NET_H;   // 172: where the legs meet the Internet box bottom

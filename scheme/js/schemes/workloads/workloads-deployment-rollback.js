@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-deployment-rollback
+
 // Layout B of the Workloads canon (WL): chips left, pipeline right, one tap into the surging Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-deployment-rollback
 const PANEL_B = 230;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
@@ -25,10 +26,8 @@ const CHIP_Y = i => CHIPS_TOP + i * (WL.CHIP_H + CHIP_GAP);
 
 const NODE_H = 140, CANVAS_B = 624;
 const NODE_Y = CANVAS_B - NODE_H;                        // 484..624, the frame rests on the floor
-// FOUR slots. Every step of this card pins RS-v1 at 3 / 3, and the narration says RS-v1 was never
-// scaled below three, so the three v1 Pods are always drawn. The fourth slot carries the whole v2
-// story: it appears on the rollout, crash-loops, wedges, and is deleted by the undo. With three slots
-// the broken v2 stood in a v1 Pod's place and the row showed two survivors against a chip saying three.
+// FOUR slots: RS-v1 is pinned at 3 / 3 on every step, so the three v1 Pods are always drawn and the
+// FOURTH carries the whole v2 story. With three, the broken v2 stands in a v1 Pod's place.
 const POD_W = 234, POD_H = 106, POD_Y = NODE_Y + 22;     // 506..612
 const POD_PAD = 24;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
@@ -36,9 +35,8 @@ const SLOT_N = 4;
 const POD_XS = [0, 1, 2, 3].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / (SLOT_N - 1)));
 const POD_CX = i => POD_XS[i] + POD_W / 2;               // 201 / 467 / 733 / 999
 
-// The trunk leaves the first actor box on its own midpoint, steps into the central corridor
-// between the two columns, drops to a bus above the Pod row and taps down into the surging Pod,
-// which is the only Pod any ball on this card is addressed to.
+// The trunk leaves the actor on its own midpoint, into the central corridor, down to a bus above the
+// Pod row and one tap into the surging Pod, the only Pod any ball here is addressed to.
 const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
 const BUS_Y = NODE_Y - 24;                               // 460, clear of the chip column
@@ -275,9 +273,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
-      // The undo reaches the node and the broken v2 Pod is DELETED, which is what the narration says:
-      // RS-v2 goes to zero and the three v1 Pods simply keep serving, so the row loses its fourth Pod
-      // rather than converting it back into a v1.
+      // The broken v2 Pod is DELETED, not converted back: RS-v2 goes to zero and the three v1 Pods
+      // simply keep serving, so the row LOSES its fourth Pod.
       s.refs.pod4.style.opacity = String(OPACITY.notready);
       const undo = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.pod4, ctx, undo.arrivalMs);

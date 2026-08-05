@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-daemonset
+
 // Layout B of the Workloads canon (WL): chips left, pipeline right, a bus tapping every Pod.
-// Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-daemonset
+// Panel x<=397 y<=230; a longer narration invalidates that measurement.
 const PANEL_B = 230;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
@@ -36,9 +37,8 @@ const N_POD_DX = 12, N_INNER_DX = 22;                    // Pod and container in
 const N_POD_W = N_W - N_POD_DX * 2, N_INNER_W = N_W - N_INNER_DX * 2;
 const POD_CX = i => N_X(i) + N_W / 2;                    // 186 / 462 / 738 / 1014
 
-// The trunk leaves the first actor box on its own midpoint, steps into the central corridor
-// between the two columns, and drops to a bus above the Pod row. One tap per Pod hangs off the
-// bus, so every lane ends on a Pod rather than on the frame edge above it.
+// The trunk leaves the actor on its own midpoint, steps into the central corridor and drops to a bus
+// above the Pod row. One tap per Pod, so every lane ends ON a Pod, not on the frame edge above it.
 const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
 const BUS_Y = NODE_Y - 24;                               // 460, clear of the chip column
@@ -258,10 +258,8 @@ const STEPS = [
       s.refs.pod4.style.opacity = '1';
       setLanes(s, [1, 1, 1, 1]);
       if (ctx.reduced) { s.refs.daemonset.classList.add('highlight'); s.refs.pod4Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
-      // The node joins first (its rect fades in), and the controller learns of it the way the
-      // narration says, by watching Node objects: the event comes back down the answer lane and the
-      // controller is dark until it lands. Then the create goes out and the Pod materializes on
-      // arrival, pulsing as it lands.
+      // The node joins FIRST, and the controller learns of it by watching Node objects, so it stays
+      // dark until that event lands. Only then does the create go out.
       s.refs.node4El.style.opacity = '0';
       s.refs.pod4.style.opacity = '0';
       s.refs.lanes[3].style.opacity = '0';
@@ -293,10 +291,8 @@ const STEPS = [
       s.refs.readyChip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
-      // maxUnavailable=1 means exactly ONE Pod is down at a time, which the ready chip says in numbers
-      // (3 / 4 updating) and the narration says in words. All four used to be pinned at full, so the
-      // drawing showed four healthy Pods against a chip counting three. The one being recreated is the
-      // one the update ball lands on, so it holds the notready shade while its Node stays present.
+      // maxUnavailable=1 means exactly ONE Pod is down at a time, which the chip counts. The one
+      // being recreated holds the notready shade while its Node stays present.
       s.refs.pod1.style.opacity = String(OPACITY.notready);
       s.refs.pod2.style.opacity = '1';
       s.refs.pod3.style.opacity = '1';

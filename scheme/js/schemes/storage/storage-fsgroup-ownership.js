@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-fsgroup-ownership
+// Design notes for this card: ./CARDS.md#storage-fsgroup-ownership
 
 
 const CONTENT_CX = 600;

@@ -1,12 +1,11 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-dns-records
+// Design notes for this card: ./CARDS.md#network-dns-records
 
 
-// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 330, so the query row and the FQDN
-// band both hang below that bottom and only the record ladder, which is far right of 397, sits
-// beside the panel. A longer narration invalidates the measured bottom.
+// Panel right <= 397, bottom <= 330, so the query row and the FQDN band both hang below it and only
+// the record ladder, far right of 397, sits beside the panel.
 const CONTENT_L = 80, CONTENT_R = 1120;
 
 const FLOW_Y = 400;                       // client + CoreDNS centre line
@@ -20,10 +19,8 @@ const PANEL_X = 710, PANEL_W = 410;       // record ladder: 710..1120
 const ROWS_Y = 56, ROW_H = 54, ROW_GAP = 8;
 const ROWS = [0, 1, 2, 3].map(i => ROWS_Y + i * (ROW_H + ROW_GAP) + ROW_H / 2);   // 83 145 207 269
 const FAN_X = 680;                        // vertical bus the four answer wires branch on
-// The client leg is a PAIR: the question goes out above the flow line and the answer comes home below
-// it, mirrored on both faces. Every record step says the CLIENT gets the record ("Ask for the name
-// itself and you get an A record"), and until 2026-07-30 the only answer drawn went up into the record
-// ladder, which is the record being displayed rather than anything reaching the asker.
+// The client leg is a PAIR, question out above the flow line and answer home below it: every record
+// step says the CLIENT gets the record, and the ladder is a display, not an arrival.
 const LANE_DY = 12;
 const Q_OUT_Y = FLOW_Y - LANE_DY;         // 388
 const Q_BACK_Y = FLOW_Y + LANE_DY;        // 412
@@ -31,9 +28,8 @@ const QUERY = [[CLIENT_EDGE, Q_OUT_Y], [CD_LEFT, Q_OUT_Y]];
 const REPLY = [[CD_LEFT, Q_BACK_Y], [CLIENT_EDGE, Q_BACK_Y]];
 const ANS = ROWS.map(cy => [[CD_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, cy], [PANEL_X, cy]]);
 
-// FQDN band: the four name segments keep their relative widths (156:116:76:100, each sized by its
-// own text) and are stretched to span CD_LEFT..CONTENT_R, which is what puts the content bbox on
-// x=600 without a frame to lean on.
+// The four name segments keep their relative widths (156:116:76:100, each sized by its own text) and
+// stretch to span CD_LEFT..CONTENT_R, which puts the content bbox on 600 without a frame.
 const SEG_Y = 490, SEG_H = 64;
 const SEGS = [
   { key: 'seg1', x: CD_LEFT, w: 237 },
@@ -155,9 +151,8 @@ function resolve(s, ctx, rowIdx) {
   const row = s.refs.coredns.animate([], { duration: 1, delay: ans.arrivalMs });
   row.onfinish = () => setChainActive(s.refs.records, rowIdx);
   ctx.register(row);
-  // The record lights in the ladder, and THEN the same answer goes home: every step on this card says
-  // the client is what gets the record, and the ladder is the record being displayed rather than
-  // anything arriving at the asker.
+  // The record lights in the ladder, and THEN the same answer goes home: the client is what gets the
+  // record, and the ladder is a display rather than an arrival.
   const reply = segmentPacket(s, ctx, { from: REPLY[0], to: REPLY[1], delay: ans.arrivalMs + BEAT.afterHop, role: 'network' });
   pulsePod(s.refs.client, ctx, reply.arrivalMs);
   return reply;

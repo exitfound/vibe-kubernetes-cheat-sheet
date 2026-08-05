@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-internal-traffic-policy
+// Design notes for this card: ./CARDS.md#network-internal-traffic-policy
 
 
 const FLOW_Y = 405;
@@ -124,9 +124,8 @@ class Scene {
   reset() { this.build(); }
 }
 
-// A backend and the lane kube-proxy would reach it by are one thing: if the endpoint is out of scope
-// the lane is not a route any more. One helper pins both, because two separate assignments are how a
-// bright arrow came to point at a Pod that the step had just taken out of scope.
+// A backend and the lane kube-proxy would reach it by are ONE thing: out of scope, the lane is not a
+// route any more. One helper pins both, or a bright arrow points at a Pod the step just excluded.
 function setBackends(s, localOp, remoteOp) {
   [s.refs.podA, s.refs.localWire].forEach(el => { el.style.opacity = String(localOp); });
   [s.refs.podB, s.refs.node2, s.refs.remoteWire].forEach(el => { el.style.opacity = String(remoteOp); });

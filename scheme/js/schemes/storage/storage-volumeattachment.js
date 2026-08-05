@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volumeattachment
+// Design notes for this card: ./CARDS.md#storage-volumeattachment
 
 
 const M = 60;
@@ -357,12 +357,8 @@ const STEPS = [
       // The disk and its two lanes sink together, and only after the unpublish ball has landed on it:
       // the lane the ball is riding has to be on screen for the whole flight.
       [s.refs.disk, s.refs.wPublish, s.refs.wOnNode].forEach(el => fadeTo(el, ctx, 1, OPACITY.notready, call.arrivalMs, 400));
-      // Only once the backend has detached does the object itself go, and its lanes with it. Not
-      // fadeTo here: that helper pins its `from` inline, which would drop the object to the
-      // terminating shade at step entry instead of at the watch.
-      // The object is the subject of the step and is lit from entry, but it does not KEEP the light
-      // once it is gone: a block at the terminated shade cannot also be the thing the step points at.
-      // Same shape as removeAt in storage-reclaim-policy and vanishAt in storage-csi-capacity-tracking.
+      // The object goes only once the backend has detached, and its lanes with it. NOT fadeTo, which
+      // pins its `from` inline and would drop it to the terminating shade at step entry.
       const gone = s.refs.va.animate(
         [{ opacity: OPACITY.terminating }, { opacity: OPACITY.terminated }],
         { duration: LAND_MS, delay: call.arrivalMs, fill: 'forwards', easing: 'ease-out' });

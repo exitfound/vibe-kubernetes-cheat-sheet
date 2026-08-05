@@ -1,15 +1,10 @@
 import { svg, g, text, rect } from '../../lib/svg.js';
 import { arrowDefs, pod, podShell, node, box, arrow } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, at, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-cpu-throttling
+// Design notes for this card: ./CARDS.md#cluster-cpu-throttling
 
-// Layout C, the twin of cluster-oom-kill: same top row, same Node frame, same two-per-row chip
-// strip, with the sibling ladder replaced by the time scale, which is what this card exists to
-// draw. Panel bottom over 1600x1000 / 1280x860 / 1100x800 is 195 / 235 / 280, right edge x<=397,
-// worst on the observe step, the longest narration at 386 characters. The Node frame top is 380,
-// so the clearance is 100 units and the per-step ceiling it implies is roughly 550 characters.
-// Nothing on this card is drawn left of 420 above y=380. Re-measure with VW=1100 VH=800 node
-// overlay-measure.mjs after any prose edit, do not trust this line.
+// Layout C, the twin of cluster-oom-kill with the sibling ladder replaced by the time scale.
+// Panel x<=397, bottom 280 worst case; frame top 380 leaves ~550 characters. Re-measure after prose.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
@@ -25,18 +20,16 @@ const UP_Y = TOP_CY - LANE_DY, DOWN_Y = TOP_CY + LANE_DY;// 68 / 92
 const WIRE_X = (KUBE_X + BOX_W + KERN_X) / 2;            // 812, the gap midpoint
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row
 
-// The time scale: three equal bars, one 100ms CFS period each, stacked so that successive periods
-// read as one clock rather than as three containers. It takes the right column the sibling card
-// gives its ladder, so it clears the panel by construction.
+// Three equal bars, one 100ms CFS period each, stacked so successive periods read as one clock
+// rather than as three containers. Takes the right column, so it clears the panel by construction.
 const SCALE_X = 660, SCALE_W = CONTENT_R - SCALE_X;      // 480, 660..1140
 const SCALE_CX = SCALE_X + SCALE_W / 2;                  // 900
 const BAR_H = 44, BAR_GAP = 16, BAR_N = 3;
 const SCALE_Y = 176;
 const BAR_Y = i => SCALE_Y + i * (BAR_H + BAR_GAP);      // 176 / 236 / 296, the stack ends on 340
 const CAP_Y = SCALE_Y - 10;                              // 166, the axis caption baseline
-// Half the bar, because the worked example is limits.cpu 500m against the default 100ms period:
-// 50ms of run time out of every 100ms. The bar is wall clock, and one busy thread on one CPU
-// spends the budget at one microsecond per microsecond, so the run portion IS the quota here.
+// Half the bar: limits.cpu 500m against the default 100ms period is 50ms of run time in every 100.
+// The bar is wall clock, and one busy thread on one CPU makes the run portion equal the quota.
 const RUN_W = SCALE_W / 2;                               // 240
 
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
@@ -55,17 +48,14 @@ const CHIP_W = (NODE_W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;     // 532
 const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
-// Two RELATIONSHIP lines, no arrowheads and no balls, because no step on this card names anything
-// travelling either way. The Kubelet owns the containers on this Node, and cpu.max is what makes
-// the kernel keep periods at all, so the scale hangs off the kernel. Both leave a face midpoint
-// and land on one. The second lives inside the scale group, so it cannot outlive what it points at.
+// Two RELATIONSHIP lines: no step names anything travelling either way. The scale hangs off the
+// KERNEL, and lives inside the scale group so it cannot outlive what it points at.
 const NODE_RELATION = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
 const JOG_Y = (TOP_BOTTOM + SCALE_Y) / 2;                // 148
 const SCALE_RELATION = [[KERN_CX, TOP_BOTTOM], [KERN_CX, JOG_Y], [SCALE_CX, JOG_Y], [SCALE_CX, SCALE_Y]];
 
-// Presentation shades for the period bars, not lifecycle phases: a throttled thread is neither
-// pending nor terminated, so none of the five OPACITY shades means what a spent budget means.
-// The channel list is the cluster tint (125, 134, 255), the same one styles.css declares.
+// Presentation shades, not lifecycle phases: a spent budget is not a phase. Channel list is the
+// cluster tint (125, 134, 255), copied because a presentation attribute cannot resolve a token.
 const BAR = Object.freeze({
   track:  'rgba(255, 255, 255, 0.04)',
   stroke: 'rgba(125, 134, 255, 0.35)',
@@ -104,10 +94,8 @@ class Scene {
     const stateChip  = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'container state', value: 'Running · restartCount 0', role: 'cluster' });
     [weightChip, maxChip, statChip, stateChip].forEach(c => root.appendChild(c));
 
-    // The time scale. Each bar is a track rect plus a run rect that grows from its left edge, plus
-    // one right-aligned caption sitting over the stalled tail. Bare rects on purpose: a box() here
-    // would put three 480 wide blocks into the CENTRE-LOW span and push the low content centre to
-    // 750 on a card whose composition is centred on 600.
+    // Track rect + a run rect growing from its left edge + a right-aligned caption over the stall.
+    // Bare rects on purpose: box() here would drag CENTRE-LOW's content centre to 750 against 600.
     const scaleG = g({ id: 'timeScale' });
     scaleG.style.opacity = String(OPACITY.pending);
     scaleG.appendChild(relationPath({ points: SCALE_RELATION, role: 'cluster' }));
@@ -138,9 +126,8 @@ class Scene {
     const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'requests.cpu 250m · limits.cpu 500m', role: 'workloads' });
     containerBox.style.setProperty('--workloads-color', '#c0b0ff');
 
-    // Grouped so the pulse reaches the shell AND the container box: querySelectorAll matches
-    // descendants only, so a bare pod() pulses at half strength. Nothing on this card ever fades
-    // this group, which is the whole point of the pair with cluster-oom-kill.
+    // Grouped so the pulse reaches the shell AND the container box. Nothing here ever fades this
+    // group, which is the whole point of the pair with cluster-oom-kill.
     const podGroup = g({ id: 'podGroup' });
     podGroup.appendChild(shellEl);
     podGroup.appendChild(containerBox);
@@ -194,9 +181,7 @@ function setChips(s, { weight, max, stat }) {
   setVal(s.refs.stateChip, STATE);
 }
 
-// Every enter() writes EVERY bar, the same rule the chips are under: a bar left alone keeps the
-// previous step's fill and its previous caption, which on a time scale reads as a period that
-// behaved differently.
+// Every enter() writes EVERY bar: one left alone reads as a period that behaved differently.
 function setBars(s, runs, caps) {
   s.refs.runs.forEach((r, i) => { r.style.width = `${runs[i]}px`; });
   s.refs.barTexts.forEach((t, i) => { t.textContent = caps[i]; });
@@ -277,9 +262,8 @@ const STEPS = [
       clearWires(s);
       s.refs.scaleG.style.opacity = '1';
       setBoxSublabel(s.refs.containerBox, 'running · 50ms of CPU this period');
-      // cpu.stat does not move yet, and that is exact rather than lazy: the kernel increments
-      // nr_periods and nr_throttled from the period TIMER, when an interval elapses, so half way
-      // through the first period both are still 0. They turn over on the throttle step.
+      // cpu.stat does not move yet: the kernel increments both counters from the period TIMER, so
+      // half way through the first period they are still 0. They turn over on the throttle step.
       setChips(s, { weight: WEIGHT_SET, max: MAX_SET, stat: STAT_IDLE });
       setWire(s, 'kernel', '50ms of run time charged to the cgroup');
       // The kernel is what accounts the run time, so it owns the wire label above it here too.
@@ -316,9 +300,8 @@ const STEPS = [
       // Pin final state inline: three periods, each half run and half stall.
       setBars(s, [RUN_W, RUN_W, RUN_W], ['throttled 50ms', 'throttled 50ms', 'throttled 50ms']);
       if (ctx.reduced) return;
-      // Periods two and three fill on the same rhythm, one after the other, so the repetition is
-      // what the eye reads rather than a single bar sitting still. The counter turns over when
-      // the third period closes, which is the reading the chip claims.
+      // Two and three fill on the same rhythm, so the repetition is what the eye reads. The counter
+      // turns over when the third period closes, which is the reading the chip claims.
       setBars(s, [RUN_W, 0, 0], ['throttled 50ms', ' ', ' ']);
       setVal(s.refs.statChip, 'nr_throttled 1 of 1 · throttled_usec 50000');
       pulsePod(s.refs.podGroup, ctx, 0);
@@ -346,9 +329,8 @@ const STEPS = [
       s.refs.scaleG.style.opacity = '1';
       setBars(s, [RUN_W, RUN_W, RUN_W], ['throttled 50ms', 'throttled 50ms', 'throttled 50ms']);
       setBoxSublabel(s.refs.containerBox, 'running · latency up, no restart');
-      // 100 periods is the last 10 seconds, 50ms of stall in each, so throttled_usec 5000000 is
-      // the 5 seconds the metric reports. The counter is the kernel's and it climbed while the
-      // periods above played, it does not move because the Kubelet reads it.
+      // 100 periods x 50ms of stall is throttled_usec 5000000, the 5 seconds the metric reports.
+      // It is the kernel's counter and it climbed already: reading it does not move it.
       setChips(s, { weight: WEIGHT_SET, max: MAX_SET, stat: 'nr_throttled 100 of 100 · throttled_usec 5000000' });
       setWire(s, 'kernel', 'cpu.stat scraped · no Pod event, no condition');
       s.refs.kernel.classList.add('highlight');

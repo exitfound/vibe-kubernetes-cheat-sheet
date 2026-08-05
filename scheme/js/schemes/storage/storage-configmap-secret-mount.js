@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-configmap-secret-mount
+// Design notes for this card: ./CARDS.md#storage-configmap-secret-mount
 
 
 const POD_X = 330, POD_Y = 56, POD_W = 540, POD_H = 120;        // 330..870, center 600

@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, pulsePod, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-container-states
+
 // Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-container-states
 const PANEL_B = 230;
 const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;
 const WIRE_Y = WL.TOP_Y - 12;                            // above the actor box

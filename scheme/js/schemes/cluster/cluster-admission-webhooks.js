@@ -2,23 +2,17 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, arrow, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt } from './cluster-kit.js';
 
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-admission-webhooks
-// Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1440/1280/1100 is x<=397, y<=230, so kubectl moves into the
-// freed bottom-left (the storage grammar) and the API row starts at 420. It read 205 until
-// 2026-08-04, when the validating step went 211 to 284 characters. The nearest thing under that
-// corner is kubectl at KCTL_Y = 300, so there are 70 units of clearance and the ceiling is roughly
-// 480 characters per narration. The wrap is token-bound, not character-bound: 257 characters on
-// that step still measured 205 and 274 tipped it to 230, so re-measure with
-// VW=1100 VH=800 node overlay-measure.mjs after any prose edit here rather than counting.
+// Design notes for this card: ./CARDS.md#cluster-admission-webhooks
+
+// Laid out on the L. Panel x<=397 y<=230, kubectl at KCTL_Y 300: 70 units of clearance and roughly
+// 480 characters. The wrap is token-bound, so MEASURE rather than counting.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 // Reserved narration corner: 400 x 230. Nothing on this card derives from it, and the measured
 // worst case per viewport is in the header note above.
 
-// The flanks stand on one inset band rather than on the content edges: kubectl, ETCD and the chip
-// strip all share BAND_L / BAND_R, so the left edge of kubectl is the left edge of the first chip
-// by construction and the composition still centres on 600 because the inset is applied to both.
+// The flanks stand on one inset band, not on the content edges: kubectl, ETCD and the chip strip
+// share BAND_L / BAND_R, so their edges line up by construction and the card still centres on 600.
 const BAND_INSET = 40;
 const BAND_L = CONTENT_L + BAND_INSET, BAND_R = CONTENT_R - BAND_INSET;   // 100 / 1100
 
@@ -30,40 +24,23 @@ const TOP_Y = 60, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 60 / 140
 const TOP_CY = TOP_Y + TOP_H / 2;                        // 100
 const API_X = 420, API_W = 400, API_R = API_X + API_W;   // 420..820
 const API_CX = API_X + API_W / 2;                        // 620
-// Optical, not geometric: flush at BAND_R the cylinder READS as overhanging the chip strip, because
-// its right wall is a straight line down the full height while the chip is a rounded rect whose rx=4
-// corners pull its own edge in. Measured, the two right edges differ by one antialiased pixel. Pull
-// the cylinder in by that rx so the eye reads one line. Same family as the ETCD label nudge below.
+// Optical, not geometric: a straight cylinder wall flush with a rounded rect READS as overhanging,
+// because rx=4 pulls the chip's own edge in. Pull the cylinder in by that rx.
 const ETCD_OPTICAL = 4;
 const ETCD_W = 140, ETCD_X = BAND_R - ETCD_OPTICAL - ETCD_W;   // 956..1096
 const LANE_DY = 15;
 const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 85 / 115
 
-// Both lanes leave the kubectl TOP face, straddling its centre by LANE_DY exactly as they straddle
-// the API face centre by LANE_DY at the other end, and each makes ONE right-angle turn: up, then
-// across. Out is left of back at both ends, which is what keeps the two from crossing.
-// The cost is stated rather than designed around, on the author's call, and it is LARGER than the
-// note here used to claim. Measured against the panel worst case (x<=397, y<=205), with each lane
-// 430 and 370 units long:
-//   KCTL_TO_API  120 of the 215 unit riser plus 192 of the 215 unit crossing at y=85  =  73% hidden
-//   API_TO_KCTL  162 of the 185 unit crossing at y=115 plus 90 of the 185 unit riser =  68% hidden
-// So it is not "the left third of the out lane" and it is not the out lane alone: on the two steps
-// that carry these balls the reader sees a stub leaving kubectl and an arrowhead arriving beside the
-// API with most of the flight in between behind the overlay. Nothing measures this, because OCCLUDED
-// scores BLOCKS and never lanes or packets.
-// A staircase into the free 404..416 corridor was built first and rejected as a zigzag. There is no
-// third option: the API face it must reach sits at y=85/115, above the panel bottom, and every
-// kubectl position whose centre clears x=397 collides with the ladder column at 420..820 or with the
-// chip strip at y=520. Reopening this means moving the API row, not the lanes.
+// Both lanes leave the kubectl TOP face, one right angle each, out left of back at both ends so they
+// never cross. 73% and 68% of the two runs sit behind the panel: an accepted cost, see ./CARDS.md.
 const KCTL_OUT_X = KCTL_CX - LANE_DY, KCTL_BACK_X = KCTL_CX + LANE_DY;   // 205 / 235
 const KCTL_TO_API = [[KCTL_OUT_X, KCTL_Y], [KCTL_OUT_X, OUT_Y], [API_X, OUT_Y]];
 const API_TO_KCTL = [[API_X, BACK_Y], [KCTL_BACK_X, BACK_Y], [KCTL_BACK_X, KCTL_Y]];
 
 const LADDER_X = API_X, LADDER_W = API_W;                // the pipeline hangs under the API
 const LADDER_Y = 220;
-// A relationship line, not a route, the same call the sibling cluster-scheduler-decision makes: the
-// five stages below ARE the API, so nothing travels down there. No arrowhead, and it lands ON the
-// ladder edge at LADDER_Y rather than 2 short of it, because the 2 was clearance for that arrowhead.
+// A relationship, not a route: the five stages below ARE the API, so nothing travels down there.
+// No arrowhead, and it lands ON the ladder edge rather than short of it.
 const API_TO_CHAIN = [[API_CX, TOP_BOTTOM], [API_CX, LADDER_Y]];
 
 const CHIP_H = 34, CHIPS_Y = 520, CHIP_GAP = 20;
@@ -97,14 +74,8 @@ class Scene {
 
     const chain = chainList({
       x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: 32, gap: 12,
-      // ONE row per STEP. authn and authz shared a step and had a row each, so the ladder ran to 6
-      // against 5 steps and every number after the first was one ahead of the step counter the
-      // reader was watching.
-      // The runs of spaces are SOURCE alignment only and reach nothing on screen: an SVG <text>
-      // collapses consecutive whitespace unless xml:space is set, which it is not here, so every
-      // row renders with a single space around the dot and the dots have never lined up in a
-      // column. Verified in the browser rather than assumed. Keep the padding for the diff, but do
-      // not size anything against it.
+      // ONE row per STEP, or every number runs ahead of the step counter the reader is watching.
+      // The runs of spaces are SOURCE alignment only: SVG <text> collapses them. Do not size off them.
       items: [
         '1. authn, authz ·  who the caller is, what they may do',
         '2. mutating     ·  plugins and webhooks rewrite it',
@@ -119,9 +90,7 @@ class Scene {
     // edge and its right edge is the ETCD right edge, one vertical line down each side.
     const objChip       = valChip({ x: CHIP_X(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Pod object',    value: '{cpu=100m}', role: 'cluster' });
     // A STANDING configuration value, not a per-step state: failurePolicy is a field on the webhook
-    // configurations and it does not become "none" while the request sits in the schema step. It
-    // used to flip to none on every non-webhook step, so a named API field read as a phase
-    // indicator AND changed value twice with nothing marking either change.
+    // configurations and does not become "none" while the request sits in the schema step.
     const failurePolicy = valChip({ x: CHIP_X(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'failurePolicy', value: 'Fail | Ignore', role: 'cluster' });
 
     root.appendChild(objChip);
@@ -183,9 +152,7 @@ const STEPS = [
   },
   {
     id: 'authn-authz',
-    // The top-face exit lengthened the request route 360 -> 430 units (glide 800 -> 956ms), which
-    // briefly pushed this step past its budget until the ladder ball went away with the arrowhead.
-    // One ball now, span 1516, so the original pace stands.
+    // The top-face exit makes the request route 430 units, a 956ms glide. One ball, span 1516.
     duration: 2200,
     narration: 'Built-in, and already done. The request arrives authenticated, so admission never sees an anonymous caller. Authorizers run in configured order, commonly Node then RBAC, and the first to allow or to deny ends it, so no later one runs. Nothing allowing it means 403.',
     enter(s, ctx) {
@@ -218,9 +185,8 @@ const STEPS = [
       setVal(s.refs.failurePolicy, 'Fail | Ignore');
       s.refs.objChip.classList.add('highlight');
       s.refs.failurePolicy.classList.add('highlight');
-      // Mutating webhooks rewrite the object in place; the new values settle on the
-      // statically highlighted chips, no block flash. The Api is lit because this stage runs
-      // INSIDE it: without that, the three motionless middle steps leave no actor lit at all.
+      // Rewrites land on statically highlighted chips, no block flash. The Api is lit because this
+      // stage runs INSIDE it: otherwise the three motionless middle steps light no actor at all.
       s.refs.api.classList.add('highlight');
     },
   },
@@ -244,10 +210,8 @@ const STEPS = [
   {
     id: 'validating',
     duration: 1700,
-    // "Validating webhooks are called last" was wrong about the plugin this same sentence names
-    // first. AllOrderedPlugins ends mutatingwebhook, validatingadmissionpolicy, validatingwebhook,
-    // resourcequota, deny, under the source comment "webhook, resourcequota, and deny plugins must
-    // go at the end", so a webhook that admits an object can still be followed by a quota denial.
+    // NOT "called last": AllOrderedPlugins ends validatingwebhook, resourcequota, deny, so a webhook
+    // that admits an object can still be followed by a quota denial.
     narration: 'Pluggable plus built-in. LimitRanger is back to check min and max, ValidatingAdmissionPolicy runs in process, validating webhooks call out over HTTP, and ResourceQuota runs after all of them. None may mutate, and any deny aborts the request. See the ResourceQuota and LimitRange card.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();

@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, node, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, revealAt, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-multi-attach-error
+// Design notes for this card: ./CARDS.md#storage-multi-attach-error
 
 
 const LEFT_X = 400;
@@ -173,11 +173,8 @@ function setStage(s, {
   oldOp = 1, oldSub = 'Running',
   newOp = 0, newSub = 'ContainerCreating',
   vaAOp = 1, vaASub = 'node-1, attached: true',
-  // OPACITY.pending is va-2 as a WANT rather than an object. The attach and detach controller
-  // refuses a second attachment for a ReadWriteOnce volume before writing anything, so through the
-  // whole blocked stretch there is no va-2 in the API. Drawn as a ghost rather than hidden, because
-  // a block-sized hole in the column reads as a rendering fault, and brought to full on the one
-  // step that really writes it. Reviewed 2026-07-29: it used to materialise at full on the refusal.
+  // OPACITY.pending is va-2 as a WANT, not an object: the controller refuses before writing, so no
+  // va-2 exists through the blocked stretch. A ghost, not a hole, and full only when it is written.
   vaBOp = 0, vaBSub = 'wanted, not written',
   linkA = 1,        // the column-a lanes: controller to va-1, and va-1 down to the disk
   linkB = 0,        // the column-b lanes: only drawn once a ball actually rides them
@@ -269,10 +266,8 @@ const STEPS = [
       const req = routePacket(s, ctx, W_NODE_BAND, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'attach node-2', W_NODE_BAND, { delay: BEAT.afterPulse });
       lightBoxAt(s.refs.ctrl, ctx, req.arrivalMs);
-      // The WANT appears as the refused request lands, at the placeholder shade, because that is all
-      // it ever is on this step: the controller refuses before it writes, so no va-2 exists. Never
-      // lit either, since nothing was granted.
-      // Not the kit revealAt: that one lands on full, and this never gets past the placeholder.
+      // The WANT appears at the placeholder shade as the refusal lands, and is never lit: nothing
+      // was granted. NOT the kit revealAt, which lands on full.
       s.refs.vaB.style.opacity = '0';
       ctx.register(s.refs.vaB.animate([{ opacity: 0 }, { opacity: OPACITY.pending }],
         { duration: FADE.in, delay: req.arrivalMs, fill: 'forwards', easing: 'ease-out' }));

@@ -1,6 +1,6 @@
 import { reducedMotion } from './motion.js';
 import { PULSE_BLOCK } from './tokens.js';
-// Design notes: scheme/docs/INTERNALS.md#schemejslibtimelinejs
+// Design notes: scheme/INTERNALS.md#schemejslibtimelinejs
 
 export class Timeline {
   constructor({ steps, scene, onSceneReset, onChange, onPlayingChange, defaultDuration = 2000, posterFirst = false, autoPulse = true }) {

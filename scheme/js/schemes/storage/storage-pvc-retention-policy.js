@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, laneOf, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-pvc-retention-policy
+// Design notes for this card: ./CARDS.md#storage-pvc-retention-policy
 
 
 const CX = 600;
@@ -32,9 +32,8 @@ const spineSeg = i => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [
 const ownPts = i => [[POD_RIGHT, ROW_CY[i]], [PVC_X, ROW_CY[i]]];        // Pod -> claim
 const reclaimPts = i => [[PVC_RIGHT, ROW_CY[i]], [PV_X, ROW_CY[i]]];     // claim -> disk
 
-// Fades a claim, disk or lane away exactly when the reclaim that removes it reaches it.
-// It also takes back the highlight the ball left on the block: a reclaimed block cannot still be
-// the thing the step points at.
+// Fades a claim, disk or lane away exactly when the reclaim reaches it, and takes back the highlight
+// the ball left: a reclaimed block cannot still be the thing the step points at.
 function vanishAt(el, ctx, delay = 0, to = OPACITY.terminated) {
   if (!el) return;
   const dark = () => el.classList.remove('highlight');
@@ -145,9 +144,8 @@ function setChips(s, { repl, ws, wd, disks }) {
   setChip(s.refs.diskChip, disks);
 }
 
-// A lane is only as present as the fainter of the two things it joins, so it takes the min of its
-// endpoints. Deriving it from one end alone is how an ownership lane came to leave a Pod that is a
-// ghost at 0.12 and arrive at its claim on full strength.
+// A lane is only as present as the fainter of the two things it joins, so it takes the MIN of its
+// endpoints. One end alone leaves a full-strength lane hanging off a ghost.
 
 function setStage(s, { pods = [1, 1, 1], claims = [1, 1, 1], disks = [1, 1, 1], govern = false } = {}) {
   [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => { p.style.opacity = String(pods[i]); });

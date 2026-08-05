@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-ephemeral-vs-persistent
+// Design notes for this card: ./CARDS.md#storage-ephemeral-vs-persistent
 
 
 const SPINE_X = 600;
@@ -119,9 +119,8 @@ function setChips(s, { ed, pvc, pod }) {
   setChip(s.refs.podChip, pod);
 }
 
-// Every one of the four lanes has the Pod at one end, so a lane is never more present than the Pod
-// is. One helper pins the blocks and their lanes together: pinning them apart is how four mount
-// arrows stayed at full strength across a Pod that had just faded to the terminal shade.
+// Every lane has the Pod at one end, so none is more present than the Pod. ONE helper pins blocks
+// and lanes together, or mount arrows stay at full across a Pod that has faded to the terminal shade.
 function setPresence(s, { pod = 1, ed = 1 } = {}) {
   s.refs.pod.style.opacity = String(pod);
   s.refs.ed.style.opacity = String(ed);

@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-cni-invocation
+// Design notes for this card: ./CARDS.md#network-cni-invocation
 
 
 const RAISE = 64;                           // lift the whole diagram up ~10% of the viewBox height
@@ -88,10 +88,8 @@ class Scene {
     const lResult = text({ class: 'scheme-label code dim', x: 690, y: PAUSE_Y - 10, 'text-anchor': 'middle' }, [' ']);
     const lJoin   = text({ class: 'scheme-label code dim', x: 254, y: PAUSE_Y + 16, 'text-anchor': 'middle' }, [' ']);
 
-    // Status chips docked under the block each describes: the allocated Pod IP under the sandbox,
-    // the live CNI operation under the plugin container.
-    // The two chips are hung on the content band, not on the blocks they caption, so the strip
-    // spans CONTENT_L..CONTENT_R and centres on the canvas without anything being stretched.
+    // Status chips docked under the block each describes, but hung on the CONTENT BAND rather than on
+    // those blocks, so the strip spans CONTENT_L..CONTENT_R and centres without anything stretched.
     const ipChip = valChip({ x: CONTENT_L, y: SBX[1] + SBX[3] + 12, w: SBX_RIGHT - CONTENT_L, h: 30, name: 'Pod IP', value: 'pending', role: 'network' });
     const opChip = valChip({ x: CNI[0], y: CNI[1] + CNI[3] + 12, w: CONTENT_R - CNI[0], h: 30, name: 'CNI op', value: 'idle', role: 'network' });
 

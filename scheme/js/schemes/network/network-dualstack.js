@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-dualstack
+// Design notes for this card: ./CARDS.md#network-dualstack
 
 
 const CONFIG_X = 480, CONFIG_W = 600;        // band spans Service..Pod only (480..1080), clear of the client
@@ -15,8 +15,7 @@ const SVC_X = 480, SVC_W = 240;              // Service web: 480..720
 const POD_X = 780, POD_W = 300;              // Pod web: 780..1080
 const ROW_RIGHT = POD_X + POD_W;             // 1080
 // The band applies to BOTH the Service and the Pod, so its two drops are a mirrored pair about the
-// band centre rather than one tap per target centre. Each still lands well inside its target face
-// (15 units right of the Service centre 600 and of the Pod centre 930).
+// BAND centre rather than one tap per target centre, each still landing well inside its target face.
 const TAP_DX = 165;
 const TAP_SVC = CONFIG_CX - TAP_DX;          // 615, into the Service top edge
 const TAP_POD = CONFIG_CX + TAP_DX;          // 945, into the Pod top edge

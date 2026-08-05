@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-pod-to-pod-same-node
+// Design notes for this card: ./CARDS.md#network-pod-to-pod-same-node
 
 
 const POD_MID = 380;          // vertical centre of the pod / cni0 blocks

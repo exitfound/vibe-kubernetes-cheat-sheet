@@ -1,19 +1,10 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, chainList, setChainActive, arrow, chip } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, laneOf, BEAT, lightBoxAt, at, revealAt, REVEAL_MS, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-resource-quota
+// Design notes for this card: ./CARDS.md#cluster-resource-quota
 
-// A budget that ACCUMULATES, so the picture is one horizontal bar whose width IS spec.hard and
-// whose slots fill left to right, with the request that does not fit drawn past the bar edge.
-// Scale is exact: 480 units per CPU, so a 500m request is 240 units wherever it is drawn.
-// Panel measured at 1600x1000 / 1280x860 / 1100x800: x<=291/378/397, y<=160/193/230, worst on the
-// reject step, the longest narration on the card at 339 characters. The binding number is no longer
-// the listing caption, whose ink started at 364.8: that became a command chip on 2026-08-05 and the
-// TOP of it, 320, is what the panel must now stay above, so the card gave up 44.8 units of headroom.
-// Measured by growing that narration at 1100x800: 339 -> 235.8, 400 -> 282.2, 435 and 460 -> 305.4
-// (the same line count), 480 -> 328.6, which lands ON the chip. So the CEILING is 460 characters per
-// narration with 14.6 units to spare. Every unit of CMD_GAP is spent out of that budget. Re-measure
-// with VW=1100 VH=800 node overlay-measure.mjs cluster-resource-quota after any prose edit.
+// A budget that ACCUMULATES: one bar whose width IS spec.hard, slots filling left to right, and the
+// refused request drawn past the edge. Scale exact at 480 units per CPU. CEILING 460 characters.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 
@@ -25,7 +16,7 @@ const TOP_CY = TOP_Y + BOX_H / 2;                        // 80
 const RS_X = 420, RS_R = RS_X + BOX_W;                   // 420..652, left edge on the bar rail
 const LADDER_W = 400;
 // The API sits where its own ladder ends on the content right edge, so the gap to the ReplicaSet
-// is 172 rather than the family 56. Both numbers are under the packet floor, see docs/CARDS-cluster.md.
+// is 172 rather than the family 56. Both numbers are under the packet floor, see ./CARDS.md.
 const API_CX = CONTENT_R - LADDER_W / 2;                 // 940
 const API_X = API_CX - BOX_W / 2, API_R = API_X + BOX_W; // 824..1056
 const LANE_DY = 12;
@@ -78,10 +69,8 @@ const CHIP_W = (CONTENT_R - CONTENT_L - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;
 const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
 const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
 
-// The command that produced the listing is a chip rather than a floating caption, tied to the row
-// it produced and on down the column, so the three rows read as one answer instead of three loose
-// blocks. It takes the row width exactly and stands off by more than the row gap, so it reads as
-// the question above the answer rather than as a fourth row. Text measures 174.2 units at 11px.
+// The command is a chip, not a floating caption, so the three rows read as one answer. It takes the
+// row width exactly and stands off by more than the row gap: the question above the answer.
 const LIST_CX = LIST_X + LIST_W / 2;                     // 230
 const CMD_W = LIST_W, CMD_H = CHIP_H;                    // 340 x 34, the width of the row below it
 const CMD_X = LIST_X;                                    // 60..400, flush with the listing
@@ -417,9 +406,8 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setChips(s, { used: 'requests.cpu 0', admission: '403 · no requests.cpu on the Pod', rs: '3 desired · 0 ready' });
-      // The counterfactual: with no LimitRange nothing was ever admitted, so the two filled slots
-      // go and the very first request sits outside the bar, refused for being uncountable rather
-      // than for being too big.
+      // The counterfactual: with no LimitRange nothing was ever admitted, so the first request sits
+      // outside the bar, refused for being uncountable rather than for being too big.
       setBudget(s, {
         over: { label: 'web-1', sublabel: 'no requests.cpu', opacity: OPACITY.pending },
         limitRange: OPACITY.terminated,

@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, relationPath, BEAT, makeRidingLabel } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-client-ip-preservation
+// Design notes for this card: ./CARDS.md#network-client-ip-preservation
 
 
 // The content band is symmetric about the canvas centre by construction, so the flow row and the
@@ -39,9 +39,8 @@ const CHIP_X = i => CONTENT_L + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHI
 const ENTRY = [[CLIENT_RIGHT, FLOW_Y], [PROXY_X, FLOW_Y]];
 const DELIVER = [[PROXY_RIGHT, FLOW_Y], [POD_X, FLOW_Y]];
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-// Every ball on this card is a linear segmentPacket, so the tag rides linear too:
-// with the eased default it drifted off its ball mid-flight and rejoined at the ends.
+// The tag that rides a ball here. Every ball on this card is a linear segmentPacket, so the tag
+// rides LINEAR too: the eased default drifts off its ball mid-flight and rejoins at the ends.
 const ridingLabel = makeRidingLabel({ role: 'network', hold: 140, easing: 'linear' });
 
 function podBlock({ x, y, w, h, label, ip }) {

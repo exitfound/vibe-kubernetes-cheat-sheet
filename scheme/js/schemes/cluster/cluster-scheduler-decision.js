@@ -2,10 +2,10 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-scheduler-decision
-// Layout A, the Cluster exemplar: actor row on top clear of the panel, pipeline ladder in the left
-// column, state chips in the right column, candidate Nodes full width at the bottom.
-// Panel worst case over 1600/1440/1280/1100 is x<=397, y<=180, and JOG_Y sits on that line.
+// Design notes for this card: ./CARDS.md#cluster-scheduler-decision
+
+// Layout A, the Cluster exemplar: actor row clear of the panel, ladder left, chips right, candidate
+// Nodes full width at the bottom. Panel x<=397 y<=180, and JOG_Y sits on that line.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 // Reserved narration corner: 400 x 180. Nothing on this card derives from it, and the measured
@@ -29,9 +29,8 @@ const LADDER_Y = 220, LADDER_CX = LADDER_X + LADDER_W / 2;   // 220, 300
 const CHIP_X = 660, CHIP_W = CONTENT_R - CHIP_X;         // 480, 660..1140
 const CHIP_Y = i => LADDER_Y + i * (ROW_H + ROW_GAP);    // chips share the ladder rhythm
 
-// A relationship line, not a route: the API owns the Pod objects the cycle below reads, and no ball
-// rides it. It leaves the API bottom midpoint and lands on the ladder top midpoint, and the turn
-// sits halfway between the two faces (140 and 220) rather than hugging the ladder.
+// A relationship, not a route: the API owns the Pod objects the cycle below reads. Face midpoint to
+// face midpoint, turn halfway between them rather than hugging the ladder.
 const JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2;    // 180
 const API_TO_CHAIN = [[API_CX, TOP_BOTTOM], [API_CX, JOG_Y], [LADDER_CX, JOG_Y], [LADDER_CX, LADDER_Y]];
 // Centred in the band between the top row and that dashed jog, not pinned under the boxes: the +4
@@ -273,9 +272,8 @@ const STEPS = [
       s.refs.v4.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[2]) rows[2].classList.add('highlight');
-      // Scoring is computed inside the Scheduler, nothing travels and nothing pulses: the score
-      // verdicts just settle on v3/v4 via the static highlight. The Scheduler lights for the same
-      // reason it lights on filter, both steps are its own work and neither may read as idle.
+      // Computed inside the Scheduler, so nothing travels and nothing pulses: the verdicts settle
+      // via the static highlight. The Scheduler lights because the step is its own work.
       s.refs.sched.classList.add('highlight');
     },
   },
@@ -302,10 +300,8 @@ const STEPS = [
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[3]) rows[3].classList.add('highlight');
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); s.refs.etcdC.classList.add('highlight'); return; }
-      // Three arrow segments: Scheduler → Api (binding POST), Api → ETCD (persist), then the commit
-      // ack back down the return lane. The Api is mid-chain here: it takes the POST before it
-      // writes, so it lights on arrival like ETCD does. The ack is what rv=903 on the persist wire
-      // actually is, and without it the ETCD → Api lane wore an arrowhead no ball ever rode.
+      // Three hops: binding POST, persist, then the commit ack home. The Api is MID-CHAIN, so it
+      // lights on arrival like ETCD. The ack is what rv=903 on the persist wire is.
       const post = segmentPacket(s, ctx, { from: [SCHED_R, OUT_Y], to: [API_X, OUT_Y], role: 'cluster' });
       lightBoxAt(s.refs.api, ctx, post.arrivalMs);
       const etcdCPkt = segmentPacket(s, ctx, { from: [API_R, OUT_Y], to: [ETCD_X, OUT_Y], delay: post.arrivalMs + BEAT.afterHop, role: 'cluster' });

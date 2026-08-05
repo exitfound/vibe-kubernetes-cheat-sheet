@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, lightBoxAt, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-traffic-distribution
+// Design notes for this card: ./CARDS.md#network-traffic-distribution
 
 
 const SCHEME_L = 60, SCHEME_R = 1140;        // content edges, mirrored about x=600
@@ -158,11 +158,8 @@ const STEPS = [
       setVal(s.refs.modeChip, 'unset . spread all');
       setVal(s.refs.pinChip, 'None');
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.a1Box.classList.add('highlight'); s.refs.b2Box.classList.add('highlight'); return; }
-      // TWO connections from the same client, the second staggered by the same 540 that session-affinity
-      // uses, so they read as two rides rather than one ball splitting across two backends. The first
-      // lands in zone-a (a1), the second in zone-b (b2), symmetric about the flow line. kube-proxy is
-      // the subject of every step here, but it is still the RECEIVER of the client hop, so it lights
-      // when that ball lands.
+      // TWO connections from one client, the second staggered by 540 so they read as two rides rather
+      // than one ball splitting. kube-proxy is still the RECEIVER of the client hop, so it lights on it.
       pulsePod(s.refs.client, ctx, 0);
       const arr = clientHop(s, ctx, BEAT.afterPulse);
       lightBoxAt(s.refs.kproxy, ctx, arr);

@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-north-south-path
+// Design notes for this card: ./CARDS.md#network-north-south-path
 
 
 const FLOW_Y = 356;                 // spine: client, cloud LB, kube-proxy and the Pod are centred on it
@@ -51,9 +51,8 @@ const POD2KP = [[POD_X, RET_Y], [KP_RIGHT, RET_Y]];
 const KP2LB = [[KP_X, RET_Y], [LB_RIGHT, RET_Y]];               // crosses the gap on the way back
 const LB2C = [[LB_X, RET_Y], [CLIENT_RIGHT, RET_Y]];
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-// Every ball on this card is a linear segmentPacket, so the tag rides linear too:
-// with the eased default it drifted up to 11 units ahead of its ball mid-flight.
+// The tag that rides a ball here. Every ball on this card is a linear segmentPacket, so the tag
+// rides LINEAR too: the eased default drifts up to 11 units ahead of its ball mid-flight.
 const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
 
 function podBlock({ x, y, w, h, label }) {

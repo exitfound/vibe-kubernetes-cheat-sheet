@@ -1,7 +1,7 @@
 import { svg, g, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-reclaim-policy
+// Design notes for this card: ./CARDS.md#storage-reclaim-policy
 
 
 const PVC_Y = 30, PVC_H = 68, PVC_BOTTOM = PVC_Y + PVC_H;      // 98
@@ -161,9 +161,8 @@ function setStage(s, { delPvc, delPv, delDisk, retPvc, retPvc2, admin, delBound,
   s.refs.delPv.style.opacity = String(delPv);
   s.refs.delDisk.style.opacity = String(delDisk);
   s.refs.delSpec.style.opacity = String(delDisk);   // the caption dies with the disk it describes
-  // A lane is only as present as the fainter end it joins, and the policy band is drawn on every
-  // step, so each Delete lane simply follows its object. Without this both stayed on full through
-  // the four steps where the PV and the disk sit at the terminated shade.
+  // A lane is only as present as its fainter end, and the policy band is drawn on every step, so
+  // each Delete lane follows its object.
   s.refs.lDelPolicy.style.opacity = String(delPv);
   s.refs.lDelWipe.style.opacity = String(delDisk);
   s.refs.retPvc.style.opacity = String(retPvc);
@@ -229,9 +228,8 @@ const STEPS = [
       setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
       s.refs.band.classList.add('highlight');
       if (ctx.reduced) return;
-      // Replayed forward, the two objects start alive and are killed by the ball that reaches them.
-      // Their lanes come back up with them: each one carries a ball this step, so it has to be on
-      // screen for the flight and then go down with the object at its far end.
+      // Replayed forward, both objects start alive and are killed by the ball that reaches them.
+      // Their lanes come back up too: each carries a ball and must be on screen for the flight.
       s.refs.delPv.style.opacity = '1';
       s.refs.delDisk.style.opacity = '1';
       s.refs.delSpec.style.opacity = '1';
@@ -263,9 +261,8 @@ const STEPS = [
       setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'data intact' });
       setWire(s, 'ret', 'nothing touched, data kept');
       setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: OPACITY.terminated, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
-      // Static end state, which is also what a reduced-motion replay snaps to. The disk is NOT lit:
-      // surviving intact is a state, and it reads off the full opacity it keeps while the Delete
-      // column goes to the terminated shade beside it.
+      // Static end state, which the reduced replay also snaps to. The disk is NOT lit: surviving
+      // intact reads off the full opacity it keeps beside a Delete column at the terminated shade.
       s.refs.retPv.classList.add('highlight');
       s.refs.band.classList.add('highlight');
       if (ctx.reduced) return;
@@ -338,9 +335,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.retPv.classList.add('highlight'); s.refs.retPvc2.classList.add('highlight'); return; }
       s.refs.retDisk.classList.remove('highlight');
       s.refs.retPvc2.classList.add('highlight');
-      // The request lane and the Bound link stand on the same segment, so they hand over instead of
-      // being drawn on top of each other: the ball rides the dashed lane, and on arrival it becomes
-      // the solid arrowhead-free link.
+      // The request lane and the Bound link share a segment, so they HAND OVER rather than stacking:
+      // the ball rides the dashed lane, and on arrival it becomes the solid arrowhead-free link.
       s.refs.wRetBind.style.opacity = '1';
       s.refs.retBound.style.opacity = '0';
       const bind = routePacket(s, ctx, W_RET_BIND, { role: 'storage' });

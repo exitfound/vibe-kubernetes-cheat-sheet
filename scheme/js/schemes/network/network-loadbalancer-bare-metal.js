@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-loadbalancer-bare-metal
+// Design notes for this card: ./CARDS.md#network-loadbalancer-bare-metal
 
 
 const MID_X = 600;
@@ -124,9 +124,8 @@ class Scene {
   reset() { this.build(); }
 }
 
-// A Node, the Pod inside it and the fan lane that reaches it are one thing as far as presence goes,
-// so one helper pins all three. Pinning them separately is how a fan arrow at full strength came to
-// point into a Node dimmed out of the path.
+// A Node, the Pod inside it and the fan lane reaching it are ONE thing for presence, so one helper
+// pins all three: separately, a full-strength fan arrow points into a Node dimmed out of the path.
 const NODE_TRIPLES = [['node1', 'pod1', 'fan1'], ['node2', 'pod2', 'fan2'], ['node3', 'pod3', 'fan3']];
 
 function setNodes(s, opacities) {

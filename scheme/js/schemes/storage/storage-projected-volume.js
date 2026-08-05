@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-projected-volume
+// Design notes for this card: ./CARDS.md#storage-projected-volume
 
 
 const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;  // 330..970, over the projected directory
@@ -163,10 +163,8 @@ const STEPS = [
         ['rowCfg', 'rowPwd', 'rowLbl', 'rowTok'].forEach(k => s.refs[k].classList.add('highlight'));
         return;
       }
-      // The fan-in: four sources land at once, each on its own lane, each lighting its file row.
-      // The dir lights WITH them, not at entry. It is a container rather than a destination (a box()
-      // playing the part node() plays elsewhere, which is why check-arrival R3 judges it at all), but
-      // pre-lighting it still announced the delivery a full second before any of it landed.
+      // Four sources land at once, each on its own lane, each lighting its file row. The dir lights
+      // WITH them, not at entry, or the delivery is announced a full second before any of it lands.
       const c = routePacket(s, ctx, W_CM,   { role: 'storage' }); lightBoxAt(s.refs.rowCfg, ctx, c.arrivalMs);
       lightBoxAt(s.refs.dir, ctx, c.arrivalMs);
       const p = routePacket(s, ctx, W_SEC,  { role: 'storage' }); lightBoxAt(s.refs.rowPwd, ctx, p.arrivalMs);
@@ -206,9 +204,8 @@ const STEPS = [
       setChips(s, { src: 'downwardAPI: Pod metadata', tok: 'audience-bound', exp: 'short-lived' });
       s.refs.srcChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.srcDown.classList.add('highlight'); s.refs.rowLbl.classList.add('highlight'); return; }
-      // The Pod is the source of its own metadata, so the Pod pulses first, then its metadata flows
-      // down to downwardAPI and on into the labels file. downwardAPI is mid-chain here, unlike on
-      // the assemble step where it sends, so it lights on the metadata landing.
+      // The Pod is the SOURCE of its own metadata, so it pulses first. downwardAPI is mid-chain
+      // here, unlike on the assemble step where it sends, so it lights on the metadata landing.
       pulsePod(s.refs.pod, ctx, 0);
       const meta = routePacket(s, ctx, W_POD_META, { delay: BEAT.afterPulse, role: 'storage' });
       ridingLabel(s, ctx, 'labels, name', W_POD_META, { delay: BEAT.afterPulse });
@@ -225,9 +222,8 @@ const STEPS = [
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
       clearWires(s);
-      // The chip tracks WHICH source is in play, the way the two steps before it do. It used to snap
-      // back to the standing value here and stay there, so it changed with no cue on the one step
-      // that introduces the token source, and then never moved again.
+      // The chip tracks WHICH source is in play, as the two steps before it do: snapping back to the
+      // standing value changes it with no cue on the one step that introduces the token source.
       setChips(s, { src: 'serviceAccountToken', tok: 'bound to audience', exp: 'short-lived' });
       s.refs.srcChip.classList.add('highlight');
       s.refs.tokChip.classList.add('highlight');

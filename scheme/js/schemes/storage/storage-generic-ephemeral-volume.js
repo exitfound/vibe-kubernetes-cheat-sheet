@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-generic-ephemeral-volume
+// Design notes for this card: ./CARDS.md#storage-generic-ephemeral-volume
 
 
 const CX = 600;

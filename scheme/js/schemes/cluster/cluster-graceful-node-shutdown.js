@@ -1,19 +1,16 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, at, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-graceful-node-shutdown
+// Design notes for this card: ./CARDS.md#cluster-graceful-node-shutdown
 
-// Laid out on the L, the way network and storage are: the narration panel owns the top-left
-// corner, everything else is free. Measured worst case over 1600/1280/1100 is x<=397, y<=230, and
-// the ladder and the chip column both start at y=250, so there are 20 units of headroom: NO
-// narration on this card may pass 323 characters, which is what the signal step already spends.
+// Laid out on the L. Panel x<=397 y<=230 against a ladder and chip column starting at 250, so 20
+// units of headroom: NO NARRATION MAY PASS 323 CHARACTERS, which is what the signal step spends.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
 
-// Top row, right of the panel. The spine sits on CX so the single lane below it is a straight drop
-// onto the Node frame top face midpoint, and it runs in the 540..620 corridor between the ladder and
-// the chip column so it crosses nothing.
+// Top row, right of the panel. The spine is on CX so the lane below is a straight drop, running the
+// 540..620 corridor between ladder and chips so it crosses nothing.
 const BOX_W = 232, BOX_H = 80;
 const TOP_Y = 40, TOP_BOTTOM = TOP_Y + BOX_H;            // 40 / 120
 const SPINE_X = CX;                                      // 600
@@ -35,8 +32,7 @@ const CHIP_H = 34, CHIP_GAP = 21;
 const CHIP_Y = i => LADDER_Y + i * (CHIP_H + CHIP_GAP);  // 250 / 305 / 360 / 415, bottom 449
 
 // node() draws its own label at NODE_Y + 18, so the Pod row needs the family's 34 of top padding or
-// NODE-1 prints on top of the first Pod, which is what it was doing at +22. 34 + 106 + 12 of floor
-// is 152, the frame height the sibling Node cards use, and the bottom stays on 624.
+// NODE-1 prints on the first Pod. 34 + 106 + 12 is the family 152.
 const NODE_H = 152, NODE_BOTTOM = 624, NODE_Y = NODE_BOTTOM - NODE_H;   // 472..624
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
 const POD_W = 300, POD_H = 106;
@@ -46,9 +42,8 @@ const POD_PAD = 24;
 const POD_SPAN = NODE_W - POD_PAD * 2;                   // 1032
 const POD_XS = [0, 1, 2].map(i => NODE_X + POD_PAD + i * ((POD_SPAN - POD_W) / 2));  // 84 / 450 / 816
 
-// ONE lane, addressed to the Node rather than to a Pod inside it: a single drop on the spine from
-// the Kubelet bottom face midpoint to the Node frame top face midpoint, both x=600. Both SIGTERM
-// phases ride it, and WHICH Pods each phase reaches is carried by the pulses, not by a fan of taps.
+// ONE lane, addressed to the Node rather than a Pod inside it. Both SIGTERM phases ride it, and
+// WHICH Pods each reaches is carried by the pulses, not by a fan of taps.
 const SIG_LANE = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
 
 
@@ -74,8 +69,7 @@ class Scene {
     root.appendChild(arrow({ x1: KUBE_X + BOX_W, y1: REL_Y, x2: SYS_X, y2: REL_Y, dim: true, dashed: true, role: 'cluster' }));
 
     // Wire label centred in the gap below the top row, populated per step. It renders at 11px from
-    // `.scheme-label.code`: a `font-size` presentation attribute has specificity 0 and loses to that
-    // rule, so do not add one back and do not size a gap against one.
+    // `.scheme-label.code`: do not add a `font-size` attribute and do not size a gap against one.
     const wireSig = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
     root.appendChild(wireSig);
 
@@ -88,9 +82,8 @@ class Scene {
     const chain = chainList({
       x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
-        // The separator column is set by the longest stage name, "condition" at 9 characters, so
-        // every row pads its name field to that width and the dots line up at index 13. This is the
-        // same column the sibling cluster-node-pressure-eviction ladder uses, for the same reason.
+        // The separator column is set by the longest stage name, so every row pads to that width
+        // and the dots line up at index 13, the same column the sibling eviction ladder uses.
         '1. signal    ·  systemd PrepareForShutdown over D-Bus',
         '2. condition ·  set NotReady, bucket by priority',
         '3. normal    ·  SIGTERM non-critical, await up to 40s',
@@ -161,10 +154,8 @@ function setPods(s, ...vals) {
   vals.forEach((v, i) => { s.refs['pod' + (i + 1)].style.opacity = String(v); });
 }
 
-// The grace-period drain reads as a long dim rather than a snap, and at 1200 against a 900ms pulse
-// the Pod is still on screen while it blinks instead of vanishing mid-blink.
-// It settles on OPACITY.terminated, not on 0: a terminated Pod removed outright leaves a block-sized
-// hole in the Node frame, which reads as a rendering fault. See docs/CARDS-cluster.md.
+// 1200 against a 900ms pulse keeps the Pod on screen while it blinks instead of vanishing mid-blink.
+// Settles on OPACITY.terminated, not 0, or it leaves a block-sized hole in the Node frame.
 const POD_FADE = 1200;
 function fadeOut(s, ctx, key, delay) {
   ctx.register(s.refs[key].animate(

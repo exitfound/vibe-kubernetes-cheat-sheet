@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-externaltrafficpolicy
+// Design notes for this card: ./CARDS.md#network-externaltrafficpolicy
 
 
 const MID_X = 600;
@@ -141,10 +141,8 @@ const STEPS = [
   },
   {
     id: 'cluster',
-    // Motion runs the client entry leg, then fan(693) + hop beat(100) + underlay(1271), then the Pod
-    // pulse (900), ending at 3771. It was 2964 before the entry leg was drawn (review stage 2.4
-    // family B): every step here opens with a client hitting the external address, and that first leg
-    // was drawn and never rode.
+    // Motion: client entry leg, fan(693) + hop beat(100) + underlay(1271), Pod pulse(900), span 3771.
+    // Every step here OPENS with a client hitting the external address, so that first leg rides.
     duration: 4200,
     narration: 'With the default policy Cluster, every Node accepts the traffic even with no local Pod. The balancer happens to pick Node-2, which has no backend, so the Node SNATs the packet and forwards it across the cluster network to the Pod on Node-1. Load spreads evenly over every backend, wherever it runs.',
     enter(s, ctx) {
@@ -162,10 +160,8 @@ const STEPS = [
       // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
       s.refs.modeChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
-      // LB -> Node-2 (no backend), then SNAT and forward across the underlay to the Pod on Node-1,
-      // which pulses on arrival. The ball is hidden inside Node-2 between the two legs.
-      // The client request reaches the load balancer first, on the leg the card draws and never
-      // rode: every one of these steps opens with a client hitting the external address.
+      // Client to LB first, then LB -> Node-2 (no backend), then SNAT and forward across the underlay
+      // to the Pod on Node-1. The ball is hidden inside Node-2 between the two legs.
       const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
       lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
       const toN2 = routePacket(s, ctx, TO_N2, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });
@@ -213,10 +209,8 @@ const STEPS = [
       s.refs.srcChip.classList.add('highlight');
       s.refs.hopChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
-      // LB -> Node-1 (right-angle fan), stopping on the Node edge. No SNAT, so the ball carries the
-      // client address the whole way and the local Pod pulses as it is served.
-      // The client request reaches the load balancer first, on the leg the card draws and never
-      // rode: every one of these steps opens with a client hitting the external address.
+      // Client to LB first, then LB -> Node-1 stopping on the Node edge. No SNAT, so the ball carries
+      // the client address the whole way and the local Pod pulses as it is served.
       const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
       lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
       const toN1 = routePacket(s, ctx, TO_N1, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });
@@ -244,9 +238,8 @@ const STEPS = [
       s.refs.hcChip.classList.add('highlight');
       // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
       if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
-      // The health check excludes Node-2, so the LB steers only to Node-1 and its local Pod pulses.
-      // The client request reaches the load balancer first, on the leg the card draws and never
-      // rode: every one of these steps opens with a client hitting the external address.
+      // Client to LB first. The health check excludes Node-2, so the LB steers only to Node-1 and
+      // its local Pod pulses.
       const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
       lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
       const toN1 = routePacket(s, ctx, TO_N1, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });

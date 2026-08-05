@@ -2,10 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
 
-// Layout C on the Workloads canon (WL in the kit): the panel reaches y<=355 (worst of
-// 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
-// band and the chips form a two-across bottom strip.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-restart-policy
+// Design notes for this card: ./CARDS.md#workloads-restart-policy
+
+// Layout C on the Workloads canon (WL): panel x<=397 y<=355 leaves no column under it, so the
+// pipeline keeps the right band and the chips form a two-across bottom strip.
 const PANEL_B = 355;
 
 // Kubelet is the node-facing actor, so it leads the row and is centred on CX: the line down to
@@ -33,9 +33,8 @@ const POD_PAD = 24;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 26, h: 50 };
 const POD_XS = [0, 1, 2].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / 2));
 
-// Nothing ever travels down to the Node on this card: restartPolicy is enforced in place and
-// every packet is a top-row hop. The line to the Node is therefore a relationship, so it lands
-// on the frame midpoint and carries no arrowhead.
+// Nothing ever travels down to the Node here: restartPolicy is enforced in place and every packet is
+// a top-row hop, so the line to the Node is a RELATIONSHIP and carries no arrowhead.
 const OWNERSHIP = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, NODE_Y]];
 
 
@@ -145,9 +144,8 @@ function setChips(s, { a, b, c, focus }) {
 }
 
 function bouncePacket(s, ctx, { delay = 0 } = {}) {
-  // Kubelet watches the Api, then the spec hops back down the return lane once it answers. The Api
-  // is the receiver of that first hop on every step that calls this, so it lights on arrival here
-  // rather than at step entry, and each caller lights it statically under ctx.reduced.
+  // Kubelet watches the Api, then the spec hops back down the return lane. The Api RECEIVES that
+  // first hop, so it lights on arrival and each caller lights it statically under ctx.reduced.
   const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay, role: 'workloads' });
   lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
   return topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });

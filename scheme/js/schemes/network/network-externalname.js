@@ -1,12 +1,11 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, relationPath } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-externalname
+// Design notes for this card: ./CARDS.md#network-externalname
 
 
-// Panel measured 2026-07-27: right <= 397, bottom <= 230. Row A used to sit at 254, which put the
-// top of its Client Pod under the panel on the narrow viewports, so both rows hang below 230 now.
-// A longer narration invalidates that bottom.
+// Panel right <= 397, bottom <= 230, and BOTH rows hang below that bottom: at 254 the top of row A's
+// Client Pod goes under the panel on the narrow viewports.
 const CLIENT_X = 115, CLIENT_W = 160, CLIENT_H = 108;
 const ROW_A = 300;                     // Pod 246..354, clear of the panel
 const ROW_B = 480;

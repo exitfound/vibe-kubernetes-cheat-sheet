@@ -1,13 +1,11 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-dns-coredns
+// Design notes for this card: ./CARDS.md#network-dns-coredns
 
 
-// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 305, one of the deepest in the
-// catalog, so the client column hangs entirely below it and the CoreDNS Pod holds the right edge of
-// the canvas: the two together centre the content on x=600. A longer narration invalidates the
-// measured bottom.
+// Panel right <= 397, bottom <= 305, one of the deepest in the catalog, so the client column hangs
+// entirely below it and the CoreDNS Pod holds the right edge: the two together centre on 600.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 400;                 // shared centre of the client and the CoreDNS Pod
 const LANE_DY = 12;                 // half-gap between the two lanes
@@ -92,9 +90,8 @@ class Scene {
     const packetLayer = g({ id: 'packetLayer' });
 
     root.appendChild(client.group);
-    // The three plugin boxes go INSIDE the Pod group, not beside it, so the pulse reaches them:
-    // a Pod blinks as one thing and everything drawn inside it blinks with it (2026-07-29). They
-    // still keep their own refs, because a step lights one plugin at a time.
+    // The three plugin boxes go INSIDE the Pod group, not beside it, so the pulse reaches them: a Pod
+    // blinks as one thing. They keep their own refs, because a step lights one plugin at a time.
     coredns.appendChild(pCache);
     coredns.appendChild(pK8s);
     coredns.appendChild(pFwd);

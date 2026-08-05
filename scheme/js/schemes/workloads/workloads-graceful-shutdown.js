@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-graceful-shutdown
+
 // Layout C of the Workloads canon (WL): full-width chip strip, three per row.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-graceful-shutdown
 const PANEL_B = 280;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
@@ -38,11 +39,8 @@ const CHIP_X = i => {
 };
 const CHIP_Y = i => CHIPS_TOP + Math.floor(i / CHIP_PER_ROW) * CHIP_ROW_H;
 
-// The connector steps into the central corridor beside the ladder and reaches the Pod itself. It
-// leaves the API box, not kubectl: the termination order is what the API sets in motion once it has
-// stamped deletionTimestamp, and the report at the end climbs back to the API. It used to hang off
-// TOP1_CX, so the order left a box that had only ever talked to the API, and on the last step the
-// ball landed under kubectl while lightBoxAt lit the API. Same shape as workloads-force-deletion.
+// The connector reaches the Pod itself, leaving the API box and not kubectl: the termination order
+// is what the API sets in motion once it has stamped deletionTimestamp.
 const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 810
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
 const CONNECTOR_DOWN = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
@@ -180,14 +178,12 @@ const STEPS = [
       setConnectorDir(s, 'down');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
-      // DELETE hits the apiserver (top hop), then the termination order travels
-      // down to the kubelet side and the Pod pulses on arrival. The API receives the
-      // DELETE, so it lights on arrival rather than at step entry.
+      // DELETE hits the apiserver, then the termination order travels down and the Pod pulses on
+      // arrival. The API RECEIVES the DELETE, so it lights on arrival rather than at entry.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.api, ctx, req.arrivalMs);
-      // The stamped field goes straight back on the answer lane, which is what the narration means by
-      // the field making kubectl REPORT the Pod as Terminating. kubectl is the source of the round
-      // trip and is already lit, so it does not light again on arrival.
+      // The stamped field goes straight back on the answer lane, which is what makes kubectl REPORT
+      // Terminating. kubectl sources the round trip, so it does not light again on arrival.
       topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       const order = routePacket(s, ctx, CONNECTOR_DOWN, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads' });
       pulsePod(s.refs.podGroup, ctx, order.arrivalMs);

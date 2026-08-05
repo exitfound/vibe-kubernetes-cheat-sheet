@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-hostpath
+// Design notes for this card: ./CARDS.md#storage-hostpath
 
 
 const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550

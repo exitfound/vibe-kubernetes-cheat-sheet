@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-hostnetwork-hostport
+// Design notes for this card: ./CARDS.md#network-hostnetwork-hostport
 
 
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;
@@ -35,9 +35,8 @@ const AGENT_X = COL3_CX - POD_W / 2;           // 855
 const BR_W = 200, BR_H = 60;
 const BR_X = COL2_CX - BR_W / 2;               // 500
 const BR_TOP = POD_CY - BR_H / 2;              // 465
-// Two routes reach the bridge from above, the ordinary one straight off the NIC and the rewritten
-// one off the portmap rule. They land as a mirrored pair either side of the bridge midpoint rather
-// than one on it and one beside it.
+// Two routes reach the bridge from above, and they land as a MIRRORED PAIR either side of its
+// midpoint rather than one on it and one beside it.
 const BR_IN_DX = 20;
 const BR_IN_ORD = COL2_CX + BR_IN_DX;          // 620, the ordinary route
 const BR_IN_PM = COL2_CX - BR_IN_DX;           // 580, the portmap route

@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-service-cidr
+// Design notes for this card: ./CARDS.md#network-service-cidr
 
 
 const SCHEME_L = 120, SCHEME_R = 1080;   // content edges, mirrored about x=600
@@ -75,9 +75,8 @@ class Scene {
     const svcDns = box({ x: SVC_X[1], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service kube-dns', sublabel: 'clusterIP pending', role: 'network' });
     const svcWeb = box({ x: SVC_X[2], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'clusterIP pending', role: 'network' });
 
-    // The IPAddress object that records the dynamic binding. It spans the whole composition rather
-    // than the web column: its own value names the Service it points at, and 280 units were too
-    // narrow for that value to clear the chip name.
+    // The IPAddress object recording the dynamic binding. It spans the whole composition, not the web
+    // column: its value names the Service it points at, and 280 units cannot clear the chip name.
     const ipaddrChip = valChip({ x: SCHEME_L, y: CHIP_Y, w: SCHEME_R - SCHEME_L, h: CHIP_H, name: 'IPAddress', value: ' ', role: 'network' });
     ipaddrChip.style.opacity = '0';
 

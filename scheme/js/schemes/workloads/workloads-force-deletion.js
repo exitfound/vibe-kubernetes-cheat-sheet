@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-force-deletion
+
 // Layout B of the Workloads canon (WL): chips left, pipeline right, one trunk, one tap per Node.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-force-deletion
 const PANEL_B = 280;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
@@ -37,9 +38,8 @@ const P_A_X = N_A_X + (N_W - POD_W) / 2;                 // 170
 const P_B_X = N_B_X + (N_W - POD_W) / 2;                 // 730
 const P_A_CX = P_A_X + POD_W / 2, P_B_CX = P_B_X + POD_W / 2;   // 320 / 880, mirrored about CX
 
-// Both node-band actions (the node controller losing Node-1, the StatefulSet recreating on
-// Node-2) leave the API box. The trunk steps into the corridor between the two columns, drops to
-// a bus below the chip column and taps down into the Pod each step addresses.
+// BOTH node-band actions leave the API box. The trunk steps into the corridor, drops to a bus below
+// the chip column and taps down into the Pod each step addresses.
 const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
 const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 810
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
@@ -276,9 +276,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
       const pkt = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.api, ctx, pkt.arrivalMs);
-      // The answer comes straight back, which is the point of --force: the API reports the object gone
-      // without waiting for any Kubelet. kubectl is the source of the round trip, so it is already lit
-      // and does not light again on arrival.
+      // The answer comes straight back, which IS --force: the API reports the object gone without
+      // waiting for any Kubelet. kubectl sources the round trip, so it does not light again.
       topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: pkt.arrivalMs + BEAT.afterHop, role: 'workloads' });
     },
   },
@@ -296,10 +295,8 @@ const STEPS = [
       setWire(s, 'req', 'StatefulSet recreates pod-b on Node-2');
       s.refs.replicaChip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
-      // Each lane appears and dims with the Pod it ends on: before this step Pod B does not exist
-      // and an arrow into it would point at nothing.
-      // Pod A comes UP from terminated to notready here, and that rise is the whole step: the API
-      // believes it is gone, the chips say it may still be running.
+      // Each lane appears and dims with the Pod it ends on. Pod A comes UP from terminated to
+      // notready here, and that rise IS the step: the API believes it gone, the chips do not.
       setPods(s, OPACITY.notready, 1);
       setChainActive(s.refs.chain, 4);
       // podNew appears on arrival, so pulse it then. Lighting podNewBox in enter() would

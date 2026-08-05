@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-service-clusterip
+// Design notes for this card: ./CARDS.md#network-service-clusterip
 
 
 const CX = 600;                     // canvas centre: the ClusterIP column and the chip strip sit on it
@@ -89,10 +89,8 @@ class Scene {
     const fanFwdY  = pathArrow({ points: FAN_FWD_Y, dashed: true, dim: true, role: 'network' });
     const fanRetY  = pathArrow({ points: FAN_RET_Y, dashed: true, dim: true, role: 'network' });
 
-    // Named clusterIP, not dst: this chip holds the ONE address the client dials and it is true on
-    // every step, while `dst` is what the ball carries, which the riding tag says and which the
-    // DNAT step changes to a Pod IP. Two things called dst on screen at once, one of them stale,
-    // was the contradiction here.
+    // Named clusterIP, not dst: this holds the ONE address the client dials, true on every step,
+    // while `dst` is what the ball carries and the riding tag already says it.
     const vipChip  = valChip({ x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'clusterIP', value: '10.96.0.20:80', role: 'network' });
     const dnatChip = valChip({ x: CHIP_X[1], y: CHIP_Y, w: CHIP_W[1], h: CHIP_H, name: 'DNAT', value: 'none', role: 'network' });
     const ctChip   = valChip({ x: CHIP_X[2], y: CHIP_Y, w: CHIP_W[2], h: CHIP_H, name: 'conntrack', value: 'none', role: 'network' });

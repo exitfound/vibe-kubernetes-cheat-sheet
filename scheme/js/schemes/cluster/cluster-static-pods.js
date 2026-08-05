@@ -1,23 +1,17 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-static-pods
+// Design notes for this card: ./CARDS.md#cluster-static-pods
 
-// Three tiers on the L. Measured panel: 1600x1000 x<=291 y<=160, 1280x860 x<=378 y<=193,
-// 1100x800 x<=397 y<=230 (worst, on the drain step at 322 characters). Everything in tiers 1 and 2
-// starts at x=450 or right of it, so the panel can never reach those whatever the narrations grow
-// to. The only block left of 420 is the manifest file at y=427, so what the panel has to clear is
-// the Node frame at y=380. The CEILING is 390 characters: cluster-node-drain has the same panel
-// geometry and the same frame top, and its 396 character step measures 379 at 1100x800, one unit
-// short. Re-measure with VW=1100 VH=800 node overlay-measure.mjs after any prose edit.
+// Three tiers on the L. Panel worst case x<=397 y<=230 at 1100x800, and the Node frame at y=380 is
+// what it clears: 390 characters per narration. Re-measure with overlay-measure after a prose edit.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
 
 const BOX_W = 232, BOX_H = 80;
-// Tier 1. The API is centred on CX so the mirror Pod hangs straight below it and the Kubelet lane is
-// one vertical drop with no jog. kubectl therefore goes to the RIGHT of the API, which reverses the
-// reading direction of the top row: see docs/CARDS-cluster.md for why the left slot was declined.
+// Tier 1. API centred on CX so the mirror hangs straight below it and the Kubelet lane is one drop.
+// kubectl therefore goes RIGHT, reversing the top row's reading direction: see ./CARDS.md.
 const TOP_Y = 40, TOP_BOTTOM = TOP_Y + BOX_H;            // 40 / 120
 const TOP_GAP = 56;
 const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 484..716
@@ -44,10 +38,8 @@ const POD_X = CONTENT_R - POD_PAD - POD_W;               // 816..1116
 const BOX_TOP = ROW_CY - BOX_H / 2;                      // 427, the two 80 tall boxes centre on the row
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 
-// The three routes of the Node band and the one that leaves it. What travels file to Kubelet is the
-// Pod spec off the disk, so that lane points at the Kubelet even though the Kubelet is the actor: it
-// scans, and what it gets back is the spec. Everything else leaves the Kubelet, which is the only
-// box on this card that ever acts.
+// The Kubelet is the only box here that ever acts. The file lane still points AT it, because what
+// travels is the spec off the disk.
 const FILE_TO_KUBE = [[FILE_R, ROW_CY], [KUBE_X, ROW_CY]];
 const KUBE_TO_POD = [[KUBE_R, ROW_CY], [POD_X, ROW_CY]];
 const KUBE_TO_MIRROR = [[CX, BOX_TOP], [CX, MIR_BOTTOM]];
@@ -161,18 +153,14 @@ function clearHL(s) {
     [s.refs.staticPod, s.refs.mirrorPod]);
 }
 
-// Presence in ONE helper, for the same reason the chips go through one: three blocks that come into
-// existence at three different beats drift the moment a step is added. A block that is not there yet
-// dims to OPACITY.pending and SAYS so in its sublabel, because removing it leaves a block-sized hole
-// in the row and that reads as a rendering fault rather than as an absence.
+// Presence in ONE helper: three blocks born on three beats drift the moment a step is added. An
+// absent block dims to OPACITY.pending and says so in its sublabel rather than being removed.
 const SUB = {
   file: ['no file yet', 'static-web.yaml'],
   pod: ['not started', 'no owner'],
   mirror: ['not in the API yet', 'mirror · read-only'],
 };
-// A lane is only as present as the fainter of its ends, so each one is pinned in the SAME pass as
-// the block it depends on: the spec lane on the file it comes off, the run lane and the create lane
-// on the Pod each one lands in, and the API tie on the object it holds.
+// A lane is only as present as the fainter of its ends, so it is pinned with the block it depends on.
 function setStage(s, { file, pod: podOn, mirror }) {
   const shade = on => (on ? '1' : String(OPACITY.pending));
   s.refs.fileBox.style.opacity = shade(file);
@@ -187,9 +175,7 @@ function setStage(s, { file, pod: podOn, mirror }) {
   setBoxSublabel(s.refs.mirrorBox, SUB.mirror[mirror ? 1 : 0]);
 }
 
-// Every enter() writes EVERY chip through this. A chip left unset keeps the previous step's value,
-// and on this card that would leave `mirror Pod` reading `deleted` while the next step narrates a
-// drain skipping it.
+// Every enter() writes EVERY chip through this, or `mirror Pod` reads `deleted` into the drain step.
 function setChips(s, { file, staticPod, mirror }) {
   setVal(s.refs.pathChip, '/etc/kubernetes/manifests');
   setVal(s.refs.fileChip, file);
@@ -197,9 +183,8 @@ function setChips(s, { file, staticPod, mirror }) {
   setVal(s.refs.mirrorChip, mirror);
 }
 
-// The mirror goes out slower than the catalog FADE.out (700) for the reason cluster-node-drain gives:
-// at 700 the block is gone 200ms before its own pulse ends, so the delete reads as a cut rather than
-// as a deletion. It fades to OPACITY.terminated rather than to 0, and comes back on the recreate.
+// Slower than FADE.out 700, where the block is gone 200ms before its own pulse ends and the delete
+// reads as a cut. Fades to OPACITY.terminated, not 0, and comes back on the recreate.
 const MIRROR_FADE = 1200;
 
 const STEPS = [
@@ -325,9 +310,8 @@ const STEPS = [
         setVal(s.refs.mirrorChip, 'deleted from the API');
         setBoxSublabel(s.refs.mirrorBox, 'deleted from the API');
       });
-      // The API tie goes with it, because there is nothing left for the API to hold. The Kubelet
-      // lane does NOT: it is the lane the recreate rides a beat later, and a lane carrying a ball
-      // has to be on screen for the flight.
+      // The API tie goes with it. The Kubelet lane does NOT: the recreate rides it a beat later,
+      // and a lane carrying a ball has to be on screen for the flight.
       const fade = (el) => ctx.register(el.animate(
         [{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: MIRROR_FADE, delay: gone, fill: 'both', easing: 'ease-in' }));
       fade(s.refs.mirrorPod);

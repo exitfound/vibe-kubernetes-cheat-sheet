@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
-// Layout A on the Workloads canon (WL in the kit): ladder left, chip column right, Node frame
-// full width at the bottom. Panel measured at x<=397, y<=205 (worst of 1600/1440/1280/1100).
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-rolling-update
+// Design notes for this card: ./CARDS.md#workloads-rolling-update
+
+// Layout A on the Workloads canon (WL in the kit): ladder left, chips right, Node frame full width.
+// Panel x<=397, y<=205.
 const PANEL_B = 205, PANEL_GAP = 21;
 
 // The first actor box is centred on CX so the lane leaves its bottom midpoint and still drops
@@ -24,12 +25,8 @@ const CHIP_VGAP = 8;
 const CHIP_Y = i => BAND_Y + i * (WL.CHIP_H + CHIP_VGAP);
 
 const NODE_Y = 490, NODE_H = 134;                        // 490..624
-// FOUR slots, not three, and that is the content of the card rather than a layout preference:
-// maxSurge=1 means the rollout is transiently one Pod ABOVE .spec.replicas, which the surge step says
-// in words and in its chip ("4 Pods alive"). With three slots the drawing showed three Pods against a
-// chip counting four, so the card contradicted its own subject. The fourth slot is where the surge
-// lands; each drain then frees a slot the next v2 takes, and the row ends with its leftmost slot empty
-// because the surge capacity is released at the end.
+// FOUR slots, not three, and that is CONTENT rather than layout: maxSurge=1 means the rollout is
+// transiently one Pod ABOVE .spec.replicas, which the surge step says in words and in its chip.
 const POD_W = 234, POD_H = 88, POD_Y = NODE_Y + 34;      // 524..612
 const POD_PAD = 24;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 26, h: 48 };
@@ -37,16 +34,8 @@ const SLOT_N = 4;
 const POD_XS = [0, 1, 2, 3].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / (SLOT_N - 1)));
 const POD_CX = i => POD_XS[i] + POD_W / 2;               // 201 / 467 / 733 / 999
 
-// Moving the trunk onto the API added 390 units and about 680ms to every ball that rides it, so
-// the four steps that send one grew their duration to match: routeDur is length-based, and a
-// start point is therefore a timing decision as much as a drawing one.
-// The lane leaves the API, steps into the corridor between the two columns, runs along a bus above
-// the Pod row and taps down into whichever Pod the step addresses. Wires and balls share these points.
-//
-// It leaves the API and not the Deployment, which is what every step here actually describes: the
-// Deployment PATCHes .scale, and what appears or leaves on the Node is the API write taking effect
-// through the ReplicaSet and Kubelet. The Deployment box stays centred on CX because the corridor
-// runs there, but the trunk no longer hangs off it. Same shape as workloads-force-deletion.
+// The lane leaves the API, not the Deployment: the Deployment PATCHes .scale, and what appears on
+// the Node is that write taking effect. A start point is a TIMING decision too (routeDur is length-based).
 const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 990
 const JOG_Y = WL.TOP_BOTTOM + 25;                        // 145, below the boxes, above both columns
 const BUS_Y = NODE_Y + 12;
@@ -112,9 +101,8 @@ class Scene {
 
     const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
 
-    // Random suffixes, as a Deployment really gives them, and the same shape workloads-replicaset
-    // uses. Ordinals would imply an age order the drawing never establishes, while the narration
-    // says the controller picks the OLDEST Pod.
+    // Random suffixes, as a Deployment really gives them: ordinals imply an age order the drawing
+    // never establishes, while the narration says the controller picks the OLDEST Pod.
     const POD_NAMES = ['web-a1', 'web-b2', 'web-c3', 'web-d4'];
     const podBoxes = [];
     const podWrappers = POD_XS.map((px, i) => {
@@ -167,9 +155,8 @@ function clearHL(s) {
     ['controller','apiserver','v1Chip','v2Chip','surgeChip','progressChip','pod1Box','pod2Box','pod3Box','pod4Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
 }
-// A slot's version and its presence are one fact, so one helper writes both: `null` means the slot is
-// not occupied on this step. Two separate assignments are how a row comes to show more Pods alive than
-// its own chip counts.
+// A slot's version and its presence are ONE fact, so one helper writes both (`null` = unoccupied).
+// Two separate assignments show more Pods alive than the row's own chip counts.
 function setSlots(s, ...slots) {
   slots.forEach((v, i) => {
     const pod = s.refs['pod' + (i + 1)];
@@ -264,10 +251,8 @@ const STEPS = [
       s.refs.progressChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); return; }
-      // Readiness comes FIRST and is the precondition, which is what the narration says: the new v2
-      // Pod confirms Ready, and only then does maxUnavailable allow the scale-down to travel to the
-      // node and take the oldest v1 Pod. Both used to pulse on the same arrival, which drew the
-      // permission and the thing it permits as one event.
+      // Readiness comes FIRST and is the precondition: only then does maxUnavailable allow the
+      // scale-down. Pulsing both on one arrival draws the permission and its effect as one event.
       pulsePod(s.refs.pod4, ctx, 0);
       const drain = routePacket(s, ctx, LANE(2), { delay: BEAT.afterPulse, role: 'workloads' });
       s.refs.pod3.style.opacity = '1';
@@ -359,9 +344,8 @@ const STEPS = [
       s.refs.progressChip.classList.add('highlight');
       setChainActive(s.refs.chain, 5);
       if (ctx.reduced) { ['pod2Box','pod3Box','pod4Box'].forEach(k => s.refs[k].classList.add('highlight')); return; }
-      // Rollout converged: the three live v2 Pods sit in slots 2, 3 and 4, because the surge capacity
-      // is released from the LEFTMOST slot. Pulse those three (the pulse fades back to the resting
-      // outline), never slot 1, which setSlots has just emptied.
+      // The three live v2 Pods sit in slots 2, 3 and 4: the surge capacity is released from the
+      // LEFTMOST slot. Pulse those three, never slot 1, which setSlots has just emptied.
       pulsePod(s.refs.pod2, ctx, 0);
       pulsePod(s.refs.pod3, ctx, 0);
       pulsePod(s.refs.pod4, ctx, 0);

@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chip, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, setConnectorDir, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-crashloopbackoff
+
 // Layout B of the Workloads canon (WL): chips and the backoff ladder left, pipeline right.
 // Panel worst case x<=397, y<=205; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-crashloopbackoff
 const PANEL_B = 225;
 const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX
 const WIRE_OUT_Y = 28, WIRE_IN_Y = 146, WIRE_IN_DX = 14;

@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-topology-aware-provisioning
+// Design notes for this card: ./CARDS.md#storage-topology-aware-provisioning
 
 
 const CX = 600;

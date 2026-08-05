@@ -1,7 +1,7 @@
 import { svg, g, text, path } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, routePacket, relationPath, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volume-model
+// Design notes for this card: ./CARDS.md#storage-volume-model
 
 
 const SPINE_X = 600;
@@ -82,9 +82,8 @@ class Scene {
     const wAppUp    = pathArrow({ points: LANE_APP_UP,    dashed: true, dim: true, role: 'storage' });
     const wAppDown  = pathArrow({ points: LANE_APP_DOWN,  dashed: true, dim: true, role: 'storage' });
     const wSideUp   = pathArrow({ points: LANE_SIDE_UP,   dashed: true, dim: true, role: 'storage' });
-    // The sidecar READS: the shared step has the app write foo and the log shipper read it back, so
-    // the write half of the sidecar's pair never carries anything. It is the mount drawn as a
-    // relationship, and the app's write lane keeps its arrowhead because a ball does ride that one.
+    // The sidecar READS, so the write half of its pair never carries anything: it is the mount drawn
+    // as a RELATIONSHIP. The app's write lane keeps its arrowhead, because a ball does ride that one.
     const wSideDown = relationPath({ points: LANE_SIDE_DOWN, role: 'storage' });
 
     // The ownership label is permanent chrome: the volume belongs to the Pod on every step, so it is

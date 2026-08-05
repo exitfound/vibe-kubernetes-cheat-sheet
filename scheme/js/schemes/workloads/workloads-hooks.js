@@ -2,9 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-hooks
+
 // Layout C of the Workloads canon (WL): the deepest panel in the category leaves room for no column.
 // Panel worst case x<=397, y<=379; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-hooks
 const PANEL_B = 379;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
@@ -41,10 +42,8 @@ const CHIP_Y = i => CHIPS_TOP + Math.floor(i / CHIP_PER_ROW) * CHIP_ROW_H;
 // The spine steps into the central corridor beside the ladder and reaches the Pod itself.
 const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 810
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
-// The lane into the container leaves the RUNTIME, not Kubelet. Kubelet never touches a container
-// directly, which is the whole subject of the card: it asks over CRI and the runtime is what execs
-// the hook and delivers the signal. Both steps that ride this say so in their own wire label
-// (CRI ExecSync · preStop · Sync, CRI StopContainer · SIGTERM · ACK), and it used to leave TOP1_CX.
+// The lane into the container leaves the RUNTIME, not Kubelet: Kubelet never touches a container
+// directly, which is the whole subject of the card. Both wire labels that ride this say so.
 const SPINE = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
 
 

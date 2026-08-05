@@ -1,13 +1,10 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, at, BEAT, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-node-pressure-eviction
+// Design notes for this card: ./CARDS.md#cluster-node-pressure-eviction
 
-// Layout B: chips in the left column under the panel, ladder right, Node frame full width at the
-// bottom. Panel worst case over 1600/1280/1100 is x<=397, y<=280, and the chip column starts at
-// y=296 (CHIPS_Y is derived, so read it there rather than trusting this line), so there are 16
-// units of headroom. The longest narration on the card is 383 characters and produces that 280:
-// do not pass it without re-measuring with VW=1100 VH=800 node overlay-measure.mjs.
+// Layout B: chips left under the panel, ladder right, Node frame full width. Panel x<=397 y<=280
+// against a chip column at 296, so 16 units of headroom. CEILING 383 characters. Re-measure.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
@@ -19,25 +16,15 @@ const SPINE_X = CX;                                      // 600, between the two
 const KUBE_X = SPINE_X - KUBE_W / 2;                     // 440..760
 const KUBE_R = KUBE_X + KUBE_W;                          // 760
 
-// Three of the five steps say the Kubelet writes to the API (the two condition flips and the Pod
-// status after the kill) and the card used to draw no API at all, so that traffic was narrated and
-// never shown. The box right-aligns on CONTENT_R with the ladder and the Node frame below it, which
-// leaves the Kubelet centred on the spine that owns the drop into the Node. One lane, one direction:
-// no step here names anything coming back, so a return would be decoration.
+// Three steps say the Kubelet writes to the API, so the API is drawn. It right-aligns on CONTENT_R,
+// leaving the Kubelet on the spine. ONE lane, one direction: no step names anything coming back.
 const API_W = 232, API_X = CONTENT_R - API_W;            // 908..1140
 
-// The victim goes out slower than the catalog FADE.out (700). At 700 the Pod is gone 200ms before
-// its own pulse ends, so the kill reads as a cut rather than as a death. 1200 lands the fade after
-// the pulse and still finishes inside the step span, which the report packet already sets at 2142.
-// It ends on OPACITY.terminated rather than on 0: an evicted Pod removed outright leaves a
-// block-sized hole in the Node frame. See docs/CARDS-cluster.md.
+// Slower than FADE.out 700, where the Pod is gone 200ms before its own pulse ends and the kill
+// reads as a cut. Ends on OPACITY.terminated, not 0, or it leaves a hole in the Node frame.
 const VICTIM_FADE = 1200;
-// 834 is the gap midpoint, but the label is NOT contained by that gap and nothing here should be
-// derived as if it were: the longest string (PATCH Node.status.conditions · MemoryPressure=False)
-// measures 351 units against a 148 unit gap, so it overhangs both columns by about 102. That is why
-// WIRE_Y sits above the row rather than on it, where the overhang crosses only empty canvas. The
-// labels render at 11px from `.scheme-label.code`, never at the `font-size` a presentation attribute
-// asks for, because that attribute has specificity 0 and loses to the rule.
+// 834 is the gap midpoint, but the label is NOT contained by that gap: the longest string measures
+// 351 against 148, so it overhangs by 102 either side. WIRE_Y sits ABOVE the row for that reason.
 const WIRE_X = (KUBE_R + API_X) / 2;                     // 834, the gap midpoint
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row
 
@@ -55,29 +42,19 @@ const CHIP_Y = i => CHIPS_Y + i * (CHIP_H + CHIP_VGAP);
 
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
 // node() draws its own label at NODE_Y + 18, so the Pod row needs the family's 34 of top padding or
-// the NODE-1 label lands inside the first Pod, which is what it was doing at +18. 34 + 106 + 12 of
-// floor is 152, the same frame height cluster-node-drain uses, and the bottom stays on 624.
+// the label lands inside the first Pod. 34 + 106 + 12 is the family 152.
 const NODE_H = 152, NODE_BOTTOM = 624, NODE_Y = NODE_BOTTOM - NODE_H;   // 472..624
 const POD_W = 300, POD_H = 106, POD_Y = NODE_Y + 34;     // 506..612
 const POD_PAD = 24;
 const POD_XS = [0, 1, 2].map(i => NODE_X + POD_PAD + i * ((NODE_W - POD_PAD * 2 - POD_W) / 2));
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 
-// The one lane on the card, addressed to the NODE rather than to a Pod inside it: a single drop from
-// the Kubelet bottom face midpoint to the Node frame top face midpoint, both on the spine at x=600.
-// Which Pod the kill lands on is carried by the pulse, not by a tap into the Pod row.
+// The one lane, addressed to the NODE rather than a Pod inside it. Which Pod the kill lands on is
+// carried by the pulse, not by a tap into the Pod row.
 const CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
 
-// The Kubelet owns EVERY row of the ladder: detect, condition, rank, evict and relieve are all its
-// own eviction manager, and the API next to it performs none of them (it only records what the
-// Kubelet writes). So the two are tied by a relationship line, the way the API is tied to its
-// admission pipeline on cluster-admission-webhooks. No ball rides it and it takes no arrowhead: a
-// marker with no traffic under it would turn the ladder into a destination.
-// Face midpoint to face midpoint, with the turn on the line halfway between the two faces. It
-// leaves on the spine, so its first 70 units lie under the drop into the Node and the pair reads as
-// one line that branches at y=190: the Kubelet does own both ends of that branch, the ladder and
-// the kill. Off-centre departures were tried and are not the house shape, whatever the local
-// crowding argues.
+// The Kubelet owns EVERY ladder row, so the tie is a RELATIONSHIP: no ball, no arrowhead, or the
+// ladder becomes a destination. Face midpoint to face midpoint, turn halfway between them.
 const TIE_X = SPINE_X;                                   // 600
 const TIE_LAND_X = LADDER_X + LADDER_W / 2;              // 900
 const TIE_JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2;           // 188
@@ -201,12 +178,8 @@ function setVictim(s, v) {
 }
 
 
-// Every enter() writes EVERY chip through this. The threshold is a Kubelet flag rather than a
-// per-step reading, so it carries its one value as a default. The rest is what makes the deferred
-// turnovers above safe: Timeline cancels a step's animations on the way out and cancel() fires
-// oncancel, never onfinish, so a reader who clicks Next while the condition PATCH is still in flight
-// loses that at(). MemoryPressure was written on condition alone and rolled back below its guard, so
-// that reader saw the card run rank, evict and relieve without it ever reading True.
+// Every enter() writes EVERY chip through this, which is what makes the deferred turnovers safe:
+// Timeline fires oncancel, never onfinish, so clicking Next mid-flight loses whatever at() held.
 const THRESHOLD = 'memory.available<1Gi';
 function setChips(s, { mem, pressure, victim }) {
   setVal(s.refs.memChip, mem);
@@ -344,10 +317,8 @@ const STEPS = [
       s.refs.victimChip.classList.add('highlight');
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
-      // Pressure cleared: the survivors pulse together, and only THEN does the condition flip back
-      // over the same lane it flipped forward on. This is the up-arrow order (pulse first, packet at
-      // BEAT.afterPulse) and it is also the sentence order: the memory frees up, and the Kubelet
-      // flips MemoryPressure because of that. Firing both at once gave the eye two places to look.
+      // Survivors pulse first, and only THEN does the condition flip back: the up-arrow order, and
+      // also the sentence order. Firing both at once gives the eye two places to look.
       pulsePod(s.refs.pod2, ctx, 0);
       pulsePod(s.refs.pod3, ctx, 0);
       setVal(s.refs.pressureChip, 'True');

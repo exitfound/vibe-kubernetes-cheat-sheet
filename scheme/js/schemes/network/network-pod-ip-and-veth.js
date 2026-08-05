@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../../lib/primitives.js';
 import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-pod-ip-and-veth
+// Design notes for this card: ./CARDS.md#network-pod-ip-and-veth
 
 
 const LINK_Y = 396; // shared y for the veth link, the loopback link and the packets on them

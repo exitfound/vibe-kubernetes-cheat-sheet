@@ -2,17 +2,8 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, routePacket, segmentPacket, BEAT, FADE, OPACITY, at, laneOf, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, relationPath } from './cluster-kit.js';
 
-// Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
-// Measured worst case over 1600/1280/1100 is x<=397, y<=230, so the reserved corner is 400 x 240.
-// CYL_Y is 230, so the panel bottom is ONE unit off the artwork and every narration on this card
-// has a hard ceiling of 334 characters, which is what the longest one costs (the `proposal` step).
-// Re-measure with
-// overlay-measure.mjs at all three viewports after any prose edit: the extent moves NON-monotonically.
-// One band, 150..512. The API is level with the ETCD row, below the panel. The band was centred on
-// the canvas (150..498, centre 324) until the chip stacks dropped 14 on 2026-08-01: see CARDS-cluster.md.
-// The margin is 40 rather than the usual 60 on purpose: it is what buys the proposal label its
-// gap without narrowing the API off the 220 standard box width. Both sides take it, so the
-// content bbox stays 40..1160 and centred on CX.
+// Laid out on the L. Panel x<=397 y<=230 against CYL_Y 230, ONE unit off the artwork, so every
+// narration has a HARD CEILING of 334 characters. Margin 40, not 60, and both sides take it.
 const M = 40;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 40 / 1160
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
@@ -31,21 +22,16 @@ const CYL_XS = [0, 1, 2].map(i => ROW_X + i * (CYL_W + CYL_GAP));  // 440..640 /
 const CYL_CXS = CYL_XS.map(x => x + CYL_W / 2);          // 540 / 800 / 1060
 
 const ROW_H = 34;
-// 30 rather than 16: the binding to each cylinder is a dashed relationPath now, and 16 units is
-// under two dashes of `5 5`, which reads as a tick rather than as a line. 30 gives three, and the
-// chip stack under every cylinder gets the air the author asked for. The left column follows,
-// because SCHIP_Y is derived from ROLE_Y and the term chip shares its top edge with the role row.
+// 30 rather than 16: the binding to each cylinder is a dashed relationPath, and 16 units is under
+// two dashes of `5 5`, which reads as a tick rather than a line. 30 gives three.
 const ROLE_Y = CYL_BOTTOM + 30;                          // 390..424
 const LOG_Y = ROLE_Y + ROW_H + 10;                       // 434..468
 
 const API_W = 220, API_H = 80;
 const API_X = CONTENT_L, API_R = API_X + API_W;          // 40..260
 const API_Y = CYL_CY - API_H / 2;                        // 255..335, level with the ETCD row
-// Every exchange on this card is a round trip, so the row line is a lane PAIR: the request rides
-// LANE_DY above the centre line, the answer the same distance below it, mirrored on each face so no
-// endpoint stands alone. Raft is nothing but answers (an entry is not committed until a majority has
-// acknowledged it), and until 2026-07-30 not one of them was drawn: the acks the replicate step
-// narrates, the durable report the quorum step narrates, and the whole of the apply step.
+// Every exchange here is a round trip, so each row line is a lane PAIR: request LANE_DY above the
+// centre, answer the same below, mirrored on each face. Raft is nothing but answers.
 const LANE_DY = 12;
 const ROW_OUT = CYL_CY - LANE_DY;                        // 283, requests run here
 const ROW_BACK = CYL_CY + LANE_DY;                       // 307, answers come home here
@@ -59,14 +45,13 @@ const E2_TO_E1  = [[CYL_XS[1], ROW_BACK], [CYL_XS[0] + CYL_W, ROW_BACK]];
 const ARC_RISE = 80;
 const ARC_Y = CYL_Y - ARC_RISE;                          // 150
 // The far Follower is a round trip too, and the two arcs are CONCENTRIC, which takes OPPOSITE stubs
-// at the two ends. Why mirrored stubs cross: docs/CARDS-cluster.md#cluster-etcd-raft.
+// at the two ends. Why mirrored stubs cross: ./CARDS.md#cluster-etcd-raft.
 const ARC_BACK_Y = ARC_Y + LANE_DY;                      // 162
 const REPLICATE = [[CYL_CXS[0] - LANE_DY, CYL_Y], [CYL_CXS[0] - LANE_DY, ARC_Y], [CYL_CXS[2] + LANE_DY, ARC_Y], [CYL_CXS[2] + LANE_DY, CYL_Y]];
 const ACK_E3    = [[CYL_CXS[2] - LANE_DY, CYL_Y], [CYL_CXS[2] - LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, CYL_Y]];
 
-// State chips in the freed bottom-left, under the API, so the chip strip straddles CX. They take the
-// API width, not one of their own: the four blocks are one column and used to end 100 units apart.
-// The third row is the bottom of the band: SCHIP_Y(2) + ROW_H = 512.
+// State chips in the freed bottom-left, under the API, so the strip straddles CX. They take the API
+// width so the four blocks read as one column. Third row is the band bottom: SCHIP_Y(2) + ROW_H.
 const SCHIP_X = API_X, SCHIP_W = API_W;                  // 40..260, the API column
 const SCHIP_Y = i => ROLE_Y + i * (ROW_H + 10);          // 390 / 434 / 478
 
@@ -99,7 +84,7 @@ class Scene {
     // role and log rows use. The width is the API column, so the four blocks line up.
     const termChip   = valChip({ x: SCHIP_X, y: SCHIP_Y(0), w: SCHIP_W, h: ROW_H, name: 'term',             value: '4', role: 'cluster' });
     // The name states the POPULATION it counts, because the quorum chip under it counts a different
-    // one: acks come from the two Followers, quorum is out of all three replicas. See CARDS-cluster.md.
+    // one: acks come from the two Followers, quorum is out of all three replicas. See ./CARDS.md.
     const acksChip   = valChip({ x: SCHIP_X, y: SCHIP_Y(1), w: SCHIP_W, h: ROW_H, name: 'acks from Followers', value: 'idle', role: 'cluster' });
     const quorumChip = valChip({ x: SCHIP_X, y: SCHIP_Y(2), w: SCHIP_W, h: ROW_H, name: 'quorum',           value: '2 of 3', role: 'cluster' });
     content.appendChild(termChip); content.appendChild(acksChip); content.appendChild(quorumChip);
@@ -125,7 +110,7 @@ class Scene {
     const laneE3Out = lane(REPLICATE), laneE3Back = lane(ACK_E3);
 
     // Tie each replica to the chips below it: a binding, not flow, so it goes through relationPath.
-    // What it used to be and what the 30 unit gap buys: docs/CARDS-cluster.md#cluster-etcd-raft.
+    // What it used to be and what the 30 unit gap buys: ./CARDS.md#cluster-etcd-raft.
     const ties = CYL_CXS.map(cx => {
       const p = relationPath({ points: [[cx, CYL_BOTTOM], [cx, ROLE_Y]], role: 'cluster' });
       content.appendChild(p);
@@ -158,8 +143,7 @@ function clearHL(s) {
   clearHighlights(s, ['api','e1','e2','e3','r1','r2','r3','l1','l2','l3','termChip','acksChip','quorumChip']);
 }
 
-// The three summary chips are written by EVERY step, not only by the ones that move them. They used
-// to be set on two steps out of six and carried elsewhere, and a carried counter is indistinguishable
+// Written by EVERY step, not only the ones that move them: a carried counter is indistinguishable
 // on screen from one this step just earned.
 const TERM = '4', QUORUM = '2 of 3', QUORUM_MET = '2 of 3 ✓ at ack 1', QUORUM_LOST = '1 of 3 · lost';
 function setSummary(s, { acks, quorum }) {
@@ -168,10 +152,8 @@ function setSummary(s, { acks, quorum }) {
   setVal(s.refs.quorumChip, quorum);
 }
 
-// A Follower that stops answering does not vanish, and it does not go alone: its role chip, its
-// log chip, the dashed tie holding those two to it and both of its lanes are only as present as
-// the replica itself. ONE helper writes all twelve, called by EVERY step, because two independent
-// assignments drift the moment a step is added. Reasoning: docs/CARDS-cluster.md#cluster-etcd-raft.
+// A Follower that stops answering does not go alone: its chips, its tie and both its lanes are only
+// as present as the replica. ONE helper writes all twelve, called by EVERY step.
 const SILENT = ['e2', 'e3', 'r2', 'r3', 'l2', 'l3', 'tie2', 'tie3', 'laneE2Out', 'laneE2Back', 'laneE3Out', 'laneE3Back'];
 function setReplicas(s, o) {
   // The Leader end of every one of those lanes is live, so laneOf leaves the replica's own shade.
@@ -241,9 +223,8 @@ const STEPS = [
       clearWires(s);
       setVal(s.refs.l2, '9 / 8');
       setVal(s.refs.l3, '9 / 8');
-      // Both acks land inside this step (the two return lanes below), so the counter ends on 2 and
-      // says so in the same notation as the steps either side of it. It read "1 (then 2)" here, a
-      // third notation on the one step where the count is meant to be read as progressing.
+      // Both acks land inside this step, so the counter ends on 2 and says so in the same notation
+      // as the steps either side of it.
       setSummary(s, { acks: '2 of 2', quorum: QUORUM });
       setReplicas(s, OPACITY.running);
       s.refs.acksChip.classList.add('highlight');
@@ -252,9 +233,8 @@ const STEPS = [
       s.refs.l2.classList.add('highlight');
       s.refs.l3.classList.add('highlight');
       if (ctx.reduced) { s.refs.e2.classList.add('highlight'); s.refs.e3.classList.add('highlight'); return; }
-      // Both AppendEntries leave together: a short hop to the near Follower and
-      // the over-the-top route to the far one, each at natural travel speed. Both
-      // Followers are receivers, so each lights when its own packet lands.
+      // Both AppendEntries leave together, each at natural travel speed. Both Followers are
+      // receivers, so each lights when its own packet lands.
       const e2Pkt = segmentPacket(s, ctx, { from: E1_TO_E2[0], to: E1_TO_E2[1], role: 'cluster' });
       lightBoxAt(s.refs.e2, ctx, e2Pkt.arrivalMs);
       const e3Pkt = routePacket(s, ctx, REPLICATE, { role: 'cluster' });
@@ -275,9 +255,8 @@ const STEPS = [
       clearHL(s);
       clearWires(s);
       setVal(s.refs.l1, '9 / 9');
-      // The acks chip COUNTS, it does not judge: a tick on 2 of 2 said the commit waits for both
-      // Followers, while the narration (and Raft) commit on the first ack, because the Leader plus
-      // one Follower is already the majority. The verdict moved to the chip whose threshold it is.
+      // The acks chip COUNTS, it does not judge: Raft commits on the FIRST ack, because Leader plus
+      // one Follower is already the majority. The verdict belongs to the chip whose threshold it is.
       setSummary(s, { acks: '2 of 2', quorum: QUORUM_MET });
       setReplicas(s, OPACITY.running);
       s.refs.e1.classList.add('highlight');
@@ -285,8 +264,7 @@ const STEPS = [
       s.refs.acksChip.classList.add('highlight');
       s.refs.quorumChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
-      // The step used to animate NOTHING while its narration reports the write back to the API as
-      // durable. That report is the whole point of a quorum, so it rides the answer lane home and the
+      // The durable report is the whole point of a quorum, so it rides the answer lane home and the
       // API lights when it lands.
       const durable = routePacket(s, ctx, E1_TO_API, { delay: BEAT.lead, role: 'cluster' });
       lightBoxAt(s.refs.api, ctx, durable.arrivalMs);
@@ -312,9 +290,8 @@ const STEPS = [
       // Both Followers now RECEIVE the heartbeat, so they are dark at step entry and light when it
       // lands: check-arrival R3 fired the moment the balls were added.
       if (ctx.reduced) { s.refs.e2.classList.add('highlight'); s.refs.e3.classList.add('highlight'); return; }
-      // This step animated nothing at all while its narration has the Leader CARRYING the new
-      // commitIndex to both Followers on the next heartbeat. It is the same two outbound lanes the
-      // replicate step uses, and each Follower is already lit because both apply the entry.
+      // The Leader CARRIES the new commitIndex to both Followers on the next heartbeat, down the
+      // same two outbound lanes replicate uses. Each Follower is already lit: both apply the entry.
       const hb2 = segmentPacket(s, ctx, { from: E1_TO_E2[0], to: E1_TO_E2[1], role: 'cluster' });
       lightBoxAt(s.refs.e2, ctx, hb2.arrivalMs);
       const hb3 = routePacket(s, ctx, REPLICATE, { role: 'cluster' });
@@ -341,10 +318,8 @@ const STEPS = [
       s.refs.acksChip.classList.add('highlight');
       s.refs.quorumChip.classList.add('highlight');
       if (ctx.reduced) return;
-      // NO ball, on purpose. A packet into a member that is not answering says the opposite of the
-      // step, and nothing comes back either, which is what the narration promises. The beat is the
-      // two replicas going quiet, then the counters that depended on them, then the Leader giving
-      // up a role it can no longer hold. The silent pair carries no highlight on either path.
+      // NO ball, on purpose: a packet into a member that is not answering says the opposite of the
+      // step. The beat is the replicas going quiet, then the counters, then the Leader standing down.
       setReplicas(s, OPACITY.running);
       setVal(s.refs.r1, 'Leader');
       setSummary(s, { acks: '2 of 2', quorum: QUORUM_MET });

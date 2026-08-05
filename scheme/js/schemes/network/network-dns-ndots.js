@@ -1,12 +1,11 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, chainList, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-dns-ndots
+// Design notes for this card: ./CARDS.md#network-dns-ndots
 
 
-// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 230, so the flow row hangs below
-// that bottom and the two blocks hold CONTENT_L and CONTENT_R, which centres the content on x=600.
-// A longer narration invalidates the measured bottom.
+// Panel right <= 397, bottom <= 230, so the flow row hangs below it and the two blocks hold
+// CONTENT_L and CONTENT_R, which centres the content on 600.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 400;
 const LANE_DY = 12;
@@ -73,13 +72,8 @@ class Scene {
 
     const qWire = arrow({ x1: QUERY[0][0], y1: QUERY[0][1], x2: QUERY[1][0], y2: QUERY[1][1], dashed: true, dim: true, role: 'network' });
     const aWire = arrow({ x1: ANSWER[0][0], y1: ANSWER[0][1], x2: ANSWER[1][0], y2: ANSWER[1][1], dashed: true, dim: true, role: 'network' });
-    // No `A? ` prefix on the query label. Both lane labels render at 11px from `.scheme-label.code`
-    // in diagrams.css: the `font-size: 10` they used to carry was dead, because a presentation
-    // attribute has specificity 0 and always lost to that rule, so the ~144px it was sized against
-    // was never the rendered width. Measured at 11px, the longest string either label ever takes is
-    // api.ns.svc.cluster.local. (the absolute step, trailing dot included) at 172 units. Centred on
-    // LANE_CX it spans 514..686 and clears both block edges (410 and 790) by 104. Measure, do not
-    // compute from a font size the element does not have.
+    // No `A? ` prefix: measured at the real 11px, the longest string either label takes is 172 units,
+    // spanning 514..686 and clearing both block edges by 104. Do not size off a `font-size` attribute.
     const qLabel = text({ class: 'scheme-label code dim', x: LANE_CX, y: FWD_Y - 12, 'text-anchor': 'middle' }, [' ']);
     const aLabel = text({ class: 'scheme-label code dim', x: LANE_CX, y: RET_Y + 22, 'text-anchor': 'middle' }, [' ']);
 

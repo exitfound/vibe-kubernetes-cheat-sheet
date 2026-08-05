@@ -2,9 +2,10 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT, WL } from './workloads-kit.js';
 
+// Design notes for this card: ./CARDS.md#workloads-init-containers-and-sidecars
+
 // Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
 // Panel worst case x<=397, y<=255; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-init-containers-and-sidecars
 const PANEL_B = 255;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
@@ -198,9 +199,8 @@ const STEPS = [
       s.refs.migrateChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
       if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); s.refs.containerMigrate.classList.add('highlight'); return; }
-      // PLEG callback Runtime -> Kubelet, then the next CRI request Kubelet -> Runtime,
-      // then the create travels down to the node, each hop chained on the previous arrival. The
-      // runtime reports first, so the Kubelet lights when that callback lands and not before it.
+      // PLEG callback, then the next CRI request, then the create down to the node, each hop chained
+      // on the previous arrival. The runtime REPORTS first, so the Kubelet lights when it lands.
       const pleg = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
       lightBoxAt(s.refs.kubelet, ctx, pleg.arrivalMs);
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: pleg.arrivalMs + BEAT.afterHop, role: 'workloads' });
@@ -226,13 +226,11 @@ const STEPS = [
       setWire(s, 'req', 'migrate-schema exit 0 · StartContainer · sidecar');
       s.refs.sidecarChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
-      // Kubelet RECEIVES the exit report before it sends the next call, so it is dark at step entry
-      // and lights when the report lands. check-arrival R3 exempts a source only if it sends no later
-      // than it receives, and here it sends a beat later.
+      // Kubelet RECEIVES the exit report before it sends the next call, so it is dark at entry: R3
+      // exempts a source only if it sends no later than it receives.
       if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); s.refs.containerSidecar.classList.add('highlight'); s.refs.runtime.classList.add('highlight'); return; }
-      // The wire label opens with `migrate-schema exit 0`, which is the runtime REPORTING the init
-      // container finished. That report comes back first, on the answer lane, and only then does the
-      // next StartContainer go out. Same construction as the running step below.
+      // The wire label opens with the runtime REPORTING the init container finished, so that report
+      // comes back first on the answer lane and only then does the next StartContainer go out.
       const done = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
       lightBoxAt(s.refs.kubelet, ctx, done.arrivalMs);
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: done.arrivalMs + BEAT.afterHop, role: 'workloads' });

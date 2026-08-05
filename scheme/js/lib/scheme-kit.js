@@ -3,17 +3,10 @@ import { packet, animateAlong } from './primitives.js';
 import { Timeline } from './timeline.js';
 import { PULSE_POD, PULSE_BLOCK, OPACITY } from './tokens.js';
 export { FADE, BEAT, OPACITY } from './tokens.js';
-// Design notes: scheme/docs/INTERNALS.md#schemejslibscheme-kitjs
+// Design notes: scheme/INTERNALS.md#schemejslibscheme-kitjs
 
 // ---- geometry constants ----
-// Not exported: only the connector wrappers below read it, and no card ever did.
-// The two connector routes that used to live here were the 320 gutter: one hardcoded left-margin
-// dogleg shared by every workloads card. They are gone, each card owns its spine, and the ball
-// rides the same points array the wire is drawn from. See WL in workloads-kit.js.
-//
-// A LAYOUT constant holding POD_SHELL_FILL went with them. It was module-local and unread: its own
-// comment said the connector wrappers were its only readers, and those wrappers had been deleted.
-// The colour it named is written out at the ~100 sites that build a Pod shell.
+// Not exported: each card owns its own spine, and the ball rides the SAME points array as the wire.
 
 export function valChip({ x, y, w, h = 32, name, value, role = '' }) {
   const grp = g({ class: 'scheme-chip', 'data-role': role || null, transform: `translate(${x},${y})` });
@@ -26,16 +19,8 @@ export function valChip({ x, y, w, h = 32, name, value, role = '' }) {
 }
 export function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
 
-// setVal, plus the diff that decides whether the chip glows for this step: a chip whose value
-// CHANGES lights, a chip that stays the same does not. Steps are always entered in order, so
-// comparing against what the chip currently reads is deterministic.
-//
-// This was 29 byte-identical copies, one per storage card. Note for anything that reads card
-// sources rather than running them: prose.mjs resolves chip VALUES by finding a card-local
-// function that forwards both parameters to a known setter, and an imported one is invisible to
-// that search. It seeds `setChip` by name for exactly this reason. A future rename here has to
-// rename it there too, or check-inline and check-labels quietly stop seeing two thirds of the
-// values drawn on storage cards while still reporting zero findings.
+// setVal plus the diff that lights a chip whose value CHANGED. RENAMING IT BREAKS TWO LINTERS
+// SILENTLY: prose.mjs seeds `setChip` BY NAME, so a rename here must be a rename there too.
 export function setChip(chip, val) {
   const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
   setVal(chip, val);
@@ -56,11 +41,8 @@ export function setPodSublabel(podEl, txt) {
   if (sub) sub.textContent = txt;
 }
 
-// A lane joins two things and is only as present as the fainter of them, so its shade is the MIN of
-// its endpoints. Hoisted 2026-07-30 out of two byte-identical card copies (storage-pvc-retention-policy
-// and storage-volumeclaimtemplates) written days apart, which is the shape that becomes a third copy
-// next: the rule itself is catalog-wide (see the lane rules in scheme/CLAUDE.md), so the one-liner
-// belongs where every card can reach it.
+// A lane joins two things and is only as present as the fainter of them, so its shade is the MIN
+// of its endpoints. The rule is catalog-wide: see the lane rules in scheme/CLAUDE.md.
 export const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));
 
 export function clearHighlights(s, keys, pods = []) {
@@ -189,14 +171,11 @@ export function makeRidingLabel({
   };
 }
 
-// A RELATIONSHIP line: a wire that carries no ball on any step. It must not take an arrowhead,
-// because a marker with no traffic under it reads as traffic, and `arrow()` / `pathArrow()` always
-// attach one. Written 2026-07-27 to retire 29 hand-rolled copies of the same class string across
-// 26 cards, which had already drifted (some omitted the role suffix, some the dasharray).
-// Pass `points` for the ordinary case; `d` is for the few cards that build a multi-subpath spine.
+// A RELATIONSHIP line: a wire carrying no ball on any step, so it must NOT take an arrowhead, and
+// `arrow()` / `pathArrow()` always attach one. Pass `points`; `d` is for a multi-subpath spine.
 export function relationPath({ points, d, role = null, dash = null }) {
   // scheme-arrow-relation sinks the line behind the route wires while keeping the category hue.
-  // Without it a relationship reads as traffic: see docs/INTERNALS.md#schemecssdiagramscss.
+  // Without it a relationship reads as traffic: see scheme/INTERNALS.md#schemecssdiagramscss.
   const cls = ['scheme-arrow', 'scheme-arrow-dashed', 'scheme-arrow-dim', 'scheme-arrow-relation'];
   if (role) cls.push(`scheme-arrow-${role}`);
   const attrs = { class: cls.join(' '), 'data-role': role || null, fill: 'none' };
@@ -205,15 +184,8 @@ export function relationPath({ points, d, role = null, dash = null }) {
   return path(attrs);
 }
 
-// An object COMING INTO EXISTENCE part way through a step: it rests at `from` and lands on full
-// when its packet arrives. Hoisted 2026-07-29 out of nine byte-similar storage copies, which is
-// also what fixes them: every copy short-circuited on `delay <= 0` straight to opacity 1, so a
-// reveal at step entry silently played no fade AND threw `from` away. That put two live cards on
-// the wrong resting shade. Duration is the landing fade the nine copies all used, deliberately
-// not FADE.in (600), which is the general-purpose one. Exported because three cards sequence the
-// NEXT beat off the end of a reveal, and a private copy of the number is how those two drift apart.
-// `from` is the shade the object rests at while a lane already points AT it: hiding it outright
-// aims the arrowhead at blank canvas for the whole flight.
+// An object COMING INTO EXISTENCE mid-step: it rests at `from` and lands on full when its packet
+// arrives. Hiding it instead aims the arrowhead at blank canvas for the whole flight.
 export const REVEAL_MS = 500;
 export function revealAt(el, ctx, delay = 0, from = 0) {
   if (!el) return;
@@ -223,17 +195,8 @@ export function revealAt(el, ctx, delay = 0, from = 0) {
     { duration: REVEAL_MS, delay, fill: 'forwards', easing: 'ease-out' }));
 }
 
-// The keyframe list is EMPTY, and that is the whole point: this animation is a timer, it must not
-// name a property. It used to be `[{ opacity: 1 }, { opacity: 1 }]`, which draws nothing and yet
-// costs the block its rendering, because Chrome composites an element for as long as an opacity
-// animation is attached to it, delay phase included. lightBoxAt is pending for exactly the flight
-// of the ball, so every block about to light was promoted to its own layer while the ball
-// travelled and dropped back on arrival, and its 72% opaque fill was blended by the compositor
-// instead of in the raster pass for that window: the canvas of the block shifts tone for a beat
-// and snaps back. Confirmed on cluster-architecture with CDP LayerTree (`g.scheme-box 222x82`
-// appears mid-flight and is gone after), and it cascades, because anything painted above a
-// composited layer and overlapping it is promoted too, which took three lanes and a wire label
-// with it. Empty keyframes animate nothing, so there is nothing to composite.
+// THE KEYFRAME LIST MUST STAY EMPTY: this is a timer and must not name a property, or the target is
+// composited for the whole delay window and visibly shifts tone. Measured in scheme/INTERNALS.md.
 export function lightBoxAt(boxEl, ctx, delay = 0) {
   if (!boxEl) return;
   if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
@@ -242,27 +205,8 @@ export function lightBoxAt(boxEl, ctx, delay = 0) {
   ctx.register(a);
 }
 
-// Run fn at a point INSIDE a step, or at once on the static path so the reduced end-state stays
-// right. The sibling of lightBoxAt: same zero-effect 1ms animation used purely as a timer, but
-// carrying an arbitrary callback instead of a class. It is what turns a chip over on the beat that
-// earns its value, so a chip does not run ahead of the motion that produces it.
-//
-// This had TWELVE copies in twelve cards with four different bodies, differing only in which
-// element they hung the timer on (svg / chain / agent / packetLayer, all arbitrary since the
-// animation has no visible effect) and in whether they had the reduced guard at all: the
-// workloads-job-parallelism copy did not. That one happened to be harmless because its only call
-// site sits below the step's `ctx.reduced` guard, but it was one edit away from breaking prev/reset.
-// Same retirement as lightBoxAt (52 copies) and ridingLabel (51).
-//
-// Note what it CANNOT do: Timeline cancels a step's animations on the way out, and cancel() fires
-// oncancel, never onfinish, so a pending callback is dropped when the reader steps away mid-flight.
-// Do not "fix" that with an oncancel handler: _cancelAnims runs BEFORE the next step's enter(), and
-// the event is asynchronous, so the callback would land on top of the step the reader moved TO.
-// The guarantee has to come from the card instead: every enter() writes every chip.
-//
-// Empty keyframes for the reason written over lightBoxAt, and here the cost was the whole card
-// rather than one block: the timer hangs on the SVG ROOT, so an opacity keyframe promoted the
-// entire diagram to its own layer for the length of the wait.
+// Run fn INSIDE a step, or at once on the static path: this is what turns a chip over on the beat
+// that earns it. A pending callback is DROPPED mid-flight, so every enter() must write every chip.
 export function at(s, ctx, delay, fn) {
   if (ctx.reduced || delay <= 0) { fn(); return; }
   const a = s.refs.svg.animate([], { duration: 1, delay });

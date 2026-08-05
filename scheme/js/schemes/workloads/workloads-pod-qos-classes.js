@@ -2,10 +2,10 @@ import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
 
-// Layout C on the Workloads canon (WL in the kit): the panel reaches y<=404 (worst of
-// 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
-// band and the chips form a two-across bottom strip.
-// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-pod-qos-classes
+// Design notes for this card: ./CARDS.md#workloads-pod-qos-classes
+
+// Layout C on the Workloads canon (WL): panel x<=397 y<=404 leaves no column under it, so the
+// pipeline keeps the right band and the chips form a two-across bottom strip.
 const PANEL_B = 404;
 
 // Kubelet is the node-facing actor, so it leads the row and is centred on CX: every lane to the
@@ -34,9 +34,8 @@ const POD_INNER = { dx: 30, w: POD_W - 60, dy: 24, h: 46 };
 const POD_XS = [0, 1, 2].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / 2));
 const POD_CX = i => POD_XS[i] + POD_W / 2;               // 234 / 600 / 966
 
-// Every step that travels writes to all three Pods at once, so the lane drops into the Node
-// frame, runs along a bus above the Pod row and taps down into each Pod. One ball per tap, and
-// the wire and the ball are built from the same points.
+// Every step that travels writes to all three Pods at once, so the lane drops to a bus above the
+// Pod row and taps down into each. One ball per tap, wire and ball from the same points.
 const BUS_Y = NODE_Y + 12;
 const TRUNK = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y]];
 const BUS = [[POD_CX(0), BUS_Y], [POD_CX(POD_XS.length - 1), BUS_Y]];
@@ -76,10 +75,8 @@ class Scene {
     const kubelet   = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet',   sublabel: 'cgroups + eviction',            role: 'cluster' });
     const apiserver = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'admission · qosClass · binding', role: 'cluster' });
 
-    // The request lane is a RELATIONSHIP here. It runs Kubelet -> API, and the only write this card
-    // narrates in that direction is the binding POST, which the Scheduler makes and which this card
-    // deliberately does not draw (family K rewrote the narration for exactly that reason). Nothing on
-    // the card can ride it, so it carries no arrowhead.
+    // A RELATIONSHIP: the only write this card narrates Kubelet -> API is the binding POST, which
+    // the Scheduler makes and this card does not draw. Nothing can ride it, so no arrowhead.
     root.appendChild(relationPath({ points: [[TOP1_X + TOP1_W, REQ_Y], [TOP2_X, REQ_Y]], role: 'cluster' }));
     root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
 
@@ -257,9 +254,8 @@ const STEPS = [
       s.refs.focusChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
       if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
-      // Api writes the binding, the kubelet observes it and places each Pod on the node.
-      // Top packet Api -> Kubelet (binding delivered), then the connector ball Kubelet -> node.
-      // The Kubelet lights when the binding reaches it, since placing the Pods is its answer to it.
+      // Api writes the binding, the Kubelet observes it and places each Pod. The Kubelet lights when
+      // the binding REACHES it, since placing the Pods is its answer to it.
       const bind = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, role: 'workloads' });
       lightBoxAt(s.refs.kubelet, ctx, bind.arrivalMs);
       fanToPods(s, ctx, { delay: bind.arrivalMs + BEAT.afterHop });
@@ -313,11 +309,8 @@ const STEPS = [
       s.refs.pod2.style.opacity = String(OPACITY.terminating);
       s.refs.pod3.style.opacity = '1';
       if (ctx.reduced) return;
-      // The ORDER is the content of this step, so it is built from explicit delays and not from the
-      // shared fan. The three lanes are different lengths (684 units to slot 0, 318 to the middle),
-      // so sending them together landed Pod B, the one labelled evicted 2nd, a full 800ms BEFORE
-      // Pod A, labelled evicted 1st. Pod C gets no ball at all: it survives, and the narration says
-      // only the kernel OOMKiller reaches it.
+      // The ORDER is the content here, so explicit delays rather than the shared fan: the lanes are
+      // 684 and 318 units, so sending together lands `evicted 2nd` 800ms before `evicted 1st`.
       const evictA = routePacket(s, ctx, LANE(0), { role: 'workloads' });
       pulsePod(s.refs.pod1, ctx, evictA.arrivalMs);
       ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: evictA.arrivalMs, fill: 'both', easing: 'ease-in' }));

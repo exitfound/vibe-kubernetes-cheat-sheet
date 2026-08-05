@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel} from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS-network.md#network-pod-localhost
+// Design notes for this card: ./CARDS.md#network-pod-localhost
 
 
 const SHELL_X = 620, SHELL_Y = 174, SHELL_W = 500, SHELL_H = 320;  // [620..1120] spans the bind + Pod IP chips

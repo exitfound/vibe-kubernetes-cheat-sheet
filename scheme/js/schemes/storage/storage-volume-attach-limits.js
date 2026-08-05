@@ -1,6 +1,6 @@
 import { svg, g, rect } from '../../lib/svg.js';
 import { arrowDefs, box, node, pathArrow, podShell } from '../../lib/primitives.js';
-// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volume-attach-limits
+// Design notes for this card: ./CARDS.md#storage-volume-attach-limits
 
 import { valChip, setVal, setChip, setBoxLabel, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel } from './storage-kit.js';
 
@@ -276,9 +276,8 @@ const STEPS = [
       setChips(s, { attached: '24 of 24', pod: 'not created', blocked: 'nothing' });
       s.refs.nodes.forEach(n => n.counter.classList.add('highlight'));
       if (ctx.reduced) return;
-      // The gauge read its final 24 of 24 from step entry, while the slots it counts were still
-      // filling in for another two seconds. It holds the count the previous step left and turns over
-      // when the last slot lands.
+      // The gauge holds the count the previous step left and turns over when the LAST slot lands:
+      // its final reading at entry would count slots that are still filling for two more seconds.
       setChips(s, { attached: '4 of 24', pod: 'not created', blocked: 'nothing' });
       const prev = [2, 1, 1];
       let seq = 0;

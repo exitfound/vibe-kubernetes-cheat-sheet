@@ -2,9 +2,10 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from './cluster-kit.js';
 
-// One grid with cluster-architecture, minus the cloud-controller-manager. Every control-plane
-// block is inside the frame and the client is not, so its lanes address the frame, not a block.
-// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-apply-flow
+// Design notes for this card: ./CARDS.md#cluster-apply-flow
+
+// One grid with cluster-architecture, minus the cloud-controller-manager. The client is the only
+// block outside the frame, so its lanes address the FRAME rather than a block.
 const FRAME_X = 150, FRAME_W = 900, FRAME_R = FRAME_X + FRAME_W;   // 150..1050, architecture's
 const PAD = 20;                                          // one inset, used on every wall
 const IN_L = FRAME_X + PAD, IN_R = FRAME_X + FRAME_W - PAD;   // 170 / 1030
@@ -12,7 +13,7 @@ const CX = FRAME_X + FRAME_W / 2;                        // 600
 const BOX_W = 220, BOX_H = 80;                           // architecture's block, catalog standard
 
 // The columns are architecture's, the rows were solved here and architecture copied them, so the
-// two read as one family in both axes. Why the stack sits this low is in docs/CARDS-cluster.md.
+// two read as one family in both axes. Why the stack sits this low is in ./CARDS.md.
 const CP_Y = 90, CP_H = 350, CP_CY = CP_Y + CP_H / 2;    // 90..440, wall midpoint 265
 const NODE_Y = 475, NODE_H = 153;                        // 475..628, 12 of canvas floor under it
 
@@ -290,9 +291,8 @@ const STEPS = [
       // End value above the guard, the second watch, because that is where the step lands.
       setWire(s, 'controller', 'watch ADDED ReplicaSet my-app-7d4');
       if (ctx.reduced) { s.refs.cm.classList.add('highlight'); return; }
-      // The point of the card is that each handoff is a component reacting to its OWN watch rather
-      // than being called, so both cycles ride: watch the Deployment, create the ReplicaSet, watch
-      // the ReplicaSet, create the Pod. Collapsing them into one round trip hid exactly that.
+      // Each handoff is a component reacting to its OWN watch, so both cycles ride: watch the
+      // Deployment, create the ReplicaSet, watch the ReplicaSet, create the Pod.
       setWire(s, 'controller', 'watch ADDED Deployment my-app');
       const watchDeploy = routePacket(s, ctx, TO_CM, { role: 'cluster' });
       lightBoxAt(s.refs.cm, ctx, watchDeploy.arrivalMs);
