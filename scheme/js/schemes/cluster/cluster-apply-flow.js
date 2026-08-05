@@ -212,11 +212,11 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       s.refs.packetLayer.replaceChildren();
+      clearHL(s);
+      clearWires(s);
       s.refs.placedPod.style.opacity = '0';
       s.refs.kubeletCriArrow.style.opacity = '0';
       s.refs.kubeletPodArrow.style.opacity = '0';
-      clearHL(s);
-      clearWires(s);
     },
   },
   {
@@ -264,8 +264,8 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.etcd.classList.add('highlight');
       clearWires(s);
+      s.refs.etcd.classList.add('highlight');
       setWire(s, 'etcd-ack', 'ack · rv=842');
       setWire(s, 'api-ack', 'HTTP 201 Created');
       if (ctx.reduced) { s.refs.apisrv.classList.add('highlight'); s.refs.client.classList.add('highlight'); return; }

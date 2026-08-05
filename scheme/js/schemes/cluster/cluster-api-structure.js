@@ -219,9 +219,9 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       s.refs.packetLayer.replaceChildren();
-      resetWatchArrow(s);
       clearHL(s);
       clearWires(s);
+      resetWatchArrow(s);
       hideAllSlots(s);
       setVal(s.refs.rvChip, 'none');
       setVal(s.refs.watchChip, 'closed');
@@ -234,9 +234,9 @@ const STEPS = [
     narration: 'The controller first asks the API what it can talk to. GET /api and GET /apis return the discovery document, the catalogue of every group, version and resource the informer can list and watch.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      resetWatchArrow(s);
       clearHL(s);
       clearWires(s);
+      resetWatchArrow(s);
       hideAllSlots(s);
       setVal(s.refs.rvChip, 'none');
       setVal(s.refs.watchChip, 'closed');
@@ -260,9 +260,9 @@ const STEPS = [
     narration: 'The informer fires the initial LIST at resourceVersion 0. The API keeps its watch cache filled from ETCD and answers the list from there, with no quorum read, so the full set lands in the Indexer at rv=842 and the controller reconciles from local memory.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      resetWatchArrow(s);
       clearHL(s);
       clearWires(s);
+      resetWatchArrow(s);
       hideAllSlots(s);
       setVal(s.refs.rvChip, '842');
       setVal(s.refs.cacheChip, '3');
@@ -314,9 +314,9 @@ const STEPS = [
     narration: 'The informer opens GET /api/v1/pods?watch=true&resourceVersion=842. The API streams every change since that RV as a chunked HTTP response. The connection stays open for as long as the controller wants.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      resetWatchArrow(s);
       clearHL(s);
       clearWires(s);
+      resetWatchArrow(s);
       setVal(s.refs.watchChip, 'open · chunked HTTP');
       setWire(s, 'watch', 'chunked HTTP · streaming');
       s.refs.api.classList.add('highlight');
@@ -335,9 +335,9 @@ const STEPS = [
     narration: 'A new Pod lands in ETCD. The API pushes an ADDED event over the open watch (rv=843). The informer enqueues the object key and updates the Indexer cache.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      resetWatchArrow(s);
       clearHL(s);
       clearWires(s);
+      resetWatchArrow(s);
       setVal(s.refs.rvChip, '843');
       setVal(s.refs.cacheChip, '4');
       setVal(s.refs.watchChip, 'open · streaming');
@@ -377,9 +377,9 @@ const STEPS = [
     narration: 'If the API has compacted history past the resourceVersion the informer holds, the next watch chunk returns HTTP 410 Gone. The informer drops its watch, re-LISTs to a fresh resourceVersion, and resumes the watch.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      resetWatchArrow(s);
       clearHL(s);
       clearWires(s);
+      resetWatchArrow(s);
       hideAllSlots(s);
       setVal(s.refs.watchChip, '410 Gone · re-listing');
       setVal(s.refs.rvChip, 'reset');
@@ -403,9 +403,9 @@ const STEPS = [
     narration: 'CRDs add their own group (example.com/v1). The API serves them under /apis just like built-ins. Same list-then-watch contract, same informer story, same controller pattern.',
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
-      resetWatchArrow(s);
       clearHL(s);
       clearWires(s);
+      resetWatchArrow(s);
       hideAllSlots(s);
       // The 410 step is a conditional aside, so the informer is back in the steady state `event`
       // left it in. Without these three the coda runs under `410 Gone . re-listing`.

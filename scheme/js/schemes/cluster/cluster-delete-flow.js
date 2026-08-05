@@ -196,10 +196,10 @@ const STEPS = [
     duration: 1400,
     enter(s) {
       s.refs.packetLayer.replaceChildren();
-      s.refs.placedPod.style.opacity = '1';
-      s.refs.kubeletPodArrow.style.opacity = '1';
       clearHL(s);
       clearWires(s);
+      s.refs.placedPod.style.opacity = '1';
+      s.refs.kubeletPodArrow.style.opacity = '1';
     },
   },
   {
@@ -239,8 +239,8 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.etcd.classList.add('highlight');
       clearWires(s);
+      s.refs.etcd.classList.add('highlight');
       s.refs.wires['etcd-ack'].textContent = 'ack · rv=843';
       s.refs.wires['api-ack'].textContent  = 'HTTP 202 Accepted';
       if (ctx.reduced) { s.refs.apisrv.classList.add('highlight'); s.refs.client.classList.add('highlight'); return; }
@@ -260,8 +260,8 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
-      s.refs.apisrv.classList.add('highlight');
       clearWires(s);
+      s.refs.apisrv.classList.add('highlight');
       s.refs.wires['controller'].textContent = 'watch MODIFIED · Deployment';
       s.refs.wires['gc'].textContent         = 'DELETE replicasets · pods';
       if (ctx.reduced) { s.refs.cm.classList.add('highlight'); s.refs.gc.classList.add('highlight'); return; }
