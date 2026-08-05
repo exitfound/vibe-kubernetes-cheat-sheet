@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
-import { pulsePod, segmentPacket, makeInit, clearHighlights, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, lightBoxAt, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-types
 
 
@@ -109,6 +109,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
     },
   },
   {
@@ -118,6 +119,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.ci.classList.add('highlight');
       if (ctx.reduced) { s.refs.backends.classList.add('highlight'); s.refs.podTopBox.classList.add('highlight'); return; }
       // Down-arrow: the Service forwards to a backend, so the packet goes first, the backend node
@@ -136,6 +138,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.np.classList.add('highlight');
       s.refs.ci.classList.add('highlight');   // it still contains a ClusterIP
       if (ctx.reduced) { s.refs.backends.classList.add('highlight'); s.refs.podTopBox.classList.add('highlight'); return; }
@@ -153,6 +156,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.lb.classList.add('highlight');
       s.refs.np.classList.add('highlight');   // the whole stack underneath
       s.refs.ci.classList.add('highlight');
@@ -171,6 +175,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.en.classList.add('highlight');
       if (ctx.reduced) { s.refs.extHost.classList.add('highlight'); return; }
       // A packet rides the CNAME alias out to the external host. No Pod, so no pulse: the arrival
@@ -188,6 +193,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.hl.classList.add('highlight');
       if (ctx.reduced) { s.refs.podIps.classList.add('highlight'); return; }
       // DNS returns the Pod IPs directly, so the client goes straight to a Pod with no proxy. The

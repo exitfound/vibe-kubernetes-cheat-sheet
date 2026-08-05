@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-dns-records
 
 
@@ -165,6 +165,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       askName(s, NAME_SVC, { light: false });
       setVal(s.refs.qChip, '-');
       setVal(s.refs.ansChip, '-');
@@ -177,6 +178,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       askName(s, NAME_SVC);
       setVal(s.refs.qChip, 'web expands to web.default.svc.cluster.local');
       setVal(s.refs.ansChip, '-');
@@ -196,6 +198,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       askName(s, NAME_SVC);
       setVal(s.refs.qChip, 'web.default.svc.cluster.local  IN A');
       setVal(s.refs.ansChip, '1 record');
@@ -211,6 +214,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       askName(s, NAME_SRV);
       setVal(s.refs.qChip, '_http._tcp.web.default.svc.cluster.local  IN SRV');
       setVal(s.refs.ansChip, '1 record');
@@ -226,6 +230,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       askName(s, NAME_HEADLESS);
       setVal(s.refs.qChip, 'web.default.svc.cluster.local  IN A');
       setVal(s.refs.ansChip, '3 records');
@@ -241,6 +246,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       askName(s, NAME_POD);
       setVal(s.refs.qChip, '10-244-2-7.default.pod.cluster.local  IN A');
       setVal(s.refs.ansChip, '1 record');

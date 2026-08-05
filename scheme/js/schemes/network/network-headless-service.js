@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-headless-service
 
 
@@ -125,6 +125,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setChips(s, { vip: 'None', dns: 'pending', conn: 'none' });
     },
   },
@@ -135,6 +136,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.svc.classList.add('highlight');
       setChips(s, { vip: 'None', dns: 'pending', conn: 'none' }, ['vipChip']);
       if (ctx.reduced) { s.refs.coredns.classList.add('highlight'); return; }
@@ -152,6 +154,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.coredns.classList.add('highlight');
       s.refs.w0Box.classList.add('highlight');
       s.refs.w1Box.classList.add('highlight');
@@ -170,6 +173,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setChips(s, { vip: 'None', dns: '.2.7 .3.4 .1.9', conn: '10.244.3.4' }, ['connChip']);
       if (ctx.reduced) { s.refs.w1Box.classList.add('highlight'); return; }
       // Up-arrow: client pulses first, the connection leaves and the chosen Pod pulses on arrival.
@@ -187,6 +191,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setChips(s, { vip: 'None', dns: 'web-0 only: .2.7', conn: '10.244.2.7' }, ['dnsChip', 'connChip']);
       if (ctx.reduced) { s.refs.w0Box.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);

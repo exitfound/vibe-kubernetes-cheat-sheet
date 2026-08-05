@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-ports
 
 
@@ -86,6 +86,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.dialChip, 'web:80');
       setVal(s.refs.portChip, '80');
       setVal(s.refs.targetChip, 'http');
@@ -99,6 +100,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.dialChip.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
       setVal(s.refs.portChip, '80');
@@ -118,6 +120,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // Packet-less, pod-less: the Service box lights via .highlight where the port translation lives.
       // Blocks light, they never blink. Only Pods pulse.
       s.refs.svc.classList.add('highlight');
@@ -134,6 +137,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.targetChip.classList.add('highlight');
       s.refs.contChip.classList.add('highlight');
       setVal(s.refs.targetChip, 'http');
@@ -151,6 +155,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.dialChip.classList.add('highlight');
       s.refs.contChip.classList.add('highlight');
       setVal(s.refs.dialChip, 'web:80');

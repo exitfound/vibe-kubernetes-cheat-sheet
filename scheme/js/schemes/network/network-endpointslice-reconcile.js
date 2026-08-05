@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, pulsePodDim, segmentPacket, relationPath, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, pulsePodDim, segmentPacket, relationPath, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-endpointslice-reconcile
 
 
@@ -101,6 +101,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       setVal(s.refs.ep1, '(empty)');
       setVal(s.refs.ep2, '(empty)');
@@ -114,6 +115,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.service.classList.add('highlight');
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
@@ -129,6 +131,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.ctlr.classList.add('highlight');
       setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
@@ -153,6 +156,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       // Pod B is what this step flips, so its shade is static end-state, not motion.
       s.refs.podB.style.opacity = String(OPACITY.notready);
@@ -177,6 +181,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.podB.style.opacity = String(OPACITY.notready);
       s.refs.ep1.classList.add('highlight');

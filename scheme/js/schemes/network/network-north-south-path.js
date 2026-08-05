@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-north-south-path
 
 
@@ -142,6 +142,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.stageChip, 'idle');
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.backChip, 'none');
@@ -155,6 +156,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.stageChip, 'cloud LB');
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.backChip, 'none');
@@ -176,6 +178,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.stageChip, 'NodePort');
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.backChip, 'none');
@@ -197,6 +200,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.stageChip, 'DNAT');
       setVal(s.refs.dnatChip, '-> 10.244.2.7:8080');
       setVal(s.refs.backChip, '10.244.2.7:8080');
@@ -224,6 +228,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.stageChip, 'reply unwinds');
       setVal(s.refs.dnatChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.2.7:8080');

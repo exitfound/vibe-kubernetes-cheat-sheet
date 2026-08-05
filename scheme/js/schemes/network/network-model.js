@@ -1,6 +1,6 @@
 import { svg, g, rect, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, relationPath, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-model
 
 
@@ -199,6 +199,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       pendingIps(s);
       setVal(s.refs.ipChip, 'one per Pod');
       setVal(s.refs.natChip, 'none');
@@ -212,6 +213,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.ipChip.classList.add('highlight');
       setVal(s.refs.ipChip, 'unique, cluster-wide');
       // The address appears here: x.x.x.x at idle becomes the real Pod IP on this step.
@@ -234,6 +236,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.natChip.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
       setVal(s.refs.natChip, 'none, src 10.244.1.5');
@@ -255,6 +258,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // NAT still applies on the same-Node path: the src arrives unchanged, so the chip stays
       // highlighted and current, not dropped while its neighbour stays lit.
       s.refs.natChip.classList.add('highlight');
@@ -278,6 +282,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.kubelet.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
       setVal(s.refs.reachChip, 'agent to local Pod');
@@ -302,6 +307,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.bus.classList.add('highlight');
       setBoxSublabel(s.refs.bus, 'implemented by your CNI plugin');
       // Reveal the CNI badge and let it energize the fabric: the bus spine and every Pod wire

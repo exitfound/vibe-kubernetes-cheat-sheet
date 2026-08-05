@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, clearWires, lightBoxAt } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-cidr
 
 
@@ -128,6 +128,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setBoxSublabel(s.refs.svcK8s, 'clusterIP pending');
       setBoxSublabel(s.refs.svcDns, 'clusterIP pending');
       setBoxSublabel(s.refs.svcWeb, 'clusterIP pending');
@@ -141,6 +142,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.pool.classList.add('highlight');
       setBoxSublabel(s.refs.svcK8s, 'clusterIP pending');
       setBoxSublabel(s.refs.svcDns, 'clusterIP pending');
@@ -161,6 +163,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.staticBand.classList.add('highlight');
       setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
       setBoxSublabel(s.refs.svcDns, 'clusterIP 10.96.0.10');
@@ -183,6 +186,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.dynamicBand.classList.add('highlight');
       s.refs.ipaddrChip.classList.add('highlight');
       setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
@@ -204,6 +208,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // Keep the earlier assignments visible.
       setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
       setBoxSublabel(s.refs.svcDns, 'clusterIP 10.96.0.10');

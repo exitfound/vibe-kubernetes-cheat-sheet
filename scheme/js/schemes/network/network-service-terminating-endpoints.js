@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt, BEAT, FADE, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, lightBoxAt, BEAT, FADE, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-terminating-endpoints
 
 
@@ -98,6 +98,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.condChip, 'ready · serving');
       setVal(s.refs.newChip, 'web-a and web-c');
       setVal(s.refs.graceChip, 'not draining');
@@ -111,6 +112,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.condChip, 'ready · serving');
       setVal(s.refs.newChip, 'web-a and web-c');
       setVal(s.refs.graceChip, 'not draining');
@@ -134,6 +136,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.condChip, 'terminating · serving');
       s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a and web-c');
@@ -157,6 +160,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.condChip, 'notReady · serving');
       s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a only');
@@ -184,6 +188,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.kproxy.classList.add('highlight');
       setVal(s.refs.condChip, 'notReady · draining');
       s.refs.condChip.classList.add('highlight');
@@ -212,6 +217,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.condChip, 'removed');
       s.refs.condChip.classList.add('highlight');
       setVal(s.refs.newChip, 'web-a + replica');

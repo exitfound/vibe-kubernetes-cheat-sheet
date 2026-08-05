@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-egress-snat
 
 
@@ -113,6 +113,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.srcChip, '10.244.1.5');
       setVal(s.refs.snatChip, 'none');
       setVal(s.refs.ctChip, 'none');
@@ -126,6 +127,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // The src chip is what the ball currently carries.
       s.refs.srcChip.classList.add('highlight');
       setVal(s.refs.srcChip, '10.244.1.5');
@@ -145,6 +147,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // SNAT and conntrack both update here, and the packet reaches the internet (dst).
       s.refs.masq.classList.add('highlight');
       s.refs.snatChip.classList.add('highlight');
@@ -167,6 +170,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // The reply originates at the Internet server (net stays lit as the ball departs it) and
       // conntrack reverses the mapping.
       s.refs.net.classList.add('highlight');
@@ -186,6 +190,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // Delivered back to the src Pod.
       s.refs.masq.classList.add('highlight');
       s.refs.srcChip.classList.add('highlight');

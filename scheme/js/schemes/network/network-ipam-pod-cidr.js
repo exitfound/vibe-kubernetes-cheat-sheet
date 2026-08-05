@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt } from './network-kit.js';
+import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, lightBoxAt } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-ipam-pod-cidr
 
 
@@ -126,6 +126,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.slice1, 'pending');
       setVal(s.refs.slice2, 'pending');
       setVal(s.refs.slice3, 'pending');
@@ -139,6 +140,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.clusterBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.kcm.classList.add('highlight'); return; }
       // The pool registers into the controller-manager; arrival ripple marks the kcm.
@@ -153,6 +155,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.kcm.classList.add('highlight');
       s.refs.slice1.classList.add('highlight');
       s.refs.slice2.classList.add('highlight');
@@ -182,6 +185,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.slice1.classList.add('highlight');
       setVal(s.refs.slice1, '10.244.1.0/24');
       setVal(s.refs.slice2, '10.244.2.0/24');
@@ -201,6 +205,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.slice1.classList.add('highlight');
       s.refs.slice2.classList.add('highlight');
       s.refs.slice3.classList.add('highlight');

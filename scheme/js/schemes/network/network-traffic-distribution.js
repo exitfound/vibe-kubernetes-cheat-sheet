@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, lightBoxAt, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, lightBoxAt, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-traffic-distribution
 
 
@@ -143,6 +143,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.modeChip, 'unset . spread');
       setVal(s.refs.pinChip, 'None');
     },
@@ -154,6 +155,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'unset . spread all');
       setVal(s.refs.pinChip, 'None');
@@ -175,6 +177,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.pinChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'unset . spread all');
       setVal(s.refs.pinChip, 'ClientIP . pin .2.7');
@@ -194,6 +197,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'PreferSameZone . in-zone');
       setVal(s.refs.pinChip, 'None');
@@ -215,6 +219,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.modeChip.classList.add('highlight');
       setVal(s.refs.modeChip, 'PreferSameZone . fallback');
       setVal(s.refs.pinChip, 'None');

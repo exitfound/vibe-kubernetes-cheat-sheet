@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel, lightBoxAt } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-dualstack
 
 
@@ -119,6 +119,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.famChip, 'SingleStack');
       setVal(s.refs.v4Chip, '10.96.0.20');
       setVal(s.refs.v6Chip, 'none');
@@ -133,6 +134,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.config.classList.add('highlight');
       setVal(s.refs.famChip, 'SingleStack');
     },
@@ -144,6 +146,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // The dual-stack config (its CNI plus the v6 pod CIDR) is the source of the new address, so the
       // band stays lit as the allocation flows out of it.
       s.refs.config.classList.add('highlight');
@@ -162,6 +165,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.config.classList.add('highlight');
       s.refs.famChip.classList.add('highlight');
       s.refs.v4Chip.classList.add('highlight');
@@ -181,6 +185,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.v6Chip.classList.add('highlight');
       setVal(s.refs.famChip, 'PreferDualStack');
       setVal(s.refs.v6Chip, 'fd00:96::a');

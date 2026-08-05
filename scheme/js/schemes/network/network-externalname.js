@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, relationPath } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, relationPath } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-externalname
 
 
@@ -121,6 +121,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.typeChip, 'idle');
       setVal(s.refs.vipChip, 'none');
       setVal(s.refs.epChip, 'none');
@@ -134,6 +135,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.typeChip.classList.add('highlight');
       s.refs.vipChip.classList.add('highlight');
       setVal(s.refs.typeChip, 'ExternalName');
@@ -163,6 +165,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.typeChip.classList.add('highlight');
       s.refs.vipChip.classList.add('highlight');
       s.refs.epChip.classList.add('highlight');
@@ -188,6 +191,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.dns.classList.add('highlight');
       s.refs.proxy.classList.add('highlight');
       s.refs.typeChip.classList.add('highlight');

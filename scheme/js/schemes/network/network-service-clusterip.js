@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-clusterip
 
 
@@ -134,6 +134,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       setVal(s.refs.dnatChip, 'none');
       setVal(s.refs.ctChip, 'none');
       setVal(s.refs.backChip, 'none');
@@ -146,6 +147,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       // Infrastructure block: it lights via .highlight, it never blinks. Only Pods pulse.
       s.refs.vip.classList.add('highlight');
     },
@@ -157,6 +159,7 @@ const STEPS = [
     enter(s) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.kproxy.classList.add('highlight');
       s.refs.dnatChip.classList.add('highlight');
       setVal(s.refs.dnatChip, '-> .2.7 / .3.9');
@@ -169,6 +172,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.vipChip.classList.add('highlight');
       setVal(s.refs.vipChip, '10.96.0.20:80');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.kproxy.classList.add('highlight'); return; }
@@ -187,6 +191,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.kproxy.classList.add('highlight');
       s.refs.dnatChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
@@ -211,6 +216,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.ctChip.classList.add('highlight');
       setVal(s.refs.ctChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.2.7');
@@ -233,6 +239,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.dnatChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
       s.refs.backChip.classList.add('highlight');
@@ -261,6 +268,7 @@ const STEPS = [
     enter(s, ctx) {
       s.refs.packetLayer.replaceChildren();
       clearHL(s);
+      clearWires(s);
       s.refs.ctChip.classList.add('highlight');
       setVal(s.refs.ctChip, 'reverse NAT');
       setVal(s.refs.backChip, '10.244.3.9');
