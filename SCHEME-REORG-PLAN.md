@@ -82,7 +82,7 @@ scheme/docs/
 | `2b3c8d8` | этап 11a | дистилляция workloads, формат и словарь меток |
 | `faa4011` | этап 11b | дистилляция network + подъём контракта категории |
 | `27fe4e6` | этап 11c | дистилляция cluster, схлопывание 46 секций-changelog |
-| текущий | этап 11d | дистилляция storage + `storage/CLAUDE.md` |
+| `4aa2e05` | этап 11d | дистилляция storage + `storage/CLAUDE.md` |
 
 ---
 
