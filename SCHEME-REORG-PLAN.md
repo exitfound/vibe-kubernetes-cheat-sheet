@@ -89,29 +89,13 @@ scheme/docs/
 |---|---|---|
 | `CARDS-workloads.md` | 809 → 815 | **сделано**, образец формата |
 | `CARDS-network.md` | 2364 → 2115 | **сделано**, плюс контракт поднят в `network/CLAUDE.md` |
-| `CARDS-cluster.md` | 4201 | **начато: 4 карточки из 21**, см. ниже |
+| `CARDS-cluster.md` | 4201 → 2374 | **сделано** |
 | `CARDS-storage.md` | 5602 | не начато |
 
-### Где именно стоит cluster
+### Что осталось: только storage
 
-Файл **не тронут**, работа лежит черновиком в `scheme/tools/baselines/` (gitignored):
-
-- `cluster_new.json` — готовые тела `### layout` и `### poster` для четырёх крупнейших карточек:
-  `cluster-admission-webhooks`, `cluster-api-structure`, `cluster-apply-flow`,
-  `cluster-architecture` (1370 из 4201 строки)
-- `cl.py` — сборщик: удаляет все свободные `###` секции, вставляет новые из json, **якорные
-  `### before` секции копирует дословно и не трогает вовсе**, так что якоря сохранны по
-  построению. Падает с `MISSING body for <card>`, пока набор неполон
-
-Осталось написать тела для 17 карточек: `cluster-delete-flow`, `cluster-resource-quota`,
-`cluster-server-side-apply`, `cluster-etcd-raft`, `cluster-graceful-node-shutdown`,
-`cluster-kubelet-sync-loop`, `cluster-leader-election`, `cluster-node-allocatable`,
-`cluster-node-drain`, `cluster-node-failure`, `cluster-node-pressure-eviction`,
-`cluster-cpu-throttling`, `cluster-oom-kill`, `cluster-pod-sandbox-cri`,
-`cluster-scheduler-decision`, `cluster-static-pods`, `cluster-pod-priority-preemption`.
-
-**74% cluster (3151 из 4202 строк) — это свободные секции changelog**, то есть именно то, что
-схлопывается. Повторяющегося категорийного контракта, в отличие от network, здесь нет.
+`CARDS-storage.md`, 5602 строки, 31 секция. Метод и приёмка ниже, образцы: workloads (формат),
+network (подъём общего контракта в CLAUDE.md категории), cluster (схлопывание changelog).
 
 ### Метод
 
