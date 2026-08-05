@@ -5,13 +5,13 @@
 // class, because a heading and a chip name are SUPPOSED to differ: "Conntrack" over a block and
 // "conntrack" in a chip is system A working, not drift.
 // node check-labels.mjs [--verbose] [<id> ...]
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractInline, extractIndirect } from './prose.mjs';
+import { cards, census } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DIR = join(__dirname, '..', 'js', 'schemes');
 const dict = JSON.parse(await readFile(join(__dirname, 'terms.json'), 'utf8'));
 const HOMOGRAPHS = new Set((dict.inline.homographs || []).map(s => s.toLowerCase()));
 
@@ -19,8 +19,9 @@ const args = process.argv.slice(2);
 const verbose = args.includes('--verbose');
 const only = new Set(args.filter(a => !a.startsWith('--')));
 
-const files = (await readdir(DIR)).filter(n => n.endsWith('.js')).sort()
-  .filter(n => !only.size || only.has(n.replace(/\.js$/, '')));
+const ALL = await cards();
+const files = ALL.filter(c => !only.size || only.has(c.id));
+census('labels check', files.length, ALL.length, { subset: only.size > 0 });
 
 // key -> surface form -> [{card, kind}]
 const add = (map, key, surface, card, kind) => {
@@ -34,9 +35,8 @@ const add = (map, key, surface, card, kind) => {
 // class. `indirect` is a chip value that reaches the canvas through a card-local wrapper and
 // that no INLINE_SITE can see (see prose.mjs); it never enters the enforced pass.
 const hits = [];
-for (const f of files) {
-  const card = f.replace(/\.js$/, '');
-  const src = await readFile(join(DIR, f), 'utf8');
+for (const { id: card, path } of files) {
+  const src = await readFile(path, 'utf8');
   for (const h of extractInline(src)) hits.push({ card, s: h.text.trim(), want: h.want, kind: h.kind, indirect: false });
   // `.values` only: the resolver's unresolved writes are printed by check-inline, which runs in the
   // same gate, and saying it twice per run buys nothing.

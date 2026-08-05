@@ -3,13 +3,13 @@
 // string). No browser. Dictionary lives in terms.json, rationale for the two classes is there.
 // node check-terms.mjs [<id> ...]   ids => that subset; none => whole catalog
 // TERMS_VERBOSE=1 also prints the soft-term distribution table.
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sentences, sentenceStarts, termRegex, termIssues } from './prose.mjs';
+import { cards } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SCHEMES_DIR = join(__dirname, '..', 'js', 'schemes');
 
 const dict = JSON.parse(await readFile(join(__dirname, 'terms.json'), 'utf8'));
 const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
@@ -29,18 +29,20 @@ const prose = [];
     prose.push({ id: s.id, where: 'desc', file: 'js/data.js', line: at < 0 ? 0 : dataSrc.slice(0, at).split('\n').length, text: s.desc });
   }
 }
-for (const f of (await readdir(SCHEMES_DIR)).filter(n => n.endsWith('.js')).sort()) {
-  const id = f.replace(/\.js$/, '');
+// The walk is over the whole catalog and cards() refuses to return a partial one. The `wanted`
+// filter below is the caller asking for a subset, which is not the failure this guards against.
+const CARD_FILES = await cards();
+for (const { id, rel, path } of CARD_FILES) {
   if (!wanted(id)) continue;
-  const src = await readFile(join(SCHEMES_DIR, f), 'utf8');
+  const src = await readFile(path, 'utf8');
   for (const m of src.matchAll(/narration:\s*'([^']*)'/g)) {
-    prose.push({ id, where: 'narration', file: `js/schemes/${f}`, line: src.slice(0, m.index).split('\n').length, text: m[1] });
+    prose.push({ id, where: 'narration', file: rel, line: src.slice(0, m.index).split('\n').length, text: m[1] });
   }
   // The aria-label is the diagram read aloud, so it is prose and a screen reader is its reader.
   // It was outside every check until now, and the B3 re-read found four cards whose aria-label
   // still asserted what the pass had just corrected in their narration.
   for (const m of src.matchAll(/'aria-label':\s*'([^']*)'/g)) {
-    prose.push({ id, where: 'aria-label', file: `js/schemes/${f}`, line: src.slice(0, m.index).split('\n').length, text: m[1] });
+    prose.push({ id, where: 'aria-label', file: rel, line: src.slice(0, m.index).split('\n').length, text: m[1] });
   }
 }
 if (!prose.length) { console.error('no prose collected (bad ids?)'); process.exit(2); }

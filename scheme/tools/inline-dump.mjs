@@ -3,31 +3,32 @@
 // A chip's name is declared 200 lines above the values it takes, so this prints them together.
 // Chip values are RESOLVED through the card's own setChips/setChip wrappers, not just literal-scanned.
 // node inline-dump.mjs <id> [<id> ...]
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 // The chip-value resolver lives in prose.mjs, next to INLINE_SITES, so this reader and the two
 // checks that now report on the same strings cannot disagree about what a drawn string is.
 import { chipDecls, chipValues } from './prose.mjs';
+import { cards, census } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DIR = join(__dirname, '..', 'js', 'schemes');
 const only = new Set(process.argv.slice(2).filter(a => !a.startsWith('--')));
 // The catalog entry is printed with the card because the question "does this description describe
 // THIS card" cannot be asked while the two live in different files.
 const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
 const META = new Map(SCHEMES.map(s => [s.id, s]));
 
-const files = (await readdir(DIR)).filter(n => n.endsWith('.js')).sort()
-  .filter(n => !only.size || only.has(n.replace(/\.js$/, '')));
+const ALL = await cards();
+const files = ALL.filter(c => !only.size || only.has(c.id));
+census('inline-dump', files.length, ALL.length, { subset: only.size > 0 });
 
 const first = (re, s) => { const m = re.exec(s); return m ? m[1] : ''; };
 
-for (const f of files) {
-  const src = await readFile(join(DIR, f), 'utf8');
-  console.log(`\n${'='.repeat(78)}\n== ${f.replace(/\.js$/, '')}`);
+for (const { id, path } of files) {
+  const src = await readFile(path, 'utf8');
+  console.log(`\n${'='.repeat(78)}\n== ${id}`);
 
-  const meta = META.get(f.replace(/\.js$/, ''));
+  const meta = META.get(id);
   if (meta) {
     console.log(`\nTITLE       ${meta.title}   (${meta.category} / ${meta.subcategory}, k8s ${meta.k8sVersion})`);
     console.log(`DESC (${String(meta.desc.length).padStart(3)}) ${meta.desc}`);

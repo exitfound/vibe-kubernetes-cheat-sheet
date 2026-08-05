@@ -4,20 +4,29 @@
 // those anchors, so a rename, a codemod or a relayout silently turns a geometry record into a note
 // about a line that is gone. Found 19+ stale anchors on its first run.
 // No browser, no server. node check-notes.mjs [--verbose]
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cards } from './catalog.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const verbose = process.argv.includes('--verbose');
 
+// Where each card's source lives, from the catalog rather than from a directory listing. A CARDS.md
+// section is keyed by card id and never names a path, so this map is the only thing that has to
+// know one. It used to be a readdir, which meant that the day cards moved into subfolders `known`
+// would have become the four DIRECTORY names: every "## <id>" section would report ORPHAN, and the
+// "no note" pass would have compared 108 sections against 4 names and silently found nothing wrong.
+// cards() has already refused to return a catalogue with a missing file, so every path here exists.
+const CARD = new Map((await cards()).map(c => [c.id, c.path]));
+
 // One entry per markdown, so notes on the shared files are checked the same way as card notes.
 const DOCS = [
-  { md: join(ROOT, 'docs/CARDS.md'), resolve: id => join(ROOT, 'js/schemes', `${id}.js`) },
+  { md: join(ROOT, 'docs/CARDS.md'), resolve: id => CARD.get(id) || join(ROOT, 'js/schemes', `${id}.js`) },
   { md: join(ROOT, 'docs/INTERNALS.md'), resolve: id => join(ROOT, id.replace(/^scheme\//, '')) },
 ];
 
-const known = new Set(readdirSync(join(ROOT, 'js/schemes')).map(f => f.replace(/\.js$/, '')));
+const known = new Set(CARD.keys());
 let anchors = 0, stale = 0, orphanSections = 0, missingSections = 0;
 
 for (const { md, resolve } of DOCS) {

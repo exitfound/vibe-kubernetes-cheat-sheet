@@ -5,12 +5,9 @@
 // "limit 1Gi", which the API server would reject outright.
 // Strings are anchored to the nearest preceding block label, so a finding names the two blocks.
 // node check-figures.mjs [<id> ...]
-import { readFile, readdir } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
+import { cards, census } from './catalog.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DIR = join(__dirname, '..', 'js', 'schemes');
 const args = process.argv.slice(2);
 const only = new Set(args.filter(a => !a.startsWith('--')));
 
@@ -31,13 +28,13 @@ const qty = t => {
   return m ? Number(m[1]) * UNITS[m[2] || ''] : null;
 };
 
-const files = (await readdir(DIR)).filter(n => n.endsWith('.js')).sort()
-  .filter(n => !only.size || only.has(n.replace(/\.js$/, '')));
+const ALL = await cards();
+const files = ALL.filter(c => !only.size || only.has(c.id));
+census('figures check', files.length, ALL.length, { subset: only.size > 0 });
 
 let findings = 0, scanned = 0;
-for (const f of files) {
-  const card = f.replace(/\.js$/, '');
-  const src = await readFile(join(DIR, f), 'utf8');
+for (const { id: card, path } of files) {
+  const src = await readFile(path, 'utf8');
   const out = [];
 
   // Every anchored string with the block label that owns it.

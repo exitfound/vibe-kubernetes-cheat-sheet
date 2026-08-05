@@ -9,9 +9,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 // here, and prose.mjs's was that copy minus the regex-literal mode, which silently shrank the input
 // of every check that reads a stripped source. One copy cannot drift from itself.
 import { sentences, stripComments } from './prose.mjs';
+import { cards } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SCHEMES = join(__dirname, '..', 'js', 'schemes');
 
 // Cards allowed an explicit dur on a route wrapper. One line of reason each, so every
 // exception stays reviewable in one place.
@@ -63,12 +63,13 @@ function opExpr(src, i) {
   return src.slice(i).trim();
 }
 
-// Categories on the shared kit and thus held to the canon: currently the whole
-// catalog. Add a new category here once its cards are on the kit.
-const COVERED = /^(workloads|cluster|network|storage)-.*\.js$/;
-const files = (await readdir(SCHEMES))
-  .filter(f => COVERED.test(f))
-  .sort();
+// The whole catalog is on the shared kit, so the whole catalog is held to the canon. The list
+// comes from data.js rather than a name regex over a directory listing: a regex of the shape
+// /^(workloads|cluster|network|storage)-.*\.js$/ matches nothing once cards sit in subfolders
+// (a directory name has no '.js'), and it would also start matching a kit that moved in beside
+// them. `base` stays the bare filename because every message below and every ALLOW_EXPLICIT_DUR
+// key is written in terms of it. cards() itself refuses to return a partial catalog.
+const files = await cards();
 
 // ---- report-only rules ----
 // A new rule prints but does not fail, so the gate stays a signal while its queue drains.
@@ -111,8 +112,8 @@ const CANON_VIEWBOX = '0 0 1200 640';
 // Load-bearing: this project's prose names the very things the rules hunt for. Strings are kept,
 // labels live there.
 
-for (const f of files) {
-  const src = await readFile(join(SCHEMES, f), 'utf8');
+for (const { base: f, path } of files) {
+  const src = await readFile(path, 'utf8');
   // Rules about CODE read `code`; rules about the whole file (R-dash) read `src`.
   const code = stripComments(src);
   const lineAt = idx => src.slice(0, idx).split('\n').length;

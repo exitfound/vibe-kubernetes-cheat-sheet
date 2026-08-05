@@ -4,13 +4,13 @@
 // Only CASE is automated. REWORD (a name that must stay lowercase opening a sentence) and OPEN
 // (a sentence opening lowercase) both need a human sentence, never a substitution.
 // node fix-terms.mjs [--dry] [<id> ...]
-import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { termIssues } from './prose.mjs';
+import { cards } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SCHEMES_DIR = join(__dirname, '..', 'js', 'schemes');
 const DATA = join(__dirname, '..', 'js', 'data.js');
 
 const dict = JSON.parse(await readFile(join(__dirname, 'terms.json'), 'utf8'));
@@ -46,15 +46,15 @@ let files = 0, total = 0;
 const tally = new Map();
 const bump = ch => ch.forEach(c => tally.set(c, (tally.get(c) || 0) + 1));
 
-for (const f of (await readdir(SCHEMES_DIR)).filter(n => n.endsWith('.js')).sort()) {
-  if (!wanted(f.replace(/\.js$/, ''))) continue;
-  const src = await readFile(join(SCHEMES_DIR, f), 'utf8');
+for (const { id, path } of await cards()) {
+  if (!wanted(id)) continue;
+  const src = await readFile(path, 'utf8');
   let [out, changes] = fixFile(src, 'narration');
   const [out2, changes2] = fixFile(out, "'aria-label'");
   out = out2; changes = [...changes, ...changes2];
   if (!changes.length) continue;
   files++; total += changes.length; bump(changes);
-  if (!dry) await writeFile(join(SCHEMES_DIR, f), out);
+  if (!dry) await writeFile(path, out);
 }
 {
   const src = await readFile(DATA, 'utf8');

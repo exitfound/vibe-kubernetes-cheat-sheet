@@ -4,13 +4,13 @@
 // capital, everything else on the canvas is body text and stays lowercase.
 // Report and fix share one classifier, so they cannot disagree about what a defect is.
 // node check-inline.mjs [--fix] [<id> ...]
-import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractInline, extractIndirect } from './prose.mjs';
+import { cards, census } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DIR = join(__dirname, '..', 'js', 'schemes');
 const dict = JSON.parse(await readFile(join(__dirname, 'terms.json'), 'utf8'));
 // A binary name that prose may never capitalise may never be capitalised on the canvas either,
 // so the inline list is seeded from hardLower rather than repeating it. Without this, moving a
@@ -78,8 +78,9 @@ function verdict(text, want) {
   return null;
 }
 
-const files = (await readdir(DIR)).filter(n => n.endsWith('.js')).sort()
-  .filter(n => !only.size || only.has(n.replace(/\.js$/, '')));
+const ALL = await cards();
+const files = ALL.filter(c => !only.size || only.has(c.id));
+census('inline check', files.length, ALL.length, { subset: only.size > 0 });
 
 let found = 0, changed = 0, nameFound = 0, scanned = 0;
 // ENFORCED since 2026-08-04: a chip value that reaches the canvas only as a property of a
@@ -93,19 +94,19 @@ const indirect = [];
 const unread = [];
 const byKind = new Map();
 const byReason = new Map();
-for (const f of files) {
-  const src = await readFile(join(DIR, f), 'utf8');
+for (const { id: card, path } of files) {
+  const src = await readFile(path, 'utf8');
   const edits = [], names = [];
   const ind = extractIndirect(src);
   // Identical notes are folded into one line with a count, because three write sites spelled the
   // same way print the same sentence. The COUNT stays the number of writes, not of lines.
   const seen = new Map();
   for (const n of ind.unresolved) seen.set(n, (seen.get(n) || 0) + 1);
-  for (const [note, n] of seen) unread.push({ card: f.replace(/\.js$/, ''), note, n });
+  for (const [note, n] of seen) unread.push({ card, note, n });
   for (const hit of ind.values) {
     indirectScanned++;
     const nm = componentIssues(hit.text), v = verdict(hit.text, hit.want);
-    if (v || nm.length) indirect.push({ card: f.replace(/\.js$/, ''), hit, v, nm });
+    if (v || nm.length) indirect.push({ card, hit, v, nm });
   }
   for (const hit of extractInline(src)) {
     scanned++;
@@ -123,7 +124,7 @@ for (const f of files) {
   }
   if (names.length) {
     nameFound += names.length;
-    console.log(`\n${f.replace(/\.js$/, '')}`);
+    console.log(`\n${card}`);
     // Never auto-fixed: a name change alters the drawn width, which is a picture change.
     for (const n of names) console.log(`  ${n.kind.padEnd(12)} NAME    ${JSON.stringify(n.text)}  ${n.from} -> ${n.to}`);
   }
@@ -133,10 +134,10 @@ for (const f of files) {
   if (fix) {
     let out = src;
     for (const e of [...edits].filter(x => !x.manual).sort((a, b) => b.at - a.at)) out = out.slice(0, e.at) + e.to + out.slice(e.at + 1);
-    await writeFile(join(DIR, f), out);
+    await writeFile(path, out);
     changed += edits.filter(e => !e.manual).length;
   } else {
-    console.log(`\n${f.replace(/\.js$/, '')}`);
+    console.log(`\n${card}`);
     for (const e of edits) console.log(`  ${e.kind.padEnd(12)} ${e.manual ? 'MANUAL' : e.want === 'title' ? 'UP    ' : 'DOWN  '}  ${JSON.stringify(e.text)}`);
   }
 }
