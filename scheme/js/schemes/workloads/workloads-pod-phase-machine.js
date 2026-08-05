@@ -117,10 +117,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','phaseChip','cStateChip','restartChip','policyChip','shellEl','containerBox'],
     [s.refs.podGroup]);
+  clearWires(s);
 }
 function setChips(s, { phase, cstate, restart, policy = 'OnFailure' }) {
   setVal(s.refs.phaseChip, phase);
@@ -140,9 +142,7 @@ const STEPS = [
     id: 'admit',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Pending', cstate: 'none', restart: '0' });
       setBoxSublabel(s.refs.containerBox, 'no container yet');
       setWire(s, 'req', 'spec.nodeName not set · Waiting for scheduler');
@@ -155,9 +155,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The scheduler has bound the Pod to Node-1, so spec.nodeName is set and Kubelet picks the Pod up via its watch. Kubelet pulls images, creates the Pod sandbox and the container is in Waiting with reason ContainerCreating. The status.phase field is still Pending until at least one container has started.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Pending', cstate: 'Waiting · ContainerCreating', restart: '0' });
       setBoxSublabel(s.refs.containerBox, 'Waiting · ContainerCreating');
       setWire(s, 'req', 'spec.nodeName=Node-1 · SyncPod · Image pull + sandbox');
@@ -175,9 +173,7 @@ const STEPS = [
     duration: 2300,
     narration: 'Every container has been created and at least one has started, so status.phase becomes Running. Each container reports a Running state, and the Pod does its work until its containers exit. The Running phase covers the entire working life of the Pod.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Running', cstate: 'Running', restart: '0' });
       setBoxSublabel(s.refs.containerBox, 'Running · serving');
       setWire(s, 'req', 'StartContainer OK · Phase Pending → Running');
@@ -197,9 +193,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The container exits with a non-zero code. With restartPolicy OnFailure Kubelet restarts it inside the same sandbox, but repeated fast failures trigger an exponential backoff: the delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s). The container sits in Waiting with reason=CrashLoopBackOff while the timer ticks. The status.phase field stays Running the whole time, because CrashLoopBackOff is a container-level waiting reason, never a phase of its own.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Running', cstate: 'Waiting · CrashLoopBackOff', restart: '4' });
       setBoxSublabel(s.refs.containerBox, 'CrashLoopBackOff');
       setWire(s, 'req', 'exit != 0 · CrashLoopBackOff · Phase stays Running');
@@ -218,9 +212,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The backoff timer elapses and Kubelet retries the container. This time it starts cleanly and runs to its next reconcile, so the container state returns to Running and restartCount records how many times the container was restarted. The status.phase field was Running through the whole episode, only the container-level state moved.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Running', cstate: 'Running', restart: '5' });
       setBoxSublabel(s.refs.containerBox, 'Running · restarted');
       setWire(s, 'req', 'backoff elapsed · StartContainer · restartCount++');
@@ -240,9 +232,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The container finally exits 0. restartPolicy OnFailure does not restart a success, so every container is Terminated and status.phase becomes Succeeded, a terminal state common for Jobs. Under restartPolicy=Never a non-zero exit is not restarted either and ends at Failed instead. Both are terminal, the Pod will not run again. If the Node hosting the Pod becomes unreachable, the node controller sets the Node Ready condition to Unknown and evicts its Pods, and the Pods sit in Terminating until the Node returns or the Node object is deleted, at which point Pod garbage collection marks them Failed with a DisruptionTarget condition. The Unknown phase is not part of that path, it was deprecated in 1.22 and nothing has set it since 2015.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { phase: 'Succeeded', cstate: 'Terminated · Completed · exit 0', restart: '5' });
       setBoxSublabel(s.refs.containerBox, 'Terminated · Completed');
       setWire(s, 'req', 'exit 0 · Phase Running → Succeeded · Terminal');

@@ -181,10 +181,12 @@ function setLanes(s, { toA, toB }) {
 }
 
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['controller','apiserver','pv','podChip','pvcChip','pvChip','dataChip','podABox','podBBox'],
     [s.refs.podA, s.refs.podB]);
+  clearWires(s);
 }
 
 // Packet down the trunk and the left tap, to web-0 on Node-1.
@@ -205,9 +207,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podA.style.opacity = '1';
       s.refs.podB.style.opacity = '0';
       setLanes(s, { toA: true, toB: false });
@@ -224,9 +224,7 @@ const STEPS = [
     duration: 2700,
     narration: 'Node-1 goes NotReady (kernel panic, power loss, network partition). After the toleration on node.kubernetes.io/unreachable expires, taint-based eviction deletes the Pod, which sits in Terminating until the Node returns or an operator clears it, and only then is the object gone. Critically, the PVC data-web-0 is NOT deleted, the StatefulSet retains it for the ordinal under the default PVC retention policy. The PV cloud-vol-x stays Bound, the cloud disk is intact, rev=1234 persists.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podB.style.opacity = '0';
       setLanes(s, { toA: true, toB: false });
       setVal(s.refs.podChip, 'web-0 · Terminating, then removed');
@@ -254,9 +252,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The StatefulSet controller observes the missing replica and creates a new Pod object with the same name web-0 (sticky identity). The Pod is unbound (spec.nodeName empty). Scheduler runs filter and score on the remaining Ready Nodes. PVC data-web-0 stays Bound to PV cloud-vol-x throughout, so no re-provisioning is needed.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podA.style.opacity = '0';
       s.refs.podB.style.opacity = '0';
       setLanes(s, { toA: false, toB: false });
@@ -283,9 +279,7 @@ const STEPS = [
     duration: 3200,
     narration: 'Scheduler binds web-0 to Node-2. POST .../pods/web-0/binding writes spec.nodeName=Node-2 in ETCD. PVC data-web-0 stays bound to the same PV cloud-vol-x. The cloud volume is ReadWriteOnce, so it can be safely attached to Node-2 only because the old Pod is fully removed from API (force-delete a stuck Pod and you risk a dual mount, see the Force Deletion card).',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podA.style.opacity = '0';
       setLanes(s, { toA: false, toB: true });
       setVal(s.refs.podChip, 'web-0 · bound to Node-2');
@@ -314,9 +308,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Kubelet on Node-2 starts the Pod. The CSI external-attacher detaches the PV from the lost Node-1 (force-detached because that Node is unreachable), then attaches it to Node-2 via ControllerPublishVolume. The node driver runs NodeStageVolume and NodePublishVolume to mount the volume at /data inside the new container. The application reads the same files at rev=1234, no data loss. The cloud-vol-x identity, the PVC name, and the Pod name all stayed sticky to ordinal 0.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podA.style.opacity = '0';
       s.refs.podB.style.opacity = '1';
       setLanes(s, { toA: false, toB: true });

@@ -154,10 +154,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['controller','apiserver','svc','web0Chip','web1Chip','web2Chip','focusChip','pod0Box','pod1Box','pod2Box'],
     [s.refs.pod0, s.refs.pod1, s.refs.pod2]);
+  clearWires(s);
 }
 
 // One call pins the three ordinals and the lanes that end on them: a tap goes with its Pod, and
@@ -176,9 +178,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPods(s, 0, 0, 0);
       setVal(s.refs.web0Chip, 'not created');
       setVal(s.refs.web1Chip, 'not created');
@@ -192,9 +192,7 @@ const STEPS = [
     duration: 4800,
     narration: 'Controller picks ordinal 0 first. API creates PVC data-web-0 (sticky to ordinal 0 by name, never recycled), the binding controller pairs it with a fresh PV, then a Pod web-0 is created with spec.hostname=web-0 and spec.subdomain=web. Once readinessProbe passes, web-0 is Ready and gets registered as web-0.web in the headless Service EndpointSlice.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPods(s, 1, 0, 0);
       setVal(s.refs.web0Chip, 'Ready · web-0.web');
       setVal(s.refs.web1Chip, 'not created');
@@ -225,9 +223,7 @@ const STEPS = [
     duration: 1900,
     narration: 'The spec.podManagementPolicy field defaults to OrderedReady. The controller will not create web-1 while web-0 is not Ready, will not create web-2 while web-1 is not Ready, and so on. A stuck ordinal stalls every subsequent one. Setting podManagementPolicy=Parallel lifts this gate at the cost of ordering guarantees during scale-up and scale-down.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPods(s, 1, 0, 0);
       setVal(s.refs.web0Chip, 'Ready · web-0.web');
       setVal(s.refs.web1Chip, 'gate open · web-0 Ready');
@@ -247,9 +243,7 @@ const STEPS = [
     duration: 4000,
     narration: 'Replica web-0 cleared the gate. Controller creates PVC data-web-1 and Pod web-1 with spec.hostname=web-1, served as DNS web-1.web by the headless Service. Same flow as ordinal 0. Pod web-1 reaches Ready and the headless Service EndpointSlice now lists two backends: web-0.web and web-1.web.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPods(s, 1, 1, 0);
       setVal(s.refs.web0Chip, 'Ready · web-0.web');
       setVal(s.refs.web1Chip, 'Ready · web-1.web');
@@ -280,9 +274,7 @@ const STEPS = [
     duration: 4800,
     narration: 'Replica web-1 reached Ready, the gate unlocks for ordinal 2. PVC data-web-2 is provisioned and Pod web-2 starts with spec.hostname=web-2, served as DNS web-2.web. Once Ready, all three replicas are alive with sticky identities. Termination on scale-down runs in reverse order (web-2 first, then web-1, then web-0).',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setPods(s, 1, 1, 1);
       setVal(s.refs.web0Chip, 'Ready · web-0.web');
       setVal(s.refs.web1Chip, 'Ready · web-1.web');

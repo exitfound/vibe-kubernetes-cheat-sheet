@@ -131,10 +131,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','runtime','postStartChip','entrypointChip','preStopChip','stateChip','graceChip','shell','containerBox'],
     [s.refs.podGroup]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -142,9 +144,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.pending);
       setVal(s.refs.postStartChip, 'declared');
       setVal(s.refs.entrypointChip, 'not started');
@@ -159,9 +159,7 @@ const STEPS = [
     duration: 1900,
     narration: 'The Pod spec carries two per-container handlers. The lifecycle.postStart hook will fire concurrently with the ENTRYPOINT the moment the container is created, with no ordering guarantee between the two. The lifecycle.preStop hook will run synchronously on delete, before any signal, and eats into terminationGracePeriodSeconds while it runs. Each handler is one of exec (a command inside the container), httpGet (an HTTP request Kubelet issues against the Pod IP), or sleep (a fixed-duration pause). A tcpSocket handler also exists but is deprecated.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.pending);
       setVal(s.refs.postStartChip, 'declared');
       setVal(s.refs.entrypointChip, 'not started');
@@ -181,9 +179,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The runtime creates the container from the image and starts the ENTRYPOINT process as PID 1. The Kubelet has issued the CreateContainer and StartContainer calls over the CRI socket, so the container has just been started and is moving into the Running state.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setVal(s.refs.entrypointChip, 'starting (PID 1)');
       setVal(s.refs.stateChip, 'Running');
@@ -209,9 +205,7 @@ const STEPS = [
     duration: 3800,
     narration: 'Kubelet fires the postStart hook the moment the container is created, concurrently with the ENTRYPOINT. There is no guarantee which one finishes first. Exec handlers run inside the container over CRI ExecSync, httpGet handlers are issued by Kubelet directly against the Pod IP. If the handler exits non-zero or times out, Kubelet kills the container (subject to the Pod restartPolicy).',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setVal(s.refs.postStartChip, 'exec running (racing)');
       setVal(s.refs.entrypointChip, 'running (racing)');
@@ -236,9 +230,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Both the ENTRYPOINT and the postStart handler have settled. The container reports Running and the postStart chip flips to completed. Kubelet keeps watching via PLEG and running readiness/liveness probes, the runtime keeps the process alive, and the Pod takes traffic through its Service endpoints once Ready.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setVal(s.refs.postStartChip, 'completed (exit 0)');
       setVal(s.refs.entrypointChip, 'running');
@@ -260,9 +252,7 @@ const STEPS = [
     duration: 3800,
     narration: 'A delete arrives and the container is about to be stopped. Before sending any signal, Kubelet runs the preStop hook synchronously and waits for it to return. The ENTRYPOINT is still Running here. The hook executes inside the terminationGracePeriodSeconds budget, so its runtime is subtracted from the 30s window.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setVal(s.refs.preStopChip, 'exec running (sync)');
       setVal(s.refs.stateChip, 'Running');
@@ -287,9 +277,7 @@ const STEPS = [
     duration: 4000,
     narration: 'Once preStop returns, Kubelet asks the runtime to stop the container via CRI StopContainer. The runtime delivers SIGTERM to the ENTRYPOINT process inside the Pod. The grace timer keeps counting down from where preStop left off. If the process is still alive when it reaches 0, the runtime escalates to SIGKILL. The container then exits and the Pod object is removed from the API.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.preStopChip, 'completed (exit 0)');
       s.refs.preStopChip.classList.add('highlight');
       setVal(s.refs.entrypointChip, 'received SIGTERM');

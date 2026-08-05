@@ -128,11 +128,13 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','stateChip','reasonChip','restartChip','delayChip'],
     [s.refs.podGroup]);
   s.refs.ladderChips.forEach(c => c.classList.remove('highlight'));
+  clearWires(s);
 }
 
 function setLadder(s, idx) {
@@ -144,9 +146,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setVal(s.refs.stateChip, 'Running');
       setVal(s.refs.reasonChip, 'none');
@@ -161,9 +161,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The container process exits with a non-zero code and Kubelet observes the termination. With restartPolicy Always, Kubelet restarts it immediately the first time and arms a 10s base delay for the next one. Once the new container starts, restartCount becomes 1.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = '1';
       setVal(s.refs.stateChip, 'Running (restarted)');
       s.refs.stateChip.classList.add('highlight');
@@ -190,9 +188,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The fresh container crashes again almost immediately. This restart is the one that waits, and each further crash doubles the delay, so 10s becomes 20s. While Kubelet holds off the restart the container state is Waiting with reason CrashLoopBackOff, which surfaces in kubectl get pods.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.notready);
       setVal(s.refs.stateChip, 'Waiting');
       setVal(s.refs.reasonChip, 'CrashLoopBackOff');
@@ -220,9 +216,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The crashes keep coming and the backoff delay doubles with each failure, climbing 40s then 80s then 160s. The restartCount keeps incrementing on every attempt. The exponential growth is per container, so a hot-looping process cannot saturate the Node.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.notready);
       setVal(s.refs.stateChip, 'Waiting');
       setVal(s.refs.reasonChip, 'CrashLoopBackOff');
@@ -243,9 +237,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The next doubling would exceed 300s, so the delay is clamped at the 300s ceiling and stays there. Kubelet now retries the container at most once every 5 minutes for as long as it keeps failing. The restartCount continues to climb at this slow cadence.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.notready);
       setVal(s.refs.stateChip, 'Waiting');
       setVal(s.refs.reasonChip, 'CrashLoopBackOff');
@@ -268,9 +260,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The bug is fixed and the new container runs stably. After a sustained healthy run Kubelet resets the backoff counter, so the next crash would start over from the 10s base rather than the 300s cap. The container state returns to Running and the CrashLoopBackOff reason clears.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.stateChip, 'Running');
       setVal(s.refs.reasonChip, 'none');
       s.refs.reasonChip.classList.add('highlight');

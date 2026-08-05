@@ -134,11 +134,13 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','runtime','waitDbChip','migrateChip','sidecarChip','mainChip',
      'containerWaitDb','containerMigrate','containerSidecar','containerMain'],
     [s.refs.podGroup]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -146,9 +148,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.waitDbChip, 'Waiting');
       setVal(s.refs.migrateChip, 'Waiting');
       setVal(s.refs.sidecarChip, 'Waiting');
@@ -161,9 +161,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: each one must exit with code 0 before the next can start. A non-zero exit keeps the Pod in Init:0/3 with a Kubelet restart-backoff (respecting Pod.spec.restartPolicy).',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.waitDbChip, 'Running');
       setVal(s.refs.migrateChip, 'Waiting');
       setVal(s.refs.sidecarChip, 'Waiting');
@@ -186,9 +184,7 @@ const STEPS = [
     duration: 3400,
     narration: 'The wait-for-db container exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and immediately creates migrate-schema. The same rule applies, it must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.waitDbChip, 'Completed');
       s.refs.waitDbChip.classList.add('highlight');
       setVal(s.refs.migrateChip, 'Running');
@@ -215,9 +211,7 @@ const STEPS = [
     duration: 3400,
     narration: 'Both regular init containers exited 0. The sidecar (declared as an initContainer with restartPolicy=Always since 1.29) is started next, allowed to run for the full lifetime of the Pod. Once it reports Started (its startupProbe succeeded, or immediately if no probe is set), Kubelet treats the bootstrap phase as complete and unblocks the main container.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.waitDbChip, 'Completed');
       setVal(s.refs.migrateChip, 'Completed');
       s.refs.migrateChip.classList.add('highlight');
@@ -246,9 +240,7 @@ const STEPS = [
     duration: 3400,
     narration: 'As soon as the sidecar Started flag flips true, Kubelet creates and starts the main container. From here both run in parallel. Pod phase flips from Pending to Running once the main container has started.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.waitDbChip, 'Completed');
       setVal(s.refs.migrateChip, 'Completed');
       setVal(s.refs.sidecarChip, 'Running');
@@ -274,9 +266,7 @@ const STEPS = [
     duration: 2000,
     narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination the order reverses: regular containers terminate first, then sidecars, so cleanup paths can still talk through the proxy.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.waitDbChip, 'Completed');
       setVal(s.refs.migrateChip, 'Completed');
       setVal(s.refs.sidecarChip, 'Running');

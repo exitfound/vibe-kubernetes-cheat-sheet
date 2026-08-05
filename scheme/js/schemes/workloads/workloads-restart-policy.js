@@ -127,10 +127,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['apiserver','kubelet','pod1Chip','pod2Chip','pod3Chip','focusChip','pod1Box','pod2Box','pod3Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
+  clearWires(s);
 }
 function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
@@ -160,9 +162,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { a: 'Running', b: 'Running', c: 'Running', focus: 'none' });
       setChainActive(s.refs.chain, -1);
@@ -173,9 +173,7 @@ const STEPS = [
     duration: 2200,
     narration: 'The restartPolicy is a Pod-level field. The Pod-level value is immutable once the Pod is created and covers every main container that does not set its own. Since 1.35 the ContainerRestartRules feature gate is beta and enabled by default, so an individual container may carry a restartPolicy that overrides the Pod one. The default is Always. Init containers may override it with their own restartPolicy (the native sidecar pattern, on by default since 1.29 and GA in 1.33). Kubelet reads the field from the Pod spec and applies it each time a container terminates.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { a: 'Running', b: 'Running', c: 'Running', focus: 'Pod-level, default Always' });
       setWire(s, 'req', 'watch · spec.restartPolicy delivered · Status reported back');
@@ -191,9 +189,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Scenario: a container exits 0, a clean success. Pod A (Always) restarts the container and stays Running. Pod B (OnFailure) does not restart a successful exit, so once the container is done the Pod phase becomes Succeeded. Pod C (Never) does not restart anything either and likewise ends Succeeded.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { a: 'Running (restarted)', b: 'Succeeded', c: 'Succeeded', focus: 'exit 0: only Always restarts' });
       s.refs.focusChip.classList.add('highlight');
@@ -227,9 +223,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Scenario: a container exits with a non-zero code, a failure. Pod A (Always) restarts it. Pod B (OnFailure) restarts it too, that is exactly what OnFailure means. Pod C (Never) restarts nothing, so a single failure drives the Pod phase to Failed.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { a: 'Running (restarted)', b: 'Running (restarted)', c: 'Failed', focus: 'exit != 0: only Never does not restart' });
       s.refs.focusChip.classList.add('highlight');
@@ -259,9 +253,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Every restart, whether driven by Always or by OnFailure, goes through the same exponential backoff. The delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s). The container sits in Waiting with reason=CrashLoopBackOff during the wait, and the timer resets after the container has run successfully for 10 minutes. A Never Pod never restarts at all, so it cannot enter this loop.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setChips(s, { a: 'Waiting (backoff)', b: 'Waiting (backoff)', c: 'never enters backoff', focus: 'backoff 10s..300s, shared' });
       s.refs.pod3Chip.classList.add('highlight');
@@ -295,9 +287,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Long-running controllers (Deployment, ReplicaSet, DaemonSet, StatefulSet) only allow restartPolicy=Always, so their Pods always restart. Job uses OnFailure or Never to let its Pods reach a terminal Succeeded or Failed phase instead of looping forever.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { a: 'long-running services', b: 'Job (OnFailure)', c: 'Job (Never)', focus: 'long-running vs run-to-completion' });
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'Always: long-running · OnFailure / Never: Jobs');

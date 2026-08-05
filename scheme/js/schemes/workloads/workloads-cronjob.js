@@ -171,11 +171,13 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['cronjob','apiserver','scheduleChip','concChip','activeChip','lastChip','eventChip','pod1Box','pod2Box','pod3Box','pod4Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
   s.refs.tickChips.forEach(c => c.classList.remove('highlight'));
+  clearWires(s);
 }
 // Pods and their lanes are pinned by one helper: a tap that outlives its Job slot lands an
 // arrowhead in an empty Node frame. Only slots 0 and 1 are ever addressed, so only those carry one.
@@ -195,9 +197,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.scheduleChip, '*/5 * * * *');
       setVal(s.refs.concChip, 'Forbid');
       setVal(s.refs.activeChip, '0');
@@ -213,9 +213,7 @@ const STEPS = [
     duration: 3100,
     narration: 'At 12:00 the wall clock matches the schedule. The controller creates one Job, backup-28394400, from spec.jobTemplate through the API, and that Job in turn creates its own Pod. The path is always CronJob then Job then Pod, never CronJob straight to Pod. The numeric suffix is derived from the scheduled time, so a single tick can only ever produce one Job, which keeps creation idempotent. The status.active field becomes 1 and lastScheduleTime records 12:00.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.activeChip, '1');
       setVal(s.refs.lastChip, '12:00');
       setVal(s.refs.eventChip, 'created backup-28394400');
@@ -244,9 +242,7 @@ const STEPS = [
     duration: 2100,
     narration: 'This backup is slow and still Running when the 12:05 tick arrives. The spec.concurrencyPolicy field decides what happens to overlapping runs. With Forbid the controller skips the new tick entirely and records the Event JobAlreadyActive, it does not queue the run for later. The default Allow would let a second Job start alongside the first, and Replace would delete the still-running Job and start a fresh one in its place. Here nothing new is created and the 12:00 run keeps going.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.activeChip, '1');
       setVal(s.refs.lastChip, '12:00');
       setVal(s.refs.eventChip, 'JobAlreadyActive · skipped');
@@ -266,9 +262,7 @@ const STEPS = [
     duration: 3100,
     narration: 'By 12:10 the 12:00 run has finished with exit 0, so status.active drops to 0. Now the 12:10 tick has no overlap to forbid, the controller creates Job backup-28394410 and its Pod starts. Each tick is a separate Job and a separate Pod, runs are never reused. The completed 12:00 Job is kept for now as part of the history.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.activeChip, '1');
       setVal(s.refs.lastChip, '12:10');
       setVal(s.refs.eventChip, 'created backup-28394410');
@@ -297,9 +291,7 @@ const STEPS = [
     duration: 3100,
     narration: 'Over the following ticks more runs complete and finished Jobs pile up. The controller caps how many it keeps with successfulJobsHistoryLimit (default 3) and failedJobsHistoryLimit (default 1). Once a fourth successful Job exists it prunes the oldest, here backup-28394400, deleting that Job object and its Pod through the API. Trimming history is why kubectl get jobs shows only the most recent runs.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.activeChip, '0');
       s.refs.activeChip.classList.add('highlight');
       setVal(s.refs.lastChip, '12:20');
@@ -333,9 +325,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Suppose the controller was down for a while. On recovery it sees ticks it missed. The spec.startingDeadlineSeconds field bounds how late a missed run may still start, any tick older than that deadline is skipped and counted as missed rather than run late. With no deadline set the controller instead refuses to schedule once it finds more than 100 missed start times, logging an error. Because a CronJob is not exactly-once and may rarely create two Jobs or none for a tick, the Job itself should be idempotent.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.activeChip, '0');
       setVal(s.refs.lastChip, '12:20');
       setVal(s.refs.eventChip, 'missed 12:25 · past deadline');
@@ -353,9 +343,7 @@ const STEPS = [
     duration: 2000,
     narration: 'Setting spec.suspend=true pauses the CronJob. The clock keeps advancing and the schedule still matches, but the controller creates no new Jobs while suspended, and any Job already running is left to finish on its own. Clearing the flag back to false resumes creation, and with no startingDeadlineSeconds set the ticks missed while suspended are scheduled at once. This is the safe way to pause a schedule without deleting the CronJob and losing its history.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.activeChip, '0');
       setVal(s.refs.lastChip, '12:20');
       setVal(s.refs.eventChip, 'suspend=true · creation paused');

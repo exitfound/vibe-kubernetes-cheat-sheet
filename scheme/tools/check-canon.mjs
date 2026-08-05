@@ -113,8 +113,10 @@ const report = (rule, msg) => (ENFORCED.has(rule) ? violations : advisories).pus
 // R-skeleton's census. Printed every run whether or not anything is wrong, because the acceptance
 // criterion for a skeleton refactor is these numbers moving the way the plan says they will.
 const skel = {
-  scenes: 0, ctors: 0, resets: 0, inits: 0, clearHLs: 0,
-  enters: 0, canvasResets: 0, clearHLCalls: 0, clearWiresCalls: 0, canonicalPrologues: 0,
+  scenes: 0, ctors: 0, resets: 0, inits: 0,
+  foldedCards: 0, inlineCards: 0,
+  enters: 0, canvasResets: 0, clearHLCalls: 0, clearWiresCalls: 0,
+  canonicalPrologues: 0, foldedPrologues: 0,
 };
 
 // Bodies of every `enter(s)` / `enter(s, ctx)` in a card, by bracket matching rather than by regex:
@@ -262,13 +264,37 @@ for (const { base: f, path } of files) {
   skel.ctors += once(/^  constructor\(host[^)]*\) \{/m, 'constructor(host)');
   skel.resets += once(/^  reset\(\) \{ this\.build\(\); \}$/m, 'reset() { this.build(); }');
   skel.inits += once(/^export const init = makeInit\(Scene, STEPS, \{ posterFirst: true \}\);$/m, 'makeInit export');
-  skel.clearHLs += once(/^function clearHL\(s\) \{/m, 'function clearHL(s)');
 
-  // Per step: the prologue. enterBodies walks brackets rather than matching a fixed shape, so a
-  // step whose first statements are reordered is COUNTED as non-canonical instead of being missed.
+  // TWO shapes are legal while the fold is in flight, one per card, never both. FOLDED is the
+  // target: the three prologue lines live once in resetStep instead of once per step. INLINE is
+  // what every card looked like before it. The census counts them apart, so a half-done fold reads
+  // as a number rather than as a pile of findings.
+  const folded = /^function resetStep\(s\) \{/m.test(code);
+  const inline = /^function clearHL\(s\) \{/m.test(code);
+  if (folded && inline) report('R-skeleton', `${f}  declares BOTH resetStep(s) and clearHL(s)`);
+  else if (!folded && !inline) report('R-skeleton', `${f}  declares neither resetStep(s) nor clearHL(s)`);
+  if (folded) {
+    skel.foldedCards++;
+    // The fold only holds if resetStep still does all three things, in the order the steps did them.
+    const m = /^function resetStep\(s\) \{\n(\s*s\.refs\.packetLayer\.replaceChildren\(\);\n)/m.exec(code);
+    if (!m) report('R-skeleton', `${f}  resetStep(s) does not open with s.refs.packetLayer.replaceChildren()`);
+    else skel.canvasResets++;
+    if (/^  clearWires\(s\);\n\}/m.test(code)) skel.clearWiresCalls++;
+    else report('R-skeleton', `${f}  resetStep(s) does not end with clearWires(s)`);
+  } else if (inline) {
+    skel.inlineCards++;
+  }
+
+  // Per step. enterBodies walks brackets rather than matching a fixed shape, so a step whose first
+  // statements are reordered is COUNTED as non-canonical instead of being missed.
   for (const body of enterBodies(code)) {
     skel.enters++;
     const head = body.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3);
+    if (folded) {
+      if (/^resetStep\(s\);/.test(head[0] || '')) skel.foldedPrologues++;
+      else report('R-skeleton', `${f}  an enter() does not open with resetStep(s)`);
+      continue;
+    }
     if (/^s\.refs\.packetLayer\.replaceChildren\(\)/.test(head[0] || '')) skel.canvasResets++;
     else report('R-skeleton', `${f}  an enter() does not open with s.refs.packetLayer.replaceChildren()`);
     if (/\bclearHL\(s\)/.test(body)) skel.clearHLCalls++;
@@ -471,10 +497,12 @@ if (advisories.length) {
 // accepted against. `inert clearWires` is the count of cards whose refs.wires is absent or empty, so
 // the call is a no-op there and its absence from a prologue costs nothing on screen.
 console.log(
-  `skeleton census: ${skel.scenes} Scene, ${skel.ctors} ctor, ${skel.resets} reset, ${skel.inits} makeInit, ` +
-  `${skel.clearHLs} clearHL decl\n` +
-  `  steps: ${skel.enters} enter(), ${skel.canvasResets} canvas resets, ${skel.clearHLCalls} clearHL calls, ` +
-  `${skel.clearWiresCalls} clearWires calls, ${skel.canonicalPrologues} canonical prologues`);
+  `skeleton census: ${skel.scenes} Scene, ${skel.ctors} ctor, ${skel.resets} reset, ${skel.inits} makeInit\n` +
+  `  reset shape: ${skel.foldedCards} folded (resetStep), ${skel.inlineCards} inline (clearHL)\n` +
+  `  steps: ${skel.enters} enter(), ${skel.foldedPrologues} folded prologues, ` +
+  `${skel.canonicalPrologues} inline canonical prologues\n` +
+  `  clears: ${skel.canvasResets} canvas resets, ${skel.clearHLCalls} clearHL calls, ` +
+  `${skel.clearWiresCalls} clearWires calls`);
 
 if (violations.length) {
   console.error(`canon check FAILED: ${violations.length} violation(s):`);

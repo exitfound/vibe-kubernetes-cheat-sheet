@@ -149,10 +149,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubectl','api','nodeChip','podChip','replicaChip','focusChip','podOldBox','podNewBox'],
     [s.refs.podOld, s.refs.podNew]);
+  clearWires(s);
 }
 
 // Both balls ride the lane that is actually drawn under them: same points array, no second copy.
@@ -183,9 +185,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { node: 'Ready', pod: 'Running', replica: 'replicas 1/1', focus: 'none' });
       setPods(s, 1, 0);
       setChainActive(s.refs.chain, -1);
@@ -196,9 +196,7 @@ const STEPS = [
     duration: 3000,
     narration: 'Node-1 stops posting Kubelet heartbeats, from a kernel panic, a power loss or a network partition. After node-monitor-grace-period, 50s by default, the node controller sets the Node Ready condition to Unknown and marks Node-1 NotReady. The control plane can no longer observe what Pod A is actually doing.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { node: 'NotReady (Unknown)', pod: 'Running (last seen)', replica: 'replicas 1/1', focus: 'heartbeat lost' });
       s.refs.podChip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
@@ -224,9 +222,7 @@ const STEPS = [
     duration: 2200,
     narration: 'A delete is issued for Pod A, by you or by the node controller clearing Pods off the lost Node. The API stamps metadata.deletionTimestamp, so the Pod reads as Terminating. Normally the Kubelet would stop the container and let the API remove the object, but Node-1 Kubelet is unreachable and nothing acknowledges the delete.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { node: 'NotReady (Unknown)', pod: 'Terminating', replica: 'replicas 1/1', focus: 'deletionTimestamp set' });
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'DELETE .../pods/pod-a · deletionTimestamp');
@@ -244,9 +240,7 @@ const STEPS = [
     duration: 2300,
     narration: 'Pod A is stuck in Terminating with no time limit, while status.phase stays Running. The StatefulSet will not create a replacement, because the sticky identity and its RWO volume are still held by the undeleted Pod A. A leftover metadata.finalizers entry causes the same stuck Terminating, cleared by removing the finalizer rather than by force.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { node: 'NotReady (Unknown)', pod: 'Terminating (stuck)', replica: 'replacement blocked', focus: 'identity still held by Pod A' });
       s.refs.focusChip.classList.add('highlight');
       s.refs.podChip.classList.add('highlight');
@@ -262,9 +256,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Running kubectl delete pod pod-a --grace-period=0 --force tells the API to drop the Pod object from ETCD at once, with no wait for any Kubelet acknowledgement. The API now reports the Pod as gone, and the StatefulSet identity is free again.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { node: 'NotReady (Unknown)', pod: 'force-deleted', replica: 'identity freed', focus: 'object dropped from etcd' });
       s.refs.replicaChip.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
@@ -286,9 +278,7 @@ const STEPS = [
     duration: 3500,
     narration: 'The StatefulSet immediately recreates the replica, here as Pod B on Node-2. The danger: if Node-1 was only network-partitioned, its Kubelet is alive and the original Pod A still runs there. Pod A and Pod B now share one StatefulSet identity and the same volume, which corrupts data. Force-delete only after the Node is confirmed dead, or delete the Node object so its Pods are garbage-collected cleanly.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { node: 'partitioned, still live', pod: 'maybe still running', replica: 'identity live twice', focus: 'split-brain hazard' });
       s.refs.nodeChip.classList.add('highlight');
       s.refs.podChip.classList.add('highlight');

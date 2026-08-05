@@ -119,10 +119,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','stateChip','detailChip','lastChip','restartChip'],
     [s.refs.podGroup]);
+  clearWires(s);
 }
 
 // Set all four status chips in one call so every step pins the full record.
@@ -141,9 +143,7 @@ const STEPS = [
     id: 'running',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { state: 'Running', detail: 'startedAt 09:20:14Z', last: PRIOR, restart: '2' });
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
@@ -155,9 +155,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The process hits its memory limit and the kernel kills it. Kubelet sets state to Terminated, a record carrying exitCode, reason, startedAt and finishedAt. Here exitCode is 137 and reason is OOMKilled. This live Terminated record exists only for an instant.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { state: 'Terminated', detail: 'exitCode 137 · OOMKilled', last: PRIOR, restart: '2' });
       setWire(s, 'req', 'CRI: container exited · 137');
       s.refs.stateChip.classList.add('highlight');
@@ -182,9 +180,7 @@ const STEPS = [
     duration: 2300,
     narration: 'Kubelet restarts the container in the same Pod sandbox. As the fresh instance comes up, state goes back to Running, and the Terminated record just produced is rolled into lastState. The restartCount ticks to 3. The earlier lastState is overwritten, only the most recent termination is kept.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { state: 'Running', detail: 'startedAt 09:24:30Z', last: FRESH, restart: '3' });
       s.refs.detailChip.classList.add('highlight');
       setWire(s, 'req', 'restart container · lastState recorded');
@@ -212,9 +208,7 @@ const STEPS = [
     duration: 2200,
     narration: 'This is the field you debug with. The live state says Running, so the container is fine right now and reveals nothing about the failure. The lastState field holds the answer: a Terminated record with exitCode 137 and reason OOMKilled, which is why the previous instance died.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { state: 'Running', detail: 'startedAt 09:24:30Z', last: FRESH, restart: '3' });
       s.refs.podGroup.style.opacity = '1';
       s.refs.stateChip.classList.add('highlight');
@@ -230,9 +224,7 @@ const STEPS = [
     duration: 2400,
     narration: 'The exitCode names the cause. 0 is Completed, a clean exit. 1 is a generic application Error. Codes above 128 carry a signal: 137 is 128 plus 9 for SIGKILL, paired with reason OOMKilled when the kernel did it, and 143 is 128 plus 15 for SIGTERM. The number alone tells you how the container died.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { state: 'Running', detail: 'startedAt 09:24:30Z', last: FRESH, restart: '3' });
       s.refs.podGroup.style.opacity = '1';
       s.refs.lastChip.classList.add('highlight');
@@ -247,9 +239,7 @@ const STEPS = [
     duration: 2100,
     narration: 'Running kubectl describe pod surfaces both records, State for the live instance and Last State for the prior one. Together with restartCount, which counts every restart, these three fields are what you read to diagnose a container that has been restarting.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setChips(s, { state: 'Running', detail: 'startedAt 09:24:30Z', last: FRESH, restart: '3' });
       s.refs.podGroup.style.opacity = '1';
       s.refs.stateChip.classList.add('highlight');

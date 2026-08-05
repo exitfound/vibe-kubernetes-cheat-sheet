@@ -150,10 +150,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['daemonset','apiserver','desiredChip','currentChip','readyChip','focusChip','pod1Box','pod2Box','pod3Box','pod4Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
+  clearWires(s);
 }
 
 // A lane into a Node that is not in the cluster points at nothing, so it is pinned out.
@@ -165,9 +167,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.pod1.style.opacity = '0';
       s.refs.pod2.style.opacity = '0';
       s.refs.pod3.style.opacity = '0';
@@ -187,9 +187,7 @@ const STEPS = [
     duration: 3800,
     narration: 'The controller sees three matching Nodes and zero Pods, so it creates one Pod on each through the API and the local Kubelet starts it. A DaemonSet places exactly one Pod per Node, never a second, so the count follows the Nodes themselves rather than a fixed replica number you set.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       s.refs.node4El.style.opacity = '0';
       s.refs.pod4.style.opacity = '0';
       setLanes(s, [1, 1, 1, 0]);
@@ -237,9 +235,7 @@ const STEPS = [
     duration: 5400,
     narration: 'A new worker Node-4 joins the cluster and turns Ready. The DaemonSet controller watches Node objects, recomputes desiredNumberScheduled to four, and creates a Pod on Node-4 alone. No other Node is disturbed. Automatic per-node placement is the whole reason a DaemonSet exists.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.desiredChip, '4');
       setVal(s.refs.currentChip, '4');
       setVal(s.refs.readyChip, '4');
@@ -279,9 +275,7 @@ const STEPS = [
     duration: 3800,
     narration: 'The image is bumped from fluentd v1 to v2. The RollingUpdate strategy with maxUnavailable=1 deletes and recreates the Pods one Node at a time, never taking more than one down at once, so log collection keeps running on the rest. The OnDelete strategy would instead wait until you delete each Pod by hand.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.desiredChip, '4');
       setVal(s.refs.currentChip, '4');
       setVal(s.refs.readyChip, '3 / 4 updating');
@@ -315,9 +309,7 @@ const STEPS = [
     duration: 2400,
     narration: 'Node-2 is drained and leaves the cluster. Its DaemonSet Pod is deleted and, unlike a Deployment replica, it is not recreated on another Node. A DaemonSet keeps exactly one Pod per Node and every surviving Node already has one, so desiredNumberScheduled simply drops back to three.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.desiredChip, '3');
       setVal(s.refs.currentChip, '3');
       s.refs.currentChip.classList.add('highlight');

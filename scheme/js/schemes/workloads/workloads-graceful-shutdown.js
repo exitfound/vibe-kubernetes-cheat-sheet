@@ -132,10 +132,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubectl','api','preStopChip','sigChip','graceChip','statusChip','sliceChip'],
     [s.refs.podGroup]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -143,9 +145,7 @@ const STEPS = [
     id: 'running',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.preStopChip, 'idle');
       setVal(s.refs.sigChip, 'none');
       setVal(s.refs.graceChip, '30s');
@@ -162,9 +162,7 @@ const STEPS = [
     duration: 3800,
     narration: 'A kubectl delete reaches the API, which stamps metadata.deletionTimestamp on the Pod. That field is what makes kubectl report the Pod as Terminating, while status.phase itself stays Running. In parallel the EndpointSlice controller marks 10.244.1.7 terminating with ready false rather than removing it, so kube-proxy stops sending new connections while the Kubelet termination sequence begins.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.preStopChip, 'idle');
       setVal(s.refs.sigChip, 'none');
       setVal(s.refs.graceChip, '30s');
@@ -194,9 +192,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The Kubelet runs the container preStop hook synchronously, before any signal is sent. A common pattern is a short sleep, which holds the process alive long enough for load balancers and kube-proxy to finish deregistering the endpoint. New requests stop arriving while in-flight ones still complete.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.preStopChip, 'exec: sleep 5');
       setVal(s.refs.sigChip, 'none');
       setVal(s.refs.graceChip, '30s');
@@ -217,9 +213,7 @@ const STEPS = [
     duration: 2000,
     narration: 'Once preStop returns, the Kubelet asks the runtime to send SIGTERM to PID 1. A well-behaved app traps this signal, stops accepting new work, drains in-flight requests and closes its connections and pools. The time the preStop hook consumed is already gone from the same grace budget.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.preStopChip, 'completed');
       s.refs.preStopChip.classList.add('highlight');
       setVal(s.refs.sigChip, 'SIGTERM');
@@ -242,9 +236,7 @@ const STEPS = [
     duration: 2100,
     narration: 'The terminationGracePeriodSeconds, 30 by default, counts down from the moment of deletion. The preStop hook and the SIGTERM drain both spend this single shared budget. Most applications exit well before the timer reaches zero, and the Kubelet then proceeds straight to cleanup.',
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.preStopChip, 'completed');
       setVal(s.refs.sigChip, 'SIGTERM');
       setVal(s.refs.graceChip, '6s');
@@ -263,9 +255,7 @@ const STEPS = [
     duration: 3500,
     narration: 'If the container is still alive when the grace timer reaches 0, the runtime sends SIGKILL, which the kernel delivers unconditionally to PID 1. Once the process is gone the Kubelet reports the terminated container, and the API removes the Pod object from ETCD.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.preStopChip, 'completed');
       setVal(s.refs.sigChip, 'SIGKILL');
       setVal(s.refs.graceChip, '0s · expired');

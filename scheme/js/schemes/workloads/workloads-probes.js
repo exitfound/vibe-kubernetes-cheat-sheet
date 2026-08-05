@@ -113,10 +113,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['kubelet','startupChip','livenessChip','readinessChip','restartChip','endpointChip'],
     [s.refs.podGroup]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -124,9 +126,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.startupChip, 'pending');
       setVal(s.refs.livenessChip, 'not running');
       setVal(s.refs.readinessChip, 'not running');
@@ -144,9 +144,7 @@ const STEPS = [
     duration: 2300,
     narration: 'Kubelet runs startupProbe every periodSeconds against the container handler, which can be httpGet, tcpSocket, grpc or exec. A slow app gets failureThreshold attempts before Kubelet gives up and restarts the container. The livenessProbe and readinessProbe do not run yet, so a long boot is never mistaken for a failure.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.startupChip, 'probing 4/30');
       setVal(s.refs.livenessChip, 'not running');
       setVal(s.refs.readinessChip, 'not running');
@@ -169,9 +167,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The startupProbe passes once. Kubelet retires it permanently for the lifetime of this container instance and never runs it again. The livenessProbe and readinessProbe are released and now execute on their own periodSeconds.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.startupChip, 'passed (retired)');
       setVal(s.refs.livenessChip, 'running');
       setVal(s.refs.readinessChip, 'running');
@@ -195,9 +191,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The readinessProbe passes successThreshold consecutive times. Kubelet flips the Pod Ready condition to True, and the EndpointSlice controller adds the Pod IP to the Service EndpointSlice. The Pod now receives traffic.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.startupChip, 'passed (retired)');
       setVal(s.refs.livenessChip, 'passing');
       s.refs.livenessChip.classList.add('highlight');
@@ -227,9 +221,7 @@ const STEPS = [
     duration: 2600,
     narration: 'The livenessProbe fails failureThreshold consecutive times. Kubelet kills the container and restarts it per restartPolicy, so restartCount becomes 1. readinessProbe fails too, so the EndpointSlice marks that endpoint ready=false at once rather than removing it, and kube-proxy stops sending new connections.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.startupChip, 'reset');
       s.refs.startupChip.classList.add('highlight');
       setVal(s.refs.livenessChip, 'failed 3/3');
@@ -262,9 +254,7 @@ const STEPS = [
     duration: 2300,
     narration: 'Kubelet probes the fresh container with startupProbe again. Once it passes, livenessProbe and readinessProbe are released, readinessProbe quickly succeeds, and the EndpointSlice controller rejoins the Pod IP. Traffic resumes while restartCount stays at 1.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.startupChip, 'passed (retired)');
       setVal(s.refs.livenessChip, 'passing');
       setVal(s.refs.readinessChip, 'passing');

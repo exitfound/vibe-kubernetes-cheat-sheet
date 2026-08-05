@@ -138,10 +138,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['controller','apiserver','rs1Chip','rs2Chip','condChip','revChip','pod1Box','pod2Box','pod3Box','pod4Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
+  clearWires(s);
 }
 // A slot's version and its presence are one fact: `null` means the slot is empty on this step. The
 // three v1 Pods never leave, so only the fourth argument ever changes.
@@ -162,9 +164,7 @@ const STEPS = [
     id: 'stable',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, null);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 0');
@@ -178,9 +178,7 @@ const STEPS = [
     duration: 3700,
     narration: 'You run kubectl set image deployment/web app=v2.0, which PATCHes the Pod template. The new template hash differs, so the Deployment controller creates ReplicaSet RS-v2 as revision 2 and starts the rollout, surging a v2 Pod under the RollingUpdate strategy while the old Pods keep serving.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, V2_NEW);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 1');
@@ -206,9 +204,7 @@ const STEPS = [
     duration: 2900,
     narration: 'The v2 Pod is broken. Its readinessProbe never passes, so it churns in CrashLoopBackOff and never reports Ready. Because maxUnavailable kept the old Pods alive, the Service still has healthy v1 backends, but RS-v2 cannot reach its target and the rollout makes no progress.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, V2_CRASH);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 1 (crashing)');
@@ -233,9 +229,7 @@ const STEPS = [
     duration: 2300,
     narration: 'After progressDeadlineSeconds (600 by default), the Deployment sets the condition Progressing=False with reason ProgressDeadlineExceeded. The rollout is wedged: RS-v2 cannot reach its count, while RS-v1 keeps all three v1.0 Pods serving, so traffic stays healthy on the old version until someone steps in.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, V2_STUCK);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 1 stuck');
@@ -255,9 +249,7 @@ const STEPS = [
     duration: 3700,
     narration: 'Running kubectl rollout undo deployment/web rolls back to the previous good revision. The controller scales RS-v2 down to zero, while RS-v1 was never scaled below three and simply keeps serving. The broken v2 Pod is deleted, so all three serving Pods are on v1.0 again.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, null);
       setVal(s.refs.rs1Chip, '3 / 3');
       setVal(s.refs.rs2Chip, '0 / 0');
@@ -286,9 +278,7 @@ const STEPS = [
     duration: 2300,
     narration: 'The rollback is itself recorded as a new revision 3 whose template equals revision 1. Undo does not erase revision 2, it stays in history, and revisionHistoryLimit caps how many old ReplicaSets are kept. Running kubectl rollout history lists all three revisions, and the Deployment reports Available=True again.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, null);
       setVal(s.refs.rs1Chip, '3 / 3 (now rev 3)');
       s.refs.rs1Chip.classList.add('highlight');

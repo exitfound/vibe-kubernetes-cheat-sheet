@@ -169,10 +169,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['rs','api','selectorChip','desiredChip','observedChip','actionChip','pod1Box','pod2Box','pod3Box','pod4Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
+  clearWires(s);
 }
 
 const STEPS = [
@@ -180,9 +182,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.selectorChip, 'app=web');
       setVal(s.refs.desiredChip, '3');
       setVal(s.refs.observedChip, '3');
@@ -199,9 +199,7 @@ const STEPS = [
     duration: 3700,
     narration: 'Every Pod the ReplicaSet manages carries a metadata.ownerReferences entry pointing back to it, with controller=true. That link is what lets garbage collection clean up the Pods when the ReplicaSet is deleted. The ownership is a chain: a Deployment owns this ReplicaSet, and the ReplicaSet owns the Pods. You scale the Deployment, it updates the ReplicaSet spec.replicas, and the ReplicaSet is what actually creates and deletes Pods.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.observedChip, '3');
       setVal(s.refs.actionChip, 'in sync');
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -226,9 +224,7 @@ const STEPS = [
     duration: 2000,
     narration: 'The controller runs a continuous reconcile loop. On every relevant change it compares the desired count (spec.replicas=3) against the observed count of matching Pods (3 right now) and acts only on the difference. Because it is level-triggered it works off the current observed state, not off one-time events, so a missed event or a controller restart still converges to the same result. With desired equal to observed there is nothing to do.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.observedChip, '3');
       setVal(s.refs.actionChip, 'balanced · no-op');
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -252,9 +248,7 @@ const STEPS = [
     duration: 4700,
     narration: 'One Pod is lost, its Node failed or the Pod was deleted. The controller sees the observed count drop to 2 below the desired 3 through its Pod watch, and immediately creates a replacement Pod to restore the count. This self-healing is the whole point of a controller. A bare Pod created on its own has no owner watching it, so once gone it stays gone.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.observedChip, '2 → 3');
       setVal(s.refs.actionChip, 'create +1');
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -283,9 +277,7 @@ const STEPS = [
     duration: 3700,
     narration: 'A standalone Pod is created with the label app=web and no controller ownerReference. The ReplicaSet matches Pods by selector, not by who created them, so it adopts this orphan: it PATCHes the Pod metadata.ownerReferences to point at itself. The Pod was already running, adoption only restamps its owner, and it now joins the set on the Node as the fourth replica. The observed count is now 4.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.observedChip, '3 → 4');
       setVal(s.refs.actionChip, 'adopt +1');
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -311,9 +303,7 @@ const STEPS = [
     duration: 3700,
     narration: 'Adoption pushed the count to 4, one above spec.replicas. The same reconcile loop now deletes one Pod to return to exactly 3. A ReplicaSet never runs more than its desired count, no matter where the extra Pod came from. When it has to pick a victim it ranks candidates (unscheduled and not-ready Pods first, then by the controller.kubernetes.io/pod-deletion-cost annotation), then issues a delete.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.observedChip, '4 → 3');
       setVal(s.refs.actionChip, 'delete -1');
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -343,9 +333,7 @@ const STEPS = [
     duration: 3700,
     narration: 'The reverse of adoption. A Pod is relabeled so it no longer matches the selector, here app=web becomes app=debug. The ReplicaSet releases it by removing its ownerReference, and the Pod keeps running as an unmanaged standalone Pod. That drops the matching count to 2, so the controller creates a replacement to hold 3. Labels are the binding: change them and a Pod moves in or out of the set.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setVal(s.refs.observedChip, '2 → 3');
       setVal(s.refs.actionChip, 'release + create');
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });

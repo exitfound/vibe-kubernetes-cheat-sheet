@@ -150,10 +150,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['controller','apiserver','v1Chip','v2Chip','surgeChip','progressChip','pod1Box','pod2Box','pod3Box','pod4Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
+  clearWires(s);
 }
 // A slot's version and its presence are ONE fact, so one helper writes both (`null` = unoccupied).
 // Two separate assignments show more Pods alive than the row's own chip counts.
@@ -173,9 +175,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, null);
       setVal(s.refs.v1Chip, '3 / 3');
       setVal(s.refs.v2Chip, '0 / 0');
@@ -189,9 +189,7 @@ const STEPS = [
     duration: 1900,
     narration: 'You run kubectl set image deployment/web app=v2.0, which PATCHes .spec.template. The new template hash differs, so the Deployment controller creates ReplicaSet RS-v2 with replicas=0. RS-v1 still owns all 3 live Pods, no churn yet.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, null);
       setVal(s.refs.v1Chip, '3 / 3');
       setVal(s.refs.v2Chip, '0 / 0');
@@ -210,9 +208,7 @@ const STEPS = [
     duration: 4500,
     narration: 'Setting maxSurge=1 lets the controller scale RS-v2 from 0 to 1 before any old Pod leaves. A fresh v2.0 Pod is created on Node-1, Kubelet starts the container. Total live Pods is now 4 (3 v1 plus 1 surge), 1 above .spec.replicas.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, V1, V2_NEW);
       setVal(s.refs.v1Chip, '3 / 3');
       setVal(s.refs.v2Chip, '0 / 1');
@@ -237,9 +233,7 @@ const STEPS = [
     duration: 4500,
     narration: 'The new Pod becomes Ready (readinessProbe passes successThreshold times). RS-v2 sees Ready=1. Now maxUnavailable=1 allows scaling RS-v1 from 3 down to 2, the controller picks the oldest Pod and triggers a graceful delete (preStop, then SIGTERM, then grace period).',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, V1, GOING, V2);
       setVal(s.refs.v1Chip, '2 / 2');
       setVal(s.refs.v2Chip, '1 / 1');
@@ -267,9 +261,7 @@ const STEPS = [
     duration: 6200,
     narration: 'Same dance again: surge one more v2 Pod into the room the last drain gave back, wait for Ready, drain the next old v1. The controller does not move to a third replacement until this one is committed, so the rollout proceeds one Pod at a time.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, V1, GOING, V2, V2);
       setVal(s.refs.v1Chip, '1 / 1');
       setVal(s.refs.v2Chip, '2 / 2');
@@ -303,9 +295,7 @@ const STEPS = [
     duration: 6800,
     narration: 'Last cycle: surge the final v2 Pod, wait for Ready, drain the last v1. The Deployment status moves to .status.updatedReplicas=3, observedGeneration catches up to .metadata.generation, and the condition Progressing=True is set with reason NewReplicaSetAvailable.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, GOING, V2, V2, V2);
       setVal(s.refs.v1Chip, '0 / 0');
       setVal(s.refs.v2Chip, '3 / 3');
@@ -333,9 +323,7 @@ const STEPS = [
     duration: 2200,
     narration: 'RS-v2 owns 3 Ready Pods, RS-v1 sits at replicas=0 but is retained for revisionHistoryLimit (default 10) so kubectl rollout undo can flip back in one PATCH. Deployment condition Available=True, rollout complete.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setSlots(s, null, V2, V2, V2);
       setVal(s.refs.v1Chip, '0 / 0 (retained)');
       s.refs.v1Chip.classList.add('highlight');

@@ -151,10 +151,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['apiserver','kubelet','pod1Chip','pod2Chip','pod3Chip','focusChip','pod1Box','pod2Box','pod3Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
+  clearWires(s);
 }
 function resetPodOpacity(s) {
   ['pod1','pod2','pod3'].forEach(k => { s.refs[k].style.opacity = '1'; });
@@ -173,9 +175,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'no requests · no limits', 'req only · 500m / 256Mi', 'req == limits · 1 / 1Gi');
       setVal(s.refs.pod1Chip, 'pending');
@@ -190,9 +190,7 @@ const STEPS = [
     duration: 1700,
     narration: 'The classification rule has three outcomes. BestEffort: no container has any requests or limits at all. Guaranteed: every container has CPU and memory requests and limits set, with requests equal to limits. Burstable: anything in between (at least one resource declared but does not match the Guaranteed pattern).',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'no requests · no limits', 'req only · 500m / 256Mi', 'req == limits · 1 / 1Gi');
       setVal(s.refs.pod1Chip, 'pending');
@@ -212,9 +210,7 @@ const STEPS = [
     duration: 2100,
     narration: 'The API server applies the rule and tags each Pod with its class on status.qosClass. Pod A becomes BestEffort (empty resources). Pod B becomes Burstable (requests only, no limits). Pod C becomes Guaranteed (requests equal limits everywhere). This tag is set once at creation and never changes for the rest of the Pod life.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'BestEffort', 'Burstable', 'Guaranteed');
       setVal(s.refs.pod1Chip, 'BestEffort');
@@ -240,9 +236,7 @@ const STEPS = [
     duration: 3400,
     narration: 'Each Pod is now placed on a Node. Scheduling looks only at requests, ignoring both limits and the QoS class. Pod A asks for nothing and fits anywhere. Pod B competes for 500m CPU and 256Mi memory. Pod C competes for 1 CPU and 1Gi memory. Once a Node passes the checks, the Pod is bound to it via POST .../pods/{name}/binding.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'BestEffort', 'Burstable', 'Guaranteed');
       setVal(s.refs.pod1Chip, 'BestEffort');
@@ -266,9 +260,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Kubelet on the chosen Node writes the Linux cgroup config for each Pod. The container memory cap (memory.max) and CPU cap (cpu.max) come from limits. If limits are absent (Pod A is BestEffort) there is no cap at all. Kubelet also writes oom_score_adj for each container process, a number the kernel uses to choose which process to kill first under memory pressure. BestEffort gets 1000 (kernel picks it first). Guaranteed gets -997 (almost never picked). Burstable sits in between, scaled by its memory request via 1000 - 1000*(request/capacity), clamped to range 3..999.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'BestEffort · oom_score=1000', 'Burstable · oom_score~scaled', 'Guaranteed · oom_score=-997');
       setVal(s.refs.pod1Chip, 'BestEffort');
@@ -291,9 +283,7 @@ const STEPS = [
     duration: 3400,
     narration: 'When the Node runs low on memory, Kubelet ranks Pods by whether each is using more than it requested, then by Pod Priority, then by how far over the request it sits. Pod A declared no request at all, so it is over the moment it allocates anything and goes first. Pod B is over its own request and goes next. Pod C requests exactly what it is allowed to use, so it never exceeds its request and is reached only by the kernel OOMKiller in extreme cases. QoS class does not decide this order, it only predicts it, and this is a separate mechanism from priority-based preemption (which is covered in its own card).',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'BestEffort · evicted 1st', 'Burstable · evicted 2nd', 'Guaranteed · survives');
       setVal(s.refs.pod1Chip, 'BestEffort');

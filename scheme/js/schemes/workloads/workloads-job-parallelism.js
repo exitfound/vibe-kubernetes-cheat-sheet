@@ -146,10 +146,12 @@ class Scene {
   reset() { this.build(); }
 }
 
-function clearHL(s) {
+function resetStep(s) {
+  s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
     ['controller','apiserver','parChip','compChip','succChip','failChip','phaseChip','pod1Box','pod2Box','pod3Box'],
     [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
+  clearWires(s);
 }
 // One ball per worker, all leaving together: every Pod that pulses has a ball that reached it.
 function fanOut(s, ctx, delay = 0) {
@@ -180,9 +182,7 @@ const STEPS = [
     id: 'idle',
     duration: 1500,
     enter(s) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setUnits(s, 'idle', 'idle', 'idle');
       setVal(s.refs.parChip, '3');
       setVal(s.refs.compChip, '6');
@@ -198,9 +198,7 @@ const STEPS = [
     duration: 3500,
     narration: 'Job controller observes 0 live Pods against a parallelism of 3, so it creates 3 Pods to fill the cap. They all run the same Pod template. How they divide work is up to the app (pull from an external queue, or, with completionMode=Indexed, read JOB_COMPLETION_INDEX from the env). With three Pods now running, .status.active becomes 3.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setUnits(s, 'running · unit-1', 'running · unit-2', 'running · unit-3');
       setVal(s.refs.succChip, '0');
       setVal(s.refs.failChip, '0');
@@ -234,9 +232,7 @@ const STEPS = [
     duration: 2600,
     narration: 'Both worker-1 and worker-2 exit 0, so .status.succeeded increments to 2. worker-3 exits with code 1, .status.failed becomes 1. The failed Pod is retained in Failed phase as a tombstone (visible in kubectl get pods until the Job is garbage-collected), so the post-mortem stays inspectable. A replacement still needs to run to reach completions=6.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setUnits(s, 'unit-1 done · exit 0', 'unit-2 done · exit 0', 'unit-3 FAILED · exit 1');
       setVal(s.refs.succChip, '2');
       setVal(s.refs.failChip, '1');
@@ -269,9 +265,7 @@ const STEPS = [
     duration: 3500,
     narration: 'Per spec.backoffLimit (default 6, total failures across the Job), the controller respawns a replacement Pod for the failed unit, gated by an exponential backoff that starts at 10s. Meanwhile worker-1 and worker-2 have finished, so fresh Pods take their slots for units 4 and 5 (each completion is its own Pod run, Pods are never reused). Three Pods active again, the parallelism cap respected.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setUnits(s, 'running · unit-4', 'running · unit-5', 'running · unit-3 (retry)');
       setVal(s.refs.succChip, '2');
       setVal(s.refs.failChip, '1');
@@ -295,9 +289,7 @@ const STEPS = [
     duration: 2200,
     narration: 'Between them the three workers have completed all 6 units, the last one (unit-6) just finishing on worker-1. .status.succeeded now equals .spec.completions (6), so the controller sets condition Complete=True and stops creating Pods. The earlier single failure stays counted in .status.failed, and the terminated Pods are retained until ttlSecondsAfterFinished elapses (Job auto-cleanup) or until kubectl delete job is issued.',
     enter(s, ctx) {
-      s.refs.packetLayer.replaceChildren();
-      clearHL(s);
-      clearWires(s);
+      resetStep(s);
       setUnits(s, 'unit-6 done · exit 0', 'unit-5 done · exit 0', 'unit-3 done · exit 0');
       setVal(s.refs.succChip, '6');
       setVal(s.refs.failChip, '1');
