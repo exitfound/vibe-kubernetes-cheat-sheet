@@ -29,7 +29,7 @@ looked-at card.
 
 | Check | Catches | Blind to | Gate |
 |---|---|---|---|
-| `check-canon` | source lint, 11 enforced rules (`R-desc`, `R-dash`, `R-kitparity`, `R-modulepath`, `R-poster`, `R-opacity`, `R-viewbox`, `R-rawpulse`, `R-ridinglabel`, `R-srclabel`, `R-srcdup`) | `makeInit`/`posterFirst`, kit-vs-`scheme-kit` imports, the `clearHL` prologue, `ctx.reduced` placement: convention, review-enforced | yes |
+| `check-canon` | source lint, 12 enforced rules (`R-desc`, `R-dash`, `R-kitparity`, `R-modulepath`, `R-poster`, `R-opacity`, `R-viewbox`, `R-rawpulse`, `R-ridinglabel`, `R-srclabel`, `R-srcdup`, `R-skeleton`), plus a skeleton CENSUS printed every run | `makeInit`/`posterFirst`, kit-vs-`scheme-kit` imports, `ctx.reduced` placement: convention, review-enforced | yes |
 | `check-notes` | every design-note anchor still points at code that exists | whether the note is still TRUE | yes |
 | `check-terms` | terminology and casing in `desc`, `narration`, every `aria-label` | meaning | yes |
 | `check-inline` | casing and component names of strings drawn ON the diagram, including chip values that reach the canvas through a wrapper | 43 non-chip indirect writes (`setBoxSublabel`, `setBoxLabel`, `setPodSublabel`, `setWire`) | yes |

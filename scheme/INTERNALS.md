@@ -86,7 +86,7 @@ Conventions: `s` is the Scene instance, `ctx` is the Timeline step context
 
 ```
 A chip whose value CHANGED this step lights, as a static highlight and never a flash. `valueText`
-still holds the previous step's text at call time, because clearHL clears the class and not the
+still holds the previous step's text at call time, because resetStep clears the class and not the
 text, and steps are always entered in order, so the diff is deterministic per step.
 
 RENAMING THIS BREAKS TWO LINTERS SILENTLY. `prose.mjs` resolves chip VALUES by finding a card-local
@@ -163,7 +163,8 @@ to the generic `.scheme-chip-rect` stroke rather than borrowing another category
 
 ```
 Clears `.highlight` from the given `s.refs` keys, every chain chip, and the pod stroke highlight on
-the given pod elements. Card-specific extras stay in the card's own `clearHL`.
+the given pod elements. Card-specific extras stay in the card's own `resetStep`, which wraps this
+call between the canvas clear and `clearWires`.
 
 THE TWO ARGUMENTS ARE NOT INTERCHANGEABLE, and confusing them is a leak no check sees. The `pods`
 argument runs `clearPodHighlight`, which resets the inline stroke styles a pulse leaves behind and

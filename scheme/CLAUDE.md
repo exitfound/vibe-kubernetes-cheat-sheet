@@ -156,10 +156,12 @@ Each category names its own exemplar to copy from, in its folder's `CLAUDE.md`.
    shows step 1's text, so a slot-0 string is read by nobody and a slot-0 wire label or lit block
    sits under the panel text of the step AFTER it. Nothing checks this: if a slot-0 `enter()` is
    longer than the prologue plus its chip resets, look at what it puts on screen.
-6. **Every `enter()` repaints from scratch**, opening with
-   `s.refs.packetLayer.replaceChildren(); clearHL(s); clearWires(s);`. Then it sets all chip values,
-   wire labels, `.highlight` classes and **pins final opacities inline**, so a cancel mid-step lands
-   on the right value.
+6. **Every `enter()` repaints from scratch**, opening with `resetStep(s);` and nothing before it.
+   That card-local function is the whole reset and its body is fixed in shape: the canvas clear
+   first, then the card's own `clearHighlights(...)` and any extras, then `clearWires(s)`. Only the
+   middle varies, which is why it stays per card. After it the step sets all chip values, wire
+   labels, `.highlight` classes and **pins final opacities inline**, so a cancel mid-step lands on
+   the right value. `R-skeleton` holds all of it.
 7. **The reduced-motion split is the load-bearing line.** Everything **above** `if (ctx.reduced)
    return;` is the complete static end-state; everything **below** is motion, and every animation
    goes through `ctx.register(...)`. Never animate state that is not also pinned statically above it.
@@ -433,9 +435,14 @@ Two things worth knowing before you trust a green run:
 - **`lib/sidebar.js` is duplicated, not symlinked** with the cli copy. Change one, change the other.
 - **`animateAlong` honors `options.delay`.** A bug dropping it made packets teleport invisibly during
   the delay window. Do not regress it.
-- **The card skeleton is deliberately not refactored.** `defineCard` was rejected; `class Scene`,
-  `clearHL` and the step prologue stay duplicated in every card. This is the one large remaining
-  source of duplication in the JS, and it is a decision, not an oversight.
+- **`defineCard` stays rejected, and what is left of the skeleton is 432 lines.** The step prologue
+  is folded (see `resetStep` above, 1105 lines), so what remains duplicated is `class Scene` with its
+  constructor, `reset() { this.build(); }` and the `makeInit` line: four lines a card, wrapping
+  `build()` and `STEPS`, which are 100% per card. A factory would wrap 99% unique content to share a
+  1% frame, and it costs more than the frame: any form that moves `setChips` out of a line-initial
+  `function` declaration is invisible to `prose.mjs`, which drops indirect coverage from 321 to 6
+  **at exit 0**. Revisit only if `build()` stops being per card, or if `prose.mjs` learns to read a
+  chip wrapper in another shape with a confirmed count of 321 or better.
 - **The `OPEN` findings in the four card records are not to be closed without a reason** (17 today:
   8 cluster, 5 storage, 3 workloads, 1 network). Each carries its own measurement and an explanation
   of why the rule can only be satisfied by making the picture worse.
