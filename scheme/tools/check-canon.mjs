@@ -101,10 +101,38 @@ const ENFORCED = new Set([
   'R-modulepath',
   // Enforced on arrival: 108 cards, 108 posters, an exact bijection the day the map was split.
   'R-poster',
+  // The card skeleton, which nothing checked until now: scheme/CLAUDE.md has always stated it and
+  // tools/README.md listed it under check-canon's blind spots. It prints a CENSUS, so a refactor of
+  // the skeleton is accepted against numbers rather than against "0 findings".
+  'R-skeleton',
 ]);
 const advisories = [];
 const violations = [];
 const report = (rule, msg) => (ENFORCED.has(rule) ? violations : advisories).push(`[${rule}] ${msg}`);
+
+// R-skeleton's census. Printed every run whether or not anything is wrong, because the acceptance
+// criterion for a skeleton refactor is these numbers moving the way the plan says they will.
+const skel = {
+  scenes: 0, ctors: 0, resets: 0, inits: 0, clearHLs: 0,
+  enters: 0, canvasResets: 0, clearHLCalls: 0, clearWiresCalls: 0, canonicalPrologues: 0,
+};
+
+// Bodies of every `enter(s)` / `enter(s, ctx)` in a card, by bracket matching rather than by regex:
+// a step whose first statements are reordered has to be COUNTED, not skipped.
+function enterBodies(code) {
+  const out = [];
+  for (const m of code.matchAll(/enter\(s(?:,\s*ctx)?\)\s*\{/g)) {
+    let d = 1, j = m.index + m[0].length;
+    const start = j;
+    while (d && j < code.length) {
+      if (code[j] === '{') d++;
+      else if (code[j] === '}') d--;
+      j++;
+    }
+    out.push(code.slice(start, j - 1));
+  }
+  return out;
+}
 
 // The two dash characters are built from their code points on purpose: writing either
 // one literally would make this file a violation of the rule it enforces.
@@ -218,6 +246,38 @@ for (const { base: f, path } of files) {
     if (/^String\([A-Za-z_$][\w$.[\]()]*\)$/.test(expr)) continue;   // same, wrapped
     if (!/\d*\.\d+/.test(expr)) continue;              // no shade in it at all: 0 / 1 / a ternary over them
     report('R-opacity', `${f}:${lineAt(m4.index)}  opacity ${expr} is neither 0, 1, nor an OPACITY.* shade`);
+  }
+
+  // ---- R-skeleton ----
+  // The module skeleton scheme/CLAUDE.md has always specified and nothing has ever checked. It
+  // reads the comment-stripped copy, so a card that only TALKS about class Scene is not a finding.
+  // Every count it takes feeds the census below: the point is that a refactor of the skeleton is
+  // accepted against a number, not against an empty finding list.
+  const once = (re, what) => {
+    const n = (code.match(re) || []).length;
+    if (n !== 1) report('R-skeleton', `${f}  ${what}: ${n} (exactly 1)`);
+    return n;
+  };
+  skel.scenes += once(/^class Scene \{$/m, 'class Scene');
+  skel.ctors += once(/^  constructor\(host[^)]*\) \{/m, 'constructor(host)');
+  skel.resets += once(/^  reset\(\) \{ this\.build\(\); \}$/m, 'reset() { this.build(); }');
+  skel.inits += once(/^export const init = makeInit\(Scene, STEPS, \{ posterFirst: true \}\);$/m, 'makeInit export');
+  skel.clearHLs += once(/^function clearHL\(s\) \{/m, 'function clearHL(s)');
+
+  // Per step: the prologue. enterBodies walks brackets rather than matching a fixed shape, so a
+  // step whose first statements are reordered is COUNTED as non-canonical instead of being missed.
+  for (const body of enterBodies(code)) {
+    skel.enters++;
+    const head = body.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3);
+    if (/^s\.refs\.packetLayer\.replaceChildren\(\)/.test(head[0] || '')) skel.canvasResets++;
+    else report('R-skeleton', `${f}  an enter() does not open with s.refs.packetLayer.replaceChildren()`);
+    if (/\bclearHL\(s\)/.test(body)) skel.clearHLCalls++;
+    else report('R-skeleton', `${f}  an enter() never calls clearHL(s)`);
+    if (/\bclearWires\(s\)/.test(body)) skel.clearWiresCalls++;
+    const canonical = /^s\.refs\.packetLayer\.replaceChildren\(\)/.test(head[0] || '')
+      && /^clearHL\(s\)/.test(head[1] || '')
+      && /^clearWires\(s\)/.test(head[2] || '');
+    if (canonical) skel.canonicalPrologues++;
   }
 }
 
@@ -406,6 +466,15 @@ if (advisories.length) {
   console.log('  (CANON_VERBOSE=1 lists every finding; a rule moves into ENFORCED once its list is empty)');
   if (process.env.CANON_VERBOSE) for (const a of advisories) console.log('    ' + a);
 }
+
+// The skeleton census, printed on every run including a failing one: it is the number a refactor is
+// accepted against. `inert clearWires` is the count of cards whose refs.wires is absent or empty, so
+// the call is a no-op there and its absence from a prologue costs nothing on screen.
+console.log(
+  `skeleton census: ${skel.scenes} Scene, ${skel.ctors} ctor, ${skel.resets} reset, ${skel.inits} makeInit, ` +
+  `${skel.clearHLs} clearHL decl\n` +
+  `  steps: ${skel.enters} enter(), ${skel.canvasResets} canvas resets, ${skel.clearHLCalls} clearHL calls, ` +
+  `${skel.clearWiresCalls} clearWires calls, ${skel.canonicalPrologues} canonical prologues`);
 
 if (violations.length) {
   console.error(`canon check FAILED: ${violations.length} violation(s):`);

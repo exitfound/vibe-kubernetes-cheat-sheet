@@ -164,9 +164,22 @@ if (unread.length) {
 console.log(`\ninline check: ${files.length} cards, ${scanned} strings, ${found} casing + ${nameFound} name finding(s)${fix ? `, ${changed} fixed` : ''}`);
 if (byKind.size) console.log('  ' + [...byKind].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '));
 if (audit) console.log('  left alone: ' + [...byReason].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', '));
-console.log(`  indirect (through a wrapper): ${indirectScanned} strings, ${indirect.length} finding(s), enforced`);
-// Unresolved writes are printed and counted but stay OUT of the exit code: 18 exist on 2026-08-04,
-// so failing on them would get the check switched off rather than the writes read. The count on
-// this line is the guard, it is in every run and a rise in it is visible.
-console.log(`  could not resolve: ${unreadWrites} write(s), reported only, not in the exit code`);
-process.exit(!fix && (found || nameFound || indirect.length) ? 1 : 0);
+// COVERAGE FLOOR. Zero findings over a set the resolver stopped reading is the failure mode this
+// check exists to have, not to avoid: hoisting setChip into the kit without teaching prose.mjs about
+// it once took indirect coverage from 321 to 114 at zero findings and exit 0. The acceptance
+// criterion for any refactor touching a card's wrapper shape is therefore a NUMBER.
+// Raise FLOOR when real coverage rises; never lower it to make a run pass.
+const COVERAGE_FLOOR = 321;
+const UNREAD_CEILING = 18;
+const floorBroken = indirectScanned < COVERAGE_FLOOR;
+const ceilingBroken = unreadWrites > UNREAD_CEILING;
+console.log(`  indirect (through a wrapper): ${indirectScanned} strings (floor ${COVERAGE_FLOOR}), ${indirect.length} finding(s), enforced`);
+console.log(`  could not resolve: ${unreadWrites} write(s) (ceiling ${UNREAD_CEILING}), reported only`);
+if (floorBroken) console.error(
+  `\nCOVERAGE FLOOR FAILED: the resolver read ${indirectScanned} indirect strings, ${COVERAGE_FLOOR - indirectScanned} fewer than it must.\n` +
+  '  prose.mjs finds a chip value by matching a card-local `function name(s, {...})` at the START of a line.\n' +
+  '  A wrapper moved into an object literal, turned into an arrow const, or indented inside a factory\n' +
+  '  becomes invisible to it, and this check then reports "0 finding(s)" over strings it never read.');
+if (ceilingBroken) console.error(
+  `\nUNREAD CEILING FAILED: ${unreadWrites} writes could not be resolved, ${unreadWrites - UNREAD_CEILING} more than the recorded ${UNREAD_CEILING}.`);
+process.exit(!fix && (found || nameFound || indirect.length || floorBroken || ceilingBroken) ? 1 : 0);
