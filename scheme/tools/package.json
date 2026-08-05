@@ -23,7 +23,10 @@
     "inline": "node check-inline.mjs",
     "labels": "node check-labels.mjs",
     "figures": "node check-figures.mjs",
-    "portrait": "node inline-dump.mjs"
+    "portrait": "node inline-dump.mjs",
+    "oracle": "node anim-dump.mjs --all --samples=0,10,25,50,75,90,100 --out=baselines/anim && node dom-dump.mjs --all --out=baselines/dom",
+    "oracle:base": "node anim-dump.mjs --all --samples=0,10,25,50,75,90,100 --out=baselines/anim-base && node dom-dump.mjs --all --out=baselines/dom-base",
+    "oracle:diff": "diff -rq baselines/anim-base baselines/anim && diff -rq baselines/dom-base baselines/dom && echo 'ORACLE CLEAN: motion and structure identical to the baseline'"
   },
   "devDependencies": {
     "playwright": "^1.47.0",
