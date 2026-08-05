@@ -8,8 +8,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Claude Code
-.claude/
+# Claude Code: settings.json and the hooks are shared, the local overrides are not
+.claude/settings.local.json
 
 # Local dev
 *.log
