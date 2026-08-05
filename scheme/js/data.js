@@ -24,7 +24,7 @@ export const SCHEMES = [
     subcategory: 'network-foundations',
     desc: 'What does Kubernetes actually promise about the network? The model is one flat address space: every Pod gets a cluster-unique IP, any Pod reaches any other Pod on any Node with no NAT so the real source IP is preserved, and the Node agent reaches every Pod on its own Node. None of this lives in the core, a CNI plugin like Calico, Cilium or Flannel is what wires Pods into the flat space. Three rules, and a conformant plugin upholds all three.',
     k8sVersion: '1.35',
-    module: './schemes/network-model.js',
+    module: './schemes/network/network-model.js',
     tinted: true,
     sources: [
       { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
@@ -38,7 +38,7 @@ export const SCHEMES = [
     subcategory: 'network-foundations',
     desc: 'What makes a Pod IP feel like a separate machine? A network namespace is a private copy of the Linux network stack, with its own interfaces, routing table, iptables rules and port space. The pause container holds one that every container in the Pod shares, so they reach each other over loopback, while a single veth pair is the only link to the host. Deleting the Pod releases the veth and the IP together, so nothing of that stack outlives it on the Node.',
     k8sVersion: '1.35',
-    module: './schemes/network-namespaces.js',
+    module: './schemes/network/network-namespaces.js',
     tinted: true,
     sources: [
       { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
@@ -52,7 +52,7 @@ export const SCHEMES = [
     subcategory: 'network-foundations',
     desc: 'Where does a Service ClusterIP come from when nobody assigns it? The cluster carves it out of one Service CIDR split into two bands: the allocator draws from the large dynamic band and falls back to the small static one only when that runs out, so a hand-picked address like kube-dns on 10.96.0.10 is never reserved, only unlikely to be taken. Each allocation is tracked by an IPAddress object, and a second ServiceCIDR grows the range with no downtime.',
     k8sVersion: '1.35',
-    module: './schemes/network-service-cidr.js',
+    module: './schemes/network/network-service-cidr.js',
     tinted: true,
     sources: [
       { label: 'Service ClusterIP Allocation', href: 'https://kubernetes.io/docs/concepts/services-networking/cluster-ip-allocation/' },
@@ -67,7 +67,7 @@ export const SCHEMES = [
     subcategory: 'network-foundations',
     desc: 'What changes when a cluster runs IPv4 and IPv6 side by side? The CNI gives every Pod one address per family on the same eth0, and a Service set to ipFamilyPolicy PreferDualStack gets one ClusterIP per family, ordered by ipFamilies. Where only one family exists, PreferDualStack falls back to a single ClusterIP while RequireDualStack fails the Service outright. A client resolves both A and AAAA records and connects over whichever family it prefers.',
     k8sVersion: '1.35',
-    module: './schemes/network-dualstack.js',
+    module: './schemes/network/network-dualstack.js',
     tinted: true,
     sources: [
       { label: 'IPv4/IPv6 Dual-Stack', href: 'https://kubernetes.io/docs/concepts/services-networking/dual-stack/' },
@@ -80,7 +80,7 @@ export const SCHEMES = [
     subcategory: 'network-foundations',
     desc: 'How does kube-proxy pick a backend, and why does the mode matter at scale? In iptables mode a packet to a ClusterIP walks KUBE-SERVICES into a per-Service chain that picks an endpoint by probability, then a per-endpoint chain DNATs it to the Pod. IPVS mode makes the same choice with an in-kernel hash table, trading the rule walk for constant-time lookup, though v1.35 deprecates it in favour of nftables. Either way conntrack pins the flow to the chosen backend.',
     k8sVersion: '1.35',
-    module: './schemes/network-kube-proxy-modes.js',
+    module: './schemes/network/network-kube-proxy-modes.js',
     tinted: true,
     sources: [
       { label: 'Virtual IPs and Service Proxies', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/' },
@@ -93,7 +93,7 @@ export const SCHEMES = [
     subcategory: 'network-foundations',
     desc: 'Why must the DNAT that kube-proxy programs run before routing? A packet enters at PREROUTING, where conntrack records the flow and the nat table rewrites the Service address to a backend Pod, and only then does routing run, on the already rewritten address. MASQUERADE sits at POSTROUTING for the mirror reason: only after routing is the source known. The reply is untangled by conntrack, walking no Service rule.',
     k8sVersion: '1.35',
-    module: './schemes/network-netfilter-path.js',
+    module: './schemes/network/network-netfilter-path.js',
     tinted: true,
     sources: [
       { label: 'Virtual IPs and Service Proxies', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/' },
@@ -108,7 +108,7 @@ export const SCHEMES = [
     subcategory: 'network-foundations',
     desc: 'How does the modern dataplane route Services without iptables? The CNI agent attaches eBPF programs to kernel hooks and keeps Service and endpoint state in BPF maps. A connection to a ClusterIP is then looked up and rewritten to a backend right at the socket: connect-time load balancing instead of per-packet DNAT, with constant-time lookups that let kube-proxy and its iptables chains be removed entirely. The rewrite lands before the first packet is built.',
     k8sVersion: '1.35',
-    module: './schemes/network-ebpf-dataplane.js',
+    module: './schemes/network/network-ebpf-dataplane.js',
     tinted: true,
     sources: [
       { label: 'Virtual IPs and Service Proxies', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/' },
@@ -122,7 +122,7 @@ export const SCHEMES = [
     subcategory: 'network-foundations',
     desc: 'A connection is more than one packet, so how does NAT remember the backend it picked? The first packet of a new flow creates a conntrack entry recording the original and translated tuples, and is DNAT-ed to a backend chosen once. Every later packet matches that stored entry instead of walking rules again, and the returning reply is what flips it to ESTABLISHED. That is why a flow sticks to one backend, and why a busy Node can exhaust the conntrack table.',
     k8sVersion: '1.35',
-    module: './schemes/network-conntrack-nat.js',
+    module: './schemes/network/network-conntrack-nat.js',
     tinted: true,
     sources: [
       { label: 'Virtual IPs and Service Proxies', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/' },
@@ -136,7 +136,7 @@ export const SCHEMES = [
     subcategory: 'pod-networking',
     desc: 'Why can an app and its sidecar reach each other over 127.0.0.1 with no network in between? Every container in a Pod joins the same network namespace, so they share one loopback, one eth0 and one Pod IP. Calls between them cross the loopback with no veth hop, and because the port space is shared too, two of them cannot bind the same port. From outside the Pod is one host, however many containers run inside, and every one of them answers on that single IP.',
     k8sVersion: '1.35',
-    module: './schemes/network-pod-localhost.js',
+    module: './schemes/network/network-pod-localhost.js',
     tinted: true,
     sources: [
       { label: 'Pod networking', href: 'https://kubernetes.io/docs/concepts/workloads/pods/#pod-networking' },
@@ -150,7 +150,7 @@ export const SCHEMES = [
     subcategory: 'pod-networking',
     desc: 'What are the two sanctioned ways to reach a Pod on the Node address itself? With hostNetwork true the Pod gets no network namespace of its own, no veth and no Pod IP, and binds the Node interfaces directly, which is how kube-proxy and a CNI agent run. A hostPort gives up nothing: the Pod keeps its namespace, its IP and its veth, and the portmap plugin only adds a DNAT rule. Both spend a Node port, so the scheduler fits only one such replica per Node.',
     k8sVersion: '1.35',
-    module: './schemes/network-hostnetwork-hostport.js',
+    module: './schemes/network/network-hostnetwork-hostport.js',
     tinted: true,
     sources: [
       { label: 'Pod networking', href: 'https://kubernetes.io/docs/concepts/workloads/pods/#pod-networking' },
@@ -165,7 +165,7 @@ export const SCHEMES = [
     subcategory: 'pod-networking',
     desc: 'How does every Pod in the cluster end up with a unique IP and no clashes? The cluster starts from one large pod CIDR, and the controller-manager, whenever it is started with --allocate-node-cidrs, carves a smaller non-overlapping slice out of it for each Node into node.spec.podCIDR. The CNI IPAM on that Node then hands out addresses only from its own slice, which keeps every Pod IP unique cluster-wide and keeps routing down to a single route per Node.',
     k8sVersion: '1.35',
-    module: './schemes/network-ipam-pod-cidr.js',
+    module: './schemes/network/network-ipam-pod-cidr.js',
     tinted: true,
     sources: [
       { label: 'kube-controller-manager', href: 'https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/' },
@@ -179,7 +179,7 @@ export const SCHEMES = [
     subcategory: 'pod-networking',
     desc: 'Who actually plumbs a Pod onto the network? The Kubelet asks the CRI runtime to create the Pod sandbox, a pause container holding a fresh network namespace with loopback only. The runtime then invokes the CNI ADD operation, and the plugin chain creates a veth pair, attaches it to the host and draws an IP from IPAM. That address and its routes land in the namespace as eth0, and the DNS rides back in the result.',
     k8sVersion: '1.35',
-    module: './schemes/network-cni-invocation.js',
+    module: './schemes/network/network-cni-invocation.js',
     tinted: true,
     sources: [
       { label: 'CNI Specification', href: 'https://github.com/containernetworking/cni/blob/main/SPEC.md' },
@@ -193,7 +193,7 @@ export const SCHEMES = [
     subcategory: 'pod-networking',
     desc: 'Where does a Pod get its IP, and how is it wired to the Node? The pause container opens one network namespace that every container in the Pod is joined into, so they share a single address and reach each other over localhost. When the sandbox starts the CNI plugin draws one Pod IP from its IPAM and builds a veth pair, moving one end into the namespace as eth0 and attaching the peer to the cni0 host bridge. That pair is the only way out.',
     k8sVersion: '1.35',
-    module: './schemes/network-pod-ip-and-veth.js',
+    module: './schemes/network/network-pod-ip-and-veth.js',
     tinted: true,
     sources: [
       { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
@@ -207,7 +207,7 @@ export const SCHEMES = [
     subcategory: 'pod-networking',
     desc: 'How does a packet get from one Pod to another when both run on the same Node? The two share the Node podCIDR subnet, so the source simply sends to the destination Pod IP and the frame crosses a veth pair onto the cni0 bridge. The bridge switches it straight out the peer veth at layer 2, with no NAT and no encapsulation anywhere, so the real source IP arrives intact and the packet never touches the physical NIC. ARP resolves the peer first.',
     k8sVersion: '1.35',
-    module: './schemes/network-pod-to-pod-same-node.js',
+    module: './schemes/network/network-pod-to-pod-same-node.js',
     tinted: true,
     sources: [
       { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
@@ -220,7 +220,7 @@ export const SCHEMES = [
     subcategory: 'pod-networking',
     desc: 'What happens when the destination Pod lives on a different Node? The local bridge has no port for that Pod, so the CNI takes over the inter-Node hop. An overlay plugin wraps the frame in VXLAN over UDP to the remote Node IP, whose kernel decapsulates it and delivers it through its own bridge, while a routed plugin instead advertises each Node podCIDR so the frame travels unwrapped, trading the MTU overhead for a network that carries Pod routes.',
     k8sVersion: '1.35',
-    module: './schemes/network-pod-to-pod-cross-node.js',
+    module: './schemes/network/network-pod-to-pod-cross-node.js',
     tinted: true,
     sources: [
       { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
@@ -233,7 +233,7 @@ export const SCHEMES = [
     subcategory: 'pod-networking',
     desc: 'A Pod IP is private to the cluster, so how does a Pod reach the internet and get a reply back? As the packet leaves the Node an iptables MASQUERADE rule rewrites its source from the Pod IP to the Node IP, and conntrack records the mapping it made. The server replies to the Node, conntrack reverses the translation, and the reply lands on the Pod, which never learns that its address was rewritten at all. Traffic that stays inside the cluster is left alone.',
     k8sVersion: '1.35',
-    module: './schemes/network-pod-egress-snat.js',
+    module: './schemes/network/network-pod-egress-snat.js',
     tinted: true,
     sources: [
       { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
@@ -247,7 +247,7 @@ export const SCHEMES = [
     subcategory: 'services-endpoints',
     desc: 'Kubernetes has four Service types plus a headless variant, so how do they relate? Three of them stack: ClusterIP is the internal base with a virtual IP, NodePort builds on it by opening the same port on every Node, and LoadBalancer builds on NodePort with a cloud address. ExternalName and headless skip the proxy and work through DNS alone. Only the first three ever program anything into kube-proxy, and on bare metal LoadBalancer needs an add-on.',
     k8sVersion: '1.35',
-    module: './schemes/network-service-types.js',
+    module: './schemes/network/network-service-types.js',
     tinted: true,
     sources: [
       { label: 'Service', href: 'https://kubernetes.io/docs/concepts/services-networking/service/' },
@@ -261,7 +261,7 @@ export const SCHEMES = [
     subcategory: 'services-endpoints',
     desc: 'A ClusterIP belongs to no network interface, so what makes traffic to it reach a Pod? The kube-proxy watches the Service and its EndpointSlices and programs the Node dataplane so any packet sent to that address is DNAT-ed to one of the backing Pod IPs. Connection tracking remembers each choice, so a connection sticks to its backend and the reply is rewritten back to the ClusterIP. The client only sees one address.',
     k8sVersion: '1.35',
-    module: './schemes/network-service-clusterip.js',
+    module: './schemes/network/network-service-clusterip.js',
     tinted: true,
     sources: [
       { label: 'Service', href: 'https://kubernetes.io/docs/concepts/services-networking/service/' },
@@ -275,7 +275,7 @@ export const SCHEMES = [
     subcategory: 'services-endpoints',
     desc: 'A Service is a stable name for a moving set of Pods, so how does it learn which ones back it now? The EndpointSlice controller watches Pods matching the selector and records each as an IP and port. Readiness gates the serving set, not liveness, so a Pod failing its readiness probe is flagged notReady and excluded with no restart, and kube-proxy reprograms from the slice. Slices exist because Endpoints did not scale: each caps at 100 endpoints by default.',
     k8sVersion: '1.35',
-    module: './schemes/network-endpointslice-reconcile.js',
+    module: './schemes/network/network-endpointslice-reconcile.js',
     tinted: true,
     sources: [
       { label: 'Service', href: 'https://kubernetes.io/docs/concepts/services-networking/service/' },
@@ -289,7 +289,7 @@ export const SCHEMES = [
     subcategory: 'services-endpoints',
     desc: 'How does kube-proxy choose which backend gets a connection, and can you steer it? By default it spreads connections evenly across every ready endpoint and ignores zones. Two fields tune that: sessionAffinity ClientIP pins a client source IP to one Pod for a sticky window that defaults to three hours, and trafficDistribution PreferSameZone favours endpoints in the client zone, falling back cluster-wide when that zone has none ready.',
     k8sVersion: '1.35',
-    module: './schemes/network-traffic-distribution.js',
+    module: './schemes/network/network-traffic-distribution.js',
     tinted: true,
     sources: [
       { label: 'Topology Aware Routing', href: 'https://kubernetes.io/docs/concepts/services-networking/topology-aware-routing/' },
@@ -303,7 +303,7 @@ export const SCHEMES = [
     subcategory: 'services-endpoints',
     desc: 'What keeps a call from inside the cluster on the Node it started on? The internalTrafficPolicy field is the east-west twin of externalTrafficPolicy, with the same two values. Cluster programs every ready endpoint, so a call can be DNAT-ed across Nodes and pay a hop. Local keeps only endpoints on that Node, which is how a Pod reaches a node-local DaemonSet agent, and it has no fallback, so a Node with no local backend drops the call.',
     k8sVersion: '1.35',
-    module: './schemes/network-internal-traffic-policy.js',
+    module: './schemes/network/network-internal-traffic-policy.js',
     tinted: true,
     sources: [
       { label: 'Service Internal Traffic Policy', href: 'https://kubernetes.io/docs/concepts/services-networking/service-traffic-policy/' },
@@ -317,7 +317,7 @@ export const SCHEMES = [
     subcategory: 'services-endpoints',
     desc: 'A Service has two port numbers that are easy to mix up, so which does what? The port is the stable front door clients dial, while the targetPort is what the container actually listens on, and they need not match because kube-proxy rewrites the destination port as it DNATs, though leaving targetPort out defaults it to the same number as port. The targetPort can even be a name each Pod resolves to its own containerPort.',
     k8sVersion: '1.35',
-    module: './schemes/network-service-ports.js',
+    module: './schemes/network/network-service-ports.js',
     tinted: true,
     sources: [
       { label: 'Service', href: 'https://kubernetes.io/docs/concepts/services-networking/service/' },
@@ -331,7 +331,7 @@ export const SCHEMES = [
     subcategory: 'services-endpoints',
     desc: 'When a rolling update deletes a backing Pod, why do requests keep flowing instead of failing? The Pod enters Terminating and its endpoint flips to notReady while serving and terminating stay true, so kube-proxy stops sending new connections but keeps draining the in-flight ones. Only after the grace period does the endpoint leave the slice, so a clean rollout drops nothing. The window is the grace period, no more.',
     k8sVersion: '1.35',
-    module: './schemes/network-service-terminating-endpoints.js',
+    module: './schemes/network/network-service-terminating-endpoints.js',
     tinted: true,
     sources: [
       { label: 'EndpointSlices', href: 'https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/' },
@@ -346,7 +346,7 @@ export const SCHEMES = [
     subcategory: 'services-endpoints',
     desc: 'Most Services proxy to Pods chosen by a selector, so how do the two kinds without one work? A type ExternalName Service has no ClusterIP, CoreDNS returns a CNAME and the client connects there with kube-proxy never involved, which can break HTTP and TLS because the client still dialed the in-cluster name and no certificate matches it. A selectorless ClusterIP Service keeps a virtual IP but gets no automatic endpoints, so you attach an EndpointSlice by hand.',
     k8sVersion: '1.35',
-    module: './schemes/network-externalname.js',
+    module: './schemes/network/network-externalname.js',
     tinted: true,
     sources: [
       { label: 'ExternalName Services', href: 'https://kubernetes.io/docs/concepts/services-networking/service/#externalname' },
@@ -360,7 +360,7 @@ export const SCHEMES = [
     subcategory: 'dns-service-discovery',
     desc: 'When a Pod connects to a Service by name, who turns that name into an IP? The Kubelet writes a resolv.conf pointing at the kube-dns ClusterIP, so the query reaches a CoreDNS Pod where the plugin chain checks its cache first and falls through to the kubernetes plugin on a miss. That plugin answers the cluster zone from its own watch of Services and EndpointSlices, never querying the API per lookup, and returns an A record holding the ClusterIP.',
     k8sVersion: '1.35',
-    module: './schemes/network-dns-coredns.js',
+    module: './schemes/network/network-dns-coredns.js',
     tinted: true,
     sources: [
       { label: 'DNS for Services and Pods', href: 'https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/' },
@@ -373,7 +373,7 @@ export const SCHEMES = [
     subcategory: 'dns-service-discovery',
     desc: 'What decides the shape of the DNS answer a cluster gives back? A Service name is really web.default.svc.cluster.local, built from the Service, its namespace, the literal svc and the cluster domain, and that svc segment is what marks it a Service record. The name returns an A record holding the ClusterIP, or one A record per ready Pod when headless, while a named port publishes SRV under a _http._tcp prefix. A Pod answers at 10-244-2-7.default.pod.cluster.local.',
     k8sVersion: '1.35',
-    module: './schemes/network-dns-records.js',
+    module: './schemes/network/network-dns-records.js',
     tinted: true,
     sources: [
       { label: 'DNS for Services and Pods', href: 'https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/' },
@@ -386,7 +386,7 @@ export const SCHEMES = [
     subcategory: 'dns-service-discovery',
     desc: 'Why can one name that does not exist cost eight DNS queries? A name with fewer dots than ndots counts as relative, so the resolver appends each search domain in turn and tries the name as written only once the list runs out. A name that exists is answered on the first candidate, one that does not walks all four of them, and since the resolver asks for IPv4 and IPv6 in parallel the miss doubles again. A trailing dot skips the walk.',
     k8sVersion: '1.35',
-    module: './schemes/network-dns-ndots.js',
+    module: './schemes/network/network-dns-ndots.js',
     tinted: true,
     sources: [
       { label: 'DNS for Services and Pods', href: 'https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/' },
@@ -400,7 +400,7 @@ export const SCHEMES = [
     subcategory: 'dns-service-discovery',
     desc: 'Why does cluster DNS stall for five seconds under load? Without a local cache every lookup is a UDP packet that kube-proxy DNATs across the cluster to a CoreDNS Pod, adding a conntrack entry per query, and the races on those short flows are what surface as the stalls. NodeLocal DNSCache puts a DaemonSet agent on every Node, so a cached name is answered on the host with no DNAT and only a miss travels upstream.',
     k8sVersion: '1.35',
-    module: './schemes/network-nodelocal-dnscache.js',
+    module: './schemes/network/network-nodelocal-dnscache.js',
     tinted: true,
     sources: [
       { label: 'NodeLocal DNSCache', href: 'https://kubernetes.io/docs/tasks/administer-cluster/nodelocaldns/' },
@@ -414,7 +414,7 @@ export const SCHEMES = [
     subcategory: 'dns-service-discovery',
     desc: 'What does a Service with clusterIP None give you instead of a virtual IP? Nothing is programmed into kube-proxy, so CoreDNS returns one A record per ready Pod and the client opens its connection to a Pod IP directly, with no DNAT anywhere in the path. Nothing balances that traffic either, and each StatefulSet Pod gains a stable name, so web-0.web.default.svc.cluster.local always resolves to that exact replica.',
     k8sVersion: '1.35',
-    module: './schemes/network-headless-service.js',
+    module: './schemes/network/network-headless-service.js',
     tinted: true,
     sources: [
       { label: 'Headless Services', href: 'https://kubernetes.io/docs/concepts/services-networking/service/#headless-services' },
@@ -428,7 +428,7 @@ export const SCHEMES = [
     subcategory: 'external-traffic',
     desc: 'A request from the public internet does not reach a Pod in one jump, so what is the chain? The client dials the public IP of a cloud load balancer, which forwards to a Node on the Service NodePort, and the kube-proxy there DNATs the packet to a backing Pod IP while conntrack pins the flow. The reply retraces every hop in reverse, so the client sees an answer from the address it dialed. Three hops out, three back.',
     k8sVersion: '1.35',
-    module: './schemes/network-north-south-path.js',
+    module: './schemes/network/network-north-south-path.js',
     tinted: true,
     sources: [
       { label: 'Publishing Services', href: 'https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types' },
@@ -442,7 +442,7 @@ export const SCHEMES = [
     subcategory: 'external-traffic',
     desc: 'How does traffic from outside the cluster reach a Pod? A NodePort opens the same high port on every Node, so a packet to any Node on that port is DNAT-ed to a backing Pod, and under the default externalTrafficPolicy Cluster that Pod may well be running on another Node. A LoadBalancer builds on top: the cloud-controller-manager provisions an external balancer whose targets are those Node ports, giving clients one stable address in front.',
     k8sVersion: '1.35',
-    module: './schemes/network-nodeport-loadbalancer.js',
+    module: './schemes/network/network-nodeport-loadbalancer.js',
     tinted: true,
     sources: [
       { label: 'Service', href: 'https://kubernetes.io/docs/concepts/services-networking/service/' },
@@ -456,7 +456,7 @@ export const SCHEMES = [
     subcategory: 'external-traffic',
     desc: 'Who provisions the load balancer when there is no cloud? Nobody, so the Service stays pending forever until something in-cluster fills the gap. MetalLB allocates an address from a pool the operator declares and then announces it, either in layer 2 mode where one elected Node answers ARP and takes all inbound traffic, or in BGP mode where every Node advertises it and the router hashes flows. Only BGP spreads the ingress across Nodes.',
     k8sVersion: '1.35',
-    module: './schemes/network-loadbalancer-bare-metal.js',
+    module: './schemes/network/network-loadbalancer-bare-metal.js',
     tinted: true,
     sources: [
       { label: 'Service type LoadBalancer', href: 'https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer' },
@@ -470,7 +470,7 @@ export const SCHEMES = [
     subcategory: 'external-traffic',
     desc: 'When external traffic lands on a Node, should it spread evenly or keep the client IP? With externalTrafficPolicy Cluster the packet can go to a backend on any Node, which balances load but can add a hop and SNATs the client source IP away. With Local the Node serves only its own Pods, preserving the client IP, at the cost of dropping traffic where no local backend exists. A health check steers the balancer away from Nodes that have no local backend.',
     k8sVersion: '1.35',
-    module: './schemes/network-externaltrafficpolicy.js',
+    module: './schemes/network/network-externaltrafficpolicy.js',
     tinted: true,
     sources: [
       { label: 'ExternalTrafficPolicy', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/#external-traffic-policy' },
@@ -483,7 +483,7 @@ export const SCHEMES = [
     subcategory: 'external-traffic',
     desc: 'Why does the backend see the proxy address instead of the real client? An edge proxy opens a connection of its own, so for HTTP it writes the original address into X-Forwarded-For and the standard Forwarded header, which a client can forge, so only the value your own trusted edge wrote may be believed. For raw TCP there is no header, so the PROXY protocol prepends a preamble the backend must expect or it reads it as request bytes.',
     k8sVersion: '1.35',
-    module: './schemes/network-client-ip-preservation.js',
+    module: './schemes/network/network-client-ip-preservation.js',
     tinted: true,
     sources: [
       { label: 'Preserving the client source IP', href: 'https://kubernetes.io/docs/tutorials/services/source-ip/' },
@@ -497,7 +497,7 @@ export const SCHEMES = [
     subcategory: 'external-traffic',
     desc: 'An Ingress object is only a set of host and path rules, so what actually serves the traffic? An Ingress controller Pod watches the objects that name its ingressClassName and turns them into live proxy configuration, reached through a Service of its own. It matches the request Host and path against the rules, longest match wins, and most controllers proxy straight to a Ready Pod IP from the EndpointSlice. TLS terminates at the controller.',
     k8sVersion: '1.35',
-    module: './schemes/network-ingress-routing.js',
+    module: './schemes/network/network-ingress-routing.js',
     tinted: true,
     sources: [
       { label: 'Ingress', href: 'https://kubernetes.io/docs/concepts/services-networking/ingress/' },
@@ -511,7 +511,7 @@ export const SCHEMES = [
     subcategory: 'external-traffic',
     desc: 'Where does HTTPS stop on the way to a Pod? Clients reach the cluster over TLS while backend Pods usually speak plain HTTP, so the Ingress or Gateway presents a certificate from a Kubernetes Secret, completes the handshake, and proxies plain HTTP to a Pod that never sees one. The Ingress API defines only port 443, so re-encrypt to the backend and passthrough are controller extensions or Gateway API modes.',
     k8sVersion: '1.35',
-    module: './schemes/network-tls-termination.js',
+    module: './schemes/network/network-tls-termination.js',
     tinted: true,
     sources: [
       { label: 'Ingress TLS', href: 'https://kubernetes.io/docs/concepts/services-networking/ingress/#tls' },
@@ -525,7 +525,7 @@ export const SCHEMES = [
     subcategory: 'external-traffic',
     desc: 'How does the Gateway API split ingress across the teams that own its parts? A GatewayClass names the controller implementation, a Gateway declares the listeners and belongs to cluster operators, and an HTTPRoute attaches to that Gateway with the host and path rules an application team controls. A listener takes routes from its own namespace until allowedRoutes opens it, so the operator decides who may attach. The role split is why it succeeds Ingress.',
     k8sVersion: '1.35',
-    module: './schemes/network-gateway-api.js',
+    module: './schemes/network/network-gateway-api.js',
     tinted: true,
     sources: [
       { label: 'Gateway API', href: 'https://kubernetes.io/docs/concepts/services-networking/gateway/' },
@@ -539,7 +539,7 @@ export const SCHEMES = [
     subcategory: 'controllers',
     desc: 'How do you move every Pod to a new version without taking the app offline? A Deployment rolls the change out gradually, bringing up Pods on the new version a few at a time and retiring old ones as the replacements report Ready, so the Service always keeps enough backends. The maxSurge and maxUnavailable dials, 25% each by default, set how wide that window is, and only at maxUnavailable 0 is an old Pod guaranteed to stay until its replacement serves.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-rolling-update.js',
+    module: './schemes/workloads/workloads-rolling-update.js',
     tinted: true,
     sources: [
       { label: 'Rolling Update Deployment', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment' },
@@ -552,7 +552,7 @@ export const SCHEMES = [
     subcategory: 'controllers',
     desc: 'A rollout went bad, so how do you get back to the version that worked? A Deployment keeps its old ReplicaSets as numbered revisions, so a rollback sends the broken one to zero and brings the previous one back to full, which a stuck rollout never left. That history undoes a bad change in one command, and revisionHistoryLimit, 10 by default, caps it: a pruned ReplicaSet takes its revision with it. A rollback creates a new revision rather than erasing the bad one.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-deployment-rollback.js',
+    module: './schemes/workloads/workloads-deployment-rollback.js',
     tinted: true,
     sources: [
       { label: 'Rolling Back a Deployment', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-back-a-deployment' },
@@ -565,7 +565,7 @@ export const SCHEMES = [
     subcategory: 'volume-foundations',
     desc: 'What does it mean for a Pod to have a volume, and who does it belong to? It is declared once at the Pod level under spec.volumes and mounted into each container at volumeMounts, possibly at a different path. Because it belongs to the Pod, not to any container, two containers that mount it share every write and data outlives a crash. Delete the Pod and an ephemeral volume goes too, the gap persistent storage closes.',
     k8sVersion: '1.35',
-    module: './schemes/storage-volume-model.js',
+    module: './schemes/storage/storage-volume-model.js',
     tinted: true,
     sources: [
       { label: 'Volumes', href: 'https://kubernetes.io/docs/concepts/storage/volumes/' },
@@ -579,7 +579,7 @@ export const SCHEMES = [
     subcategory: 'volume-foundations',
     desc: 'Why does a file written inside a container vanish on restart, but a file on a volume does not? A container root filesystem is a stack of read-only image layers with one thin writable layer on top, merged by overlayfs, and that writable layer is thrown away when the container is removed. A mounted volume is a hole punched straight through the overlay to real storage. Editing a file from an image copies it up first, which is why a volume outlives the container.',
     k8sVersion: '1.35',
-    module: './schemes/storage-container-filesystem.js',
+    module: './schemes/storage/storage-container-filesystem.js',
     tinted: true,
     sources: [
       { label: 'Why volumes are important', href: 'https://kubernetes.io/docs/concepts/storage/volumes/#why-volumes-are-important' },
@@ -593,7 +593,7 @@ export const SCHEMES = [
     subcategory: 'volume-foundations',
     desc: 'Where does an emptyDir live, and exactly when does it disappear? It is created empty the moment the Pod is assigned to a Node, sits on that Node disk, and is shared by every container in the Pod. It survives a container restarting but is deleted forever when the Pod leaves the Node. Set medium to Memory and it becomes tmpfs sized to the sizeLimit, so a write past it fails, while on disk that same limit gets the Pod evicted instead.',
     k8sVersion: '1.35',
-    module: './schemes/storage-emptydir.js',
+    module: './schemes/storage/storage-emptydir.js',
     tinted: true,
     sources: [
       { label: 'emptyDir', href: 'https://kubernetes.io/docs/concepts/storage/volumes/#emptydir' },
@@ -607,7 +607,7 @@ export const SCHEMES = [
     subcategory: 'volume-foundations',
     desc: 'Why does a hostPath look like persistent storage and quietly is not? It mounts a path on the Node itself, and type Directory demands that it already exist while only DirectoryOrCreate makes one, so the data stays behind on that one Node when the Pod is gone. Pointed at the runtime socket it hands over the whole Node, which is why the Baseline and Restricted Pod Security Standards forbid it outright. It is a Node-agent tool, never an application one.',
     k8sVersion: '1.35',
-    module: './schemes/storage-hostpath.js',
+    module: './schemes/storage/storage-hostpath.js',
     tinted: true,
     sources: [
       { label: 'hostPath', href: 'https://kubernetes.io/docs/concepts/storage/volumes/#hostpath' },
@@ -621,7 +621,7 @@ export const SCHEMES = [
     subcategory: 'volume-foundations',
     desc: 'How does a ConfigMap become files, and why does an update never show a half-written config? Each key becomes a file, and Kubelet writes them into a timestamped directory then flips one ..data symlink, so every update is atomic. Changes arrive on the sync period, up to about a minute, and nothing restarts the app. A subPath mount opts out and never updates, and a Secret defaults to tmpfs so it never touches the disk.',
     k8sVersion: '1.35',
-    module: './schemes/storage-configmap-secret-mount.js',
+    module: './schemes/storage/storage-configmap-secret-mount.js',
     tinted: true,
     sources: [
       { label: 'ConfigMaps', href: 'https://kubernetes.io/docs/concepts/configuration/configmap/' },
@@ -635,7 +635,7 @@ export const SCHEMES = [
     subcategory: 'volume-foundations',
     desc: 'What if one directory needs a ConfigMap, a Secret, Pod metadata and an API token at once? A projected volume assembles all of them into a single mount, and the serviceAccountToken source is the one that matters. Unlike the old Secret-based token that never expired, a projected token is short-lived and audience-bound, and Kubelet rotates it in place before it expires. The app just keeps reading one valid file.',
     k8sVersion: '1.35',
-    module: './schemes/storage-projected-volume.js',
+    module: './schemes/storage/storage-projected-volume.js',
     tinted: true,
     sources: [
       { label: 'Projected Volumes', href: 'https://kubernetes.io/docs/concepts/storage/projected-volumes/' },
@@ -649,7 +649,7 @@ export const SCHEMES = [
     subcategory: 'volume-foundations',
     desc: 'A container fills the Node disk with logs, so which Pod gets evicted and why? Two separate paths exist: limits.ephemeral-storage evicts that one Pod the instant its writable layer, disk-backed emptyDir and logs exceed it, however healthy the Node is. Node-pressure eviction instead has Kubelet report DiskPressure on the Node, then takes the Pods over their request first, ranked by Priority and by how far over each sits. It can take a Pod inside its own limit.',
     k8sVersion: '1.35',
-    module: './schemes/storage-ephemeral-storage-eviction.js',
+    module: './schemes/storage/storage-ephemeral-storage-eviction.js',
     tinted: true,
     sources: [
       { label: 'Local Ephemeral Storage', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#local-ephemeral-storage' },
@@ -663,7 +663,7 @@ export const SCHEMES = [
     subcategory: 'volume-foundations',
     desc: 'Two volumes in one Pod, both written to, so why does only one survive a reschedule? An emptyDir is tied to the Node, so a Pod that is deleted and lands elsewhere comes back completely empty. A PersistentVolumeClaim is tied to nothing but the claim, so it reattaches the very same disk with the data intact. Same Pod spec, two outcomes: scratch goes in an emptyDir, anything you keep goes behind a PVC, which is an object with a life of its own.',
     k8sVersion: '1.35',
-    module: './schemes/storage-ephemeral-vs-persistent.js',
+    module: './schemes/storage/storage-ephemeral-vs-persistent.js',
     tinted: true,
     sources: [
       { label: 'Persistent Volumes', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/' },
@@ -677,7 +677,7 @@ export const SCHEMES = [
     subcategory: 'volumes-claims',
     desc: 'A PersistentVolumeClaim is a request, not storage, so who turns it into a real disk? The binding controller scans the volumes that are Available, throws out the ones too small, of the wrong class or short on access mode, and pairs the claim with one that satisfies all three by writing the link on both objects at once. That pairing is exclusive and permanent, so a second claim for the same volume waits until a volume it can have appears.',
     k8sVersion: '1.35',
-    module: './schemes/storage-pvc-binding.js',
+    module: './schemes/storage/storage-pvc-binding.js',
     tinted: true,
     sources: [
       { label: 'Persistent Volumes', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/' },
@@ -691,7 +691,7 @@ export const SCHEMES = [
     subcategory: 'volumes-claims',
     desc: 'Binding only works if a matching volume already exists, so what happens when none does? The claim names a StorageClass, that class names a provisioner, and the provisioner watches for Pending claims pointing at it. It calls CreateVolume on the driver to carve a real disk out of the backend, then writes a PersistentVolume to represent it, already carrying that claimRef. The disk is built to order for that one claim.',
     k8sVersion: '1.35',
-    module: './schemes/storage-dynamic-provisioning.js',
+    module: './schemes/storage/storage-dynamic-provisioning.js',
     tinted: true,
     sources: [
       { label: 'Dynamic Provisioning', href: 'https://kubernetes.io/docs/concepts/storage/dynamic-provisioning/' },
@@ -705,7 +705,7 @@ export const SCHEMES = [
     subcategory: 'volumes-claims',
     desc: 'ReadWriteOnce sounds like one Pod, so why can two Pods share the same volume? Because the mode is per Node, not per Pod: once a block disk is attached to a Node, any Pod scheduled there can mount it, while a Pod elsewhere gets a Multi-Attach error. ReadWriteMany needs a shared filesystem like NFS rather than a raw disk. Mostly the mode is a request the driver honours, and ReadWriteOncePod is the one Kubernetes enforces itself.',
     k8sVersion: '1.35',
-    module: './schemes/storage-access-modes.js',
+    module: './schemes/storage/storage-access-modes.js',
     tinted: true,
     sources: [
       { label: 'Access Modes', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes' },
@@ -719,7 +719,7 @@ export const SCHEMES = [
     subcategory: 'volumes-claims',
     desc: 'Two claims for identical disks, one field apart, so why does only one come back with a filesystem? The volumeMode field is Filesystem unless you say otherwise, so the CSI node service runs mkfs on a blank device, mounts it, and the container finds a directory. Set it to Block and the raw device is published instead, so fsGroup, subPath and file permissions stop applying. The field is immutable and must match on both.',
     k8sVersion: '1.35',
-    module: './schemes/storage-volume-mode.js',
+    module: './schemes/storage/storage-volume-mode.js',
     tinted: true,
     sources: [
       { label: 'Volume Mode', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/#volume-mode' },
@@ -733,7 +733,7 @@ export const SCHEMES = [
     subcategory: 'volumes-claims',
     desc: 'Bumping a PVC to a bigger size grows nothing on its own, so what makes a Pod see more space? The API accepts the edit only if allowVolumeExpansion is true on the StorageClass, then runs two phases: the external-resizer grows the disk, and Kubelet grows the filesystem, a phase a raw block volume skips entirely. Where that filesystem grows online the room appears with no restart. Shrinking is refused, there being no safe way to shrink a live filesystem.',
     k8sVersion: '1.35',
-    module: './schemes/storage-volume-expansion.js',
+    module: './schemes/storage/storage-volume-expansion.js',
     tinted: true,
     sources: [
       { label: 'Expanding Persistent Volumes Claims', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/#expanding-persistent-volumes-claims' },
@@ -747,7 +747,7 @@ export const SCHEMES = [
     subcategory: 'volumes-claims',
     desc: 'You run kubectl delete pvc and the claim sits in Terminating, so what is holding it? The pvc-protection finalizer, added at creation: while a Pod still mounts the claim the deletionTimestamp is set but the delete never completes, because pulling storage from a running Pod would break it. Only kubectl prints Terminating, the phase stays Bound the whole time, and only the last consuming Pod leaving frees it. The fix is finding that Pod.',
     k8sVersion: '1.35',
-    module: './schemes/storage-pvc-protection.js',
+    module: './schemes/storage/storage-pvc-protection.js',
     tinted: true,
     sources: [
       { label: 'Storage Object in Use Protection', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection' },
@@ -761,7 +761,7 @@ export const SCHEMES = [
     subcategory: 'volumes-claims',
     desc: 'You delete a PVC, so does the disk full of data go with it? One field on the PV decides, inherited from the StorageClass, which defaults to Delete for anything dynamically provisioned. Under Delete the controller calls DeleteVolume, wipes the backing disk and removes the PV object, so the data is gone for good. Under Retain nothing is touched, but the volume parks in Released with a stale claimRef that only an administrator can clear by hand.',
     k8sVersion: '1.35',
-    module: './schemes/storage-reclaim-policy.js',
+    module: './schemes/storage/storage-reclaim-policy.js',
     tinted: true,
     sources: [
       { label: 'Reclaiming', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/#reclaiming' },
@@ -775,7 +775,7 @@ export const SCHEMES = [
     subcategory: 'volumes-claims',
     desc: 'What does the phase of a PersistentVolume track, and what moves it from one to the next? A fresh volume is Available, binding a claim flips it to Bound, and deleting that claim sends it to Released rather than back, because the claimRef stays behind and goes stale. From there the reclaim policy decides the ending, and only one edge leads back, cleared by hand. A failed Delete parks it in Failed, where automatic cleanup gives up and a person takes over.',
     k8sVersion: '1.35',
-    module: './schemes/storage-pv-lifecycle-phases.js',
+    module: './schemes/storage/storage-pv-lifecycle-phases.js',
     tinted: true,
     sources: [
       { label: 'Lifecycle of a Volume and Claim', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/#lifecycle-of-a-volume-and-claim' },
@@ -789,7 +789,7 @@ export const SCHEMES = [
     subcategory: 'csi-mount-path',
     desc: 'Kubernetes core has no code for any storage vendor, so how does an EBS or Ceph disk get mounted? A CSI driver ships in two halves: the controller plugin runs as a Deployment or StatefulSet whose sidecars each watch one kind of object and turn it into one gRPC call, and the node plugin is a DaemonSet that registers with Kubelet. Only the node plugin ever mounts the volume on the Node. The sidecars bridge a vendor core never knew.',
     k8sVersion: '1.35',
-    module: './schemes/storage-csi-architecture.js',
+    module: './schemes/storage/storage-csi-architecture.js',
     tinted: true,
     sources: [
       { label: 'CSI Volumes', href: 'https://kubernetes.io/docs/concepts/storage/volumes/#csi' },
@@ -804,7 +804,7 @@ export const SCHEMES = [
     subcategory: 'csi-mount-path',
     desc: 'A new claim is not a mounted disk, so what happens between the two? Four gRPC calls run in order: CreateVolume makes the disk exist, ControllerPublishVolume attaches it to the Node, NodeStageVolume formats it only if it is still blank and mounts it once at a global staging path, and NodePublishVolume bind-mounts that into the Pod. Stage runs once per Node, publish once per Pod, which is how Pods on one Node share a single disk.',
     k8sVersion: '1.35',
-    module: './schemes/storage-csi-attach-mount.js',
+    module: './schemes/storage/storage-csi-attach-mount.js',
     tinted: true,
     sources: [
       { label: 'CSI Volumes', href: 'https://kubernetes.io/docs/concepts/storage/volumes/#csi' },
@@ -819,7 +819,7 @@ export const SCHEMES = [
     subcategory: 'csi-mount-path',
     desc: 'What is the cluster record that a disk is attached to a Node, and who writes it? Not the Pod and not Kubelet: the attach-detach controller decides a volume must be attached and writes a VolumeAttachment object. The external-attacher watches those, calls ControllerPublishVolume, and sets status.attached true, and only then does Kubelet mount. Deleting that object, not the Pod, is what triggers the detach, which is why a slot stays taken until it is gone.',
     k8sVersion: '1.35',
-    module: './schemes/storage-volumeattachment.js',
+    module: './schemes/storage/storage-volumeattachment.js',
     tinted: true,
     sources: [
       { label: 'VolumeAttachment API', href: 'https://kubernetes.io/docs/reference/kubernetes-api/storage/volume-attachment-v1/' },
@@ -833,7 +833,7 @@ export const SCHEMES = [
     subcategory: 'csi-mount-path',
     desc: 'A container writes to /data, but where do the bytes actually go on the Node? The path is a short chain of mounts: the raw device is mounted once at a global staging path, that staged filesystem is bind-mounted into each Pod private directory, and the runtime maps that to /data. Two Pods on one Node get two bind mounts onto one staged device, never a second attach. A write passes through both mounts onto the one disk.',
     k8sVersion: '1.35',
-    module: './schemes/storage-mount-path-chain.js',
+    module: './schemes/storage/storage-mount-path-chain.js',
     tinted: true,
     sources: [
       { label: 'CSI Volumes', href: 'https://kubernetes.io/docs/concepts/storage/volumes/#csi' },
@@ -848,7 +848,7 @@ export const SCHEMES = [
     subcategory: 'csi-mount-path',
     desc: 'A freshly mounted volume is owned by root, so why can a non-root container not write to it? The securityContext.fsGroup field names a GID, and Kubelet chowns the whole volume tree to that group before the container starts. That walk is cheap on a small volume but adds minutes on one with millions of files, which is what fsGroupChangePolicy OnRootMismatch exists to skip. The default walks the whole tree every start.',
     k8sVersion: '1.35',
-    module: './schemes/storage-fsgroup-ownership.js',
+    module: './schemes/storage/storage-fsgroup-ownership.js',
     tinted: true,
     sources: [
       { label: 'Security Context', href: 'https://kubernetes.io/docs/tasks/configure-pod-container/security-context/' },
@@ -862,7 +862,7 @@ export const SCHEMES = [
     subcategory: 'csi-mount-path',
     desc: 'Why does a Pod stay Pending on max volume count while every Node has spare CPU and memory? Because a Node has a second, invisible capacity: how many volumes one CSI driver may have attached at once. The node plugin reports it, Kubelet writes it into CSINode, and the scheduler rejects any Node at its ceiling. A slot frees when the detach completes, not when the Pod dies, turning a rollout near the ceiling into a race.',
     k8sVersion: '1.35',
-    module: './schemes/storage-volume-attach-limits.js',
+    module: './schemes/storage/storage-volume-attach-limits.js',
     tinted: true,
     sources: [
       { label: 'CSINode API', href: 'https://kubernetes.io/docs/reference/kubernetes-api/storage/csi-node-v1/' },
@@ -876,7 +876,7 @@ export const SCHEMES = [
     subcategory: 'csi-mount-path',
     desc: 'Why does a Pod hang in ContainerCreating with a Multi-Attach error for its volume? An RWO disk attaches to one Node at a time, and RollingUpdate stands the replacement up on a new Node while the old Pod still holds the attachment. Nothing is broken: the controller will not write a second VolumeAttachment and the rollout will not delete the old Pod, so each waits on the other. Recreate breaks it by deleting first.',
     k8sVersion: '1.35',
-    module: './schemes/storage-multi-attach-error.js',
+    module: './schemes/storage/storage-multi-attach-error.js',
     tinted: true,
     sources: [
       { label: 'Access Modes', href: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes' },
@@ -890,7 +890,7 @@ export const SCHEMES = [
     subcategory: 'csi-mount-path',
     desc: 'When a Node goes NotReady, why does its volume not move to a healthy Node right away? Nothing is contending for it, so the wait is on doubt rather than on a rival claim: the old Pod cannot be confirmed dead, and detaching a disk it might still be writing to risks corruption. Kubernetes rides out the eviction timeout and then a force-detach, which is a safety property. The real outage is both clocks, and the out-of-service taint skips them.',
     k8sVersion: '1.35',
-    module: './schemes/storage-volume-detach-on-node-loss.js',
+    module: './schemes/storage/storage-volume-detach-on-node-loss.js',
     tinted: true,
     sources: [
       { label: 'Non-graceful Node Shutdown', href: 'https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/#non-graceful-node-shutdown' },
@@ -904,7 +904,7 @@ export const SCHEMES = [
     subcategory: 'stateful-data',
     desc: 'Why does every replica of a StatefulSet get its own disk while a Deployment shares one? The volumeClaimTemplate stamps out one PersistentVolumeClaim per ordinal with a deterministic name like data-web-0 rather than a random one. Because that name comes from the Pod identity, a Pod recreated even on another Node rebinds the same claim and the same data. Scaling down leaves them behind, since Retain is the default.',
     k8sVersion: '1.35',
-    module: './schemes/storage-volumeclaimtemplates.js',
+    module: './schemes/storage/storage-volumeclaimtemplates.js',
     tinted: true,
     sources: [
       { label: 'Volume Claim Templates', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#volume-claim-templates' },
@@ -918,7 +918,7 @@ export const SCHEMES = [
     subcategory: 'stateful-data',
     desc: 'When a StatefulSet shrinks or is deleted, what happens to the disks it leaves behind? The persistentVolumeClaimRetentionPolicy answers with two independent knobs, whenScaled for a replica scaled away and whenDeleted for the whole set, each Retain or Delete. Retain on both is the historical default, safe but silently leaking a disk on every scale-down nobody cleans up. Delete reclaims it, at the cost of the data, and the policy lives on the set rather than the claim.',
     k8sVersion: '1.35',
-    module: './schemes/storage-pvc-retention-policy.js',
+    module: './schemes/storage/storage-pvc-retention-policy.js',
     tinted: true,
     sources: [
       { label: 'PVC Retention Policy', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention' },
@@ -931,7 +931,7 @@ export const SCHEMES = [
     subcategory: 'stateful-data',
     desc: 'Why can a Pod hang forever in a multi-zone cluster with a healthy disk sitting right there? With volumeBindingMode Immediate the volume is provisioned the instant the claim exists, in whatever zone the provisioner picks, and no Node then both fits the Pod and lies in that zone. WaitForFirstConsumer inverts the order so the scheduler chooses the Node first. It is the commonest multi-zone bug and its one-line fix.',
     k8sVersion: '1.35',
-    module: './schemes/storage-topology-aware-provisioning.js',
+    module: './schemes/storage/storage-topology-aware-provisioning.js',
     tinted: true,
     sources: [
       { label: 'Volume Binding Mode', href: 'https://kubernetes.io/docs/concepts/storage/storage-classes/#volume-binding-mode' },
@@ -945,7 +945,7 @@ export const SCHEMES = [
     subcategory: 'stateful-data',
     desc: 'Why does a Pod get stuck Pending when the local storage pool on its chosen Node is full? Without capacity information the scheduler picks that Node on cpu and memory alone, provisioning fails there, and the Node choice is reset so the Pod is placed blind again on the next pass. CSIStorageCapacity objects from a driver that opts in let the scheduler see free space per Node and filter first, on classes that bind WaitForFirstConsumer.',
     k8sVersion: '1.35',
-    module: './schemes/storage-csi-capacity-tracking.js',
+    module: './schemes/storage/storage-csi-capacity-tracking.js',
     tinted: true,
     sources: [
       { label: 'Storage Capacity', href: 'https://kubernetes.io/docs/concepts/storage/storage-capacity/' },
@@ -959,7 +959,7 @@ export const SCHEMES = [
     subcategory: 'stateful-data',
     desc: 'How do you capture a point-in-time copy of a live volume, and why is that copy not a backup? A VolumeSnapshot is the namespaced request and a VolumeSnapshotClass names the driver, and the controller creates a cluster-scoped VolumeSnapshotContent that binds exactly as a PV binds to a PVC. All three are CRDs rather than core API, installed with the snapshot controller. The copy sits in the same storage system as the original, so both die together.',
     k8sVersion: '1.35',
-    module: './schemes/storage-volume-snapshot.js',
+    module: './schemes/storage/storage-volume-snapshot.js',
     tinted: true,
     sources: [
       { label: 'Volume Snapshots', href: 'https://kubernetes.io/docs/concepts/storage/volume-snapshots/' },
@@ -975,7 +975,7 @@ export const SCHEMES = [
     subcategory: 'stateful-data',
     desc: 'Need an independent copy of a volume right now, without setting up a snapshot first? A clone is a new PVC whose dataSource points straight at an existing one, and the storage system makes an exact duplicate server-side with no snapshot object in between. The two claims must share a namespace and volumeMode, the new one must ask for at least the size of the source, and the source must be bound and not in use. The result has no shared lineage.',
     k8sVersion: '1.35',
-    module: './schemes/storage-pvc-clone.js',
+    module: './schemes/storage/storage-pvc-clone.js',
     tinted: true,
     sources: [
       { label: 'CSI Volume Cloning', href: 'https://kubernetes.io/docs/concepts/storage/volume-pvc-datasource/' },
@@ -989,7 +989,7 @@ export const SCHEMES = [
     subcategory: 'stateful-data',
     desc: 'What if you want scratch space that behaves like emptyDir but can be large and on a real StorageClass? A generic ephemeral volume is an inline volumeClaimTemplate written on the Pod, and it gets a real PVC, real dynamic provisioning and a real CSI mount. Its lifetime is still the Pod: the PVC carries an ownerReference and is collected when the Pod goes, taking the disk with it unless the class says Retain. It bridges scratch and the real machinery.',
     k8sVersion: '1.35',
-    module: './schemes/storage-generic-ephemeral-volume.js',
+    module: './schemes/storage/storage-generic-ephemeral-volume.js',
     tinted: true,
     sources: [
       { label: 'Generic Ephemeral Volumes', href: 'https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes' },
@@ -1003,7 +1003,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'What are the moving parts of a Kubernetes cluster, and how do they talk to each other? One contract runs under all of it: desired state lives in ETCD behind the API, the single front door, and the controllers and scheduler compare it against observed state and loop until the gap closes. A Kubelet on every worker Node reconciles the same way and brings Pods to life, so nothing outside the control plane reaches ETCD, and kube-proxy programs Service rules beside it.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-architecture.js',
+    module: './schemes/cluster/cluster-architecture.js',
     tinted: true,
     sources: [
       { label: 'Components', href: 'https://kubernetes.io/docs/concepts/overview/components/' },
@@ -1017,7 +1017,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'What actually happens between kubectl apply and a running Pod? The manifest travels to the API and lands in ETCD, and then a chain of watchers takes over: the Deployment controller creates a ReplicaSet, the ReplicaSet controller creates a Pod, the Scheduler assigns that Pod a Node, and the Kubelet there starts the container. Every handoff after the write is one component reacting to a change on its own watch rather than a call from the component before it.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-apply-flow.js',
+    module: './schemes/cluster/cluster-apply-flow.js',
     tinted: true,
     sources: [
       { label: 'Architecture', href: 'https://kubernetes.io/docs/concepts/architecture/' },
@@ -1031,7 +1031,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'Before any object reaches storage, what gets a say in whether it is allowed and how it looks? Each request runs a gauntlet inside the API: authenticated, authorized, optionally rewritten, checked against the schema, and validated one last time before the write commits. The mutating and validating steps are where Kyverno, OPA Gatekeeper or a sidecar injector plugs in. A slow webhook stalls every write it matches, and failurePolicy decides whether it then fails.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-admission-webhooks.js',
+    module: './schemes/cluster/cluster-admission-webhooks.js',
     tinted: true,
     sources: [
       { label: 'Admission Controllers', href: 'https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/' },
@@ -1045,7 +1045,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'The Deployment is one replica short and kubectl get pods has nothing to show for it, so where did that Pod go? A ResourceQuota caps what a single namespace may request in total and is checked at admission, so the Pod is refused before it exists and the 403 lands on the ReplicaSet that asked for it, as a FailedCreate event and a ReplicaFailure condition. A LimitRange is the other half, because it supplies the request a quota demands from every Pod that names none.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-resource-quota.js',
+    module: './schemes/cluster/cluster-resource-quota.js',
     tinted: true,
     sources: [
       { label: 'Resource Quotas', href: 'https://kubernetes.io/docs/concepts/policy/resource-quotas/' },
@@ -1060,7 +1060,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'Two controllers write the same Deployment, so who wins and how does the API even know? Server-side apply records a field manager for every field an actor sets, keeping that ledger in managedFields on the object, and an apply that stops sending a field it used to own is what removes that field. A second manager setting the same field to a different value raises a conflict the API refuses until it is forced, which is what replaces the client-side three-way merge.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-server-side-apply.js',
+    module: './schemes/cluster/cluster-server-side-apply.js',
     tinted: true,
     sources: [
       { label: 'Server-Side Apply', href: 'https://kubernetes.io/docs/reference/using-api/server-side-apply/' },
@@ -1075,7 +1075,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'How does a controller keep an up-to-date picture of the cluster without hammering the API? It lists the objects it cares about once, then opens a watch that streams every later change to them. An informer turns that stream into a local cache, so the controller reconciles against memory and only re-lists when its watch has fallen too far behind to catch up, which the API signals with a 410 Gone. Every controller is built on that one list-watch pattern.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-api-structure.js',
+    module: './schemes/cluster/cluster-api-structure.js',
     tinted: true,
     sources: [
       { label: 'API Concepts', href: 'https://kubernetes.io/docs/reference/using-api/api-concepts/' },
@@ -1089,7 +1089,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'A new Pod has no Node yet, so how does Kubernetes decide where it runs? The scheduler pulls the Pod off its queue, filters out the Nodes that cannot fit it, scores the survivors to find the best home, and writes that choice back as a binding object. From there the Kubelet on the chosen Node picks the Pod up on its own watch and starts the containers. That one write is the whole of its placement decision, and the scheduler itself never starts anything.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-scheduler-decision.js',
+    module: './schemes/cluster/cluster-scheduler-decision.js',
     tinted: true,
     sources: [
       { label: 'Kube-scheduler', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/kube-scheduler/' },
@@ -1103,7 +1103,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'What happens when an important Pod has nowhere to fit on a full cluster? Its PriorityClass resolves to a numeric priority, and when every Node fails on capacity the scheduler preempts, unless that class sets preemptionPolicy Never. It picks the smallest set of lower-priority Pods whose removal makes room and deletes them with a plain DELETE, bypassing the PodDisruptionBudgets normal eviction respects. The Pod is then bound in their place.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-pod-priority-preemption.js',
+    module: './schemes/cluster/cluster-pod-priority-preemption.js',
     tinted: true,
     sources: [
       { label: 'Priority and Preemption', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/' },
@@ -1117,7 +1117,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'You run kubectl delete and the prompt returns at once, so why is the object still there? By default the API drops the owner at once and the Garbage collector walks ownerReferences to clean up the dependents afterwards. Ask for foreground cascade instead and the object is only stamped for deletion until the dependents that carry blockOwnerDeletion are gone and the finalizers clear. A finalizer that never clears is how an object sticks.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-delete-flow.js',
+    module: './schemes/cluster/cluster-delete-flow.js',
     tinted: true,
     sources: [
       { label: 'Garbage Collection', href: 'https://kubernetes.io/docs/concepts/architecture/garbage-collection/' },
@@ -1132,7 +1132,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'How does Kubernetes keep its single source of truth safe when a machine can fail? ETCD runs a small group of replicas that agree on every write through the Raft protocol: one Leader takes the change, copies it to the Followers, and commits only once a majority has stored it. That quorum rule is what lets a cluster of three lose a Node and still never serve a half-written state. Lose the majority and it stops writing until quorum returns.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-etcd-raft.js',
+    module: './schemes/cluster/cluster-etcd-raft.js',
     tinted: true,
     sources: [
       { label: 'Raft Algorithm', href: 'https://raft.github.io/' },
@@ -1147,7 +1147,7 @@ export const SCHEMES = [
     subcategory: 'control-plane',
     desc: 'When you run several copies of a controller for high availability, how do they avoid all acting at once? They race to claim a single Lease object, and only the winner runs the control loops while the rest stand by and poll it. The holder keeps renewing the Lease to prove it is alive, and once renewals stop for a full lease duration a standby takes it over, so leadership moves after a crash on its own. The Lease records the holder and counts every handover.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-leader-election.js',
+    module: './schemes/cluster/cluster-leader-election.js',
     tinted: true,
     sources: [
       { label: 'Leases', href: 'https://kubernetes.io/docs/concepts/architecture/leases/' },
@@ -1161,7 +1161,7 @@ export const SCHEMES = [
     subcategory: 'node-runtime',
     desc: 'How does the Kubelet turn a Pod spec into running containers, and keep them that way? It runs a sync loop that compares the Pod specs it takes from its sources, mainly the API, against what the container runtime reports is actually running on this Node. Whenever the two differ it issues the runtime calls needed to converge, then reports the fresh status back to the API. PLEG is what wakes that loop when a container dies on its own.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-kubelet-sync-loop.js',
+    module: './schemes/cluster/cluster-kubelet-sync-loop.js',
     tinted: true,
     sources: [
       { label: 'Kubelet', href: 'https://kubernetes.io/docs/concepts/overview/components/#node-components' },
@@ -1175,7 +1175,7 @@ export const SCHEMES = [
     subcategory: 'node-runtime',
     desc: 'What does the container runtime actually do when the Kubelet asks it to start a Pod? It first builds a sandbox, a tiny pause container that holds open the network and the other shared namespaces, and then has the CNI plugin wire up the Pod IP. Only once the images are pulled does it create and start each workload container inside that sandbox, so every container in the Pod shares one network identity that outlives any container restarting inside it.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-pod-sandbox-cri.js',
+    module: './schemes/cluster/cluster-pod-sandbox-cri.js',
     tinted: true,
     sources: [
       { label: 'CRI Spec', href: 'https://github.com/kubernetes/cri-api/blob/master/pkg/apis/runtime/v1/api.proto' },
@@ -1189,7 +1189,7 @@ export const SCHEMES = [
     subcategory: 'node-runtime',
     desc: 'If the API server runs as a Pod, who starts it before the API server exists? The Kubelet watches a manifest directory on the Node and runs whatever it finds there directly, with no Scheduler and no controller involved, which is how kubeadm brings the control plane up on a fresh machine. For each one it also creates a read-only mirror Pod in the API so kubectl can see it, and deleting that mirror changes nothing because the file on disk stays the source of truth.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-static-pods.js',
+    module: './schemes/cluster/cluster-static-pods.js',
     tinted: true,
     sources: [
       { label: 'Static Pods', href: 'https://kubernetes.io/docs/concepts/workloads/pods/static-pods/' },
@@ -1203,7 +1203,7 @@ export const SCHEMES = [
     subcategory: 'node-runtime',
     desc: 'Your Node reports 16Gi of memory, so why does the Scheduler refuse a 15Gi Pod? Capacity is what the machine has, and Allocatable is what survives after kube-reserved, system-reserved and the hard eviction threshold are carved out of it, which is the only number the Scheduler ever sums Pod requests against. Everything above Allocatable belongs to the Kubelet, the runtime and the OS, so a Node that looks half empty can still be full.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-node-allocatable.js',
+    module: './schemes/cluster/cluster-node-allocatable.js',
     tinted: true,
     sources: [
       { label: 'Reserve Compute Resources', href: 'https://kubernetes.io/docs/tasks/administer-cluster/reserve-compute-resources/' },
@@ -1218,7 +1218,7 @@ export const SCHEMES = [
     subcategory: 'node-runtime',
     desc: 'A container over its memory limit is killed, so why is one over its CPU limit still alive? A CPU limit becomes a CFS quota, a budget of run time the cgroup may spend inside every 100ms period, and once it is spent the kernel stops scheduling those threads until the next period opens. Nothing dies and nothing is recorded as an error, the latency just grows, which is why throttling shows up in container_cpu_cfs_throttled_seconds_total and not in kubectl describe.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-cpu-throttling.js',
+    module: './schemes/cluster/cluster-cpu-throttling.js',
     tinted: true,
     sources: [
       { label: 'Resource Management', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/' },
@@ -1232,7 +1232,7 @@ export const SCHEMES = [
     subcategory: 'node-runtime',
     desc: 'A container blows past its memory limit, so what kills it and what gets recorded? The limit is enforced by the kernel cgroup, and once usage reaches the cap and reclaim cannot free enough, the cgroup out-of-memory killer SIGKILLs every process in that container at once, and it exits 137. The Kubelet only witnesses this. It records the OOMKilled reason in the container status, then restarts the container according to the Pod restart policy.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-oom-kill.js',
+    module: './schemes/cluster/cluster-oom-kill.js',
     tinted: true,
     sources: [
       { label: 'Resource Management', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/' },
@@ -1246,7 +1246,7 @@ export const SCHEMES = [
     subcategory: 'node-lifecycle',
     desc: 'When a Node starts running low on memory or disk, who decides which Pods to sacrifice? The Kubelet watches local usage and, once a signal crosses its configured threshold, ranks the Pods by whether they exceed their requests, then by Priority, then by how far each has overrun, and evicts the cheapest first. It keeps going until the signal drops back under the threshold. QoS class only approximates that order, and no PodDisruptionBudget applies here.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-node-pressure-eviction.js',
+    module: './schemes/cluster/cluster-node-pressure-eviction.js',
     tinted: true,
     sources: [
       { label: 'Node-pressure Eviction', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/' },
@@ -1260,7 +1260,7 @@ export const SCHEMES = [
     subcategory: 'node-lifecycle',
     desc: 'How do you take a Node out of service without dropping your apps? The drain command first cordons the Node so nothing new lands on it, then evicts the running Pods through the Eviction API rather than deleting them outright. A PodDisruptionBudget can hold an eviction back with a 429 until a replacement is Ready elsewhere. A drain never evicts DaemonSet Pods at all, and kubectl refuses to start one while any are present unless you pass --ignore-daemonsets.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-node-drain.js',
+    module: './schemes/cluster/cluster-node-drain.js',
     tinted: true,
     sources: [
       { label: 'Safely Drain a Node', href: 'https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/' },
@@ -1275,7 +1275,7 @@ export const SCHEMES = [
     subcategory: 'node-lifecycle',
     desc: 'When a Node is told to power off, can its Pods still shut down cleanly first? With graceful Node shutdown enabled, the Kubelet catches the shutdown signal from systemd and holds an inhibitor lock that delays the power-off while it terminates Pods in priority order, giving ordinary workloads one grace window and the critical ones a second window of their own. Only then does it release the lock and let the operating system finish powering down.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-graceful-node-shutdown.js',
+    module: './schemes/cluster/cluster-graceful-node-shutdown.js',
     tinted: true,
     sources: [
       { label: 'Graceful Node Shutdown', href: 'https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/' },
@@ -1289,7 +1289,7 @@ export const SCHEMES = [
     subcategory: 'node-lifecycle',
     desc: 'A Node goes silent, so how long until its Pods come back elsewhere? The cluster notices when the heartbeat Lease stops renewing, flips the Node to an unknown state, and taints it so that the Pods are eventually evicted and rescheduled somewhere healthy. The grace period plus the default toleration mean recovery takes a few minutes by design, trading raw speed for not overreacting to a network blip.',
     k8sVersion: '1.35',
-    module: './schemes/cluster-node-failure.js',
+    module: './schemes/cluster/cluster-node-failure.js',
     tinted: true,
     sources: [
       { label: 'Node Status', href: 'https://kubernetes.io/docs/concepts/architecture/nodes/#node-status' },
@@ -1304,7 +1304,7 @@ export const SCHEMES = [
     subcategory: 'controllers',
     desc: 'How does Kubernetes keep exactly the right number of identical Pods alive? A ReplicaSet runs a control loop comparing how many Pods it should have against how many it can see, then creates or deletes until the two match. It owns them through ownerReferences, adopts any matching Pod that no other controller already owns, and releases one whose labels stop matching. Deployments never manage Pods directly, they manage ReplicaSets.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-replicaset.js',
+    module: './schemes/workloads/workloads-replicaset.js',
     tinted: true,
     sources: [
       { label: 'ReplicaSet', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/' },
@@ -1318,7 +1318,7 @@ export const SCHEMES = [
     subcategory: 'controllers',
     desc: 'Why does a StatefulSet start its Pods strictly one at a time? Under the default podManagementPolicy of OrderedReady, ordinal 0 has to be Ready before ordinal 1 is even created, which is what lets a clustered system elect a primary before any follower appears. Each Pod also keeps a stable name and its own claim across restarts, and under that same policy a scale-down reverses the order, newest ordinal first, so ordinal 0 is the last to go.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-statefulset-ordered-startup.js',
+    module: './schemes/workloads/workloads-statefulset-ordered-startup.js',
     tinted: true,
     sources: [
       { label: 'OrderedReady Pod Management', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#orderedready-pod-management' },
@@ -1331,7 +1331,7 @@ export const SCHEMES = [
     subcategory: 'pods-bootstrap',
     desc: 'How does a Pod start its containers when some of them must run before others? Init containers run strictly in order, each exiting 0 before the next begins, and a native sidecar (an initContainer with restartPolicy=Always, GA in 1.33) starts after them and runs for the whole Pod lifetime. The main container is held back until that sidecar reports Started, and on shutdown the termination order reverses. The sidecar still counts in the init list.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-init-containers-and-sidecars.js',
+    module: './schemes/workloads/workloads-init-containers-and-sidecars.js',
     tinted: true,
     sources: [
       { label: 'Sidecar Containers', href: 'https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/' },
@@ -1344,7 +1344,7 @@ export const SCHEMES = [
     subcategory: 'pods-bootstrap',
     desc: 'How does the Kubelet get a container image onto the Node before the container can run? It reads imagePullPolicy, which when you leave it unset defaults to Always for :latest or an untagged image and to IfNotPresent for any other tag or a digest, finds credentials through imagePullSecrets, and pulls only the layers the Node does not already hold by sha256 digest. A failed pull surfaces as ErrImagePull and retries on an exponential ImagePullBackOff.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-pod-image-pull.js',
+    module: './schemes/workloads/workloads-pod-image-pull.js',
     tinted: true,
     sources: [
       { label: 'Images', href: 'https://kubernetes.io/docs/concepts/containers/images/' },
@@ -1359,7 +1359,7 @@ export const SCHEMES = [
     subcategory: 'pods-bootstrap',
     desc: 'When a Node runs low on memory, which Pods does Kubernetes sacrifice first? At admission it reads each Pod resources block and assigns a QoS class: Guaranteed when every container sets both CPU and memory with requests equal to limits, BestEffort when nothing is set at all, Burstable in between. The class is fixed for the life of the Pod and drives the cgroup caps and the oom_score_adj, but not the eviction order, which goes by whether a Pod is over its request.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-pod-qos-classes.js',
+    module: './schemes/workloads/workloads-pod-qos-classes.js',
     tinted: true,
     sources: [
       { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
@@ -1374,7 +1374,7 @@ export const SCHEMES = [
     subcategory: 'controllers',
     desc: 'When a StatefulSet Pod moves to another Node, does its data move with it? The volume is bound to the Pod identity rather than to the Pod object, so it outlives the deletion and simply waits. When the replacement with the same ordinal starts, possibly on a different Node, it reattaches that same disk and sees exactly the bytes left behind. The disk follows the ordinal, never the Pod object or the Node, and the default retention policy keeps the claim.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-pvc-stickiness.js',
+    module: './schemes/workloads/workloads-pvc-stickiness.js',
     tinted: true,
     sources: [
       { label: 'Stable Storage', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage' },
@@ -1388,7 +1388,7 @@ export const SCHEMES = [
     subcategory: 'controllers',
     desc: 'How do you run one copy of a Pod on every eligible Node, and exactly one? A DaemonSet watches the Node set instead of a replica count, adding a Pod when an eligible Node joins and removing it when a Node leaves, so the fleet tracks the cluster rather than a fixed number. Its Pods also carry tolerations that let them land where ordinary workloads cannot. Scaling a DaemonSet means adding or removing Nodes.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-daemonset.js',
+    module: './schemes/workloads/workloads-daemonset.js',
     tinted: true,
     sources: [
       { label: 'DaemonSet', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/' },
@@ -1401,7 +1401,7 @@ export const SCHEMES = [
     subcategory: 'controllers',
     desc: 'How does a Job run a batch of work to completion instead of serving forever? You give it completions, the number of successful runs you need, and parallelism, how many Pods may run at once, and it keeps launching Pods and retrying failures until that target is met. Once enough runs succeed it stops on its own and marks the batch complete. A failed Pod counts against backoffLimit, 6 by default, and reaching that limit fails the Job instead.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-job-parallelism.js',
+    module: './schemes/workloads/workloads-job-parallelism.js',
     tinted: true,
     sources: [
       { label: 'Parallel execution for Jobs', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/job/#parallel-jobs' },
@@ -1414,7 +1414,7 @@ export const SCHEMES = [
     subcategory: 'controllers',
     desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates one Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down if startingDeadlineSeconds allows, or if under 100 ticks were missed. A CronJob never runs a Pod itself, it only creates Jobs.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-cronjob.js',
+    module: './schemes/workloads/workloads-cronjob.js',
     tinted: true,
     sources: [
       { label: 'CronJob', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/' },
@@ -1428,7 +1428,7 @@ export const SCHEMES = [
     subcategory: 'pods-lifecycle',
     desc: 'What single field tells you where a Pod is in its life? The status.phase field moves through Pending while the Pod is placed and its images pulled, Running once every container exists and one has started, and then Succeeded or Failed when they all exit. It is deliberately coarse, so a container crash-looping inside a Running Pod never changes it. Phase is a summary of placement, not a statement about health.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-pod-phase-machine.js',
+    module: './schemes/workloads/workloads-pod-phase-machine.js',
     tinted: true,
     sources: [
       { label: 'Pod phase', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase' },
@@ -1441,7 +1441,7 @@ export const SCHEMES = [
     subcategory: 'pods-lifecycle',
     desc: 'When a container in a Pod exits, what should happen next? The restartPolicy field is the Pod-level answer Kubernetes follows: Always brings the container back whatever the exit code, OnFailure retries only a non-zero exit, and Never leaves it alone. That choice separates a Pod that runs forever from one that retries and one that finishes. The Job controller relies on OnFailure and Never for exactly this, and every restart still waits out the same backoff.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-restart-policy.js',
+    module: './schemes/workloads/workloads-restart-policy.js',
     tinted: true,
     sources: [
       { label: 'Restart Policy', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy' },
@@ -1454,7 +1454,7 @@ export const SCHEMES = [
     subcategory: 'pods-lifecycle',
     desc: 'How does a container run code exactly when it starts and just before it stops? Lifecycle hooks give it two slots, postStart fired concurrently with the entrypoint and preStop run synchronously ahead of SIGTERM, both executed by the Kubelet rather than by your process. They are how a container announces itself and drains on the way out. The termination grace period bounds preStop, never postStart, and preStop shares it with the SIGTERM stop that follows.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-hooks.js',
+    module: './schemes/workloads/workloads-hooks.js',
     tinted: true,
     sources: [
       { label: 'Container Lifecycle Hooks', href: 'https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/' },
@@ -1467,7 +1467,7 @@ export const SCHEMES = [
     subcategory: 'pods-lifecycle',
     desc: 'How does the Kubelet tell a slow boot from a hung container? Three probes answer that on their own periodSeconds: startupProbe gates the other two until the app is up, livenessProbe restarts the container after failureThreshold consecutive failures, and readinessProbe flips that endpoint to ready=false in the EndpointSlice without removing it or restarting anything. A probe never restarts a Pod, only the container that failed it.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-probes.js',
+    module: './schemes/workloads/workloads-probes.js',
     tinted: true,
     sources: [
       { label: 'Configure Liveness, Readiness and Startup Probes', href: 'https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/' },
@@ -1480,7 +1480,7 @@ export const SCHEMES = [
     subcategory: 'pods-lifecycle',
     desc: 'A container crashed and restarted, so what killed it? The live state shows only the fresh Running instance, but Kubernetes keeps the previous termination beside it: lastState holds the exit code and reason, restartCount counts how often it has happened, and kubectl logs --previous reads the log stream of the instance that died. Together they are the whole post-mortem for a container you can no longer see, and only the last termination is kept.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-container-states.js',
+    module: './schemes/workloads/workloads-container-states.js',
     tinted: true,
     sources: [
       { label: 'Container States', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-states' },
@@ -1493,7 +1493,7 @@ export const SCHEMES = [
     subcategory: 'pods-lifecycle',
     desc: 'Why does a broken container restart slower and slower? The Kubelet backs off exponentially, doubling the wait from 10s up to a 5 minute ceiling, so a crashing process cannot hot-loop and saturate the Node. During each wait the container reports Waiting with reason CrashLoopBackOff while the Pod phase stays Running, and only a clean run of 10 minutes resets the delay to the 10s base. CrashLoopBackOff is a symptom, never the cause.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-crashloopbackoff.js',
+    module: './schemes/workloads/workloads-crashloopbackoff.js',
     tinted: true,
     sources: [
       { label: 'Restart Policy', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy' },
@@ -1506,7 +1506,7 @@ export const SCHEMES = [
     subcategory: 'pods-lifecycle',
     desc: 'When a Pod is deleted, why does it not die on the spot? The terminationGracePeriodSeconds budget, 30 by default, starts counting at the delete and is spent in two parts: the preStop hook, then the SIGTERM drain in which the app finishes in-flight work, closes its connections and exits on its own. SIGKILL is the last resort, used only if the container outlives that shared timer. Nothing in that path holds if the Node itself is already gone.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-graceful-shutdown.js',
+    module: './schemes/workloads/workloads-graceful-shutdown.js',
     tinted: true,
     sources: [
       { label: 'Termination of Pods', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination' },
@@ -1519,7 +1519,7 @@ export const SCHEMES = [
     subcategory: 'pods-lifecycle',
     desc: 'Why does a Pod sit in Terminating forever when its Node goes silent? The Kubelet never acknowledges the delete, so the API keeps the object and an identity-bound controller like StatefulSet refuses to create a replacement. Force deletion drops it from ETCD at once, but a merely partitioned Node may still be running the original container. That is why the flag exists but is never the first thing to reach for, and deleting the Node object is the safer route.',
     k8sVersion: '1.35',
-    module: './schemes/workloads-force-deletion.js',
+    module: './schemes/workloads/workloads-force-deletion.js',
     tinted: true,
     sources: [
       { label: 'Force Delete StatefulSet Pods', href: 'https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/' },
