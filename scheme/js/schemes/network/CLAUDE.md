@@ -35,6 +35,42 @@ ball read washed out. Do not fold those into tokens.
 
 The shared 30 names plus `NETWORK_TINT`, `pulsePod`, `pulsePodDim`. No networking-only helper.
 
+## The networking card contract
+
+True of every card here unless its own note in `docs/CARDS-network.md` says otherwise. It used to
+be restated in 20 of the 37 card records; it lives once, here.
+
+- **Pods** are a `podShell(...)` plus an inner `box(...)` (app, eth0), grouped in a `g` so the
+  whole Pod pulses as one unit. Only Pods pulse. The client, kube-proxy, CoreDNS, a bridge, a NIC,
+  a Node frame and every other infrastructure block LIGHTS via `.highlight` or `lightBoxAt` and
+  never pulses. Value chips never flash.
+- **A ball rides a drawn wire, and the wire is drawn from the same points array.** No literal
+  packet route. Every endpoint sits on a block EDGE, so a ball never travels under or over a block:
+  it fades at one edge and re-emerges at the far edge, which is how a rewrite inside a box (DNAT,
+  SNAT, port remap, conntrack) is drawn.
+- **A round trip gets TWO lanes**, forward and return, offset about the flow line. A single
+  retraced lane sends the reply backwards along a right-pointing arrowhead and reads as the query
+  bouncing rather than as an answer coming home.
+- **A wire nothing rides carries NO arrowhead.** It is an association: the Service backing a
+  record, kube-proxy realising a VIP, a controller watching a rules panel. `arrow()` always
+  attaches a marker, so these are drawn with `relationPath` or a bare `path`.
+- **Addresses ride the ball** (`ridingLabel`), not inline wire text. A dst like
+  `203.0.113.9:443` overflows an 80 unit gap and prints through a block border.
+- **Traffic is delivered TO A NODE.** A ball stops on the Node frame edge and the Pod inside pulses
+  to show it was served. No wire and no ball crosses a Node border.
+- **`clearHL` must list the inner app boxes by key.** `clearPodHighlight` only resets inline
+  strokes, so a `.highlight` set inside a reduced-replay block leaks into later steps: reduced
+  replay never runs the forward motion path that would re-clear it.
+- **N destinations get N wires.** A fan to three candidate backends draws all three even though one
+  step takes one of them, so the reader can see the choice was made among drawn alternatives. Those
+  unridden legs are NOT a defect; several are flagged in the card records as such.
+
+`CENTRE` and `CENTRE-LOW` count boxes, Pods and cylinders only. They do not count `node()` frames
+or chips, so a card whose right half is a frame full of chip rows can be visually centred and still
+report a finding. Several cards leave it OPEN for that reason, each saying so in its own note.
+**Do not close one by moving a block the rule CAN see**: that decentres the picture a reader looks
+at, to satisfy a measurement of a picture nobody sees.
+
 ## Subcategories
 
 | key | label | cards | what belongs here |
