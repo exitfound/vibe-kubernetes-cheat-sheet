@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#storage-csi-capacity-tracking
+// Design notes for this card: scheme/docs/CARDS-storage.md#storage-csi-capacity-tracking
 
 
 const CX = 600;

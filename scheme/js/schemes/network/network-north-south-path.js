@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-north-south-path
+// Design notes for this card: scheme/docs/CARDS-network.md#network-north-south-path
 
 
 const FLOW_Y = 356;                 // spine: client, cloud LB, kube-proxy and the Pod are centred on it

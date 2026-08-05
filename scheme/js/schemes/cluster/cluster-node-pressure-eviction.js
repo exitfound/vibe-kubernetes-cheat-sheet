@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, at, BEAT, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-node-pressure-eviction
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-node-pressure-eviction
 
 // Layout B: chips in the left column under the panel, ladder right, Node frame full width at the
 // bottom. Panel worst case over 1600/1280/1100 is x<=397, y<=280, and the chip column starts at
@@ -30,7 +30,7 @@ const API_W = 232, API_X = CONTENT_R - API_W;            // 908..1140
 // its own pulse ends, so the kill reads as a cut rather than as a death. 1200 lands the fade after
 // the pulse and still finishes inside the step span, which the report packet already sets at 2142.
 // It ends on OPACITY.terminated rather than on 0: an evicted Pod removed outright leaves a
-// block-sized hole in the Node frame. See docs/CARDS.md.
+// block-sized hole in the Node frame. See docs/CARDS-cluster.md.
 const VICTIM_FADE = 1200;
 // 834 is the gap midpoint, but the label is NOT contained by that gap and nothing here should be
 // derived as if it were: the longest string (PATCH Node.status.conditions · MemoryPressure=False)

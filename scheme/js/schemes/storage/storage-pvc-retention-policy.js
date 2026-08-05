@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, laneOf, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#storage-pvc-retention-policy
+// Design notes for this card: scheme/docs/CARDS-storage.md#storage-pvc-retention-policy
 
 
 const CX = 600;

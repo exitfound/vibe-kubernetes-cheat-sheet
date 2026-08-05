@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { pulsePod, segmentPacket, makeInit, clearHighlights, lightBoxAt, makeRidingLabel } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-service-types
+// Design notes for this card: scheme/docs/CARDS-network.md#network-service-types
 
 
 const TYPE_X = 210, TYPE_W = 280;          // type column: left edge + width (right edge 490)

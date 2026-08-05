@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#storage-volume-detach-on-node-loss
+// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volume-detach-on-node-loss
 
 
 const LEFT_X = 400;

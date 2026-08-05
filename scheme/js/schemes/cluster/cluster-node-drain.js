@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-node-drain
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-node-drain
 
 // Layout C: the ladder keeps the right column and the Node frame sits under the panel. Panel worst
 // case over 1600/1280/1100 at heights 1000/860/800 is x<=397, y<=304, at 1100x800 on the cordon
@@ -10,7 +10,7 @@ import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighl
 // spend it: 380 is a route length and therefore a packet timing. The CEILING is a property of the
 // frame, not of the current text, so it is unchanged: no narration here may pass 528 characters.
 // Re-measure with VW=1100 VH=800 node overlay-measure.mjs after any prose edit on this card.
-// The top row is the deliberate exception, see the OCCLUDED note in scheme/docs/CARDS.md.
+// The top row is the deliberate exception, see the OCCLUDED note in scheme/docs/CARDS-cluster.md.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
@@ -178,7 +178,7 @@ function resetPodOpacity(s) {
 // cards carry: POD_FADE on cluster-graceful-node-shutdown, VICTIM_FADE on
 // cluster-node-pressure-eviction. This card was the one left behind when they were converted.
 // It fades to OPACITY.terminated, not to 0: an evicted Pod that is removed outright leaves a
-// block-sized hole in the Node frame. The onfinish is the removeAt shape, see docs/CARDS.md.
+// block-sized hole in the Node frame. The onfinish is the removeAt shape, see docs/CARDS-cluster.md.
 const POD_FADE = 1200;
 function fadeOut(s, ctx, key, boxKey, delay) {
   const box = s.refs[boxKey];

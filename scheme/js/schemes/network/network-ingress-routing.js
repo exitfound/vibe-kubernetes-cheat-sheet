@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-ingress-routing
+// Design notes for this card: scheme/docs/CARDS-network.md#network-ingress-routing
 
 
 const FLOW_Y = 343;                  // (RULE_BOTTOM + CHIP_Y) / 2, the spine of the left-to-right flow

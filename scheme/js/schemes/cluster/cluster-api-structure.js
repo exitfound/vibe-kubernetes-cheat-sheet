@@ -59,7 +59,7 @@ const WIRE_REQ_Y = (INF_BOTTOM + IDX_Y) / 2;             // 348, between the Inf
 // Centred in the API-to-Informer gap rather than pinned: the +4 puts the glyph MIDDLE on the gap
 // centre, because measured that middle sits 3.9 above the baseline y sets. It read 200, i.e. 8.6 low.
 const WIRE_WATCH_Y = (TOP_BOTTOM + INF_Y) / 2 + 4;       // 191.5, visual centre 187.6 against 187.5
-// Design notes for this card: scheme/docs/CARDS.md#cluster-api-structure
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-api-structure
 
 
 function eventSlot({ x, y, w = 140, h = 44, role = 'cluster' }) {

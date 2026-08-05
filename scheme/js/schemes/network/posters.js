@@ -1,6 +1,6 @@
 // The network posters: the still frame each network card shows on the grid, keyed by card id.
 // A poster is one sentence, not a small diagram. Design notes for each one:
-// scheme/docs/CARDS.md, the "### poster" subsection under that card id.
+// scheme/docs/CARDS-network.md, the "### poster" subsection under that card id.
 
 export const POSTERS = {
   // One flat network band with three Pods hanging off it, a packet riding the band.

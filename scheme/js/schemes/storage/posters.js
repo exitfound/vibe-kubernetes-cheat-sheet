@@ -1,6 +1,6 @@
 // The storage posters: the still frame each storage card shows on the grid, keyed by card id.
 // A poster is one sentence, not a small diagram. Design notes for each one:
-// scheme/docs/CARDS.md, the "### poster" subsection under that card id.
+// scheme/docs/CARDS-storage.md, the "### poster" subsection under that card id.
 
 export const POSTERS = {
   'storage-dynamic-provisioning': `

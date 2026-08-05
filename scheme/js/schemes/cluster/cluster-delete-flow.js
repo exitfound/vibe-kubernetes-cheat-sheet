@@ -116,7 +116,7 @@ const WIRE_REQ_Y = TOP_Y - 20;                           // 90, above the row
 const WIRE_ACK_Y = BACK_Y + 18;                          // 178, between the blocks
 const KCTL_GAP_CX = (KCTL_R + API_X) / 2;                // 410, follows the widened block
 const ETCD_GAP_CX = (API_R + ETCD_X) / 2;                // 805
-// Design notes for this card: scheme/docs/CARDS.md#cluster-delete-flow
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-delete-flow
 
 
 class Scene {

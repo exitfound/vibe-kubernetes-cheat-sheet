@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow } from '../../lib/primitives.js';
 import { valChip, setVal, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, at, revealAt, REVEAL_MS } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-node-allocatable
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-node-allocatable
 
 // The picture is an ARITHMETIC, not a sequence, so the Node band carries ONE horizontal capacity
 // bar that gets carved segment by segment and the ladder carries the running subtraction.

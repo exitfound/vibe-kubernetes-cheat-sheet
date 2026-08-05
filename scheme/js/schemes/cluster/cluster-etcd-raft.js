@@ -9,7 +9,7 @@ import { valChip, setVal, routePacket, segmentPacket, BEAT, FADE, OPACITY, at, l
 // Re-measure with
 // overlay-measure.mjs at all three viewports after any prose edit: the extent moves NON-monotonically.
 // One band, 150..512. The API is level with the ETCD row, below the panel. The band was centred on
-// the canvas (150..498, centre 324) until the chip stacks dropped 14 on 2026-08-01: see CARDS.md.
+// the canvas (150..498, centre 324) until the chip stacks dropped 14 on 2026-08-01: see CARDS-cluster.md.
 // The margin is 40 rather than the usual 60 on purpose: it is what buys the proposal label its
 // gap without narrowing the API off the 220 standard box width. Both sides take it, so the
 // content bbox stays 40..1160 and centred on CX.
@@ -59,7 +59,7 @@ const E2_TO_E1  = [[CYL_XS[1], ROW_BACK], [CYL_XS[0] + CYL_W, ROW_BACK]];
 const ARC_RISE = 80;
 const ARC_Y = CYL_Y - ARC_RISE;                          // 150
 // The far Follower is a round trip too, and the two arcs are CONCENTRIC, which takes OPPOSITE stubs
-// at the two ends. Why mirrored stubs cross: docs/CARDS.md#cluster-etcd-raft.
+// at the two ends. Why mirrored stubs cross: docs/CARDS-cluster.md#cluster-etcd-raft.
 const ARC_BACK_Y = ARC_Y + LANE_DY;                      // 162
 const REPLICATE = [[CYL_CXS[0] - LANE_DY, CYL_Y], [CYL_CXS[0] - LANE_DY, ARC_Y], [CYL_CXS[2] + LANE_DY, ARC_Y], [CYL_CXS[2] + LANE_DY, CYL_Y]];
 const ACK_E3    = [[CYL_CXS[2] - LANE_DY, CYL_Y], [CYL_CXS[2] - LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, CYL_Y]];
@@ -99,7 +99,7 @@ class Scene {
     // role and log rows use. The width is the API column, so the four blocks line up.
     const termChip   = valChip({ x: SCHIP_X, y: SCHIP_Y(0), w: SCHIP_W, h: ROW_H, name: 'term',             value: '4', role: 'cluster' });
     // The name states the POPULATION it counts, because the quorum chip under it counts a different
-    // one: acks come from the two Followers, quorum is out of all three replicas. See CARDS.md.
+    // one: acks come from the two Followers, quorum is out of all three replicas. See CARDS-cluster.md.
     const acksChip   = valChip({ x: SCHIP_X, y: SCHIP_Y(1), w: SCHIP_W, h: ROW_H, name: 'acks from Followers', value: 'idle', role: 'cluster' });
     const quorumChip = valChip({ x: SCHIP_X, y: SCHIP_Y(2), w: SCHIP_W, h: ROW_H, name: 'quorum',           value: '2 of 3', role: 'cluster' });
     content.appendChild(termChip); content.appendChild(acksChip); content.appendChild(quorumChip);
@@ -125,7 +125,7 @@ class Scene {
     const laneE3Out = lane(REPLICATE), laneE3Back = lane(ACK_E3);
 
     // Tie each replica to the chips below it: a binding, not flow, so it goes through relationPath.
-    // What it used to be and what the 30 unit gap buys: docs/CARDS.md#cluster-etcd-raft.
+    // What it used to be and what the 30 unit gap buys: docs/CARDS-cluster.md#cluster-etcd-raft.
     const ties = CYL_CXS.map(cx => {
       const p = relationPath({ points: [[cx, CYL_BOTTOM], [cx, ROLE_Y]], role: 'cluster' });
       content.appendChild(p);
@@ -171,7 +171,7 @@ function setSummary(s, { acks, quorum }) {
 // A Follower that stops answering does not vanish, and it does not go alone: its role chip, its
 // log chip, the dashed tie holding those two to it and both of its lanes are only as present as
 // the replica itself. ONE helper writes all twelve, called by EVERY step, because two independent
-// assignments drift the moment a step is added. Reasoning: docs/CARDS.md#cluster-etcd-raft.
+// assignments drift the moment a step is added. Reasoning: docs/CARDS-cluster.md#cluster-etcd-raft.
 const SILENT = ['e2', 'e3', 'r2', 'r3', 'l2', 'l3', 'tie2', 'tie3', 'laneE2Out', 'laneE2Back', 'laneE3Out', 'laneE3Back'];
 function setReplicas(s, o) {
   // The Leader end of every one of those lanes is live, so laneOf leaves the replica's own shade.

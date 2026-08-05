@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-service-cidr
+// Design notes for this card: scheme/docs/CARDS-network.md#network-service-cidr
 
 
 const SCHEME_L = 120, SCHEME_R = 1080;   // content edges, mirrored about x=600

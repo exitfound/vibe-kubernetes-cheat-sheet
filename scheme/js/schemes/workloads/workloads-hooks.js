@@ -4,7 +4,7 @@ import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeI
 
 // Layout C of the Workloads canon (WL): the deepest panel in the category leaves room for no column.
 // Panel worst case x<=397, y<=379; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-hooks
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-hooks
 const PANEL_B = 379;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;

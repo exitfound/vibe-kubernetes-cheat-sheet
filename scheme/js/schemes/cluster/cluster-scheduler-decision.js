@@ -2,7 +2,7 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: scheme/docs/CARDS.md#cluster-scheduler-decision
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-scheduler-decision
 // Layout A, the Cluster exemplar: actor row on top clear of the panel, pipeline ladder in the left
 // column, state chips in the right column, candidate Nodes full width at the bottom.
 // Panel worst case over 1600/1440/1280/1100 is x<=397, y<=180, and JOG_Y sits on that line.

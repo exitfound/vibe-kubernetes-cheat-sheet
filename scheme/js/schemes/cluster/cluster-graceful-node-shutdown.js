@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, at, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-graceful-node-shutdown
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-graceful-node-shutdown
 
 // Laid out on the L, the way network and storage are: the narration panel owns the top-left
 // corner, everything else is free. Measured worst case over 1600/1280/1100 is x<=397, y<=230, and
@@ -164,7 +164,7 @@ function setPods(s, ...vals) {
 // The grace-period drain reads as a long dim rather than a snap, and at 1200 against a 900ms pulse
 // the Pod is still on screen while it blinks instead of vanishing mid-blink.
 // It settles on OPACITY.terminated, not on 0: a terminated Pod removed outright leaves a block-sized
-// hole in the Node frame, which reads as a rendering fault. See docs/CARDS.md.
+// hole in the Node frame, which reads as a rendering fault. See docs/CARDS-cluster.md.
 const POD_FADE = 1200;
 function fadeOut(s, ctx, key, delay) {
   ctx.register(s.refs[key].animate(

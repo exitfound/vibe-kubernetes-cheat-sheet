@@ -1,7 +1,7 @@
 import { svg, g, text, rect } from '../../lib/svg.js';
 import { arrowDefs, pod, podShell, node, box, arrow } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, at, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-cpu-throttling
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-cpu-throttling
 
 // Layout C, the twin of cluster-oom-kill: same top row, same Node frame, same two-per-row chip
 // strip, with the sibling ladder replaced by the time scale, which is what this card exists to

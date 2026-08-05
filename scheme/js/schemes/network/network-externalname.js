@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, BEAT, lightBoxAt, makeRidingLabel, relationPath } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-externalname
+// Design notes for this card: scheme/docs/CARDS-network.md#network-externalname
 
 
 // Panel measured 2026-07-27: right <= 397, bottom <= 230. Row A used to sit at 254, which put the

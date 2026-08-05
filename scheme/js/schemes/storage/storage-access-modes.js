@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, podShell, cylinder, node, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#storage-access-modes
+// Design notes for this card: scheme/docs/CARDS-storage.md#storage-access-modes
 
 
 const LEFT_X = 400;                                      // leftmost the NODE ROW may go, all viewports

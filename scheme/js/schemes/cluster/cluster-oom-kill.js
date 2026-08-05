@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, lightBoxAt, OPACITY, at } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-oom-kill
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-oom-kill
 
 // Layout C: the panel reaches deep on the left, so the ladder stays right and the chips take a
 // two-row bottom strip. Panel worst case over 1600/1280/1100 at heights 1000/860/800 is x<=397,
@@ -162,7 +162,7 @@ function clearHL(s) {
 
 // Every enter() writes EVERY chip through this, idle included. oom_score_adj is a standing value
 // here (nothing on the card changes it) and it carries the whole ranking scale, so the table is a
-// lookup on the chip rather than a sentence in the oomkill narration. See docs/CARDS.md.
+// lookup on the chip rather than a sentence in the oomkill narration. See docs/CARDS-cluster.md.
 const OOM_SCORE = '900 Burstable 3 to 999, Guaranteed -997, BestEffort 1000';
 // What memory.current reads once the SIGKILL has taken the container down.
 const DEAD_MEM = 'near 0 / 256Mi · processes killed';

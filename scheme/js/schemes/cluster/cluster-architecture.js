@@ -3,7 +3,7 @@ import { arrowDefs, box, node, cylinder, pathArrow } from '../../lib/primitives.
 import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Two dashed frames of the same width, a control plane over Node-1, each holding its own tiers.
-// Design notes for this card: scheme/docs/CARDS.md#cluster-architecture
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-architecture
 const BOX_W = 220, BOX_H = 80;
 const CX = 600;
 
@@ -77,7 +77,7 @@ class Scene {
     const cpEl   = node({ x: FRAME_X, y: CP_Y, w: FRAME_W, h: CP_H, label: 'Control plane' });
     const nodeEl = node({ x: FRAME_X, y: NODE_Y, w: FRAME_W, h: NODE_H, label: 'Node-1' });
     // Both frame labels sit on their own frame corner, which is where node() puts them: CONTROL
-    // PLANE at (162, 108) and NODE-1 at (162, 493). What that costs is in docs/CARDS.md.
+    // PLANE at (162, 108) and NODE-1 at (162, 493). What that costs is in docs/CARDS-cluster.md.
     root.appendChild(cpEl);
     root.appendChild(nodeEl);
 

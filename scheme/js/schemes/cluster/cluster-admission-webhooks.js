@@ -2,7 +2,7 @@ import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, arrow, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt } from './cluster-kit.js';
 
-// Design notes for this card: scheme/docs/CARDS.md#cluster-admission-webhooks
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-admission-webhooks
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
 // Measured worst case over 1600/1440/1280/1100 is x<=397, y<=230, so kubectl moves into the
 // freed bottom-left (the storage grammar) and the API row starts at 420. It read 205 until

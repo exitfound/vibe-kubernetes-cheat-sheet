@@ -4,7 +4,7 @@ import { routePacket, valChip, setVal, pulsePod, setConnectorDir, makeInit, clea
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-container-states
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-container-states
 const PANEL_B = 230;
 const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;
 const WIRE_Y = WL.TOP_Y - 12;                            // above the actor box

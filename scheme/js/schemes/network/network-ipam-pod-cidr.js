@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-ipam-pod-cidr
+// Design notes for this card: scheme/docs/CARDS-network.md#network-ipam-pod-cidr
 
 
 // Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 255. The three Node frames span

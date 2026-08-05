@@ -5,7 +5,7 @@ import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, make
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=404 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
 // band and the chips form a two-across bottom strip.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-pod-qos-classes
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-pod-qos-classes
 const PANEL_B = 404;
 
 // Kubelet is the node-facing actor, so it leads the row and is centred on CX: every lane to the

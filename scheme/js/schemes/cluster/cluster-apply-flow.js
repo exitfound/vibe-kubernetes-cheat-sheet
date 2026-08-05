@@ -4,7 +4,7 @@ import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, 
 
 // One grid with cluster-architecture, minus the cloud-controller-manager. Every control-plane
 // block is inside the frame and the client is not, so its lanes address the frame, not a block.
-// Design notes for this card: scheme/docs/CARDS.md#cluster-apply-flow
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-apply-flow
 const FRAME_X = 150, FRAME_W = 900, FRAME_R = FRAME_X + FRAME_W;   // 150..1050, architecture's
 const PAD = 20;                                          // one inset, used on every wall
 const IN_L = FRAME_X + PAD, IN_R = FRAME_X + FRAME_W - PAD;   // 170 / 1030
@@ -12,7 +12,7 @@ const CX = FRAME_X + FRAME_W / 2;                        // 600
 const BOX_W = 220, BOX_H = 80;                           // architecture's block, catalog standard
 
 // The columns are architecture's, the rows were solved here and architecture copied them, so the
-// two read as one family in both axes. Why the stack sits this low is in docs/CARDS.md.
+// two read as one family in both axes. Why the stack sits this low is in docs/CARDS-cluster.md.
 const CP_Y = 90, CP_H = 350, CP_CY = CP_Y + CP_H / 2;    // 90..440, wall midpoint 265
 const NODE_Y = 475, NODE_H = 153;                        // 475..628, 12 of canvas floor under it
 

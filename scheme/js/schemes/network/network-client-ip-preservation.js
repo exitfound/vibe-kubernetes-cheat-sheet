@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, relationPath, BEAT, makeRidingLabel } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-client-ip-preservation
+// Design notes for this card: scheme/docs/CARDS-network.md#network-client-ip-preservation
 
 
 // The content band is symmetric about the canvas centre by construction, so the flow row and the

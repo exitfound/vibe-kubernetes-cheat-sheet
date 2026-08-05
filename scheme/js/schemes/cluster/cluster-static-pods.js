@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-static-pods
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-static-pods
 
 // Three tiers on the L. Measured panel: 1600x1000 x<=291 y<=160, 1280x860 x<=378 y<=193,
 // 1100x800 x<=397 y<=230 (worst, on the drain step at 322 characters). Everything in tiers 1 and 2
@@ -17,7 +17,7 @@ const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas cent
 const BOX_W = 232, BOX_H = 80;
 // Tier 1. The API is centred on CX so the mirror Pod hangs straight below it and the Kubelet lane is
 // one vertical drop with no jog. kubectl therefore goes to the RIGHT of the API, which reverses the
-// reading direction of the top row: see docs/CARDS.md for why the left slot was declined.
+// reading direction of the top row: see docs/CARDS-cluster.md for why the left slot was declined.
 const TOP_Y = 40, TOP_BOTTOM = TOP_Y + BOX_H;            // 40 / 120
 const TOP_GAP = 56;
 const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 484..716

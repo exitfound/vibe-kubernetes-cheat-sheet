@@ -62,7 +62,7 @@ const APP_X = POD_X + POD_W - 22 - INNER_W;              // 618..808
 // The whole subject is that it is a CRI CLIENT and containerd is what materialises the pause
 // container, pulls, creates and starts. All four steps that ride this lane say so in their narration.
 const SPINE_X = RT_X + RT_W / 2;                         // 772
-// Design notes for this card: scheme/docs/CARDS.md#cluster-pod-sandbox-cri
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-pod-sandbox-cri
 
 
 class Scene {

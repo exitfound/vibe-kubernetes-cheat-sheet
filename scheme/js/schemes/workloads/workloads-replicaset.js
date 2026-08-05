@@ -5,7 +5,7 @@ import { routePacket, valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, to
 // Layout B on the Workloads canon (WL in the kit): the panel reaches y<=305 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves room under it for the chip column but not for the
 // six-row pipeline, so the two columns swap: chips left, ladder right, Node frame full width.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-replicaset
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-replicaset
 const PANEL_B = 305, PANEL_GAP = 20;
 
 // The ReplicaSet is centred on CX so the lane leaves its bottom midpoint and drops down the

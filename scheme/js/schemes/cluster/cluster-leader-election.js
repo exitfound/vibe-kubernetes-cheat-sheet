@@ -3,7 +3,7 @@ import { arrowDefs, box, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // One column, centred on the canvas, and every replica reaches the Lease on its own axis.
-// Design notes, including what this costs vertically: scheme/docs/CARDS.md#cluster-leader-election
+// Design notes, including what this costs vertically: scheme/docs/CARDS-cluster.md#cluster-leader-election
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre line

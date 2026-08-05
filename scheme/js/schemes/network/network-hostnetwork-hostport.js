@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-hostnetwork-hostport
+// Design notes for this card: scheme/docs/CARDS-network.md#network-hostnetwork-hostport
 
 
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;

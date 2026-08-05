@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, lightBoxAt, BEAT, FADE, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-service-terminating-endpoints
+// Design notes for this card: scheme/docs/CARDS-network.md#network-service-terminating-endpoints
 
 
 const FLOW_Y = 326;                     // center line: client and kube-proxy are centred on it

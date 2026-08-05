@@ -4,7 +4,7 @@ import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighl
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
 // Panel worst case x<=397, y<=255; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-init-containers-and-sidecars
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-init-containers-and-sidecars
 const PANEL_B = 255;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;

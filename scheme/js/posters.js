@@ -1,4 +1,4 @@
-// Design notes: scheme/docs/CARDS.md, one "### poster" subsection per card id.
+// Design notes: scheme/docs/CARDS-<category>.md, one "### poster" subsection per card id.
 //
 // One map per category folder, merged here. app.js looks a poster up by card id, so this is a
 // plain merge with no order to preserve: what matters is that all 108 keys survive it and that

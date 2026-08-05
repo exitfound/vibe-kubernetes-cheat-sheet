@@ -4,7 +4,7 @@ import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, make
 
 // Layout A on the Workloads canon (WL in the kit): ladder left, chip column right, Node frame
 // full width at the bottom. Panel measured at x<=397, y<=205 (worst of 1600/1440/1280/1100).
-// Design notes for this card: scheme/docs/CARDS.md#workloads-rolling-update
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-rolling-update
 const PANEL_B = 205, PANEL_GAP = 21;
 
 // The first actor box is centred on CX so the lane leaves its bottom midpoint and still drops

@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
 import { at, valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-nodelocal-dnscache
+// Design notes for this card: scheme/docs/CARDS-network.md#network-nodelocal-dnscache
 
 
 const FLOW_Y = 300;

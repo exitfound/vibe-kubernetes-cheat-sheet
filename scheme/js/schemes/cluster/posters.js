@@ -1,12 +1,12 @@
 // The cluster posters: the still frame each cluster card shows on the grid, keyed by card id.
 // A poster is one sentence, not a small diagram. Design notes for each one:
-// scheme/docs/CARDS.md, the "### poster" subsection under that card id.
+// scheme/docs/CARDS-cluster.md, the "### poster" subsection under that card id.
 
 export const POSTERS = {
   // Hub-and-spoke: apiserver in the centre, four control-plane satellites + worker box. The ring
   // carries a heavier stroke (2 against the 1.4 everything else uses) and the brighter fill, which
   // is how this poster says the hub is the significant one: it weights by line, not by accent bar.
-  // The two-band rebuild described under `### poster` in CARDS.md was reverted by author
+  // The two-band rebuild described under `### poster` in CARDS-cluster.md was reverted by author
   // preference, so read that section as the road not taken.
   'cluster-architecture': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
@@ -193,7 +193,7 @@ export const POSTERS = {
   // This is the original and it is what ships by author decision (2026-08-04). A pipe version was
   // built to an approved concept the same day, an API block and a cache block joined by one long
   // horizontal channel of event cells, and the author asked for this shape back after seeing it.
-  // Do not rebuild it as the pipe. Its two known weaknesses are recorded in CARDS.md under
+  // Do not rebuild it as the pipe. Its two known weaknesses are recorded in CARDS-cluster.md under
   // `poster (reverted 2026-08-04, author preference)`: it reads as rectangles joined by dashes at
   // grid size, and 2 to 2.5 radius dots are near-invisible at the ~200px the grid renders. Both are
   // to be worked FROM this shape.

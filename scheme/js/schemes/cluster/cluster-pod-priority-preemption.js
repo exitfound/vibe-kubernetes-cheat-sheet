@@ -13,7 +13,7 @@ import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeIn
 // reports that, because check-geometry --rules=occluded scores occluded AREA and a strip off a 128
 // tall frame is under its bar. Roughly 0.5 units of panel per character is what growth costs.
 // Re-measure with VW=1100 VH=800 node overlay-measure.mjs after any prose edit on this card.
-// Design notes for this card: scheme/docs/CARDS.md#cluster-pod-priority-preemption
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-pod-priority-preemption
 
 // The X grammar the card was built on, restated locally when it moved to Cluster: same numbers.
 const M = 60;

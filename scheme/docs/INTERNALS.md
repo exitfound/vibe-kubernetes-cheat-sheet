@@ -3,7 +3,7 @@
 Design record moved out of the shipped `scheme/` sources that are not cards: the poster map,
 the catalog, the shared kits, the CSS. Every comment block of three lines or more now lives
 here; one and two line clarifications, and trailing comments on a line of code, stayed next to
-the code they explain. `scheme/docs/CARDS.md` is the sister file, holding the per-card record
+the code they explain. `scheme/docs/CARDS-<category>.md` are the sister files, holding the per-card record
 for `scheme/js/schemes/*.js`.
 
 This file is NOT deployed. Three separate exclusions keep the whole `scheme/docs` directory out
@@ -17,7 +17,7 @@ its top.
 
 Generated 2026-07-25 from 10 files, 251 lines relocated.
 
-Per-poster notes are not here: they live in `CARDS.md` under their own card id, as a
+Per-poster notes are not here: they live in `CARDS-<category>.md` under their own card id, as a
 `### poster` subsection.
 
 ---
@@ -125,7 +125,7 @@ class and not the text, and steps are always entered in order (gotoStep rebuilds
 0..target), so comparing against what the chip currently reads is a deterministic per-step diff.
 
 This is the catalog-wide chip pattern. It used to be 29 identical copies of the function across
-the storage cards, each with its own near-identical paragraph in CARDS.md saying this; those 27
+the storage cards, each with its own near-identical paragraph in the card record saying this; those 27
 notes were folded into this one when the function moved here.
 ```
 
@@ -661,7 +661,7 @@ three durations raised (2400 -> 3800, and two 1900 -> 2500), and `BEAT` had to b
 
 **Declined, 2.** `cluster-oom-kill/observe` promises a status PATCH to an API this card does not draw.
 `storage-volume-attach-limits/filter` is the interesting one: the pair was built and then REVERTED,
-because `docs/CARDS.md` records the work of getting the CSINode box down to one vertical axis and a
+because `docs/CARDS-storage.md` records the work of getting the CSINode box down to one vertical axis and a
 pair is two by definition. What answers that read is already on screen, which is why the step lights
 all three Node counters. Reason written under the card's own note.
 

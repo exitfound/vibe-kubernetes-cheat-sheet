@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, node, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#storage-csi-attach-mount
+// Design notes for this card: scheme/docs/CARDS-storage.md#storage-csi-attach-mount
 
 
 const M = 60, GUTTER = 48;

@@ -4,7 +4,7 @@ import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighl
 
 // Layout A on the Workloads canon (WL in the kit): ladder left, chip column right, Node frame
 // full width at the bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).
-// Design notes for this card: scheme/docs/CARDS.md#workloads-statefulset-ordered-startup
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-statefulset-ordered-startup
 const PANEL_B = 255, PANEL_GAP = 21;
 
 // The controller is centred on CX so the lane leaves its bottom midpoint and drops down the

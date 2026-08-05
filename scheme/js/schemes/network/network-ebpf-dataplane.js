@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-ebpf-dataplane
+// Design notes for this card: scheme/docs/CARDS-network.md#network-ebpf-dataplane
 
 
 // Geometry. The composition spans CONTENT_L..CONTENT_R so it centres on x=600: the client Pod holds

@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, BEAT, makeInit, clearHighlights, clearWires, setWire, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-tls-termination
+// Design notes for this card: scheme/docs/CARDS-network.md#network-tls-termination
 
 
 const FLOW_Y = 312;

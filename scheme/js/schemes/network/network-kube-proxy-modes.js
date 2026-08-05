@@ -1,7 +1,7 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, OPACITY, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-kube-proxy-modes
+// Design notes for this card: scheme/docs/CARDS-network.md#network-kube-proxy-modes
 
 
 const CX = 600;                        // canvas centre: the chip strip is built on it

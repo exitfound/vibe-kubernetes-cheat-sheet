@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-pod-to-pod-cross-node
+// Design notes for this card: scheme/docs/CARDS-network.md#network-pod-to-pod-cross-node
 
 
 const VETH_Y = 338;       // veth links inside each node + the short packets on them

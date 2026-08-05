@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-service-clusterip
+// Design notes for this card: scheme/docs/CARDS-network.md#network-service-clusterip
 
 
 const CX = 600;                     // canvas centre: the ClusterIP column and the chip strip sit on it

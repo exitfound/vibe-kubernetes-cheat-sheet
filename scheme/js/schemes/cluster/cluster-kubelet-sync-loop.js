@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
 import { valChip, setVal, topPacket, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, at } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-kubelet-sync-loop
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-kubelet-sync-loop
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
 // Measured worst case over 1600/1440/1280/1100 is x<=397, y<=255, so the API moves into the freed

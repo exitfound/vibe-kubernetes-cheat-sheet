@@ -1,6 +1,6 @@
 import { svg, g, rect } from '../../lib/svg.js';
 import { arrowDefs, box, node, pathArrow, podShell } from '../../lib/primitives.js';
-// Design notes for this card: scheme/docs/CARDS.md#storage-volume-attach-limits
+// Design notes for this card: scheme/docs/CARDS-storage.md#storage-volume-attach-limits
 
 import { valChip, setVal, setChip, setBoxLabel, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel } from './storage-kit.js';
 

@@ -4,7 +4,7 @@ import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, rela
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, one tap into the surging Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-deployment-rollback
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-deployment-rollback
 const PANEL_B = 230;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;

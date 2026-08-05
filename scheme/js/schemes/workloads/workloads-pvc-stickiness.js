@@ -6,7 +6,7 @@ import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighl
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right
 // band and the chips form a two-across bottom strip. The PV sits between the two Node frames,
 // which is where the story puts it: one disk, detached from Node-1 and attached to Node-2.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-pvc-stickiness
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-pvc-stickiness
 const PANEL_B = 330;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;

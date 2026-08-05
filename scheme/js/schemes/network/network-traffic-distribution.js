@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, lightBoxAt, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-traffic-distribution
+// Design notes for this card: scheme/docs/CARDS-network.md#network-traffic-distribution
 
 
 const SCHEME_L = 60, SCHEME_R = 1140;        // content edges, mirrored about x=600

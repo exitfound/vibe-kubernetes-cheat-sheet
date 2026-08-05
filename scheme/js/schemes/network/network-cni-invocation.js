@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-cni-invocation
+// Design notes for this card: scheme/docs/CARDS-network.md#network-cni-invocation
 
 
 const RAISE = 64;                           // lift the whole diagram up ~10% of the viewBox height

@@ -1,7 +1,7 @@
 import { svg, g, text, rect } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-namespaces
+// Design notes for this card: scheme/docs/CARDS-network.md#network-namespaces
 
 
 const POD_TOP = 160;      // Pod netns shell top

@@ -4,7 +4,7 @@ import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighl
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, a bus tapping every Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-daemonset
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-daemonset
 const PANEL_B = 230;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;

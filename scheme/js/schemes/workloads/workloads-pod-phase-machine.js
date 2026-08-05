@@ -9,7 +9,7 @@ import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clear
 // PANEL_R, and only the status.phase chip and the Node frame fit in the 136 unit band below
 // PANEL_B, which is why the Pod is shorter here than the family default.
 // A longer narration on any step invalidates PANEL_B: re-measure.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-pod-phase-machine
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-pod-phase-machine
 const PANEL_R = 420, PANEL_B = 504;
 
 const TOP_W = 280, TOP_X = PANEL_R;                      // 420..700

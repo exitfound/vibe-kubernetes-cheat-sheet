@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-dns-coredns
+// Design notes for this card: scheme/docs/CARDS-network.md#network-dns-coredns
 
 
 // Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 305, one of the deepest in the

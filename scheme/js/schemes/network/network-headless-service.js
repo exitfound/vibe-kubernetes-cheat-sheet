@@ -1,7 +1,7 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
 import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt } from './network-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#network-headless-service
+// Design notes for this card: scheme/docs/CARDS-network.md#network-headless-service
 
 
 const CY = 320;                      // canvas centre line: Pods column + CoreDNS are centred on it

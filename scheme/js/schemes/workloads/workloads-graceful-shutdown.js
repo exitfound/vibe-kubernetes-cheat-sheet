@@ -4,7 +4,7 @@ import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, mak
 
 // Layout C of the Workloads canon (WL): full-width chip strip, three per row.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
-// Design notes for this card: scheme/docs/CARDS.md#workloads-graceful-shutdown
+// Design notes for this card: scheme/docs/CARDS-workloads.md#workloads-graceful-shutdown
 const PANEL_B = 280;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;

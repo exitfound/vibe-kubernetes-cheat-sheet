@@ -1,7 +1,7 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, chainList, setChainActive, arrow, chip } from '../../lib/primitives.js';
 import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, laneOf, BEAT, lightBoxAt, at, revealAt, REVEAL_MS, OPACITY } from './cluster-kit.js';
-// Design notes for this card: scheme/docs/CARDS.md#cluster-resource-quota
+// Design notes for this card: scheme/docs/CARDS-cluster.md#cluster-resource-quota
 
 // A budget that ACCUMULATES, so the picture is one horizontal bar whose width IS spec.hard and
 // whose slots fill left to right, with the request that does not fit drawn past the bar edge.
@@ -25,7 +25,7 @@ const TOP_CY = TOP_Y + BOX_H / 2;                        // 80
 const RS_X = 420, RS_R = RS_X + BOX_W;                   // 420..652, left edge on the bar rail
 const LADDER_W = 400;
 // The API sits where its own ladder ends on the content right edge, so the gap to the ReplicaSet
-// is 172 rather than the family 56. Both numbers are under the packet floor, see docs/CARDS.md.
+// is 172 rather than the family 56. Both numbers are under the packet floor, see docs/CARDS-cluster.md.
 const API_CX = CONTENT_R - LADDER_W / 2;                 // 940
 const API_X = API_CX - BOX_W / 2, API_R = API_X + BOX_W; // 824..1056
 const LANE_DY = 12;
