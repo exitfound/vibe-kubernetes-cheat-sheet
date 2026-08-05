@@ -85,7 +85,7 @@ const ENFORCED = new Set([
   // Queue drained by the B2 text pass, and the band was widened on 2026-07-26 to 400-470.
   'R-desc',
   // Queue drained: 44 dashes replaced across the agreed lint area (scheme/ plus the named cli/
-  // and root files). scheme/docs/*.md is deliberately outside that area, see the note below.
+  // and root files). the design records (`CARDS.md`, `INTERNALS.md`) are deliberately outside that area, see the note below.
   'R-dash',
   'R-srclabel',
   'R-srcdup',

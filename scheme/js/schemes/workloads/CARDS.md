@@ -4,14 +4,14 @@ The per-card design record for `js/schemes/workloads/`. It answers what the code
 number is what it is, which alternative was measured and failed, and what must not be "fixed".
 The constants themselves live in the card and are not repeated here.
 
-Sister files: `CARDS-<category>.md` for the other three categories, `INTERNALS.md` for the shared
-sources (catalog, kits, CSS).
+Sister files: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md` for
+the shared sources (catalog, lib, CSS).
 
-**Not deployed.** Three exclusions keep `scheme/docs` out of production and all three must hold:
-`deploy.yml` runs `rm -rf _site/scheme/tools _site/scheme/docs`, `release.yml` lists
-`"scheme/docs/*"` in the zip's `-x` list, and `.dockerignore` lists `scheme/docs`. The last is not
-optional, because `Dockerfile` is a blanket `COPY . .`. Verify with
-`curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/scheme/docs/CARDS-workloads.md`,
+**Not deployed.** Three exclusions keep it out of production and all three must hold:
+`deploy.yml` deletes every `CLAUDE.md`, `CARDS.md` and `INTERNALS.md` from the staged site,
+`release.yml` excludes the same three names from the zip, and `.dockerignore` names them too,
+which is not optional because `Dockerfile` is a blanket `COPY . .`. Verify with
+`curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/scheme/js/schemes/workloads/CARDS.md`,
 which must return 404.
 
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and

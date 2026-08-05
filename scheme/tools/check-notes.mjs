@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-// check-notes.mjs: does every design note still point at code that exists? `scheme/docs/CARDS-<category>.md`
-// anchors each note to the line it sat above (`### before `<code>``), and nothing has ever verified
-// those anchors, so a rename, a codemod or a relayout silently turns a geometry record into a note
-// about a line that is gone. Found 19+ stale anchors on its first run.
+// check-notes.mjs: does every design note still point at code that exists? A record anchors each note
+// to the line it sat above (`### before `<code>``), so a rename, a codemod or a relayout would
+// otherwise turn a geometry record into a note about a line that is gone.
 // No browser, no server. node check-notes.mjs [--verbose]
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -21,18 +20,18 @@ const verbose = process.argv.includes('--verbose');
 const CARD = new Map((await cards()).map(c => [c.id, c.path]));
 
 // One entry per markdown, so notes on the shared files are checked the same way as card notes.
-// The card record is split by category: a CARDS-<cat>.md section resolves through the catalog, and
-// `cat` lets the census below assert the section is filed under the right category rather than
-// merely existing somewhere.
+// A record lives in the folder it describes: each category's card notes in its own CARDS.md, and
+// everything that is not one card in scheme/INTERNALS.md. `cat` lets the census below assert a
+// section is filed under the right category rather than merely existing somewhere.
 const CATALOGUE = await cards();
 const CATEGORIES = [...new Set(CATALOGUE.map(c => c.category))].sort();
 const DOCS = [
   ...CATEGORIES.map(cat => ({
-    md: join(ROOT, 'docs', `CARDS-${cat}.md`),
+    md: join(ROOT, 'js/schemes', cat, 'CARDS.md'),
     cat,
     resolve: id => CARD.get(id) || join(ROOT, 'js/schemes', cat, `${id}.js`),
   })),
-  { md: join(ROOT, 'docs/INTERNALS.md'), resolve: id => join(ROOT, id.replace(/^scheme\//, '')) },
+  { md: join(ROOT, 'INTERNALS.md'), resolve: id => join(ROOT, id.replace(/^scheme\//, '')) },
 ];
 
 const known = new Set(CARD.keys());
@@ -57,7 +56,7 @@ for (const { md, resolve, cat } of DOCS) {
         // A section in the wrong category's file resolves to nothing and would be reported as an
         // ORPHAN, which says the file is missing rather than that the note is misfiled. Name it.
         const real = CAT_OF.get(section);
-        if (real && real !== cat) { misfiled++; console.log(`MISFILED ${name}:${i + 1}  ## ${section}  belongs in docs/CARDS-${real}.md`); }
+        if (real && real !== cat) { misfiled++; console.log(`MISFILED ${name}:${i + 1}  ## ${section}  belongs in js/schemes/${real}/CARDS.md`); }
       }
       srcPath = resolve(section);
       src = existsSync(srcPath) ? readFileSync(srcPath, 'utf8') : null;
@@ -78,11 +77,11 @@ for (const { md, resolve, cat } of DOCS) {
 // `have` is the union across all four card files, not one of them: reading a single file would
 // declare 87 of the 108 cards undocumented.
 for (const id of [...known].sort()) {
-  if (!have.has(id)) { missingSections++; console.log(`NO NOTE  ${id}  (no "## ${id}" section in docs/CARDS-${CAT_OF.get(id)}.md)`); }
+  if (!have.has(id)) { missingSections++; console.log(`NO NOTE  ${id}  (no "## ${id}" section in js/schemes/${CAT_OF.get(id)}/CARDS.md)`); }
 }
 
 const bad = stale + orphanSections + misfiled;
-const census = [...perFile].sort().map(([f, n]) => `${f.replace('docs/CARDS-', '').replace('.md', '')} ${n}`).join(', ');
+const census = [...perFile].sort().map(([f, n]) => `${f.replace('js/schemes/', '').replace('/CARDS.md', '')} ${n}`).join(', ');
 console.log(`\nnotes check: ${anchors} anchors, ${stale} stale, ${orphanSections} orphan section(s), ${missingSections} card(s) with no note`);
 console.log(`  sections per category file: ${census} (${[...perFile.values()].reduce((a, b) => a + b, 0)} of ${known.size})`);
 if (bad) { console.error(`notes check FAILED: ${bad} anchor/section problem(s)`); process.exit(1); }

@@ -5,7 +5,8 @@
 README.md
 LICENSE
 **/CLAUDE.md
+**/CARDS.md
+**/INTERNALS.md
 Dockerfile
 images/og-image.svg
 scheme/tools
-scheme/docs
