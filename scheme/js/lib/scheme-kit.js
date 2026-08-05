@@ -10,9 +10,10 @@ export { FADE, BEAT, OPACITY } from './tokens.js';
 // The two connector routes that used to live here were the 320 gutter: one hardcoded left-margin
 // dogleg shared by every workloads card. They are gone, each card owns its spine, and the ball
 // rides the same points array the wire is drawn from. See WL in workloads-kit.js.
-const LAYOUT = Object.freeze({
-  POD_SHELL_FILL: 'rgba(255, 255, 255, 0.03)',
-});
+//
+// A LAYOUT constant holding POD_SHELL_FILL went with them. It was module-local and unread: its own
+// comment said the connector wrappers were its only readers, and those wrappers had been deleted.
+// The colour it named is written out at the ~100 sites that build a Pod shell.
 
 export function valChip({ x, y, w, h = 32, name, value, role = '' }) {
   const grp = g({ class: 'scheme-chip', 'data-role': role || null, transform: `translate(${x},${y})` });

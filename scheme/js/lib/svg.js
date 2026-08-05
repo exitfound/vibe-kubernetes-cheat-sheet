@@ -1,3 +1,8 @@
+// The SVG element vocabulary. Six of these have no importer today (el, tspan, linearGradient,
+// stop, title, desc) and they stay on purpose: this is a library surface, not accumulated code.
+// Each is a one-line factory over el(), and a card that needs a gradient or a <title> should find
+// the tag here rather than reach for createElementNS. Do not "clean up" the unused ones, and do
+// not read their absence from the import graph as a finding.
 const NS = 'http://www.w3.org/2000/svg';
 
 export function el(tag, attrs = {}, children = []) {
