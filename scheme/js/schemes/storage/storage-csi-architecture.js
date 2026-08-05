@@ -1,6 +1,6 @@
 import { svg, g, text, rect } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from '../../lib/storage-kit.js';
+import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-csi-architecture
 
 

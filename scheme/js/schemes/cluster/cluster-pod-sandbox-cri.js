@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
 // Measured worst case over 1600/1440/1280/1100 at heights 1000/860/800 is x<=397, y<=213, and the

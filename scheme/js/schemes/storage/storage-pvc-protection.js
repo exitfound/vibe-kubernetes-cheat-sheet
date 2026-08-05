@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../../lib/storage-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-pvc-protection
 
 

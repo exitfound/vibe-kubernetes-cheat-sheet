@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Layout C: the panel leaves no column under it, so the pipeline keeps the right band and the chips
 // form a two-across bottom strip. Panel worst case over 1600/1440/1280/1100 at heights

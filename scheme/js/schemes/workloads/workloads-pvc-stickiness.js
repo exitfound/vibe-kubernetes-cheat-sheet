@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from '../../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C on the Workloads canon (WL in the kit): the panel reaches y<=330 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves no column under it, so the pipeline keeps the right

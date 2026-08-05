@@ -1,6 +1,6 @@
 import { svg, g, text, path } from '../../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from '../../lib/storage-kit.js';
+import { valChip, setVal, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-emptydir
 
 

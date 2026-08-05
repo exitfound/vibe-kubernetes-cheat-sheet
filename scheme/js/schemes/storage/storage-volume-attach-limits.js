@@ -5,7 +5,7 @@ import { arrowDefs, box, pod, node, pathArrow } from '../../lib/primitives.js';
 import {
   valChip, setVal, setBoxLabel, setBoxSublabel, setPodSublabel, pulsePod,
   routePacket, routeDur,
-  makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel} from '../../lib/storage-kit.js';
+  makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel} from './storage-kit.js';
 
 const LEFT_X = 400;
 const CONTENT_W = 400;

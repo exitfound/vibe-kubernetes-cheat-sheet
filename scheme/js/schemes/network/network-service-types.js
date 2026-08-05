@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../../lib/primitives.js';
-import { pulsePod, segmentPacket, makeInit, clearHighlights, lightBoxAt, makeRidingLabel } from '../../lib/network-kit.js';
+import { pulsePod, segmentPacket, makeInit, clearHighlights, lightBoxAt, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-service-types
 
 

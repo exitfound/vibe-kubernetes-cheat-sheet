@@ -4,8 +4,8 @@ export {
   topPacket, setConnectorDir, clearPodHighlight,
   arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at,
   makeRidingLabel, relationPath, revealAt, laneOf, REVEAL_MS, FADE, BEAT, OPACITY,
-} from './scheme-kit.js';
-import { pulsePodWithTint, pulsePodDimWithTint } from './scheme-kit.js';
+} from '../../lib/scheme-kit.js';
+import { pulsePodWithTint, pulsePodDimWithTint } from '../../lib/scheme-kit.js';
 // Design notes: scheme/docs/INTERNALS.md#schemejslibworkloads-kitjs
 
 // The Workloads layout canon: the X grammar every card in the category shares. It replaced the

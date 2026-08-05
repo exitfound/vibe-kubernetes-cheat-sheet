@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, routePacket, segmentPacket, BEAT, FADE, OPACITY, at, laneOf, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, relationPath } from '../../lib/cluster-kit.js';
+import { valChip, setVal, routePacket, segmentPacket, BEAT, FADE, OPACITY, at, laneOf, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, relationPath } from './cluster-kit.js';
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
 // Measured worst case over 1600/1280/1100 is x<=397, y<=230, so the reserved corner is 400 x 240.

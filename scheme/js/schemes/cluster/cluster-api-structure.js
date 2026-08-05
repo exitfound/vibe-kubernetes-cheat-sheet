@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, fadeIn, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT } from '../../lib/cluster-kit.js';
+import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT } from './cluster-kit.js';
 
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.
 // Measured worst case over 1600/1440/1280/1100 is x<=397, y<=181, so the Client moves into the

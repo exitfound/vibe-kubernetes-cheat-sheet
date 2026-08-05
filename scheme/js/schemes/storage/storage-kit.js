@@ -5,8 +5,8 @@ export {
   arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
   relationPath, revealAt, laneOf, REVEAL_MS,
   setPodSublabel, FADE, BEAT, OPACITY,
-} from './scheme-kit.js';
-import { pulsePodWithTint, pulsePodDimWithTint } from './scheme-kit.js';
+} from '../../lib/scheme-kit.js';
+import { pulsePodWithTint, pulsePodDimWithTint } from '../../lib/scheme-kit.js';
 // Design notes: scheme/docs/INTERNALS.md#schemejslibstorage-kitjs
 
 export const STORAGE_TINT = Object.freeze({ base: 'rgb(94, 202, 148)', bright: 'rgb(174, 224, 199)' });

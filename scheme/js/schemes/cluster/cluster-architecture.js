@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../../lib/primitives.js';
-import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from '../../lib/cluster-kit.js';
+import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Two dashed frames of the same width, a control plane over Node-1, each holding its own tiers.
 // Design notes for this card: scheme/docs/CARDS.md#cluster-architecture

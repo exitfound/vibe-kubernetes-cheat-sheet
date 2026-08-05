@@ -5,8 +5,8 @@ export {
   arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
   relationPath, revealAt, laneOf, REVEAL_MS,
   setPodSublabel, FADE, BEAT, OPACITY,
-} from './scheme-kit.js';
-import { pulsePodWithTint, pulsePodDimWithTint } from './scheme-kit.js';
+} from '../../lib/scheme-kit.js';
+import { pulsePodWithTint, pulsePodDimWithTint } from '../../lib/scheme-kit.js';
 // Design notes: scheme/docs/INTERNALS.md#schemejslibcluster-kitjs
 
 // Cluster pods are recoloured violet (#c0b0ff), so the pulse

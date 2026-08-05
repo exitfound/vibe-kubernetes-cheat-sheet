@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-server-side-apply
 
 // The ledger IS the card, so the object is drawn as a three column table (field, value, manager) and

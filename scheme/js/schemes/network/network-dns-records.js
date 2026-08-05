@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow, chainList, setChainActive } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt } from '../../lib/network-kit.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, BEAT, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dns-records
 
 

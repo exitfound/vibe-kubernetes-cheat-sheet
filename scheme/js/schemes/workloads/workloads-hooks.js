@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from '../../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C of the Workloads canon (WL): the deepest panel in the category leaves room for no column.
 // Panel worst case x<=397, y<=379; a longer narration invalidates that measurement.

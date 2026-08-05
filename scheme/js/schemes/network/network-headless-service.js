@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, pod, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt } from '../../lib/network-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-headless-service
 
 

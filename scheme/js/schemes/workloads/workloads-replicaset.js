@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
 // Layout B on the Workloads canon (WL in the kit): the panel reaches y<=305 (worst of
 // 1600/1440/1280/1100, x<=397), which leaves room under it for the chip column but not for the
@@ -56,7 +56,7 @@ function trunkPath(points) {
 }
 
 
-// valChip / setVal / setBoxLabel / setBoxSublabel are imported from ../../lib/workloads-kit.js
+// valChip / setVal / setBoxLabel / setBoxSublabel are imported from ./workloads-kit.js
 // Set a Pod slot in one call: label (the app= label), sublabel (owner state) and opacity.
 function setPod(s, idx, { label, sub, opacity }) {
   const boxEl = s.refs['pod' + idx + 'Box'];

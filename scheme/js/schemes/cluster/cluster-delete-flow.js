@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from '../../lib/cluster-kit.js';
+import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Every row is centred on CX and symmetric about it, the sibling cluster-apply-flow card's grammar. Measured
 // per step over 1600x1000 / 1280x860 / 1100x800, the panel is x<=397 on every step and its bottom

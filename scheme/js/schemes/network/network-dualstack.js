@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel, lightBoxAt } from '../../lib/network-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, BEAT, makeRidingLabel, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-dualstack
 
 

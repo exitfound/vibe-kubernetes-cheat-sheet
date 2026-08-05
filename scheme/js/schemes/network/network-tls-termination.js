@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, arrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, BEAT, makeInit, clearHighlights, clearWires, setWire, lightBoxAt } from '../../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, BEAT, makeInit, clearHighlights, clearWires, setWire, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-tls-termination
 
 

@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, lightBoxAt } from '../../lib/network-kit.js';
+import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, lightBoxAt } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-service-cidr
 
 

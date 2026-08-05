@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, at, BEAT, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, at, BEAT, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-pressure-eviction
 
 // Layout B: chips in the left column under the panel, ladder right, Node frame full width at the

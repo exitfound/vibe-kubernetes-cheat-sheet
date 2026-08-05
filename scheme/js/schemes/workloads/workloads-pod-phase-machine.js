@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, OPACITY, WL } from '../../lib/workloads-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C, and the tightest card in the catalog. It carries the longest narration (the terminal
 // step covers Succeeded, Failed, the Unknown deprecation and the DisruptionTarget path) and the

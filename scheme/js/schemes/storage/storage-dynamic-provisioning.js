@@ -1,6 +1,6 @@
 import { svg, g, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from '../../lib/storage-kit.js';
+import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-dynamic-provisioning
 
 

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, lightBoxAt, OPACITY, at } from '../../lib/cluster-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, lightBoxAt, OPACITY, at } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-oom-kill
 
 // Layout C: the panel reaches deep on the left, so the ladder stays right and the chips take a

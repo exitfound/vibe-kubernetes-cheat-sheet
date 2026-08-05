@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-drain
 
 // Layout C: the ladder keeps the right column and the Node frame sits under the panel. Panel worst

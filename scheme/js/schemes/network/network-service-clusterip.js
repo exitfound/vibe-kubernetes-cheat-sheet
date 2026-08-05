@@ -1,6 +1,6 @@
 import { svg, g } from '../../lib/svg.js';
 import { arrowDefs, box, pod, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from '../../lib/network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#network-service-clusterip
 
 

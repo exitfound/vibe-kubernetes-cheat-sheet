@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-static-pods
 
 // Three tiers on the L. Measured panel: 1600x1000 x<=291 y<=160, 1280x860 x<=378 y<=193,

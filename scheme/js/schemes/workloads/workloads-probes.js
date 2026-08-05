@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, pathArrow } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, pulsePodDim, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from '../../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, pulsePodDim, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
 
 // Layout A on the Workloads canon (WL in the kit): ladder left, chip column right, Node frame
 // full width at the bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).

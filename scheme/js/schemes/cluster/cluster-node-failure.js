@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, chainList, setChainActive, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, laneOf, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, laneOf, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-node-failure
 
 // Layout C: six ladder rows plus two Node frames plus six chips do not leave room for a left

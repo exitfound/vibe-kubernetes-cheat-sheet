@@ -219,14 +219,18 @@ for (const { base: f, path } of files) {
 // The four kits re-export the same list on purpose (it documents the boundary), so it must not
 // drift. Why not `export *`: scheme/CLAUDE.md, Card construction standard.
 {
-  const KITS = ['workloads-kit.js', 'cluster-kit.js', 'network-kit.js', 'storage-kit.js'];
-  const LIB = join(__dirname, '..', 'js', 'lib');
+  // Each kit lives beside the cards it serves, so the path carries its category. The specifier in
+  // the match below is left open ('[^']*scheme-kit.js') rather than pinned to './scheme-kit.js':
+  // pinning it means the rule stops finding the re-export block the moment a kit changes depth,
+  // and reports "no re-export block" for all four, which reads as drift rather than as a moved file.
+  const CATS = ['workloads', 'cluster', 'network', 'storage'];
   const sets = new Map();
-  for (const k of KITS) {
+  for (const c of CATS) {
+    const k = `${c}-kit.js`;
     let src;
-    try { src = await readFile(join(LIB, k), 'utf8'); }
+    try { src = await readFile(join(__dirname, '..', 'js', 'schemes', c, k), 'utf8'); }
     catch (_) { report('R-kitparity', `${k}: missing`); continue; }
-    const m = stripComments(src).match(/export \{([^}]*)\} from '\.\/scheme-kit\.js';/);
+    const m = stripComments(src).match(/export \{([^}]*)\} from '[^']*scheme-kit\.js';/);
     if (!m) { report('R-kitparity', `${k}: no re-export block from scheme-kit.js`); continue; }
     sets.set(k, new Set(m[1].split(',').map(n => n.trim()).filter(Boolean)));
   }
@@ -300,6 +304,14 @@ for (const dir of ['scheme/js/lib', 'scheme/css']) {
   for (const n of await readdir(join(ROOT, dir))) {
     if (/\.(js|css)$/.test(n)) dashTargets.push(`${dir}/${n}`);
   }
+}
+// The four category kits sit beside their cards, not in js/lib, so the directory walk above no
+// longer reaches them. Named explicitly because the alternative failure is silent: this loop
+// scans whatever a directory happens to hold, and a file that leaves one simply stops being
+// checked, with no finding and no error to say so. The read below also swallows a missing file,
+// so a typo here would be silent too: keep these four in step with the kit locations.
+for (const c of ['workloads', 'cluster', 'network', 'storage']) {
+  dashTargets.push(`scheme/js/schemes/${c}/${c}-kit.js`);
 }
 for (const rel of dashTargets.sort()) {
   let src;

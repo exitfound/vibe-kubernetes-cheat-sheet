@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from '../../lib/cluster-kit.js';
+import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from './cluster-kit.js';
 
 // One grid with cluster-architecture, minus the cloud-controller-manager. Every control-plane
 // block is inside the frame and the client is not, so its lanes address the frame, not a block.

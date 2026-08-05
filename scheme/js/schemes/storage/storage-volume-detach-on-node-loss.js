@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, node, cylinder, pathArrow, chainList, setChainActive } from '../../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from '../../lib/storage-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-volume-detach-on-node-loss
 
 

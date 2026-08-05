@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, pod, box, cylinder, chainList, arrow } from '../../lib/primitives.js';
-import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // Design notes for this card: scheme/docs/CARDS.md#cluster-scheduler-decision
 // Layout A, the Cluster exemplar: actor row on top clear of the panel, pipeline ladder in the left

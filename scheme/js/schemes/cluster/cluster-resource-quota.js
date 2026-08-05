@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, chainList, setChainActive, arrow, chip } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, laneOf, BEAT, lightBoxAt, at, revealAt, REVEAL_MS, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, laneOf, BEAT, lightBoxAt, at, revealAt, REVEAL_MS, OPACITY } from './cluster-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#cluster-resource-quota
 
 // A budget that ACCUMULATES, so the picture is one horizontal bar whose width IS spec.hard and

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt } from '../../lib/cluster-kit.js';
+import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt } from './cluster-kit.js';
 
 // Design notes for this card: scheme/docs/CARDS.md#cluster-admission-webhooks
 // Laid out on the L: the narration panel owns the top-left corner and nothing is drawn there.

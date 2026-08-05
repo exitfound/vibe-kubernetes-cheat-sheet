@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from '../../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
 
 // Layout C of the Workloads canon (WL): full-width chip strip, a bus tapping all three workers.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
@@ -50,7 +50,7 @@ const LANE = i => (POD_CX(i) === WL.SPINE_X
   : [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]);
 
 
-// valChip / setVal / setBoxSublabel are imported from ../../lib/workloads-kit.js
+// valChip / setVal / setBoxSublabel are imported from ./workloads-kit.js
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }

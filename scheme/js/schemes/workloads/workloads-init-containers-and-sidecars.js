@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, node, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT, WL } from '../../lib/workloads-kit.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT, WL } from './workloads-kit.js';
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
 // Panel worst case x<=397, y<=255; a longer narration invalidates that measurement.

@@ -1,6 +1,6 @@
 import { svg, g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, pod, node, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from '../../lib/workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, a bus tapping every Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.
@@ -47,7 +47,7 @@ const LANE = i => [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]];
 
 const NODE_JOIN_DELAY = 200;                             // Node-4 fades in a beat before its Pod
 
-// valChip / setVal / setBoxSublabel are imported from ../../lib/workloads-kit.js
+// valChip / setVal / setBoxSublabel are imported from ./workloads-kit.js
 
 class Scene {
   constructor(host) { this.host = host; this.refs = {}; this.build(); }

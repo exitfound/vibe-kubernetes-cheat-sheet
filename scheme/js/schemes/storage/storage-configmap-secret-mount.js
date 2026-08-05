@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from '../../lib/storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
 // Design notes for this card: scheme/docs/CARDS.md#storage-configmap-secret-mount
 
 

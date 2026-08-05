@@ -504,7 +504,7 @@ after the user has interacted, and no race with headless step-probing.
 
 ---
 
-## scheme/js/lib/workloads-kit.js
+## scheme/js/schemes/workloads/workloads-kit.js
 
 ### before `export {`
 
@@ -669,7 +669,7 @@ makes the pulse return to the original colour instead of settling on a paler ton
 
 ---
 
-## scheme/js/lib/cluster-kit.js
+## scheme/js/schemes/cluster/cluster-kit.js
 
 ### before `export {`
 
@@ -684,7 +684,7 @@ topPacket (top row, eased) and segmentPacket (in-diagram, linear).
 
 ---
 
-## scheme/js/lib/network-kit.js
+## scheme/js/schemes/network/network-kit.js
 
 ### before `export {`
 
@@ -709,7 +709,7 @@ non-persist pulse fills forwards to `base`). Mirrors scheme-kit's workloads tint
 
 ---
 
-## scheme/js/lib/storage-kit.js
+## scheme/js/schemes/storage/storage-kit.js
 
 ### before `export {`
 

@@ -1,6 +1,6 @@
 import { svg, g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from '../../lib/cluster-kit.js';
+import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
 
 // One column, centred on the canvas, and every replica reaches the Lease on its own axis.
 // Design notes, including what this costs vertically: scheme/docs/CARDS.md#cluster-leader-election
