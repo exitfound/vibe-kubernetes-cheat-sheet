@@ -1,4 +1,4 @@
-import { g, rect, text, circle, path } from './svg.js';
+import { svg, g, rect, text, circle, path } from './svg.js';
 import { packet, animateAlong } from './primitives.js';
 import { Timeline } from './timeline.js';
 import { PULSE_POD, PULSE_BLOCK, OPACITY } from './tokens.js';
@@ -42,7 +42,7 @@ export function setPodSublabel(podEl, txt) {
 }
 
 // A lane joins two things and is only as present as the fainter of them, so its shade is the MIN
-// of its endpoints. The rule is catalog-wide: see the lane rules in scheme/CLAUDE.md.
+// of its endpoints. The rule is catalog-wide: ../../CANON.md A-13, A-14, A-16.
 export const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));
 
 export function clearHighlights(s, keys, pods = []) {
@@ -125,6 +125,42 @@ export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending,
     { duration: dur, delay, fill: 'both', easing: 'ease-in-out' }
   ));
 }
+// The camera, and the one part of a card's build() that is not per card. Every card is on the canon
+// viewBox, so the only thing that varies is the sentence a screen reader is read.
+//
+// THE aria-label STAYS AN OBJECT KEY AT THE CALL SITE, and that is not style. check-terms finds that
+// prose by matching `'aria-label': '...'` in the source, so a positional argument would take 108
+// sentences out of its input with no finding and no error. The attribute order is the order the old
+// inline block used, because dom-dump compares serialised attributes.
+export function diagramRoot({ 'aria-label': ariaLabel }) {
+  return svg({
+    class: 'diagram',
+    viewBox: '0 0 1200 640',
+    preserveAspectRatio: 'xMidYMid meet',
+    'aria-label': ariaLabel,
+    'data-style': 'outline',
+  });
+}
+
+// A category kit binds its tint once here instead of writing the same two wrappers itself.
+// The bodies stay above, so a change to the pulse is one edit rather than five.
+export function makeTintedPulses(tint) {
+  return {
+    pulsePod: (podEl, ctx, delay = 0, opts = {}) => pulsePodWithTint(podEl, ctx, delay, opts, tint),
+    pulsePodDim: (podEl, ctx, delay = 0, opts = {}) => pulsePodDimWithTint(podEl, ctx, delay, opts, tint),
+  };
+}
+
+// The tail every card-local podBlock() shares. Geometry stays in the card, only the assembly is
+// here: the returned GROUP is what pulsePod has to be given, because the pulse queries descendants
+// and never the element itself, so a bare shell pulses at half strength.
+export function wrapPod(shell, innerBox) {
+  const group = g({});
+  group.appendChild(shell);
+  group.appendChild(innerBox);
+  return { group, innerBox };
+}
+
 export function clearPodHighlight(podEl) {
   if (!podEl) return;
   for (const el of podEl.querySelectorAll('.scheme-pod-rect, .scheme-box-rect')) {

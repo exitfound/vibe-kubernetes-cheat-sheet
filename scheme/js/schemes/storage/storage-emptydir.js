@@ -1,6 +1,6 @@
-import { svg, g, text, path } from '../../lib/svg.js';
+import { g, text, path } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
+import { valChip, setChip, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel, lightBoxAt, OPACITY, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-emptydir
 
 
@@ -51,13 +51,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'emptyDir lifecycle: an emptyDir is created empty when the Pod is assigned to a Node, lives on that Node disk, and is shared by every container in the Pod. It survives a container crash but is deleted forever when the Pod is removed from the Node. With medium Memory it is backed by tmpfs that counts against the memory limit, where a sizeLimit sizes the tmpfs itself so a write past it fails, while on the Node disk an exceeded sizeLimit gets the Pod evicted.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'emptyDir lifecycle: an emptyDir is created empty when the Pod is assigned to a Node, lives on that Node disk, and is shared by every container in the Pod. It survives a container crash but is deleted forever when the Pod is removed from the Node. With medium Memory it is backed by tmpfs that counts against the memory limit, where a sizeLimit sizes the tmpfs itself so a write past it fails, while on the Node disk an exceeded sizeLimit gets the Pod evicted.' });
     root.appendChild(arrowDefs());
 
     const nd = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });

@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, relationPath } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, relationPath, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-externalname
 
 
@@ -40,10 +40,7 @@ const ridingLabel = makeRidingLabel({ role: 'network' });
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 18, y: y + 30, w: w - 36, h: 48, label: 'curl', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -52,13 +49,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ExternalName and Services without selectors: a type ExternalName Service is a pure DNS alias where CoreDNS returns a CNAME to an external host with no ClusterIP and no kube-proxy, while a ClusterIP Service with no selector gets a hand-attached EndpointSlice listing an external IP that kube-proxy then DNATs to like any other Service',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'ExternalName and Services without selectors: a type ExternalName Service is a pure DNS alias where CoreDNS returns a CNAME to an external host with no ClusterIP and no kube-proxy, while a ClusterIP Service with no selector gets a hand-attached EndpointSlice listing an external IP that kube-proxy then DNATs to like any other Service' });
     root.appendChild(arrowDefs());
 
     const clientA = podBlock({ x: CLIENT_X, y: ROW_A - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: 'svc lookup' });
@@ -108,6 +99,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { type, vip, ep, proxy }) {
+  setVal(s.refs.typeChip, type);
+  setVal(s.refs.vipChip, vip);
+  setVal(s.refs.epChip, ep);
+  setVal(s.refs.proxyChip, proxy);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   // clientABox/clientBBox are listed so a highlight set in a reduced-replay branch is cleared every
@@ -122,10 +120,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.typeChip, 'idle');
-      setVal(s.refs.vipChip, 'none');
-      setVal(s.refs.epChip, 'none');
-      setVal(s.refs.proxyChip, 'none');
+      setChips(s, { type: 'idle', vip: 'none', ep: 'none', proxy: 'none' });
     },
   },
   {
@@ -136,9 +131,7 @@ const STEPS = [
       resetStep(s);
       s.refs.typeChip.classList.add('highlight');
       s.refs.vipChip.classList.add('highlight');
-      setVal(s.refs.typeChip, 'ExternalName');
-      setVal(s.refs.vipChip, 'none');
-      setVal(s.refs.proxyChip, 'not involved');
+      setChips(s, { type: 'ExternalName', vip: 'none', ep: 'none', proxy: 'not involved' });
       s.refs.proxyChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.clientABox.classList.add('highlight'); s.refs.dns.classList.add('highlight'); s.refs.host.classList.add('highlight'); return; }
       pulsePod(s.refs.clientA, ctx, 0);
@@ -166,10 +159,7 @@ const STEPS = [
       s.refs.vipChip.classList.add('highlight');
       s.refs.epChip.classList.add('highlight');
       s.refs.proxyChip.classList.add('highlight');
-      setVal(s.refs.typeChip, 'ClusterIP · no selector');
-      setVal(s.refs.vipChip, '10.96.0.7');
-      setVal(s.refs.epChip, 'manual');
-      setVal(s.refs.proxyChip, 'DNAT');
+      setChips(s, { type: 'ClusterIP · no selector', vip: '10.96.0.7', ep: 'manual', proxy: 'DNAT' });
       if (ctx.reduced) { s.refs.clientBBox.classList.add('highlight'); s.refs.proxy.classList.add('highlight'); s.refs.ep.classList.add('highlight'); return; }
       pulsePod(s.refs.clientB, ctx, 0);
       const send = segmentPacket(s, ctx, { from: B_HOP1[0], to: B_HOP1[1], delay: BEAT.afterPulse, role: 'network' });
@@ -189,12 +179,9 @@ const STEPS = [
       s.refs.dns.classList.add('highlight');
       s.refs.proxy.classList.add('highlight');
       s.refs.typeChip.classList.add('highlight');
-      setVal(s.refs.typeChip, 'two modes');
-      setVal(s.refs.vipChip, 'none / real');
+      setChips(s, { type: 'two modes', vip: 'none / real', ep: 'none / manual', proxy: 'no / yes' });
       s.refs.vipChip.classList.add('highlight');
-      setVal(s.refs.epChip, 'none / manual');
       s.refs.epChip.classList.add('highlight');
-      setVal(s.refs.proxyChip, 'no / yes');
       s.refs.proxyChip.classList.add('highlight');
       // Packet-less, pod-less recap: the two middle boxes light via .highlight to distinguish the
       // modes. Blocks light, they never blink. Only Pods pulse.

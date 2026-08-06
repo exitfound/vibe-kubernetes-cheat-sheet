@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-to-pod-same-node
 
 
@@ -16,10 +16,7 @@ const HOP = 800;              // ball travel per veth hop, a touch slower than t
 function podBlock({ x, label, ip }) {
   const shell = podShell({ x, y: 315, w: 200, h: 130, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: 352, w: 160, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -28,13 +25,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod-to-Pod traffic on the same Node: Pod A reaches Pod B through the cni0 bridge over a pair of veth links, with no NAT and no encapsulation',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod-to-Pod traffic on the same Node: Pod A reaches Pod B through the cni0 bridge over a pair of veth links, with no NAT and no encapsulation' });
     root.appendChild(arrowDefs());
 
     const nodeEl = node({ x: 80, y: 255, w: 1040, h: 250, label: 'Node-1   ·   10.244.1.0/24' });
@@ -83,6 +74,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { path, nat, src, dst }) {
+  setVal(s.refs.pathChip, path);
+  setVal(s.refs.natChip, nat);
+  setVal(s.refs.srcChip, src);
+  setVal(s.refs.dstChip, dst);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['cni0', 'podABox', 'podBBox', 'srcChip', 'dstChip', 'pathChip', 'natChip'], [s.refs.podA, s.refs.podB]);
@@ -95,8 +93,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.pathChip, 'L2 bridge');
-      setVal(s.refs.natChip, 'none');
+      setChips(s, { path: 'L2 bridge', nat: 'none', src: '10.244.1.5', dst: '10.244.1.6' });
     },
   },
   {
@@ -107,7 +104,7 @@ const STEPS = [
       resetStep(s);
       setWire(s, 'a', 'veth · eth0');
       setWire(s, 'b', 'veth · eth0');
-      setVal(s.refs.pathChip, 'ARP who-has .6');
+      setChips(s, { path: 'ARP who-has .6', nat: 'none', src: '10.244.1.5', dst: '10.244.1.6' });
       s.refs.pathChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.cni0.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
       pulsePod(s.refs.podA, ctx, 0);                // A broadcasts the request (blink first)
@@ -128,7 +125,7 @@ const STEPS = [
       resetStep(s);
       setWire(s, 'a', 'veth · eth0');
       setWire(s, 'b', 'veth · eth0');
-      setVal(s.refs.pathChip, 'L2 bridge');
+      setChips(s, { path: 'L2 bridge', nat: 'none', src: '10.244.1.5', dst: '10.244.1.6' });
       s.refs.pathChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.cni0.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
       // A pulses FIRST and fully; the data frame departs only after that blink lands
@@ -150,9 +147,7 @@ const STEPS = [
       s.refs.srcChip.classList.add('highlight');
       s.refs.dstChip.classList.add('highlight');
       s.refs.natChip.classList.add('highlight');
-      setVal(s.refs.srcChip, '10.244.1.5');
-      setVal(s.refs.dstChip, '10.244.1.6');
-      setVal(s.refs.natChip, 'none · src preserved');
+      setChips(s, { path: 'L2 bridge', nat: 'none · src preserved', src: '10.244.1.5', dst: '10.244.1.6' });
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); return; }
       // Info chips get the strict static highlight only, no flash. Just the pod pulses.
       pulsePod(s.refs.podB, ctx, 0);

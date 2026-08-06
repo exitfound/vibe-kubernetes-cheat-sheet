@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, at, BEAT, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, at, BEAT, OPACITY, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-node-pressure-eviction
 
 // Layout B: chips left under the panel, ladder right, Node frame full width. Panel x<=397 y<=280
@@ -68,13 +68,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Node-pressure eviction: detect, condition, rank, evict, relieve',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Node-pressure eviction: detect, condition, rank, evict, relieve' });
     root.appendChild(arrowDefs());
 
     // Top row: Kubelet, the eviction actor, clear of the narration panel, and the API it reports to.

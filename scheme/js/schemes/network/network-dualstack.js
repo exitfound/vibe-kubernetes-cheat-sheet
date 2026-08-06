@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routeDur, makeInit, clearHighlights, clearWires, BEAT, makeRidingLabel, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-dualstack
 
 
@@ -37,13 +37,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Dual-stack IPv4 and IPv6: with both families enabled a Pod gets one address from each family, a Service gets one ClusterIP per family ordered by ipFamilies, and the client connects over whichever family it prefers',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Dual-stack IPv4 and IPv6: with both families enabled a Pod gets one address from each family, a Service gets one ClusterIP per family ordered by ipFamilies, and the client connects over whichever family it prefers' });
     root.appendChild(arrowDefs());
 
     // Config band spans Service..Pod (480..1080), centred on x=780, label centred.
@@ -89,19 +83,19 @@ class Scene {
 function clientBlock({ x, y, w, h }) {
   const shell = podShell({ x, y, w, h, label: 'Client Pod', sublabel: 'dual-stack', containers: 0, role: 'network' });
   const innerBox = box({ x: x + 16, y: y + 36, w: w - 32, h: 50, label: 'app', sublabel: 'to Service web', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 22, y: y + 42, w: w - 44, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
+}
+
+function setChips(s, { fam, v4, v6 }) {
+  setVal(s.refs.famChip, fam);
+  setVal(s.refs.v4Chip, v4);
+  setVal(s.refs.v6Chip, v6);
 }
 
 function resetStep(s) {
@@ -120,9 +114,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.famChip, 'SingleStack');
-      setVal(s.refs.v4Chip, '10.96.0.20');
-      setVal(s.refs.v6Chip, 'none');
+      setChips(s, { fam: 'SingleStack', v4: '10.96.0.20', v6: 'none' });
       setPodSublabel(s.refs.pod, 'IPv4 10.244.1.5');
       setBoxSublabel(s.refs.clientBox, 'to Service web');
     },
@@ -134,7 +126,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       s.refs.config.classList.add('highlight');
-      setVal(s.refs.famChip, 'SingleStack');
+      setChips(s, { fam: 'SingleStack', v4: '10.96.0.20', v6: 'none' });
     },
   },
   {
@@ -143,6 +135,7 @@ const STEPS = [
     narration: 'When the Pod is created, the CNI now allocates one address from each family, an IPv4 from the v4 pod CIDR and an IPv6 from the v6 pod CIDR. Both live on the same eth0, and the Pod can speak either protocol.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { fam: 'SingleStack', v4: '10.96.0.20', v6: 'none' });
       // The dual-stack config (its CNI plus the v6 pod CIDR) is the source of the new address, so the
       // band stays lit as the allocation flows out of it.
       s.refs.config.classList.add('highlight');
@@ -164,8 +157,7 @@ const STEPS = [
       s.refs.famChip.classList.add('highlight');
       s.refs.v4Chip.classList.add('highlight');
       s.refs.v6Chip.classList.add('highlight');
-      setVal(s.refs.famChip, 'PreferDualStack');
-      setVal(s.refs.v6Chip, 'fd00:96::a');
+      setChips(s, { fam: 'PreferDualStack', v4: '10.96.0.20', v6: 'fd00:96::a' });
       if (ctx.reduced) { s.refs.svc.classList.add('highlight'); return; }
       // Down-arrow: the second ClusterIP drops from the config band into the Service.
       const pkt = segmentPacket(s, ctx, { from: DROP_SVC[0], to: DROP_SVC[1], delay: 0, role: 'network' });
@@ -179,8 +171,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.v6Chip.classList.add('highlight');
-      setVal(s.refs.famChip, 'PreferDualStack');
-      setVal(s.refs.v6Chip, 'fd00:96::a');
+      setChips(s, { fam: 'PreferDualStack', v4: '10.96.0.20', v6: 'fd00:96::a' });
       setBoxSublabel(s.refs.clientBox, 'dials IPv6 fd00:96::a');
       if (ctx.reduced) { s.refs.svc.classList.add('highlight'); s.refs.podBox.classList.add('highlight'); return; }
       // The Service is the first hop's destination, so it lights when the client packet lands on it

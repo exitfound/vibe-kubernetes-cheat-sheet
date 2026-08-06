@@ -1,3 +1,4 @@
+/* Design notes: scheme/INTERNALS.md#schemecsstokenscss */
 :root {
   --bg-card:        #1a1538;
   --bg-card-hover:  #1e1a38;

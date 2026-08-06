@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-rolling-update
 
@@ -59,13 +59,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Deployment rolling update: maxSurge surges a new ReplicaSet Pod first, maxUnavailable drains an old one once the new is Ready, repeat until converged',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Deployment rolling update: maxSurge surges a new ReplicaSet Pod first, maxUnavailable drains an old one once the new is Ready, repeat until converged' });
     root.appendChild(arrowDefs());
 
     const controller = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Deployment', sublabel: 'scales RS-v1, RS-v2', role: 'cluster' });
@@ -150,6 +144,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { v1, v2, surge, progress }) {
+  setVal(s.refs.v1Chip, v1);
+  setVal(s.refs.v2Chip, v2);
+  setVal(s.refs.surgeChip, surge);
+  setVal(s.refs.progressChip, progress);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -177,10 +178,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       setSlots(s, V1, V1, V1, null);
-      setVal(s.refs.v1Chip, '3 / 3');
-      setVal(s.refs.v2Chip, '0 / 0');
-      setVal(s.refs.surgeChip, '1 · 1');
-      setVal(s.refs.progressChip, 'idle');
+      setChips(s, { v1: '3 / 3', v2: '0 / 0', surge: '1 · 1', progress: 'idle' });
       setChainActive(s.refs.chain, -1);
     },
   },
@@ -191,9 +189,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, V1, V1, null);
-      setVal(s.refs.v1Chip, '3 / 3');
-      setVal(s.refs.v2Chip, '0 / 0');
-      setVal(s.refs.progressChip, 'spec PATCHed · RS-v2 created');
+      setChips(s, { v1: '3 / 3', v2: '0 / 0', surge: '1 · 1', progress: 'spec PATCHed · RS-v2 created' });
       setWire(s, 'req', 'PATCH .spec.template · New RS-v2');
       s.refs.controller.classList.add('highlight');
       s.refs.progressChip.classList.add('highlight');
@@ -210,9 +206,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, V1, V1, V2_NEW);
-      setVal(s.refs.v1Chip, '3 / 3');
-      setVal(s.refs.v2Chip, '0 / 1');
-      setVal(s.refs.progressChip, 'surged +1 · 4 Pods alive');
+      setChips(s, { v1: '3 / 3', v2: '0 / 1', surge: '1 · 1', progress: 'surged +1 · 4 Pods alive' });
       setWire(s, 'req', 'scale RS-v2 replicas: 0 → 1');
       s.refs.controller.classList.add('highlight');
       s.refs.v2Chip.classList.add('highlight');
@@ -235,9 +229,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, V1, GOING, V2);
-      setVal(s.refs.v1Chip, '2 / 2');
-      setVal(s.refs.v2Chip, '1 / 1');
-      setVal(s.refs.progressChip, 'replaced 1/3 · 3 Pods alive');
+      setChips(s, { v1: '2 / 2', v2: '1 / 1', surge: '1 · 1', progress: 'replaced 1/3 · 3 Pods alive' });
       setWire(s, 'req', 'scale RS-v1 replicas: 3 → 2');
       s.refs.apiserver.classList.add('highlight');
       s.refs.v1Chip.classList.add('highlight');
@@ -263,9 +255,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, GOING, V2, V2);
-      setVal(s.refs.v1Chip, '1 / 1');
-      setVal(s.refs.v2Chip, '2 / 2');
-      setVal(s.refs.progressChip, 'replaced 2/3 · 3 Pods alive');
+      setChips(s, { v1: '1 / 1', v2: '2 / 2', surge: '1 · 1', progress: 'replaced 2/3 · 3 Pods alive' });
       setWire(s, 'req', 'scale RS-v2: 1 → 2 · Scale RS-v1: 2 → 1');
       s.refs.controller.classList.add('highlight');
       s.refs.v1Chip.classList.add('highlight');
@@ -297,9 +287,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, GOING, V2, V2, V2);
-      setVal(s.refs.v1Chip, '0 / 0');
-      setVal(s.refs.v2Chip, '3 / 3');
-      setVal(s.refs.progressChip, 'replaced 3/3 · 3 Pods alive');
+      setChips(s, { v1: '0 / 0', v2: '3 / 3', surge: '1 · 1', progress: 'replaced 3/3 · 3 Pods alive' });
       setWire(s, 'req', 'scale RS-v2: 2 → 3 · Scale RS-v1: 1 → 0');
       s.refs.apiserver.classList.add('highlight');
       s.refs.v1Chip.classList.add('highlight');
@@ -325,10 +313,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, null, V2, V2, V2);
-      setVal(s.refs.v1Chip, '0 / 0 (retained)');
+      setChips(s, { v1: '0 / 0 (retained)', v2: '3 / 3', surge: '1 · 1', progress: 'Complete · Available=True' });
       s.refs.v1Chip.classList.add('highlight');
-      setVal(s.refs.v2Chip, '3 / 3');
-      setVal(s.refs.progressChip, 'Complete · Available=True');
       s.refs.progressChip.classList.add('highlight');
       setChainActive(s.refs.chain, 5);
       if (ctx.reduced) { ['pod2Box','pod3Box','pod4Box'].forEach(k => s.refs[k].classList.add('highlight')); return; }

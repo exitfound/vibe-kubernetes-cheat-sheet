@@ -1,12 +1,13 @@
-import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
+import { g, text } from '../../lib/svg.js';
+import { arrowDefs, box, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
+import { valChip, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volume-expansion
 
 
 const CX = 600;
-const TIER = 162;
 
+// Three tiers on ONE 162 pitch, measured between block MIDPOINTS: 108, 270, 432. Same pitch and
+// same footprints as storage-pvc-protection, which is what makes the pair read as one family.
 const POD_W = 240, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;
 const POD_BOTTOM = POD_Y + POD_H;                              // 160
 
@@ -49,10 +50,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock() {
   const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'df reads the mount', containers: 0, role: 'storage' });
   const innerBox = box({ x: POD_X + 20, y: POD_Y + (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'app', sublabel: 'writes to /data', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 // Every lane in this card is a ROUTE: something travels all of them, so they are all dashed, all
@@ -67,13 +65,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. You raise the storage request on the claim, and the API server accepts that edit only because the StorageClass behind it has allowVolumeExpansion set to true. Then the external-resizer calls ControllerExpandVolume and the backend grows the real block device, which is phase one. Then Kubelet calls NodeExpandVolume on the Node where the Pod runs and the filesystem grows to fill the bigger device, which is phase two. Only after both does the extra space appear inside the container, with no restart. Going the other way is refused: a request below the size already provisioned is rejected.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. You raise the storage request on the claim, and the API server accepts that edit only because the StorageClass behind it has allowVolumeExpansion set to true. Then the external-resizer calls ControllerExpandVolume and the backend grows the real block device, which is phase one. Then Kubelet calls NodeExpandVolume on the Node where the Pod runs and the filesystem grows to fill the bigger device, which is phase two. Only after both does the extra space appear inside the container, with no restart. Going the other way is refused: a request below the size already provisioned is rejected.' });
     root.appendChild(arrowDefs());
 
     const web = podBlock();

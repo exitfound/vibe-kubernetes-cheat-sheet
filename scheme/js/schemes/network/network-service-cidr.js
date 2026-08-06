@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, clearWires, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, clearWires, lightBoxAt, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-cidr
 
 
@@ -50,13 +50,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Service CIDR and ClusterIP allocation: the configured Service CIDR is divided into a low static band for well-known IPs like 10.96.0.1 and 10.96.0.10 and a high dynamic band the allocator draws ClusterIPs from, each tracked by an IPAddress object, and a second ServiceCIDR can be added to extend the range without disruption',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Service CIDR and ClusterIP allocation: the configured Service CIDR is divided into a low static band for well-known IPs like 10.96.0.1 and 10.96.0.10 and a high dynamic band the allocator draws ClusterIPs from, each tracked by an IPAddress object, and a second ServiceCIDR can be added to extend the range without disruption' });
     root.appendChild(arrowDefs());
 
     // Top row: the configured Service CIDR, plus a second one stacked over the web column,
@@ -141,6 +135,7 @@ const STEPS = [
     narration: 'The range is divided into two bands. A small low static band is left for hand-picked addresses, and the much larger high dynamic band is used for automatic assignment, so a manual IP taken from the low band is very unlikely to collide with an auto-assigned one. Only once the dynamic band is exhausted does the allocator fall back to the low one.',
     enter(s, ctx) {
       resetStep(s);
+      setVal(s.refs.ipaddrChip, ' ');
       s.refs.pool.classList.add('highlight');
       setBoxSublabel(s.refs.svcK8s, 'clusterIP pending');
       setBoxSublabel(s.refs.svcDns, 'clusterIP pending');
@@ -160,6 +155,7 @@ const STEPS = [
     narration: 'At cluster bootstrap two addresses are taken from the static band. 10.96.0.1 is the first address of the range and always fronts the kubernetes API Service, while installers assign kube-dns the tenth by convention, here 10.96.0.10, which is why those two IPs are predictable in most clusters.',
     enter(s, ctx) {
       resetStep(s);
+      setVal(s.refs.ipaddrChip, ' ');
       s.refs.staticBand.classList.add('highlight');
       setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
       setBoxSublabel(s.refs.svcDns, 'clusterIP 10.96.0.10');

@@ -1,5 +1,6 @@
+// Design notes: scheme/INTERNALS.md#schemejspostersjs (the pair), and ./CARDS.md
+// under each card id as a "### poster" subsection.
 // The cluster posters, keyed by card id: the still frame each card shows on the grid.
-// A poster is one sentence, not a small diagram. Per-poster notes: ./CARDS.md, "### poster".
 
 export const POSTERS = {
   // Hub-and-spoke. The ring carries a heavier stroke (2 against 1.4) and the brighter fill: this

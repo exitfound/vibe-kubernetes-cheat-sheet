@@ -1,12 +1,11 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chip, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-cronjob
 
 // Layout C of the Workloads canon (WL): full-width chip strip, ticks in the left band.
 // Panel worst case x<=397, y<=330; a longer narration invalidates that measurement.
-const PANEL_B = 330;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
@@ -67,13 +66,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CronJob controller: on each schedule tick it creates one Job from a template, the Job runs a Pod, with concurrencyPolicy, history limits and missed-schedule handling',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'CronJob controller: on each schedule tick it creates one Job from a template, the Job runs a Pod, with concurrencyPolicy, history limits and missed-schedule handling' });
     root.appendChild(arrowDefs());
 
     const cronjob   = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'CronJob',   sublabel: 'schedule evaluator',      role: 'cluster' });
@@ -171,6 +164,14 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { schedule, conc, active, last, event }) {
+  setVal(s.refs.scheduleChip, schedule);
+  setVal(s.refs.concChip, conc);
+  setVal(s.refs.activeChip, active);
+  setVal(s.refs.lastChip, last);
+  setVal(s.refs.eventChip, event);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -198,11 +199,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.scheduleChip, '*/5 * * * *');
-      setVal(s.refs.concChip, 'Forbid');
-      setVal(s.refs.activeChip, '0');
-      setVal(s.refs.lastChip, 'none');
-      setVal(s.refs.eventChip, 'none');
+      setChips(s, { schedule: '*/5 * * * *', conc: 'Forbid', active: '0', last: 'none', event: 'none' });
       setPods(s, 0, 0, 0, 0);
       setTicks(s, []);
       setChainActive(s.refs.chain, -1);
@@ -214,9 +211,7 @@ const STEPS = [
     narration: 'At 12:00 the wall clock matches the schedule. The controller creates one Job, backup-28394400, from spec.jobTemplate through the API, and that Job in turn creates its own Pod. The path is always CronJob then Job then Pod, never CronJob straight to Pod. The numeric suffix is derived from the scheduled time, so a single tick can only ever produce one Job, which keeps creation idempotent. The status.active field becomes 1 and lastScheduleTime records 12:00.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.activeChip, '1');
-      setVal(s.refs.lastChip, '12:00');
-      setVal(s.refs.eventChip, 'created backup-28394400');
+      setChips(s, { schedule: '*/5 * * * *', conc: 'Forbid', active: '1', last: '12:00', event: 'created backup-28394400' });
       setBoxSublabel(s.refs.pod1Box, 'Running');
       setWire(s, 'req', 'create Job backup-28394400 · from jobTemplate');
       s.refs.cronjob.classList.add('highlight');
@@ -243,9 +238,7 @@ const STEPS = [
     narration: 'This backup is slow and still Running when the 12:05 tick arrives. The spec.concurrencyPolicy field decides what happens to overlapping runs. With Forbid the controller skips the new tick entirely and records the Event JobAlreadyActive, it does not queue the run for later. The default Allow would let a second Job start alongside the first, and Replace would delete the still-running Job and start a fresh one in its place. Here nothing new is created and the 12:00 run keeps going.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.activeChip, '1');
-      setVal(s.refs.lastChip, '12:00');
-      setVal(s.refs.eventChip, 'JobAlreadyActive · skipped');
+      setChips(s, { schedule: '*/5 * * * *', conc: 'Forbid', active: '1', last: '12:00', event: 'JobAlreadyActive · skipped' });
       setBoxSublabel(s.refs.pod1Box, 'Running');
       setWire(s, 'req', 'concurrencyPolicy=Forbid · skip new run');
       s.refs.cronjob.classList.add('highlight');
@@ -263,9 +256,7 @@ const STEPS = [
     narration: 'By 12:10 the 12:00 run has finished with exit 0, so status.active drops to 0. Now the 12:10 tick has no overlap to forbid, the controller creates Job backup-28394410 and its Pod starts. Each tick is a separate Job and a separate Pod, runs are never reused. The completed 12:00 Job is kept for now as part of the history.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.activeChip, '1');
-      setVal(s.refs.lastChip, '12:10');
-      setVal(s.refs.eventChip, 'created backup-28394410');
+      setChips(s, { schedule: '*/5 * * * *', conc: 'Forbid', active: '1', last: '12:10', event: 'created backup-28394410' });
       setBoxSublabel(s.refs.pod1Box, 'Completed · exit 0');
       setBoxSublabel(s.refs.pod2Box, 'Running');
       setWire(s, 'req', 'create Job backup-28394410 · prev complete');
@@ -292,11 +283,9 @@ const STEPS = [
     narration: 'Over the following ticks more runs complete and finished Jobs pile up. The controller caps how many it keeps with successfulJobsHistoryLimit (default 3) and failedJobsHistoryLimit (default 1). Once a fourth successful Job exists it prunes the oldest, here backup-28394400, deleting that Job object and its Pod through the API. Trimming history is why kubectl get jobs shows only the most recent runs.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.activeChip, '0');
+      setChips(s, { schedule: '*/5 * * * *', conc: 'Forbid', active: '0', last: '12:20', event: 'pruned backup-28394400' });
       s.refs.activeChip.classList.add('highlight');
-      setVal(s.refs.lastChip, '12:20');
       s.refs.lastChip.classList.add('highlight');
-      setVal(s.refs.eventChip, 'pruned backup-28394400');
       setBoxSublabel(s.refs.pod1Box, 'Completed · exit 0');
       setBoxSublabel(s.refs.pod2Box, 'Completed · exit 0');
       setBoxSublabel(s.refs.pod3Box, 'Completed · exit 0');
@@ -326,9 +315,7 @@ const STEPS = [
     narration: 'Suppose the controller was down for a while. On recovery it sees ticks it missed. The spec.startingDeadlineSeconds field bounds how late a missed run may still start, any tick older than that deadline is skipped and counted as missed rather than run late. With no deadline set the controller instead refuses to schedule once it finds more than 100 missed start times, logging an error. Because a CronJob is not exactly-once and may rarely create two Jobs or none for a tick, the Job itself should be idempotent.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.activeChip, '0');
-      setVal(s.refs.lastChip, '12:20');
-      setVal(s.refs.eventChip, 'missed 12:25 · past deadline');
+      setChips(s, { schedule: '*/5 * * * *', conc: 'Forbid', active: '0', last: '12:20', event: 'missed 12:25 · past deadline' });
       setWire(s, 'req', 'missed start > startingDeadlineSeconds · skip');
       s.refs.cronjob.classList.add('highlight');
       s.refs.eventChip.classList.add('highlight');
@@ -344,9 +331,7 @@ const STEPS = [
     narration: 'Setting spec.suspend=true pauses the CronJob. The clock keeps advancing and the schedule still matches, but the controller creates no new Jobs while suspended, and any Job already running is left to finish on its own. Clearing the flag back to false resumes creation, and with no startingDeadlineSeconds set the ticks missed while suspended are scheduled at once. This is the safe way to pause a schedule without deleting the CronJob and losing its history.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.activeChip, '0');
-      setVal(s.refs.lastChip, '12:20');
-      setVal(s.refs.eventChip, 'suspend=true · creation paused');
+      setChips(s, { schedule: '*/5 * * * *', conc: 'Forbid', active: '0', last: '12:20', event: 'suspend=true · creation paused' });
       setWire(s, 'req', 'spec.suspend=true · no Jobs created');
       s.refs.cronjob.classList.add('highlight');
       s.refs.eventChip.classList.add('highlight');

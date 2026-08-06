@@ -1,13 +1,12 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-netfilter-path
 
 
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 251;
 // The Node frame is the widest element, so it is what the chip strip spans, edge to edge.
 const SCHEME_LEFT = NODE_X;                    // 40
-const SCHEME_RIGHT = NODE_X + NODE_W;          // 1160
 
 const ROW_Y = 380, ROW_H = 70;
 const ROW_CY = ROW_Y + ROW_H / 2;              // 415
@@ -23,7 +22,6 @@ const FW_RIGHT = FW_X + FW_W;                  // 700
 const PO_X = 740, PO_W = 210;
 const PO_RIGHT = PO_X + PO_W;                  // 950
 const ETH_X = 990, ETH_W = 150;
-const ETH_RIGHT = ETH_X + ETH_W;               // 1140
 const ETH_CX = ETH_X + ETH_W / 2;              // 1065
 
 const CT_X = PRE_X, CT_Y = 480, CT_W = PO_RIGHT - PRE_X, CT_H = 56;   // under the four hooks, 70..950
@@ -61,10 +59,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emer
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -73,13 +68,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The netfilter path a packet takes: a packet leaving a Pod enters the Node kernel at the PREROUTING hook, where conntrack records the new flow and the nat table DNATs the Service address to a backend Pod. Only then does the routing decision run, on the rewritten address, which is why DNAT must happen before it. The packet is not local, so it crosses FORWARD, where an iptables NetworkPolicy is enforced, and reaches POSTROUTING, the last hook before the wire, which is where MASQUERADE lives because only there is the outgoing interface known. The reply matches the conntrack entry at PREROUTING and every rewrite is undone with no rule walk, while an eBPF dataplane skips the whole chain by hooking the socket instead.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'The netfilter path a packet takes: a packet leaving a Pod enters the Node kernel at the PREROUTING hook, where conntrack records the new flow and the nat table DNATs the Service address to a backend Pod. Only then does the routing decision run, on the rewritten address, which is why DNAT must happen before it. The packet is not local, so it crosses FORWARD, where an iptables NetworkPolicy is enforced, and reaches POSTROUTING, the last hook before the wire, which is where MASQUERADE lives because only there is the outgoing interface known. The reply matches the conntrack entry at PREROUTING and every rewrite is undone with no rule walk, while an eBPF dataplane skips the whole chain by hooking the socket instead.' });
     root.appendChild(arrowDefs());
 
     const theNode = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node kernel' });
@@ -136,6 +125,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { hook, dst, src, ct }) {
+  setVal(s.refs.hookChip, hook);
+  setVal(s.refs.dstChip, dst);
+  setVal(s.refs.srcChip, src);
+  setVal(s.refs.ctChip, ct);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pre', 'rt', 'fw', 'po', 'eth', 'ct', 'hookChip', 'dstChip', 'srcChip', 'ctChip', 'podCBox'], [s.refs.podC]);
@@ -165,10 +161,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setBoxSublabel(s.refs.ct, '10.244.1.5 -> 10.96.0.20:80');
-      setVal(s.refs.hookChip, 'PREROUTING');
-      setVal(s.refs.dstChip, '10.96.0.20:80');
-      setVal(s.refs.srcChip, '10.244.1.5');
-      setVal(s.refs.ctChip, 'new flow');
+      setChips(s, { hook: 'PREROUTING', dst: '10.96.0.20:80', src: '10.244.1.5', ct: 'new flow' });
       s.refs.ct.classList.add('highlight');
       s.refs.hookChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
@@ -188,11 +181,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
-      setVal(s.refs.hookChip, 'PREROUTING (nat)');
+      setChips(s, { hook: 'PREROUTING (nat)', dst: '10.244.2.7:8080', src: '10.244.1.5', ct: 'DNAT recorded' });
       s.refs.hookChip.classList.add('highlight');
-      setVal(s.refs.dstChip, '10.244.2.7:8080');
-      setVal(s.refs.srcChip, '10.244.1.5');
-      setVal(s.refs.ctChip, 'DNAT recorded');
       s.refs.pre.classList.add('highlight');
       s.refs.ct.classList.add('highlight');
       s.refs.dstChip.classList.add('highlight');
@@ -212,10 +202,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
-      setVal(s.refs.hookChip, 'routing decision');
-      setVal(s.refs.dstChip, '10.244.2.7:8080');
-      setVal(s.refs.srcChip, '10.244.1.5');
-      setVal(s.refs.ctChip, 'DNAT recorded');
+      setChips(s, { hook: 'routing decision', dst: '10.244.2.7:8080', src: '10.244.1.5', ct: 'DNAT recorded' });
       s.refs.rt.classList.add('highlight');
       s.refs.hookChip.classList.add('highlight');
       s.refs.dstChip.classList.add('highlight');
@@ -235,10 +222,7 @@ const STEPS = [
       resetStep(s);
       setWire(s, 'exit', 'to Node-2');
       setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
-      setVal(s.refs.hookChip, 'FORWARD, POSTROUTING');
-      setVal(s.refs.dstChip, '10.244.2.7:8080');
-      setVal(s.refs.srcChip, '10.244.1.5 (no SNAT)');
-      setVal(s.refs.ctChip, 'DNAT recorded');
+      setChips(s, { hook: 'FORWARD, POSTROUTING', dst: '10.244.2.7:8080', src: '10.244.1.5 (no SNAT)', ct: 'DNAT recorded' });
       s.refs.fw.classList.add('highlight');
       s.refs.hookChip.classList.add('highlight');
       s.refs.srcChip.classList.add('highlight');
@@ -261,12 +245,9 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setBoxSublabel(s.refs.ct, '10.96.0.20:80 -> 10.244.2.7:8080');
-      setVal(s.refs.hookChip, 'PREROUTING');
+      setChips(s, { hook: 'PREROUTING', dst: '10.244.1.5', src: '10.96.0.20:80 (restored)', ct: 'ESTABLISHED' });
       s.refs.hookChip.classList.add('highlight');
-      setVal(s.refs.dstChip, '10.244.1.5');
       s.refs.dstChip.classList.add('highlight');
-      setVal(s.refs.srcChip, '10.96.0.20:80 (restored)');
-      setVal(s.refs.ctChip, 'ESTABLISHED');
       s.refs.ct.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
       s.refs.srcChip.classList.add('highlight');
@@ -285,11 +266,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setBoxSublabel(s.refs.ct, 'kept in BPF maps instead');
-      setVal(s.refs.hookChip, 'socket, above netfilter');
-      setVal(s.refs.dstChip, '10.244.2.7:8080');
-      setVal(s.refs.srcChip, '10.244.1.5');
+      setChips(s, { hook: 'socket, above netfilter', dst: '10.244.2.7:8080', src: '10.244.1.5', ct: 'in BPF maps' });
       s.refs.srcChip.classList.add('highlight');
-      setVal(s.refs.ctChip, 'in BPF maps');
       s.refs.ctChip.classList.add('highlight');
       // The chain the packet no longer walks: dimming it is the message of the step.
       ['pre', 'rt', 'fw', 'po', 'ct'].forEach(k => { s.refs[k].style.opacity = String(OPACITY.notready); });

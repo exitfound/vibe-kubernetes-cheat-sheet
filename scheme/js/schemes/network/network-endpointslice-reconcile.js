@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, pulsePodDim, segmentPacket, relationPath, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, pulsePodDim, segmentPacket, relationPath, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-endpointslice-reconcile
 
 
@@ -16,10 +16,7 @@ const ridingLabel = makeRidingLabel({ role: 'network' });
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -28,13 +25,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Service and EndpointSlice reconciliation: the controller watches Pods matching the Service selector and writes the ready ones into an EndpointSlice that kube-proxy consumes, with readiness gating membership',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Service and EndpointSlice reconciliation: the controller watches Pods matching the Service selector and writes the ready ones into an EndpointSlice that kube-proxy consumes, with readiness gating membership' });
     root.appendChild(arrowDefs());
 
     // Top: the Service owns the selector and names the slice, but holds no addresses.
@@ -87,6 +78,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { ep1, ep2, ep3 }) {
+  setVal(s.refs.ep1, ep1);
+  setVal(s.refs.ep2, ep2);
+  setVal(s.refs.ep3, ep3);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   // The inner pod boxes (podABox etc.) light in the reduced-motion end-states, so they must be
@@ -103,9 +100,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
-      setVal(s.refs.ep1, '(empty)');
-      setVal(s.refs.ep2, '(empty)');
-      setVal(s.refs.ep3, '(empty)');
+      setChips(s, { ep1: '(empty)', ep2: '(empty)', ep3: '(empty)' });
     },
   },
   {
@@ -114,6 +109,7 @@ const STEPS = [
     narration: 'The Service holds only a selector, app=web, and no addresses of its own. Every Pod carrying that label is a candidate backend, here three of them, but a Pod has to be Ready before it should receive traffic. Two are Ready, one is not.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { ep1: '(empty)', ep2: '(empty)', ep3: '(empty)' });
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.service.classList.add('highlight');
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
@@ -130,9 +126,7 @@ const STEPS = [
       resetStep(s);
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.ctlr.classList.add('highlight');
-      setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
-      setVal(s.refs.ep2, '10.244.2.7:8080 · ready');
-      setVal(s.refs.ep3, '10.244.3.9 · notReady');
+      setChips(s, { ep1: '10.244.1.5:8080 · ready', ep2: '10.244.2.7:8080 · ready', ep3: '10.244.3.9 · notReady' });
       s.refs.ep3.classList.add('highlight');
       if (ctx.reduced) { s.refs.ep1.classList.add('highlight'); s.refs.ep2.classList.add('highlight'); return; }
       pulsePod(s.refs.podA, ctx, 0);
@@ -155,9 +149,7 @@ const STEPS = [
       // Pod B is what this step flips, so its shade is static end-state, not motion.
       s.refs.podB.style.opacity = String(OPACITY.notready);
       s.refs.ctlr.classList.add('highlight');
-      setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
-      setVal(s.refs.ep2, '10.244.2.7 · dropped (notReady)');
-      setVal(s.refs.ep3, '10.244.3.9 · notReady');
+      setChips(s, { ep1: '10.244.1.5:8080 · ready', ep2: '10.244.2.7 · dropped (notReady)', ep3: '10.244.3.9 · notReady' });
       setPodSublabel(s.refs.podB, '10.244.2.7 · notReady');
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); s.refs.ep2.classList.add('highlight'); return; }
       // Pod B pulses FROM its dimmed state: a plain pulsePod ramps from the resting tint and a Pod
@@ -177,9 +169,7 @@ const STEPS = [
       s.refs.podC.style.opacity = String(OPACITY.notready);
       s.refs.podB.style.opacity = String(OPACITY.notready);
       s.refs.ep1.classList.add('highlight');
-      setVal(s.refs.ep1, '10.244.1.5:8080 · ready');
-      setVal(s.refs.ep2, '10.244.2.7 · dropped (notReady)');
-      setVal(s.refs.ep3, '10.244.3.9 · notReady');
+      setChips(s, { ep1: '10.244.1.5:8080 · ready', ep2: '10.244.2.7 · dropped (notReady)', ep3: '10.244.3.9 · notReady' });
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); return; }
       // kube-proxy reads the slice (one clean hop) and lights on arrival. The ball carries a short
       // read tag so the direction of the pull reads clearly.

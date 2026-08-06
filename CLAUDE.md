@@ -10,9 +10,11 @@ One static, dependency-free site deployed to `kube.how`, made of three path-base
 |---|---|---|---|
 | `/` | **Hub** | One-viewport landing page: two entry panels (Commands, Schemes) over an aurora + canvas packet-graph background | this file (Hub section below) |
 | `/cli/` | **Commands** | Searchable `kubectl`/Helm/Kustomize/K9s cheat sheet, 890 commands, copy + star | `cli/CLAUDE.md` |
-| `/scheme/` | **Schemes** | Card grid of animated SVG Kubernetes architecture diagrams (click a card, a `<dialog>` plays a step-by-step animation) | `scheme/CLAUDE.md`, plus `js/schemes/<category>/CARDS.md` for per-card geometry |
+| `/scheme/` | **Schemes** | Card grid of animated SVG Kubernetes architecture diagrams (click a card, a `<dialog>` plays a step-by-step animation) | `scheme/CLAUDE.md` (contract), `scheme/CANON.md` (the card rulebook, load on demand), plus `js/schemes/<category>/CARDS.md` for per-card geometry |
 
 Each sub-app has its own nested `CLAUDE.md` with the full detail; Claude Code auto-loads it when you work inside that folder. This file stays an overview: the repo shape, how to run and ship, and the chrome shared across all three pages.
+
+`README.md` at the repo root is the USER-facing description: what the site is, the command and diagram counts, the stack. It reaches nobody through the site (neither shipping mechanism copies it, and `.dockerignore` excludes it) and everybody through GitHub. No `CLAUDE.md` links to it, so it is the one document that goes stale without anything noticing: re-read its counts whenever a card or a command block is added or removed. `R-dash` does scan it.
 
 No framework, no bundler, no npm at runtime. Everything is plain HTML/CSS and ES modules loaded directly by the browser via `<script type="module">`. The only external dependency is Google Fonts (Space Grotesk + JetBrains Mono), loaded by `preconnect` + `preload` in all three page heads. There is no `@font-face` anywhere: if you ever self-host, remember a new top-level directory is invisible to both shipping mechanisms (`deploy.yml` copies `images cli scheme` by name, `release.yml` zips a named list), so it would reach the container via the blanket `COPY . .` and 404 in production. `scheme/tools/` has its own Node `package.json`, but that is a dev-only test harness, never shipped.
 
@@ -36,14 +38,12 @@ Rebuild after edits: `docker rm -f kube-cheatsheet && docker build -t kube-cheat
 ## Deployment
 
 Two GitHub Actions run on every push to `main`:
-- **`deploy.yml`** stages `index.html`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, plus the `images/`, `cli/`, and `scheme/` directories, then strips `scheme/tools/` and every `CLAUDE.md`, `CARDS.md` and `INTERNALS.md` before publishing to GitHub Pages. `configs/`, `Dockerfile`, and `.dockerignore` are intentionally excluded (Docker-only).
-- **`release.yml`** zips the shippable tree (`index.html`, `cli/`, `scheme/`, `images/`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, `Dockerfile`, `configs/`, `.dockerignore`, minus `scheme/tools/` and the same three internal filenames) into a tagged Release `vYYYY.MM.DD-<sha>`. Its `paths:` trigger matches that artifact list so any shippable change cuts a release while docs-only commits are skipped.
+- **`deploy.yml`** stages `index.html`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, plus the `images/`, `cli/`, and `scheme/` directories, then strips `scheme/tools/` and every `CLAUDE.md`, `CARDS.md`, `INTERNALS.md` and `CANON.md` before publishing to GitHub Pages. `configs/`, `Dockerfile`, and `.dockerignore` are intentionally excluded (Docker-only).
+- **`release.yml`** zips the shippable tree (`index.html`, `cli/`, `scheme/`, `images/`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, `Dockerfile`, `configs/`, `.dockerignore`, minus `scheme/tools/` and the same four internal filenames) into a tagged Release `vYYYY.MM.DD-<sha>`. Its `paths:` trigger matches that artifact list so any shippable change cuts a release while docs-only commits are skipped.
 
-Internal docs never reach production. They are three filenames (`CLAUDE.md`, `CARDS.md`, `INTERNALS.md`, anywhere in the tree) plus `scheme/tools/`. The design record lives in the folder it describes rather than in a `docs/` directory, so exclusion is by NAME, not by path.
+Internal docs never reach production. They are four filenames (`CLAUDE.md`, `CARDS.md`, `INTERNALS.md`, `CANON.md`, anywhere in the tree) plus `scheme/tools/`. The design record lives in the folder it describes rather than in a `docs/` directory, so exclusion is by NAME, not by path.
 
 **Three mechanisms have to agree, and they are not symmetric.** `deploy.yml` (GitHub Pages) and `release.yml` (the zip) work off ALLOWLISTS, so a new internal file at the repo root is excluded by default there and only `.dockerignore` has to learn about it. Anything inside an already-copied directory (`scheme/`, `cli/`, `images/`) must be named in all three. The local container is the cheapest place to catch a miss, because `Dockerfile` is a blanket `COPY . .`: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/<path>` must return 404.
-
-**A root working document is a deliberate exception and is NOT excluded from the container.** `DOCS-REORG-PLAN.md` is the live example: the local image contains it and serves it at 200. That is fine, and **do not "fix" that 200 by adding the pattern**, because the container is a local iteration tool while the two shipping mechanisms are allowlists, so a file at the repo root cannot reach GitHub Pages or the release zip whether or not anything names it. This has been undone once by a later pass that read the 200 as a leak. If the container itself ever ships, that is the moment the pattern has to come back.
 
 Any push to `main` ships immediately; there is no staging environment. Hosting is GitHub Pages + Cloudflare (custom domain, SSL, edge cache).
 
@@ -59,9 +59,11 @@ Any push to `main` ships immediately; there is no staging environment. Hosting i
 
 **Project-wide writing rules.** No em-dashes anywhere (rephrase, use colons/parentheses instead). No semicolons or apostrophes in `scheme/` narration/wire strings (they are single-quoted JS; an apostrophe breaks module load). These apply to all user-visible text.
 
+**A write hook can hard-fail your edit.** `.claude/hooks/check-js.sh` is a PostToolUse hook: after any Edit or Write to a `scheme/js/**/*.js` file it runs `node --check` on it and **exits 2** if the file no longer parses, which is almost always an apostrophe or a semicolon that landed inside a single-quoted narration string. The message comes back as tool feedback, not as a test failure. Nothing else in the repo has a hook.
+
 ## Working discipline (cross-cutting)
 
-These encode recurring friction from past sessions. They apply to all three sub-apps.
+These encode recurring friction from past sessions. They apply to all three sub-apps. The `scheme/` sub-app additionally has a rulebook of its own, `scheme/CANON.md`: every rule a card is held to, with a stable id and a column naming the check (if any) behind it. It is not auto-loaded, so load it before designing, reviewing or repairing a card.
 
 **Scope discipline.** Make ONLY the change asked for. Do not recolor, re-trim descriptions, restructure elements, or "improve" adjacent things that were not mentioned. Concrete traps that caused reverts: "darken" is not "recolor purple", "remove the flash/pulse" is not "remove all highlighting", "slow the ball glide" is not "slow the whole card". When matching a sibling card, match it exactly and do not over-trim. If a change seems to need touching more than the ask, stop and say so first rather than expanding silently.
 
@@ -75,7 +77,7 @@ The stronger version of this rule was paid for twice in one week. A pass relaid 
 
 **Technical text gets a second pair of eyes.** Not for style, for accuracy. In this project 87 cards that one reviewer had closed yielded 31 real defects when someone else re-read them. The cheapest technique by far is looking for **internal contradiction**: a card disagreeing with its own other steps, its own diagram labels, its own `aria-label` or a sibling card. That found more than half of everything and needs no network access.
 
-**Posters need concept sign-off.** Posters are the single biggest source of rework. Before rendering a full poster, describe the intended abstract technical-diagram concept in one line and get approval. No literal copies of the card diagram, no reused two-box layouts, no plain "dumb circles". (Full poster construction canon lives in `scheme/CLAUDE.md`.)
+**Posters need concept sign-off.** Posters are the single biggest source of rework. Before rendering a full poster, describe the intended abstract technical-diagram concept in one line and get approval. No literal copies of the card diagram, no reused two-box layouts, no plain "dumb circles". (Full poster construction canon is the `R-` block of `scheme/CANON.md`.)
 
 **Docs sync.** After adding or removing cards, update the `SCHEMES` count and category counts in `scheme/CLAUDE.md` to match `scheme/js/data.js` exactly, and verify they align. Only sync docs on an explicit request or at the end of a completed unit of work, not mid-refactor.
 

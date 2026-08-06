@@ -85,7 +85,7 @@ census('inline check', files.length, ALL.length, { subset: only.size > 0 });
 let found = 0, changed = 0, nameFound = 0, scanned = 0;
 // ENFORCED since 2026-08-04: a chip value that reaches the canvas only as a property of a
 // card-local wrapper call, which no INLINE_SITE can see. It landed report-only, its queue drained
-// to zero the same day, and it joined the exit code as a regression guard. See scheme/CLAUDE.md.
+// to zero the same day, and it joined the exit code as a regression guard. See ../CANON.md T-15.
 let indirectScanned = 0;
 const indirect = [];
 // Writes the resolver could not read. NOT findings and NOT in the exit code: they are the part of
@@ -168,9 +168,10 @@ if (audit) console.log('  left alone: ' + [...byReason].sort((a, b) => b[1] - a[
 // check exists to have, not to avoid: hoisting setChip into the kit without teaching prose.mjs about
 // it once took indirect coverage from 321 to 114 at zero findings and exit 0. The acceptance
 // criterion for any refactor touching a card's wrapper shape is therefore a NUMBER.
-// Raise FLOOR when real coverage rises; never lower it to make a run pass.
+// Raise FLOOR when real coverage rises; never lower it to make a run pass. The same goes the other
+// way for CEILING: lower it when a card stops hiding values behind a factory, never raise it.
 const COVERAGE_FLOOR = 321;
-const UNREAD_CEILING = 18;
+const UNREAD_CEILING = 8;
 const floorBroken = indirectScanned < COVERAGE_FLOOR;
 const ceilingBroken = unreadWrites > UNREAD_CEILING;
 console.log(`  indirect (through a wrapper): ${indirectScanned} strings (floor ${COVERAGE_FLOOR}), ${indirect.length} finding(s), enforced`);

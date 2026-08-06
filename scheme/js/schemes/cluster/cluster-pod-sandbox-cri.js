@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, diagramRoot } from './cluster-kit.js';
 
 // Laid out on the L. Panel x<=397 y<=213, and the two do NOT peak together: widest where shallow,
 // deepest where narrow. The right edge caps the top row at 404, the bottom clears the columns at 235.
@@ -12,7 +12,7 @@ const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas cent
 // comes out of the BOXES, not out of that stop: see ./CARDS.md.
 const TOP_Y = 40, BOX_H = 80, TOP_BOTTOM = TOP_Y + BOX_H;// 40 / 120
 const KUBE_W = 180, RT_W = 210, CNI_W = 180, TOP_GAP = 83;
-const CNI_X = CONTENT_R - CNI_W, CNI_R = CONTENT_R;      // 960..1140
+const CNI_X = CONTENT_R - CNI_W;  // 960..1140
 const RT_R = CNI_X - TOP_GAP, RT_X = RT_R - RT_W;        // 667..877
 const KUBE_R = RT_X - TOP_GAP, KUBE_X = KUBE_R - KUBE_W; // 404..584
 const LANE_DY = 12, TOP_CY = TOP_Y + BOX_H / 2;          // 80
@@ -50,13 +50,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod sandbox via CRI: RunPodSandbox creates the pause container, CNI attaches the network, PullImage, CreateContainer and StartContainer launch the workload inside the sandbox',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod sandbox via CRI: RunPodSandbox creates the pause container, CNI attaches the network, PullImage, CreateContainer and StartContainer launch the workload inside the sandbox' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: KUBE_X, y: TOP_Y, w: KUBE_W, h: BOX_H, label: 'Kubelet',    sublabel: 'CRI client',      role: 'cluster' });
@@ -143,6 +137,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { sandbox, ipChip, status, lastOp }) {
+  setVal(s.refs.sandboxChip, sandbox);
+  setVal(s.refs.ipChip, ipChip);
+  setVal(s.refs.statusChip, status);
+  setVal(s.refs.lastOpChip, lastOp);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -166,10 +167,7 @@ const STEPS = [
       s.refs.appGroup.style.opacity = '0';
       setPodSublabel(s.refs.shellEl, ' ');
       setBoxSublabel(s.refs.appBox, 'ENTRYPOINT');
-      setVal(s.refs.sandboxChip, 'none');
-      setVal(s.refs.ipChip, 'none');
-      setVal(s.refs.statusChip, 'none');
-      setVal(s.refs.lastOpChip, 'none');
+      setChips(s, { sandbox: 'none', ipChip: 'none', status: 'none', lastOp: 'none' });
       setChainActive(s.refs.chain, -1);
     },
   },
@@ -181,9 +179,7 @@ const STEPS = [
       resetStep(s);
       s.refs.appGroup.style.opacity = '0';
       setPodSublabel(s.refs.shellEl, 'sandbox ready');
-      setVal(s.refs.sandboxChip, 'pause-7f3a');
-      setVal(s.refs.statusChip, 'sandbox ready');
-      setVal(s.refs.lastOpChip, 'RunPodSandbox');
+      setChips(s, { sandbox: 'pause-7f3a', ipChip: 'none', status: 'sandbox ready', lastOp: 'RunPodSandbox' });
       s.refs.statusChip.classList.add('highlight');
       setWire(s, 'kr', 'RunPodSandbox');
       s.refs.kubelet.classList.add('highlight');
@@ -209,9 +205,7 @@ const STEPS = [
       resetStep(s);
       s.refs.appGroup.style.opacity = '0';
       setPodSublabel(s.refs.shellEl, 'IP 10.244.1.5');
-      setVal(s.refs.ipChip, '10.244.1.5');
-      setVal(s.refs.statusChip, 'sandbox ready · IP set');
-      setVal(s.refs.lastOpChip, 'CNI ADD');
+      setChips(s, { sandbox: 'pause-7f3a', ipChip: '10.244.1.5', status: 'sandbox ready · IP set', lastOp: 'CNI ADD' });
       s.refs.statusChip.classList.add('highlight');
       s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'rc', 'ADD · netns + IPAM');
@@ -239,8 +233,7 @@ const STEPS = [
       s.refs.appGroup.style.opacity = '0';
       // `pulled`, not `cached`: this step draws the PullImage call, and under IfNotPresent a cached
       // image is one Kubelet never calls for. The ladder row keeps the cached case in its parenthesis.
-      setVal(s.refs.statusChip, 'image pulled');
-      setVal(s.refs.lastOpChip, 'PullImage');
+      setChips(s, { sandbox: 'pause-7f3a', ipChip: '10.244.1.5', status: 'image pulled', lastOp: 'PullImage' });
       s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'kr', 'PullImage · nginx:1.27');
       s.refs.kubelet.classList.add('highlight');
@@ -260,8 +253,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setBoxSublabel(s.refs.appBox, 'created · not started');
-      setVal(s.refs.statusChip, 'created (not started)');
-      setVal(s.refs.lastOpChip, 'CreateContainer');
+      setChips(s, { sandbox: 'pause-7f3a', ipChip: '10.244.1.5', status: 'created (not started)', lastOp: 'CreateContainer' });
       s.refs.lastOpChip.classList.add('highlight');
       setWire(s, 'kr', 'CreateContainer');
       s.refs.kubelet.classList.add('highlight');
@@ -288,8 +280,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setBoxSublabel(s.refs.appBox, 'running');
-      setVal(s.refs.statusChip, 'running');
-      setVal(s.refs.lastOpChip, 'StartContainer');
+      setChips(s, { sandbox: 'pause-7f3a', ipChip: '10.244.1.5', status: 'running', lastOp: 'StartContainer' });
       setWire(s, 'kr', 'StartContainer');
       s.refs.kubelet.classList.add('highlight');
       s.refs.statusChip.classList.add('highlight');

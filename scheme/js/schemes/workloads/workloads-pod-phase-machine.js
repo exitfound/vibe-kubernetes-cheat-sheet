@@ -1,12 +1,12 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, OPACITY, WL } from './workloads-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-pod-phase-machine
 
 // Layout C, the TIGHTEST card in the catalog: panel 397 x 504, three quarters of the canvas height,
 // so only the phase chip and the Node frame fit below it. Re-measure after any prose edit.
-const PANEL_R = 420, PANEL_B = 504;
+const PANEL_R = 420;
 
 const TOP_W = 280, TOP_X = PANEL_R;                      // 420..700
 
@@ -39,13 +39,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod lifecycle phases: Kubelet reconciles status.phase through Pending, Running and a terminal Succeeded or Failed, with CrashLoopBackOff sitting inside Running as a container waiting reason',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod lifecycle phases: Kubelet reconciles status.phase through Pending, Running and a terminal Succeeded or Failed, with CrashLoopBackOff sitting inside Running as a container waiting reason' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'reconciles status.phase', role: 'cluster' });

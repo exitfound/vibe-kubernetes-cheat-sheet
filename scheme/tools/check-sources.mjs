@@ -9,7 +9,10 @@
 //           has to hunt for the paragraph the card is citing
 // Side effect that the text pass depends on: every fetched page is cached under .cache/pages, so
 // wave B2 can verify narration against the real docs without 600 network round trips.
-// node check-sources.mjs [--cached] [--json]
+// node check-sources.mjs [--cached] [--refresh] [--json]
+// A WARM CACHE MAKES THIS CHECK STOP CHECKING. Once a url has a good record it is never fetched
+// again, so a run can report 0 findings having proved nothing about today. --refresh forces the
+// network for every url, and it is the only mode whose green means the links are alive NOW.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -23,6 +26,7 @@ const INDEX = join(CACHE, 'index.json');
 
 const args = process.argv.slice(2);
 const cachedOnly = args.includes('--cached');
+const refresh = args.includes('--refresh');
 const asJson = args.includes('--json');
 
 const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
@@ -45,7 +49,7 @@ const slug = u => createHash('sha1').update(u).digest('hex').slice(0, 16) + '.ht
 
 async function load(url) {
   const rec = index[url];
-  if (cachedOnly || (rec && rec.ok)) {
+  if (!refresh && (cachedOnly || (rec && rec.ok))) {
     if (rec && existsSync(join(PAGES, rec.file))) {
       return { ...rec, body: await readFile(join(PAGES, rec.file), 'utf8'), fromCache: true };
     }

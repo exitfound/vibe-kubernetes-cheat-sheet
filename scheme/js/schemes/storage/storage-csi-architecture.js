@@ -1,6 +1,6 @@
-import { svg, g, text, rect } from '../../lib/svg.js';
+import { g, text, rect } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
+import { valChip, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-csi-architecture
 
 
@@ -110,13 +110,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CSI driver architecture: Kubernetes core knows nothing about any storage vendor, so a CSI driver ships in two halves, a controller plugin that runs as a Deployment or StatefulSet with four sidecars that each watch one kind of Kubernetes object and turn it into one gRPC call on a shared bus into a single vendor driver, and a node plugin that runs as a DaemonSet on every Node, registers itself with the local Kubelet, and is the only component that ever mounts vendor storage on the Node',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'CSI driver architecture: Kubernetes core knows nothing about any storage vendor, so a CSI driver ships in two halves, a controller plugin that runs as a Deployment or StatefulSet with four sidecars that each watch one kind of Kubernetes object and turn it into one gRPC call on a shared bus into a single vendor driver, and a node plugin that runs as a DaemonSet on every Node, registers itself with the local Kubelet, and is the only component that ever mounts vendor storage on the Node' });
     root.appendChild(arrowDefs());
 
     const ctrlFrame = frame(FRAME_X, CF_Y, CF_W, CF_H, 'CSI CONTROLLER PLUGIN  ·  Deployment or StatefulSet');

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-dns-coredns
 
 
@@ -39,10 +39,7 @@ const CHAIN_HOP = [[DNS_CX, PLUGIN_Y[0] + PLUGIN_H], [DNS_CX, PLUGIN_Y[1]]];   /
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 48, w: w - 40, h: 60, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -51,13 +48,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'DNS resolution via CoreDNS: the Pod resolv.conf points at the kube-dns ClusterIP with search domains and ndots, the query reaches a CoreDNS Pod whose plugin chain answers from cache or the kubernetes plugin, returning the Service ClusterIP',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'DNS resolution via CoreDNS: the Pod resolv.conf points at the kube-dns ClusterIP with search domains and ndots, the query reaches a CoreDNS Pod whose plugin chain answers from cache or the kubernetes plugin, returning the Service ClusterIP' });
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.1.5' });
@@ -110,6 +101,11 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { query, ans }) {
+  setVal(s.refs.queryChip, query);
+  setVal(s.refs.ansChip, ans);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['pCache', 'pK8s', 'pFwd', 'rcNS', 'rcSearch', 'rcNdots', 'queryChip', 'ansChip', 'clientBox'], [s.refs.client, s.refs.coredns]);
@@ -122,8 +118,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.queryChip, '-');
-      setVal(s.refs.ansChip, '-');
+      setChips(s, { query: '-', ans: '-' });
     },
   },
   {
@@ -132,6 +127,7 @@ const STEPS = [
     narration: 'The Pod /etc/resolv.conf was written by the Kubelet at startup. Its nameserver is the kube-dns Service ClusterIP, it lists cluster search domains, and it sets ndots:5. Those three lines are what make in-cluster name resolution work without the app knowing anything about CoreDNS.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { query: '-', ans: '-' });
       s.refs.rcNS.classList.add('highlight');
       s.refs.rcSearch.classList.add('highlight');
       s.refs.rcNdots.classList.add('highlight');
@@ -154,7 +150,7 @@ const STEPS = [
       s.refs.rcSearch.classList.add('highlight');
       s.refs.rcNdots.classList.add('highlight');
       s.refs.queryChip.classList.add('highlight');
-      setVal(s.refs.queryChip, 'web.default.svc.cluster.local');
+      setChips(s, { query: 'web.default.svc.cluster.local', ans: '-' });
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
       // Up-arrow: client pulses first, the query departs the forward lane at BEAT.afterPulse and
       // CoreDNS pulses on arrival.
@@ -169,6 +165,7 @@ const STEPS = [
     narration: 'Inside CoreDNS the request runs down the plugin chain, whose order is compiled into the binary rather than taken from the Corefile. The cache plugin checks first and misses on a fresh name, so it passes to the kubernetes plugin, which watches Services and EndpointSlices on the API and answers the cluster zone from that local cache, never querying the API per lookup. Names outside the cluster zone would instead fall through to forward.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { query: 'web.default.svc.cluster.local', ans: '-' });
       s.refs.pCache.classList.add('highlight');
       if (ctx.reduced) { s.refs.pK8s.classList.add('highlight'); return; }
       // The request falls from cache to the kubernetes plugin: a clean hop between the two boxes.
@@ -188,7 +185,7 @@ const STEPS = [
       s.refs.pK8s.classList.add('highlight');
       s.refs.pCache.classList.add('highlight');
       s.refs.ansChip.classList.add('highlight');
-      setVal(s.refs.ansChip, '10.96.0.20');
+      setChips(s, { query: 'web.default.svc.cluster.local', ans: '10.96.0.20' });
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
       // Down-arrow: the answer travels back along the return lane and the client pulses on arrival.
       const a = segmentPacket(s, ctx, { from: ANSWER[0], to: ANSWER[1], role: 'network' });

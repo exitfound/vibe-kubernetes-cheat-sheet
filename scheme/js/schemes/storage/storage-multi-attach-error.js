@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, node, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, revealAt, OPACITY } from './storage-kit.js';
+import { valChip, setChip, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, revealAt, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-multi-attach-error
 
 
@@ -19,12 +19,10 @@ const NODE_A_X = LEFT_X;                                 // 400
 const NODE_B_X = LEFT_X + NODE_W + NODE_GAP;             // 620
 const CONTENT_W = NODE_W * 2 + NODE_GAP;                 // 400
 const CONTENT_CX = LEFT_X + CONTENT_W / 2;               // 600: canvas center, every tier uses it
-const CX_A = NODE_A_X + NODE_W / 2;                      // 490
 const CX_B = NODE_B_X + NODE_W / 2;                      // 710, and (490 + 710) / 2 == CONTENT_CX
 
 const POD_W = NODE_W - NODE_PAD * 2;                     // 148
 const POD_Y = NODE_Y + 28, POD_H = 102;                  // 46
-const POD_BOTTOM = POD_Y + POD_H;                        // 148, 26 clear of the node floor
 const POD_A_X = NODE_A_X + NODE_PAD;                     // 416
 const POD_B_X = NODE_B_X + NODE_PAD;                     // 636
 
@@ -48,7 +46,6 @@ const VA_B_X = VA_B_CX - VA_W / 2;                       // 664..896
 const DK_W = 240;
 const DK_Y = VA_BOTTOM + G_VA_DK;                        // 483
 const DK_X = CONTENT_CX - DK_W / 2;                      // 480
-const DK_TOP = DK_Y;                                     // 483
 const DK_SIDE_Y = DK_Y + DK_H / 2;                       // 526
 const DK_LEFT = DK_X, DK_RIGHT = DK_X + DK_W;            // 480 / 720
 
@@ -78,10 +75,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock({ x, label, sublabel }) {
   const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 14, y: POD_Y + APP_DY, w: POD_W - 28, h: APP_H, label: 'app', sublabel: 'uses PV-web', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -90,13 +84,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'A Multi-Attach error. The ReadWriteOnce volume PV-web is attached to Node-1 through the VolumeAttachment va-1, and the Pod there is using it. A replacement Pod is scheduled onto Node-2, so the attach and detach controller tries to write a second VolumeAttachment for the same volume, which ReadWriteOnce forbids. The request stops at the controller, the new Pod hangs in ContainerCreating reporting a Multi-Attach error, and nothing changes until the first attachment is removed. Node-1 stays healthy throughout: the volume is held by a Pod that is still running, and the rollout is waiting for the new Pod to become ready before it deletes that old Pod, so the two sides wait on each other. Once the old Pod is deleted va-1 is removed, the disk detaches from Node-1, the controller attaches it to Node-2, and the new Pod starts. A Deployment on ReadWriteOnce storage hits this whenever the replacement Pod lands on another Node, because the new Pod is created before the old one is deleted, and switching that Deployment to the Recreate strategy avoids it.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'A Multi-Attach error. The ReadWriteOnce volume PV-web is attached to Node-1 through the VolumeAttachment va-1, and the Pod there is using it. A replacement Pod is scheduled onto Node-2, so the attach and detach controller tries to write a second VolumeAttachment for the same volume, which ReadWriteOnce forbids. The request stops at the controller, the new Pod hangs in ContainerCreating reporting a Multi-Attach error, and nothing changes until the first attachment is removed. Node-1 stays healthy throughout: the volume is held by a Pod that is still running, and the rollout is waiting for the new Pod to become ready before it deletes that old Pod, so the two sides wait on each other. Once the old Pod is deleted va-1 is removed, the disk detaches from Node-1, the controller attaches it to Node-2, and the new Pod starts. A Deployment on ReadWriteOnce storage hits this whenever the replacement Pod lands on another Node, because the new Pod is created before the old one is deleted, and switching that Deployment to the Recreate strategy avoids it.' });
     root.appendChild(arrowDefs());
 
     const nodeA = node({ x: NODE_A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });

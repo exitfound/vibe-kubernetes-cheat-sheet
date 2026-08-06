@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-loadbalancer-bare-metal
 
 
@@ -24,7 +24,6 @@ const N3_X = MID_X + NODE_W / 2 + NODE_GAP;          // 810
 const N1_CX = N1_X + NODE_W / 2;                     // 220
 const N2_CX = N2_X + NODE_W / 2;                     // 600
 const N3_CX = N3_X + NODE_W / 2;                     // 980
-const NODE_BOTTOM = NODE_Y + NODE_H;                 // 500
 
 // Each Pod is centred BOTH ways inside its Node, so every fan leg drops straight down the Pod axis.
 const POD_Y = NODE_Y + (NODE_H - POD_H) / 2;         // 350
@@ -50,10 +49,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emer
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -62,13 +58,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'LoadBalancer on bare metal: with no cloud-controller-manager a LoadBalancer Service stays pending, so an in-cluster implementation such as MetalLB allocates an address from an operator-declared pool and then announces it, either in layer 2 mode where a single elected Node answers ARP for the address and takes all inbound traffic, or in BGP mode where every Node advertises the address to the router, which installs an ECMP route and hashes flows across all of them',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'LoadBalancer on bare metal: with no cloud-controller-manager a LoadBalancer Service stays pending, so an in-cluster implementation such as MetalLB allocates an address from an operator-declared pool and then announces it, either in layer 2 mode where a single elected Node answers ARP for the address and takes all inbound traffic, or in BGP mode where every Node advertises the address to the router, which installs an ECMP route and hashes flows across all of them' });
     root.appendChild(arrowDefs());
 
     const node1 = node({ x: N1_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
@@ -137,6 +127,13 @@ function setNodes(s, opacities) {
   });
 }
 
+function setChips(s, { status, pool, mode, path }) {
+  setVal(s.refs.statusChip, status);
+  setVal(s.refs.poolChip, pool);
+  setVal(s.refs.modeChip, mode);
+  setVal(s.refs.pathChip, path);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client', 'router', 'statusChip', 'poolChip', 'modeChip', 'pathChip', 'pod1Box', 'pod2Box', 'pod3Box'], [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
@@ -164,10 +161,7 @@ const STEPS = [
     narration: 'On bare metal there is no cloud-controller-manager, so nothing answers a Service of type LoadBalancer and it sits pending. That gap is filled in-cluster instead, by an implementation such as MetalLB. The cluster operator declares an address pool, and an address out of it is written into status.loadBalancer.ingress, so the Service finally has 203.0.113.9. An allocated address is not a reachable one: something still has to tell the network where to send it.',
     enter(s) {
       resetStep(s);
-      setVal(s.refs.statusChip, '203.0.113.9');
-      setVal(s.refs.poolChip, '203.0.113.0/24');
-      setVal(s.refs.modeChip, 'none');
-      setVal(s.refs.pathChip, 'none');
+      setChips(s, { status: '203.0.113.9', pool: '203.0.113.0/24', mode: 'none', path: 'none' });
       s.refs.statusChip.classList.add('highlight');
       s.refs.poolChip.classList.add('highlight');
     },
@@ -180,10 +174,7 @@ const STEPS = [
     narration: 'In layer 2 mode one Node is elected to own the address and answers ARP for it, so as far as the router is concerned 203.0.113.9 simply lives on Node-1. Every packet for the address goes there, and kube-proxy spreads them onward from that Node. No router configuration at all, which is why this is the usual place to start.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.statusChip, '203.0.113.9');
-      setVal(s.refs.poolChip, '203.0.113.0/24');
-      setVal(s.refs.modeChip, 'L2 (ARP)');
-      setVal(s.refs.pathChip, 'one Node');
+      setChips(s, { status: '203.0.113.9', pool: '203.0.113.0/24', mode: 'L2 (ARP)', path: 'one Node' });
       setWire(s, 'n1', 'ARP: 203.0.113.9 is mine');
       s.refs.client.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
@@ -209,10 +200,7 @@ const STEPS = [
     narration: 'That single owner is also the ceiling. All inbound traffic funnels through Node-1, so the ingress bandwidth of the whole Service is the bandwidth of one Node, and that Node is a single point of failure. When it goes away another Node claims the address and sends a gratuitous ARP so the router updates its table. The address comes back within seconds, but every connection that was riding the old Node is gone.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.statusChip, '203.0.113.9');
-      setVal(s.refs.poolChip, '203.0.113.0/24');
-      setVal(s.refs.modeChip, 'L2 (ARP)');
-      setVal(s.refs.pathChip, 'one Node');
+      setChips(s, { status: '203.0.113.9', pool: '203.0.113.0/24', mode: 'L2 (ARP)', path: 'one Node' });
       setWire(s, 'n2', 'gratuitous ARP: mine now');
       s.refs.modeChip.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
@@ -237,10 +225,7 @@ const STEPS = [
     narration: 'BGP mode changes the shape. Every Node peers with the router and advertises the same address, so the router installs an equal-cost route and hashes each new flow across all of them. Ingress is no longer one Node wide, and router hashes are rarely stable, so losing a Node breaks most active connections and not only the ones it was carrying. The price is a router that speaks BGP with the cluster, and a change in the Node set can rehash live flows onto a different Node.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.statusChip, '203.0.113.9');
-      setVal(s.refs.poolChip, '203.0.113.0/24');
-      setVal(s.refs.modeChip, 'BGP (ECMP)');
-      setVal(s.refs.pathChip, 'every Node');
+      setChips(s, { status: '203.0.113.9', pool: '203.0.113.0/24', mode: 'BGP (ECMP)', path: 'every Node' });
       setWire(s, 'n1', 'BGP: advertise /32');
       setWire(s, 'n2', 'BGP: advertise /32');
       setWire(s, 'n3', 'BGP: advertise /32');

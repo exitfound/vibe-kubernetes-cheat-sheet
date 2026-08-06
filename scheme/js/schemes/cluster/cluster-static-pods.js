@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-static-pods
 
 // Three tiers on the L. Panel worst case x<=397 y<=230 at 1100x800, and the Node frame at y=380 is
@@ -64,13 +64,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Static Pods and mirror Pods: the Kubelet runs a manifest file on the Node and mirrors it into the API',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Static Pods and mirror Pods: the Kubelet runs a manifest file on the Node and mirrors it into the API' });
     root.appendChild(arrowDefs());
 
     const apiserver = box({ x: API_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'API', sublabel: 'holds the mirror Pod', role: 'cluster' });

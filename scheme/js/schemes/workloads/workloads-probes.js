@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, pulsePodDim, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, pulsePodDim, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Layout A on the Workloads canon (WL in the kit): ladder left, chip column right, Node frame
 // full width at the bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).
@@ -35,13 +35,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Container probes: startupProbe gates liveness and readiness, liveness restarts the container, readiness toggles the EndpointSlice',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Container probes: startupProbe gates liveness and readiness, liveness restarts the container, readiness toggles the EndpointSlice' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'prober + probeManager', role: 'cluster' });
@@ -113,6 +107,14 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { startup, liveness, readiness, restart, endpoint }) {
+  setVal(s.refs.startupChip, startup);
+  setVal(s.refs.livenessChip, liveness);
+  setVal(s.refs.readinessChip, readiness);
+  setVal(s.refs.restartChip, restart);
+  setVal(s.refs.endpointChip, endpoint);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -145,11 +147,7 @@ const STEPS = [
     narration: 'Kubelet runs startupProbe every periodSeconds against the container handler, which can be httpGet, tcpSocket, grpc or exec. A slow app gets failureThreshold attempts before Kubelet gives up and restarts the container. The livenessProbe and readinessProbe do not run yet, so a long boot is never mistaken for a failure.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.startupChip, 'probing 4/30');
-      setVal(s.refs.livenessChip, 'not running');
-      setVal(s.refs.readinessChip, 'not running');
-      setVal(s.refs.restartChip, '0');
-      setVal(s.refs.endpointChip, 'empty');
+      setChips(s, { startup: 'probing 4/30', liveness: 'not running', readiness: 'not running', restart: '0', endpoint: 'empty' });
       setWire(s, 'req', 'httpGet /healthz/start');
       s.refs.startupChip.classList.add('highlight');
       s.refs.kubelet.classList.add('highlight');
@@ -168,11 +166,7 @@ const STEPS = [
     narration: 'The startupProbe passes once. Kubelet retires it permanently for the lifetime of this container instance and never runs it again. The livenessProbe and readinessProbe are released and now execute on their own periodSeconds.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.startupChip, 'passed (retired)');
-      setVal(s.refs.livenessChip, 'running');
-      setVal(s.refs.readinessChip, 'running');
-      setVal(s.refs.restartChip, '0');
-      setVal(s.refs.endpointChip, 'empty');
+      setChips(s, { startup: 'passed (retired)', liveness: 'running', readiness: 'running', restart: '0', endpoint: 'empty' });
       setWire(s, 'req', '200 OK · Startup done');
       s.refs.startupChip.classList.add('highlight');
       s.refs.livenessChip.classList.add('highlight');
@@ -192,12 +186,8 @@ const STEPS = [
     narration: 'The readinessProbe passes successThreshold consecutive times. Kubelet flips the Pod Ready condition to True, and the EndpointSlice controller adds the Pod IP to the Service EndpointSlice. The Pod now receives traffic.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.startupChip, 'passed (retired)');
-      setVal(s.refs.livenessChip, 'passing');
+      setChips(s, { startup: 'passed (retired)', liveness: 'passing', readiness: 'passing', restart: '0', endpoint: '10.244.1.5 Ready' });
       s.refs.livenessChip.classList.add('highlight');
-      setVal(s.refs.readinessChip, 'passing');
-      setVal(s.refs.restartChip, '0');
-      setVal(s.refs.endpointChip, '10.244.1.5 Ready');
       setWire(s, 'req', '200 OK · Ready=True');
       s.refs.readinessChip.classList.add('highlight');
       s.refs.endpointChip.classList.add('highlight');
@@ -222,12 +212,8 @@ const STEPS = [
     narration: 'The livenessProbe fails failureThreshold consecutive times. Kubelet kills the container and restarts it per restartPolicy, so restartCount becomes 1. readinessProbe fails too, so the EndpointSlice marks that endpoint ready=false at once rather than removing it, and kube-proxy stops sending new connections.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.startupChip, 'reset');
+      setChips(s, { startup: 'reset', liveness: 'failed 3/3', readiness: 'failed 3/3', restart: '1', endpoint: '10.244.1.5 ready=false' });
       s.refs.startupChip.classList.add('highlight');
-      setVal(s.refs.livenessChip, 'failed 3/3');
-      setVal(s.refs.readinessChip, 'failed 3/3');
-      setVal(s.refs.restartChip, '1');
-      setVal(s.refs.endpointChip, '10.244.1.5 ready=false');
       setWire(s, 'req', '503 · Liveness failed');
       s.refs.livenessChip.classList.add('highlight');
       s.refs.readinessChip.classList.add('highlight');
@@ -255,11 +241,7 @@ const STEPS = [
     narration: 'Kubelet probes the fresh container with startupProbe again. Once it passes, livenessProbe and readinessProbe are released, readinessProbe quickly succeeds, and the EndpointSlice controller rejoins the Pod IP. Traffic resumes while restartCount stays at 1.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.startupChip, 'passed (retired)');
-      setVal(s.refs.livenessChip, 'passing');
-      setVal(s.refs.readinessChip, 'passing');
-      setVal(s.refs.restartChip, '1');
-      setVal(s.refs.endpointChip, '10.244.1.5 Ready');
+      setChips(s, { startup: 'passed (retired)', liveness: 'passing', readiness: 'passing', restart: '1', endpoint: '10.244.1.5 Ready' });
       setWire(s, 'req', 'httpGet /healthz/start');
       s.refs.kubelet.classList.add('highlight');
       s.refs.startupChip.classList.add('highlight');

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, diagramRoot } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS.md#cluster-pod-priority-preemption
 
@@ -66,13 +66,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod priority and preemption: scheduler preempts the lowest-priority victim to make room for a high-priority Pod on a full Node',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod priority and preemption: scheduler preempts the lowest-priority victim to make room for a high-priority Pod on a full Node' });
     root.appendChild(arrowDefs());
 
     const scheduler = box({ x: TOP1_X, y: TOP_Y, w: TOP1_W, h: BOX_H, label: 'Scheduler', sublabel: 'filter + Score + Preempt', role: 'cluster' });
@@ -160,6 +154,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { newPod, attempt, victim, focus }) {
+  setVal(s.refs.newPodChip, newPod);
+  setVal(s.refs.attemptChip, attempt);
+  setVal(s.refs.victimChip, victim);
+  setVal(s.refs.focusChip, focus);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -191,11 +192,8 @@ const STEPS = [
     narration: 'Pod NEW arrives at the API. The PriorityClass admission plugin resolves spec.priorityClassName to a number, system-cluster-critical being 2000000000, and writes it into spec.priority. A raw spec.priority on a user Pod is rejected by validation, so PriorityClass is the only route. The other built-in class, system-node-critical, is slightly higher.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
-      setVal(s.refs.attemptChip, 'pending');
+      setChips(s, { newPod: '2e9 (system-cluster-critical)', attempt: 'pending', victim: 'none', focus: 'priority resolved at admission' });
       s.refs.attemptChip.classList.add('highlight');
-      setVal(s.refs.victimChip,  'none');
-      setVal(s.refs.focusChip,   'priority resolved at admission');
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'PriorityClass admission · spec.priority=2e9');
       s.refs.apiserver.classList.add('highlight');
@@ -215,10 +213,7 @@ const STEPS = [
     narration: 'Scheduler takes Pod NEW off its queue and runs a scheduling cycle. Filter plugins drop every Node failing a predicate (taints, ports, requests against allocatable), and here all of them fail on capacity, so Pod NEW is recorded Unschedulable. The default preemptionPolicy=PreemptLowerPriority opens preemption mode. A class set to Never would leave it queued.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
-      setVal(s.refs.attemptChip, 'NoFit on all nodes');
-      setVal(s.refs.victimChip,  'none');
-      setVal(s.refs.focusChip,   'Unschedulable · entering preempt mode');
+      setChips(s, { newPod: '2e9 (system-cluster-critical)', attempt: 'NoFit on all nodes', victim: 'none', focus: 'Unschedulable · entering preempt mode' });
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'filter all nodes · NoFit · Event FailedScheduling');
       s.refs.scheduler.classList.add('highlight');
@@ -238,11 +233,8 @@ const STEPS = [
     narration: 'Preemption scans the running Pods on each Node for the smallest victim set whose deletion lets Pod NEW fit, every victim at strictly lower priority, lowest tried first. Pod A at 100 is enough alone: freeing its 1 CPU and 1Gi memory matches the Pod NEW requests. Pod C is also 100 but unneeded, and Pod B at 1000 is a candidate the greedy order never reaches.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
-      setVal(s.refs.attemptChip, 'preempt mode');
+      setChips(s, { newPod: '2e9 (system-cluster-critical)', attempt: 'preempt mode', victim: 'Pod A · priority 100', focus: 'min victim set · smallest, lowest pri' });
       s.refs.attemptChip.classList.add('highlight');
-      setVal(s.refs.victimChip,  'Pod A · priority 100');
-      setVal(s.refs.focusChip,   'min victim set · smallest, lowest pri');
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'preempt scan · Victim set: {Pod A}');
       s.refs.scheduler.classList.add('highlight');
@@ -267,11 +259,8 @@ const STEPS = [
     narration: 'Scheduler sends a standard DELETE for Pod A, not an eviction, so PodDisruptionBudget gates are bypassed, though victim choice prefers PDB-friendly sets. Pod A enters Terminating for its terminationGracePeriodSeconds: preStop, SIGTERM, SIGKILL. Pod NEW gets status.nominatedNodeName=Node-1, a hint, not a reservation: a higher priority Pod can still take it.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
-      setVal(s.refs.attemptChip, 'preempt · nominated Node-1');
+      setChips(s, { newPod: '2e9 (system-cluster-critical)', attempt: 'preempt · nominated Node-1', victim: 'Pod A · Terminating', focus: 'DELETE · no PDB check for preempt' });
       s.refs.attemptChip.classList.add('highlight');
-      setVal(s.refs.victimChip,  'Pod A · Terminating');
-      setVal(s.refs.focusChip,   'DELETE · no PDB check for preempt');
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'DELETE .../pods/pod-a · Graceful · nominatedNodeName=Node-1');
       s.refs.scheduler.classList.add('highlight');
@@ -301,11 +290,8 @@ const STEPS = [
     narration: 'Pod A exited gracefully, its capacity back on Node-1. Scheduler retries Pod NEW, Filter and Score now pass, and it binds to Node-1. The controller owning Pod A puts a replacement elsewhere or queues it. This is not node-pressure eviction, covered separately, where Kubelet evicts over-request Pods first, BestEffort leading, and priority only orders the queue.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.newPodChip,  '2e9 (system-cluster-critical)');
-      setVal(s.refs.attemptChip, 'bound to Node-1');
-      setVal(s.refs.victimChip,  'Pod A · gone');
+      setChips(s, { newPod: '2e9 (system-cluster-critical)', attempt: 'bound to Node-1', victim: 'Pod A · gone', focus: 'nominatedNodeName cleared' });
       s.refs.victimChip.classList.add('highlight');
-      setVal(s.refs.focusChip,   'nominatedNodeName cleared');
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'POST .../pods/pod-new/binding · Node-1');
       s.refs.scheduler.classList.add('highlight');

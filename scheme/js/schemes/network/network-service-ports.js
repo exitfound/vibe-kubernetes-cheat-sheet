@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-ports
 
 
@@ -20,10 +20,7 @@ const ridingLabel = makeRidingLabel({ role: 'network' });
 function podBlock({ x, y, w, h, label, ip, container, port }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: container, sublabel: port, role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -32,13 +29,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Service ports: a client dials the Service port, the stable front-door number, the Service maps it to the Pod targetPort where the container actually listens, and a named targetPort lets each Pod resolve the name to its own container port number so the two ports stay decoupled',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Service ports: a client dials the Service port, the stable front-door number, the Service maps it to the Pod targetPort where the container actually listens, and a named targetPort lets each Pod resolve the name to its own container port number so the two ports stay decoupled' });
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: 80, y: 252, w: 190, h: 120, label: 'Client Pod', ip: '10.244.1.5', container: 'curl', port: 'web:80' });
@@ -75,6 +66,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { dial, port, target, cont }) {
+  setVal(s.refs.dialChip, dial);
+  setVal(s.refs.portChip, port);
+  setVal(s.refs.targetChip, target);
+  setVal(s.refs.contChip, cont);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['svc', 'clientBox', 'podXBox', 'dialChip', 'portChip', 'targetChip', 'contChip'], [s.refs.client, s.refs.podX]);
@@ -87,10 +85,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.dialChip, 'web:80');
-      setVal(s.refs.portChip, '80');
-      setVal(s.refs.targetChip, 'http');
-      setVal(s.refs.contChip, '8080');
+      setChips(s, { dial: 'web:80', port: '80', target: 'http', cont: '8080' });
     },
   },
   {
@@ -101,7 +96,7 @@ const STEPS = [
       resetStep(s);
       s.refs.dialChip.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
-      setVal(s.refs.portChip, '80');
+      setChips(s, { dial: 'web:80', port: '80', target: 'http', cont: '8080' });
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.svc.classList.add('highlight'); return; }
       // Up-arrow: the client pulses first, the packet leaves at BEAT.afterPulse and rides one straight
       // hop into the Service, which lights on arrival. The dialed address web:80 rides with the ball.
@@ -122,8 +117,7 @@ const STEPS = [
       s.refs.svc.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
       s.refs.targetChip.classList.add('highlight');
-      setVal(s.refs.portChip, '80');
-      setVal(s.refs.targetChip, 'http');
+      setChips(s, { dial: 'web:80', port: '80', target: 'http', cont: '8080' });
     },
   },
   {
@@ -134,8 +128,7 @@ const STEPS = [
       resetStep(s);
       s.refs.targetChip.classList.add('highlight');
       s.refs.contChip.classList.add('highlight');
-      setVal(s.refs.targetChip, 'http');
-      setVal(s.refs.contChip, '8080');
+      setChips(s, { dial: 'web:80', port: '80', target: 'http', cont: '8080' });
       if (ctx.reduced) { s.refs.podXBox.classList.add('highlight'); return; }
       const give = segmentPacket(s, ctx, { from: DELIVER_PATH[0], to: DELIVER_PATH[1], role: 'network' });
       ridingLabel(s, ctx, 'http -> 8080', DELIVER_PATH, { easing: 'linear' });
@@ -150,8 +143,7 @@ const STEPS = [
       resetStep(s);
       s.refs.dialChip.classList.add('highlight');
       s.refs.contChip.classList.add('highlight');
-      setVal(s.refs.dialChip, 'web:80');
-      setVal(s.refs.contChip, '8080');
+      setChips(s, { dial: 'web:80', port: '80', target: 'http', cont: '8080' });
       if (ctx.reduced) return;
       // No new traffic: the backend Pod pulses to mark where the real listening port lives.
       pulsePod(s.refs.podX, ctx, 0);

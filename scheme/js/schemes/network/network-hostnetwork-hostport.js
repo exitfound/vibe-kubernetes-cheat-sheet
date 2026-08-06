@@ -1,11 +1,10 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-hostnetwork-hostport
 
 
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;
-const NODE_BOTTOM = NODE_Y + NODE_H;           // 570
 
 const COL1_CX = 240, COL2_CX = 600, COL3_CX = 960;
 
@@ -62,10 +61,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emer
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -74,13 +70,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'hostNetwork and hostPort: an ordinary Pod has its own network namespace, its own Pod IP and a veth pair into the bridge. A Pod with hostNetwork true has no namespace of its own at all, so it has no veth and no Pod IP, it runs in the Node namespace and binds straight to the Node address, at the cost of the Node port space and its own isolation. A Pod with a hostPort keeps everything it had, and the CNI portmap plugin only adds a DNAT rule on the Node that rewrites the Node address and host port to the Pod IP and container port.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'hostNetwork and hostPort: an ordinary Pod has its own network namespace, its own Pod IP and a veth pair into the bridge. A Pod with hostNetwork true has no namespace of its own at all, so it has no veth and no Pod IP, it runs in the Node namespace and binds straight to the Node address, at the cost of the Node port space and its own isolation. A Pod with a hostPort keeps everything it had, and the CNI portmap plugin only adds a DNAT rule on the Node that rewrites the Node address and host port to the Pod IP and container port.' });
     root.appendChild(arrowDefs());
 
     const theNode = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
@@ -139,6 +129,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { ns, podIp, veth, port }) {
+  setVal(s.refs.nsChip, ns);
+  setVal(s.refs.ipChip, podIp);
+  setVal(s.refs.vethChip, veth);
+  setVal(s.refs.portChip, port);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client', 'eth', 'portmap', 'bridge', 'nsChip', 'ipChip', 'vethChip', 'portChip', 'podAppBox', 'podAgentBox'], [s.refs.podApp, s.refs.podAgent]);
@@ -178,10 +175,7 @@ const STEPS = [
       only(s, 'hostnet');
       setBoxSublabel(s.refs.portmap, 'none');
       setPodSublabel(s.refs.podApp, '10.244.1.5');
-      setVal(s.refs.nsChip, 'the Node one');
-      setVal(s.refs.ipChip, '192.168.1.20 (Node)');
-      setVal(s.refs.vethChip, 'none');
-      setVal(s.refs.portChip, 'Node IP :80');
+      setChips(s, { ns: 'the Node one', podIp: '192.168.1.20 (Node)', veth: 'none', port: 'Node IP :80' });
       s.refs.portChip.classList.add('highlight');
       s.refs.client.classList.add('highlight');
       s.refs.nsChip.classList.add('highlight');
@@ -207,10 +201,7 @@ const STEPS = [
       resetStep(s);
       only(s, 'hostnet');
       setBoxSublabel(s.refs.portmap, 'none');
-      setVal(s.refs.nsChip, 'the Node one');
-      setVal(s.refs.ipChip, '192.168.1.20 (Node)');
-      setVal(s.refs.vethChip, 'none');
-      setVal(s.refs.portChip, 'Node IP :80');
+      setChips(s, { ns: 'the Node one', podIp: '192.168.1.20 (Node)', veth: 'none', port: 'Node IP :80' });
       s.refs.eth.classList.add('highlight');
       s.refs.nsChip.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
@@ -229,12 +220,9 @@ const STEPS = [
       only(s, 'hostport');
       setBoxSublabel(s.refs.portmap, 'nodeIP:8080 -> pod:80');
       setPodSublabel(s.refs.podApp, '10.244.1.5 · hostPort 8080');
-      setVal(s.refs.nsChip, 'own');
+      setChips(s, { ns: 'own', podIp: '10.244.1.5', veth: 'yes', port: 'Node IP :8080' });
       s.refs.nsChip.classList.add('highlight');
-      setVal(s.refs.ipChip, '10.244.1.5');
       s.refs.ipChip.classList.add('highlight');
-      setVal(s.refs.vethChip, 'yes');
-      setVal(s.refs.portChip, 'Node IP :8080');
       setWire(s, 'veth', 'veth pair');
       s.refs.client.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
@@ -268,12 +256,9 @@ const STEPS = [
       // Both cases are on screen side by side for the comparison, so nothing is dimmed here.
       setBoxSublabel(s.refs.portmap, 'nodeIP:8080 -> pod:80');
       setPodSublabel(s.refs.podApp, '10.244.1.5 · hostPort 8080');
-      setVal(s.refs.nsChip, 'own or the Node one');
-      setVal(s.refs.ipChip, 'Pod IP or Node IP');
+      setChips(s, { ns: 'own or the Node one', podIp: 'Pod IP or Node IP', veth: 'yes or none', port: 'one per Node either way' });
       s.refs.ipChip.classList.add('highlight');
-      setVal(s.refs.vethChip, 'yes or none');
       s.refs.vethChip.classList.add('highlight');
-      setVal(s.refs.portChip, 'one per Node either way');
       setWire(s, 'veth', 'veth pair');
       s.refs.nsChip.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');

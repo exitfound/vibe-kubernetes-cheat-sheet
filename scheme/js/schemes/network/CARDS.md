@@ -4,49 +4,28 @@ The per-card design record for `js/schemes/network/`. It answers what the code c
 is what it is, which alternative was measured and failed, and what must not be "fixed". The
 constants themselves live in the card and are not repeated here.
 
-**The category contract is NOT here.** Only Pods pulse, a ball rides a drawn wire built from the
-same array, a round trip gets two lanes, an unridden wire carries no arrowhead, addresses ride the
-ball, traffic stops on a Node edge: all of that is in `js/schemes/network/CLAUDE.md` and applies to
-every card. A note below only records where a card DEVIATES from it or needs a number explained.
-
-Sister files: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md` for
-the shared sources (catalog, lib, CSS).
-
-**Not deployed.** Three exclusions keep it out of production and all three must hold:
-`deploy.yml` deletes every `CLAUDE.md`, `CARDS.md` and `INTERNALS.md` from the staged site,
-`release.yml` excludes the same three names from the zip, and `.dockerignore` names them too,
-which is not optional because `Dockerfile` is a blanket `COPY . .`. Verify with
-`curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/scheme/js/schemes/network/CARDS.md`,
-which must return 404.
+**The rules are not here.** Catalog-wide rules are `scheme/CANON.md`, and this category's own rules
+are `./CLAUDE.md`. A note below records only where a card DEVIATES from them, or a number that needs
+explaining. Sister records: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md`
+for the shared sources (catalog, lib, CSS). None of them ships (`S-41`).
 
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and
 `check-notes` parses it that way. A second-level heading anywhere else is reported as an orphan.)
 
 One `## <card-id>` section per card. `### layout` describes the whole card in labelled blocks,
 `### poster` describes the grid thumbnail, and each ``### before `<line>` `` holds the note for one
-line of code. `check-notes` verifies every anchor still occurs in its card, so an anchor is DATA:
-never reword one.
+line of code. `check-notes` verifies every anchor still occurs in its card, so **an anchor is DATA:
+never reword one** (`S-38`).
 
-The labels in `### layout`, in this order, only the ones that apply:
+The label vocabulary a `### layout` block uses is ONE list for all four records, in
+`scheme/CANON.md` under "The record vocabulary". Use the labels that apply, in that order, and add
+none of your own.
 
-| | |
-|---|---|
-| `WHAT` | what the card draws, in one sentence |
-| `LAYOUT` | the measured panel and the geometry that follows from it |
-| `LANES` | wire topology, and which array feeds both the wire and the ball |
-| `MOTION` | pulse and packet order, durations where they were sized deliberately |
-| `CONTENT` | a technical claim checked against the reference, and the wording it forced |
-| `BUDGET` | the narration ceiling this card's geometry imposes |
-| `NOTE` | a placement or a value whose reason is not visible from the code |
-| `WHY NOT` | an alternative that was measured and fails, with the number that kills it |
-| `DO NOT` | a constraint, with the defect it prevents |
-| `NOT A DEFECT` | something a lint or a reader reports that is correct as drawn |
-| `OPEN` | known and unresolved |
-
-Panel extent is per card. The right edge is `x<=397` catalog-wide, but the BOTTOM ranges 171 to 504
-and moves with viewport width non-monotonically, so a `PANEL_B` in a card is a measurement, not a
-convention. Re-measure with `node check-geometry.mjs --rules=occluded` over 1600 / 1440 / 1280 /
-1100 after any narration change.
+Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM ranges 90 to 504 over
+the standard viewport set, and it moves NON-MONOTONICALLY (`L-02`, `L-04`, `L-05`). So a `PANEL_B`
+in a card is a measurement, not a convention. Re-measure with
+`VW=1100 VH=800 node overlay-measure.mjs <card>` after any prose change: several cards here carry a
+hard character ceiling and the gate enforces none of them (`L-08`).
 
 ---
 
@@ -59,29 +38,32 @@ WHAT     Where the client IP goes when a proxy is in the path, and how X-Forward
          protocol brings it back.
 LAYOUT   One flow line FLOW_Y 410, client -> edge proxy Pod -> backend Pod, placed low so the client
          block (the only block on the left) clears the panel.
-         PANEL_B 355, measured over 1600x1000 / 1280x860 / 1100x800. This is the only networking card
-         that carries its own measured panel constant.
+         Narration panel bottom 355, measured over 1600x1000 / 1280x860 / 1100x800 and the deepest
+         in networking. It is a header comment, not a constant: nothing in the layout reads it.
          The header panel is 260 wide centred on PROXY_CX 545, spanning 415..675, clear of the overlay
          with 16 to spare, and it is centred ON THE PROXY because those headers are what that Pod
          writes, with an ownership link and no arrowhead. Row and chip strip both span
-         CLIENT_X..POD_RIGHT = 40..1110.
+         CLIENT_X..CONTENT_R = 65..1135.
 NOTE     Four chips span the scheme 1:1, widths tuned to their content. What the backend SEES is an
          outcome of a request, so those three read none until traffic flows; the edge mode is a
          property of the setup, so it is true from the start.
-DO NOT   Confuse the two PANEL constants in this card. `PANEL_B` is the narration panel bottom;
-         `PANEL_BOTTOM = 190` is the bottom edge of the drawn header chip. Unrelated.
+DO NOT   Read `PANEL_BOTTOM = 190` as the narration panel. It is the bottom edge of the drawn
+         header chip. The narration panel bottom is the measured 355 in the header comment.
 MOTION   Every ball wears a riding tag, because what each hop CARRIES is the whole card: the true
          source in, the proxy source out, then the header, then the PROXY protocol preamble.
          Up-arrow on each proxied hop, the proxy is the sender: it pulses FIRST as it opens the new
          connection, and only then does the request leave carrying the proxy address as its source.
 ```
 
-### before `const PANEL_B = 355;`
+### before `const FLOW_Y = 410;`
 
 ```
-The measured narration-panel bottom over 1600x1000 / 1280x860 / 1100x800, and the only such constant
-in networking. FLOW_Y 410 clears it, so a longer narration invalidates the row placement. NOT the
-same thing as PANEL_BOTTOM 190, which is the drawn header chip.
+The row sits low because the measured narration panel reaches 355 here, the deepest in networking.
+FLOW_Y 410 puts the Client top at 372 and clears it, so a longer narration invalidates the row
+placement rather than merely crowding it. The measurement is a header comment and not a constant,
+because nothing in the layout reads it (CANON.md L-07).
+
+NOT the same thing as PANEL_BOTTOM 190, which is the drawn header chip.
 ```
 
 ### poster
@@ -124,6 +106,17 @@ DO NOT   Shift the boxes the rule CAN see to make the number go green. That dece
 The whole diagram is lifted by RAISE, so every tier moves together rather than one at a time. The
 sandbox height is then tuned so its block centre lands exactly on PAUSE_Y, which is what keeps the
 result and join arrows straight.
+```
+
+### poster
+
+```
+Three tiers and one dashed spine: Kubelet and runtime on the top row, the sandbox with its fresh
+namespace below them (the only box tinted with the network cyan at 0.06), and a stack of three
+plugin bars on the right hung off one vertical. The sentence is that the wiring is DELEGATED: every
+leg is dashed because nothing on this poster carries traffic, it is all calls.
+The plugin stack is three identical bars on purpose. Distinguishing them would say which plugin
+matters, and the point is that the runtime does not know or care.
 ```
 
 
@@ -379,6 +372,16 @@ The band spans the Service..Pod half only, which is what keeps it clear of the n
 y=136 and off the client Pod. Widening it leftward is what the overlay forbids, not the geometry.
 ```
 
+### poster
+
+```
+One Pod in the middle drawn TALLER than its two neighbours, with two parallel horizontal lines
+inside it: one interface carrying two addresses. That doubling is the whole sentence, and it is why
+the middle box is 76 high against 52.
+The two dashed legs out to the flanking boxes are single, not doubled: the point is that the pair
+of families lives on ONE eth0, not that every path is drawn twice.
+```
+
 
 ## network-ebpf-dataplane
 
@@ -410,6 +413,16 @@ NOT A DEFECT
 The client Pod sits on the left margin and the backend column on the right, so the content bbox
 centres on 600 and the three chips are one even row across the span. Stopping the backend at 1030
 leaves the whole card 50 units left of centre.
+```
+
+### poster
+
+```
+A Pod on the left, the kernel box in the middle with a small program attached ABOVE it (the two
+verticals and the crossbar make a table, which is the map), and two Service boxes on the right at
+full and 0.45. The sentence is that the decision happens IN the kernel and the loser is still
+drawn, dimmed, because a choice among one is not a choice.
+Everything is dashed: on this card nothing is traffic, it is all attachment and lookup.
 ```
 
 
@@ -561,7 +574,7 @@ LAYOUT   Panel bottom <= 330 on this card. The ownership stack is one column on 
          The Service and backend Pod hang off the HTTPRoute row to the RIGHT rather than continuing the
          column, because a fifth stacked block plus a bottom chip strip does not fit in 640 units. That
          also frees the right column for the ownership captions. Composition spans
-         CLIENT_X..POD_RIGHT = 40..1160, chip strip the same.
+         CLIENT_X..the Pod right edge = 40..1160, chip strip the same.
 LANES    Every wire carries an arrowhead pointing the way its ball travels: CLASS_REF is a reference
          the Gateway resolves upward, the other three are the request path running down and out to the
          Pod. Gateway -> HTTPRoute is DECLARED the other way (the route names the Gateway in
@@ -586,6 +599,18 @@ MOTION   NOTHING flashes here, not even the packet-less gatewayclass step: a dec
 The Gateway sits on this row because it is the row a real request enters on, which is what lets the
 Client sit beside it with its top edge at 344, clear of the measured panel bottom of 330. Raising it
 puts the Client under the overlay.
+```
+
+### poster
+
+```
+Three stacked bars joined by two SOLID verticals, with a filled dot at the middle bar. The three
+are GatewayClass, Gateway and HTTPRoute, and the two solid legs are what makes them one chain
+rather than three objects: the dot marks the Gateway, the only one of the three that is a running
+thing.
+The controller hangs off the left and the backend pair off the right, both on dashed legs, because
+they are outside the chain the poster is about. Their fills step 0.05 to 0.09 so the Service reads
+as the destination.
 ```
 
 
@@ -718,7 +743,7 @@ LAYOUT   Everything hangs off FLOW_Y, the midpoint between the rules panel botto
          The rules panel is centred ON THE CONTROLLER (RULE_CX == CTRL_CX), since the rules are what
          that Pod watches, and the ownership wire rises straight up from the controller top centre
          into the panel centre, no arrowhead, so the two read as one column. Four columns span
-         LB_X..POD_RIGHT = 40..1160.
+         LB_X..the Pod right edge = 40..1160.
 WHY NOT  CTRL_CX at 485. The panel really covers x 0..399, y 0..190, so a centred panel must start
          past 399: at CTRL_CX 485 the widest overlay-clearing centred panel is 150 and the rule chips
          need 234. CTRL_CX 545 admits a 260-wide panel (415..675) with 16 to spare. Centring the
@@ -868,6 +893,16 @@ carves every slice in one reconcile pass, so they must LAND together: routeDur i
 would land the short centre path first.
 ```
 
+### poster
+
+```
+One block on top and three below it, joined by a dashed bracket that spans all three: a range being
+SPLIT rather than a controller talking to nodes. The bracket is the whole idea, and it is drawn as
+three segments of one line so no Node looks singled out.
+The top block is the only one filled at 0.06 against 0.04: it is the pool everything else is carved
+from. No arrowhead anywhere, because an allocation is a relationship and not a packet.
+```
+
 
 ## network-kube-proxy-modes
 
@@ -891,12 +926,24 @@ MOTION   The inactive lane dims on each mode step. Wires and packets ride only t
          edges.
 ```
 
-### before `const CX = 600;`
+### before `const SCHEME_L = 40, SCHEME_R = 1160;  // content edges, mirrored about the canvas centre 600`
 
 ```
-SCHEME_L and SCHEME_R are mirrored about CX and the three 350-wide chips with even gaps centre the
-strip on it by construction. The chain row is the one tier that does NOT centre here, because it has
-to start right of the panel edge.
+The content edges are mirrored about the canvas centre 600, and the three 350-wide chips with even
+gaps centre the strip on it by construction, so nothing is stretched to make the composition centre.
+The chain row is the one tier that does NOT centre here, because it has to start right of the panel
+edge.
+```
+
+### poster
+
+```
+Two dataplanes, one above the other, and one destination. The top is a CHAIN, three linked boxes
+read left to right; the bottom is a TABLE, one bar divided by four ticks. That contrast is the
+sentence: a walk versus a lookup.
+Both dashed legs converge on the same backend box, which is what says the two modes differ in HOW,
+not in where the packet lands. Neither path is brightened: the poster states the choice, it does
+not take a side.
 ```
 
 
@@ -989,6 +1036,16 @@ NOT A DEFECT
 Band, Pods and chips all move with RAISE, while the kubelet keeps its own higher KUBELET_RAISE, so
 the gap between it and the band is deliberate rather than left over. Pod centres are spread with
 equal end-margins inside SCHEME_L..SCHEME_R.
+```
+
+### poster
+
+```
+One wide bar across the top and three identical Pods hanging off it on dashed legs, with a dashed
+line running the full width INSIDE the bar. The bar is the flat address space and the inner line is
+what makes it read as one continuous range rather than as a header.
+The three Pods are byte-identical, deliberately: the promise is that no Pod is special, so drawing
+any of them brighter would contradict the card.
 ```
 
 
@@ -1457,6 +1514,16 @@ solved from it rather than typed. The IPAddress chip spans the same band, which 
 from being a lone chip centred on 940.
 ```
 
+### poster
+
+```
+One rounded range split by a single solid vertical, with the left band filled cyan at 0.12 and one
+small block sitting alone in the right half at 0.24. The split is the static and dynamic bands, and
+the bright block is one ClusterIP drawn FROM the dynamic side.
+The two faint dotted leads at 0.4 are the only thing suggesting motion, and they stop short of the
+block on both sides: the address was taken from the range, not delivered to it.
+```
+
 
 ## network-service-clusterip
 
@@ -1712,5 +1779,15 @@ category uses. Narrow it and the strip centres on the client column instead of o
 ```
 One shared multiplier on the fan so the riding source-IP tag stays readable, and the label rides the
 SAME dur or it unglues. Speed stays distance-normalized. Registered in ALLOW_EXPLICIT_DUR.
+```
+
+### poster
+
+```
+A client, kube-proxy, and two candidate Nodes each holding a Pod, with the dashed route splitting
+into a fork that reaches BOTH. Neither branch is brightened and neither Node is dimmed: the
+sentence is that the choice exists, not which way it went.
+That is why the fork is drawn from a single point rather than as two separate lanes: one decision,
+two outcomes.
 ```
 

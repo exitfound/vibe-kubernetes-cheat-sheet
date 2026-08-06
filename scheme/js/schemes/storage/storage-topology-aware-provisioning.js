@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS } from './storage-kit.js';
+import { valChip, setChip, setBoxSublabel, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-topology-aware-provisioning
 
 
@@ -10,7 +10,7 @@ const SC_X = 400, SC_Y = 36, SC_W = 400, SC_H = 64;
 const SC_RIGHT = SC_X + SC_W, SC_MY = SC_Y + SC_H / 2, SC_BOTTOM = SC_Y + SC_H;   // 800 / 68 / 100
 
 const PVC_W = 260, PVC_H = 60, PVC_Y = 136;
-const PVC_X = CX - PVC_W / 2, PVC_BOTTOM = PVC_Y + PVC_H;                          // 470 / 196
+const PVC_X = CX - PVC_W / 2;  // 470
 
 const NODE_W = 430, NODE_GAP = 60, NODE_Y = 236, NODE_H = 140;
 const NODE_BOTTOM = NODE_Y + NODE_H;                                               // 376
@@ -46,10 +46,7 @@ function podBlock() {
   const cy = POD_Y + POD_H / 2;
   const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'mounts /data', containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'read/write', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'storage' });
@@ -60,13 +57,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and no Node then both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and no Node then both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology' });
     root.appendChild(arrowDefs());
 
     const sc  = box({ x: SC_X, y: SC_Y, w: SC_W, h: SC_H, label: 'StorageClass gp3', sublabel: 'volumeBindingMode: Immediate', role: 'storage' });

@@ -4,50 +4,28 @@ The per-card design record for `js/schemes/cluster/`. It answers what the code c
 is what it is, which alternative was measured and failed, and what must not be "fixed". The
 constants themselves live in the card and are not repeated here.
 
-Sister files: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md` for
-the shared sources (catalog, lib, CSS).
-
-**Not deployed.** Three exclusions keep it out of production and all three must hold:
-`deploy.yml` deletes every `CLAUDE.md`, `CARDS.md` and `INTERNALS.md` from the staged site,
-`release.yml` excludes the same three names from the zip, and `.dockerignore` names them too,
-which is not optional because `Dockerfile` is a blanket `COPY . .`. Verify with
-`curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/scheme/js/schemes/cluster/CARDS.md`,
-which must return 404.
+**The rules are not here.** Catalog-wide rules are `scheme/CANON.md`, and this category's own rules
+are `./CLAUDE.md`. A note below records only where a card DEVIATES from them, or a number that needs
+explaining. Sister records: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md`
+for the shared sources (catalog, lib, CSS). None of them ships (`S-41`).
 
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and
 `check-notes` parses it that way. A second-level heading anywhere else is reported as an orphan.)
 
 One `## <card-id>` section per card. `### layout` describes the whole card in labelled blocks,
 `### poster` describes the grid thumbnail, and each ``### before `<line>` `` holds the note for one
-line of code. `check-notes` verifies every anchor still occurs in its card, so an anchor is DATA:
-never reword one.
+line of code. `check-notes` verifies every anchor still occurs in its card, so **an anchor is DATA:
+never reword one** (`S-38`).
 
-The labels in `### layout`, in this order, only the ones that apply:
+The label vocabulary a `### layout` block uses is ONE list for all four records, in
+`scheme/CANON.md` under "The record vocabulary". Use the labels that apply, in that order, and add
+none of your own.
 
-| | |
-|---|---|
-| `WHAT` | what the card draws, in one sentence |
-| `LAYOUT` | the measured panel and the geometry that follows from it |
-| `LANES` | wire topology, and which array feeds both the wire and the ball |
-| `MOTION` | pulse and packet order, durations where they were sized deliberately |
-| `WIRE LABELS` | where a label may sit, when that is not obvious from the lanes |
-| `CONTENT` | a technical claim checked against the reference, and the wording it forced |
-| `BUDGET` | the narration ceiling this card's geometry imposes |
-| `WHY NOT` | an alternative that was measured and fails, with the number that kills it |
-| `DO NOT` | a constraint, with the defect it prevents |
-| `NOT A DEFECT` | something a lint or a reader reports that is correct as drawn |
-| `NAMING` | why the card carries the title it does |
-| `OPEN` | known and unresolved |
-
-Panel extent is per card. The right edge is `x<=397` catalog-wide, but the BOTTOM ranges 171 to 504
-and moves with viewport width non-monotonically, so a `PANEL_B` in a card is a measurement, not a
-convention. Re-measure with `VW=1100 VH=800 node overlay-measure.mjs <card>` after any prose change:
-several cards here have a hard character ceiling and the gate does not enforce any of them.
-
-**Cluster cards have no shared contract paragraph.** Unlike networking, each card here states only
-what is true of itself. The rules every card obeys (only Pods pulse, a ball rides a drawn wire built
-from the same array, an unridden wire carries no arrowhead, a lane stops on a Node frame face and
-the pulse carries which Pod reacts) are in `js/schemes/cluster/CLAUDE.md` and `scheme/CLAUDE.md`.
+Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM ranges 90 to 504 over
+the standard viewport set, and it moves NON-MONOTONICALLY (`L-02`, `L-04`, `L-05`). So a `PANEL_B`
+in a card is a measurement, not a convention. Re-measure with
+`VW=1100 VH=800 node overlay-measure.mjs <card>` after any prose change: several cards here carry a
+hard character ceiling and the gate enforces none of them (`L-08`).
 
 ---
 
@@ -68,7 +46,7 @@ LAYOUT   The L read correctly. The panel owns the top-left, so API_X is 420 (fir
            LADDER_X/W   420 / 400, hanging under the API and inheriting its width, so the six
                         stages read as belonging to it
            CHIP_W       490, (BAND_R - BAND_L - CHIP_GAP) / 2
-         PANEL_B 230, measured. The nearest thing under the panel corner is kubectl at KCTL_Y 300,
+         panel bottom 230, measured. The nearest thing under the panel corner is kubectl at KCTL_Y 300,
          so 70 units of clearance.
 LANES    Both kubectl lanes leave its TOP face, straddling KCTL_CX by LANE_DY the same way they
          straddle the API face centre at the other end, each ONE right angle: up, then across. Out
@@ -218,6 +196,12 @@ OPEN     THE PROCESS FRAME. Client, Informer and Indexer are ONE process drawn a
          DECLINED: a Tetris-shaped process boundary asserts a shape the mechanism does not have. What
          a future attempt has to buy is not the frame but a home for the discovery catalogue that
          keeps a chip on x=60, keeps the spine straight on CX, and does not push the timeline off it.
+         The general reason the three placements above all fail, re-derived 2026-08-06: the Informer
+         (235..307) shares its horizontal band with the ladder rows (217..330), and the Client is at
+         60..300 against a centre column at 510..690. So ANY frame holding the Informer and reaching
+         left to the Client crosses the ladder, and any frame clearing the ladder loses the Informer.
+         Restacking the Client into the column instead needs about 100 more units and the slot row
+         starts at 548. The finding stays open until the catalogue moves.
 ```
 
 ### poster
@@ -768,7 +752,7 @@ WHAT     One write through Raft: proposal to the Leader, replication to the Foll
          and what happens when the majority is gone.
 LAYOUT   One semantic band, centred rather than inflated.
            CYL_Y     230, set by the panel: the API is level with the ETCD row and starts at
-                     CONTENT_L, so API_Y = CYL_Y + CYL_H/2 - API_H/2 must clear PANEL_B. That gives
+                     CONTENT_L, so API_Y = CYL_Y + CYL_H/2 - API_H/2 must clear the panel bottom. That gives
                      CYL_Y >= 215, and 230 leaves 25 units under the measured panel bottom
            ARC_RISE  80, which is what puts something in the otherwise blank top-right so the arc
                      reads as a route rather than a decorative notch
@@ -779,12 +763,12 @@ LAYOUT   One semantic band, centred rather than inflated.
            CYL_XS    derived from CONTENT_R - ROW_W, right edge on CONTENT_R by construction
            SCHIP_W   API_W (220): the API and the three state chips are ONE column, and at 320 they
                      end 100 units apart, which makes the left stack read as two
-         PANEL_B measured 230, and CYL_Y is 230, so the panel is one unit off the artwork: the
-         longest narration on this card IS the layout constraint, ceiling 334 characters.
+         Panel bottom measured 230, and CYL_Y is 230, so the panel is one unit off the artwork:
+         the longest narration on this card IS the layout constraint, ceiling 334 characters.
 WHY NOT  A pure slide-up keeping ARC_RISE 32: the band centre is still 28 low and the top-right stays
          a 198 unit empty strip.
-WHY NOT  CYL_Y 215, the mathematical minimum: the API's top edge lands exactly on PANEL_B with zero
-         clearance, one narration line from an OCCLUDED finding at 1100x800.
+WHY NOT  CYL_Y 215, the mathematical minimum: the API's top edge lands exactly on the panel
+         bottom with zero clearance, one narration line from an OCCLUDED finding at 1100x800.
 WHY NOT  Stretching the row gaps to fill the full 640: it breaks the only thing tying a role chip and
          a log chip to their replica. One semantic band gets CENTRED, not inflated.
 WHY NOT  Moving the API into the free bottom-left with an L-lane up into ETCD-1: every cylinder's
@@ -828,6 +812,17 @@ DO NOT   Send a ball into a member that is not answering. It says the opposite o
          fade and with .highlight on the four chips that move.
 NOTE     The silent pair holds OPACITY.notready (alive but not serving, not observed), not
          terminated, which would also put the card one .highlight away from a check-opacity LIT.
+```
+
+### poster
+
+```
+Three cylinders on one row, the leftmost filled at 0.06 against 0.04 for the other two: the
+LEADER is the one thing the poster is about, and it is said with fill alone. A dashed leg joins it
+to the first follower and a dashed arc spans all three, which is the replication reaching every
+member without drawing three separate legs.
+Bottom ellipses at stroke-opacity 0.35 so the cylinders read as open volumes rather than as capsules.
+No arrowhead: the arc is a relationship, and the direction is already in the brightness.
 ```
 
 ---
@@ -879,6 +874,16 @@ CONTENT  Step 2 is `condition`, not `cordon`. The doc's first fact after the int
          contradicts the card's own first step.
          `node is shutting down` is an API reason string in lower case and lives in terms.json under
          exceptions.Node. It is the only occurrence in the catalog.
+```
+
+### poster
+
+```
+A clock with four tick dots on the left, a dashed leg into a dashed Node frame holding three Pods
+at 0.08, 0.04 and 0.03: the sentence is that shutdown is a COUNTDOWN spending an ordered sequence,
+not an event. The three fills are the order, not three different kinds of Pod.
+The frame is dashed because the Node is on its way out. The clock is the only closed shape, so it
+reads as the actor even though nothing points at it.
 ```
 
 ---
@@ -1117,8 +1122,8 @@ sentence is "three narrow, one wide", and it survives the widening.
 ```
 WHAT     kubectl drain: cordon, list-and-skip, then eviction through the API with a
          PodDisruptionBudget gating it, a 429 and a retry.
-LAYOUT   Layout C, the tallest panel in the category. NODE_Y IS PANEL_B here, so the Node frame
-         starts exactly where the panel ends.
+LAYOUT   Layout C, the tallest panel in the category. NODE_Y IS the panel bottom here, so the
+         Node frame starts exactly where the panel ends.
            ladder  right column 660..1140, five rows
            chips   TWO per row at 532, two rows, 548..624
            API     centred on the Node frame, API_X = CX - BOX_W / 2 (484..716), kubectl 196..428
@@ -1268,6 +1273,17 @@ NOTE     SIX chips, not five: the grid is three wide, so five left a hole. The o
          Terminating`, a countdown running on a Pod its own narration had already replaced.
 ```
 
+### poster
+
+```
+Two Node frames, the left one dashed and dimmed to 0.42 and its Pod dashed with it, the right one
+solid with a filled Pod carrying the accent bar at 0.7. One dashed leg between them. The sentence
+is a rescheduling: the workload is on the survivor and the lost Node is still drawn, dimmed rather
+than cut out, so the reader sees where it came FROM.
+That is the catalog rule about an absent block applied to a poster: cutting the left frame would
+leave a hole and the leg would point at nothing.
+```
+
 ## cluster-node-pressure-eviction
 
 ### layout
@@ -1333,6 +1349,16 @@ NOTE     The stand-in highlight is already in the right place, which is worth re
          because pod1Box is in resetStep's key list. So nothing holds .highlight at the terminated
          shade and the fade needs no onfinish. If a stand-in is ever added to evict, it has to be
          dropped on BOTH paths.
+```
+
+### poster
+
+```
+Three bands stacked at rising fill (0.03 dimmed, 0.04, 0.08) with a size-and-opacity ramp of dots
+on the right, and the TOP band struck through with an X. One sentence: the Pods are RANKED and the
+lowest-ranked one goes first. The X is the only event on the canvas.
+Reading order is deliberately top-down against the brightness, so the eye lands on the crossed band
+first and then discovers it is the faintest of the three.
 ```
 
 ---
@@ -1563,6 +1589,16 @@ to terminated, goes to an API this card does not draw, and the Kubelet sublabel 
 in words (`PLEG + status patch`). A return has to have somewhere on the canvas to go.
 ```
 
+### poster
+
+```
+A container box filled at 0.16 nearly filling its frame, and a lightning bolt drawn over it with
+two short spurs. The fill is the memory used against the limit the frame draws, and the bolt is the
+kernel doing the killing: the poster is about WHO kills, so the bolt gets the heavier stroke (2.1)
+and the box gets no outline of its own.
+No Pod, no Kubelet, no chips: everything that is not the cap and the strike is dropped.
+```
+
 ---
 
 ## cluster-pod-sandbox-cri
@@ -1612,6 +1648,16 @@ Centred on CX, under the point where the zigzag enters the Node frame.
 Z-order canon: packetLayer rides above the static wires but below the
 blocks, so the ball reads on its connector and arrival is told by the pulse
 (matches every other node card; the center connector travels in open space).
+```
+
+### poster
+
+```
+A Pod frame holding two container boxes, both dropping a short dashed line into ONE bar underneath
+them, with a circle on that bar. The bar is the sandbox and the circle is the pause container: the
+sentence is that the containers sit ON something shared rather than beside each other.
+The bar is filled at 0.12 with no stroke, so it reads as a floor rather than as a third box. The two
+dashed legs are the only thing connecting the tiers, because nothing travels between them.
 ```
 
 ---
@@ -1832,4 +1878,15 @@ same step reads 'Pod A · Terminating' and the narration spends two sentences on
 is serving: a Pod inside its terminationGracePeriodSeconds is the most present thing on the diagram,
 not an absence. It holds OPACITY.terminating and keeps its slot, and leaves the slot on the BIND
 step, where the narration says it has exited and its capacity has returned to the Node.
+```
+
+
+### poster
+
+```
+A bright box at 0.16 with a heavier stroke above a Node frame holding three Pods, and the first of
+the three is dimmed, dashed and struck through. The brightest fill is on the ARRIVING Pod and the X
+is on the one that pays for it: the whole sentence is that one displaces the other.
+The dashed leg down is admission, not traffic, so it carries no arrowhead. The two surviving Pods
+step 0.07 and 0.13 to keep the row from reading as three equal things.
 ```

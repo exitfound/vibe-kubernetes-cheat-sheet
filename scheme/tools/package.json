@@ -2,14 +2,14 @@
   "name": "scheme-tools",
   "private": true,
   "type": "module",
-  "description": "Local dev tools for the scheme/ subsite (gate = canon + notes + terms + inline + labels + figures + smoke + reduced + palette + opacity + duration + chipfit + geometry closed rules). Not shipped to GitHub Pages. Needs a server at http://localhost:8080.",
+  "description": "Local dev tools for the scheme/ subsite (gate = canon + canonrows + notes + terms + inline + labels + figures + smoke + reduced + palette + opacity + duration + chipfit + geometry closed rules). Not shipped to GitHub Pages. Needs a server at http://localhost:8080.",
   "scripts": {
     "frame-strip": "node frame-strip.mjs",
     "dump": "node anim-dump.mjs",
     "canon": "node check-canon.mjs",
     "notes": "node check-notes.mjs",
     "smoke": "node smoke-all.mjs",
-    "gate": "node check-canon.mjs && node check-notes.mjs && node check-terms.mjs && node check-inline.mjs && node check-labels.mjs && node check-figures.mjs && node smoke-all.mjs && node check-reduced.mjs && node check-palette.mjs && node check-opacity.mjs && node check-duration.mjs && node check-chipfit.mjs && node check-geometry.mjs --rules=diagonal,through",
+    "gate": "node check-canon.mjs && node check-canonrows.mjs && node check-notes.mjs && node check-terms.mjs && node check-inline.mjs && node check-labels.mjs && node check-figures.mjs && node smoke-all.mjs && node check-reduced.mjs && node check-palette.mjs && node check-opacity.mjs && node check-duration.mjs && node check-chipfit.mjs && node check-geometry.mjs --rules=diagonal,through,offedge",
     "geometry": "node check-geometry.mjs",
     "terms": "node check-terms.mjs",
     "sources": "node check-sources.mjs",
@@ -26,7 +26,8 @@
     "portrait": "node inline-dump.mjs",
     "oracle": "node anim-dump.mjs --all --samples=0,10,25,50,75,90,100 --out=baselines/anim && node dom-dump.mjs --all --out=baselines/dom",
     "oracle:base": "node anim-dump.mjs --all --samples=0,10,25,50,75,90,100 --out=baselines/anim-base && node dom-dump.mjs --all --out=baselines/dom-base",
-    "oracle:diff": "test -f baselines/anim/_complete && test -f baselines/dom/_complete || { echo 'ORACLE INCOMPLETE: a run died partway, these dumps are not a full catalogue'; exit 1; }; diff -rq -x _complete baselines/anim-base baselines/anim && diff -rq -x _complete baselines/dom-base baselines/dom && echo 'ORACLE CLEAN: motion and structure identical to the baseline'"
+    "oracle:diff": "test -f baselines/anim/_complete && test -f baselines/dom/_complete || { echo 'ORACLE INCOMPLETE: a run died partway, these dumps are not a full catalogue'; exit 1; }; diff -rq -x _complete baselines/anim-base baselines/anim && diff -rq -x _complete baselines/dom-base baselines/dom && echo 'ORACLE CLEAN: motion and structure identical to the baseline'",
+    "canonrows": "node check-canonrows.mjs"
   },
   "devDependencies": {
     "playwright": "^1.47.0",

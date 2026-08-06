@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-gateway-api
 
 
@@ -41,10 +41,7 @@ const DELIVER = [[SVC_RIGHT, ROUTE_CY], [POD_X, ROUTE_CY]];            // Servic
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'http :80', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -53,13 +50,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Gateway API: a cluster-scoped GatewayClass names the controller implementation in controllerName, a Gateway owned by the cluster operator names that class in gatewayClassName and declares its listeners, and an HTTPRoute owned by the application team attaches to the Gateway through parentRefs, selects a hostname and matches a path, and forwards to a Service named in backendRefs. A client request enters on the Gateway listener, matches the route rule, and reaches a Ready backend Pod.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Gateway API: a cluster-scoped GatewayClass names the controller implementation in controllerName, a Gateway owned by the cluster operator names that class in gatewayClassName and declares its listeners, and an HTTPRoute owned by the application team attaches to the Gateway through parentRefs, selects a hostname and matches a path, and forwards to a Service named in backendRefs. A client request enters on the Gateway listener, matches the route rule, and reaches a Ready backend Pod.' });
     root.appendChild(arrowDefs());
 
     const client  = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: 'browser · https', role: 'network' });

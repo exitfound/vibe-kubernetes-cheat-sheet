@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT, WL } from './workloads-kit.js';
+import { valChip, setVal, pulsePod, topPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, BEAT, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-init-containers-and-sidecars
 
@@ -47,13 +47,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Init containers and native sidecars: strictly sequential bootstrap, sidecar gates main, then parallel run',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Init containers and native sidecars: strictly sequential bootstrap, sidecar gates main, then parallel run' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'container orchestrator', role: 'cluster' });
@@ -134,6 +128,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { waitDb, migrate, sidecar, main }) {
+  setVal(s.refs.waitDbChip, waitDb);
+  setVal(s.refs.migrateChip, migrate);
+  setVal(s.refs.sidecarChip, sidecar);
+  setVal(s.refs.mainChip, main);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -162,10 +163,7 @@ const STEPS = [
     narration: 'Kubelet asks the runtime to Create and Start wait-for-db via CRI. Init containers run strictly sequentially: each one must exit with code 0 before the next can start. A non-zero exit keeps the Pod in Init:0/3 with a Kubelet restart-backoff (respecting Pod.spec.restartPolicy).',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.waitDbChip, 'Running');
-      setVal(s.refs.migrateChip, 'Waiting');
-      setVal(s.refs.sidecarChip, 'Waiting');
-      setVal(s.refs.mainChip, 'Waiting');
+      setChips(s, { waitDb: 'Running', migrate: 'Waiting', sidecar: 'Waiting', main: 'Waiting' });
       setWire(s, 'req', 'CreateContainer · StartContainer · wait-for-db');
       s.refs.kubelet.classList.add('highlight');
       s.refs.waitDbChip.classList.add('highlight');
@@ -185,11 +183,8 @@ const STEPS = [
     narration: 'The wait-for-db container exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and immediately creates migrate-schema. The same rule applies, it must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.waitDbChip, 'Completed');
+      setChips(s, { waitDb: 'Completed', migrate: 'Running', sidecar: 'Waiting', main: 'Waiting' });
       s.refs.waitDbChip.classList.add('highlight');
-      setVal(s.refs.migrateChip, 'Running');
-      setVal(s.refs.sidecarChip, 'Waiting');
-      setVal(s.refs.mainChip, 'Waiting');
       setWire(s, 'req', 'wait-for-db exit 0 (PLEG) · StartContainer · migrate-schema');
       s.refs.runtime.classList.add('highlight');
       s.refs.migrateChip.classList.add('highlight');
@@ -212,11 +207,8 @@ const STEPS = [
     narration: 'Both regular init containers exited 0. The sidecar (declared as an initContainer with restartPolicy=Always since 1.29) is started next, allowed to run for the full lifetime of the Pod. Once it reports Started (its startupProbe succeeded, or immediately if no probe is set), Kubelet treats the bootstrap phase as complete and unblocks the main container.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.waitDbChip, 'Completed');
-      setVal(s.refs.migrateChip, 'Completed');
+      setChips(s, { waitDb: 'Completed', migrate: 'Completed', sidecar: 'Started', main: 'Waiting' });
       s.refs.migrateChip.classList.add('highlight');
-      setVal(s.refs.sidecarChip, 'Started');
-      setVal(s.refs.mainChip, 'Waiting');
       setWire(s, 'req', 'migrate-schema exit 0 · StartContainer · sidecar');
       s.refs.sidecarChip.classList.add('highlight');
       setChainActive(s.refs.chain, 2);
@@ -241,11 +233,8 @@ const STEPS = [
     narration: 'As soon as the sidecar Started flag flips true, Kubelet creates and starts the main container. From here both run in parallel. Pod phase flips from Pending to Running once the main container has started.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.waitDbChip, 'Completed');
-      setVal(s.refs.migrateChip, 'Completed');
-      setVal(s.refs.sidecarChip, 'Running');
+      setChips(s, { waitDb: 'Completed', migrate: 'Completed', sidecar: 'Running', main: 'Starting' });
       s.refs.sidecarChip.classList.add('highlight');
-      setVal(s.refs.mainChip, 'Starting');
       setWire(s, 'req', 'sidecar Started · StartContainer · main');
       s.refs.mainChip.classList.add('highlight');
       setChainActive(s.refs.chain, 3);
@@ -267,10 +256,7 @@ const STEPS = [
     narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination the order reverses: regular containers terminate first, then sidecars, so cleanup paths can still talk through the proxy.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.waitDbChip, 'Completed');
-      setVal(s.refs.migrateChip, 'Completed');
-      setVal(s.refs.sidecarChip, 'Running');
-      setVal(s.refs.mainChip, 'Running');
+      setChips(s, { waitDb: 'Completed', migrate: 'Completed', sidecar: 'Running', main: 'Running' });
       setWire(s, 'req', 'Pod Running · sidecar + main in parallel');
       s.refs.sidecarChip.classList.add('highlight');
       s.refs.mainChip.classList.add('highlight');

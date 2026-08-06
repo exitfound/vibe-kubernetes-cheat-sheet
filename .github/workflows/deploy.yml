@@ -33,7 +33,7 @@ jobs:
           cp index.html favicon.svg robots.txt sitemap.xml CNAME _site/
           cp -r images cli scheme _site/
           rm -rf _site/scheme/tools
-          find _site \( -name CLAUDE.md -o -name CARDS.md -o -name INTERNALS.md \) -delete
+          find _site \( -name CLAUDE.md -o -name CARDS.md -o -name INTERNALS.md -o -name CANON.md \) -delete
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, BEAT, makeInit, clearHighlights, clearWires, setWire, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, BEAT, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-tls-termination
 
 
@@ -17,10 +17,7 @@ const HS_BACK_Y = FLOW_Y + LANE_DY;     // 324, the server side of the handshake
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'http :8080', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -29,13 +26,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'TLS termination at the edge: a client opens an HTTPS connection to the Ingress controller, which presents the certificate from a TLS Secret, completes the handshake, decrypts the request, and proxies plain HTTP to the backend Pod, with re-encrypt or passthrough as alternatives',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'TLS termination at the edge: a client opens an HTTPS connection to the Ingress controller, which presents the certificate from a TLS Secret, completes the handshake, decrypts the request, and proxies plain HTTP to the backend Pod, with re-encrypt or passthrough as alternatives' });
     root.appendChild(arrowDefs());
 
     const client = box({ x: 70, y: 276, w: 200, h: 72, label: 'Client', sublabel: 'browser · https', role: 'network' });
@@ -79,6 +70,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { scheme, tls, cert, back }) {
+  setVal(s.refs.schemeChip, scheme);
+  setVal(s.refs.tlsChip, tls);
+  setVal(s.refs.certChip, cert);
+  setVal(s.refs.backChip, back);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   // podXBox is a key, not a pod group: the pod-group list only resets inline pulse strokes, so a
@@ -93,10 +91,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.schemeChip, 'idle');
-      setVal(s.refs.tlsChip, 'none');
-      setVal(s.refs.certChip, 'in Secret');
-      setVal(s.refs.backChip, 'none');
+      setChips(s, { scheme: 'idle', tls: 'none', cert: 'in Secret', back: 'none' });
     },
   },
   {
@@ -112,9 +107,7 @@ const STEPS = [
       s.refs.schemeChip.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
       s.refs.certChip.classList.add('highlight');
-      setVal(s.refs.schemeChip, 'https');
-      setVal(s.refs.tlsChip, 'handshake');
-      setVal(s.refs.certChip, 'presented');
+      setChips(s, { scheme: 'https', tls: 'handshake', cert: 'presented', back: 'none' });
       s.refs.client.classList.add('highlight');
       if (ctx.reduced) { s.refs.ingress.classList.add('highlight'); return; }
       // No Pod on this leg: the client and ingress are infra. The encrypted hello rides client ->
@@ -136,8 +129,7 @@ const STEPS = [
       s.refs.ingress.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
       s.refs.schemeChip.classList.add('highlight');
-      setVal(s.refs.tlsChip, 'terminated');
-      setVal(s.refs.schemeChip, 'now http');
+      setChips(s, { scheme: 'now http', tls: 'terminated', cert: 'presented', back: 'none' });
       // Decryption happens inside the highlighted Ingress. The box lights via .highlight, it does not
       // flash, so this step reads as the calm termination point rather than a blink.
     },
@@ -151,9 +143,8 @@ const STEPS = [
       setWire(s, 'p', 'http plaintext');
       s.refs.ingress.classList.add('highlight');
       s.refs.backChip.classList.add('highlight');
-      setVal(s.refs.schemeChip, 'http');
+      setChips(s, { scheme: 'http', tls: 'terminated', cert: 'presented', back: 'Pod :8080' });
       s.refs.schemeChip.classList.add('highlight');
-      setVal(s.refs.backChip, 'Pod :8080');
       if (ctx.reduced) { s.refs.podXBox.classList.add('highlight'); return; }
       // The plaintext request leaves the ingress and is delivered to the backend Pod, which pulses
       // on arrival.
@@ -169,13 +160,10 @@ const STEPS = [
       resetStep(s);
       s.refs.ingress.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
-      setVal(s.refs.tlsChip, 'terminate / re-encrypt / passthru');
-      setVal(s.refs.schemeChip, 'http or https');
+      setChips(s, { scheme: 'http or https', tls: 'terminate / re-encrypt / passthru', cert: 'controller or Pod', back: 'Pod :8080' });
       s.refs.schemeChip.classList.add('highlight');
-      setVal(s.refs.backChip, 'Pod :8080');
       // Under three modes at once the honest value is where the certificate MAY live, not where it
       // just was: left alone, this chip reads `presented` into a step about passthrough.
-      setVal(s.refs.certChip, 'controller or Pod');
       s.refs.certChip.classList.add('highlight');
       if (ctx.reduced) return;
       // No new traffic: the backend Pod pulses to mark where passthrough would move termination to.

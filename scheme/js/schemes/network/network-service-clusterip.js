@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-clusterip
 
 
@@ -54,10 +54,7 @@ const ridingLabel = makeRidingLabel({ role: 'network' });
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -66,13 +63,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ClusterIP routing via kube-proxy: a client sends to a virtual ClusterIP that no interface owns, kube-proxy intercepts and DNATs the packet to one of two symmetric backing Pods, and connection tracking rewrites the reply so the client never sees the Pod address',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'ClusterIP routing via kube-proxy: a client sends to a virtual ClusterIP that no interface owns, kube-proxy intercepts and DNATs the packet to one of two symmetric backing Pods, and connection tracking rewrites the reply so the client never sees the Pod address' });
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.1.5' });
@@ -121,6 +112,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { dnat, ct, back, vip }) {
+  setVal(s.refs.dnatChip, dnat);
+  setVal(s.refs.ctChip, ct);
+  setVal(s.refs.backChip, back);
+  setVal(s.refs.vipChip, vip);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['vip', 'kproxy', 'vipChip', 'dnatChip', 'ctChip', 'backChip', 'clientBox', 'podXBox', 'podYBox'], [s.refs.client, s.refs.podX, s.refs.podY]);
@@ -135,9 +133,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.dnatChip, 'none');
-      setVal(s.refs.ctChip, 'none');
-      setVal(s.refs.backChip, 'none');
+      setChips(s, { dnat: 'none', ct: 'none', back: 'none', vip: '10.96.0.20:80' });
     },
   },
   {
@@ -146,6 +142,7 @@ const STEPS = [
     narration: 'The ClusterIP is virtual. No network interface holds it and no Pod answers ARP for it, so it never appears on a wire. It exists only as a target that kube-proxy has taught every Node how to intercept.',
     enter(s) {
       resetStep(s);
+      setChips(s, { dnat: 'none', ct: 'none', back: 'none', vip: '10.96.0.20:80' });
       // Infrastructure block: it lights via .highlight, it never blinks. Only Pods pulse.
       s.refs.vip.classList.add('highlight');
     },
@@ -158,7 +155,7 @@ const STEPS = [
       resetStep(s);
       s.refs.kproxy.classList.add('highlight');
       s.refs.dnatChip.classList.add('highlight');
-      setVal(s.refs.dnatChip, '-> .2.7 / .3.9');
+      setChips(s, { dnat: '-> .2.7 / .3.9', ct: 'none', back: 'none', vip: '10.96.0.20:80' });
     },
   },
   {
@@ -168,7 +165,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.vipChip.classList.add('highlight');
-      setVal(s.refs.vipChip, '10.96.0.20:80');
+      setChips(s, { dnat: '-> .2.7 / .3.9', ct: 'none', back: 'none', vip: '10.96.0.20:80' });
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.kproxy.classList.add('highlight'); return; }
       // Up-arrow: the client pulses first, the packet leaves at BEAT.afterPulse along the forward lane
       // and is caught at kube-proxy, which lights on arrival. The ClusterIP dst rides with the ball.
@@ -188,9 +185,7 @@ const STEPS = [
       s.refs.dnatChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
       s.refs.backChip.classList.add('highlight');
-      setVal(s.refs.dnatChip, '-> 10.244.2.7:8080');
-      setVal(s.refs.ctChip, 'flow pinned');
-      setVal(s.refs.backChip, '10.244.2.7');
+      setChips(s, { dnat: '-> 10.244.2.7:8080', ct: 'flow pinned', back: '10.244.2.7', vip: '10.96.0.20:80' });
       // podY is idle for this flow: dim it so the chosen backend reads clearly.
       s.refs.podY.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.podXBox.classList.add('highlight'); return; }
@@ -208,8 +203,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.ctChip.classList.add('highlight');
-      setVal(s.refs.ctChip, 'reverse NAT');
-      setVal(s.refs.backChip, '10.244.2.7');
+      setChips(s, { dnat: '-> 10.244.2.7:8080', ct: 'reverse NAT', back: '10.244.2.7', vip: '10.96.0.20:80' });
       s.refs.podY.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
       pulsePod(s.refs.podX, ctx, 0);
@@ -231,9 +225,7 @@ const STEPS = [
       s.refs.dnatChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
       s.refs.backChip.classList.add('highlight');
-      setVal(s.refs.dnatChip, '-> 10.244.3.9:8080');
-      setVal(s.refs.ctChip, 'two flows');
-      setVal(s.refs.backChip, '10.244.3.9');
+      setChips(s, { dnat: '-> 10.244.3.9:8080', ct: 'two flows', back: '10.244.3.9', vip: '10.96.0.20:80' });
       // Mirror of flow 1: podX is not the backend this flow acts on, so dim it exactly as flow 1 dims podY.
       s.refs.podX.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.podYBox.classList.add('highlight'); return; }
@@ -256,8 +248,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.ctChip.classList.add('highlight');
-      setVal(s.refs.ctChip, 'reverse NAT');
-      setVal(s.refs.backChip, '10.244.3.9');
+      setChips(s, { dnat: '-> 10.244.3.9:8080', ct: 'reverse NAT', back: '10.244.3.9', vip: '10.96.0.20:80' });
       // Mirror of flow 1 reply: podX is not this flow backend, so dim it as flow 1 dims podY.
       s.refs.podX.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }

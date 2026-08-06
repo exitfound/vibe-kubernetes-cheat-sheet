@@ -4,15 +4,10 @@ The per-card design record for `js/schemes/storage/`. It answers what the code c
 is what it is, which alternative was measured and failed, and what must not be "fixed". The
 constants themselves live in the card and are not repeated here.
 
-Sister files: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md` for
-the shared sources (catalog, lib, CSS).
-
-**Not deployed.** Three exclusions keep it out of production and all three must hold:
-`deploy.yml` deletes every `CLAUDE.md`, `CARDS.md` and `INTERNALS.md` from the staged site,
-`release.yml` excludes the same three names from the zip, and `.dockerignore` names them too,
-which is not optional because `Dockerfile` is a blanket `COPY . .`. Verify with
-`curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/scheme/js/schemes/storage/CARDS.md`,
-which must return 404.
+**The rules are not here.** Catalog-wide rules are `scheme/CANON.md`, and this category's own rules
+are `./CLAUDE.md`. A note below records only where a card DEVIATES from them, or a number that needs
+explaining. Sister records: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md`
+for the shared sources (catalog, lib, CSS). None of them ships (`S-41`).
 
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and
 `check-notes` parses it that way. A second-level heading anywhere else is reported as an orphan.)
@@ -20,40 +15,22 @@ which must return 404.
 One `## <card-id>` section per card. `### layout` describes the whole card in labelled blocks,
 `### poster` describes the grid thumbnail, and each ``### before `<line>` `` holds the note for one
 line of code. `check-notes` verifies every anchor still occurs in its card, so **an anchor is DATA:
-never reword one.**
+never reword one** (`S-38`).
 
-The labels in `### layout`, in this order, only the ones that apply:
+The label vocabulary a `### layout` block uses is ONE list for all four records, in
+`scheme/CANON.md` under "The record vocabulary". Use the labels that apply, in that order, and add
+none of your own.
 
-| | |
-|---|---|
-| `WHAT` | what the card draws, in one sentence |
-| `LAYOUT` | the tiers, and the geometry that follows from the panel |
-| `PANEL` | the measured overlay extent for THIS card, and what it pins |
-| `SIZES` | a block or chip width, and the string that floors it |
-| `LANES` | wire topology, and which array feeds both the wire and the ball |
-| `MOTION` | pulse and packet order, durations where they were sized deliberately |
-| `CONTENT` | a technical claim checked against the reference, and the wording it forced |
-| `BUDGET` | the narration or caption ceiling this card's geometry imposes |
-| `WHY NOT` | an alternative that was measured and fails, with the number that kills it |
-| `DO NOT` | a constraint, with the defect it prevents |
-| `NOT A DEFECT` | something a lint or a reader reports that is correct as drawn |
-| `NAMING` | why a block, a card or a string carries the wording it does |
-| `NOTE` | a placement or a value whose reason is not visible from the code |
-| `SCOPE` | what this card deliberately leaves to a named sibling |
-| `OPEN` | known and unresolved |
+Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM ranges 90 to 504 over
+the standard viewport set, and it moves NON-MONOTONICALLY (`L-02`, `L-04`, `L-05`). So a `PANEL_B`
+in a card is a measurement, not a convention. Re-measure with
+`VW=1100 VH=800 node overlay-measure.mjs <card>` after any prose change: several cards here carry a
+hard character ceiling and the gate enforces none of them (`L-08`).
 
-**The family contract is not repeated per card.** The Pod pulse model and the wrapping `g`, only
-Pods pulse, every step writes every chip, `setStage` pins every born element, lanes pin to 0 and
-blocks to `OPACITY.pending`, one points array per wire and its ball, z-order, `CHIP_W 232`, the
-per-class text rates, the panel behaviour, and no packet dot on a poster: all of that is in
-`js/schemes/storage/CLAUDE.md` under "The storage card contract". A note here states only its card's
-delta.
-
-**Panel extent is per card.** The right edge is `x<=398` catalog-wide, but the BOTTOM ranges 130 to
-498 and moves with viewport HEIGHT as well as width, so a measured table is a measurement and a
-blanket `y<=300` is not. `check-geometry`'s OCCLUDED rule samples 1600x1000, 1280x860 and 1100x800
-only. Several tables below carry a 900x650 row that is stricter than anything the rule sees, and
-where the two disagree the card takes the stricter number and says so.
+Several tables below carry a `900x650` row stricter than anything `check-geometry` samples, and
+where the two disagree the card takes the stricter number and says so (`STO.L-04`). Storage's own
+deepest panel is 354 (`storage-ephemeral-storage-eviction`); the catalog maximum of 503 belongs to
+`workloads-pod-phase-machine`.
 
 ---
 
@@ -269,6 +246,17 @@ POD_CX falls out at 600 and the overlay stack plus the disk are centred under it
 is symmetric on one axis. The chip strip (3x320 + 2x20 = 1000) is centred on the same 600.
 ```
 
+### poster
+
+```
+One writable layer at 0.09 over three read-only ones dimmed to 0.45 as a group, with a cylinder
+below and a dashed hook running from the container down PAST the stack into it. The sentence is
+that one of the four layers is different from the other three, and the volume bypasses all of them.
+The dimming is applied to the three as a GROUP rather than per rect, so they read as one immutable
+stack instead of three ranked things. The hook takes the long way round on purpose: a straight leg
+would look like it passes through the layers instead of around them.
+```
+
 
 ## storage-csi-architecture
 
@@ -370,6 +358,17 @@ NOTE     The last step is a static highlight only, with no motion at all. The us
 ```
 One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it and the canvas centre is
 construction rather than a typed 600. Changing M re-solves every tier.
+```
+
+### poster
+
+```
+Two halves and one bridge. The control-plane frame on top carries four sidecars over the controller
+plugin, joined by a drawn bracket, and the Node frame below carries Kubelet and the node plugin.
+The two dashed legs out to the left and right stubs are the API and the storage backend, and one
+dashed spine joins the halves. The sentence is that a driver is TWO deployments, not one.
+The controller at 0.07 is the only box brighter than its siblings: it is the thing the four
+sidecars exist to wrap.
 ```
 
 
@@ -489,6 +488,16 @@ NOTE     Z-order puts the LADDER last of all: it is the reader's index into the 
 ```
 COL_W is solved from the margin and the gutter (516), so the two columns and the ladder inside the
 left one re-size together. The chips are solved the same way: 4*CHIP_W + 3*16 = 1080.
+```
+
+### poster
+
+```
+Four identical bars, a bracket collecting all four into one vertical, and a single dashed leg from
+that vertical to the disk. The sentence is that four separate calls add up to ONE outcome, so the
+bars are byte-identical and the bracket carries the whole meaning.
+The bracket is drawn solid where the leg to the disk is dashed: the chain is structure, the reach
+to the backend is a call. Numbering the bars was rejected, it would make the poster a list.
 ```
 
 
@@ -2518,8 +2527,8 @@ CONTENT  The allowVolumeExpansion gate is enforced by the API SERVER on the edit
 LAYOUT   The centred vertical stack: Pod on top, its claim under it, the real disk on the shelf below,
          all three on ONE axis at CX=600. Tier heights and block footprints are the same numbers as
          storage-pvc-protection, so the two cards in this subcategory read as one family, and the
-         vertical pitch is TIER=162 again: 108, 270, 432. The spine is the mount ascent (disk to claim
-         to Pod) and balls travel it, so its arrowheads are earned.
+         vertical pitch is 162 again, measured between midpoints: 108, 270, 432. The spine is the
+         mount ascent (disk to claim to Pod) and balls travel it, so its arrowheads are earned.
          What differs from the sibling is FOUR actors, placed so that not one lane needs more than a
          single turn:
            Slot A, top right at 108, is shared by Kubectl Patch and the StorageClass. They are never on
@@ -2558,8 +2567,8 @@ NOTE     Lane captions are blank at build and filled per step by setWire. The ve
 ### before `const CX = 600;`
 
 ```
-Pod, claim and disk all sit on this axis, and TIER 162 is the same pitch as storage-pvc-protection,
-which is what makes the pair read as one family. The four actors are placed so no lane needs more
+Pod, claim and disk all sit on this axis, and the 162 pitch above it is the same as
+storage-pvc-protection, which is what makes the pair read as one family. The four actors are placed so no lane needs more
 than a single turn.
 ```
 
@@ -2568,6 +2577,16 @@ than a single turn.
 ```
 Four chips, derived rather than hand-placed. They hold the same number at the start and change ONE
 AT A TIME, so the staggered highlight walking left to right IS the two-phase story.
+```
+
+### poster
+
+```
+One cylinder with a jade band filling its LOWER two thirds and a bright ellipse with a 2.4 stroke
+marking where the old ceiling was, plus a faint up-arrow above it. The bright ellipse is the whole
+sentence: the disk did not move, its top did.
+The arrow sits at 0.5 and is short. Making it the subject would say the growth is an event, and the
+card is about the new boundary being real and visible to the Pod.
 ```
 
 
@@ -2723,6 +2742,17 @@ MOTION   HIGHLIGHTS ARE STEP-STATIC: every block a step uses lights at step entr
 The ownership spine, and the axis both mount lanes are symmetric about. The Pod is stretched to 600
 wide so the two containers sit OUTSIDE the cylinder span, which is what makes the lanes L-shaped and
 lets them enter the cylinder through its side.
+```
+
+### poster
+
+```
+A Pod with two containers over one cylinder, two dashed mount lanes rising from the disk to the
+containers, and a third fainter line at 0.5 on the centre axis. The two lanes are the mounts and the
+faint centre line is the declaration: the sentence is that a volume is declared ONCE at Pod level
+and mounted twice.
+This is the category's anchor card and its poster is the grammar in miniature: stack on a spine,
+side-entry lanes, no packet dot anywhere.
 ```
 
 
@@ -2999,6 +3029,17 @@ NOT A DEFECT
 One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it. LEFT_X is a separate wall at
 400 that only the TOP band obeys: the usable area is an L and the disk lives in its free bottom-left
 corner.
+```
+
+### poster
+
+```
+Three things in a row, and the MIDDLE one is the brightest at 0.08 while the controller and the disk
+sit at 0.05 and 0.04. That inversion is the sentence: the API object is the subject, not the actor
+that writes it or the hardware it describes.
+The object box carries a header bar and two fields, which is the only place in the storage posters
+where a block is drawn as a RECORD rather than as a component. Both legs are dashed, because
+neither is traffic.
 ```
 
 

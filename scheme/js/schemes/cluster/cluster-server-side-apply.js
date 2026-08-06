@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-server-side-apply
 
 // The ledger IS the card, so the object is drawn as a three column table (field, value, manager) and
@@ -73,13 +73,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Server-side apply and field ownership: the API records a field manager for every field an apply sets, keeps that ledger in managedFields on the object, and refuses a second manager that tries to change a field it does not own',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Server-side apply and field ownership: the API records a field manager for every field an apply sets, keeps that ledger in managedFields on the object, and refuses a second manager that tries to change a field it does not own' });
     root.appendChild(arrowDefs());
 
     // The API holds the object below it. A relationship, so no arrowhead and no ball on any step.

@@ -27,12 +27,17 @@ The second column is the load-bearing one. A green gate means these rules hold, 
 right, and knowing which failure each tool cannot see is what stops a green run from being read as a
 looked-at card.
 
+The same information from the other side is `../CANON.md`: given a RULE, its `Check` column names
+the tool that would notice it breaking, or says `review` when nothing would. When you teach a check
+a new rule, add or update its row there.
+
 | Check | Catches | Blind to | Gate |
 |---|---|---|---|
-| `check-canon` | source lint, 12 enforced rules (`R-desc`, `R-dash`, `R-kitparity`, `R-modulepath`, `R-poster`, `R-opacity`, `R-viewbox`, `R-rawpulse`, `R-ridinglabel`, `R-srclabel`, `R-srcdup`, `R-skeleton`), plus a skeleton CENSUS printed every run | `makeInit`/`posterFirst`, kit-vs-`scheme-kit` imports, `ctx.reduced` placement: convention, review-enforced | yes |
+| `check-canon` | source lint, 12 enforced rules (`R-desc`, `R-dash`, `R-kitparity`, `R-modulepath`, `R-poster`, `R-opacity`, `R-viewbox`, `R-rawpulse`, `R-ridinglabel`, `R-srclabel`, `R-srcdup`, `R-skeleton`), plus a skeleton CENSUS printed every run | kit-vs-`scheme-kit` imports (`S-21`), z-order (`S-07`), the slot-0 no-draw rule (`S-09`), where `ctx.reduced` sits in the source: convention, review-enforced. `makeInit`/`posterFirst` used to be here and is now inside `R-skeleton` | yes |
+| `check-canonrows` | `../CANON.md` against the harness: a row claiming `gate:<check>` for a check the chain does not run, a check in the gate no rule names, a duplicated or skipped id | whether the rule TEXT is true, and whether `review` is the honest answer for a rule a check could enforce | yes |
 | `check-notes` | every design-note anchor still points at code that exists | whether the note is still TRUE | yes |
 | `check-terms` | terminology and casing in `desc`, `narration`, every `aria-label` | meaning | yes |
-| `check-inline` | casing and component names of strings drawn ON the diagram, including chip values that reach the canvas through a wrapper | 43 non-chip indirect writes (`setBoxSublabel`, `setBoxLabel`, `setPodSublabel`, `setWire`) | yes |
+| `check-inline` | casing and component names of strings drawn ON the diagram, including chip values that reach the canvas through a wrapper. Holds a coverage FLOOR (702) and an unread CEILING (8), both enforced | non-chip indirect writes (`setBoxSublabel`, `setBoxLabel`, `setPodSublabel`, `setWire`); and a chip declared through a card-local FACTORY, whose every value it silently never reads (`P-15`) | yes |
 | `check-labels` | one object spelled one way catalog-wide | the value class never fails: an API literal and an English word wear the same letters | yes |
 | `check-figures` | one Pod address on two Pod blocks, a request above its own limit | any other arithmetic | yes |
 | `smoke-all` | console errors, walking every step twice (statically, then really PLAYED so motion code runs) | whether the drawing is right | yes |
@@ -41,17 +46,29 @@ looked-at card.
 | `check-opacity` | every shade is `0`, `1` or `OPACITY.*`; a Pod pulses before it fades; nothing lit at the terminated shade | CSS presentation shades, out of scope by construction | yes |
 | `check-duration` | a step outlasting its own motion | a step with no motion passes trivially | yes |
 | `check-chipfit` | a chip name colliding with its value, measured RENDERED on every step | wire-label width, which nothing measures | yes |
-| `check-geometry` | `DIAGONAL`, `THROUGH`, `OFFEDGE`, `CENTRE`, `CENTRE-LOW`, `OCCLUDED` | whether anything is DRAWN where a lane ends; occlusion below its area bar | `diagonal,through` |
-| `check-arrival` | R3: a block receiving a packet must not be lit at entry. R2: a changed chip must be cued | a turnover mid-step, because it samples t=0 only, so every deferred chip reads as a finding | no, queue open |
-| `check-sources` | liveness of every `sources` href (DEAD, SOFT, MOVED, ANCHOR) | | no, hits the network |
+| `check-geometry` | `DIAGONAL`, `THROUGH`, `OFFEDGE`, `CENTRE`, `CENTRE-LOW`, `OCCLUDED` | whether anything is DRAWN where a lane ends; occlusion below its area bar | `diagonal,through,offedge` |
+| `check-arrival` | R3: a block receiving a packet must not be lit at entry (**0 findings**). R2: a changed chip must be cued | a turnover mid-step, because it samples t=0 only; and any cue that is not a `classList.add` on the chip itself (a Pod pulse, `walkRows` lighting a listing row by row) | no, and R2 cannot join as written |
+| `check-sources` | liveness of every `sources` href (DEAD, SOFT, MOVED, ANCHOR) | **its own cache**: a url with a good record is never re-fetched, so a warm run proves nothing about today. `--refresh` is the only mode whose green means alive NOW | no, hits the network |
 
-`check-geometry` runs two of its six rules in the gate. `OFFEDGE` is at zero and could join.
-`CENTRE`, `CENTRE-LOW` and `OCCLUDED` cannot, because their remaining findings are deliberate
-decisions with the reason written into the card's record. Run it bare to see the current state, and
-read a new finding against those notes before treating it as a regression.
+`check-geometry` runs three of its six rules in the gate. `OFFEDGE` joined on 2026-08-06 with an
+empty queue, so an endpoint drifting off a face midpoint can now only ever be a regression.
+`CENTRE`, `CENTRE-LOW` and `OCCLUDED` cannot join, because their remaining findings are deliberate
+decisions with the reason written into the card's record (8 today, on 7 cards). Run it bare to see
+the current state, and read a new finding against those notes before treating it as a regression.
+
+**R2's queue is drained and the rule still cannot be gated.** All 29 findings were read on
+2026-08-06: 20 are the t=0 sampling artefact (the chip turns over later in the step through
+`at(...)`), and the other 9 are deliberate, each with the reason already in the card
+(`cluster-api-structure` restores a steady state the aside interrupted, `network-endpointslice-reconcile`
+cues with a Pod pulse, `network-client-ip-preservation` says in a comment that the panel goes back to
+none and stays unlit, `storage-fsgroup-ownership` lights its listing through `walkRows`). Zero true
+positives. To become a gate rule R2 needs to sample the END of a step, not its entry, and R3 needs
+the entry, so the two want different sample points and the tool would have to walk twice.
 
 `check-sources` caches every fetched page under `.cache/pages` (gitignored), so a later text pass can
-verify a claim offline.
+verify a claim offline. That cache is also its blind spot: run it `--refresh` when you want liveness
+rather than a re-read of what was alive whenever the cache was built. Last full refresh 2026-08-06,
+149 unique urls, 0 findings.
 
 ## Readers, not checks
 

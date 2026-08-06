@@ -1,5 +1,4 @@
-// The SVG element vocabulary. Six have no importer today and they STAY: this is a library surface,
-// not accumulated code. Do not read their absence from the import graph as a finding.
+// Design notes: scheme/INTERNALS.md#schemejslibsvgjs
 const NS = 'http://www.w3.org/2000/svg';
 
 export function el(tag, attrs = {}, children = []) {

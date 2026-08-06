@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, at, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, at, OPACITY, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-graceful-node-shutdown
 
 // Laid out on the L. Panel x<=397 y<=230 against a ladder and chip column starting at 250, so 20
@@ -53,13 +53,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Graceful Node shutdown: systemd inhibitor lock, priority-ordered Pod termination',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Graceful Node shutdown: systemd inhibitor lock, priority-ordered Pod termination' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: KUBE_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'Kubelet', sublabel: 'shutdown manager', role: 'cluster' });
@@ -142,6 +136,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { lock, gp, gpCrit, phase }) {
+  setVal(s.refs.lockChip, lock);
+  setVal(s.refs.gpChip, gp);
+  setVal(s.refs.gpCritChip, gpCrit);
+  setVal(s.refs.phaseChip, phase);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -172,10 +173,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       setPods(s, 1, 1, 1);
-      setVal(s.refs.lockChip, 'held by Kubelet');
-      setVal(s.refs.gpChip, '60s');
-      setVal(s.refs.gpCritChip, '20s');
-      setVal(s.refs.phaseChip, 'normal');
+      setChips(s, { lock: 'held by Kubelet', gp: '60s', gpCrit: '20s', phase: 'normal' });
       // Idle baseline: nothing is happening yet, no chain row highlighted.
       setChainActive(s.refs.chain, -1);
     },
@@ -187,14 +185,13 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setPods(s, 1, 1, 1);
-      setVal(s.refs.phaseChip, 'shutdown signal received');
+      setChips(s, { lock: 'held by Kubelet', gp: '60s', gpCrit: '20s', phase: 'normal' });
       setWire(s, 'sig', 'PrepareForShutdown · D-Bus');
       s.refs.systemd.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 0);
       if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
       // The Kubelet has not received anything until the signal lands, so the phase waits for it.
-      setVal(s.refs.phaseChip, 'normal');
       const pkt = topPacket(s, ctx, { from: SYS_X, to: KUBE_X + BOX_W, y: SIG_Y, role: 'cluster' });
       lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
       at(s, ctx, pkt.arrivalMs, () => setVal(s.refs.phaseChip, 'shutdown signal received'));
@@ -207,7 +204,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       setPods(s, 1, 1, 1);
-      setVal(s.refs.phaseChip, 'NotReady · bucketing pods');
+      setChips(s, { lock: 'held by Kubelet', gp: '60s', gpCrit: '20s', phase: 'NotReady · bucketing pods' });
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       setChainActive(s.refs.chain, 1);
@@ -221,7 +218,7 @@ const STEPS = [
     narration: 'Kubelet sends SIGTERM to every non-critical Pod in parallel. They get shutdownGracePeriod minus shutdownGracePeriodCriticalPods to finish (40s with this configuration). Each ends up with the status reason Terminated.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.phaseChip, 'terminating non-critical · 40s');
+      setChips(s, { lock: 'held by Kubelet', gp: '60s', gpCrit: '20s', phase: 'NotReady · bucketing pods' });
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       s.refs.gpChip.classList.add('highlight');
@@ -232,7 +229,6 @@ const STEPS = [
       if (ctx.reduced) return;
       // ONE SIGTERM down the one lane, and BOTH non-critical Pods react to it on arrival, which is
       // what the narration means by in parallel. The phase waits for the signal to land too.
-      setVal(s.refs.phaseChip, 'NotReady · bucketing pods');
       const sig = routePacket(s, ctx, SIG_LANE, { role: 'cluster' });
       at(s, ctx, sig.arrivalMs, () => setVal(s.refs.phaseChip, 'terminating non-critical · 40s'));
       pulsePod(s.refs.pod1, ctx, sig.arrivalMs);
@@ -247,7 +243,7 @@ const STEPS = [
     narration: 'After non-critical Pods are gone (or their grace expired), Kubelet sends SIGTERM to system-critical Pods. They get shutdownGracePeriodCriticalPods (20s here). DaemonSet infra workloads such as CNI or kube-proxy usually sit in this bucket.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.phaseChip, 'terminating critical · 20s');
+      setChips(s, { lock: 'held by Kubelet', gp: '60s', gpCrit: '20s', phase: 'terminating non-critical · 40s' });
       s.refs.kubelet.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
       s.refs.gpCritChip.classList.add('highlight');
@@ -256,7 +252,6 @@ const STEPS = [
       setPods(s, OPACITY.terminated, OPACITY.terminated, OPACITY.terminated);
       setChainActive(s.refs.chain, 3);
       if (ctx.reduced) return;
-      setVal(s.refs.phaseChip, 'terminating non-critical · 40s');
       const sig = routePacket(s, ctx, SIG_LANE, { role: 'cluster' });
       at(s, ctx, sig.arrivalMs, () => setVal(s.refs.phaseChip, 'terminating critical · 20s'));
       // SIGTERM reaches the critical Pod: it flinches (pulse) then terminates (fade).
@@ -270,8 +265,7 @@ const STEPS = [
     narration: 'All Pods are gone or their grace expired. Kubelet releases the inhibitor lock, and systemd resumes the shutdown sequence. The Node has carried NotReady since the Kubelet set that condition, and once Lease renewals in kube-node-lease stop the control plane treats it as unreachable as well.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.lockChip, 'released');
-      setVal(s.refs.phaseChip, 'lock released · OS shutdown');
+      setChips(s, { lock: 'held by Kubelet', gp: '60s', gpCrit: '20s', phase: 'terminating critical · 20s' });
       setWire(s, 'sig', 'release lock');
       s.refs.kubelet.classList.add('highlight');
       s.refs.lockChip.classList.add('highlight');
@@ -281,8 +275,6 @@ const STEPS = [
       setChainActive(s.refs.chain, 4);
       if (ctx.reduced) { s.refs.systemd.classList.add('highlight'); return; }
       // systemd is not free to proceed until the release actually reaches it, so both chips wait.
-      setVal(s.refs.lockChip, 'held by Kubelet');
-      setVal(s.refs.phaseChip, 'terminating critical · 20s');
       const pkt = topPacket(s, ctx, { from: KUBE_X + BOX_W, to: SYS_X, y: REL_Y, role: 'cluster' });
       lightBoxAt(s.refs.systemd, ctx, pkt.arrivalMs);
       at(s, ctx, pkt.arrivalMs, () => {

@@ -1,13 +1,11 @@
 # CLAUDE.md `schemes/storage/` (Volume flow)
 
-What is true of Storage cards only. Everything else is in `scheme/CLAUDE.md`: the module contract,
-the card construction standard, the motion canon, the opacity vocabulary, the reduced-motion
-contract, the writing rules and the gate. If a rule here would also be true of another category,
-it is in the wrong file.
+What is true of Storage cards ALONE. Everything catalog-wide is in **`scheme/CANON.md`** (the
+rulebook: layout, arrows, motion, colour, text, chips, metadata, posters, module structure) and
+`scheme/CLAUDE.md` (the contract: folder, module, catalog, checklists). **If a rule here would also
+be true of another category, it is in the wrong file.**
 
-**A comment in a card is at most TWO lines**, saying what the line beside it does or where a number
-came from. It carries no date, no past defect and no account of an earlier version. Anything longer
-is a rule (this file), a measurement (`./CARDS.md`) or history (delete it).
+The rows below carry `STO.*` ids and are indexed from `scheme/CANON.md`.
 
 ## The folder
 
@@ -18,9 +16,8 @@ is a rule (this file), a measurement (`./CARDS.md`) or history (delete it).
 | `storage-kit.js` | the tint, the two pulse wrappers and `setCylinderLabel`; everything else is re-exported from `lib/scheme-kit.js` |
 | `storage-*.js` | one module per card |
 
-A card imports `../../lib/svg.js`, `../../lib/primitives.js` and `./storage-kit.js`. Never reach
-past the kit into `scheme-kit.js` directly. Nothing else may live here: `R-modulepath` reports any
-other `.js` in this folder as unclaimed.
+A card imports `../../lib/svg.js`, `../../lib/primitives.js` and `./storage-kit.js`, and never
+reaches past the kit (`S-21`). Nothing else may live here (`S-20`).
 
 ## Tint
 
@@ -28,65 +25,20 @@ other `.js` in this folder as unclaimed.
 STORAGE_TINT = { base: 'rgb(94, 202, 148)', bright: 'rgb(174, 224, 199)' }   // jade
 ```
 
-`base` must equal the Pod's RESTING stroke, which is the CSS value before any pulse has run.
-Measure it under `reducedMotion`, or a forwards-filled pulse hands you back its own end state.
+`base` is the Pod's resting stroke, measured under `reducedMotion` (`M-05`).
 
-Jade is hue 150 at 50% saturation, and that ceiling is the point: a green above roughly 50% goes
-acid on this canvas. If a new shade is needed, move lightness, not saturation.
+| ID | Rule |
+|---|---|
+| `STO.C-01` | Jade is hue 150 at 50 percent saturation, and that ceiling is the point: a green above roughly 50 percent goes acid on this canvas. If a new shade is needed, move LIGHTNESS, not saturation (`C-23`) |
 
 ## Kit surface
 
-The shared 30 names, plus `STORAGE_TINT`, `pulsePod`, `pulsePodDim`, and one storage-only helper:
+The shared list (`S-22`), plus `STORAGE_TINT`, `pulsePod`, `pulsePodDim`, and one storage-only
+helper:
 
 ```js
 setCylinderLabel(cylEl, txt)    // the label inside a cylinder(), the way setBoxLabel is for a box
 ```
-
-## Layout grammar: the vertical stack
-
-Storage does not use the left-to-right pipeline the other categories use. Its grammar is a stack
-centered on a spine:
-
-- a Pod on top, its containers inside it
-- the backing volume below, drawn as a `cylinder()` disk
-- a dim, arrowhead-less **identity spine** at the centre x, saying "this volume belongs to this
-  Pod". Nothing travels it, so it carries no ball and no arrowhead
-- one L-shaped **mount lane** per container, dropping from the container and entering the cylinder
-  through its SIDE, written in its one traffic direction so the arrowhead lands at the receiving
-  end. One-way traffic gets one lane; a round trip gets a lane each way
-
-A cylinder's label is re-centred on the visible front face (below the cap ellipse) by setting
-`y: 64` on `.scheme-cylinder-label`, which is the family standard shared by `volume-model`,
-`emptydir` and `container-filesystem`. `cylinder()` centres on the raw bbox, and the cap ellipse is
-not part of the face you see, so the default sits visibly high inside the body. Derive the offset
-from the cylinder height rather than typing the resulting literal.
-
-## The storage card contract
-
-Storage deltas on top of the shared canon in `scheme/CLAUDE.md`. True of every card here unless its
-own note in `./CARDS.md` says otherwise.
-
-- **No `.highlight` is ever put on an inner container box**, or the Pod keeps a lit rectangle after
-  its blink decays. Cylinders, bands, frames, controllers and claims are infrastructure and light.
-- **`setStage` / `setBorn` pins EVERY element born or removed mid-story, and every lane**, exactly as
-  `setChips` pins every chip. `clearHighlights` clears classes, not inline styles, and the reduced
-  replay walks 0..n, so without this a step entered out of order inherits the previous opacities.
-  **A block and its lanes are ONE construction and appear together**: there is no legal state where a
-  lane is visible and the block on the end of it is not.
-- **Every endpoint is a block edge MIDPOINT**, never a hand-typed coordinate.
-- **Z-order, bottom to top**: frames, then blocks and disks, then Pods so they sit above their own
-  frame, then lanes and their captions, then the chip strip, then the packet layer.
-- **`CHIP_W 232` is the family default**, with `CHIP_GAP 16`. `valChip` anchors the name 12 from the
-  left and the value 12 from the right, so a chip needs name + value + 24 plus a readable gap. Size
-  it against the worst name+value pair on the card, and shorten the VALUE rather than widening.
-- **Text rates are PER CLASS and are measured, never estimated.** `.scheme-box-sublabel` is 10px
-  JetBrains Mono at 6.03 viewBox units per character; `.scheme-chip-text` and `.scheme-label code`
-  are 11px JetBrains Mono at 6.89; box labels are 12px Space Grotesk and proportional, so they vary
-  by string. Monospace has zero variance, so one sample is enough. **Await `document.fonts.ready`
-  before measuring** or you measure the fallback, which is about 20 percent narrower and flatters
-  you. Do not eyeball a width off a screenshot.
-- The panel bottom reaches **498** on the longest narration here, the deepest in the catalog, so
-  several cards below carry a measured table pinning their own floor.
 
 ## Subcategories
 
@@ -104,11 +56,34 @@ object or a Node-side action.
 
 `storage-volume-model.js`, the anchor card. Copy its shape for a new storage card, including the
 Pod pulse model: the Pod is one unit and blinks as one, containers included, because they are part
-of it rather than neighbours of it.
+of it rather than neighbours of it (`M-03`).
 
-## Riding labels
+## Rules of this category only (`STO.*`)
 
-Storage and Networking both ride a tag on the ball; in storage it rides the mount lane carrying
-`mount /data`, `write`, `read`. That rule is shared and lives once, in `scheme/CLAUDE.md` under
-"Riding labels and `lightBoxAt`". Read it before adding a tag: the easing has to match the ball it
-rides, and a wrong one drifts off mid-flight in a way no static screenshot shows.
+True of every card here unless its own note in `./CARDS.md` says otherwise.
+
+### The layout grammar: the vertical stack (`STO.L-01`)
+
+Storage does not use the left-to-right pipeline the other categories use. Its grammar is a stack
+centered on a spine:
+
+- a Pod on top, its containers inside it
+- the backing volume below, drawn as a `cylinder()` disk
+- a dim, arrowhead-less **identity spine** at the centre x, saying "this volume belongs to this
+  Pod". Nothing travels it, so it carries no ball and no arrowhead (`STO.A-01`)
+- one L-shaped **mount lane** per container, dropping from the container and entering the cylinder
+  through its SIDE, written in its one traffic direction so the arrowhead lands at the receiving
+  end. One-way traffic gets one lane, a round trip gets a lane each way (`STO.A-02`)
+
+| ID | Rule |
+|---|---|
+| `STO.L-02` | A cylinder's label is re-centred on the visible front face (below the cap ellipse) by setting `y: 64` on `.scheme-cylinder-label`, the family standard shared by `volume-model`, `emptydir` and `container-filesystem`. `cylinder()` centres on the raw bbox and the cap ellipse is not part of the face you see, so the default sits visibly high inside the body. **Derive the offset from the cylinder height rather than typing the resulting literal** |
+| `STO.L-03` | **`CHIP_W 232` is the family default**, with `CHIP_GAP 16`. Size a chip against the worst name+value pair on the card, and shorten the VALUE rather than widening (`P-07`) |
+| `STO.C-02` | **No `.highlight` is ever put on an inner CONTAINER box**, or the Pod keeps a lit rectangle after its blink decays. This is the storage reading of `S-19`: cylinders, bands, frames, controllers and claims ARE infrastructure and do light |
+| `STO.S-01` | **`setStage` / `setBorn` pins EVERY element born or removed mid-story, and every lane**, exactly as `setChips` pins every chip (`P-01`). `clearHighlights` clears classes, not inline styles, and the reduced replay walks 0..n, so without this a step entered out of order inherits the previous opacities |
+| `STO.S-02` | **A block and its lanes are ONE construction and appear together**: there is no legal state where a lane is visible and the block on the end of it is not (`A-16`) |
+| `STO.S-03` | **Z-order, bottom to top**: frames, then blocks and disks, then Pods so they sit above their own frame, then lanes and their captions, then the chip strip, then the packet layer (`S-07`) |
+| `STO.L-04` | Several cards carry a measured table pinning their own panel floor, and some of those tables include a `900x650` row that is stricter than anything `check-geometry` samples. Where the two disagree the card takes the stricter number and says so (`L-06`) |
+
+Storage's deepest panel is 354 units (`storage-ephemeral-storage-eviction`), not the catalog
+maximum: that is 503 on `workloads-pod-phase-machine` (`L-04`).

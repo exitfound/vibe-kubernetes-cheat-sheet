@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { valChip, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-ephemeral-vs-persistent
 
 
@@ -18,10 +18,10 @@ const RIGHT_CX = SPINE_X + COL_D;      // 760, PVC/PV column
 const BLOCK_Y = 306;                   // shared top of emptyDir and PVC, so both write arrows match
 
 const ED_W = 200, ED_H = 172, ED_X = LEFT_CX - ED_W / 2, ED_Y = BLOCK_Y; // 340..540, 306..478
-const ED_TOP = ED_Y, ED_CX = LEFT_CX;
+const ED_TOP = ED_Y;
 
 const PVC_W = 200, PVC_H = 64, PVC_X = RIGHT_CX - PVC_W / 2, PVC_Y = BLOCK_Y; // 660..860, 306..370
-const PVC_TOP = PVC_Y, PVC_BOTTOM = PVC_Y + PVC_H, PVC_CX = RIGHT_CX;         // 306 / 370 / 760
+const PVC_TOP = PVC_Y, PVC_BOTTOM = PVC_Y + PVC_H;  // 306 / 370
 
 const PV_W = 200, PV_H = 120, PV_X = RIGHT_CX - PV_W / 2, PV_Y = 420; // 660..860, 420..540
 const PV_TOP = PV_Y, PV_CX = RIGHT_CX;
@@ -48,10 +48,7 @@ function podBlock({ x, y, w, h, label, sublabel }) {
   const sub = shell.querySelector('.scheme-pod-sublabel');
   if (sub) sub.setAttribute('y', h - 12);
   const innerBox = box({ x: x + 24, y: y + (h - 60) / 2, w: w - 48, h: 60, label: 'app', sublabel: 'mounts /scratch and /data', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -60,13 +57,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Ephemeral versus persistent storage: one Pod mounts both an emptyDir and a PersistentVolumeClaim and writes to each. When the Pod is deleted and rescheduled onto another Node, the emptyDir comes back empty because it was tied to the old Node, while the claim reattaches the very same disk with the data intact.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Ephemeral versus persistent storage: one Pod mounts both an emptyDir and a PersistentVolumeClaim and writes to each. When the Pod is deleted and rescheduled onto another Node, the emptyDir comes back empty because it was tied to the old Node, while the claim reattaches the very same disk with the data intact.' });
     root.appendChild(arrowDefs());
 
     const podB = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'volumes: scratch, data' });

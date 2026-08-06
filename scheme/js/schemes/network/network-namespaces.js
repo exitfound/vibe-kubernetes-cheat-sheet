@@ -1,6 +1,6 @@
-import { svg, g, text, rect } from '../../lib/svg.js';
+import { g, text, rect } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-namespaces
 
 
@@ -41,13 +41,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Network namespaces: the pause container holds one isolated network stack with its own interfaces, routing table and ports, every container in the Pod shares it and reaches the others over localhost, and a veth pair is the only link between the Pod namespace and the host namespace',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Network namespaces: the pause container holds one isolated network stack with its own interfaces, routing table and ports, every container in the Pod shares it and reaches the others over localhost, and a veth pair is the only link between the Pod namespace and the host namespace' });
     root.appendChild(arrowDefs());
 
     const host = box({ x: 150, y: HOST_Y, w: 260, h: HOST_H, label: 'Host NETNS', sublabel: 'node NICs · routes · iptables', role: 'network' });
@@ -108,6 +102,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { scope, iface, port, reach }) {
+  setVal(s.refs.scopeChip, scope);
+  setVal(s.refs.ifaceChip, iface);
+  setVal(s.refs.portChip, port);
+  setVal(s.refs.reachChip, reach);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['host', 'app', 'side', 'lo', 'eth0', 'scopeChip', 'ifaceChip', 'portChip', 'reachChip'], [s.refs.podGroup]);
@@ -120,10 +121,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.scopeChip, 'host');
-      setVal(s.refs.ifaceChip, 'node NICs');
-      setVal(s.refs.portChip, 'shared');
-      setVal(s.refs.reachChip, 'node + beyond');
+      setChips(s, { scope: 'host', iface: 'node NICs', port: 'shared', reach: 'node + beyond' });
     },
   },
   {
@@ -136,10 +134,8 @@ const STEPS = [
       s.refs.lo.classList.add('highlight');
       s.refs.ifaceChip.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
-      setVal(s.refs.scopeChip, 'pod');
+      setChips(s, { scope: 'pod', iface: 'lo only', port: 'shared', reach: 'isolated' });
       s.refs.scopeChip.classList.add('highlight');
-      setVal(s.refs.ifaceChip, 'lo only');
-      setVal(s.refs.reachChip, 'isolated');
       // Nothing flows in or out yet: lo simply holds its highlight outline, no flash.
     },
   },
@@ -154,9 +150,7 @@ const STEPS = [
       s.refs.host.classList.add('highlight');
       s.refs.ifaceChip.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
-      setVal(s.refs.scopeChip, 'pod');
-      setVal(s.refs.ifaceChip, 'lo + eth0');
-      setVal(s.refs.reachChip, 'node + beyond');
+      setChips(s, { scope: 'pod', iface: 'lo + eth0', port: 'shared', reach: 'node + beyond' });
       if (ctx.reduced) { s.refs.eth0.classList.add('highlight'); return; }
       // Down-arrow: the packet crosses the veth from the host side into eth0, which lights on arrival,
       // then the pod shell pulses as the namespace gains reach.
@@ -176,8 +170,7 @@ const STEPS = [
       s.refs.app.classList.add('highlight');
       s.refs.eth0.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
-      setVal(s.refs.scopeChip, 'pod');
-      setVal(s.refs.portChip, 'shared');
+      setChips(s, { scope: 'pod', iface: 'lo + eth0', port: 'shared', reach: 'node + beyond' });
       if (ctx.reduced) { s.refs.lo.classList.add('highlight'); s.refs.side.classList.add('highlight'); return; }
       const hop = routePacket(s, ctx, LOCAL_PATH, { role: 'network' });
       lightBoxAt(s.refs.side, ctx, hop.arrivalMs);
@@ -199,10 +192,7 @@ const STEPS = [
       s.refs.scopeChip.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
-      setVal(s.refs.scopeChip, 'pod · private');
-      setVal(s.refs.ifaceChip, 'lo + eth0');
-      setVal(s.refs.portChip, 'own space');
-      setVal(s.refs.reachChip, 'node + beyond');
+      setChips(s, { scope: 'pod · private', iface: 'lo + eth0', port: 'own space', reach: 'node + beyond' });
       if (ctx.reduced) return;
       // No new traffic: the whole shared stack (shell + band + rail) pulses to mark the isolated
       // stack as the unit that lives and dies as one.

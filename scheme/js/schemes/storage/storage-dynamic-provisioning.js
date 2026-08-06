@@ -1,6 +1,6 @@
-import { svg, g, text, line } from '../../lib/svg.js';
+import { g, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt } from './storage-kit.js';
+import { valChip, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-dynamic-provisioning
 
 
@@ -13,7 +13,6 @@ const COL_GAP = 40;                                   // the elbow channel lives
 const COL_R_X = LEFT_X + COL_L_W + COL_GAP;           // 640
 // The claim tier sits inside the narration panel's y band, so the left edge is pinned at 400 and the
 // composition is centred by pulling the machinery column in, not by sliding the whole card left.
-const RIGHT_END = COL_R_X + COL_R_W;                  // 860, so the drawing centres on 630
 
 const PVC_X = LEFT_X, PVC_Y = 70, PVC_W = COL_L_W, PVC_H = 80;
 const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 540 / 150
@@ -76,13 +75,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Dynamic provisioning: a claim finds no existing volume to bind to, so the StorageClass it names points at a provisioner, the provisioner asks the storage backend to create a real disk, writes a PersistentVolume object to represent it, and that brand new volume is bound to the claim straight away',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Dynamic provisioning: a claim finds no existing volume to bind to, so the StorageClass it names points at a provisioner, the provisioner asks the storage backend to create a real disk, writes a PersistentVolume object to represent it, and that brand new volume is bound to the claim straight away' });
     root.appendChild(arrowDefs());
 
     const pvc   = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'wants 5Gi, class gp3', role: 'storage' });

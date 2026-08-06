@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { valChip, setChip, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volume-detach-on-node-loss
 
 
@@ -14,7 +14,6 @@ const CONTENT_CX = A_X + (NODE_W * 2 + NODE_GAP) / 2;    // 600: canvas center, 
 const NODE_BOTTOM = NODE_Y + NODE_H;                     // 208, where the attach lanes terminate
 
 const POD_Y = 76, POD_W = NODE_W - NODE_PAD * 2, POD_H = 104;   // 168 wide, family two-column height
-const POD_BOTTOM = POD_Y + POD_H;                        // 180
 const A_CX = A_X + NODE_W / 2;                           // 496, node-1 centre
 const B_CX = B_X + NODE_W / 2;                           // 704, and (496 + 704) / 2 == CONTENT_CX
 
@@ -47,7 +46,6 @@ const ESC_TOP = ESC_Y;
 const LANE = 22, CORRIDOR_Y = 260;
 const W_ATTACH_A = [[CONTENT_CX - LANE, DK_TOP], [CONTENT_CX - LANE, CORRIDOR_Y], [A_CX, CORRIDOR_Y], [A_CX, NODE_BOTTOM]];
 const W_ATTACH_B = [[CONTENT_CX + LANE, DK_TOP], [CONTENT_CX + LANE, CORRIDOR_Y], [B_CX, CORRIDOR_Y], [B_CX, NODE_BOTTOM]];
-const DK_RIGHT = DK_X + DK_W, DK_MID_Y = DK_Y + DK_H / 2;   // 695 / 334
 const DK_BOTTOM = DK_Y + DK_H;                              // 386
 // The taint arrives from directly below, on the spine, so it needs no elbow and crosses nothing.
 const W_TAINT = [[ESC_CX, ESC_TOP], [ESC_CX, DK_BOTTOM]];
@@ -58,10 +56,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock({ x, label, sublabel }) {
   const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 14, y: POD_Y + 30, w: POD_W - 28, h: 44, label: 'app', sublabel: 'writes PV-web', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -70,13 +65,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Detach on Node failure: when a Node goes NotReady and its Kubelet is silent, Kubernetes will not detach the volume immediately, because the old Pod cannot be confirmed dead and detaching while it might still write would let two Nodes write one filesystem, so it waits out the 300 second unreachable toleration and then the roughly six minute force-detach before attaching the disk on a new Node, a deliberate safety property rather than a bug, and the non-graceful node shutdown out-of-service taint is the operator escape hatch that asserts the Node is truly dead and skips the wait',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Detach on Node failure: when a Node goes NotReady and its Kubelet is silent, Kubernetes will not detach the volume immediately, because the old Pod cannot be confirmed dead and detaching while it might still write would let two Nodes write one filesystem, so it waits out the 300 second unreachable toleration and then the roughly six minute force-detach before attaching the disk on a new Node, a deliberate safety property rather than a bug, and the non-graceful node shutdown out-of-service taint is the operator escape hatch that asserts the Node is truly dead and skips the wait' });
     root.appendChild(arrowDefs());
 
     const nodeA = node({ x: A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { g, text } from '../../lib/svg.js';
+import { arrowDefs, box, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
+import { valChip, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pvc-protection
 
 
@@ -14,7 +14,7 @@ const PVC_W = 240, PVC_H = 68, PVC_X = CX - PVC_W / 2, PVC_Y = 236;
 const PVC_BOTTOM = PVC_Y + PVC_H, PVC_MID = PVC_Y + PVC_H / 2, PVC_RIGHT = PVC_X + PVC_W; // 304 / 270 / 720
 
 const DISK_W = 230, DISK_H = 86, DISK_Y = 389;
-const DISK_TOP = DISK_Y, DISK_BOTTOM = DISK_Y + DISK_H;        // 389 / 475
+const DISK_TOP = DISK_Y;  // 389
 
 // Two actors of one footprint, one each side of the identity spine so the card is not a stack
 // hanging off its right. Both at or below the claim tier, which clears the panel floor at 230.
@@ -62,10 +62,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock() {
   const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: data-claim', containers: 0, role: 'storage' });
   const innerBox = box({ x: POD_X + 20, y: POD_Y + (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'app', sublabel: 'writes to /data', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 // Every lane in this card is a ROUTE: something travels all of them, so they are all dashed, all
@@ -80,13 +77,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The StorageObjectInUseProtection admission plugin puts the kubernetes.io slash pvc-protection finalizer on every claim when it is created. Deleting the claim only sets a deletionTimestamp on it, and because the finalizers list is not empty the API server will not complete the delete, so the object stays and the Pod keeps its mount. Its status phase is still Bound the whole time and only kubectl prints the word Terminating. Once the last consuming Pod is gone the controller removes the finalizer, the list empties, and only then does the API server take the object out of ETCD.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The StorageObjectInUseProtection admission plugin puts the kubernetes.io slash pvc-protection finalizer on every claim when it is created. Deleting the claim only sets a deletionTimestamp on it, and because the finalizers list is not empty the API server will not complete the delete, so the object stays and the Pod keeps its mount. Its status phase is still Bound the whole time and only kubectl prints the word Terminating. Once the last consuming Pod is gone the controller removes the finalizer, the list empties, and only then does the API server take the object out of ETCD.' });
     root.appendChild(arrowDefs());
 
     const web = podBlock();

@@ -1,6 +1,8 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, routePacket, segmentPacket, BEAT, FADE, OPACITY, at, laneOf, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, relationPath } from './cluster-kit.js';
+import { valChip, setVal, routePacket, segmentPacket, BEAT, FADE, OPACITY, at, laneOf, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, relationPath, diagramRoot } from './cluster-kit.js';
+
+// Design notes for this card: ./CARDS.md#cluster-etcd-raft
 
 // Laid out on the L. Panel x<=397 y<=230 against CYL_Y 230, ONE unit off the artwork, so every
 // narration has a HARD CEILING of 334 characters. Margin 40, not 60, and both sides take it.
@@ -61,13 +63,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ETCD Raft Consensus: replicate, ack, commit, and stop writing when quorum is lost',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'ETCD Raft Consensus: replicate, ack, commit, and stop writing when quorum is lost' });
     root.appendChild(arrowDefs());
 
     // Laid out at scale 1.0 (no shrink wrapper) so every block and its text match
@@ -139,6 +135,15 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { r1, r2, r3, l1, l2, l3 }) {
+  setVal(s.refs.r1, r1);
+  setVal(s.refs.r2, r2);
+  setVal(s.refs.r3, r3);
+  setVal(s.refs.l1, l1);
+  setVal(s.refs.l2, l2);
+  setVal(s.refs.l3, l3);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['api','e1','e2','e3','r1','r2','r3','l1','l2','l3','termChip','acksChip','quorumChip']);
@@ -169,12 +174,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.r1, 'Leader');
-      setVal(s.refs.r2, 'Follower');
-      setVal(s.refs.r3, 'Follower');
-      setVal(s.refs.l1, '8 / 8');
-      setVal(s.refs.l2, '8 / 8');
-      setVal(s.refs.l3, '8 / 8');
+      setChips(s, { r1: 'Leader', r2: 'Follower', r3: 'Follower', l1: '8 / 8', l2: '8 / 8', l3: '8 / 8' });
       setSummary(s, { acks: 'idle', quorum: QUORUM });
       setReplicas(s, OPACITY.running);
     },
@@ -185,6 +185,7 @@ const STEPS = [
     narration: 'The API issues a write for a new Pod, the only path by which Kubernetes state ever reaches ETCD. Every write is funneled through the Leader so the cluster has a single point that orders all changes. A request that lands on a Follower is not served there but forwarded to the Leader, so a linearizable read never observes a split view.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { r1: 'Leader', r2: 'Follower', r3: 'Follower', l1: '8 / 8', l2: '8 / 8', l3: '8 / 8' });
       setSummary(s, { acks: 'idle', quorum: QUORUM });
       setReplicas(s, OPACITY.running);
       s.refs.api.classList.add('highlight');
@@ -200,7 +201,7 @@ const STEPS = [
     narration: 'The Leader appends the write as entry 9 in its own log, right after the 8 entries already stored. For now the entry lives on a single replica and stays uncommitted, so commitIndex is still 8 and the new Pod is invisible to readers. Nothing becomes durable until a majority of replicas also hold it.',
     enter(s) {
       resetStep(s);
-      setVal(s.refs.l1, '9 / 8');
+      setChips(s, { r1: 'Leader', r2: 'Follower', r3: 'Follower', l1: '9 / 8', l2: '8 / 8', l3: '8 / 8' });
       setSummary(s, { acks: '0 of 2', quorum: QUORUM });
       setReplicas(s, OPACITY.running);
       s.refs.acksChip.classList.add('highlight');
@@ -215,8 +216,7 @@ const STEPS = [
     narration: 'The Leader sends an AppendEntries RPC carrying entry 9 to both Followers at once. Each Follower verifies that the term matches and that its log already lines up at index 8 before accepting, which is what keeps the replicas from ever diverging. After writing entry 9 to its own log, each Follower returns an ack to the Leader.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.l2, '9 / 8');
-      setVal(s.refs.l3, '9 / 8');
+      setChips(s, { r1: 'Leader', r2: 'Follower', r3: 'Follower', l1: '9 / 8', l2: '9 / 8', l3: '9 / 8' });
       // Both acks land inside this step, so the counter ends on 2 and says so in the same notation
       // as the steps either side of it.
       setSummary(s, { acks: '2 of 2', quorum: QUORUM });
@@ -246,7 +246,7 @@ const STEPS = [
     narration: 'The Leader counts how many replicas now hold entry 9: itself plus at least one Follower makes 2 of 3, which meets quorum. With a majority persisted, entry 9 is committed and can no longer be lost, so the Leader advances commitIndex to 9 and reports the write back to the API as durable.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.l1, '9 / 9');
+      setChips(s, { r1: 'Leader', r2: 'Follower', r3: 'Follower', l1: '9 / 9', l2: '9 / 8', l3: '9 / 8' });
       // The acks chip COUNTS, it does not judge: Raft commits on the FIRST ack, because Leader plus
       // one Follower is already the majority. The verdict belongs to the chip whose threshold it is.
       setSummary(s, { acks: '2 of 2', quorum: QUORUM_MET });
@@ -269,8 +269,7 @@ const STEPS = [
     narration: 'On the next heartbeat the Leader carries the new commitIndex to the Followers, signalling that entry 9 is safe to apply. Each Follower applies entry 9 to its state machine, the key-value view that clients actually read from. All three replicas now hold the Pod at index 9, and while quorum holds every read returns it consistently.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.l2, '9 / 9');
-      setVal(s.refs.l3, '9 / 9');
+      setChips(s, { r1: 'Leader', r2: 'Follower', r3: 'Follower', l1: '9 / 9', l2: '9 / 9', l3: '9 / 9' });
       setSummary(s, { acks: '2 of 2', quorum: QUORUM_MET });
       setReplicas(s, OPACITY.running);
       s.refs.e1.classList.add('highlight');
@@ -296,8 +295,7 @@ const STEPS = [
     narration: 'Both Followers go silent, so the Leader holds one vote of three and quorum is lost. Entry 10 appends but never commits, the write fails with etcdserver: request timed out, and an election timeout later the Leader steps down. Linearizable reads stop, while serializable reads answer locally from stale data until a majority returns.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.r1, 'Follower');
-      setVal(s.refs.l1, '10 / 9');
+      setChips(s, { r1: 'Leader', r2: 'Follower', r3: 'Follower', l1: '10 / 9', l2: '9 / 9', l3: '9 / 9' });
       setSummary(s, { acks: '0 of 2', quorum: QUORUM_LOST });
       setReplicas(s, OPACITY.notready);
       s.refs.e1.classList.add('highlight');
@@ -309,7 +307,6 @@ const STEPS = [
       // NO ball, on purpose: a packet into a member that is not answering says the opposite of the
       // step. The beat is the replicas going quiet, then the counters, then the Leader standing down.
       setReplicas(s, OPACITY.running);
-      setVal(s.refs.r1, 'Leader');
       setSummary(s, { acks: '2 of 2', quorum: QUORUM_MET });
       SILENT.forEach(k => ctx.register(s.refs[k].animate(
         [{ opacity: OPACITY.running }, { opacity: OPACITY.notready }],

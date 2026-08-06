@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-projected-volume
 
 
@@ -43,10 +43,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock({ x, y, w, h, label, sublabel }) {
   const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + (w - 260) / 2, y: y + 34, w: 260, h: 56, label: 'app', sublabel: 'reads /var/run/secrets', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 function fileRow(y, label) {
@@ -59,13 +56,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Projected volumes: one directory is assembled from several sources at once, a ConfigMap, a Secret, the downwardAPI carrying Pod metadata, and a serviceAccountToken. The token source is short-lived and audience-bound, and Kubelet rotates it in place before it expires, unlike the old forever-valid Secret-based token.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Projected volumes: one directory is assembled from several sources at once, a ConfigMap, a Secret, the downwardAPI carrying Pod metadata, and a serviceAccountToken. The token source is short-lived and audience-bound, and Kubelet rotates it in place before it expires, unlike the old forever-valid Secret-based token.' });
     root.appendChild(arrowDefs());
 
     const podB = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'projected volume' });

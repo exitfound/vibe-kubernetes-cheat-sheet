@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, fadeIn, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT } from './cluster-kit.js';
+import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, diagramRoot } from './cluster-kit.js';
 
 // Laid out on the L. Panel worst case x<=397 y<=181, so the Client sits in the freed bottom-left
 // and reaches the API up a riser clear of it. The Informer/Indexer stack keeps the centre column.
@@ -84,13 +84,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. The controller opens with discovery, GET /api and GET /apis, to learn which group-version-resources it can reach. The informer then fires an initial LIST at resourceVersion 0, which the API answers from the watch cache it keeps filled from ETCD rather than with a quorum read, and that fills the Indexer cache the controller then reconciles from without going back to the API. It opens a watch from that same resourceVersion, and the API streams every later change over one connection held open for as long as the controller wants, so a new Pod reaching ETCD arrives as an ADDED event that updates the cache. When the API has compacted history past the resourceVersion the informer holds, the next chunk of that stream is HTTP 410 Gone, and the informer re-LISTs to a fresh resourceVersion and resumes watching rather than losing its place. CustomResourceDefinitions add their own API group under the same paths, with the same list-then-watch contract, so a controller for a custom resource is written exactly like one for a built-in.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. The controller opens with discovery, GET /api and GET /apis, to learn which group-version-resources it can reach. The informer then fires an initial LIST at resourceVersion 0, which the API answers from the watch cache it keeps filled from ETCD rather than with a quorum read, and that fills the Indexer cache the controller then reconciles from without going back to the API. It opens a watch from that same resourceVersion, and the API streams every later change over one connection held open for as long as the controller wants, so a new Pod reaching ETCD arrives as an ADDED event that updates the cache. When the API has compacted history past the resourceVersion the informer holds, the next chunk of that stream is HTTP 410 Gone, and the informer re-LISTs to a fresh resourceVersion and resumes watching rather than losing its place. CustomResourceDefinitions add their own API group under the same paths, with the same list-then-watch contract, so a controller for a custom resource is written exactly like one for a built-in.' });
     root.appendChild(arrowDefs());
 
     const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client', sublabel: 'client-go controller', role: 'cluster' });
@@ -190,6 +184,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { rv, watch, cache }) {
+  setVal(s.refs.rvChip, rv);
+  setVal(s.refs.watchChip, watch);
+  setVal(s.refs.cacheChip, cache);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client','informer','cache','api','etcdC','rvChip','watchChip','cacheChip']);
@@ -223,9 +223,7 @@ const STEPS = [
       resetStep(s);
       resetWatchArrow(s);
       hideAllSlots(s);
-      setVal(s.refs.rvChip, 'none');
-      setVal(s.refs.watchChip, 'closed');
-      setVal(s.refs.cacheChip, '0');
+      setChips(s, { rv: 'none', watch: 'closed', cache: '0' });
     },
   },
   {
@@ -236,9 +234,7 @@ const STEPS = [
       resetStep(s);
       resetWatchArrow(s);
       hideAllSlots(s);
-      setVal(s.refs.rvChip, 'none');
-      setVal(s.refs.watchChip, 'closed');
-      setVal(s.refs.cacheChip, '0');
+      setChips(s, { rv: 'none', watch: 'closed', cache: '0' });
       setWire(s, 'req', 'GET /api  +  GET /apis');
       setWire(s, 'gvr', 'GVR catalogue');
       // Only the CLIENT is lit at entry. The API is the receiver of the one ball this step draws, and
@@ -260,8 +256,7 @@ const STEPS = [
       resetStep(s);
       resetWatchArrow(s);
       hideAllSlots(s);
-      setVal(s.refs.rvChip, '842');
-      setVal(s.refs.cacheChip, '3');
+      setChips(s, { rv: '842', watch: 'closed', cache: '3' });
       setWire(s, 'req', 'LIST /api/v1/pods · rv=0');
       // The two ETCD lanes are the API keeping its OWN cache current, not this LIST being read
       // through: an rv=0 list is answered by the Cacher and never reaches etcd.
@@ -311,7 +306,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       resetWatchArrow(s);
-      setVal(s.refs.watchChip, 'open · chunked HTTP');
+      setChips(s, { rv: '842', watch: 'open · chunked HTTP', cache: '3' });
       setWire(s, 'watch', 'chunked HTTP · streaming');
       s.refs.api.classList.add('highlight');
       s.refs.watchChip.classList.add('highlight');
@@ -330,9 +325,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       resetWatchArrow(s);
-      setVal(s.refs.rvChip, '843');
-      setVal(s.refs.cacheChip, '4');
-      setVal(s.refs.watchChip, 'open · streaming');
+      setChips(s, { rv: '843', watch: 'open · streaming', cache: '4' });
       setWire(s, 'watch', 'ADDED · rv=843');
       s.refs.etcdC.classList.add('highlight');
       s.refs.rvChip.classList.add('highlight');
@@ -371,9 +364,7 @@ const STEPS = [
       resetStep(s);
       resetWatchArrow(s);
       hideAllSlots(s);
-      setVal(s.refs.watchChip, '410 Gone · re-listing');
-      setVal(s.refs.rvChip, 'reset');
-      setVal(s.refs.cacheChip, 're-syncing');
+      setChips(s, { rv: 'reset', watch: '410 Gone · re-listing', cache: 're-syncing' });
       setWire(s, 'watch', 'HTTP 410 Gone');
       setWire(s, 'req', 're-LIST · fresh rv');
       s.refs.api.classList.add('highlight');
@@ -397,9 +388,7 @@ const STEPS = [
       hideAllSlots(s);
       // The 410 step is a conditional aside, so the informer is back in the steady state `event`
       // left it in. Without these three the coda runs under `410 Gone . re-listing`.
-      setVal(s.refs.rvChip, '843');
-      setVal(s.refs.watchChip, 'open · streaming');
-      setVal(s.refs.cacheChip, '4');
+      setChips(s, { rv: '843', watch: 'open · streaming', cache: '4' });
       setWire(s, 'gvr', 'CRD · widgets · watchable');
       const rows = s.refs.gvr.querySelectorAll('.scheme-chip');
       rows.forEach(r => r.classList.add('highlight'));

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, chainList, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-dns-ndots
 
 
@@ -47,13 +47,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Search domains and ndots: a Pod resolv.conf lists search domains and ndots, so a short name with fewer dots than ndots is tried against each search domain in turn before being tried as is, costing one round trip per candidate, while an absolute name ending in a dot skips the search list entirely',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Search domains and ndots: a Pod resolv.conf lists search domains and ndots, so a short name with fewer dots than ndots is tried against each search domain in turn before being tried as is, costing one round trip per candidate, while an absolute name ending in a dot skips the search list entirely' });
     root.appendChild(arrowDefs());
 
     // Client Pod and CoreDNS both centred on FLOW_Y, so the two lanes meet each at its middle.
@@ -107,6 +101,11 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { names, answer }) {
+  setVal(s.refs.namesChip, names);
+  setVal(s.refs.answerChip, answer);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['podBox', 'dns', 'rcSearch', 'rcNdots', 'namesChip', 'answerChip'], [s.refs.podGroup]);
@@ -147,8 +146,7 @@ const STEPS = [
       resetStep(s);
       s.refs.rcSearch.classList.add('highlight');
       s.refs.rcNdots.classList.add('highlight');
-      setVal(s.refs.namesChip, '0');
-      setVal(s.refs.answerChip, 'none');
+      setChips(s, { names: '0', answer: 'none' });
       if (ctx.reduced) { s.refs.podBox.classList.add('highlight'); return; }
       // No query yet: the Pod is reading its own resolv.conf, so the Pod is what moves. The chips light
       // but never blink, since a blinking block would read as traffic that has not been sent.
@@ -166,8 +164,7 @@ const STEPS = [
       lightRow(s, 0);
       s.refs.namesChip.classList.add('highlight');
       s.refs.answerChip.classList.add('highlight');
-      setVal(s.refs.namesChip, '1');
-      setVal(s.refs.answerChip, 'NOERROR');
+      setChips(s, { names: '1', answer: 'NOERROR' });
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
         s.refs.dns.classList.add('highlight');
@@ -202,8 +199,7 @@ const STEPS = [
         setWire(s, 'a', 'NXDOMAIN');
         return;
       }
-      setVal(s.refs.namesChip, '0');
-      setVal(s.refs.answerChip, 'none');
+      setChips(s, { names: '0', answer: 'none' });
       // The four candidates fired back to back, each a real round trip. The row lights and the counter
       // ticks as each NXDOMAIN lands, so the cost is counted on screen rather than asserted in text.
       let t = 0;
@@ -235,8 +231,7 @@ const STEPS = [
       // lighting the first candidate would say the opposite of what the step is about.
       s.refs.namesChip.classList.add('highlight');
       s.refs.answerChip.classList.add('highlight');
-      setVal(s.refs.namesChip, '1');
-      setVal(s.refs.answerChip, 'NOERROR');
+      setChips(s, { names: '1', answer: 'NOERROR' });
       if (ctx.reduced) {
         s.refs.podBox.classList.add('highlight');
         s.refs.dns.classList.add('highlight');

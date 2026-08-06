@@ -1,8 +1,8 @@
-import { svg, g, rect } from '../../lib/svg.js';
+import { g, rect } from '../../lib/svg.js';
 import { arrowDefs, box, node, pathArrow, podShell } from '../../lib/primitives.js';
 // Design notes for this card: ./CARDS.md#storage-volume-attach-limits
 
-import { valChip, setVal, setChip, setBoxLabel, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel } from './storage-kit.js';
+import { valChip, setChip, setBoxLabel, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, BEAT, FADE, lightBoxAt, at, makeRidingLabel, wrapPod, diagramRoot } from './storage-kit.js';
 
 const LEFT_X = 400;
 const CONTENT_W = 400;
@@ -92,10 +92,7 @@ function podBlock() {
     x: POD_X + 16, y: POD_Y + PVC_DY, w: POD_W - 32, h: PVC_H,
     label: 'PVC data-web-0', sublabel: 'needs one slot', role: 'storage',
   });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 function nodeBlock({ x, label }) {
@@ -128,13 +125,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Node volume attach limits. Every Node has a hard ceiling on how many volumes one CSI driver may have attached to it at once. The CSI node plugin answers NodeGetInfo with max_volumes_per_node, Kubelet writes that number into the Node CSINode object as allocatable.count, and the scheduler filter NodeVolumeLimits is the only thing that reads it. Here three Nodes each report a ceiling of eight, so the cluster has twenty four attachment slots. As claims are provisioned the Nodes walk up to eight of eight and the cluster runs out of slots. Pod web-0 is then created, asks for one volume, and the filter rejects every Node, so the Pod sits in Pending reporting that the Nodes exceed max volume count even though every Node has spare CPU and spare memory. The count covers the volumes of Pods assigned to a Node plus every VolumeAttachment still live on it, so a slot is freed only when a detach completes and its VolumeAttachment is deleted, not when a Pod dies. The Pod schedules on the next attempt after one detach finishes on Node-3. The levers are fewer volumes per Pod, more Nodes, or a Node pool whose instance type reports a higher ceiling.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Node volume attach limits. Every Node has a hard ceiling on how many volumes one CSI driver may have attached to it at once. The CSI node plugin answers NodeGetInfo with max_volumes_per_node, Kubelet writes that number into the Node CSINode object as allocatable.count, and the scheduler filter NodeVolumeLimits is the only thing that reads it. Here three Nodes each report a ceiling of eight, so the cluster has twenty four attachment slots. As claims are provisioned the Nodes walk up to eight of eight and the cluster runs out of slots. Pod web-0 is then created, asks for one volume, and the filter rejects every Node, so the Pod sits in Pending reporting that the Nodes exceed max volume count even though every Node has spare CPU and spare memory. The count covers the volumes of Pods assigned to a Node plus every VolumeAttachment still live on it, so a slot is freed only when a detach completes and its VolumeAttachment is deleted, not when a Pod dies. The Pod schedules on the next attempt after one detach finishes on Node-3. The levers are fewer volumes per Pod, more Nodes, or a Node pool whose instance type reports a higher ceiling.' });
     root.appendChild(arrowDefs());
 
     const podNew = podBlock();

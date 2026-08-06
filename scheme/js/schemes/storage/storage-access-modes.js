@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, podShell, cylinder, node, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { g, text } from '../../lib/svg.js';
+import { arrowDefs, box, podShell, cylinder, node, pathArrow } from '../../lib/primitives.js';
+import { valChip, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-access-modes
 
 
@@ -81,10 +81,7 @@ function podBlock({ x, label }) {
   // Inset 14 rather than 20: at this POD_W the old inset left the sublabel close to the box sides.
   // 'read/write' is 59 units wide against a 100-wide box, so it keeps ~20 units of air either side.
   const innerBox = box({ x: x + 14, y: POD_Y + 46, w: POD_W - 28, h: 52, label: 'ctr', sublabel: 'read/write', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 function specText(cx, txt) {
@@ -97,13 +94,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Access modes decide who can mount a volume at once: ReadWriteOnce attaches a volume to a single Node, so two Pods on that same Node can both use it but a Pod on another Node cannot, ReadWriteOncePod narrows that to one single Pod, and ReadWriteMany needs a shared filesystem because a plain block disk cannot be attached to many Nodes at all. The access mode is mostly a request that the CSI driver has to honour rather than a rule Kubernetes enforces on its own, the one exception being ReadWriteOncePod.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Access modes decide who can mount a volume at once: ReadWriteOnce attaches a volume to a single Node, so two Pods on that same Node can both use it but a Pod on another Node cannot, ReadWriteOncePod narrows that to one single Pod, and ReadWriteMany needs a shared filesystem because a plain block disk cannot be attached to many Nodes at all. The access mode is mostly a request that the CSI driver has to honour rather than a rule Kubernetes enforces on its own, the one exception being ReadWriteOncePod.' });
     root.appendChild(arrowDefs());
 
     const nodeA = node({ x: NODE_1_X, y: NODE_Y, w: NODE_1_W, h: NODE_H, label: 'Node-1' });

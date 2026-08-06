@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
-import { at, valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
+import { at, valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-nodelocal-dnscache
 
 
@@ -19,13 +19,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'NodeLocal DNSCache: a DNS cache agent runs as a DaemonSet on every Node on a link-local address that Pods query, answering cached names locally with no cluster hop and no conntrack entry, and forwarding only misses upstream to CoreDNS over a long-lived TCP connection',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'NodeLocal DNSCache: a DNS cache agent runs as a DaemonSet on every Node on a link-local address that Pods query, answering cached names locally with no cluster hop and no conntrack entry, and forwarding only misses upstream to CoreDNS over a long-lived TCP connection' });
     root.appendChild(arrowDefs());
 
     const theNode = node({ x: 70, y: 200, w: 620, h: 220, label: 'Node   ·   192.168.1.20' });

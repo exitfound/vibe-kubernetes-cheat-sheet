@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
-import { arrowDefs, box, pod, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { g, text } from '../../lib/svg.js';
+import { arrowDefs, box, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
+import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pvc-binding
 
 
@@ -16,7 +16,7 @@ const PVC_MID = PVC_Y + PVC_H / 2;                  // 270
 // Standard controller box, same footprint as kube-proxy in the networking cards (220 x 72). Its
 // vertical center sits on PVC_MID so the watch and bind hops stay straight horizontals.
 const CTRL_W = 220, CTRL_H = 72, CTRL_X = 850, CTRL_Y = PVC_MID - CTRL_H / 2;
-const CTRL_LEFT = CTRL_X, CTRL_RIGHT = CTRL_X + CTRL_W, CTRL_BOTTOM = CTRL_Y + CTRL_H; // 850 / 1070 / 306
+const CTRL_LEFT = CTRL_X, CTRL_RIGHT = CTRL_X + CTRL_W;  // 850 / 1070
 const CTRL_CX = CTRL_X + CTRL_W / 2, CTRL_MID = CTRL_Y + CTRL_H / 2;                    // 960 / 270
 
 // The second claim (exclusive step) sits above the controller, denied by a short straight hop up.
@@ -62,10 +62,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock({ x, y, w, h, label, sublabel }) {
   const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 20, y: y + (h - 52) / 2, w: w - 40, h: 52, label: 'app', sublabel: 'writes to /data', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 function diskBlock(cx, w, label, spec) {
@@ -82,13 +79,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, pairs the claim with the one that does by writing the link both ways, and only then can Kubelet mount the volume into the Pod',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, pairs the claim with the one that does by writing the link both ways, and only then can Kubelet mount the volume into the Pod' });
     root.appendChild(arrowDefs());
 
     const appPod = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: data-claim' });

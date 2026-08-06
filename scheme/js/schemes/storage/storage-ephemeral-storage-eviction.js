@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, podShell, node, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-ephemeral-storage-eviction
 
 
@@ -11,7 +11,6 @@ const NODE_X = 210, NODE_Y = 45, NODE_W = 780, NODE_H = 485; // 210..990, canvas
 const COL_CX = 620;
 
 const POD_X = COL_CX - 145, POD_Y = 85, POD_W = 290, POD_H = 150; // 475..765
-const POD_BOTTOM = POD_Y + POD_H;                     // 235
 
 const CB_Y = 268, CB_H = 54, CB_BOTTOM = CB_Y + CB_H; // contributor boxes, 140 wide on a 160 pitch
 const CB_W = 140, CB_PITCH = 160;
@@ -41,10 +40,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock({ x, y, w, h, label, sublabel }) {
   const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 22, y: y + 46, w: w - 44, h: 58, label: 'app', sublabel: 'writes logs and temp', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -53,13 +49,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Ephemeral storage limits: a container filling the Node disk with its writable layer, emptyDir and logs. The per-Pod path evicts the Pod the moment those sum past its limits.ephemeral-storage. The separate node-wide path is disk pressure: when the Node filesystem crosses its threshold Kubelet reports the DiskPressure condition and the control plane taints the Node, and Kubelet evicts Pods ranked by whether each is over its ephemeral-storage request, then by Pod Priority and by how far over it sits.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Ephemeral storage limits: a container filling the Node disk with its writable layer, emptyDir and logs. The per-Pod path evicts the Pod the moment those sum past its limits.ephemeral-storage. The separate node-wide path is disk pressure: when the Node filesystem crosses its threshold Kubelet reports the DiskPressure condition and the control plane taints the Node, and Kubelet evicts Pods ranked by whether each is over its ephemeral-storage request, then by Pod Priority and by how far over it sits.' });
     root.appendChild(arrowDefs());
 
     const nd = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, OPACITY, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-node-drain
 
 // Layout C, ladder right, Node frame under the panel. Panel x<=397 y<=304, frame top 380: NO
@@ -54,13 +54,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Node drain: cordon, list-and-skip, eviction API with PDB gating',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Node drain: cordon, list-and-skip, eviction API with PDB gating' });
     root.appendChild(arrowDefs());
 
     const kubectl   = box({ x: KUBECTL_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'kubectl', sublabel: 'drain Node-1',    role: 'cluster' });
@@ -146,6 +140,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { cordon, pdb, healthy, last }) {
+  setVal(s.refs.cordonChip, cordon);
+  setVal(s.refs.pdbChip, pdb);
+  setVal(s.refs.healthyChip, healthy);
+  setVal(s.refs.lastChip, last);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -180,10 +181,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       resetPodOpacity(s);
-      setVal(s.refs.cordonChip, 'false');
-      setVal(s.refs.pdbChip, '1');
-      setVal(s.refs.healthyChip, '2 of 2');
-      setVal(s.refs.lastChip, 'none');
+      setChips(s, { cordon: 'false', pdb: '1', healthy: '2 of 2', last: 'none' });
       setChainActive(s.refs.chain, -1);
     },
   },
@@ -194,7 +192,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       resetPodOpacity(s);
-      setVal(s.refs.cordonChip, 'true · SchedulingDisabled');
+      setChips(s, { cordon: 'true · SchedulingDisabled', pdb: '1', healthy: '2 of 2', last: 'none' });
       setWire(s, 'req', 'PATCH /api/v1/nodes/Node-1 · spec.unschedulable=true');
       s.refs.kubectl.classList.add('highlight');
       s.refs.cordonChip.classList.add('highlight');
@@ -212,6 +210,7 @@ const STEPS = [
     narration: 'The drain command lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. A drain never evicts DaemonSet Pods. Mirror Pods (the API record of static Pods) are skipped because Kubelet would recreate them. Pods with emptyDir volumes and bare Pods with no owner abort the drain until the matching flag is passed. Two Deployment-backed Pods are left for the Eviction API.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { cordon: 'true · SchedulingDisabled', pdb: '1', healthy: '2 of 2', last: 'none' });
       resetPodOpacity(s);
       setWire(s, 'req', 'GET /api/v1/pods · fieldSelector=spec.nodeName=Node-1');
       s.refs.kubectl.classList.add('highlight');
@@ -230,8 +229,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       resetPodOpacity(s);
-      setVal(s.refs.healthyChip, '1 of 2');
-      setVal(s.refs.lastChip, 'web-1 · 200 OK');
+      setChips(s, { cordon: 'true · SchedulingDisabled', pdb: '1', healthy: '2 of 2', last: 'none' });
       setWire(s, 'req', 'POST .../pods/web-1/eviction · 200 OK');
       s.refs.kubectl.classList.add('highlight');
       s.refs.pdbChip.classList.add('highlight');
@@ -246,10 +244,8 @@ const STEPS = [
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       // The count the API READS is 2, and the eviction is what takes it to 1, so the chip stays at
       // what the previous step left and turns over when the eviction ball lands on web-1.
-      setVal(s.refs.healthyChip, '2 of 2');
       // What kubectl KNOWS, so it cannot read 200 OK while the POST is still on the wire: it turns
       // over when the answer lands back, the count when the eviction takes effect on the Pod.
-      setVal(s.refs.lastChip, 'none');
       // Top packet: kubectl → apiserver (POST eviction), then the delete flows
       // down the connector. The Pod reacts only when the ball reaches the node.
       const req = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, role: 'cluster' });
@@ -272,8 +268,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       resetPodOpacity(s);
-      setVal(s.refs.healthyChip, '1 of 2 → 2 of 2');
-      setVal(s.refs.lastChip, 'web-2 · 429 → 200 OK');
+      setChips(s, { cordon: 'true · SchedulingDisabled', pdb: '1', healthy: '1 of 2', last: 'web-1 · 200 OK' });
       setWire(s, 'req', 'POST .../pods/web-2/eviction · 429 → retry → 200');
       s.refs.kubectl.classList.add('highlight');
       s.refs.pdbChip.classList.add('highlight');
@@ -288,8 +283,6 @@ const STEPS = [
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       // Both chips roll back to what the step STARTS from. The pinned values are TRANSITIONS, so at
       // entry they announce the 429 and the retry that clears it before either is drawn.
-      setVal(s.refs.healthyChip, '1 of 2');
-      setVal(s.refs.lastChip, 'web-1 · 200 OK');
       // First attempt: blocked. Top packet out, 429 response back, no connector follow-up. kubectl
       // is the source and lit from entry, the apiserver lights when the eviction reaches it.
       const attempt = topPacket(s, ctx, { from: KUBECTL_X + BOX_W, to: API_X, y: REQ_Y, role: 'cluster' });
@@ -313,13 +306,12 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       resetPodOpacity(s);
-      setVal(s.refs.healthyChip, '2 of 2');
+      setChips(s, { cordon: 'true · SchedulingDisabled', pdb: '1', healthy: '2 of 2', last: 'web-2 · 200 OK' });
       // currentHealthy climbing back to 2 of 2 is the point of the step (the budget is satisfied
       // again, so the drain is safe to call done), and it used to change with no cue on it.
       s.refs.healthyChip.classList.add('highlight');
       // A chip means what its name says: this holds the LAST eviction, not a tally. The summary is
       // carried by ladder row 5 and the wire label.
-      setVal(s.refs.lastChip, 'web-2 · 200 OK');
       setWire(s, 'req', 'drain complete · Node safe for maintenance');
       s.refs.kubectl.classList.add('highlight');
       s.refs.cordonChip.classList.add('highlight');

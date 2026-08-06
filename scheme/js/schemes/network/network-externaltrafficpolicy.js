@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { valChip, setVal, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-externaltrafficpolicy
 
 
@@ -47,10 +47,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emer
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -59,13 +56,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ExternalTrafficPolicy Cluster versus Local: Cluster forwards to a backend on any Node but SNATs away the client IP, while Local keeps the client IP and avoids the extra hop at the cost of dropping traffic on Nodes with no local backend',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'ExternalTrafficPolicy Cluster versus Local: Cluster forwards to a backend on any Node but SNATs away the client IP, while Local keeps the client IP and avoids the extra hop at the cost of dropping traffic on Nodes with no local backend' });
     root.appendChild(arrowDefs());
 
     const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External client', sublabel: 'src 198.51.100.9', role: 'network' });
@@ -117,6 +108,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { mode, src, hop, hc }) {
+  setVal(s.refs.modeChip, mode);
+  setVal(s.refs.srcChip, src);
+  setVal(s.refs.hopChip, hop);
+  setVal(s.refs.hcChip, hc);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   // podWBox is listed so its .highlight is cleared every step: clearPodHighlight only resets inline
@@ -147,14 +145,11 @@ const STEPS = [
     narration: 'With the default policy Cluster, every Node accepts the traffic even with no local Pod. The balancer happens to pick Node-2, which has no backend, so the Node SNATs the packet and forwards it across the cluster network to the Pod on Node-1. Load spreads evenly over every backend, wherever it runs.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.modeChip, 'Cluster');
+      setChips(s, { mode: 'Cluster', src: 'lost (SNAT)', hop: 'yes', hc: 'unused' });
       // The SNAT and the Node-to-Node hop both happen in THIS step, so their chips take their values
       // here. The next step is the one that highlights them and talks about what they cost.
-      setVal(s.refs.srcChip, 'lost (SNAT)');
       s.refs.srcChip.classList.add('highlight');
-      setVal(s.refs.hopChip, 'yes');
       s.refs.hopChip.classList.add('highlight');
-      setVal(s.refs.hcChip, 'unused');
       // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
       s.refs.modeChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
@@ -178,10 +173,7 @@ const STEPS = [
     narration: 'That convenience has a cost. The extra Node-to-Node hop adds latency, and because Node-2 had to SNAT, the Pod sees the packet as coming from the Node, not from 198.51.100.9. The real client IP is gone, which breaks source-IP allowlists and access logs.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.modeChip, 'Cluster');
-      setVal(s.refs.srcChip, 'lost (SNAT)');
-      setVal(s.refs.hopChip, 'yes');
-      setVal(s.refs.hcChip, 'unused');
+      setChips(s, { mode: 'Cluster', src: 'lost (SNAT)', hop: 'yes', hc: 'unused' });
       s.refs.srcChip.classList.add('highlight');
       s.refs.hopChip.classList.add('highlight');
       // Reflective beat: the cost chips just light, no flash.
@@ -194,10 +186,7 @@ const STEPS = [
     narration: 'Switching to externalTrafficPolicy Local changes the rules. A Node only serves the request from its own local Pods, never forwarding to another Node. The balancer sends to Node-1, the packet goes straight to its Pod with no SNAT, so the Pod sees the true client IP 198.51.100.9 and there is no extra hop.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.modeChip, 'Local');
-      setVal(s.refs.srcChip, 'preserved');
-      setVal(s.refs.hopChip, 'no');
-      setVal(s.refs.hcChip, 'unused');
+      setChips(s, { mode: 'Local', src: 'preserved', hop: 'no', hc: 'unused' });
       // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
       s.refs.modeChip.classList.add('highlight');
       s.refs.srcChip.classList.add('highlight');
@@ -223,10 +212,7 @@ const STEPS = [
       // failing Node would assert the rule instead of demonstrating it.
       setWire(s, 'n1', 'health: 1 local pod');
       setWire(s, 'n2', 'health: 0 local pods');
-      setVal(s.refs.hcChip, 'used');
-      setVal(s.refs.modeChip, 'Local');
-      setVal(s.refs.srcChip, 'preserved');
-      setVal(s.refs.hopChip, 'no');
+      setChips(s, { mode: 'Local', src: 'preserved', hop: 'no', hc: 'used' });
       s.refs.hcChip.classList.add('highlight');
       // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
       if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }

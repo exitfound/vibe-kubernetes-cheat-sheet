@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-nodeport-loadbalancer
 
 
@@ -40,10 +40,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emer
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -52,13 +49,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'NodePort and LoadBalancer: a NodePort opens the same port on every Node and DNATs to a backing Pod, while a LoadBalancer has the cloud-controller-manager provision an external load balancer targeting those Node ports',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'NodePort and LoadBalancer: a NodePort opens the same port on every Node and DNATs to a backing Pod, while a LoadBalancer has the cloud-controller-manager provision an external load balancer targeting those Node ports' });
     root.appendChild(arrowDefs());
 
     const client = box({ x: CX - CLIENT_W / 2, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External client', sublabel: '', role: 'network' });
@@ -77,18 +68,20 @@ class Scene {
     const node2 = node({ x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' });
     const node3 = node({ x: NODE_X[2], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3' });
 
-    const np = (i) => valChip({ x: NODE_CX[i] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000', role: 'network' });
-    const np1 = np(0), np2 = np(1), np3 = np(2);
+    const np1 = valChip({ x: NODE_CX[0] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000', role: 'network' });
+    const np2 = valChip({ x: NODE_CX[1] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000', role: 'network' });
+    const np3 = valChip({ x: NODE_CX[2] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000', role: 'network' });
 
     // Backends sit on the two outer Nodes, so the middle Node is the one that opens the port with no
     // Pod behind it, which is what the nodePort step narrates.
     const p1 = podBlock({ x: NODE_CX[0] - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.5' });
     const p2 = podBlock({ x: NODE_CX[2] - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.3.9' });
 
-    const chip = (i, name, value) => valChip({ x: NODE_CX[i] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name, value, role: 'network' });
-    const rangeChip = chip(0, 'port range', '30000-32767');
-    const vipChip   = chip(1, 'status.loadBalancer', 'pending');
-    const chainChip = chip(2, 'chain', 'KUBE-NODEPORTS');
+    // Written out rather than built by a factory: prose.mjs seeds on a literal valChip call, so a
+    // factory hides every value these three put on the canvas from check-inline and check-labels.
+    const rangeChip = valChip({ x: NODE_CX[0] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'port range', value: '30000-32767', role: 'network' });
+    const vipChip   = valChip({ x: NODE_CX[1] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'status.loadBalancer', value: 'pending', role: 'network' });
+    const chainChip = valChip({ x: NODE_CX[2] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'chain', value: 'KUBE-NODEPORTS', role: 'network' });
 
     const packetLayer = g({ id: 'packetLayer' });
 
@@ -140,6 +133,7 @@ const STEPS = [
     narration: 'A NodePort Service reserves the same high port, here 31000 out of the 30000 to 32767 range, on every Node in the cluster. The kube-proxy adds a KUBE-NODEPORTS rule so a packet arriving on that port at any Node is treated as Service traffic, even on Nodes that run no backend Pod.',
     enter(s, ctx) {
       resetStep(s);
+      setVal(s.refs.vipChip, 'pending');
       s.refs.np1.classList.add('highlight');
       s.refs.np2.classList.add('highlight');
       s.refs.np3.classList.add('highlight');
@@ -168,6 +162,7 @@ const STEPS = [
     narration: 'An external client connects to the load balancer VIP. The balancer forwards the connection to one of its Node targets on port 31000, spreading load across the Nodes without knowing or caring which of them actually hosts a backend Pod.',
     enter(s, ctx) {
       resetStep(s);
+      setVal(s.refs.vipChip, '203.0.113.7');
       s.refs.client.classList.add('highlight');
       // The client dials, so only the client is lit at entry. The balancer and the nodePort each
       // light as the connection reaches them, which is what makes the two hops read as one path.
@@ -187,6 +182,7 @@ const STEPS = [
     narration: 'On the Node that received it, the nodePort rule DNATs the packet to a backend Pod IP. That Pod can sit on this same Node, as here, or on another Node reached across the cluster network, since kube-proxy load-balances across every backend. A single external address has now reached a private Pod.',
     enter(s, ctx) {
       resetStep(s);
+      setVal(s.refs.vipChip, '203.0.113.7');
       s.refs.np1.classList.add('highlight');
       if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
       // nodePort DNATs to the local backend Pod (one hop), which pulses on arrival.

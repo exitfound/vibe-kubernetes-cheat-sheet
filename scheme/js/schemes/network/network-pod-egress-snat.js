@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-egress-snat
 
 
@@ -45,13 +45,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod egress to the internet: a Pod IP is private to the cluster and not routable outside, so as the packet leaves the Node it is source-NATed to the Node IP by an iptables MASQUERADE rule, conntrack records the mapping, the internet replies to the Node IP, and conntrack reverses the translation so the reply reaches the Pod',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod egress to the internet: a Pod IP is private to the cluster and not routable outside, so as the packet leaves the Node it is source-NATed to the Node IP by an iptables MASQUERADE rule, conntrack records the mapping, the internet replies to the Node IP, and conntrack reverses the translation so the reply reaches the Pod' });
     root.appendChild(arrowDefs());
 
     const theNode = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node   ·   192.168.1.20' });
@@ -102,6 +96,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { src, snat, ct, dst }) {
+  setVal(s.refs.srcChip, src);
+  setVal(s.refs.snatChip, snat);
+  setVal(s.refs.ctChip, ct);
+  setVal(s.refs.dstChip, dst);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['masq', 'net', 'eth0', 'srcChip', 'snatChip', 'ctChip', 'dstChip'], [s.refs.podGroup]);
@@ -114,10 +115,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.srcChip, '10.244.1.5');
-      setVal(s.refs.snatChip, 'none');
-      setVal(s.refs.ctChip, 'none');
-      setVal(s.refs.dstChip, '1.1.1.1:443');
+      setChips(s, { src: '10.244.1.5', snat: 'none', ct: 'none', dst: '1.1.1.1:443' });
     },
   },
   {
@@ -128,7 +126,7 @@ const STEPS = [
       resetStep(s);
       // The src chip is what the ball currently carries.
       s.refs.srcChip.classList.add('highlight');
-      setVal(s.refs.srcChip, '10.244.1.5');
+      setChips(s, { src: '10.244.1.5', snat: 'none', ct: 'none', dst: '1.1.1.1:443' });
       if (ctx.reduced) { s.refs.eth0.classList.add('highlight'); s.refs.masq.classList.add('highlight'); return; }
       // Up-arrow: the Pod pulses first, the packet leaves at BEAT.afterPulse and reaches the
       // masquerade box, which lights on arrival. The src IP rides with the ball.
@@ -149,8 +147,7 @@ const STEPS = [
       s.refs.snatChip.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
       s.refs.dstChip.classList.add('highlight');
-      setVal(s.refs.snatChip, '-> 192.168.1.20');
-      setVal(s.refs.ctChip, 'flow recorded');
+      setChips(s, { src: '10.244.1.5', snat: '-> 192.168.1.20', ct: 'flow recorded', dst: '1.1.1.1:443' });
       if (ctx.reduced) { s.refs.net.classList.add('highlight'); return; }
       // The SNAT-ed packet emerges from the masquerade box (rewrite happened inside), turns up the
       // L into the Internet box, which lights on arrival. The rewritten src rides with the ball.
@@ -170,7 +167,7 @@ const STEPS = [
       s.refs.net.classList.add('highlight');
       s.refs.ctChip.classList.add('highlight');
       s.refs.dstChip.classList.add('highlight');
-      setVal(s.refs.ctChip, 'reverse SNAT');
+      setChips(s, { src: '10.244.1.5', snat: '-> 192.168.1.20', ct: 'reverse SNAT', dst: '1.1.1.1:443' });
       if (ctx.reduced) { s.refs.masq.classList.add('highlight'); return; }
       const back = routePacket(s, ctx, RET_PATH, { role: 'network' });
       lightBoxAt(s.refs.masq, ctx, back.arrivalMs);
@@ -183,6 +180,7 @@ const STEPS = [
     narration: 'With the destination restored to the Pod IP, the reply is delivered back down the veth into the Pod. The Pod only ever used its own source address, the SNAT and its reversal happened entirely on the Node, invisible to both ends.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { src: '10.244.1.5', snat: '-> 192.168.1.20', ct: 'reverse SNAT', dst: '1.1.1.1:443' });
       // Delivered back to the src Pod.
       s.refs.masq.classList.add('highlight');
       s.refs.srcChip.classList.add('highlight');

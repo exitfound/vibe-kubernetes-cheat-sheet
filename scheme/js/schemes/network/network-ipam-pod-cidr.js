@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, lightBoxAt } from './network-kit.js';
+import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-ipam-pod-cidr
 
 
@@ -38,10 +38,7 @@ const IPAM2 = [[SPINE_X, SLICE_BOTTOM], [SPINE_X, POD_Y]];         // Node-2 IPA
 function podBlock({ x, y, label, ip }) {
   const shell = podShell({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 37, w: POD_W - 40, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -50,13 +47,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and every Pod IP on a Node is drawn by the CNI IPAM out of that slice',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and every Pod IP on a Node is drawn by the CNI IPAM out of that slice' });
     root.appendChild(arrowDefs());
 
     const clusterBox = box({ x: CFG_X, y: CFG_Y, w: CFG_W, h: CFG_H, label: 'Cluster Pod CIDR', sublabel: '10.244.0.0/16', role: 'network' });
@@ -112,6 +103,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { slice1, slice2, slice3 }) {
+  setVal(s.refs.slice1, slice1);
+  setVal(s.refs.slice2, slice2);
+  setVal(s.refs.slice3, slice3);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['clusterBox', 'kcm', 'slice1', 'slice2', 'slice3', 'podABox', 'podBBox'], [s.refs.podA, s.refs.podB]);
@@ -127,9 +124,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.slice1, 'pending');
-      setVal(s.refs.slice2, 'pending');
-      setVal(s.refs.slice3, 'pending');
+      setChips(s, { slice1: 'pending', slice2: 'pending', slice3: 'pending' });
       setPodSublabel(s.refs.podA, 'IP pending');
     },
   },
@@ -139,6 +134,7 @@ const STEPS = [
     narration: 'The cluster pod CIDR is configured once, on the controller-manager, with the --cluster-cidr flag. It is the single pool every Pod IP in the cluster will eventually come from, and on its own it belongs to no Node yet.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { slice1: 'pending', slice2: 'pending', slice3: 'pending' });
       s.refs.clusterBox.classList.add('highlight');
       if (ctx.reduced) { s.refs.kcm.classList.add('highlight'); return; }
       // The pool registers into the controller-manager; arrival ripple marks the kcm.
@@ -156,9 +152,7 @@ const STEPS = [
       s.refs.slice1.classList.add('highlight');
       s.refs.slice2.classList.add('highlight');
       s.refs.slice3.classList.add('highlight');
-      setVal(s.refs.slice1, '10.244.1.0/24');
-      setVal(s.refs.slice2, '10.244.2.0/24');
-      setVal(s.refs.slice3, '10.244.3.0/24');
+      setChips(s, { slice1: '10.244.1.0/24', slice2: '10.244.2.0/24', slice3: '10.244.3.0/24' });
       if (ctx.reduced) return;
       // The three slices hold `pending` until the allocations land, or the carve arrives at chips
       // already showing its result. The three balls share one explicit dur: one sweep, three fields.
@@ -181,9 +175,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.slice1.classList.add('highlight');
-      setVal(s.refs.slice1, '10.244.1.0/24');
-      setVal(s.refs.slice2, '10.244.2.0/24');
-      setVal(s.refs.slice3, '10.244.3.0/24');
+      setChips(s, { slice1: '10.244.1.0/24', slice2: '10.244.2.0/24', slice3: '10.244.3.0/24' });
       setPodSublabel(s.refs.podA, 'IP 10.244.1.5');
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); return; }
       // IPAM hands an address from the slice down to the Pod (packet first, then the
@@ -201,9 +193,7 @@ const STEPS = [
       s.refs.slice1.classList.add('highlight');
       s.refs.slice2.classList.add('highlight');
       s.refs.slice3.classList.add('highlight');
-      setVal(s.refs.slice1, '10.244.1.0/24');
-      setVal(s.refs.slice2, '10.244.2.0/24');
-      setVal(s.refs.slice3, '10.244.3.0/24');
+      setChips(s, { slice1: '10.244.1.0/24', slice2: '10.244.2.0/24', slice3: '10.244.3.0/24' });
       setPodSublabel(s.refs.podA, 'IP 10.244.1.5');
       setPodSublabel(s.refs.podB, 'IP 10.244.2.8');
       if (ctx.reduced) {

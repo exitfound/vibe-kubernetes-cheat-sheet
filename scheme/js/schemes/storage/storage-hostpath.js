@@ -1,13 +1,12 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
+import { valChip, setChip, setCylinderLabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-hostpath
 
 
 const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550
 
 const POD_X = 300, POD_Y = 186, POD_W = 600, POD_H = 170;       // 300..900, center 600
-const POD_BOTTOM = POD_Y + POD_H;                               // 356
 
 const C_Y = 232, C_W = 190, C_H = 84;                           // container row (volume-model grid)
 const C_BOTTOM = C_Y + C_H;                                     // 316
@@ -17,7 +16,6 @@ const SIDE_X = 680, SIDE_CX = SIDE_X + C_W / 2;                 // 680..870, cen
 // The host directory is drawn with the family cylinder (260x104 centered on 600), the same block as
 // the emptyDir disk, so the two node-local cards read as one family.
 const HP_X = 470, HP_Y = 408, HP_W = 260, HP_H = 104;          // 470..730, center 600, bottom 512
-const HP_TOP = HP_Y;
 const HP_MY = HP_Y + HP_H / 2;                                  // 460, where the lanes meet the sides
 
 const DISK_LBL_Y = 530;
@@ -44,13 +42,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'hostPath volume: a hostPath mounts a file or directory from the Node filesystem straight into the Pod. Under type Directory or File the target must already exist, DirectoryOrCreate and FileOrCreate make it, and the default empty type checks nothing at all. The directory belongs to the Node, not the Pod, so writes land in real host state and stay on the Node after the Pod is gone, but a Pod rescheduled to another Node mounts the different directory that belongs to that Node, so hostPath looks like persistence and is not. Pointed at a sensitive path it hands the whole Node to the Pod, which is why the Baseline and Restricted Pod Security Standards forbid it.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'hostPath volume: a hostPath mounts a file or directory from the Node filesystem straight into the Pod. Under type Directory or File the target must already exist, DirectoryOrCreate and FileOrCreate make it, and the default empty type checks nothing at all. The directory belongs to the Node, not the Pod, so writes land in real host state and stay on the Node after the Pod is gone, but a Pod rescheduled to another Node mounts the different directory that belongs to that Node, so hostPath looks like persistence and is not. Pointed at a sensitive path it hands the whole Node to the Pod, which is why the Baseline and Restricted Pod Security Standards forbid it.' });
     root.appendChild(arrowDefs());
 
     const nd = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });

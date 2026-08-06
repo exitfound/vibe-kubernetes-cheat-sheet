@@ -1,20 +1,19 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, chainList, setChainActive, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, topPacket, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, at } from './cluster-kit.js';
+import { valChip, setVal, topPacket, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, at, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-kubelet-sync-loop
 
 // Laid out on the L. Panel x<=397 y<=255 (269 at 1024x768) against the API box at y=300, so the
 // CEILING is 360 characters per narration: 362 costs one more line and lands 1024x768 on 296.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600
 
 const TOP_Y = 40, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 40 / 120
 const TOP_CY = TOP_Y + TOP_H / 2;                        // 80
 const LANE_DY = 15;
 const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 65 / 95
 const KUBE_X = 560, KUBE_W = 220, KUBE_R = KUBE_X + KUBE_W;  // 560..780
-const RT_W = 240, RT_X = CONTENT_R - RT_W, RT_R = CONTENT_R; // 900..1140
+const RT_W = 240, RT_X = CONTENT_R - RT_W;  // 900..1140
 
 const API_X = CONTENT_L, API_W = 240, API_H = 80;
 const API_Y = 300, API_R = API_X + API_W;                // 60..300, 300..380
@@ -46,13 +45,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Kubelet sync loop: watch, PLEG, SyncPod, CRI, status',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Kubelet sync loop: watch, PLEG, SyncPod, CRI, status' });
     const content = g({ transform: 'translate(0, 0)' });
     content.appendChild(arrowDefs());
 

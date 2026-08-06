@@ -93,6 +93,9 @@ const captureDeferred = (sel) => {
   // stands in for it with a .highlight on the Pod inner box. That is the documented convention, not
   // a defect, and without this exemption the HIGHLIGHT rule reports it 130 times and is a report
   // rather than a rule. Collected before the seek, while the pulse animations still exist.
+  // SCOPE: this exemption is about the REDUCED branch of a step that pulses. It does not license a
+  // .highlight left on an inner container box on the played path, which is STO.C-02 and S-19 in
+  // ../CANON.md, and which nothing here can see because both paths accumulate it identically.
   const pulsedTargets = new Set();
   for (const a of document.getAnimations()) {
     const tgt = a.effect && a.effect.target;

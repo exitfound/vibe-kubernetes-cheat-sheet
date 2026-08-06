@@ -1,12 +1,11 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, cylinder, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, at, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-pvc-stickiness
 
 // Layout C on the Workloads canon (WL): panel x<=397 y<=330, so pipeline right and chips two-across.
 // The PV sits BETWEEN the two Node frames, which is where the story puts it.
-const PANEL_B = 330;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
@@ -70,13 +69,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'StatefulSet PVC stickiness: a Pod evicted from one Node is recreated with the same ordinal, reattaches the same PVC, sees the previous on-disk state',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'StatefulSet PVC stickiness: a Pod evicted from one Node is recreated with the same ordinal, reattaches the same PVC, sees the previous on-disk state' });
     root.appendChild(arrowDefs());
 
     const controller = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'StatefulSet', sublabel: 'sticky identity, sticky PVC', role: 'cluster' });
@@ -181,6 +174,13 @@ function setLanes(s, { toA, toB }) {
 }
 
 
+function setChips(s, { pod, pvc, pv, data }) {
+  setVal(s.refs.podChip, pod);
+  setVal(s.refs.pvcChip, pvc);
+  setVal(s.refs.pvChip, pv);
+  setVal(s.refs.dataChip, data);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -227,10 +227,7 @@ const STEPS = [
       resetStep(s);
       s.refs.podB.style.opacity = '0';
       setLanes(s, { toA: true, toB: false });
-      setVal(s.refs.podChip, 'web-0 · Terminating, then removed');
-      setVal(s.refs.pvcChip, 'data-web-0 · Bound (retained)');
-      setVal(s.refs.pvChip, 'cloud-vol-x · on lost Node-1');
-      setVal(s.refs.dataChip, 'rev=1234 · preserved');
+      setChips(s, { pod: 'web-0 · Terminating, then removed', pvc: 'data-web-0 · Bound (retained)', pv: 'cloud-vol-x · on lost Node-1', data: 'rev=1234 · preserved' });
       setWire(s, 'req', 'DELETE Pod web-0 · Keep PVC data-web-0');
       s.refs.controller.classList.add('highlight');
       s.refs.apiserver.classList.add('highlight');
@@ -256,10 +253,7 @@ const STEPS = [
       s.refs.podA.style.opacity = '0';
       s.refs.podB.style.opacity = '0';
       setLanes(s, { toA: false, toB: false });
-      setVal(s.refs.podChip, 'web-0 · Pending (created again)');
-      setVal(s.refs.pvcChip, 'data-web-0 · Bound (reused)');
-      setVal(s.refs.pvChip, 'cloud-vol-x · on lost Node-1');
-      setVal(s.refs.dataChip, 'rev=1234 · preserved');
+      setChips(s, { pod: 'web-0 · Pending (created again)', pvc: 'data-web-0 · Bound (reused)', pv: 'cloud-vol-x · on lost Node-1', data: 'rev=1234 · preserved' });
       setWire(s, 'req', 'create Pod web-0 (sticky name)');
       s.refs.podChip.classList.add('highlight');
       s.refs.pvcChip.classList.add('highlight');
@@ -282,10 +276,7 @@ const STEPS = [
       resetStep(s);
       s.refs.podA.style.opacity = '0';
       setLanes(s, { toA: false, toB: true });
-      setVal(s.refs.podChip, 'web-0 · bound to Node-2');
-      setVal(s.refs.pvcChip, 'data-web-0 · Bound (reused)');
-      setVal(s.refs.pvChip, 'cloud-vol-x · attaching to Node-2');
-      setVal(s.refs.dataChip, 'rev=1234 · preserved');
+      setChips(s, { pod: 'web-0 · Pending (created again)', pvc: 'data-web-0 · Bound (reused)', pv: 'cloud-vol-x · attaching to Node-2', data: 'rev=1234 · preserved' });
       setWire(s, 'req', 'POST .../pods/web-0/binding · Node-2');
       s.refs.apiserver.classList.add('highlight');
       s.refs.podChip.classList.add('highlight');
@@ -296,7 +287,6 @@ const STEPS = [
       if (ctx.reduced) return;
       // The identity chip holds the value the previous step left and turns over when the binding
       // LANDS: at entry it reads as bound while the slot is still empty.
-      setVal(s.refs.podChip, 'web-0 · Pending (created again)');
       const bind = connectorPacketB(s, ctx);
       at(s, ctx, bind.arrivalMs, () => setVal(s.refs.podChip, 'web-0 · bound to Node-2'));
       ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: bind.arrivalMs, fill: 'both', easing: 'ease-out' }));
@@ -312,10 +302,7 @@ const STEPS = [
       s.refs.podA.style.opacity = '0';
       s.refs.podB.style.opacity = '1';
       setLanes(s, { toA: false, toB: true });
-      setVal(s.refs.podChip, 'web-0 · Running on Node-2');
-      setVal(s.refs.pvcChip, 'data-web-0 · Bound');
-      setVal(s.refs.pvChip, 'cloud-vol-x · mounted on Node-2');
-      setVal(s.refs.dataChip, 'rev=1234 · preserved');
+      setChips(s, { pod: 'web-0 · Running on Node-2', pvc: 'data-web-0 · Bound', pv: 'cloud-vol-x · mounted on Node-2', data: 'rev=1234 · preserved' });
       setWire(s, 'req', 'CSI attach to Node-2 · NodeStage + NodePublish · /data');
       s.refs.pv.classList.add('highlight');
       s.refs.podChip.classList.add('highlight');

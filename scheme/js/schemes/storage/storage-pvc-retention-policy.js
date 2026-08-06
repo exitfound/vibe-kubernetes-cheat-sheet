@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, laneOf, OPACITY } from './storage-kit.js';
+import { valChip, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, laneOf, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pvc-retention-policy
 
 
@@ -50,10 +50,7 @@ function podBlock({ cy, label }) {
   const y = cy - POD_H / 2;
   const shell = podShell({ x: POD_X, y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'storage' });
   const innerBox = box({ x: POD_X + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'read/write', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'storage' });
@@ -64,13 +61,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'StatefulSet persistentVolumeClaimRetentionPolicy: two independent knobs, whenScaled for what happens to a claim when a replica is scaled away and whenDeleted for when the whole StatefulSet is removed, each set to Retain or Delete, where Retain leaves the disk in place and silently leaks storage and Delete reclaims it',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'StatefulSet persistentVolumeClaimRetentionPolicy: two independent knobs, whenScaled for what happens to a claim when a replica is scaled away and whenDeleted for when the whole StatefulSet is removed, each set to Retain or Delete, where Retain leaves the disk in place and silently leaks storage and Delete reclaims it' });
     root.appendChild(arrowDefs());
 
     const src = box({

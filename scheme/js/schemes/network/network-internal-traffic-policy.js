@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-internal-traffic-policy
 
 
@@ -47,10 +47,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0 });
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 46, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -59,13 +56,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'internalTrafficPolicy Cluster versus Local: with Cluster the kube-proxy on the client Node programs every ready endpoint, so a call to the ClusterIP can be DNAT-ed to a backend on another Node and cross the cluster network. With Local it keeps only the endpoints on that same Node, so the packet never leaves it, and if the Node runs no backend at all the endpoint set is empty and kube-proxy drops the packets, so the caller hangs and times out, because Local has no fallback and no health check.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'internalTrafficPolicy Cluster versus Local: with Cluster the kube-proxy on the client Node programs every ready endpoint, so a call to the ClusterIP can be DNAT-ed to a backend on another Node and cross the cluster network. With Local it keeps only the endpoints on that same Node, so the packet never leaves it, and if the Node runs no backend at all the endpoint set is empty and kube-proxy drops the packets, so the caller hangs and times out, because Local has no fallback and no health check.' });
     root.appendChild(arrowDefs());
 
     const node1 = node({ x: N1_X, y: NODE_Y, w: N1_W, h: NODE_H, label: 'Node-1' });
@@ -131,6 +122,13 @@ function setBackends(s, localOp, remoteOp) {
   [s.refs.podB, s.refs.node2, s.refs.remoteWire].forEach(el => { el.style.opacity = String(remoteOp); });
 }
 
+function setChips(s, { policy, scope, hop, result }) {
+  setVal(s.refs.policyChip, policy);
+  setVal(s.refs.scopeChip, scope);
+  setVal(s.refs.hopChip, hop);
+  setVal(s.refs.resultChip, result);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['svc', 'kproxy', 'policyChip', 'scopeChip', 'hopChip', 'resultChip', 'clientBox', 'podABox', 'podBBox'], [s.refs.client, s.refs.podA, s.refs.podB]);
@@ -159,10 +157,7 @@ const STEPS = [
     narration: 'With the default Cluster, kube-proxy on Node-1 programs every ready endpoint of the Service, on any Node. The client dials the ClusterIP and the packet is DNAT-ed to the backend on Node-2, so it leaves the Node and crosses the cluster network. Load spreads evenly over all backends, at the price of a cross-node, and possibly cross-zone, hop.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.policyChip, 'Cluster');
-      setVal(s.refs.scopeChip, 'all ready (2)');
-      setVal(s.refs.hopChip, 'yes');
-      setVal(s.refs.resultChip, 'served by Node-2');
+      setChips(s, { policy: 'Cluster', scope: 'all ready (2)', hop: 'yes', result: 'served by Node-2' });
       s.refs.resultChip.classList.add('highlight');
       // Both backends are programmed, so both notes read as endpoints. This flow happens to take the
       // remote one.
@@ -191,10 +186,7 @@ const STEPS = [
     narration: 'Set internalTrafficPolicy to Local and kube-proxy keeps only the endpoints that live on Node-1 itself. The same call to the same ClusterIP now goes to the local Pod, the packet never leaves the Node, and the cross-node hop is gone. This is how a Pod reaches the node-local agent of a DaemonSet, a log shipper or a per-node cache, without paying to cross the cluster.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.policyChip, 'Local');
-      setVal(s.refs.scopeChip, 'node-local (1)');
-      setVal(s.refs.hopChip, 'no');
-      setVal(s.refs.resultChip, 'served by Node-1');
+      setChips(s, { policy: 'Local', scope: 'node-local (1)', hop: 'no', result: 'served by Node-1' });
       s.refs.resultChip.classList.add('highlight');
       setWire(s, 'a', 'endpoint · in scope');
       setWire(s, 'b', 'endpoint · out of scope');
@@ -224,10 +216,7 @@ const STEPS = [
     narration: 'The catch is that Local has no fallback. If Node-1 runs no backend of its own the endpoint set is empty, kube-proxy has nothing to DNAT to, and it drops the packets rather than forwarding them to Node-2, so the caller just hangs until it times out. There is no health check to steer callers elsewhere, which is the real difference from externalTrafficPolicy, so Local is safe only when a backend is guaranteed on every Node, as a DaemonSet gives.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.policyChip, 'Local');
-      setVal(s.refs.scopeChip, 'node-local (0)');
-      setVal(s.refs.hopChip, 'no');
-      setVal(s.refs.resultChip, 'traffic dropped');
+      setChips(s, { policy: 'Local', scope: 'node-local (0)', hop: 'no', result: 'traffic dropped' });
       setWire(s, 'a', 'no local backend');
       setWire(s, 'b', 'endpoint · out of scope');
       // Node-1 has lost its backend and the remote one is still out of scope, so both Pods go dim, and

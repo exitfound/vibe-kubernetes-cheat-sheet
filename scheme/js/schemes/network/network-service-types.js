@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
-import { pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-types
 
 
@@ -34,10 +34,7 @@ const ridingLabel = makeRidingLabel({ role: 'network' });
 function podBlock({ x, y, label, ip }) {
   const shell = podShell({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 18, y: y + 34, w: POD_W - 36, h: 50, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -46,13 +43,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Kubernetes Service types at a glance: ClusterIP is the internal base, NodePort and LoadBalancer build on it to expose backends externally, while ExternalName and Headless skip the proxy and work purely through DNS',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Kubernetes Service types at a glance: ClusterIP is the internal base, NodePort and LoadBalancer build on it to expose backends externally, while ExternalName and Headless skip the proxy and work purely through DNS' });
     root.appendChild(arrowDefs());
 
     const ci = box({ x: TYPE_X, y: Y_CI, w: TYPE_W, h: ROW_H, label: 'ClusterIP', sublabel: '10.96.0.20 · in-cluster VIP', role: 'network' });

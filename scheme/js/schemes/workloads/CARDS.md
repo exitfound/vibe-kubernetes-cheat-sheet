@@ -4,41 +4,29 @@ The per-card design record for `js/schemes/workloads/`. It answers what the code
 number is what it is, which alternative was measured and failed, and what must not be "fixed".
 The constants themselves live in the card and are not repeated here.
 
-Sister files: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md` for
-the shared sources (catalog, lib, CSS).
-
-**Not deployed.** Three exclusions keep it out of production and all three must hold:
-`deploy.yml` deletes every `CLAUDE.md`, `CARDS.md` and `INTERNALS.md` from the staged site,
-`release.yml` excludes the same three names from the zip, and `.dockerignore` names them too,
-which is not optional because `Dockerfile` is a blanket `COPY . .`. Verify with
-`curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/scheme/js/schemes/workloads/CARDS.md`,
-which must return 404.
+**The rules are not here.** Catalog-wide rules are `scheme/CANON.md`, and this category's own rules
+are `./CLAUDE.md`. A note below records only where a card DEVIATES from them, or a number that needs
+explaining. Sister records: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md`
+for the shared sources (catalog, lib, CSS). None of them ships (`S-41`).
 
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and
 `check-notes` parses it that way. A second-level heading anywhere else is reported as an orphan.)
 
-One `## <card-id>` section per card. Inside it, `### layout` describes the whole card in labelled
-blocks, and each ``### before `<line>` `` holds the note for one line of code. `check-notes`
-verifies every anchor still occurs in its card, so an anchor is DATA: never reword one.
-`### note (anchor dropped: ...)` is a note whose target line is not unique in the file, and
-`### poster` describes the grid thumbnail.
+One `## <card-id>` section per card. `### layout` describes the whole card in labelled blocks,
+`### poster` describes the grid thumbnail, and each ``### before `<line>` `` holds the note for one
+line of code. `check-notes` verifies every anchor still occurs in its card, so **an anchor is DATA:
+never reword one** (`S-38`).
+``### note (anchor dropped: ...)`` is a note whose target line is not unique in the file.
 
-The labels in `### layout`, in this order, only the ones that apply:
+The label vocabulary a `### layout` block uses is ONE list for all four records, in
+`scheme/CANON.md` under "The record vocabulary". Use the labels that apply, in that order, and add
+none of your own.
 
-| | |
-|---|---|
-| `WHAT` | what the card draws, in one sentence |
-| `LAYOUT` | which WL layout, the measured panel, the band arithmetic that forced the choice |
-| `LANES` | trunk / bus / tap topology, and which array feeds both the wire and the ball |
-| `MOTION` | pulse and packet order, durations where they were sized deliberately |
-| `WHY NOT` | an alternative that was measured and fails, with the number that kills it |
-| `DO NOT` | a constraint, with the defect it prevents |
-| `OPEN` | known and unresolved |
-
-Panel extent is per card. The right edge is `x<=397` catalog-wide, but the BOTTOM ranges 171 to 504
-and moves with viewport width non-monotonically, so `PANEL_B` in a card is a measurement, not a
-convention. Re-measure with `node check-geometry.mjs --rules=occluded` over 1600 / 1440 / 1280 /
-1100 after any narration change.
+Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM ranges 90 to 504 over
+the standard viewport set, and it moves NON-MONOTONICALLY (`L-02`, `L-04`, `L-05`). So a `PANEL_B`
+in a card is a measurement, not a convention. Re-measure with
+`VW=1100 VH=800 node overlay-measure.mjs <card>` after any prose change: several cards here carry a
+hard character ceiling and the gate enforces none of them (`L-08`).
 
 ---
 
@@ -61,6 +49,16 @@ NOTE     CENTRE passes without a full-width bottom strip because chainList rows 
          .scheme-chip, so the strip check-geometry measures is chips + ladder = 60..1140.
 ```
 
+### poster
+
+```
+Two container records stacked, the live one solid at 0.09 with a filled dot, the one below dashed
+and dimmed with an X. The sentence is that the SECOND record still exists: the dead instance is
+drawn, not erased, because the whole card is about lastState surviving the restart.
+The text lines inside each are drawn as bare rules at different lengths and opacities, so the two
+read as records rather than as two Pods.
+```
+
 ---
 
 ## workloads-crashloopbackoff
@@ -69,7 +67,7 @@ NOTE     CENTRE passes without a full-width bottom strip because chainList rows 
 
 ```
 WHAT     Kubelet holding a restart off between attempts, the backoff doubling to its cap.
-LAYOUT   B (chips left, ladder right). PANEL_B 205 measured, 225 reserved, deliberately
+LAYOUT   B (chips left, ladder right). panel bottom 205 measured, 225 reserved, deliberately
          conservative.
 LANES    Spine from the top row to POD_Y.
 DO NOT   End the spine on the Node frame's top edge. It sits 22 units above the Pod and reads as
@@ -99,6 +97,15 @@ happened on the step whose subject is that it has not. The other lane in the cat
 emptiness is the lesson is `W_RET_WIPE` on storage-reclaim-policy.
 ```
 
+### poster
+
+```
+A near-closed circle with a filled arrowhead where it would close, wrapped around a container
+carrying an X. The gap in the circle is the point: the loop does not complete, it waits. That gap
+is why the arrowhead is here at all, since a closed ring would have said direction by itself.
+No timings, no ladder, no chips: the poster says LOOP and BROKEN and nothing else.
+```
+
 ---
 
 ## workloads-cronjob
@@ -108,7 +115,7 @@ emptiness is the lesson is `W_RET_WIPE` on storage-reclaim-policy.
 ```
 WHAT     A schedule firing Jobs, with ticks that are skipped by concurrencyPolicy or missed
          during downtime staying visibly dark.
-LAYOUT   C (bottom strip). PANEL_B 330.
+LAYOUT   C (bottom strip). panel bottom 330.
            ladder 660..1140, 6 rows
            chips  full-width strip, THREE per row at 350.67, two rows 548..624, short row on CX
            ticks  left band under the panel, one chip per 5-minute tick
@@ -155,6 +162,16 @@ Nothing is created for the missed tick: the recorded miss shows via the
 static highlight only (no chip pulse).
 ```
 
+### poster
+
+```
+A clock on the left, a dashed leg with a chevron, and a Job frame on the right holding one filled
+run. Direction is the sentence (the clock CAUSES the Job), so the chevron is earned here where most
+posters do without one.
+The four tick dots make the circle a clock rather than a node, at four marks instead of twelve: at
+200px, twelve would read as noise.
+```
+
 ---
 
 ## workloads-daemonset
@@ -179,8 +196,6 @@ WHY NOT  Layout A: the five-row ladder is 200 against a 214 band, which fits, bu
 WHY NOT  One lane for the card: it lands on Node-1's top edge on EVERY step, including the step
          that adds a Pod to Node-4 and the step that deletes the Pod on Node-2.
 WHY NOT  A straight trunk at x=530: it cuts through the chip column 60..540.
-DO NOT   Put the top-row wire label below the actor row. Centred at WIRE_X on y=146 it sits on
-         the lane.
 ```
 
 ### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
@@ -301,6 +316,16 @@ and 'identity live twice', and terminated draws the API server's belief instead 
 subject.
 ```
 
+### poster
+
+```
+Two Node frames, the left dashed and dimmed to 0.6 with its Pod at 0.5, the right solid, and a
+lightning bolt struck between them. The bolt is the force, and it sits BETWEEN the two rather than
+on either: the API is what gives up, not the Node and not the Pod.
+The left Pod is still drawn, at half strength, because it is exactly the thing that has not gone
+away. Deleting it would draw the outcome the card says does NOT happen on its own.
+```
+
 ---
 
 ## workloads-graceful-shutdown
@@ -310,7 +335,7 @@ subject.
 ```
 WHAT     The termination sequence from deletionTimestamp through preStop and SIGTERM to the
          grace period expiring.
-LAYOUT   C (bottom strip). PANEL_B 280.
+LAYOUT   C (bottom strip). panel bottom 280.
            ladder 660..1140 at y=140, 6 rows
            chips  full-width strip, THREE per row at 350.67, two rows 548..624, short row centred
            node   394..528, Pod 20 below its top edge
@@ -330,6 +355,16 @@ OPEN     Layout C leaves the left band above the Node frame empty at wide viewpo
          while the narration panel is not clamped in CSS.
 ```
 
+### poster
+
+```
+Three Pod frames left to right at 0.05, 0.04 at 0.72 and 0.02 dashed at 0.42, joined by two short
+legs, the first solid and the second dashed. One sentence: shutdown is a fade, not a cut.
+The two chevrons are the only arrowheads and they carry the passage of the grace period, which the
+fill ramp alone would leave ambiguous about direction. The inner container box fades with its frame
+so the pair reads as one thing going out.
+```
+
 ---
 
 ## workloads-hooks
@@ -339,7 +374,7 @@ OPEN     Layout C leaves the left band above the Node frame empty at wide viewpo
 ```
 WHAT     postStart and preStop running through the CRI, with Kubelet asking and the runtime
          doing the work.
-LAYOUT   C (bottom strip), the tightest card in the category. PANEL_B 379, deepest in Workloads
+LAYOUT   C (bottom strip), the tightest card in the category. panel bottom 379, deepest in Workloads
          after the pod-* cards.
            ladder 660..1140 at y=140
            chips  full-width strip, THREE per row at 350.67, two rows
@@ -393,6 +428,16 @@ answering while nothing reaches the container the handler runs inside. It rides 
 other two.
 ```
 
+### poster
+
+```
+A container with a circled dot on each side, joined by dashed legs: two slots, one before and one
+after, and the container between them. The symmetry IS the sentence, so both circles are identical
+and neither is brightened.
+The circles are drawn twice, an outline and a filled core, so they read as sockets rather than as
+packets frozen on a wire.
+```
+
 ---
 
 ## workloads-init-containers-and-sidecars
@@ -409,8 +454,16 @@ LAYOUT   B (chips left, ladder right). PANEL_B 255.
 LANES    Spine stepping to WL.SPINE_X at y=140 (clearing the chip column) and landing on the
          Pod's own top midpoint.
 WHY NOT  Layout A: the 200 ladder against a 275..464 band of 189. Eleven short.
-DO NOT   Put the top-row wire label below the actor row. At WIRE_X on y=146 it sits across the
-         spine's step.
+```
+
+### poster
+
+```
+Four boxes in one Pod frame at 0.4, 0.6, 0.8 and 1.0, joined by three short connectors whose
+opacity ramps with them. The ramp IS the ordering, and it is the only thing on the poster: no
+labels, no arrowheads, no Node.
+The last box is wider than the other three, which is what separates "the app" from "the three that
+ran before it" without needing a different fill.
 ```
 
 ---
@@ -422,7 +475,7 @@ DO NOT   Put the top-row wire label below the actor row. At WIRE_X on y=146 it s
 ```
 WHAT     Three workers running in parallel, one failing and being replaced, until completions
          is reached.
-LAYOUT   C (bottom strip). PANEL_B 280.
+LAYOUT   C (bottom strip). panel bottom 280.
            ladder 660..1140 at y=140
            chips  full-width strip, THREE per row at 350.67, two rows 548..624, short row centred
            node   three worker Pods, row starting at x=84
@@ -458,6 +511,15 @@ its retry here at full opacity (the dim belonged to the previous step), all thre
 live Pods pulse together on arrival (parallelism=3).
 ```
 
+### poster
+
+```
+Six identical cells in two rows: the top three carry a tick, the bottom three a progress bar at 0.5.
+Completed over running, and the counting is the whole sentence.
+Every cell is the same size and fill on purpose. A Job's workers are interchangeable, so making any
+one of them distinct would contradict the card.
+```
+
 ---
 
 ## workloads-pod-image-pull
@@ -467,7 +529,7 @@ live Pods pulse together on arrival (parallelism=3).
 ```
 WHAT     Kubelet pulling an image from a registry, through imagePullPolicy and the backoff that
          follows a failure.
-LAYOUT   C (bottom strip). PANEL_B 379.
+LAYOUT   C (bottom strip). panel bottom 379.
            ladder 660..1140 starting at 176
            chips  two across, 532 wide, at y 548 and 590
            actors Kubelet 420..780 centred on CX; Registry narrower at 840..1100
@@ -479,6 +541,16 @@ NOTE     The Registry is the narrow box because the cloud path wraps it. The clo
          hand-drawn path with its own centre at (685, 85), placed by transform at CLOUD_SCALE
          1.05 rather than redrawn. Straddling BOTH actor boxes reads as a rendering fault.
 NOTE     The ladder starts at 176, not 150, because the scaled cloud reaches y 157.
+```
+
+### poster
+
+```
+A registry cloud with a padlock over a four-layer stack, and two dashed pulls of DIFFERENT lengths
+ending in dots of different sizes. The unequal lengths are the point: the two pulls do not fetch the
+same amount, because layers already on the Node are skipped.
+The layer stack ramps 1.0 down to 0.4 so it reads as depth rather than as four equal things. The
+padlock is small and unlabelled: auth is a condition on the pull, not the subject.
 ```
 
 ---
@@ -501,7 +573,7 @@ WHY NOT  A Node bottom edge at 640: it falls on the viewBox edge and does not dr
 NOTE     status.phase in the left column is also what keeps CENTRE green. It is the only chip left
          of CX; without it the strip spans 660..1140 and centres on 900.
 NOTE     Pod and container are shorter than the family default deliberately. There is no more
-         room. A longer narration on any step invalidates PANEL_B: re-measure.
+         room. A longer narration on any step invalidates that measurement: re-measure.
 ```
 
 ### before `const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;`
@@ -510,6 +582,16 @@ NOTE     Pod and container are shorter than the family default deliberately. The
 Phase transitions cross-fade the Pod opacity between states (0.35 dim / 0.7 / 1).
 This is a state machine, not a materialize/dissolve, so it keeps its own fade timing
 rather than the FADE tokens. The delay starts the cross-fade a beat into the step.
+```
+
+### poster
+
+```
+A state row on top, Pending to Running to the Succeeded/Failed fork, with Running at 0.20, by far
+the brightest thing on the canvas. Below it the Pod it describes, joined by one dashed drop. The
+sentence is that a single FIELD tracks the Pod, so the row and the Pod are two views of one thing.
+The fork carries a tick and a cross, the only two glyphs, and the failed branch is dashed at 0.55
+so the pair reads as one taken outcome and one alternative rather than as two events.
 ```
 
 ---
@@ -521,7 +603,7 @@ rather than the FADE tokens. The delay starts the cross-fade a beat into the ste
 ```
 WHAT     Three Pods classified Guaranteed, Burstable and BestEffort, and which two the Kubelet
          evicts under Node pressure.
-LAYOUT   C (bottom strip). PANEL_B 404.
+LAYOUT   C (bottom strip). panel bottom 404.
            ladder 660..1140
            chips  two across at 548 and 590
            node   three Pods, row at NODE_Y + 34
@@ -560,6 +642,16 @@ the middle), so Pod B, labelled evicted 2nd, lands a full 800ms BEFORE Pod A, la
 1st. A drawing that asserts the opposite of its own labels is worse than one that stays quiet.
 ```
 
+### poster
+
+```
+Three Pods with a resources bar each: none, one bar, two matched bars, over a baseline whose weight
+ramps dashed to 2px and a dot ramp below that. Two ramps saying the same thing from both ends, which
+is what makes the ORDER unmistakable at 200px.
+The class names are not written. The whole idea is that the class is DERIVED from what the Pod asked
+for, so drawing the request and letting the ranking follow is the poster stating the mechanism.
+```
+
 ---
 
 ## workloads-probes
@@ -593,6 +685,15 @@ to its partial (not full) opacity and settles back to dim. Full opacity is
 reserved for the ready step. Only after the blink does the packet leave.
 ```
 
+### poster
+
+```
+Three dashed legs into one container, and the three circles at their far ends are empty, half filled
+and solid. Three probes, one target, and the fill ramp is the only difference between them.
+They are deliberately NOT labelled and NOT ordered top to bottom by importance: the card is about
+three independent questions on their own periods, so a numbered stack would be the wrong sentence.
+```
+
 ---
 
 ## workloads-pvc-stickiness
@@ -603,7 +704,7 @@ reserved for the ready step. Only after the blink does the packet leave.
 WHAT     A StatefulSet Pod rescheduled to another Node, keeping its identity and its PVC, with
          the same disk detached and reattached.
 LAYOUT   C (bottom strip), and the card with the worst chip damage in the catalog (11 collisions
-         before the relayout). PANEL_B 330.
+         before the relayout). panel bottom 330.
            ladder 660..1140
            chips  two across at 548 and 590
            nodes  TWO frames narrowed to 440 each, 60..500 and 700..1140
@@ -675,6 +776,16 @@ DO NOT report them as lanes nobody rides. Same silhouette as the false finding o
 cluster-architecture.
 ```
 
+### poster
+
+```
+Two Node frames with the disk drawn BETWEEN them rather than inside either, the left Node crossed
+out and dimmed, the right one solid with a filled Pod. The disk sitting outside both frames is the
+whole sentence: it belongs to the Pod identity, not to a machine.
+The lane to the dead Node is dimmed to 0.4 and the lane to the live one carries the chevron. That
+asymmetry is the only direction on the poster, and it is what says the volume FOLLOWED.
+```
+
 ---
 
 ## workloads-replicaset
@@ -721,7 +832,7 @@ self-healing the count back to three.
 ```
 WHAT     restartPolicy Always, OnFailure and Never against the same exit, enforced in place by
          the Kubelet.
-LAYOUT   C (bottom strip). PANEL_B 355.
+LAYOUT   C (bottom strip). panel bottom 355.
            ladder 660..1140
            chips  two across at 548 and 590
            actors Kubelet FIRST at 420..780 centred on CX, Api second
@@ -733,6 +844,16 @@ WHY NOT  Chips four across: 258 wide, and five strings collide, including "Pod B
 WHY NOT  Api first. Kubelet is the node-facing actor and the line down to the Node has to leave a
          box midpoint inside the corridor. With the two swapped, `bouncePacket` leaves the Api
          while its own comment says "request up to the apiserver".
+```
+
+### poster
+
+```
+Three identical Pods, and only their exit differs: a solid loop with an arrowhead, a dashed loop
+with an arrowhead, and a straight 3px terminator. Always, OnFailure, Never, said with three
+different marks and no words.
+The two arrowheads are earned because a loop with no head does not say which way it goes, and the
+difference between the two loops is the DASH, which is the conditional.
 ```
 
 
@@ -779,6 +900,16 @@ Pod while `pod4`, a Ready v2 Pod, never acknowledges the narration that calls it
 `check-reduced` still passes, because the played and the reduced path are wrong IDENTICALLY.
 ```
 
+### poster
+
+```
+Two columns of three, the accent bars ramping 1.0 / 0.7 / 0.4 on the left and the exact mirror on
+the right, with one dashed leg and a chevron between them. The mirrored ramp IS the rollout: the
+same three slots, the weight moved from top to bottom.
+Nothing is added and nothing is removed between the two columns, which is what says a rolling update
+replaces in place rather than building a second set beside the first.
+```
+
 ---
 
 ## workloads-statefulset-ordered-startup
@@ -812,4 +943,14 @@ The Service is a receiver, so it lights on arrival rather than at step entry. Du
 
 DO NOT draw it with an arrowhead and no ball. The card names the registration three times in
 narration and labels this wire for it three times through `setWire(s, 'svc', ...)`.
+```
+
+### poster
+
+```
+Three Pods each over its own disk, ramping 0.10 / 0.06 / 0.03 with the third dashed, and two
+chevrons between them. Ordinal 0 is ready, 1 is coming up, 2 has not started: the ramp is the
+ordering and the chevrons are what stop it reading as three states of one Pod.
+The whole group is mirrored with a scale(-1,1) so the READY end sits on the right, against the
+narration panel's corner rather than under it.
 ```

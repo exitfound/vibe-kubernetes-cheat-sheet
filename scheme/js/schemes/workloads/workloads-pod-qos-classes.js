@@ -1,12 +1,11 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-pod-qos-classes
 
 // Layout C on the Workloads canon (WL): panel x<=397 y<=404 leaves no column under it, so the
 // pipeline keeps the right band and the chips form a two-across bottom strip.
-const PANEL_B = 404;
 
 // Kubelet is the node-facing actor, so it leads the row and is centred on CX: every lane to the
 // Node leaves its bottom midpoint and clears the pipeline column.
@@ -63,13 +62,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod QoS classes: API derives qosClass from requests vs limits at admission, Kubelet applies cgroup config and oom_score_adj by tier',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod QoS classes: API derives qosClass from requests vs limits at admission, Kubelet applies cgroup config and oom_score_adj by tier' });
     root.appendChild(arrowDefs());
 
     const kubelet   = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet',   sublabel: 'cgroups + eviction',            role: 'cluster' });
@@ -151,6 +144,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { pod1, pod2, pod3, focus }) {
+  setVal(s.refs.pod1Chip, pod1);
+  setVal(s.refs.pod2Chip, pod2);
+  setVal(s.refs.pod3Chip, pod3);
+  setVal(s.refs.focusChip, focus);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -193,10 +193,7 @@ const STEPS = [
       resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'no requests · no limits', 'req only · 500m / 256Mi', 'req == limits · 1 / 1Gi');
-      setVal(s.refs.pod1Chip, 'pending');
-      setVal(s.refs.pod2Chip, 'pending');
-      setVal(s.refs.pod3Chip, 'pending');
-      setVal(s.refs.focusChip, '3 shapes inspected');
+      setChips(s, { pod1: 'pending', pod2: 'pending', pod3: 'pending', focus: '3 shapes inspected' });
       setWire(s, 'req', 'rule: empty → BestEffort · req==lim → Guaranteed · Else Burstable');
       s.refs.apiserver.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
@@ -213,10 +210,7 @@ const STEPS = [
       resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'BestEffort', 'Burstable', 'Guaranteed');
-      setVal(s.refs.pod1Chip, 'BestEffort');
-      setVal(s.refs.pod2Chip, 'Burstable');
-      setVal(s.refs.pod3Chip, 'Guaranteed');
-      setVal(s.refs.focusChip, 'status.qosClass written');
+      setChips(s, { pod1: 'BestEffort', pod2: 'Burstable', pod3: 'Guaranteed', focus: 'status.qosClass written' });
       setWire(s, 'req', 'status.qosClass · A=BestEffort · B=Burstable · C=Guaranteed');
       s.refs.apiserver.classList.add('highlight');
       s.refs.pod1Chip.classList.add('highlight');
@@ -239,10 +233,7 @@ const STEPS = [
       resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'BestEffort', 'Burstable', 'Guaranteed');
-      setVal(s.refs.pod1Chip, 'BestEffort');
-      setVal(s.refs.pod2Chip, 'Burstable');
-      setVal(s.refs.pod3Chip, 'Guaranteed');
-      setVal(s.refs.focusChip, 'scheduler · requests only');
+      setChips(s, { pod1: 'BestEffort', pod2: 'Burstable', pod3: 'Guaranteed', focus: 'scheduler · requests only' });
       setWire(s, 'req', 'POST .../pods/{name}/binding · requests only, not limits');
       s.refs.apiserver.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
@@ -263,10 +254,7 @@ const STEPS = [
       resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'BestEffort · oom_score=1000', 'Burstable · oom_score~scaled', 'Guaranteed · oom_score=-997');
-      setVal(s.refs.pod1Chip, 'BestEffort');
-      setVal(s.refs.pod2Chip, 'Burstable');
-      setVal(s.refs.pod3Chip, 'Guaranteed');
-      setVal(s.refs.focusChip, 'memory.max · oom_score_adj');
+      setChips(s, { pod1: 'BestEffort', pod2: 'Burstable', pod3: 'Guaranteed', focus: 'memory.max · oom_score_adj' });
       setWire(s, 'req', 'cgroup v2 · memory.max + cpu.max + oom_score_adj');
       s.refs.kubelet.classList.add('highlight');
       s.refs.focusChip.classList.add('highlight');
@@ -286,10 +274,7 @@ const STEPS = [
       resetStep(s);
       resetPodOpacity(s);
       setSublabels(s, 'BestEffort · evicted 1st', 'Burstable · evicted 2nd', 'Guaranteed · survives');
-      setVal(s.refs.pod1Chip, 'BestEffort');
-      setVal(s.refs.pod2Chip, 'Burstable');
-      setVal(s.refs.pod3Chip, 'Guaranteed');
-      setVal(s.refs.focusChip, 'over request, then Priority');
+      setChips(s, { pod1: 'BestEffort', pod2: 'Burstable', pod3: 'Guaranteed', focus: 'over request, then Priority' });
       setWire(s, 'req', 'evicted first: over its request, then by Priority');
       s.refs.kubelet.classList.add('highlight');
       s.refs.pod1Chip.classList.add('highlight');

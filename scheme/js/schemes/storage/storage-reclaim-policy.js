@@ -1,6 +1,6 @@
-import { svg, g, text, line } from '../../lib/svg.js';
+import { g, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { valChip, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-reclaim-policy
 
 
@@ -66,13 +66,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Reclaim policy decides what happens to a PersistentVolume and its real disk once the claim is deleted. Both volumes go to the Released phase, and then the same PV controller reads the reclaim policy on each one. Under Delete it calls DeleteVolume on the CSI driver, the disk is wiped and the PV object is removed. Under Retain it makes no call at all, so the disk and its data survive, but the volume stays Released carrying a stale claimRef, and a new claim asking for it is skipped and left Pending until an administrator clears that reference by hand and lets the volume bind again.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Reclaim policy decides what happens to a PersistentVolume and its real disk once the claim is deleted. Both volumes go to the Released phase, and then the same PV controller reads the reclaim policy on each one. Under Delete it calls DeleteVolume on the CSI driver, the disk is wiped and the PV object is removed. Under Retain it makes no call at all, so the disk and its data survive, but the volume stays Released carrying a stale claimRef, and a new claim asking for it is skipped and left Pending until an administrator clears that reference by hand and lets the volume bind again.' });
     root.appendChild(arrowDefs());
 
     const delPvc = box({ x: DEL_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-a', sublabel: 'Bound', role: 'storage' });

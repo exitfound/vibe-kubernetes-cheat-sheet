@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
+import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-force-deletion
 
@@ -40,7 +40,6 @@ const P_A_CX = P_A_X + POD_W / 2, P_B_CX = P_B_X + POD_W / 2;   // 320 / 880, mi
 
 // BOTH node-band actions leave the API box. The trunk steps into the corridor, drops to a bus below
 // the chip column and taps down into the Pod each step addresses.
-const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
 const TOP2_CX = TOP2_X + TOP2_W / 2;                     // 810
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
 const BUS_Y = NODE_Y - 15;                               // 475, between the chip column and the frames
@@ -55,13 +54,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Force deletion and stuck Terminating Pods: an unreachable Node leaves a Pod stuck, force delete risks two live instances',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Force deletion and stuck Terminating Pods: an unreachable Node leaves a Pod stuck, force delete risks two live instances' });
     root.appendChild(arrowDefs());
 
     const kubectl = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'kubectl', sublabel: 'delete pod pod-a', role: 'cluster' });

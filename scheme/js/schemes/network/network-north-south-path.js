@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-north-south-path
 
 
@@ -58,10 +58,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
 function podBlock({ x, y, w, h, label }) {
   const shell = podShell({ x, y, w, h, label, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -70,13 +67,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'North-south request path: an external client reaches a cloud load balancer at its public IP, the load balancer crosses the cluster boundary and forwards to a Node on the Service NodePort, kube-proxy rules DNAT the packet to a backing Pod IP while conntrack pins the flow, the Pod serves the request, and the reply travels a separate return lane where conntrack unwinds every rewrite so the client sees an answer from the public IP it dialed',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'North-south request path: an external client reaches a cloud load balancer at its public IP, the load balancer crosses the cluster boundary and forwards to a Node on the Service NodePort, kube-proxy rules DNAT the packet to a backing Pod IP while conntrack pins the flow, the Pod serves the request, and the reply travels a separate return lane where conntrack unwinds every rewrite so the client sees an answer from the public IP it dialed' });
     root.appendChild(arrowDefs());
 
     const extRegion = node({ x: EXT_X, y: REGION_TOP, w: EXT_W, h: REGION_H, label: '' });
@@ -131,6 +122,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { stage, dnat, back }) {
+  setVal(s.refs.stageChip, stage);
+  setVal(s.refs.dnatChip, dnat);
+  setVal(s.refs.backChip, back);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['client', 'lb', 'kproxy', 'conntrack', 'podXBox', 'stageChip', 'svcChip', 'dnatChip', 'backChip'], [s.refs.podX]);
@@ -155,9 +152,7 @@ const STEPS = [
     narration: 'The client connects to the public IP, which belongs to a cloud load balancer provisioned for the LoadBalancer Service. The LB is the only address exposed to the internet, and it is still outside the cluster. It picks one healthy Node to forward the connection to.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.stageChip, 'cloud LB');
-      setVal(s.refs.dnatChip, 'none');
-      setVal(s.refs.backChip, 'none');
+      setChips(s, { stage: 'cloud LB', dnat: 'none', back: 'none' });
       setBoxSublabel(s.refs.conntrack, 'no flow yet');
       s.refs.client.classList.add('highlight');
       s.refs.stageChip.classList.add('highlight');
@@ -175,9 +170,7 @@ const STEPS = [
     narration: 'The load balancer rewrites the destination to a Node and the Service NodePort, a high port opened on every Node, and the packet crosses the cluster edge. The kube-proxy programmed the rules that catch that port, so the packet is matched on arrival with the destination still the Node IP and that port.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.stageChip, 'NodePort');
-      setVal(s.refs.dnatChip, 'none');
-      setVal(s.refs.backChip, 'none');
+      setChips(s, { stage: 'NodePort', dnat: 'none', back: 'none' });
       setBoxSublabel(s.refs.conntrack, 'no flow yet');
       s.refs.lb.classList.add('highlight');
       s.refs.stageChip.classList.add('highlight');
@@ -195,9 +188,7 @@ const STEPS = [
     narration: 'The Service rules DNAT the destination to a backing Pod IP, and conntrack records the flow so every later packet of this connection takes the same backend and the reply can be unwound. The rewritten packet is delivered to the Pod, which serves the request on its real port.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.stageChip, 'DNAT');
-      setVal(s.refs.dnatChip, '-> 10.244.2.7:8080');
-      setVal(s.refs.backChip, '10.244.2.7:8080');
+      setChips(s, { stage: 'DNAT', dnat: '-> 10.244.2.7:8080', back: '10.244.2.7:8080' });
       setBoxSublabel(s.refs.conntrack, '192.168.1.20:31000 -> 10.244.2.7:8080  pinned');
       s.refs.kproxy.classList.add('highlight');
       s.refs.conntrack.classList.add('highlight');
@@ -221,9 +212,7 @@ const STEPS = [
     narration: 'The Pod replies, and the answer retraces the same chain in reverse, drawn here as its own lane. The conntrack table matches the reply to the flow it pinned and undoes the DNAT, so the source becomes the Node and its NodePort again, then the load balancer rewrites it once more and the client sees an answer from the public IP it dialed. The client never learns the Pod address, and every rewrite the request crossed is unwound on the way out.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.stageChip, 'reply unwinds');
-      setVal(s.refs.dnatChip, 'reverse NAT');
-      setVal(s.refs.backChip, '10.244.2.7:8080');
+      setChips(s, { stage: 'reply unwinds', dnat: 'reverse NAT', back: '10.244.2.7:8080' });
       setBoxSublabel(s.refs.conntrack, '192.168.1.20:31000 -> 10.244.2.7:8080  pinned');
       s.refs.conntrack.classList.add('highlight');
       s.refs.stageChip.classList.add('highlight');

@@ -1,6 +1,6 @@
-import { svg, g, text, path } from '../../lib/svg.js';
+import { g, text, path } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, pulsePod, routePacket, relationPath, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
+import { valChip, setChip, pulsePod, routePacket, relationPath, makeInit, clearHighlights, clearWires, BEAT, FADE, makeRidingLabel, lightBoxAt, OPACITY, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volume-model
 
 
@@ -49,13 +49,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod volume model: a volume is declared once at Pod level under spec.volumes and each container mounts it at volumeMounts, possibly at a different path. The volume belongs to the Pod, so a write by one container is seen by the other, it survives a container crash and restart, and an ephemeral volume like this one is deleted only when the Pod itself is deleted.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod volume model: a volume is declared once at Pod level under spec.volumes and each container mounts it at volumeMounts, possibly at a different path. The volume belongs to the Pod, so a write by one container is seen by the other, it survives a container crash and restart, and an ephemeral volume like this one is deleted only when the Pod itself is deleted.' });
     root.appendChild(arrowDefs());
 
     // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:

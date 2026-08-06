@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-container-states
 
@@ -38,13 +38,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Container restarts and lastState: Kubelet preserves the previous termination record so a restart can be debugged',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Container restarts and lastState: Kubelet preserves the previous termination record so a restart can be debugged' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'writes containerStatuses[]', role: 'cluster' });

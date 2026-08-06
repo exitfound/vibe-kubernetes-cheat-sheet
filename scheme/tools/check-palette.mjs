@@ -1,5 +1,5 @@
 // check-palette.mjs: the colour half of the gate. Baseline-free: SPREAD, UNKNOWN, UNPAINTED, all
-// explained in scheme/CLAUDE.md. Runs under reducedMotion or a filled pulse reads back as resting.
+// explained in ../CANON.md C-01 to C-03. Runs under reducedMotion or a filled pulse reads back as resting.
 // node check-palette.mjs [<id> ...]   ids => verbose; none => whole catalog, terse
 import { launch, setInspect, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 
@@ -33,7 +33,7 @@ const probe = (painted) => {
       // legitimately differ. Without this the check reports its own blindness as a card defect.
       // `scheme-arrow-dim` is a state, not a variant: a dim lane and a live one of the same role
       // are meant to differ, so without it here the guard above reports the difference as a SPREAD.
-      const state = ['highlight', 'scheme-dim', 'scheme-hidden', 'scheme-arrow-dim']
+      const state = ['highlight', 'scheme-arrow-dim']
         .filter(c => el.classList.contains(c)).join('+') || 'rest';
       out.push({
         cls: sel.slice(1),

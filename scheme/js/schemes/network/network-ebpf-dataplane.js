@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-ebpf-dataplane
 
 
@@ -44,19 +44,13 @@ function clientBlock({ x, y, w, h }) {
   // The socket dials the Service ClusterIP (10.96.0.20), not a Pod: shown here against the client own
   // Pod IP on the shell, so the two address kinds read side by side. Fits the 160-wide inner box.
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'Socket', sublabel: 'connect() 10.96.0.20', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -65,13 +59,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The eBPF dataplane replaces kube-proxy: an eBPF program at the socket hook reads a BPF Service map and rewrites the connection to a backend Pod at connect time, with no per-packet iptables rule walk and no DNAT',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'The eBPF dataplane replaces kube-proxy: an eBPF program at the socket hook reads a BPF Service map and rewrites the connection to a backend Pod at connect time, with no per-packet iptables rule walk and no DNAT' });
     root.appendChild(arrowDefs());
 
     const client = clientBlock({ x: CLIENT_X, y: 252, w: CLIENT_W, h: 120 });
@@ -123,6 +111,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { svc, mode, kp }) {
+  setVal(s.refs.svcChip, svc);
+  setVal(s.refs.modeChip, mode);
+  setVal(s.refs.kpChip, kp);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['hook', 'bpfmap', 'svcChip', 'modeChip', 'kpChip', 'clientBox', 'w1Box', 'w2Box'],
@@ -140,9 +134,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.svcChip, 'pending');
-      setVal(s.refs.modeChip, 'per-packet DNAT');
-      setVal(s.refs.kpChip, 'present');
+      setChips(s, { svc: 'pending', mode: 'per-packet DNAT', kp: 'present' });
     },
   },
   {
@@ -152,7 +144,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.hook.classList.add('highlight');
-      setVal(s.refs.kpChip, 'present');
+      setChips(s, { svc: 'pending', mode: 'per-packet DNAT', kp: 'present' });
     },
   },
   {
@@ -163,7 +155,7 @@ const STEPS = [
       resetStep(s);
       s.refs.bpfmap.classList.add('highlight');
       s.refs.svcChip.classList.add('highlight');
-      setVal(s.refs.svcChip, '10.96.0.20 -> .2.7 .3.9');
+      setChips(s, { svc: '10.96.0.20 -> .2.7 .3.9', mode: 'per-packet DNAT', kp: 'present' });
     },
   },
   {
@@ -176,7 +168,7 @@ const STEPS = [
       resetStep(s);
       s.refs.modeChip.classList.add('highlight');
       setWire(s, 'lookup', 'map lookup');
-      setVal(s.refs.modeChip, 'connect-time');
+      setChips(s, { svc: '10.96.0.20 -> .2.7 .3.9', mode: 'connect-time', kp: 'present' });
       if (ctx.reduced) { s.refs.hook.classList.add('highlight'); s.refs.bpfmap.classList.add('highlight'); return; }
       // Up-arrow: the client pulses first, the connect call reaches the socket hook, which lights on
       // arrival. The map lights a beat later, as the program looks the address up.
@@ -199,7 +191,7 @@ const STEPS = [
       s.refs.hook.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
       setWire(s, 'deliver', 'to .2.7');
-      setVal(s.refs.modeChip, 'connect-time');
+      setChips(s, { svc: '10.96.0.20 -> .2.7 .3.9', mode: 'connect-time', kp: 'present' });
       s.refs.w2.style.opacity = String(OPACITY.notready);
       if (ctx.reduced) { s.refs.w1Box.classList.add('highlight'); return; }
       // Down-arrow: the rewritten connection rides the right-angle route to the chosen Pod, which
@@ -218,7 +210,7 @@ const STEPS = [
       s.refs.hook.classList.add('highlight');
       s.refs.bpfmap.classList.add('highlight');
       s.refs.kpChip.classList.add('highlight');
-      setVal(s.refs.kpChip, 'not needed');
+      setChips(s, { svc: '10.96.0.20 -> .2.7 .3.9', mode: 'connect-time', kp: 'not needed' });
     },
   },
 ];

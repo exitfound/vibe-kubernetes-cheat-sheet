@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // check-labels.mjs: B7 content, the half check-inline cannot see. It asks whether the catalog
-// spells ONE object ONE way, which is the rule already written in scheme/CLAUDE.md ("nodefs" on
+// spells ONE object ONE way, which is ../CANON.md T-10 to T-13 ("nodefs" on
 // one card and "Node FS" on the next). Strings are only ever compared inside the same position
 // class, because a heading and a chip name are SUPPOSED to differ: "Conntrack" over a block and
 // "conntrack" in a chip is system A working, not drift.

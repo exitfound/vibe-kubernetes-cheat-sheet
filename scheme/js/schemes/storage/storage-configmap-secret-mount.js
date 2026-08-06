@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY } from './storage-kit.js';
+import { valChip, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, makeRidingLabel, lightBoxAt, OPACITY, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-configmap-secret-mount
 
 
@@ -49,13 +49,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ConfigMap and Secret as files: each key becomes a file in the mounted directory. Kubelet writes the keys into a timestamped directory and points a ..data symlink at it, and on update it writes a new directory then flips the symlink atomically, so a reader never sees a half-written config. Updates arrive on the Kubelet sync period, a subPath mount opts out of the swap and never updates, and Secrets default to tmpfs.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'ConfigMap and Secret as files: each key becomes a file in the mounted directory. Kubelet writes the keys into a timestamped directory and points a ..data symlink at it, and on update it writes a new directory then flips the symlink atomically, so a reader never sees a half-written config. Updates arrive on the Kubelet sync period, a subPath mount opts out of the swap and never updates, and Secrets default to tmpfs.' });
     root.appendChild(arrowDefs());
 
     // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:

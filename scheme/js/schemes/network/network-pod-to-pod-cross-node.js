@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-to-pod-cross-node
 
 
@@ -17,10 +17,7 @@ const UNDERLAY_PATH = [[CNI1_X, CNI_BOTTOM], [CNI1_X, UNDERLAY_Y], [CNI2_X, UNDE
 function podBlock({ x, label, ip }) {
   const shell = podShell({ x, y: 280, w: 180, h: 120, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: 310, w: 140, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -29,13 +26,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod-to-Pod traffic across Nodes: the source Node routes the off-subnet packet to its CNI dataplane, which in overlay mode wraps it in VXLAN over UDP and ships it across the physical underlay to the remote Node, whose kernel decapsulates and bridges it into the local Pod; a routed BGP mode is shown as the no-encapsulation alternative',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod-to-Pod traffic across Nodes: the source Node routes the off-subnet packet to its CNI dataplane, which in overlay mode wraps it in VXLAN over UDP and ships it across the physical underlay to the remote Node, whose kernel decapsulates and bridges it into the local Pod; a routed BGP mode is shown as the no-encapsulation alternative' });
     root.appendChild(arrowDefs());
 
     const node1 = node({ x: 70,  y: 220, w: 470, h: 230, label: 'Node-1   ·   10.244.1.0/24' });
@@ -88,6 +79,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { inner, outer, encap, mode }) {
+  setVal(s.refs.innerChip, inner);
+  setVal(s.refs.outerChip, outer);
+  setVal(s.refs.encapChip, encap);
+  setVal(s.refs.modeChip, mode);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   // The two inner Pod boxes belong in the KEY list, not in the pod-group list: a pod group only has
@@ -102,10 +100,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.innerChip, '.1.5 -> .2.7');
-      setVal(s.refs.outerChip, 'node IPs');
-      setVal(s.refs.encapChip, 'none');
-      setVal(s.refs.modeChip, 'overlay');
+      setChips(s, { inner: '.1.5 -> .2.7', outer: 'node IPs', encap: 'none', mode: 'overlay' });
     },
   },
   {
@@ -116,7 +111,7 @@ const STEPS = [
       resetStep(s);
       setWire(s, 'va', 'veth · eth0');
       s.refs.innerChip.classList.add('highlight');
-      setVal(s.refs.innerChip, '.1.5 -> .2.7');
+      setChips(s, { inner: '.1.5 -> .2.7', outer: 'node IPs', encap: 'none', mode: 'overlay' });
       if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); s.refs.cni1.classList.add('highlight'); return; }
       // Up-arrow: A pulses FIRST, the packet leaves only after the blink lands (BEAT.afterPulse)
       // and hops the veth to cni1, which lights on arrival.
@@ -135,9 +130,7 @@ const STEPS = [
       s.refs.cni1.classList.add('highlight'); // the overlay device acts; infra stays lit, never pulses
       s.refs.outerChip.classList.add('highlight');
       s.refs.encapChip.classList.add('highlight');
-      setVal(s.refs.outerChip, 'node1 -> node2');
-      setVal(s.refs.encapChip, 'VXLAN/UDP 8472');
-      setVal(s.refs.modeChip, 'overlay');
+      setChips(s, { inner: '.1.5 -> .2.7', outer: 'node1 -> node2', encap: 'VXLAN/UDP 8472', mode: 'overlay' });
       if (ctx.reduced) { s.refs.cni2.classList.add('highlight'); return; }
       // The wrapped packet glides as ONE continuous motion: cni1 -> down -> across -> up to cni2,
       // which lights on arrival.
@@ -155,7 +148,7 @@ const STEPS = [
       setWire(s, 'encap', 'decap · inner frame restored');
       s.refs.cni2.classList.add('highlight');
       s.refs.innerChip.classList.add('highlight');
-      setVal(s.refs.innerChip, '.1.5 -> .2.7');
+      setChips(s, { inner: '.1.5 -> .2.7', outer: 'node1 -> node2', encap: 'VXLAN/UDP 8472', mode: 'overlay' });
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); return; }
       // Down-arrow: the decapsulated inner frame leaves cni2 and hops the veth into Pod B,
       // which pulses on arrival (the receiver).
@@ -177,9 +170,7 @@ const STEPS = [
       s.refs.outerChip.classList.add('highlight');
       s.refs.encapChip.classList.add('highlight');
       s.refs.modeChip.classList.add('highlight');
-      setVal(s.refs.outerChip, 'pod IPs routed');
-      setVal(s.refs.encapChip, 'none');
-      setVal(s.refs.modeChip, 'routed · BGP');
+      setChips(s, { inner: '.1.5 -> .2.7', outer: 'pod IPs routed', encap: 'none', mode: 'routed · BGP' });
       if (ctx.reduced) {
         s.refs.cni1.classList.add('highlight');
         s.refs.cni2.classList.add('highlight');

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../../lib/primitives.js';
-import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
+import { routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY, diagramRoot } from './cluster-kit.js';
 
 // Two dashed frames of the same width, a control plane over Node-1, each holding its own tiers.
 // Design notes for this card: ./CARDS.md#cluster-architecture
@@ -64,13 +64,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Kubernetes cluster architecture: the API, ETCD, the controller-manager, the cloud-controller-manager and the Scheduler inside the control plane, with the Kubelet and kube-proxy on Node-1 each watching the API for itself, and the Kubelet driving the Runtime over CRI',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Kubernetes cluster architecture: the API, ETCD, the controller-manager, the cloud-controller-manager and the Scheduler inside the control plane, with the Kubelet and kube-proxy on Node-1 each watching the API for itself, and the Kubelet driving the Runtime over CRI' });
     root.appendChild(arrowDefs());
 
     // Frames first so both bands sit behind everything they hold.

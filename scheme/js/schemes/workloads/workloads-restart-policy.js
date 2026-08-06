@@ -1,12 +1,11 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
+import { valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, FADE, BEAT, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-restart-policy
 
 // Layout C on the Workloads canon (WL): panel x<=397 y<=355 leaves no column under it, so the
 // pipeline keeps the right band and the chips form a two-across bottom strip.
-const PANEL_B = 355;
 
 // Kubelet is the node-facing actor, so it leads the row and is centred on CX: the line down to
 // the Node leaves its bottom midpoint and clears the pipeline column.
@@ -44,13 +43,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Pod restartPolicy: Always, OnFailure and Never decide whether Kubelet restarts a container after it exits',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Pod restartPolicy: Always, OnFailure and Never decide whether Kubelet restarts a container after it exits' });
     root.appendChild(arrowDefs());
 
     const kubelet   = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet',   sublabel: 'restart enforcer',        role: 'cluster' });

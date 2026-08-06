@@ -1,12 +1,12 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chip, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, setConnectorDir, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
+import { valChip, setVal, pulsePod, setConnectorDir, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-crashloopbackoff
 
 // Layout B of the Workloads canon (WL): chips and the backoff ladder left, pipeline right.
-// Panel worst case x<=397, y<=205; a longer narration invalidates that measurement.
-const PANEL_B = 225;
+// Panel worst case x<=397, y<=205, with 225 reserved as a deliberately conservative floor.
+// A longer narration invalidates that measurement.
 const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX
 const WIRE_OUT_Y = 28, WIRE_IN_Y = 146, WIRE_IN_DX = 14;
 
@@ -35,13 +35,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CrashLoopBackOff: Kubelet inserts an exponentially growing delay before each container restart',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'CrashLoopBackOff: Kubelet inserts an exponentially growing delay before each container restart' });
     root.appendChild(arrowDefs());
 
     // Top row: Kubelet, the restart manager, centred on CX and clear of the narration panel.
@@ -128,6 +122,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { state, reason, restart, delay }) {
+  setVal(s.refs.stateChip, state);
+  setVal(s.refs.reasonChip, reason);
+  setVal(s.refs.restartChip, restart);
+  setVal(s.refs.delayChip, delay);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -163,11 +164,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.podGroup.style.opacity = '1';
-      setVal(s.refs.stateChip, 'Running (restarted)');
+      setChips(s, { state: 'Running (restarted)', reason: 'none', restart: '1', delay: '10s · base' });
       s.refs.stateChip.classList.add('highlight');
-      setVal(s.refs.reasonChip, 'none');
-      setVal(s.refs.restartChip, '1');
-      setVal(s.refs.delayChip, '10s · base');
       setWire(s, 'in', 'container exited, code 1');
       setWire(s, 'out', 'restart now, next wait 10s');
       s.refs.restartChip.classList.add('highlight');
@@ -190,11 +188,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.notready);
-      setVal(s.refs.stateChip, 'Waiting');
-      setVal(s.refs.reasonChip, 'CrashLoopBackOff');
-      setVal(s.refs.restartChip, '2');
+      setChips(s, { state: 'Waiting', reason: 'CrashLoopBackOff', restart: '2', delay: '20s · doubled' });
       s.refs.restartChip.classList.add('highlight');
-      setVal(s.refs.delayChip, '20s · doubled');
       setWire(s, 'out', 'hold restart, 20s');
       s.refs.kubelet.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
@@ -218,10 +213,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.notready);
-      setVal(s.refs.stateChip, 'Waiting');
-      setVal(s.refs.reasonChip, 'CrashLoopBackOff');
-      setVal(s.refs.restartChip, '5');
-      setVal(s.refs.delayChip, '160s · doubling');
+      setChips(s, { state: 'Waiting', reason: 'CrashLoopBackOff', restart: '5', delay: '160s · doubling' });
       setWire(s, 'out', 'hold restart, 160s');
       s.refs.kubelet.classList.add('highlight');
       s.refs.reasonChip.classList.add('highlight');
@@ -239,11 +231,8 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.notready);
-      setVal(s.refs.stateChip, 'Waiting');
-      setVal(s.refs.reasonChip, 'CrashLoopBackOff');
-      setVal(s.refs.restartChip, '7');
+      setChips(s, { state: 'Waiting', reason: 'CrashLoopBackOff', restart: '7', delay: '300s · capped' });
       s.refs.restartChip.classList.add('highlight');
-      setVal(s.refs.delayChip, '300s · capped');
       setWire(s, 'out', 'retry every 5 min');
       s.refs.kubelet.classList.add('highlight');
       s.refs.delayChip.classList.add('highlight');
@@ -261,11 +250,8 @@ const STEPS = [
     narration: 'The bug is fixed and the new container runs stably. After a sustained healthy run Kubelet resets the backoff counter, so the next crash would start over from the 10s base rather than the 300s cap. The container state returns to Running and the CrashLoopBackOff reason clears.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.stateChip, 'Running');
-      setVal(s.refs.reasonChip, 'none');
+      setChips(s, { state: 'Running', reason: 'none', restart: '7', delay: '0s · reset to base' });
       s.refs.reasonChip.classList.add('highlight');
-      setVal(s.refs.restartChip, '7');
-      setVal(s.refs.delayChip, '0s · reset to base');
       setWire(s, 'in', 'healthy run, backoff reset');
       s.refs.stateChip.classList.add('highlight');
       s.refs.delayChip.classList.add('highlight');

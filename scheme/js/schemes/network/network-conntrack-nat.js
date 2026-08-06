@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-conntrack-nat
 
 
@@ -33,10 +33,7 @@ const CHIP_X_NAT = CHIP_R - CHIP_W_OUT;                         // 880
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -45,13 +42,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Connection tracking and NAT: the first packet of a flow is rewritten by netfilter and recorded in the conntrack table as an entry mapping the original tuple to the translated one, so the reply is reverse-translated automatically and every later packet of the flow takes the same fast path without re-evaluating rules',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Connection tracking and NAT: the first packet of a flow is rewritten by netfilter and recorded in the conntrack table as an entry mapping the original tuple to the translated one, so the reply is reverse-translated automatically and every later packet of the flow takes the same fast path without re-evaluating rules' });
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: CLIENT_X, y: POD_Y, w: CLIENT_W, h: POD_H, label: 'Client Pod', ip: '10.244.1.5' });
@@ -93,6 +84,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { orig, nat, state, dir }) {
+  setVal(s.refs.origChip, orig);
+  setVal(s.refs.natChip, nat);
+  setVal(s.refs.stateChip, state);
+  setVal(s.refs.dirChip, dir);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   // The inner boxes are keys, not pod groups: a pod group only has its pulse strokes reset, so a
@@ -107,10 +105,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.origChip, '10.96.0.20:80');
-      setVal(s.refs.natChip, 'none');
-      setVal(s.refs.stateChip, 'none');
-      setVal(s.refs.dirChip, 'none');
+      setChips(s, { orig: '10.96.0.20:80', nat: 'none', state: 'none', dir: 'none' });
     },
   },
   {
@@ -121,7 +116,7 @@ const STEPS = [
       resetStep(s);
       setWire(s, 'c', 'dst 10.96.0.20:80');
       s.refs.origChip.classList.add('highlight');
-      setVal(s.refs.origChip, '10.96.0.20:80');
+      setChips(s, { orig: '10.96.0.20:80', nat: 'none', state: 'none', dir: 'none' });
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.nf.classList.add('highlight'); return; }
       // Up-arrow: client pulses first, the packet leaves on the request lane at BEAT.afterPulse and
       // reaches netfilter.
@@ -140,8 +135,7 @@ const STEPS = [
       s.refs.nf.classList.add('highlight');
       s.refs.natChip.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
-      setVal(s.refs.natChip, '-> 10.244.2.7:8080');
-      setVal(s.refs.stateChip, 'NEW');
+      setChips(s, { orig: '10.96.0.20:80', nat: '-> 10.244.2.7:8080', state: 'NEW', dir: 'none' });
       if (ctx.reduced) { s.refs.serverBox.classList.add('highlight'); return; }
       // The rewritten packet emerges from netfilter (the DNAT happened inside) on the request lane
       // and is delivered to the server, which pulses on arrival.
@@ -158,8 +152,7 @@ const STEPS = [
       setWire(s, 'c', 'src restored to 10.96.0.20');
       s.refs.stateChip.classList.add('highlight');
       s.refs.dirChip.classList.add('highlight');
-      setVal(s.refs.stateChip, 'ESTABLISHED');
-      setVal(s.refs.dirChip, 'reverse NAT');
+      setChips(s, { orig: '10.96.0.20:80', nat: '-> 10.244.2.7:8080', state: 'ESTABLISHED', dir: 'reverse NAT' });
       if (ctx.reduced) { s.refs.nf.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
       // The reply rides its own lane, the ball hidden across the box for the reverse NAT. netfilter
       // lights as the reply ENTERS it, so the box is not already lit when its own packet lands.
@@ -180,11 +173,9 @@ const STEPS = [
       s.refs.natChip.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');
       s.refs.dirChip.classList.add('highlight');
-      setVal(s.refs.natChip, '-> 10.244.2.7:8080');
-      setVal(s.refs.stateChip, 'ESTABLISHED');
+      setChips(s, { orig: '10.96.0.20:80', nat: '-> 10.244.2.7:8080', state: 'ESTABLISHED', dir: 'reverse NAT, no walk' });
       // The chip is named `reply`, so its value has to stay true of the REPLY: on an established flow
       // the reply keeps the same reverse translation and no longer costs a rule walk.
-      setVal(s.refs.dirChip, 'reverse NAT, no walk');
       if (ctx.reduced) { s.refs.nf.classList.add('highlight'); s.refs.serverBox.classList.add('highlight'); return; }
       // A later packet takes the fast path: client pulses, then the ball runs straight through on the
       // request lane (translated inside netfilter, no pause for a rule walk) to the server.

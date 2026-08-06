@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, chainList, setChainActive, arrow, chip } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, laneOf, BEAT, lightBoxAt, at, revealAt, REVEAL_MS, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, laneOf, BEAT, lightBoxAt, at, revealAt, REVEAL_MS, OPACITY, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-resource-quota
 
 // A budget that ACCUMULATES: one bar whose width IS spec.hard, slots filling left to right, and the
@@ -18,7 +18,7 @@ const LADDER_W = 400;
 // The API sits where its own ladder ends on the content right edge, so the gap to the ReplicaSet
 // is 172 rather than the family 56. Both numbers are under the packet floor, see ./CARDS.md.
 const API_CX = CONTENT_R - LADDER_W / 2;                 // 940
-const API_X = API_CX - BOX_W / 2, API_R = API_X + BOX_W; // 824..1056
+const API_X = API_CX - BOX_W / 2;  // 824..1056
 const LANE_DY = 12;
 const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 68 / 92
 
@@ -89,13 +89,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ResourceQuota and LimitRange: a quota caps what one namespace may request in total and is checked at admission, so the Pod that does not fit is never created and the 403 lands on the ReplicaSet that asked for it',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'ResourceQuota and LimitRange: a quota caps what one namespace may request in total and is checked at admission, so the Pod that does not fit is never created and the 403 lands on the ReplicaSet that asked for it' });
     root.appendChild(arrowDefs());
 
     root.appendChild(relationPath({ points: API_TO_CHAIN, role: 'cluster' }));

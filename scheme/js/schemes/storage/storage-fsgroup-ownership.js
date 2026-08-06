@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
+import { valChip, setChip, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-fsgroup-ownership
 
 
@@ -108,13 +108,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'fsGroup and volume ownership: a volume mounts owned by root so a non-root container cannot write, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start whereas the default Always always walks',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'fsGroup and volume ownership: a volume mounts owned by root so a non-root container cannot write, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start whereas the default Always always walks' });
     root.appendChild(arrowDefs());
 
     const appPod = podBlock({ x: POD_X, y: POD_Y });

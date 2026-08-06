@@ -1,3 +1,4 @@
+// Design notes: scheme/INTERNALS.md#schemejslibprimitivesjs
 import { g, rect, circle, ellipse, path, text, defs, marker } from './svg.js';
 
 export function arrowDefs() {
@@ -77,26 +78,14 @@ export function cylinder({ x, y, w = 80, h = 60, label = '', role = 'storage', c
   return group;
 }
 
-// role OUTRANKS dim on the marker, deliberately, and diagrams.css says the same about the stroke.
-// Why that is not the bug it looks like: scheme/INTERNALS.md#schemecssdiagramscss (2026-07-29).
+// A two-point pathArrow. It kept its own copy of the marker ladder until 2026-08-06, and the copy
+// is exactly how a role could come to mean one thing on a straight lane and another on an elbow.
 export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, role = '', cls = '' } = {}) {
-  const dashAttr = dashed ? '5 5' : null;
-  let markerId = dim ? 'arrowhead-dim' : 'arrowhead';
-  if (role === 'network')  markerId = 'arrowhead-net';
-  if (role === 'storage')  markerId = 'arrowhead-storage';
-  if (role === 'cluster')  markerId = 'arrowhead-cluster';
-  const klass = ['scheme-arrow', dashed && 'scheme-arrow-dashed', dim && 'scheme-arrow-dim', role && `scheme-arrow-${role}`, cls].filter(Boolean).join(' ');
-  return path({
-    class: klass,
-    'data-role': role || null,
-    d: `M ${x1} ${y1} L ${x2} ${y2}`,
-    'stroke-dasharray': dashAttr,
-    'marker-end': `url(#${markerId})`,
-    fill: 'none',
-  });
+  return pathArrow({ points: [[x1, y1], [x2, y2]], dashed, dim, role, cls });
 }
 
-// Same precedence as `arrow()` above, same reason.
+// role OUTRANKS dim on the marker, deliberately, and diagrams.css says the same about the stroke.
+// Why that is not the bug it looks like: scheme/INTERNALS.md#schemecssdiagramscss.
 export function pathArrow({ points = [], dashed = false, dim = false, role = '', cls = '' } = {}) {
   if (!points || points.length < 2) return null;
   const dashAttr = dashed ? '5 5' : null;

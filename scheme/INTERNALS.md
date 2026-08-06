@@ -1,18 +1,21 @@
 # Scheme internals design notes
 
-The design record for everything under `scheme/` that is **not one card**: the catalog barrel, the
-poster barrel, the shared `js/lib/`, the four category kits and the CSS. A record about one card
-lives in that category's `js/schemes/<category>/CARDS.md`, and posters go there too, under their
-card id as a `### poster` subsection.
+The design record for everything under `scheme/` that is **not one card**: `js/app.js`, the catalog
+and poster barrels, the shared `js/lib/`, the four category kits and the CSS. A record about one
+card lives in that category's `js/schemes/<category>/CARDS.md`, and posters go there too, under
+their card id as a `### poster` subsection.
+
+This file holds DECISIONS about specific code. The catalog-wide RULES a card is held to are
+`./CANON.md`, and the sub-app contract is `./CLAUDE.md`.
 
 Each entry is anchored by the line of code that followed it (`### before `<line>``), so a note can
-be put back beside its code and `check-notes` can verify the line still exists. Each source file
-links here from a single pointer comment near its top.
+be put back beside its code and `check-notes` can verify the line still exists. **An anchor is DATA:
+never reword one.** Each source file links here from a single pointer comment near its top.
 
-**Not deployed.** Three exclusions keep it out of production and all three must hold: `deploy.yml`
-deletes every `CLAUDE.md`, `CARDS.md` and `INTERNALS.md` from the staged site, `release.yml`
-excludes the same three names from the zip, and `.dockerignore` names them too, which is not
-optional because `Dockerfile` is a blanket `COPY . .`. Verify with
+**Not deployed.** Four filenames are stripped by name (`CLAUDE.md`, `CARDS.md`, `INTERNALS.md`,
+`CANON.md`) and three mechanisms have to agree: `deploy.yml` deletes them from the staged site,
+`release.yml` excludes them from the zip, and `.dockerignore` names them too, which is not optional
+because `Dockerfile` is a blanket `COPY . .`. Verify with
 `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/scheme/INTERNALS.md`,
 which must return 404.
 
@@ -65,9 +68,101 @@ Stateful Data         the operations layer, closing the loop back to the ephemer
 
 ---
 
+## scheme/js/posters.js
+
+### before `export const POSTERS = {`
+
+```
+The four per-category poster maps merged into one, because app.js looks a poster up by card id and
+has no category in hand at that point. Order does not matter; what matters is that all 108 keys
+survive the spread and no two categories claim the same id. R-poster proves both halves: a card with
+no poster and a poster with no card are each a finding.
+
+THE cards.js / posters.js PAIR is the shape every category folder repeats, and the two files are
+deliberately separate rather than one manifest. cards.js is DATA the linters parse (R-desc reads
+desc, R-modulepath reads id against the folder, check-terms reads desc and narration), while
+posters.js is 320x180 SVG markup as template literals. Merging them would put several hundred lines
+of markup in the path of every tool that only wants the metadata, and would make a poster edit and a
+description edit collide in one file.
+```
+
+---
+
+## scheme/js/app.js
+
+The largest module in the sub-app: grid, filtering, poster rendering, dialog lifecycle, hash routing
+and the shared chrome. It is the one place besides `motion.js` allowed to touch browser globals at
+module load.
+
+### before `function buildUnits(list) {`
+
+```
+The grid is built as UNITS (a category, or a subcategory inside one) rather than as a flat list, so
+a section header can carry its own count and tagline. The order is the CATEGORIES order, and
+grouping by category then by subcategory preserves relative order among a category's own cards,
+which is what makes the per-category manifests render the way the single pre-reorg array did.
+
+`sc.sub ||` used to appear here as a dead branch assuming subcategories carried taglines of their
+own. None do. See the data.js note on why `tagline` is not called `sub`.
+```
+
+### before `const POSTER_COLORS = {`
+
+```
+The gradient wash behind each grid thumbnail, keyed by category, and all four are now the exact
+`--<cat>-color` from tokens.css.
+
+Workloads was `#3da0ff` against a `--workloads-color` of `#5bb8ff` until 2026-08-06, the only one of
+the four that did not match. It was carried as a known exception rather than fixed silently, because
+it is a visible gradient on 19 thumbnails and not a cleanup, and it was aligned once the author
+called it. The rule this restores: ONE colour per category, named once in tokens.css, and every
+other place reads it (CANON.md C-22).
+```
+
+### before `const SCHEME_ALIASES = {`
+
+```
+Old card ids keep resolving. A rename is cheap only because this map exists: without it every
+external link, bookmark and sitemap entry pointing at the old id opens the grid instead of the card.
+Add an entry the moment an id changes, never later.
+```
+
+### before `async function openScheme(id, initialStep = null) {`
+
+```
+The dialog lifecycle, and the reason a card module is lazy: 108 modules are never all in memory. The
+function tears down any live controller before building the next dialog, because two Timelines
+running at once leave the first one's registered animations on the canvas of the second.
+```
+
+### before `function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {`
+
+```
+KNOWN DUPLICATION, kept on purpose. This function, `fallbackCopy`, `closeAllDropdowns` and the four
+icon constants exist in THREE copies: here, in cli/js/app.js, and inline in the root index.html.
+About 240 lines.
+
+Collapsing them into one shared module would work and was costed. It is not done because it breaks
+the principle the whole path-based layout is built on: each path prefix is self-contained, and a
+shared chrome module makes /scheme/ fail to render its header when /cli/ moves a file. The
+duplication is the price of that isolation, and it is written down here so nobody rediscovers it as
+a finding.
+```
+
+### before `function alignLogo() {`
+
+```
+Chrome parity with the other two pages: the logo icon is centred over the position of the nav's
+"All" button, and every page runs its own copy of this measurement. Pages without a real nav carry
+an invisible ghost-ruler replica purely so the same arithmetic has something to measure. Skipped
+below 900px, where the nav wraps and the offset would be wrong rather than absent.
+```
+
+---
+
 ## scheme/js/lib/scheme-kit.js
 
-### before `import { g, rect, text, circle, path } from './svg.js';`
+### before `import { svg, g, rect, text, circle, path } from './svg.js';`
 
 ```
 The shared base kit for ALL FOUR categories. The four per-category kits are thin wrappers that
@@ -382,6 +477,150 @@ race with headless step-probing.
 
 ---
 
+## scheme/js/lib/primitives.js
+
+The SVG shape vocabulary every card composes: `box`, `pod`, `podShell`, `node`, `cylinder`, `arrow`,
+`pathArrow`, `packet`, `chip`, `chainList`, plus `arrowDefs`, `animateAlong` and `fadeIn`. It parses
+in Node (no browser globals at load) so the tools can read it.
+
+### before `export const POD_SHELL_FILL = 'rgba(255, 255, 255, 0.03)';`
+
+```
+A Pod drawn as a SHELL is pod() with its rect washed to a near-transparent fill, and that fill stays
+INLINE rather than moving to a class: a CSS class resolves differently against the .scheme-pod-rect
+rules, so the shell would pick up the solid pod fill on some cards and not others.
+
+podShell is what a card should call, not pod(). The pulse queries descendants of the wrapper group,
+so a bare pod() with no inner box pulses at half strength (CANON.md M-03).
+```
+
+### before `export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, role = '', cls = '' } = {}) {`
+
+```
+A two-point pathArrow, and nothing else. It carried its own copy of the marker ladder (four role
+branches) and the class list until 2026-08-06, which is exactly how a role could come to mean one
+thing on a straight lane and another on an elbow without either copy looking wrong.
+
+The collapse is not free in the DOM and that is worth knowing before reading an oracle diff:
+pathArrow sets `stroke-linejoin: miter` and the old arrow did not, so 864 arrow elements across 65
+cards gained that attribute. A two-point path has no join, so nothing renders differently, and the
+anim side of the oracle was byte-identical. Verified line by line rather than assumed: every changed
+line is the old one with exactly one attribute inserted.
+```
+
+### before `export function animateAlong(packetEl, points, options = {}) {`
+
+```
+Walks an element along a points array as one WAAPI animation over a translate keyframe list.
+
+IT HONORS options.delay, and that is not decoration. A bug dropping it made every packet teleport
+invisibly through its delay window and appear already in flight, which reads as a dropped frame
+rather than as a wrong number. Do not regress it.
+
+The default easing is ease-in-out, which is why a tag riding a LINEAR segmentPacket has to be given
+`linear` explicitly (CANON.md M-30).
+```
+
+---
+
+## scheme/js/lib/svg.js
+
+### before `const NS = 'http://www.w3.org/2000/svg';`
+
+```
+The element vocabulary, one thin createElementNS helper per tag. Sixteen exports, six of which
+nothing imports today (`el`, `tspan`, `linearGradient`, `stop`, `title`, `desc`) and they STAY: this
+is a library surface, not accumulated code. Do not read their absence from the import graph as dead
+code, and do not delete them to make an unused-export count go to zero.
+
+No browser globals at module load, so every tool that reads the source can import it in Node.
+```
+
+---
+
+## scheme/js/lib/motion.js
+
+### before `const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener() {} };`
+
+```
+Nine lines, and one of only two modules allowed to touch a browser global at load (app.js is the
+other). The guard is not defensive style: the tools import several lib modules in Node, and an
+unguarded matchMedia here would take the whole harness down rather than one check.
+
+This is the SYSTEM preference. It is a different thing from `ctx.reduced`, which the Timeline also
+sets true when prev or reset replays steps 0..target. A card must satisfy both through the same
+static branch (CANON.md S-14).
+```
+
+---
+
+## scheme/js/lib/inspector.js
+
+### before `export function attachInspector(dialog) {`
+
+```
+`?inspect=1` only. Draws a coordinate grid and bbox overlay over the diagram so a geometry number
+can be read off the canvas instead of guessed, and it is inert without the query parameter: no
+listener, no DOM, no cost on a normal page load.
+```
+
+### before `function publishApi(dialog, svg) {`
+
+```
+Publishes `window.__schemeCtl`, which is the entire contract between the browser and scheme/tools.
+Every check that walks steps goes through it (`gotoStep`, `total`, `_timeline`), so RENAMING
+ANYTHING HERE BREAKS THE WHOLE HARNESS AT ONCE, and it breaks it as a timeout rather than as a
+readable error.
+
+`_timeline` is the deliberate escape hatch: it lets a tool run one step's real play path with no
+auto-advance and then seek its WAAPI animations deterministically, which is what makes frame-strip
+reproducible instead of wall-clock sampled.
+```
+
+---
+
+## scheme/js/lib/sidebar.js
+
+### before `const KEY = 'kube-how:sidebar-collapsed:v1';`
+
+```
+Twenty lines, and BYTE-IDENTICAL to cli/js/lib/sidebar.js. Duplicated, not symlinked, for the same
+reason as the header chrome: each path prefix stays self-contained. Change one, change the other,
+and `diff` them before believing they agree.
+
+IT IS THE ONE FILE UNDER scheme/js/ WITH NO POINTER COMMENT, and that is deliberate: a pointer would
+be the only differing byte, which costs the `diff` its usefulness as the whole verification.
+
+The hub page imports the CLI copy directly rather than carrying a third, so there are two files and
+three importers.
+```
+
+---
+
+## scheme/css/tokens.css
+
+### before `--network-color:    #4fe5ff;`
+
+```
+The category colour ramp, and the CHROME half of the palette: tokens.css is selected through
+`data-cat`, diagrams.css through `data-role`, and the two never cross (CANON.md C-15). Each category
+declares a colour plus a `-glow` and a `-border` alpha of it, used by the grid card, the section
+header and the nav pill.
+
+Measured hues, so a new category picks a free gap rather than a colour that reads as an existing
+one: violet 236 (cluster) > blue 206 (workloads) > cyan 189 (network) > jade 150 (storage).
+
+THE RETIRED LIFECYCLE CORAL IS NOT HERE. It was reserved by an older note and that reservation was
+never written into this file; the only live `#ff668c` in the repo is `--ts-tools-color` in
+cli/css/styles.css, an unrelated slot. A future category may take the coral, and nothing has to be
+freed first.
+
+A tinted DIALOG does not read these: it declares its own four channel lists in styles.css. Retinting
+a category is therefore both places, plus the kit tint and POSTER_COLORS (CANON.md C-22).
+```
+
+---
+
 ## scheme/js/schemes/workloads/workloads-kit.js
 
 ### before `export {`
@@ -501,6 +740,40 @@ THE LITERALS WERE THE BUG, NOT THE FIX. Restating each alpha shade per category 
 category disagree with itself, and two did: a `--tint-glow` that did not match its own `--tint-base`
 put a duller fill inside `.scheme-pod-container` than the stroke drawn around it. Adding a shade
 means ONE line in the generic block, never four.
+```
+
+### decision: clamping the panel was built, measured and reverted
+
+```
+`.narration-overlay` has a width (32%, capped at 360px) and NO height constraint, so it is sized by
+its text. Two consequences, and they are different problems that look like one:
+
+1. IT CHANGES HEIGHT BETWEEN STEPS of one card. Measured 2026-08-06: on 209 of 216 card+viewport
+   pairs the panel height moves as the card plays, so the diagram area under it moves too. Nothing
+   had ever recorded this.
+2. IT CHANGES HEIGHT BETWEEN VIEWPORTS, and by a lot: up to 186 viewBox units
+   (workloads-pod-phase-machine reaches 503 at 1100x800 and 317 at 1600x1000). Every card reserves
+   the band its 1100 worst case needs, so at 1600 that band reads as a hole. FIVE card records call
+   this out and leave a finding OPEN as "unavoidable while the panel is not clamped in CSS".
+
+Pinning min-height to the card's tallest narration was implemented and measured against both.
+
+It fixes (1) completely: 0 of 216 pairs move afterwards. It does NOTHING for (2), and the reason is
+that (2) is not a height problem at all. The panel's WIDTH in viewBox units is already constant, so
+the right edge is x<=397 on every viewport; what is not constant is the FONT, which is a fixed pixel
+size. A wider viewport gives a wider panel in pixels, the same text wraps into fewer lines, and the
+scale it is divided by is larger, so the panel shrinks in viewBox units twice over. Closing (2)
+means typography that scales with the diagram, which changes the reading size of every narration at
+every viewport, and that is a design decision and not a cleanup.
+
+REVERTED, because the cost is visible and the benefit is not the one that was wanted. Pinned to its
+tallest narration, a card with a wide spread of narration lengths shows a bordered box with an empty
+strip at the bottom: on workloads-pod-phase-machine step 3 that strip is about 100px. An empty strip
+inside a drawn border reads as a fault where empty canvas reads as space. Geometry was unaffected
+either way: check-geometry returned the same 8 findings on the same 7 cards with the clamp on.
+
+If (1) is worth solving on its own, the direction is a transition on the height rather than a clamp,
+which keeps the panel snug and removes the jump. That was not tried.
 ```
 
 ### before `.scheme-dialog[data-tinted="true"] .narration-overlay {`

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel} from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-localhost
 
 
@@ -29,10 +29,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'Client', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -41,13 +38,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Containers in a Pod share localhost: every container joins the same network namespace, so app and sidecar reach each other over 127.0.0.1 with no network hop and share one port space, while outside traffic still arrives on the single shared eth0 and Pod IP',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Containers in a Pod share localhost: every container joins the same network namespace, so app and sidecar reach each other over 127.0.0.1 with no network hop and share one port space, while outside traffic still arrives on the single shared eth0 and Pod IP' });
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.4.2' });
@@ -96,6 +87,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { path, port, bind, ipChip }) {
+  setVal(s.refs.pathChip, path);
+  setVal(s.refs.portChip, port);
+  setVal(s.refs.bindChip, bind);
+  setVal(s.refs.ipChip, ipChip);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['clientBox', 'app', 'side', 'eth0', 'lo', 'pathChip', 'portChip', 'bindChip', 'ipChip'], [s.refs.client, s.refs.podGroup]);
@@ -108,10 +106,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.pathChip, 'idle');
-      setVal(s.refs.portChip, 'shared');
-      setVal(s.refs.bindChip, 'free');
-      setVal(s.refs.ipChip, '10.244.1.5');
+      setChips(s, { path: 'idle', port: 'shared', bind: 'free', ipChip: '10.244.1.5' });
     },
   },
   {
@@ -123,7 +118,7 @@ const STEPS = [
       setWire(s, 'local', '127.0.0.1:15001');
       s.refs.app.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
-      setVal(s.refs.pathChip, 'loopback via lo');
+      setChips(s, { path: 'loopback via lo', port: 'shared', bind: 'free', ipChip: '10.244.1.5' });
       if (ctx.reduced) { s.refs.side.classList.add('highlight'); s.refs.lo.classList.add('highlight'); return; }
       // localhost hop app -> sidecar, served entirely through loopback, so lo and the sidecar
       // light on arrival.
@@ -144,8 +139,7 @@ const STEPS = [
       s.refs.app.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
       s.refs.bindChip.classList.add('highlight');
-      setVal(s.refs.portChip, 'one space');
-      setVal(s.refs.bindChip, ':15001 in use');
+      setChips(s, { path: 'loopback via lo', port: 'one space', bind: ':15001 in use', ipChip: '10.244.1.5' });
     },
   },
   {
@@ -155,9 +149,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.ipChip.classList.add('highlight');
-      setVal(s.refs.pathChip, 'eth0');
+      setChips(s, { path: 'eth0', port: 'one space', bind: 'app :8080', ipChip: '10.244.1.5' });
       s.refs.pathChip.classList.add('highlight');
-      setVal(s.refs.bindChip, 'app :8080');
       s.refs.bindChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); s.refs.eth0.classList.add('highlight'); s.refs.app.classList.add('highlight'); return; }
       pulsePod(s.refs.client, ctx, 0);
@@ -179,10 +172,8 @@ const STEPS = [
       s.refs.lo.classList.add('highlight');
       s.refs.portChip.classList.add('highlight');
       s.refs.ipChip.classList.add('highlight');
-      setVal(s.refs.pathChip, 'shared netns');
+      setChips(s, { path: 'shared netns', port: 'one space', bind: 'per port', ipChip: '10.244.1.5' });
       s.refs.pathChip.classList.add('highlight');
-      setVal(s.refs.portChip, 'one space');
-      setVal(s.refs.bindChip, 'per port');
       s.refs.bindChip.classList.add('highlight');
       // Static summary: the shared eth0 and lo both stay lit, no motion.
     },

@@ -1,11 +1,10 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, rect, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, OPACITY, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, OPACITY, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-kube-proxy-modes
 
 
-const CX = 600;                        // canvas centre: the chip strip is built on it
-const SCHEME_L = 40, SCHEME_R = 1160;  // content edges, mirrored about CX
+const SCHEME_L = 40, SCHEME_R = 1160;  // content edges, mirrored about the canvas centre 600
 
 // Narration panel measured at bottom <= 280 (a longer narration invalidates this): the axis sits low
 // enough that the Client Pod shell clears it.
@@ -53,19 +52,13 @@ const IPVS_H2 = [[ENGINE_R, BOT_Y], [TURN_X, BOT_Y], [TURN_X, PODB_Y], [POD_X, P
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 18, y: y + 28, w: w - 36, h: 42, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 function clientBlock({ x, y, w, h }) {
   const shell = podShell({ x, y, w, h, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
   const innerBox = box({ x: x + 18, y: y + 36, w: w - 36, h: 50, label: 'Socket', sublabel: 'dst 10.96.0.20', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 // IPVS engine: a wide box whose body is a bucket grid, so it reads as one indexed hash table that
@@ -91,13 +84,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'kube-proxy backend selection as two routes: the iptables route walks a chain KUBE-SERVICES to KUBE-SVC to KUBE-SEP box by box that grows O(n) with Services, while the IPVS route resolves a backend in one O(1) in-kernel hash lookup',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'kube-proxy backend selection as two routes: the iptables route walks a chain KUBE-SERVICES to KUBE-SVC to KUBE-SEP box by box that grows O(n) with Services, while the IPVS route resolves a backend in one O(1) in-kernel hash lookup' });
     root.appendChild(arrowDefs());
 
     const client = clientBlock({ x: SCHEME_L, y: AXIS - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H });
@@ -155,6 +142,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { pick, ipt, ipvs }) {
+  setVal(s.refs.pickChip, pick);
+  setVal(s.refs.iptChip, ipt);
+  setVal(s.refs.ipvsChip, ipvs);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['ks', 'svc', 'sep', 'ipvs', 'iptChip', 'pickChip', 'ipvsChip', 'clientBox', 'podABox', 'podBBox'],
@@ -178,7 +171,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       baseComplexity(s);
-      setVal(s.refs.pickChip, 'one backend');
+      setChips(s, { pick: 'one backend', ipt: 'rule walk O(n)', ipvs: 'hash O(1)' });
     },
   },
   {
@@ -190,7 +183,7 @@ const STEPS = [
       baseComplexity(s);
       s.refs.iptChip.classList.add('highlight');
       s.refs.pickChip.classList.add('highlight');
-      setVal(s.refs.pickChip, 'statistic random');
+      setChips(s, { pick: 'statistic random', ipt: 'rule walk O(n)', ipvs: 'hash O(1)' });
       setWire(s, 'ipt', 'stops at every rule');
       s.refs.ipvsLane.style.opacity = String(OPACITY.notready);
       s.refs.podB.style.opacity = String(OPACITY.notready);
@@ -219,7 +212,7 @@ const STEPS = [
       baseComplexity(s);
       s.refs.ipvsChip.classList.add('highlight');
       s.refs.pickChip.classList.add('highlight');
-      setVal(s.refs.pickChip, 'scheduler rr / lc');
+      setChips(s, { pick: 'scheduler rr / lc', ipt: 'rule walk O(n)', ipvs: 'hash O(1)' });
       setWire(s, 'ipvs', 'one hash lookup, any scale');
       s.refs.iptLane.style.opacity = String(OPACITY.notready);
       s.refs.podA.style.opacity = String(OPACITY.notready);
@@ -243,11 +236,9 @@ const STEPS = [
       s.refs.ipvs.classList.add('highlight');
       s.refs.iptChip.classList.add('highlight');
       s.refs.ipvsChip.classList.add('highlight');
-      setVal(s.refs.iptChip, 'thousands of rules');
-      setVal(s.refs.ipvsChip, 'still one lookup');
+      setChips(s, { pick: 'unchanged by scale', ipt: 'thousands of rules', ipvs: 'still one lookup' });
       // What is true HERE is that selection is what scale does NOT touch. It must not say the two
       // modes select the same way: two earlier steps establish that they do not.
-      setVal(s.refs.pickChip, 'unchanged by scale');
       s.refs.pickChip.classList.add('highlight');
       setWire(s, 'ipt', 'grows with every Service');
       setWire(s, 'ipvs', 'constant time');

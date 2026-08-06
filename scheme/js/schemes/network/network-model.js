@@ -1,6 +1,6 @@
-import { svg, g, rect, text, line } from '../../lib/svg.js';
+import { g, rect, text, line } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, relationPath, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, relationPath, BEAT, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-model
 
 
@@ -55,10 +55,7 @@ const CNI_CONNECTOR = [[CNI_X, CNI_BOTTOM], [CNI_X, BUS_Y]];
 function podBlock({ x, label, ip }) {
   const shell = podShell({ x, y: POD_TOP, w: POD_W, h: 120, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 18, y: POD_TOP + 34, w: POD_W - 36, h: 50, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -67,13 +64,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The Kubernetes network model: every Pod attaches to one flat cluster-wide address space, any Pod reaches any other Pod on any Node with no NAT, the Node agent reaches its local Pods, and a CNI plugin is what implements the model',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'The Kubernetes network model: every Pod attaches to one flat cluster-wide address space, any Pod reaches any other Pod on any Node with no NAT, the Node agent reaches its local Pods, and a CNI plugin is what implements the model' });
     root.appendChild(arrowDefs());
 
     // Flat-network band built by hand so a dashed rail can sit inside it, below the centred
@@ -149,6 +140,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { ipChip, nat, reach }) {
+  setVal(s.refs.ipChip, ipChip);
+  setVal(s.refs.natChip, nat);
+  setVal(s.refs.reachChip, reach);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   // The four container boxes are keys, not pod groups: the pod-group list only resets inline pulse
@@ -201,9 +198,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       pendingIps(s);
-      setVal(s.refs.ipChip, 'one per Pod');
-      setVal(s.refs.natChip, 'none');
-      setVal(s.refs.reachChip, 'any to any');
+      setChips(s, { ipChip: 'one per Pod', nat: 'none', reach: 'any to any' });
     },
   },
   {
@@ -213,7 +208,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.ipChip.classList.add('highlight');
-      setVal(s.refs.ipChip, 'unique, cluster-wide');
+      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none', reach: 'any to any' });
       // The address appears here: x.x.x.x at idle becomes the real Pod IP on this step.
       revealIps(s, ctx);
       if (ctx.reduced) {
@@ -235,8 +230,7 @@ const STEPS = [
       resetStep(s);
       s.refs.natChip.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
-      setVal(s.refs.natChip, 'none, src 10.244.1.5');
-      setVal(s.refs.reachChip, 'cross-Node direct');
+      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none, src 10.244.1.5', reach: 'cross-Node direct' });
       if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); return; }
       pulsePod(s.refs.podA, ctx, 0);
       // routePacket omits dur (canon: routeDur normalizes by length). The label uses the same
@@ -256,9 +250,8 @@ const STEPS = [
       // NAT still applies on the same-Node path: the src arrives unchanged, so the chip stays
       // highlighted and current, not dropped while its neighbour stays lit.
       s.refs.natChip.classList.add('highlight');
-      setVal(s.refs.natChip, 'none, src 10.244.1.5');
+      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none, src 10.244.1.5', reach: 'same-Node direct' });
       s.refs.reachChip.classList.add('highlight');
-      setVal(s.refs.reachChip, 'same-Node direct');
       if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); return; }
       // Same mechanism as cross-Node, just a shorter ride: A pulses, packet rides A -> B, B pulses.
       // The same src-IP tag rides along and arrives unchanged, no NAT on the local path either.
@@ -277,9 +270,8 @@ const STEPS = [
       resetStep(s);
       s.refs.kubelet.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');
-      setVal(s.refs.reachChip, 'agent to local Pod');
+      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none', reach: 'agent to local Pod' });
       s.refs.natChip.classList.add('highlight');
-      setVal(s.refs.natChip, 'none');
       // Local scope: the kubelet on Node-2 reaches only its Node-2 Pod (C). Fade the other Nodes
       // out so the guarantee reads as local-only, not the any-to-any of rule two.
       s.refs.podA.style.opacity = String(OPACITY.notready);
@@ -298,6 +290,7 @@ const STEPS = [
     narration: 'None of this is hard-wired into the core. A CNI plugin, such as Calico, Cilium or Flannel, is what attaches every Pod to the flat space and upholds all of these rules. Here it lights up the whole fabric. Swap the plugin and the model stays the same.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none', reach: 'agent to local Pod' });
       s.refs.bus.classList.add('highlight');
       setBoxSublabel(s.refs.bus, 'implemented by your CNI plugin');
       // Reveal the CNI badge and let it energize the fabric: the bus spine and every Pod wire

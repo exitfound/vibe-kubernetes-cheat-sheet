@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT } from './network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-cni-invocation
 
 
@@ -15,7 +15,6 @@ const CRI  = [370, 312 - RAISE, 220, 80];   // centre 480  right 590  bottom 328
 const CRI_CX = CRI[0] + CRI[2] / 2;         // 480
 
 const SBX = [360, 442 - RAISE, 240, 116];   // x, y, w, h  -> top 378  right 600  centre y 436 = PAUSE_Y
-const SBX_CX = SBX[0] + SBX[2] / 2;         // 480
 const SBX_RIGHT = SBX[0] + SBX[2];          // 600
 const PAUSE_Y = 500 - RAISE;                 // 436: pause / eth0 inner box centre = result-tap height = block centre
 
@@ -45,13 +44,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CNI plugin invocation: the Kubelet asks the CRI runtime to create the Pod sandbox, the runtime invokes the CNI ADD operation, the plugin chain wires a veth and allocates an IP, and the result is written into the sandbox namespace as eth0',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'CNI plugin invocation: the Kubelet asks the CRI runtime to create the Pod sandbox, the runtime invokes the CNI ADD operation, the plugin chain wires a veth and allocates an IP, and the result is written into the sandbox namespace as eth0' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: KUBE[0], y: KUBE[1], w: KUBE[2], h: KUBE[3], label: 'Kubelet', sublabel: 'PodSpec ready', role: 'network' });
@@ -118,6 +111,11 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { ipChip, op }) {
+  setVal(s.refs.ipChip, ipChip);
+  setVal(s.refs.opChip, op);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['kubelet', 'cri', 'ipChip', 'opChip', 'sandboxInner'], [s.refs.sandbox]);
@@ -139,8 +137,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.ipChip, 'pending');
-      setVal(s.refs.opChip, 'idle');
+      setChips(s, { ipChip: 'pending', op: 'idle' });
       setPodSublabel(s.refs.sandbox, 'netns: lo only');
     },
   },
@@ -156,7 +153,7 @@ const STEPS = [
       setWire(s, 'run', 'RunPodSandbox');
       setWire(s, 'netns', 'create netns');
       s.refs.opChip.classList.add('highlight');
-      setVal(s.refs.opChip, 'not called yet');
+      setChips(s, { ipChip: 'pending', op: 'not called yet' });
       setPodSublabel(s.refs.sandbox, 'netns: lo only');
       if (ctx.reduced) { s.refs.cri.classList.add('highlight'); s.refs.sandboxInner.classList.add('highlight'); return; }
       // kubelet calls the runtime, which then creates the sandbox: two chained hops, the sandbox
@@ -177,7 +174,7 @@ const STEPS = [
       setChainActive(s.refs.chain, 0);
       s.refs.opChip.classList.add('highlight');
       setWire(s, 'add', 'ADD + netns path');
-      setVal(s.refs.opChip, 'ADD');
+      setChips(s, { ipChip: 'pending', op: 'ADD' });
       if (ctx.reduced) return;
       // The ADD call rides straight from the runtime into the bridge tap (top of the spine).
       segmentPacket(s, ctx, { from: ADD[0], to: ADD[1], role: 'network' });
@@ -193,8 +190,7 @@ const STEPS = [
       lightChain(s, 0, 1);
       s.refs.ipChip.classList.add('highlight');
       s.refs.opChip.classList.add('highlight');
-      setVal(s.refs.ipChip, '10.244.1.5');
-      setVal(s.refs.opChip, 'ADD');
+      setChips(s, { ipChip: '10.244.1.5', op: 'ADD' });
       if (ctx.reduced) return;
       // The bridge delegates down the spine to the IPAM tap, rippling there as the address is
       // picked.
@@ -211,8 +207,7 @@ const STEPS = [
       lightChain(s, 1, 2);
       s.refs.ipChip.classList.add('highlight');
       s.refs.opChip.classList.add('highlight');
-      setVal(s.refs.ipChip, '10.244.1.5');
-      setVal(s.refs.opChip, 'ADD');
+      setChips(s, { ipChip: '10.244.1.5', op: 'ADD' });
       if (ctx.reduced) return;
       // The ball rides the spine from the IPAM tap to the result tap and stops there, rippling like
       // it did at bridge and IPAM, so every plugin in the chain gets its own arrival.
@@ -229,8 +224,7 @@ const STEPS = [
       s.refs.ipChip.classList.add('highlight');
       s.refs.opChip.classList.add('highlight');
       setWire(s, 'result', 'eth0 up');
-      setVal(s.refs.ipChip, '10.244.1.5');
-      setVal(s.refs.opChip, 'ADD ok');
+      setChips(s, { ipChip: '10.244.1.5', op: 'ADD ok' });
       setPodSublabel(s.refs.sandbox, 'eth0: 10.244.1.5');
       if (ctx.reduced) { s.refs.sandboxInner.classList.add('highlight'); return; }
       // Only now does the ball leave the result tap and ride the straight wire into the sandbox,
@@ -248,8 +242,7 @@ const STEPS = [
       s.refs.kubelet.classList.add('highlight');
       setWire(s, 'join', 'start app containers');
       setPodSublabel(s.refs.sandbox, 'eth0: 10.244.1.5');
-      setVal(s.refs.ipChip, '10.244.1.5');
-      setVal(s.refs.opChip, 'DEL on delete');
+      setChips(s, { ipChip: '10.244.1.5', op: 'DEL on delete' });
       s.refs.opChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.sandboxInner.classList.add('highlight'); return; }
       // kubelet starts the app containers into the existing namespace: an L route, the sandbox

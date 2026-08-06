@@ -1,4 +1,4 @@
-/* Design notes: scheme/docs/INTERNALS.md#schemecssdiagramscss */
+/* Design notes: scheme/INTERNALS.md#schemecssdiagramscss */
 /* ===== DIAGRAM PRIMITIVES ===== */
 
 svg.diagram {
@@ -235,11 +235,8 @@ svg.diagram[data-style="outline"] .scheme-pod.highlight .scheme-pod-rect {
   stroke-opacity: 1;
 }
 
-/* Generic dim/active states */
 /* Texture cells (the IPVS hash table): presentation, not a lifecycle shade. */
 .scheme-grid-cell { opacity: 0.4; }
-.scheme-dim { opacity: 0.35; }
-.scheme-hidden { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .scheme-pod-rect, .scheme-box-rect, .scheme-cylinder-body, .scheme-cylinder-cap, .scheme-node-rect, .scheme-chip-rect, .scheme-pod-container {

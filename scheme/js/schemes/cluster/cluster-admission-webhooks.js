@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt } from './cluster-kit.js';
+import { valChip, setVal, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, diagramRoot } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS.md#cluster-admission-webhooks
 
@@ -16,8 +16,8 @@ const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const BAND_INSET = 40;
 const BAND_L = CONTENT_L + BAND_INSET, BAND_R = CONTENT_R - BAND_INSET;   // 100 / 1100
 
-const KCTL_X = BAND_L, KCTL_W = 240, KCTL_H = 80;
-const KCTL_Y = 300, KCTL_R = KCTL_X + KCTL_W;            // 100..340, 300..380
+const KCTL_X = BAND_L, KCTL_W = 240, KCTL_H = 80;       // 100..340
+const KCTL_Y = 300;                                      // 300..380
 const KCTL_CX = KCTL_X + KCTL_W / 2;                     // 220, both lanes straddle this
 
 const TOP_Y = 60, TOP_H = 80, TOP_BOTTOM = TOP_Y + TOP_H;// 60 / 140
@@ -53,13 +53,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Admission chain: five stages from API request to ETCD',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Admission chain: five stages from API request to ETCD' });
     root.appendChild(arrowDefs());
 
     // The Api and its ladder hold the middle column; kubectl and ETCD are the flanks, both standing
@@ -134,6 +128,11 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { obj, failurePolicy }) {
+  setVal(s.refs.objChip, obj);
+  setVal(s.refs.failurePolicy, failurePolicy);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['kubectl','api','etcdC','objChip','failurePolicy']);
@@ -146,8 +145,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.objChip, '{cpu=100m}');
-      setVal(s.refs.failurePolicy, 'Fail | Ignore');
+      setChips(s, { obj: '{cpu=100m}', failurePolicy: 'Fail | Ignore' });
     },
   },
   {
@@ -157,7 +155,7 @@ const STEPS = [
     narration: 'Built-in, and already done. The request arrives authenticated, so admission never sees an anonymous caller. Authorizers run in configured order, commonly Node then RBAC, and the first to allow or to deny ends it, so no later one runs. Nothing allowing it means 403.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.failurePolicy, 'Fail | Ignore');
+      setChips(s, { obj: '{cpu=100m}', failurePolicy: 'Fail | Ignore' });
       setWire(s, 'req', 'POST /api/v1/namespaces/default/pods');
       s.refs.kubectl.classList.add('highlight');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
@@ -177,8 +175,7 @@ const STEPS = [
       resetStep(s);
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[1]) rows[1].classList.add('highlight');
-      setVal(s.refs.objChip, '{cpu=100m, runAsNonRoot=true}');
-      setVal(s.refs.failurePolicy, 'Fail | Ignore');
+      setChips(s, { obj: '{cpu=100m, runAsNonRoot=true}', failurePolicy: 'Fail | Ignore' });
       s.refs.objChip.classList.add('highlight');
       s.refs.failurePolicy.classList.add('highlight');
       // Rewrites land on statically highlighted chips, no block flash. The Api is lit because this
@@ -192,7 +189,7 @@ const STEPS = [
     narration: 'Built-in. The API validates the mutated object for its kind, so bad types and missing required fields fail here, before any validating webhook runs.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.failurePolicy, 'Fail | Ignore');
+      setChips(s, { obj: '{cpu=100m, runAsNonRoot=true}', failurePolicy: 'Fail | Ignore' });
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[2]) rows[2].classList.add('highlight');
       // Schema validation happens inside the Api, so the Api is lit and the object under check
@@ -211,7 +208,7 @@ const STEPS = [
       resetStep(s);
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[3]) rows[3].classList.add('highlight');
-      setVal(s.refs.failurePolicy, 'Fail | Ignore');
+      setChips(s, { obj: '{cpu=100m, runAsNonRoot=true}', failurePolicy: 'Fail | Ignore' });
       s.refs.failurePolicy.classList.add('highlight');
       // Validating webhooks may only allow or deny; the policy chip stays statically
       // highlighted, no block flash. The Api is lit for the same reason as the two stages above.
@@ -224,7 +221,7 @@ const STEPS = [
     narration: 'Built-in. The API writes the final object to ETCD via Raft. Once ETCD commits, the API returns HTTP 201 Created to the client and every open watch receives an ADDED event so informers can update their caches.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.failurePolicy, 'Fail | Ignore');
+      setChips(s, { obj: '{cpu=100m, runAsNonRoot=true}', failurePolicy: 'Fail | Ignore' });
       setWire(s, 'resp', 'HTTP 201 Created');
       const rows = s.refs.chain.querySelectorAll('.scheme-chip');
       if (rows[4]) rows[4].classList.add('highlight');

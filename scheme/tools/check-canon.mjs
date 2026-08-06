@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // check-canon.mjs: source lint for the packet-motion canon over all four card families.
-// Rules, what each catches and why, are documented in scheme/CLAUDE.md (Dev tools).
+// Every rule here has a row in ../CANON.md, whose Check column names this file; ./README.md
+// says what the check is BLIND to.
 // node check-canon.mjs        CANON_VERBOSE=1 lists every report-only finding
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -80,7 +81,9 @@ const ENFORCED = new Set([
   'R-rawpulse',
   // Queue drained: matching a tag to its ball by their shared points array cut 33 findings to 0.
   'R-ridinglabel',
-  // Empty on arrival: all four kits re-export the same 26 names today.
+  // Empty on arrival: all four kits re-export the same list. The SIZE of that list is deliberately
+  // not written down here or anywhere else, because five places once named three different numbers
+  // and this rule compares the kits only to each other. It is the source of truth (../CANON.md S-22).
   'R-kitparity',
   // Queue drained by the B2 text pass, and the band was widened on 2026-07-26 to 400-470.
   'R-desc',
@@ -101,9 +104,8 @@ const ENFORCED = new Set([
   'R-modulepath',
   // Enforced on arrival: 108 cards, 108 posters, an exact bijection the day the map was split.
   'R-poster',
-  // The card skeleton, which nothing checked until now: scheme/CLAUDE.md has always stated it and
-  // tools/README.md listed it under check-canon's blind spots. It prints a CENSUS, so a refactor of
-  // the skeleton is accepted against numbers rather than against "0 findings".
+  // The card skeleton, ../CANON.md S-01 to S-12, which nothing checked until it landed here. It
+  // prints a CENSUS, so a refactor of the skeleton is accepted against numbers, not "0 findings".
   'R-skeleton',
 ]);
 const advisories = [];
@@ -187,9 +189,18 @@ for (const { base: f, path } of files) {
 
   // 4. canonical viewBox. A shifted camera is how an off-centre composition gets hidden
   //    instead of fixed, and it silently rescales the card against its siblings.
+  //
+  //    THE RULE REQUIRES A MATCH RATHER THAN CHECKING ONE IF IT FINDS IT. Until 2026-08-06 it
+  //    matched a `viewBox:` literal and did nothing when there was none, so hoisting the root svg
+  //    into a helper would have retired the rule permanently at exit 0. Now a card has to either
+  //    build its root through diagramRoot() or spell the canon viewBox itself, and anything else is
+  //    a finding.
   const vb = code.match(/viewBox:\s*'([^']+)'/);
+  const viaHelper = /\bdiagramRoot\s*\(/.test(code);
   if (vb && vb[1] !== CANON_VIEWBOX) {
     report('R-viewbox', `${f}:${lineAt(vb.index)}  viewBox '${vb[1]}' (canon is '${CANON_VIEWBOX}'; re-centre the content, do not move the camera)`);
+  } else if (!vb && !viaHelper) {
+    report('R-viewbox', `${f}  builds its root svg neither through diagramRoot() nor with a literal viewBox, so nothing pins this card's camera`);
   }
 
   // 5. a tag must ride with its ball's easing. Tag and ball share one points array, so look that
@@ -250,7 +261,7 @@ for (const { base: f, path } of files) {
   }
 
   // ---- R-skeleton ----
-  // The module skeleton scheme/CLAUDE.md has always specified and nothing has ever checked. It
+  // The module skeleton ../CANON.md specifies as S-01 to S-12, which nothing ever checked. It
   // reads the comment-stripped copy, so a card that only TALKS about class Scene is not a finding.
   // Every count it takes feeds the census below: the point is that a refactor of the skeleton is
   // accepted against a number, not against an empty finding list.
@@ -286,7 +297,7 @@ for (const { base: f, path } of files) {
 
 // ---- R-kitparity ----
 // The four kits re-export the same list on purpose (it documents the boundary), so it must not
-// drift. Why not `export *`: scheme/CLAUDE.md, Card construction standard.
+// drift. Why not `export *`: ../CANON.md S-24.
 {
   // Each kit lives beside the cards it serves, so the path carries its category. The specifier in
   // the match below is left open ('[^']*scheme-kit.js') rather than pinned to './scheme-kit.js':
@@ -424,6 +435,9 @@ const ROOT = join(__dirname, '..', '..');
 const dashTargets = [
   'scheme/js/data.js', 'scheme/js/app.js', 'scheme/js/posters.js', 'scheme/js/contacts.js',
   'scheme/index.html',
+  // CANON.md is in scope where the design records are not: a record describes one decision, the
+  // canon states the rules, and a rule that quotes a dash teaches the dash.
+  'scheme/CANON.md',
   'cli/js/data.js', 'cli/js/app.js', 'cli/css/styles.css',
   'index.html', 'README.md',
 ];

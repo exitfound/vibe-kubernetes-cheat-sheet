@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, lightBoxAt, BEAT, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, routeDur, makeInit, clearHighlights, clearWires, lightBoxAt, BEAT, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-traffic-distribution
 
 
@@ -37,19 +37,13 @@ const FAN_B2 = [KP, [RAIL_X, FLOW_Y], [RAIL_X, B2Y], [POD_L, B2Y]];
 function podBlock({ x, y, w = POD_W, h = POD_H, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 18, y: y + 30, w: w - 36, h: 44, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 function clientBlock({ x, y, w, h }) {
   const shell = podShell({ x, y, w, h, label: 'Client . zone-a', sublabel: '10.244.2.50', containers: 0, role: 'network' });
   const innerBox = box({ x: x + 16, y: y + 34, w: w - 32, h: 48, label: 'app', sublabel: 'to Service web', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -58,13 +52,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Session affinity and topology-aware routing: kube-proxy spreads connections across all endpoints by default, sessionAffinity pins a client to one Pod, and trafficDistribution PreferSameZone keeps traffic in the client zone with a fallback to other zones',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Session affinity and topology-aware routing: kube-proxy spreads connections across all endpoints by default, sessionAffinity pins a client to one Pod, and trafficDistribution PreferSameZone keeps traffic in the client zone with a fallback to other zones' });
     root.appendChild(arrowDefs());
 
     const client = clientBlock({ x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H });
@@ -112,6 +100,11 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { mode, pin }) {
+  setVal(s.refs.modeChip, mode);
+  setVal(s.refs.pinChip, pin);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['kproxy', 'modeChip', 'pinChip', 'clientBox', 'a1Box', 'a2Box', 'b1Box', 'b2Box'],
@@ -155,8 +148,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.modeChip.classList.add('highlight');
-      setVal(s.refs.modeChip, 'unset . spread all');
-      setVal(s.refs.pinChip, 'None');
+      setChips(s, { mode: 'unset . spread all', pin: 'None' });
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.a1Box.classList.add('highlight'); s.refs.b2Box.classList.add('highlight'); return; }
       // TWO connections from one client, the second staggered by 540 so they read as two rides rather
       // than one ball splitting. kube-proxy is still the RECEIVER of the client hop, so it lights on it.
@@ -175,8 +167,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.pinChip.classList.add('highlight');
-      setVal(s.refs.modeChip, 'unset . spread all');
-      setVal(s.refs.pinChip, 'ClientIP . pin .2.7');
+      setChips(s, { mode: 'unset . spread all', pin: 'ClientIP . pin .2.7' });
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.a1Box.classList.add('highlight'); return; }
       // Two connections from the same client both land on the SAME Pod (a1, 10.244.2.7).
       pulsePod(s.refs.client, ctx, 0);
@@ -193,8 +184,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.modeChip.classList.add('highlight');
-      setVal(s.refs.modeChip, 'PreferSameZone . in-zone');
-      setVal(s.refs.pinChip, 'None');
+      setChips(s, { mode: 'PreferSameZone . in-zone', pin: 'None' });
       s.refs.pinChip.classList.add('highlight');
       // The far zone is not preferred: dim its Pods.
       s.refs.b1.style.opacity = String(OPACITY.notready);
@@ -213,8 +203,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.modeChip.classList.add('highlight');
-      setVal(s.refs.modeChip, 'PreferSameZone . fallback');
-      setVal(s.refs.pinChip, 'None');
+      setChips(s, { mode: 'PreferSameZone . fallback', pin: 'None' });
       // zone-a has no ready endpoint: dim its Pods, traffic falls back to zone-b.
       s.refs.a1.style.opacity = String(OPACITY.notready);
       s.refs.a2.style.opacity = String(OPACITY.notready);

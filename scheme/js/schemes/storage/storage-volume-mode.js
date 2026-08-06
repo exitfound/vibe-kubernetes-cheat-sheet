@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, node, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
+import { valChip, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volume-mode
 
 
@@ -56,10 +56,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock({ x, label, sublabel, ctr, ctrSub }) {
   const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 14, y: POD_Y + 44, w: POD_W - 28, h: 52, label: ctr, sublabel: ctrSub, role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -68,13 +65,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'volumeMode decides what a Pod is handed. Under Filesystem, the default, the CSI node service formats the device with mkfs if it has no filesystem yet, mounts it, and the container finds an ordinary directory at the mountPath given under volumeMounts, where file permissions and the fsGroup ownership walk apply. Under Block nothing is formatted and nothing is mounted: the raw device is published into the container at the devicePath given under volumeDevices, and every filesystem level feature stops applying. The field is immutable and must match on the PersistentVolume and the claim.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'volumeMode decides what a Pod is handed. Under Filesystem, the default, the CSI node service formats the device with mkfs if it has no filesystem yet, mounts it, and the container finds an ordinary directory at the mountPath given under volumeMounts, where file permissions and the fsGroup ownership walk apply. Under Block nothing is formatted and nothing is mounted: the raw device is published into the container at the devicePath given under volumeDevices, and every filesystem level feature stops applying. The field is immutable and must match on the PersistentVolume and the claim.' });
     root.appendChild(arrowDefs());
 
     const nodeBox = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });

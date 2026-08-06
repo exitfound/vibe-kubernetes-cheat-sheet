@@ -1,12 +1,11 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-job-parallelism
 
 // Layout C of the Workloads canon (WL): full-width chip strip, a bus tapping all three workers.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
-const PANEL_B = 280;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
@@ -59,13 +58,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Job parallelism and completions: at most parallelism workers run concurrently, until completions successful runs are recorded',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Job parallelism and completions: at most parallelism workers run concurrently, until completions successful runs are recorded' });
     root.appendChild(arrowDefs());
 
     const controller = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Job', sublabel: 'spawn + count', role: 'cluster' });
@@ -146,6 +139,14 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { par, comp, succ, fail, phase }) {
+  setVal(s.refs.parChip, par);
+  setVal(s.refs.compChip, comp);
+  setVal(s.refs.succChip, succ);
+  setVal(s.refs.failChip, fail);
+  setVal(s.refs.phaseChip, phase);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -184,11 +185,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       setUnits(s, 'idle', 'idle', 'idle');
-      setVal(s.refs.parChip, '3');
-      setVal(s.refs.compChip, '6');
-      setVal(s.refs.succChip, '0');
-      setVal(s.refs.failChip, '0');
-      setVal(s.refs.phaseChip, '0 active');
+      setChips(s, { par: '3', comp: '6', succ: '0', fail: '0', phase: '0 active' });
       setPods(s, 0, 0, 0);
       setChainActive(s.refs.chain, 0);
     },
@@ -200,9 +197,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setUnits(s, 'running · unit-1', 'running · unit-2', 'running · unit-3');
-      setVal(s.refs.succChip, '0');
-      setVal(s.refs.failChip, '0');
-      setVal(s.refs.phaseChip, 'Running · 3 active');
+      setChips(s, { par: '3', comp: '6', succ: '0', fail: '0', phase: '0 active' });
       setWire(s, 'req', 'create 3 Pods (parallelism cap)');
       s.refs.controller.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
@@ -213,7 +208,6 @@ const STEPS = [
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
       // The step STARTS from the observation its own narration opens with, zero live Pods, and the
       // chip only turns over once the three creates have landed.
-      setVal(s.refs.phaseChip, '0 active');
       // Create travels controller -> Api -> Node. The 3 Pods materialize and pulse
       // together when the create reaches the node (parallelism=3 starts them simultaneously).
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
@@ -234,9 +228,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setUnits(s, 'unit-1 done · exit 0', 'unit-2 done · exit 0', 'unit-3 FAILED · exit 1');
-      setVal(s.refs.succChip, '2');
-      setVal(s.refs.failChip, '1');
-      setVal(s.refs.phaseChip, 'Running · 1 failed');
+      setChips(s, { par: '3', comp: '6', succ: '2', fail: '1', phase: 'Running · 1 failed' });
       setWire(s, 'req', 'watch Pod exits · 2 exit 0 · 1 exit 1');
       // The API is the source of the watch and is lit from entry. The controller RECEIVES it, so it
       // stays dark until the event lands.
@@ -267,9 +259,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setUnits(s, 'running · unit-4', 'running · unit-5', 'running · unit-3 (retry)');
-      setVal(s.refs.succChip, '2');
-      setVal(s.refs.failChip, '1');
-      setVal(s.refs.phaseChip, 'Running · 3 active');
+      setChips(s, { par: '3', comp: '6', succ: '2', fail: '1', phase: 'Running · 3 active' });
       setWire(s, 'req', 'create Pods · units 4, 5 + unit-3 retry');
       s.refs.controller.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');
@@ -291,9 +281,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setUnits(s, 'unit-6 done · exit 0', 'unit-5 done · exit 0', 'unit-3 done · exit 0');
-      setVal(s.refs.succChip, '6');
-      setVal(s.refs.failChip, '1');
-      setVal(s.refs.phaseChip, 'Complete · 6/6 succeeded');
+      setChips(s, { par: '3', comp: '6', succ: '6', fail: '1', phase: 'Complete · 6/6 succeeded' });
       setWire(s, 'req', 'watch final exit · succeeded == completions');
       s.refs.controller.classList.add('highlight');
       s.refs.phaseChip.classList.add('highlight');

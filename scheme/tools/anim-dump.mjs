@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // anim-dump.mjs: a card's motion AS DATA per step (target, props, dur/delay/easing, transforms
-// sampled at fixed progress, plus DOM facts). Analysis aid, not a gate. See scheme/CLAUDE.md.
+// sampled at fixed progress, plus DOM facts). Analysis aid, not a gate. See ./README.md.
 // node anim-dump.mjs <id> [step] [--samples=0,50,100] [--json] [--base=URL]
 // node anim-dump.mjs --all --out=DIR [--samples=...]   one JSON per card, the motion oracle
 

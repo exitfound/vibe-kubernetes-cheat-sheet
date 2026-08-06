@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, lightBoxAt, BEAT, FADE, makeRidingLabel, OPACITY } from './network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, lightBoxAt, BEAT, FADE, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-terminating-endpoints
 
 
@@ -24,10 +24,7 @@ const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -36,13 +33,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Terminating endpoints and connection draining: when a backing Pod is deleted its endpoint is flagged terminating so kube-proxy stops sending new connections to it while in-flight connections keep draining through the grace period, then the endpoint is removed',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Terminating endpoints and connection draining: when a backing Pod is deleted its endpoint is flagged terminating so kube-proxy stops sending new connections to it while in-flight connections keep draining through the grace period, then the endpoint is removed' });
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: 70, y: 270, w: 185, h: 112, label: 'Client Pod', ip: '10.244.1.5' });
@@ -83,6 +74,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { cond, newConns, grace }) {
+  setVal(s.refs.condChip, cond);
+  setVal(s.refs.newChip, newConns);
+  setVal(s.refs.graceChip, grace);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   // Inner app boxes are listed so a .highlight set in a reduced-replay block does not leak into later
@@ -111,9 +108,7 @@ const STEPS = [
     narration: 'Both Pods are Ready endpoints in the slice, so kube-proxy spreads new connections across the two of them. This is the normal state, before anything starts to change.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.condChip, 'ready · serving');
-      setVal(s.refs.newChip, 'web-a and web-c');
-      setVal(s.refs.graceChip, 'not draining');
+      setChips(s, { cond: 'ready · serving', newConns: 'web-a and web-c', grace: 'not draining' });
       if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.podCBox.classList.add('highlight'); return; }
       // Up-arrow: the client pulses, one packet runs the lane to kube-proxy, then both fans fire so the
       // two backends light together and the balancing across both endpoints reads clearly.
@@ -133,10 +128,8 @@ const STEPS = [
     narration: 'The rollout deletes Pod web-c. Its preStop hook runs first and SIGTERM follows from the Kubelet, but the container does not vanish at once. It enters Terminating and keeps serving whatever it is already handling.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.condChip, 'terminating · serving');
+      setChips(s, { cond: 'terminating · serving', newConns: 'web-a and web-c', grace: 'terminationGracePeriod 30s' });
       s.refs.condChip.classList.add('highlight');
-      setVal(s.refs.newChip, 'web-a and web-c');
-      setVal(s.refs.graceChip, 'terminationGracePeriod 30s');
       s.refs.graceChip.classList.add('highlight');
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
       // Static end-state: web-c has taken the signal and dimmed out of the normal set.
@@ -155,11 +148,9 @@ const STEPS = [
     narration: 'Almost at once that endpoint flips in the slice: ready becomes false while serving and terminating stay true. The kube-proxy reads the change and stops handing NEW connections to web-c, so fresh traffic now goes to web-a only.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.condChip, 'notReady · serving');
+      setChips(s, { cond: 'notReady · serving', newConns: 'web-a only', grace: 'terminationGracePeriod 30s' });
       s.refs.condChip.classList.add('highlight');
-      setVal(s.refs.newChip, 'web-a only');
       s.refs.newChip.classList.add('highlight');
-      setVal(s.refs.graceChip, 'terminationGracePeriod 30s');
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
       // web-c is out of the new-connection set: keep it dim at the shared DIM level.
       s.refs.podC.style.opacity = String(OPACITY.terminating);
@@ -182,10 +173,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.kproxy.classList.add('highlight');
-      setVal(s.refs.condChip, 'notReady · draining');
+      setChips(s, { cond: 'notReady · draining', newConns: 'web-a only', grace: 'draining in grace window' });
       s.refs.condChip.classList.add('highlight');
-      setVal(s.refs.newChip, 'web-a only');
-      setVal(s.refs.graceChip, 'draining in grace window');
       s.refs.graceChip.classList.add('highlight');
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
       s.refs.podC.style.opacity = String(OPACITY.terminating);
@@ -208,11 +197,9 @@ const STEPS = [
     narration: 'When the grace period ends web-c exits and its endpoint leaves the slice. Its replacement is already Ready elsewhere in the ReplicaSet, so the Service never dropped below its backend count. Traffic carried on throughout, and no client saw a reset.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.condChip, 'removed');
+      setChips(s, { cond: 'removed', newConns: 'web-a + replica', grace: 'grace elapsed' });
       s.refs.condChip.classList.add('highlight');
-      setVal(s.refs.newChip, 'web-a + replica');
       s.refs.newChip.classList.add('highlight');
-      setVal(s.refs.graceChip, 'grace elapsed');
       s.refs.graceChip.classList.add('highlight');
       setPodSublabel(s.refs.podC, '10.244.3.9 · terminated');
       // web-c is gone, so it drops from the terminating shade to the terminated one.

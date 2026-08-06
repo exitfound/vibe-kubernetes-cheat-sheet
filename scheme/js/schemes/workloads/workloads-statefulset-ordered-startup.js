@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-statefulset-ordered-startup
 
@@ -60,13 +60,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'StatefulSet ordered rollout: Pods start one at a time in ordinal order, each gets a sticky hostname and PVC',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'StatefulSet ordered rollout: Pods start one at a time in ordinal order, each gets a sticky hostname and PVC' });
     root.appendChild(arrowDefs());
 
     const controller = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'StatefulSet', sublabel: 'serial scale-up', role: 'cluster' });
@@ -154,6 +148,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { web0, web1, web2, focus }) {
+  setVal(s.refs.web0Chip, web0);
+  setVal(s.refs.web1Chip, web1);
+  setVal(s.refs.web2Chip, web2);
+  setVal(s.refs.focusChip, focus);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -194,10 +195,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setPods(s, 1, 0, 0);
-      setVal(s.refs.web0Chip, 'Ready · web-0.web');
-      setVal(s.refs.web1Chip, 'not created');
-      setVal(s.refs.web2Chip, 'not created');
-      setVal(s.refs.focusChip, 'PVC data-web-0 bound');
+      setChips(s, { web0: 'Ready · web-0.web', web1: 'not created', web2: 'not created', focus: 'PVC data-web-0 bound' });
       setWire(s, 'req', 'create PVC data-web-0 · Create Pod web-0');
       setWire(s, 'svc', 'register web-0.web');
       s.refs.controller.classList.add('highlight');
@@ -225,10 +223,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setPods(s, 1, 0, 0);
-      setVal(s.refs.web0Chip, 'Ready · web-0.web');
-      setVal(s.refs.web1Chip, 'gate open · web-0 Ready');
-      setVal(s.refs.web2Chip, 'waits for web-1 Ready');
-      setVal(s.refs.focusChip, 'podManagementPolicy: OrderedReady');
+      setChips(s, { web0: 'Ready · web-0.web', web1: 'gate open · web-0 Ready', web2: 'waits for web-1 Ready', focus: 'podManagementPolicy: OrderedReady' });
       s.refs.controller.classList.add('highlight');
       s.refs.web1Chip.classList.add('highlight');
       s.refs.web2Chip.classList.add('highlight');
@@ -245,10 +240,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setPods(s, 1, 1, 0);
-      setVal(s.refs.web0Chip, 'Ready · web-0.web');
-      setVal(s.refs.web1Chip, 'Ready · web-1.web');
-      setVal(s.refs.web2Chip, 'gate open · web-1 Ready');
-      setVal(s.refs.focusChip, 'PVC data-web-1 bound');
+      setChips(s, { web0: 'Ready · web-0.web', web1: 'Ready · web-1.web', web2: 'gate open · web-1 Ready', focus: 'PVC data-web-1 bound' });
       setWire(s, 'req', 'create PVC data-web-1 · Create Pod web-1');
       setWire(s, 'svc', 'register web-1.web');
       s.refs.controller.classList.add('highlight');
@@ -276,10 +268,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setPods(s, 1, 1, 1);
-      setVal(s.refs.web0Chip, 'Ready · web-0.web');
-      setVal(s.refs.web1Chip, 'Ready · web-1.web');
-      setVal(s.refs.web2Chip, 'Ready · web-2.web');
-      setVal(s.refs.focusChip, 'all 3 ordinals Ready');
+      setChips(s, { web0: 'Ready · web-0.web', web1: 'Ready · web-1.web', web2: 'Ready · web-2.web', focus: 'all 3 ordinals Ready' });
       setWire(s, 'req', 'create PVC data-web-2 · Create Pod web-2');
       setWire(s, 'svc', 'register web-2.web');
       s.refs.controller.classList.add('highlight');

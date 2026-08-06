@@ -1,3 +1,4 @@
+// Design notes: scheme/INTERNALS.md#schemejsappjs
 import { SCHEMES, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE, SUBCATEGORIES } from './data.js';
 import { POSTERS } from './posters.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
@@ -397,7 +398,7 @@ function renderGrid() {
 const POSTER_COLORS = {
   network:   '#4fe5ff',
   storage:   '#5eca94',
-  workloads: '#3da0ff',
+  workloads: '#5bb8ff',
   cluster:   '#7d86ff',
 };
 

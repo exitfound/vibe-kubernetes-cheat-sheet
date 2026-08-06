@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS } from './storage-kit.js';
+import { valChip, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pvc-clone
 
 
@@ -59,13 +59,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Cloning a PVC: a new PersistentVolumeClaim whose dataSource points at an existing PVC rather than a snapshot, so the external provisioner calls CreateVolume and the storage system makes an exact duplicate server-side with no snapshot object in between, subject to the constraints that the two claims share a namespace and a volumeMode, that the destination asks for at least the size of the source, and that the source is bound and not in use, while the StorageClass is free to differ, after which the clone is a fully independent volume',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Cloning a PVC: a new PersistentVolumeClaim whose dataSource points at an existing PVC rather than a snapshot, so the external provisioner calls CreateVolume and the storage system makes an exact duplicate server-side with no snapshot object in between, subject to the constraints that the two claims share a namespace and a volumeMode, that the destination asks for at least the size of the source, and that the source is bound and not in use, while the StorageClass is free to differ, after which the clone is a fully independent volume' });
     root.appendChild(arrowDefs());
 
     const prov = box({ x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'External-provisioner', sublabel: 'driver: ebs.csi.aws.com', role: 'storage' });

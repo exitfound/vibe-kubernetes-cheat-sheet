@@ -1,12 +1,11 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
+import { valChip, setVal, pulsePod, setConnectorDir, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-graceful-shutdown
 
 // Layout C of the Workloads canon (WL): full-width chip strip, three per row.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.
-const PANEL_B = 280;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
@@ -52,13 +51,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Graceful Pod shutdown: deletionTimestamp, EndpointSlice marked terminating, preStop, SIGTERM, grace countdown, SIGKILL',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Graceful Pod shutdown: deletionTimestamp, EndpointSlice marked terminating, preStop, SIGTERM, grace countdown, SIGKILL' });
     root.appendChild(arrowDefs());
 
     const kubectl = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'kubectl', sublabel: 'delete pod app-pod', role: 'cluster' });
@@ -132,6 +125,14 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { preStop, sig, grace, status, slice }) {
+  setVal(s.refs.preStopChip, preStop);
+  setVal(s.refs.sigChip, sig);
+  setVal(s.refs.graceChip, grace);
+  setVal(s.refs.statusChip, status);
+  setVal(s.refs.sliceChip, slice);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -163,11 +164,7 @@ const STEPS = [
     narration: 'A kubectl delete reaches the API, which stamps metadata.deletionTimestamp on the Pod. That field is what makes kubectl report the Pod as Terminating, while status.phase itself stays Running. In parallel the EndpointSlice controller marks 10.244.1.7 terminating with ready false rather than removing it, so kube-proxy stops sending new connections while the Kubelet termination sequence begins.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.preStopChip, 'idle');
-      setVal(s.refs.sigChip, 'none');
-      setVal(s.refs.graceChip, '30s');
-      setVal(s.refs.statusChip, 'Terminating');
-      setVal(s.refs.sliceChip, '[10.244.1.7] ready=false');
+      setChips(s, { preStop: 'idle', sig: 'none', grace: '30s', status: 'Terminating', slice: '[10.244.1.7] ready=false' });
       setWire(s, 'req', 'DELETE /api/v1/.../app-pod');
       s.refs.kubectl.classList.add('highlight');
       s.refs.statusChip.classList.add('highlight');
@@ -193,11 +190,7 @@ const STEPS = [
     narration: 'The Kubelet runs the container preStop hook synchronously, before any signal is sent. A common pattern is a short sleep, which holds the process alive long enough for load balancers and kube-proxy to finish deregistering the endpoint. New requests stop arriving while in-flight ones still complete.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.preStopChip, 'exec: sleep 5');
-      setVal(s.refs.sigChip, 'none');
-      setVal(s.refs.graceChip, '30s');
-      setVal(s.refs.statusChip, 'Terminating');
-      setVal(s.refs.sliceChip, '[10.244.1.7] ready=false');
+      setChips(s, { preStop: 'exec: sleep 5', sig: 'none', grace: '30s', status: 'Terminating', slice: '[10.244.1.7] ready=false' });
       s.refs.preStopChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
@@ -214,12 +207,8 @@ const STEPS = [
     narration: 'Once preStop returns, the Kubelet asks the runtime to send SIGTERM to PID 1. A well-behaved app traps this signal, stops accepting new work, drains in-flight requests and closes its connections and pools. The time the preStop hook consumed is already gone from the same grace budget.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.preStopChip, 'completed');
+      setChips(s, { preStop: 'completed', sig: 'SIGTERM', grace: '25s', status: 'Terminating', slice: '[10.244.1.7] ready=false' });
       s.refs.preStopChip.classList.add('highlight');
-      setVal(s.refs.sigChip, 'SIGTERM');
-      setVal(s.refs.graceChip, '25s');
-      setVal(s.refs.statusChip, 'Terminating');
-      setVal(s.refs.sliceChip, '[10.244.1.7] ready=false');
       s.refs.sigChip.classList.add('highlight');
       s.refs.graceChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '1';
@@ -237,11 +226,7 @@ const STEPS = [
     narration: 'The terminationGracePeriodSeconds, 30 by default, counts down from the moment of deletion. The preStop hook and the SIGTERM drain both spend this single shared budget. Most applications exit well before the timer reaches zero, and the Kubelet then proceeds straight to cleanup.',
     enter(s) {
       resetStep(s);
-      setVal(s.refs.preStopChip, 'completed');
-      setVal(s.refs.sigChip, 'SIGTERM');
-      setVal(s.refs.graceChip, '6s');
-      setVal(s.refs.statusChip, 'Terminating');
-      setVal(s.refs.sliceChip, '[10.244.1.7] ready=false');
+      setChips(s, { preStop: 'completed', sig: 'SIGTERM', grace: '6s', status: 'Terminating', slice: '[10.244.1.7] ready=false' });
       s.refs.graceChip.classList.add('highlight');
       s.refs.podGroup.style.opacity = '1';
       setConnectorDir(s, 'down');
@@ -256,11 +241,7 @@ const STEPS = [
     narration: 'If the container is still alive when the grace timer reaches 0, the runtime sends SIGKILL, which the kernel delivers unconditionally to PID 1. Once the process is gone the Kubelet reports the terminated container, and the API removes the Pod object from ETCD.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.preStopChip, 'completed');
-      setVal(s.refs.sigChip, 'SIGKILL');
-      setVal(s.refs.graceChip, '0s · expired');
-      setVal(s.refs.statusChip, 'deleted');
-      setVal(s.refs.sliceChip, '[]');
+      setChips(s, { preStop: 'completed', sig: 'SIGKILL', grace: '0s · expired', status: 'deleted', slice: '[]' });
       s.refs.sliceChip.classList.add('highlight');
       setWire(s, 'req', 'Pod removed from etcd');
       s.refs.sigChip.classList.add('highlight');

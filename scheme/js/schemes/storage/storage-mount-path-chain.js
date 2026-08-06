@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from './storage-kit.js';
+import { valChip, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, revealAt, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-mount-path-chain
 
 
@@ -62,10 +62,7 @@ const RIDE_UP = { dy: 18 };      // trailing side of an ascending ball
 function podBlock({ x, label }) {
   const shell = podShell({ x, y: POD_Y, w: COL_W, h: POD_H, label, sublabel: 'uses vol-1 at /data', containers: 0, role: 'storage' });
   const innerBox = box({ x: x + 14, y: POD_Y + 40, w: COL_W - 28, h: 50, label: '/data', sublabel: 'mount point', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -74,13 +71,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Where the bytes land. One attached block device is mounted exactly once on the Node, at a global staging path under the Kubelet plugins directory. That single staged filesystem is then bind-mounted into a directory that belongs to one Pod alone, under the Kubelet Pods directory and the Pod uid, and the container runtime maps that directory to slash data inside the container. A second Pod on the same Node gets its own directory and its own bind mount off the same staging path, so two Pods share one disk through two separate bind mounts with no second attach and no second filesystem mount. A write to slash data descends the same chain, through the bind mount into the staging mount and onto the device, with no copy made at any hop.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Where the bytes land. One attached block device is mounted exactly once on the Node, at a global staging path under the Kubelet plugins directory. That single staged filesystem is then bind-mounted into a directory that belongs to one Pod alone, under the Kubelet Pods directory and the Pod uid, and the container runtime maps that directory to slash data inside the container. A second Pod on the same Node gets its own directory and its own bind mount off the same staging path, so two Pods share one disk through two separate bind mounts with no second attach and no second filesystem mount. A write to slash data descends the same chain, through the bind mount into the staging mount and onto the device, with no copy made at any hop.' });
     root.appendChild(arrowDefs());
 
     const podA = podBlock({ x: L_X, label: 'Pod A' });

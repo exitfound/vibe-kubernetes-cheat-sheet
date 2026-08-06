@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel } from './storage-kit.js';
+import { valChip, setChip, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pv-lifecycle-phases
 
 
@@ -63,13 +63,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The phase field of a PersistentVolume as a state machine with four places. A fresh volume is Available and open to any matching claim. When a claimRef is written the volume becomes Bound. Deleting that claim moves it to Released rather than back to Available, because the claimRef stays behind and is now stale. From Released the PV controller reads the reclaim policy. Under Delete it removes both the storage asset and the PersistentVolume object, so the volume leaves the machine entirely, and if that automated reclamation errors instead the volume moves to Failed, which no automatic transition leaves. Under Retain the controller makes no call at all and the volume parks in Released. The single backward edge is manual: an administrator clears the stale claimRef and the volume returns to Available.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'The phase field of a PersistentVolume as a state machine with four places. A fresh volume is Available and open to any matching claim. When a claimRef is written the volume becomes Bound. Deleting that claim moves it to Released rather than back to Available, because the claimRef stays behind and is now stale. From Released the PV controller reads the reclaim policy. Under Delete it removes both the storage asset and the PersistentVolume object, so the volume leaves the machine entirely, and if that automated reclamation errors instead the volume moves to Failed, which no automatic transition leaves. Under Retain the controller makes no call at all and the volume parks in Released. The single backward edge is manual: an administrator clears the stale claimRef and the volume returns to Available.' });
     root.appendChild(arrowDefs());
 
     // The four phases. Each carries the claimRef condition that defines it as a sublabel, because the

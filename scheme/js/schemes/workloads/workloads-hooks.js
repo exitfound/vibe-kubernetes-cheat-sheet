@@ -1,12 +1,11 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, topPacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-hooks
 
 // Layout C of the Workloads canon (WL): the deepest panel in the category leaves room for no column.
 // Panel worst case x<=397, y<=379; a longer narration invalidates that measurement.
-const PANEL_B = 379;
 const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
@@ -53,13 +52,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Container lifecycle hooks: postStart races the ENTRYPOINT, preStop runs synchronously before SIGTERM',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Container lifecycle hooks: postStart races the ENTRYPOINT, preStop runs synchronously before SIGTERM' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'lifecycle handler', role: 'cluster' });
@@ -131,6 +124,14 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { postStart, entrypoint, preStop, state, grace }) {
+  setVal(s.refs.postStartChip, postStart);
+  setVal(s.refs.entrypointChip, entrypoint);
+  setVal(s.refs.preStopChip, preStop);
+  setVal(s.refs.stateChip, state);
+  setVal(s.refs.graceChip, grace);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -146,11 +147,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.pending);
-      setVal(s.refs.postStartChip, 'declared');
-      setVal(s.refs.entrypointChip, 'not started');
-      setVal(s.refs.preStopChip, 'declared');
-      setVal(s.refs.stateChip, 'Waiting');
-      setVal(s.refs.graceChip, '30s');
+      setChips(s, { postStart: 'declared', entrypoint: 'not started', preStop: 'declared', state: 'Waiting', grace: '30s' });
       setChainActive(s.refs.chain, -1);
     },
   },
@@ -161,11 +158,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.podGroup.style.opacity = String(OPACITY.pending);
-      setVal(s.refs.postStartChip, 'declared');
-      setVal(s.refs.entrypointChip, 'not started');
-      setVal(s.refs.preStopChip, 'declared');
-      setVal(s.refs.stateChip, 'Waiting');
-      setVal(s.refs.graceChip, '30s');
+      setChips(s, { postStart: 'declared', entrypoint: 'not started', preStop: 'declared', state: 'Waiting', grace: '30s' });
       setWire(s, 'req', 'lifecycle.postStart + preStop declared');
       s.refs.postStartChip.classList.add('highlight');
       s.refs.preStopChip.classList.add('highlight');
@@ -181,8 +174,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.podGroup.style.opacity = '1';
-      setVal(s.refs.entrypointChip, 'starting (PID 1)');
-      setVal(s.refs.stateChip, 'Running');
+      setChips(s, { postStart: 'declared', entrypoint: 'starting (PID 1)', preStop: 'declared', state: 'Running', grace: '30s' });
       s.refs.stateChip.classList.add('highlight');
       setWire(s, 'req', 'CRI CreateContainer + StartContainer · OK');
       s.refs.kubelet.classList.add('highlight');
@@ -207,9 +199,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.podGroup.style.opacity = '1';
-      setVal(s.refs.postStartChip, 'exec running (racing)');
-      setVal(s.refs.entrypointChip, 'running (racing)');
-      setVal(s.refs.stateChip, 'Running');
+      setChips(s, { postStart: 'exec running (racing)', entrypoint: 'running (racing)', preStop: 'declared', state: 'Running', grace: '30s' });
       setWire(s, 'req', 'CRI ExecSync · postStart · Exit 0');
       s.refs.kubelet.classList.add('highlight');
       s.refs.postStartChip.classList.add('highlight');
@@ -232,9 +222,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.podGroup.style.opacity = '1';
-      setVal(s.refs.postStartChip, 'completed (exit 0)');
-      setVal(s.refs.entrypointChip, 'running');
-      setVal(s.refs.stateChip, 'Running');
+      setChips(s, { postStart: 'completed (exit 0)', entrypoint: 'running', preStop: 'declared', state: 'Running', grace: '30s' });
       setWire(s, 'req', 'PLEG watch · Readiness probe OK · Serving traffic');
       s.refs.kubelet.classList.add('highlight');
       s.refs.postStartChip.classList.add('highlight');
@@ -254,9 +242,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       s.refs.podGroup.style.opacity = '1';
-      setVal(s.refs.preStopChip, 'exec running (sync)');
-      setVal(s.refs.stateChip, 'Running');
-      setVal(s.refs.graceChip, '22s');
+      setChips(s, { postStart: 'completed (exit 0)', entrypoint: 'running', preStop: 'exec running (sync)', state: 'Running', grace: '22s' });
       setWire(s, 'req', 'CRI ExecSync · preStop · Sync');
       s.refs.kubelet.classList.add('highlight');
       s.refs.preStopChip.classList.add('highlight');
@@ -278,12 +264,9 @@ const STEPS = [
     narration: 'Once preStop returns, Kubelet asks the runtime to stop the container via CRI StopContainer. The runtime delivers SIGTERM to the ENTRYPOINT process inside the Pod. The grace timer keeps counting down from where preStop left off. If the process is still alive when it reaches 0, the runtime escalates to SIGKILL. The container then exits and the Pod object is removed from the API.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.preStopChip, 'completed (exit 0)');
+      setChips(s, { postStart: 'completed (exit 0)', entrypoint: 'received SIGTERM', preStop: 'completed (exit 0)', state: 'Terminated', grace: '0s · SIGKILL' });
       s.refs.preStopChip.classList.add('highlight');
-      setVal(s.refs.entrypointChip, 'received SIGTERM');
       s.refs.entrypointChip.classList.add('highlight');
-      setVal(s.refs.stateChip, 'Terminated');
-      setVal(s.refs.graceChip, '0s · SIGKILL');
       setWire(s, 'req', 'CRI StopContainer · SIGTERM · ACK');
       s.refs.kubelet.classList.add('highlight');
       s.refs.stateChip.classList.add('highlight');

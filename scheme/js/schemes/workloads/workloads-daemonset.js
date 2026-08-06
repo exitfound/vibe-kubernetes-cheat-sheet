@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-daemonset
 
@@ -55,13 +55,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'DaemonSet controller: keeps exactly one Pod on every matching Node, adds a Pod when a Node joins and removes one when a Node leaves',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'DaemonSet controller: keeps exactly one Pod on every matching Node, adds a Pod when a Node joins and removes one when a Node leaves' });
     root.appendChild(arrowDefs());
 
     const daemonset = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'DaemonSet', sublabel: '', role: 'cluster' });
@@ -150,6 +144,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { desired, current, ready, focus }) {
+  setVal(s.refs.desiredChip, desired);
+  setVal(s.refs.currentChip, current);
+  setVal(s.refs.readyChip, ready);
+  setVal(s.refs.focusChip, focus);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -191,10 +192,7 @@ const STEPS = [
       s.refs.node4El.style.opacity = '0';
       s.refs.pod4.style.opacity = '0';
       setLanes(s, [1, 1, 1, 0]);
-      setVal(s.refs.desiredChip, '3');
-      setVal(s.refs.currentChip, '3');
-      setVal(s.refs.readyChip, '3');
-      setVal(s.refs.focusChip, 'one Pod per matching node');
+      setChips(s, { desired: '3', current: '0', ready: '0', focus: 'one Pod per matching node' });
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'create one Pod per matching node');
       s.refs.daemonset.classList.add('highlight');
@@ -208,8 +206,6 @@ const STEPS = [
       if (ctx.reduced) { ['pod1Box','pod2Box','pod3Box'].forEach(k => s.refs[k].classList.add('highlight')); s.refs.apiserver.classList.add('highlight'); return; }
       // The step starts from what it narrates, three matching Nodes and ZERO Pods, so both counts
       // go back to 0 and are raised one at a time as the creates land.
-      setVal(s.refs.currentChip, '0');
-      setVal(s.refs.readyChip, '0');
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
       // One create per matching Node, each riding its own tap off the bus, so every Pod that
@@ -236,11 +232,8 @@ const STEPS = [
     narration: 'A new worker Node-4 joins the cluster and turns Ready. The DaemonSet controller watches Node objects, recomputes desiredNumberScheduled to four, and creates a Pod on Node-4 alone. No other Node is disturbed. Automatic per-node placement is the whole reason a DaemonSet exists.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.desiredChip, '4');
-      setVal(s.refs.currentChip, '4');
-      setVal(s.refs.readyChip, '4');
+      setChips(s, { desired: '4', current: '4', ready: '4', focus: 'Node-4 joined, Pod added' });
       s.refs.readyChip.classList.add('highlight');
-      setVal(s.refs.focusChip, 'Node-4 joined, Pod added');
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'watch Node added · desiredNumberScheduled 3 to 4');
       s.refs.desiredChip.classList.add('highlight');
@@ -276,10 +269,7 @@ const STEPS = [
     narration: 'The image is bumped from fluentd v1 to v2. The RollingUpdate strategy with maxUnavailable=1 deletes and recreates the Pods one Node at a time, never taking more than one down at once, so log collection keeps running on the rest. The OnDelete strategy would instead wait until you delete each Pod by hand.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.desiredChip, '4');
-      setVal(s.refs.currentChip, '4');
-      setVal(s.refs.readyChip, '3 / 4 updating');
-      setVal(s.refs.focusChip, 'RollingUpdate · maxUnavailable=1');
+      setChips(s, { desired: '4', current: '4', ready: '3 / 4 updating', focus: 'RollingUpdate · maxUnavailable=1' });
       setWire(s, 'req', 'RollingUpdate · maxUnavailable=1 · v1 to v2');
       s.refs.daemonset.classList.add('highlight');
       s.refs.readyChip.classList.add('highlight');
@@ -310,12 +300,9 @@ const STEPS = [
     narration: 'Node-2 is drained and leaves the cluster. Its DaemonSet Pod is deleted and, unlike a Deployment replica, it is not recreated on another Node. A DaemonSet keeps exactly one Pod per Node and every surviving Node already has one, so desiredNumberScheduled simply drops back to three.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.desiredChip, '3');
-      setVal(s.refs.currentChip, '3');
+      setChips(s, { desired: '3', current: '3', ready: '3', focus: 'Node-2 gone, Pod not rescheduled' });
       s.refs.currentChip.classList.add('highlight');
-      setVal(s.refs.readyChip, '3');
       s.refs.readyChip.classList.add('highlight');
-      setVal(s.refs.focusChip, 'Node-2 gone, Pod not rescheduled');
       s.refs.focusChip.classList.add('highlight');
       setWire(s, 'req', 'Node-2 removed · delete its Pod · no reschedule');
       s.refs.daemonset.classList.add('highlight');

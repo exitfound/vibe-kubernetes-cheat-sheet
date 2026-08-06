@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt } from './storage-kit.js';
+import { valChip, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-csi-capacity-tracking
 
 
@@ -14,7 +14,7 @@ const POD_W = 160, POD_H = 100, POD_Y = 148;
 const POD_X = CX - POD_W / 2, POD_MY = POD_Y + POD_H / 2;                    // 520 / 198
 
 const NODE_W = 360, NODE_GAP = 180, NODE_Y = 300, NODE_H = 236;
-const NODE_TOP = NODE_Y, NODE_BOTTOM = NODE_Y + NODE_H;                      // 300 / 536
+const NODE_TOP = NODE_Y;  // 300
 const SPREAD = (NODE_W + NODE_GAP) / 2;                                      // 270
 const NODE_CX = [CX - SPREAD, CX + SPREAD];                                  // 330 / 870
 const NODE_X = NODE_CX.map(cx => cx - NODE_W / 2);                           // 150 / 690
@@ -63,10 +63,7 @@ function podBlock() {
   const cy = POD_Y + POD_H / 2;
   const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'needs 20Gi', containers: 0, role: 'storage' });
   const innerBox = box({ x: POD_X + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'local disk', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'storage' });
@@ -77,13 +74,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CSI storage capacity tracking: without it the scheduler can pick a Node whose local storage pool is already full, provisioning of the volume fails there, and because binding waits on provisioning the Pod never schedules and stays Pending forever, while CSIStorageCapacity objects published by the driver per topology segment let the scheduler see the free capacity and filter out Nodes that cannot fit the claim before committing',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'CSI storage capacity tracking: without it the scheduler can pick a Node whose local storage pool is already full, provisioning of the volume fails there, and because binding waits on provisioning the Pod never schedules and stays Pending forever, while CSIStorageCapacity objects published by the driver per topology segment let the scheduler see the free capacity and filter out Nodes that cannot fit the claim before committing' });
     root.appendChild(arrowDefs());
 
     const sched = box({ x: SCHED_X, y: SCHED_Y, w: SCHED_W, h: SCHED_H, label: 'Scheduler', sublabel: 'filter and score', role: 'storage' });

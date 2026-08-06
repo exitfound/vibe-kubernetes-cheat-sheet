@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, diagramRoot } from './cluster-kit.js';
 
 // One column, centred on the canvas, and every replica reaches the Lease on its own axis.
 // Design notes, including what this costs vertically: ./CARDS.md#cluster-leader-election
@@ -47,13 +47,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Leader election via Lease: acquire, renew, expire, failover',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Leader election via Lease: acquire, renew, expire, failover' });
     root.appendChild(arrowDefs());
 
     // Three controller-manager replicas (boxes, standard 220x80), the row centred on CX and
@@ -113,6 +107,16 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { v1, v2, v3, holder, dur, renew, trans }) {
+  setVal(s.refs.v1, v1);
+  setVal(s.refs.v2, v2);
+  setVal(s.refs.v3, v3);
+  setVal(s.refs.holderChip, holder);
+  setVal(s.refs.durChip, dur);
+  setVal(s.refs.renewChip, renew);
+  setVal(s.refs.transChip, trans);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['r1','r2','r3','v1','v2','v3','lease','holderChip','durChip','renewChip','transChip']);
@@ -143,13 +147,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       resetReplicaOpacity(s);
-      setVal(s.refs.v1, 'standby');
-      setVal(s.refs.v2, 'standby');
-      setVal(s.refs.v3, 'standby');
-      setVal(s.refs.holderChip, 'none');
-      setVal(s.refs.durChip, '15s');
-      setVal(s.refs.renewChip, 'none');
-      setVal(s.refs.transChip, '0');
+      setChips(s, { v1: 'standby', v2: 'standby', v3: 'standby', holder: 'none', dur: '15s', renew: 'none', trans: '0' });
     },
   },
   {
@@ -159,13 +157,9 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       resetReplicaOpacity(s);
-      setVal(s.refs.v1, 'leader');
+      setChips(s, { v1: 'leader', v2: 'standby', v3: 'standby', holder: 'Controller-mgr-1', dur: '15s', renew: 'fresh', trans: '0' });
       // The role chip holds a ROLE. The 409 is a response code and already rides both wires below,
       // so putting it here duplicates the wire and then decays with nothing marking the change.
-      setVal(s.refs.v2, 'standby');
-      setVal(s.refs.v3, 'standby');
-      setVal(s.refs.holderChip, 'Controller-mgr-1');
-      setVal(s.refs.renewChip, 'fresh');
       // The verbs differ from failover on purpose: this is the FIRST acquisition, a create (201, or
       // AlreadyExists 409). Later races are updates guarded by resourceVersion.
       setWire(s, 'w1', 'POST 201 Created');
@@ -199,11 +193,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       resetReplicaOpacity(s);
-      setVal(s.refs.v1, 'leader · reconciling');
-      setVal(s.refs.v2, 'standby · polling');
-      setVal(s.refs.v3, 'standby · polling');
-      setVal(s.refs.holderChip, 'Controller-mgr-1');
-      setVal(s.refs.renewChip, 'fresh');
+      setChips(s, { v1: 'leader · reconciling', v2: 'standby · polling', v3: 'standby · polling', holder: 'Controller-mgr-1', dur: '15s', renew: 'fresh', trans: '0' });
       setWire(s, 'w1', 'PUT renewTime');
       setWire(s, 'w2', 'GET Lease');
       setWire(s, 'w3', 'GET Lease');
@@ -231,13 +221,9 @@ const STEPS = [
     narration: 'Controller-mgr-1 crashes or its network partitions, so renewals stop. Once leaseDurationSeconds passes with no new renewTime, the Lease counts as expired and any replica may CAS-acquire it.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.v1, 'unreachable');
+      setChips(s, { v1: 'unreachable', v2: 'standby · may acquire', v3: 'standby · may acquire', holder: 'Controller-mgr-1 (stale)', dur: '15s', renew: 'stale (>15s)', trans: '0' });
       // Not "polling": this step animates nothing, so a chip naming traffic points at two empty
       // lanes. What actually changes here is that both standbys become eligible to take the Lease.
-      setVal(s.refs.v2, 'standby · may acquire');
-      setVal(s.refs.v3, 'standby · may acquire');
-      setVal(s.refs.holderChip, 'Controller-mgr-1 (stale)');
-      setVal(s.refs.renewChip, 'stale (>15s)');
       // Pin final opacity inline so a cancel between steps does not flash to default.
       s.refs.r1.style.opacity = String(OPACITY.notready);
       s.refs.r2.style.opacity = '1';
@@ -258,12 +244,7 @@ const STEPS = [
     narration: 'With the Lease expired, both survivors race again. Controller-mgr-2 wins the CAS, holderIdentity flips to its name and leaseTransitions increments. Control loops resume there within about a lease duration.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.v1, 'unreachable');
-      setVal(s.refs.v2, 'leader');
-      setVal(s.refs.v3, 'standby');
-      setVal(s.refs.holderChip, 'Controller-mgr-2');
-      setVal(s.refs.renewChip, 'fresh');
-      setVal(s.refs.transChip, '1');
+      setChips(s, { v1: 'unreachable', v2: 'leader', v3: 'standby', holder: 'Controller-mgr-2', dur: '15s', renew: 'fresh', trans: '1' });
       setWire(s, 'w2', 'PUT 200 OK');
       setWire(s, 'w3', 'PUT 409');
       s.refs.r1.style.opacity = String(OPACITY.notready);

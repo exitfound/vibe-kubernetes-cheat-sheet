@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT, OPACITY } from './network-kit.js';
+import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, lightBoxAt, BEAT, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-ingress-routing
 
 
@@ -40,10 +40,7 @@ const API_HOP = [[SVC_RIGHT, API_Y], [POD_X, API_Y]];
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -52,13 +49,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Ingress controller routing: an Ingress controller Pod watches Ingress objects, matches the request host and path against the rules, terminates TLS, and proxies each request on to the backend Service and Pod its rule names, slash to Service web and slash api to Service api',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Ingress controller routing: an Ingress controller Pod watches Ingress objects, matches the request host and path against the rules, terminates TLS, and proxies each request on to the backend Service and Pod its rule names, slash to Service web and slash api to Service api' });
     root.appendChild(arrowDefs());
 
     const ruleTitle = text({ class: 'scheme-label code dim', x: RULE_CX, y: 56, 'text-anchor': 'middle' }, ['Ingress "shop" · ingressClassName nginx']);
@@ -122,6 +113,11 @@ const BRANCH = {
   api: ['svcApi', 'podApi', 'fanApi', 'podApiWire'],
 };
 
+function setChips(s, { host, path }) {
+  setVal(s.refs.hostChip, host);
+  setVal(s.refs.pathChip, path);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['extLB', 'ruleA', 'ruleB', 'svcWeb', 'svcApi', 'hostChip', 'pathChip', 'tlsChip', 'ctrlBox', 'podWebBox', 'podApiBox'], [s.refs.ctrl, s.refs.podWeb, s.refs.podApi]);
@@ -155,8 +151,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       // No request yet, so the request chips stay empty and both branches stay neutral.
-      setVal(s.refs.hostChip, 'none');
-      setVal(s.refs.pathChip, 'none');
+      setChips(s, { host: 'none', path: 'none' });
       s.refs.ruleA.classList.add('highlight');
       s.refs.ruleB.classList.add('highlight');
       if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); return; }
@@ -171,9 +166,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setWire(s, 'w', 'GET shop.io/');
-      setVal(s.refs.hostChip, 'shop.io');
+      setChips(s, { host: 'shop.io', path: '/' });
       s.refs.hostChip.classList.add('highlight');
-      setVal(s.refs.pathChip, '/');
       s.refs.pathChip.classList.add('highlight');
       s.refs.extLB.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
@@ -196,8 +190,7 @@ const STEPS = [
       s.refs.ruleA.classList.add('highlight');
       s.refs.hostChip.classList.add('highlight');
       s.refs.pathChip.classList.add('highlight');
-      setVal(s.refs.hostChip, 'shop.io');
-      setVal(s.refs.pathChip, '/');
+      setChips(s, { host: 'shop.io', path: '/' });
       if (ctx.reduced) { s.refs.ctrlBox.classList.add('highlight'); s.refs.svcWeb.classList.add('highlight'); s.refs.podWebBox.classList.add('highlight'); return; }
       // The controller proxies, so the Service is the destination of that hop and lights when the
       // ball lands on it, not before the controller has even chosen the branch.
@@ -218,8 +211,7 @@ const STEPS = [
       // so no rule chip lights and BOTH branches stay neutral. The rule is chosen in api-proxy.
       branch(s, 'both');
       setWire(s, 'w', 'GET shop.io/api');
-      setVal(s.refs.hostChip, 'shop.io');
-      setVal(s.refs.pathChip, '/api');
+      setChips(s, { host: 'shop.io', path: '/api' });
       s.refs.pathChip.classList.add('highlight');
       s.refs.extLB.classList.add('highlight');
       s.refs.tlsChip.classList.add('highlight');
@@ -237,8 +229,7 @@ const STEPS = [
       resetStep(s);
       branch(s, 'api');
       setWire(s, 'api', 'proxy -> api');
-      setVal(s.refs.hostChip, 'shop.io');
-      setVal(s.refs.pathChip, '/api');
+      setChips(s, { host: 'shop.io', path: '/api' });
       // Both rules matched, so BOTH chips light. The longest match, ruleB, is the one that wins, and it
       // is the only branch that carries the ball.
       s.refs.ruleA.classList.add('highlight');

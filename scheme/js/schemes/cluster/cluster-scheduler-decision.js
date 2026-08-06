@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, cylinder, chainList, arrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, segmentPacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, diagramRoot } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS.md#cluster-scheduler-decision
 
@@ -49,13 +49,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Scheduler decision cycle: queue, filter, score, bind',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Scheduler decision cycle: queue, filter, score, bind' });
     root.appendChild(arrowDefs());
 
     // Top row: even 50px gaps, Scheduler / Api / ETCD left to right, all clear of the panel.
@@ -118,8 +112,13 @@ class Scene {
     const nodes = nx.map((x, i) => box({ x, y: nodeY, w: nodeW, h: nodeH, label: nLabels[i], sublabel: nSubs[i], role: 'cluster' }));
     nodes.forEach(n => root.appendChild(n));
 
-    // Verdict chip below each node.
-    const verdicts = nx.map((x) => valChip({ x, y: VERDICT_Y, w: nodeW, h: VERDICT_H, name: 'verdict', value: 'none', role: 'cluster' }));
+    // Verdict chip below each node. Written out rather than mapped: prose.mjs seeds on a literal
+    // valChip call, and a factory hides every verdict these four draw from check-inline (P-15).
+    const v1 = valChip({ x: nx[0], y: VERDICT_Y, w: nodeW, h: VERDICT_H, name: 'verdict', value: 'none', role: 'cluster' });
+    const v2 = valChip({ x: nx[1], y: VERDICT_Y, w: nodeW, h: VERDICT_H, name: 'verdict', value: 'none', role: 'cluster' });
+    const v3 = valChip({ x: nx[2], y: VERDICT_Y, w: nodeW, h: VERDICT_H, name: 'verdict', value: 'none', role: 'cluster' });
+    const v4 = valChip({ x: nx[3], y: VERDICT_Y, w: nodeW, h: VERDICT_H, name: 'verdict', value: 'none', role: 'cluster' });
+    const verdicts = [v1, v2, v3, v4];
     verdicts.forEach(v => root.appendChild(v));
 
     const placedPodShell = podShell({ x: PLACED_X, y: PLACED_Y, w: PLACED_W, h: PLACED_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
@@ -160,6 +159,12 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { queued, candidates, winner }) {
+  setVal(s.refs.queueChip, queued);
+  setVal(s.refs.candChip, candidates);
+  setVal(s.refs.winnerChip, winner);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -190,9 +195,7 @@ const STEPS = [
       resetStep(s);
       resetNodeOpacity(s);
       resetVerdicts(s);
-      setVal(s.refs.queueChip, 'none');
-      setVal(s.refs.candChip, 'none');
-      setVal(s.refs.winnerChip, 'none');
+      setChips(s, { queued: 'none', candidates: 'none', winner: 'none' });
       s.refs.placedPod.style.opacity = '0';
     },
   },
@@ -204,8 +207,7 @@ const STEPS = [
       resetStep(s);
       resetNodeOpacity(s);
       resetVerdicts(s);
-      setVal(s.refs.queueChip, 'my-app-7d4-abc');
-      setVal(s.refs.candChip, '4 of 4');
+      setChips(s, { queued: 'my-app-7d4-abc', candidates: '4 of 4', winner: 'none' });
       s.refs.candChip.classList.add('highlight');
       setVal(s.refs.winnerChip, 'none');
       setWire(s, 'resp', 'watch ADDED · spec.nodeName=""');
@@ -226,7 +228,7 @@ const STEPS = [
     narration: 'Filter plugins test each Node against the Pod requirements, and in a large cluster they stop once enough Nodes fit. Node-1 carries a NoSchedule taint without a matching toleration, Node-2 lacks the requested memory. Both are dropped before scoring.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.candChip, '2 of 4');
+      setChips(s, { queued: 'my-app-7d4-abc', candidates: '2 of 4', winner: 'none' });
       setVal(s.refs.v1, 'filtered · taint');
       setVal(s.refs.v2, 'filtered · resources');
       setVal(s.refs.v3, 'none');
@@ -256,6 +258,7 @@ const STEPS = [
     narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 for a Node and the weighted sum is the final score: Node-3 gets 78, Node-4 gets 92. See the Pod Priority and Preemption card.',
     enter(s, ctx) {
       resetStep(s);
+      setChips(s, { queued: 'my-app-7d4-abc', candidates: '2 of 4', winner: 'none' });
       setVal(s.refs.v3, 'score 78');
       setVal(s.refs.v4, 'score 92');
       s.refs.n1.style.opacity = String(OPACITY.notready);
@@ -278,7 +281,7 @@ const STEPS = [
     narration: 'Highest score wins, ties broken at random. The Scheduler assumes the placement so the next Pod sees Node-4 as taken. It POSTs a Binding to the binding subresource, not a Pod patch, and the API writes it into ETCD, which acks the Raft commit.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.winnerChip, 'Node-4 · 92');
+      setChips(s, { queued: 'my-app-7d4-abc', candidates: '2 of 4', winner: 'Node-4 · 92' });
       setWire(s, 'req', 'POST .../pods/my-app-7d4-abc/binding');
       setWire(s, 'persist', 'spec.nodeName=Node-4 · rv=903');
       s.refs.n1.style.opacity = String(OPACITY.notready);
@@ -307,7 +310,7 @@ const STEPS = [
     narration: 'The Kubelet on Node-4 watches /api/v1/pods?fieldSelector=spec.nodeName=Node-4, so the write arrives there as an ADDED event. It pulls the image and starts the containers, and the Pod goes from Pending to Running.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.winnerChip, 'Node-4 · 92');
+      setChips(s, { queued: 'my-app-7d4-abc', candidates: '2 of 4', winner: 'Node-4 · 92' });
       s.refs.n1.style.opacity = String(OPACITY.notready);
       s.refs.n2.style.opacity = String(OPACITY.notready);
       s.refs.n4.classList.add('highlight');

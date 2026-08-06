@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY } from './cluster-kit.js';
+import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, OPACITY, diagramRoot } from './cluster-kit.js';
 
 // Every row centred on CX and symmetric about it, cluster-apply-flow's grammar. Panel x<=397 on
 // every step, bottom 282 on gc-cascade. The occlusion that buys the centring is under TOP_Y.
@@ -86,13 +86,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'How a cascading delete unwinds through finalizers, from the client through the control plane to the Kubelet on a Node',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'How a cascading delete unwinds through finalizers, from the client through the control plane to the Kubelet on a Node' });
     root.appendChild(arrowDefs());
 
     const client = box({ x: KCTL_X, y: TOP_Y, w: KCTL_W, h: TOP_H, label: 'kubectl', role: 'cluster' });

@@ -1,12 +1,11 @@
-import { svg, g, rect, path, text } from '../../lib/svg.js';
+import { g, path, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, pulsePodDim, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL } from './workloads-kit.js';
+import { valChip, setVal, pulsePod, pulsePodDim, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, lightBoxAt, FADE, BEAT, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-pod-image-pull
 
 // Layout C on the Workloads canon (WL): panel x<=397 y<=379 leaves no column under it, so the
 // pipeline keeps the right band and the chips form a two-across bottom strip.
-const PANEL_B = 379;
 
 // Kubelet leads the row and is centred on CX, so the lane down to the Pod leaves its bottom
 // midpoint. The Registry sits inside the cloud, which is why it is the narrower of the two.
@@ -49,13 +48,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Image pull policy and registry auth: Kubelet evaluates imagePullPolicy, resolves imagePullSecrets, checks the local layer store, pulls missing layers by digest',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Image pull policy and registry auth: Kubelet evaluates imagePullPolicy, resolves imagePullSecrets, checks the local layer store, pulls missing layers by digest' });
     root.appendChild(arrowDefs());
 
     const kubelet  = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet',  sublabel: 'image puller',          role: 'cluster' });
@@ -138,6 +131,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { image, policy, layers, status }) {
+  setVal(s.refs.imageChip, image);
+  setVal(s.refs.policyChip, policy);
+  setVal(s.refs.layersChip, layers);
+  setVal(s.refs.statusChip, status);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -166,10 +166,7 @@ const STEPS = [
     narration: 'Kubelet reads spec.containers[0].imagePullPolicy. The default depends on the image reference: :latest defaults to Always (re-resolve the digest on every container start), while every other explicit tag (v2 here) or a pinned digest defaults to IfNotPresent (skip the pull when the image is already in the local store). The explicit value Never disables pulling entirely (the image must be preloaded out-of-band, otherwise the container fails with ErrImageNeverPull). Pull is per-container, not per-Pod.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.imageChip,  'app:v2');
-      setVal(s.refs.policyChip, 'IfNotPresent');
-      setVal(s.refs.layersChip, 'not probed');
-      setVal(s.refs.statusChip, 'Waiting · ContainerCreating');
+      setChips(s, { image: 'app:v2', policy: 'IfNotPresent', layers: 'not probed', status: 'Waiting · ContainerCreating' });
       s.refs.statusChip.classList.add('highlight');
       setWire(s, 'req', 'imagePullPolicy=IfNotPresent (default for v2 tag)');
       s.refs.kubelet.classList.add('highlight');
@@ -186,10 +183,7 @@ const STEPS = [
     narration: 'For private registries Kubelet needs credentials. It walks two lists: Pod.spec.imagePullSecrets and the imagePullSecrets attached to the Pod ServiceAccount. Each Secret of type kubernetes.io/dockerconfigjson stores a base64-encoded docker config with per-registry auth tokens. Kubelet picks the matching entry and passes credentials to the runtime via the CRI PullImage request. For cloud-managed registries (ECR, GCR, ACR) a Kubelet image credential provider plugin can produce credentials dynamically instead. Public images skip this step.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.imageChip,  'app:v2');
-      setVal(s.refs.policyChip, 'IfNotPresent');
-      setVal(s.refs.layersChip, 'not probed');
-      setVal(s.refs.statusChip, 'Waiting · ContainerCreating');
+      setChips(s, { image: 'app:v2', policy: 'IfNotPresent', layers: 'not probed', status: 'Waiting · ContainerCreating' });
       setWire(s, 'req', 'authConfig from Pod + ServiceAccount imagePullSecrets');
       s.refs.kubelet.classList.add('highlight');
       s.refs.podGroup.style.opacity = String(OPACITY.pending);
@@ -204,10 +198,7 @@ const STEPS = [
     narration: 'Kubelet asks the runtime via the CRI ImageStatus call whether this exact image is already present on this Node. The layer store it queries is content-addressable, keyed by sha256 digest and shared across every Pod on the Node. The app:v2 image is only partially cached: 2 of its 4 layers are already in the store (shared with other images). If the policy were Always, the remote manifest would still be fetched to resolve the current digest, and the actual blob pulls skipped when it matches the local digest.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.imageChip,  'app:v2');
-      setVal(s.refs.policyChip, 'IfNotPresent');
-      setVal(s.refs.layersChip, '2 of 4');
-      setVal(s.refs.statusChip, 'Waiting · ContainerCreating');
+      setChips(s, { image: 'app:v2', policy: 'IfNotPresent', layers: '2 of 4', status: 'Waiting · ContainerCreating' });
       setWire(s, 'req', 'CRI ImageStatus · Digest probe · 2 of 4 cached');
       s.refs.kubelet.classList.add('highlight');
       s.refs.layersChip.classList.add('highlight');
@@ -225,10 +216,7 @@ const STEPS = [
     narration: 'Kubelet has the runtime pull the 2 missing layers. The image manifest is fetched first, then for each missing layer a GET /v2/app/blobs/sha256:{digest} goes to the registry with the assembled Authorization header. Layers shared with previously-pulled images on this Node are reused from the store, so a partial cache hit shrinks the actual wire transfer. On error (404, auth fail, network timeout) the container goes Waiting with reason ErrImagePull, Kubelet retries on an exponential backoff (~10s, 20s, 40s, capped at 300s), surfaced as ImagePullBackOff after the first few failures.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.imageChip,  'app:v2');
-      setVal(s.refs.policyChip, 'IfNotPresent');
-      setVal(s.refs.layersChip, '4 of 4');
-      setVal(s.refs.statusChip, 'Waiting · ContainerCreating');
+      setChips(s, { image: 'app:v2', policy: 'IfNotPresent', layers: '4 of 4', status: 'Waiting · ContainerCreating' });
       setWire(s, 'req', 'GET /v2/app/blobs/sha256:... · 200 · 2 new layers · 4 of 4 cached');
       s.refs.kubelet.classList.add('highlight');
       s.refs.cloud.classList.add('highlight');
@@ -249,10 +237,7 @@ const STEPS = [
     narration: 'All 4 layers are present in the layer store. The container rootfs is assembled as an overlay filesystem: each layer mounts read-only and one top read-write layer holds the writes the running container makes. The layer store is shared across containers, so a second Pod using the same image reuses the same lower layers (only the upper RW layer is per-container). Kubelet calls CreateContainer to bind the rootfs and configure namespaces, then StartContainer to exec PID 1.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.imageChip,  'app:v2');
-      setVal(s.refs.policyChip, 'IfNotPresent');
-      setVal(s.refs.layersChip, '4 of 4');
-      setVal(s.refs.statusChip, 'Running');
+      setChips(s, { image: 'app:v2', policy: 'IfNotPresent', layers: '4 of 4', status: 'Running' });
       setWire(s, 'req', 'overlay rootfs · CreateContainer · StartContainer');
       s.refs.kubelet.classList.add('highlight');
       s.refs.statusChip.classList.add('highlight');

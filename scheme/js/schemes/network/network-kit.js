@@ -2,21 +2,13 @@ export {
   valChip, setVal, setChip, setBoxLabel, setBoxSublabel, makeInit, packetAlong,
   routePacket, segmentPacket, routeDur, routeLength, packetArrival,
   topPacket, setConnectorDir, clearPodHighlight,
-  arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
+  diagramRoot, wrapPod, arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
   relationPath, revealAt, laneOf, REVEAL_MS,
   setPodSublabel, FADE, BEAT, OPACITY,
 } from '../../lib/scheme-kit.js';
-import { pulsePodWithTint, pulsePodDimWithTint } from '../../lib/scheme-kit.js';
+import { makeTintedPulses } from '../../lib/scheme-kit.js';
 // Design notes: scheme/INTERNALS.md#schemejsschemesnetworknetwork-kitjs
 
 export const NETWORK_TINT = Object.freeze({ base: 'rgb(79, 229, 255)', bright: 'rgb(158, 234, 247)' });
 
-
-// Networking pods pulse with the cyan tint. The body is shared with scheme-kit
-// (pulsePodWithTint), so the families differ only in colour.
-export function pulsePod(podEl, ctx, delay = 0, opts = {}) {
-  return pulsePodWithTint(podEl, ctx, delay, opts, NETWORK_TINT);
-}
-export function pulsePodDim(podEl, ctx, delay = 0, opts = {}) {
-  return pulsePodDimWithTint(podEl, ctx, delay, opts, NETWORK_TINT);
-}
+export const { pulsePod, pulsePodDim } = makeTintedPulses(NETWORK_TINT);

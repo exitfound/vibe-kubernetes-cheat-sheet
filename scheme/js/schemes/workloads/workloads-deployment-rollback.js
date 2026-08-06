@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, relationPath, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-deployment-rollback
 
@@ -52,13 +52,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Deployment rollback and revision history: a bad rollout stalls past progressDeadlineSeconds, rollout undo scales the broken ReplicaSet to zero while the previous one keeps serving',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Deployment rollback and revision history: a bad rollout stalls past progressDeadlineSeconds, rollout undo scales the broken ReplicaSet to zero while the previous one keeps serving' });
     root.appendChild(arrowDefs());
 
     const controller = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Deployment', sublabel: 'owns RS revisions', role: 'cluster' });
@@ -138,6 +132,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { rs1, rs2, cond, rev }) {
+  setVal(s.refs.rs1Chip, rs1);
+  setVal(s.refs.rs2Chip, rs2);
+  setVal(s.refs.condChip, cond);
+  setVal(s.refs.revChip, rev);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -180,11 +181,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, V1, V1, V2_NEW);
-      setVal(s.refs.rs1Chip, '3 / 3');
-      setVal(s.refs.rs2Chip, '0 / 1');
-      setVal(s.refs.condChip, 'Progressing=True');
+      setChips(s, { rs1: '3 / 3', rs2: '0 / 1', cond: 'Progressing=True', rev: 'rolling out rev 2' });
       s.refs.condChip.classList.add('highlight');
-      setVal(s.refs.revChip, 'rolling out rev 2');
       setWire(s, 'req', 'PATCH .spec.template · create RS-v2 (rev 2)');
       s.refs.controller.classList.add('highlight');
       s.refs.rs2Chip.classList.add('highlight');
@@ -206,10 +204,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, V1, V1, V2_CRASH);
-      setVal(s.refs.rs1Chip, '3 / 3');
-      setVal(s.refs.rs2Chip, '0 / 1 (crashing)');
-      setVal(s.refs.condChip, 'Progressing=True');
-      setVal(s.refs.revChip, 'rev 2 never Ready');
+      setChips(s, { rs1: '3 / 3', rs2: '0 / 1 (crashing)', cond: 'Progressing=True', rev: 'rev 2 never Ready' });
       s.refs.revChip.classList.add('highlight');
       setWire(s, 'req', 'readinessProbe fail · v2 not Ready');
       s.refs.apiserver.classList.add('highlight');
@@ -231,11 +226,8 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, V1, V1, V2_STUCK);
-      setVal(s.refs.rs1Chip, '3 / 3');
-      setVal(s.refs.rs2Chip, '0 / 1 stuck');
+      setChips(s, { rs1: '3 / 3', rs2: '0 / 1 stuck', cond: 'Progressing=False', rev: 'ProgressDeadlineExceeded' });
       s.refs.rs2Chip.classList.add('highlight');
-      setVal(s.refs.condChip, 'Progressing=False');
-      setVal(s.refs.revChip, 'ProgressDeadlineExceeded');
       setWire(s, 'req', 'progressDeadlineSeconds elapsed · rollout halts');
       s.refs.condChip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
@@ -251,12 +243,9 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, V1, V1, null);
-      setVal(s.refs.rs1Chip, '3 / 3');
-      setVal(s.refs.rs2Chip, '0 / 0');
+      setChips(s, { rs1: '3 / 3', rs2: '0 / 0', cond: 'Progressing=True', rev: 'undo → rev 1 template' });
       s.refs.rs2Chip.classList.add('highlight');
-      setVal(s.refs.condChip, 'Progressing=True');
       s.refs.condChip.classList.add('highlight');
-      setVal(s.refs.revChip, 'undo → rev 1 template');
       setWire(s, 'req', 'rollout undo · RS-v2 to 0 · RS-v1 stays 3');
       s.refs.controller.classList.add('highlight');
       s.refs.rs1Chip.classList.add('highlight');
@@ -280,12 +269,9 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setSlots(s, V1, V1, V1, null);
-      setVal(s.refs.rs1Chip, '3 / 3 (now rev 3)');
+      setChips(s, { rs1: '3 / 3 (now rev 3)', rs2: '0 / 0 (retained)', cond: 'Available=True', rev: 'restored @ rev 3' });
       s.refs.rs1Chip.classList.add('highlight');
-      setVal(s.refs.rs2Chip, '0 / 0 (retained)');
       s.refs.rs2Chip.classList.add('highlight');
-      setVal(s.refs.condChip, 'Available=True');
-      setVal(s.refs.revChip, 'restored @ rev 3');
       s.refs.condChip.classList.add('highlight');
       s.refs.revChip.classList.add('highlight');
       setChainActive(s.refs.chain, 5);

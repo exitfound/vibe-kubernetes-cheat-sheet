@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS } from './storage-kit.js';
+import { valChip, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, REVEAL_MS, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volume-snapshot
 
 
@@ -11,7 +11,6 @@ const REQ_RIGHT = REQ_X + REQ_W;                                            // 7
 const REQ_MY = REQ_Y + REQ_H / 2, REQ_BOTTOM = REQ_Y + REQ_H;               // 70 / 104
 
 const RST_X = 840, RST_W = 240;
-const RST_CX = RST_X + RST_W / 2;                                           // 960
 
 // The middle row's left box lands at 144..376 whatever the spread, under the panel (x<=397 to y=280),
 // so the row starts BELOW the panel floor and the chain runs right to left to reach it on the free side.
@@ -65,13 +64,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Volume Snapshots: a VolumeSnapshot is the namespaced request like a PVC and a VolumeSnapshotClass names the CSI driver, the snapshot controller creates the cluster-scoped VolumeSnapshotContent and binds the two one to one before anything is taken, that content is what wakes the CSI snapshotter sidecar which calls CreateSnapshot on the driver, the driver returns a handle that the sidecar writes into the content status with readyToUse true and the controller mirrors up onto the snapshot, and a new PVC with a dataSource then seeds a fresh volume from it, but all of it lives in the same storage system as the source so a snapshot is not a backup',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Volume Snapshots: a VolumeSnapshot is the namespaced request like a PVC and a VolumeSnapshotClass names the CSI driver, the snapshot controller creates the cluster-scoped VolumeSnapshotContent and binds the two one to one before anything is taken, that content is what wakes the CSI snapshotter sidecar which calls CreateSnapshot on the driver, the driver returns a handle that the sidecar writes into the content status with readyToUse true and the controller mirrors up onto the snapshot, and a new PVC with a dataSource then seeds a fresh volume from it, but all of it lives in the same storage system as the source so a snapshot is not a backup' });
     root.appendChild(arrowDefs());
 
     const req = box({

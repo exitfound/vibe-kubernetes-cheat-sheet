@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow } from '../../lib/primitives.js';
-import { valChip, setVal, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, at, revealAt, REVEAL_MS } from './cluster-kit.js';
+import { valChip, setVal, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, at, revealAt, REVEAL_MS, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-node-allocatable
 
 // An ARITHMETIC, not a sequence: one capacity bar carved segment by segment, scale exact at GI
@@ -63,13 +63,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Node Allocatable: the Kubelet carves kubeReserved, systemReserved and the hard eviction threshold out of the Node capacity, and what is left is the only number the Scheduler sums Pod requests against',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Node Allocatable: the Kubelet carves kubeReserved, systemReserved and the hard eviction threshold out of the Node capacity, and what is left is the only number the Scheduler sums Pod requests against' });
     root.appendChild(arrowDefs());
 
     root.appendChild(relationPath({ points: KUBELET_TO_NODE, role: 'cluster' }));

@@ -129,7 +129,7 @@ export function extractInline(src) {
 // to write every chip through one setChips(s, {...}) helper, so on a card that obeys it the value
 // is a call-site property two hops away and no site matches. This resolver, written for
 // inline-dump.mjs and moved here so the reader and the two checks cannot disagree, walks those
-// hops. Full reasoning in scheme/CLAUDE.md under inline-dump.mjs.
+// hops. Full reasoning in ./README.md, and the rule it serves is ../CANON.md P-01.
 
 // Blank comments out, keeping byte offsets so the enclosing-function lookup stays right and, in
 // check-canon.mjs, so line numbers stay right. THE one copy: check-canon.mjs imports it from here.

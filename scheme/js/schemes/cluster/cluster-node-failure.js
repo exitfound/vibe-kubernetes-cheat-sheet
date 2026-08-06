@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, cylinder, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, laneOf, OPACITY } from './cluster-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, laneOf, OPACITY, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-node-failure
 
 // Layout C: six ladder rows plus two Node frames plus six chips do not leave room for a left
@@ -27,7 +27,7 @@ const LADDER_Y = 152, ROW_H = 32, ROW_GAP = 10;          // 6 rows -> 152..394
 // between them is 196 and the reschedule lane gets a real 98 unit run into Node-2.
 const NODE_W = 442, NODE_H = 132;                        // 520 shrunk 15% from the inner edge
 const NODE_Y = 406, NODE_BOTTOM = NODE_Y + NODE_H;       // 406..538
-const NODE_A_X = CONTENT_L, NODE_A_R = NODE_A_X + NODE_W;// 60..502
+const NODE_A_X = CONTENT_L;  // 60..502
 const NODE_B_X = CONTENT_R - NODE_W;                     // 698..1140
 const POD_W = 300, POD_H = 106, POD_Y = NODE_Y + 16;     // 422..528
 const POD_A_X = NODE_A_X + (NODE_W - POD_W) / 2;         // 131..431
@@ -70,13 +70,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Node failure and eviction: lease heartbeat loss, Ready flips to Unknown, NoExecute taint, taint-eviction delete, reschedule',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Node failure and eviction: lease heartbeat loss, Ready flips to Unknown, NoExecute taint, taint-eviction delete, reschedule' });
     root.appendChild(arrowDefs());
 
     // The sublabel names BOTH: since 1.29 they are independent components and this card makes them

@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, pod, node, arrow } from '../../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-ip-and-veth
 
 
@@ -36,13 +36,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'A Pod network namespace and its veth pair: the pause container owns one namespace shared by every container, the CNI assigns a single Pod IP, and a veth pair links the namespace to the host bridge',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'A Pod network namespace and its veth pair: the pause container owns one namespace shared by every container, the CNI assigns a single Pod IP, and a veth pair links the namespace to the host bridge' });
     root.appendChild(arrowDefs());
 
     const nodeEl = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1   ·   root namespace' });
@@ -100,6 +94,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { ns, ipChip, veth, reach }) {
+  setVal(s.refs.nsChip, ns);
+  setVal(s.refs.ipChip, ipChip);
+  setVal(s.refs.vethChip, veth);
+  setVal(s.refs.reachChip, reach);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s, ['cni0', 'cniPlugin', 'pauseBox', 'appBox', 'nsChip', 'ipChip', 'vethChip', 'reachChip'], [s.refs.podGroup]);
@@ -116,10 +117,7 @@ const STEPS = [
     enter(s) {
       resetStep(s);
       setPodSublabel(s.refs.podShell, 'netns: not ready');
-      setVal(s.refs.nsChip, 'not ready');
-      setVal(s.refs.ipChip, 'none');
-      setVal(s.refs.vethChip, 'none');
-      setVal(s.refs.reachChip, 'none');
+      setChips(s, { ns: 'not ready', ipChip: 'none', veth: 'none', reach: 'none' });
     },
   },
   {
@@ -129,7 +127,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       setPodSublabel(s.refs.podShell, 'netns: open');
-      setVal(s.refs.nsChip, 'shared · owned by pause');
+      setChips(s, { ns: 'shared · owned by pause', ipChip: 'none', veth: 'none', reach: 'none' });
       // The pause box and the namespace chip keep a static highlight border for the whole
       // step (no pulse, no flash, no fade back) since they show the settled shared-netns state.
       s.refs.pauseBox.classList.add('highlight');
@@ -144,8 +142,7 @@ const STEPS = [
       resetStep(s);
       setPodSublabel(s.refs.podShell, 'IP 10.244.1.5');
       setWire(s, 'veth', 'eth0 <-> veth');
-      setVal(s.refs.ipChip, '10.244.1.5');
-      setVal(s.refs.vethChip, 'eth0 <-> veth');
+      setChips(s, { ns: 'shared · owned by pause', ipChip: '10.244.1.5', veth: 'eth0 <-> veth', reach: 'none' });
       s.refs.cniPlugin.classList.add('highlight');
       s.refs.ipChip.classList.add('highlight');
       s.refs.vethChip.classList.add('highlight');
@@ -166,7 +163,7 @@ const STEPS = [
       resetStep(s);
       setPodSublabel(s.refs.podShell, 'IP 10.244.1.5');
       setWire(s, 'lo', '127.0.0.1');
-      setVal(s.refs.reachChip, 'localhost');
+      setChips(s, { ns: 'shared · owned by pause', ipChip: '10.244.1.5', veth: 'eth0 <-> veth', reach: 'localhost' });
       s.refs.loWire.style.strokeOpacity = '1';   // it carries the ball on this step, so it is live
       s.refs.appBox.classList.add('highlight');
       s.refs.reachChip.classList.add('highlight');

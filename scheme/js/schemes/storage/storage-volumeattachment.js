@@ -1,12 +1,11 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, box, node, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY } from './storage-kit.js';
+import { valChip, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volumeattachment
 
 
 const M = 60;
-const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
+const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140, midpoint 600
 
 // Every solid block on the card is ONE size, storage-csi-architecture's.
 const BOX_W = 232, BOX_H = 76;
@@ -54,7 +53,7 @@ const DISK_LBL_Y = DISK_TOP - 14;                        // 386
 
 const CHIPS_Y = 592, CHIP_H = 34;                        // 592..626, 14 clear of the viewBox
 const CHIP_GAP = 16, CHIP_COUNT = 4;
-// The strip spans the card's own margins, so it centres on CX by construction. Hanging its left end
+// The strip spans the card's own margins, so it centres on 600 by construction. Hanging its left end
 // on DISK_X instead put the strip at 130..1140, whose centre is 635.
 const CHIPS_L = CONTENT_L, CHIPS_R = CONTENT_R;          // 60 / 1140
 const CHIPS_W = CHIPS_R - CHIPS_L;                                      // 1080
@@ -91,10 +90,7 @@ const ridingLabel = makeRidingLabel({ role: 'storage' });
 function podBlock() {
   const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'needs vol-1', containers: 0, role: 'storage' });
   const innerBox = box({ x: POD_X + POD_PAD, y: POD_Y + POD_INNER_Y, w: POD_W - POD_PAD * 2, h: POD_INNER_H, label: 'app', sublabel: 'wants /data', role: 'storage' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -103,13 +99,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The VolumeAttachment object. The attach and detach controller inside kube-controller-manager, not Kubelet, decides a volume must be attached to a Node and writes a VolumeAttachment naming the volume and the Node with status.attached false. The external-attacher watches those objects, calls ControllerPublishVolume on the driver, and on success writes status.attached true back onto the same object. Kubelet is blocked on that one field and mounts only once it reads true. Because the object, not the Pod, is the cluster record of the attach, deleting it is what triggers ControllerUnpublishVolume and the detach.',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'The VolumeAttachment object. The attach and detach controller inside kube-controller-manager, not Kubelet, decides a volume must be attached to a Node and writes a VolumeAttachment naming the volume and the Node with status.attached false. The external-attacher watches those objects, calls ControllerPublishVolume on the driver, and on success writes status.attached true back onto the same object. Kubelet is blocked on that one field and mounts only once it reads true. Because the object, not the Pod, is the cluster record of the attach, deleting it is what triggers ControllerUnpublishVolume and the detach.' });
     root.appendChild(arrowDefs());
 
     const nodeBox = node({ x: COL_L_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });

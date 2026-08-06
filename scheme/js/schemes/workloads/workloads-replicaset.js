@@ -1,6 +1,6 @@
-import { svg, g, rect, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL } from './workloads-kit.js';
+import { routePacket, valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-replicaset
 
@@ -79,13 +79,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'ReplicaSet controller: a reconcile loop keeps spec.replicas Pods running, owns them through ownerReferences, adopts a matching orphan and releases a relabeled Pod',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'ReplicaSet controller: a reconcile loop keeps spec.replicas Pods running, owns them through ownerReferences, adopts a matching orphan and releases a relabeled Pod' });
     root.appendChild(arrowDefs());
 
     const rs  = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'ReplicaSet', sublabel: 'owned by Deployment web', role: 'cluster' });
@@ -169,6 +163,13 @@ class Scene {
   reset() { this.build(); }
 }
 
+function setChips(s, { selector, desired, observed, action }) {
+  setVal(s.refs.selectorChip, selector);
+  setVal(s.refs.desiredChip, desired);
+  setVal(s.refs.observedChip, observed);
+  setVal(s.refs.actionChip, action);
+}
+
 function resetStep(s) {
   s.refs.packetLayer.replaceChildren();
   clearHighlights(s,
@@ -183,10 +184,7 @@ const STEPS = [
     duration: 1500,
     enter(s) {
       resetStep(s);
-      setVal(s.refs.selectorChip, 'app=web');
-      setVal(s.refs.desiredChip, '3');
-      setVal(s.refs.observedChip, '3');
-      setVal(s.refs.actionChip, 'in sync');
+      setChips(s, { selector: 'app=web', desired: '3', observed: '3', action: 'in sync' });
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 2, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 3, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -200,8 +198,7 @@ const STEPS = [
     narration: 'Every Pod the ReplicaSet manages carries a metadata.ownerReferences entry pointing back to it, with controller=true. That link is what lets garbage collection clean up the Pods when the ReplicaSet is deleted. The ownership is a chain: a Deployment owns this ReplicaSet, and the ReplicaSet owns the Pods. You scale the Deployment, it updates the ReplicaSet spec.replicas, and the ReplicaSet is what actually creates and deletes Pods.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.observedChip, '3');
-      setVal(s.refs.actionChip, 'in sync');
+      setChips(s, { selector: 'app=web', desired: '3', observed: '3', action: 'in sync' });
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 2, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 3, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -225,8 +222,7 @@ const STEPS = [
     narration: 'The controller runs a continuous reconcile loop. On every relevant change it compares the desired count (spec.replicas=3) against the observed count of matching Pods (3 right now) and acts only on the difference. Because it is level-triggered it works off the current observed state, not off one-time events, so a missed event or a controller restart still converges to the same result. With desired equal to observed there is nothing to do.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.observedChip, '3');
-      setVal(s.refs.actionChip, 'balanced · no-op');
+      setChips(s, { selector: 'app=web', desired: '3', observed: '3', action: 'balanced · no-op' });
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 2, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 3, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -249,8 +245,7 @@ const STEPS = [
     narration: 'One Pod is lost, its Node failed or the Pod was deleted. The controller sees the observed count drop to 2 below the desired 3 through its Pod watch, and immediately creates a replacement Pod to restore the count. This self-healing is the whole point of a controller. A bare Pod created on its own has no owner watching it, so once gone it stays gone.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.observedChip, '2 → 3');
-      setVal(s.refs.actionChip, 'create +1');
+      setChips(s, { selector: 'app=web', desired: '3', observed: '2 → 3', action: 'create +1' });
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 2, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 3, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -278,8 +273,7 @@ const STEPS = [
     narration: 'A standalone Pod is created with the label app=web and no controller ownerReference. The ReplicaSet matches Pods by selector, not by who created them, so it adopts this orphan: it PATCHes the Pod metadata.ownerReferences to point at itself. The Pod was already running, adoption only restamps its owner, and it now joins the set on the Node as the fourth replica. The observed count is now 4.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.observedChip, '3 → 4');
-      setVal(s.refs.actionChip, 'adopt +1');
+      setChips(s, { selector: 'app=web', desired: '3', observed: '3 → 4', action: 'adopt +1' });
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 2, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 3, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -304,8 +298,7 @@ const STEPS = [
     narration: 'Adoption pushed the count to 4, one above spec.replicas. The same reconcile loop now deletes one Pod to return to exactly 3. A ReplicaSet never runs more than its desired count, no matter where the extra Pod came from. When it has to pick a victim it ranks candidates (unscheduled and not-ready Pods first, then by the controller.kubernetes.io/pod-deletion-cost annotation), then issues a delete.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.observedChip, '4 → 3');
-      setVal(s.refs.actionChip, 'delete -1');
+      setChips(s, { selector: 'app=web', desired: '3', observed: '4 → 3', action: 'delete -1' });
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 2, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 3, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
@@ -334,8 +327,7 @@ const STEPS = [
     narration: 'The reverse of adoption. A Pod is relabeled so it no longer matches the selector, here app=web becomes app=debug. The ReplicaSet releases it by removing its ownerReference, and the Pod keeps running as an unmanaged standalone Pod. That drops the matching count to 2, so the controller creates a replacement to hold 3. Labels are the binding: change them and a Pod moves in or out of the set.',
     enter(s, ctx) {
       resetStep(s);
-      setVal(s.refs.observedChip, '2 → 3');
-      setVal(s.refs.actionChip, 'release + create');
+      setChips(s, { selector: 'app=web', desired: '3', observed: '2 → 3', action: 'release + create' });
       setPod(s, 1, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       setPod(s, 2, { label: 'app=web', sub: 'owner: rs', opacity: 1 });
       // pod3 is relabeled off the selector and released, it keeps running but unmanaged.

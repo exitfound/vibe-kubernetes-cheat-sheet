@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-dns-records
 
 
@@ -54,13 +54,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Kubernetes DNS records: a Service name is a fully qualified name made of Service, namespace, svc and the cluster domain, and CoreDNS answers it with an A record to the ClusterIP, an SRV record for ports, multiple A records for a headless Service, or a per-Pod record',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Kubernetes DNS records: a Service name is a fully qualified name made of Service, namespace, svc and the cluster domain, and CoreDNS answers it with an A record to the ClusterIP, an SRV record for ports, multiple A records for a headless Service, or a per-Pod record' });
     root.appendChild(arrowDefs());
 
     // Client Pod (h 130) and CoreDNS (h 96) are both centred on FLOW_Y, so the query lane is straight.
@@ -115,10 +109,12 @@ class Scene {
 function clientBlock({ x, y, w, h }) {
   const shell = podShell({ x, y, w, h, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 36, w: w - 40, h: 50, label: 'Resolver', sublabel: 'getaddrinfo', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
+}
+
+function setChips(s, { q, ans }) {
+  setVal(s.refs.qChip, q);
+  setVal(s.refs.ansChip, ans);
 }
 
 function resetStep(s) {
@@ -178,8 +174,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       askName(s, NAME_SVC);
-      setVal(s.refs.qChip, 'web expands to web.default.svc.cluster.local');
-      setVal(s.refs.ansChip, '-');
+      setChips(s, { q: 'web expands to web.default.svc.cluster.local', ans: '-' });
       s.refs.qChip.classList.add('highlight');
       if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
       // No packet yet: the expansion happens inside the Pod resolver, so the Pod is what moves. The
@@ -196,8 +191,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       askName(s, NAME_SVC);
-      setVal(s.refs.qChip, 'web.default.svc.cluster.local  IN A');
-      setVal(s.refs.ansChip, '1 record');
+      setChips(s, { q: 'web.default.svc.cluster.local  IN A', ans: '1 record' });
       resolve(s, ctx, 0);
     },
   },
@@ -210,8 +204,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       askName(s, NAME_SRV);
-      setVal(s.refs.qChip, '_http._tcp.web.default.svc.cluster.local  IN SRV');
-      setVal(s.refs.ansChip, '1 record');
+      setChips(s, { q: '_http._tcp.web.default.svc.cluster.local  IN SRV', ans: '1 record' });
       resolve(s, ctx, 1);
     },
   },
@@ -224,8 +217,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       askName(s, NAME_HEADLESS);
-      setVal(s.refs.qChip, 'web.default.svc.cluster.local  IN A');
-      setVal(s.refs.ansChip, '3 records');
+      setChips(s, { q: 'web.default.svc.cluster.local  IN A', ans: '3 records' });
       resolve(s, ctx, 2);
     },
   },
@@ -238,8 +230,7 @@ const STEPS = [
     enter(s, ctx) {
       resetStep(s);
       askName(s, NAME_POD);
-      setVal(s.refs.qChip, '10-244-2-7.default.pod.cluster.local  IN A');
-      setVal(s.refs.ansChip, '1 record');
+      setChips(s, { q: '10-244-2-7.default.pod.cluster.local  IN A', ans: '1 record' });
       resolve(s, ctx, 3);
     },
   },

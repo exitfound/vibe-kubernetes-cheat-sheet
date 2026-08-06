@@ -1,5 +1,5 @@
 // check-geometry.mjs: geometry lint in viewBox units over every step. Reports THROUGH, DIAGONAL,
-// OFFEDGE, CENTRE and CENTRE-LOW. See scheme/CLAUDE.md (Dev tools).
+// OFFEDGE, CENTRE and CENTRE-LOW. The rules are ../CANON.md L-09 to L-17.
 // node check-geometry.mjs [--rules=a,b] [<id> ...]   ids => verbose; none => whole catalog, terse
 import { launch, setInspect, stepCount, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 

@@ -1,6 +1,6 @@
-import { svg, g, text, rect } from '../../lib/svg.js';
-import { arrowDefs, pod, podShell, node, box, arrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, at, OPACITY } from './cluster-kit.js';
+import { g, text, rect } from '../../lib/svg.js';
+import { arrowDefs, podShell, node, box, arrow } from '../../lib/primitives.js';
+import { valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, lightBoxAt, at, OPACITY, diagramRoot } from './cluster-kit.js';
 // Design notes for this card: ./CARDS.md#cluster-cpu-throttling
 
 // Layout C, the twin of cluster-oom-kill with the sibling ladder replaced by the time scale.
@@ -68,13 +68,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'CPU throttling and the CFS quota: a CPU request becomes a cgroup cpu.weight that only binds under contention, a CPU limit becomes a cpu.max quota of 50ms inside every 100ms period, the kernel stops scheduling the cgroup once that budget is spent, and the only record is cpu.stat',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'CPU throttling and the CFS quota: a CPU request becomes a cgroup cpu.weight that only binds under contention, a CPU limit becomes a cpu.max quota of 50ms inside every 100ms period, the kernel stops scheduling the cgroup once that budget is spent, and the only record is cpu.stat' });
     root.appendChild(arrowDefs());
 
     const kubelet = box({ x: KUBE_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'Kubelet',      sublabel: 'CRI resources + cAdvisor', role: 'cluster' });

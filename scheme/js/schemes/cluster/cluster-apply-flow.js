@@ -1,6 +1,6 @@
-import { svg, g, text } from '../../lib/svg.js';
+import { g, text } from '../../lib/svg.js';
 import { arrowDefs, node, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at } from './cluster-kit.js';
+import { routePacket, pulsePod, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, diagramRoot } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS.md#cluster-apply-flow
 
@@ -25,11 +25,11 @@ const LANE_DY = 10;
 const OUT_Y = TOP_CY - LANE_DY, BACK_Y = TOP_CY + LANE_DY;   // 170 / 190
 const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 490..710
 const FLANK_W = 130;
-const ETCD_X = IN_R - FLANK_W, ETCD_R = IN_R;            // 900..1030, architecture's own slot
+const ETCD_X = IN_R - FLANK_W;  // 900..1030, architecture's own slot
 const ETCD_OVER = 30;                                    // cylinder overhang, architecture's
 // The client stands in the 150 unit band the frame leaves on the right, centred on that wall, 10
 // clear of each side. 130 is the band minus the margins and is also ETCD's width.
-const KCTL_W = 130, KCTL_X = FRAME_R + 10, KCTL_R = KCTL_X + KCTL_W;   // 1060..1190
+const KCTL_W = 130, KCTL_X = FRAME_R + 10;  // 1060..1190
 const KCTL_Y = CP_CY - BOX_H / 2;                        // 225..305, centred on the wall
 const KCTL_CX = KCTL_X + KCTL_W / 2;                     // 1125
 
@@ -95,13 +95,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'The object create path: a manifest travels from the client through the control plane to the Kubelet on a Node, which calls the Runtime to start the container',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'The object create path: a manifest travels from the client through the control plane to the Kubelet on a Node, which calls the Runtime to start the container' });
     root.appendChild(arrowDefs());
 
     // Both frames first, so each band sits behind everything it holds. They share one span, so the

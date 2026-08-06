@@ -2,11 +2,11 @@ export {
   valChip, setVal, setChip, setBoxLabel, setBoxSublabel, makeInit, packetAlong,
   routePacket, segmentPacket, routeDur, routeLength, packetArrival,
   topPacket, setConnectorDir, clearPodHighlight,
-  arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
+  diagramRoot, wrapPod, arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
   relationPath, revealAt, laneOf, REVEAL_MS,
   setPodSublabel, FADE, BEAT, OPACITY,
 } from '../../lib/scheme-kit.js';
-import { pulsePodWithTint, pulsePodDimWithTint } from '../../lib/scheme-kit.js';
+import { makeTintedPulses } from '../../lib/scheme-kit.js';
 // Design notes: scheme/INTERNALS.md#schemejsschemesstoragestorage-kitjs
 
 export const STORAGE_TINT = Object.freeze({ base: 'rgb(94, 202, 148)', bright: 'rgb(174, 224, 199)' });
@@ -19,11 +19,4 @@ export function setCylinderLabel(cylEl, txt) {
   if (l) l.textContent = txt;
 }
 
-// Storage pods pulse with the teal tint. The body is shared with scheme-kit
-// (pulsePodWithTint), so the families differ only in colour.
-export function pulsePod(podEl, ctx, delay = 0, opts = {}) {
-  return pulsePodWithTint(podEl, ctx, delay, opts, STORAGE_TINT);
-}
-export function pulsePodDim(podEl, ctx, delay = 0, opts = {}) {
-  return pulsePodDimWithTint(podEl, ctx, delay, opts, STORAGE_TINT);
-}
+export const { pulsePod, pulsePodDim } = makeTintedPulses(STORAGE_TINT);

@@ -1,6 +1,6 @@
-import { svg, g } from '../../lib/svg.js';
+import { g } from '../../lib/svg.js';
 import { arrowDefs, box, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt } from './network-kit.js';
+import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-headless-service
 
 
@@ -41,10 +41,7 @@ const fanTo = (cy) => [[CORE_RIGHT, CY], [FAN_X, CY], [FAN_X, cy], [POD_X, cy]];
 function podBlock({ x, y, w, h, label, ip }) {
   const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
   const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
+  return wrapPod(shell, innerBox);
 }
 
 class Scene {
@@ -53,13 +50,7 @@ class Scene {
   build() {
     this.host.replaceChildren();
     this.refs = {};
-    const root = svg({
-      class: 'diagram',
-      viewBox: '0 0 1200 640',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-label': 'Headless Service: with clusterIP None there is no virtual IP, so DNS returns one A record per ready backing Pod and the client connects to a Pod itself, and a StatefulSet gives each Pod its own stable name',
-      'data-style': 'outline',
-    });
+    const root = diagramRoot({ 'aria-label': 'Headless Service: with clusterIP None there is no virtual IP, so DNS returns one A record per ready backing Pod and the client connects to a Pod itself, and a StatefulSet gives each Pod its own stable name' });
     root.appendChild(arrowDefs());
 
     const client = podBlock({ x: CLIENT_X, y: CLIENT_TOP, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: '10.244.1.5' });
