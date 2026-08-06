@@ -17,20 +17,19 @@ which must return 404.
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and
 `check-notes` parses it that way. A second-level heading anywhere else is reported as an orphan.)
 
-One `## <card-id>` section per card. Each ``### before `<line>` `` holds the note for one line of
-code, and `check-notes` verifies that line still occurs in the card, so **an anchor is DATA: never
-reword one.** Where a card has a header note it hangs off the card's first constant and carries the
-whole layout in labelled blocks. `### poster` describes the grid thumbnail. Two shapes deliberately
-carry no anchor and say so: `### opacity phases`, whose constant was replaced by `OPACITY.*`, and
-`### note (anchor dropped: ...)`, whose target line appears more than once in the card.
+One `## <card-id>` section per card. `### layout` describes the whole card in labelled blocks,
+`### poster` describes the grid thumbnail, and each ``### before `<line>` `` holds the note for one
+line of code. `check-notes` verifies every anchor still occurs in its card, so **an anchor is DATA:
+never reword one.**
 
-The labels, in this order, only the ones that apply:
+The labels in `### layout`, in this order, only the ones that apply:
 
 | | |
 |---|---|
 | `WHAT` | what the card draws, in one sentence |
 | `LAYOUT` | the tiers, and the geometry that follows from the panel |
 | `PANEL` | the measured overlay extent for THIS card, and what it pins |
+| `SIZES` | a block or chip width, and the string that floors it |
 | `LANES` | wire topology, and which array feeds both the wire and the ball |
 | `MOTION` | pulse and packet order, durations where they were sized deliberately |
 | `CONTENT` | a technical claim checked against the reference, and the wording it forced |
@@ -39,6 +38,7 @@ The labels, in this order, only the ones that apply:
 | `DO NOT` | a constraint, with the defect it prevents |
 | `NOT A DEFECT` | something a lint or a reader reports that is correct as drawn |
 | `NAMING` | why a block, a card or a string carries the wording it does |
+| `NOTE` | a placement or a value whose reason is not visible from the code |
 | `SCOPE` | what this card deliberately leaves to a named sibling |
 | `OPEN` | known and unresolved |
 
@@ -59,139 +59,95 @@ where the two disagree the card takes the stricter number and says so.
 
 ## storage-access-modes
 
-### before `const LEFT_X = 400;                                      // leftmost the NODE ROW may go, all viewports`
+### layout
 
 ```
-WHAT  Which node, and which Pod, may hold the volume at the same time. Two worker nodes carrying
-Pods on top, the CSI driver as a full-width band under them, two PVs on the bottom shelf: a block
-disk that can only do single-attach and a shared filesystem that can do many.
-
-LAYOUT  Tiers are derived, but they do NOT all share one centre, and the split is the point. The
-node row sits inside the panel's vertical band, so it starts at LEFT_X 400 and its own centre works
-out to 647. Everything BELOW the panel floor has the full width free, so the driver band, the disk
-shelf and the chip strip centre on the CANVAS (600). The band reaches 600 without moving its right
-edge: it stays flush with the node row at 894 and takes the width it gains on the left, 306..894,
-which is also what fills the empty lower-left corner.
-
-PANEL  Worst step, right edge / bottom edge by viewport:
-  1920x1080 -> 203 / 146    1440x900 -> 319 / 183    1280x800 -> 358 / 213
-  1100x800  -> 397 / 230     900x650 -> 398 / 375
-So x<=398 and y<=375. LEFT_X 400 has about 2 units of slack and cannot move left at all, and the
-driver band (bottom 375) is only just clear at the smallest window.
-DO NOT re-derive LEFT_X from the panel measured at your own window size: a left edge picked from one
-wide-window sample looks centred on the machine it was tuned on and slides under the panel on a
-laptop.
-
-LANES  Every mount is a DESCENT through the driver: Pod to driver (the attach request), then driver
-to disk (the attach). A ball entering the driver at the Pod column and re-emerging at the disk column
-is the rewrite-inside-a-box idiom, because the driver is where the decision is made. A refused attach
-stops AT the driver and never reaches a disk.
-Because the band is no longer under the Pods that feed it, the three attach requests drop onto a bus
-at y=260 (clear of the panel floor at 230) and enter the band on its centre line.
-WHY NOT drop each Pod straight down: that puts three arrows across a 588 unit face, none of them near
-its midpoint. The fan below the band avoids the same defect by leaving the band at one point and
-fanning out inside the disk column.
-
-MOTION  Only Pods pulse. The driver and the disks light.
+WHAT     Which node, and which Pod, may hold the volume at the same time. Two worker nodes carrying
+         Pods on top, the CSI driver as a full-width band under them, two PVs on the bottom shelf: a
+         block disk that can only do single-attach and a shared filesystem that can do many.
+LAYOUT   Tiers are derived, but they do NOT all share one centre, and the split is the point. The node
+         row sits inside the panel's vertical band, so it starts at LEFT_X 400 and its own centre works
+         out to 647. Everything BELOW the panel floor has the full width free, so the driver band, the
+         disk shelf and the chip strip centre on the CANVAS (600). The band reaches 600 without moving
+         its right edge: it stays flush with the node row at 894 and takes the width it gains on the
+         left, 306..894, which also fills the empty lower-left corner.
+PANEL    Worst step, right edge / bottom edge by viewport:
+           1920x1080 -> 203 / 146    1440x900 -> 319 / 183    1280x800 -> 358 / 213
+           1100x800  -> 397 / 230     900x650 -> 398 / 375
+         So x<=398 and y<=375. LEFT_X 400 has about 2 units of slack and cannot move left at all, and
+         the driver band (bottom 375) is only just clear at the smallest window.
+DO NOT   Re-derive LEFT_X from the panel measured at your own window size. A left edge picked from one
+         wide-window sample looks centred on the machine it was tuned on and slides under the panel on
+         a laptop.
+LANES    Every mount is a DESCENT through the driver: Pod to driver (the attach request), then driver
+         to disk (the attach). A ball entering the driver at the Pod column and re-emerging at the disk
+         column is the rewrite-inside-a-box idiom, because the driver is where the decision is made. A
+         refused attach stops AT the driver and never reaches a disk.
+         Because the band is no longer under the Pods that feed it, the three attach requests drop onto
+         a bus at y=260 (clear of the panel floor at 230) and enter the band on its centre line.
+         The shared filesystem is reached on THREE lanes, one per mounting Pod, and all three are drawn.
+WHY NOT  Dropping each Pod straight down: that puts three arrows across a 588 unit face, none of them
+         near its midpoint. The fan below the band avoids the same defect by leaving the band at one
+         point and fanning out inside the disk column.
+DO NOT   Collapse the three NFS lanes to a single wire down NFS_CX with balls flying at NFS_CX +/- 7:
+         then no ball rides the drawn line, they skim 7 units either side of it. Three lanes rather
+         than two because ReadWriteMany excludes nobody: app-2 sits on the same node as app-1 and can
+         mount it just as well, and leaving it out made the step look like RWX still rations access.
+SIZES    POD_W decides how far the NODE ROW sits off the canvas centre, because that row's centre is
+         LEFT_X + (3*POD_W + 102)/2 and LEFT_X is pinned by the panel. Every extra unit of POD_W costs
+         1.5 units of rightward shift: at 156 the row centre lands on 692, which reads as a visible
+         shift right, at 128 it lands on 647. WHY NOT 112: the Pods come out narrower than they are
+         tall and read as squeezed.
+         SPEC_GAP is 14 below the cylinder name, which `cylinder()` puts on the baseline h/2+5, the
+         same gap storage-pvc-binding uses. WHY NOT a flat PV_Y+66: against a 100 tall cylinder that
+         leaves 11 units between two baselines whose text is 11 units tall, so the two lines touch.
+BUDGET   POD_W is floored by the WIDEST TEXT INSIDE A POD. The container sublabel is `read/write` at 59
+         units; `reads and writes` renders 94 and puts a hard floor of ~146 under POD_W. DO NOT
+         lengthen that string without re-deriving the row centre.
+         CHIP_W 232 is one width for all four chips, measured worst cases in viewBox units:
+           accessModes 76 + ReadWriteOncePod 110 = 186   <- the binding one, neither string can shorten
+           attached to 76 + `node-1, node-2`      96 = 172
+           sharing     48 + `app-1, app-2, app-3` 131 = 179
+           enforced by 76 + `CSI driver`           69 = 145
+         232 clears the worst pair with ~22 units between name and value.
+NAMING   The multi-value chips read as comma lists because `node-1 and node-2` and `app-1, app-2 and
+         app-3` are wide enough to force a wider uniform chip, and the strip is already more than twice
+         the width of the diagram it captions.
+CONTENT  `enforced by` is a real value, not a constant caption: every mode here is honoured by the
+         driver EXCEPT ReadWriteOncePod, which Kubernetes itself enforces. DO NOT hardcode it back to
+         `CSI driver`, that makes it dead weight and wrong on the one step where it matters.
+         `sharing` answers exactly one question: which Pods hold the volume right now. DO NOT let it
+         double as a refusal report (`node-2 refused`, `block cannot span nodes`). That puts a refusal
+         in the chip on the very step where a ball flies out of a refused Pod, so the chip reads as a
+         caption for that ball. Refusal reasons belong on the driver wire label, which carries them.
+MOTION   Only Pods pulse; the driver and the disks light. Pods sit above their node frame in z-order.
+         A refused attach reaches the gate and stops there, and no disk lights, but the Pod blinks
+         FIRST exactly as in grantMount: it is the actor either way, and without the blink the
+         narration names a Pod that is never seen doing anything, the ball just materialising out of a
+         dim block. Refused Pods stay dim, so the blink takes the dim variant with an opacity lift.
+         On the refusal step the block disk stays LIT: it is still attached to node-1 and still in use,
+         and it is the REASON app-3 is refused, so leaving it unlit contradicts both the wire label and
+         the narration.
+DO NOT   Dim the not-yet-mounted Pods. Dim means the access mode REFUSES this Pod, never `has not
+         mounted yet`: the poster auto-plays step 1, so that is the frame you stare at on open, and it
+         showed two of three Pods greyed out for no reason a viewer could name. It also conflated
+         app-2, which mounts fine one step later, with app-3, which is genuinely refused. Who HOLDS the
+         volume is carried by the ball, the lit disk and the sharing chip instead.
 ```
 
-### before `const POD_Y = 82, POD_W = 128, POD_H = 126;`
+### before `const LEFT_X = 400;`
 
 ```
-Pod and node sizes drive everything else: the node row width is DERIVED from what it has to hold, and
-the driver band and disk shelf follow that. Nothing here is a hand-typed x.
-
-POD_W decides how far the NODE ROW sits off the canvas centre, because that row's centre is
-LEFT_X + (3*POD_W + 102)/2 and LEFT_X is pinned by the panel. Every extra unit of POD_W costs 1.5
-units of rightward shift, since three Pods sit in the row: at 156 the row centre lands on 692, which
-reads as a visible shift right, at 128 it lands on 647.
-
-BUDGET  POD_W is floored by the WIDEST TEXT INSIDE A POD. The container sublabel is 'read/write' at
-59 units; 'reads and writes' renders 94 and puts a hard floor of ~146 under POD_W.
-DO NOT lengthen that string without re-deriving the row centre.
-WHY NOT 112: the Pods come out narrower than they are tall and read as squeezed. 128 is the widest
-the row can go while the whole diagram still reads as centred.
-```
-
-### before `const SPEC_GAP = 14;`
-
-```
-cylinder() puts its own name on the baseline h/2+5, and this spec line goes 14 BELOW that, the same
-gap storage-pvc-binding uses.
-WHY NOT a flat PV_Y+66: against a 100 tall cylinder that leaves 11 units between two baselines whose
-text is 11 units tall, so the two lines visually touch.
+The panel wall, with about 2 units of slack, and the ONLY thing pinning the node row. The row centre
+is LEFT_X + (3*POD_W + 102)/2, so LEFT_X and POD_W together decide how far off canvas centre that
+tier sits. It cannot move left at any window size.
 ```
 
 ### before `const CHIP_W = 232;`
 
 ```
-ONE width for all four chips. Measured worst cases, in viewBox units:
-  accessModes 76 + ReadWriteOncePod 110 = 186   <- the binding one, and neither string can shorten
-  attached to 76 + 'node-1, node-2'     96 = 172
-  sharing     48 + 'app-1, app-2, app-3' 131 = 179
-  enforced by 76 + 'CSI driver'          69 = 145
-232 clears the worst pair with ~22 units between name and value.
-NAMING  The multi-value chips read as comma lists because 'node-1 and node-2' and
-'app-1, app-2 and app-3' are wide enough to force a wider uniform chip, and the strip is already
-more than twice the width of the diagram it captions.
-```
-
-### opacity phases (was `const DIM = 0.75`, now OPACITY.*)
-
-```
-Dim means the access mode REFUSES this Pod. It does NOT mean "has not mounted yet": a Pod that simply
-has not been shown mounting is a perfectly healthy Pod and must look like one.
-DO NOT dim the not-yet-mounted Pods. The poster auto-plays step 1, so that is the frame you stare at
-on open, and it showed two of three Pods greyed out for no reason a viewer could name. It also
-conflated app-2, which mounts fine one step later, with app-3, which is genuinely refused.
-Who currently HOLDS the volume is carried by the ball, the lit disk and the sharing chip instead.
-```
-
-### before `const NFS_LANE = 16;`
-
-```
-The shared filesystem is reached on THREE lanes, one per mounting Pod, and all three are drawn.
-DO NOT collapse them to a single wire down NFS_CX with balls flying at NFS_CX +/- 7: then no ball
-rides the drawn line, they skim 7 units either side of it.
-Three lanes rather than two because ReadWriteMany excludes nobody: app-2 sits on the same node as
-app-1 and can mount it just as well, and leaving it out made the step look like RWX still rations
-access somehow.
-```
-
-### before `[nodeA, nodeB, driver, pvBlock, pvNfs, podA1.group, podA2.group, podB1.group].forEach(el => root.appendChild(e`
-
-```
-Family z-order, with the Pods above their node frame.
-```
-
-### before `function setChips(s, { mode, attach, share, enforcer = 'CSI driver' }) {`
-
-```
-enforcer is a real value, not a constant caption: every mode here is honoured by the driver EXCEPT
-ReadWriteOncePod, which Kubernetes itself enforces.
-DO NOT hardcode it back to 'CSI driver': that makes it dead weight and wrong on the one step where it
-matters.
-'sharing' answers exactly one question: which Pods hold the volume right now.
-DO NOT let it double as a refusal report ('node-2 refused', 'block cannot span nodes'). That puts a
-refusal in the chip on the very step where a ball flies out of a refused Pod, so the chip reads as a
-caption for that ball. Refusal reasons belong on the driver wire label, which already carries them.
-```
-
-### before `function denyMount(s, ctx, { podEl, reqPts, tag, lead = 0 }) {`
-
-```
-A refused attach: the request reaches the gate and stops there. No disk lights.
-The Pod blinks FIRST, exactly as in grantMount. It is the actor either way, and without the blink the
-narration names a Pod that is never seen doing anything: the ball just materialises out of a dim
-block. Refused Pods stay dim, so the blink takes the dim variant with an opacity lift.
-```
-
-### before `s.refs.pvBlock.classList.add('highlight');`
-
-```
-The disk stays lit: it is still attached to node-1 and still in use by app-1 and app-2. It is the
-REASON app-3 is refused, so leaving it unlit contradicts both the wire label and the narration, which
-say in so many words that the disk is already attached.
+ONE width for all four chips, sized against the accessModes + ReadWriteOncePod pair at 186, neither
+of which can shorten. Below ~190 the name and the value touch.
 ```
 
 ### poster
@@ -217,63 +173,54 @@ another idiom the card uses for the driver.
 Node widths stay close on purpose, so the difference reads as "which node holds it", never as size.
 ```
 
----
-
 ## storage-configmap-secret-mount
 
-### before `const POD_X = 330, POD_Y = 56, POD_W = 540, POD_H = 120;        // 330..870, center 600`
+### layout
 
 ```
-WHAT  ConfigMap and Secret as files. A vertical stack symmetric about x=600, in family with
-volume-model and emptydir: the consumer Pod on top, the mounted /etc/config volume in the middle, and
-the source row at the bottom, ConfigMap on the left feeding kubelet in the centre fed by Secret on the
-right. Reading the card bottom to top IS the mechanism: a source object becomes files via kubelet, the
-files resolve through the ..data symlink, the app reads the result.
-
-CONTENT  The mechanism is the ATOMIC SYMLINK SWAP. kubelet writes the keys into a timestamped
-directory and points a ..data symlink at it. On update it writes a brand new timestamped dir, then
-flips the single ..data symlink in one step, so a reader never sees a half-written config. Updates
-land on the kubelet sync period (up to about a minute) and the app must re-read the file itself. A
-subPath mount pins one file and opts OUT of the swap, so it never updates. A Secret uses the same
-machinery but on tmpfs.
-
-LANES  Almost every lane is ONE straight segment. The two source lanes mirror each other on the
-bottom row, the two write lanes rise vertically into the dir slots at x=460 and x=740 (symmetric
-about the spine), and the read lane rides the spine itself (x=600, ..data up to the Pod).
-The subPath lane is the exception: it rises STRAIGHT out of the v1 dir at x=460, bypassing ..data,
-which is exactly its meaning, then steps across the Pod-to-volume corridor at y=222 to enter the Pod
-at x=540, 60 left of the spine.
-WHY NOT take it straight to the top: it ends at the Pod's corner, 140 off the midpoint of a 540 wide
-face and alone there, which reads as a lane that missed rather than as a second read path. The step
-is in the corridor, so it crosses nothing, and it stays clear of the sync-period label at x=618.
-Symlink pointers are dashed right-angle Ls out of the sides of ..data, each dropping into the dir slot
-it points at, bare and arrowhead-free, so the slot columns read kubelet -> dir -> ..data top to bottom.
-
-PANEL  The Pod starts at x=330, y=56, clear of the panel measured on the family cards ((300, 163) on a
-comfortable 1600px viewport). On narrow windows the panel may brush the Pod corner, the accepted
-family trade. A longer narration invalidates this.
-
-MOTION  Highlights are STEP-STATIC: every block a step uses lights at step entry, above the reduced
-guard, never on packet arrival.
-The v2 dir slot and its write lane stay empty until the update step creates them.
+WHAT     ConfigMap and Secret as files. A vertical stack symmetric about x=600, in family with
+         volume-model and emptydir: the consumer Pod on top, the mounted /etc/config volume in the
+         middle, and the source row at the bottom, ConfigMap on the left feeding kubelet in the centre
+         fed by Secret on the right. Reading the card bottom to top IS the mechanism: a source object
+         becomes files via kubelet, the files resolve through the ..data symlink, the app reads the
+         result.
+CONTENT  The mechanism is the ATOMIC SYMLINK SWAP. kubelet writes the keys into a timestamped directory
+         and points a ..data symlink at it. On update it writes a brand new timestamped dir, then flips
+         the single ..data symlink in one step, so a reader never sees a half-written config. Updates
+         land on the kubelet sync period (up to about a minute) and the app must re-read the file
+         itself. A subPath mount pins one file and opts OUT of the swap, so it never updates. A Secret
+         uses the same machinery but on tmpfs.
+LANES    Almost every lane is ONE straight segment. The two source lanes mirror each other on the
+         bottom row, the two write lanes rise vertically into the dir slots at x=460 and x=740
+         (symmetric about the spine), and the read lane rides the spine itself (x=600, ..data up to the
+         Pod).
+         The subPath lane is the exception: it rises STRAIGHT out of the v1 dir at x=460, bypassing
+         ..data, which is exactly its meaning, then steps across the Pod-to-volume corridor at y=222 to
+         enter the Pod at x=540, 60 left of the spine. WHY NOT take it straight to the top: it ends at
+         the Pod's corner, 140 off the midpoint of a 540 wide face and alone there, which reads as a
+         lane that missed rather than as a second read path. The step is in the corridor, so it crosses
+         nothing, and it stays clear of the sync-period label at x=618.
+         Symlink pointers are strict right-angle Ls out of the SIDES of ..data, drawn with
+         relationPath because a symlink is a relationship rather than traffic: bare, arrowhead-free and
+         recessed behind the live lanes. Each exits at its mid height, turns 90 degrees over its dir
+         slot and drops into the slot top, mirroring the write lane below it so the column reads
+         kubelet -> dir -> ..data. DO NOT hand-roll these as stripped pathArrows, and do not give them
+         a marker.
+PANEL    The Pod starts at x=330, y=56, clear of the panel measured on the family cards ((300, 163) on
+         a comfortable 1600px viewport). On narrow windows the panel may brush the Pod corner, the
+         accepted family trade. A longer narration invalidates this.
+MOTION   Highlights are STEP-STATIC: every block a step uses lights at step entry, above the reduced
+         guard, never on packet arrival. The v2 dir, its symlink pointer and its write lane exist only
+         from the atomic step on, the subPath lane only on its step, and the Secret sits dim until its
+         step brightens it.
 ```
 
-### before `const SYM_OLD = [[DATA_X, SYM_Y], [OLD_CX, SYM_Y], [OLD_CX, DIR_Y]];`
+### before `const POD_X = 330, POD_Y = 56, POD_W = 540, POD_H = 120;`
 
 ```
-Symlink pointers: strict right-angle Ls into the directory they point at, drawn with relationPath
-because a symlink is a relationship rather than traffic, so they carry no arrowhead and sit recessed
-behind the live lanes. Each exits the SIDE of ..data at its mid height, turns 90 degrees over its dir
-slot and drops into the slot top, mirroring the write lane below the slot so the column reads
-kubelet -> dir -> ..data.
-DO NOT hand-roll these as stripped pathArrows, and do not give them a marker.
-```
-
-### before `function setStage(s, { symOld = 1, symNew = 0, dirNew = 0, writeNew = 0, subpath = 0, sec = OPACITY.notready } = {}) {`
-
-```
-Family setStage. The v2 dir, its symlink pointer and its write lane exist only from the atomic step
-on, the subPath lane only on its step, and the Secret sits dim until its step brightens it.
+The Pod spans 330..870, centred on 600 with the volume and source rows below it. It starts at x=330,
+clear of the panel measured on the family cards at (300, 163); on narrow windows the panel may brush
+its corner, the accepted family trade.
 ```
 
 ### poster
@@ -284,72 +231,44 @@ The card in miniature: the app reads down the spine through ..data, whose bare r
 inside each dir are the keys sitting as files.
 ```
 
----
-
 ## storage-container-filesystem
+
+### layout
+
+```
+WHAT     Container filesystem layers. A vertical stack centred on the canvas: the Container (consumer)
+         on top, its overlay layers stacked directly beneath it, and the real volume disk on the shelf
+         at the bottom, centred under the stack so the whole column is symmetric on 600.
+CONTENT  The teaching contrast. The container root filesystem is read-only image layers (lowerdir)
+         with ONE thin writable layer (upperdir) on top, combined by overlayfs. A write copies up into
+         the writable layer, never into the image, and that writable layer is DISCARDED when the
+         container is removed. A mounted volume is a hole punched through the overlay straight to real
+         storage, bypassing the writable layer, so it survives.
+LANES    The bypass is drawn literally: the copy-up write descends onto the writable layer, while the
+         volume wire leaves the Container SIDE and zigzags in right angles around the whole stack down
+         to the disk, the literal picture of bypassing every overlay layer.
+MOTION   The writable layer does not exist until its step, so its copy-up wire does not either: the
+         layer and the wire fade in together, are discarded together, and return together for the fresh
+         container. That reappearing layer is the restart made visible, not the old layer returning:
+         its contents are gone and the sublabel still reads starts empty.
+         Only the Container (a Pod-like consumer) pulses; the layer boxes and the disk light. The pulse
+         takes the whole Container group, so the Process box inside blinks with the Container it
+         belongs to, and shellWrap survives only as a handle for code that wants the shell alone. DO
+         NOT aim the pulse at shellWrap: it then cannot reach the Process box.
+NOTE     The writable layer is not on screen at build time, so the root-fs chip starts honest: only the
+         read-only image layers exist until the writable step adds the RW top. One uniform chip size,
+         and the strip (3x320 + 2x20 = 1000) is centred on x=600, the axis of the column above.
+         Family cylinder-label re-centring: the face spans 2*ry..h, so the baseline sits at its middle
+         plus half the font x-height.
+```
 
 ### before `const POD_X = 440, POD_Y = 48, POD_W = 320, POD_H = 140;`
 
 ```
-WHAT  Container filesystem layers. A vertical stack centred on the canvas: the Container (consumer)
-on top, its overlay layers stacked directly beneath it, and the real volume disk on the shelf at the
-bottom, centred under the stack so the whole column is symmetric on 600.
-
-CONTENT  The teaching contrast. The container root filesystem is read-only image layers (lowerdir)
-with ONE thin writable layer (upperdir) on top, combined by overlayfs. A write copies up into the
-writable layer, never into the image, and that writable layer is DISCARDED when the container is
-removed. A mounted volume is a hole punched through the overlay straight to real storage, bypassing
-the writable layer, so it survives.
-
-LANES  The bypass is drawn literally: the volume wire leaves the Container SIDE and zigzags in right
-angles around the stack down to the disk.
-
-MOTION  The writable layer does not exist until its step, so its copy-up wire does not either: the
-layer and the wire fade in together, are discarded together, and return together for the fresh
-container. Only the Container (a Pod-like consumer) pulses; the layer boxes and the disk light.
+POD_CX falls out at 600 and the overlay stack plus the disk are centred under it, so the whole column
+is symmetric on one axis. The chip strip (3x320 + 2x20 = 1000) is centred on the same 600.
 ```
 
-### before `const W_COPYUP = [[POD_CX, POD_BOTTOM], [POD_CX, WR_Y]];`
-
-```
-The copy-up write descends onto the writable layer. The volume write leaves the Container SIDE and
-zigzags in right angles around the whole stack down to the disk: the literal picture of bypassing
-every overlay layer.
-```
-
-### before `function podBlock({ x, y, w, h, label, sublabel }) {`
-
-```
-Family pulse model: the pulse takes the whole Container group, so the Process box inside blinks with
-the Container it belongs to. shellWrap survives as a handle for code that wants the shell alone.
-DO NOT aim the pulse at shellWrap: it then cannot reach the Process box.
-```
-
-### before `const volLbl = volume.querySelector('.scheme-cylinder-label');`
-
-```
-Family cylinder-label re-centring: the face spans 2*ry..h, so the baseline sits at its middle plus
-half the font x-height.
-```
-
-### before `const fsChip      = valChip({ x: 100, y: CHIPS_Y, w: 320, h: 34, name: 'root fs', value: 'read-only image laye`
-
-```
-The writable layer is not on screen yet at build time, so the chip starts honest: only the read-only
-image layers exist until the writable step adds the RW top.
-One uniform chip size, and the strip (3x320 + 2x20 = 1000) is centred on x=600, the axis of the whole
-column above, so the bottom row is symmetric with the diagram.
-```
-
-### before `s.refs.writable.style.opacity = '1';`
-
-```
-A fresh container is running again, so a fresh EMPTY writable layer and its copy-up wire fade back in
-together: the reappearing layer is the restart made visible, not the old layer returning. Its
-contents are gone, and the sublabel still reads starts empty.
-```
-
----
 
 ## storage-csi-architecture
 
@@ -445,6 +364,14 @@ NOTE     The last step is a static highlight only, with no motion at all. The us
          flash on a packet-less step does not apply to the LAST step, which is supposed to come to
          rest: lighting the whole chain at once IS the summary, and it wants to be read.
 ```
+
+### before `const M = 60;`
+
+```
+One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it and the canvas centre is
+construction rather than a typed 600. Changing M re-solves every tier.
+```
+
 
 ## storage-csi-attach-mount
 
@@ -557,111 +484,86 @@ NOTE     Z-order puts the LADDER last of all: it is the reader's index into the 
          rung must stay crisp even when a ball is passing.
 ```
 
+### before `const M = 60, GUTTER = 48;`
+
+```
+COL_W is solved from the margin and the gutter (516), so the two columns and the ladder inside the
+left one re-size together. The chips are solved the same way: 4*CHIP_W + 3*16 = 1080.
+```
+
+
 ## storage-csi-capacity-tracking
+
+### layout
+
+```
+WHAT     CSIStorageCapacity. With local or topology-constrained storage the scheduler can pick a node
+         whose storage pool is already full. Provisioning then fails there, and because the Pod cannot
+         bind until its volume does, it never schedules and stays Pending forever. CSIStorageCapacity
+         objects, published by the driver per topology segment, let the scheduler SEE the free capacity
+         and filter out the nodes that cannot fit the claim before it commits.
+LAYOUT   Two nodes mirrored about the canvas centre: NODE_CX = [CX - SPREAD, CX + SPREAD] with CX=600,
+         derived from the node width and gap rather than typed. Each frame HOLDS its capacity object
+         and its pool, so the frames carry content instead of framing empty canvas. Content spans
+         195..1005, margins 195 a side. The scheduler and the pending Pod stack on the centre line
+         above the nodes, because there is one scheduler and one Pod and the whole question is which of
+         the two symmetric nodes they pick.
+         The pool sits ABOVE the object so that BOTH lanes inside a node can run down the column centre
+         line: bind arrives at the node top, provisioning drops straight into the pool, and the pool
+         publishes straight down into the object. With the object on top, provisioning has to detour
+         around it and meets the node frame 170 units off its edge midpoint, which reads as a lane
+         stopping at a random point on an edge rather than as an arrival.
+WHY NOT  Hanging the pools outside and below the frames: each frame is then a mostly empty 400 by 180
+         box with one small block floating at its bottom, and the emptiness reads as a missing element
+         rather than as a boundary.
+PANEL    Measured, panel bottom-right in viewBox units:
+           1920x900  right 102  bottom 183      1600x1000 right 291  bottom 143
+           1280x900  right 378  bottom 173      1100x900  right 397  bottom 149
+           1280x860  right 397  bottom 255      1100x800  right 397  bottom 255
+         Worst case x<=397 and y<=255. The four taller rows are all 900 or 1000 tall, and a SHORTER
+         window shrinks the diagram while the panel, HTML at a fixed size, keeps its pixels and so eats
+         more viewBox units. The occlusion rule samples the two 255 rows, so 255 is the number this
+         layout is built against. The scheduler (y=36) and the Pod (y=136) both sit inside that y band,
+         so both start at x>=400. Everything from the node row down (y>=300) clears it by 45. A longer
+         narration invalidates this.
+LANES    ZERO wire crossings. Each capacity read leaves the node frame through its TOP edge at the node
+         centre, rises straight up and enters the scheduler through the side midpoint facing it. The
+         read and the bind lane never appear in the same step, so sharing the node-centre column is
+         fine, and the reads clear the Pod on the centre line, so the two are exact mirrors that cross
+         nothing. The publish lane rises from the pool to the object on the column axis, offset by LANE
+         so it meets the object beside its Bound centre rather than on it, while the provision lane
+         drops down the inner margin at PROV_INSET, outboard of the capacity object, and enters the
+         pool through its side face, so the two never share a segment.
+         The bind leaves the Pod through its SIDE (left edge for the left node, right edge for the
+         right one), runs out to the node centre line and drops into the node top, so the arrow exits
+         the Pod on the side facing its node rather than from underneath.
+MOTION   The scheduler's decision lands ON the Pod (down-arrow), so the Pod takes its full pulse on
+         arrival. It is only being scheduled, not Running, so it stays dim and needs pulsePodDim with
+         an opacity lift, or the blink is invisible against the 0.55 it sits at. Same on the failure
+         step, where the Pod never went Ready.
+BUDGET   The scheduler-decision walk (decide ball, Pod pulse, bind ball) is paced deliberately slower
+         than routeDur would pick, so the beat reads clearly: the ball glides in, the Pod takes its
+         full pulse, and only then does the bind ball leave, departing BEAT.afterPulse later once the
+         900ms blink has landed. READ_DUR likewise slows the capacity-read balls up from the node tops
+         so the reported numbers read calmly. These explicit durs are why this card sits on
+         check-canon's ALLOW_EXPLICIT_DUR list.
+         Family CHIP_W 232: worst case is `result` + `scheduled and mounted` at 27 characters, so
+         27 * 6.89 + 24 of padding is 210 against the 232 available.
+```
 
 ### before `const CX = 600;`
 
 ```
-WHAT  CSIStorageCapacity. With local or topology-constrained storage the scheduler can pick a node
-whose storage pool is already full. Provisioning then fails there, and because the Pod cannot bind
-until its volume does, it never schedules and stays Pending forever. CSIStorageCapacity objects,
-published by the driver per topology segment, let the scheduler SEE the free capacity and filter out
-the nodes that cannot fit the claim before it commits.
-
-LAYOUT  Two nodes mirrored about the canvas centre: NODE_CX = [CX - SPREAD, CX + SPREAD] with CX=600,
-derived from the node width and gap rather than typed. Each frame HOLDS its capacity object and its
-pool, so the frames carry content instead of framing empty canvas. Content spans 195..1005, margins
-195 a side.
-The scheduler and the pending Pod stack on the centre line above the nodes, because there is one
-scheduler and one Pod and the whole question is which of the two symmetric nodes they pick.
-
-PANEL  Measured, panel bottom-right in viewBox units:
-  1920x900  right 102  bottom 183      1600x1000 right 291  bottom 143
-  1280x900  right 378  bottom 173      1100x900  right 397  bottom 149
-  1280x860  right 397  bottom 255      1100x800  right 397  bottom 255
-Worst case x<=397 and y<=**255**. The four taller rows are all 900 or 1000 tall, and a SHORTER window
-shrinks the diagram while the panel, HTML at a fixed size, keeps its pixels and so eats more viewBox
-units. The occlusion rule samples the two 255 rows, so 255 is the number this layout is built
-against. The scheduler (y=36) and the Pod (y=136) both sit inside that y band, so both start at
-x>=400. Everything from the node row down (y>=300) clears it by 45. A longer narration invalidates
-this.
-
-LANES  ZERO wire crossings. Each capacity read leaves the node frame through its TOP edge at the node
-centre, rises straight up and enters the scheduler through the side midpoint facing it. The read and
-the bind lane never appear in the same step, so sharing the node-centre column is fine, and the reads
-clear the Pod on the centre line, so the two are exact mirrors that cross nothing. The publish lane
-rises from the pool to the object on the column axis, offset by LANE so it meets the object beside its
-Bound centre rather than on it, while the provision lane drops down the inner margin at PROV_INSET,
-outboard of the capacity object, and enters the pool through its side face, so the two never share a
-segment.
-
-MOTION  On the failure step the Pod never went Ready, so it takes pulsePodDim with an opacity lift.
-```
-
-### before `const POOL_W = 168, POOL_H = 84, POOL_Y = 336;`
-
-```
-The pool and the capacity object both live INSIDE their node frame, the pool above and the object
-below it.
-WHY NOT hang the pools outside and below the frames: each frame is then a mostly empty 400 by 180 box
-with one small block floating at its bottom, and the emptiness reads as a missing element rather than
-as a boundary.
-The pool sits ABOVE the object so that BOTH lanes inside a node can run down the column centre line:
-bind arrives at the node top, provisioning drops straight into the pool, and the pool publishes
-straight down into the object. With the object on top, provisioning has to detour around it and meets
-the node frame 170 units off its edge midpoint, which reads as a lane stopping at a random point on
-an edge rather than as an arrival.
-```
-
-### before `const wBind = (cx) => {`
-
-```
-The bind leaves the Pod through its SIDE (left edge for the left node, right edge for the right one),
-runs out to the node centre line and drops into the node top, so the arrow exits the Pod on the side
-facing its node rather than from underneath.
-```
-
-### before `function podBlock() {`
-
-```
-Family pulse model: the wrapping g is not optional.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16;`
-
-```
-Family chip width. Worst case here is 'result' + 'scheduled and mounted' at 27 characters, so
-27 * 6.89 + 24 of padding is 210 against the 232 available.
-```
-
-### before `[...nodes, sched, ...pools, ...caps, podB.group].forEach(el => root.appendChild(el));`
-
-```
-Family z-order, with the Pod above its node frame.
+The two node frames are mirrored about CX and the scheduler and Pod stack on it, so the picture is
+symmetric and neither node reads as the important one. NODE_CX is derived from the node width and
+gap rather than typed.
 ```
 
 ### before `const DECIDE_DUR = 850, BIND_DUR = 1000, READ_DUR = 1000;`
 
 ```
-The scheduler-decision walk (decide ball, Pod pulse, bind ball) is paced deliberately slower than
-routeDur would pick, so the beat reads clearly: the ball glides in, the Pod takes its full pulse, and
-only then does the bind ball leave, departing BEAT.afterPulse later once the 900ms blink has landed.
-READ_DUR likewise slows the capacity-read balls up from the node tops so the reported numbers read
-calmly. These explicit durs are why this card sits on check-canon's ALLOW_EXPLICIT_DUR list.
-```
-
-### before `function setStage(s, { caps = [0, 0], nodes = [1, 1], pools = [1, 1], lanes = [] } = {}) {`
-
-```
-Family setStage, lanes included.
-```
-
-### note (anchor dropped: `pulsePodDim(s.refs.podB, ctx, decide.arrivalMs, { from: POD_` is not unique in the file)
-
-```
-The scheduler's decision lands ON the Pod (down-arrow), so the Pod takes its full pulse on arrival.
-It is only being scheduled, not Running, so it stays dim and needs the dim variant with an opacity
-lift or the blink is invisible against the 0.55 it sits at.
+Three explicit durs, deliberately slower than routeDur would pick, so the decision beat reads: ball
+in, full Pod pulse, then the bind ball. Registered in check-canon's ALLOW_EXPLICIT_DUR.
 ```
 
 ### poster
@@ -676,114 +578,83 @@ cylinder at the midpoint of the side face it is drawn on, never inside the body,
 the exact x of the cell it fills.
 ```
 
----
-
 ## storage-dynamic-provisioning
 
-### before `const LEFT_X = 400;                                   // leftmost the TOP ROW may go, all viewports`
+### layout
 
 ```
-WHAT  Same grammar as storage-pvc-binding: the IDENTITY COLUMN is the spine (PVC on top, the PV that
-ends up bound to it directly below, both the same width and x), and the machinery sits in a column to
-the RIGHT. The difference is that here the disk does not exist yet: the cylinder is invisible until
-CreateVolume returns, and the Bound link is drawn only once the PV object has been written.
-
-LANES  The descent is provisioner to backend (CreateVolume) and the ascent is the volume handle
-coming back, on SEPARATE lanes so the round trip reads as a loop.
-
-MOTION  This card has no Pod at all, so NOTHING pulses or blinks. The packet-less first step is fully
-static by design and its read is carried by the .highlight outline alone.
-
-LAYOUT  The two columns share ONE centre, CONTENT_CX, instead of each carrying hand-typed margins.
-That centre is NOT the canvas centre and cannot be: the panel permanently occupies the top left and
-the top row sits inside its band, which pins the left edge at LEFT_X 400. The chip strip is the
-exception and centres on the CANVAS (600), because it sits below everything and has the full width.
-CONTENT_CX is 630. The drawing does not slide left to reach 600: sliding it drags the claim under the
-panel, which is what LEFT_X exists to prevent. What moves is the RIGHT edge, by narrowing the
-machinery column from 240 to 220 and the elbow channel from 80 to 40, both of which had slack
-('provisioner: ebs.csi.aws.com' is the widest string in that column at about 150 units). At 660 the
-content bbox was 400..920 and the tool called it off centre by 60; at 630 it is 400..860.
-
-PANEL  Measured right edge by viewport: 185 at 1920 wide, 275 at 1600, 322 at 1400, 342 at 1280, 379
-at 1100 and below. The blanket x<=380 is that worst case, not a pessimistic guess, so LEFT_X 400
-keeps a real margin at every window size.
-DO NOT slide LEFT_X leftward after measuring the panel at your own window size. A left edge picked
-from a single wide-window measurement looks centred on the machine it was tuned on and slides under
-the panel on a laptop.
+WHAT     Same grammar as storage-pvc-binding: the IDENTITY COLUMN is the spine (PVC on top, the PV that
+         ends up bound to it directly below, both the same width and x), and the machinery sits in a
+         column to the RIGHT. The difference is that here the disk does not exist yet: the cylinder is
+         invisible until CreateVolume returns, and the Bound link is drawn only once the PV object has
+         been written.
+LAYOUT   The two columns share ONE centre, CONTENT_CX, instead of each carrying hand-typed margins.
+         That centre is NOT the canvas centre and cannot be: the panel permanently occupies the top
+         left and the top row sits inside its band, which pins the left edge at LEFT_X 400. The chip
+         strip is the exception and centres on the CANVAS (600), because it sits below everything and
+         has the full width.
+         CONTENT_CX is 630. The drawing does not slide left to reach 600: sliding it drags the claim
+         under the panel, which is what LEFT_X exists to prevent. What moves is the RIGHT edge, by
+         narrowing the machinery column from 240 to 220 and the elbow channel from 80 to 40, both of
+         which had slack (`provisioner: ebs.csi.aws.com` is the widest string in that column at about
+         150 units). At 660 the content bbox was 400..920 and the tool called it off centre by 60; at
+         630 it is 400..860.
+         The chip strip is laid out from its own total width so it centres on CANVAS_CX. WHY NOT
+         hand-placed x values: they had it spanning 90..1080, a centre of 585, so the whole bottom row
+         sat 15 units left of the diagram it belongs to.
+PANEL    Measured right edge by viewport: 185 at 1920 wide, 275 at 1600, 322 at 1400, 342 at 1280, 379
+         at 1100 and below. The blanket x<=380 is that worst case, not a pessimistic guess, so LEFT_X
+         400 keeps a real margin at every window size. DO NOT slide LEFT_X leftward after measuring the
+         panel at your own window size: a left edge picked from a single wide-window measurement looks
+         centred on the machine it was tuned on and slides under the panel on a laptop.
+         The Bound caption is anchored to the RIGHT of the spine, growing away from the panel. Left
+         anchored it reaches back to x=286 at its current length, and the panel drops to y=342 on a
+         small window (measured at 900x650), which puts it at y=296 squarely underneath.
+LANES    The descent is provisioner to backend (CreateVolume) and the ascent is the volume handle
+         coming back, on SEPARATE lanes so the round trip reads as a loop.
+         The identity spine and the PV write BOTH run down the centre of the identity column. They can
+         share that x because they are never on screen together: the write arrow shows only while the
+         PV is being created, the spine only once it is bound. Any other arrangement puts one of them
+         off centre.
+         ELBOW_X is the ONE vertical channel in the gap between the two columns, derived from the gap
+         so it stays centred if either column is resized. Both the claim descending into the
+         provisioner and the PV write leaving it turn on this x, and their vertical runs do not overlap
+         in y (122..279 above, 311..396 below), so sharing it reads as one clean lane. Those four y
+         values are a pair of MIRRORED lane offsets, not free numbers: two lanes meet the claim's right
+         face at 110 +/- 12 and two meet the provisioner's left face at 295 +/- 16. WHY NOT 686 and
+         690, a 4 unit offset: far too small to register as a deliberate lane split (those use LANE_DY,
+         15), so it just looks like a misalignment, and a single lane sitting off a face midpoint on
+         its own reads as a slip, which is what the old 130 and 312 were.
+         The provisioner-to-PV wire is hidden until the step that writes the PV: it points AT the
+         cylinder, and the cylinder does not exist until CreateVolume has returned, so drawing it from
+         step 0 is an arrow aimed at blank canvas. It appears at the ENTRY of that step (the ball has
+         to have a wire to ride) while the cylinder appears later, on the ball landing.
+DO NOT   Rebuild the class reference and the Bound link from hand-copied coordinates. Both are driven
+         FROM their points arrays, and with W_SC_REF and W_BOUND left unused, editing either constant
+         moves nothing and the two silently drift apart. The class reference carries no arrowhead:
+         nothing travels it, the claim only NAMES its class.
+MOTION   This card has no Pod at all, so NOTHING pulses or blinks. The packet-less first step is fully
+         static by design and its read is carried by the .highlight outline alone: a box flash would be
+         canon-legal there but is wrong, because the StorageClass is being READ, not acting.
+NAMING   The backend sublabel names the CSI driver because the narration says CreateVolume is called ON
+         the driver, and the driver has no box of its own: the ball lands here, so this box has to
+         admit it is the driver plus the backend behind it, or the text names an actor the picture does
+         not have.
 ```
 
-### before `const SPINE_X = PV_CX;  // 440`
+### before `const LEFT_X = 400;`
 
 ```
-The identity spine and the PV write BOTH run down the centre of the identity column. They can share
-that x because they are never on screen together: the write arrow shows only while the PV is being
-created, the spine only once it is bound. Any other arrangement puts one of them off centre.
+The panel wall, measured at 380 worst case over 1920 down to 1100. CONTENT_CX is 630 and stays there:
+sliding the drawing left to reach 600 drags the claim under the panel, which is what LEFT_X exists to
+prevent. CANVAS_CX is separate on purpose, because the chip strip alone has the full width.
 ```
 
-### before `const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 620`
+### before `const CHIP_W = [210, 250, 240, 230];`
 
 ```
-The ONE vertical channel in the gap between the PVC column and the provisioner column. Both the claim
-descending into the provisioner and the PV write leaving it turn on this x, and their vertical runs
-do not overlap in y (122..279 above, 311..396 below), so sharing the channel reads as one clean lane.
-Those four y values are a pair of MIRRORED lane offsets, not free numbers: two lanes meet the claim's
-right face at 110 +/- 12 and two meet the provisioner's left face at 295 +/- 16.
-WHY NOT 686 and 690, a 4 unit offset: far too small to register as a deliberate lane split (those use
-LANE_DY, 15), so it just looks like a misalignment. A single lane sitting off a face midpoint on its
-own reads as a slip, which is what the old 130 and 312 were.
-ELBOW_X is derived from the gap so it stays centred in it if either column is resized.
-```
-
-### before `const cloud = box({ x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage backend', sublabel: 'reached via the CSI driver', role: 'storage' });`
-
-```
-NAMING  The sublabel names the CSI driver because the narration says CreateVolume is called ON the
-driver, and the driver has no box of its own: the ball lands here, so this box has to admit it is the
-driver plus the backend behind it, or the text names an actor the picture does not have.
-```
-
-### before `const scRef = relationPath({ points: W_SC_REF, role: 'storage', dash: '5 5' });`
-
-```
-The claim NAMES its class. Nothing travels this line, so it carries no arrowhead.
-Both of these are driven FROM their points arrays, not from repeated literals.
-DO NOT rebuild them from hand-copied coordinates while W_SC_REF and W_BOUND sit unused: editing
-either constant then moves nothing and the two silently drift apart.
-```
-
-### before `const wProvToPv    = pathArrow({ points: W_PROV_TO_PV, dashed: true, dim: true, role: 'storage' });`
-
-```
-Hidden until the step that writes the PV. This wire points AT the cylinder, and the cylinder does not
-exist until CreateVolume has returned, so drawing it from step 0 is an arrow aimed at blank canvas.
-It appears at the ENTRY of the createpv step (the ball has to have a wire to ride) while the cylinder
-itself appears later, on that ball landing.
-```
-
-### before `const boundLbl = text({ class: 'scheme-label code dim', x: SPINE_X + 22, y: 296, 'text-anchor': 'start' }, [' `
-
-```
-Anchored to the RIGHT of the spine, growing away from the panel. Left-anchored it reaches back to
-x=286 at its current length, and the panel drops to y=342 on a small window (measured at 900x650),
-which puts this label at y=296 squarely underneath it. It only looks safe on a wide window, where the
-panel stops at y=172.
-```
-
-### before `const chipX = CHIPS_X0;`
-
-```
-The strip is laid out from its own total width so it centres on CANVAS_CX, the same centre the blocks
-above use.
-WHY NOT hand-placed x values: they had it spanning 90..1080, a centre of 585, so the whole bottom row
-sat 15 units left of the diagram it belongs to.
-```
-
-### before `narration: 'With static provisioning an administrator has to create the volume by hand before anyone can claim`
-
-```
-Deliberately motionless. A box flash would be canon-legal here (packet-less and Pod-less) but is
-wrong: the StorageClass is being READ in this step, not acting, and a blink reads as the block doing
-something. The static .highlight outline carries it.
+Four unequal widths, each sized to its own value, laid out from their own total so the strip centres
+on CANVAS_CX. Hand-placed x values had it spanning 90..1080, a centre of 585.
 ```
 
 ### poster
@@ -794,55 +665,48 @@ being drawn into existence on the right (dashed outline, not yet solid). Made to
 off a shelf, so the shelf is absent entirely.
 ```
 
----
-
 ## storage-emptydir
 
-### before `const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550`
+### layout
 
 ```
-WHAT  emptyDir lifecycle. A vertical stack, but the whole thing lives INSIDE one node boundary,
-because that is the point of an emptyDir: it is born on the node, lives on the node disk, and dies
-when the Pod leaves the node. The Pod (two containers) sits at the top of the node, the emptyDir disk
-sits on the shelf below it, and the IDENTITY SPINE at x=600 (bare dashed, dim, no arrowhead) marks
-that the directory is owned by this one Pod.
-
-LAYOUT  The whole composition (node, Pod, disk, chip strip) is centred on x=600 and lifted as high as
-the panel allows so it reads vertically centred: the panel was measured at every step and reaches
-(300, 163) on a comfortable 1600px viewport, so the node top sits at 170, flush under it. On narrower
-windows it grows to (399, 223) and may brush the node's top-left corner, an accepted trade. A longer
-narration invalidates the measurement. The node keeps extra background below the disk so the inner
-blocks do not crowd it, and the chip strip spans exactly the node width (180..1020).
-
-LANES  volume-model grammar: the dim centre spine (ownership, no traffic) plus one L-shaped directed
-lane per container, dropping from the container and entering the cylinder through its SIDE. Traffic
-is one-way per container (the app only writes, the worker only reads), so each side carries a SINGLE
-lane with an arrowhead for its one direction: the app lane points into the cylinder, the worker lane
-points into the container. The containers are pushed toward the Pod edges so their centres land
-outside the cylinder span, symmetric about the spine.
-
-MOTION  Highlights are STEP-STATIC: every block a step uses lights at step entry, above the reduced
-guard, and the Pod pulse fires at the same instant, one beat, no arrival delays.
-FADES exist for exactly one meaning: an object CEASING TO EXIST. The dies step ghosts the Pod and its
-directory in one simultaneous fade. Nothing else fades, the sizeLimit step included: it holds the
-directory at full opacity and carries its beat with the Pod pulse and the over-limit write instead.
-DO NOT give a container a crash flicker.
+WHAT     emptyDir lifecycle. A vertical stack, but the whole thing lives INSIDE one node boundary,
+         because that is the point of an emptyDir: it is born on the node, lives on the node disk, and
+         dies when the Pod leaves the node. The Pod (two containers) sits at the top of the node, the
+         emptyDir disk sits on the shelf below it, and the IDENTITY SPINE at x=600 (bare dashed, dim,
+         no arrowhead) marks that the directory is owned by this one Pod.
+LAYOUT   The whole composition (node, Pod, disk, chip strip) is centred on x=600 and lifted as high as
+         the panel allows so it reads vertically centred: the panel was measured at every step and
+         reaches (300, 163) on a comfortable 1600px viewport, so the node top sits at 170, flush under
+         it. On narrower windows it grows to (399, 223) and may brush the node's top-left corner, an
+         accepted trade. A longer narration invalidates the measurement. The node keeps extra
+         background below the disk so the inner blocks do not crowd it, and the chip strip spans
+         exactly the node width (180..1020).
+LANES    volume-model grammar: the dim centre spine (ownership, no traffic) plus one L-shaped directed
+         lane per container, dropping from the container and entering the cylinder through its SIDE.
+         Traffic is one-way per container (the app only writes, the worker only reads), so each side
+         carries a SINGLE lane with an arrowhead for its one direction: the app lane points into the
+         cylinder, the worker lane points into the container. The containers are pushed toward the Pod
+         edges so their centres land outside the cylinder span, symmetric about the spine.
+MOTION   Highlights are STEP-STATIC: every block a step uses lights at step entry, above the reduced
+         guard, and the Pod pulse fires at the same instant, one beat, no arrival delays.
+         FADES exist for exactly one meaning: an object CEASING TO EXIST. The dies step ghosts the Pod
+         and its directory in one simultaneous fade, so the delete reads as a single event, with the
+         ghost opacities pinned statically so reduced motion and a mid-step cancel land on the dimmed
+         state. Nothing else fades, the sizeLimit step included: it holds the directory at full opacity
+         and carries its beat with the Pod pulse and the over-limit write instead. DO NOT give a
+         container a crash flicker.
+NOTE     The cylinder is visible from idle, deliberately, and the Pod is already on the node, so the
+         truthful idle state is an existing empty directory. The create step then narrates how it came
+         to be, flipping the chip to created empty.
 ```
 
-### before `setChips(s, { ed: 'empty', medium: 'node disk', limit: 'none' });`
+### before `const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;`
 
 ```
-The cylinder is visible from idle, deliberately, and the Pod is already on the node, so the truthful
-idle state is an existing empty directory. The create step then narrates how it came to be, flipping
-the chip to created empty.
-```
-
-### before `const GONE = [s.refs.pod, s.refs.ed, s.refs.spine, s.refs.wWrite, s.refs.wRead, s.refs.diskLbl];`
-
-```
-The Pod and its directory are gone. One simultaneous ghost fade for everything that belonged to the
-Pod, so the delete reads as a single event. Ghost opacities are pinned statically so reduced motion
-and a mid-step cancel land on the dimmed state.
+The Node frame is the outer extent and the chip strip spans exactly its width. NODE_Y 170 sits flush
+under the panel measured at (300, 163) on a 1600px viewport, so a longer narration invalidates the
+placement. storage-hostpath copies these numbers verbatim so the pair aligns.
 ```
 
 ### poster
@@ -853,54 +717,56 @@ scratch cylinder. The signature side-entry L-lanes with chevrons tell the story 
 left container writes INTO the disk, the right container reads OUT of it.
 ```
 
----
-
 ## storage-ephemeral-storage-eviction
 
-### note: Kubelet is an accepted off-card actor in storage
-
-NOT A DEFECT, and this ruling covers the whole category. The `sources`, `podLimit`, `diskPressure`
-and `rankEvict` steps all make the Kubelet the grammatical subject although the card draws no Kubelet
-block, and every one of those statements is true of work only the Kubelet does. Storage has almost no
-Kubelet box by design, so the alternatives were a prose sweep over two whole cards into the passive
-voice, which throws the mechanism away, or drawing a Kubelet block, which is geometry. Accepted as an
-off-card actor instead. `storage-hostpath` is exempt on the same grounds. Do not file these again.
-
-### before `const NODE_X = 210, NODE_Y = 45, NODE_W = 780, NODE_H = 485; // 210..990, canvas-centered`
+### layout
 
 ```
-WHAT  Ephemeral storage limits. The whole scene is one node, CANVAS-CENTRED (210..990, centre 600).
-Inside it the main column (the focus Pod, the three things that make up its ephemeral usage, the
-nodefs disk) is a VERTICAL STACK symmetric about COL_CX = 620: the Pod centred over the contributor
-row, the row centred over the disk. The other Pods, which matter only for the node-wide path, are a
-right-hand column inside the node (they cannot leave it: DiskPressure on THIS node is what evicts
-them), top-aligned with the focus Pod. The chip strip spans exactly the node width.
+WHAT     Ephemeral storage limits. The whole scene is one node, CANVAS-CENTRED (210..990, centre 600).
+         Inside it the main column (the focus Pod, the three things that make up its ephemeral usage,
+         the nodefs disk) is a VERTICAL STACK symmetric about COL_CX = 620: the Pod centred over the
+         contributor row, the row centred over the disk. The other Pods, which matter only for the
+         node-wide path, are a right-hand column inside the node (they cannot leave it: DiskPressure on
+         THIS node is what evicts them), top-aligned with the focus Pod. The chip strip spans exactly
+         the node width.
+CONTENT  The card must keep TWO eviction paths distinct. Path A is per-Pod: writable + emptyDir + logs
+         going over limits.ephemeral-storage evicts THIS Pod at once, regardless of node health. Path B
+         is node-wide: nodefs usage crossing the eviction threshold taints the node DiskPressure, and
+         kubelet then evicts Pods ranked by Pod Priority and by how far each is over its request, which
+         can hit a Pod that was within its own limit. DO NOT write QoS class as the ranking: the card's
+         own distinct step contradicts it.
+PANEL    COL_CX is 620 rather than the node's own 600, and that 20 unit offset is the whole story on
+         this card. This narration is the longest in the storage set, so the panel reaches x<=397 all
+         the way down to y=355, which covers BOTH the Pod tier and the contributor tier. At the old 480
+         the Writable box (250..390) was 100 percent behind the panel, the Pod 21 percent and its app
+         box 16. Shifting the stack right by 140 clears all three (the Writable box now starts at 390,
+         seven units inside the panel's right edge at its worst, five percent of its area), and 620 is
+         as far left as it can go while doing so. The disk moves with the row, so its three contributor
+         lanes still drop on +/-160 either side of its own midpoint and stay a mirrored pair.
+LANES    Every lane is ONE straight vertical segment: the disk is wide enough (440..800) that all three
+         contributor centres drop straight onto its top, no corners anywhere.
+NOT A DEFECT
+         Centring the node puts its top-left corner, and the node tag on narrow viewports, under the
+         panel. That is the accepted price of the centring: a node frame is a container, not content,
+         and the rule that counts occlusion skips it. Every content BLOCK stays clear.
+         Kubelet is an accepted off-card actor, and this ruling covers the WHOLE CATEGORY. The
+         `sources`, `podLimit`, `diskPressure` and `rankEvict` steps all make the Kubelet the
+         grammatical subject although the card draws no Kubelet block, and every one of those
+         statements is true of work only the Kubelet does. Storage has almost no Kubelet box by design,
+         so the alternatives were a prose sweep over two whole cards into the passive voice, which
+         throws the mechanism away, or drawing a Kubelet block, which is geometry. storage-hostpath is
+         exempt on the same grounds. Do not file these again.
+OPEN     The left third of the frame is empty for the same reason the node is centred. On a wide
+         viewport, where the panel is short, it reads as empty rather than as reserved. Clamping the
+         panel height in CSS is what would let this card put something there.
+```
 
-CONTENT  The card must keep TWO eviction paths distinct. Path A is per-Pod: writable + emptyDir +
-logs going over limits.ephemeral-storage evicts THIS Pod at once, regardless of node health. Path B
-is node-wide: nodefs usage crossing the eviction threshold taints the node DiskPressure, and kubelet
-then evicts Pods ranked by Pod Priority and by how far each is over its request, which can hit a Pod
-that was within its own limit.
-DO NOT write QoS class as the ranking: the card's own distinct step contradicts it.
+### before `const COL_CX = 620;`
 
-PANEL  COL_CX is 620 rather than the node's own 600, and that 20 unit offset is the whole story on
-this card. This narration is the longest in the storage set, so the panel reaches x<=397 all the way
-down to y=355, which covers BOTH the Pod tier and the contributor tier. At the old 480 the Writable
-box (250..390) was 100 percent behind the panel, the Pod 21 percent and its app box 16. Shifting the
-stack right by 140 clears all three (the Writable box now starts at 390, seven units inside the
-panel's right edge at its worst, five percent of its area), and 620 is as far left as it can go while
-doing so. The disk moves with the row, so its three contributor lanes still drop on +/-160 either
-side of its own midpoint and stay a mirrored pair.
-
-LANES  Every lane is ONE straight vertical segment: the disk is wide enough (440..800) that all three
-contributor centres drop straight onto its top, no corners anywhere.
-
-NOT A DEFECT  Centring the node puts its top-left corner, and the node tag on narrow viewports, under
-the panel. That is the accepted price of the centring: a node frame is a container, not content, and
-the rule that counts occlusion skips it. Every content BLOCK stays clear.
-OPEN  The left third of the frame is empty for the same reason. On a wide viewport, where the panel
-is short, it reads as empty rather than as reserved. Clamping the panel height in CSS is what would
-let this card put something there.
+```
+Not the node's own 600, and the 20 unit offset is the whole story: this narration is the longest in
+the storage set, so the panel reaches x<=397 down to y=355 and covers both the Pod and contributor
+tiers. 620 is as far LEFT as the stack can go and still clear it.
 ```
 
 ### poster
@@ -911,45 +777,44 @@ The node holds a low nodefs disk (clean outline, no fill) with its three ephemer
 linked by a dashed line to the Pod that draws on it. Everything sits inside the one node boundary.
 ```
 
----
-
 ## storage-ephemeral-vs-persistent
+
+### layout
+
+```
+WHAT     The side-by-side card. One Pod on top mounts two volumes, and the whole scheme is a SYMMETRIC
+         STACK centred on the canvas spine (SPINE_X = 600): the Pod straddles the spine, and each
+         volume hangs an even distance left and right of it. LEFT is ephemeral (an emptyDir owned by
+         the node), RIGHT is persistent (a PVC bound to a PV whose disk is a separate object, tied by a
+         dim dashed identity link, Bound, no arrowhead).
+CONTENT  The Pod writes to both, is deleted, and is rescheduled onto another node. The emptyDir comes
+         back empty (it was tied to the old node) while the PVC reattaches the very same disk with the
+         data intact.
+LANES    Each column carries TWO straight vertical lanes so every direction has its own arrow: an OUTER
+         write lane (Pod down to the volume, the ball descends) and an INNER remount lane (volume up to
+         the Pod, the ball rises).
+PANEL    Because the diagram is centred on the canvas, the Pod's left shell edge passes under the
+         panel. This card's panel bottoms out at y=181 (measured over 1600/1280/1100), and the Pod is
+         sized and placed against that: 560 wide at y=90 leaves about a tenth of its area behind the
+         panel at the worst viewport, against a sixth at 620 wide at y=66, which the OCCLUDED rule
+         counted as a lost block. It cannot clear the panel outright without landing on the volume tier
+         (the columns start at y=306 and the write lanes would shrink to stubs), so a tenth is the
+         trade. Nothing essential is hidden: the pod() label and the app box are centre-anchored at the
+         spine, and every volume sits below y=306.
+         The divider between the halves starts under the Pod (POD_BOTTOM + 16) rather than at a typed
+         206, so it can never poke into the Pod when the Pod moves. The three state chips are a single
+         width on one pitch, centred on the canvas.
+MOTION   All three volumes are attached from the start of the remount step, so they light at entry.
+         Then the two mount balls ride up their INNER lanes (volume to Pod) and the Pod pulses on
+         arrival: the left mount carries nothing, the right mount carries the surviving row.
+```
 
 ### before `const SPINE_X = 600;`
 
 ```
-WHAT  The side-by-side card. One Pod on top mounts two volumes, and the whole scheme is a SYMMETRIC
-STACK centred on the canvas spine (SPINE_X = 600): the Pod straddles the spine, and each volume hangs
-an even distance left and right of it. LEFT is ephemeral (an emptyDir owned by the node), RIGHT is
-persistent (a PVC bound to a PV whose disk is a separate object, tied by a dim dashed identity link,
-Bound, no arrowhead).
-
-CONTENT  The Pod writes to both, is deleted, and is rescheduled onto another node. The emptyDir comes
-back empty (it was tied to the old node) while the PVC reattaches the very same disk with the data
-intact.
-
-LANES  Each column carries TWO straight vertical lanes so every direction has its own arrow: an OUTER
-write lane (Pod down to the volume, the ball descends) and an INNER remount lane (volume up to the
-Pod, the ball rises).
-
-PANEL  Because the diagram is centred on the canvas, the Pod's left shell edge passes under the
-panel. This card's panel bottoms out at y=181 (measured over 1600/1280/1100), and the Pod is sized
-and placed against that: 560 wide at y=90 leaves about a tenth of its area behind the panel at the
-worst viewport, against a sixth at 620 wide at y=66, which the OCCLUDED rule counted as a lost block.
-It cannot clear the panel outright without landing on the volume tier (the columns start at y=306 and
-the write lanes would shrink to stubs), so a tenth is the trade. Nothing essential is hidden: the
-pod() label and the app box are centre-anchored at the spine, and every volume sits below y=306.
-The divider between the halves starts under the Pod (POD_BOTTOM + 16) rather than at a typed 206, so
-it can never poke into the Pod when the Pod moves. The three state chips are a single width on one
-pitch, centred on the canvas.
-```
-
-### before `s.refs.ed.classList.add('highlight');`
-
-```
-All three volumes are attached from the start of the step, so they light at entry. Then the two mount
-balls ride up their INNER lanes (volume to Pod), and the Pod pulses on arrival. The left mount
-carries nothing, the right mount carries the surviving row.
+The Pod straddles this spine and each volume hangs an equal distance either side of it, so the halves
+are a true mirror. The divider between them starts from POD_BOTTOM rather than a typed y, so it can
+never poke into the Pod when the Pod moves.
 ```
 
 ### poster
@@ -959,8 +824,6 @@ One Pod, two volumes, one split down the middle: after a reschedule the ephemera
 dashed and faded) comes back WIPED EMPTY, while the persistent PVC/PV (right, solid) reattaches the
 very same disk with its data rows INTACT. The empty-versus-full contrast is the whole card.
 ```
-
----
 
 ## storage-fsgroup-ownership
 
@@ -1070,6 +933,21 @@ NOTE     The last step draws the full-length lane underneath on purpose while th
          come to rest.
 ```
 
+### before `const CONTENT_CX = 600;`
+
+```
+Both columns are centred on this line, and POD_W / KUBE_H are the storage-category standards taken
+from storage-csi-attach-mount and storage-csi-architecture, so the card sizes with its siblings
+rather than on its own numbers.
+```
+
+### before `const CHIP_W = 300, CHIP_GAP = 16, CHIP_COUNT = 3;`
+
+```
+The family EXCEPTION: fsGroupChangePolicy + `Always (default)` measures 265, so 232 would collide and
+300 clears it by 35.
+```
+
 ### poster
 
 ```
@@ -1087,104 +965,74 @@ because the rows themselves are peers. Content sits 17..163 in a 180 tall box, s
 
 ## storage-generic-ephemeral-volume
 
+### layout
+
+```
+WHAT     An inline volumeClaimTemplate written directly on the Pod under ephemeral. It gets a real PVC,
+         a real StorageClass, real dynamic provisioning and a real CSI mount, so unlike emptyDir it can
+         be large, of a specific class, and even snapshotted. But its lifetime is the Pod: the PVC
+         carries an ownerReference back to the Pod and is garbage-collected when the Pod dies. This
+         card is the bridge between the ephemeral world and the persistent machinery, so the identity
+         column is the Pod owning its PVC owning its PV, and the last gesture is that whole column
+         collapsing when the Pod goes away.
+LAYOUT   The identity column runs straight down the canvas centre line (Pod, PVC, PV, all on CX=600)
+         and the two machinery blocks flank it symmetrically: the StorageClass the claim names on the
+         left, the provisioner that acts on it on the right, both on the claim row and equidistant from
+         it. Content spans 112..1088 with the chip strip, margins equal a side.
+         The column is evenly spaced, so the ownership above the claim and the binding below it read as
+         one rhythm rather than as two different distances:
+           36    canvas top margin
+           36    Pod                110 tall, to 146
+           66    gap, ownerReference link and the mount and GC lanes that flank it
+           212   claim row          72 tall, to 284, class and provisioner on the same line
+           66    gap, the Bound link and the lower half of those same lanes
+           350   the volume         110 tall, to 460
+           500   mount caption
+           570   chip strip         34 tall, to 604
+           36    canvas bottom margin, equal to the top one
+PANEL    Measured, panel bottom-right in viewBox units:
+           1920x900  right 102  bottom 183      1600x1000 right 291  bottom 143
+           1280x900  right 378  bottom 173      1100x900  right 397  bottom 149
+           1280x860  right 397  bottom 205      1100x800  right 397  bottom 205
+         Worst case x<=397 and y<=205: the four taller rows are all 900 or 1000, and a shorter window
+         shrinks the diagram while the HTML panel keeps its pixels. Only the Pod sits inside that y
+         band, and at 487..713 it clears on x while staying centred on CX. The claim row at y=212
+         clears the real floor by SEVEN units, so it must not move up. A longer narration invalidates
+         this.
+LANES    ONE axis, on CX itself, and EVERY wire on this card carries an arrowhead: there are no
+         undirected lines left. Every endpoint is a block edge MIDPOINT, so every arrowhead lands dead
+         centre on the face it enters. Four column lanes share the one axis (two up, two down) because
+         no step shows both directions, and each goes out behind the cascade it carries on the closing
+         step, so nothing is left pointing at a ghost.
+WHY NOT  Hanging the ownerReference, the Bound link and the class reference as static dashed strokes:
+         that puts three arrow-shaped things on the card that never fire, and forces all the real
+         traffic 12 units off the block centre lines to get around them. Each of those three facts is
+         carried by something that moves or by text that stays:
+           ownerReference  a ball down the column on the step where the claim is created, stamping it,
+                           plus the claim sublabel (owned by Pod), the caption beside the column, and
+                           the lifetime chip. The same lane carries the cascade on the way out.
+           Bound           the claim sublabel flips to Bound and the chip says so.
+           the class       the ball out to the provisioner carries storageClassName: fast-ssd, which is
+                           the field itself, and the class block lights as it is read.
+MOTION   The owner step carries no packet and no Pod pulse, and the canon would allow it the one
+         sanctioned block blink so it does not read as frozen. It deliberately does not take it: that
+         step states a fact rather than moves something, and a brightness blink on a block that is only
+         being pointed at reads as traffic that never arrives. DO NOT add it back.
+         The ownership is a BALL, not a static undirected line hanging under the Pod: the claim is
+         stamped with its ownerReference at the moment it is created, so the tag rides down and the
+         claim comes up to full on its arrival.
+         The claim defaults to OPACITY.pending rather than to 0: it is the middle block of a
+         three-block row, and cutting it out leaves a hole in that row rather than an absence.
+BUDGET   Family CHIP_W 232: worst case is `backing` + `mounted at /scratch` at 26 characters, so
+         26 * 6.89 + 24 of padding is 203 against the 232 available.
+```
+
 ### before `const CX = 600;`
 
 ```
-WHAT  An inline volumeClaimTemplate written directly on the Pod under ephemeral. It gets a real PVC,
-a real StorageClass, real dynamic provisioning and a real CSI mount, so unlike emptyDir it can be
-large, of a specific class, and even snapshotted. But its lifetime is the Pod: the PVC carries an
-ownerReference back to the Pod and is garbage-collected when the Pod dies. This card is the bridge
-between the ephemeral world and the persistent machinery, so the identity column is the Pod owning
-its PVC owning its PV, and the last gesture is that whole column collapsing when the Pod goes away.
-
-LAYOUT  The identity column runs straight down the canvas centre line (Pod, PVC, PV, all on CX=600)
-and the two machinery blocks flank it symmetrically: the StorageClass the claim names on the left,
-the provisioner that acts on it on the right, both on the claim row and equidistant from it. Content
-spans 112..1088 with the chip strip, margins equal a side.
-The identity column is evenly spaced, so the ownership above the claim and the binding below it read
-as one rhythm rather than as two different distances:
-  36    canvas top margin
-  36    Pod                110 tall, to 146
-  66    gap, ownerReference link and the mount and GC lanes that flank it
-  212   claim row          72 tall, to 284, with the class and the provisioner on the same line
-  66    gap, the Bound link and the lower half of those same lanes
-  350   the volume         110 tall, to 460
-  500   mount caption
-  570   chip strip         34 tall, to 604
-  36    canvas bottom margin, equal to the top one
-
-PANEL  Measured, panel bottom-right in viewBox units:
-  1920x900  right 102  bottom 183      1600x1000 right 291  bottom 143
-  1280x900  right 378  bottom 173      1100x900  right 397  bottom 149
-  1280x860  right 397  bottom 205      1100x800  right 397  bottom 205
-Worst case x<=397 and y<=**205**: the four taller rows are all 900 or 1000, and a shorter window
-shrinks the diagram while the HTML panel keeps its pixels. Only the Pod sits inside that y band, and
-at 487..713 it clears on x while staying centred on CX. The claim row at y=212 clears the real floor
-by **7 units**, so this row must not move up. A longer narration invalidates this.
-
-MOTION  The owner step carries no packet and no Pod pulse, and the canon would allow it the one
-sanctioned block blink so it does not read as frozen. It deliberately does not take it: that step
-states a fact rather than moves something, and a brightness blink on a block that is only being
-pointed at reads as traffic that never arrives. DO NOT add it back.
-
-LANES  ONE axis, on CX itself, and EVERY wire on this card carries an arrowhead. There are no
-undirected lines left.
-WHY NOT hang the ownerReference, the Bound link and the class reference as static dashed strokes:
-that puts three arrow-shaped things on the card that never fire, and forces all the real traffic 12
-units off the block centre lines to get around them. Each of those three facts is carried by
-something that moves or by text that stays:
-  ownerReference  a ball down the column on the step where the claim is created, stamping it, plus
-                  the claim sublabel (owned by Pod), the caption beside the column, and the lifetime
-                  chip. The same lane carries the cascade on the way out.
-  Bound           the claim sublabel flips to Bound and the chip says so.
-  the class       the ball out to the provisioner carries storageClassName: fast-ssd, which is the
-                  field itself, and the class block lights as it is read.
-Four column lanes share the one axis (two up, two down) because no step shows both directions, and
-every one of them meets its block on the centre of the face it enters. Each lane goes out behind the
-cascade it carries on the closing step, so nothing is left pointing at a ghost.
-```
-
-### before `const W_CLAIM_PROV = [[CX + CLAIM_W / 2, ROW_MY], [PROV_CX - SIDE_W / 2, ROW_MY]];`
-
-```
-Every endpoint is a block edge MIDPOINT, and all four column lanes run on CX itself, so every
-arrowhead lands dead centre on the face it enters. Up and down never appear in the same step, which
-is what lets them share the one axis.
-```
-
-### before `function podBlock() {`
-
-```
-Family pulse model: the wrapping g is not optional.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16;`
-
-```
-Family chip width. Worst case here is 'backing' + 'mounted at /scratch' at 26 characters, so
-26 * 6.89 + 24 of padding is 203 against the 232 available.
-```
-
-### before `[podB.group, pvc, sc, prov, pv].forEach(el => root.appendChild(el));`
-
-```
-Family z-order.
-```
-
-### before `const LANES = ['wClaimProv', 'wCreate', 'wDownHigh', 'wDownLow', 'wUpHigh', 'wUpLow'];`
-
-```
-Family setStage, lanes included. The claim defaults to OPACITY.pending rather than to 0: it is the
-middle block of a three-block row, and cutting it out leaves a hole in that row rather than an
-absence.
-```
-
-### before `setStage(s, { lanes: ['wDownHigh'] });`
-
-```
-The ownership is a BALL, not a static undirected line hanging under the Pod: the claim is stamped
-with its ownerReference at the moment it is created, so the tag rides down and the claim comes up to
-full on its arrival.
+Pod, PVC and PV all sit on this axis and the two machinery blocks flank it symmetrically. Every one
+of the four column lanes runs on CX itself, which is what lets each arrowhead land dead centre on the
+face it enters.
 ```
 
 ### poster
@@ -1203,61 +1051,51 @@ packet sits on that spine: nothing travels down an ownerReference.
 The claim carries the brightest fill because it is the pivot the card turns on.
 ```
 
----
-
 ## storage-hostpath
 
-### note: Kubelet is an accepted off-card actor here too
-
-NOT A DEFECT. The `idle` and `mount` steps name the Kubelet as the subject although this card draws
-no Kubelet block. Left as written, under the category-wide ruling recorded on
-`storage-ephemeral-storage-eviction`. Do not file these again.
-
-### before `const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550`
+### layout
 
 ```
-WHAT  hostPath. A vertical stack inside one Node boundary, the same skeleton as the emptyDir card
-(Node holding a Pod of two containers over a backing cylinder, side-entry L-lanes), because hostPath
-is the other node-local volume and the two cards must read as a pair. The whole card is the CONTRAST
-with emptyDir: an emptyDir is scratch the kubelet makes FOR the Pod, a hostPath is a raw window onto
-a directory that ALREADY LIVES ON THE NODE and belongs to it.
-
-TWO DELIBERATE FAMILY VARIATIONS, both carrying the lesson:
-  1. NO OWNERSHIP SPINE. volume-model and emptyDir draw a dim spine from the Pod down to the disk
-     because the volume belongs to the Pod. Here the directory belongs to the NODE, so that spine is
-     intentionally absent: the Pod and the host directory read as two separate things joined only by
-     the mount lanes. The empty gap at x=600 IS the message.
-  2. THE reschedule STEP INVERTS emptyDir's dies STEP. emptyDir ghosts the Pod AND its directory
-     together (both owned by the Pod). hostPath ghosts ONLY the Pod and its mount lanes while the
-     host directory stays lit at full opacity, because the directory is the node's and outlives the
-     Pod on that node. That single visual inversion is why hostPath is not persistence.
-
-LAYOUT  Geometry is emptyDir's verbatim so the pair aligns: Node 180..1020, Pod 300..900 centred on
-600, the two containers pushed to the Pod edges (centres 425 and 775, outside the cylinder span), the
-cylinder 470..730 centred on 600. The panel reaches about (300, 163) here and the Node top at 170
-sits flush under it. A longer narration invalidates that measurement.
-
-LANES  Two directed L-lanes, exactly emptyDir's. The app writes DOWN into the cylinder side, the
-agent reads UP out of the far side.
-
-MOTION  Highlights are step-static, set above the reduced guard, and the Pod pulse fires in the same
-beat.
+WHAT     hostPath. A vertical stack inside one Node boundary, the same skeleton as the emptyDir card
+         (Node holding a Pod of two containers over a backing cylinder, side-entry L-lanes), because
+         hostPath is the other node-local volume and the two cards must read as a pair. The whole card
+         is the CONTRAST with emptyDir: an emptyDir is scratch the kubelet makes FOR the Pod, a
+         hostPath is a raw window onto a directory that ALREADY LIVES ON THE NODE and belongs to it.
+LAYOUT   TWO DELIBERATE FAMILY VARIATIONS, both carrying the lesson:
+           1. NO OWNERSHIP SPINE. volume-model and emptyDir draw a dim spine from the Pod down to the
+              disk because the volume belongs to the Pod. Here the directory belongs to the NODE, so
+              that spine is intentionally absent: the Pod and the host directory read as two separate
+              things joined only by the mount lanes. The empty gap at x=600 IS the message.
+           2. THE reschedule STEP INVERTS emptyDir's dies STEP. emptyDir ghosts the Pod AND its
+              directory together (both owned by the Pod). hostPath ghosts ONLY the Pod and its mount
+              lanes while the host directory stays lit at full opacity, because the directory is the
+              node's and outlives the Pod on that node. That single visual inversion is why hostPath is
+              not persistence.
+         Geometry is emptyDir's verbatim so the pair aligns: Node 180..1020, Pod 300..900 centred on
+         600, the two containers pushed to the Pod edges (centres 425 and 775, outside the cylinder
+         span), the cylinder 470..730 centred on 600.
+PANEL    The panel reaches about (300, 163) here and the Node top at 170 sits flush under it. A longer
+         narration invalidates that measurement.
+LANES    Two directed L-lanes, exactly emptyDir's. The app writes DOWN into the cylinder side, the
+         agent reads UP out of the far side.
+MOTION   Highlights are step-static, set above the reduced guard, and the Pod pulse fires in the same
+         beat. kubelet bind-mounts the existing host directory INTO the containers, so on the mount
+         step the cylinder AND both container boxes light as the mount lands.
+         The app WRITE leaves the Pod for the cylinder (up-arrow), so the Pod pulses first and the
+         write ball descends at afterPulse. The agent READ returns the bytes INTO the Pod (down-arrow),
+         so the read ball leaves the far side first and the Pod pulses AGAIN when it arrives back.
+NOT A DEFECT
+         The `idle` and `mount` steps name the Kubelet as the subject although this card draws no
+         Kubelet block. Left as written, under the category-wide ruling recorded on
+         storage-ephemeral-storage-eviction. Do not file these again.
 ```
 
-### before `s.refs.hp.classList.add('highlight');`
+### before `const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;`
 
 ```
-kubelet bind-mounts the existing host directory INTO the containers, so the cylinder AND both
-container boxes light as the mount lands, and the Pod pulses in the same beat. All static above the
-guard so reduced motion holds the same lit end-state.
-```
-
-### before `pulsePod(s.refs.pod, ctx, 0);`
-
-```
-The app WRITE leaves the Pod for the cylinder (up-arrow), so the Pod pulses first and the write ball
-descends at afterPulse. The agent READ returns the bytes INTO the Pod (down-arrow), so the read ball
-leaves the far side first and the Pod pulses AGAIN when it arrives back.
+Geometry is storage-emptydir's VERBATIM, so the two node-local cards align tier for tier and the only
+differences a reader sees are the two deliberate ones: no ownership spine, and the directory
+surviving the Pod.
 ```
 
 ### poster
@@ -1267,8 +1105,6 @@ Pair to the emptyDir poster, same node + Pod + side-entry L-lanes, but the backi
 not dashed: a hostPath is a raw window onto a real directory that already lives on the node, not
 ephemeral scratch. The left container writes INTO it, the right reads OUT.
 ```
-
----
 
 ## storage-mount-path-chain
 
@@ -1356,6 +1192,19 @@ NOTE     setStage is called from every enter() ABOVE the ctx.reduced guard, so a
          lands on the right skeleton and a mid-step cancel cannot leave a lane stranded at the
          opacity some earlier animation was driving it toward. Mount and write are mutually
          exclusive rather than independently toggled, which is the whole point of the pairing.
+```
+
+### before `const LEFT_X = 400;`
+
+```
+The panel wall. CONTENT_W is COL_W * 2 + COL_GAP rather than typed, so the two columns re-solve
+together and the corridor between them stays centred.
+```
+
+### before `const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;`
+
+```
+Sized against `bind mounts` + `Pod A and Pod B` at 178.9, ~29 units of air at 6.88 u/char.
 ```
 
 ### poster
@@ -1503,6 +1352,21 @@ WHY NOT  The controller alone in the bottom LEFT corner at x=60 with the nodes a
          a large dead region through the middle, and content under the panel.
 ```
 
+### before `const LEFT_X = 400;`
+
+```
+The panel wall, read as an L: above y=344 nothing may sit left of it, below that the full width is
+free. The two upper tiers obey it, the VolumeAttachment row at y=359 does not have to.
+```
+
+### before `const G_NODE_BAND = 56, G_BAND_VA = 56, G_VA_DK = 48, G_DK_CHIPS = 22;`
+
+```
+Heights and gaps are declared once, summed, and the leftover split evenly, so the whole card
+re-centres by changing one number. Typing each tier y is what left the node row 30 units of air
+while the three lower tiers were packed at 52.
+```
+
 ### poster
 
 ```
@@ -1536,65 +1400,54 @@ reads as a different material from every sibling in the grid.
 
 ## storage-projected-volume
 
-### before `const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;  // 330..970, over the projected directory`
+### layout
 
 ```
-WHAT  Projected volumes: one directory assembled from several sources at once. TWO ALIGNED COLUMNS,
-the four sources on the left and the projected directory with one file row per source on the right,
-and EVERY source mid-height equals its file row mid-height, so all four fan-in lanes are pure
-horizontal segments. The gesture is a FAN-IN: four parallel lanes converge on the one dir.
-
+WHAT     Projected volumes: one directory assembled from several sources at once. TWO ALIGNED COLUMNS,
+         the four sources on the left and the projected directory with one file row per source on the
+         right, and EVERY source mid-height equals its file row mid-height, so all four fan-in lanes
+         are pure horizontal segments. The gesture is a FAN-IN: four parallel lanes converge on one dir.
 CONTENT  The card leads to the serviceAccountToken source, the one that matters. Unlike the old
-forever-valid Secret-based token, a projected token is short-lived and audience-bound, and kubelet
-ROTATES it in place before it expires, rewriting the same file with a fresh token and no restart.
-The rotation is the beat the card builds to.
-
-LAYOUT  The Pod sits over the DIRECTORY column only, and the sources are cluster objects, so their
-column sits out from under it at 230..450. Content spans 230..970, centred on the canvas.
-WHY NOT run the Pod flush over both columns: the source column then sits under it as though the
-ConfigMap and the Secret lived inside the Pod, and it drags the drawing into 330..970 (centre 650)
-with the lower left third of the canvas empty.
-
-LANES  The four source lanes run horizontally on shared mid-heights, zero corners. The two Pod lanes
-each turn ONCE: the metadata drop leaves the Pod floor 100 left of its centre, steps out to the
-source column in the corridor at y=232 and drops into downwardAPI (which sits FIRST in the column
-exactly so that drop crosses nothing), and the app read leaves the dir top, steps in at y=200 and
-rises into the Pod floor 100 right of its centre.
-The pair either side of the Pod centre is the point: a 640 wide face with one lane out at 440 and
-another at 800 reads as two lanes that missed, and both were reported as such. 100 is also inside the
-18 percent of the face that the rule treats as still on the midpoint, so the pair is legible as a
-pair rather than as a tolerance.
-
-MOTION  Only the Pod pulses: it is the source of downwardAPI metadata and the reader of the token.
-
-PANEL  This card's panel bottoms out at y=181 (measured over 1600/1280/1100). The Pod at y=56 is the
-only tier inside that band and starts at x=330, and the source column below it starts at y=264, well
-clear. The metadata corridor at y=232 is what those 181 units pin: it cannot rise. A longer narration
-invalidates this.
+         forever-valid Secret-based token, a projected token is short-lived and audience-bound, and
+         kubelet ROTATES it in place before it expires, rewriting the same file with a fresh token and
+         no restart. The rotation is the beat the card builds to.
+LAYOUT   The Pod sits over the DIRECTORY column only, and the sources are cluster objects, so their
+         column sits out from under it at 230..450. Content spans 230..970, centred on the canvas.
+WHY NOT  Running the Pod flush over both columns: the source column then sits under it as though the
+         ConfigMap and the Secret lived inside the Pod, and it drags the drawing into 330..970 (centre
+         650) with the lower left third of the canvas empty.
+LANES    The four source lanes run horizontally on shared mid-heights, zero corners. The two Pod lanes
+         each turn ONCE: the metadata drop leaves the Pod floor 100 left of its centre, steps out to
+         the source column in the corridor at y=232 and drops into downwardAPI (which sits FIRST in the
+         column exactly so that drop crosses nothing), and the app read leaves the dir top, steps in at
+         y=200 and rises into the Pod floor 100 right of its centre.
+         The pair either side of the Pod centre is the point: a 640 wide face with one lane out at 440
+         and another at 800 reads as two lanes that missed, and both were reported as such. 100 is also
+         inside the 18 percent of the face that the rule treats as still on the midpoint, so the pair
+         is legible as a pair rather than as a tolerance.
+PANEL    This card's panel bottoms out at y=181 (measured over 1600/1280/1100). The Pod at y=56 is the
+         only tier inside that band and starts at x=330, and the source column below it starts at
+         y=264, well clear. The metadata corridor at y=232 is what those 181 units pin: it cannot rise.
+         A longer narration invalidates this.
+MOTION   Only the Pod pulses: it is the source of downwardAPI metadata and the reader of the token.
+NOT A DEFECT
+         The projected directory is an ENCLOSURE, not a receiver, and this stays open in the tool on
+         purpose. `check-arrival --rules=r3` reports the block as lit at step entry while four balls
+         land inside it at 700ms. The finding is correct about the facts and wrong about the defect:
+         each ROW lights on its own ball arriving, which is the arrival the reader is meant to see, and
+         dimming the enclosing frame until the first ball lands would draw a directory that does not
+         exist yet on the step whose whole subject is four sources feeding one directory that does.
+         The rule cannot tell an enclosure from a destination, and a card-level exception list would
+         hide the real ones, so the finding is left reported. The downward step on this same card WAS a
+         real finding and was fixed: there downwardAPI is a genuine mid-chain receiver.
 ```
 
-### note: the projected dir is an enclosure, not a receiver
+### before `const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;`
 
 ```
-NOT A DEFECT, and it stays open in the tool on purpose. `check-arrival --rules=r3` reports the
-projected directory block as lit at step entry while four balls land inside it at 700ms. The finding
-is correct about the facts and wrong about the defect: the block is not the receiver, it is the
-CONTAINER the four file rows sit in, and each ROW lights on its own ball arriving, which is the
-arrival the reader is meant to see. Dimming the enclosing frame until the first ball lands would draw
-a directory that does not exist yet on the step whose whole subject is four sources feeding one
-directory that does.
-
-The rule cannot tell an enclosure from a destination, and a card-level exception list would hide the
-real ones, so the finding is left reported. The downward step on this same card WAS a real finding
-and was fixed: there downwardAPI is a genuine mid-chain receiver.
-```
-
-### before `const W_DOWN = [[SRC_RIGHT, midOf(DOWN_Y)], [ROW_X, midOf(DOWN_Y)]];`
-
-```
-The four source lanes fan into the file rows on shared mid-heights as single straight segments, and
-the two Pod lanes turn once each: the Pod drops its own metadata into downwardAPI, and the app reads
-a file back out of the dir.
+The Pod sits over the DIRECTORY column only. Running it flush over both columns puts the source
+column under it, as though the ConfigMap and the Secret lived inside the Pod, and drags the content
+bbox to 650.
 ```
 
 ### poster
@@ -1604,8 +1457,6 @@ The essence, not the layout: four scattered sources converge fan-wise on ONE mou
 folder edge, inside it the keys sit as even file lines, and the token thread (bottom source, its
 lane, its file line) burns brighter than the rest.
 ```
-
----
 
 ## storage-pv-lifecycle-phases
 
@@ -1703,6 +1554,13 @@ WIRE LABELS
          that runs left to right.
 ```
 
+### before `const PITCH = 224;`
+
+```
+One pitch drives the whole phase row: ST_W and GAP fall out of it and each phase centre is the
+previous one plus PITCH. Re-typing a centre is what breaks the even rhythm the row depends on.
+```
+
 ### poster
 
 ```
@@ -1735,95 +1593,64 @@ has to sit low for the drawn bounding box to land on the canvas centre.
 
 ## storage-pvc-binding
 
-### before `const CX = 600;                                     // canvas + identity-spine center`
+### layout
 
 ```
-WHAT  A claim, three candidate volumes, and the controller that matches them. A CENTRED vertical
-spine: the identity column Pod -> PVC -> PV-x73a shares one line down the canvas centre (CX=600),
-because binding is what fuses those three into one chain.
-
-LANES  The spine is a SINGLE dead-centre lane, the mount ascent, drawn with arrowheads (the volume
-rising PV -> PVC -> Pod). It is the only vertical the tops of the Pod and the centre cylinder touch.
-DO NOT add headless relationship lines beside it: the centre then reads as a crowded pair rather than
-as one clean arrowed axis.
-The disk shelf holds three PVs spread SYMMETRICALLY around the spine. The binding controller sits at
-the right, its vertical centre aligned with the PVC so the watch and the bind write are STRAIGHT
-horizontal hops, no zigzag.
-Crucially the controller scans the shelf FROM BELOW: the probe EXITS the controller from its right
-side (centred), wraps down its outer edge (clear of PV-b22), runs a bus under the whole shelf, and
-rises into each cylinder BOTTOM with a generous gap before the turn. That keeps every probe off the
-cylinder tops. The second claim of the exclusive step sits above the controller, denied by a short
-straight hop up.
-
-PANEL  The panel owns the top-left band and every block clears it.
+WHAT     A claim, three candidate volumes, and the controller that matches them. A CENTRED vertical
+         spine: the identity column Pod -> PVC -> PV-x73a shares one line down the canvas centre
+         (CX=600), because binding is what fuses those three into one chain.
+PANEL    The panel owns the top-left band and every block clears it.
+LANES    The spine is a SINGLE dead-centre lane, the mount ascent, drawn with arrowheads (the volume
+         rising PV -> PVC -> Pod). It is the only vertical the tops of the Pod and the centre cylinder
+         touch. DO NOT add headless relationship lines beside it: the centre then reads as a crowded
+         pair rather than as one clean arrowed axis.
+         The disk shelf holds three PVs spread SYMMETRICALLY around the spine. The binding controller
+         sits at the right, its vertical centre aligned with the PVC so the watch and the bind write
+         are STRAIGHT horizontal hops, no zigzag.
+         Crucially the controller scans the shelf FROM BELOW: the probe EXITS the controller from its
+         right side (centred), wraps down its outer edge (clear of PV-b22), runs a bus under the whole
+         shelf, and rises into each cylinder BOTTOM with a generous gap before the turn. That keeps
+         every probe off the cylinder tops, and every endpoint sits on a block edge, so a ball never
+         travels underneath a box. The second claim of the exclusive step sits above the controller,
+         denied by a short straight hop up.
+NOTE     A disk is a cylinder plus its spec line, wrapped in a g so dimming a rejected volume fades the
+         spec WITH it (the name already rides inside the cylinder). The cylinder is returned separately
+         because .highlight must sit on the .scheme-cylinder element itself, not on the wrapper.
+         Each disk states all THREE things the claim is matched on (capacity, access mode, class), so a
+         viewer can verify the verdict the match step narrates instead of taking it on trust. Access
+         mode is identical on all three on purpose: the two rejections must turn on size and class only.
+         Family z-order, with the wires and their labels ABOVE the blocks so a connector that crosses a
+         block stays visible and the text stays legible, and the static disk specs above those.
+DO NOT   Leave appBox out of resetStep. A highlight set during a reduced replay leaks forward, because
+         replay never runs the motion path that would re-clear it. The disk opacities and the two
+         late-appearing elements are reset there for the same reason.
+MOTION   The opening step is deliberately motionless and must STAY that way. The claim is a statement of
+         need, nothing acts: the Pod does not pulse (it is the subject being blocked, not an actor) and
+         the PVC takes a static .highlight only. A block flash would be canon-legal there (packet-less
+         and Pod-less) and is wrong, it reads as the PVC doing something when it is not.
+         All three probes leave the controller TOGETHER: the scan is one sweep of the shelf, not a
+         queue, and the simultaneous fan-out is the whole read of that step. They land at their own
+         pace (1222 / 1933 / 2600 ms for slow / match / small) because routeDur normalizes speed and
+         the routes are very different lengths. DO NOT stagger them to make the verdicts resolve in
+         narration order: that turns one sweep into three separate errands.
+         The Pod stays dim until the volume actually reaches it, so the motion path RE-DIMS it and the
+         animation carries it back to the 1 pinned above the guard. Without the re-dim the Pod sits at
+         full opacity and then snaps BACK to 0.5 the instant the animation becomes active.
+CONTENT  The `binding` chip turns over on the probe arrival, not at t=0. It named `candidate PV-x73a`
+         from the first frame, between 1.4 and 2.8s before the sweep that decides it had run, on the
+         one card whose whole subject is that the decision is made by scanning. It is rolled back to
+         `none` below the guard and written inside the same `at(...)` that lights the winning cylinder
+         and writes its wire: `setVal` for the roll-back, `setChip` for the turnover, so the highlight
+         fires on the verdict rather than on the reset. The three wire verdicts already turn over on
+         their own probe arrivals.
 ```
 
-### before `const W_PVC_TO_CTRL = [[PVC_RIGHT, PVC_MID - LANE], [CTRL_LEFT, PVC_MID - LANE]];   // watch, straight`
+### before `const CX = 600;`
 
 ```
-Every endpoint sits on a block edge, so a ball never travels underneath a box. The watch and the bind
-write are single straight horizontal hops off the PVC. The scan EXITS the controller's right side
-(centred), turns down its outer edge, turns left along the bus, then rises into each cylinder.
-```
-
-### before `function diskBlock(cx, w, label, spec) {`
-
-```
-A disk is a cylinder plus its spec line, wrapped in a g so dimming a rejected volume fades the spec
-WITH it (the name already rides inside the cylinder). The cylinder is returned separately because
-.highlight must sit on the .scheme-cylinder element itself, not on the wrapper.
-```
-
-### before `const pvA = diskBlock(SMALL_CX, 200, 'PV-a01', '2Gi, RWO, local-ssd');`
-
-```
-Each disk states all THREE things the claim is matched on (capacity, access mode, class), so a viewer
-can verify the verdict the match step narrates instead of taking it on trust. Access mode is
-identical on all three on purpose: the two rejections must turn on size and class only.
-```
-
-### before `[ctrl, pvc, pvcB, appPod.group, pvSmall, pvMatch, pvSlow].forEach(el => root.appendChild(el));`
-
-```
-Family z-order, with the wires and their labels ABOVE the blocks so a connector that crosses a block
-stays visible and the text stays legible, and the static disk specs above those.
-```
-
-### before `function resetStep(s) {`
-
-```
-appBox is listed so its .highlight is cleared every step.
-DO NOT leave it out: a highlight set during a reduced replay leaks forward, because replay never runs
-the motion path that would re-clear it. The disk opacities and the two late-appearing elements are
-reset here for the same reason.
-```
-
-### before `narration: 'A PersistentVolumeClaim is a request, not storage. It states only what the workload needs: at leas`
-
-```
-Deliberately motionless, and it must STAY that way. The claim is a statement of need, nothing acts in
-this step: the Pod does not pulse (it is the subject being blocked, not an actor) and the PVC takes a
-static .highlight only. A block flash would be canon-legal here (packet-less and Pod-less) and is
-wrong: it reads as the PVC doing something when it is not.
-```
-
-### before `const toSmall = routePacket(s, ctx, W_SCAN_SMALL, { role: 'storage' });`
-
-```
-All three probes leave the controller TOGETHER: the scan is one sweep of the shelf, not a queue, and
-the simultaneous fan-out is the whole read of this step. They land at their own pace (1222 / 1933 /
-2600 ms for slow / match / small) because routeDur normalizes speed and the routes are very different
-lengths.
-DO NOT stagger them to make the verdicts resolve in narration order: that turns one sweep into three
-separate errands.
-```
-
-### note (anchor dropped: `s.refs.appPod.style.opacity = '0.5';` is not unique in the file)
-
-```
-The Pod stays dim until the volume actually reaches it, so the motion path re-dims it and the
-animation carries it back to the 1 pinned above. Without the re-dim the Pod sits at full opacity and
-then snaps BACK to 0.5 the instant the animation becomes active.
+The identity column Pod -> PVC -> PV shares this one line, because binding is what fuses the three
+into one chain. It is the only vertical the tops of the Pod and the centre cylinder touch, so a
+second line beside it turns the centre into a crowded pair.
 ```
 
 ### poster
@@ -1840,163 +1667,116 @@ the capsule. All three disks share one baseline (y=146) and near-identical tops,
 stands out by width and fill, not by height.
 ```
 
-### before `setVal(s.refs.bindChip, 'none');`
-
-```
-The `binding` chip turns over on the probe arrival, not at t=0. It named `candidate PV-x73a` from the
-first frame, between 1.4 and 2.8s before the sweep that decides it had run, on the one card whose
-whole subject is that the decision is made by scanning. The three wire verdicts already turn over on
-their own probe arrivals.
-Rolled back to `none` below the guard and written inside the same `at(...)` that lights the winning
-cylinder and writes its wire. `setVal` for the roll-back, `setChip` for the turnover, so the
-highlight fires on the verdict rather than on the reset.
-```
-
----
-
 ## storage-pvc-clone
+
+### layout
+
+```
+WHAT     Cloning a PVC. A new PVC whose dataSource points at an EXISTING PVC, not a snapshot. The
+         storage system makes an exact duplicate server-side and there is no snapshot object in
+         between, which is the whole contrast with the snapshot card.
+CONTENT  Quoted rather than paraphrased, from kubernetes.io CSI Volume Cloning:
+           `Cloning is supported with a different Storage Class. Destination volume can be the same or
+            a different storage class as the source.`  <- the card must NOT require the SAME class
+           `The source PVC must be bound and available (not in use).`
+                                                      <- the card must NOT promise the source stays up
+           `Cloning can only be performed between two volumes that use the same VolumeMode setting`
+           `You can only clone a PVC when it exists in the same namespace as the destination PVC`
+           `the value you specify must be the same or larger than the capacity of the source volume`
+           `the back end device creates an exact duplicate of the specified Volume`
+           `the source is not linked in any way to the newly created clone, it may also be modified or
+            deleted without affecting the newly created clone`
+         CreateVolume is a call into the DRIVER that produces a volume, so its ball lands on the new
+         DISK in the backend. DO NOT land it on the clone CLAIM: that is neither where the call goes
+         nor what it creates.
+LAYOUT   A mirror: source on the left, clone on the right, reflected about the canvas centre.
+         CLAIM_CX = [CX - SPREAD, CX + SPREAD] with CX=600, and the disks hang on the same two centre
+         lines, so the reflection holds on every tier. The provisioner sits alone on the centre line
+         above them because it belongs to neither side, and the backend frame below holds both disks
+         because the copy never leaves the storage system: that frame IS the word server-side.
+         Every horizontal run of every zigzag sits at the midpoint of what it crosses, and the backend
+         frame insets are equal, so the column is symmetric and nothing is pinned to a free gap. It is
+         deliberately the same rhythm as storage-volume-snapshot from the frame down, since the two
+         cards sit in one row:
+           36    canvas top margin
+           36    External-provisioner   68 tall, to 104
+           170   request corridor       66 below the provisioner, 66 above the claim row
+           236   claim row              68 tall, to 304
+           320   the constraint list    four lines, 20 apart, on the centre line, to 380
+           396   storage backend frame  174 tall, to 570
+           438   disks                  90 tall, to 528, frame insets 42 above and below
+           552   disk captions          18 above the frame floor
+           588   chip strip             34 tall, to 622
+           18    canvas bottom margin
+         The disks sit DEAD CENTRE in the frame: one inset used both above and below, so the frame is
+         sized from its contents, the top band carrying the frame label (`node()` puts its label
+         baseline 18 below the frame top) and the bottom band the disk captions, and the two come out
+         equal.
+PANEL    Measured, panel bottom-right in viewBox units:
+           1920x900  right 102  bottom 183      1600x1000 right 291  bottom 160
+           1280x900  right 378  bottom 173      1100x900  right 397  bottom 173
+           1280x860  right 397  bottom 230      1100x800  right 397  bottom 230
+         The four taller rows made the old worst case (y<=183) too kind by 47 units: a SHORTER window
+         gives the dialog less height, the diagram scales down with it, and the panel keeps its pixels.
+         The occlusion rule samples the two 230 rows, so 230 is the number this layout is built against.
+         At 196 the claim row was inside that band and the source claim (180..460) was 38 percent behind
+         the panel. The row starts at 236, clear of 230 outright, and everything under it moved down by
+         40 to follow: the constraint lines lost 2 units of leading (22 to 20) to pay for part of it,
+         and the chip strip took the rest out of the bottom margin. The provisioner still sits inside
+         the band and still clears it on x, at 420..780. The request corridor at y=170 is inside the
+         band too, but it only ever runs between x=600 and x=880, far right of any panel. A longer
+         narration invalidates all of this.
+LANES    ZERO crossings, and every lane meets its blocks on a face midpoint: the request leaves the
+         clone claim through the middle of its top face and arrives dead centre under the provisioner,
+         and the call leaves the provisioner through the midpoint of its right face and enters the new
+         volume through the midpoint of its right side, on the same line the duplicate arrives on from
+         the left. The two meet the disk from opposite sides, which is what keeps them apart.
+         The horizontal run of a zigzag belongs at the MIDPOINT OF WHAT IT CROSSES, not in whatever gap
+         happens to be free: REQ_CORRIDOR_Y is provisioner bottom 104 to claim row top 196, so the
+         request rises 46 and 46. The call has no corridor of its own: it drops the outer column
+         straight to the disk mid height and turns in through the SIDE face of the cap.
+         The call takes the long way round, out to x=1060 and down the outside, and that is not
+         decoration: the dataSource link runs straight across the gap between the two claims at their
+         mid height, so ANY descent from the provisioner through that gap crosses it, and the gap is
+         the only opening in the claim row. Hiding the link for one step would make it blink out and
+         back. Going around the outside keeps both a permanent dataSource line and a crossing-free
+         card, and it reads correctly on its own terms: every lane lives in the right half, because the
+         clone side is where all the work happens and the source side is only ever read.
+         Both identity links are dashed and carry no arrowhead: each claim to its own volume, and the
+         dataSource between the claims. The clone identity link is held back until the claim binds.
+DO NOT   Turn the call in over the cap and drop onto the disk top: that puts two arrowheads on one disk
+         pointing from the same direction as the copy.
+MOTION   Nothing pulses and nothing blinks: there is no Pod. The constraints step and the contrast step
+         carry no packet, and the canon would allow them the one sanctioned block blink so they do not
+         read as frozen. They deliberately do not take it: both state a fact rather than move something,
+         and a brightness blink on a block that is only being pointed at reads as traffic that never
+         arrives. DO NOT add it back.
+         The clone claim and the clone disk default to OPACITY.pending, not to 0. Family rule: an object
+         that does not exist yet is drawn dim, not hidden, because hiding one half of a mirrored pair
+         leaves a block-sized hole and a half empty frame, which reads as a rendering fault rather than
+         as an absence.
+BUDGET   The provision step is 5900 for three chained hops: the claim picked up, the CreateVolume call
+         out and down into the backend, and the duplicate made on the shelf once the target exists.
+         anim-dump puts the span at 5338 with the call routed around the outside. Routes are
+         length-based, so re-measure after ANY geometry change here rather than trusting this number.
+NAMING   External-provisioner, capitalised like every other CSI sidecar block in the family
+         (External-attacher, External-snapshotter, External-resizer): a hyphenated name capitalises its
+         first segment only. The narration keeps it lowercase mid-sentence, as those cards do.
+         Family CHIP_W 232: worst case here is `dataSource` + `kind: PVC` at 19 characters, so
+         19 * 6.89 + 24 of padding is 155 against the 232 available.
+```
 
 ### before `const CX = 600;`
 
 ```
-WHAT  Cloning a PVC. A new PVC whose dataSource points at an EXISTING PVC, not a snapshot. The
-storage system makes an exact duplicate server-side and there is no snapshot object in between, which
-is the whole contrast with the snapshot card.
-
-CONTENT  Quoted rather than paraphrased, from kubernetes.io CSI Volume Cloning:
-  "Cloning is supported with a different Storage Class. Destination volume can be the same or a
-   different storage class as the source."     <- so the card must NOT require the SAME StorageClass
-  "The source PVC must be bound and available (not in use)."
-                                               <- so the card must NOT promise the source stays online
-  "Cloning can only be performed between two volumes that use the same VolumeMode setting"
-  "You can only clone a PVC when it exists in the same namespace as the destination PVC"
-  "the value you specify must be the same or larger than the capacity of the source volume"
-  "the back end device creates an exact duplicate of the specified Volume"
-  "the source is not linked in any way to the newly created clone, it may also be modified or
-   deleted without affecting the newly created clone"
-CreateVolume is a call into the DRIVER that produces a volume, so its ball lands on the new DISK in
-the backend.
-DO NOT land it on the clone CLAIM: that is neither where the call goes nor what it creates.
-
-LAYOUT  A mirror: source on the left, clone on the right, reflected about the canvas centre.
-CLAIM_CX = [CX - SPREAD, CX + SPREAD] with CX=600, and the disks hang on the same two centre lines,
-so the reflection holds on every tier. The provisioner sits alone on the centre line above them
-because it belongs to neither side, and the backend frame below holds both disks because the copy
-never leaves the storage system: that frame IS the word server-side.
-Every horizontal run of every zigzag sits at the midpoint of what it crosses, and the backend frame
-insets are equal, so the column is symmetric and nothing is pinned to a free gap. It is deliberately
-the same rhythm as storage-volume-snapshot from the frame down, since the two cards sit in one row:
-  36    canvas top margin
-  36    External-provisioner   68 tall, to 104
-  170   request corridor       66 below the provisioner, 66 above the claim row
-  236   claim row              68 tall, to 304
-  320   the constraint list    four lines, 20 apart, on the centre line, to 380
-  396   storage backend frame  174 tall, to 570
-  438   disks                  90 tall, to 528, frame insets 42 above and below
-  552   disk captions          18 above the frame floor
-  588   chip strip             34 tall, to 622
-  18    canvas bottom margin
-
-PANEL  Measured, panel bottom-right in viewBox units:
-  1920x900  right 102  bottom 183      1600x1000 right 291  bottom 160
-  1280x900  right 378  bottom 173      1100x900  right 397  bottom 173
-  1280x860  right 397  bottom 230      1100x800  right 397  bottom 230
-The four taller rows made the old worst case (y<=183) too kind by 47 units: a SHORTER window gives
-the dialog less height, the diagram scales down with it, and the panel keeps its pixels. The
-occlusion rule samples the two 230 rows, so 230 is the number this layout is built against.
-At 196 the claim row was inside that band and the source claim (180..460) was 38 percent behind the
-panel. The row starts at 236, clear of 230 outright, and everything under it moved down by 40 to
-follow: the constraint lines lost 2 units of leading (22 to 20) to pay for part of it, and the chip
-strip took the rest out of the bottom margin. The provisioner still sits inside the band and still
-clears it on x, at 420..780. The request corridor at y=170 is inside the band too, but it only ever
-runs between x=600 and x=880, far right of any panel. A longer narration invalidates all of this.
-
-MOTION  Nothing pulses and nothing blinks: there is no Pod. The constraints step and the contrast
-step carry no packet, and the canon would allow them the one sanctioned block blink so they do not
-read as frozen. They deliberately do not take it: both state a fact rather than move something, and a
-brightness blink on a block that is only being pointed at reads as traffic that never arrives.
-DO NOT add it back.
-
-LANES  ZERO crossings, and every lane meets its blocks on a face midpoint: the request leaves the
-clone claim through the middle of its top face and arrives dead centre under the provisioner, and the
-call leaves the provisioner through the midpoint of its right face and enters the new volume through
-the midpoint of its right side, on the same line the duplicate arrives on from the left. The two meet
-the disk from opposite sides, which is what keeps them apart.
-The call takes the long way round, out to x=1060 and down the outside, and that is not decoration:
-the dataSource link runs straight across the gap between the two claims at their mid height, so ANY
-descent from the provisioner through that gap crosses it, and the gap is the only opening in the
-claim row. Hiding the link for one step would make it blink out and back. Going around the outside
-keeps both a permanent dataSource line and a crossing-free card, and it reads correctly on its own
-terms: every lane lives in the right half, because the clone side is where all the work happens and
-the source side is only ever read.
-Both identity links are dashed and carry no arrowhead: each claim to its own volume, and the
-dataSource between the claims. The clone identity link is held back until the claim actually binds.
-```
-
-### before `const DISK_W = 200, DISK_H = 90;`
-
-```
-The disks sit DEAD CENTRE in the backend frame: one inset used both above and below, so the frame is
-sized from its contents. The top band carries the frame label (node() puts its label baseline 18
-below the frame top) and the bottom band carries the disk captions, and the two come out equal.
-```
-
-### before `const REQ_CORRIDOR_Y = (PROV_BOTTOM + CLAIM_TOP) / 2;                   // 170`
-
-```
-The horizontal run of a zigzag belongs at the MIDPOINT OF WHAT IT CROSSES, not in whatever gap
-happens to be free: REQ_CORRIDOR_Y is provisioner bottom 104 to claim row top 196, so the request
-rises 46 and 46.
-The call has no corridor of its own: it drops the outer column straight to the disk mid height and
-turns in through the SIDE face of the cap, so its only horizontal runs are the two short ones at the
-faces it leaves and enters.
-DO NOT turn it in over the cap and drop onto the top: that puts two arrowheads on one disk pointing
-from the same direction as the copy.
-```
-
-### opacity phases (was `const PLACEHOLDER = 0.4`, now OPACITY.pending)
-
-```
-Family rule: an object that does not exist yet is drawn dim, not hidden. Hiding it leaves a
-block-sized hole in a mirrored row and a half empty frame, which reads as a rendering fault rather
-than as an absence, so both halves of the mirror are always drawn and the absent one is dim.
-```
-
-### before `const prov = box({ x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'External-provisioner', sublabel: 'drive`
-
-```
-NAMING  External-provisioner, capitalised like every other CSI sidecar block in the family
-(External-attacher, External-snapshotter, External-resizer): a hyphenated name capitalises its first
-segment only. The narration keeps it lowercase mid-sentence, as those cards do.
+The mirror axis: CLAIM_CX is CX -/+ SPREAD and the disks hang on the same two centre lines, so the
+reflection holds on every tier. The provisioner sits alone on CX because it belongs to neither side.
 ```
 
 ### before `const CHIP_W = 232, CHIP_GAP = 16;`
 
 ```
-Family chip width. Worst case here is 'dataSource' + 'kind: PVC' at 19 characters, so 19 * 6.89 + 24
-of padding is 155 against the 232 available.
-```
-
-### before `[frame, prov, srcPvc, clonePvc, srcDisk, cloneDisk].forEach(el => root.appendChild(el));`
-
-```
-Family z-order, with the backend frame behind the blocks it holds.
-```
-
-### before `function setStage(s, { clone = OPACITY.pending, cloneDisk = OPACITY.pending, bound = 0, ds = 0, lanes = [] } = {}) {`
-
-```
-Family setStage. The clone claim and the clone disk default to OPACITY.pending, not to 0: they are
-one half of a mirrored pair each, and cutting one half out leaves a hole rather than an absence.
-```
-
-### before `duration: 5900,`
-
-```
-Three chained hops: the claim picked up, the CreateVolume call out and down into the backend, and the
-duplicate made on the shelf once the target exists. anim-dump puts the span at 5338 with the call
-routed around the outside. Routes are length-based, so re-measure after ANY geometry change here
-rather than trusting this number.
+Family width. Worst case here is `dataSource` + `kind: PVC` at 155 against the 232 available.
 ```
 
 ### poster
@@ -2013,8 +1793,6 @@ never runs.
 Mirror-symmetric about x=160: content 24..296 and 20..160, so 24 of margin a side and 20 top and
 bottom, with the volumes centred in the enclosure at 14 above and below.
 ```
-
----
 
 ## storage-pvc-protection
 
@@ -2104,6 +1882,13 @@ NAMING   Block labels lead with the capitalized object TYPE, matching the siblin
          is the literal finalizer string kubernetes.io/pvc-protection, spelled as the API spells it.
 ```
 
+### before `const CX = 600;`
+
+```
+The identity spine, and TIER is the one vertical pitch on the card. storage-volume-expansion reuses
+both numbers so the two cards in this subcategory read as one family.
+```
+
 ### poster
 
 ```
@@ -2126,72 +1911,61 @@ Move any tier and the two 18s have to be re-derived.
 
 ## storage-pvc-retention-policy
 
+### layout
+
+```
+WHAT     persistentVolumeClaimRetentionPolicy has two independent knobs, whenScaled and whenDeleted,
+         each Retain or Delete. Retain leaves the claim and its disk in place, which is safe but
+         silently leaks storage. Delete reclaims both, at the cost of the data.
+LAYOUT   The SAME grammar as its sibling storage-volumeclaimtemplates. Three ordinal ROWS, one per
+         replica, each a straight triad centred on the canvas spine x=CX:
+                Pod web-N   ->   PVC data-web-N   ->   pv-web-N
+                (consumer)         (the claim)         (the disk)
+         with the Pod flanking the claim on the left and its disk on the right, mirrored about the
+         spine. Every connector is a dashed, arrow-headed lane exactly like the sibling, and every one
+         carries a ball on some step: a relationship with no ball would read as traffic that never
+         runs.
+         Each Pod is a full window like the rest of the storage cards, the ordinal name on top, a real
+         container box on the Pod centre line, the mount path as the sublabel. The wrapping g keeps the
+         shape uniform with the family even though no Pod here ever pulses on arrival.
+PANEL    The panel covers only the top-left band (measured bottom ~173, right ~397 worst case). The
+         policy box spans x 430..770, clear of the x<=397 band, and the first Pod row starts at y=195,
+         below the panel. A much longer narration invalidates this.
+MOTION   The sibling flows CREATION down the spine and up into the Pods; this card flows the POLICY the
+         other way:
+           policy step  the one policy reaches every claim, a governance ball cascades DOWN the spine
+                        and each claim lights as it lands. The spine is hidden except on this step, as
+                        in the sibling
+           a Delete     a reclaim ball sweeps straight across the row Pod -> PVC -> PV. Each block
+                        LIGHTS as the ball lands, holds a beat, then fades with its lane as the ball
+                        moves on: the claim first because the PVC is deleted first, the disk when the
+                        reclaim reaches it
+           a Retain     only the Pod fades, the claim and disk stay, shown by opacity plus their labels
+         Nothing is ever highlighted before a ball reaches it, and nothing fades without a ball or a
+         Pod removal behind it. Only Pods pulse, and only as they are removed: a Pod about to be scaled
+         or deleted away pulses once, then fades.
+         Lane opacities are DERIVED from the block they point AT (the ownership lane and the spine from
+         the claim, the reclaim lane from the disk), so a reclaimed claim or disk takes its own lanes
+         with it and no arrow is ever left pointing at a ghost.
+DO NOT   Touch the spine inside a reclaim: it only exists on the policy step, so animating it would
+         wrongly flash a segment into view.
+         Leave the .highlight on a reclaimed block. The ball lights each claim and disk as it lands
+         (lightBoxAt), vanishAt fades it away behind, and the class has to come back off when the fade
+         finishes: otherwise the block ends its step lit at the terminated shade, which is the thing
+         the step points at and the thing that no longer exists, at once. The static path never
+         reproduces it, because it pins the shade and lights nothing, which is how this surfaced as
+         eight reduced-motion findings rather than as a drawing complaint. Dropping the class on finish
+         settles both paths and matches what check-opacity LIT enforces wherever the shade is pinned
+         rather than animated.
+BUDGET   Family CHIP_W 232: worst case is `disks` + `3 kept, 1 leaks` at 20 characters, so
+         20 * 6.89 + 24 of padding is 162 against the 232 available.
+```
+
 ### before `const CX = 600;`
 
 ```
-WHAT  persistentVolumeClaimRetentionPolicy has two independent knobs, whenScaled and whenDeleted,
-each Retain or Delete. Retain leaves the claim and its disk in place, which is safe but silently
-leaks storage. Delete reclaims both, at the cost of the data.
-
-LAYOUT  The SAME grammar as its sibling storage-volumeclaimtemplates. Three ordinal ROWS, one per
-replica, each a straight triad centred on the canvas spine x=CX:
-
-       Pod web-N   ->   PVC data-web-N   ->   pv-web-N
-       (consumer)         (the claim)         (the disk)
-
-with the Pod flanking the claim on the left and its disk on the right, mirrored about the spine.
-Every connector is a dashed, arrow-headed lane exactly like the sibling, and every one carries a ball
-on some step (a relationship with no ball would read as traffic that never runs).
-
-MOTION  The sibling flows CREATION down the spine and up into the Pods; this card flows the policy
-the other way:
-  - policy step: the one policy reaches every claim, a governance ball cascades DOWN the spine and
-    each claim lights as it lands (the spine is hidden except on this step, as in the sibling)
-  - a Delete: a reclaim ball sweeps straight across the row Pod -> PVC -> PV, and the claim, then the
-    disk, fade AS THE BALL REACHES THEM, taking the lanes in its wake. One clear ball-driven fade
-  - a Retain: only the Pod fades. The claim and disk stay, shown by opacity plus their labels
-Nothing is ever highlighted before a ball reaches it, and nothing fades without a ball or a Pod
-removal behind it. Only Pods pulse, and only as they are removed: a Pod about to be scaled or deleted
-away pulses once, then fades.
-
-PANEL  The panel covers only the top-left band (measured bottom ~173, right ~397 worst case). The
-policy box spans x 430..770, clear of the x<=397 band, and the first Pod row starts at y=195, below
-the panel. A much longer narration invalidates this.
-```
-
-### before `function podBlock({ cy, label }) {`
-
-```
-A full Pod window like the rest of the storage cards: the ordinal name on top, a real container box
-on the Pod centre line, and the mount path as the Pod sublabel at the bottom. The wrapping g keeps
-the shape uniform with the family even though no Pod on this card ever pulses on arrival.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16;`
-
-```
-Family chip width. Worst case here is 'disks' + '3 kept, 1 leaks' at 20 characters, so 20 * 6.89 + 24
-of padding is 162 against the 232 available.
-```
-
-### before `function setStage(s, { pods = [1, 1, 1], claims = [1, 1, 1], disks = [1, 1, 1], govern = false } = {}) {`
-
-```
-Family setStage. Lane opacities are DERIVED from the block they point AT (the ownership lane and the
-spine from the claim, the reclaim lane from the disk), so a reclaimed claim or disk takes its own
-lanes with it and no arrow is ever left pointing at a ghost. The spine only shows on the governance
-step.
-```
-
-### before `function reclaimRow(s, ctx, i, { delay = 0, tag = null } = {}) {`
-
-```
-One ordinal reclaimed: a ball sweeps straight across the row Pod -> PVC -> PV. Each block LIGHTS as
-the ball lands on it, holds a beat, then fades (with its lane) as the ball moves on: the claim goes
-first because the PVC is deleted first, the disk follows when the reclaim reaches it. Every light and
-every fade is tied to the ball, nothing fades on its own.
-DO NOT touch the spine here: it only exists on the policy step, so animating it would wrongly flash a
-segment into view.
+The same spine grammar as storage-volumeclaimtemplates: three ordinal rows, claim in the centre, Pod
+and disk mirrored about it. The policy box above is centred on CX too.
 ```
 
 ### poster
@@ -2202,21 +1976,6 @@ cells one solid, one hollow) to two disks: left stands whole and bright (Retain 
 dashed and faded (Delete reclaimed it). Echoes the volumeClaimTemplates sibling's top-box + fork
 grammar, but diverges to two outcomes instead of stamping three copies.
 ```
-
-### before `const dark = () => el.classList.remove('highlight');`
-
-```
-The ball lights each claim and each disk as it lands (lightBoxAt), then vanishAt fades the block away
-behind it, and the class has to come back off when the fade finishes.
-DO NOT leave the class on: a reclaimed block then ends its step lit at the terminated shade, which is
-the thing the step points at and the thing that no longer exists, at once. The static path never
-reproduces it, because it pins the shade and lights nothing, which is how this surfaced as eight
-reduced-motion findings rather than as a drawing complaint. Dropping the class on finish settles both
-paths at once and matches what check-opacity LIT enforces everywhere the shade is pinned rather than
-animated.
-```
-
----
 
 ## storage-reclaim-policy
 
@@ -2306,6 +2065,13 @@ OPEN     CENTRE is open here on purpose. Content spans 400..1010, centre 705 aga
          stays red and the picture stays honest.
 ```
 
+### before `const PVC_Y = 30, PVC_H = 68, PVC_BOTTOM = PVC_Y + PVC_H;`
+
+```
+Every tier declares its own bottom alongside its top, so the lanes between tiers are built from those
+edges rather than from typed y values and re-solve when a tier moves.
+```
+
 ### poster
 
 ```
@@ -2328,123 +2094,76 @@ and a glyph centred on the box sits visibly high inside the body you actually se
 
 ## storage-topology-aware-provisioning
 
+### layout
+
+```
+WHAT     WaitForFirstConsumer. Two zones side by side, each a worker node with its own zonal disk on
+         the shelf below it.
+CONTENT  volumeBindingMode: Immediate provisions the disk the instant the claim exists, in whatever
+         zone the provisioner happens to pick. The scheduler then honors that already-bound disk, but
+         if the Pod only fits the other zone on capacity and affinity, no node satisfies both the Pod
+         and its zonal disk, so the Pod stays Pending forever with a volume node affinity conflict. It
+         is never scheduled and never reaches ContainerCreating. WaitForFirstConsumer inverts the
+         order: the scheduler picks the node first, and only then is the volume provisioned in that
+         same topology.
+LAYOUT   The two zones are mirrored about the canvas centre, so the picture is symmetric and neither
+         zone reads as the important one: NODE_CX = [CX - SPREAD, CX + SPREAD] with CX=600, derived
+         from the node width and the gap rather than typed. Content spans 140..1060, margins 140 a
+         side. The StorageClass and the claim sit stacked on the centre line above the zones, both
+         centred on CX, because the whole card is about ONE claim and ONE class resolved into ONE of
+         two zones.
+         NODE_H hugs the Pod rather than framing canvas. WHY NOT 180: the frames stand 88 units taller
+         than the Pod they hold, and zone-a, which holds nothing at all in the WaitForFirstConsumer
+         path, reads as a large empty box rather than as an empty zone.
+         `node()` carries no sublabel, so the zone is its own dim caption, sharing the frame HEADER
+         line with the node label, right-anchored. WHY NOT centre it under the label at NODE_Y + 24:
+         it lands on the top edge of the Pod the frame holds, since NODE_H now hugs the Pod.
+WHY NOT  Running the nodes at 400..720 and 820..1140: the pair centre lands at 770 and leaves 400
+         units of dead canvas on the left against 60 on the right.
+PANEL    Measured, panel bottom-right in viewBox units:
+           1920x900  right 102  bottom 183      1600x1000 right 291  bottom 143
+           1280x900  right 378  bottom 173      1100x900  right 397  bottom 149
+           1280x860  right 397  bottom 230      1100x800  right 397  bottom 230
+         Worst case x<=397 and y<=230: the four taller rows are all 900 or 1000, and a shorter window
+         shrinks the diagram while the HTML panel keeps its pixels. The StorageClass (y=36) and the
+         claim (y=136) both sit inside that y band, so both start at x>=400. The node row at y=236
+         clears the real floor by SIX units, not the 53 the old number implied, so it must not move up.
+         A longer narration invalidates this.
+LANES    Both provisioning routes leave the StorageClass through its RIGHT edge midpoint, wrap down the
+         same outer margin clear of both zones, run a bus along the shelf midline and enter their disk
+         through the near RIGHT SIDE with two right-angle turns. That keeps them out of every block and
+         lets one route shape serve either zone. DO NOT wrap left: the lane and its ball then run
+         straight through the panel. zone-a simply runs further left along that midline, passing over
+         where the zone-b disk sits, but that disk is invisible during the zone-a step so nothing is
+         crossed on screen.
+         The mount lane and the doomed cross-zone reach both meet the node-2 frame at its BOTTOM edge
+         (the line enters the NODE, not the Pod inside it) and are never drawn in the same step, so
+         each runs straight down the node centre line into its disk dead centre. The cross-zone reach
+         is a bare dashed line with NO arrowhead, because the attach never actually succeeds.
+DO NOT   Leave the lanes permanently visible. setStage pins them per step, or the zone-a provisioning
+         lane is still drawn during the zone-b step, pointing into a disk that does not exist there.
+MOTION   On the failure step the scheduler keeps re-queuing the Pending Pod and rejecting it, so the
+         Pod blinks, but it never went Ready: pulsePodDim with an opacity lift.
+BUDGET   The WaitForFirstConsumer step is 5800, not 4400: it provisions, materialises the disk and then
+         mounts it, and the pulse on arrival adds PULSE_POD.ms on top, which anim-dump puts at a 5473ms
+         span. At 4400 the auto-advance cuts the mount off before the Pod ever blinks, so the card
+         under-shows exactly what it narrates.
+         Family CHIP_W 232: worst case is `mode` + `WaitForFirstConsumer` at 24 characters, so
+         24 * 6.89 + 24 of padding is 189 against the 232 available.
+```
+
 ### before `const CX = 600;`
 
 ```
-WHAT  WaitForFirstConsumer. Two zones side by side, each a worker node with its own zonal disk on the
-shelf below it.
-
-CONTENT  volumeBindingMode: Immediate provisions the disk the instant the claim exists, in whatever
-zone the provisioner happens to pick. The scheduler then honors that already-bound disk, but if the
-Pod only fits the other zone on capacity and affinity, no node satisfies both the Pod and its zonal
-disk, so the Pod stays Pending forever with a volume node affinity conflict. It is never scheduled
-and never reaches ContainerCreating. WaitForFirstConsumer inverts the order: the scheduler picks the
-node first, and only then is the volume provisioned in that same topology.
-
-LAYOUT  The two zones are mirrored about the canvas centre, so the picture is symmetric and neither
-zone reads as the important one: NODE_CX = [CX - SPREAD, CX + SPREAD] with CX=600, derived from the
-node width and the gap rather than typed. Content spans 140..1060, margins 140 a side.
-WHY NOT run the nodes at 400..720 and 820..1140: the pair centre lands at 770 and leaves 400 units of
-dead canvas on the left against 60 on the right.
-The StorageClass and the claim sit stacked on the centre line above the zones, both centred on CX,
-because the whole card is about ONE claim and ONE class being resolved into ONE of two zones.
-
-PANEL  Measured, panel bottom-right in viewBox units:
-  1920x900  right 102  bottom 183      1600x1000 right 291  bottom 143
-  1280x900  right 378  bottom 173      1100x900  right 397  bottom 149
-  1280x860  right 397  bottom 230      1100x800  right 397  bottom 230
-Worst case x<=397 and y<=**230**: the four taller rows are all 900 or 1000, and a shorter window
-shrinks the diagram while the HTML panel keeps its pixels. The StorageClass (y=36) and the claim
-(y=136) both sit inside that y band, so both start at x>=400. The node row at y=236 clears the real
-floor by **6 units**, not the 53 the old number implied, so it must not move up. A longer narration
-invalidates this.
-
-LANES  The provisioning route leaves the StorageClass from its RIGHT edge midpoint, wraps down the
-outer margin clear of both zones, runs a bus UNDER the whole disk shelf and rises into the chosen
-disk through its BOTTOM. That keeps it out of every block and lets one route shape serve either zone.
-The doomed cross-zone reach uses its own corridor in the gap between the node frames and the shelf,
-drawn as a bare dashed line the Pod aims at its stranded disk, entering it dead centre on the top
-edge. It has NO arrowhead because the attach never actually succeeds.
-
-MOTION  On the failure step the Pod never went Ready, so it takes pulsePodDim with an opacity lift.
-```
-
-### before `const NODE_W = 430, NODE_GAP = 60, NODE_Y = 236, NODE_H = 140;`
-
-```
-NODE_H hugs the Pod rather than framing canvas.
-WHY NOT 180: the frames stand 88 units taller than the Pod they hold, and zone-a, which holds nothing
-at all in the WaitForFirstConsumer path, reads as a large empty box rather than as an empty zone.
-```
-
-### before `const W_PROV_B = [[SC_RIGHT, SC_MY], [PROV_WRAP_X, SC_MY], [PROV_WRAP_X, DISK_MY], [NODE_CX[1] + DISK_W / 2, D`
-
-```
-Both provisioning routes leave the StorageClass through its RIGHT edge midpoint and wrap down the
-same outer margin, then turn in along the shelf midline and enter their disk through the near RIGHT
-SIDE with two right-angle turns.
-DO NOT wrap left: the lane and its ball then run straight through the panel.
-zone-a simply runs further left than zone-b along that midline: it passes over where the zone-b disk
-sits, but that disk is invisible during the zone-a provisioning step, so nothing is crossed on screen.
-```
-
-### before `const W_MOUNT_B = [[NODE_CX[1], DISK_TOP], [NODE_CX[1], NODE_BOTTOM]];`
-
-```
-The mount lane and the cross-zone reach both meet the node-2 frame at its bottom edge (the line
-enters the NODE, not the Pod sitting inside it), and they are never drawn in the same step, so each
-runs straight down the node centre line and enters its disk dead centre.
-```
-
-### before `function podBlock() {`
-
-```
-Family pulse model: the wrapping g is not optional.
-```
-
-### before `const zoneLbls = NODE_X.map((x, i) => text({ class: 'scheme-label code dim', x: x + NODE_W - 12, y: NODE_Y + 1`
-
-```
-node() carries no sublabel, so the zone is its own dim caption. It shares the frame HEADER line with
-the node label, right-anchored.
-WHY NOT centre it under the label at NODE_Y + 24: it lands on the top edge of the Pod the frame
-holds, since NODE_H now hugs the Pod.
-```
-
-### before `[wProvA, wProvB, wMountB, crossLink].forEach(w => { w.style.opacity = '0'; });`
-
-```
-Lanes are pinned per step by setStage.
-DO NOT leave them permanently visible: the zone-a provisioning lane is then still drawn during the
-zone-b provisioning step, pointing into a disk that does not exist on that path.
+NODE_CX is CX -/+ SPREAD, derived from the node width and the gap rather than typed, so the two zones
+stay mirrored. The StorageClass and the claim stack on CX because the card is about ONE claim
+resolving into ONE of two zones.
 ```
 
 ### before `const CHIP_W = 232, CHIP_GAP = 16;`
 
 ```
-Family chip width. Worst case here is 'mode' + 'WaitForFirstConsumer' at 24 characters, so
-24 * 6.89 + 24 of padding is 189 against the 232 available.
-```
-
-### before `[...nodes, ...zoneLbls, sc, pvc, ...disks, podB.group].forEach(el => root.appendChild(el));`
-
-```
-Family z-order, with the Pod above its node frame.
-```
-
-### before `pulsePodDim(s.refs.podB, ctx, BEAT.lead, { from: OPACITY.pending, peak: 0.95 });`
-
-```
-The scheduler keeps re-queuing the Pending Pod and rejecting it, so the Pod blinks. It never went
-Ready, so it stays dim and needs the dim variant with an opacity lift.
-```
-
-### before `duration: 5800,`
-
-```
-5800, not 4400: this step provisions, materialises the disk and then mounts it, and the pulse on
-arrival adds PULSE_POD.ms on top, which anim-dump puts at a 5473ms span. At 4400 the auto-advance
-cuts the mount off before the Pod ever blinks, so the card under-shows exactly what it narrates.
+Family width. Worst case `mode` + `WaitForFirstConsumer` at 189 against 232.
 ```
 
 ### poster
@@ -2454,8 +2173,6 @@ The Pod's zone (bright, centred) among faint sibling zones: the scheduler placed
 its volume is provisioned into that same zone, the jade disk directly beneath it. The empty flanking
 zones are the topologies the volume did NOT land in.
 ```
-
----
 
 ## storage-volume-attach-limits
 
@@ -2597,6 +2314,20 @@ OPEN     A read lane PAIR is declined and the finding stays open. The finding is
          axis.
 ```
 
+### before `const LEFT_X = 400;`
+
+```
+The panel wall. CONTENT_W 400 then puts CONTENT_CX exactly on 600, forced by the chip strip, which
+at 976 units is far wider than any tier above it and therefore sets the visual centre. The node row
+is the one tier allowed outside CONTENT_W, because it sits below the panel floor.
+```
+
+### before `const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;`
+
+```
+Sized against allocatable.count + `8 per node` at 186, leaving ~22 units between the halves.
+```
+
 ### poster
 
 ```
@@ -2624,56 +2355,55 @@ socket rows and columns are both gapped at 6, and the sockets clear the rack by 
 ### layout
 
 ```
-WHAT     Detach on node failure. A node goes NotReady and its kubelet falls silent. The old Pod
-         cannot be confirmed dead, so Kubernetes deliberately WILL NOT detach the volume yet:
-         detaching while the old Pod might still be writing means two nodes writing one filesystem.
-         The stall is a chain of timeouts walked one rung at a time on the ladder, and the
-         out-of-service taint is the operator escape hatch that asserts the node is dead.
+WHAT     Detach on node failure. A node goes NotReady and its kubelet falls silent. The old Pod cannot
+         be confirmed dead, so Kubernetes deliberately WILL NOT detach the volume yet: detaching while
+         the old Pod might still be writing means two nodes writing one filesystem. The stall is a
+         chain of timeouts walked one rung at a time on the ladder, and the out-of-service taint is
+         the operator escape hatch that asserts the node is dead.
 SCOPE    Held deliberately against storage-multi-attach-error, or the pair reads as one card shown
-         twice. Both end with one RWO disk moving between nodes, and the difference is not the
-         outcome but what is being waited on. There, node-1 is HEALTHY and the volume is legitimately
-         held by a Pod that is legitimately running: an ordering problem with an ordering fix. Here
-         NOTHING is contending for the volume. The wait is on DOUBT, because a silent kubelet cannot
-         confirm its Pod stopped writing. So THIS card owns the unreachable-toleration and
-         force-detach clocks, the roughly six minutes, the two-writers-corrupt-one-filesystem
-         argument, and the out-of-service taint. None of those appear on the other card.
+         twice. Both end with one RWO disk moving between nodes, and the difference is not the outcome
+         but what is being waited on. There, node-1 is HEALTHY and the volume is legitimately held by
+         a Pod that is legitimately running: an ordering problem with an ordering fix. Here NOTHING is
+         contending for the volume. The wait is on DOUBT, because a silent kubelet cannot confirm its
+         Pod stopped writing. So THIS card owns the unreachable-toleration and force-detach clocks,
+         the roughly six minutes, the two-writers-corrupt-one-filesystem argument, and the
+         out-of-service taint. None of those appear on the other card.
 LAYOUT   TWO vertical stacks side by side, because the story is one disk moving between two nodes.
          node-1 and node-2 are equal columns, the shared RWO disk sits on the shelf between and below
          them, and the timeout ladder plus the escape hatch form one band across the bottom. The two
          columns are deliberately IDENTICAL in width: the only thing that differs is which one is
          answering, so anything else that differed would read as a difference the card is not about.
          The node tier width is the ONLY lever on where the diagram sits, and it is solved for:
-         2*188 + 24 = 400 puts CONTENT_CX exactly on 600. NODE_W then sets POD_W.
-         Frames are 192 wide with a tight 16 gap, so the pair reads as two substantial machines
-         rather than two thin columns, and 160 tall so the Pod drops to the family two-column size
-         (104 tall, App box 44) and the frame hugs it, which also makes the frame read as wider. The
-         disk below is 190 wide, wider than the 16 gap, so it still bridges both columns.
-NOTE     That exactness matters because of the bottom band. The node tier is symmetric about
+         2*188 + 24 = 400 puts CONTENT_CX exactly on 600, and NODE_W then sets POD_W. Frames are 192
+         wide with a tight 16 gap, so the pair reads as two substantial machines rather than two thin
+         columns, and 160 tall so the Pod drops to the family two-column size (104 tall, App box 44)
+         and the frame hugs it. The disk below is 190 wide, wider than the 16 gap, so it still bridges
+         both columns.
+         That exactness matters because of the bottom band. The node tier is symmetric about
          CONTENT_CX wherever it sits, so on its own it would look fine anywhere. The chip strip does
-         not: at 662 units it is more than half again the width of the node tier, so it is the tier
-         that actually sets the visual centre. WHY NOT nodes at 430..1140: that puts the whole card
-         186 units right of the canvas centre with a dead left third.
+         not: at 662 units it is more than half again the width of the node tier, so it sets the
+         visual centre. WHY NOT nodes at 430..1140: that puts the whole card 186 units right of the
+         canvas centre with a dead left third.
          The bottom band does NOT sit inside the chip strip's edges, for a reason a purely horizontal
          reading cannot see: the escape box is a BLOCK, and the only other block below the panel is
          the disk. Two blocks are what the low-content check measures, so an escape box parked at
          701..931 puts the low half at centre 718 however well the chip strip behaves. It stands on
          the SPINE under the disk it acts on, which also turns its taint lane into a straight climb
          into the disk floor instead of an elbow into its right face. The ladder and the chips then
-         take one side each, so the .scheme-chip strip still spans 60..1140 and centres on 600. Both
-         are pooled into one strip by the check, which is why the ladder can be moved to balance the
-         chips rather than having to sit under them.
+         take one side each, so the strip still spans 60..1140 and centres on 600. Both are pooled
+         into one strip by the check, which is why the ladder can be moved to balance the chips.
 PANEL    Worst step (escape, the longest narration), right / bottom by viewport:
            1920x1080 -> 203 / 161    1440x900 -> 319 / 203    1280x800 -> 358 / 236
            1100x800  -> 397 / 255     900x650 -> 398 / 436
          x<=398 and y<=436. LEFT_X 400 has about 2 units of slack and cannot move left at all, and
          BAND_Y 448 clears the 436 bottom by 12. DO NOT re-derive either from a single wide-window
          screenshot, and note that a longer narration invalidates both.
-SIZES    The floor under POD_W is the widest string inside a Pod, the sublabel `marked for deletion`.
-         A .scheme-pod-sublabel is 10px JetBrains Mono at 6.03 units per character, so 114.6 units,
-         and POD_W 152 keeps ~19 either side. The rate is PER CLASS: 11px chip text and dim code
-         labels are 6.89, and 12px box labels are Space Grotesk and proportional.
-         CHIP_W 210 rather than the family 232, measured IN THE BROWSER rather than estimated,
-         because the rate under-reads on strings full of wide glyphs:
+SIZES    The floor under POD_W is the widest string inside a Pod, the sublabel `marked for deletion`,
+         114.6 units (10px mono at 6.03), so POD_W 152 keeps ~19 either side. The rate is PER CLASS:
+         11px chip text and dim code labels are 6.89, and 12px box labels are Space Grotesk and
+         proportional.
+         CHIP_W 210 rather than the family 232, measured IN THE BROWSER rather than estimated, because
+         the rate under-reads on strings full of wide glyphs:
            node-1 41 + `NotReady, tainted` 117 = 158     volume 41 + `attached to node-1` 124 = 165
            new Pod 48 + `ContainerCreating` 117 = 165
          210 clears the worst pair with 21 units, the floor for the two halves reading as separate.
@@ -2681,28 +2411,24 @@ SIZES    The floor under POD_W is the widest string inside a Pod, the sublabel `
          estimate is not good enough: the rungs are full of wide glyphs, so the longest renders 338
          units where 6.0 per character predicts 307. MEASURE them. chainList insets its text 10 from
          the row edge, so LAD_W 380 leaves 32 of margin on the worst rung; at 350 it clears the row
-         border by 2 and reads as text jammed against the frame.
-         ESC_W shrinks to 230 to buy the ladder that width back: its widest sublabel is 175 units, so
-         230 leaves ~27 either side, and centred on the spine it keeps 45 units to the ladder.
+         border by 2 and reads as text jammed against the frame. ESC_W shrinks to 230 to buy the
+         ladder that width back: its widest sublabel is 175 units, so 230 leaves ~27 either side, and
+         centred on the spine it keeps 45 units to the ladder.
 LANES    Each attach lane leaves the disk top LANE either side of the spine and rises to the BOTTOM
          EDGE of its node frame at the frame's exact horizontal centre, so the two are exact mirrors
          and every endpoint is a face midpoint. They stop at NODE_BOTTOM rather than running up into
          the Pod: the disk attaches to a NODE, and the Pod is what runs once the node has the volume.
+         Both are built IDENTICALLY and both are real arrows in the FULL storage colour (dim: false),
+         so the left lane does not read as a lesser arrow than the right. wAttachA is shown from the
+         first frame and only its OPACITY drops on force-detach.
          The taint lane rises out of the escape box and turns LEFT into the disk's right flank at its
          vertical midpoint. WHY NOT approach from underneath: that route crosses y=410 where the disk
          caption sits, and a caption up to 20 characters reaches x=663, so the lane draws a dashed
-         line straight through the last word of its own label. Side-on also clears the ladder and
-         both node frames.
-NOTE     Both node-disk lanes are built IDENTICALLY, so the mirrored pair reads as the same
-         relationship on either side. Each is a real arrow in the FULL storage colour (dim: false),
-         so the left lane does not read as a lesser arrow than the right: they are one colour.
-         wAttachA is shown from the first frame and only its OPACITY drops on force-detach.
-NOT A DEFECT
-         W_ATTACH_A is reported as a lane nobody rides, and converting it to a relationPath is
-         DECLINED: sinking one half of a deliberately symmetric pair makes the left lane the lesser
-         arrow, which is the thing this card goes out of its way not to do. Both halves are
-         relationships by nature here, and the card already says which is live through OPACITY.
-NOTE     A Pod that EXISTS and is not yet marked is drawn at FULL and blinks with the ordinary
+         line straight through the last word of its own label. Side-on also clears the ladder and both
+         node frames.
+         The ladder and the packet lanes do not overlap at all (lanes above 478, ladder below 448), so
+         the ladder needs no exemption from the packet layer.
+MOTION   A Pod that EXISTS and is not yet marked is drawn at FULL and blinks with the ordinary
          pulsePod. DO NOT give it a dim `unknown` state pulsed with pulsePodDim: that stacks an
          opacity swing on the blink and reads as a faster, busier pulse than the same beat elsewhere.
          The old Pod being UNCONFIRMED is carried by its sublabel and its chip: not knowing whether a
@@ -2710,29 +2436,46 @@ NOTE     A Pod that EXISTS and is not yet marked is drawn at FULL and blinks wit
          Being MARKED is a phase, and the card walks the old Pod down the vocabulary in the two steps
          that earn it. On evict it pulses at full and sinks to OPACITY.terminating, because the
          sublabel reading `marked for deletion` IS Terminating and drawing that at full is a
-         catalog-wide defect. On forcedetach it goes to OPACITY.terminated, and it starts that fade
-         AT terminating rather than at 1: an animation keyframed from full brightens a marked Pod
-         back up for one frame before killing it. A Pod at either shade never pulses.
-NOTE     The replacement Pod is not drawn at all until it EXISTS. DO NOT fade it in on the notready
+         catalog-wide defect. On forcedetach it goes to OPACITY.terminated, and it starts that fade AT
+         terminating rather than at 1: an animation keyframed from full brightens a marked Pod back up
+         for one frame before killing it. A Pod at either shade never pulses.
+         The replacement Pod is not drawn at all until it EXISTS. DO NOT fade it in on the notready
          step: no controller could do that, because while the old web-0 is a live object with no
          deletionTimestamp nothing may create a second Pod under that name. It appears on the evict
          step, and node-2 stays an empty frame until then.
-NOTE     Both Pods carry a sublabel tracking their state, written on EVERY step like the chips: a Pod
+         Both Pods carry a sublabel tracking their state, written on EVERY step like the chips: a Pod
          still reading `Running` three steps after its node went silent is a lie the reader cannot
          catch. Same for the chips: unset, the volume chip reads `force-detached` on the step that is
          explaining why nothing has been detached yet.
-MOTION   The disk does NOT flash on force-detach. It is a static receiver, shown by its highlight
-         plus the sublabel and the chip flipping; the severing is carried by the two fades. On the
-         move step the disk is the SOURCE of the attach hop and is lit from entry, because a ball
-         must never leave an unlit block, while node-2 lights on ARRIVAL through the Pod blink. On
-         the closing taint step no Pod acts (the operator does), so there is no pulse, the ball
-         leaves after BEAT.lead so the lit escape box registers as the source, and there is no block
-         flash: it should come to rest.
+         The disk does NOT flash on force-detach. It is a static receiver, shown by its highlight plus
+         the sublabel and the chip flipping; the severing is carried by the two fades. On the move step
+         the disk is the SOURCE of the attach hop and is lit from entry, because a ball must never
+         leave an unlit block, while node-2 lights on ARRIVAL through the Pod blink. On the closing
+         taint step no Pod acts (the operator does), so there is no pulse, the ball leaves after
+         BEAT.lead so the lit escape box registers as the source, and there is no block flash.
+NOT A DEFECT
+         W_ATTACH_A is reported as a lane nobody rides, and converting it to a relationPath is
+         DECLINED: sinking one half of a deliberately symmetric pair makes the left lane the lesser
+         arrow, which is the thing this card goes out of its way not to do. Both halves are
+         relationships by nature here, and the card already says which is live through OPACITY.
 NOTE     node() puts its own label RELATIVE to the frame group. Use the primitive: hand-rolling these
          out of box() and appending an absolutely positioned caption renders `node-1` at 874, on top
          of the other column's App box, and `node-2` at 1614, past the viewBox edge.
-NOTE     The ladder and the packet lanes do not overlap at all (lanes above 478, ladder below 448),
-         so the ladder needs no exemption from the packet layer.
+```
+
+### before `const LEFT_X = 400;`
+
+```
+The panel wall, ~2 units of slack against a measured 398. BAND_Y 448 clears the 436 bottom by 12, so
+the bottom band is the tier a longer narration takes out first.
+```
+
+### before `const NODE_W = 192, NODE_GAP = 16, NODE_PAD = 12;`
+
+```
+2*188 + 24 = 400 puts CONTENT_CX exactly on 600, and NODE_W then sets POD_W. The two columns must
+stay IDENTICAL in width: anything that differed between them would read as a difference the card is
+not about.
 ```
 
 ### poster
@@ -2754,206 +2497,164 @@ waits out a timer. Both wires break cleanly around the badge and the clock. Cont
 
 ## storage-volume-expansion
 
+### layout
+
+```
+WHAT     Growing a bound volume, in two phases.
+CONTENT  The allowVolumeExpansion gate is enforced by the API SERVER on the edit, not by the
+         external-resizer afterwards. Raising the request on a claim whose StorageClass does not allow
+         expansion is refused at admission with `only dynamically provisioned pvc can be resized and
+         the storageclass that provisions the pvc must support resize`, so the resizer never sees such
+         a request at all. DO NOT have the resizer consult the class before acting: that puts the gate
+         one component too far downstream and makes a rejected edit look like a resize that quietly
+         declined to run.
+         The second phase is for FILESYSTEM volumes only. A raw block volume has no filesystem to grow,
+         so NodeExpandVolume does not apply and the bigger device is visible as soon as phase one
+         lands. The node-expand narration says so rather than implying every volume needs both halves.
+         Shrinking: the API refuses a request below the size already provisioned. What newer clusters
+         do allow is walking a request back DOWN while an expansion is still pending, which cancels a
+         grow that has not happened yet. That is not shrinking a volume and the narration is worded not
+         to promise it.
+LAYOUT   The centred vertical stack: Pod on top, its claim under it, the real disk on the shelf below,
+         all three on ONE axis at CX=600. Tier heights and block footprints are the same numbers as
+         storage-pvc-protection, so the two cards in this subcategory read as one family, and the
+         vertical pitch is TIER=162 again: 108, 270, 432. The spine is the mount ascent (disk to claim
+         to Pod) and balls travel it, so its arrowheads are earned.
+         What differs from the sibling is FOUR actors, placed so that not one lane needs more than a
+         single turn:
+           Slot A, top right at 108, is shared by Kubectl Patch and the StorageClass. They are never on
+             stage together (Kubectl acts on the edit and the shrink steps, the class only on the gate
+             step), so they occupy one slot and send their ball down ONE lane into the claim.
+           The external-resizer sits right at 432, dead level with the disk, so ControllerExpandVolume
+             is a STRAIGHT horizontal into the disk's right edge.
+           Kubelet sits LEFT at 432, mirrored about the spine, so NodeExpandVolume is a straight
+             horizontal into the disk's left edge.
+         The two phases therefore arrive at the disk from opposite sides at the same height, which is
+         the composition stating the thing the card is about: the control plane grows the device from
+         one side, the node grows the filesystem from the other, and the disk between them is the one
+         object both touch. The 234..306 band in the right column is deliberately left empty so the
+         claim lane can drop through it without crossing anybody.
+PANEL    Kubelet sits at x=130, well inside the panel's horizontal reach, and clears it only on the y
+         axis, at y=396. That clearance was argued from the blanket `y<=300`, which is not a
+         measurement: the panel bottom is PER CARD and reaches 504 on the longest narration in the
+         catalog. Kubelet is therefore safe only while THIS card's own bottom stays under 396, so
+         lengthening any narration here can put the panel over it. Re-measure with
+         `node check-geometry.mjs --rules=occluded`.
+         The one element placed on a MEASUREMENT is the verdict caption left of the claim, anchored end
+         at x=464, y=274, reaching back to about x=273 on its longest string. This card's own panel was
+         measured across viewport widths 1920 down to 900: right peaks at 399 and bottom peaks at 231,
+         both at the narrow end, so the caption clears that bottom by 43 units. This card runs 30 units
+         LOWER than storage-pvc-protection, whose same caption measured 201, purely because the
+         node-expand narration is longer: the bottom is driven by the text, so it is a per-card number
+         and copying a sibling's is not safe. LENGTHENING ANY NARRATION HERE INVALIDATES THE 231.
+NOTE     Lane captions are blank at build and filled per step by setWire. The verdict slot reports the
+         state of the CLAIM, which changes kind across the card, so it is named for its job rather than
+         for a lane, and it sits hard against the claim instead of beside a lane it does not describe.
+         The four chips (CHIP_W 252) are the whole lesson: they hold the same number at the start, then
+         change ONE AT A TIME in order, so the staggered highlight walking left to right IS the
+         two-phase story. The strip is derived rather than hand-placed.
+```
+
 ### before `const CX = 600;`
 
 ```
-WHAT  Growing a bound volume, in two phases.
-
-CONTENT  The allowVolumeExpansion gate is enforced by the API SERVER on the edit, not by the
-external-resizer afterwards. Raising the request on a claim whose StorageClass does not allow
-expansion is refused at admission with "only dynamically provisioned pvc can be resized and the
-storageclass that provisions the pvc must support resize", so the resizer never sees such a request
-at all.
-DO NOT have the resizer consult the class before acting: that puts the gate one component too far
-downstream and makes a rejected edit look like a resize that quietly declined to run.
-CONTENT  The second phase is for FILESYSTEM volumes only. A raw block volume has no filesystem to
-grow, so NodeExpandVolume does not apply and the bigger device is visible as soon as phase one lands.
-The node-expand narration says so rather than implying every volume needs both halves.
-CONTENT  Shrinking: the API refuses a request below the size already provisioned. What newer clusters
-do allow is walking a request back DOWN while an expansion is still pending, which cancels a grow
-that has not happened yet. That is not shrinking a volume and the narration is worded not to promise
-it.
-
-LAYOUT  The centred vertical stack: Pod on top, its claim under it, the real disk on the shelf below,
-all three on ONE axis at CX=600. Tier heights and block footprints are the same numbers as
-storage-pvc-protection, so the two cards in this subcategory read as one family. The spine is the
-mount ascent (disk to claim to Pod) and balls travel it, so its arrowheads are earned.
-The vertical pitch is TIER=162 again: 108, 270, 432. What differs from the sibling is that this card
-has FOUR actors, placed so that not one lane needs more than a single turn:
-  - Slot A, top right at 108, is shared by Kubectl Patch and the StorageClass. They are never on
-    stage together (Kubectl acts on the edit and the shrink steps, the class only on the gate step),
-    so they occupy one slot and send their ball down ONE lane into the claim.
-  - The external-resizer sits right at 432, dead level with the disk, so ControllerExpandVolume is a
-    STRAIGHT horizontal into the disk's right edge.
-  - Kubelet sits LEFT at 432, mirrored about the spine, so NodeExpandVolume is a straight horizontal
-    into the disk's left edge.
-The two phases therefore arrive at the disk from opposite sides at the same height, which is the
-composition stating the thing the card is about: the control plane grows the device from one side,
-the node grows the filesystem from the other, and the disk between them is the one object both touch.
-The 234..306 band in the right column is deliberately left empty so the claim lane can drop through
-it without crossing anybody.
-
-PANEL  Kubelet sits at x=130, well inside the panel's horizontal reach, and clears it only on the y
-axis, at y=396. That clearance was argued from the blanket `y<=300`, which is not a measurement: the
-panel bottom is PER CARD and reaches 504 on the longest narration in the catalog. Kubelet is
-therefore safe only while THIS card's own bottom stays under 396, so lengthening any narration here
-can put the panel over it. Re-measure with `node check-geometry.mjs --rules=occluded`.
-The one element placed on a MEASUREMENT is the verdict caption left of the claim, anchored end at
-x=464, y=274, reaching back to about x=273 on its longest string. This card's own panel was measured
-across viewport widths 1920 down to 900: right peaks at 399 and bottom peaks at 231, both at the
-narrow end, so the caption clears that bottom by 43 units. This card runs 30 units LOWER than
-storage-pvc-protection, whose same caption measured 201, purely because the node-expand narration is
-longer: the bottom is driven by the text, so it is a per-card number and copying a sibling's is not
-safe. LENGTHENING ANY NARRATION HERE INVALIDATES THE 231.
-```
-
-### before `const mountLbl = text({ class: 'scheme-label code dim', x: MOUNT_LBL_X, y: MOUNT_LBL_Y, 'text-anchor': 'start'`
-
-```
-Lane captions, blank at build and filled per step by setWire. The verdict slot reports the state of
-the CLAIM, which changes kind across the card, so it is named for its job rather than for a lane, and
-it sits hard against the claim instead of beside a lane it does not describe.
+Pod, claim and disk all sit on this axis, and TIER 162 is the same pitch as storage-pvc-protection,
+which is what makes the pair read as one family. The four actors are placed so no lane needs more
+than a single turn.
 ```
 
 ### before `const CHIP_W = 252, CHIP_GAP = 24;`
 
 ```
-A centred four-chip strip, derived rather than hand-placed. These four are the whole lesson: they
-hold the same number at the start, then change ONE AT A TIME in order, so the staggered highlight
-walking left to right IS the two-phase story.
+Four chips, derived rather than hand-placed. They hold the same number at the start and change ONE
+AT A TIME, so the staggered highlight walking left to right IS the two-phase story.
 ```
 
-### before `[pvc, kubectl, klass, resizer, kubelet, disk].forEach(el => root.appendChild(el));`
-
-```
-Family z-order, with the Pod above the axis that ends on its edge.
-```
-
----
 
 ## storage-volume-mode
+
+### layout
+
+```
+WHAT     The sibling of storage-access-modes: accessModes and volumeMode are the two spec fields that
+         sit side by side on both the PV and the PVC. Where access modes answer WHO may hold the
+         volume, volumeMode answers WHAT the workload is handed.
+LAYOUT   TWO vertical stacks side by side inside ONE node, because the fork this card is about happens
+         on the node, in kubelet and the CSI node service, and not in any control-plane controller.
+         Two Pods on top, the node service as a full-width band under them, the two backing disks on
+         the bottom shelf. The disks are deliberately identical (same size, class and backend): the
+         only thing that differs between the columns is the one field.
+         Every tier shares ONE centre, CONTENT_CX = LEFT_X + NODE_W/2, and LEFT_X cannot move, so
+         NODE_W is the ONLY lever on where the diagram sits. It is solved for: NODE_W 400 puts
+         CONTENT_CX exactly on 600. That exactness matters because of the CHIP STRIP: every tier is
+         symmetric about CONTENT_CX and the narrow tiers look fine wherever they sit, but at 976 units
+         the strip is more than twice the width of the node above it, so it sets the visual centre.
+WHY NOT  NODE_W 456, giving CONTENT_CX 628: the strip then spans 140..1116, so 140 units of margin on
+         the left against 84 on the right. Symmetric about the diagram, visibly shoved right on the
+         canvas. At 600 the strip is 112..1088 and the two readings agree, so do not widen NODE_W back
+         without re-checking the strip margins.
+PANEL    Worst step, right / bottom by viewport:
+           1920x1080 -> 203 / 193    1440x900 -> 319 / 242    1280x800 -> 358 / 282
+           1100x800  -> 397 / 304     900x650 -> 398 / 498
+         So x<=398 and y<=498, the deepest panel in the catalog. LEFT_X 400 has about 2 units of slack
+         and cannot move left at all. The 498 also pins the disk shelf: the left cylinder starts at
+         x=410, which clears the panel by only 12 units at 900x650, so PV_W cannot grow leftward
+         either. DO NOT re-derive any of this from a single wide-window screenshot.
+LANES    Every hop is a straight vertical run inside a column, and each direction has its OWN lane
+         offset LANE around the column centre, so a mount rising into a container never re-uses the
+         arrow the request came down on.
+         The disks are centred under their own column. Column separation is POD_W + POD_GAP = 204, so
+         PV_W has to stay under that or the two disks touch: PV_W 176 leaves a 28 unit gap (410..586
+         and 614..790), enough that they read as two objects rather than one wide shelf, and it keeps
+         the left disk starting at 410, the clearance the panel needs.
+BUDGET   POD_W falls out of NODE_W: 2*POD_W + POD_GAP = NODE_W - 2*NODE_PAD = 368. The floor under
+         POD_W is the widest string inside a Pod, the sublabel `volumeMode: Filesystem` at 133 units,
+         so POD_W 164 keeps ~15 units of air either side and POD_GAP takes the remainder.
+         The BAND CAPTION sits between the band and the disk shelf, centred on CONTENT_CX, running
+         through the corridor between the two columns. The nearest lanes are the inner ones at 510 and
+         690, so 180 units of clear width, and 11px JetBrains Mono measures 6.9 units per character
+         (measured: `raw, unformatted` renders 110.2 over 16 characters). A band caption therefore has
+         a hard ceiling of 26 CHARACTERS. Overrun it and the first and last letters sit on a lane
+         arrowhead, which is how two captions shipped before this was written down.
+         Family CHIP_W 232, worst cases in viewBox units:
+           node does  62 + `no mkfs, no mount`  117 = 179
+           container  62 + `device /dev/xvda`   110 = 172
+           volumeMode 69 + `Filesystem`          69 = 138
+           fsGroup    48 + `not applied`         76 = 124
+MOTION   Family pulse model, Pods above their node container in z-order. What a Pod must NOT have is a
+         lingering state: no .highlight is ever put on the container box. DO NOT split the shell into
+         its own wrapper to keep the pulse off the container, the Pod then blinks around a dead
+         rectangle, which reads as the container being excluded from whatever the Pod is doing. The
+         problem was never the pulse, it was the highlight left behind.
+         The node service handing the volume up into the container is infra reaching a Pod, so it takes
+         the DOWN-arrow ordering: the packet flies first and the Pod pulses on its arrival.
+         The summary step compares the two columns, so BOTH disks light: static highlight only and
+         deliberately no motion, because it is a closing step the reader is meant to sit and read and
+         the two disks are the comparison, not an event. A flash there also blinks the disks a beat
+         after the narration has moved on to fsGroup and subPath, which points at nothing.
+DO NOT   Put `immutable` in the volumeMode chip. That makes the chip contradict its own name, because
+         the mode is Block and immutability is a property of the field, not a value it can hold. That
+         fact lives in the narration and the band caption instead.
+NOT A DEFECT
+         `W_BLK_STAGE` is reported as a lane nobody rides, and it is the strongest case of that family:
+         block mode has NO staging step. There is no mkfs and no mount, which is the entire contrast
+         the card is built on, so the lane exists to be visibly empty beside the fs branch that uses
+         its twin. Its sibling `W_FS_DEV` was on the same finding and is now ridden, because the fs
+         branch really does get the formatted device back.
+```
 
 ### before `const LEFT_X = 400;`
 
 ```
-WHAT  The sibling of storage-access-modes: accessModes and volumeMode are the two spec fields that
-sit side by side on both the PV and the PVC, and this card is the second half of that pair. Where
-access modes answer WHO may hold the volume, volumeMode answers WHAT the workload is handed.
-
-LAYOUT  TWO vertical stacks side by side inside ONE node, because the fork this card is about happens
-on the node, in kubelet and the CSI node service, and not in any control-plane controller. Two Pods
-on top, the node service as a full-width band under them, and the two backing disks on the bottom
-shelf. The disks are deliberately identical (same size, same class, same backend): the only thing
-that differs between the columns is the one field, so anything else that differed would muddy the
-comparison.
-
-Every tier (node, band, disk shelf, chip strip) shares ONE centre, CONTENT_CX. CONTENT_CX works out
-to LEFT_X + NODE_W/2, and LEFT_X cannot move, so NODE_W is the ONLY lever on where the diagram sits.
-It is solved for: NODE_W 400 puts CONTENT_CX exactly on 600.
-That exactness matters because of the chip strip. Every tier is symmetric about CONTENT_CX, so at any
-CONTENT_CX the diagram is internally symmetric and the narrow tiers look fine wherever they sit. The
-strip does not: at 976 units it is more than twice the width of the node above it, so it is the tier
-that actually sets the visual centre.
-WHY NOT NODE_W 456, giving CONTENT_CX 628: the strip then spans 140..1116, so 140 units of margin on
-the left against 84 on the right. Symmetric about the diagram, visibly shoved right on the canvas.
-At 600 the strip is 112..1088 and the two readings agree, so do not widen NODE_W back without
-re-checking the strip margins.
-
-BUDGET  POD_W falls out of NODE_W: 2*POD_W + POD_GAP = NODE_W - 2*NODE_PAD = 368. The floor under
-POD_W is the widest string inside a Pod, the sublabel 'volumeMode: Filesystem' at 133 units, so
-POD_W 164 keeps ~15 units of air either side. POD_GAP takes the remainder.
-
-PANEL  Worst step, right / bottom by viewport:
-  1920x1080 -> 203 / 193    1440x900 -> 319 / 242    1280x800 -> 358 / 282
-  1100x800  -> 397 / 304     900x650 -> 398 / 498
-So x<=398 and y<=498, the deepest panel in the catalog. LEFT_X 400 has about 2 units of slack and
-cannot move left at all. The 498 also pins the disk shelf: the left cylinder starts at x=410, which
-clears the panel by only 12 units at 900x650, so PV_W cannot grow leftward either.
-DO NOT re-derive any of this from a single wide-window screenshot.
-
-LANES  Every hop is a straight vertical run inside a column, and each direction has its OWN lane
-offset LANE around the column centre, so a mount rising into a container never re-uses the arrow the
-request came down.
-```
-
-### before `const BAND_LBL_Y = 408;`
-
-```
-BUDGET  The band caption sits between the band and the disk shelf, centred on CONTENT_CX, so it runs
-through the corridor between the two columns. The nearest lanes are the inner ones at 510 and 690,
-which leaves 180 units of clear width, and 11px JetBrains Mono measures 6.9 units per character
-(measured: 'raw, unformatted' renders 110.2 units over 16 characters). So a band caption has a hard
-ceiling of 26 characters. Overrun it and the first and last letters sit on a lane arrowhead, which is
-how two captions shipped before this was written down.
-```
-
-### before `const PV_Y = 442, PV_H = 96, PV_W = 176;`
-
-```
-The disks are centred under their own column, so every lane in a column is one straight vertical run.
-Column separation is POD_W + POD_GAP = 204, so PV_W has to stay under that or the two disks touch.
-PV_W 176 leaves a 28 unit gap (410..586 and 614..790), enough that they read as two objects rather
-than one wide shelf, and it keeps the left disk starting at 410, the clearance the panel needs.
+The panel wall, ~2 units of slack, and the left edge of the node. NODE_W is then the only lever on
+CONTENT_CX and is solved so it lands on 600. Every tier hangs off that centre, so widening the node
+slides the chip strip off the canvas centre while each tier still looks internally symmetric.
 ```
 
 ### before `const CHIP_W = 232;`
 
 ```
-Family chip width. Worst cases, in viewBox units:
-  node does  62 + 'no mkfs, no mount'  117 = 179
-  container  62 + 'device /dev/xvda'   110 = 172
-  volumeMode 69 + 'Filesystem'          69 = 138
-  fsGroup    48 + 'not applied'         76 = 124
-232 clears the worst pair with ~29 units between name and value.
-```
-
-### before `const LANE = 12;`
-
-```
-Each direction of each hop gets its own lane, offset LANE around the column centre, so a ball never
-rides an arrow drawn for the opposite direction.
-```
-
-### before `function podBlock({ x, label, sublabel, ctr, ctrSub }) {`
-
-```
-Family pulse model. What a Pod must NOT have is a lingering state: no .highlight is ever put on the
-container box.
-DO NOT split the shell into its own wrapper to keep the pulse off the container: the Pod then blinks
-around a dead rectangle, which reads as the container being excluded from whatever the Pod is doing.
-The problem was never the pulse, it was the highlight left behind.
-```
-
-### before `[nodeBox, band, pvFs, pvBlk, podFs.group, podBlk.group].forEach(el => root.appendChild(el));`
-
-```
-Family z-order, with the Pods above their node container.
-```
-
-### before `function publishUp(s, ctx, { podEl, points, tag, lead = BEAT.lead }) {`
-
-```
-The node service hands the volume up into the container. Semantically this is infra reaching a Pod,
-so it takes the down-arrow ordering: the packet flies first and the Pod pulses on its arrival. The
-container box is never lit, here or at step entry.
-```
-
-### before `setChips(s, { mode: 'Block', nodeDoes: 'no mkfs, no mount', container: 'device /dev/xvda', fsgroup: 'not appli`
-
-```
-The chips still report the Block column, unchanged from the previous step.
-DO NOT put 'immutable' in the volumeMode chip: that makes the chip contradict its own name, because
-the mode is Block and immutability is a property of the field, not a value it can hold. That fact
-lives in the narration and the band caption instead.
-```
-
-### before `s.refs.pvFs.classList.add('highlight');`
-
-```
-The summary step compares the two columns, so BOTH disks light. Static highlight only, and
-deliberately no motion at all: this is a closing step the reader is meant to sit and read, and the
-two disks are the comparison, not an event. A flash here also blinks the disks a beat after the
-narration has already moved on to fsGroup and subPath, which points at nothing.
+One width for all four chips, sized against `node does` + `no mkfs, no mount` at 179.
 ```
 
 ### poster
@@ -2977,78 +2678,53 @@ inside it and makes them read as a pair. The asymmetry between the columns is th
 spacing has to stay symmetric or it competes with it.
 ```
 
-### before `const W_BLK_STAGE = laneDown(BLK_CX, BAND_BOTTOM, PV_TOP);`
-
-```
-NOT A DEFECT  `W_BLK_STAGE` is reported as a lane nobody rides, and it is the strongest case of that
-family: block mode has NO staging step. There is no mkfs and no mount, which is the entire contrast
-the card is built on, so the lane exists to be visibly empty beside the fs branch that uses its twin.
-Its sibling `W_FS_DEV` was on the same finding and is now ridden, because the fs branch really does
-get the formatted device back.
-```
-
----
-
 ## storage-volume-model
+
+### layout
+
+```
+WHAT     THE ANCHOR CARD of the storage category. A VERTICAL STACK centred on the canvas: the consumer
+         (a Pod holding two containers) on top, the backing volume as a disk on the shelf below, and
+         the recurring gesture is a MOUNT travelling the lane between a container and the disk.
+CONTENT  The point of the card is OWNERSHIP. A volume is declared ONCE at spec.volumes (Pod level) and
+         each container mounts it at volumeMounts, possibly at a different path. The volume belongs to
+         the POD, not to any container, so it survives a container crash and is shared between
+         containers, and it dies only when the Pod dies.
+LAYOUT   The Pod sits BELOW the panel (measured at (335, 143) for this card, Pod top at 150 clears it),
+         which frees the full canvas width: the Pod is stretched to 600 and the two containers are
+         pushed toward its edges, so each container centre lands OUTSIDE the cylinder span. That is
+         deliberate: the mount lanes are L-shaped, dropping straight from a container and entering the
+         cylinder through its SIDE, symmetric left and right about the ownership spine.
+LANES    The centre OWNERSHIP SPINE (x=SPINE_X, dim, no arrowhead) links the Pod to its volume, because
+         ownership is a relationship, not traffic. The two L-shaped MOUNT LANES are brighter bare
+         channels that carry a ball in whichever direction the step needs, so the ball shows direction.
+         Balls ride routePacket (eased, routeDur speed) and every riding label shares the same points,
+         duration and easing so it stays glued to its ball.
+         Balls travel BOTH directions, so each side carries a PAIR of one-way L-shaped lanes, offset
+         LANE_DX around the container centre (the pair centred on its block) and LANE_DY around the
+         cylinder midline so the horizontal runs do not overlap. Each lane has its own arrowhead
+         showing its one direction: the UP lane points into the container (mount, read), the DOWN lane
+         points into the cylinder side (write).
+MOTION   HIGHLIGHTS ARE STEP-STATIC: every block a step uses lights at step entry (above the reduced
+         guard) and stays lit for the whole step, and the Pod pulse fires at the same instant, so pulse
+         and highlights land in one beat. The balls only illustrate the traffic, they do not drive
+         highlight timing. Step 1 (declare) is the exception: the Pod is not acting, so only the volume
+         lights. On the crash step only the app and the volume are involved, the log shipper untouched.
+         DO NOT add a crash flicker: too blinky.
+         On the delete step the chips flip to gone / unmounted / lost and the whole stack (Pod, volume,
+         lanes, spine, ownership label) settles to a ghost so the picture matches the words. Ghost
+         opacities are pinned statically so reduced motion and a mid-step cancel land on the dimmed
+         state, and the fade below only eases into it.
+```
 
 ### before `const SPINE_X = 600;`
 
 ```
-WHAT  THE ANCHOR CARD of the storage category. A VERTICAL STACK centred on the canvas: the consumer
-(a Pod holding two containers) on top, the backing volume as a disk on the shelf below, and the
-recurring gesture is a MOUNT travelling the lane between a container and the disk.
-
-CONTENT  The point of the card is OWNERSHIP. A volume is declared ONCE at spec.volumes (Pod level)
-and each container mounts it at volumeMounts, possibly at a different path. The volume belongs to the
-POD, not to any container, so it survives a container crash and is shared between containers, and it
-dies only when the Pod dies.
-
-LAYOUT  The Pod sits BELOW the panel (measured at (335, 143) for this card, Pod top at 150 clears
-it), which frees the full canvas width: the Pod is stretched to 600 and the two containers are pushed
-toward its edges, so each container centre lands OUTSIDE the cylinder span. That is deliberate: the
-mount lanes are L-shaped, dropping straight from a container and entering the cylinder through its
-SIDE, symmetric left and right about the ownership spine.
-
-LANES  The centre OWNERSHIP SPINE (x=SPINE_X, dim, no arrowhead) links the Pod to its volume, because
-ownership is a relationship, not traffic. The two L-shaped MOUNT LANES are brighter bare channels
-that carry a ball in whichever direction the step needs (mount out, write in, read out), so the ball
-shows direction. Balls ride routePacket (eased, routeDur speed) and every riding label shares the
-same points, duration and easing so it stays glued to its ball.
-
-MOTION  HIGHLIGHTS ARE STEP-STATIC: every block a step uses lights at step entry (above the reduced
-guard) and stays lit for the whole step, and the Pod pulse fires at the same instant, so pulse and
-highlights land in one beat. The balls only illustrate the traffic, they do not drive highlight
-timing. Step 1 (declare) is the exception: the Pod is not acting, so only the volume lights.
+The ownership spine, and the axis both mount lanes are symmetric about. The Pod is stretched to 600
+wide so the two containers sit OUTSIDE the cylinder span, which is what makes the lanes L-shaped and
+lets them enter the cylinder through its side.
 ```
 
-### before `const LANE_DX = 10, LANE_DY = 10;`
-
-```
-Balls travel BOTH directions, so each side carries a PAIR of one-way L-shaped lanes, offset LANE_DX
-around the container centre (the pair is centred on its block) and LANE_DY around the cylinder
-midline so the horizontal runs do not overlap. Each lane has its own arrowhead showing its one
-direction: the UP lane points into the container (mount, read), the DOWN lane points into the
-cylinder side (write).
-```
-
-### before `s.refs.volume.classList.add('highlight');`
-
-```
-Only the app and the volume are involved (the log shipper is untouched), so those two light for the
-whole step, static highlight only, and the Pod pulses with them, one beat.
-DO NOT add a crash flicker: too blinky.
-```
-
-### before `setChips(s, { vol: 'gone with Pod', mounts: 'unmounted', data: 'lost' });`
-
-```
-The Pod and its volume are gone. The chips flip to gone / unmounted / lost and the whole stack (Pod,
-volume, lanes, spine, ownership label) settles to a ghost so the picture matches the words. Ghost
-opacities are pinned statically so reduced motion and a mid-step cancel land on the dimmed state, and
-the fade below only eases into it.
-```
-
----
 
 ## storage-volume-snapshot
 
@@ -3161,6 +2837,20 @@ NOTE     An object a lane already points AT but which has not been created yet i
          the top band holds nothing else on that side, so its absence leaves no hole to explain.
 ```
 
+### before `const CX = 600;`
+
+```
+The request, the snapshot object and the restore claim all sit on or beside this axis, and the
+backend frame below is centred on it. The rhythm from the frame down is shared with
+storage-pvc-clone, since the two cards sit in one row.
+```
+
+### before `const CHIP_W = 232, CHIP_GAP = 16;`
+
+```
+Family width. Worst case `snapshotHandle` + `snap-0c41` at 183 against 232.
+```
+
 ### poster
 
 ```
@@ -3201,222 +2891,173 @@ LAYOUT   The usable area is an L and this card uses the L:
            CHIP STRIP   the full content band 60..1140, so the widest tier is the canvas-centred one.
          WHY NOT read the L as a BOX, pinning the diagram to x>=400 AND keeping it centred: that
          forces BAND_W to 400 and leaves the two columns 176 wide, squeezed into the middle third of
-         a 1200 unit canvas under a 980 unit chip strip, rationing space the card has plenty of.
-         Using the L buys 340 units, which go into the blocks (176 -> 232) and the corridor between
-         the columns (48 -> 208), so it is roomier BOTH inside the boxes and between them.
-NOTE     Moving the disk out from under the columns is not only a space fix. The disk is REMOTE
+         a 1200 unit canvas under a 980 unit chip strip. Using the L buys 340 units, which go into the
+         blocks (176 -> 232) and the corridor between the columns (48 -> 208).
+         Moving the disk out from under the columns is not only a space fix: the disk is REMOTE
          storage that has to be attached to a node, and drawing it directly beneath node-1 quietly
          says it is already local to it. Off in its own corner, with a long ControllerPublish call
          reaching across the whole card, the picture says what the narration says.
-SIZES    BOX_W / BOX_H are storage-csi-architecture's block size, which is the size the catalog reads
-         as a "server" box, and it is a SIZE match only: the spacing between blocks is this card's
-         own. It also clears the widest string in a right-column box, the sublabel `watches
-         VolumeAttachment`: a .scheme-box-sublabel at 10px JetBrains Mono is 6.03 units per
-         character, so 144.7 units, and BOX_W 232 leaves 43.6 either side against 15.6 at the old
-         width. DO NOT mix the per-class rates: 10px mono sublabels 6.03, 11px mono chip text and dim
-         code labels 6.89, 12px Space Grotesk box labels proportional (6.0 to 6.7).
+         node-1 is a real node() frame rather than left implicit, because `this disk is on THAT node`
+         is the whole claim the VolumeAttachment makes.
+         Read top to bottom, the control-plane column is the CAUSAL order: the controller decides, the
+         object records, the attacher acts. Every hop inside it is a straight vertical run and nothing
+         crosses. Its bottom edge is pinned to the node frame's, so the two columns are one band, and
+         the ROW GAP is SOLVED, not typed: three equal blocks spread across the frame's exact vertical
+         span, so changing BOX_H or the frame height re-solves the column instead of stranding a row.
+SIZES    BOX_W / BOX_H are storage-csi-architecture's block size, a SIZE match only: the spacing
+         between blocks is this card's own. It also clears the widest string in a right-column box,
+         the sublabel `watches VolumeAttachment` at 144.7 units (10px mono, 6.03 per character), so
+         BOX_W 232 leaves 43.6 either side against 15.6 at the old width. DO NOT mix the per-class
+         rates: 10px mono sublabels 6.03, 11px mono chip text and dim code labels 6.89, 12px Space
+         Grotesk box labels proportional (6.0 to 6.7).
          LEFT_X is the panel wall: 398 measured, 400 taken, and it cannot move left. The node frame
-         hangs off it, and the control-plane column is right-ALIGNED to CONTENT_R rather than sized
-         to fill, so the top band and the chip strip share a right edge while the blocks keep BOX_W.
+         hangs off it, and the control-plane column is right-ALIGNED to CONTENT_R rather than sized to
+         fill, so the top band and the chip strip share a right edge while the blocks keep BOX_W.
          The Pod is 226x110, the catalog Pod size, and it is the one block that does not take BOX_H
-         because it is a shell around an inner box. Kubelet takes BOX_H but its WIDTH follows the
-         POD, not BOX_W: the two are stacked on one centre line, so at 232 against 226 their edges
-         miss by 3 a side, which reads as a rendering slip. Six units is invisible between columns
-         and glaring within one, so the node column aligns to itself.
+         because it is a shell around an inner box. Kubelet takes BOX_H but its WIDTH follows the POD,
+         not BOX_W: the two are stacked on one centre line, so at 232 against 226 their edges miss by
+         3 a side, which reads as a rendering slip. Six units is invisible between columns and glaring
+         within one, so the node column aligns to itself.
          DISK 200x114 rather than 152x96: it is the only object on its side and carries that side on
-         its own. DISK_Y 400 clears the panel floor by 56 and its caption at 386 by 42.
-NOTE     node-1 is drawn as a real node() frame rather than left implicit, because "this disk is on
-         THAT node" is the whole claim the VolumeAttachment makes, and a card about it with no node
-         on screen makes the reader supply the most important half.
-NOTE     Read top to bottom, the control-plane column is the CAUSAL order: the controller decides,
-         the object records, the attacher acts. Every hop inside it is a straight vertical run and
-         nothing crosses. Its bottom edge is pinned to the node frame's, so the two columns are one
-         band. The ROW GAP is SOLVED, not typed: three equal blocks spread across the node frame's
-         exact vertical span, which leaves 84 between rows, so changing BOX_H or the frame height
-         re-solves the column instead of stranding one row.
-NOTE     The disk caption goes ABOVE the disk. Below is where the ControllerPublish lane runs and
-         under that is the chip strip: there is no room for a text line between them that is not
-         sitting on one or the other.
-NOTE     ONE width for all four chips, the strip spanning CONTENT_L..CONTENT_R. WHY NOT run it from
+         its own. DISK_Y 400 clears the panel floor by 56 and its caption at 386 by 42. That caption
+         goes ABOVE the disk, because below is where the ControllerPublish lane runs and under that is
+         the chip strip.
+         ONE width for all four chips, the strip spanning CONTENT_L..CONTENT_R. WHY NOT run it from
          the DISK's left edge (130) to the control column's right edge (1140), so both ends are real
          block edges: that span centres on 635, and the chip strip is the one tier free to sit on the
-         CANVAS centre, since nothing above it constrains it. The 70 units it gains on the left are
-         exactly the empty bottom-left corner the other span leaves behind.
-         Worst cases at 6.89 per character, with the 24 unit inset:
+         CANVAS centre. The 70 units it gains on the left are exactly the empty bottom-left corner the
+         other span leaves behind. Worst cases at 6.89 per character with the 24 unit inset:
            status.attached 103.4 + `no object` 62.0 = 189.4   <- the binding one
            VolumeAttachment 110.3 + `deleted` 48.2 = 182.5
            disk on node-1 96.5 + `yes` 20.7 = 141.2           kubelet 48.2 + `released` 55.1 = 127.3
-         CHIP_W falls out at 258, clearing the binding pair with 69 units. The FLOOR is what matters:
-         below ~190 the longest name and value touch.
-LANES    Each direction of the VolumeAttachment conversation gets its OWN lane, offset LANE around
-         the column centre, so the status write never rides the arrow the watch came down. The wider
+         CHIP_W falls out at 258. The FLOOR is what matters: below ~190 the longest name and value
+         touch.
+LANES    Each direction of the VolumeAttachment conversation gets its OWN lane, offset LANE around the
+         column centre, so the status write never rides the arrow the watch came down. The wider
          column lets LANE grow 26 -> 40, which is what makes the two read as two lanes at a glance.
          The publish call runs the whole width of the card, which is the point: the attacher is
          talking to a backend nowhere near the node. Its horizontal leg hangs BELOW the disk, because
-         above it there is no room (the disk cap is at 400, both columns end at 420, so a lane
-         between them is drawn through the node frame). A ridingLabel sits 14 above its ball, so
-         `ControllerUnpublish` rides at 532, 18 clear of the disk face and 60 clear of the chip strip.
-         Derived from DISK_BOTTOM, so the lane follows the disk if the disk moves.
+         above it there is no room (the disk cap is at 400, both columns end at 420, so a lane between
+         them is drawn through the node frame). A ridingLabel sits 14 above its ball, so
+         `ControllerUnpublish` rides at 532, 18 clear of the disk face and 60 clear of the chip strip,
+         derived from DISK_BOTTOM so the lane follows the disk if the disk moves.
          W_GATE is the ONLY lane crossing the corridor: the object gating the node. It leaves the
          VolumeAttachment at its vertical middle, runs down CORRIDOR_X and enters kubelet from the
          right while W_ONNODE enters from below. The card has ZERO wire crossings.
-NOTE     The disk stays on canvas after the detach because it still exists in the backend, it is just
-         no longer on this node, so it DIMS rather than leaving: that is a STATE, not a placeholder,
-         and it is the one dim left on this card.
-         DO NOT sit the Pod at 0.5 for five of seven steps as a stand-in for "not started yet": a
-         block held at half strength next to full-strength neighbours reads as a rendering fault. The
-         Pod is simply present, and it leaves the canvas on the step where the narration says it is.
-NOTE     The VolumeAttachment is BORN MID-STORY but its SLOT is drawn the whole time, at
-         OPACITY.pending with the sublabel `not created yet`. At full it would contradict the
-         narration, and at zero it leaves a block-sized hole in the middle of the control column.
-         Its four LANES are the part that genuinely goes away: an arrow into an object that does not
-         exist is an arrow to nowhere and leaves no hole, so the two are pinned separately.
-         The MOUNT lane is the exception and belongs to the POD: when the Pod leaves, an arrowhead
-         aimed at empty canvas reads as traffic to a block the reader has failed to spot.
-NOTE     Only two static wire captions, both where there is measured room. The write caption is
-         anchored 12 right of the W_WRITE lane with 138 units, 20 characters at 6.89. The disk
-         caption is centred in the empty strip above it: its longest string is 241 units, spanning
-         110..350, clearing both the left margin and the node frame. Everything else is carried by a
-         ridingLabel, because the inter-row gaps in the control column cannot hold a static caption
-         without it landing on a lane arrowhead.
-NAMING   Block LABELS capitalize the FIRST word only, a later word only when it is an API object, an
-         acronym or an identifier. A HYPHENATED name capitalizes only its first segment, being one
-         identifier (External-attacher is the name of one binary). Bare identifiers keep their real
-         casing: va-7f, web-0, vol-1, node-1, which .scheme-node-label uppercases to NODE-1 in CSS.
-         That uppercase form is catalog-wide, so it is left alone: a card-local override would make
-         this the one node titled differently.
-MOTION   The FIRST step has NO pulse, deliberately. DO NOT blink the Pod on the grounds that it is
-         the reason an attach is needed: this is the step the poster auto-plays into about a second
-         after the card opens, so the blink lands on a frame the reader has only just started looking
-         at and reads as a flicker. The step is also not ABOUT the Pod, it is about who owns the
-         decision. Packet-less and Pod-less, so the subject registers by lighting and staying lit.
+         Only two static wire captions, both where there is measured room: the write caption anchored
+         12 right of the W_WRITE lane with 138 units (20 characters at 6.89), and the disk caption
+         centred in the empty strip above it, longest string 241 units spanning 110..350. Everything
+         else is carried by a ridingLabel, because the inter-row gaps in the control column cannot
+         hold a static caption without it landing on a lane arrowhead.
+MOTION   The VolumeAttachment is BORN MID-STORY but its SLOT is drawn the whole time, at
+         OPACITY.pending with the sublabel `not created yet`: at full it would contradict the
+         narration, at zero it leaves a block-sized hole in the middle of the control column. Its four
+         LANES are the part that genuinely goes away, so the two are pinned separately. The MOUNT lane
+         is the exception and belongs to the POD: when the Pod leaves, an arrowhead aimed at empty
+         canvas reads as traffic to a block the reader has failed to spot.
+         The disk stays on canvas after the detach because it still exists in the backend, it is just
+         no longer on this node, so it DIMS rather than leaving: a STATE, not a placeholder, and the
+         one dim left on this card. DO NOT sit the Pod at 0.5 for five of seven steps as a stand-in
+         for `not started yet`: a block held at half strength next to full-strength neighbours reads
+         as a rendering fault. The Pod is simply present, and it leaves on the step that says so.
+         The FIRST step has NO pulse, deliberately. DO NOT blink the Pod on the grounds that it is the
+         reason an attach is needed: this is the step the poster auto-plays into about a second after
+         the card opens, so the blink lands on a frame the reader has only just started looking at and
+         reads as a flicker. The step is also not ABOUT the Pod, it is about who owns the decision.
          The attach step is three chained hops and the middle one crosses the whole card: routeDur is
          length-based, so the 952 unit publish call runs 2116ms alone and the span is 4276. Duration
          4800 is not taste: below 4276 the auto-advance cuts the call off before it reaches the disk.
-         The detach step is FIVE beats (Pod leaves, controller deletes on the same lane it created
-         on, attacher reads the deletion, object leaves with its lanes, disk comes off), span 5076
-         against a duration of 5400.
+         The detach step is FIVE beats (Pod leaves, controller deletes on the same lane it created on,
+         attacher reads the deletion, object leaves with its lanes, disk comes off), span 5076 against
+         a duration of 5400.
          The mount is infra reaching a Pod, so down-arrow ordering: ball first, Pod blinks on arrival.
          The App box is never given a .highlight: the blink is the whole signal and must end with it.
-DO NOT   Animate the create half of the delete step and drop the delete half. The clause this card
-         exists to teach, that the CONTROLLER writes AND deletes the object, has to be animated on
-         BOTH halves, or the step opens on the attacher's watch while W_WRITE sits drawn, aimed and
-         at full opacity carrying nothing.
-NOTE     va-7f is lit from entry as the SOURCE of the watch but does not KEEP that light once it is
+         va-7f is lit from entry as the SOURCE of the watch but does not KEEP that light once it is
          gone: the class comes off when the fade to the terminated shade finishes, so the static path
          has nothing to mirror. check-opacity LIT reads inline style on the played path only, so it
          sees neither version, which is why the answer is written down. Same shape as removeAt
          (storage-reclaim-policy) and vanishAt (storage-pvc-retention-policy).
+DO NOT   Animate the create half of the delete step and drop the delete half. The clause this card
+         exists to teach, that the CONTROLLER writes AND deletes the object, has to be animated on
+         BOTH halves, or the step opens on the attacher's watch while W_WRITE sits drawn, aimed and at
+         full opacity carrying nothing.
+NAMING   Block LABELS capitalize the FIRST word only, a later word only when it is an API object, an
+         acronym or an identifier. A HYPHENATED name capitalizes only its first segment, being one
+         identifier (External-attacher is the name of one binary). Bare identifiers keep their real
+         casing: va-7f, web-0, vol-1, node-1, which .scheme-node-label uppercases to NODE-1 in CSS.
+         That uppercase form is catalog-wide, so it is left alone.
 NOT A DEFECT
-         The `status` and `detach` steps say "when the backend confirms the attach" and "only when
-         the backend has detached", and this card draws no storage-backend block. Both are
-         subordinate time clauses rather than the visible action of the step, so the reader is not
-         being pointed at a missing box. Do not file these again.
+         The `status` and `detach` steps say `when the backend confirms the attach` and `only when the
+         backend has detached`, and this card draws no storage-backend block. Both are subordinate
+         time clauses rather than the visible action of the step, so the reader is not being pointed
+         at a missing box. Do not file these again.
 ```
 
+### before `const M = 60;`
+
+```
+One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it. LEFT_X is a separate wall at
+400 that only the TOP band obeys: the usable area is an L and the disk lives in its free bottom-left
+corner.
+```
+
+
 ## storage-volumeclaimtemplates
+
+### layout
+
+```
+WHAT     StatefulSet volumeClaimTemplates, angled at the PVC OBJECT: how it is named, minted, bound,
+         retained and rebound.
+LAYOUT   THREE HORIZONTAL ORDINAL ROWS, one per replica, each a straight triad:
+                Pod web-N  ->  PVC data-web-N  <-  pv-web-N
+                (consumer)        (the claim)       (the disk)
+         The claim is the subject of the card, so it sits in the CENTRE of every row on the canvas
+         spine x=CX, with its consumer Pod flanking it on the left and its backing disk on the right,
+         mirrored about the spine. The three claims stack into one central column and the StatefulSet
+         mints them straight DOWN it. Every connector is a straight axis run (vertical mint,
+         horizontal mount and bind), so no ball ever travels a bent corridor, and column centres are
+         POD_CX, CX, PV_CX = CX - FLANK, CX, CX + FLANK.
+         Each Pod is a full window like the rest of the storage cards: the ordinal name on top, a real
+         container box in the middle, the mount path as the Pod sublabel. The shell fill is knocked
+         back so the inner container reads as nested inside it.
+WHY NOT  One column PER ORDINAL with the mints fanned in through bent side corridors: three claims then
+         sit side by side and the mint routes enter each claim from the corner. Turning each ordinal on
+         its side makes the claim the centred hub of its own row, the mint a single vertical spine, and
+         the mount and bind pure horizontal runs. Identity (Pod, claim and disk are one object under
+         one name data-web-N) is then read ACROSS a row rather than DOWN a column, carried by the
+         shared name in the three block labels plus the row alignment.
+PANEL    The panel covers only the top-left band: right edge ~291, bottom ~143 in viewBox units for
+         these narrations. The source box spans x 430..770 (clear of the x<=397 band) and the first Pod
+         row starts at y=209, below the panel. A much longer narration invalidates this.
+LANES    The central mint spine drops straight down x=CX, relaying the deterministic name into each
+         claim in turn (data-web-0, then -1, then -2), and appears once the template stamps. The two
+         horizontal lanes per row point INWARD toward the consumer: the bind lane carries the disk to
+         the claim, the mount lane carries the claim up into the Pod. Both are permanent dim structure.
+MOTION   Only the Pods pulse. The three replica Pods are declared from the start, so they sit at FULL
+         opacity the whole way through and never dim between steps, and mounting is shown by the pulse
+         plus the container lighting. DO NOT fade a Pod up from a dim resting state on each mount: that
+         up-and-down flicker on every step reads as noise. The ONLY Pods that fade are the ones
+         genuinely removed, so a fade here always means a Pod left: web-1 blinks out and back on the
+         rebind step, web-2 fades to a ghost on scale-down.
+         A row mounts down-arrow: the ball crosses the bind lane from the disk into the claim, then the
+         mount lane up into the Pod, and the Pod pulses on arrival, never at step entry.
+         The rebind is deliberately slower than the FADE tokens, with a real HOLD at the ghost
+         (OUT 850, HOLD 550, IN 800), so the delete and the recreate read as two distinct beats rather
+         than one quick blink. The claim and its disk stay at full opacity throughout: not being
+         deleted is the whole point of the step.
+         A claim that has not been minted yet is drawn dim rather than hidden. Removing it leaves a
+         claim-sized hole in the row that reads as a rendering fault, and it leaves the mount arrowhead
+         aimed at nothing for the whole flight.
+BUDGET   Family CHIP_W 232: worst case is `on delete` + `kept, leaks` at 20 characters, so
+         20 * 6.89 + 24 of padding is 162 against the 232 available.
+```
 
 ### before `const CX = 600;`
 
 ```
-WHAT  StatefulSet volumeClaimTemplates, angled at the PVC OBJECT: how it is named, minted, bound,
-retained and rebound.
-
-LAYOUT  THREE HORIZONTAL ORDINAL ROWS, one per replica, each a straight triad:
-
-       Pod web-N  ->  PVC data-web-N  <-  pv-web-N
-       (consumer)        (the claim)       (the disk)
-
-The claim is the subject of the card, so it sits in the CENTRE of every row on the canvas spine
-x=CX, with its consumer Pod flanking it on the left and its backing disk on the right, mirrored about
-the spine. The three claims stack into one central column, and the StatefulSet mints them straight
-DOWN that column. Every connector is a straight axis run (vertical mint, horizontal mount and bind),
-so no ball ever travels a bent corridor, and the picture is symmetric by construction: column centres
-are POD_CX, CX, PV_CX = CX - FLANK, CX, CX + FLANK.
-
-WHY NOT one column PER ORDINAL with the mints fanned in through bent side corridors: three claims
-then sit side by side and the mint routes enter each claim from the corner. Turning each ordinal on
-its side makes the claim the centred hub of its own row, the mint a single vertical spine, and the
-mount and bind pure horizontal runs. Identity (Pod, claim and disk are one object under one name
-data-web-N) is then read ACROSS a row rather than DOWN a column, carried by the shared name in the
-three block labels plus the row alignment.
-
-PANEL  Measured, the panel covers only the top-left band: right edge ~291, bottom ~143 in viewBox
-units for these narrations. The source box spans x 430..770 (clear of the x<=397 band) and the first
-Pod row starts at y=209, below the panel. A much longer narration invalidates this.
-
-MOTION  Only the Pods pulse. The three replica Pods are declared from the start, so they sit at FULL
-opacity the whole way through and never dim between steps. Mounting is shown by the pulse plus the
-container lighting.
-DO NOT fade a Pod up from a dim resting state on each mount: that up-and-down flicker on every step
-reads as noise. The ONLY Pods that fade are the ones genuinely removed: web-1 blinks out and back on
-the rebind step, and web-2 fades to a ghost on scale-down. A fade here always means a Pod left.
-
-LANES  The central mint spine drops straight down x=CX, relaying the deterministic name into each
-claim in turn (data-web-0, then -1, then -2). The two horizontal lanes per row point INWARD toward
-the consumer: the bind lane carries the disk to the claim (pv to PVC), the mount lane carries the
-claim up into the Pod (PVC to Pod).
-```
-
-### before `function podBlock({ cy, label }) {`
-
-```
-Family pulse model: the wrapping g is not optional.
-```
-
-### before `const shell = podShell({ x: POD_X, y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'sto`
-
-```
-A full Pod window like the rest of the storage cards: the ordinal name on top, a real container box
-(label plus what it does to the volume) in the middle, and the mount path as the Pod sublabel at the
-bottom. The shell fill is knocked back so the inner container reads as nested inside it.
-```
-
-### before `const trunkW = ROW_CY.map((_, i) => lane(trunkSeg(i)));`
-
-```
-Straight connectors. The mint spine drops down the centre through the stacked claims. The bind and
-mount lanes run level into each claim and Pod. Lanes are permanent dim structure; the mint spine
-appears once the template stamps.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16;`
-
-```
-Family chip width. Worst case here is 'on delete' + 'kept, leaks' at 20 characters, so 20 * 6.89 + 24
-of padding is 162 against the 232 available.
-```
-
-### opacity phases (was `const POD_PRESENT = 1`)
-
-```
-Family setStage. The Pods rest at full opacity (see MOTION in the header note): only a genuine delete
-fades one.
-```
-
-### opacity phases (was `const CLAIM_PLACEHOLDER = 0.4`, now OPACITY.pending)
-
-```
-Family rule: a claim that has not been minted yet is drawn dim rather than hidden. Removing it leaves
-a claim-sized hole in the row that reads as a rendering fault, and it leaves the mount arrowhead
-aimed at nothing for the whole flight.
-```
-
-### before `function mountRow(s, ctx, i, { delay = 0, tag = null } = {}) {`
-
-```
-One row mounting its own disk: the ball crosses the bind lane from the disk into the claim, then the
-mount lane from the claim up into the Pod, and the Pod pulses when the mount actually reaches it.
-Down-arrow ordering, so the ball leads and the pulse lands on arrival, never at step entry.
-```
-
-### before `const GONE = OPACITY.terminated, OUT = 850, HOLD = 550, IN = 800;`
-
-```
-web-1 is deleted, then recreated. Deliberately slower than the FADE tokens, with a real HOLD at the
-ghost, so the delete and the recreate read as two distinct beats and not one quick blink: it fades
-out reading 'deleted', stays gone for a moment, then fades back reading 'recreated'. The claim and
-its disk stay at full opacity throughout: not being deleted is the whole point of the step.
+The claim is the subject, so it sits in the CENTRE of every ordinal row on this spine, with its Pod
+and its disk mirrored about it at CX -/+ FLANK. The mint spine drops straight down the same line.
 ```
 
 ### poster
@@ -3436,4 +3077,3 @@ Pod OWNS its disk. The small dashed rect inside the template box is the claim te
 Content spans y=18..158, centred.
 ```
 
----

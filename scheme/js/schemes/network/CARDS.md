@@ -76,6 +76,14 @@ MOTION   Every ball wears a riding tag, because what each hop CARRIES is the who
          connection, and only then does the request leave carrying the proxy address as its source.
 ```
 
+### before `const PANEL_B = 355;`
+
+```
+The measured narration-panel bottom over 1600x1000 / 1280x860 / 1100x800, and the only such constant
+in networking. FLOW_Y 410 clears it, so a longer narration invalidates the row placement. NOT the
+same thing as PANEL_BOTTOM 190, which is the drawn header chip.
+```
+
 ### poster
 
 ```
@@ -110,6 +118,15 @@ DO NOT   Shift the boxes the rule CAN see to make the number go green. That dece
          reader actually looks at.
 ```
 
+### before `const RAISE = 64;`
+
+```
+The whole diagram is lifted by RAISE, so every tier moves together rather than one at a time. The
+sandbox height is then tuned so its block centre lands exactly on PAUSE_Y, which is what keeps the
+result and join arrows straight.
+```
+
+
 ## network-conntrack-nat
 
 ### layout
@@ -132,6 +149,14 @@ CONTENT  The `reply` chip on the established step has to stay true of the REPLY,
          longer costs a rule walk.
 DO NOT   Set it to `fast path` there. That is the outbound path, it sits next to the previous step's
          `reverse NAT`, and the reuse makes it read as an answer to a question nobody asked.
+```
+
+### before `const POD_Y = 252, POD_H = 120;`
+
+```
+Both Pod shells stand on one baseline, and the row spans 70..1130 to centre on 600, which is why the
+server Pod ends on 1130 rather than 1110. The two lanes are stacked about that baseline so every ball
+has a matching arrow.
 ```
 
 ### poster
@@ -169,6 +194,14 @@ DO NOT   Pulse the bare pod element. `pulsePod` uses querySelectorAll, which mat
          it would find the rect but never the `.scheme-pod` itself, so the brightness half of the
          pulse silently would not fire. The shell is wrapped in a `g` for exactly this.
 MOTION   The query lane is 510 units, which is why the query step carries a 3000ms budget.
+```
+
+### before `const CONTENT_L = 70, CONTENT_R = 1130;`
+
+```
+The CoreDNS Pod holds CONTENT_R, so the two blocks centre the content bbox on 600 with no frame to
+lean on. Pull the Pod in and the card decentres, since the ladder and the chips are not blocks and
+CENTRE cannot see them.
 ```
 
 ### poster
@@ -234,6 +267,14 @@ NOT A DEFECT
          pair IS the subject of the step: one name is absolute and the other is not.
 ```
 
+### before `const CANDIDATES =`
+
+```
+Four candidates, so four round trips per address family, and the step budget of 10400 is sized off
+exactly this list on a 380 unit lane. Adding a fifth candidate lengthens the walk past the budget
+and the auto-advance clips it.
+```
+
 ### poster
 
 ```
@@ -280,6 +321,14 @@ MOTION   One record kind per step: pulse the client, run the query along the flo
          then send the answer out along THIS row's fan wire.
 ```
 
+### before `const CONTENT_L = 80, CONTENT_R = 1120;`
+
+```
+Content and chip strip both span this band, which is what centres the bbox on 600. The FQDN band is
+the only block that reaches CONTENT_R, so narrowing the band moves the measured centre even though
+every other tier stays put.
+```
+
 ### poster
 
 ```
@@ -323,6 +372,14 @@ MOTION   Enabling the feature is a config change with no per-object traffic, so 
          the DNAT, the destination rewritten from ClusterIP to Pod IPv6 on the way out.
 ```
 
+### before `const CONFIG_X = 480, CONFIG_W = 600;`
+
+```
+The band spans the Service..Pod half only, which is what keeps it clear of the narration overlay at
+y=136 and off the client Pod. Widening it leftward is what the overlay forbids, not the geometry.
+```
+
+
 ## network-ebpf-dataplane
 
 ### layout
@@ -346,6 +403,15 @@ NOT A DEFECT
          `TO_PODY` carries no ball. It is the ALTERNATIVE backend, drawn so the reader can see the map
          lookup picked one of two, and the card says so in words. N destinations, N wires.
 ```
+
+### before `const CONTENT_L = 70, CONTENT_R = 1130;`
+
+```
+The client Pod sits on the left margin and the backend column on the right, so the content bbox
+centres on 600 and the three chips are one even row across the span. Stopping the backend at 1030
+leaves the whole card 50 units left of centre.
+```
+
 
 ## network-endpointslice-reconcile
 
@@ -374,6 +440,14 @@ DO NOT   Pulse Pod B with plain `pulsePod` while it sits at 0.40. That pulse ram
          `from: OPACITY.notready`, which adds the opacity flash the dim variant exists for. The
          signature in anim-dump is an `opacity` track on the Pod group next to the `filter` one, with
          the peak BETWEEN the sampled percentages, because a blink returns to where it started.
+```
+
+### before `const CTLR_TOP = 350;`
+
+```
+The controller writes UP into the slice at SLICE_BOTTOM, and WRITE_PATH is built from both, so the
+lane re-solves when either tier moves. Service, slice rows and controller are all centred at x600,
+well right of the panel.
 ```
 
 ### poster
@@ -406,6 +480,13 @@ OPEN     The top band is empty by construction on wide viewports. That is the pr
 MOTION   Both rows open up-arrow: the client pulses first and the first hop leaves at BEAT.afterPulse,
          lighting the middle block on arrival, then the resolved value (a CNAME on row A, the DNAT-ed
          dst on row B) rides on to the target, which lights when it lands.
+```
+
+### before `const ROW_A = 300;`
+
+```
+Both rows hang BELOW the measured panel bottom of 230: ROW_A 300 puts its Pod top at 246. At 254 a
+quarter of the row-A client sits under the overlay on the narrow viewports.
 ```
 
 ### poster
@@ -445,6 +526,14 @@ NOT A DEFECT
          `fan2` and `crossWire` are not bright lanes pointing into a dimmed block. This card never
          changes an opacity at all, on any of its five steps, so it has no dimmed end for a lane to
          point at. The premise is vacuous.
+```
+
+### before `const MID_X = 600;`
+
+```
+The two Nodes are mirrored about MID_X with NODE_GAP between them, so the scheme spans 180..1020 and
+the chip strip takes that extent 1:1. The vertical margins above the client and below the chips are
+equal, which is what centres it on the canvas.
 ```
 
 ### poster
@@ -491,6 +580,15 @@ MOTION   NOTHING flashes here, not even the packet-less gatewayclass step: a dec
          installed has no motion to show.
 ```
 
+### before `const FLOW_Y = 380;`
+
+```
+The Gateway sits on this row because it is the row a real request enters on, which is what lets the
+Client sit beside it with its top edge at 344, clear of the measured panel bottom of 330. Raising it
+puts the Client under the overlay.
+```
+
+
 ## network-headless-service
 
 ### layout
@@ -529,6 +627,14 @@ DO NOT   Put a value under a chip name that does not describe it. `connect 10.24
 NOT A DEFECT
          `TO_W2` in the data fan rides nothing. N destinations get N wires so the reader can see the
          client picked one of three.
+```
+
+### before `const CY = 320;`
+
+```
+Everything is symmetric about this line: web-1 sits ON it, web-0 and web-2 mirror about it, and
+CoreDNS is centred on it so its fan to the three Pods is symmetric. Move CY and the fan stops being
+a mirror.
 ```
 
 ### poster
@@ -573,6 +679,14 @@ MOTION   The two reflective steps carry no motion at all: they compare, they do 
          portmap rule, and the rewrite happens INSIDE that box, so the ball re-emerges at its bottom
          edge already carrying the Pod address and only then joins the ordinary path, bridge then
          veth, with the Pod pulsing on arrival.
+```
+
+### before `const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;`
+
+```
+The Node frame is the outer extent and the three column centres are spaced inside it. NODE_Y 305 is
+what puts the frame just under the panel, and the client above it sits at x >= 450 only because of
+that. Raising the frame puts its top-left corner and the portmap box under the overlay.
 ```
 
 ### poster
@@ -625,6 +739,14 @@ MOTION   On the tls step the Host and path are on the wire and so are known, but
          right-angle fan to the Service and hopping on to the backend Pod, which pulses on arrival.
 ```
 
+### before `const FLOW_Y = 343;`
+
+```
+Derived as (RULE_BOTTOM + CHIP_Y) / 2, so the whole flow re-centres when the rules panel or the chip
+strip moves. The web and api branches are FLOW_Y -/+ ROW_DY, so both fans, both Services and both
+backend Pods follow it.
+```
+
 ### poster
 
 ```
@@ -670,6 +792,14 @@ MOTION   Up-arrow on both flows: the client Pod is the sender, so it pulses FIRS
          carrying the remote Pod address, and the remote backend pulses as the underlay leg lands on
          its Node. Under Local the DNAT resolves to the local Pod, so the ball leaves the FAR edge of
          kube-proxy and never leaves the Node.
+```
+
+### before `const FLOW_Y = 405;`
+
+```
+The Node row carries the whole flow on this line and the underlay lane hangs below it. The Service
+above is the only block in the panel band, so it sits at x >= 450: raising FLOW_Y pulls the Node row
+into that band and the client and kube-proxy go with it.
 ```
 
 ### poster
@@ -723,6 +853,22 @@ NOT A DEFECT
          only candidate on the canvas.
 ```
 
+### before `const NODE_Y = 312, NODE_W = 300, NODE_H = 290;`
+
+```
+Every x on this card is derived from NODE_X / NODE_CX, so the Node columns, their slice chips, their
+Pods and the allocation bus cannot drift apart. NODE_Y 312 is what clears the panel bottom of 255.
+```
+
+### before `const dur = 1100;`
+
+```
+ONE shared travel time for all three allocation packets, registered in ALLOW_EXPLICIT_DUR. The kcm
+carves every slice in one reconcile pass, so they must LAND together: routeDur is length-based and
+would land the short centre path first.
+```
+
+
 ## network-kube-proxy-modes
 
 ### layout
@@ -744,6 +890,15 @@ NOTE     The chain row does NOT centre on 600: its boxes sit ABOVE the panel bot
 MOTION   The inactive lane dims on each mode step. Wires and packets ride only the GAPS and stop at box
          edges.
 ```
+
+### before `const CX = 600;`
+
+```
+SCHEME_L and SCHEME_R are mirrored about CX and the three 350-wide chips with even gaps centre the
+strip on it by construction. The chain row is the one tier that does NOT centre here, because it has
+to start right of the panel edge.
+```
+
 
 ## network-loadbalancer-bare-metal
 
@@ -775,6 +930,13 @@ CONTENT  The l2 narration carries the premise the card cannot do without: no clo
          in-cluster instead` as the first sentence with no gap named anywhere. Kept under 471
          characters, the length of this card's bgp narration, so the measured panel worst case stays
          where it was.
+```
+
+### before `const MID_X = 600;`
+
+```
+The three Nodes are mirrored about MID_X and every tier above them is centred on it, so the scheme
+spans 50..1150 by construction. The chip strip takes that same extent 1:1.
 ```
 
 ### poster
@@ -821,6 +983,15 @@ NOT A DEFECT
          the plugin is not sending a message, it is the thing that makes the flat space exist.
 ```
 
+### before `const RAISE = 64;`
+
+```
+Band, Pods and chips all move with RAISE, while the kubelet keeps its own higher KUBELET_RAISE, so
+the gap between it and the band is deliberate rather than left over. Pod centres are spread with
+equal end-margins inside SCHEME_L..SCHEME_R.
+```
+
+
 ## network-namespaces
 
 ### layout
@@ -847,6 +1018,13 @@ MOTION   fresh     only lo is live: lo lights and flashes, nothing flows yet
                    loopback that serves it, lights on arrival
          isolation host, eth0 and lo stay lit, the whole shared stack pulses as ONE private unit
                    that lives and dies together
+```
+
+### before `const POD_TOP = 160;`
+
+```
+POD_CY is derived from POD_TOP and POD_H, and the host block centres on it, so the two columns stay
+level when either moves. Re-typing the host y is what breaks the pairing.
 ```
 
 ### poster
@@ -891,6 +1069,21 @@ MOTION   The closing eBPF step carries no motion at all: it is a comparison, not
          a replay of an earlier step.
 ```
 
+### before `const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 251;`
+
+```
+The five chain blocks span this frame 1:1 and the chip strip spans the frame itself, so the strip and
+the frame share both verticals. Changing NODE_W re-solves the chain spacing and the strip together;
+changing only one breaks the single-column reading.
+```
+
+### before `const CHIP_W = [270, 320, 260, 210];`
+
+```
+Four UNEQUAL widths, each sized for its own longest value, summing with the gaps to the frame span.
+They are not a computed row: editing one value without re-measuring is what check-chipfit catches.
+```
+
 ### poster
 
 ```
@@ -933,6 +1126,14 @@ MOTION   The miss step runs FOUR hops, because the narration promises all four: 
          arrives.
 ```
 
+### before `const FLOW_Y = 300;`
+
+```
+The client Pod, the node-local agent and upstream CoreDNS are all centred on this line, so both hops
+are straight and each carries its own forward and return pair. Content cannot rise above y=200: the
+Node box starts at x=70, under the panel, whose longest step here reaches 163.
+```
+
 ### poster
 
 ```
@@ -967,6 +1168,14 @@ NOT A DEFECT
          Node, which is the card's whole first claim, so all three lanes have to exist for the reader
          to see that any Node would have served the request. One step takes one of them, and which one
          is the arbitrary part. `network-headless-service`'s `TO_W2` is the precedent.
+```
+
+### before `const CX = 600;`
+
+```
+The client, the LB and the fan origin sit on CX, and the three Node frames are spread symmetrically
+inside SCHEME_L..SCHEME_R. NODE_CX then centres the nodePort chip, the backend Pod and the bottom
+info chip of each column, so one grid drives every tier.
 ```
 
 ### poster
@@ -1007,6 +1216,14 @@ DO NOT   Put the three addresses on the wires as static text. The same packet ca
          straight through the Pod border. They ride the ball.
 ```
 
+### before `const FLOW_Y = 356;`
+
+```
+Every block on the path is centred on this spine, which is what lets both lanes (FWD_Y above, RET_Y
+below) meet every block on its edge. Move a single block off FLOW_Y and one of the two lanes stops
+short of a face.
+```
+
 ### poster
 
 ```
@@ -1042,6 +1259,14 @@ WHY NOT  The Internet box lifted to y110, above the measured panel bottom of 181
          into it.
 ```
 
+### before `const EGRESS_Y = 360;`
+
+```
+Forward and return lanes sit symmetric about this line and BOTH stay inside the box heights, so a
+ball never travels under a box. The Internet box is levelled with the Node frame rather than lifted,
+which is what puts the low row on 600.
+```
+
 ### poster
 
 ```
@@ -1069,6 +1294,14 @@ NOTE     Z-order, bottom to top: Node background, the boxes, then the wires and 
 MOTION   No pulses on this sequence, just persistent highlight borders like the workloads cards: the
          app block lights first and stays lit, then the loopback ball travels, then the pause block
          lights on arrival.
+```
+
+### before `const LINK_Y = 396;`
+
+```
+The veth link, the loopback link and the packets on both share this y. The inner row is centred in
+its frame by DERIVATION (INNER_W, then POD_X from it), so re-typing an x here is what re-creates the
+70-against-160 margin CENTRE-LOW reported.
 ```
 
 ### poster
@@ -1102,6 +1335,14 @@ MOTION   Pod to Pod: the sending client pulses first, the packet leaves at BEAT.
          plus the answering app light.
 ```
 
+### before `const SHELL_X = 620, SHELL_Y = 174, SHELL_W = 500, SHELL_H = 320;`
+
+```
+The shell spans the two rightmost chips (bind + Pod IP) exactly, and the client Pod is centred over
+the leftmost one. Both share the vertical centre SHELL_CY, which is what makes the external lane one
+straight centred hop.
+```
+
 ### poster
 
 ```
@@ -1133,6 +1374,14 @@ MOTION   Up-arrow: A pulses first, then the packet travels the full Pod A -> Pod
          so the ball visibly enters a cni0 and re-emerges on the other side.
 ```
 
+### before `const VETH_Y = 338;`
+
+```
+The veth links and the short packets on them share this y, so both Nodes read as one row. The
+underlay leg hangs at UNDERLAY_Y below the frames and starts and ends on the cni0 bottom EDGES, which
+is what keeps the ball out from under a box.
+```
+
 ### poster
 
 ```
@@ -1158,6 +1407,13 @@ MOTION   A pulses FIRST and fully, and the request ball departs only once that b
          (BEAT.afterPulse), per the up-arrow choreography. The ARP exchange is a round trip: the request
          floods A -> bridge -> B on the top lane, then B unicasts its reply B -> bridge -> A on the
          bottom.
+```
+
+### before `const POD_MID = 380;`
+
+```
+The two veth lanes are POD_MID -/+ LANE, so the forward and reply directions are a symmetric pair
+about the block centre. Both Pods and the bridge sit on POD_MID.
 ```
 
 ### poster
@@ -1192,6 +1448,15 @@ NOTE     The IPAddress chip is a FULL-WIDTH bottom strip (SCHEME_L..SCHEME_R). A
          fit beside its own name in 280: the one chipfit collision the catalog carried. The binding to
          web is not lost, because the value names the Service.
 ```
+
+### before `const SCHEME_L = 120, SCHEME_R = 1080;`
+
+```
+Services sit on an even 260 / 600 / 940 grid with their edges flush to this band, and SVC_GAP is
+solved from it rather than typed. The IPAddress chip spans the same band, which is what stops it
+from being a lone chip centred on 940.
+```
+
 
 ## network-service-clusterip
 
@@ -1237,6 +1502,23 @@ NOTE     On the dnat step the backend Pods are NOT highlighted: nothing has been
          every step, and both Pod opacities reset to 1 so a dim set by an earlier flow cannot persist.
 ```
 
+### before `const CX = 600;`
+
+```
+The three extents the rest of the category copies. Every block on this card is derived from CX,
+SCHEME_L and SCHEME_R, so moving one of them moves the client, the kube-proxy column, the backend
+column and both fan buses together. The chip strip does NOT follow: its four widths are sized to
+their own longest values, so re-run check-chipfit after any change here.
+```
+
+### before `const SLOWMO = 1.1;`
+
+```
+The 10% glide, and the only explicit dur on this card. Registered in ALLOW_EXPLICIT_DUR: dropping
+the registration fails check-canon, and dropping the constant while leaving the riding labels on
+slowDur unglues every label from its ball.
+```
+
 ### poster
 
 ```
@@ -1259,6 +1541,14 @@ MOTION   The translation happens INSIDE the Service box: the ball fades in at th
          from the right edge on the deliver hop, down-arrow, and the backend Pod pulses on arrival.
          The client dials web:80 on the dial hop, and the named-port resolution http -> 8080 rides the
          deliver hop. The chip strip tracks the four port numbers as fixed facts.
+```
+
+### before `const FLOW_Y = 312;`
+
+```
+One straight left-to-right flow, which is what makes every hop a horizontal segmentPacket. The
+Service is centred between the two Pods for equal 200px hops each side, so moving one Pod breaks the
+symmetry the linear motion depends on.
 ```
 
 ### poster
@@ -1289,6 +1579,13 @@ MOTION   Each hop tags itself `new conn` or `in-flight` via a riding label. web-
          The drain step runs two flows at once: the in-flight connection keeps draining to web-c, which
          pulses through its dimmed state on arrival, and as it lands a fresh connection starts from the
          client, runs the lane and the web-a fan, and web-a pulses. New and in-flight, side by side.
+```
+
+### before `const FLOW_Y = 326;`
+
+```
+The client and kube-proxy are centred on this line and both backend fans leave it, so the two
+right-angle routes are mirror images. The Pods are the only blocks off it.
 ```
 
 ### poster
@@ -1326,6 +1623,13 @@ MOTION   Each hop carries a short riding label tagging the MECHANISM the row use
          no pulse there, only the arrival ripple plus the target box lighting.
 ```
 
+### before `const TYPE_X = 210, TYPE_W = 280;`
+
+```
+The type and target columns sit symmetric about x600 (210..990). TYPE_X is LEFT of the panel's right
+edge on purpose: the rows clear the overlay by HEIGHT instead, which is what ROW0 186 pays for.
+```
+
 ### poster
 
 ```
@@ -1344,6 +1648,14 @@ LAYOUT   The flow runs left to right along y312, external client -> Ingress cont
          with the TLS Secret sitting ABOVE the Ingress as the source of the certificate.
 MOTION   Decryption happens INSIDE the Ingress box. The client and Ingress are infrastructure and only
          light; only the backend Pod pulses.
+```
+
+### before `const FLOW_Y = 312;`
+
+```
+Client, Ingress and backend Pod all sit on this line, with the TLS Secret the only block above it.
+Decryption happens inside the Ingress box, so the flow must stay one straight run for the ball to
+enter and re-emerge.
 ```
 
 ### poster
@@ -1386,5 +1698,19 @@ NOT A DEFECT
          `FAN_A2` carries no ball on its step. It is the endpoint the traffic distribution did NOT
          pick, and the point of the card is that the choice was made among the drawn candidates rather
          than forced. Same basis as the nodeport fan.
+```
+
+### before `const SCHEME_L = 60, SCHEME_R = 1140;`
+
+```
+The two setting chips are a full-width bottom strip across this span, the grammar the rest of the
+category uses. Narrow it and the strip centres on the client column instead of on 600.
+```
+
+### before `const FAN_SLOW = 1.6;`
+
+```
+One shared multiplier on the fan so the riding source-IP tag stays readable, and the label rides the
+SAME dur or it unglues. Speed stays distance-normalized. Registered in ALLOW_EXPLICIT_DUR.
 ```
 
