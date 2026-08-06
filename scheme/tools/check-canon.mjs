@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 // check-canon.mjs: source lint for the packet-motion canon over all four card families.
-// Rules, what each catches and why, are documented in scheme/CLAUDE.md (Dev tools).
+// Every rule here has a row in ../CANON.md, whose Check column names this file; ./README.md
+// says what the check is BLIND to.
 // node check-canon.mjs        CANON_VERBOSE=1 lists every report-only finding
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+// stripComments comes from prose.mjs, the same place `sentences` does. It used to be a second copy
+// here, and prose.mjs's was that copy minus the regex-literal mode, which silently shrank the input
+// of every check that reads a stripped source. One copy cannot drift from itself.
+import { sentences, stripComments } from './prose.mjs';
+import { cards, folderModules } from './catalog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SCHEMES = join(__dirname, '..', 'js', 'schemes');
 
 // Cards allowed an explicit dur on a route wrapper. One line of reason each, so every
 // exception stays reviewable in one place.
@@ -44,12 +49,28 @@ function callArgs(src, open) {
   return src.slice(open + 1);
 }
 
-// Categories on the shared kit and thus held to the canon: currently the whole
-// catalog. Add a new category here once its cards are on the kit.
-const COVERED = /^(workloads|cluster|network|storage)-.*\.js$/;
-const files = (await readdir(SCHEMES))
-  .filter(f => COVERED.test(f))
-  .sort();
+// Read the expression an `opacity:` / `opacity =` is set to, stopping at the comma, semicolon or
+// closing bracket that ends it AT DEPTH ZERO. A flat scan to the next comma or paren truncates
+// `lanes.includes(k) ? '1' : '0'` into `lanes.includes(k`, which is how the first version of the
+// rule reported seven ternaries that resolve to 0 and 1.
+function opExpr(src, i) {
+  let depth = 0;
+  for (let j = i; j < src.length; j++) {
+    const c = src[j];
+    if ('([{'.includes(c)) depth++;
+    else if (')]}'.includes(c)) { if (depth === 0) return src.slice(i, j).trim(); depth--; }
+    else if (depth === 0 && (c === ',' || c === ';' || c === '\n')) return src.slice(i, j).trim();
+  }
+  return src.slice(i).trim();
+}
+
+// The whole catalog is on the shared kit, so the whole catalog is held to the canon. The list
+// comes from data.js rather than a name regex over a directory listing: a regex of the shape
+// /^(workloads|cluster|network|storage)-.*\.js$/ matches nothing once cards sit in subfolders
+// (a directory name has no '.js'), and it would also start matching a kit that moved in beside
+// them. `base` stays the bare filename because every message below and every ALLOW_EXPLICIT_DUR
+// key is written in terms of it. cards() itself refuses to return a partial catalog.
+const files = await cards();
 
 // ---- report-only rules ----
 // A new rule prints but does not fail, so the gate stays a signal while its queue drains.
@@ -60,12 +81,61 @@ const ENFORCED = new Set([
   'R-rawpulse',
   // Queue drained: matching a tag to its ball by their shared points array cut 33 findings to 0.
   'R-ridinglabel',
-  // Empty on arrival: all four kits re-export the same 26 names today.
+  // Empty on arrival: all four kits re-export the same list. The SIZE of that list is deliberately
+  // not written down here or anywhere else, because five places once named three different numbers
+  // and this rule compares the kits only to each other. It is the source of truth (../CANON.md S-22).
   'R-kitparity',
+  // Queue drained by the B2 text pass, and the band was widened on 2026-07-26 to 400-470.
+  'R-desc',
+  // Queue drained: 44 dashes replaced across the agreed lint area (scheme/ plus the named cli/
+  // and root files). the design records (`CARDS.md`, `INTERNALS.md`) are deliberately outside that area, see the note below.
+  'R-dash',
+  'R-srclabel',
+  'R-srcdup',
+  // Queue drained by the R4 fade-phase pass, and the rule was rewritten to judge the EXPRESSION
+  // rather than the number, so a named constant can no longer smuggle a shade past it.
+  'R-opacity',
+  // Queue drained by the R5 cluster rebuild: all 108 cards are on '0 0 1200 640' now, so a
+  // shifted camera can only ever be a regression.
+  'R-viewbox',
+  // Enforced on arrival: it states the convention that replaced data.js's `module` field, and it
+  // was clean the moment the field was deleted. Anything it finds is a card the browser cannot
+  // import or a file nothing reads.
+  'R-modulepath',
+  // Enforced on arrival: 108 cards, 108 posters, an exact bijection the day the map was split.
+  'R-poster',
+  // The card skeleton, ../CANON.md S-01 to S-12, which nothing checked until it landed here. It
+  // prints a CENSUS, so a refactor of the skeleton is accepted against numbers, not "0 findings".
+  'R-skeleton',
 ]);
 const advisories = [];
 const violations = [];
 const report = (rule, msg) => (ENFORCED.has(rule) ? violations : advisories).push(`[${rule}] ${msg}`);
+
+// R-skeleton's census. Printed every run whether or not anything is wrong, because the acceptance
+// criterion for a skeleton refactor is these numbers moving the way the plan says they will.
+const skel = {
+  scenes: 0, ctors: 0, resets: 0, inits: 0,
+  resetSteps: 0,
+  enters: 0, prologues: 0, canvasResets: 0, clearWiresCalls: 0,
+};
+
+// Bodies of every `enter(s)` / `enter(s, ctx)` in a card, by bracket matching rather than by regex:
+// a step whose first statements are reordered has to be COUNTED, not skipped.
+function enterBodies(code) {
+  const out = [];
+  for (const m of code.matchAll(/enter\(s(?:,\s*ctx)?\)\s*\{/g)) {
+    let d = 1, j = m.index + m[0].length;
+    const start = j;
+    while (d && j < code.length) {
+      if (code[j] === '{') d++;
+      else if (code[j] === '}') d--;
+      j++;
+    }
+    out.push(code.slice(start, j - 1));
+  }
+  return out;
+}
 
 // The two dash characters are built from their code points on purpose: writing either
 // one literally would make this file a violation of the rule it enforces.
@@ -73,48 +143,14 @@ const EM_DASH = String.fromCharCode(0x2014);
 const EN_DASH = String.fromCharCode(0x2013);
 const DASH_RE = new RegExp(`[${EM_DASH}${EN_DASH}]`, 'g');
 const DASH_NAME = { [EM_DASH]: 'em-dash', [EN_DASH]: 'en-dash' };
-const OPACITY_VOCAB = new Set(['1', '0.8', '0.55', '0.4', '0.35', '0.3']);
 const CANON_VIEWBOX = '0 0 1200 640';
 
-// Blank comments out, keeping byte offsets so line numbers stay right. Load-bearing: this
-// project's prose names the very things the rules hunt for. Strings are kept, labels live there.
-function stripComments(src) {
-  let out = '';
-  // 0 code, 1 line comment, 2 block comment, 3 single quote, 4 double quote, 5 template, 6 regex
-  let mode = 0;
-  // A regex literal can hold `//` (a URL pattern), which read as a comment start and blanked the
-  // rest of that line for every code rule. `prev` tells a literal from a division operator.
-  let prev = '';
-  for (let i = 0; i < src.length;) {
-    const c = src[i], c2 = src[i + 1];
-    if (mode === 0) {
-      if (c === '/' && c2 === '/') { mode = 1; out += '  '; i += 2; continue; }
-      if (c === '/' && c2 === '*') { mode = 2; out += '  '; i += 2; continue; }
-      if (c === '/' && !'})]'.includes(prev) && !/[\w$]/.test(prev)) { mode = 6; out += c; i++; continue; }
-      if (c === "'") mode = 3; else if (c === '"') mode = 4; else if (c === '`') mode = 5;
-      if (!/\s/.test(c)) prev = c;
-      out += c; i++; continue;
-    }
-    if (mode === 6) {
-      if (c === '\\') { out += c + (c2 === undefined ? '' : c2); i += 2; continue; }
-      if (c === '/') { mode = 0; prev = c; }
-      if (c === '\n') mode = 0;                 // unterminated: bail rather than eat the file
-      out += c; i++; continue;
-    }
-    if (mode === 1) { if (c === '\n') { mode = 0; out += c; } else out += ' '; i++; continue; }
-    if (mode === 2) {
-      if (c === '*' && c2 === '/') { mode = 0; out += '  '; i += 2; continue; }
-      out += (c === '\n' ? c : ' '); i++; continue;
-    }
-    if (c === '\\') { out += c + (c2 === undefined ? '' : c2); i += 2; continue; }
-    if ((mode === 3 && c === "'") || (mode === 4 && c === '"') || (mode === 5 && c === '`')) mode = 0;
-    out += c; i++;
-  }
-  return out;
-}
+// stripComments (imported above) blanks comments keeping byte offsets, so line numbers stay right.
+// Load-bearing: this project's prose names the very things the rules hunt for. Strings are kept,
+// labels live there.
 
-for (const f of files) {
-  const src = await readFile(join(SCHEMES, f), 'utf8');
+for (const { base: f, path } of files) {
+  const src = await readFile(path, 'utf8');
   // Rules about CODE read `code`; rules about the whole file (R-dash) read `src`.
   const code = stripComments(src);
   const lineAt = idx => src.slice(0, idx).split('\n').length;
@@ -153,9 +189,18 @@ for (const f of files) {
 
   // 4. canonical viewBox. A shifted camera is how an off-centre composition gets hidden
   //    instead of fixed, and it silently rescales the card against its siblings.
+  //
+  //    THE RULE REQUIRES A MATCH RATHER THAN CHECKING ONE IF IT FINDS IT. Until 2026-08-06 it
+  //    matched a `viewBox:` literal and did nothing when there was none, so hoisting the root svg
+  //    into a helper would have retired the rule permanently at exit 0. Now a card has to either
+  //    build its root through diagramRoot() or spell the canon viewBox itself, and anything else is
+  //    a finding.
   const vb = code.match(/viewBox:\s*'([^']+)'/);
+  const viaHelper = /\bdiagramRoot\s*\(/.test(code);
   if (vb && vb[1] !== CANON_VIEWBOX) {
     report('R-viewbox', `${f}:${lineAt(vb.index)}  viewBox '${vb[1]}' (canon is '${CANON_VIEWBOX}'; re-centre the content, do not move the camera)`);
+  } else if (!vb && !viaHelper) {
+    report('R-viewbox', `${f}  builds its root svg neither through diagramRoot() nor with a literal viewBox, so nothing pins this card's camera`);
   }
 
   // 5. a tag must ride with its ball's easing. Tag and ball share one points array, so look that
@@ -195,30 +240,77 @@ for (const f of files) {
     report('R-rawpulse', `${f}:${lineAt(m3.index)}  direct pulse() (blocks never pulse; pods pulse via the kit's pulsePod)`);
   }
 
-  // 7. element opacity must come from the OPACITY vocabulary. Report-only until the fade-phase
-  //    vocabulary is settled: the off-vocabulary values are the evidence for what it needs.
-  const op = /(?<![-\w])opacity\s*[:=]\s*'?(0?\.\d+|0|1)'?/g;
+  // 7. element opacity reads the EXPRESSION, not the number. A card writes a bare 0 or 1 (an
+  //    element is drawn or it is not) and takes every shade in between from OPACITY. Judging the
+  //    number was the old rule's flaw: it blessed a value that happened to match while staying
+  //    blind to `const GONE = 0.1`, which is where most of the drift lived.
+  //    What it still does NOT catch: the bare-identifier guard below skips ANY name as an assumed
+  //    helper parameter, so a module-level `const GONE = 0.1; ... opacity: GONE` passes silently,
+  //    and so does any shade reaching an element through a parameter. Only check-opacity, which
+  //    resolves both in the browser, closes that. Do not read a green R-opacity as a clean card.
+  const op = /(?<![-\w])opacity\s*[:=]\s*/g;
   let m4;
   while ((m4 = op.exec(code))) {
-    const v = String(parseFloat(m4[1]));
-    if (v !== '0' && !OPACITY_VOCAB.has(v)) {
-      report('R-opacity', `${f}:${lineAt(m4.index)}  literal opacity ${v} outside the OPACITY vocabulary`);
-    }
+    const expr = opExpr(code, m4.index + m4[0].length);
+    if (/^'?[01](\.0+)?'?$/.test(expr)) continue;        // 0 and 1 are "not drawn" / "drawn"
+    if (/\bOPACITY\./.test(expr)) continue;             // straight out of the vocabulary
+    if (/^[A-Za-z_$][\w$.[\]]*$/.test(expr) && !/^'/.test(expr)) continue;  // a parameter: check-opacity resolves it
+    if (/^String\([A-Za-z_$][\w$.[\]()]*\)$/.test(expr)) continue;   // same, wrapped
+    if (!/\d*\.\d+/.test(expr)) continue;              // no shade in it at all: 0 / 1 / a ternary over them
+    report('R-opacity', `${f}:${lineAt(m4.index)}  opacity ${expr} is neither 0, 1, nor an OPACITY.* shade`);
+  }
+
+  // ---- R-skeleton ----
+  // The module skeleton ../CANON.md specifies as S-01 to S-12, which nothing ever checked. It
+  // reads the comment-stripped copy, so a card that only TALKS about class Scene is not a finding.
+  // Every count it takes feeds the census below: the point is that a refactor of the skeleton is
+  // accepted against a number, not against an empty finding list.
+  const once = (re, what) => {
+    const n = (code.match(re) || []).length;
+    if (n !== 1) report('R-skeleton', `${f}  ${what}: ${n} (exactly 1)`);
+    return n;
+  };
+  skel.scenes += once(/^class Scene \{$/m, 'class Scene');
+  skel.ctors += once(/^  constructor\(host[^)]*\) \{/m, 'constructor(host)');
+  skel.resets += once(/^  reset\(\) \{ this\.build\(\); \}$/m, 'reset() { this.build(); }');
+  skel.inits += once(/^export const init = makeInit\(Scene, STEPS, \{ posterFirst: true \}\);$/m, 'makeInit export');
+
+  // The step reset lives ONCE per card, in resetStep, and every enter() opens by calling it. The
+  // three lines it holds must stay in this order, because it is the order the 650 steps ran them in
+  // before the fold: canvas, then the card's own highlight clearing, then the wires.
+  skel.resetSteps += once(/^function resetStep\(s\) \{/m, 'function resetStep(s)');
+  if (/^function clearHL\(s\) \{/m.test(code)) report('R-skeleton', `${f}  still declares clearHL(s), which the fold replaced`);
+  if (/^function resetStep\(s\) \{\n  s\.refs\.packetLayer\.replaceChildren\(\);\n/m.test(code)) skel.canvasResets++;
+  else report('R-skeleton', `${f}  resetStep(s) does not open with s.refs.packetLayer.replaceChildren()`);
+  if (/\n  clearWires\(s\);\n\}/.test(code)) skel.clearWiresCalls++;
+  else report('R-skeleton', `${f}  resetStep(s) does not end with clearWires(s)`);
+
+  // Per step. enterBodies walks brackets rather than matching a fixed shape, so a step that opens
+  // with something else is COUNTED as a finding instead of being missed.
+  for (const body of enterBodies(code)) {
+    skel.enters++;
+    const first = (body.split('\n').map(l => l.trim()).filter(Boolean)[0]) || '';
+    if (/^resetStep\(s\);/.test(first)) skel.prologues++;
+    else report('R-skeleton', `${f}  an enter() does not open with resetStep(s)`);
   }
 }
 
 // ---- R-kitparity ----
 // The four kits re-export the same list on purpose (it documents the boundary), so it must not
-// drift. Why not `export *`: scheme/CLAUDE.md, Card construction standard.
+// drift. Why not `export *`: ../CANON.md S-24.
 {
-  const KITS = ['workloads-kit.js', 'cluster-kit.js', 'network-kit.js', 'storage-kit.js'];
-  const LIB = join(__dirname, '..', 'js', 'lib');
+  // Each kit lives beside the cards it serves, so the path carries its category. The specifier in
+  // the match below is left open ('[^']*scheme-kit.js') rather than pinned to './scheme-kit.js':
+  // pinning it means the rule stops finding the re-export block the moment a kit changes depth,
+  // and reports "no re-export block" for all four, which reads as drift rather than as a moved file.
+  const CATS = ['workloads', 'cluster', 'network', 'storage'];
   const sets = new Map();
-  for (const k of KITS) {
+  for (const c of CATS) {
+    const k = `${c}-kit.js`;
     let src;
-    try { src = await readFile(join(LIB, k), 'utf8'); }
+    try { src = await readFile(join(__dirname, '..', 'js', 'schemes', c, k), 'utf8'); }
     catch (_) { report('R-kitparity', `${k}: missing`); continue; }
-    const m = stripComments(src).match(/export \{([^}]*)\} from '\.\/scheme-kit\.js';/);
+    const m = stripComments(src).match(/export \{([^}]*)\} from '[^']*scheme-kit\.js';/);
     if (!m) { report('R-kitparity', `${k}: no re-export block from scheme-kit.js`); continue; }
     sets.set(k, new Set(m[1].split(',').map(n => n.trim()).filter(Boolean)));
   }
@@ -235,18 +327,140 @@ for (const f of files) {
   }
 }
 
+// ---- R-modulepath ----
+// data.js no longer stores a path. app.js imports `./schemes/${category}/${id}.js` and catalog.mjs
+// builds the same string for every linter, so the convention IS the wiring and has to be checked
+// rather than assumed. Two halves, and only the first one is obvious:
+//   catalog -> disk  every catalogued card resolves to a file whose id starts with its category.
+//                    The id prefix is not decoration: it is the folder name. This can genuinely
+//                    break, and once did, when workloads-pod-priority-preemption became
+//                    cluster-pod-priority-preemption.
+//   disk -> catalog  no .js under a category folder that the catalog does not claim. This half
+//                    used to come free: every check walked the directory, so a stray card was
+//                    linted like any other and check-notes said NO NOTE about it. Now that the
+//                    walkers read data.js, a file nobody lists is a file nobody reads, and the
+//                    grid never renders it either. Without this line it would be invisible.
+// The non-card modules a category folder may hold are named by folderModules in catalog.mjs.
+{
+  const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
+  const SCHEMES_DIR = join(__dirname, '..', 'js', 'schemes');
+  const claimed = new Set();
+  for (const s of SCHEMES) {
+    // A leftover `module` field means this data.js predates the convention, which in practice means
+    // a revert or a bad merge put an old copy back. Worth a line of its own because the field is
+    // now read by nobody: app.js derives the path and so does catalog.mjs, so the whole catalog
+    // can quietly regain a dead field and every check in this gate stays green over it. That is
+    // not hypothetical, it happened once during the refactor that removed the field.
+    if (s.module !== undefined) report('R-modulepath', `${s.id}  still carries a module field ("${s.module}"), which nothing reads: the path is derived from category + id`);
+    const prefix = s.id.split('-')[0];
+    if (prefix !== s.category) {
+      report('R-modulepath', `${s.id}  id starts with "${prefix}" but category is "${s.category}", so app.js would import js/schemes/${s.category}/${s.id}.js`);
+      continue;
+    }
+    claimed.add(`${s.category}/${s.id}.js`);
+  }
+  for (const c of [...new Set(SCHEMES.map(s => s.category))].sort()) {
+    const allowed = folderModules(c);
+    let entries;
+    try { entries = await readdir(join(SCHEMES_DIR, c)); }
+    catch (_) { report('R-modulepath', `${c}: no such folder, but ${SCHEMES.filter(s => s.category === c).length} card(s) claim it`); continue; }
+    for (const n of entries) {
+      if (!n.endsWith('.js') || allowed.has(n)) continue;
+      if (!claimed.has(`${c}/${n}`)) report('R-modulepath', `js/schemes/${c}/${n}  is on disk but no SCHEMES entry claims it (nothing lints it and the grid never shows it)`);
+    }
+  }
+}
+
+// ---- R-poster ----
+// Every card has a poster and every poster has a card. Cheap, and nothing else covers it:
+// renderPoster resolves `POSTERS[scheme.id] || FALLBACK_POSTER`, so a card whose poster went
+// missing draws the generic placeholder instead of failing. The grid still renders 108 cards,
+// smoke-all still passes, and both oracles look inside the DIALOG, never at the grid thumbnail.
+// A dropped key is invisible end to end, which is precisely the shape of defect worth a rule.
+{
+  const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
+  const { POSTERS } = await import(pathToFileURL(join(__dirname, '..', 'js', 'posters.js')).href);
+  const ids = new Set(SCHEMES.map(s => s.id));
+  for (const s of SCHEMES) if (!(s.id in POSTERS)) report('R-poster', `${s.id}  has no poster, so the grid draws FALLBACK_POSTER for it`);
+  for (const k of Object.keys(POSTERS)) if (!ids.has(k)) report('R-poster', `${k}  is a poster with no card, so nothing ever renders it`);
+}
+
+// ---- R-desc ----
+// One catalog-wide band for the card description. Target 410-460 characters, with 10 characters of
+// slack either side when a description genuinely will not fit, so the hard range is 400-470.
+// Widened from 400-420 on 2026-07-26: that ceiling was forcing qualifiers out of descriptions and
+// was directly responsible for 29 technical defects, because a dropped condition leaves an absolute
+// standing. Sentences stay at 3 with a tolerance of one.
+{
+  const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
+  for (const s of SCHEMES) {
+    const len = s.desc.length;
+    const n = sentences(s.desc).length;
+    if (len < 400 || len > 470) report('R-desc', `${s.id}  desc is ${len} chars (hard range is 400-470, target 410-460)`);
+    if (n < 2 || n > 4) report('R-desc', `${s.id}  desc is ${n} sentences (3, tolerance one)`);
+  }
+}
+
+// ---- R-srclabel / R-srcdup ----
+// Two invariants of the sources layer, both read only data.js so they stay deterministic and can
+// live in the gate. Written after a hand pass found four defects the label-vs-heading heuristic
+// could never state: that heuristic gave 66 findings out of 194 and is a report, these are rules.
+//   R-srclabel  one URL carries one label across the whole catalog. It caught
+//               pod-lifecycle/#pod-termination spelled three ways, one of them naming the page
+//               while pointing into a section.
+//   R-srcdup    no card may show two sources under the same label, which would render as
+//               `Sources: Gateway API - Gateway API` in the dialog footer.
+{
+  const { SCHEMES } = await import(pathToFileURL(join(__dirname, '..', 'js', 'data.js')).href);
+  const byHref = new Map();
+  for (const sc of SCHEMES) {
+    const seen = new Set();
+    for (const src of sc.sources || []) {
+      if (seen.has(src.label)) report('R-srcdup', `${sc.id}  two sources share the label "${src.label}"`);
+      seen.add(src.label);
+      if (!byHref.has(src.href)) byHref.set(src.href, new Map());
+      byHref.get(src.href).set(src.label, sc.id);
+    }
+  }
+  for (const [href, labels] of byHref) {
+    if (labels.size < 2) continue;
+    const shown = [...labels].map(([l, id]) => `"${l}" (${id})`).join(' vs ');
+    report('R-srclabel', `${href}  is labelled ${labels.size} ways: ${shown}`);
+  }
+}
+
 // ---- R-dash beyond the cards ----
 // Scope agreed with the author: scheme/ plus the cli/ and root files listed below, nothing else.
 const ROOT = join(__dirname, '..', '..');
 const dashTargets = [
   'scheme/js/data.js', 'scheme/js/app.js', 'scheme/js/posters.js', 'scheme/js/contacts.js',
   'scheme/index.html',
+  // CANON.md is in scope where the design records are not: a record describes one decision, the
+  // canon states the rules, and a rule that quotes a dash teaches the dash.
+  'scheme/CANON.md',
   'cli/js/data.js', 'cli/js/app.js', 'cli/css/styles.css',
   'index.html', 'README.md',
 ];
 for (const dir of ['scheme/js/lib', 'scheme/css']) {
   for (const n of await readdir(join(ROOT, dir))) {
     if (/\.(js|css)$/.test(n)) dashTargets.push(`${dir}/${n}`);
+  }
+}
+// Everything in a category folder that is NOT a card: the kit, and the manifest holding that
+// category's descriptions. Cards themselves are dash-checked in the main loop above, so they are
+// excluded here rather than scanned twice.
+//
+// Walked rather than listed, and that is the whole point. Twice during one refactor a file moved
+// into these folders and silently left the dash scan behind: first the four kits when they left
+// js/lib, then all 108 card descriptions when they left js/data.js for the per-category manifests.
+// Neither produced a finding or an error, because this list is built from whatever a directory
+// happens to hold, and the read below swallows a path that does not resolve. A walk cannot forget.
+{
+  const cardBases = new Set(files.map(f => f.base));
+  for (const c of [...new Set(files.map(f => f.category))].sort()) {
+    for (const n of await readdir(join(ROOT, 'scheme/js/schemes', c))) {
+      if (/\.js$/.test(n) && !cardBases.has(n)) dashTargets.push(`scheme/js/schemes/${c}/${n}`);
+    }
   }
 }
 for (const rel of dashTargets.sort()) {
@@ -269,6 +483,15 @@ if (advisories.length) {
   console.log('  (CANON_VERBOSE=1 lists every finding; a rule moves into ENFORCED once its list is empty)');
   if (process.env.CANON_VERBOSE) for (const a of advisories) console.log('    ' + a);
 }
+
+// The skeleton census, printed on every run including a failing one: it is the number a refactor is
+// accepted against. `inert clearWires` is the count of cards whose refs.wires is absent or empty, so
+// the call is a no-op there and its absence from a prologue costs nothing on screen.
+console.log(
+  `skeleton census: ${skel.scenes} Scene, ${skel.ctors} ctor, ${skel.resets} reset, ${skel.inits} makeInit, ` +
+  `${skel.resetSteps} resetStep\n` +
+  `  steps: ${skel.enters} enter(), ${skel.prologues} opening with resetStep(s)\n` +
+  `  resetStep bodies: ${skel.canvasResets} open with the canvas clear, ${skel.clearWiresCalls} end with clearWires`);
 
 if (violations.length) {
   console.error(`canon check FAILED: ${violations.length} violation(s):`);

@@ -1,7 +1,7 @@
 // check-geometry.mjs: geometry lint in viewBox units over every step. Reports THROUGH, DIAGONAL,
-// OFFEDGE, CENTRE and CENTRE-LOW. Not in the gate yet, see scheme/CLAUDE.md (Dev tools).
-// node check-geometry.mjs <id> [<id> ...]
-import { launch, setInspect, stepCount, DEFAULT_BASE } from './_shared.mjs';
+// OFFEDGE, CENTRE and CENTRE-LOW. The rules are ../CANON.md L-09 to L-17.
+// node check-geometry.mjs [--rules=a,b] [<id> ...]   ids => verbose; none => whole catalog, terse
+import { launch, setInspect, stepCount, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 
 const TOL = 6;          // units of slack on a midpoint or a centre
 const EDGE_TOL = 2;     // how close a point must be to a face to count as "on" it
@@ -12,12 +12,34 @@ const EDGE_TOL = 2;     // how close a point must be to a face to count as "on" 
 const TWIN_TOL = 2;
 const FACE_FRAC = 0.18;
 
-const ids = process.argv.slice(2);
-if (!ids.length) { console.error('usage: node check-geometry.mjs <id> [<id> ...]'); process.exit(1); }
+// Per-rule switch. DIAGONAL and THROUGH are at zero and can guard the gate today, while CENTRE,
+// CENTRE-LOW and OFFEDGE are the open R5 queue and would make the gate red for nobody's work.
+// A rule not in the set is not merely unreported: it is never judged, so the run is cheap too.
+const ALL_RULES = ['DIAGONAL', 'THROUGH', 'OFFEDGE', 'CENTRE', 'CENTRE-LOW', 'OCCLUDED'];
+const args = process.argv.slice(2);
+const ruleArg = args.find(a => a.startsWith('--rules='));
+const rules = new Set(ruleArg
+  ? ruleArg.slice('--rules='.length).split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
+  : ALL_RULES);
+const unknown = [...rules].filter(r => !ALL_RULES.includes(r));
+if (unknown.length) { console.error(`unknown rule(s): ${unknown.join(', ')} (have: ${ALL_RULES.join(', ')})`); process.exit(2); }
+const on = r => rules.has(r);
+
+const argIds = args.filter(a => !a.startsWith('--'));
+const terse = argIds.length === 0;
 
 const browser = await launch();
-const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+// The narration panel is HTML at a fraction of the dialog width while the diagram is an SVG that
+// scales with it, so its extent IN VIEWBOX UNITS changes with the viewport, and not monotonically:
+// a wider dialog gives a WIDER panel that wraps into FEWER lines, so it is shorter. 1600 gives
+// x<=291 y<=212 where 1280 gives x<=344 y<=159 on the same card. Occlusion is therefore judged
+// against every viewport a reader might use, not against one.
+const VIEWPORTS = [{ width: 1600, height: 1000 }, { width: 1280, height: 860 }, { width: 1100, height: 800 }];
+const page = await browser.newPage({ viewport: VIEWPORTS[0] });
 await page.addInitScript(setInspect, 'expose');
+
+const ids = terse ? await discoverIds(page) : argIds;
+if (!ids.length) { console.error('NO CARDS RENDERED: posters/grid broken'); process.exit(1); }
 
 const probe = () => {
   const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
@@ -165,6 +187,7 @@ for (const id of ids) {
   const faceHits = new Map();
   const blockSeen = new Map();
   let ovRight = 0, ovBottom = 0;
+  const ovRects = [];
   for (let i = 0; i < total; i++) {
     await page.evaluate((n) => window.__schemeCtl.gotoStep(n), i);
     await page.waitForTimeout(50);
@@ -175,11 +198,11 @@ for (const id of ids) {
       for (let k = 0; k + 1 < pts.length; k++) {
         const a = pts[k], b = pts[k + 1];
         const dx = Math.abs(a[0] - b[0]), dy = Math.abs(a[1] - b[1]);
-        if (dx > 0.01 && dy > 0.01) {
+        if (on('DIAGONAL') && dx > 0.01 && dy > 0.01) {
           const key = `DIAGONAL ${a} -> ${b}`;
           if (!seen.has(key)) { seen.add(key); issues.push(`  DIAGONAL  segment (${a}) -> (${b}) is neither horizontal nor vertical`); }
         }
-        for (const r of data.blocks) {
+        for (const r of on('THROUGH') ? data.blocks : []) {
           if (r.isFrame) continue;
           if (!crosses(a, b, r, 3)) continue;
           const key = `THROUGH ${a}-${b} ${r.label}`;
@@ -188,7 +211,7 @@ for (const id of ids) {
       }
       // Endpoint-on-edge accumulation. Judged after every step has been walked, so a
       // lane pair split across steps is still recognised as a pair.
-      for (const p of [pts[0], pts[pts.length - 1]]) {
+      for (const p of on('OFFEDGE') ? [pts[0], pts[pts.length - 1]] : []) {
         for (const r of data.blocks) {
           const mx = r.x + r.w / 2, my = r.y + r.h / 2;
           const onV = (Math.abs(p[0] - r.x) < EDGE_TOL || Math.abs(p[0] - (r.x + r.w)) < EDGE_TOL) && p[1] > r.y - EDGE_TOL && p[1] < r.y + r.h + EDGE_TOL;
@@ -210,6 +233,7 @@ for (const id of ids) {
     if (data.overlay) {
       ovRight = Math.max(ovRight, data.overlay.right);
       ovBottom = Math.max(ovBottom, data.overlay.bottom);
+      ovRects.push({ right: data.overlay.right, bottom: data.overlay.bottom });
     }
     span[0] = Math.min(span[0], data.content[0]); span[1] = Math.max(span[1], data.content[1]);
     strip[0] = Math.min(strip[0], data.chips[0]); strip[1] = Math.max(strip[1], data.chips[1]);
@@ -217,7 +241,7 @@ for (const id of ids) {
 
   // OFFEDGE verdicts: an endpoint is a defect only if it is alone on its face. A
   // mirrored sibling (+d against -d) means the two are a deliberate lane pair.
-  for (const hits of faceHits.values()) {
+  for (const hits of on('OFFEDGE') ? faceHits.values() : []) {
     for (const h of hits) {
       const off = Math.abs(h.off);
       if (off <= TOL) continue;
@@ -235,16 +259,49 @@ for (const id of ids) {
     }
   }
 
+  if (on('OCCLUDED')) {
+    for (const vp of VIEWPORTS.slice(1)) {
+      await page.setViewportSize(vp);
+      for (let i = 0; i < total; i++) {
+        await page.evaluate((n) => window.__schemeCtl.gotoStep(n), i);
+        await page.waitForTimeout(30);
+        const d = await page.evaluate(probe);
+        if (d && d.overlay) ovRects.push({ right: d.overlay.right, bottom: d.overlay.bottom });
+      }
+    }
+    await page.setViewportSize(VIEWPORTS[0]);
+  }
+
+  // OCCLUDED: a block whose area lies under the narration panel is simply not on the card. The
+  // safe-zone rule exists to prevent exactly this and nothing had ever measured it, which is how
+  // cluster-scheduler-decision shipped with its Scheduler box hidden behind the panel. Judged on
+  // AREA, not on touching: a corner clipping the panel by a few units is not a lost block.
+  if (on('OCCLUDED') && ovRects.length) {
+    for (const b of blockSeen.values()) {
+      if (b.isFrame) continue;
+      let worst = 0, at = null;
+      for (const o of ovRects) {
+        const ox = Math.max(0, Math.min(b.x + b.w, o.right) - Math.max(b.x, 0));
+        const oy = Math.max(0, Math.min(b.y + b.h, o.bottom) - Math.max(b.y, 0));
+        const frac = (ox * oy) / (b.w * b.h);
+        if (frac > worst) { worst = frac; at = o; }
+      }
+      if (worst > 0.15) {
+        issues.push(`  OCCLUDED  "${b.label}" [${b.x.toFixed(0)}..${(b.x + b.w).toFixed(0)} x ${b.y.toFixed(0)}..${(b.y + b.h).toFixed(0)}] is ${(100 * worst).toFixed(0)}% under the narration panel at its worst (x<=${at.right.toFixed(0)}, y<=${at.bottom.toFixed(0)})`);
+      }
+    }
+  }
+
   // CENTRE verdicts.
   const cc = (span[0] + span[1]) / 2;
   const pc = (strip[0] + strip[1]) / 2;
   const ovNote = ovBottom ? ` [overlay covers x<=${ovRight.toFixed(0)}, y<=${ovBottom.toFixed(0)}]` : '';
-  if (Math.abs(pc - 600) > TOL) issues.push(`  CENTRE    chip strip spans ${strip[0].toFixed(0)}..${strip[1].toFixed(0)}, centre ${pc.toFixed(0)} (want 600)`);
-  if (Math.abs(cc - 600) > 40) issues.push(`  CENTRE    content spans ${span[0].toFixed(0)}..${span[1].toFixed(0)}, centre ${cc.toFixed(0)} (want ~600, margins ${span[0].toFixed(0)} / ${(1200 - span[1]).toFixed(0)})${ovNote}`);
+  if (on('CENTRE') && Math.abs(pc - 600) > TOL) issues.push(`  CENTRE    chip strip spans ${strip[0].toFixed(0)}..${strip[1].toFixed(0)}, centre ${pc.toFixed(0)} (want 600)`);
+  if (on('CENTRE') && Math.abs(cc - 600) > 40) issues.push(`  CENTRE    content spans ${span[0].toFixed(0)}..${span[1].toFixed(0)}, centre ${cc.toFixed(0)} (want ~600, margins ${span[0].toFixed(0)} / ${(1200 - span[1]).toFixed(0)})${ovNote}`);
 
   // CENTRE-LOW: content entirely BELOW the overlay has the full width free, so a gutter there is
   // not the safe-zone paying for itself. Separates reserving the band as an L from as a rectangle.
-  if (ovBottom) {
+  if (on('CENTRE-LOW') && ovBottom) {
     const low = [...blockSeen.values()].filter(b => b.y >= ovBottom && !b.isFrame);
     if (low.length >= 2) {
       const lo = Math.min(...low.map(b => b.x)), hi = Math.max(...low.map(b => b.x + b.w));
@@ -256,8 +313,9 @@ for (const id of ids) {
   }
 
   if (issues.length) { bad++; console.log(`\n${id}  ${issues.length} issue(s)`); issues.forEach(l => console.log(l)); }
-  else console.log(`\n${id}  clean`);
+  else if (!terse) console.log(`\n${id}  clean`);
 }
 
 await browser.close();
+if (terse && !bad) console.log(`geometry check OK: ${ids.length} cards clean on [${[...rules].join(', ')}]`);
 process.exit(bad ? 1 : 0);

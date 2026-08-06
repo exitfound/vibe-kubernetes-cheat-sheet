@@ -1,6 +1,6 @@
 # Kubernetes Reference
 
-A fast, searchable web reference for everyone who works with Kubernetes day to day: a command cheat sheet and a library of animated architecture diagrams. No login, no ads, no tracking, no install – open the page and use it.
+A fast, searchable web reference for everyone who works with Kubernetes day to day: a command cheat sheet and a library of animated architecture diagrams. No login, no ads, no tracking, no install, just open the page and use it.
 
 **Live at [kube.how](https://kube.how/)**
 
@@ -16,7 +16,7 @@ One static site made of three path-based sub-apps that share the same visual chr
 |---|---|---|
 | `/` | **Hub** | One-viewport landing page: two entry panels over an aurora background and a canvas packet graph |
 | `/cli/` | **Commands** | Searchable `kubectl` / Helm / Kustomize / K9s cheat sheet, 890 commands, copy + star |
-| `/scheme/` | **Schemes** | Grid of 103 animated SVG diagrams: click a card and a step-by-step animation explains the mechanism |
+| `/scheme/` | **Schemes** | Grid of 108 animated SVG diagrams: click a card and a step-by-step animation explains the mechanism |
 
 ---
 
@@ -47,12 +47,12 @@ One static site made of three path-based sub-apps that share the same visual chr
 
 ## Schemes (`/scheme/`)
 
-103 animated diagrams of how Kubernetes actually works internally. Each card opens a dialog that plays the mechanism step by step, with a narration panel explaining what moves and why.
+108 animated diagrams of how Kubernetes actually works internally. Each card opens a dialog that plays the mechanism step by step, with a narration panel explaining what moves and why.
 
 | Category | Cards | Subcategories |
 |---|---|---|
-| **Cluster** | 15 | Control Plane, Worker Nodes |
-| **Workloads** | 20 | Pods Bootstrap, Pods Lifecycle, Controllers |
+| **Cluster** | 21 | Control Plane, Node Runtime, Node Lifecycle |
+| **Workloads** | 19 | Pods Bootstrap, Pods Lifecycle, Controllers |
 | **Networking** | 37 | Network Foundations, Pod Networking, Services & Endpoints, External Traffic, DNS & Service Discovery |
 | **Storage** | 31 | Volume Foundations, Volumes & Claims, CSI & Mount Path, Stateful Data |
 
@@ -74,33 +74,35 @@ Diagrams are hand-built SVG driven by the Web Animations API inside a native `<d
 
 The project is intentionally dependency-free. No framework, no bundler, no npm at runtime.
 
-- **HTML / CSS / JavaScript** – plain ES modules loaded directly by the browser, no build step
-- **SVG + Web Animations API** – all diagram motion, no animation library
-- **Google Fonts** – Space Grotesk for the UI, JetBrains Mono for commands
-- **nginx** – web server inside the Docker image, with gzip, security headers, and static asset caching
-- **GitHub Actions** – automatic deployment to GitHub Pages on every push to `main`, plus a tagged release artifact
-- **GitHub Pages + Cloudflare** – hosting with the custom domain `kube.how`, full SSL, and edge caching
+- **HTML / CSS / JavaScript**: plain ES modules loaded directly by the browser, no build step
+- **SVG + Web Animations API**: all diagram motion, no animation library
+- **Google Fonts**: Space Grotesk for the UI, JetBrains Mono for commands
+- **nginx**: web server inside the Docker image, with gzip, security headers, and static asset caching
+- **GitHub Actions**: automatic deployment to GitHub Pages on every push to `main`, plus a tagged release artifact
+- **GitHub Pages + Cloudflare**: hosting with the custom domain `kube.how`, full SSL, and edge caching
 
-Command content lives in `cli/js/data.js` as one structured array. Adding or editing commands means touching that one file only: no templates, no CMS. Scheme metadata lives in `scheme/js/data.js`, and each diagram is its own module under `scheme/js/schemes/`.
+Command content lives in `cli/js/data.js` as one structured array. Adding or editing commands means touching that one file only: no templates, no CMS. Scheme content is grouped by category: `scheme/js/schemes/<category>/` holds that category's card modules, its catalogue, its grid posters and its drawing kit, so adding a diagram is a one-folder operation.
 
-Contacts and sponsor information lives in `cli/js/contacts.js`. That file is optional: delete it to ship a build without the Contacts and Sponsor header buttons, the rest of the app is unaffected.
+Contacts and sponsor information lives in `cli/js/contacts.js`, with a second copy in `scheme/js/contacts.js` so each path prefix stays self-contained. Both are optional: delete a copy to ship without the Contacts and Sponsor header buttons on the pages that import it (`cli/js/contacts.js` covers the hub and Commands, `scheme/js/contacts.js` covers Schemes), and the rest of the app is unaffected.
 
-`scheme/tools/` is a Node dev harness (Playwright-based lint, smoke test, and animation-inspection tools). It is dev-only and never shipped.
+`scheme/tools/` is a Node dev harness: source lints, a terminology and casing dictionary, a link checker, a smoke test that plays every step of every diagram, and animation-inspection tools. `npm run gate` chains them and has to be green before a change lands. It is dev-only and never shipped.
 
 ---
 
 ## Repository layout
 
 ```
-index.html          hub landing page, self-contained
-cli/                commands sub-app (data.js, app.js, styles.css)
-scheme/             schemes sub-app
-  js/data.js        card metadata
-  js/schemes/       one module per diagram
-  js/lib/           shared kits and primitives
-  tools/            dev-only test harness, not shipped
-images/             og image
-configs/nginx.conf  Docker-only nginx config
+index.html               hub landing page, self-contained
+cli/                     commands sub-app (data.js, app.js, styles.css)
+scheme/                  schemes sub-app
+  js/app.js              router, grid, dialog lifecycle
+  js/data.js             barrel: category registry + the four card manifests
+  js/lib/                shared primitives, timeline, animation tokens
+  js/schemes/<category>/ one folder per category: its cards, kit, catalogue, posters, design record
+  css/                   tokens, layout, SVG diagram classes
+  tools/                 dev-only test harness, not shipped
+images/                  og image
+configs/nginx.conf       Docker-only nginx config
 ```
 
 ---
@@ -143,11 +145,11 @@ docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet
 
 Command edits go in `cli/js/data.js`: each section is a plain JS object with a `groups` array, each group has a `title`, `desc`, and `cmds` list. Commands are sorted automatically on render, so order inside the array does not matter.
 
-New diagrams need an entry in `scheme/js/data.js` and a module in `scheme/js/schemes/` exporting `init(root, callbacks)`. The existing cards in a category are the reference: build on that category's kit in `scheme/js/lib/` rather than starting from scratch.
+New diagrams live entirely inside one category folder: a module `scheme/js/schemes/<category>/<id>.js` exporting `init(root, callbacks)`, an entry in that folder's `cards.js`, and a grid poster in its `posters.js`. The existing cards in the category are the reference: build on that folder's `<category>-kit.js` rather than starting from scratch.
 
-To update contacts or sponsor links, edit `cli/js/contacts.js`. To remove the header buttons entirely, delete that file.
+To update contacts or sponsor links, edit `cli/js/contacts.js` and its `scheme/js/contacts.js` counterpart. To remove the header buttons entirely, delete both.
 
-If you spot a wrong flag, a missing command, or a broken description – pull requests are welcome.
+If you spot a wrong flag, a missing command, or a broken description, pull requests are welcome.
 
 ---
 

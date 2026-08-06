@@ -1,3 +1,4 @@
+// Design notes: scheme/INTERNALS.md#schemejslibprimitivesjs
 import { g, rect, circle, ellipse, path, text, defs, marker } from './svg.js';
 
 export function arrowDefs() {
@@ -17,12 +18,14 @@ export function arrowDefs() {
 export function box({ x = 0, y = 0, w = 100, h = 60, rx = 6, label = '', sublabel = '', cls = '', role = '' } = {}) {
   const group = g({ class: ('scheme-box ' + cls).trim(), 'data-role': role || null, transform: `translate(${x},${y})` });
   group.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: w, height: h, rx, ry: rx }));
+  // Optically centred, measured rather than eyeballed: the ink of a label+sublabel pair sat 1.22
+  // units below the box centre and a lone label 0.67, at EVERY height from 38.75 to 81.38 (2026-08-04).
   if (label) {
-    const ly = sublabel ? h / 2 - 2 : h / 2 + 5;
+    const ly = sublabel ? h / 2 - 3.22 : h / 2 + 4.33;
     group.appendChild(text({ class: 'scheme-box-label', x: w / 2, y: ly, 'text-anchor': 'middle' }, [label]));
   }
   if (sublabel) {
-    group.appendChild(text({ class: 'scheme-box-sublabel', x: w / 2, y: h / 2 + 14, 'text-anchor': 'middle' }, [sublabel]));
+    group.appendChild(text({ class: 'scheme-box-sublabel', x: w / 2, y: h / 2 + 12.78, 'text-anchor': 'middle' }, [sublabel]));
   }
   return group;
 }
@@ -40,6 +43,17 @@ export function pod({ x, y, w = 92, h = 60, label = 'Pod', sublabel = '', contai
   for (let i = 0; i < containers; i++) {
     group.appendChild(rect({ class: 'scheme-pod-container', x: startX + i * (cw + gap), y: 24, width: cw, height: ch, rx: 2 }));
   }
+  return group;
+}
+
+// A Pod drawn as a SHELL: pod() with its rect washed to a near-transparent fill. That fill stays
+// INLINE, because a CSS class resolves differently against the .scheme-pod-rect rules.
+export const POD_SHELL_FILL = 'rgba(255, 255, 255, 0.03)';
+
+export function podShell(opts) {
+  const group = pod(opts);
+  const r = group.querySelector('.scheme-pod-rect');
+  if (r) r.style.fill = POD_SHELL_FILL;
   return group;
 }
 
@@ -64,22 +78,14 @@ export function cylinder({ x, y, w = 80, h = 60, label = '', role = 'storage', c
   return group;
 }
 
+// A two-point pathArrow. It kept its own copy of the marker ladder until 2026-08-06, and the copy
+// is exactly how a role could come to mean one thing on a straight lane and another on an elbow.
 export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, role = '', cls = '' } = {}) {
-  const dashAttr = dashed ? '5 5' : null;
-  let markerId = dim ? 'arrowhead-dim' : 'arrowhead';
-  if (role === 'network')  markerId = 'arrowhead-net';
-  if (role === 'storage')  markerId = 'arrowhead-storage';
-  if (role === 'cluster')  markerId = 'arrowhead-cluster';
-  const klass = ['scheme-arrow', dashed && 'scheme-arrow-dashed', dim && 'scheme-arrow-dim', role && `scheme-arrow-${role}`, cls].filter(Boolean).join(' ');
-  return path({
-    class: klass,
-    d: `M ${x1} ${y1} L ${x2} ${y2}`,
-    'stroke-dasharray': dashAttr,
-    'marker-end': `url(#${markerId})`,
-    fill: 'none',
-  });
+  return pathArrow({ points: [[x1, y1], [x2, y2]], dashed, dim, role, cls });
 }
 
+// role OUTRANKS dim on the marker, deliberately, and diagrams.css says the same about the stroke.
+// Why that is not the bug it looks like: scheme/INTERNALS.md#schemecssdiagramscss.
 export function pathArrow({ points = [], dashed = false, dim = false, role = '', cls = '' } = {}) {
   if (!points || points.length < 2) return null;
   const dashAttr = dashed ? '5 5' : null;
@@ -91,6 +97,7 @@ export function pathArrow({ points = [], dashed = false, dim = false, role = '',
   const d = points.map((p, i) => (i === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`)).join(' ');
   return path({
     class: klass,
+    'data-role': role || null,
     d,
     'stroke-dasharray': dashAttr,
     'marker-end': `url(#${markerId})`,

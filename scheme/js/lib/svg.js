@@ -1,3 +1,4 @@
+// Design notes: scheme/INTERNALS.md#schemejslibsvgjs
 const NS = 'http://www.w3.org/2000/svg';
 
 export function el(tag, attrs = {}, children = []) {

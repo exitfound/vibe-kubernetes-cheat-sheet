@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 // anim-dump.mjs: a card's motion AS DATA per step (target, props, dur/delay/easing, transforms
-// sampled at fixed progress, plus DOM facts). Analysis aid, not a gate. See scheme/CLAUDE.md.
+// sampled at fixed progress, plus DOM facts). Analysis aid, not a gate. See ./README.md.
 // node anim-dump.mjs <id> [step] [--samples=0,50,100] [--json] [--base=URL]
+// node anim-dump.mjs --all --out=DIR [--samples=...]   one JSON per card, the motion oracle
 
-import { launch, setInspect, stepCount, enterStep, stepSpan, DEFAULT_BASE } from './_shared.mjs';
+import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { launch, setInspect, stepCount, enterStep, stepSpan, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(
@@ -19,14 +22,23 @@ const stepArg = positional[1];
 // the container's stale copy as if it were current.
 const baseUrl = (flags.base || DEFAULT_BASE).replace(/\/$/, '');
 const asJson = !!flags.json;
+// --all walks the whole catalog and writes one JSON per card under --out. That pair is the
+// motion half of the refactor oracle: run it before and after a change and diff the trees.
+const dumpAll = !!flags.all;
+const outDir = typeof flags.out === 'string' ? flags.out : null;
 let sampleOffsets = String(flags.samples || '0,50,100')
   .split(',').map(s => parseInt(s, 10))
   .filter(n => Number.isFinite(n))
   .map(n => Math.max(0, Math.min(100, n)) / 100);
 if (!sampleOffsets.length) sampleOffsets = [0, 0.5, 1];
 
-if (!schemeId) {
+if (!schemeId && !dumpAll) {
   console.error('Usage: node anim-dump.mjs <scheme-id> [step] [--samples=0,50,100] [--json] [--base=URL]');
+  console.error('       node anim-dump.mjs --all --out=DIR [--samples=0,50,100] [--base=URL]');
+  process.exit(1);
+}
+if (dumpAll && !outDir) {
+  console.error('--all needs --out=DIR (108 dumps do not belong on stdout).');
   process.exit(1);
 }
 
@@ -161,49 +173,92 @@ function renderTable(id, steps, offsets) {
   return out.join('\n');
 }
 
+// One card, on its own page. A FRESH page per card is deliberate: navigating hash-only does not
+// reload, so window.__schemeCtl would still hold the PREVIOUS card's controller and every wait
+// below would pass instantly against the wrong scheme.
+async function dumpCard(ctx, id, only) {
+  const page = await ctx.newPage();
+  try {
+    await page.goto(`${baseUrl}/scheme/#scheme=${id}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!window.__schemeCtl, null, { timeout: 8000 });
+    await page.waitForSelector(DIAGRAM, { timeout: 8000 });
+
+    const total = await stepCount(page);
+    if (!total) return { fatal: `No steps for ${id}. base=${baseUrl}` };
+
+    let targets;
+    if (only) {
+      const s = parseInt(only, 10);
+      if (!Number.isInteger(s) || s < 1 || s > total) {
+        return { fatal: `Step "${only}" out of range (1..${total}) for ${id}.` };
+      }
+      targets = [s - 1];
+    } else {
+      targets = Array.from({ length: total }, (_, i) => i);
+    }
+
+    let degraded = false;
+    const steps = [];
+    for (const idx of targets) {
+      const ran = await enterStep(page, idx);
+      if (!ran) degraded = true;
+      await page.waitForTimeout(20);
+      const _span = await stepSpan(page); // warms getAnimations after enter
+      const data = await dumpStep(page, sampleOffsets);
+      steps.push({ idx, data });
+    }
+    return { steps, degraded };
+  } finally {
+    await page.close();
+  }
+}
+
 (async () => {
   const browser = await launch();
   const ctx = await browser.newContext({ reducedMotion: 'no-preference', viewport: { width: 1400, height: 900 } });
   await ctx.addInitScript(setInspect, 'expose');
-  const page = await ctx.newPage();
 
-  await page.goto(`${baseUrl}/scheme/#scheme=${schemeId}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => !!window.__schemeCtl, null, { timeout: 8000 });
-  await page.waitForSelector(DIAGRAM, { timeout: 8000 });
+  if (dumpAll) {
+    const probe = await ctx.newPage();
+    const ids = await discoverIds(probe, baseUrl);
+    await probe.close();
+    if (!ids.length) { console.error(`No cards discovered. base=${baseUrl}`); await browser.close(); process.exit(2); }
+    // Wipe first, and write _complete only at the end. Without both, a run that dies partway
+    // leaves the previous run's files in place, the directory still holds 108 of them, and
+    // `diff -rq` against the baseline reports no changes over dumps that were never taken. That
+    // is not theoretical: it happened here, and it passed a refactor that had broken 11 cards.
+    await rm(outDir, { recursive: true, force: true });
+    await mkdir(outDir, { recursive: true });
 
-  const total = await stepCount(page);
-  if (!total) { console.error(`No steps for ${schemeId}. base=${baseUrl}`); await browser.close(); process.exit(2); }
-
-  let targets;
-  if (stepArg) {
-    const s = parseInt(stepArg, 10);
-    if (!Number.isInteger(s) || s < 1 || s > total) {
-      console.error(`Step "${stepArg}" out of range (1..${total}) for ${schemeId}.`);
-      await browser.close();
-      process.exit(2);
+    let degradedAny = 0, steps = 0;
+    for (const [i, id] of ids.entries()) {
+      const r = await dumpCard(ctx, id, null);
+      if (r.fatal) { console.error(r.fatal); await browser.close(); process.exit(2); }
+      if (r.degraded) degradedAny++;
+      steps += r.steps.length;
+      await writeFile(join(outDir, `${id}.json`), JSON.stringify({ id, sampleOffsets, steps: r.steps }, null, 2) + '\n');
+      process.stderr.write(`\r  ${i + 1}/${ids.length} ${id}`.padEnd(60));
     }
-    targets = [s - 1];
-  } else {
-    targets = Array.from({ length: total }, (_, i) => i);
+    process.stderr.write('\r'.padEnd(61) + '\r');
+    await browser.close();
+    if (degradedAny) console.error(`WARN: ${degradedAny} card(s) fell back to static state (no _timeline).`);
+    await writeFile(join(outDir, '_complete'), `${ids.length} cards, ${steps} steps\n`);
+    console.log(`anim-dump --all: ${ids.length} cards, ${steps} steps -> ${outDir}`);
+    return;
   }
 
-  let degraded = false;
-  const steps = [];
-  for (const idx of targets) {
-    const ran = await enterStep(page, idx);
-    if (!ran) degraded = true;
-    await page.waitForTimeout(20);
-    const _span = await stepSpan(page); // warms getAnimations after enter
-    const data = await dumpStep(page, sampleOffsets);
-    steps.push({ idx, data });
-  }
-
+  const r = await dumpCard(ctx, schemeId, stepArg);
   await browser.close();
+  if (r.fatal) { console.error(r.fatal); process.exit(2); }
 
-  if (degraded) console.error('WARN: controller lacked _timeline; some steps fell back to static state (no motion).');
-  if (asJson) {
-    console.log(JSON.stringify({ id: schemeId, sampleOffsets, steps }, null, 2));
+  if (r.degraded) console.error('WARN: controller lacked _timeline; some steps fell back to static state (no motion).');
+  if (outDir) {
+    await mkdir(outDir, { recursive: true });
+    await writeFile(join(outDir, `${schemeId}.json`), JSON.stringify({ id: schemeId, sampleOffsets, steps: r.steps }, null, 2) + '\n');
+    console.log(`anim-dump: ${schemeId} -> ${join(outDir, `${schemeId}.json`)}`);
+  } else if (asJson) {
+    console.log(JSON.stringify({ id: schemeId, sampleOffsets, steps: r.steps }, null, 2));
   } else {
-    console.log(renderTable(schemeId, steps, sampleOffsets));
+    console.log(renderTable(schemeId, r.steps, sampleOffsets));
   }
 })().catch(e => { console.error(e); process.exit(1); });

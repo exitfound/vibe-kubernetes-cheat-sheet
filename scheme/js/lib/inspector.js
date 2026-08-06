@@ -1,6 +1,7 @@
+// Design notes: scheme/INTERNALS.md#schemejslibinspectorjs
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-export function inspectMode() {
+function inspectMode() {
   try {
     const qs = new URLSearchParams(location.search);
     const v = qs.get('inspect');
@@ -19,7 +20,7 @@ export function isInspectActive() {
   return inspectMode() !== false;
 }
 
-export function collectRefs(svg) {
+function collectRefs(svg) {
   if (!svg) return [];
   const sel = [
     '[id]',
@@ -62,7 +63,7 @@ export function collectRefs(svg) {
   return out;
 }
 
-export function dumpRefs(svg) {
+function dumpRefs(svg) {
   const rows = collectRefs(svg);
   try { console.table(rows.map(r => ({
     label: r.label || r.id || r.ref || r.cls?.split(' ')[0] || r.tag,
@@ -71,7 +72,7 @@ export function dumpRefs(svg) {
   return rows;
 }
 
-export function renderGrid(svg, { step = 50, refs = null } = {}) {
+function renderGrid(svg, { step = 50, refs = null } = {}) {
   if (!svg) return null;
   const old = svg.querySelector(':scope > g.inspector-overlay');
   if (old) old.remove();
@@ -160,7 +161,7 @@ export function renderGrid(svg, { step = 50, refs = null } = {}) {
   return overlay;
 }
 
-export function removeGrid(svg) {
+function removeGrid(svg) {
   if (!svg) return;
   const old = svg.querySelector(':scope > g.inspector-overlay');
   if (old) old.remove();

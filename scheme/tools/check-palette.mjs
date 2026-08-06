@@ -1,5 +1,5 @@
 // check-palette.mjs: the colour half of the gate. Baseline-free: SPREAD, UNKNOWN, UNPAINTED, all
-// explained in scheme/CLAUDE.md. Runs under reducedMotion or a filled pulse reads back as resting.
+// explained in ../CANON.md C-01 to C-03. Runs under reducedMotion or a filled pulse reads back as resting.
 // node check-palette.mjs [<id> ...]   ids => verbose; none => whole catalog, terse
 import { launch, setInspect, discoverIds, DEFAULT_BASE } from './_shared.mjs';
 
@@ -15,6 +15,9 @@ const PAINTED = [
   ['.scheme-cylinder', '.scheme-cylinder-body'],
   ['.scheme-packet', null],
   ['.scheme-ripple', null],
+  // Added 2026-07-29 as a regression guard. Arrows were absent from this list entirely, which is
+  // why `dim: true` painting like a live lane on 315 calls was invisible to every check.
+  ['.scheme-arrow', null],
 ];
 
 const probe = (painted) => {
@@ -28,7 +31,10 @@ const probe = (painted) => {
       const cs = getComputedStyle(paint);
       // State matters: .highlight repaints to the bright stop, so a lit chip and a resting one
       // legitimately differ. Without this the check reports its own blindness as a card defect.
-      const state = ['highlight', 'scheme-dim', 'scheme-hidden'].filter(c => el.classList.contains(c)).join('+') || 'rest';
+      // `scheme-arrow-dim` is a state, not a variant: a dim lane and a live one of the same role
+      // are meant to differ, so without it here the guard above reports the difference as a SPREAD.
+      const state = ['highlight', 'scheme-arrow-dim']
+        .filter(c => el.classList.contains(c)).join('+') || 'rest';
       out.push({
         cls: sel.slice(1),
         role: el.getAttribute('data-role'),

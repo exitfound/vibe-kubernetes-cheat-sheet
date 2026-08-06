@@ -1,4 +1,4 @@
-/* Design notes: scheme/docs/INTERNALS.md#schemecssdiagramscss */
+/* Design notes: scheme/INTERNALS.md#schemecssdiagramscss */
 /* ===== DIAGRAM PRIMITIVES ===== */
 
 svg.diagram {
@@ -143,6 +143,10 @@ svg.diagram {
 .scheme-arrow-network { stroke: var(--network-color); }
 .scheme-arrow-storage { stroke: var(--storage-color); }
 .scheme-arrow-cluster { stroke: var(--cluster-color); }
+/* A relationship line carries no ball on any step, so it must not read as a route. It keeps its
+   category hue and sinks behind the live wires instead. stroke-opacity rather than a darker colour:
+   the hue then stays one token per category, and an element opacity a card pins still multiplies. */
+.scheme-arrow.scheme-arrow-relation { stroke-opacity: 0.45; }
 .scheme-arrow.flowing {
   stroke-width: 2;
 }
@@ -210,7 +214,7 @@ svg.diagram {
 .scheme-chip[data-role="storage"].highlight   { color: var(--storage-color); }
 .scheme-chip[data-role="workloads"].highlight { color: var(--workloads-color); }
 
-/* Outline highlight variant — thin dim baseline, bright clean border on active.
+/* Outline highlight variant: thin dim baseline, bright clean border on active.
    Opt in per-scheme by adding data-style="outline" on the root <svg>. */
 svg.diagram[data-style="outline"] .scheme-box-rect,
 svg.diagram[data-style="outline"] .scheme-cylinder-body,
@@ -231,9 +235,8 @@ svg.diagram[data-style="outline"] .scheme-pod.highlight .scheme-pod-rect {
   stroke-opacity: 1;
 }
 
-/* Generic dim/active states */
-.scheme-dim { opacity: 0.35; }
-.scheme-hidden { opacity: 0; }
+/* Texture cells (the IPVS hash table): presentation, not a lifecycle shade. */
+.scheme-grid-cell { opacity: 0.4; }
 
 @media (prefers-reduced-motion: reduce) {
   .scheme-pod-rect, .scheme-box-rect, .scheme-cylinder-body, .scheme-cylinder-cap, .scheme-node-rect, .scheme-chip-rect, .scheme-pod-container {

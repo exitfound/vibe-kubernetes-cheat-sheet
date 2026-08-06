@@ -1,3 +1,4 @@
+// Design notes: scheme/INTERNALS.md#schemejsappjs
 import { SCHEMES, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE, SUBCATEGORIES } from './data.js';
 import { POSTERS } from './posters.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
@@ -225,7 +226,7 @@ function setupSearch() {
 function renderCatNav() {
   const inner = document.getElementById('catNavInner');
   const parts = CATEGORIES.map((c, i) => {
-    const btn = `<button class="cat-btn ${c.key === activeCat ? 'active' : ''}" data-cat="${c.key}">${escapeHtml(c.label)}</button>`;
+    const btn = `<button class="cat-btn ${c.key === activeCat ? 'active' : ''}" data-cat="${escapeHtml(c.key)}">${escapeHtml(c.label)}</button>`;
     return c.key === 'all' ? `${btn}<span class="nav-sep"></span>` : btn;
   });
   inner.innerHTML = parts.join('');
@@ -397,7 +398,7 @@ function renderGrid() {
 const POSTER_COLORS = {
   network:   '#4fe5ff',
   storage:   '#5eca94',
-  workloads: '#3da0ff',
+  workloads: '#5bb8ff',
   cluster:   '#7d86ff',
 };
 
@@ -457,6 +458,8 @@ const SCHEME_ALIASES = {
   'lifecycle-crashloopbackoff': 'workloads-crashloopbackoff',
   'lifecycle-graceful-shutdown': 'workloads-graceful-shutdown',
   'lifecycle-force-deletion': 'workloads-force-deletion',
+  // Preemption is the PostFilter stage of the scheduler, so the card moved to Cluster on 2026-08-04.
+  'workloads-pod-priority-preemption': 'cluster-pod-priority-preemption',
   'deployment-rolling-update': 'workloads-rolling-update',
   'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',
   'service-cluster-ip': 'network-service-clusterip',
@@ -489,7 +492,9 @@ async function openScheme(id, initialStep = null) {
 
   let mod;
   try {
-    mod = await import(scheme.module);
+    // A card lives at js/schemes/<category>/<id>.js and its id starts with its category, so the path
+    // is DERIVED rather than stored. R-modulepath holds both halves of that convention.
+    mod = await import(`./schemes/${scheme.category}/${scheme.id}.js`);
   } catch (e) {
     console.error('Failed to load scheme:', e);
     showLoadError(dialog);
@@ -541,8 +546,13 @@ function buildDialog(scheme) {
   dlg.setAttribute('data-scheme', scheme.id);
   if (scheme.tinted) dlg.setAttribute('data-tinted', 'true');
   dlg.setAttribute('aria-labelledby', 'dialogTitle');
-  const sourceLink = scheme.sources && scheme.sources[0]
-    ? `<span class="ctl-source">Source: <a href="${escapeHtml(scheme.sources[0].href)}" target="_blank" rel="noopener">${escapeHtml(scheme.sources[0].label)}</a></span>`
+  // Every source, not just the first: 70 cards carry 2 and 10 carry 3 or 4, so rendering
+  // sources[0] alone put 91 of the 194 gathered links out of reach of the interface.
+  const srcs = scheme.sources || [];
+  const sourceLink = srcs.length
+    ? `<span class="ctl-source">${srcs.length > 1 ? 'Sources' : 'Source'}: ` +
+      srcs.map(s => `<a href="${escapeHtml(s.href)}" target="_blank" rel="noopener">${escapeHtml(s.label)}</a>`).join('<span class="ctl-source-sep">·</span>') +
+      '</span>'
     : '';
   const initialLoop  = getSavedLoop();
   const initialSpeed = getSavedSpeed();

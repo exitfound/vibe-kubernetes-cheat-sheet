@@ -327,7 +327,7 @@ function renderSubNav(cat) {
 
 /** Indent navSubInner so its first chip lines up under the FIRST category button.
    The reference is fixed (first cat) so the sub row's left edge stays constant
-   regardless of which category is active — sub items always sit under the same X. */
+   regardless of which category is active, so sub items always sit under the same X. */
 function alignSubNav() {
   const navSub      = document.getElementById('navSub');
   const navMidInner = document.getElementById('navMidInner');
