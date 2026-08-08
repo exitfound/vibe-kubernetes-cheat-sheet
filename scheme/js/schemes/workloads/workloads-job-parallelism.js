@@ -206,10 +206,8 @@ const STEPS = [
       // animations) leaves the Pods visible instead of reverting to the built 0.
       setPods(s, 1, 1, 1);
       if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      // The step STARTS from the observation its own narration opens with, zero live Pods, and the
-      // chip only turns over once the three creates have landed.
-      // Create travels controller -> Api -> Node. The 3 Pods materialize and pulse
-      // together when the create reaches the node (parallelism=3 starts them simultaneously).
+      // The step STARTS from zero live Pods, the observation its narration opens with, and the chip
+      // turns over only once the creates land: parallelism=3 starts the three Pods simultaneously.
       const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
       lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
       const create = fanOut(s, ctx, req.arrivalMs + BEAT.afterHop);

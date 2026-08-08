@@ -1,0 +1,7 @@
+# The one playwright install the whole sub-app shares. It used to live in scheme/tools/ with a
+# symlink pointing here; tools/ is gone and this is the real directory now. oracle/ has no
+# node_modules of its own and needs none: Node walks up and finds this one.
+node_modules
+
+# The oracle's captured dumps, 18 MB, regenerable with `npm run oracle:base` in oracle/.
+oracle/baselines

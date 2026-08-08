@@ -1,4 +1,5 @@
-// Design notes: scheme/INTERNALS.md#schemejsappjs
+// Grid, filtering, poster rendering, dialog lifecycle, hash routing and the shared chrome. With
+// lib/motion.js, one of only two modules allowed to touch a browser global at module load.
 import { SCHEMES, CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE, SUBCATEGORIES } from './data.js';
 import { POSTERS } from './posters.js';
 import { reducedMotion, onReducedMotionChange } from './lib/motion.js';
@@ -54,6 +55,8 @@ function fallbackCopy(text, callback) {
   document.body.removeChild(ta);
 }
 
+// KNOWN DUPLICATION, kept on purpose: this, `fallbackCopy`, `closeAllDropdowns` and the four icons,
+// ~240 lines in THREE copies (here, cli/js/app.js, root index.html). Sharing them couples the paths.
 function renderHeaderActions(CONTACTS, SPONSOR, GITHUB) {
   const container = document.getElementById('headerActions');
   if (!container) return;
@@ -326,6 +329,8 @@ function renderSection(unit) {
     </section>`;
 }
 
+// The grid is built as UNITS (a category, or a subcategory inside one) and not as a flat list, so a
+// header carries its own count and tagline and the four manifests keep one category's own order.
 function buildUnits(list) {
   const order = CATEGORIES.filter(c => c.key !== 'all').map(c => c.key);
   const units = [];
@@ -395,6 +400,8 @@ function renderGrid() {
   });
 }
 
+// The gradient wash behind each grid thumbnail. All four are the exact `--<cat>-color` from
+// tokens.css: ONE colour per category, named once there, read everywhere else (CANON.md C-22).
 const POSTER_COLORS = {
   network:   '#4fe5ff',
   storage:   '#5eca94',
@@ -429,8 +436,8 @@ function renderPoster(scheme) {
   `;
 }
 
-// Old scheme ids from before the workloads flat-rename still resolve, so existing
-// deep links, bookmarks and indexed sitemap URLs keep opening the right card.
+// Old scheme ids still resolve, so deep links, bookmarks and indexed sitemap URLs keep opening the
+// right card. A rename is cheap only because this map exists: add the entry WITH it, never later.
 const SCHEME_ALIASES = {
   // The Cluster category was keyed `control` until the code was aligned with its
   // user-facing label. Every old id still resolves.
@@ -466,6 +473,8 @@ const SCHEME_ALIASES = {
   'network-kube-proxy-iptables': 'network-kube-proxy-modes',
 };
 
+// The dialog lifecycle, and why a card module is lazy-imported: 108 modules are never all in
+// memory. A live controller is torn down first, or its animations land on the next dialog's canvas.
 async function openScheme(id, initialStep = null) {
   id = SCHEME_ALIASES[id] || id;
   const scheme = SCHEMES.find(s => s.id === id);
@@ -514,6 +523,8 @@ async function openScheme(id, initialStep = null) {
     onPlayingChange: (playing) => updatePlayBtn(dialog, playing),
   });
   activeController = ctrl;
+  // `window.__schemeCtl` is the ENTIRE contract with the test harness (`gotoStep`, `total`,
+  // `_timeline`). Renaming anything on it breaks the whole suite at once, as a TIMEOUT, not an error.
   if (isInspectActive()) {
     window.__schemeCtl = ctrl;
     window.__schemeId = scheme.id;
@@ -780,6 +791,8 @@ function setupGlobalKeys() {
   });
 }
 
+// Chrome parity: the logo is centred over the nav's "All" button, and every page runs its own copy
+// (the hub carries a ghost-ruler nav to measure against). Skipped at <=900px, where the nav wraps.
 function alignLogo() {
   const logo = document.querySelector('.logo');
   if (!logo) return;

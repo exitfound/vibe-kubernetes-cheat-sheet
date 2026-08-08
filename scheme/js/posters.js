@@ -1,7 +1,7 @@
 // Design notes: js/schemes/<category>/CARDS.md, one "### poster" subsection per card id.
 
-// One map per category folder, merged here. app.js looks a poster up by card id, so order does not
-// matter: what does is that all 108 keys survive and no two categories claim the same id.
+// One map per category folder, merged by card id: order does not matter, all 108 keys surviving
+// does. posters.js stays SEPARATE from cards.js, keeping markup out of the metadata tools' path.
 import { POSTERS as CLUSTER_POSTERS } from './schemes/cluster/posters.js';
 import { POSTERS as WORKLOADS_POSTERS } from './schemes/workloads/posters.js';
 import { POSTERS as NETWORK_POSTERS } from './schemes/network/posters.js';

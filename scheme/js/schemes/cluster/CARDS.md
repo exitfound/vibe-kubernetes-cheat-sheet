@@ -6,8 +6,9 @@ constants themselves live in the card and are not repeated here.
 
 **The rules are not here.** Catalog-wide rules are `scheme/CANON.md`, and this category's own rules
 are `./CLAUDE.md`. A note below records only where a card DEVIATES from them, or a number that needs
-explaining. Sister records: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md`
-for the shared sources (catalog, lib, CSS). None of them ships (`S-41`).
+explaining. Sister records: `CARDS.md` in the other three category folders. Anything that is NOT
+one card (the catalog barrels, `js/lib/`, the kits, the CSS) is recorded in a JSDoc note beside
+the code it describes, not in a document. None of them ships (`S-41`).
 
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and
 `check-notes` parses it that way. A second-level heading anywhere else is reported as an orphan.)
@@ -39,20 +40,8 @@ WHAT     A write running the admission gauntlet: authn/authz, mutating, schema, 
 LAYOUT   The L read correctly. The panel owns the top-left, so API_X is 420 (first multiple of 20
          clear of the measured right edge 397) and kubectl sits in the freed BOTTOM-left, its
          request climbing a riser in the 397..420 corridor before turning into the API's left face.
-           CONTENT_L/R  60 / 1140, M = 60 off each edge
-           CX           600, derived as (CONTENT_L + CONTENT_R) / 2
-           BAND_L/R     100 / 1100, the content band inset by 40
-           ETCD_X       956, BAND_R - ETCD_OPTICAL - ETCD_W
-           LADDER_X/W   420 / 400, hanging under the API and inheriting its width, so the six
-                        stages read as belonging to it
-           CHIP_W       490, (BAND_R - BAND_L - CHIP_GAP) / 2
-         panel bottom 230, measured. The nearest thing under the panel corner is kubectl at KCTL_Y 300,
+PANEL    bottom 230, measured. The nearest thing under the panel corner is kubectl at KCTL_Y 300,
          so 70 units of clearance.
-LANES    Both kubectl lanes leave its TOP face, straddling KCTL_CX by LANE_DY the same way they
-         straddle the API face centre at the other end, each ONE right angle: up, then across. Out
-         is left of back at both ends, which is what keeps them from crossing.
-         The API-to-ladder connector is a relationPath: no arrowhead, no ball, landing ON the ladder
-         edge at LADDER_Y. The six stages ARE the API, so nothing travels down to reach them.
 WHY NOT  Chips four across at 258. The longest value is `{cpu=100m, runAsNonRoot=true}` on the
          `Pod object` chip, and at 258 it overlaps its own name. Two across at 490 is the floor here.
 WHY NOT  Jogging each lane right into the 404..416 corridor before rising, to keep every segment out
@@ -127,16 +116,8 @@ means choosing between mutating and validating on a card about both.
 ```
 WHAT     How a controller sees the cluster: discovery, an initial LIST served from the API's watch
          cache, then a watch stream filling an informer and its indexer.
-LAYOUT   GVR ladder left 60..360, the API / Informer / Indexer spine on CX, chips right 840..1140,
-         the watch event timeline along the bottom centred on 600. The ladder shares the chips' 32
-         row height and 38 pitch and sits a symmetric 110 off the Informer's left edge.
 PANEL    291/125, 319/143, 378/150, 397/180 over 1600 / 1440 / 1280 / 1100. 180 is the floor the
          left column starts under.
-LANES    The two ETCD lanes leave the API on its RIGHT face, run down the corridor between the
-         Informer column and the chip column (RISER_OUT_X 764, RISER_BACK_X 740, out to the RIGHT of
-         back so they never cross) and enter ETCD on its LEFT face at ETCD_CY -/+ 12. The Client link
-         is a SINGLE lane on the centre line: only the discovery request is ever animated, and a
-         second arrowhead pointing back would read as traffic no step sends.
 WHY NOT  Dropping the ETCD lanes at ETCD_CX +/- 12 from the top row: both risers then run straight
          down through all three state chips.
 WHY NOT  Moving the chip column left. The chip strip pools value chips AND chainList rows AND the
@@ -224,30 +205,8 @@ cells) was built and declined. Rework FROM the shape above rather than replacing
 ```
 WHAT     A manifest becoming a running Pod. Every handoff AFTER the write is one component reacting
          to a change on its own watch rather than a call from the component before it.
-LAYOUT   cluster-architecture's grid with the tier-2 centre column empty, one Node block instead of
-         three, and a client standing OUTSIDE the frame. Measured off the rendered DOM at 1600x1000:
-           Control plane frame  150..1050 x  90..440
-           Node-1 frame         150..1050 x 475..628
-           top row      140..220   API 490..710, ETCD 900..1030. The LEFT slot 170..390 is EMPTY,
-                                   which is what keeps this card out of the panel's column
-           kubectl      225..305   1060..1190, OUTSIDE the frame, centred on its right wall
-           tier 2       328..408   controller-manager 170..390, Scheduler 810..1030, centre empty
-           Node-1       475..628   Kubelet 170..390, Runtime 490..710, Pod 810..1030
-         Everything horizontal derives from FRAME_X 150 and FRAME_W 900 through PAD 20: IN_L 170 and
-         IN_R 1030 are the walls every block sits on, CX 600 is the frames' centre and the API's.
-         FLANK_W 130 is architecture's ETCD width, used twice, for ETCD and for the client. Every row
-         and column matches cluster-architecture to the unit, verified by measuring both cards.
 PANEL    x 291 / 378 / 397, bottom 143 / 171 / 205 on the worst step. The first block under it is
          the controller-manager at 328, so 123 units of slack at the worst viewport.
-LANES    Nine static lanes, every one built from the SAME points array its ball rides.
-         Two to the client, the only lanes leaving the frame: up out of its TOP face, level across
-         the band above the frame at 50 and 70, down into the frame's top face at 590 and 610.
-           POST      (1135, 225) -> (1135, 50) -> (590, 50) -> (590, 90)
-           POST_ACK  (610, 90) -> (610, 70) -> (1115, 70) -> (1115, 225)
-         Two to ETCD, a mirrored pair on the row centre line at OUT_Y and BACK_Y.
-         Four into tier 2: the watch goes out and lands on the OUTER side of its box, the write comes
-         back from the INNER side, both levels DERIVED from BAND_CY rather than offset from the row.
-         Then the Node lane, a single straight vertical down the spine.
 DO NOT   Swap which side of each face the client pair takes. The out lane runs on the upper level 50
          and the return on the lower 70, so an out vertical standing LEFT of where the return turns
          down cuts through the return horizontal. At the client the out lane takes the OUTER slot and
@@ -260,6 +219,16 @@ NOTE     The Node lane is TWO points with no turn: [[API_CX, TOP_BOTTOM], [API_C
          the API bottom face midpoint and landing on the Node frame TOP face midpoint, both 600 for
          free. Any jog reads as addressed to the KUBELET, where what it carries is a watch stream
          arriving at the NODE.
+NOTE     `create-pod` is one of only TWO steps in the whole category that declare `reducedLit`. Its
+         animated path pulses the placedPod WRAPPER and lights no inner block, so `flowLights` has
+         nothing to derive from it and the static path would show the step with no cue at all:
+         `placedPodBox` is what the reduced branch says instead of the pulse it cannot show.
+         The census that makes this a deviation rather than a habit, measured over the 21 migrated
+         cards on 2026-08-08: 137 steps, 100 of them carry a `flow`, and on 24 of those 100 the
+         derived guard lights NOTHING. Only two of those steps need a stand-in, this one and `rank`
+         on cluster-node-pressure-eviction. So a derived guard that lights nothing is the ordinary
+         case and is not by itself a finding: the question is only whether the step carries a cue
+         the reduced path has no other way to show.
 WHY NOT  Giving the client the API's 220 width. The band outside the wall is 150 units and 130 is
          that band minus two 10 unit margins. Widening needs the frames moved, which carries the
          centring, or a wider viewBox: the viewBox width available is 1200 at 1280x860 and below, so
@@ -308,7 +277,7 @@ cluster-delete-flow on the grid, and the mirror-of-delete-flow idea behind it (f
 fills falling) is invisible at grid size. Direction is carried by SHAPE here.
 ```
 
-### before `const client = box({ x: KCTL_X, y: KCTL_Y, w: KCTL_W, h: BOX_H, label: 'kubectl', role: 'cluster' });`
+### before `    P.box({ key: 'client', x: KCTL_X, y: KCTL_Y, w: KCTL_W, h: BOX_H, label: 'kubectl' }),`
 
 ```
 The only block not in a frame, and both of its numbers are solved rather than chosen. KCTL_X is
@@ -333,7 +302,7 @@ the client's own faces: the climbing verticals cross them. Both were wrong on th
 source.
 ```
 
-### before `const D10 = 10, JOG_DOWN = BAND_CY - D10, JOG_UP = BAND_CY + D10;   // 264 / 284`
+### before `const { out: JOG_DOWN, back: JOG_UP } = laneY(BAND_CY, D10);   // 264 / 284`
 
 ```
 Each tier-2 box carries a mirrored pair on its top face: watch out on the outer lane at JOG_DOWN,
@@ -356,17 +325,6 @@ draws both halves of the identical shape for the Scheduler.
 ```
 WHAT     The moving parts of a cluster and who talks to whom: control plane over a Node, with every
          controller watching the API and never ETCD.
-LAYOUT   Two dashed node() frames of the same width, one over the other:
-           Control plane   150..1050 x  90..440
-           Node-1          150..1050 x 475..628
-           tier 1   API 490..710 x 140..220,  ETCD cylinder 900..1030 x 130..240
-           tier 2   controller-manager 170..390, cloud-controller-manager 490..710,
-                    Scheduler 810..1030, all y 328..408
-           tier 3   Runtime 170..390, Kubelet 490..710, kube-proxy 810..1030, all y 522..602
-         Every block is the standard 220 x 80 apart from the cylinder (130 x 110). Every VERTICAL is
-         cluster-apply-flow's to the unit: that card took its COLUMNS from here and this one took its
-         ROWS from there, so the two read as one family in both axes. Frames are symmetric about
-         CX 600, which keeps the CENTRE content bbox on 600, with 20 units of padding on both walls.
 NOTE     ETCD right-aligns on 1030, the Scheduler's right edge, rather than centring on the Scheduler
          axis at 920. The card is three columns whose outer walls are 170 and 1030, and a centred
          cylinder would sit at 855..985, breaking that wall to line up an axis nobody can see. It
@@ -374,20 +332,9 @@ NOTE     ETCD right-aligns on 1030, the Scheduler's right edge, rather than cent
          cylinder starting at 855 is 145.
 NOTE     A frame move under about 25 units is not a visible change: 10 viewBox units is about 12
          rendered pixels on a 1600 wide dialog.
-LANES    Three solved numbers carry the two Node-bound lanes clear of every tier-2 block, which is
-         what THROUGH scores:
-           L_CORR 440  midpoint between controller-manager (ends 390) and ccm (starts 490)
-           R_CORR 760  midpoint between ccm (ends 710) and Scheduler (starts 810)
-           BAND_Y 457  the middle of the free band between the two frames (440..475)
-         The API bottom face carries six endpoints mirrored in pairs about 600: 540/660, 560/640,
-         590/610. Left and right faces carry one endpoint each, both exactly on the face midpoint
-         y=180, which is what OFFEDGE requires of a lone endpoint.
-         The two tier-2 levels are DERIVED from BAND_CY, D10 either side, so the pair re-centres
+LANES    The two tier-2 levels are DERIVED from BAND_CY, D10 either side, so the pair re-centres
          whenever a row moves. The band is 108 units and a fixed +40 / +60 glues both levels to the
          API and leaves dead air under them.
-         Each tier-2 block gets a parallel arrow PAIR: watch event in on the upper lane, reconcile or
-         Binding write-back out on the lower. The flanking columns dogleg through JOG_DOWN 200 and
-         JOG_UP 220; the centre column sits straight under the API, so its two are plain verticals.
 NOTE     The two Node-bound lanes end ON their target box (Kubelet top midpoint 600, kube-proxy 920),
          not on the Node frame edge. That is the OPPOSITE call from the four cluster Node cards,
          where a lane stops on the frame because the Pod row changes step to step and the pulse
@@ -396,16 +343,12 @@ NOTE     The two Node-bound lanes end ON their target box (Kubelet top midpoint 
 NOTE     One lane crossing is accepted: API_TO_KPROXY turns down at x=760 from y=180 and crosses the
          ETCD read lane at (760, 190). Nothing scores a lane against a lane, and the alternative
          takes the kube-proxy lane off the API face midpoint, which OFFEDGE does score.
-LANES    The ten lanes are TWO NAMED GROUPS, because the card shows one half of the diagram at a
-         time and ten dashed lanes at once is more than a reader can follow. `setLanes` writes both
-         groups on every step, above the ctx.reduced guard.
-         THE TWO GROUPS TAKE DIFFERENT TREATMENTS, and that asymmetry must not be "fixed" into
+LANES    THE TWO GROUPS TAKE DIFFERENT TREATMENTS, and that asymmetry must not be "fixed" into
          symmetry. A control-plane lane out of play DIMS to OPACITY.notready (outside this path) and
          stays on screen, because the control plane is what the card is about and its shape should
          not flicker. A Node-bound lane out of play is NOT DRAWN at all: the card spends six steps
          inside the control plane, and a permanent pair crossing into the Node band reads as traffic
-         that is not happening. Slot 0 matches the control-plane steps rather than being a third
-         state, so the poster shows the control plane whole and the Node band quiet.
+         that is not happening.
 NOT A DEFECT
          Several lanes carry no ball on a given step, and a grep for a constant name will say they
          carry none at all. They do: the card shows one half at a time, so a lane idle on the step
@@ -460,19 +403,7 @@ cluster-server-side-apply for the stack-of-rows family this belongs to.
 ```
 WHAT     A cascading delete: deletionTimestamp and a finalizer instead of removal, the Garbage
          collector walking ownerReferences, and the finalizers clearing up the chain.
-LAYOUT   The API is pinned on CX with both flanks derived from one GAP, so the row is symmetric and
-         the Node pair below is a straight vertical. Tier 2 carries the controller-manager and the
-         Garbage collector, mirrored about CX. Inside the Node frame both blocks derive from ONE
-         padding applied to the frame's own edges, so the insets are equal by construction, and the
-         frame and its contents are cluster-apply-flow's to the unit.
-         T2_D is SOLVED, not chosen: whatever puts the tier-2 outer edges NODE_PAD inside the Node
-         frame. Four things then line up on each side by construction: kubectl left =
-         controller-manager left = Kubelet left = 170, and ETCD right = Garbage collector right =
-         Pod right = 1030.
-         kubectl is the ONE block not derived from GAP: its LEFT edge is pinned at 170 and it grows
-         RIGHT only, so it is 160 wide against ETCD's 130. 160 is near the ceiling, because its gap
-         has to keep holding `HTTP 202 Accepted` at 113 units, leaving 23.5 a side.
-         The two bands are deliberately unequal (110 above tier 2, 60 below) and NOT a rhythm to even
+LAYOUT   The two bands are deliberately unequal (110 above tier 2, 60 below) and NOT a rhythm to even
          out: tier 2 cannot rise because the panel reaches 282, and band 1 holds a lane pair AND both
          tier-2 wire labels while band 2 holds one label and no lane turn at all.
 PANEL    x<=397 on every step, bottom reaching 282 on gc-cascade, the deepest narration in the pair.
@@ -482,11 +413,6 @@ OPEN     TOP_Y 110 is as low as the row can go: below it sit band 1, tier 2, ban
          trade as cluster-apply-flow. WHY NOT keeping the top row right of the panel (420..1080): it
          centres nothing, the row sits 150 units right of the centre the Node frame sets, and the
          whole drawing leans.
-LANES    Nine static lanes, each from the SAME points array its ball rides. Four on the top row as
-         two mirrored pairs, request at OUT_Y and answer at BACK_Y. Three into tier 2: the MODIFIED
-         event to the controller-manager, and an out-and-back on the Garbage collector where the
-         event lands on the OUTER lane (GC_CX + D20) and the DELETEs leave on the INNER one, so the
-         pair never crosses itself. Then the Node pair.
 NOTE     WHICH LANE GETS WHICH SLOT on the API's bottom face (540 / 590 / 610 / 630 / 660) is FORCED,
          not chosen. Every lane except the Node pair turns and runs horizontally through band 1, so
          each has to leave the face OUTSIDE the pair or it cuts across one of the two verticals
@@ -552,7 +478,7 @@ one about DISAPPEARING.
 siblings, and do not lower it.
 ```
 
-### before `const etcd = cylinder({ x: ETCD_X, y: TOP_Y - 10, w: ETCD_W, h: TOP_H + 20, label: 'ETCD', role: 'cluster' });`
+### before `    P.cylinder({ key: 'etcd', x: ETCD_X, y: TOP_Y - 10, w: ETCD_W, h: TOP_H + 20, label: 'ETCD' }),`
 
 ```
 ETCD is w=130 so the label is not lost in a squat-wide cylinder and the two control-plane cards
@@ -560,7 +486,7 @@ match. Top and height (y=50, h=100) keep its centre level with the API row and l
 labels their clearance above the cap.
 ```
 
-### before `root.appendChild(pathArrow({ points: DELETE,      dim: true, dashed: true, role: 'cluster' }));`
+### before `    P.lane({ points: DELETE,      dim: true, dashed: true }),`
 
 ```
 Every lane is drawn here, each from the SAME points array its ball rides.
@@ -578,14 +504,7 @@ different lane for exactly that reason.
 WHAT     A namespace budget that ACCUMULATES, which separates it from cluster-node-allocatable next
          door: there a Node capacity is carved into pieces taken AWAY, here the bar IS spec.hard and
          the slots fill it left to right, so the refused request is drawn PAST the bar edge.
-LAYOUT   Exact to scale: 480 units per CPU, so a 500m request is 240 units on the admitted slots and
-         on the refused block alike, and a reader can measure the picture and get the chips' answer.
-           bar     420..900, refused block 900..1140, so the drawing right of the panel is exactly
-                   three request widths wide
-           ladder  740..1140, API centred on it at 824..1056, ReplicaSet on the 420 rail
-           listing 60..400 in the freed bottom-left, which is what centres the content on 600
-           chips   548..624, two per row at 532
-         There is no node() frame: a quota is a namespace fact and namespaces have no frame
+LAYOUT   There is no node() frame: a quota is a namespace fact and namespaces have no frame
          primitive, so the bar caption carries the namespace instead.
 NOTE     Why hard is requests.cpu 1 and every Pod asks 500m: the numbers come off the LimitRange
          page's own worked example, so the injected default IS the arithmetic and step 2 is
@@ -604,13 +523,8 @@ NOTE     The ladder is 400 wide rather than the family 480, twice measured: its 
 NOTE     The ladder is the admission ORDER, not the step order, which is why step 1 and steps 3 to 5
          all light row 4: one plugin at one position decides all three outcomes. Row 5 (persist) is
          never lit, and on reject that is the payload rendered as an absence.
-LANES    LR_TO_CHAIN is a relationship: the LimitRanger plugin reads the LimitRange out of the API
-         server's own cache, so nothing travels it. WHERE IT POINTS is the whole reason the box left
-         the actor row. It runs from the LimitRange right face to the ladder, level with the seam
-         between row 1 (mutating, LimitRanger sets defaultRequest) and row 2 (validating, checks min
-         and max), which is where that object is consumed. The box is exactly ROW_H * 2 + ROW_GAP
-         tall, so it spans those two rows and no others and leaves on its own face midpoint, which is
-         that seam by construction. The ladder end lands on no face at all, and OFFEDGE has nothing
+LANES    WHERE IT POINTS is the whole reason the box left the actor row.
+         The ladder end lands on no face at all, and OFFEDGE has nothing
          to say because chainList rows are chips. What makes it read is the pairing of box height
          with the two rows, not the endpoint.
 DO NOT   Draw the ResourceQuota object as a second box. It IS the bar, captioned with its own name,
@@ -660,11 +574,9 @@ not part of the sentence, the tick is.
 ```
 WHAT     managedFields as a table nobody has ever seen, drawn: two managers, one object, and who owns
          which field.
-LAYOUT   THE LEDGER IS THE CARD, so the object is a three column table (field, value, field manager)
-         and everything is sized around it. The row is BOX_W 200 with TOP_GAP 60 rather than the
+LAYOUT   The row is BOX_W 200 with TOP_GAP 60 rather than the
          family 232, because three actors have to fit in the 720 units right of the panel:
-         3 x 200 + 2 x 60 is exactly 720. A 60 unit gap cannot hold a wire label BETWEEN two blocks,
-         which is why requests take a register above the row (y=26) and answers one below it (146).
+         3 x 200 + 2 x 60 is exactly 720.
 PANEL    x<=291 y<=177, x<=378 y<=214, x<=397 y<=255, worst on the ledger step.
 BUDGET   500 characters per narration. The top row and the table start at 420 and are panel-proof at
          any length; what has to clear is the client-side column, whose glyph top is about 355, and
@@ -682,10 +594,7 @@ NOTE     The API sits in the MIDDLE of the row, solved rather than chosen: the o
          420 + 200 + 60 + 100. The tie down to the object is then one straight vertical with both
          endpoints on a face midpoint. On either end it needs a jog through the band where both
          answer labels live, and a jog left runs under the panel.
-LANES    API_TO_OBJ is a relationPath: the API HOLDS this object, it never drives it, so no ball
-         rides it and it takes no arrowhead. Every ball stays in the top row.
-         Four lanes, one pair per manager, mirrored about the API faces on LANE_DY 12. Every one
-         carries a ball on some step, so all four are arrows. The 409 on the conflict step is drawn
+LANES    The 409 on the conflict step is drawn
          coming home, because a return the narration promises and the motion never delivers is a
          named defect family here.
 NOTE     The three inputs of the client-side three-way merge sit in the bottom-left corner the panel
@@ -721,7 +630,7 @@ DO NOT go back to a framed four-row ledger. It was accurate and it was a small d
 one sentence, and at grid size it read as a sibling of cards it has nothing to do with.
 ```
 
-### before `function setRows(s, spec) {`
+### before `const rowState = (spec) => ({`
 
 ```
 THE WORKED EXAMPLE, and it has to add up because check-figures reads the numbers and a reader follows
@@ -751,16 +660,9 @@ the verb, not a per-step state, the same shape failurePolicy has on the webhook 
 WHAT     One write through Raft: proposal to the Leader, replication to the Followers, quorum, apply,
          and what happens when the majority is gone.
 LAYOUT   One semantic band, centred rather than inflated.
-           CYL_Y     230, set by the panel: the API is level with the ETCD row and starts at
-                     CONTENT_L, so API_Y = CYL_Y + CYL_H/2 - API_H/2 must clear the panel bottom. That gives
-                     CYL_Y >= 215, and 230 leaves 25 units under the measured panel bottom
-           ARC_RISE  80, which is what puts something in the otherwise blank top-right so the arc
-                     reads as a route rather than a decorative notch
-           ARC_Y     150, CYL_Y - ARC_RISE
            M         40, both sides, so the bbox is 40..1160 and still centred on 600. That is the
                      only way to buy the proposal label its gap without narrowing the API off the
                      220 standard width
-           CYL_XS    derived from CONTENT_R - ROW_W, right edge on CONTENT_R by construction
            SCHIP_W   API_W (220): the API and the three state chips are ONE column, and at 320 they
                      end 100 units apart, which makes the left stack read as two
          Panel bottom measured 230, and CYL_Y is 230, so the panel is one unit off the artwork:
@@ -802,16 +704,18 @@ CONTENT  The sixth step is quorum loss, and every fact in it is from raw sources
          The apply step reads `while quorum holds every read returns it consistently`: without the
          qualifier the step after it contradicts the step before, which is the internal-contradiction
          check finding a defect the ADDITION created.
-NOTE     A replica does not dim alone. setReplicas writes TWELVE elements from one list: both
-         cylinders, both role chips, both log chips, both ties, and the four lanes joining them to
-         the Leader, whose shade is laneOf() because a lane is only as present as the fainter of its
-         ends. It is called by EVERY step including idle, because two independent assignments drift
-         the moment a step is added.
 DO NOT   Send a ball into a member that is not answering. It says the opposite of the step, and
          nothing comes back either, so there is no return to draw. The step carries its beat with the
          fade and with .highlight on the four chips that move.
 NOTE     The silent pair holds OPACITY.notready (alive but not serving, not observed), not
          terminated, which would also put the card one .highlight away from a check-opacity LIT.
+NOTE     THIS CARD IS THE WORKED EXAMPLE THAT `chips` IS NOT A STEP'S FINAL VALUE. `quorum-lost`
+         declares `r1: Leader` in its static block, and an `F.set` at FADE.out + BEAT.lead, 1500ms,
+         turns that ONE chip of the nine the step states into `Follower`. Nothing else on the step
+         moves after entry. So reading a card for what a chip ENDS on means playing `chips`, then
+         `enter`, then `rewind`, then every `F.set` in flow order, and a reader who stops at the
+         `chips` literal here concludes the card ends with a Leader, which is the opposite of the
+         step. The step comment beside it writes that beat as 1501ms, the arithmetic is 700 + 800.
 ```
 
 ### poster
@@ -834,17 +738,9 @@ No arrowhead: the arc is a relationship, and the direction is already in the bri
 ```
 WHAT     systemd telling the Kubelet a shutdown is coming, and the Kubelet spending the grace budget
          in two buckets, regular Pods then critical ones.
-LAYOUT   Layout A: ladder 60..540, chips 620..1140, Node frame full width.
-         The frame is the family value: POD_Y = NODE_Y + 34, POD_H 106, NODE_H 152 (34 of label
-         padding, 106 of Pod, 12 of floor), bottom pinned on 624 so NODE_Y is 472. node() draws its
+LAYOUT   node() draws its
          label at NODE_Y + 18, so a Pod row at +22 prints NODE-1 four units above the first Pod and
          overlapping it.
-LANES    ONE lane, two points: [[600, 120], [600, 472]], a straight drop from the Kubelet bottom face
-         midpoint to the Node frame top face midpoint. SPINE_X had to move 580 -> CX for that,
-         because the frame midpoint is 600 and a lane leaving a box off its own face midpoint is an
-         OFFEDGE finding; KUBE_X derives from SPINE_X, so the whole top row shifted with it.
-         The lane runs the 540..620 corridor between the ladder and the chip column and crosses
-         nothing.
 WHY NOT  A bus at NODE_Y - 14 with one tap per Pod. Two lanes crossing the frame and splitting over
          the Pod row read as plumbing rather than as a shutdown. WHICH Pod reacts is carried by the
          pulse.
@@ -860,10 +756,9 @@ NOTE     All four chips wait for the packet that earns them. systemd is not free
 DO NOT   Fade a shut-down Pod to 0. An absent block reads as a rendering fault rather than as an
          absence. Both the pins and the fade land on OPACITY.terminated, the shade for gone. Same
          conversion cluster-node-drain and cluster-node-pressure-eviction took.
-NOTE     No stand-in highlight to take back here: neither terminate step has ever set one, both
-         reduced branches are a bare return, so fadeOut stays a two-line helper. If a stand-in is
-         ever added, it has to be dropped on BOTH paths, because the Pod now ends dim rather than
-         absent.
+NOTE     No stand-in highlight to take back here: neither terminate step has ever set one. If a
+         stand-in is ever added, it has to be dropped on BOTH paths, because the Pod now ends dim
+         rather than absent.
 CONTENT  Step 2 is `condition`, not `cordon`. The doc's first fact after the intro is that the
          Kubelet sets a NotReady condition with reason `node is shutting down`, and the scheduler
          honours it. There is no spec.unschedulable anywhere in this feature, so cordon is the wrong
@@ -894,14 +789,11 @@ reads as the actor even though nothing points at it.
 
 ```
 WHAT     The Kubelet's reconcile loop: watch, PLEG, SyncPod, CRI, status, running forever.
-LAYOUT   Layout B by shape, API and chips in the left column, ladder right. The chip column is the
+LAYOUT   The chip column is the
          category's 480 (60..540), not 380 against a 500 wide ladder.
 BUDGET   Panel x<=397, bottom 160 / 183 / 193 / 230 over the four viewports and 269 at 1024x768. What
          the bottom has to clear is the API box at y=300, so 70 units of headroom at the rule worst
          case. Grow a narration here and re-measure.
-NOTE     PANEL_R and PANEL_B were dead constants declaring numbers nothing read, and both disagreed
-         with the measurement and with each other. The measurement lives in the header comment next
-         to what it constrains.
 CONTENT  There is no `source dispatcher` in the Kubelet. The three spec sources (apiserver, file,
          http) are merged by PodConfig into ONE update channel, syncLoop reads it, and
          HandlePodAdditions puts the Pod into podManager. This card names real internals everywhere
@@ -931,9 +823,6 @@ NOT A DEFECT
          check-arrival R2 reports three findings here, all the tool artefact: it samples at t=0 and
          compares against t=0 of the previous step, so a mid-step turnover is attributed to the NEXT
          step, where the chip is not highlighted because that step is not about it.
-NOTE     setChainActive is imported rather than hand-rolled. Five copies of
-         `chain.querySelectorAll('.scheme-chip')` plus `rows[i].classList.add('highlight')` were
-         behaviourally identical and had no import of the helper every other card uses.
 ```
 
 ### poster
@@ -967,16 +856,6 @@ faults were invisible on the file and obvious on a montage.
 
 ```
 WHAT     Three replicas racing for one Lease, and the renewals and failover that follow.
-LAYOUT   Each replica reaches the Lease on its OWN axis, so there is no shared corridor:
-           STACK_W    720, 3 * REP_W + 2 * REP_GAP
-           STACK_L    240, CX - STACK_W / 2. Content spans 240..960, centre 600
-           REP_XS     240 / 490 / 740, centres 350 / 600 / 850
-           REP_Y      170, PANEL_B + 15. The row is pinned by the PANEL, not by the canvas centre:
-                      centred horizontally, its left third is in the panel's column
-           LANE_RUN   56, the straight drop from role chip to Lease
-         Six independent endpoints on the Lease top face at 340/360, 590/610, 840/860, mirrored in
-         pairs about its midpoint 600, so OFFEDGE stays quiet and a reader can follow one exchange
-         without tracing a shared line.
 WHY NOT  One shared horizontal corridor for all six CAS routes. Every PUT then lies on top of its own
          answer and it is unreadable which answer belongs to which replica.
 WHY NOT  A replica row at 420..1140 while the Lease and its chips span 60..1140: the bottom then reads
@@ -1056,10 +935,7 @@ LAYOUT   The Node family idiom is a ladder plus a frame full of Pods, and this c
          the ladder carries the running subtraction. Nothing is a Pod, so nothing pulses: the beats
          are packets, block highlights and the four segment reveals. A deliberate reading of "only
          Pods pulse".
-         THE SCALE IS EXACT and that is the load-bearing decision: GI = 56 units per Gi, BAR_W =
-         16 * GI = 896, so every segment width IS its number (kubeReserved 56, systemReserved 28,
-         evictionHard 28, Allocatable 784). BAR_X = CX - BAR_W / 2 = 152, centred on 600 by
-         construction. The frame is 196 tall rather than the family 152 because it stacks four
+         The frame is 196 tall rather than the family 152 because it stacks four
          things: 34 of label padding, the 64 bar, the 22 request strip, and three caption tiers.
 WHY NOT  GI 64: a 15Gi request lands on 1176, past the content margin at 1140. GI 60 lands exactly ON
          the Node frame edge. 56 puts it on 1104, 36 units inside the frame, and still overhangs the
@@ -1071,17 +947,14 @@ NOTE     The three narrow segments cannot hold a label at 56, 28 and 28 units wi
          proportion, which makes the picture lie about the one thing it exists to show.
 NOTE     The idle frame is mostly empty for the same reason: at the poster position nothing is carved
          yet. A progressive-carve card cannot both reveal and be full at rest.
-LANES    KUBELET_TO_NODE is a relationship, not a route: this Kubelet runs on this Node and computes
-         its Allocatable, and no step names anything travelling that way (the Kubelet PATCHes the
-         API, and the arithmetic is its own local work). Same call cluster-scheduler-decision makes
-         for API_TO_CHAIN. It leaves the Kubelet bottom face midpoint (520) and lands on the frame
-         top face midpoint (600), turning at JOG_Y 228, halfway between. Without it the top row and
+LANES    Same call cluster-scheduler-decision makes
+         for API_TO_CHAIN. Without it the top row and
          the Node band read as two unrelated drawings.
 NOTE     The segments carry STROKES only, their rect fill overridden to transparent so the soft box
          fill does not double up over the bar. rx is 0 on the segments and 6 on the bar: four rounded
          rects side by side read as four separate blocks rather than as one bar divided. Each segment
-         is wrapped in a g with its caption so ONE opacity reveals both, which is what keeps setSegs
-         honest: five names, five assignments, no chance of pinning the box and forgetting the caption.
+         is wrapped in a g with its caption so ONE opacity reveals both, with no chance of pinning
+         the box and forgetting the caption.
 NOTE     The request strip starts where Allocatable starts, because Pod requests are only ever
          measured from there, and its width is set per step in whole Gi. On schedule it is 15Gi and
          overhangs the bar, on overcommit 12Gi and inside: the two frames side by side are the card's
@@ -1122,11 +995,7 @@ sentence is "three narrow, one wide", and it survives the widening.
 ```
 WHAT     kubectl drain: cordon, list-and-skip, then eviction through the API with a
          PodDisruptionBudget gating it, a 429 and a retry.
-LAYOUT   Layout C, the tallest panel in the category. NODE_Y IS the panel bottom here, so the
-         Node frame starts exactly where the panel ends.
-           ladder  right column 660..1140, five rows
-           chips   TWO per row at 532, two rows, 548..624
-           API     centred on the Node frame, API_X = CX - BOX_W / 2 (484..716), kubectl 196..428
+LAYOUT   Layout C, the tallest panel in the category.
 PANEL    x<=397, y<=304 at 1100x800 on the cordon step. Frame top 380, so 76 units of clearance.
 BUDGET   NO STEP MAY EXCEED 528 CHARACTERS, and that is a property of the FRAME, not of the current
          text: trims that buy clearance do not raise the ceiling, because 380 is a route length and
@@ -1135,8 +1004,6 @@ BUDGET   NO STEP MAY EXCEED 528 CHARACTERS, and that is a property of the FRAME,
          `check-geometry --rules=occluded` stayed CLEAN through all of it: it scores occluded AREA
          and a 25 unit strip off a 152 tall frame is under its bar. Pay for an edit inside the same
          step and do not trust the gate here.
-LANES    ONE lane, a single vertical drop [[600, 120], [600, 380]]: API bottom face midpoint straight
-         down to the Node frame top face midpoint, no jog and no corridor.
 WHY NOT  A bus inside the frame with a tap per Pod. Two lanes crossing the frame and splitting over
          the Pod row read as plumbing rather than as an eviction. WHICH Pod dies is carried by the
          pulse.
@@ -1220,20 +1087,7 @@ on a card where two leave and one stays.
 ```
 WHAT     A Node going unreachable: the Lease going stale, the NotReady condition, the unreachable
          taint, and the eviction timer that finally moves the Pods.
-LAYOUT   Six ladder rows (152..394) with the top row dropped from 110 to the family 80 to buy the
-         space back, two Node frames at 406..538, chips 552..624 at THREE per row (350.67, two rows).
-         Each frame is anchored on its OUTER edge, Node-1 on CONTENT_L and Node-2 on CONTENT_R, and
-         gives up width on the inner side only: 520 -> 442, inner edges on 502 and 698, still
-         mirrored about CX. The corridor between them goes 40 -> 196, which gives the reschedule lane
-         a real 98 unit run into Node-2 rather than a stub.
 WHY NOT  Five chips across at 206: the unreachable taint value alone needs 335.
-LANES    Every lane starts and ends on a NODE FRAME face; which Pod the step lands on is carried by
-         the pulse. That is also what makes the heartbeat true: no Pod renews a Lease, the Kubelet on
-         the Node does, which is what the narration says in its first six words.
-         Heartbeat and evict share a two-lane corridor above the frames (EV_JOG_Y 340 outbound,
-         HB_JOG_Y 362 return) and meet the top row through GUTTER_X 640 and UNDER_TOP_Y 136, left of
-         the ladder. Both Node-band lanes leave the CONTROLLER, because the controller is the actor
-         both steps name.
 NOTE     THE PAIR IS NOT MIRRORED, and Node-2 is why. Its TOP face midpoint is x=880, directly under
          the ladder with 12 units of clearance, so that face cannot be reached at all: the reschedule
          enters the LEFT face midpoint instead. To get there its vertical has to fall inside the
@@ -1268,9 +1122,6 @@ NOTE     SIX chips, not five: the grid is three wide, so five left a hole. The o
          the THRESHOLD, `grace period`, beside `Lease age`, which is what makes 30s of staleness
          harmless and 52s fatal. The rows are meaningful now: Ready / Lease age / grace period is
          "is the Node alive", Taint / Toleration / eviction timer is "what happens to its Pods".
-         All six go through one setChips and every step calls it. Five of seven wrote a subset and
-         the reschedule step wrote none, so the last frame sat under `eviction timer: 0s .
-         Terminating`, a countdown running on a Pod its own narration had already replaced.
 ```
 
 ### poster
@@ -1291,16 +1142,6 @@ leave a hole and the leg would point at nothing.
 ```
 WHAT     The Kubelet evicting under memory pressure: the threshold, the ranking, the kill, and the
          condition clearing after the transition period.
-LAYOUT   Layout B. Chips left 60..540 (480 wide, not the four-across bottom strip at 258 where
-         --eviction-hard overlapped its own value), ladder right, both columns ending on COL_BOTTOM
-         456 with the Node frame at 472..624.
-         The frame is the family value, NODE_H 152 with POD_Y = NODE_Y + 34, grown from 140 to stop
-         NODE-1 printing on the first Pod. The frame bottom stays on 624, so it grew UPWARD and the
-         columns moved with it.
-LANES    ONE lane, two points: [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]], a single drop on the spine
-         from the Kubelet bottom face midpoint to the Node frame top face midpoint, both exactly
-         x=600, so OFFEDGE stays quiet by construction. It passes between the chip column (ends 540)
-         and the ladder (starts 660).
 WHY NOT  A bus at BUS_Y with a tap into the BestEffort Pod. A lane that crosses the frame and picks a
          Pod out of the row reads as plumbing rather than as a kill. Which Pod dies is carried by the
          pulse.
@@ -1373,9 +1214,7 @@ WHAT     A container hitting its CPU limit: the CFS quota, the stall at the end 
 LAYOUT   The deliberate TWIN of cluster-oom-kill, memory limit against CPU limit. It copies that
          card's skeleton so the pair reads as a pair and changes exactly one thing: the sibling's
          five-row ladder in the right column becomes the TIME SCALE, which is why the card exists.
-         Same top row (Kubelet centred on the spine 484..716, Linux kernel flush to CONTENT_R
-         908..1140, request lane on 68 and answer on 92), same full-width Node frame with one Pod,
-         same two-per-row 532 chip strip ending on 624. The frame is the family 152 at 380..532
+         The frame is the family 152 at 380..532
          rather than the sibling's 388, because CHIPS_Y = NODE_Y + NODE_H + 16 solves to 380.
 PANEL    x<=397, bottom 195 / 235 / 280, worst on `observe` at 386 characters.
 BUDGET   Roughly 550 characters. The frame top is 380 and nothing is drawn left of 420 above it, so
@@ -1384,8 +1223,7 @@ NOTE     THE TIME SCALE IS THREE BARS STACKED, NOT SIDE BY SIDE. Side by side in
          three 150 wide bars whose 50% fill is 75 units, and the caption naming the empty tail has
          nowhere to go. Stacked gives each period the full 480, a 240 unit fill and a right-aligned
          caption over the stall it names, and it reads as one clock running down the page rather
-         than as three containers standing side by side. BAR_H 44, BAR_GAP 16, tops on 176 / 236 /
-         296, stack bottom 340.
+         than as three containers standing side by side.
 NOTE     The bars are BARE rects, not box(), which is a check-geometry decision rather than a style
          one: three 480 wide blocks at y 236 and 296 land inside CENTRE-LOW's span and would put the
          low content centre on 750 against a want of 600, on a card centred on 600 by construction.
@@ -1398,11 +1236,6 @@ WHY NOT  Resting at 0 and appearing on `quota`. The rendered frames killed it: w
          blank and the left owned by the panel, the two opening frames were two boxes and a Node band
          with a 480 x 164 hole between them, and `idle` is the poster, the first thing anyone sees.
          Nothing in the gate says a word about it.
-LANES    TWO relationship lines, no arrowheads and no balls, because no step names anything
-         travelling from the Kubelet into the Node frame or from the kernel into the scale. The
-         Kubelet lane leaves (600, 120) and lands on (600, 380). The scale lane leaves the kernel
-         bottom midpoint (1024, 120), jogs on JOG_Y 148 and lands on the bar stack top midpoint
-         (900, 176). It lives INSIDE the scale group, so it cannot outlive what it points at.
 NOTE     The scale hangs off the KERNEL, not the Kubelet. cpu.max is what makes the kernel account in
          periods at all and the throttling decision is the kernel's alone: the Kubelet does not learn
          about it until it scrapes cpu.stat, which is the last step. Hanging it off the Kubelet would
@@ -1481,7 +1314,7 @@ invisible to it. Not licence to be sloppy: 900 is the stack midpoint by construc
 the line is centred on what it points at whether or not a rule can see it.
 ```
 
-### before `const scaleG = g({ id: 'timeScale' });`
+### before `function setBars(s, runs, caps) {`
 
 ```
 The captions turn over on the beat that earns them, the `network-dns-ndots` shape: end state pinned
@@ -1493,7 +1326,7 @@ the sentence describes. `frame-strip` cannot show any of this and `check-reduced
 proof it lands.
 ```
 
-### before `const pkt = topPacket(s, ctx, { from: KERN_X, to: KUBE_X + BOX_W, y: DOWN_Y, role: 'cluster' });`
+### before `F.top({ from: KERN_X, to: KUBE_R, y: DOWN_Y, lights: ['kubelet'] })`
 
 ```
 The same lane, direction and shape as the `observe` step of `cluster-oom-kill`, on purpose: on both
@@ -1509,14 +1342,8 @@ the Kubelet, which lights on arrival rather than at entry.
 ```
 WHAT     A container exceeding memory.max: the kernel's cgroup OOM killer, the SIGKILL, and the
          Kubelet learning about it through PLEG.
-LAYOUT   Layout C, no left column fits above the Node frame. Chips TWO per row at 532 (four across at
-         258 overlapped memory.current with container state), frame at 388..532, chips 548..624.
-         The kernel block right-aligns on CONTENT_R (908..1140), so its right edge is level with the
-         right chip column, the ladder and the Node frame. A fixed 56 units from the Kubelet ends
-         it on 984, flush with nothing.
-LANES    NODE_CONNECTOR ends on NODE_Y, the Node frame top face midpoint, and the spine is on CX so
-         that drop is straight. Which container the kill lands on is carried by the pulse, not by an
-         arrowhead reaching inside the frame. Same correction the four sibling Node cards took.
+LAYOUT   A fixed 56 units from the Kubelet ends
+         the kernel block on 984, flush with nothing.
 NOTE     The kill dims the whole Pod GROUP, shell included. Fading only the inner container box on
          the argument that the sandbox survives reads as a half-finished render rather than as a
          statement. Opacity lives on podGroup and NEVER on containerBox, or the two multiply into a
@@ -1535,9 +1362,7 @@ NOT A DEFECT
          pair, the correct direction. The other movement the sentence names, the Kubelet PATCHing
          status, goes to an API this card does not draw, and the Kubelet sublabel accounts for it in
          words. A return has to have somewhere on the canvas to go.
-NOTE     One setChips writes all four chips and every step calls it, idle included. oom_score_adj is
-         not a parameter because it is a standing value on this card.
-         `container state` reads `Running · not yet observed` on the kill step and turns over to
+NOTE     `container state` reads `Running · not yet observed` on the kill step and turns over to
          `Terminated · OOMKilled · 137` on observe. containerStatuses[].state really IS still Running
          until PLEG relists and the Kubelet PATCHes, which is exactly what observe is about, so the
          value stays and now says why.
@@ -1561,12 +1386,23 @@ CONTENT  The oom_score_adj chip carries `900 Burstable 3 to 999, Guaranteed -997
          a cut qualifier produces.
          The value is `applied` at container start, not `written`: the Kubelet passes it in the CRI
          create call and the RUNTIME touches /proc/PID/oom_score_adj.
-NOTE     inline-dump finds chip values by matching setVal(s.refs.X, '...') in the source, so every
-         value reaching a chip through setChips is invisible to it. Not new and not specific to this
-         card. To read the chip story on a setChips card, walk the steps in a browser.
+CONTENT  The RUNTIME writes memory.oom.group, the Kubelet only asks for it. Verified against
+         pkg/kubelet/kuberuntime/kuberuntime_container_linux.go:
+           if isCgroup2UnifiedMode() && !ptr.Deref(m.singleProcessOOMKill, true) {
+             resources.Unified = map[string]string{"memory.oom.group": "1"}
+           }
+         so the Kubelet puts it in the CRI LinuxContainerResources.Unified map and the runtime writes
+         the cgroup file, which is what the restart step's wire label says. `Kubelet sets
+         memory.oom.group` contradicted that comment one step later about the same file.
+         The `ptr.Deref(..., true)` reads as though single-process were the default. It is not: the
+         KubeletConfiguration doc on SingleProcessOOMKill says "On cgroup v2 linux, null / absent,
+         true and false are allowed. The default value is false", so the nil fallback is defensive
+         cover for non-Linux and cgroup v1 and on cgroup v2 the effective default is group kill.
+         singleProcessOOMKill is a FIELD, not a feature gate, and an opt-OUT: a footnote rather than
+         a condition, which is why it is not worth any of this card's narration budget.
 ```
 
-### before `const create = routePacket(s, ctx, NODE_CONNECTOR, { role: 'cluster' });`
+### before `      F.route({ points: NODE_CONNECTOR, name: 'create' }),`
 
 ```
 Kubelet creates the new container on the node (connector) and rewrites its cgroup
@@ -1578,7 +1414,7 @@ shorter than it was and every ball on it lands sooner. routeDur is length-based,
 span before assuming a timing here is unchanged.
 ```
 
-### before `const pkt = topPacket(s, ctx, { from: KERN_X, to: KUBE_X + BOX_W, y: DOWN_Y, role: 'cluster' });`
+### before `      F.top({ from: KERN_X, to: KUBE_R, y: DOWN_Y, name: 'relist', lights: ['kubelet'] }),`
 
 ```
 NOT A DEFECT: the `observe` step is not a return the narration promises and the motion never
@@ -1608,12 +1444,7 @@ No Pod, no Kubelet, no chips: everything that is not the cap and the strike is d
 ```
 WHAT     The Kubelet as a CRI CLIENT: containerd is what materialises the pause container, pulls,
          creates and starts, and CNI wires the sandbox namespace.
-LANES    THE LANE LEAVES containerd, not the Kubelet. The Kubelet is the one block on this card that
-         never touches the sandbox, and all four steps that ride the lane say so. SPINE_X is
-         RT_X + RT_W / 2.
-         It is a centred zigzag into the NODE: off the containerd bottom midpoint, across on
-         JOG_Y = (TOP_BOTTOM + LADDER_Y) / 2, then straight down x=600 onto the Node frame top
-         midpoint. The turn has to go ABOVE both columns, because 120..235 is the only horizontal
+LANES    The turn has to go ABOVE both columns, because 120..235 is the only horizontal
          band on this card free of them, and the long leg then falls through the 490..620 gutter.
 DO NOT   Turn at BUS_Y = NODE_Y - 16 and end on the Pod sandbox top midpoint. containerd centres on
          x=782, INSIDE the chip column (620..1140, y 235..437), so the 326 unit vertical leg goes
@@ -1621,20 +1452,16 @@ DO NOT   Turn at BUS_Y = NODE_Y - 16 and end on the Pod sandbox top midpoint. co
          catches it: check-geometry THROUGH scores blocks, and a value chip is not a block. WHERE A
          LANE TURNS DECIDES WHAT IT CROSSES, and the only witness for the chip column is a rendered
          frame.
-LAYOUT   The top row is derived RIGHT TO LEFT: CNI ends on CONTENT_R and the row builds leftwards.
-         404 IS A HARD STOP, not taste: the panel measures x<=397 at 1100 width at every height and
+LAYOUT   404 IS A HARD STOP, not taste: the panel measures x<=397 at 1100 width at every height and
          the top row at y 40..120 sits inside that band, so seven units is the entire clearance. It
          is a viewport-WIDTH effect, not a text-length one, so a longer narration cannot eat it.
          The room for the arrows therefore could not come from moving left and had to come out of the
          BOXES. They carried 70 to 95 units of dead padding per side against measured widest inner
          labels of 60, 90 and 66, so widths went 200/280/180 -> 180/210/180 and TOP_GAP went 30 -> 83.
          Each call and return pair now has better than twice its old run.
-NOTE     Z-order canon: packetLayer rides above the static wires but below the blocks, so the ball
-         reads on its connector and arrival is told by the pulse. The centre connector travels in
-         open space.
 ```
 
-### before `const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0, role: 'workloads' });`
+### before `      key: 'sandboxGroup', id: 'sandboxGroup', shellKey: 'shellEl', innerKey: 'pauseBox',`
 
 ```
 The Pod sandbox: shell holds the pause container (created at RunPodSandbox)
@@ -1642,7 +1469,7 @@ and the workload container (created at CreateContainer, started at StartContaine
 Centred on CX, under the point where the zigzag enters the Node frame.
 ```
 
-### before `const packetLayer = g({ id: 'packetLayer' });`
+### before `    P.packets(),`
 
 ```
 Z-order canon: packetLayer rides above the static wires but below the
@@ -1669,21 +1496,8 @@ dashed legs are the only thing connecting the tiers, because nothing travels bet
 ```
 WHAT     THE CLUSTER EXEMPLAR. One scheduling cycle: watch, filter, score, bind, and the Kubelet on
          the chosen Node picking the Pod up.
-LAYOUT   Layout A, rebuilt so the rest of the category has a shape to copy:
-           actor row     40..140, clear of the panel
-           ladder        LEFT column 60..540
-           state chips   RIGHT column 660..1140 at 480 wide
-           candidates    Node row and its verdict chips full width at the bottom
-         Chips share the ladder's row rhythm (ROW_H 32, ROW_GAP 12) so the two columns read as one
-         grid.
 NOTE     CENTRE passes because the chip strip pools EVERY .scheme-chip: the ladder rows (60..540) and
          the verdict chips (60..1140) keep the strip centred on 600 with the value chips on the right.
-LANES    API_TO_CHAIN is a relationPath: no arrowhead, no ball, stroke-opacity 0.45. The queue, filter
-         and score stages are the Scheduler's OWN work and nothing travels from the API to reach
-         them, and an arrowhead makes a legend for the scheduling cycle read as a traffic destination.
-         It turns at JOG_Y 180, the exact midpoint of the API bottom face (140) and the ladder top
-         face (220), and ends ON the ladder edge at 220, not 2 short of it: the 2 was arrowhead
-         clearance.
 OPEN     The panel bottom at 1100x800 is exactly 180, so at the NARROWEST viewport the leftmost ~97
          units of that horizontal run and the corner turn pass behind the panel, and the line reads as
          emerging from under its bottom-left edge. At 1280 and wider the whole route is clear. The two
@@ -1700,6 +1514,15 @@ NOTE     The ETCD -> Api return lane wore an arrowhead no ball had ever ridden. 
          bind runs three hops, POST -> persist -> commit ack, chained on arrivalMs + BEAT.afterHop.
          rv=903 on the persist wire was always etcd ANSWERING, so the ball carries a value the card
          already showed.
+NOTE     `reset.pods` is EMPTY on this card and is WRITTEN OUT rather than left to be inferred from
+         the scene. The card pulses `placedPod` and never takes that pulse back, and the `pods`
+         argument of `clearHighlights` runs `clearPodHighlight`, which clears four inline properties
+         per matched rect (stroke, stroke-opacity, stroke-width, transition) and no class at all. So
+         inferring pods from the parts list, which is otherwise the obvious generalisation, would
+         wipe the styles the placed Pod's final look depends on. `dom-dump` sees that difference,
+         which is what makes it checkable at all: nothing in `npm test` reads inline stroke styles.
+         The mirror of this defect is a `.highlight` on a Pod inner box that was NOT named in the
+         keys list and therefore leaks (`S-19`), and the two are why neither argument is derived.
 NOTE     `score` lights the Scheduler, as `filter` does. Both are equally the Scheduler's own internal
          work and neither moves a packet, and on a step with no motion the highlight is the ENTIRE
          beat, so an unlit Scheduler reads as going idle to do its scoring.
@@ -1722,20 +1545,6 @@ NOTE     `score` names the preemption card (`See the Pod Priority and Preemption
          one stage further on. It went on score rather than on filter, where PostFilter belongs by
          subject, purely for the character ceiling: filter is already the card worst case at 248 and
          one more line takes the panel from 180 to 205, which swallows the turn.
-CONTENT  The RUNTIME writes memory.oom.group, the Kubelet only asks for it. Verified against
-         pkg/kubelet/kuberuntime/kuberuntime_container_linux.go:
-           if isCgroup2UnifiedMode() && !ptr.Deref(m.singleProcessOOMKill, true) {
-             resources.Unified = map[string]string{"memory.oom.group": "1"}
-           }
-         so the Kubelet puts it in the CRI LinuxContainerResources.Unified map and the runtime writes
-         the cgroup file, which is what the restart step's wire label says. `Kubelet sets
-         memory.oom.group` contradicted that comment one step later about the same file.
-         The `ptr.Deref(..., true)` reads as though single-process were the default. It is not: the
-         KubeletConfiguration doc on SingleProcessOOMKill says "On cgroup v2 linux, null / absent,
-         true and false are allowed. The default value is false", so the nil fallback is defensive
-         cover for non-Linux and cgroup v1 and on cgroup v2 the effective default is group kill.
-         singleProcessOOMKill is a FIELD, not a feature gate, and an opt-OUT: a footnote rather than
-         a condition, which is why it is not worth any of this card's narration budget.
 ```
 
 ### poster
@@ -1765,9 +1574,7 @@ sends the straight lane to a loser and the turning lane to the winner.
 WHAT     The asymmetry between a file on disk and its API shadow: the Kubelet runs the static Pod,
          the mirror Pod is only a record, and deleting the record changes nothing.
 LAYOUT   THREE tiers, not the Node family's two, because the card draws the API band and the Node
-         band at once. Tier 1 API plus kubectl, tier 2 the mirror Pod, tier 3 the Node frame on the
-         family numbers (NODE_Y 380, NODE_H 152, POD_Y = NODE_Y + 34, POD_H 106), chip strip two
-         per row at 548..624.
+         band at once.
 PANEL    x<=291 y<=160 at 1600, x<=378 y<=193 at 1280, x<=397 y<=230 at 1100, worst on drain.
 BUDGET   390 characters per narration. Nothing in tiers 1 and 2 starts left of 450, so what has to
          be cleared is the Node frame at 380, not the blocks.
@@ -1776,14 +1583,6 @@ NOTE     kubectl is on the RIGHT (772..1004). The API is centred on CX so the mi
          face midpoints, which leaves only 64 units (420..484) for a 232 wide box on the left. The
          cost is a top row reading right to left, carried by an arrowhead per direction and a wire
          label over the gap at x=744.
-LANES    The asymmetry is built into the lanes rather than stated in prose. Four routes and one
-         relationship, and NOT ONE of them points from the API down at the Node:
-           Manifest file -> Kubelet   the spec off the disk. The Kubelet is the actor, but the SPEC
-                                      travels, so the arrowhead is on the Kubelet
-           Kubelet -> static Pod      the container starting, and restarting on the edit step
-           Kubelet -> mirror Pod      the create, and the recreate after the delete. UP, out of the band
-           kubectl <-> API            one lane per direction, mirrored on LANE_DY
-           API .... mirror Pod        a relationPath: the API HOLDS the object, it never drives it
 DO NOT   Ride a ball down the API tie. The delete lands ON the API and what the reader sees next is
          the object under it going dark, which is what deleting a mirror Pod is. The container in
          the Node band does not move once.
@@ -1835,15 +1634,9 @@ two, and the dim dashed block already reads as "somewhere else, and lesser".
 ```
 WHAT     PostFilter: when filtering leaves no feasible Node, the Scheduler preempts a lower-priority
          victim and binds the pending Pod into its slot.
-LAYOUT   Layout C. Panel x<=397, y<=404, so the pipeline keeps 660..1140 and the chips are a
-         two-across bottom strip at 532. Four across was 258 and six of the eight chip strings
+LAYOUT   Four across was 258 and six of the eight chip strings
          collided, including `Pod NEW · pri` against `2e9 (system-cluster-critical)`.
-         Scheduler 420..780, centred on CX.
-LANES    TWO lanes, not one, and they share the drop so they read as one wiring tree with two sources:
-           SCAN_LANE  from the SCHEDULER, the preemption scan evaluating the Pods already on the Node
-           NODE_LANE  from the API, what the API sets in motion once a write has landed on it: the
-                      graceful delete of the victim, and the start of the bound Pod
-         The Scheduler never reaches a Node. It writes to the API and the Node acts on what it reads,
+LANES    The Scheduler never reaches a Node. It writes to the API and the Node acts on what it reads,
          so picking one owner would have lied about the other.
 NOTE     Slot 0 is the victim it preempts (Pod A) and the slot Pod NEW is bound into, which is why
          everything sent down addresses it. Same one-slot-two-identities shape cluster-resource-quota
@@ -1870,7 +1663,7 @@ NOT A DEFECT
          diagram. Do not file these again.
 ```
 
-### before `s.refs.pod1.style.opacity   = String(OPACITY.terminating);`
+### before `opacity: { ...STANDING, pod1: OPACITY.terminating },`
 
 ```
 DO NOT pin Pod A to 0 and animate it 1 -> 0 on the eviction packet arriving. The victim chip on that

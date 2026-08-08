@@ -1,0 +1,25 @@
+{
+  "name": "scheme-oracle",
+  "private": true,
+  "type": "module",
+  "description": "The migration bridge: anim-dump + dom-dump + reduced-dump prove a rewritten card's motion, structure and reduced path are byte-identical to the baseline. Never shipped, and it goes away at the end of stage 5 with the card migration it exists for. Needs a server: BASE=http://localhost:8888 npm run oracle (python3 -m http.server 8888 from the repo root); DEFAULT_BASE is :8080, the container, which serves a SNAPSHOT.",
+  "//": "playwright is resolved from ../node_modules, the one install the whole sub-app shares. There is no node_modules here and there does not need to be.",
+  "//halves": "THREE halves, and the catalogue-wide trio (oracle / oracle:base / oracle:diff) runs all three: the animated path alone left the ctx.reduced branch, where flowLights derives every guard, unwatched by anything that can fail. The per-card trio (oracle:card*) is deliberately the two animated halves, because it is the fast inner loop of a rewrite; oracle:card:reduced* is its third half and the migration procedure must run both.",
+  "scripts": {
+    "oracle": "node anim-dump.mjs --all --samples=0,10,25,50,75,90,100 --out=baselines/anim && node dom-dump.mjs --all --out=baselines/dom && node reduced-dump.mjs --all --out=baselines/reduced",
+    "oracle:base": "node anim-dump.mjs --all --samples=0,10,25,50,75,90,100 --out=baselines/anim-base && node dom-dump.mjs --all --out=baselines/dom-base && node reduced-dump.mjs --all --out=baselines/reduced-base",
+    "oracle:diff": "test -f baselines/anim/_complete && test -f baselines/dom/_complete && test -f baselines/reduced/_complete || { echo 'ORACLE INCOMPLETE: a run died partway, these dumps are not a full catalogue'; exit 1; }; diff -rq -x _complete baselines/anim-base baselines/anim && diff -rq -x _complete baselines/dom-base baselines/dom && diff -rq -x _complete baselines/reduced-base baselines/reduced && echo 'ORACLE CLEAN: motion, structure and the reduced path identical to the baseline'",
+    "oracle:reduced": "node reduced-dump.mjs --all --out=baselines/reduced",
+    "oracle:reduced:base": "node reduced-dump.mjs --all --out=baselines/reduced-base",
+    "oracle:card": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card -- <scheme-id>\"; exit 1; }; node anim-dump.mjs \"$1\" --samples=0,10,25,50,75,90,100 --out=baselines/anim && node dom-dump.mjs \"$1\" --out=baselines/dom' --",
+    "oracle:card:base": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card:base -- <scheme-id>\"; exit 1; }; node anim-dump.mjs \"$1\" --samples=0,10,25,50,75,90,100 --out=baselines/anim-base && node dom-dump.mjs \"$1\" --out=baselines/dom-base' --",
+    "oracle:card:diff": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card:diff -- <scheme-id>\"; exit 1; }; for f in baselines/anim-base/\"$1\".json baselines/anim/\"$1\".json baselines/dom-base/\"$1\".txt baselines/dom/\"$1\".txt; do test -f \"$f\" || { echo \"MISSING $f: run oracle:card:base before the rewrite and oracle:card after\"; exit 1; }; done; diff -u baselines/anim-base/\"$1\".json baselines/anim/\"$1\".json && diff -u baselines/dom-base/\"$1\".txt baselines/dom/\"$1\".txt && echo \"CARD CLEAN: $1 motion and structure identical to the baseline\" && echo \"  ANIMATED PATH ONLY. The reduced guard is a separate half: npm run oracle:card:reduced:diff -- $1\"' --",
+    "oracle:card:reduced": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card:reduced -- <scheme-id>\"; exit 1; }; node reduced-dump.mjs \"$1\" --out=baselines/reduced' --",
+    "oracle:card:reduced:base": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card:reduced:base -- <scheme-id>\"; exit 1; }; node reduced-dump.mjs \"$1\" --out=baselines/reduced-base' --",
+    "oracle:card:reduced:diff": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card:reduced:diff -- <scheme-id>\"; exit 1; }; for f in baselines/reduced-base/\"$1\".txt baselines/reduced/\"$1\".txt; do test -f \"$f\" || { echo \"MISSING $f: run oracle:card:reduced:base before the rewrite and oracle:card:reduced after\"; exit 1; }; done; diff -u baselines/reduced-base/\"$1\".txt baselines/reduced/\"$1\".txt && echo \"CARD CLEAN (reduced): $1 prev, reset and deep-link state identical to the baseline\"' --",
+    "dump": "node anim-dump.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  }
+}

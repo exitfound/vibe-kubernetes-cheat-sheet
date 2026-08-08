@@ -77,7 +77,7 @@ The project is intentionally dependency-free. No framework, no bundler, no npm a
 - **HTML / CSS / JavaScript**: plain ES modules loaded directly by the browser, no build step
 - **SVG + Web Animations API**: all diagram motion, no animation library
 - **Google Fonts**: Space Grotesk for the UI, JetBrains Mono for commands
-- **nginx**: web server inside the Docker image, with gzip, security headers, and static asset caching
+- **nginx**: web server inside the Docker image, with gzip, security headers, and no-cache static assets so a local rebuild shows up right away
 - **GitHub Actions**: automatic deployment to GitHub Pages on every push to `main`, plus a tagged release artifact
 - **GitHub Pages + Cloudflare**: hosting with the custom domain `kube.how`, full SSL, and edge caching
 
@@ -85,7 +85,7 @@ Command content lives in `cli/js/data.js` as one structured array. Adding or edi
 
 Contacts and sponsor information lives in `cli/js/contacts.js`, with a second copy in `scheme/js/contacts.js` so each path prefix stays self-contained. Both are optional: delete a copy to ship without the Contacts and Sponsor header buttons on the pages that import it (`cli/js/contacts.js` covers the hub and Commands, `scheme/js/contacts.js` covers Schemes), and the rest of the app is unaffected.
 
-`scheme/tools/` is a Node dev harness: source lints, a terminology and casing dictionary, a link checker, a smoke test that plays every step of every diagram, and animation-inspection tools. `npm run gate` chains them and has to be green before a change lands. It is dev-only and never shipped.
+`scheme/test/` is a Node test suite on the built-in test runner: unit tests over the catalogue, the card modules and the prose, render tests that drive a headless browser (Playwright) through every step of every diagram, and reporting probes for animation and geometry. It has to be green before a change lands. It is dev-only and never shipped.
 
 ---
 
@@ -100,7 +100,7 @@ scheme/                  schemes sub-app
   js/lib/                shared primitives, timeline, animation tokens
   js/schemes/<category>/ one folder per category: its cards, kit, catalogue, posters, design record
   css/                   tokens, layout, SVG diagram classes
-  tools/                 dev-only test harness, not shipped
+  test/                  dev-only test suite, not shipped
 images/                  og image
 configs/nginx.conf       Docker-only nginx config
 ```

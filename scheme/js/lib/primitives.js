@@ -1,4 +1,5 @@
-// Design notes: scheme/INTERNALS.md#schemejslibprimitivesjs
+// The SVG shape vocabulary every card composes. No browser globals at module load, which is what
+// lets the test harness import it outside a browser.
 import { g, rect, circle, ellipse, path, text, defs, marker } from './svg.js';
 
 export function arrowDefs() {
@@ -46,8 +47,8 @@ export function pod({ x, y, w = 92, h = 60, label = 'Pod', sublabel = '', contai
   return group;
 }
 
-// A Pod drawn as a SHELL: pod() with its rect washed to a near-transparent fill. That fill stays
-// INLINE, because a CSS class resolves differently against the .scheme-pod-rect rules.
+// A Pod drawn as a SHELL, and what a card calls instead of a bare pod() (CANON.md M-03). The washed
+// fill stays INLINE: as a class it loses to the .scheme-pod-rect rules on some cards and not others.
 export const POD_SHELL_FILL = 'rgba(255, 255, 255, 0.03)';
 
 export function podShell(opts) {
@@ -78,14 +79,14 @@ export function cylinder({ x, y, w = 80, h = 60, label = '', role = 'storage', c
   return group;
 }
 
-// A two-point pathArrow. It kept its own copy of the marker ladder until 2026-08-06, and the copy
-// is exactly how a role could come to mean one thing on a straight lane and another on an elbow.
+// A two-point pathArrow and nothing else, so a role cannot mean one thing on a straight lane and
+// another on an elbow. It inherits `stroke-linejoin: miter`, which a two-point path has no join for.
 export function arrow({ x1, y1, x2, y2, dashed = false, dim = false, role = '', cls = '' } = {}) {
   return pathArrow({ points: [[x1, y1], [x2, y2]], dashed, dim, role, cls });
 }
 
 // role OUTRANKS dim on the marker, deliberately, and diagrams.css says the same about the stroke.
-// Why that is not the bug it looks like: scheme/INTERNALS.md#schemecssdiagramscss.
+// `dim` here is a stroke WEIGHT, not a lifecycle state: see the note in css/diagrams.css.
 export function pathArrow({ points = [], dashed = false, dim = false, role = '', cls = '' } = {}) {
   if (!points || points.length < 2) return null;
   const dashAttr = dashed ? '5 5' : null;
@@ -146,6 +147,8 @@ export function setChainActive(chainEl, idx) {
   });
 }
 
+// Walks an element along a points array as one WAAPI animation. IT HONORS options.delay: dropping
+// it teleports every packet through its delay window. The default easing is ease-in-out (M-30).
 export function animateAlong(packetEl, points, options = {}) {
   if (!points || points.length < 2) return null;
   const duration = options.duration || 1500;

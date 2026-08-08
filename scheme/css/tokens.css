@@ -1,10 +1,13 @@
-/* Design notes: scheme/INTERNALS.md#schemecsstokenscss */
+/* Page CHROME only. A diagram is coloured from `data-role` through diagrams.css, and a tinted
+   dialog overrides most of this with the category tint (styles.css). */
 :root {
+  /* Two card shades: hover is a lift, not a highlight. */
   --bg-card:        #1a1538;
   --bg-card-hover:  #1e1a38;
   --border:         #2e274e;
   --border-subtle:  #1e1935;
 
+  /* Six shades: the grid stacks title, desc, meta and nav, each needing its own contrast. */
   --text:           #ece9ff;
   --text-bright:    #f9f8ff;
   --text-muted:     #8d8e96;
@@ -12,15 +15,18 @@
   --text-nav:       #e8e4ff;
   --text-card-desc: #c7c2ed;
 
+  /* Lavender, shared with /cli/ and the hub. A tinted dialog remaps all three onto its tint. */
   --accent:         #e0cdff;
   --accent-glow:    rgba(224, 205, 255, 0.16);
   --accent-border:  rgba(224, 205, 255, 0.28);
 
+  /* Copy confirmation. The only green on the page. */
   --success-color:  #5cb85c;
   --toast-bg:       #1e1438;
   --toast-text:     #c4a8ff;
 
-  /* Scheme categories, built atop main palette */
+  /* Chrome per category, keyed off `data-cat`. Deliberately NOT the kit tint that paints the
+     diagram (C-15): cluster is #7d86ff here, rgb(192,176,255) in cluster-kit.js. Retint: C-22. */
   --network-color:    #4fe5ff;
   --network-glow:     rgba(79, 229, 255, 0.13);
   --network-border:   rgba(79, 229, 255, 0.28);
@@ -37,7 +43,8 @@
   --cluster-glow:     rgba(125, 134, 255, 0.13);
   --cluster-border:   rgba(125, 134, 255, 0.28);
 
-  /* Diagram-specific tokens */
+  /* Untinted fallback. Every card ships tinted today, so styles.css overrides stroke and arrow.
+     Per-role classes live in diagrams.css. */
   --diag-stroke:       #b3a8e0;
   --diag-stroke-soft:  rgba(179, 168, 224, 0.4);
   --diag-fill-soft:    rgba(40, 32, 72, 0.65);

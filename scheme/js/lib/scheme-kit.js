@@ -3,11 +3,15 @@ import { packet, animateAlong } from './primitives.js';
 import { Timeline } from './timeline.js';
 import { PULSE_POD, PULSE_BLOCK, OPACITY } from './tokens.js';
 export { FADE, BEAT, OPACITY } from './tokens.js';
-// Design notes: scheme/INTERNALS.md#schemejslibscheme-kitjs
+
+// The shared BASE kit for all four categories: each kit re-exports it whole and overrides only the
+// pod tint, so no card imports this file, and a name added here goes into all four kits (S-22).
 
 // ---- geometry constants ----
 // Not exported: each card owns its own spine, and the ball rides the SAME points array as the wire.
 
+// `role` has NO category default: omitting it leaves the attribute off and the chip falls back to
+// the generic .scheme-chip-rect stroke, rather than silently borrowing a neighbouring category's.
 export function valChip({ x, y, w, h = 32, name, value, role = '' }) {
   const grp = g({ class: 'scheme-chip', 'data-role': role || null, transform: `translate(${x},${y})` });
   grp.appendChild(rect({ class: 'scheme-chip-rect', x: 0, y: 0, width: w, height: h, rx: 4 }));
@@ -19,8 +23,8 @@ export function valChip({ x, y, w, h = 32, name, value, role = '' }) {
 }
 export function setVal(node, txt) { if (node && node.valueText) node.valueText.textContent = txt; }
 
-// setVal plus the diff that lights a chip whose value CHANGED. RENAMING IT BREAKS TWO LINTERS
-// SILENTLY: prose.mjs seeds `setChip` BY NAME, so a rename here must be a rename there too.
+// setVal plus a static highlight (never a flash) on a chip whose value CHANGED. The diff is
+// deterministic: resetStep clears the class and not the text, and steps are entered in order.
 export function setChip(chip, val) {
   const changed = chip && chip.valueText && chip.valueText.textContent !== String(val);
   setVal(chip, val);
@@ -41,10 +45,12 @@ export function setPodSublabel(podEl, txt) {
   if (sub) sub.textContent = txt;
 }
 
-// A lane joins two things and is only as present as the fainter of them, so its shade is the MIN
-// of its endpoints. The rule is catalog-wide: ../../CANON.md A-13, A-14, A-16.
+// A lane is only as present as the fainter of its two ends, so its shade is the MIN of them and is
+// never derived from one end alone: ../../CANON.md A-13, A-14, A-16.
 export const laneOf = (from, to) => String(Math.min(Number(from), Number(to)));
 
+// `keys` and `pods` are NOT interchangeable: `pods` clears the inline stroke a pulse leaves and no
+// class at all, so a `.highlight` put on a Pod inner box has to be named in `keys` or it leaks.
 export function clearHighlights(s, keys, pods = []) {
   keys.forEach(k => { const el = s.refs[k]; if (el) el.classList.remove('highlight'); });
   if (s.refs.chain) s.refs.chain.querySelectorAll('.scheme-chip').forEach(c => c.classList.remove('highlight'));
@@ -68,6 +74,8 @@ export function makeInit(SceneClass, STEPS, opts = {}) {
       onSceneReset: () => scene.reset(),
       onChange: callbacks.onStepChange,
       onPlayingChange: callbacks.onPlayingChange,
+      // Block auto-pulse (a brightness flash on any freshly highlighted block or chip) is OFF for
+      // the whole catalog: only Pods pulse, through explicit pulsePod calls. Override per card.
       autoPulse: false,
       ...opts,
     });
@@ -86,11 +94,15 @@ export function makeInit(SceneClass, STEPS, opts = {}) {
       destroy: () => { tl.destroy(); root.replaceChildren(); },
       posterFirst: !!opts.posterFirst,
       total: STEPS.length,
+      // Inert debug handle: a probe plays one step with no auto-advance, then seeks its WAAPI
+      // animations deterministically. Reachable only through window.__schemeCtl, in inspect mode.
       _timeline: tl,
     };
   };
 }
 
+// The single source of truth for the pod pulse, bound to a tint by each kit. `podEl` is the WRAPPER
+// GROUP: the queries match descendants only, so a bare pod() pulses at half strength (CANON.md M-03).
 export function pulsePodWithTint(podEl, ctx, delay, { persist = false } = {}, tint) {
   if (!podEl) return;
   const RAMP = PULSE_POD.ms / 2;
@@ -117,6 +129,8 @@ export function pulsePodWithTint(podEl, ctx, delay, { persist = false } = {}, ti
     ctx.register(el.animate(BRIGHTNESS_FRAMES, { duration: PULSE_POD.ms, delay, fill: 'forwards', easing: 'ease-in-out' }));
   }
 }
+// Pulse a DIMMED pod (booting, not-Ready): the ordinary pulse plus an opacity flash up to `peak`
+// and back to `from`, so the blink reads against the faded shade instead of vanishing into it.
 export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending, peak = PULSE_POD.dimPeak, dur = PULSE_POD.ms } = {}, tint) {
   if (!podEl) return;
   pulsePodWithTint(podEl, ctx, delay, {}, tint);
@@ -125,13 +139,8 @@ export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending,
     { duration: dur, delay, fill: 'both', easing: 'ease-in-out' }
   ));
 }
-// The camera, and the one part of a card's build() that is not per card. Every card is on the canon
-// viewBox, so the only thing that varies is the sentence a screen reader is read.
-//
-// THE aria-label STAYS AN OBJECT KEY AT THE CALL SITE, and that is not style. check-terms finds that
-// prose by matching `'aria-label': '...'` in the source, so a positional argument would take 108
-// sentences out of its input with no finding and no error. The attribute order is the order the old
-// inline block used, because dom-dump compares serialised attributes.
+// The camera: only the aria sentence varies. 'aria-label' STAYS A SPELLED-OUT OBJECT KEY, because
+// the prose scrapes match it in source (108 sentences), and dom-dump compares attribute ORDER.
 export function diagramRoot({ 'aria-label': ariaLabel }) {
   return svg({
     class: 'diagram',
@@ -151,9 +160,8 @@ export function makeTintedPulses(tint) {
   };
 }
 
-// The tail every card-local podBlock() shares. Geometry stays in the card, only the assembly is
-// here: the returned GROUP is what pulsePod has to be given, because the pulse queries descendants
-// and never the element itself, so a bare shell pulses at half strength.
+// The tail every card-local podBlock() shares: geometry stays in the card, only the assembly is
+// here. The returned GROUP is what pulsePod takes, since a bare shell pulses at half strength.
 export function wrapPod(shell, innerBox) {
   const group = g({});
   group.appendChild(shell);
@@ -168,6 +176,8 @@ export function clearPodHighlight(podEl) {
   }
 }
 
+// The only sanctioned block flash, for a step with no packet motion and no Pod so it does not read
+// as a frozen frame. ZERO CALLERS: it stays exported because dropping it takes all four kits (S-25).
 export function flashChips(s, ctx, keys, delay = 0) {
   if (ctx.reduced) return;
   const FRAMES = [
@@ -179,6 +189,8 @@ export function flashChips(s, ctx, keys, delay = 0) {
   });
 }
 
+// An address tag that travels WITH a ball instead of sitting as static wire text. ITS EASING AND
+// `dur` MUST MATCH THE BALL (M-30): mismatched, it drifts off mid-flight and rejoins at the ends.
 export function makeRidingLabel({
   role,                        // palette role for the tag
   dy = -14,                   // resting offset above the ball
@@ -198,6 +210,8 @@ export function makeRidingLabel({
     const d = dur == null ? routeDur(points) : dur;
     const lbl = text({ class: 'scheme-box-sublabel', x: xOff, y: yOff, 'text-anchor': 'middle', 'data-role': role }, [txt]);
     lbl.style.opacity = '0';
+    // Pin the tag at the route START. Without it the tag sits at the SVG origin until animateAlong's
+    // delay elapses, so its fade-in plays in the top-left corner under the narration panel.
     lbl.style.transform = `translate(${points[0][0]}px, ${points[0][1]}px)`;
     s.refs.packetLayer.appendChild(lbl);
     const inDelay = emergeMode ? delay + emerge : Math.max(0, delay - inMs);
@@ -207,11 +221,11 @@ export function makeRidingLabel({
   };
 }
 
-// A RELATIONSHIP line: a wire carrying no ball on any step, so it must NOT take an arrowhead, and
-// `arrow()` / `pathArrow()` always attach one. Pass `points`; `d` is for a multi-subpath spine.
+// A RELATIONSHIP line: no ball rides it on any step, so it must NOT take the arrowhead arrow() and
+// pathArrow() always attach. Pass the card's OWN points array so the line cannot drift off it.
 export function relationPath({ points, d, role = null, dash = null }) {
   // scheme-arrow-relation sinks the line behind the route wires while keeping the category hue.
-  // Without it a relationship reads as traffic: see scheme/INTERNALS.md#schemecssdiagramscss.
+  // Without it a relationship reads as traffic: see the note in css/diagrams.css.
   const cls = ['scheme-arrow', 'scheme-arrow-dashed', 'scheme-arrow-dim', 'scheme-arrow-relation'];
   if (role) cls.push(`scheme-arrow-${role}`);
   const attrs = { class: cls.join(' '), 'data-role': role || null, fill: 'none' };
@@ -220,9 +234,11 @@ export function relationPath({ points, d, role = null, dash = null }) {
   return path(attrs);
 }
 
-// An object COMING INTO EXISTENCE mid-step: it rests at `from` and lands on full when its packet
-// arrives. Hiding it instead aims the arrowhead at blank canvas for the whole flight.
-export const REVEAL_MS = 500;
+// A thing coming INTO EXISTENCE mid-step rests at `from` and lands on full when its packet arrives:
+// hiding it aims the arrowhead at blank canvas for the whole flight.
+export const REVEAL_MS = 500;   // the landing beat: inside BEAT.lead 800, and not FADE.in's 600
+// DO NOT short-circuit `delay <= 0` to opacity 1: that throws `from` away and leaves the element on
+// the wrong resting shade. Only ctx.reduced snaps, because a zero-delay reveal is still a real beat.
 export function revealAt(el, ctx, delay = 0, from = 0) {
   if (!el) return;
   if (ctx.reduced) { el.style.opacity = '1'; return; }
@@ -231,8 +247,8 @@ export function revealAt(el, ctx, delay = 0, from = 0) {
     { duration: REVEAL_MS, delay, fill: 'forwards', easing: 'ease-out' }));
 }
 
-// THE KEYFRAME LIST MUST STAY EMPTY: this is a timer and must not name a property, or the target is
-// composited for the whole delay window and visibly shifts tone. Measured in scheme/INTERNALS.md.
+// Lights a box ON PACKET ARRIVAL through a 1ms animation whose `onfinish` sets the class. THE
+// KEYFRAME LIST MUST STAY EMPTY (M-28): an opacity pair composites the block for the whole delay.
 export function lightBoxAt(boxEl, ctx, delay = 0) {
   if (!boxEl) return;
   if (ctx.reduced || delay <= 0) { boxEl.classList.add('highlight'); return; }
@@ -250,13 +266,18 @@ export function at(s, ctx, delay, fn) {
   ctx.register(a);
 }
 
-const HOP_MS = 700;
-const PKT_SPEED = 0.45, PKT_DUR_MIN = HOP_MS, PKT_DUR_MAX = 2600;
+// THE SPEED CANON, and the one place to tune pacing: travel time comes from path LENGTH at
+// PKT_SPEED, so route calls omit `dur` and an explicit one needs a justification at the call site.
+const HOP_MS = 700;   // topPacket's duration AND routeDur's FLOOR: under ~315 units a path would
+                      // otherwise outrun a hop and read as a dart (a 220 unit arrow at 489ms)
+const PKT_SPEED = 0.45, PKT_DUR_MIN = HOP_MS, PKT_DUR_MAX = 2600;   // units per ms, clamped
 export function routeLength(points) {
   let total = 0;
   for (let i = 1; i < points.length; i++) total += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
   return total;
 }
+// Length-based, so MOVING a lane is a TIMING change: pushing a start from 300 to 400 units right
+// takes the ball from 250 to 870ms. Raise the step's duration, never shorten the motion.
 export function routeDur(points) {
   return Math.round(Math.min(PKT_DUR_MAX, Math.max(PKT_DUR_MIN, routeLength(points) / PKT_SPEED)));
 }
@@ -266,6 +287,8 @@ export function packetArrival(points, { delay = 0, dur = null } = {}) {
   return delay + (dur == null ? routeDur(points) : dur);
 }
 
+// Every packet ripples at its destination: the delivered cue is arrival canon, with no opt-in. The
+// returned element carries `arrivalMs`, so cards anchor pulses to real geometry, not to a constant.
 export function packetAlong(packetLayer, ctx, points, {
   delay = 0, dur = null, role = '', easing = 'ease-in-out',
   offsets = null, fadeIn = true, fadeOut = true, fadeMs = 200,
@@ -299,6 +322,8 @@ export function packetAlong(packetLayer, ctx, points, {
   p.arrivalMs = delay + travel;
   return p;
 }
+// The delivered ring. It carries `.scheme-ripple` and never `.scheme-packet`, so anything counting
+// packets sees ONE ball per hop. Exported for a card that animates its packets by hand.
 export function arrivalRipple(packetLayer, ctx, point, delay, role = '') {
   if (!packetLayer || ctx.reduced) return;
   const ring = circle({ class: 'scheme-ripple', 'data-role': role, cx: 0, cy: 0, r: 9 });
@@ -322,6 +347,8 @@ export function setConnectorDir(s, dir) {
   s.refs.connectorUp.style.opacity   = dir === 'up' ? '1' : '0';
 }
 
+// ROUTES glide eased; a short hop is topPacket (eased, top strip) or segmentPacket (linear, body).
+// The points array is SHARED with the matching pathArrow, so the wire and the packet cannot differ.
 export function routePacket(s, ctx, points, {
   delay = 0, dur = null, role = '', easing = 'ease-in-out',
   offsets = null, fadeIn = (delay > 0), fadeOut = true,

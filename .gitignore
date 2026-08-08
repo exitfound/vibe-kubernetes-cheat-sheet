@@ -18,10 +18,7 @@ Thumbs.db
 .playwright-mcp/
 smoke-*.png
 
-# Scheme dev tools (Node deps + captured outputs)
-scheme/tools/node_modules/
-scheme/tools/output/
-scheme/tools/baselines/
-
-# Source-page cache for scheme/tools/check-sources.mjs (fetched docs, regenerable)
-scheme/tools/.cache/
+# Scheme test harness: the one playwright install the whole sub-app shares, and the oracle's
+# captured dumps (18 MB of anim/dom baselines, regenerable with `npm run oracle:base`).
+scheme/test/node_modules/
+scheme/test/oracle/baselines/

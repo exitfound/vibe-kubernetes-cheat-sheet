@@ -1,7 +1,8 @@
 // The cluster catalogue: every cluster card and the subcategories they sort into.
 // Adding a card means one entry here, one file beside it, one poster, one note.
 
-// Design notes: scheme/INTERNALS.md#schemejsdatajs
+// The SUBCATEGORIES list below is an ORDER, not a set: the sequence is an editorial argument
+// about what a reader has to know first, never alphabetical and never a merge artefact.
 
 export const SUBCATEGORIES = [
     { key: 'control-plane',  label: 'Control Plane'  },

@@ -1,4 +1,5 @@
-// Design notes: scheme/INTERNALS.md#schemejslibinspectorjs
+// `?inspect=1` or the `scheme:inspect` localStorage key: a coordinate grid and a bbox overlay, so a
+// geometry number is READ off the canvas and not guessed. Inert otherwise: no listener, no DOM.
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function inspectMode() {
@@ -206,6 +207,8 @@ export function attachInspector(dialog) {
   };
 }
 
+// The console-facing half of inspect mode. The HARNESS-facing half is `window.__schemeCtl`, which
+// app.js publishes under the same mode, so the two go live together and never on a normal load.
 function publishApi(dialog, svg) {
   window.SCHEME_INSPECT = {
     dialog,

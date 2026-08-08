@@ -32,7 +32,7 @@ jobs:
           mkdir -p _site
           cp index.html favicon.svg robots.txt sitemap.xml CNAME _site/
           cp -r images cli scheme _site/
-          rm -rf _site/scheme/tools
+          rm -rf _site/scheme/tools _site/scheme/test
           find _site \( -name CLAUDE.md -o -name CARDS.md -o -name INTERNALS.md -o -name CANON.md \) -delete
 
       - name: Upload artifact

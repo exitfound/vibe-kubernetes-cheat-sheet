@@ -6,8 +6,9 @@ constants themselves live in the card and are not repeated here.
 
 **The rules are not here.** Catalog-wide rules are `scheme/CANON.md`, and this category's own rules
 are `./CLAUDE.md`. A note below records only where a card DEVIATES from them, or a number that needs
-explaining. Sister records: `CARDS.md` in the other three category folders, and `scheme/INTERNALS.md`
-for the shared sources (catalog, lib, CSS). None of them ships (`S-41`).
+explaining. Sister records: `CARDS.md` in the other three category folders. Anything that is NOT
+one card (the catalog barrels, `js/lib/`, the kits, the CSS) is recorded in a JSDoc note beside
+the code it describes, not in a document. None of them ships (`S-41`).
 
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and
 `check-notes` parses it that way. A second-level heading anywhere else is reported as an orphan.)

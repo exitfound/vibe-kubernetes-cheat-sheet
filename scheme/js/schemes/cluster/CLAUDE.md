@@ -5,7 +5,10 @@ rulebook: layout, arrows, motion, colour, text, chips, metadata, posters, module
 `scheme/CLAUDE.md` (the contract: folder, module, catalog, checklists). **If a rule here would also
 be true of another category, it is in the wrong file.**
 
-The rows below carry `CLU.*` ids and are indexed from `scheme/CANON.md`.
+The rows below carry `CLU.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `CLU.*`
+rule lives here and only here**: the canon carries the id and a subject label, never a second copy
+of the rule. Six ids across the four folders had drifted into meaning two different things, and
+`CLU.S-01` was one of them: what the canon carried under it now lives here as `CLU.S-02`.
 
 ## The folder
 
@@ -33,9 +36,12 @@ CLUSTER_TINT = { base: 'rgb(192, 176, 255)', bright: 'rgb(224, 214, 255)' }   //
 
 ## Kit surface
 
-The shared list (`S-22`), plus `CLUSTER_TINT`, `pulsePod`, `pulsePodDim`. No cluster-only helper.
+The shared list (`S-22`) and the own set every kit adds (`P`, `F`, `defineCard`, `POD_VIOLET`, the
+`lib/layout.js` formulas), plus `CLUSTER_TINT` and its two pulses. Two names are cluster-only:
+`CLU`, the X grammar, and `LAYOUT`, its `A` / `B` / `C` column presets. There is no cluster-only
+behaviour helper: both are frozen geometry.
 
-## Subcategories
+## Subcategories (`CLU.D-01`)
 
 | key | label | cards | what belongs here |
 |---|---|---|---|
@@ -46,10 +52,31 @@ The shared list (`S-22`), plus `CLUSTER_TINT`, `pulsePod`, `pulsePodDim`. No clu
 The split between the last two is the question "is the Node still healthy": a Kubelet enforcing a
 memory limit is `node-runtime`, a Kubelet evicting to reclaim one is `node-lifecycle`.
 
-## Exemplar
+## Exemplar (`CLU.S-02`)
 
-`cluster-scheduler-decision.js`. Copy its shape for a new cluster card: a top-row
+`cluster-scheduler-decision.js`, 214 lines. Copy its shape for a new cluster card: a top-row
 request/persist arrow strip over the control-plane actors, with the Node frame below.
+
+It is also the reference for the declarative form (`scheme/CLAUDE.md`, the module contract), and it
+was written to be read in that order:
+
+- The header keeps the MEASURED inputs as literals (`SCHED_X = 420`, the panel note) and derives
+  everything else through the kit's formulas, so `laneY`, `ladder`, `spread` and `midX` carry the
+  arithmetic and nothing restates a number a formula already knows.
+- `LADDER_X` and `CHIP_X` come from `LAYOUT.A`, not from `60` and `660`. Picking a layout is
+  therefore one edit, and `L-06` decides which of `A` / `B` / `C` against that card's own panel.
+- `SCENE.parts` is ordered by z-order, and the card says so out loud: chips and lanes first, the
+  packet layer under the chain, the three top-row blocks absolute last.
+- `reset.keys` lists what `clearHighlights` takes back. `placedPod` is deliberately NOT in a `pods`
+  list, and the comment beside it says why, which is the form a deviation takes here.
+- Its steps show the three common `flow` shapes: a single `F.segment` with `lights`, a chain of
+  three hops joined by `name` and `after`, and a fade plus a pulse sharing one delay. Nothing on
+  the card touches `ctx.reduced`.
+- `FILTERED` and `SCORED` spread into `chips`, which is how `P-01` is satisfied without repeating
+  four verdict strings on four steps.
+
+New cards go in this form. The legacy hand-written `class Scene` remains legal only until the
+category it lives in is migrated.
 
 ## Rules of this category only (`CLU.*`)
 

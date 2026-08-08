@@ -1,4 +1,5 @@
-// Design notes: scheme/INTERNALS.md#schemejslibsvgjs
+// One thin createElementNS helper per tag. Six of the sixteen exports have no importer today and
+// they STAY: this is a library surface, not accumulated code, so do not prune it to zero (S-29).
 const NS = 'http://www.w3.org/2000/svg';
 
 export function el(tag, attrs = {}, children = []) {

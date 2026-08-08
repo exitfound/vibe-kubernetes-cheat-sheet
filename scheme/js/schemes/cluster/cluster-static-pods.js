@@ -1,24 +1,23 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, node, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, segmentPacket, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, revealAt, REVEAL_MS, FADE, BEAT, lightBoxAt, at, OPACITY, diagramRoot } from './cluster-kit.js';
+import { P, F, defineCard, laneY, ladder, strip, midX, shade, CLU, REVEAL_MS, FADE, OPACITY } from './cluster-kit.js';
+
 // Design notes for this card: ./CARDS.md#cluster-static-pods
 
 // Three tiers on the L. Panel worst case x<=397 y<=230 at 1100x800, and the Node frame at y=380 is
 // what it clears: 390 characters per narration. Re-measure with overlay-measure after a prose edit.
-const M = 60;
+const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
-const CX = (CONTENT_L + CONTENT_R) / 2;                  // 600, the canvas centre by construction
+const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas centre by construction
 
-const BOX_W = 232, BOX_H = 80;
+const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
 // Tier 1. API centred on CX so the mirror hangs straight below it and the Kubelet lane is one drop.
 // kubectl therefore goes RIGHT, reversing the top row's reading direction: see ./CARDS.md.
-const TOP_Y = 40, TOP_BOTTOM = TOP_Y + BOX_H;            // 40 / 120
+const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
 const TOP_GAP = 56;
 const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 484..716
 const KUBECTL_X = API_R + TOP_GAP;                       // 772..1004
-const LANE_DY = 12, TOP_CY = TOP_Y + BOX_H / 2;          // 80
-const REQ_Y = TOP_CY - LANE_DY, RESP_Y = TOP_CY + LANE_DY;   // 68 / 92
-const WIRE_TOP_X = (API_R + KUBECTL_X) / 2;              // 744
+const LANE_DY = CLU.LANE_DY, TOP_CY = midX(TOP_Y, TOP_BOTTOM);   // 12 / 80
+const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, LANE_DY);     // 68 / 92
+const WIRE_TOP_X = midX(API_R, KUBECTL_X);               // 744
 const WIRE_TOP_Y = TOP_Y - 14;                           // 26, above the row
 
 // Tier 2: the mirror Pod, the one object this card draws inside the API.
@@ -28,9 +27,9 @@ const MIR_Y = 190, MIR_BOTTOM = MIR_Y + MIR_H;           // 190..296
 
 // Tier 3: the Node band. Family numbers, the ones cluster-node-drain carries.
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
-const NODE_Y = 380, NODE_H = 152;                        // 380..532
-const POD_W = 300, POD_H = 106, POD_Y = NODE_Y + 34;     // 414..520
-const ROW_CY = POD_Y + POD_H / 2;                        // 467
+const NODE_Y = 380, NODE_H = CLU.NODE.H;                 // 380..532
+const POD_W = 300, POD_H = CLU.NODE.POD_H, POD_Y = NODE_Y + CLU.NODE.POD_DY;   // 414..520
+const ROW_CY = midX(POD_Y, POD_Y + POD_H);               // 467
 const POD_PAD = 24;
 const FILE_W = 300, FILE_X = NODE_X + POD_PAD, FILE_R = FILE_X + FILE_W;  // 84..384
 const KUBE_X = CX - BOX_W / 2, KUBE_R = KUBE_X + BOX_W;  // 484..716, on CX like the API above it
@@ -50,104 +49,67 @@ const WIRE_MIR_X = CX + 12, WIRE_MIR_Y = 365;            // right of the drop, a
 
 // Chips as a bottom strip, TWO per row: four across leaves 258 units and the names overlap
 // their own values.
-const CHIP_H = 34, CHIP_GAP = 16, CHIP_VGAP = 8, CHIP_COLS = 2;
+const CHIP_H = CLU.CHIP_H, CHIP_GAP = 16, CHIP_VGAP = 8, CHIP_COLS = 2;
 const CHIPS_Y = NODE_Y + NODE_H + 16;                    // 548, second row ends on 624
-const CHIP_W = (NODE_W - CHIP_GAP * (CHIP_COLS - 1)) / CHIP_COLS;     // 532
-const CHIP_X = i => CONTENT_L + (i % CHIP_COLS) * (CHIP_W + CHIP_GAP);
-const CHIP_Y = i => CHIPS_Y + Math.floor(i / CHIP_COLS) * (CHIP_H + CHIP_VGAP);
+const CHIP_COL = strip({ from: CONTENT_L, to: CONTENT_R, count: CHIP_COLS, gap: CHIP_GAP });
+const CHIP_W = CHIP_COL.w;                               // 532, which is LAYOUT.C.strip.two
+const CHIP_ROW = ladder({ y: CHIPS_Y, rowH: CHIP_H, gap: CHIP_VGAP });
+// The strip is read as a GRID: the index wraps across the two columns and steps down every second.
+const CHIP_X = i => CHIP_COL.x(i % CHIP_COLS);
+const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 
-const VIOLET = '#c0b0ff';
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Static Pods and mirror Pods: the Kubelet runs a manifest file on the Node and mirrors it into the API' });
-    root.appendChild(arrowDefs());
-
-    const apiserver = box({ x: API_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'API', sublabel: 'holds the mirror Pod', role: 'cluster' });
-    const kubectl = box({ x: KUBECTL_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'kubectl', sublabel: 'delete and drain', role: 'cluster' });
-
+// The list order IS the append order, so it is the z-order: the Node frame and everything that must
+// sit above the balls follow the packet layer, and the two top-row blocks go absolute last.
+export const SCENE = {
+  'aria-label': 'Static Pods and mirror Pods: the Kubelet runs a manifest file on the Node and mirrors it into the API',
+  parts: [
+    P.defs(),
     // Top-row lanes, one per direction, straddling the row centre line by LANE_DY.
-    root.appendChild(arrow({ x1: KUBECTL_X, y1: REQ_Y, x2: API_R, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: API_R, y1: RESP_Y, x2: KUBECTL_X, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
-
+    P.arrow({ x1: KUBECTL_X, y1: REQ_Y, x2: API_R, y2: REQ_Y, dim: true, dashed: true }),
+    P.arrow({ x1: API_R, y1: RESP_Y, x2: KUBECTL_X, y2: RESP_Y, dim: true, dashed: true }),
     // API.bottom -> mirror Pod.top. A relationship, not a route.
-    const holds = relationPath({ points: API_TO_MIRROR, role: 'cluster' });
-    root.appendChild(holds);
-
+    P.relation({ key: 'holds', points: API_TO_MIRROR }),
     // Node band lanes plus the one lane that leaves the Node, upward.
-    const fileLane = pathArrow({ points: FILE_TO_KUBE, dim: true, dashed: true, role: 'cluster' });
-    const podLane = pathArrow({ points: KUBE_TO_POD, dim: true, dashed: true, role: 'cluster' });
-    const mirrorLane = pathArrow({ points: KUBE_TO_MIRROR, dim: true, dashed: true, role: 'cluster' });
-    [fileLane, podLane, mirrorLane].forEach(l => root.appendChild(l));
-
-    const wireTop = text({ class: 'scheme-label code dim', x: WIRE_TOP_X, y: WIRE_TOP_Y, 'text-anchor': 'middle' }, [' ']);
-    const wireMir = text({ class: 'scheme-label code dim', x: WIRE_MIR_X, y: WIRE_MIR_Y, 'text-anchor': 'start' }, [' ']);
-    [wireTop, wireMir].forEach(t => root.appendChild(t));
-
+    P.lane({ key: 'fileLane', points: FILE_TO_KUBE, dim: true, dashed: true }),
+    P.lane({ key: 'podLane', points: KUBE_TO_POD, dim: true, dashed: true }),
+    P.lane({ key: 'mirrorLane', points: KUBE_TO_MIRROR, dim: true, dashed: true }),
+    P.wire({ key: 'top', x: WIRE_TOP_X, y: WIRE_TOP_Y }),
+    P.wire({ key: 'mirror', x: WIRE_MIR_X, y: WIRE_MIR_Y, anchor: 'start' }),
     // State chips, one bottom strip across the content width.
-    const pathChip = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'staticPodPath', value: '/etc/kubernetes/manifests', role: 'cluster' });
-    const fileChip = valChip({ x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'manifest file', value: 'none', role: 'cluster' });
-    const podChip = valChip({ x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'static Pod', value: 'none', role: 'cluster' });
-    const mirrorChip = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'mirror Pod', value: 'none', role: 'cluster' });
-    [pathChip, fileChip, podChip, mirrorChip].forEach(c => root.appendChild(c));
-
-    const nodeEl = node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
-
-    const fileBox = box({ x: FILE_X, y: BOX_TOP, w: FILE_W, h: BOX_H, label: 'Manifest file', sublabel: 'no file yet', role: 'cluster' });
-    const kubelet = box({ x: KUBE_X, y: BOX_TOP, w: BOX_W, h: BOX_H, label: 'Kubelet', sublabel: 'scans the directory', role: 'cluster' });
-
-    const mkPod = (id, x, y, name, sub) => {
-      const shell = podShell({ x, y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-      shell.style.setProperty('--workloads-color', VIOLET);
-      const inner = box({ x: x + POD_INNER.dx, y: y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: name, sublabel: sub, role: 'workloads' });
-      inner.style.setProperty('--workloads-color', VIOLET);
-      const wrap = g({ id });
-      wrap.appendChild(shell);
-      wrap.appendChild(inner);
-      return [wrap, inner];
-    };
-    const [staticPod, staticPodBox] = mkPod('staticPod', POD_X, POD_Y, 'static-web', 'not started');
-    const [mirrorPod, mirrorBox] = mkPod('mirrorPod', MIR_X, MIR_Y, 'static-web-Node-1', 'not in the API yet');
-
-    // Packet layer.
-    const packetLayer = g({ id: 'packetLayer' });
-    root.appendChild(packetLayer);
-
+    P.chip({ key: 'pathChip', x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'staticPodPath', value: '/etc/kubernetes/manifests' }),
+    P.chip({ key: 'fileChip', x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'manifest file', value: 'none' }),
+    P.chip({ key: 'podChip', x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'static Pod', value: 'none' }),
+    P.chip({ key: 'mirrorChip', x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'mirror Pod', value: 'none' }),
+    P.packets(),
     // Frame, then everything that must sit above the balls.
-    root.appendChild(nodeEl);
-    root.appendChild(fileBox);
-    root.appendChild(kubelet);
-    root.appendChild(staticPod);
-    root.appendChild(mirrorPod);
-    root.appendChild(apiserver);
-    root.appendChild(kubectl);
+    P.node({ key: 'nodeEl', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
+    P.box({ key: 'fileBox', x: FILE_X, y: BOX_TOP, w: FILE_W, h: BOX_H, label: 'Manifest file', sublabel: 'no file yet' }),
+    P.box({ key: 'kubelet', x: KUBE_X, y: BOX_TOP, w: BOX_W, h: BOX_H, label: 'Kubelet', sublabel: 'scans the directory' }),
+    // Both shells take POD_W and POD_H: MIR_W and MIR_H carry the mirror tier's own x and bottom,
+    // and the two pairs hold the same 300 x 106 by construction.
+    P.pod({
+      key: 'staticPod', id: 'staticPod', innerKey: 'staticPodBox',
+      x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
+      inner: { ...POD_INNER, label: 'static-web', sublabel: 'not started' },
+    }),
+    P.pod({
+      key: 'mirrorPod', id: 'mirrorPod', innerKey: 'mirrorBox',
+      x: MIR_X, y: MIR_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
+      inner: { ...POD_INNER, label: 'static-web-Node-1', sublabel: 'not in the API yet' },
+    }),
+    // Top-row blocks ABSOLUTE LAST.
+    P.box({ key: 'apiserver', x: API_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'API', sublabel: 'holds the mirror Pod' }),
+    P.box({ key: 'kubectl', x: KUBECTL_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'kubectl', sublabel: 'delete and drain' }),
+  ],
+  // Both Pods DO go to clearHighlights: the card pulses each of them in turn and the pulse has to
+  // come back off between steps.
+  reset: {
+    keys: ['apiserver', 'kubectl', 'fileBox', 'kubelet', 'pathChip', 'fileChip', 'podChip', 'mirrorChip', 'staticPodBox', 'mirrorBox'],
+    pods: ['staticPod', 'mirrorPod'],
+  },
+};
 
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      apiserver, kubectl, nodeEl, fileBox, kubelet,
-      holds, fileLane, podLane, mirrorLane,
-      pathChip, fileChip, podChip, mirrorChip,
-      staticPod, staticPodBox, mirrorPod, mirrorBox,
-      packetLayer,
-      wires: { top: wireTop, mirror: wireMir },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s,
-    ['apiserver', 'kubectl', 'fileBox', 'kubelet', 'pathChip', 'fileChip', 'podChip', 'mirrorChip', 'staticPodBox', 'mirrorBox'],
-    [s.refs.staticPod, s.refs.mirrorPod]);
-  clearWires(s);
-}
+const PATH = '/etc/kubernetes/manifests';
 
 // Presence in ONE helper: three blocks born on three beats drift the moment a step is added. An
 // absent block dims to OPACITY.pending and says so in its sublabel rather than being removed.
@@ -157,116 +119,89 @@ const SUB = {
   mirror: ['not in the API yet', 'mirror · read-only'],
 };
 // A lane is only as present as the fainter of its ends, so it is pinned with the block it depends on.
-function setStage(s, { file, pod: podOn, mirror }) {
-  const shade = on => (on ? '1' : String(OPACITY.pending));
-  s.refs.fileBox.style.opacity = shade(file);
-  s.refs.fileLane.style.opacity = shade(file);
-  setBoxSublabel(s.refs.fileBox, SUB.file[file ? 1 : 0]);
-  s.refs.staticPod.style.opacity = shade(podOn);
-  s.refs.podLane.style.opacity = shade(podOn);
-  setBoxSublabel(s.refs.staticPodBox, SUB.pod[podOn ? 1 : 0]);
-  s.refs.mirrorPod.style.opacity = shade(mirror);
-  s.refs.mirrorLane.style.opacity = shade(mirror);
-  s.refs.holds.style.opacity = shade(mirror);
-  setBoxSublabel(s.refs.mirrorBox, SUB.mirror[mirror ? 1 : 0]);
-}
-
-// Every enter() writes EVERY chip through this, or `mirror Pod` reads `deleted` into the drain step.
-function setChips(s, { file, staticPod, mirror }) {
-  setVal(s.refs.pathChip, '/etc/kubernetes/manifests');
-  setVal(s.refs.fileChip, file);
-  setVal(s.refs.podChip, staticPod);
-  setVal(s.refs.mirrorChip, mirror);
-}
+const stage = (file, pod, mirror) => ({
+  opacity: {
+    ...shade(['fileBox', 'fileLane'], file ? 1 : OPACITY.pending),
+    ...shade(['staticPod', 'podLane'], pod ? 1 : OPACITY.pending),
+    ...shade(['mirrorPod', 'mirrorLane', 'holds'], mirror ? 1 : OPACITY.pending),
+  },
+  sublabels: {
+    fileBox: SUB.file[file ? 1 : 0],
+    staticPodBox: SUB.pod[pod ? 1 : 0],
+    mirrorBox: SUB.mirror[mirror ? 1 : 0],
+  },
+});
+const EMPTY = stage(false, false, false), FILE_ONLY = stage(true, false, false);
+const NO_MIRROR = stage(true, true, false), FULL = stage(true, true, true);
 
 // Slower than FADE.out 700, where the block is gone 200ms before its own pulse ends and the delete
 // reads as a cut. Fades to OPACITY.terminated, not 0, and comes back on the recreate.
 const MIRROR_FADE = 1200;
 
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setStage(s, { file: false, pod: false, mirror: false });
-      setChips(s, { file: 'none', staticPod: 'none', mirror: 'none' });
-    },
+    chips: { pathChip: PATH, fileChip: 'none', podChip: 'none', mirrorChip: 'none' },
+    sublabels: EMPTY.sublabels,
+    opacity: EMPTY.opacity,
   },
   {
     id: 'manifest',
     duration: 2400,
     narration: 'A Pod manifest appears in the directory the Kubelet watches on Node-1, named by staticPodPath in the KubeletConfiguration and conventionally /etc/kubernetes/manifests. The Kubelet rescans it and reads every file whose name does not start with a dot.',
-    enter(s, ctx) {
-      resetStep(s);
-      setStage(s, { file: true, pod: false, mirror: false });
-      setChips(s, { file: 'static-web.yaml', staticPod: 'none', mirror: 'none' });
-      s.refs.fileBox.classList.add('highlight');
-      s.refs.pathChip.classList.add('highlight');
-      s.refs.fileChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
-      // The file has to be on disk before anything can be read off it, so it lands first and the
-      // spec leaves for the Kubelet once it is there.
-      revealAt(s.refs.fileBox, ctx, 0, OPACITY.pending);
-      revealAt(s.refs.fileLane, ctx, 0, OPACITY.pending);
-      const spec = segmentPacket(s, ctx, { from: FILE_TO_KUBE[0], to: FILE_TO_KUBE[1], delay: REVEAL_MS, role: 'cluster' });
-      lightBoxAt(s.refs.kubelet, ctx, spec.arrivalMs);
-    },
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'none', mirrorChip: 'none' },
+    sublabels: FILE_ONLY.sublabels,
+    opacity: FILE_ONLY.opacity,
+    lit: ['fileBox', 'pathChip', 'fileChip'],
+    // The file has to be on disk before anything can be read off it, so it lands first and the
+    // spec leaves for the Kubelet once it is there.
+    flow: [
+      F.reveal({ target: 'fileBox', from: OPACITY.pending }),
+      F.reveal({ target: 'fileLane', from: OPACITY.pending }),
+      F.segment({ from: FILE_TO_KUBE[0], to: FILE_TO_KUBE[1], delay: REVEAL_MS, lights: ['kubelet'] }),
+    ],
   },
   {
     id: 'kubelet-starts',
     duration: 2800,
     narration: 'The Kubelet starts the container itself. No Scheduler placed this Pod and no controller owns it, so the Kubelet supervises it directly and restarts it when it fails. That is how a kubeadm control plane comes up: the API server, the controller-manager, the Scheduler and ETCD all run as static Pods.',
-    enter(s, ctx) {
-      resetStep(s);
-      setStage(s, { file: true, pod: true, mirror: false });
-      setChips(s, { file: 'static-web.yaml', staticPod: 'static-web · Running', mirror: 'none' });
-      s.refs.fileBox.classList.add('highlight');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.podChip.classList.add('highlight');
-      if (ctx.reduced) return;
-      // The container exists once the Kubelet has actually started it, so the Pod stays at the
-      // pending shade and the chip stays empty until the ball lands on the slot.
-      setVal(s.refs.podChip, 'none');
-      setBoxSublabel(s.refs.staticPodBox, SUB.pod[0]);
-      const run = routePacket(s, ctx, KUBE_TO_POD, { role: 'cluster' });
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'none' },
+    sublabels: NO_MIRROR.sublabels,
+    opacity: NO_MIRROR.opacity,
+    lit: ['fileBox', 'kubelet', 'podChip'],
+    // The container exists once the Kubelet has actually started it, so the Pod stays at the
+    // pending shade and the chip stays empty until the ball lands on the slot.
+    rewind: { chips: { podChip: 'none' }, sublabels: { staticPodBox: SUB.pod[0] } },
+    flow: [
+      F.route({ points: KUBE_TO_POD, name: 'run' }),
       // The lane holds the pending shade for the flight rather than 0, so it is on screen while its
       // own ball rides it and only comes to full when the container it points at exists.
-      revealAt(s.refs.podLane, ctx, run.arrivalMs, OPACITY.pending);
-      revealAt(s.refs.staticPod, ctx, run.arrivalMs, OPACITY.pending);
-      pulsePod(s.refs.staticPod, ctx, run.arrivalMs);
-      at(s, ctx, run.arrivalMs, () => {
-        setVal(s.refs.podChip, 'static-web · Running');
-        setBoxSublabel(s.refs.staticPodBox, SUB.pod[1]);
-      });
-    },
+      F.reveal({ target: 'podLane', at: 'run', from: OPACITY.pending }),
+      F.reveal({ target: 'staticPod', at: 'run', from: OPACITY.pending }),
+      F.pulse({ pod: 'staticPod', at: 'run' }),
+      F.set({ at: 'run', chips: { podChip: 'static-web · Running' }, sublabels: { staticPodBox: SUB.pod[1] } }),
+    ],
   },
   {
     id: 'mirror',
     duration: 2800,
     narration: 'The Kubelet also creates a mirror Pod in the API for it, so kubectl get pods lists it like any other Pod. The name takes the Node name as a suffix, the kubernetes.io/config.mirror annotation marks it, and the labels on the file are copied across so selectors match it.',
-    enter(s, ctx) {
-      resetStep(s);
-      setStage(s, { file: true, pod: true, mirror: true });
-      setChips(s, { file: 'static-web.yaml', staticPod: 'static-web · Running', mirror: 'static-web-Node-1' });
-      setWire(s, 'mirror', 'POST /api/v1/namespaces/default/pods');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.mirrorChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      // The object appears when the create reaches the API, not at step entry.
-      setVal(s.refs.mirrorChip, 'none');
-      setBoxSublabel(s.refs.mirrorBox, SUB.mirror[0]);
-      const create = routePacket(s, ctx, KUBE_TO_MIRROR, { role: 'cluster' });
-      lightBoxAt(s.refs.apiserver, ctx, create.arrivalMs);
-      revealAt(s.refs.mirrorPod, ctx, create.arrivalMs, OPACITY.pending);
-      revealAt(s.refs.mirrorLane, ctx, create.arrivalMs, OPACITY.pending);
-      revealAt(s.refs.holds, ctx, create.arrivalMs, OPACITY.pending);
-      pulsePod(s.refs.mirrorPod, ctx, create.arrivalMs);
-      at(s, ctx, create.arrivalMs, () => {
-        setVal(s.refs.mirrorChip, 'static-web-Node-1');
-        setBoxSublabel(s.refs.mirrorBox, SUB.mirror[1]);
-      });
-    },
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'static-web-Node-1' },
+    wires: { mirror: 'POST /api/v1/namespaces/default/pods' },
+    sublabels: FULL.sublabels,
+    opacity: FULL.opacity,
+    lit: ['kubelet', 'mirrorChip'],
+    // The object appears when the create reaches the API, not at step entry.
+    rewind: { chips: { mirrorChip: 'none' }, sublabels: { mirrorBox: SUB.mirror[0] } },
+    flow: [
+      F.route({ points: KUBE_TO_MIRROR, name: 'create', lights: ['apiserver'] }),
+      F.reveal({ target: 'mirrorPod', at: 'create', from: OPACITY.pending }),
+      F.reveal({ target: 'mirrorLane', at: 'create', from: OPACITY.pending }),
+      F.reveal({ target: 'holds', at: 'create', from: OPACITY.pending }),
+      F.pulse({ pod: 'mirrorPod', at: 'create' }),
+      F.set({ at: 'create', chips: { mirrorChip: 'static-web-Node-1' }, sublabels: { mirrorBox: SUB.mirror[1] } }),
+    ],
   },
   {
     id: 'delete-mirror',
@@ -274,87 +209,64 @@ const STEPS = [
     // MIRROR_FADE, the recreate leaves at 2900 and lands at 3600 with a pulse behind it: 4500.
     duration: 4700,
     narration: 'Deleting the mirror Pod with kubectl removes the API object and nothing else. The container on Node-1 keeps running, because the file on disk is what the Kubelet reads, and its next scan recreates the mirror. Nothing done to the object reaches the container.',
-    enter(s, ctx) {
-      resetStep(s);
-      setStage(s, { file: true, pod: true, mirror: true });
-      setChips(s, { file: 'static-web.yaml', staticPod: 'static-web · Running', mirror: 'deleted, then recreated' });
-      setWire(s, 'top', 'DELETE /api/v1/namespaces/default/pods/static-web-Node-1');
-      setWire(s, 'mirror', 'POST /api/v1/namespaces/default/pods');
-      s.refs.kubectl.classList.add('highlight');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.mirrorChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      // The chip walks the step instead of announcing its end: present, gone, back.
-      setVal(s.refs.mirrorChip, 'static-web-Node-1');
-      const del = topPacket(s, ctx, { from: KUBECTL_X, to: API_R, y: REQ_Y, role: 'cluster' });
-      lightBoxAt(s.refs.apiserver, ctx, del.arrivalMs);
-      topPacket(s, ctx, { from: API_R, to: KUBECTL_X, y: RESP_Y, delay: del.arrivalMs + BEAT.afterHop, role: 'cluster' });
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'deleted, then recreated' },
+    wires: { top: 'DELETE /api/v1/namespaces/default/pods/static-web-Node-1', mirror: 'POST /api/v1/namespaces/default/pods' },
+    sublabels: FULL.sublabels,
+    opacity: FULL.opacity,
+    lit: ['kubectl', 'kubelet', 'mirrorChip'],
+    // The chip walks the step instead of announcing its end: present, gone, back.
+    rewind: { chips: { mirrorChip: 'static-web-Node-1' } },
+    flow: [
+      F.top({ from: KUBECTL_X, to: API_R, y: REQ_Y, name: 'del', lights: ['apiserver'] }),
+      F.top({ from: API_R, to: KUBECTL_X, y: RESP_Y, after: 'del' }),
       // The object goes: pulse and dissolve on the same beat, so the blink is not cut off by the fade.
-      const gone = del.arrivalMs + BEAT.afterHop;
-      pulsePod(s.refs.mirrorPod, ctx, gone);
-      at(s, ctx, gone, () => {
-        setVal(s.refs.mirrorChip, 'deleted from the API');
-        setBoxSublabel(s.refs.mirrorBox, 'deleted from the API');
-      });
+      F.pulse({ pod: 'mirrorPod', after: 'del' }),
+      F.set({ after: 'del', chips: { mirrorChip: 'deleted from the API' }, sublabels: { mirrorBox: 'deleted from the API' } }),
       // The API tie goes with it. The Kubelet lane does NOT: the recreate rides it a beat later,
       // and a lane carrying a ball has to be on screen for the flight.
-      const fade = (el) => ctx.register(el.animate(
-        [{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: MIRROR_FADE, delay: gone, fill: 'both', easing: 'ease-in' }));
-      fade(s.refs.mirrorPod);
-      fade(s.refs.holds);
+      F.fade({ target: 'mirrorPod', to: OPACITY.terminated, dur: MIRROR_FADE, after: 'del', name: 'dissolve', fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'holds', to: OPACITY.terminated, dur: MIRROR_FADE, after: 'del', fill: 'both', easing: 'ease-in' }),
       // And the Kubelet puts it straight back, up the same lane it created it on.
-      const again = routePacket(s, ctx, KUBE_TO_MIRROR, { delay: gone + MIRROR_FADE + BEAT.afterHop, role: 'cluster' });
-      const back = (el) => ctx.register(el.animate(
-        [{ opacity: OPACITY.terminated }, { opacity: 1 }], { duration: FADE.in, delay: again.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
-      back(s.refs.mirrorPod);
-      back(s.refs.holds);
-      pulsePod(s.refs.mirrorPod, ctx, again.arrivalMs);
-      at(s, ctx, again.arrivalMs, () => {
-        setVal(s.refs.mirrorChip, 'deleted, then recreated');
-        setBoxSublabel(s.refs.mirrorBox, SUB.mirror[1]);
-      });
-    },
+      F.route({ points: KUBE_TO_MIRROR, after: 'dissolve', name: 'again' }),
+      F.fade({ target: 'mirrorPod', from: OPACITY.terminated, to: 1, dur: FADE.in, at: 'again', fill: 'forwards', easing: 'ease-out' }),
+      F.fade({ target: 'holds', from: OPACITY.terminated, to: 1, dur: FADE.in, at: 'again', fill: 'forwards', easing: 'ease-out' }),
+      F.pulse({ pod: 'mirrorPod', at: 'again' }),
+      F.set({ at: 'again', chips: { mirrorChip: 'deleted, then recreated' }, sublabels: { mirrorBox: SUB.mirror[1] } }),
+    ],
   },
   {
     id: 'edit-file',
     // Spec off the disk (700), restart lands at 1500, the Pod pulse runs to 2400.
     duration: 3000,
     narration: 'To change a static Pod you change its file. The Kubelet applies the new spec on its next scan and restarts the container, and moving the file out of the directory removes the Pod. The spec cannot refer to a ConfigMap, a Secret or a ServiceAccount, so everything it needs comes off the file or the Node filesystem.',
-    enter(s, ctx) {
-      resetStep(s);
-      setStage(s, { file: true, pod: true, mirror: true });
-      setChips(s, { file: 'static-web.yaml · image nginx:1.27', staticPod: 'static-web · restarted', mirror: 'static-web-Node-1' });
-      s.refs.fileBox.classList.add('highlight');
-      s.refs.fileChip.classList.add('highlight');
-      s.refs.podChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
-      // The container is restarted by the ball that reaches it, so the chip holds what the previous
-      // step left until then.
-      setVal(s.refs.podChip, 'static-web · Running');
-      const spec = segmentPacket(s, ctx, { from: FILE_TO_KUBE[0], to: FILE_TO_KUBE[1], role: 'cluster' });
-      lightBoxAt(s.refs.kubelet, ctx, spec.arrivalMs);
-      const restart = routePacket(s, ctx, KUBE_TO_POD, { delay: spec.arrivalMs + BEAT.afterHop, role: 'cluster' });
-      pulsePod(s.refs.staticPod, ctx, restart.arrivalMs);
-      at(s, ctx, restart.arrivalMs, () => setVal(s.refs.podChip, 'static-web · restarted'));
-    },
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml · image nginx:1.27', podChip: 'static-web · restarted', mirrorChip: 'static-web-Node-1' },
+    sublabels: FULL.sublabels,
+    opacity: FULL.opacity,
+    lit: ['fileBox', 'fileChip', 'podChip'],
+    // The container is restarted by the ball that reaches it, so the chip holds what the previous
+    // step left until then.
+    rewind: { chips: { podChip: 'static-web · Running' } },
+    flow: [
+      F.segment({ from: FILE_TO_KUBE[0], to: FILE_TO_KUBE[1], name: 'spec', lights: ['kubelet'] }),
+      F.route({ points: KUBE_TO_POD, after: 'spec', name: 'restart' }),
+      F.pulse({ pod: 'staticPod', at: 'restart' }),
+      F.set({ at: 'restart', chips: { podChip: 'static-web · restarted' } }),
+    ],
   },
   {
     id: 'drain',
     duration: 2800,
     narration: 'A drain evicts or deletes the Pods on Node-1 and skips every mirror Pod, because removing one through the API would stop nothing. DaemonSet Pods are left alone too, and the Node Drain card covers the rest of that loop. So a static Pod rides out a drain and a kubeadm control plane keeps serving while its Node is cordoned.',
-    enter(s, ctx) {
-      resetStep(s);
-      setStage(s, { file: true, pod: true, mirror: true });
-      setChips(s, { file: 'static-web.yaml · image nginx:1.27', staticPod: 'static-web · restarted', mirror: 'static-web-Node-1 · drain skips it' });
-      setWire(s, 'top', 'kubectl drain Node-1 · mirror Pods are skipped');
-      s.refs.kubectl.classList.add('highlight');
-      s.refs.mirrorChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      const list = topPacket(s, ctx, { from: KUBECTL_X, to: API_R, y: REQ_Y, role: 'cluster' });
-      lightBoxAt(s.refs.apiserver, ctx, list.arrivalMs);
-      topPacket(s, ctx, { from: API_R, to: KUBECTL_X, y: RESP_Y, delay: list.arrivalMs + BEAT.afterHop, role: 'cluster' });
-    },
+    chips: { pathChip: PATH, fileChip: 'static-web.yaml · image nginx:1.27', podChip: 'static-web · restarted', mirrorChip: 'static-web-Node-1 · drain skips it' },
+    wires: { top: 'kubectl drain Node-1 · mirror Pods are skipped' },
+    sublabels: FULL.sublabels,
+    opacity: FULL.opacity,
+    lit: ['kubectl', 'mirrorChip'],
+    flow: [
+      F.top({ from: KUBECTL_X, to: API_R, y: REQ_Y, name: 'list', lights: ['apiserver'] }),
+      F.top({ from: API_R, to: KUBECTL_X, y: RESP_Y, after: 'list' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

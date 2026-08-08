@@ -5,7 +5,11 @@ rulebook: layout, arrows, motion, colour, text, chips, metadata, posters, module
 `scheme/CLAUDE.md` (the contract: folder, module, catalog, checklists). **If a rule here would also
 be true of another category, it is in the wrong file.**
 
-The rows below carry `STO.*` ids and are indexed from `scheme/CANON.md`.
+The rows below carry `STO.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `STO.*`
+rule lives here and only here**: the canon carries the id and a subject label, never a second copy
+of the rule. `STO.S-02` and `STO.S-03` had come to mean one thing here and a different thing there,
+and the numbering below is the one that stands. The exemplar the canon used to carry as `STO.S-03`
+is now `STO.S-04`, below.
 
 ## The folder
 
@@ -40,7 +44,7 @@ helper:
 setCylinderLabel(cylEl, txt)    // the label inside a cylinder(), the way setBoxLabel is for a box
 ```
 
-## Subcategories
+## Subcategories (`STO.D-01`)
 
 | key | label | cards | what belongs here |
 |---|---|---|---|
@@ -52,7 +56,7 @@ setCylinderLabel(cylEl, txt)    // the label inside a cylinder(), the way setBox
 The line between `volumes-claims` and `csi-mount-path` is whether the card's subject is an API
 object or a Node-side action.
 
-## Exemplar
+## Exemplar (`STO.S-04`)
 
 `storage-volume-model.js`, the anchor card. Copy its shape for a new storage card, including the
 Pod pulse model: the Pod is one unit and blinks as one, containers included, because they are part

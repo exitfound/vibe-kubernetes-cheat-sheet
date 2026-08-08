@@ -5,7 +5,10 @@ rulebook: layout, arrows, motion, colour, text, chips, metadata, posters, module
 `scheme/CLAUDE.md` (the contract: folder, module, catalog, checklists). **If a rule here would also
 be true of another category, it is in the wrong file.**
 
-The rows below carry `NET.*` ids and are indexed from `scheme/CANON.md`.
+The rows below carry `NET.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `NET.*`
+rule lives here and only here**: the canon carries the id and a subject label, never a second copy
+of the rule. Six ids across the four folders had drifted into meaning two different things. None of
+them was a `NET.*` id, and keeping the text in one place is how that stays true.
 
 ## The folder
 
@@ -35,7 +38,7 @@ NETWORK_TINT = { base: 'rgb(79, 229, 255)', bright: 'rgb(158, 234, 247)' }   // 
 
 The shared list (`S-22`), plus `NETWORK_TINT`, `pulsePod`, `pulsePodDim`. No networking-only helper.
 
-## Subcategories
+## Subcategories (`NET.D-01`)
 
 | key | label | cards | what belongs here |
 |---|---|---|---|
@@ -48,7 +51,7 @@ The shared list (`S-22`), plus `NETWORK_TINT`, `pulsePod`, `pulsePodDim`. No net
 The line between `services-endpoints` and `external-traffic` is where the client is, not which
 object appears: a Service card that starts at an external client belongs in `external-traffic`.
 
-## Exemplar
+## Exemplar (`NET.S-03`)
 
 `network-service-clusterip.js`. Copy its shape for a new networking card: parallel forward and
 return flow lanes plus a right-angle fan.

@@ -5,7 +5,10 @@ rulebook: layout, arrows, motion, colour, text, chips, metadata, posters, module
 `scheme/CLAUDE.md` (the contract: folder, module, catalog, checklists). **If a rule here would also
 be true of another category, it is in the wrong file.**
 
-The rows below carry `WL.*` ids and are indexed from `scheme/CANON.md`.
+The rows below carry `WL.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `WL.*` rule
+lives here and only here**: the canon carries the id and a subject label, never a second copy of the
+rule. This is the folder that paid for the second copy: `WL.L-03`, `WL.L-04` and `WL.L-05` had come
+to mean one thing here and a different thing there, and the numbering below is the one that stands.
 
 ## The folder
 
@@ -19,7 +22,7 @@ The rows below carry `WL.*` ids and are indexed from `scheme/CANON.md`.
 A card imports `../../lib/svg.js`, `../../lib/primitives.js` and `./workloads-kit.js`, and never
 reaches past the kit (`S-21`). Nothing else may live here (`S-20`).
 
-## Tint
+## Tint (`WL.C-01`)
 
 ```js
 WORKLOADS_TINT = { base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' }   // sky blue
@@ -32,7 +35,7 @@ WORKLOADS_TINT = { base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' }   /
 The shared list (`S-22`), plus `WORKLOADS_TINT`, `pulsePod`, `pulsePodDim`, and `WL`, the layout
 canon below.
 
-## Subcategories
+## Subcategories (`WL.D-01`)
 
 | key | label | cards | what belongs here |
 |---|---|---|---|
@@ -80,3 +83,37 @@ construction.
 `WL.L-05` is the rule that cost the most: the pass that introduced the 79 collisions closed a
 `CENTRE` finding by stretching the chip strip to straddle 600, and the rule went green on a drawing
 the author rejected. That is `L-16`, and four findings in the catalog are left open under it.
+
+## Four catalog-wide lane rules the canon sources here
+
+`A-06`, `A-09`, `A-10` and `A-12` are catalog-wide rows in `scheme/CANON.md` and that is where the
+rule text is. They were derived on this category's control-plane cards, so the canon's `Source`
+column points at this file for the working that produced them. This section is that working, not a
+second statement of the rules.
+
+**Which of the two a lane IS (`A-06`).** Where a step NAMES something arriving from the API, the
+lane gets a ball, and the receiving box goes dark at step entry and lights on arrival, because it is
+a receiver now. Where no step names anything coming back, it is a relationship: `relationPath`, no
+arrowhead, `stroke-opacity: 0.45`, category tint kept. Three things the ball costs, every time:
+
+1. An added hop is about 800ms (a 60 unit gap sits on the `PKT_DUR_MIN` floor of 700, plus
+   `BEAT.afterHop`), so `duration` usually has to rise and `render/duration.test.mjs` says by how much.
+2. A return FLIPS THE SENDER INTO A RECEIVER, so a box lit at step entry has to go dark and light on
+   arrival instead, or `R3` in `report/arrival.test.mjs` reports it.
+3. `BEAT` missing from a card's imports throws a `ReferenceError` that `Timeline` swallows into
+   `console.error`: the step plays its first packet and silently stops (`S-33`). Only the browser
+   smoke sees it, so run it after touching any card's imports.
+
+**A lane leaves the box that ACTS (`A-09`).** On a control-plane card the leftmost box writes to the
+API and stops there, so what then happens on a Node is that write taking effect and the lane into
+the Node band belongs to the API. `workloads-force-deletion` is the model. Two traps come with
+moving one:
+
+- Moving a lane is a TIMING change, because `routeDur` is length-based: moving a start 300 to 400
+  units right adds 250 to 870ms per ball. Raise the duration, never shorten the motion (`A-11`).
+- A box can be DERIVED FROM the lane (`KUBECTL_X = SPINE_X - BOX_W / 2`), so redefining the spine
+  moves the box instead of the lane, and such a card needs its own constant (`A-12`).
+
+**Two actors, one slot (`A-10`).** Draw two lanes over a shared drop rather than picking a winner.
+Picking one is an editorial claim about which actor matters, made silently in geometry, and the
+reader has no way to see that the other one was considered.

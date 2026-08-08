@@ -4,9 +4,8 @@ import { valChip, setVal, pulsePod, setConnectorDir, routePacket, makeInit, clea
 
 // Design notes for this card: ./CARDS.md#workloads-crashloopbackoff
 
-// Layout B of the Workloads canon (WL): chips and the backoff ladder left, pipeline right.
-// Panel worst case x<=397, y<=205, with 225 reserved as a deliberately conservative floor.
-// A longer narration invalidates that measurement.
+// Layout B of the Workloads canon (WL): chips and the backoff ladder left, pipeline right. Panel
+// worst case x<=397, y<=205, 225 reserved as a floor, and a longer narration invalidates that.
 const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX
 const WIRE_OUT_Y = 28, WIRE_IN_Y = 146, WIRE_IN_DX = 14;
 
