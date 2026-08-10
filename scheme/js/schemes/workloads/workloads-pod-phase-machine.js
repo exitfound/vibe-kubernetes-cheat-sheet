@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, OPACITY, WL, diagramRoot } from './workloads-kit.js';
+import { P, F, defineCard, ladder, WL, LAYOUT, OPACITY } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-pod-phase-machine
 
@@ -11,14 +9,16 @@ const PANEL_R = 420;
 const TOP_W = 280, TOP_X = PANEL_R;                      // 420..700
 
 const CHIPCOL_X = 740, CHIPCOL_W = WL.R - CHIPCOL_X;     // 400, 740..1140
-const CHIPCOL_Y = i => WL.TOP_Y + i * (WL.CHIP_H + 10);  // 40 / 84 / 128
+const CHIPCOL_VGAP = 10;
+const CHIPCOL_Y = ladder({ y: WL.TOP_Y, rowH: WL.CHIP_H, gap: CHIPCOL_VGAP });  // 40 / 84 / 128
 
-const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+// LAYOUT.C of the kit: the ladder takes the RIGHT column, because C has no free column at all.
+const LAD_X = LAYOUT.C.ladder.x, LAD_W = LAYOUT.C.ladder.w;    // 660..1140, the pipeline
 const LAD_Y = 236;                                       // 6 rows -> 236..478
 
 // status.phase takes the left column of the band below the panel, so the chip strip still
 // straddles CX and the lane down to the Pod has a clear corridor at x = SPINE_X.
-const STRIP_X = WL.LADDER_X, STRIP_W = WL.LADDER_W;      // 60..540
+const STRIP_X = WL.COL_L.x, STRIP_W = WL.COL_L.w;        // 60..540
 const STRIP_Y = 506;
 
 const NODE_Y = 546, NODE_H = 78;                         // 546..624
@@ -32,32 +32,28 @@ const CONT_Y = 574, CONT_H = 36;                         // 574..610
 const SPINE_X = TOP_X + TOP_W / 2;                       // 560
 const SPINE = [[SPINE_X, WL.TOP_BOTTOM], [SPINE_X, POD_Y]];
 
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Pod lifecycle phases: Kubelet reconciles status.phase through Pending, Running and a terminal Succeeded or Failed, with CrashLoopBackOff sitting inside Running as a container waiting reason' });
-    root.appendChild(arrowDefs());
-
-    const kubelet = box({ x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'reconciles status.phase', role: 'cluster' });
-
-    // Kubelet -> the Pod on Node-1, straight down the corridor. Appended below with the Node
-    // frame, whose fill would otherwise hide its last leg.
-    const connector = pathArrow({
-      points: SPINE,
-      dim: true, dashed: true, role: 'cluster',
-    });
-
+// The list order IS the append order, so it is the z-order: the Node frame is a 70% opaque fill,
+// so the lane leg that runs inside it and the ball that rides it follow it, and ladder / Pod /
+// Kubelet sit above the packets.
+export const SCENE = {
+  'aria-label': 'Pod lifecycle phases: Kubelet reconciles status.phase through Pending, Running and a terminal Succeeded or Failed, with CrashLoopBackOff sitting inside Running as a container waiting reason',
+  parts: [
+    P.defs(),
     // Wire label sits ABOVE the Kubelet box: below it the spine runs through the same point and
     // would split the string in two.
-    const wireReq = text({ class: 'scheme-label code dim', x: SPINE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
-    root.appendChild(wireReq);
-
-    const chain = chainList({
-      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
+    P.wire({ key: 'req', x: SPINE_X, y: WL.TOP_Y - 12 }),
+    P.chip({ key: 'phaseChip', x: STRIP_X, y: STRIP_Y, w: STRIP_W, h: WL.CHIP_H, name: 'status.phase', value: 'Pending' }),
+    P.chip({ key: 'cStateChip', x: CHIPCOL_X, y: CHIPCOL_Y(0), w: CHIPCOL_W, h: WL.CHIP_H, name: 'container state', value: 'none' }),
+    P.chip({ key: 'restartChip', x: CHIPCOL_X, y: CHIPCOL_Y(1), w: CHIPCOL_W, h: WL.CHIP_H, name: 'restartCount', value: '0' }),
+    P.chip({ key: 'policyChip', x: CHIPCOL_X, y: CHIPCOL_Y(2), w: CHIPCOL_W, h: WL.CHIP_H, name: 'restartPolicy', value: 'OnFailure' }),
+    P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
+    // Kubelet -> the Pod on Node-1, straight down the corridor. Appended after the Node frame,
+    // whose fill would otherwise hide its last leg.
+    P.lane({ key: 'connector', points: SPINE, dim: true, dashed: true, role: 'cluster' }),
+    P.packets(),
+    // Everything below is appended AFTER the packet layer, so the ball runs under it.
+    P.chain({
+      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
         '1. admit     ·  stored in etcd, no node yet',
         '2. schedule  ·  bound to node, sandbox + image pull',
@@ -66,180 +62,120 @@ class Scene {
         '5. recover   ·  restart succeeds, container Running again',
         '6. terminal  ·  all containers exit, Succeeded or Failed',
       ],
-      role: 'cluster',
-    });
+    }),
+    // Shell and container share one wrapper group so opacity animates uniformly.
+    P.pod({
+      key: 'podGroup', id: 'podGroup', shellKey: 'shellEl', innerKey: 'containerBox',
+      x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
+      opacity: OPACITY.pending,
+      inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'no container yet' },
+    }),
+    P.box({ key: 'kubelet', x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'reconciles status.phase', role: 'cluster' }),
+  ],
+  reset: {
+    keys: ['kubelet', 'phaseChip', 'cStateChip', 'restartChip', 'policyChip', 'shellEl', 'containerBox'],
+    pods: ['podGroup'],
+  },
+};
 
-    const phaseChip   = valChip({ x: STRIP_X, y: STRIP_Y, w: STRIP_W, h: WL.CHIP_H, name: 'status.phase',     value: 'Pending', role: 'workloads' });
-    const cStateChip  = valChip({ x: CHIPCOL_X, y: CHIPCOL_Y(0), w: CHIPCOL_W, h: WL.CHIP_H, name: 'container state',  value: 'none', role: 'workloads' });
-    const restartChip = valChip({ x: CHIPCOL_X, y: CHIPCOL_Y(1), w: CHIPCOL_W, h: WL.CHIP_H, name: 'restartCount',     value: '0', role: 'workloads' });
-    const policyChip  = valChip({ x: CHIPCOL_X, y: CHIPCOL_Y(2), w: CHIPCOL_W, h: WL.CHIP_H, name: 'restartPolicy',    value: 'OnFailure', role: 'workloads' });
-    [phaseChip, cStateChip, restartChip, policyChip].forEach(c => root.appendChild(c));
-
-    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
-
-    const shellEl = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-
-    const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'no container yet', role: 'workloads' });
-
-    // Wrap shell + container in a group so opacity animates uniformly.
-    const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(shellEl);
-    podGroup.appendChild(containerBox);
-    podGroup.style.opacity = String(OPACITY.pending);
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order: the Node frame is a 70% opaque fill, so the lane leg that runs inside it and the
-    // ball that rides it are appended after it. Ladder, Pod and Kubelet sit above the packets.
-    root.appendChild(nodeEl);
-    root.appendChild(connector);
-    root.appendChild(packetLayer);
-    root.appendChild(chain);
-    root.appendChild(podGroup);
-    root.appendChild(kubelet);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      kubelet, chain, nodeEl, podGroup, shellEl, containerBox, connector,
-      phaseChip, cStateChip, restartChip, policyChip,
-      packetLayer,
-      wires: { req: wireReq },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s,
-    ['kubelet','phaseChip','cStateChip','restartChip','policyChip','shellEl','containerBox'],
-    [s.refs.podGroup]);
-  clearWires(s);
-}
-function setChips(s, { phase, cstate, restart, policy = 'OnFailure' }) {
-  setVal(s.refs.phaseChip, phase);
-  setVal(s.refs.cStateChip, cstate);
-  setVal(s.refs.restartChip, restart);
-  setVal(s.refs.policyChip, policy);
-}
-
-function syncPacket(s, ctx, { delay = 0 } = {}) {
-  return routePacket(s, ctx, SPINE, { delay, fadeIn: true, role: 'workloads' });
-}
+// The four status chips as FIELDS, in one place with the policy default, so no step can move the
+// phase and leave the container state carrying the previous step's value.
+const phaseState = (phase, cstate, restart, policy = 'OnFailure') => ({
+  phaseChip: phase, cStateChip: cstate, restartChip: restart, policyChip: policy,
+});
 
 const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;
 
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'admit',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { phase: 'Pending', cstate: 'none', restart: '0' });
-      setBoxSublabel(s.refs.containerBox, 'no container yet');
-      setWire(s, 'req', 'spec.nodeName not set · Waiting for scheduler');
-      s.refs.podGroup.style.opacity = String(OPACITY.pending);
-      setChainActive(s.refs.chain, 0);
-    },
+    chips: phaseState('Pending', 'none', '0'),
+    sublabels: { containerBox: 'no container yet' },
+    wires: { req: 'spec.nodeName not set · Waiting for scheduler' },
+    opacity: { podGroup: OPACITY.pending },
+    chain: 0,
   },
   {
     id: 'schedule',
     duration: 2000,
     narration: 'The scheduler has bound the Pod to Node-1, so spec.nodeName is set and Kubelet picks the Pod up via its watch. Kubelet pulls images, creates the Pod sandbox and the container is in Waiting with reason ContainerCreating. The status.phase field is still Pending until at least one container has started.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { phase: 'Pending', cstate: 'Waiting · ContainerCreating', restart: '0' });
-      setBoxSublabel(s.refs.containerBox, 'Waiting · ContainerCreating');
-      setWire(s, 'req', 'spec.nodeName=Node-1 · SyncPod · Image pull + sandbox');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.phaseChip.classList.add('highlight');
-      s.refs.cStateChip.classList.add('highlight');
-      s.refs.podGroup.style.opacity = String(OPACITY.pending);
-      setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) return;
-      syncPacket(s, ctx);
-    },
+    chips: phaseState('Pending', 'Waiting · ContainerCreating', '0'),
+    sublabels: { containerBox: 'Waiting · ContainerCreating' },
+    wires: { req: 'spec.nodeName=Node-1 · SyncPod · Image pull + sandbox' },
+    opacity: { podGroup: OPACITY.pending },
+    lit: ['kubelet', 'phaseChip', 'cStateChip'],
+    chain: 1,
+    flow: [
+      F.route({ points: SPINE, fadeIn: true }),
+    ],
   },
   {
     id: 'running',
     duration: 2300,
     narration: 'Every container has been created and at least one has started, so status.phase becomes Running. Each container reports a Running state, and the Pod does its work until its containers exit. The Running phase covers the entire working life of the Pod.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { phase: 'Running', cstate: 'Running', restart: '0' });
-      setBoxSublabel(s.refs.containerBox, 'Running · serving');
-      setWire(s, 'req', 'StartContainer OK · Phase Pending → Running');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.phaseChip.classList.add('highlight');
-      s.refs.cStateChip.classList.add('highlight');
-      s.refs.podGroup.style.opacity = '1';
-      setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) return;
-      const sync = syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: OPACITY.pending }, { opacity: OPACITY.running }], { duration: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.podGroup, ctx, sync.arrivalMs);
-    },
+    chips: phaseState('Running', 'Running', '0'),
+    sublabels: { containerBox: 'Running · serving' },
+    wires: { req: 'StartContainer OK · Phase Pending → Running' },
+    opacity: { podGroup: 1 },
+    lit: ['kubelet', 'phaseChip', 'cStateChip'],
+    chain: 2,
+    flow: [
+      F.route({ points: SPINE, fadeIn: true, name: 'sync' }),
+      // The phase cross-fade hangs off the step, not off the ball: it is the state machine moving,
+      // and the Pod blinks when the sync that moved it lands.
+      F.fade({ target: 'podGroup', from: OPACITY.pending, to: OPACITY.running, dur: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'podGroup', at: 'sync' }),
+    ],
   },
   {
     id: 'crashloop',
     duration: 2400,
     narration: 'The container exits with a non-zero code. With restartPolicy OnFailure Kubelet restarts it inside the same sandbox, but repeated fast failures trigger an exponential backoff: the delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s). The container sits in Waiting with reason=CrashLoopBackOff while the timer ticks. The status.phase field stays Running the whole time, because CrashLoopBackOff is a container-level waiting reason, never a phase of its own.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { phase: 'Running', cstate: 'Waiting · CrashLoopBackOff', restart: '4' });
-      setBoxSublabel(s.refs.containerBox, 'CrashLoopBackOff');
-      setWire(s, 'req', 'exit != 0 · CrashLoopBackOff · Phase stays Running');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.cStateChip.classList.add('highlight');
-      s.refs.restartChip.classList.add('highlight');
-      s.refs.podGroup.style.opacity = String(OPACITY.notready);
-      setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) return;
-      syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: OPACITY.running }, { opacity: OPACITY.notready }], { duration: PHASE_FADE_MS, fill: 'both', easing: 'ease-in' }));
-    },
+    chips: phaseState('Running', 'Waiting · CrashLoopBackOff', '4'),
+    sublabels: { containerBox: 'CrashLoopBackOff' },
+    wires: { req: 'exit != 0 · CrashLoopBackOff · Phase stays Running' },
+    opacity: { podGroup: OPACITY.notready },
+    lit: ['kubelet', 'cStateChip', 'restartChip'],
+    chain: 3,
+    flow: [
+      F.route({ points: SPINE, fadeIn: true }),
+      // The crash dims the Pod from the start of the step: no delay, unlike the recoveries.
+      F.fade({ target: 'podGroup', from: OPACITY.running, to: OPACITY.notready, dur: PHASE_FADE_MS, fill: 'both', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'recover',
     duration: 2300,
     narration: 'The backoff timer elapses and Kubelet retries the container. This time it starts cleanly and runs to its next reconcile, so the container state returns to Running and restartCount records how many times the container was restarted. The status.phase field was Running through the whole episode, only the container-level state moved.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { phase: 'Running', cstate: 'Running', restart: '5' });
-      setBoxSublabel(s.refs.containerBox, 'Running · restarted');
-      setWire(s, 'req', 'backoff elapsed · StartContainer · restartCount++');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.cStateChip.classList.add('highlight');
-      s.refs.restartChip.classList.add('highlight');
-      s.refs.podGroup.style.opacity = '1';
-      setChainActive(s.refs.chain, 4);
-      if (ctx.reduced) return;
-      const sync = syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: OPACITY.notready }, { opacity: OPACITY.running }], { duration: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.podGroup, ctx, sync.arrivalMs);
-    },
+    chips: phaseState('Running', 'Running', '5'),
+    sublabels: { containerBox: 'Running · restarted' },
+    wires: { req: 'backoff elapsed · StartContainer · restartCount++' },
+    opacity: { podGroup: 1 },
+    lit: ['kubelet', 'cStateChip', 'restartChip'],
+    chain: 4,
+    flow: [
+      F.route({ points: SPINE, fadeIn: true, name: 'sync' }),
+      F.fade({ target: 'podGroup', from: OPACITY.notready, to: OPACITY.running, dur: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'podGroup', at: 'sync' }),
+    ],
   },
   {
     id: 'terminal',
     duration: 2400,
     narration: 'The container finally exits 0. restartPolicy OnFailure does not restart a success, so every container is Terminated and status.phase becomes Succeeded, a terminal state common for Jobs. Under restartPolicy=Never a non-zero exit is not restarted either and ends at Failed instead. Both are terminal, the Pod will not run again. If the Node hosting the Pod becomes unreachable, the node controller sets the Node Ready condition to Unknown and evicts its Pods, and the Pods sit in Terminating until the Node returns or the Node object is deleted, at which point Pod garbage collection marks them Failed with a DisruptionTarget condition. The Unknown phase is not part of that path, it was deprecated in 1.22 and nothing has set it since 2015.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { phase: 'Succeeded', cstate: 'Terminated · Completed · exit 0', restart: '5' });
-      setBoxSublabel(s.refs.containerBox, 'Terminated · Completed');
-      setWire(s, 'req', 'exit 0 · Phase Running → Succeeded · Terminal');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.phaseChip.classList.add('highlight');
-      s.refs.cStateChip.classList.add('highlight');
-      s.refs.podGroup.style.opacity = String(OPACITY.terminated);
-      setChainActive(s.refs.chain, 5);
-      if (ctx.reduced) return;
-      syncPacket(s, ctx);
-      ctx.register(s.refs.podGroup.animate([{ opacity: OPACITY.running }, { opacity: OPACITY.terminated }], { duration: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-in' }));
-    },
+    chips: phaseState('Succeeded', 'Terminated · Completed · exit 0', '5'),
+    sublabels: { containerBox: 'Terminated · Completed' },
+    wires: { req: 'exit 0 · Phase Running → Succeeded · Terminal' },
+    opacity: { podGroup: OPACITY.terminated },
+    lit: ['kubelet', 'phaseChip', 'cStateChip'],
+    chain: 5,
+    flow: [
+      F.route({ points: SPINE, fadeIn: true }),
+      // Terminal is a phase move like Running, so it keeps the same beat of delay before the fade.
+      F.fade({ target: 'podGroup', from: OPACITY.running, to: OPACITY.terminated, dur: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-in' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

@@ -1,21 +1,26 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, node, box, chip, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, setConnectorDir, routePacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
+import { P, F, defineCard, ladder, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
+import { chip } from '../../lib/primitives.js';
 
 // Design notes for this card: ./CARDS.md#workloads-crashloopbackoff
 
 // Layout B of the Workloads canon (WL): chips and the backoff ladder left, pipeline right. Panel
 // worst case x<=397, y<=205, 225 reserved as a floor, and a longer narration invalidates that.
 const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX
-const WIRE_OUT_Y = 28, WIRE_IN_Y = 146, WIRE_IN_DX = 14;
+const WIRE_OUT_Y = 28, WIRE_IN_Y = 146, WIRE_IN_DX = 14; // 28 is the WL.A-02 line, WL.TOP_Y - 12
 
-const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+// LAYOUT.B of the kit, which this card is on: chips in the LEFT column, pipeline in the RIGHT.
+// WL.L-06 picks A / B / C against THIS card's measured panel bottom, and B is the one that fits.
+const LAD_X = LAYOUT.B.ladder.x, LAD_W = LAYOUT.B.ladder.w;    // 660..1140, the pipeline
 const LAD_Y = 160;                                       // 6 rows -> 160..402
 
-const VCHIP_X = WL.LADDER_X, VCHIP_W = WL.LADDER_W;      // 60..540, below the panel
-const VCHIP_Y = i => 240 + i * (WL.CHIP_H + 8);          // 240 / 282 / 324 / 366
+// State chips as a column in the left band, which only opens below the panel.
+const CHIP_GAP = 8;
+const CHIPS_TOP = 240;                                   // measured, clear of the 225 floor
+const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;    // 60..540, below the panel
+const CHIP_Y = ladder({ y: CHIPS_TOP, rowH: WL.CHIP_H, gap: CHIP_GAP });   // 240 / 282 / 324 / 366
 
-const BACKOFF_X = WL.LADDER_X, BACKOFF_Y = 410, BACKOFF_W = 51, BACKOFF_H = 28, BACKOFF_GAP = 8;
+// The backoff ladder is a row, and it shares the left column with the chips stacked above it.
+const BACKOFF_X = CHIP_X, BACKOFF_Y = 410, BACKOFF_W = 51, BACKOFF_H = 28, BACKOFF_GAP = 8;
 
 const NODE_Y = 470, NODE_H = 140;                        // 470..610
 const POD_W = 460, POD_H = 110, POD_X = WL.CX - POD_W / 2;   // 370..830
@@ -27,38 +32,41 @@ const CONT_Y = POD_Y + 30;                               // 522..586
 const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];
 const SPINE_UP = [...SPINE].reverse();
 
+// The exponential ladder: six rungs, and the per-rung ref keys `lit` and `reset.keys` address.
+const RUNGS = ['10s', '20s', '40s', '80s', '160s', '300s'];
+const RUNG_KEYS = RUNGS.map((_, i) => 'rung' + i);
+// The ladder fills as a PREFIX, never a single rung: a step names how far the doubling has climbed.
+const filled = (idx) => RUNG_KEYS.slice(0, idx + 1);
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+// A rung is a chip() from primitives, not a valChip: one centred label and no value, which no part
+// kind builds. The attributes are the primitive's own, so the serialised order is untouched (R3).
+const rung = (lbl, i) => P.raw({
+  key: RUNG_KEYS[i],
+  // refs.ladderChips is the ARRAY this card has always addressed the rungs by, and the name the
+  // reduced dump prints them under. The per-rung keys are what the step fields take.
+  tune: (el, refs) => { (refs.ladderChips = refs.ladderChips || [])[i] = el; },
+  make: () => chip({ x: i * (BACKOFF_W + BACKOFF_GAP), y: 0, w: BACKOFF_W, h: BACKOFF_H, label: lbl, role: 'cluster' }),
+});
 
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'CrashLoopBackOff: Kubelet inserts an exponentially growing delay before each container restart' });
-    root.appendChild(arrowDefs());
-
-    // Top row: Kubelet, the restart manager, centred on CX and clear of the narration panel.
-    const kubelet = box({ x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'restart manager + backoff', role: 'cluster' });
-
-    // Wire labels above and below the Kubelet block, set per step via setWire. The lower one
-    // hangs off the SIDE of the spine, because a centred one sits on the lane and is struck out.
-    const wireOut = text({ class: 'scheme-label code dim', x: WL.CX, y: WIRE_OUT_Y, 'text-anchor': 'middle' }, [' ']);
-    const wireIn  = text({ class: 'scheme-label code dim', x: WL.SPINE_X + WIRE_IN_DX, y: WIRE_IN_Y, 'text-anchor': 'start' }, [' ']);
-
-    const connectorDown = pathArrow({
-      points: SPINE,
-      dim: true, dashed: true, role: 'cluster',
-    });
-    const connectorUp = pathArrow({
-      points: SPINE_UP,
-      dim: true, dashed: true, role: 'cluster',
-    });
-    connectorUp.style.opacity = '0';
-    root.appendChild(connectorDown);
-    root.appendChild(connectorUp);
-
-    const chain = chainList({
-      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
+// The list order IS the append order, so it is the z-order: the two corridors and the chip column
+// first, then the packet layer, and chain / ladder / Node / Pod / Kubelet above the ball, with the
+// two wire labels last.
+export const SCENE = {
+  'aria-label': 'CrashLoopBackOff: Kubelet inserts an exponentially growing delay before each container restart',
+  parts: [
+    P.defs(),
+    // One corridor drawn twice, down for the restart order and up for the exit report. Exactly one
+    // is visible per step, which is what the `corridor()` pair in every `opacity` block below says.
+    P.lane({ key: 'connectorDown', points: SPINE, dim: true, dashed: true, role: 'cluster' }),
+    P.lane({ key: 'connectorUp', points: SPINE_UP, dim: true, dashed: true, role: 'cluster', opacity: 0 }),
+    P.chip({ key: 'stateChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'container state', value: 'Running' }),
+    P.chip({ key: 'reasonChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'reason', value: 'none' }),
+    P.chip({ key: 'restartChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'restartCount', value: '0' }),
+    P.chip({ key: 'delayChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'current backoff', value: '0s' }),
+    P.packets(),
+    // Everything below is appended AFTER the packet layer, so the ball runs under it.
+    P.chain({
+      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
         '1. running    ·  container healthy, no backoff active',
         '2. exit       ·  process exits non-zero, Kubelet sees it',
@@ -67,210 +75,112 @@ class Scene {
         '5. cap        ·  delay clamped at the 300s ceiling',
         '6. reset      ·  healthy run resets backoff to 10s base',
       ],
-      role: 'cluster',
-    });
+    }),
+    P.group({ key: 'ladder', cls: 'scheme-ladder', transform: `translate(${BACKOFF_X},${BACKOFF_Y})`, parts: RUNGS.map(rung) }),
+    P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
+    P.pod({
+      key: 'podGroup', id: 'podGroup',
+      x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
+      // No build-time opacity: every step pins the Pod's own, and the poster frame is `idle`.
+      inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'restartPolicy: Always' },
+    }),
+    // Top row: Kubelet, the restart manager, centred on CX and clear of the narration panel.
+    P.box({ key: 'kubelet', x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'restart manager + backoff', role: 'cluster' }),
+    // Wire labels above and below the Kubelet block, set per step by `wires`. The lower one hangs
+    // off the SIDE of the spine, because a centred one sits on the lane and is struck out.
+    P.wire({ key: 'out', x: WL.CX, y: WIRE_OUT_Y }),
+    P.wire({ key: 'in', x: WL.SPINE_X + WIRE_IN_DX, y: WIRE_IN_Y, anchor: 'start' }),
+  ],
+  reset: {
+    // The five the prologue always took back, plus the six rungs the ladder loop cleared by hand.
+    keys: ['kubelet', 'stateChip', 'reasonChip', 'restartChip', 'delayChip', ...RUNG_KEYS],
+    pods: ['podGroup'],
+  },
+};
 
-    const stateChip   = valChip({ x: VCHIP_X, y: VCHIP_Y(0), w: VCHIP_W, h: WL.CHIP_H, name: 'container state', value: 'Running', role: 'workloads' });
-    const reasonChip  = valChip({ x: VCHIP_X, y: VCHIP_Y(1), w: VCHIP_W, h: WL.CHIP_H, name: 'reason',          value: 'none', role: 'workloads' });
-    const restartChip = valChip({ x: VCHIP_X, y: VCHIP_Y(2), w: VCHIP_W, h: WL.CHIP_H, name: 'restartCount',    value: '0', role: 'workloads' });
-    const delayChip   = valChip({ x: VCHIP_X, y: VCHIP_Y(3), w: VCHIP_W, h: WL.CHIP_H, name: 'current backoff', value: '0s', role: 'workloads' });
-    [stateChip, reasonChip, restartChip, delayChip].forEach(c => root.appendChild(c));
+// setConnectorDir as FIELDS: the pair is written in one place, so no step can leave both corridors
+// on or neither. Key order is the order the helper wrote them in.
+const corridor = (dir) => ({ connectorDown: dir === 'up' ? 0 : 1, connectorUp: dir === 'up' ? 1 : 0 });
 
-    const ladderLabels = ['10s', '20s', '40s', '80s', '160s', '300s'];
-    const ladderX = BACKOFF_X, ladderY = BACKOFF_Y, ladderW = BACKOFF_W, ladderGap = BACKOFF_GAP;
-    const ladder = g({ class: 'scheme-ladder', transform: `translate(${ladderX},${ladderY})` });
-    const ladderChips = ladderLabels.map((lbl, i) => {
-      const c = chip({ x: i * (ladderW + ladderGap), y: 0, w: ladderW, h: BACKOFF_H, label: lbl, role: 'cluster' });
-      ladder.appendChild(c);
-      return c;
-    });
-
-    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
-
-    const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-
-    const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'restartPolicy: Always', role: 'workloads' });
-
-    const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(shell);
-    podGroup.appendChild(containerBox);
-
-    // Packet layer.
-    const packetLayer = g({ id: 'packetLayer' });
-    root.appendChild(packetLayer);
-
-    root.appendChild(chain);
-    root.appendChild(ladder);
-    root.appendChild(nodeEl);
-    root.appendChild(podGroup);
-    root.appendChild(kubelet);
-    root.appendChild(wireOut);
-    root.appendChild(wireIn);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      kubelet, chain, nodeEl, podGroup, connectorDown, connectorUp,
-      stateChip, reasonChip, restartChip, delayChip,
-      ladder, ladderChips,
-      packetLayer,
-      wires: { out: wireOut, in: wireIn },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { state, reason, restart, delay }) {
-  setVal(s.refs.stateChip, state);
-  setVal(s.refs.reasonChip, reason);
-  setVal(s.refs.restartChip, restart);
-  setVal(s.refs.delayChip, delay);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s,
-    ['kubelet','stateChip','reasonChip','restartChip','delayChip'],
-    [s.refs.podGroup]);
-  s.refs.ladderChips.forEach(c => c.classList.remove('highlight'));
-  clearWires(s);
-}
-
-function setLadder(s, idx) {
-  s.refs.ladderChips.forEach((c, i) => c.classList.toggle('highlight', i <= idx));
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      s.refs.podGroup.style.opacity = '1';
-      setVal(s.refs.stateChip, 'Running');
-      setVal(s.refs.reasonChip, 'none');
-      setVal(s.refs.restartChip, '0');
-      setVal(s.refs.delayChip, '0s');
-      setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 0);
-    },
+    // Every step pins the whole record, so the four chips are always stated together.
+    chips: { stateChip: 'Running', reasonChip: 'none', restartChip: '0', delayChip: '0s' },
+    opacity: { podGroup: 1, ...corridor('down') },
+    chain: 0,
   },
   {
     id: 'first-crash',
     duration: 2600,
     narration: 'The container process exits with a non-zero code and Kubelet observes the termination. With restartPolicy Always, Kubelet restarts it immediately the first time and arms a 10s base delay for the next one. Once the new container starts, restartCount becomes 1.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.podGroup.style.opacity = '1';
-      setChips(s, { state: 'Running (restarted)', reason: 'none', restart: '1', delay: '10s · base' });
-      s.refs.stateChip.classList.add('highlight');
-      setWire(s, 'in', 'container exited, code 1');
-      setWire(s, 'out', 'restart now, next wait 10s');
-      s.refs.restartChip.classList.add('highlight');
-      s.refs.delayChip.classList.add('highlight');
-      setConnectorDir(s, 'up');
-      setChainActive(s.refs.chain, 1);
-      setLadder(s, 0);
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
+    chips: { stateChip: 'Running (restarted)', reasonChip: 'none', restartChip: '1', delayChip: '10s · base' },
+    wires: { in: 'container exited, code 1', out: 'restart now, next wait 10s' },
+    opacity: { podGroup: 1, ...corridor('up') },
+    lit: ['stateChip', 'restartChip', 'delayChip', ...filled(0)],
+    chain: 1,
+    flow: [
       // Pod blinks first (the container just crashed), then the Node reports the
       // exit up the connector to Kubelet.
-      pulsePod(s.refs.podGroup, ctx, 0);
-      const pkt = routePacket(s, ctx, SPINE_UP, { delay: BEAT.afterPulse, role: 'workloads' });
-      lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
-    },
+      F.pulse({ pod: 'podGroup' }),
+      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
+    ],
   },
   {
     id: 'backoff-named',
     duration: 2200,
     narration: 'The fresh container crashes again almost immediately. This restart is the one that waits, and each further crash doubles the delay, so 10s becomes 20s. While Kubelet holds off the restart the container state is Waiting with reason CrashLoopBackOff, which surfaces in kubectl get pods.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.podGroup.style.opacity = String(OPACITY.notready);
-      setChips(s, { state: 'Waiting', reason: 'CrashLoopBackOff', restart: '2', delay: '20s · doubled' });
-      s.refs.restartChip.classList.add('highlight');
-      setWire(s, 'out', 'hold restart, 20s');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.stateChip.classList.add('highlight');
-      s.refs.reasonChip.classList.add('highlight');
-      s.refs.delayChip.classList.add('highlight');
-      setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 2);
-      setLadder(s, 1);
-      if (ctx.reduced) return;
-      pulsePod(s.refs.podGroup, ctx, 0);
-      ctx.register(s.refs.podGroup.animate(
-        [{ opacity: 1 }, { opacity: OPACITY.notready }],
-        { duration: FADE.out, fill: 'both', easing: 'ease-in' }
-      ));
-    },
+    chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '2', delayChip: '20s · doubled' },
+    wires: { out: 'hold restart, 20s' },
+    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
+    lit: ['restartChip', 'kubelet', 'stateChip', 'reasonChip', 'delayChip', ...filled(1)],
+    chain: 2,
+    flow: [
+      F.pulse({ pod: 'podGroup' }),
+      F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, fill: 'both', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'doubling',
     duration: 2300,
     narration: 'The crashes keep coming and the backoff delay doubles with each failure, climbing 40s then 80s then 160s. The restartCount keeps incrementing on every attempt. The exponential growth is per container, so a hot-looping process cannot saturate the Node.',
-    enter(s) {
-      resetStep(s);
-      s.refs.podGroup.style.opacity = String(OPACITY.notready);
-      setChips(s, { state: 'Waiting', reason: 'CrashLoopBackOff', restart: '5', delay: '160s · doubling' });
-      setWire(s, 'out', 'hold restart, 160s');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.reasonChip.classList.add('highlight');
-      s.refs.restartChip.classList.add('highlight');
-      s.refs.delayChip.classList.add('highlight');
-      setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 3);
-      setLadder(s, 4);
-    },
+    chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '5', delayChip: '160s · doubling' },
+    wires: { out: 'hold restart, 160s' },
+    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
+    lit: ['kubelet', 'reasonChip', 'restartChip', 'delayChip', ...filled(4)],
+    chain: 3,
   },
   {
     id: 'cap',
     duration: 2200,
     narration: 'The next doubling would exceed 300s, so the delay is clamped at the 300s ceiling and stays there. Kubelet now retries the container at most once every 5 minutes for as long as it keeps failing. The restartCount continues to climb at this slow cadence.',
-    enter(s) {
-      resetStep(s);
-      s.refs.podGroup.style.opacity = String(OPACITY.notready);
-      setChips(s, { state: 'Waiting', reason: 'CrashLoopBackOff', restart: '7', delay: '300s · capped' });
-      s.refs.restartChip.classList.add('highlight');
-      setWire(s, 'out', 'retry every 5 min');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.delayChip.classList.add('highlight');
-      s.refs.reasonChip.classList.add('highlight');
-      setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 4);
-      setLadder(s, 5);
-      // The cap holds: the clamped 300s ceiling shows via the full ladder and the
-      // static chip highlight (no chip pulse).
-    },
+    chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '7', delayChip: '300s · capped' },
+    wires: { out: 'retry every 5 min' },
+    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
+    // The cap holds: the clamped 300s ceiling shows via the full ladder and the
+    // static chip highlight (no chip pulse).
+    lit: ['restartChip', 'kubelet', 'delayChip', 'reasonChip', ...filled(5)],
+    chain: 4,
   },
   {
     id: 'reset',
     duration: 2600,
     narration: 'The bug is fixed and the new container runs stably. After a sustained healthy run Kubelet resets the backoff counter, so the next crash would start over from the 10s base rather than the 300s cap. The container state returns to Running and the CrashLoopBackOff reason clears.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { state: 'Running', reason: 'none', restart: '7', delay: '0s · reset to base' });
-      s.refs.reasonChip.classList.add('highlight');
-      setWire(s, 'in', 'healthy run, backoff reset');
-      s.refs.stateChip.classList.add('highlight');
-      s.refs.delayChip.classList.add('highlight');
-      // Pin final state inline so cancel between steps does not flash to default.
-      s.refs.podGroup.style.opacity = '1';
-      setConnectorDir(s, 'up');
-      setChainActive(s.refs.chain, 5);
-      setLadder(s, 0);
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
+    chips: { stateChip: 'Running', reasonChip: 'none', restartChip: '7', delayChip: '0s · reset to base' },
+    wires: { in: 'healthy run, backoff reset' },
+    // Pin final state inline so cancel between steps does not flash to default.
+    opacity: { podGroup: 1, ...corridor('up') },
+    lit: ['reasonChip', 'stateChip', 'delayChip', ...filled(0)],
+    chain: 5,
+    flow: [
       // Pod recovers to full opacity first (the visible blink of a healthy run),
       // then reports the healthy status up to Kubelet which resets the backoff.
-      pulsePod(s.refs.podGroup, ctx, 0);
-      ctx.register(s.refs.podGroup.animate(
-        [{ opacity: OPACITY.notready }, { opacity: 1 }],
-        { duration: FADE.in, fill: 'both', easing: 'ease-out' }
-      ));
-      const pkt = routePacket(s, ctx, SPINE_UP, { delay: BEAT.afterPulse, role: 'workloads' });
-      lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
-    },
+      F.pulse({ pod: 'podGroup' }),
+      F.fade({ target: 'podGroup', from: OPACITY.notready, to: 1, dur: FADE.in, fill: 'both', easing: 'ease-out' }),
+      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

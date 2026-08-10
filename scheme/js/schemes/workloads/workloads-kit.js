@@ -22,10 +22,18 @@ export const WL = Object.freeze({
   M: 60, L: 60, R: 1140, CX: 600, W: 1080,
   TOP_Y: 40, BOX_H: 80, TOP_BOTTOM: 120,
   SPINE_X: 600,
-  LADDER_X: 60, LADDER_W: 480,          // 60..540
-  CHIP_X: 660, CHIP_W: 480, CHIP_H: 34, // 660..1140
+  COL_L: Object.freeze({ x: 60, w: 480 }), COL_R: Object.freeze({ x: 660, w: 480 }),
+  CHIP_H: 34,
   ROW_H: 32, ROW_GAP: 10,
   LANE_DY: 12,
+});
+
+// WL.L-06 picks the first of A / B / C that fits under THAT card's measured panel bottom. C has no
+// free column, so its chips are a bottom strip two or three across (WL.L-05).
+export const LAYOUT = Object.freeze({
+  A: Object.freeze({ ladder: WL.COL_L, chips: WL.COL_R }),
+  B: Object.freeze({ chips: WL.COL_L, ladder: WL.COL_R }),
+  C: Object.freeze({ ladder: WL.COL_R, strip: Object.freeze({ two: 532, three: 350.7 }) }),
 });
 
 // `base` MUST equal the natural resting stroke: the non-persist pulse fills FORWARDS to `base`,
@@ -33,9 +41,6 @@ export const WL = Object.freeze({
 export const WORKLOADS_TINT = Object.freeze({ base: 'rgb(91, 184, 255)', bright: 'rgb(142, 198, 247)' });
 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(WORKLOADS_TINT);
-
-// The A/B/C column choice stays prose (WL.L-03..L-05) until this category is migrated: turning it
-// into constants with no card to check them against is how a wrong number ships.
 
 // Workloads Pods are already the category blue, so no Pod recolour: tint stays null.
 const BIND = { role: 'workloads', podRole: 'workloads', tint: null, pulsePod, pulsePodDim };

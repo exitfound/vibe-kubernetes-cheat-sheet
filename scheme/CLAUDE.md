@@ -124,7 +124,8 @@ list is an editorial argument, not a set (`D-10`), and it is recorded beside the
 
 Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There are exactly two legal
 export surfaces and nothing between them** (`S-02`), and the split between them is the migration
-counter `unit/module.test.mjs` prints on every run: **21 migrated, 87 legacy** today.
+counter `unit/module.test.mjs` prints on every run: **40 migrated, 68 legacy** today (cluster and
+workloads are through; network and storage are not).
 
 ### The declarative form, which new cards use
 
@@ -202,14 +203,14 @@ value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow ord
 previous step's values, which `S-13` forbids. `duration` is copied verbatim, and no half of the
 oracle can see it at all.
 
-**The escapes, and how narrow they are.** 14 of the 21 migrated cards are fully declarative; 7 carry
+**The escapes, and how narrow they are.** 29 of the 40 migrated cards are fully declarative; 11 carry
 at least one hook, and each hook exists for something with no honest general verb: `part.tune`
 captures a ref off an element the builder already made, `part.raw` draws a bare `<rect>` or a free
 text node, `step.enter` writes an SVG *attribute* no field writes (`width` on `node-allocatable`),
 plus `F.run` and `reset.extra`. If a card looks like it needs a new verb, stop and say so: migrating
-21 cards required the DSL to grow zero times.
+40 cards across two categories required the DSL to grow zero times.
 
-### The legacy form, still on 87 cards
+### The legacy form, still on 68 cards
 
 A hand-written `class Scene` with `build()` and `reset()` (`S-01`), a copied `resetStep(s)`
 prologue, a hand-written `STEPS` array whose every `enter(s, ctx)` splits on `ctx.reduced` by hand,

@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, relationPath, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
+import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-rolling-update
 
@@ -14,15 +12,18 @@ const TOP1_X = 420, TOP1_W = 2 * (WL.CX - 420);          // 420..780, centred on
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = WL.R - (TOP1_X + TOP1_W + TOP_GAP);
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
-const REQ_Y = TOP_CY - WL.LANE_DY, RESP_Y = TOP_CY + WL.LANE_DY;
-const WIRE_X = (TOP1_X + TOP1_W + TOP2_X) / 2;
+const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
+const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
 
 const BAND_Y = PANEL_B + PANEL_GAP;                      // 226, both columns start here
-const LAD_X = WL.LADDER_X, LAD_W = WL.LADDER_W;          // 60..540, the pipeline
+// LAYOUT.A of the kit: the ladder takes the LEFT column and the chips the RIGHT, both 480 wide.
+// WL.L-06 picks A / B / C against THIS card's measured panel bottom.
+const LAD_X = LAYOUT.A.ladder.x, LAD_W = LAYOUT.A.ladder.w;     // 60..540, the pipeline
 const LAD_Y = BAND_Y;                                    // 6 rows -> 226..468
+const CHIP_X = LAYOUT.A.chips.x, CHIP_W = LAYOUT.A.chips.w;     // 660..1140
 
 const CHIP_VGAP = 8;
-const CHIP_Y = i => BAND_Y + i * (WL.CHIP_H + CHIP_VGAP);
+const CHIP_Y = ladder({ y: BAND_Y, rowH: WL.CHIP_H, gap: CHIP_VGAP });
 
 const NODE_Y = 490, NODE_H = 134;                        // 490..624
 // FOUR slots, not three, and that is CONTENT rather than layout: maxSurge=1 means the rollout is
@@ -48,40 +49,38 @@ const LANE = i => (POD_CX(i) === WL.CX
 
 // A trunk segment carries the ball but is not its destination, so it is drawn without a marker:
 // the arrowhead belongs on the tap that lands on a Pod.
-function trunkPath(points) {
-  return relationPath({ points, role: 'cluster', dash: '5 5' });
-}
+const trunkPath = (key, points) => P.relation({ key, points, role: 'cluster', dash: '5 5' });
 
+// Random suffixes, as a Deployment really gives them: ordinals imply an age order the drawing
+// never establishes, while the narration says the controller picks the OLDEST Pod.
+const POD_NAMES = ['web-a1', 'web-b2', 'web-c3', 'web-d4'];
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Deployment rolling update: maxSurge surges a new ReplicaSet Pod first, maxUnavailable drains an old one once the new is Ready, repeat until converged' });
-    root.appendChild(arrowDefs());
-
-    const controller = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Deployment', sublabel: 'scales RS-v1, RS-v2', role: 'cluster' });
-    const apiserver  = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API',     sublabel: 'PATCH .scale + Pod CRUD', role: 'cluster' });
-
-    root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
+// The list order IS the append order, so it is the z-order: the Node frame is a 70% opaque fill,
+// so the bus that runs inside it and the balls that ride it are appended after it. Ladder, Pods
+// and the actor row sit above the packets.
+export const SCENE = {
+  'aria-label': 'Deployment rolling update: maxSurge surges a new ReplicaSet Pod first, maxUnavailable drains an old one once the new is Ready, repeat until converged',
+  parts: [
+    P.defs(),
+    P.arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
     // The answer lane is a relationship here, not a route: no step on this card names anything
     // travelling back from the API, so it carries no arrowhead and sits behind the live lane.
-    root.appendChild(relationPath({ points: [[TOP2_X, RESP_Y], [TOP1_X + TOP1_W, RESP_Y]], role: 'cluster' }));
-
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WL.TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
-    root.appendChild(wireReq);
-
-    const v1Chip       = valChip({ x: WL.CHIP_X, y: CHIP_Y(0), w: WL.CHIP_W, h: WL.CHIP_H, name: 'RS-v1 (old) · Ready', value: '3 / 3', role: 'workloads' });
-    const v2Chip       = valChip({ x: WL.CHIP_X, y: CHIP_Y(1), w: WL.CHIP_W, h: WL.CHIP_H, name: 'RS-v2 (new) · Ready', value: '0 / 0', role: 'workloads' });
-    const surgeChip    = valChip({ x: WL.CHIP_X, y: CHIP_Y(2), w: WL.CHIP_W, h: WL.CHIP_H, name: 'maxSurge · maxUnavailable', value: '1 · 1', role: 'workloads' });
-    const progressChip = valChip({ x: WL.CHIP_X, y: CHIP_Y(3), w: WL.CHIP_W, h: WL.CHIP_H, name: 'rollout',  value: 'idle', role: 'workloads' });
-    [v1Chip, v2Chip, surgeChip, progressChip].forEach(c => root.appendChild(c));
-
-    // Pipeline chain, 6 stages of the rolling update cycle.
-    const chain = chainList({
-      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
+    P.relation({ points: [[TOP2_X, RESP_Y], [TOP1_X + TOP1_W, RESP_Y]], role: 'cluster' }),
+    // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
+    P.wire({ key: 'req', x: WIRE_X, y: WL.TOP_Y - 12 }),
+    P.chip({ key: 'v1Chip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'RS-v1 (old) · Ready', value: '3 / 3' }),
+    P.chip({ key: 'v2Chip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'RS-v2 (new) · Ready', value: '0 / 0' }),
+    P.chip({ key: 'surgeChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'maxSurge · maxUnavailable', value: '1 · 1' }),
+    P.chip({ key: 'progressChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'rollout', value: 'idle' }),
+    P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
+    // Trunk and bus carry the ball, the taps land it on a Pod: only the taps take an arrowhead.
+    trunkPath('trunk', TRUNK),
+    trunkPath('bus', BUS),
+    ...POD_XS.map((_, i) => P.lane({ key: `tap${i}`, points: TAP(i), dim: true, dashed: true, role: 'cluster' })),
+    P.packets(),
+    // Everything below is appended AFTER the packet layer, so the ball runs under it.
+    P.chain({
+      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
         '1. spec      ·  image v1.0 → v2.0 patch',
         '2. surge     ·  create v2 Pod (maxSurge=1)',
@@ -90,161 +89,102 @@ class Scene {
         '5. repeat    ·  surge + drain per old replica',
         '6. converged ·  3 v2 Ready, RS-v1 scaled to 0',
       ],
-      role: 'cluster',
-    });
+    }),
+    ...POD_XS.map((px, i) => P.pod({
+      key: `pod${i + 1}`, id: `pod${i + 1}`, innerKey: `pod${i + 1}Box`,
+      x: px, y: POD_Y, w: POD_W, h: POD_H, label: POD_NAMES[i], sublabel: '', containers: 0,
+      // No build-time opacity: every step pins all four slots through `slots()`.
+      inner: { ...POD_INNER, label: 'app', sublabel: 'v1.0' },
+    })),
+    P.box({ key: 'apiserver', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'PATCH .scale + Pod CRUD', role: 'cluster' }),
+    P.box({ key: 'controller', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Deployment', sublabel: 'scales RS-v1, RS-v2', role: 'cluster' }),
+  ],
+  reset: {
+    keys: ['controller', 'apiserver', 'v1Chip', 'v2Chip', 'surgeChip', 'progressChip', 'pod1Box', 'pod2Box', 'pod3Box', 'pod4Box'],
+    pods: ['pod1', 'pod2', 'pod3', 'pod4'],
+  },
+};
 
-    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
-
-    // Random suffixes, as a Deployment really gives them: ordinals imply an age order the drawing
-    // never establishes, while the narration says the controller picks the OLDEST Pod.
-    const POD_NAMES = ['web-a1', 'web-b2', 'web-c3', 'web-d4'];
-    const podBoxes = [];
-    const podWrappers = POD_XS.map((px, i) => {
-      const shell = podShell({ x: px, y: POD_Y, w: POD_W, h: POD_H, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
-
-      const innerBox = box({ x: px + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'v1.0', role: 'workloads' });
-
-      const wrap = g({ id: `pod${i + 1}` });
-      wrap.appendChild(shell);
-      wrap.appendChild(innerBox);
-      podBoxes.push(innerBox);
-      return wrap;
-    });
-    const [pod1, pod2, pod3, pod4] = podWrappers;
-    const [pod1Box, pod2Box, pod3Box, pod4Box] = podBoxes;
-
-    // Trunk and bus carry the ball, the taps land it on a Pod: only the taps take an arrowhead.
-    const trunk = trunkPath(TRUNK);
-    const bus = trunkPath(BUS);
-    const taps = POD_XS.map((_, i) => pathArrow({ points: TAP(i), dim: true, dashed: true, role: 'cluster' }));
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order: the Node frame is a 70% opaque fill, so the bus that runs inside it and the balls
-    // that ride it are appended after it. Ladder, Pods and the actor row sit above the packets.
-    root.appendChild(nodeEl);
-    [trunk, bus, ...taps].forEach(w => root.appendChild(w));
-    root.appendChild(packetLayer);
-    root.appendChild(chain);
-    [pod1, pod2, pod3, pod4].forEach(p => root.appendChild(p));
-    root.appendChild(apiserver);
-    root.appendChild(controller);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      controller, apiserver, chain, nodeEl, trunk, bus, taps,
-      v1Chip, v2Chip, surgeChip, progressChip,
-      pod1, pod2, pod3, pod4, pod1Box, pod2Box, pod3Box, pod4Box,
-      packetLayer,
-      wires: { req: wireReq },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { v1, v2, surge, progress }) {
-  setVal(s.refs.v1Chip, v1);
-  setVal(s.refs.v2Chip, v2);
-  setVal(s.refs.surgeChip, surge);
-  setVal(s.refs.progressChip, progress);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s,
-    ['controller','apiserver','v1Chip','v2Chip','surgeChip','progressChip','pod1Box','pod2Box','pod3Box','pod4Box'],
-    [s.refs.pod1, s.refs.pod2, s.refs.pod3, s.refs.pod4]);
-  clearWires(s);
-}
-// A slot's version and its presence are ONE fact, so one helper writes both (`null` = unoccupied).
-// Two separate assignments show more Pods alive than the row's own chip counts.
-function setSlots(s, ...slots) {
-  slots.forEach((v, i) => {
-    const pod = s.refs['pod' + (i + 1)];
-    if (v === null) { pod.style.opacity = '0'; return; }
-    pod.style.opacity = String(v.op === undefined ? 1 : v.op);
-    setBoxSublabel(s.refs['pod' + (i + 1) + 'Box'], v.v);
+// setSlots as FIELDS: a slot's version and its presence are ONE fact, so one helper writes both
+// (`null` = unoccupied, and an empty slot states no version). Two separate assignments show more
+// Pods alive than the row's own chip counts.
+const slots = (...row) => {
+  const opacity = {}, sublabels = {};
+  row.forEach((v, i) => {
+    const n = i + 1;
+    if (v === null) { opacity[`pod${n}`] = 0; return; }
+    opacity[`pod${n}`] = v.op === undefined ? 1 : v.op;
+    sublabels[`pod${n}Box`] = v.v;
   });
-}
+  return { opacity, sublabels };
+};
 const V1 = { v: 'v1.0' }, V2 = { v: 'v2.0 · Ready' }, V2_NEW = { v: 'v2.0 · starting' };
 const GOING = { v: 'terminating', op: OPACITY.terminating };
 
-const STEPS = [
+// The scale PATCH the Deployment sends the API, identical on the three steps that send one.
+const patchApi = (name) => F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name, lights: ['apiserver'] });
+
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setSlots(s, V1, V1, V1, null);
-      setChips(s, { v1: '3 / 3', v2: '0 / 0', surge: '1 · 1', progress: 'idle' });
-      setChainActive(s.refs.chain, -1);
-    },
+    chips: { v1Chip: '3 / 3', v2Chip: '0 / 0', surgeChip: '1 · 1', progressChip: 'idle' },
+    ...slots(V1, V1, V1, null),
+    chain: -1,
   },
   {
     id: 'spec',
     duration: 1900,
     narration: 'You run kubectl set image deployment/web app=v2.0, which PATCHes .spec.template. The new template hash differs, so the Deployment controller creates ReplicaSet RS-v2 with replicas=0. RS-v1 still owns all 3 live Pods, no churn yet.',
-    enter(s, ctx) {
-      resetStep(s);
-      setSlots(s, V1, V1, V1, null);
-      setChips(s, { v1: '3 / 3', v2: '0 / 0', surge: '1 · 1', progress: 'spec PATCHed · RS-v2 created' });
-      setWire(s, 'req', 'PATCH .spec.template · New RS-v2');
-      s.refs.controller.classList.add('highlight');
-      s.refs.progressChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 0);
-      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      const pkt = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
-      lightBoxAt(s.refs.apiserver, ctx, pkt.arrivalMs);
-    },
+    chips: { v1Chip: '3 / 3', v2Chip: '0 / 0', surgeChip: '1 · 1', progressChip: 'spec PATCHed · RS-v2 created' },
+    wires: { req: 'PATCH .spec.template · New RS-v2' },
+    ...slots(V1, V1, V1, null),
+    lit: ['controller', 'progressChip'],
+    chain: 0,
+    flow: [patchApi()],
   },
   {
     id: 'surge',
     duration: 4500,
     narration: 'Setting maxSurge=1 lets the controller scale RS-v2 from 0 to 1 before any old Pod leaves. A fresh v2.0 Pod is created on Node-1, Kubelet starts the container. Total live Pods is now 4 (3 v1 plus 1 surge), 1 above .spec.replicas.',
-    enter(s, ctx) {
-      resetStep(s);
-      setSlots(s, V1, V1, V1, V2_NEW);
-      setChips(s, { v1: '3 / 3', v2: '0 / 1', surge: '1 · 1', progress: 'surged +1 · 4 Pods alive' });
-      setWire(s, 'req', 'scale RS-v2 replicas: 0 → 1');
-      s.refs.controller.classList.add('highlight');
-      s.refs.v2Chip.classList.add('highlight');
-      s.refs.progressChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+    chips: { v1Chip: '3 / 3', v2Chip: '0 / 1', surgeChip: '1 · 1', progressChip: 'surged +1 · 4 Pods alive' },
+    wires: { req: 'scale RS-v2 replicas: 0 → 1' },
+    ...slots(V1, V1, V1, V2_NEW),
+    lit: ['controller', 'v2Chip', 'progressChip'],
+    // The animated path says the surge Pod arrived by PULSING it, which no `lights` list can name:
+    // the static path has to say it with the inner box instead.
+    reducedLit: ['pod4Box'],
+    chain: 1,
+    flow: [
       // kubectl-style scale PATCH reaches Api, then the create flows down to the node.
-      const patch = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
-      lightBoxAt(s.refs.apiserver, ctx, patch.arrivalMs);
+      patchApi('patch'),
       // The surge Pod is created in the FOURTH slot, beside the three v1 Pods rather than on top of
       // one of them: that is what being one above .spec.replicas looks like.
-      const create = routePacket(s, ctx, LANE(3), { delay: patch.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      pulsePod(s.refs.pod4, ctx, create.arrivalMs);
-    },
+      F.route({ points: LANE(3), after: 'patch', name: 'create' }),
+      F.pulse({ pod: 'pod4', at: 'create' }),
+    ],
   },
   {
     id: 'probe-and-drain',
     duration: 4500,
     narration: 'The new Pod becomes Ready (readinessProbe passes successThreshold times). RS-v2 sees Ready=1. Now maxUnavailable=1 allows scaling RS-v1 from 3 down to 2, the controller picks the oldest Pod and triggers a graceful delete (preStop, then SIGTERM, then grace period).',
-    enter(s, ctx) {
-      resetStep(s);
-      setSlots(s, V1, V1, GOING, V2);
-      setChips(s, { v1: '2 / 2', v2: '1 / 1', surge: '1 · 1', progress: 'replaced 1/3 · 3 Pods alive' });
-      setWire(s, 'req', 'scale RS-v1 replicas: 3 → 2');
-      s.refs.apiserver.classList.add('highlight');
-      s.refs.v1Chip.classList.add('highlight');
-      s.refs.v2Chip.classList.add('highlight');
-      s.refs.progressChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) { s.refs.pod4Box.classList.add('highlight'); return; }
+    chips: { v1Chip: '2 / 2', v2Chip: '1 / 1', surgeChip: '1 · 1', progressChip: 'replaced 1/3 · 3 Pods alive' },
+    wires: { req: 'scale RS-v1 replicas: 3 → 2' },
+    ...slots(V1, V1, GOING, V2),
+    lit: ['apiserver', 'v1Chip', 'v2Chip', 'progressChip'],
+    reducedLit: ['pod4Box'],
+    chain: 2,
+    // The drained Pod is dimmed by the static block and comes back to full for the animated path,
+    // which fades it out on the drain arrival instead.
+    rewind: { opacity: { pod3: 1 } },
+    flow: [
       // Readiness comes FIRST and is the precondition: only then does maxUnavailable allow the
       // scale-down. Pulsing both on one arrival draws the permission and its effect as one event.
-      pulsePod(s.refs.pod4, ctx, 0);
-      const drain = routePacket(s, ctx, LANE(2), { delay: BEAT.afterPulse, role: 'workloads' });
-      s.refs.pod3.style.opacity = '1';
-      pulsePod(s.refs.pod3, ctx, drain.arrivalMs);
-      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: drain.arrivalMs, fill: 'both', easing: 'ease-in' }));
-    },
+      F.pulse({ pod: 'pod4' }),
+      F.route({ points: LANE(2), delay: BEAT.afterPulse, name: 'drain' }),
+      F.pulse({ pod: 'pod3', at: 'drain' }),
+      F.fade({ target: 'pod3', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'drain', fill: 'both', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'second-cycle',
@@ -252,31 +192,27 @@ const STEPS = [
     // drain, where the three-slot version could only draw one.
     duration: 6200,
     narration: 'Same dance again: surge one more v2 Pod into the room the last drain gave back, wait for Ready, drain the next old v1. The controller does not move to a third replacement until this one is committed, so the rollout proceeds one Pod at a time.',
-    enter(s, ctx) {
-      resetStep(s);
-      setSlots(s, V1, GOING, V2, V2);
-      setChips(s, { v1: '1 / 1', v2: '2 / 2', surge: '1 · 1', progress: 'replaced 2/3 · 3 Pods alive' });
-      setWire(s, 'req', 'scale RS-v2: 1 → 2 · Scale RS-v1: 2 → 1');
-      s.refs.controller.classList.add('highlight');
-      s.refs.v1Chip.classList.add('highlight');
-      s.refs.v2Chip.classList.add('highlight');
-      s.refs.progressChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) { s.refs.pod3Box.classList.add('highlight'); s.refs.apiserver.classList.add('highlight'); return; }
+    chips: { v1Chip: '1 / 1', v2Chip: '2 / 2', surgeChip: '1 · 1', progressChip: 'replaced 2/3 · 3 Pods alive' },
+    wires: { req: 'scale RS-v2: 1 → 2 · Scale RS-v1: 2 → 1' },
+    ...slots(V1, GOING, V2, V2),
+    lit: ['controller', 'v1Chip', 'v2Chip', 'progressChip'],
+    reducedLit: ['pod3Box'],
+    chain: 3,
+    // The refilled slot starts dim and the one about to drain starts bright: the animated path
+    // plays the swap the static block states as its outcome.
+    rewind: { opacity: { pod3: OPACITY.terminating, pod2: 1 } },
+    flow: [
       // Scale PATCH reaches Api, then the create flows down into the slot the previous drain freed:
       // the surge is always one Pod, so it reuses the room the last old Pod gave back.
-      const patch = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
-      lightBoxAt(s.refs.apiserver, ctx, patch.arrivalMs);
-      s.refs.pod3.style.opacity = String(OPACITY.terminating);
-      s.refs.pod2.style.opacity = '1';
-      const create = routePacket(s, ctx, LANE(2), { delay: patch.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      ctx.register(s.refs.pod3.animate([{ opacity: OPACITY.terminating }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod3, ctx, create.arrivalMs);
+      patchApi('patch'),
+      F.route({ points: LANE(2), after: 'patch', name: 'create' }),
+      F.fade({ target: 'pod3', from: OPACITY.terminating, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'pod3', at: 'create' }),
       // and the next old Pod leaves on the same beat the new one lands
-      const drain = routePacket(s, ctx, LANE(1), { delay: create.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      pulsePod(s.refs.pod2, ctx, drain.arrivalMs);
-      ctx.register(s.refs.pod2.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: drain.arrivalMs, fill: 'both', easing: 'ease-in' }));
-    },
+      F.route({ points: LANE(1), after: 'create', name: 'drain' }),
+      F.pulse({ pod: 'pod2', at: 'drain' }),
+      F.fade({ target: 'pod2', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'drain', fill: 'both', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'third-cycle',
@@ -284,47 +220,40 @@ const STEPS = [
     // drain, where the three-slot version could only draw one.
     duration: 6800,
     narration: 'Last cycle: surge the final v2 Pod, wait for Ready, drain the last v1. The Deployment status moves to .status.updatedReplicas=3, observedGeneration catches up to .metadata.generation, and the condition Progressing=True is set with reason NewReplicaSetAvailable.',
-    enter(s, ctx) {
-      resetStep(s);
-      setSlots(s, GOING, V2, V2, V2);
-      setChips(s, { v1: '0 / 0', v2: '3 / 3', surge: '1 · 1', progress: 'replaced 3/3 · 3 Pods alive' });
-      setWire(s, 'req', 'scale RS-v2: 2 → 3 · Scale RS-v1: 1 → 0');
-      s.refs.apiserver.classList.add('highlight');
-      s.refs.v1Chip.classList.add('highlight');
-      s.refs.v2Chip.classList.add('highlight');
-      s.refs.progressChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 4);
-      if (ctx.reduced) { s.refs.pod2Box.classList.add('highlight'); return; }
+    chips: { v1Chip: '0 / 0', v2Chip: '3 / 3', surgeChip: '1 · 1', progressChip: 'replaced 3/3 · 3 Pods alive' },
+    wires: { req: 'scale RS-v2: 2 → 3 · Scale RS-v1: 1 → 0' },
+    ...slots(GOING, V2, V2, V2),
+    lit: ['apiserver', 'v1Chip', 'v2Chip', 'progressChip'],
+    reducedLit: ['pod2Box'],
+    chain: 4,
+    rewind: { opacity: { pod2: OPACITY.terminating, pod1: 1 } },
+    flow: [
       // The last cycle: the final v2 lands in the slot the second drain freed, and the last v1 leaves.
-      s.refs.pod2.style.opacity = String(OPACITY.terminating);
-      s.refs.pod1.style.opacity = '1';
-      const create = routePacket(s, ctx, LANE(1), { delay: BEAT.lead, role: 'workloads' });
-      ctx.register(s.refs.pod2.animate([{ opacity: OPACITY.terminating }, { opacity: 1 }], { duration: FADE.in, delay: create.arrivalMs, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.pod2, ctx, create.arrivalMs);
-      const drain = routePacket(s, ctx, LANE(0), { delay: create.arrivalMs + BEAT.afterHop, role: 'workloads' });
-      pulsePod(s.refs.pod1, ctx, drain.arrivalMs);
-      ctx.register(s.refs.pod1.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: drain.arrivalMs, fill: 'both', easing: 'ease-in' }));
-    },
+      F.route({ points: LANE(1), delay: BEAT.lead, name: 'create' }),
+      F.fade({ target: 'pod2', from: OPACITY.terminating, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'pod2', at: 'create' }),
+      F.route({ points: LANE(0), after: 'create', name: 'drain' }),
+      F.pulse({ pod: 'pod1', at: 'drain' }),
+      F.fade({ target: 'pod1', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'drain', fill: 'both', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'converged',
     duration: 2200,
     narration: 'RS-v2 owns 3 Ready Pods, RS-v1 sits at replicas=0 but is retained for revisionHistoryLimit (default 10) so kubectl rollout undo can flip back in one PATCH. Deployment condition Available=True, rollout complete.',
-    enter(s, ctx) {
-      resetStep(s);
-      setSlots(s, null, V2, V2, V2);
-      setChips(s, { v1: '0 / 0 (retained)', v2: '3 / 3', surge: '1 · 1', progress: 'Complete · Available=True' });
-      s.refs.v1Chip.classList.add('highlight');
-      s.refs.progressChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 5);
-      if (ctx.reduced) { ['pod2Box','pod3Box','pod4Box'].forEach(k => s.refs[k].classList.add('highlight')); return; }
-      // The three live v2 Pods sit in slots 2, 3 and 4: the surge capacity is released from the
-      // LEFTMOST slot. Pulse those three, never slot 1, which setSlots has just emptied.
-      pulsePod(s.refs.pod2, ctx, 0);
-      pulsePod(s.refs.pod3, ctx, 0);
-      pulsePod(s.refs.pod4, ctx, 0);
-    },
+    chips: { v1Chip: '0 / 0 (retained)', v2Chip: '3 / 3', surgeChip: '1 · 1', progressChip: 'Complete · Available=True' },
+    ...slots(null, V2, V2, V2),
+    lit: ['v1Chip', 'progressChip'],
+    // The three live v2 Pods sit in slots 2, 3 and 4: the surge capacity is released from the
+    // LEFTMOST slot. Light those three, never slot 1, which `slots()` has just emptied.
+    reducedLit: ['pod2Box', 'pod3Box', 'pod4Box'],
+    chain: 5,
+    flow: [
+      F.pulse({ pod: 'pod2' }),
+      F.pulse({ pod: 'pod3' }),
+      F.pulse({ pod: 'pod4' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

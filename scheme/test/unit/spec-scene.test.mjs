@@ -418,6 +418,28 @@ describe('scene geometry, read from SCENE.parts', () => {
 // be the one its category kit binds, and the expectation is obtained by CALLING the kit's own
 // constructors, so the four conditions S-42 names stay readable rather than restated.
 // ---------------------------------------------------------------------------------------------
+// S-42's fourth clause lets a part override the bound role at its own call. That is legal, and it
+// is also exactly how P-08 happened (82 chips silently on the cluster palette), so an override
+// counts as a decision only once it is WRITTEN DOWN, and this table is where. The unit is the
+// (category, kind, role) TRIPLE rather than the card: which kinds a category may paint in which
+// foreign colour is the editorial call, so a new card reusing a declared triple needs no edit here
+// while a new KIND of override goes red until someone adds it deliberately.
+//
+// Counts are deliberately not asserted: they move with every card that migrates. A declared triple
+// that no card uses is printed instead, and at a category's close-out an unused one is removed.
+const CROSS_ROLE = {
+  // Workloads cards draw the control plane that acts ON the Pod: Kubelet, the corridor it probes
+  // down, and the pipeline ladder narrating Kubelet's work. Those belong to cluster, and painting
+  // them workloads blue would claim the Pod admits and restarts itself.
+  // `storage` appears on ONE card, workloads-pvc-stickiness: a StatefulSet Pod keeps its PVC, so the
+  // volume, its two lanes and its three chips are storage's and are painted jade, not workloads blue.
+  workloads: {
+    box: ['cluster'], chain: ['cluster'], arrow: ['cluster'],
+    lane: ['cluster', 'storage'], relation: ['cluster', 'storage'],
+    chip: ['storage'], cylinder: ['storage'],
+  },
+};
+
 describe('the role binding', () => {
   test('each kit binds a role, gives node none, and gives Pod parts their own', (t) => {
     const findings = [];
@@ -428,9 +450,15 @@ describe('the role binding', () => {
       // The narrow reading of S-42 the refactor settled on, all three halves of it.
       if ('role' in probe('node')) findings.push(`${cat}: P.node adds role "${probe('node').role}". A node() takes no role (S-42, R6)`);
       const pod = probe('pod');
+      const catRole = probe('box').role;
+      // A Pod's colour is stated exactly ONCE, and which of the two ways is a fact about the
+      // category, not a defect: cluster draws WORKLOADS Pods and must pin the violet itself, while
+      // the other three draw their own and must not, since a tint there would restate the category
+      // colour in a second place. Written as "one of two shapes" because the first version of this
+      // row demanded cluster's shape of all four and no workloads card could ever have passed it.
       if (typeof pod.role !== 'string' || !pod.role) findings.push(`${cat}: P.pod carries no podRole`);
-      if (pod.role === probe('box').role) findings.push(`${cat}: P.pod uses the category role "${pod.role}" rather than a separate podRole`);
-      if (typeof pod.tint !== 'string' || !pod.tint) findings.push(`${cat}: P.pod carries no tint, so its Pod is not recoloured`);
+      else if (pod.role === catRole && pod.tint) findings.push(`${cat}: P.pod takes the category's own role "${pod.role}" yet pins tint ${pod.tint}, a second copy of the category colour`);
+      else if (pod.role !== catRole && (typeof pod.tint !== 'string' || !pod.tint)) findings.push(`${cat}: P.pod borrows role "${pod.role}" from another category and pins no tint, so its colour is whatever that category paints`);
       t.diagnostic(`${cat}: role "${probe('box').role}" on ${roled.length} kinds, podRole "${pod.role}", tint ${pod.tint}`);
     }
     assert.equal(findings.length, 0, `${findings.length} finding(s) in the kit bindings:\n  ${listing(findings)}`);
@@ -439,6 +467,7 @@ describe('the role binding', () => {
   test('every part carries exactly the role its kit binds to its kind', (t) => {
     const findings = [];
     const tally = new Map();
+    const used = new Map();
     let walked = 0;
     for (const s of scenes) {
       const kit = kits.get(s.category);
@@ -454,10 +483,14 @@ describe('the role binding', () => {
         } else if (wants && !has) {
           findings.push(`${s.id}  ${path}: carries no role, the kit binds "${want.role}" to this kind`);
         } else if (wants && p.role !== want.role) {
-          // Legal by S-42's fourth clause, and still red on purpose: an override is a part painted
-          // in another category's colour and it has to be a decision someone wrote down here, not a
-          // value that drifted in. P-08 was 82 chips on the wrong palette and nothing went red.
-          findings.push(`${s.id}  ${path}: overrides role to "${p.role}", the kit binds "${want.role}"`);
+          // An override is a part painted in another category's colour, so it is a finding UNLESS
+          // CROSS_ROLE declares it. That table is the "decision someone wrote down"; before it
+          // existed this branch was red for any override at all, which no workloads card survives.
+          const triple = `${s.category}.${kind} -> ${p.role}`;
+          used.set(triple, (used.get(triple) || 0) + 1);
+          if (!((CROSS_ROLE[s.category] || {})[kind] || []).includes(p.role)) {
+            findings.push(`${s.id}  ${path}: overrides role to "${p.role}", the kit binds "${want.role}", and no CROSS_ROLE entry allows ${s.category}.${kind}`);
+          }
         }
         if (kind === 'pod' && p.tint !== want.tint) {
           findings.push(`${s.id}  ${path}: Pod tint is ${p.tint}, the kit binds ${want.tint}`);
@@ -467,6 +500,14 @@ describe('the role binding', () => {
     assert.ok(walked > 0, 'no part was checked for a role at all');
     assert.equal(findings.length, 0, `${findings.length} role finding(s) over ${walked} parts:\n  ${listing(findings)}`);
     t.diagnostic([...tally.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} x${n}`).join(', '));
+    // The declared inventory, from both sides: what is used, and what is declared and used by
+    // nobody. The second list is the one that rots, so it is printed rather than left to be noticed.
+    t.diagnostic(`cross-role in use: ${[...used.entries()].map(([k, n]) => `${k} x${n}`).join(', ') || 'none'}`);
+    const idle = Object.entries(CROSS_ROLE).flatMap(([cat, kinds]) =>
+      Object.entries(kinds).flatMap(([kind, roles]) => roles
+        .filter(r => !used.has(`${cat}.${kind} -> ${r}`))
+        .map(r => `${cat}.${kind} -> ${r}`)));
+    t.diagnostic(`cross-role declared but unused: ${idle.join(', ') || 'none'}`);
   });
 });
 
@@ -497,6 +538,7 @@ const NON_TEXT_STRINGS = {
   tag: ['anchor'],
   wire: ['anchor'],
   chain: ['anchor'],
+  relation: ['dash'],                  // a stroke-dasharray, not a string anyone reads off the canvas
 };
 
 describe('the strings the scene draws', () => {

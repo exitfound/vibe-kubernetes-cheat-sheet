@@ -77,7 +77,7 @@ DO NOT   Centre the lower wire label on WL.SPINE_X. The lane strikes it through 
          that sets it. It hangs off the side, anchor start at SPINE_X + 14.
 ```
 
-### before `},`
+### before `id: 'doubling',`
 
 ```
 Kubelet only waits between attempts, nothing travels and the Pod is untouched.
@@ -132,14 +132,14 @@ NOTE     POD_PAD is 80, not the family 24. With the frame at 404 a pad of 24 dra
          slot over the frame's own NODE-1 label. The row still centres on CX by construction.
 ```
 
-### before `const ladderCaption = text({ class: 'scheme-label code dim', x: TICK_X + TICK_SPAN / 2, y: TICK_Y - TICK_CAPTION_DY, 'text-anchor': 'middle' }, ['schedule ticks · every 5 min']);`
+### before `P.tag({ x: TICK_X + TICK_SPAN / 2, y: TICK_Y - TICK_CAPTION_DY, text: 'schedule ticks · every 5 min' })`
 
 ```
 The caption is centred over the tick strip by derivation (TICK_X + TICK_SPAN / 2), never by a
 literal, so it follows if the strip moves.
 ```
 
-### before `function setTicks(s, lit) {`
+### before `const ticks = (...lit) => lit.map(i => TICK_KEYS[i]);`
 
 ```
 Light the schedule ticks at which a Job actually fired (cumulative). Ticks skipped by
@@ -147,7 +147,7 @@ concurrencyPolicy or missed during downtime stay dark, so the gaps in the ladder
 Newly-lit ticks auto-pulse via the Timeline delta, drawing the eye to the fresh run.
 ```
 
-### before `},`
+### before `id: 'forbid',`
 
 ```
 No connector packet: nothing reaches the node because creation is skipped.
@@ -155,7 +155,7 @@ The tick is skipped in place, nothing travels: the policy consulted and the
 recorded event show via the static highlight only (no chip pulse).
 ```
 
-### before `},`
+### before `id: 'missed',`
 
 ```
 No connector packet: the missed tick produces no Job.
@@ -216,12 +216,19 @@ on the right is joining (the + marker) with its Pod still forming. The uniform 1
 pod-to-node mapping is the DaemonSet signature.
 ```
 
-### before `let placed = 0;`
+### before `const create = (i, rank) => [`
 
 ```
 Both counters climb PER ARRIVAL, not at step entry. The narration is `creates one Pod on each` and
-the card draws three separate creates, so the count going 0-1-2-3 alongside the three Pods
-appearing IS the step. `3` stays pinned above the guard for the reduced contract.
+the card draws three separate creates, so the count climbing alongside the three Pods appearing IS
+the step. The `chips:` block states the final `3` on both paths by construction, which is what the
+reduced contract needs.
+
+The visible sequence is 0, 2, 3 and NOT 0, 1, 2, 3. Two of the three taps sit 138 units off the
+spine against the third's 414, so those two land in the same millisecond and the `1` is overwritten
+in the instant it is written. That was equally true of the accumulator this replaced, which hid it.
+The rank each landing writes is now a literal, and NO half of the oracle can see it: swapping two
+ranks leaves both diffs clean. Opening the mid-count frame is the only guard there is.
 
 DO NOT read either counter from step entry. The step says the controller sees three matching Nodes
 and ZERO Pods, and the Pods do not fade in until their creates land about 2s later, so a counter
@@ -302,7 +309,7 @@ DO NOT   Run a lane down x=810: it goes through the pipeline ladder rows.
 
 ---
 
-### before `setPods(s, OPACITY.notready, 1);`
+### before `opacity: podPair(OPACITY.notready, 1),`
 
 ```
 The risk step holds Pod A at OPACITY.notready, the vocabulary entry for alive but not serving and
@@ -413,7 +420,7 @@ the kubelet the SIGTERM order travels down to the Pod, which pulses then
 dims out as the process exits.
 ```
 
-### before `const exec = routePacket(s, ctx, SPINE, { delay: req.arrivalMs + BEAT.afterHop, role: 'workloads`
+### before `const ack = (after) => F.segment({ from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], after });`
 
 ```
 The ack rides at the spine ball's arrival plus a beat, never before it. Span 3280 against
@@ -481,7 +488,7 @@ LAYOUT   C (bottom strip). panel bottom 280.
            chips  full-width strip, THREE per row at 350.67, two rows 548..624, short row centred
            node   three worker Pods, row starting at x=84
 LANES    Trunk TOP1 midpoint -> WL.SPINE_X at y=140 -> bus at NODE_Y-12, tapping all three Pods.
-         Each step fires one ball per lane through the card-local `fanOut`. The middle Pod centres
+         Each step fires one ball per lane through the card-local `fan`. The middle Pod centres
          exactly on WL.SPINE_X, so its lane skips the bus point rather than drawing a zero-length
          segment.
 MOTION   3500 / 2700 / 3500 / 2700, sized to the routes. `partial` is the exception at 2600, span
@@ -492,14 +499,14 @@ NOTE     POD_TOP_PAD is 24. At a smaller pad the frame's own NODE-1 label is dra
          worker-1's shell.
 ```
 
-### before `[s.refs.pod1, s.refs.pod2, s.refs.pod3].forEach(p => pulsePod(p, ctx, 0));`
+### before `id: 'partial',`
 
 ```
 Up-arrow step: the workers act and the controller receives, so the three exits pulse at 0 and the
 report leaves at `BEAT.afterPulse`. Worker-3 and its lane settle to `OPACITY.terminated` on the
 same `BEAT.afterPulse`, so the tombstone shade lands with the exit that earned it.
 
-DO NOT call `fanOut` here. It is the CREATE helper: its `LANE(i)` is built trunk-first from the
+DO NOT call `fan` here. It is the CREATE helper: its `LANE(i)` is built trunk-first from the
 controller box bottom down to the Pod, so a step whose wire label reads `watch Pod exits` would
 draw three creates. Nothing is created here, so nothing rides down.
 ```
@@ -580,7 +587,9 @@ NOTE     Pod and container are shorter than the family default deliberately. The
 ### before `const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;`
 
 ```
-Phase transitions cross-fade the Pod opacity between states (0.35 dim / 0.7 / 1).
+Phase transitions cross-fade the Pod opacity between states (OPACITY.pending 0.55, running 1,
+notready 0.4, terminated 0.12). The 0.35 and 0.7 this note used to name are in no token and were
+never drawn.
 This is a state machine, not a materialize/dissolve, so it keeps its own fade timing
 rather than the FADE tokens. The delay starts the cross-fade a beat into the step.
 ```
@@ -615,7 +624,7 @@ NOTE     The bus inside the frame costs no vertical space (Pods start at NODE_Y 
          +22). Above the frame it costs 40 units this card does not have.
 ```
 
-### before `const kubelet   = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet',   sublabel: 'cgroups + eviction',            role: 'cluster' });`
+### before `P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'cgroups + eviction', role: 'cluster' })`
 
 ```
 Kubelet is the node-facing actor (places Pods after binding, writes cgroups, evicts), so it
@@ -623,14 +632,14 @@ sits on the left where the connector to the node is anchored, matching the other
 cards (left actor -> node, Api on the right). Every connector packet leaves Kubelet.
 ```
 
-### before `s.refs.pod1.style.opacity = String(OPACITY.terminating);`
+### before `opacity: { pod1: OPACITY.terminating, pod2: OPACITY.terminating, pod3: 1 },`
 
 ```
 QoS eviction: BestEffort and Burstable (A, B) are evicted and dim together by the same
 amount, Guaranteed (C) survives at full opacity. Pin the final state inline for cancel-safety.
 ```
 
-### before `const evictA = routePacket(s, ctx, LANE(0), { role: 'workloads' });`
+### before `F.route({ points: LANE(0), name: 'evictA' }),`
 
 ```
 This step does NOT reuse the shared fan: it sends A, then B a beat behind it, and sends nothing to
@@ -664,13 +673,13 @@ WHAT     startupProbe, readinessProbe and livenessProbe against one container, a
          failure does to the EndpointSlice.
 LAYOUT   A, and THE WORKLOADS EXEMPLAR. New workloads cards copy this shape.
          PANEL_B 255, both columns starting on one line at BAND_Y = PANEL_B + 21 = 276.
-           ladder left  60..540 (WL.LADDER_X / LADDER_W)
-           chips  right 660..1140 (WL.CHIP_X / CHIP_W), 5 x 34, gap 8
+           ladder left  60..540 (LAYOUT.A.ladder)
+           chips  right 660..1140 (LAYOUT.A.chips), 5 x 34, gap 8
            node   full width, 496..624
 LANES    Down the corridor between the two columns at WL.SPINE_X, ending on the Pod top midpoint
          at y 518, not on the Node frame edge. SPINE_UP is its reverse, so the report hop and the
          probe hop cannot drift apart.
-WHY NOT  Ladder in WL.CHIP_X with the chips as a five-across bottom strip: at 205 wide three chip
+WHY NOT  Ladder in the RIGHT column with the chips as a five-across bottom strip: at 205 wide three chip
          names overlap their values ("EndpointSlice" against "10.244.1.5 ready=false" by 60
          units), and the whole left band under the panel is left empty.
 OPEN     The gap between the actor row and BAND_Y is visible at wide viewports, where the panel is
@@ -678,7 +687,7 @@ OPEN     The gap between the actor row and BAND_Y is visible at wide viewports, 
          author, not a layout defect.
 ```
 
-### before `pulsePodDim(s.refs.podGroup, ctx, 0);`
+### before `F.pulse({ pod: 'podGroup', dim: true }),`
 
 ```
 Startup passed but readiness has not, so the Pod is not Ready yet: it blinks
@@ -730,7 +739,7 @@ NOTE     setLanes pins each lane to 0 while the Pod it addresses is not on that 
          claims the volume is attached to Node-2 on the idle step, contradicting the narration.
 ```
 
-### before `const del = connectorPacketA(s, ctx);`
+### before `F.route({ points: NODE1_LANE, fadeIn: true, name: 'del' }),`
 
 ```
 The delete reaches Node-1 over the left connector. podA is pinned to OPACITY.terminating
@@ -739,7 +748,7 @@ arrival: the chip says 'Terminating, then removed', so the Pod is marked on this
 leaves its slot on the next one, not here. The PVC, PV and data chips stay lit (retained).
 ```
 
-### before `const bind = connectorPacketB(s, ctx);`
+### before `F.route({ points: NODE2_LANE, fadeIn: true, name: 'bind' }),`
 
 ```
 The binding is delivered to Node-2 over the right connector (the scheduler posts it
@@ -748,7 +757,7 @@ the animation back-fills 0 during the delay so web-0 materializes and pulses on
 arrival, keeping the same sticky identity.
 ```
 
-### before `const mount = pvPacket(s, ctx);`
+### before `F.route({ points: PV_LANE, role: 'storage', fadeIn: true, name: 'mount' }),`
 
 ```
 CSI reattaches the same PV to Node-2. The volume packet crosses from the PV into
@@ -756,7 +765,7 @@ web-0 on Node-2, and web-0 pulses once on arrival then settles back (mounted, da
 preserved). No persist, so the pulse fades instead of pinning the outline bright.
 ```
 
-### before `s.refs.podA.style.opacity = String(OPACITY.terminating);`
+### before `opacity: { podB: 0, ...lanes(true, false), podA: OPACITY.terminating },`
 
 ```
 The evict step sinks web-0 to OPACITY.terminating, the state its chip names FIRST
@@ -808,7 +817,7 @@ NOTE     Pods are 78 high rather than the family 106. The six-row ladder and the
          have to clear the panel, and 78 is what is left.
 ```
 
-### before `s.refs.pod4.style.opacity = '0';`
+### before `F.route({ points: LANE(3), after: 'patch', name: 'join' }),`
 
 ```
 The RS claims the orphan (ownerReference PATCH on the top arrow), then a packet runs
@@ -843,7 +852,7 @@ LANES    None down to the Node. restartPolicy is enforced in place and every pac
 WHY NOT  Chips four across: 258 wide, and five strings collide, including "Pod B · OnFailure"
          against "Waiting (backoff)".
 WHY NOT  Api first. Kubelet is the node-facing actor and the line down to the Node has to leave a
-         box midpoint inside the corridor. With the two swapped, `bouncePacket` leaves the Api
+         box midpoint inside the corridor. With the two swapped, `bounce()` leaves the Api
          while its own comment says "request up to the apiserver".
 ```
 
@@ -888,11 +897,11 @@ DO NOT   Put the wire label below the actor row. At TOP_BOTTOM + 26 it overlaps 
 ```
 
 
-### before `if (ctx.reduced) { ['pod2Box','pod3Box','pod4Box'].forEach(k => s.refs[k].classList.add('highlig`
+### before `reducedLit: ['pod2Box', 'pod3Box', 'pod4Box'],`
 
 ```
 The three live v2 Pods sit in slots 2, 3 and 4, not 1, 2 and 3: the surge capacity is released
-from the LEFTMOST slot, so `setSlots(s, null, V2, V2, V2)` empties slot 1 on this step. Both the
+from the LEFTMOST slot, so `slots(null, V2, V2, V2)` empties slot 1 on this step. Both the
 played pulse list and the reduced highlight list follow the slot map, and both must be revisited
 if the slot count or the released slot ever changes.
 
@@ -928,7 +937,7 @@ LAYOUT   A. PANEL_B 255.
                   840..1140 x 152..232, joined by a vertical arrow between the face midpoints,
                   its wire label below it
 LANES    Trunk, a bus at NODE_Y + 12, one tap per ordinal. Taps are drawn on every step, but
-         `setPods` pins each Pod to 0 until its ordinal is created, so on idle the reader sees
+         `ordinals` pins each Pod to 0 until its ordinal is created, so on idle the reader sees
          three empty slots the ladder is about to fill and the ball that rides a tap is what
          materializes that Pod.
 WHY NOT  The Service in the actor row: at 840..1060 against an Api at 700..920 the two boxes
