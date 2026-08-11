@@ -10,7 +10,7 @@ export {
 // The derived half of a card header, as formulas (lib/layout.js). A SECOND source, so these six
 // are own to the kit rather than part of the shared scheme-kit list, and S-21 stays one line.
 export { laneY, ladder, strip, spread, midX, shade } from '../../lib/layout.js';
-import { makeTintedPulses } from '../../lib/scheme-kit.js';
+import { makeTintedPulses, makeRidingLabel } from '../../lib/scheme-kit.js';
 import { makePartKinds, POD_VIOLET } from '../../lib/scene-spec.js';
 import { makeFlowKinds, defineCardWith } from '../../lib/step-spec.js';
 export { POD_VIOLET };
@@ -35,7 +35,11 @@ export const { pulsePod, pulsePodDim } = makeTintedPulses(STORAGE_TINT);
 // that owns it. The shape here is STO.L-01's vertical stack, so no cluster field would fit anyway.
 
 // All 600 role literals in this folder are 'storage', its 26 Pods included, so no recolour.
-const BIND = { role: 'storage', podRole: 'storage', tint: null, pulsePod, pulsePodDim };
+// The default tag that rides a ball (M-30). A card needing other timings makes its own with
+// makeRidingLabel and hands it to F.tag as `fn`.
+const ridingLabel = makeRidingLabel({ role: 'storage' });
+
+const BIND = { role: 'storage', podRole: 'storage', tint: null, pulsePod, pulsePodDim, ridingLabel };
 export const P = makePartKinds(BIND);
 export const F = makeFlowKinds(BIND);
 export const defineCard = defineCardWith(BIND);

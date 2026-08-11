@@ -1,6 +1,5 @@
-import { g } from '../../lib/svg.js';
-import { arrowDefs, box, arrow, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, routePacket, segmentPacket, arrivalRipple, makeInit, clearHighlights, clearWires, lightBoxAt, diagramRoot } from './network-kit.js';
+import { P, F, defineCard } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-service-cidr
 
 
@@ -44,180 +43,133 @@ const SPLIT_DUR = 1600;
 // so the extend step reads as the range growing into the band, not a straight top-down drop.
 const EXTEND_ROUTE = [[WEB_X, POOL_BOTTOM], [WEB_X, RAIL1], [EXT_RAIL_X, RAIL1], [EXT_RAIL_X, DYN_MID_Y], [DYN_RIGHT, DYN_MID_Y]];
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+// The six wires predate the kit binding and carry NO role, so the arrowhead stays the neutral dim
+// one. Omitting `role: ''` here would stamp the category role and swap the marker.
+const WIRE = { dashed: true, dim: true, role: '' };
 
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Service CIDR and ClusterIP allocation: the configured Service CIDR is divided into a low static band for well-known IPs like 10.96.0.1 and 10.96.0.10 and a high dynamic band the allocator draws ClusterIPs from, each tracked by an IPAddress object, and a second ServiceCIDR can be added to extend the range without disruption' });
-    root.appendChild(arrowDefs());
+// A block that comes into existence mid-card: born hidden, revealed by its own 350ms fade.
+const REVEAL = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 350, fill: 'forwards', easing: 'ease-out' } };
 
-    // Top row: the configured Service CIDR, plus a second one stacked over the web column,
-    // revealed only on the extend step.
-    const pool = box({ x: POOL_X - POOL_W / 2, y: POOL_Y, w: POOL_W, h: POOL_H, label: 'ServiceCIDR kubernetes', sublabel: '10.96.0.0/16', role: 'network' });
-    const cidr2 = box({ x: WEB_X - POOL_W / 2, y: POOL_Y, w: POOL_W, h: POOL_H, label: 'ServiceCIDR add-on', sublabel: '10.97.0.0/16', role: 'network' });
-    cidr2.style.opacity = '0';
-
+// The list order IS the append order, which is the z-order: bands and Services first, then the
+// pool row over them, then the wires above the blocks so the dim lines read, then the packets.
+export const SCENE = {
+  'aria-label': 'Service CIDR and ClusterIP allocation: the configured Service CIDR is divided into a low static band for well-known IPs like 10.96.0.1 and 10.96.0.10 and a high dynamic band the allocator draws ClusterIPs from, each tracked by an IPAddress object, and a second ServiceCIDR can be added to extend the range without disruption',
+  parts: [
+    P.defs(),
     // The range, drawn as two adjacent bands so it reads as one divided CIDR: a small static band
     // flush under Service kubernetes, and the much wider dynamic band filling the rest.
-    const staticBand  = box({ x: SCHEME_L, y: BAND_Y, w: STATIC_W, h: BAND_H, label: 'Static band', sublabel: 'low IPs . by hand', role: 'network' });
-    const dynamicBand = box({ x: DYN_L, y: BAND_Y, w: DYN_RIGHT - DYN_L, h: BAND_H, label: 'Dynamic band', sublabel: 'high IPs . auto-assigned', role: 'network' });
-
+    P.box({ key: 'staticBand', x: SCHEME_L, y: BAND_Y, w: STATIC_W, h: BAND_H, label: 'Static band', sublabel: 'low IPs . by hand' }),
+    P.box({ key: 'dynamicBand', x: DYN_L, y: BAND_Y, w: DYN_RIGHT - DYN_L, h: BAND_H, label: 'Dynamic band', sublabel: 'high IPs . auto-assigned' }),
     // Three Services on an even grid, IP assigned across the steps (pending at rest).
-    const svcK8s = box({ x: SVC_X[0], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service kubernetes', sublabel: 'clusterIP pending', role: 'network' });
-    const svcDns = box({ x: SVC_X[1], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service kube-dns', sublabel: 'clusterIP pending', role: 'network' });
-    const svcWeb = box({ x: SVC_X[2], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'clusterIP pending', role: 'network' });
-
+    P.box({ key: 'svcK8s', x: SVC_X[0], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service kubernetes', sublabel: 'clusterIP pending' }),
+    P.box({ key: 'svcDns', x: SVC_X[1], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service kube-dns', sublabel: 'clusterIP pending' }),
+    P.box({ key: 'svcWeb', x: SVC_X[2], y: SVC_Y, w: SVC_W, h: SVC_H, label: 'Service web', sublabel: 'clusterIP pending' }),
     // The IPAddress object recording the dynamic binding. It spans the whole composition, not the web
     // column: its value names the Service it points at, and 280 units cannot clear the chip name.
-    const ipaddrChip = valChip({ x: SCHEME_L, y: CHIP_Y, w: SCHEME_R - SCHEME_L, h: CHIP_H, name: 'IPAddress', value: ' ', role: 'network' });
-    ipaddrChip.style.opacity = '0';
+    P.chip({ key: 'ipaddrChip', x: SCHEME_L, y: CHIP_Y, w: SCHEME_R - SCHEME_L, h: CHIP_H, name: 'IPAddress', value: ' ', opacity: 0 }),
+    // Top row: the configured Service CIDR, plus a second one stacked over the web column,
+    // revealed only on the extend step.
+    P.box({ key: 'pool', x: POOL_X - POOL_W / 2, y: POOL_Y, w: POOL_W, h: POOL_H, label: 'ServiceCIDR kubernetes', sublabel: '10.96.0.0/16' }),
+    P.box({ key: 'cidr2', x: WEB_X - POOL_W / 2, y: POOL_Y, w: POOL_W, h: POOL_H, label: 'ServiceCIDR add-on', sublabel: '10.97.0.0/16', opacity: 0 }),
+    P.lane({ points: SPLIT_STATIC, ...WIRE }),
+    P.lane({ points: SPLIT_DYNAMIC, ...WIRE }),
+    P.arrow({ from: K8S_ROUTE[0], to: K8S_ROUTE[1], ...WIRE }),
+    P.lane({ points: DNS_ROUTE, ...WIRE }),
+    P.lane({ points: WEB_ROUTE, ...WIRE }),
+    P.lane({ key: 'aExtend', points: EXTEND_ROUTE, ...WIRE, opacity: 0 }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['pool', 'cidr2', 'staticBand', 'dynamicBand', 'svcK8s', 'svcDns', 'svcWeb', 'ipaddrChip'],
+  },
+};
 
-    const aSplit1 = pathArrow({ points: SPLIT_STATIC, dashed: true, dim: true });
-    const aSplit2 = pathArrow({ points: SPLIT_DYNAMIC, dashed: true, dim: true });
-    const aK8s    = arrow({ x1: K8S_ROUTE[0][0], y1: K8S_ROUTE[0][1], x2: K8S_ROUTE[1][0], y2: K8S_ROUTE[1][1], dashed: true, dim: true });
-    const aDns    = pathArrow({ points: DNS_ROUTE, dashed: true, dim: true });
-    const aWeb    = pathArrow({ points: WEB_ROUTE, dashed: true, dim: true });
-    const aExtend = pathArrow({ points: EXTEND_ROUTE, dashed: true, dim: true });
-    aExtend.style.opacity = '0';
+// The three Service sublabels are one fact per step, so one helper states all three and no step
+// can leave a stale IP behind on the Service it is not talking about.
+const assigned = (k8s, dns, web) => ({ sublabels: { svcK8s: k8s, svcDns: dns, svcWeb: web } });
+const PENDING = 'clusterIP pending';
+const K8S_IP = 'clusterIP 10.96.0.1', DNS_IP = 'clusterIP 10.96.0.10', WEB_IP = 'clusterIP 10.96.137.42';
+// The add-on CIDR, its wire and the IPAddress object are revealed only on later steps.
+const LATER_HIDDEN = { cidr2: 0, aExtend: 0, ipaddrChip: 0 };
 
-    const packetLayer = g({ id: 'packetLayer' });
-
-    root.appendChild(staticBand);
-    root.appendChild(dynamicBand);
-    root.appendChild(svcK8s);
-    root.appendChild(svcDns);
-    root.appendChild(svcWeb);
-    root.appendChild(ipaddrChip);
-    root.appendChild(pool);
-    root.appendChild(cidr2);
-    // arrows on top of the blocks so the dim wires read clearly, then packets on top.
-    [aSplit1, aSplit2, aK8s, aDns, aWeb, aExtend].forEach(el => root.appendChild(el));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, pool, cidr2, staticBand, dynamicBand,
-      svcK8s, svcDns, svcWeb, ipaddrChip, aExtend,
-      packetLayer, wires: {},
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['pool', 'cidr2', 'staticBand', 'dynamicBand', 'svcK8s', 'svcDns', 'svcWeb', 'ipaddrChip']);
-  // The add-on CIDR, its wire and the IPAddress object are revealed only on later steps.
-  s.refs.cidr2.style.opacity = '0';
-  s.refs.aExtend.style.opacity = '0';
-  s.refs.ipaddrChip.style.opacity = '0';
-  clearWires(s);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setBoxSublabel(s.refs.svcK8s, 'clusterIP pending');
-      setBoxSublabel(s.refs.svcDns, 'clusterIP pending');
-      setBoxSublabel(s.refs.svcWeb, 'clusterIP pending');
-      setVal(s.refs.ipaddrChip, ' ');
-    },
+    chips: { ipaddrChip: ' ' },
+    ...assigned(PENDING, PENDING, PENDING),
+    opacity: LATER_HIDDEN,
   },
   {
     id: 'range-split',
     duration: 2400,
     narration: 'The range is divided into two bands. A small low static band is left for hand-picked addresses, and the much larger high dynamic band is used for automatic assignment, so a manual IP taken from the low band is very unlikely to collide with an auto-assigned one. Only once the dynamic band is exhausted does the allocator fall back to the low one.',
-    enter(s, ctx) {
-      resetStep(s);
-      setVal(s.refs.ipaddrChip, ' ');
-      s.refs.pool.classList.add('highlight');
-      setBoxSublabel(s.refs.svcK8s, 'clusterIP pending');
-      setBoxSublabel(s.refs.svcDns, 'clusterIP pending');
-      setBoxSublabel(s.refs.svcWeb, 'clusterIP pending');
-      if (ctx.reduced) { s.refs.dynamicBand.classList.add('highlight'); s.refs.staticBand.classList.add('highlight'); return; }
-      // The pool divides into the two bands: a packet rides into each, slowed and synchronized
-      // (shared SPLIT_DUR) so the divide is easy to follow and both bands light together.
-      const staticBandPkt = routePacket(s, ctx, SPLIT_STATIC, { dur: SPLIT_DUR, fadeIn: true, role: 'network' });
-      lightBoxAt(s.refs.staticBand, ctx, staticBandPkt.arrivalMs);
-      const dynamicBandPkt = routePacket(s, ctx, SPLIT_DYNAMIC, { dur: SPLIT_DUR, fadeIn: true, role: 'network' });
-      lightBoxAt(s.refs.dynamicBand, ctx, dynamicBandPkt.arrivalMs);
-    },
+    chips: { ipaddrChip: ' ' },
+    ...assigned(PENDING, PENDING, PENDING),
+    opacity: LATER_HIDDEN,
+    lit: ['pool'],
+    // The pool divides into the two bands: a packet rides into each, slowed and synchronized
+    // (shared SPLIT_DUR) so the divide is easy to follow and both bands light together.
+    flow: [
+      F.route({ points: SPLIT_STATIC, dur: SPLIT_DUR, fadeIn: true, lights: ['staticBand'] }),
+      F.route({ points: SPLIT_DYNAMIC, dur: SPLIT_DUR, fadeIn: true, lights: ['dynamicBand'] }),
+    ],
   },
   {
     id: 'well-known',
     duration: 2600,
     narration: 'At cluster bootstrap two addresses are taken from the static band. 10.96.0.1 is the first address of the range and always fronts the kubernetes API Service, while installers assign kube-dns the tenth by convention, here 10.96.0.10, which is why those two IPs are predictable in most clusters.',
-    enter(s, ctx) {
-      resetStep(s);
-      setVal(s.refs.ipaddrChip, ' ');
-      s.refs.staticBand.classList.add('highlight');
-      setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
-      setBoxSublabel(s.refs.svcDns, 'clusterIP 10.96.0.10');
-      setBoxSublabel(s.refs.svcWeb, 'clusterIP pending');
-      if (ctx.reduced) { s.refs.svcDns.classList.add('highlight'); s.refs.svcK8s.classList.add('highlight'); return; }
-      // Two reservations leave the static band together (packet first, ripple on arrival: the
-      // Service boxes are receivers, and only Pods pulse so a box gets the ripple instead).
-      const p1 = segmentPacket(s, ctx, { from: K8S_ROUTE[0], to: K8S_ROUTE[1], dur: 540, role: 'network' });
-      lightBoxAt(s.refs.svcK8s, ctx, p1.arrivalMs);
-      const p2 = routePacket(s, ctx, DNS_ROUTE, { fadeIn: true, role: 'network' });
-      lightBoxAt(s.refs.svcDns, ctx, p2.arrivalMs);
-      arrivalRipple(s.refs.packetLayer, ctx, K8S_ROUTE[1], p1.arrivalMs, 'network');
-      arrivalRipple(s.refs.packetLayer, ctx, DNS_ROUTE[DNS_ROUTE.length - 1], p2.arrivalMs, 'network');
-    },
+    chips: { ipaddrChip: ' ' },
+    ...assigned(K8S_IP, DNS_IP, PENDING),
+    opacity: LATER_HIDDEN,
+    lit: ['staticBand'],
+    // Two reservations leave the static band together (packet first, ripple on arrival: the
+    // Service boxes are receivers, and only Pods pulse so a box gets the ripple instead).
+    flow: [
+      F.segment({ from: K8S_ROUTE[0], to: K8S_ROUTE[1], dur: 540, name: 'k8s', lights: ['svcK8s'] }),
+      F.route({ points: DNS_ROUTE, fadeIn: true, name: 'dns', lights: ['svcDns'] }),
+      F.ripple({ point: K8S_ROUTE[1], at: 'k8s' }),
+      F.ripple({ point: DNS_ROUTE[DNS_ROUTE.length - 1], at: 'dns' }),
+    ],
   },
   {
     id: 'dynamic',
     duration: 2600,
     narration: 'A new Service web is created with no clusterIP, so the allocator picks the next free address from the dynamic band, here 10.96.137.42, and records it as an IPAddress object that points back to the Service. Every ClusterIP in the cluster is now tracked by one of these objects.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.dynamicBand.classList.add('highlight');
-      s.refs.ipaddrChip.classList.add('highlight');
-      setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
-      setBoxSublabel(s.refs.svcDns, 'clusterIP 10.96.0.10');
-      setBoxSublabel(s.refs.svcWeb, 'clusterIP 10.96.137.42');
-      setVal(s.refs.ipaddrChip, '10.96.137.42 . default/web');
-      if (ctx.reduced) { s.refs.ipaddrChip.style.opacity = '1'; s.refs.svcWeb.classList.add('highlight'); return; }
-      const give = routePacket(s, ctx, WEB_ROUTE, { role: 'network' });
-      lightBoxAt(s.refs.svcWeb, ctx, give.arrivalMs);
-      arrivalRipple(s.refs.packetLayer, ctx, WEB_ROUTE[WEB_ROUTE.length - 1], give.arrivalMs, 'network');
+    chips: { ipaddrChip: '10.96.137.42 . default/web' },
+    ...assigned(K8S_IP, DNS_IP, WEB_IP),
+    // The IPAddress object ends the step present, which is what the static path shows. The animated
+    // path winds it back to hidden so its own fade can bring it in on arrival.
+    opacity: { cidr2: 0, aExtend: 0, ipaddrChip: 1 },
+    lit: ['dynamicBand', 'ipaddrChip'],
+    rewind: { opacity: { ipaddrChip: 0 } },
+    flow: [
+      F.route({ points: WEB_ROUTE, name: 'give', lights: ['svcWeb'] }),
+      F.ripple({ point: WEB_ROUTE[WEB_ROUTE.length - 1], at: 'give' }),
       // The IPAddress object materializes once the address lands on the Service.
-      ctx.register(s.refs.ipaddrChip.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, delay: give.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
-    },
+      F.anim({ target: 'ipaddrChip', ...REVEAL, at: 'give' }),
+    ],
   },
   {
     id: 'extend',
     duration: 2600,
     narration: 'When the whole range fills up, the old fix was to resize the API server service-cluster-ip-range and restart it, a disruptive operation. Now you add a second ServiceCIDR object, here 10.97.0.0/16, and fresh ClusterIPs are drawn from it. The Service IP space grows with no downtime.',
-    enter(s, ctx) {
-      resetStep(s);
-      // Keep the earlier assignments visible.
-      setBoxSublabel(s.refs.svcK8s, 'clusterIP 10.96.0.1');
-      setBoxSublabel(s.refs.svcDns, 'clusterIP 10.96.0.10');
-      setBoxSublabel(s.refs.svcWeb, 'clusterIP 10.96.137.42');
-      setVal(s.refs.ipaddrChip, '10.96.137.42 . default/web');
-      s.refs.ipaddrChip.style.opacity = '1';
-      s.refs.cidr2.classList.add('highlight');
-      if (ctx.reduced) {
-        s.refs.cidr2.style.opacity = '1';
-        s.refs.aExtend.style.opacity = '1';
-        s.refs.dynamicBand.classList.add('highlight');
-        return;
-      }
-      ctx.register(s.refs.cidr2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(s.refs.aExtend.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, fill: 'forwards', easing: 'ease-out' }));
+    chips: { ipaddrChip: '10.96.137.42 . default/web' },
+    // Keep the earlier assignments visible.
+    ...assigned(K8S_IP, DNS_IP, WEB_IP),
+    opacity: { cidr2: 1, aExtend: 1, ipaddrChip: 1 },
+    lit: ['cidr2'],
+    // The add-on CIDR and its wire arrive with the step on the static path, and fade in on the
+    // animated one, so both are wound back before the flow.
+    rewind: { opacity: { cidr2: 0, aExtend: 0 } },
+    flow: [
+      F.anim({ target: 'cidr2', ...REVEAL }),
+      F.anim({ target: 'aExtend', ...REVEAL }),
       // The add-on CIDR feeds fresh addresses into the dynamic band from its right side.
-      const give = routePacket(s, ctx, EXTEND_ROUTE, { delay: 420, role: 'network' });
-      lightBoxAt(s.refs.dynamicBand, ctx, give.arrivalMs);
-      arrivalRipple(s.refs.packetLayer, ctx, EXTEND_ROUTE[EXTEND_ROUTE.length - 1], give.arrivalMs, 'network');
-    },
+      F.route({ points: EXTEND_ROUTE, delay: 420, name: 'give', lights: ['dynamicBand'] }),
+      F.ripple({ point: EXTEND_ROUTE[EXTEND_ROUTE.length - 1], at: 'give' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

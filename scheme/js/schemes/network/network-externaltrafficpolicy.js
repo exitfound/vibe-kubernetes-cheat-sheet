@@ -1,6 +1,5 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-externaltrafficpolicy
 
 
@@ -43,99 +42,58 @@ const CROSS = [[N2_CX, NODE_BOTTOM], [N2_CX, UNDER_Y], [N1_CX, UNDER_Y], [N1_CX,
 
 // The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
+const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
-function podBlock({ x, y, w, h, label, ip }) {
-  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 20, y: y + 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'ExternalTrafficPolicy Cluster versus Local: Cluster forwards to a backend on any Node but SNATs away the client IP, while Local keeps the client IP and avoids the extra hop at the cost of dropping traffic on Nodes with no local backend' });
-    root.appendChild(arrowDefs());
-
-    const client = box({ x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External client', sublabel: 'src 198.51.100.9', role: 'network' });
-    const lb     = box({ x: LB_X, y: LB_Y, w: LB_W, h: LB_H, label: 'LoadBalancer', sublabel: 'targets node ports', role: 'network' });
-
-    const cWire = arrow({ x1: C_WIRE[0][0], y1: C_WIRE[0][1], x2: C_WIRE[1][0], y2: C_WIRE[1][1], dashed: true, dim: true, role: 'network' });
-    const fan1 = pathArrow({ points: TO_N1, dashed: true, dim: true, role: 'network' });
-    const fan2 = pathArrow({ points: TO_N2, dashed: true, dim: true, role: 'network' });
-    const crossWire = pathArrow({ points: CROSS, dashed: true, dim: true, role: 'network' });
+// The list order IS the append order, which is the z-order: the Node frames and the Pod in back,
+// then the client and the LB, then the wires and their notes, then chips, then the packet layer.
+export const SCENE = {
+  'aria-label': 'ExternalTrafficPolicy Cluster versus Local: Cluster forwards to a backend on any Node but SNATs away the client IP, while Local keeps the client IP and avoids the extra hop at the cost of dropping traffic on Nodes with no local backend',
+  parts: [
+    P.defs(),
+    P.node({ key: 'node1', x: N1_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1   ·   has local backend' }),
+    P.node({ key: 'node2', x: N2_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2   ·   no local backend' }),
+    P.pod({
+      key: 'podW', innerKey: 'podWBox', x: POD_X, y: POD_Y, w: POD_W, h: POD_H,
+      label: 'Pod web', sublabel: '10.244.1.5',
+      inner: { dx: 20, dy: 34, w: POD_W - 40, h: 52, label: 'app', sublabel: 'eth0' },
+    }),
+    P.box({ key: 'client', x: CLIENT_X, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External client', sublabel: 'src 198.51.100.9' }),
+    P.box({ key: 'lb', x: LB_X, y: LB_Y, w: LB_W, h: LB_H, label: 'LoadBalancer', sublabel: 'targets node ports' }),
     // No inline src-IP text on the client wire: the address RIDES the ball (ridingLabel), so each leg is
     // tagged with the source it actually carries. The client box sublabel still states the origin address.
-
-    const node1 = node({ x: N1_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1   ·   has local backend' });
-    const node2 = node({ x: N2_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2   ·   no local backend' });
-    const podW = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.5' });
+    P.arrow({ from: C_WIRE[0], to: C_WIRE[1], dashed: true, dim: true }),
+    P.lane({ points: TO_N1, dashed: true, dim: true }),
+    P.lane({ points: TO_N2, dashed: true, dim: true }),
+    P.lane({ points: CROSS, dashed: true, dim: true }),
     // What the healthCheckNodePort reports on each Node. Both sit on the same baseline so they read as a
     // pair, low enough to clear the Pod above (sublabel baseline 423) and the crossWire arrowhead below.
-    const node1Note = text({ class: 'scheme-label code dim', x: N1_CX, y: 448, 'text-anchor': 'middle' }, [' ']);
-    const node2Note = text({ class: 'scheme-label code dim', x: N2_CX, y: 448, 'text-anchor': 'middle' }, [' ']);
-
+    P.wire({ key: 'n1', x: N1_CX, y: 448 }),
+    P.wire({ key: 'n2', x: N2_CX, y: 448 }),
     // The four chips span the scheme 1:1, from the Node-1 left edge to the Node-2 right edge, with even
     // 20px gaps. Widths are tuned to their content (externalTrafficPolicy carries the longest name).
-    const modeChip = valChip({ x: SCHEME_LEFT, y: CHIP_Y, w: 240, h: CHIP_H, name: 'externalTrafficPolicy', value: 'Cluster', role: 'network' });
+    P.chip({ key: 'modeChip', x: SCHEME_LEFT, y: CHIP_Y, w: 240, h: CHIP_H, name: 'externalTrafficPolicy', value: 'Cluster' }),
     // src IP and extra hop are OUTCOMES of a request, so they read none until traffic actually flows.
     // Widths are still sized for their widest value (lost (SNAT) / yes), not for none.
-    const srcChip  = valChip({ x: 440, y: CHIP_Y, w: 225, h: CHIP_H, name: 'client src IP', value: 'none', role: 'network' });
-    const hopChip  = valChip({ x: 685, y: CHIP_Y, w: 135, h: CHIP_H, name: 'extra hop', value: 'none', role: 'network' });
-    const hcChip   = valChip({ x: 840, y: CHIP_Y, w: SCHEME_RIGHT - 840, h: CHIP_H, name: 'healthCheck', value: 'unused', role: 'network' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    root.appendChild(node1);
-    root.appendChild(node2);
-    root.appendChild(podW.group);
-    root.appendChild(client);
-    root.appendChild(lb);
-    [cWire, fan1, fan2, crossWire, node1Note, node2Note].forEach(el => root.appendChild(el));
-    [modeChip, srcChip, hopChip, hcChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, client, lb, node1, node2, podW: podW.group, podWBox: podW.innerBox,
-      modeChip, srcChip, hopChip, hcChip,
-      packetLayer, wires: { n1: node1Note, n2: node2Note },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { mode, src, hop, hc }) {
-  setVal(s.refs.modeChip, mode);
-  setVal(s.refs.srcChip, src);
-  setVal(s.refs.hopChip, hop);
-  setVal(s.refs.hcChip, hc);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
+    P.chip({ key: 'srcChip', x: 440, y: CHIP_Y, w: 225, h: CHIP_H, name: 'client src IP', value: 'none' }),
+    P.chip({ key: 'hopChip', x: 685, y: CHIP_Y, w: 135, h: CHIP_H, name: 'extra hop', value: 'none' }),
+    P.chip({ key: 'hcChip', x: 840, y: CHIP_Y, w: SCHEME_RIGHT - 840, h: CHIP_H, name: 'healthCheck', value: 'unused' }),
+    P.packets(),
+  ],
   // podWBox is listed so its .highlight is cleared every step: clearPodHighlight only resets inline
   // strokes, so without it a highlight set in a reduced-replay block leaks into later steps.
-  clearHighlights(s, ['client', 'lb', 'modeChip', 'srcChip', 'hopChip', 'hcChip', 'podWBox'], [s.refs.podW]);
-  clearWires(s);
-}
+  reset: {
+    keys: ['client', 'lb', 'modeChip', 'srcChip', 'hopChip', 'hcChip', 'podWBox'],
+    pods: ['podW'],
+  },
+};
 
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      // Cluster is the default policy, so the mode chip is true from the start. Its consequences are
-      // not: nothing has been SNAT-ed or hopped yet.
-      setVal(s.refs.modeChip, 'Cluster');
-      setVal(s.refs.srcChip, 'none');
-      setVal(s.refs.hopChip, 'none');
-      setVal(s.refs.hcChip, 'unused');
-    },
+    // Cluster is the default policy, so the mode chip is true from the start. Its consequences are
+    // not: nothing has been SNAT-ed or hopped yet.
+    chips: { modeChip: 'Cluster', srcChip: 'none', hopChip: 'none', hcChip: 'unused' },
   },
   {
     id: 'cluster',
@@ -143,88 +101,72 @@ const STEPS = [
     // Every step here OPENS with a client hitting the external address, so that first leg rides.
     duration: 4200,
     narration: 'With the default policy Cluster, every Node accepts the traffic even with no local Pod. The balancer happens to pick Node-2, which has no backend, so the Node SNATs the packet and forwards it across the cluster network to the Pod on Node-1. Load spreads evenly over every backend, wherever it runs.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { mode: 'Cluster', src: 'lost (SNAT)', hop: 'yes', hc: 'unused' });
-      // The SNAT and the Node-to-Node hop both happen in THIS step, so their chips take their values
-      // here. The next step is the one that highlights them and talks about what they cost.
-      s.refs.srcChip.classList.add('highlight');
-      s.refs.hopChip.classList.add('highlight');
-      // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
-      s.refs.modeChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
-      // Client to LB first, then LB -> Node-2 (no backend), then SNAT and forward across the underlay
-      // to the Pod on Node-1. The ball is hidden inside Node-2 between the two legs.
-      const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
-      lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
-      const toN2 = routePacket(s, ctx, TO_N2, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });
-      ridingLabel(s, ctx, 'src 198.51.100.9', TO_N2, { emerge: 140 });
-      const hopDelay = toN2.arrivalMs + BEAT.afterHop;
-      const hop = routePacket(s, ctx, CROSS, { delay: hopDelay, role: 'network' });
+    chips: { modeChip: 'Cluster', srcChip: 'lost (SNAT)', hopChip: 'yes', hcChip: 'unused' },
+    // The SNAT and the Node-to-Node hop both happen in THIS step, so their chips take their values
+    // here. The next step is the one that highlights them and talks about what they cost.
+    lit: ['srcChip', 'hopChip', 'modeChip'],
+    // The animated path says the Pod was served by PULSING it, which no lights list can name.
+    reducedLit: ['podWBox'],
+    // Client to LB first, then LB -> Node-2 (no backend), then SNAT and forward across the underlay
+    // to the Pod on Node-1. The ball is hidden inside Node-2 between the two legs.
+    flow: [
+      F.segment({ from: C_WIRE[0], to: C_WIRE[1], name: 'entry', lights: ['lb'] }),
+      F.route({ points: TO_N2, after: 'entry', name: 'toN2' }),
+      tag({ text: 'src 198.51.100.9', points: TO_N2, after: 'entry', emerge: 140 }),
+      F.route({ points: CROSS, after: 'toN2', name: 'hop' }),
       // Node-2 SNAT-ed it, so the second leg carries the Node as its source, not the client.
-      ridingLabel(s, ctx, 'src Node-2 (SNAT)', CROSS, { delay: hopDelay, dy: 20 });
-      pulsePod(s.refs.podW, ctx, hop.arrivalMs);
-    },
+      tag({ text: 'src Node-2 (SNAT)', points: CROSS, after: 'toN2', dy: 20 }),
+      F.pulse({ pod: 'podW', at: 'hop' }),
+    ],
   },
   {
     id: 'cluster-cost',
     // Reflective step: no packet at all, so the entry-leg change above does not reach it.
     duration: 2300,
     narration: 'That convenience has a cost. The extra Node-to-Node hop adds latency, and because Node-2 had to SNAT, the Pod sees the packet as coming from the Node, not from 198.51.100.9. The real client IP is gone, which breaks source-IP allowlists and access logs.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { mode: 'Cluster', src: 'lost (SNAT)', hop: 'yes', hc: 'unused' });
-      s.refs.srcChip.classList.add('highlight');
-      s.refs.hopChip.classList.add('highlight');
-      // Reflective beat: the cost chips just light, no flash.
-    },
+    chips: { modeChip: 'Cluster', srcChip: 'lost (SNAT)', hopChip: 'yes', hcChip: 'unused' },
+    // Reflective beat: the cost chips just light, no flash.
+    lit: ['srcChip', 'hopChip'],
   },
   {
     id: 'local',
     // Motion: the client entry leg now precedes the fan, adding about 470ms.
     duration: 3100,
     narration: 'Switching to externalTrafficPolicy Local changes the rules. A Node only serves the request from its own local Pods, never forwarding to another Node. The balancer sends to Node-1, the packet goes straight to its Pod with no SNAT, so the Pod sees the true client IP 198.51.100.9 and there is no extra hop.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { mode: 'Local', src: 'preserved', hop: 'no', hc: 'unused' });
-      // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
-      s.refs.modeChip.classList.add('highlight');
-      s.refs.srcChip.classList.add('highlight');
-      s.refs.hopChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
-      // Client to LB first, then LB -> Node-1 stopping on the Node edge. No SNAT, so the ball carries
-      // the client address the whole way and the local Pod pulses as it is served.
-      const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
-      lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
-      const toN1 = routePacket(s, ctx, TO_N1, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });
-      ridingLabel(s, ctx, 'src 198.51.100.9', TO_N1, { emerge: 140 });
-      pulsePod(s.refs.podW, ctx, toN1.arrivalMs);
-    },
+    chips: { modeChip: 'Local', srcChip: 'preserved', hopChip: 'no', hcChip: 'unused' },
+    lit: ['modeChip', 'srcChip', 'hopChip'],
+    // The animated path says the Pod was served by PULSING it, which no lights list can name.
+    reducedLit: ['podWBox'],
+    // Client to LB first, then LB -> Node-1 stopping on the Node edge. No SNAT, so the ball carries
+    // the client address the whole way and the local Pod pulses as it is served.
+    flow: [
+      F.segment({ from: C_WIRE[0], to: C_WIRE[1], name: 'entry', lights: ['lb'] }),
+      F.route({ points: TO_N1, after: 'entry', name: 'toN1' }),
+      tag({ text: 'src 198.51.100.9', points: TO_N1, after: 'entry', emerge: 140 }),
+      F.pulse({ pod: 'podW', at: 'toN1' }),
+    ],
   },
   {
     id: 'healthcheck',
     // Motion: the client entry leg now precedes the fan, adding about 470ms.
     duration: 3100,
     narration: 'But Local would silently drop traffic that lands on Node-2, which has no Pod to serve it. To avoid that, Local exposes a healthCheckNodePort that reports healthy only on Nodes with a local backend, so the load balancer stops sending to Node-2 and targets only Node-1.',
-    enter(s, ctx) {
-      resetStep(s);
-      // The probe answers on BOTH Nodes, healthy only where a local backend exists. Showing only the
-      // failing Node would assert the rule instead of demonstrating it.
-      setWire(s, 'n1', 'health: 1 local pod');
-      setWire(s, 'n2', 'health: 0 local pods');
-      setChips(s, { mode: 'Local', src: 'preserved', hop: 'no', hc: 'used' });
-      s.refs.hcChip.classList.add('highlight');
-      // The LB RECEIVES the client request now, so it lights on arrival rather than at step entry.
-      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.podWBox.classList.add('highlight'); return; }
-      // Client to LB first. The health check excludes Node-2, so the LB steers only to Node-1 and
-      // its local Pod pulses.
-      const entry = segmentPacket(s, ctx, { from: C_WIRE[0], to: C_WIRE[1], role: 'network' });
-      lightBoxAt(s.refs.lb, ctx, entry.arrivalMs);
-      const toN1 = routePacket(s, ctx, TO_N1, { delay: entry.arrivalMs + BEAT.afterHop, role: 'network' });
-      ridingLabel(s, ctx, 'src 198.51.100.9', TO_N1, { emerge: 140 });
-      pulsePod(s.refs.podW, ctx, toN1.arrivalMs);
-    },
+    chips: { modeChip: 'Local', srcChip: 'preserved', hopChip: 'no', hcChip: 'used' },
+    // The probe answers on BOTH Nodes, healthy only where a local backend exists. Showing only the
+    // failing Node would assert the rule instead of demonstrating it.
+    wires: { n1: 'health: 1 local pod', n2: 'health: 0 local pods' },
+    lit: ['hcChip'],
+    // The animated path says the Pod was served by PULSING it, which no lights list can name.
+    reducedLit: ['podWBox'],
+    // Client to LB first. The health check excludes Node-2, so the LB steers only to Node-1 and
+    // its local Pod pulses.
+    flow: [
+      F.segment({ from: C_WIRE[0], to: C_WIRE[1], name: 'entry', lights: ['lb'] }),
+      F.route({ points: TO_N1, after: 'entry', name: 'toN1' }),
+      tag({ text: 'src 198.51.100.9', points: TO_N1, after: 'entry', emerge: 140 }),
+      F.pulse({ pod: 'podW', at: 'toN1' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

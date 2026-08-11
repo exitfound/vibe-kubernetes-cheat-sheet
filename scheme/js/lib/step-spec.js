@@ -1,6 +1,6 @@
 import { setChainActive } from './primitives.js';
 import {
-  makeInit, at, lightBoxAt, revealAt, routePacket, segmentPacket, topPacket,
+  makeInit, at, lightBoxAt, revealAt, routePacket, segmentPacket, topPacket, arrivalRipple,
   setVal, setChip, setWire, setBoxLabel, setBoxSublabel, setPodSublabel, BEAT, REVEAL_MS,
 } from './scheme-kit.js';
 import { makeScene, makeResetStep } from './scene-spec.js';
@@ -23,6 +23,10 @@ export function makeFlowKinds({ role = '', pulsePod = null, pulsePodDim = null }
     light:   (p = {}) => ({ verb: 'light',   p }),
     anim:    (p = {}) => ({ verb: 'anim',    p }),
     run:     (p = {}) => ({ verb: 'run',     p }),
+    // The factory is resolved in runFlow, not baked in here as pulse's is: a card that needs other
+    // tag timings passes its own `fn`, and every other entry stays free of a function.
+    tag:     (p = {}) => ({ verb: 'tag',     p }),
+    ripple:  (p = {}) => ({ verb: 'ripple',  p: roled(p) }),
   };
 }
 
@@ -69,6 +73,16 @@ function setChain(s, want) {
   const rows = chain.querySelectorAll('.scheme-chip');
   const on = want === 'all' ? null : new Set(want);
   rows.forEach((row, i) => row.classList.toggle('highlight', on === null || on.has(i)));
+}
+
+// at() with the timer on a chosen element rather than on the svg, and the same delay <= 0
+// short-circuit, so a zero-delay write stays a plain call and registers nothing.
+function atOn(el, ctx, delay, fn) {
+  if (!el) return;
+  if (ctx.reduced || delay <= 0) { fn(); return; }
+  const a = el.animate([], { duration: 1, delay });
+  a.onfinish = fn;
+  ctx.register(a);
 }
 
 function runFlow(s, ctx, flow, bind) {
@@ -122,7 +136,10 @@ function runFlow(s, ctx, flow, bind) {
         break;
       }
       case 'set':
-        at(s, ctx, delay, () => writeStatics(s, p));
+        // `on` picks which element carries the empty 1ms timer. at() hangs it on the svg; three
+        // cards hang it on the block the write is ABOUT, and anim-dump records the target.
+        if (p.on) atOn(s.refs[p.on], ctx, delay, () => writeStatics(s, p));
+        else at(s, ctx, delay, () => writeStatics(s, p));
         break;
       case 'light':
         for (const k of p.targets || []) lightBoxAt(s.refs[k], ctx, delay);
@@ -138,6 +155,18 @@ function runFlow(s, ctx, flow, bind) {
       case 'run':
         at(s, ctx, delay, () => p.fn(s, ctx));
         break;
+      // What a receiving BOX gets instead of a pulse, since only Pods pulse (NET.S-01). Its own
+      // entry because three of the four sites carry another animation after it, and order is observable.
+      case 'ripple':
+        arrivalRipple(s.refs.packetLayer, ctx, p.point, delay, p.role);
+        break;
+      // A tag RIDES a packet, so it is its own entry standing where the hand-written call stood,
+      // right after that packet. It lands nothing, so `arrival` stays `delay` and nothing chains off it.
+      case 'tag': {
+        const fn = p.fn || bind.ridingLabel;
+        if (fn) fn(s, ctx, p.text, p.points, { delay, dur: p.dur, easing: p.easing, emerge: p.emerge, dy: p.dy, dx: p.dx });
+        break;
+      }
       default:
         throw new Error(`flow entry of unknown verb: ${e.verb}`);
     }

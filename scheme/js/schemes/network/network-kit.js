@@ -10,7 +10,7 @@ export {
 // The derived half of a card header, as formulas (lib/layout.js). A SECOND source, so these six
 // are own to the kit rather than part of the shared scheme-kit list, and S-21 stays one line.
 export { laneY, ladder, strip, spread, midX, shade } from '../../lib/layout.js';
-import { makeTintedPulses } from '../../lib/scheme-kit.js';
+import { makeTintedPulses, makeRidingLabel } from '../../lib/scheme-kit.js';
 import { makePartKinds, POD_VIOLET } from '../../lib/scene-spec.js';
 import { makeFlowKinds, defineCardWith } from '../../lib/step-spec.js';
 export { POD_VIOLET };
@@ -23,11 +23,15 @@ export const NETWORK_TINT = Object.freeze({ base: 'rgb(79, 229, 255)', bright: '
 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(NETWORK_TINT);
 
-// No geometry grammar yet, and no empty placeholder for one: a grammar is named after the category
-// that owns it. Four bands are in use here (60/1140, 65/1135, 70/1130, 80/1120), so none would fit.
+// No geometry grammar and no placeholder for one: of the 37 cards, 17 name a content band and
+// those carry SIX different literal pairs, the other 20 hang off a node() frame or off nothing.
 
 // Networking Pods carry the network role and are not recoloured, so tint stays null.
-const BIND = { role: 'network', podRole: 'network', tint: null, pulsePod, pulsePodDim };
+// The default tag that rides a ball (M-30). A card needing other timings makes its own with
+// makeRidingLabel and hands it to F.tag as `fn`.
+const ridingLabel = makeRidingLabel({ role: 'network' });
+
+const BIND = { role: 'network', podRole: 'network', tint: null, pulsePod, pulsePodDim, ridingLabel };
 export const P = makePartKinds(BIND);
 export const F = makeFlowKinds(BIND);
 export const defineCard = defineCardWith(BIND);

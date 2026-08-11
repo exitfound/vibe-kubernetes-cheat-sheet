@@ -36,7 +36,40 @@ NETWORK_TINT = { base: 'rgb(79, 229, 255)', bright: 'rgb(158, 234, 247)' }   // 
 
 ## Kit surface
 
-The shared list (`S-22`), plus `NETWORK_TINT`, `pulsePod`, `pulsePodDim`. No networking-only helper.
+The shared list (`S-22`), the `P` / `F` / `defineCard` bindings every category kit makes, `POD_VIOLET`
+and the six `lib/layout.js` formulas, plus `NETWORK_TINT` and its two pulses. **No networking-only
+helper, and no geometry grammar.** Measured over the 37 cards: 17 name a content band and those carry
+six different literal pairs, the other 20 hang off a `node()` frame or off nothing shareable, and
+there is no `NET.L-*` rule for a grammar to serve. What the category really shares is the lane pair
+and `CHIP_H` 34, and `lib/layout.js` already carries the formula half of that.
+
+## The escape hooks this category still needs
+
+All 37 cards are in the declarative form. **31 are fully declarative**; six carry a hook, and each
+exists for something with no honest general verb. `step.motion` and `F.run` are used by NOBODY here.
+
+| Card | Hook | What it wraps, and why no field expresses it |
+|---|---|---|
+| `network-model` | `P.raw` x5, `tune` x4 | The flat-network band is a hand-forged `g.scheme-box` carrying `data-role` and six ordered children, which `P.group` cannot express. The four Pod wires are bare `<line>` with BOTH `marker-start` and `marker-end`, where the lane kinds emit a `<path>` with `marker-end` only. The four `tune` hand the `.scheme-pod-sublabel` child up as a ref, because the IP fade needs a target no part kind keys |
+| `network-kube-proxy-modes` | `P.raw`, `tune` x2 | The IPVS engine is a box plus a row of seven `.scheme-grid-cell` rects, and no part kind emits a bare `<rect>`. The two `tune` file a `P.wire` into the MAIN ref bucket as well, because `F.anim` and `rewind` read `s.refs[k]` while a wire lands only in `refs.wires[k]` |
+| `network-namespaces` | `P.raw` x2 | The netns shell is a lone `podShell` sitting as a plain sibling, where `P.pod` would wrap it in its own `g`. The stack band is a bare `<rect>` |
+| `network-pod-ip-and-veth` | `P.raw`, `enter`, `reset.extra` | Its Pod comes from `pod()` rather than `podShell()`, which writes an inline fill `dom-dump` serialises, and it carries two sibling containers against `buildPod`'s one `inner`. The `enter` and the `extra` write **`stroke-opacity`**, which no field writes: the `opacity` field goes to `style.opacity`, a different property |
+| `network-dns-coredns`, `network-pod-localhost` | `tune` | The Pod holds three (CoreDNS) or four (localhost) peer container boxes against `buildPod`'s single `inner`, and they must sit INSIDE the shell group because `pulsePod` reaches only what the Pod contains. The `workloads-init-containers-and-sidecars` precedent |
+
+**A `tune` or a `raw` factory must assign a LITERAL ref key** (`refs.podASub = ...`), never a computed
+one (`refs[k] = ...`): `unit/spec-steps.test.mjs` reads escape bodies for `refs.x =`, and a computed
+key is invisible to it, so every write through that ref is reported as naming nothing. That cost a
+repair on `network-model`.
+
+**A `raw` whose element deliberately imitates a kind is declared**, because the test cannot read
+inside a `make()`: `RAW_SHAPED_AS` in `unit/spec-scene.test.mjs` carries `network-model.bus` as a box
+and `network-pod-ip-and-veth.podShell` as a podShell. Growing that table is the coordinator's job.
+
+`reducedLit` is declared on **33 of the 37 cards over 89 steps**, against 20 steps in workloads and 2
+in the whole of cluster. The shape is always the same, and four cards show its limit case: they carry
+no `lightBoxAt` at all, so `flowLights` returns `[]` on every step and the entire static path rests on
+`reducedLit`. **`oracle:card:reduced:diff` is the only check in the repository that can see a wrong
+derivation**, and it must be run on any card that touches a guard.
 
 ## Subcategories (`NET.D-01`)
 

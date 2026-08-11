@@ -102,10 +102,18 @@ const VERB_PARAMS = {
   pulse:   [...COMMON_PARAMS, 'pod', 'fn', 'dim', 'persist', 'from', 'peak', 'dur'],
   fade:    [...COMMON_PARAMS, 'target', 'from', 'to', 'dur', 'fill', 'easing', 'unlight'],
   reveal:  [...COMMON_PARAMS, 'target', 'from'],
-  set:     [...COMMON_PARAMS, ...WRITER_FIELDS],
+  // `on` names the element the empty 1ms timer hangs on: at() uses the svg, three cards use the
+  // block the write is about, and anim-dump records which.
+  set:     [...COMMON_PARAMS, ...WRITER_FIELDS, 'on'],
   light:   [...COMMON_PARAMS, 'targets'],
   anim:    [...COMMON_PARAMS, 'target', 'keyframes', 'options'],
   run:     [...COMMON_PARAMS, 'fn'],
+  // A tag rides a packet and lands nothing, so it computes no arrival and arrivalOf leaves it at
+  // its delay, the same as pulse, set, light and run.
+  tag:     [...COMMON_PARAMS, 'text', 'points', 'dur', 'easing', 'emerge', 'dy', 'dx', 'fn'],
+  // A ripple is what a receiving BOX gets where a Pod would pulse, so like pulse it takes effect
+  // AT its delay and lands nothing.
+  ripple:  [...COMMON_PARAMS, 'point', 'role'],
 };
 const VERBS = new Set(Object.keys(VERB_PARAMS));
 

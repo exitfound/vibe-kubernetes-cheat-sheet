@@ -41,7 +41,7 @@ LAYOUT   One flow line FLOW_Y 410, client -> edge proxy Pod -> backend Pod, plac
          block (the only block on the left) clears the panel.
          Narration panel bottom 355, measured over 1600x1000 / 1280x860 / 1100x800 and the deepest
          in networking. It is a header comment, not a constant: nothing in the layout reads it.
-         The header panel is 260 wide centred on PROXY_CX 545, spanning 415..675, clear of the overlay
+         The header panel is 260 wide centred on PROXY_CX 570, spanning 440..700, clear of the overlay
          with 16 to spare, and it is centred ON THE PROXY because those headers are what that Pod
          writes, with an ownership link and no arrowhead. Row and chip strip both span
          CLIENT_X..CONTENT_R = 65..1135.
@@ -757,9 +757,9 @@ NOTE     The Ingress controller Pod is a standard podBlock, the same shell as th
 DO NOT   Put the branch wire labels in the FAN_X..SVC_X gap. It is 40 wide and the text prints
          straight through the Service border. They sit clear of the Service box they name, above the
          web one and below the api one, mirrored.
-MOTION   On the tls step the Host and path are on the wire and so are known, but NOT highlighted: the
-         controller reads them in the next step, this one only terminates TLS, and no rule has
-         matched so both branches stay neutral.
+MOTION   On the entry step the Host and path are on the wire, so both chips light with the TLS one:
+         the request has arrived and terminated, but the controller only READS the rules in the
+         next step, so neither branch is lit and both stay neutral.
          Up-arrow on the proxy step, the controller is the sender: it pulses FIRST as it matches the
          rule, and only then does the proxied request leave at BEAT.afterPulse, riding the
          right-angle fan to the Service and hopping on to the backend Pod, which pulses on arrival.
@@ -1256,7 +1256,7 @@ LAYOUT   Instead of a bare full-height divider, the composition is framed by TWO
          (EXT right 492 .. Node left 540), and the ball visibly crosses it once in and once out. Both
          regions share one top and height so they read as a matched pair, and both use the `node()`
          primitive so they are barely-visible dashed containers; the outside one carries its title at
-         the BOTTOM-left instead of the top, so the narration overlay never hides it.
+         the TOP-RIGHT corner instead of the top-left, so the narration overlay never hides it.
          The client and LB sit at y >= 315 while the regions frame up to REGION_TOP, which fills the
          top of the canvas and pulls the whole scheme up and centred. Framed diagram and chip strip
          both span 22..1176, so the scheme reads as one column.

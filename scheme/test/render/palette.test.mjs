@@ -114,7 +114,10 @@ export function describeSpread(spread) {
 // decoration: a check whose coverage silently collapses still reports zero findings and exits 0.
 // Either number moving means the CATALOG moved (a card added, an element added or a role changed),
 // and the right response is to look at the diff and then update the constant, never the reverse.
-const EXPECTED_PAINTED = 1896;
+// 1897 since 2026-08-11: network-dns-records gave the category role to its four answer lanes, which
+// carry a ball exactly like the two client lanes that already had it (+4), and network-headless-service
+// took it off the three endpoint fans, which carry nothing, per the rule the card states itself (-3).
+const EXPECTED_PAINTED = 1897;
 const EXPECTED_COMBINATIONS = 29;
 
 const catalogued = await cards();

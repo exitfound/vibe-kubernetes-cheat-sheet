@@ -1,6 +1,5 @@
-import { g } from '../../lib/svg.js';
-import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { at, valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
+import { P, F, defineCard } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-ipam-pod-cidr
 
 
@@ -33,183 +32,140 @@ const CFG_DROP = [[SPINE_X, CFG_Y + CFG_H], [SPINE_X, KCM_Y]];     // the pool t
 const IPAM1 = [[NODE_CX[0], SLICE_BOTTOM], [NODE_CX[0], POD_Y]];   // Node-1 IPAM -> its Pod
 const IPAM2 = [[SPINE_X, SLICE_BOTTOM], [SPINE_X, POD_Y]];         // Node-2 IPAM -> its Pod
 
-// One Pod as a translucent shell wrapping an eth0 container box, grouped so pulsePod
-// animates both rects together. Returns { group, innerBox }.
-function podBlock({ x, y, label, ip }) {
-  const shell = podShell({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 20, y: y + 37, w: POD_W - 40, h: 56, label: 'app', sublabel: 'eth0', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
+// The three allocation balls share ONE travel time so they land together: routeDur is length-based
+// and would land the short centre path first.
+const dur = 1100;
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+// The six wires predate the kit binding and carry NO role, so the arrowhead stays the neutral dim
+// one. Omitting `role: ''` here would stamp the category role and swap the marker.
+const WIRE = { dashed: true, dim: true, role: '' };
 
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and every Pod IP on a Node is drawn by the CNI IPAM out of that slice' });
-    root.appendChild(arrowDefs());
+// A Pod that comes into existence mid-card: born hidden, revealed by its own 350ms fade.
+const REVEAL = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 350, fill: 'forwards', easing: 'ease-out' } };
 
-    const clusterBox = box({ x: CFG_X, y: CFG_Y, w: CFG_W, h: CFG_H, label: 'Cluster Pod CIDR', sublabel: '10.244.0.0/16', role: 'network' });
-    const kcm = box({ x: CFG_X, y: KCM_Y, w: CFG_W, h: KCM_H, label: 'controller-manager', role: 'network' });
+// One Pod: a translucent shell wrapping an eth0 container box, grouped so the pulse animates both
+// rects together.
+const POD = {
+  w: POD_W, h: POD_H, label: 'Pod', sublabel: 'IP pending',
+  inner: { dx: 20, dy: 37, w: POD_W - 40, h: 56, label: 'app', sublabel: 'eth0' },
+};
 
-    const node1 = node({ x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
-    const node2 = node({ x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' });
-    const node3 = node({ x: NODE_X[2], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3' });
+// The list order IS the append order, which is the z-order: Node frames, their slice chips and their
+// Pods, then the control-plane column, then the dim wires above the blocks, then the packets.
+export const SCENE = {
+  'aria-label': 'IPAM and Pod CIDR allocation: the controller-manager carves a non-overlapping slice of the cluster pod CIDR for each Node, and every Pod IP on a Node is drawn by the CNI IPAM out of that slice',
+  parts: [
+    P.defs(),
+    P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
+    P.node({ key: 'node2', x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' }),
+    P.node({ key: 'node3', x: NODE_X[2], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3' }),
+    P.chip({ key: 'slice1', x: SLICE_X[0], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending' }),
+    P.chip({ key: 'slice2', x: SLICE_X[1], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending' }),
+    P.chip({ key: 'slice3', x: SLICE_X[2], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending' }),
+    P.pod({ key: 'podA', innerKey: 'podABox', x: POD_X[0], y: POD_Y, ...POD }),
+    // The Node-2 pod proves uniqueness on the final step, so it stays hidden until then.
+    P.pod({ key: 'podB', innerKey: 'podBBox', x: POD_X[1], y: POD_Y, ...POD, opacity: 0 }),
+    P.box({ key: 'clusterBox', x: CFG_X, y: CFG_Y, w: CFG_W, h: CFG_H, label: 'Cluster Pod CIDR', sublabel: '10.244.0.0/16' }),
+    P.box({ key: 'kcm', x: CFG_X, y: KCM_Y, w: CFG_W, h: KCM_H, label: 'controller-manager' }),
+    P.arrow({ from: CFG_DROP[0], to: CFG_DROP[1], ...WIRE }),
+    P.lane({ points: ALLOC1, ...WIRE }),
+    P.arrow({ from: ALLOC2[0], to: ALLOC2[1], ...WIRE }),
+    P.lane({ points: ALLOC3, ...WIRE }),
+    P.arrow({ from: IPAM1[0], to: IPAM1[1], ...WIRE }),
+    P.arrow({ key: 'ipam2Arrow', from: IPAM2[0], to: IPAM2[1], ...WIRE, opacity: 0 }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['clusterBox', 'kcm', 'slice1', 'slice2', 'slice3', 'podABox', 'podBBox'],
+    pods: ['podA', 'podB'],
+  },
+};
 
-    const slice1 = valChip({ x: SLICE_X[0], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
-    const slice2 = valChip({ x: SLICE_X[1], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
-    const slice3 = valChip({ x: SLICE_X[2], y: SLICE_Y, w: SLICE_W, h: SLICE_H, name: 'node.spec.podCIDR', value: 'pending', role: 'network' });
-    [slice1, slice2, slice3].forEach(c => root.appendChild(c));
+// The three slices are one fact per step, so one object states all three and no step can leave a
+// stale block behind on a Node it is not talking about.
+const PENDING = { slice1: 'pending', slice2: 'pending', slice3: 'pending' };
+const CARVED = { slice1: '10.244.1.0/24', slice2: '10.244.2.0/24', slice3: '10.244.3.0/24' };
+// The Node-2 Pod and its IPAM arrow are revealed only on the final uniqueness step.
+const LATER_HIDDEN = { podB: 0, ipam2Arrow: 0 };
 
-    const a = podBlock({ x: POD_X[0], y: POD_Y, label: 'Pod', ip: 'IP pending' });
-    // The Node-2 pod proves uniqueness on the final step; it stays hidden until then.
-    const b = podBlock({ x: POD_X[1], y: POD_Y, label: 'Pod', ip: 'IP pending' });
-    b.group.style.opacity = '0';
-
-    const cfgArrow   = arrow({ x1: SPINE_X, y1: CFG_Y + CFG_H, x2: SPINE_X, y2: KCM_Y, dashed: true, dim: true });
-    const allocArrow1 = pathArrow({ points: ALLOC1, dashed: true, dim: true });
-    const allocArrow2 = arrow({ x1: SPINE_X, y1: KCM_BOTTOM, x2: SPINE_X, y2: SLICE_Y, dashed: true, dim: true });
-    const allocArrow3 = pathArrow({ points: ALLOC3, dashed: true, dim: true });
-    const ipamArrow  = arrow({ x1: NODE_CX[0], y1: SLICE_BOTTOM, x2: NODE_CX[0], y2: POD_Y, dashed: true, dim: true });
-    const ipam2Arrow = arrow({ x1: SPINE_X, y1: SLICE_BOTTOM, x2: SPINE_X, y2: POD_Y, dashed: true, dim: true });
-    ipam2Arrow.style.opacity = '0';
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    root.appendChild(node1);
-    root.appendChild(node2);
-    root.appendChild(node3);
-    root.appendChild(slice1);
-    root.appendChild(slice2);
-    root.appendChild(slice3);
-    root.appendChild(a.group);
-    root.appendChild(b.group);
-    root.appendChild(clusterBox);
-    root.appendChild(kcm);
-    // arrows on top of the blocks so the dim wires read clearly, then packets on top.
-    [cfgArrow, allocArrow1, allocArrow2, allocArrow3, ipamArrow, ipam2Arrow].forEach(el => root.appendChild(el));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, clusterBox, kcm, node1, node2, node3,
-      slice1, slice2, slice3, podA: a.group, podABox: a.innerBox,
-      podB: b.group, podBBox: b.innerBox, ipam2Arrow,
-      packetLayer, wires: {},
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { slice1, slice2, slice3 }) {
-  setVal(s.refs.slice1, slice1);
-  setVal(s.refs.slice2, slice2);
-  setVal(s.refs.slice3, slice3);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['clusterBox', 'kcm', 'slice1', 'slice2', 'slice3', 'podABox', 'podBBox'], [s.refs.podA, s.refs.podB]);
-  // The Node-2 pod and its IPAM arrow are revealed only on the final uniqueness step.
-  s.refs.podB.style.opacity = '0';
-  s.refs.ipam2Arrow.style.opacity = '0';
-  clearWires(s);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { slice1: 'pending', slice2: 'pending', slice3: 'pending' });
-      setPodSublabel(s.refs.podA, 'IP pending');
-    },
+    chips: PENDING,
+    podSublabels: { podA: 'IP pending' },
+    opacity: LATER_HIDDEN,
   },
   {
     id: 'cluster-cidr',
     duration: 2000,
     narration: 'The cluster pod CIDR is configured once, on the controller-manager, with the --cluster-cidr flag. It is the single pool every Pod IP in the cluster will eventually come from, and on its own it belongs to no Node yet.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { slice1: 'pending', slice2: 'pending', slice3: 'pending' });
-      s.refs.clusterBox.classList.add('highlight');
-      if (ctx.reduced) { s.refs.kcm.classList.add('highlight'); return; }
-      // The pool registers into the controller-manager; arrival ripple marks the kcm.
-      const pkt = segmentPacket(s, ctx, { from: CFG_DROP[0], to: CFG_DROP[1], dur: 450, role: 'network' });
-      lightBoxAt(s.refs.kcm, ctx, pkt.arrivalMs);
-    },
+    chips: PENDING,
+    podSublabels: { podA: 'IP pending' },
+    opacity: LATER_HIDDEN,
+    lit: ['clusterBox'],
+    // The pool registers into the controller-manager, which lights when the drop lands on it.
+    flow: [
+      F.segment({ from: CFG_DROP[0], to: CFG_DROP[1], dur: 450, lights: ['kcm'] }),
+    ],
   },
   {
     id: 'allocate',
     duration: 2600,
     narration: 'With --allocate-node-cidrs set, the controller-manager carves a smaller, non-overlapping block out of the pool for every Node and writes it into node.spec.podCIDR. Here each Node gets its own /24, so Node-1 owns 10.244.1.0/24, Node-2 owns 10.244.2.0/24 and Node-3 owns 10.244.3.0/24.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.kcm.classList.add('highlight');
-      s.refs.slice1.classList.add('highlight');
-      s.refs.slice2.classList.add('highlight');
-      s.refs.slice3.classList.add('highlight');
-      setChips(s, { slice1: '10.244.1.0/24', slice2: '10.244.2.0/24', slice3: '10.244.3.0/24' });
-      if (ctx.reduced) return;
-      // The three slices hold `pending` until the allocations land, or the carve arrives at chips
-      // already showing its result. The three balls share one explicit dur: one sweep, three fields.
-      [s.refs.slice1, s.refs.slice2, s.refs.slice3].forEach(c => setVal(c, 'pending'));
-      const dur = 1100;
-      const a2 = routePacket(s, ctx, ALLOC2, { dur, fadeIn: true, role: 'network' });
-      routePacket(s, ctx, ALLOC1, { dur, fadeIn: true, role: 'network' });
-      routePacket(s, ctx, ALLOC3, { dur, fadeIn: true, role: 'network' });
-      at(s, ctx, a2.arrivalMs, () => {
-        setVal(s.refs.slice1, '10.244.1.0/24');
-        setVal(s.refs.slice2, '10.244.2.0/24');
-        setVal(s.refs.slice3, '10.244.3.0/24');
-      });
-    },
+    chips: CARVED,
+    podSublabels: { podA: 'IP pending' },
+    opacity: LATER_HIDDEN,
+    lit: ['kcm', 'slice1', 'slice2', 'slice3'],
+    // The three slices hold `pending` until the allocations land, or the carve arrives at chips
+    // already showing its result.
+    rewind: { chips: PENDING },
+    flow: [
+      F.route({ points: ALLOC2, dur, fadeIn: true, name: 'a2' }),
+      F.route({ points: ALLOC1, dur, fadeIn: true }),
+      F.route({ points: ALLOC3, dur, fadeIn: true }),
+      F.set({ at: 'a2', chips: CARVED }),
+    ],
   },
   {
     id: 'ipam',
     duration: 2400,
     narration: 'When a Pod is scheduled to Node-1, its address is drawn by the CNI IPAM strictly out of that Node slice, 10.244.1.0/24, so the Pod gets 10.244.1.5. Allocation never reaches outside the block a Node owns, which is exactly what stops two Nodes from colliding.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.slice1.classList.add('highlight');
-      setChips(s, { slice1: '10.244.1.0/24', slice2: '10.244.2.0/24', slice3: '10.244.3.0/24' });
-      setPodSublabel(s.refs.podA, 'IP 10.244.1.5');
-      if (ctx.reduced) { s.refs.podABox.classList.add('highlight'); return; }
-      // IPAM hands an address from the slice down to the Pod (packet first, then the
-      // Pod pulses on arrival: it is the receiver, so no blink-first here).
-      const give = segmentPacket(s, ctx, { from: IPAM1[0], to: IPAM1[1], dur: 550, role: 'network' });
-      pulsePod(s.refs.podA, ctx, give.arrivalMs);
-    },
+    chips: CARVED,
+    podSublabels: { podA: 'IP 10.244.1.5' },
+    opacity: LATER_HIDDEN,
+    lit: ['slice1'],
+    // The animated path says the Pod was served by PULSING it, which no lights list can name.
+    reducedLit: ['podABox'],
+    // IPAM hands an address from the slice down to the Pod (packet first, then the Pod pulses on
+    // arrival: it is the receiver, so no blink-first here).
+    flow: [
+      F.segment({ from: IPAM1[0], to: IPAM1[1], dur: 550, name: 'give' }),
+      F.pulse({ pod: 'podA', at: 'give' }),
+    ],
   },
   {
     id: 'unique',
     duration: 2600,
     narration: 'Every other Node assigns the same way, out of its own slice. A Pod scheduled to Node-2 gets 10.244.2.8 from 10.244.2.0/24, a different /24 that can never overlap the addresses on Node-1. So every Pod IP is unique across the whole cluster, which is what lets any Pod be reached directly while routing only has to track which Node owns which /24.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.slice1.classList.add('highlight');
-      s.refs.slice2.classList.add('highlight');
-      s.refs.slice3.classList.add('highlight');
-      setChips(s, { slice1: '10.244.1.0/24', slice2: '10.244.2.0/24', slice3: '10.244.3.0/24' });
-      setPodSublabel(s.refs.podA, 'IP 10.244.1.5');
-      setPodSublabel(s.refs.podB, 'IP 10.244.2.8');
-      if (ctx.reduced) {
-        s.refs.podB.style.opacity = '1';
-        s.refs.ipam2Arrow.style.opacity = '1';
-        s.refs.podBBox.classList.add('highlight');
-        return;
-      }
-      ctx.register(s.refs.podB.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(s.refs.ipam2Arrow.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, fill: 'forwards', easing: 'ease-out' }));
-      // After the pod appears, Node-2 IPAM hands its address down (packet first, then the pod
-      // pulses on arrival, the receiver).
-      const give = segmentPacket(s, ctx, { from: IPAM2[0], to: IPAM2[1], delay: 420, dur: 550, role: 'network' });
-      pulsePod(s.refs.podB, ctx, give.arrivalMs);
-    },
+    chips: CARVED,
+    podSublabels: { podA: 'IP 10.244.1.5', podB: 'IP 10.244.2.8' },
+    // The Node-2 Pod and its arrow end the step present, which is what the static path shows. The
+    // animated path winds them back to hidden so their own fades can bring them in.
+    opacity: { podB: 1, ipam2Arrow: 1 },
+    lit: ['slice1', 'slice2', 'slice3'],
+    // The animated path says the second Pod was served by PULSING it, which no lights list can name.
+    reducedLit: ['podBBox'],
+    rewind: { opacity: LATER_HIDDEN },
+    // After the pod appears, Node-2 IPAM hands its address down (packet first, then the pod pulses
+    // on arrival, the receiver).
+    flow: [
+      F.anim({ target: 'podB', ...REVEAL }),
+      F.anim({ target: 'ipam2Arrow', ...REVEAL }),
+      F.segment({ from: IPAM2[0], to: IPAM2[1], delay: 420, dur: 550, name: 'give' }),
+      F.pulse({ pod: 'podB', at: 'give' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

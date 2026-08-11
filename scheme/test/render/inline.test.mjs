@@ -113,10 +113,11 @@ const KNOWN_DRIFT = [
   'pv-x73a: "pv-x73a" x1 vs "PV-x73a" x1',
 ].sort();
 
-// T-03 bans the semicolon in narration prose. One aria-label carries one. An aria-label is the
-// diagram read aloud, so the rule reaches it, and this is a finding for a human rather than
-// something to repair from a test.
-const KNOWN_SEMICOLONS = ['network-pod-to-pod-cross-node aria-label'];
+// T-03 bans the semicolon in narration prose, and an aria-label is the diagram read aloud, so the
+// rule reaches it too. The list is empty because the one that stood here, on
+// network-pod-to-pod-cross-node, was read and repaired into a full stop. Empty is the correct
+// resting state: a new entry belongs here only after a human has read it and decided to carry it.
+const KNOWN_SEMICOLONS = [];
 
 // Built from code points so this file does not contain the characters it bans.
 const EM_DASH = String.fromCharCode(0x2014);

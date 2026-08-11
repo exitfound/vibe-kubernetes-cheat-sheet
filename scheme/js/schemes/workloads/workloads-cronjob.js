@@ -238,6 +238,7 @@ export const STEPS_SPEC = [
     duration: 2200,
     narration: 'Suppose the controller was down for a while. On recovery it sees ticks it missed. The spec.startingDeadlineSeconds field bounds how late a missed run may still start, any tick older than that deadline is skipped and counted as missed rather than run late. With no deadline set the controller instead refuses to schedule once it finds more than 100 missed start times, logging an error. Because a CronJob is not exactly-once and may rarely create two Jobs or none for a tick, the Job itself should be idempotent.',
     chips: { scheduleChip: '*/5 * * * *', concChip: 'Forbid', activeChip: '0', lastChip: '12:20', eventChip: 'missed 12:25 · past deadline' },
+    sublabels: { pod2Box: 'Completed · exit 0', pod3Box: 'Completed · exit 0', pod4Box: 'Completed · exit 0' },
     wires: { req: 'missed start > startingDeadlineSeconds · skip' },
     // No run is created for the missed tick, the retained history is unchanged.
     opacity: pods(0, 1, 1, 1),
@@ -251,6 +252,7 @@ export const STEPS_SPEC = [
     duration: 2000,
     narration: 'Setting spec.suspend=true pauses the CronJob. The clock keeps advancing and the schedule still matches, but the controller creates no new Jobs while suspended, and any Job already running is left to finish on its own. Clearing the flag back to false resumes creation, and with no startingDeadlineSeconds set the ticks missed while suspended are scheduled at once. This is the safe way to pause a schedule without deleting the CronJob and losing its history.',
     chips: { scheduleChip: '*/5 * * * *', concChip: 'Forbid', activeChip: '0', lastChip: '12:20', eventChip: 'suspend=true · creation paused' },
+    sublabels: { pod2Box: 'Completed · exit 0', pod3Box: 'Completed · exit 0', pod4Box: 'Completed · exit 0' },
     wires: { req: 'spec.suspend=true · no Jobs created' },
     opacity: pods(0, 1, 1, 1),
     // Suspension is a spec flag, nothing travels: the paused state shows via the static highlight

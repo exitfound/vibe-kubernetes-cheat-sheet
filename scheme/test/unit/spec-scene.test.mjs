@@ -440,6 +440,16 @@ const CROSS_ROLE = {
   },
 };
 
+// An override to the EMPTY role is a different decision from an override to a neighbour's colour,
+// and reading it through CROSS_ROLE would have said "painted network in the colour ''". It means the
+// part carries NO role: a wire drawn before the kit binding existed, which renders with the neutral
+// dim arrowhead rather than the category one. Binding it now would swap `arrowhead-dim` for
+// `arrowhead-net`, a VISIBLE change, so the migration reproduces the absence and declares it here.
+// Same discipline as CROSS_ROLE: the (category, kind) pair is the unit, unused pairs are printed.
+const NO_ROLE = {
+  network: ['arrow', 'lane', 'relation'],
+};
+
 describe('the role binding', () => {
   test('each kit binds a role, gives node none, and gives Pod parts their own', (t) => {
     const findings = [];
@@ -486,9 +496,13 @@ describe('the role binding', () => {
           // An override is a part painted in another category's colour, so it is a finding UNLESS
           // CROSS_ROLE declares it. That table is the "decision someone wrote down"; before it
           // existed this branch was red for any override at all, which no workloads card survives.
-          const triple = `${s.category}.${kind} -> ${p.role}`;
+          const triple = `${s.category}.${kind} -> ${p.role || '(none)'}`;
           used.set(triple, (used.get(triple) || 0) + 1);
-          if (!((CROSS_ROLE[s.category] || {})[kind] || []).includes(p.role)) {
+          if (p.role === '') {
+            if (!(NO_ROLE[s.category] || []).includes(kind)) {
+              findings.push(`${s.id}  ${path}: drops the role entirely, the kit binds "${want.role}", and no NO_ROLE entry allows ${s.category}.${kind}`);
+            }
+          } else if (!((CROSS_ROLE[s.category] || {})[kind] || []).includes(p.role)) {
             findings.push(`${s.id}  ${path}: overrides role to "${p.role}", the kit binds "${want.role}", and no CROSS_ROLE entry allows ${s.category}.${kind}`);
           }
         }
@@ -506,7 +520,10 @@ describe('the role binding', () => {
     const idle = Object.entries(CROSS_ROLE).flatMap(([cat, kinds]) =>
       Object.entries(kinds).flatMap(([kind, roles]) => roles
         .filter(r => !used.has(`${cat}.${kind} -> ${r}`))
-        .map(r => `${cat}.${kind} -> ${r}`)));
+        .map(r => `${cat}.${kind} -> ${r}`)))
+      .concat(Object.entries(NO_ROLE).flatMap(([cat, kinds]) => kinds
+        .filter(k => !used.has(`${cat}.${k} -> (none)`))
+        .map(k => `${cat}.${k} -> (none)`)));
     t.diagnostic(`cross-role declared but unused: ${idle.join(', ') || 'none'}`);
   });
 });
@@ -538,7 +555,7 @@ const NON_TEXT_STRINGS = {
   tag: ['anchor'],
   wire: ['anchor'],
   chain: ['anchor'],
-  relation: ['dash'],                  // a stroke-dasharray, not a string anyone reads off the canvas
+  relation: ['dash', 'd'],             // a stroke-dasharray and a path definition, neither read off the canvas
 };
 
 describe('the strings the scene draws', () => {
@@ -607,6 +624,19 @@ describe('the strings the scene draws', () => {
   // `if (node && node.valueText)`), so a key naming nothing draws nothing and says nothing. The
   // kind matters as much as the key: setBoxLabel wants a .scheme-box-label, setVal wants the
   // valueText a valChip carries, so a chip write aimed at a box is the same silent blank.
+  // A `raw` part is an element built by a function this file cannot read, so its SHAPE is unknown
+  // rather than wrong, and answering "wrong" would be the check overstating what it knows. The
+  // declared alternative, same discipline as CROSS_ROLE: name the raw that deliberately imitates a
+  // kind, and it is judged AS that kind. Unused entries are printed, so one cannot rot unnoticed.
+  const RAW_SHAPED_AS = {
+    // The flat-network band is a hand-forged g.scheme-box: it holds a .scheme-box-sublabel child of
+    // its own, which is why setBoxSublabel reaches it and six steps write through it.
+    'network-model.bus': 'box',
+    // The Pod shell here is primitives.pod(), not podShell() + inner: it writes an inline fill on
+    // .scheme-pod-rect that dom-dump serialises, and the card hangs TWO sibling containers off it.
+    'network-pod-ip-and-veth.podShell': 'podShell',
+  };
+
   test('every string a step writes lands on a part of the scene that can hold it', (t) => {
     const WRITERS = {
       chips: { kinds: ['chip'], via: 'setVal / setChip, which need the valueText only a valChip carries' },
@@ -616,6 +646,7 @@ describe('the strings the scene draws', () => {
       podSublabels: { kinds: ['pod', 'podShell'], via: 'setPodSublabel, which queries .scheme-pod-sublabel' },
     };
     const findings = [];
+    const usedShapes = new Set();
     let writes = 0;
     for (const s of scenes) {
       const { refs, wires, escaped } = refUniverse(flat.get(s.id).parts);
@@ -624,7 +655,9 @@ describe('the strings the scene draws', () => {
           for (const k of Object.keys(o[field] || {})) {
             writes++;
             if (escaped.has(k)) continue;              // built by an escape: unreadable, never a finding
-            const kind = refs.get(k);
+            const shaped = RAW_SHAPED_AS[`${s.id}.${k}`];
+            if (shaped) usedShapes.add(`${s.id}.${k}`);
+            const kind = shaped && refs.get(k) === 'raw' ? shaped : refs.get(k);
             if (!kind) findings.push(`${s.id}  ${where} writes ${field}.${k}, and no part of the scene answers to "${k}"`);
             else if (!kinds.includes(kind)) {
               findings.push(`${s.id}  ${where} writes ${field}.${k} onto a ${kind}. It needs ${kinds.join(' or ')}: ${via}`);
@@ -641,6 +674,9 @@ describe('the strings the scene draws', () => {
     assert.ok(writes > 0, 'no step writes a single string through a key: this rule is asserting nothing');
     assert.equal(findings.length, 0, `${findings.length} write(s) that draw nothing:\n  ${listing(findings)}`);
     t.diagnostic(`${writes} step string writes, every one landing on a part that can hold it`);
+    const idleShapes = Object.keys(RAW_SHAPED_AS).filter(k => !usedShapes.has(k));
+    t.diagnostic(`raw parts judged as another kind: ${usedShapes.size} in use` +
+      (idleShapes.length ? `, DECLARED AND UNUSED: ${idleShapes.join(', ')}` : ''));
   });
 
   test('the escape hooks are the only place a drawn string can hide, and each is a real hook', (t) => {

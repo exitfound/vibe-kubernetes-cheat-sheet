@@ -174,6 +174,7 @@ export const STEPS_SPEC = [
     // image is one Kubelet never calls for. The ladder row keeps the cached case in its parenthesis.
     chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'image pulled', lastOpChip: 'PullImage' },
     wires: { kr: 'PullImage · nginx:1.27' },
+    podSublabels: { shellEl: 'IP 10.244.1.5' },
     opacity: { appGroup: 0, sandboxGroup: 1 },
     lit: ['lastOpChip', 'kubelet', 'statusChip'],
     chain: 2,
@@ -187,6 +188,7 @@ export const STEPS_SPEC = [
     chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'created (not started)', lastOpChip: 'CreateContainer' },
     wires: { kr: 'CreateContainer' },
     sublabels: { appBox: 'created · not started' },
+    podSublabels: { shellEl: 'IP 10.244.1.5' },
     // Pinned dim: the container exists but is not running.
     opacity: { sandboxGroup: 1, appGroup: OPACITY.pending },
     lit: ['lastOpChip', 'kubelet', 'statusChip'],
@@ -208,6 +210,7 @@ export const STEPS_SPEC = [
     chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'running', lastOpChip: 'StartContainer' },
     wires: { kr: 'StartContainer' },
     sublabels: { appBox: 'running' },
+    podSublabels: { shellEl: 'IP 10.244.1.5' },
     // Pinned full: the container is running.
     opacity: { sandboxGroup: 1, appGroup: 1 },
     lit: ['kubelet', 'statusChip', 'lastOpChip'],

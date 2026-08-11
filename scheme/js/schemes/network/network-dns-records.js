@@ -1,6 +1,5 @@
-import { g } from '../../lib/svg.js';
-import { arrowDefs, box, arrow, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxLabel, setBoxSublabel, pulsePod, routePacket, segmentPacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
+import { P, F, defineCard, laneY, BEAT } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-dns-records
 
 
@@ -22,8 +21,7 @@ const FAN_X = 680;                        // vertical bus the four answer wires 
 // The client leg is a PAIR, question out above the flow line and answer home below it: every record
 // step says the CLIENT gets the record, and the ladder is a display, not an arrival.
 const LANE_DY = 12;
-const Q_OUT_Y = FLOW_Y - LANE_DY;         // 388
-const Q_BACK_Y = FLOW_Y + LANE_DY;        // 412
+const { out: Q_OUT_Y, back: Q_BACK_Y } = laneY(FLOW_Y, LANE_DY);   // 388 out, 412 back
 const QUERY = [[CLIENT_EDGE, Q_OUT_Y], [CD_LEFT, Q_OUT_Y]];
 const REPLY = [[CD_LEFT, Q_BACK_Y], [CLIENT_EDGE, Q_BACK_Y]];
 const ANS = ROWS.map(cy => [[CD_RIGHT, FLOW_Y], [FAN_X, FLOW_Y], [FAN_X, cy], [PANEL_X, cy]]);
@@ -48,139 +46,100 @@ const NAME_SRV      = [['_http._tcp.web', 'port and protocol'], ['default', 'nam
 const NAME_HEADLESS = [['web', 'headless service'], ['default', 'namespace'], ['svc', 'subdomain'], ['cluster.local', 'cluster domain']];
 const NAME_POD      = [['10-244-2-7', 'pod address'], ['default', 'namespace'], ['pod', 'subdomain'], ['cluster.local', 'cluster domain']];
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+// All six wires carry a ball, so all six take the category arrowhead. The four answer lanes used to
+// drop the role, which left them neutral-headed beside the two identical client lanes.
+const ANS_WIRE = { dashed: true, dim: true };
 
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Kubernetes DNS records: a Service name is a fully qualified name made of Service, namespace, svc and the cluster domain, and CoreDNS answers it with an A record to the ClusterIP, an SRV record for ports, multiple A records for a headless Service, or a per-Pod record' });
-    root.appendChild(arrowDefs());
-
-    // Client Pod (h 130) and CoreDNS (h 96) are both centred on FLOW_Y, so the query lane is straight.
-    const client = clientBlock({ x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H });
-    const coredns = box({ x: CD_LEFT, y: FLOW_Y - CD_H / 2, w: CD_W, h: CD_H, label: 'CoreDNS', sublabel: 'kubernetes plugin', role: 'network' });
-
+// The list order IS the append order, which is the z-order: the band, CoreDNS, the client and the
+// ladder, then the wires ABOVE them, then the chips, then the packet layer on top.
+export const SCENE = {
+  'aria-label': 'Kubernetes DNS records: a Service name is a fully qualified name made of Service, namespace, svc and the cluster domain, and CoreDNS answers it with an A record to the ClusterIP, an SRV record for ports, multiple A records for a headless Service, or a per-Pod record',
+  parts: [
+    P.defs(),
     // FQDN band: the four segments of the name being asked. Built in the service form, rewritten per step.
-    const segs = SEGS.map((spec, i) => box({
-      x: spec.x, y: SEG_Y, w: spec.w, h: SEG_H,
-      label: NAME_SVC[i][0], sublabel: NAME_SVC[i][1], role: 'network',
-    }));
-    const [seg1, seg2, seg3, seg4] = segs;
-
-    const records = chainList({
-      x: PANEL_X, y: ROWS_Y, w: PANEL_W, rowH: ROW_H, gap: ROW_GAP, role: 'network',
+    ...SEGS.map((spec, i) => P.box({
+      key: spec.key, x: spec.x, y: SEG_Y, w: spec.w, h: SEG_H,
+      label: NAME_SVC[i][0], sublabel: NAME_SVC[i][1],
+    })),
+    P.box({ key: 'coredns', x: CD_LEFT, y: FLOW_Y - CD_H / 2, w: CD_W, h: CD_H, label: 'CoreDNS', sublabel: 'kubernetes plugin' }),
+    P.pod({
+      key: 'client', innerKey: 'clientBox', x: CLIENT_X, y: FLOW_Y - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H,
+      label: 'Client Pod', sublabel: '10.244.1.5',
+      inner: { dx: 20, dy: 36, w: CLIENT_W - 40, h: 50, label: 'Resolver', sublabel: 'getaddrinfo' },
+    }),
+    // Keyed `chain`, which is the name the `chain:` field writes through. The rows are named by
+    // path in every dump, so the container key is free to be the conventional one.
+    P.chain({
+      key: 'chain', x: PANEL_X, y: ROWS_Y, w: PANEL_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
         'A: web.default.svc -> 10.96.0.20',
         'SRV: _http._tcp.web -> :80',
         'Headless A: -> .2.7 .3.4 .1.9',
         'Pod A: 10-244-2-7.default.pod',
       ],
-    });
-
+    }),
     // Dim dashed wires: the straight query lane client -> CoreDNS, then ONE wire per record row so
     // every answer ball has a line under it. Each wire is drawn from the same array the ball rides.
-    const wQuery = arrow({ x1: QUERY[0][0], y1: QUERY[0][1], x2: QUERY[1][0], y2: QUERY[1][1], dashed: true, dim: true, role: 'network' });
-    const wReply = arrow({ x1: REPLY[0][0], y1: REPLY[0][1], x2: REPLY[1][0], y2: REPLY[1][1], dashed: true, dim: true, role: 'network' });
-    const wAns = ANS.map(points => pathArrow({ points, dashed: true, dim: true }));
+    P.arrow({ from: QUERY[0], to: QUERY[1], dashed: true, dim: true }),
+    P.arrow({ from: REPLY[0], to: REPLY[1], dashed: true, dim: true }),
+    ...ANS.map(points => P.lane({ points, ...ANS_WIRE })),
+    P.chip({ key: 'qChip', x: CONTENT_L, y: CHIP_Y, w: Q_CHIP_W, h: CHIP_H, name: 'question', value: '-' }),
+    P.chip({ key: 'ansChip', x: ANS_CHIP_X, y: CHIP_Y, w: ANS_CHIP_W, h: CHIP_H, name: 'answers', value: '-' }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['coredns', 'seg1', 'seg2', 'seg3', 'seg4', 'qChip', 'ansChip', 'clientBox'],
+    pods: ['client'],
+  },
+};
 
-    const qChip = valChip({ x: CONTENT_L, y: CHIP_Y, w: Q_CHIP_W, h: CHIP_H, name: 'question', value: '-', role: 'network' });
-    const ansChip = valChip({ x: ANS_CHIP_X, y: CHIP_Y, w: ANS_CHIP_W, h: CHIP_H, name: 'answers', value: '-', role: 'network' });
+// The name being asked, as FIELDS: the four segments are one fact, so one helper writes their text
+// and their highlight together and no step can rewrite three of the four.
+const asking = (parts, light = true) => {
+  const labels = {}, sublabels = {};
+  parts.forEach(([label, sublabel], i) => { labels[SEGS[i].key] = label; sublabels[SEGS[i].key] = sublabel; });
+  return light ? { labels, sublabels, lit: SEGS.map(s => s.key) } : { labels, sublabels };
+};
 
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order: anatomy + coredns + client + ladder, then wires ABOVE, then chips, then packets.
-    [seg1, seg2, seg3, seg4, coredns, client.group, records].forEach(el => root.appendChild(el));
-    [wQuery, wReply, ...wAns].forEach(el => root.appendChild(el));
-    [qChip, ansChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, coredns, seg1, seg2, seg3, seg4, records,
-      client: client.group, clientBox: client.innerBox,
-      qChip, ansChip, packetLayer, wires: {},
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function clientBlock({ x, y, w, h }) {
-  const shell = podShell({ x, y, w, h, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 20, y: y + 36, w: w - 40, h: 50, label: 'Resolver', sublabel: 'getaddrinfo', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
-
-function setChips(s, { q, ans }) {
-  setVal(s.refs.qChip, q);
-  setVal(s.refs.ansChip, ans);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['coredns', 'seg1', 'seg2', 'seg3', 'seg4', 'qChip', 'ansChip', 'clientBox'], [s.refs.client]);
-  setChainActive(s.refs.records, -1);
-  clearWires(s);
-}
-
-// Rewrite the FQDN band to the name this step actually asks for, and light it. Blocks light, they never
-// flash or pulse: the interest here is that the TEXT changes between steps, not that the box blinks.
-function askName(s, parts, { light = true } = {}) {
-  ['seg1', 'seg2', 'seg3', 'seg4'].forEach((key, i) => {
-    const el = s.refs[key];
-    setBoxLabel(el, parts[i][0]);
-    setBoxSublabel(el, parts[i][1]);
-    if (light) el.classList.add('highlight');
-  });
-}
-
-function resolve(s, ctx, rowIdx) {
-  s.refs.qChip.classList.add('highlight');
-  s.refs.ansChip.classList.add('highlight');
-  if (ctx.reduced) { s.refs.coredns.classList.add('highlight'); setChainActive(s.refs.records, rowIdx); return; }
-  pulsePod(s.refs.client, ctx, 0);
-  const q = segmentPacket(s, ctx, { from: QUERY[0], to: QUERY[1], delay: BEAT.afterPulse, role: 'network' });
-  // CoreDNS is the answering infra: it lights on query arrival, then the answer leaves for its row.
-  lightBoxAt(s.refs.coredns, ctx, q.arrivalMs);
-  const ans = routePacket(s, ctx, ANS[rowIdx], { delay: q.arrivalMs + BEAT.afterHop, role: 'network' });
-  // Empty keyframes: a timer must name no property, or the browser composites CoreDNS on its own
-  // layer for the whole flight and its fill shifts tone. Reasoning at lightBoxAt in scheme-kit.js.
-  const row = s.refs.coredns.animate([], { duration: 1, delay: ans.arrivalMs });
-  row.onfinish = () => setChainActive(s.refs.records, rowIdx);
-  ctx.register(row);
+// One record lookup: query out, the record climbs into its ladder row, the answer goes home. The row
+// lights on the ANSWER arrival through a timer hung on CoreDNS, which is where the card put it.
+const lookup = (rowIdx) => [
+  F.pulse({ pod: 'client' }),
+  F.segment({ from: QUERY[0], to: QUERY[1], delay: BEAT.afterPulse, name: 'q', lights: ['coredns'] }),
+  F.route({ points: ANS[rowIdx], after: 'q', name: 'ans' }),
+  F.set({ chain: rowIdx, on: 'coredns', at: 'ans' }),
   // The record lights in the ladder, and THEN the same answer goes home: the client is what gets the
   // record, and the ladder is a display rather than an arrival.
-  const reply = segmentPacket(s, ctx, { from: REPLY[0], to: REPLY[1], delay: ans.arrivalMs + BEAT.afterHop, role: 'network' });
-  pulsePod(s.refs.client, ctx, reply.arrivalMs);
-  return reply;
-}
+  F.segment({ from: REPLY[0], to: REPLY[1], after: 'ans', name: 'reply' }),
+  F.pulse({ pod: 'client', at: 'reply' }),
+];
 
-const STEPS = [
+// A record step ends with its row lit, which is what the static path shows at once. The animated
+// path winds the ladder back so the row can light on the answer instead.
+const record = (rowIdx) => ({ chain: rowIdx, rewind: { chain: -1 }, flow: lookup(rowIdx) });
+
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      askName(s, NAME_SVC, { light: false });
-      setVal(s.refs.qChip, '-');
-      setVal(s.refs.ansChip, '-');
-    },
+    chips: { qChip: '-', ansChip: '-' },
+    ...asking(NAME_SVC, false),
+    chain: -1,
   },
   {
     id: 'fqdn',
     duration: 2500,
     narration: 'The full name is web.default.svc.cluster.local: the Service, its namespace, the literal svc, then the cluster domain. A Pod resolv.conf carries search domains and ndots:5, so a short name like web is expanded to this fully qualified form before it leaves the Pod. Every record below is a variation on these four segments.',
-    enter(s, ctx) {
-      resetStep(s);
-      askName(s, NAME_SVC);
-      setChips(s, { q: 'web expands to web.default.svc.cluster.local', ans: '-' });
-      s.refs.qChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.clientBox.classList.add('highlight'); return; }
-      // No packet yet: the expansion happens inside the Pod resolver, so the Pod is what moves. The
-      // band lights but does not blink, since a blinking block would read as traffic that is not there.
-      pulsePod(s.refs.client, ctx, 0);
-    },
+    chips: { qChip: 'web expands to web.default.svc.cluster.local', ansChip: '-' },
+    ...asking(NAME_SVC),
+    lit: [...SEGS.map(s => s.key), 'qChip'],
+    chain: -1,
+    // The expansion happens inside the Pod resolver, so the Pod is what moves and no lightBoxAt
+    // names the resolver box: the static path has to say it instead.
+    reducedLit: ['clientBox'],
+    // No packet yet: the band lights but does not blink, since a blinking block would read as
+    // traffic that is not there.
+    flow: [F.pulse({ pod: 'client' })],
   },
   {
     id: 'a-record',
@@ -188,12 +147,10 @@ const STEPS = [
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
     narration: 'Ask for the name itself and you get an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: a name in, the stable virtual IP out, which kube-proxy then load-balances to a Pod. Note that this is the web Service address, not 10.96.0.10, which is the kube-dns ClusterIP the query was sent to.',
-    enter(s, ctx) {
-      resetStep(s);
-      askName(s, NAME_SVC);
-      setChips(s, { q: 'web.default.svc.cluster.local  IN A', ans: '1 record' });
-      resolve(s, ctx, 0);
-    },
+    chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: '1 record' },
+    ...asking(NAME_SVC),
+    lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
+    ...record(0),
   },
   {
     id: 'srv-record',
@@ -201,12 +158,10 @@ const STEPS = [
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
     narration: 'A named port also publishes an SRV record. The name grows a prefix, _http._tcp, naming the port and the protocol, and the answer carries the port number and the target host. It lets a client discover which port a Service exposes without that port being hard-coded anywhere.',
-    enter(s, ctx) {
-      resetStep(s);
-      askName(s, NAME_SRV);
-      setChips(s, { q: '_http._tcp.web.default.svc.cluster.local  IN SRV', ans: '1 record' });
-      resolve(s, ctx, 1);
-    },
+    chips: { qChip: '_http._tcp.web.default.svc.cluster.local  IN SRV', ansChip: '1 record' },
+    ...asking(NAME_SRV),
+    lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
+    ...record(1),
   },
   {
     id: 'headless-record',
@@ -214,12 +169,10 @@ const STEPS = [
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
     narration: 'If the Service is headless, the name does not change at all: the client asks exactly what it asked for the A record. What changes is the answer, one A record per ready Pod instead of a single virtual IP, here three of them, and the client chooses an endpoint itself.',
-    enter(s, ctx) {
-      resetStep(s);
-      askName(s, NAME_HEADLESS);
-      setChips(s, { q: 'web.default.svc.cluster.local  IN A', ans: '3 records' });
-      resolve(s, ctx, 2);
-    },
+    chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: '3 records' },
+    ...asking(NAME_HEADLESS),
+    lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
+    ...record(2),
   },
   {
     id: 'pod-record',
@@ -227,13 +180,11 @@ const STEPS = [
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
     narration: 'Finally a Pod can be addressed directly, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves this when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode it reads the address straight back out of the name without checking that such a Pod exists. The stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
-    enter(s, ctx) {
-      resetStep(s);
-      askName(s, NAME_POD);
-      setChips(s, { q: '10-244-2-7.default.pod.cluster.local  IN A', ans: '1 record' });
-      resolve(s, ctx, 3);
-    },
+    chips: { qChip: '10-244-2-7.default.pod.cluster.local  IN A', ansChip: '1 record' },
+    ...asking(NAME_POD),
+    lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
+    ...record(3),
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });
