@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, OPACITY, revealAt, wrapPod, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, chipStrip, BEAT, FADE, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-generic-ephemeral-volume
 
 
@@ -22,6 +20,9 @@ const PV_TOP = PV_Y, PV_MY = PV_Y + PV_H / 2;                           // 350 /
 const CAPTION_Y = 500;
 const CHIPS_Y = 570;              // 34 above the canvas floor, equal to the top margin
 
+const CHIP_W = 232, CHIP_GAP = 16;
+const STRIP = chipStrip({ w: CHIP_W, gap: CHIP_GAP });      // 976 wide, x0 112, so it centres on CX
+
 const W_CLAIM_PROV = [[CX + CLAIM_W / 2, ROW_MY], [PROV_CX - SIDE_W / 2, ROW_MY]];
 const W_CREATE     = [[PROV_CX, ROW_BOTTOM], [PROV_CX, PV_MY], [CX + PV_W / 2, PV_MY]];
 const W_DOWN_HIGH  = [[CX, POD_BOTTOM], [CX, ROW_Y]];
@@ -29,235 +30,162 @@ const W_DOWN_LOW   = [[CX, ROW_BOTTOM], [CX, PV_TOP]];
 const W_UP_HIGH    = [[CX, ROW_Y], [CX, POD_BOTTOM]];
 const W_UP_LOW     = [[CX, PV_TOP], [CX, ROW_BOTTOM]];
 
-function vanishAt(el, ctx, delay = 0, to = OPACITY.terminated) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); return; }
-  ctx.register(el.animate([{ opacity: 1 }, { opacity: to }], { duration: FADE.out, delay, fill: 'forwards', easing: 'ease-in' }));
-}
-
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage' });
-
-function podBlock() {
-  const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'ephemeral: volumeClaimTemplate', containers: 0, role: 'storage' });
-  // Centred in the band the pod primitive leaves free between its label (baseline 16) and its
-  // sublabel (baseline h - 8).
-  const innerBox = box({ x: POD_X + 24, y: POD_Y + 33, w: POD_W - 48, h: 44, label: 'app', sublabel: 'writes /scratch', role: 'storage' });
-  return wrapPod(shell, innerBox);
-}
-
-const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'storage' });
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Generic ephemeral volumes: an inline volumeClaimTemplate on the Pod under ephemeral mints a real PVC with dynamic provisioning and a real CSI mount, so unlike emptyDir it can be large and of a specific class and even snapshotted, but the PVC carries an ownerReference to the Pod and is garbage-collected the moment the Pod is deleted, so its lifetime is exactly the lifetime of the Pod' });
-    root.appendChild(arrowDefs());
-
-    const podB = podBlock();
-
-    const pvc = box({ x: CX - CLAIM_W / 2, y: ROW_Y, w: CLAIM_W, h: ROW_H, label: 'PVC app-0-scratch', sublabel: 'owned by Pod', role: 'storage' });
-    pvc.style.opacity = '0';
-    const sc = box({ x: SC_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'StorageClass fast-ssd', sublabel: 'ebs.csi.aws.com', role: 'storage' });
-    const prov = box({ x: PROV_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'External-provisioner', sublabel: 'driver: ebs.csi.aws.com', role: 'storage' });
-
-    const pv = cylinder({ x: CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-e91c', role: 'storage' });
+// The list order IS the append order, which is the z-order: the Pod and the three row blocks and the
+// disk, then the column lanes and their captions above them, then the chip strip, then the packets.
+export const SCENE = {
+  'aria-label': 'Generic ephemeral volumes: an inline volumeClaimTemplate on the Pod under ephemeral mints a real PVC with dynamic provisioning and a real CSI mount, so unlike emptyDir it can be large and of a specific class and even snapshotted, but the PVC carries an ownerReference to the Pod and is garbage-collected the moment the Pod is deleted, so its lifetime is exactly the lifetime of the Pod',
+  parts: [
+    P.defs(),
+    // The inner box is centred in the band the pod primitive leaves free between its label (baseline
+    // 16) and its sublabel (baseline h - 8). The GROUP is the pulse target, not the shell.
+    P.pod({
+      key: 'podB', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-0', sublabel: 'ephemeral: volumeClaimTemplate', containers: 0,
+      inner: { dx: 24, dy: 33, w: POD_W - 48, h: 44, label: 'app', sublabel: 'writes /scratch' }, innerKey: 'podBox',
+    }),
+    P.box({ key: 'pvc', x: CX - CLAIM_W / 2, y: ROW_Y, w: CLAIM_W, h: ROW_H, label: 'PVC app-0-scratch', sublabel: 'owned by Pod', opacity: 0 }),
+    P.box({ key: 'sc', x: SC_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'StorageClass fast-ssd', sublabel: 'ebs.csi.aws.com' }),
+    P.box({ key: 'prov', x: PROV_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'External-provisioner', sublabel: 'driver: ebs.csi.aws.com' }),
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse is
     // not part of the visible front face. Re-centre on the face, derived from the height.
-    const pvLbl = pv.querySelector('.scheme-cylinder-label');
-    if (pvLbl) pvLbl.setAttribute('y', PV_H / 2 + 10);
-    pv.style.opacity = '0';
-
-    const wClaimProv = lane(W_CLAIM_PROV);
-    const wCreate = lane(W_CREATE);
-    const wDownHigh = lane(W_DOWN_HIGH);
-    const wDownLow = lane(W_DOWN_LOW);
-    const wUpHigh = lane(W_UP_HIGH);
-    const wUpLow = lane(W_UP_LOW);
-    [wClaimProv, wCreate, wDownHigh, wDownLow, wUpHigh, wUpLow].forEach(w => { w.style.opacity = '0'; });
-
-    const ownerLbl = text({ class: 'scheme-label code dim', x: CX + 36, y: 184, 'text-anchor': 'start' }, [' ']);
-    const mountLbl = text({ class: 'scheme-label code dim', x: CX, y: CAPTION_Y, 'text-anchor': 'middle' }, [' ']);
-
-    const CHIP_W = 232, CHIP_GAP = 16;
-    const CHIPS_W = CHIP_W * 4 + CHIP_GAP * 3;                  // 976
-    const CHIPS_X = CX - CHIPS_W / 2;                           // 112, so the strip centres on CX
-    const chipX = i => CHIPS_X + i * (CHIP_W + CHIP_GAP);
-    const podChip  = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'Pod',      value: 'Pending',      role: 'storage' });
-    const pvcChip  = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'PVC',      value: 'none',         role: 'storage' });
-    const backChip = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'backing',  value: 'CSI dynamic',  role: 'storage' });
-    const lifeChip = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'lifetime', value: 'tied to Pod',  role: 'storage' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    [podB.group, pvc, sc, prov, pv].forEach(el => root.appendChild(el));
-    [wClaimProv, wCreate, wDownHigh, wDownLow, wUpHigh, wUpLow, ownerLbl, mountLbl].forEach(el => root.appendChild(el));
-    [podChip, pvcChip, backChip, lifeChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, podB: podB.group, podBox: podB.innerBox, pvc, sc, prov, pv,
-      wClaimProv, wCreate, wDownHigh, wDownLow, wUpHigh, wUpLow,
-      podChip, pvcChip, backChip, lifeChip,
-      wires: { owner: ownerLbl, mount: mountLbl },
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
+    P.cylinder({ key: 'pv', x: CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-e91c', labelY: PV_H / 2 + 10, opacity: 0 }),
+    P.lane({ key: 'wClaimProv', points: W_CLAIM_PROV, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wCreate', points: W_CREATE, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wDownHigh', points: W_DOWN_HIGH, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wDownLow', points: W_DOWN_LOW, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wUpHigh', points: W_UP_HIGH, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wUpLow', points: W_UP_LOW, dashed: true, dim: true, opacity: 0 }),
+    P.wire({ key: 'owner', x: CX + 36, y: 184, anchor: 'start' }),
+    P.wire({ key: 'mount', x: CX, y: CAPTION_Y }),
+    P.chip({ key: 'podChip', x: STRIP.x(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'Pod', value: 'Pending' }),
+    P.chip({ key: 'pvcChip', x: STRIP.x(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'PVC', value: 'none' }),
+    P.chip({ key: 'backChip', x: STRIP.x(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'backing', value: 'CSI dynamic' }),
+    P.chip({ key: 'lifeChip', x: STRIP.x(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'lifetime', value: 'tied to Pod' }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['pvc', 'sc', 'prov', 'pv', 'podBox', 'podChip', 'pvcChip', 'backChip', 'lifeChip'],
+    pods: ['podB'],
+  },
+};
 
 // Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how a card
 // comes to report a mounted volume on the step that is still explaining the claim does not exist yet.
-function setChips(s, { pod, pvc, back, life }) {
-  setChip(s.refs.podChip, pod);
-  setChip(s.refs.pvcChip, pvc);
-  setChip(s.refs.backChip, back);
-  setChip(s.refs.lifeChip, life);
-}
+const chips = (pod, pvc, back, life) => ({ podChip: pod, pvcChip: pvc, backChip: back, lifeChip: life });
 
-// The Pod is dim until it actually reaches Running.
-
+// STO.S-01 as a field: the Pod is dim until it actually reaches Running, the claim and the disk are
+// born mid-story, and every lane is pinned on EVERY step rather than inherited, since the reduced
+// replay walks 0..n and clearHighlights clears classes and not inline styles.
 const LANES = ['wClaimProv', 'wCreate', 'wDownHigh', 'wDownLow', 'wUpHigh', 'wUpLow'];
-function setStage(s, { podOn = OPACITY.pending, claim = OPACITY.pending, disk = 0, lanes = [] } = {}) {
-  s.refs.podB.style.opacity = String(podOn);
-  s.refs.pvc.style.opacity = String(claim);
-  s.refs.pv.style.opacity = String(disk);
-  LANES.forEach(k => { s.refs[k].style.opacity = lanes.includes(k) ? '1' : '0'; });
-}
+const stage = ({ podOn = OPACITY.pending, claim = OPACITY.pending, disk = 0, on = [] } = {}) => ({
+  podB: podOn, pvc: claim, pv: disk,
+  ...Object.fromEntries(LANES.map(k => [k, on.includes(k) ? 1 : 0])),
+});
 
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['pvc', 'sc', 'prov', 'pv', 'podBox',
-    'podChip', 'pvcChip', 'backChip', 'lifeChip'], [s.refs.podB]);
-  clearWires(s);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { pod: 'Pending', pvc: 'none', back: 'CSI dynamic', life: 'tied to Pod' });
-      setStage(s);
-      setBoxSublabel(s.refs.pvc, 'owned by Pod');
-    },
+    chipsCued: chips('Pending', 'none', 'CSI dynamic', 'tied to Pod'),
+    sublabels: { pvc: 'owned by Pod' },
+    opacity: stage(),
   },
   {
     id: 'mint',
     duration: 3000,
     narration: 'When the Pod is created, that inline template becomes a real PVC, in the same namespace and named after the Pod and the volume with a hyphen between them: app-0-scratch. It carries an ownerReference straight back at the Pod that spawned it.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { pod: 'Pending', pvc: 'Pending', back: 'CSI dynamic', life: 'tied to Pod' });
-      setStage(s, { claim: 1, lanes: ['wDownHigh'] });
-      // The claim is the RECEIVER here, so it earns its highlight on arrival, not at entry. The
-      // reduced path applies it directly, which is the same end state without the motion.
-      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); return; }
-      setStage(s, { lanes: ['wDownHigh'] });
-      const own = routePacket(s, ctx, W_DOWN_HIGH, { delay: BEAT.lead, role: 'storage' });
-      ridingLabel(s, ctx, 'ownerReference', W_DOWN_HIGH, { delay: BEAT.lead });
-      revealAt(s.refs.pvc, ctx, own.arrivalMs, OPACITY.pending);
-      lightBoxAt(s.refs.pvc, ctx, own.arrivalMs);
-    },
+    chipsCued: chips('Pending', 'Pending', 'CSI dynamic', 'tied to Pod'),
+    opacity: stage({ claim: 1, on: ['wDownHigh'] }),
+    // The claim is the RECEIVER here, so it earns its highlight on arrival, not at entry. The reduced
+    // path applies it directly, which flowLights derives from the cue below: no `lit` entry for it.
+    rewind: { opacity: stage({ on: ['wDownHigh'] }) },
+    flow: [
+      F.route({ points: W_DOWN_HIGH, delay: BEAT.lead, name: 'own' }),
+      F.tag({ text: 'ownerReference', points: W_DOWN_HIGH, delay: BEAT.lead }),
+      F.reveal({ target: 'pvc', from: OPACITY.pending, at: 'own' }),
+      F.light({ targets: ['pvc'], at: 'own' }),
+    ],
   },
   {
     id: 'provision',
     duration: 4200,
     narration: 'The claim names a real StorageClass, so the provisioner treats it like any other and calls CreateVolume for a fresh disk of the size and class asked for. This is what emptyDir cannot do: the volume can be large, on fast SSD, on any driver, and it can be snapshotted, cloned or resized.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { pod: 'Pending', pvc: 'Pending', back: 'real disk, fast-ssd', life: 'tied to Pod' });
-      setStage(s, { claim: 1, disk: 1, lanes: ['wClaimProv', 'wCreate'] });
-      setWire(s, 'owner', 'ownerReference');
-      // The claim is where the ball departs from, so it is lit at step entry. The class it names is
-      // read here too. The provisioner and the disk are receivers and earn their highlights on arrival.
-      s.refs.pvc.classList.add('highlight');
-      s.refs.sc.classList.add('highlight');
-      if (ctx.reduced) { s.refs.prov.classList.add('highlight'); s.refs.pv.classList.add('highlight'); return; }
-      setStage(s, { claim: 1, disk: OPACITY.pending, lanes: ['wClaimProv', 'wCreate'] });
-      const claim = routePacket(s, ctx, W_CLAIM_PROV, { delay: BEAT.lead, role: 'storage' });
-      ridingLabel(s, ctx, 'storageClassName: fast-ssd', W_CLAIM_PROV, { delay: BEAT.lead });
-      lightBoxAt(s.refs.prov, ctx, claim.arrivalMs);
-      const create = routePacket(s, ctx, W_CREATE, { delay: claim.arrivalMs + BEAT.afterHop, role: 'storage' });
-      ridingLabel(s, ctx, 'CreateVolume', W_CREATE, { delay: claim.arrivalMs + BEAT.afterHop });
-      revealAt(s.refs.pv, ctx, create.arrivalMs, OPACITY.pending);
-      lightBoxAt(s.refs.pv, ctx, create.arrivalMs);
-    },
+    chipsCued: chips('Pending', 'Pending', 'real disk, fast-ssd', 'tied to Pod'),
+    wires: { owner: 'ownerReference' },
+    opacity: stage({ claim: 1, disk: 1, on: ['wClaimProv', 'wCreate'] }),
+    // The claim is where the ball departs from, so it is lit at step entry. The class it names is
+    // read here too. The provisioner and the disk are receivers and earn their highlights on arrival.
+    lit: ['pvc', 'sc'],
+    rewind: { opacity: stage({ claim: 1, disk: OPACITY.pending, on: ['wClaimProv', 'wCreate'] }) },
+    flow: [
+      F.route({ points: W_CLAIM_PROV, delay: BEAT.lead, name: 'claim' }),
+      F.tag({ text: 'storageClassName: fast-ssd', points: W_CLAIM_PROV, delay: BEAT.lead }),
+      F.light({ targets: ['prov'], at: 'claim' }),
+      F.route({ points: W_CREATE, after: 'claim', name: 'create' }),
+      F.tag({ text: 'CreateVolume', points: W_CREATE, after: 'claim' }),
+      F.reveal({ target: 'pv', from: OPACITY.pending, at: 'create' }),
+      F.light({ targets: ['pv'], at: 'create' }),
+    ],
   },
   {
     id: 'mount',
     duration: 4200,
     narration: 'The volume is attached and mounted at /scratch inside the container over CSI, exactly as it would be for any ordinary PVC. The Pod starts and writes to a real, dynamically provisioned volume. Nothing about this path is a shortcut.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { pod: 'Running', pvc: 'Bound', back: 'mounted at /scratch', life: 'tied to Pod' });
-      setStage(s, { podOn: 1, claim: 1, disk: 1, lanes: ['wUpLow', 'wUpHigh'] });
-      setBoxSublabel(s.refs.pvc, 'Bound');
-      s.refs.pv.classList.add('highlight');
-      setWire(s, 'owner', 'ownerReference');
-      setWire(s, 'mount', 'attach and mount');
-      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); s.refs.podBox.classList.add('highlight'); return; }
-      setStage(s, { podOn: OPACITY.pending, claim: 1, disk: 1, lanes: ['wUpLow', 'wUpHigh'] });
-      // Down-arrow into the Pod, so the balls lead and the pulse lands on the second one arriving.
-      const low = routePacket(s, ctx, W_UP_LOW, { delay: BEAT.lead, role: 'storage' });
-      lightBoxAt(s.refs.pvc, ctx, low.arrivalMs);
-      const high = routePacket(s, ctx, W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop, role: 'storage' });
-      ridingLabel(s, ctx, '/scratch', W_UP_HIGH, { delay: low.arrivalMs + BEAT.afterHop });
-      ctx.register(s.refs.podB.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: FADE.in, delay: high.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
-      pulsePod(s.refs.podB, ctx, high.arrivalMs);
-      lightBoxAt(s.refs.podBox, ctx, high.arrivalMs);
-    },
+    chipsCued: chips('Running', 'Bound', 'mounted at /scratch', 'tied to Pod'),
+    wires: { owner: 'ownerReference', mount: 'attach and mount' },
+    sublabels: { pvc: 'Bound' },
+    opacity: stage({ podOn: 1, claim: 1, disk: 1, on: ['wUpLow', 'wUpHigh'] }),
+    lit: ['pv'],
+    rewind: { opacity: stage({ podOn: OPACITY.pending, claim: 1, disk: 1, on: ['wUpLow', 'wUpHigh'] }) },
+    // Down-arrow into the Pod, so the balls lead and the pulse lands on the second one arriving.
+    flow: [
+      F.route({ points: W_UP_LOW, delay: BEAT.lead, name: 'low' }),
+      F.light({ targets: ['pvc'], at: 'low' }),
+      F.route({ points: W_UP_HIGH, after: 'low', name: 'high' }),
+      F.tag({ text: '/scratch', points: W_UP_HIGH, after: 'low' }),
+      F.fade({ target: 'podB', from: OPACITY.pending, to: 1, dur: FADE.in, fill: 'forwards', easing: 'ease-out', at: 'high' }),
+      F.pulse({ pod: 'podB', at: 'high' }),
+      F.light({ targets: ['podBox'], at: 'high' }),
+    ],
   },
   {
     id: 'owner',
     duration: 3000,
     narration: 'The ownerReference is what makes this ephemeral. A normal PVC outlives the Pods that use it, but this one belongs to the Pod, the way a container belongs to it. It also means anyone who can create a Pod can create a claim indirectly, without the right to create one directly.',
-    enter(s) {
-      resetStep(s);
-      setChips(s, { pod: 'Running', pvc: 'Bound', back: 'mounted at /scratch', life: 'owned by Pod' });
-      setStage(s, { podOn: 1, claim: 1, disk: 1 });
-      setBoxSublabel(s.refs.pvc, 'Bound');
-      s.refs.pvc.classList.add('highlight');
-      setWire(s, 'owner', 'ownerReference: Pod app-0');
-      // The owned claim holds its highlight and the card rests on it. No blink: see the PULSE MODEL
-      // note at the top of the file.
-    },
+    chipsCued: chips('Running', 'Bound', 'mounted at /scratch', 'owned by Pod'),
+    wires: { owner: 'ownerReference: Pod app-0' },
+    sublabels: { pvc: 'Bound' },
+    opacity: stage({ podOn: 1, claim: 1, disk: 1 }),
+    // The owned claim holds its highlight and the card rests on it. No blink: see the PULSE MODEL
+    // note at the top of the file.
+    lit: ['pvc'],
   },
   {
     id: 'gc',
     duration: 4200,
     narration: 'Delete the Pod and the ownerReference does the rest. Garbage collection removes the PVC, and since the default reclaim policy is Delete, the volume goes with it. The scratch data lived exactly as long as the Pod did. A class set to Retain would leave the disk behind instead.',
-    enter(s, ctx) {
-      resetStep(s);
-      // The chip names what BACKS the volume, so after garbage collection it reports the backing's
-      // fate in those terms rather than the policy that caused it: the disk went with the claim.
-      setChips(s, { pod: 'deleted', pvc: 'deleted by GC', back: 'deleted with claim', life: 'ended with Pod' });
-      // Nothing is left pointing at anything: the lanes go out behind the cascade they carried, so the
-      // closing frame is the collapsed column and nothing else.
-      setStage(s, { podOn: OPACITY.terminated, claim: OPACITY.terminated, disk: OPACITY.terminated });
-      setBoxSublabel(s.refs.pvc, 'Bound');
-      setWire(s, 'owner', 'cascade delete');
-      if (ctx.reduced) return;
-      setStage(s, { podOn: 1, claim: 1, disk: 1, lanes: ['wDownHigh', 'wDownLow'] });
-      // The Pod goes first, then the cascade walks down the column: the claim next, then the disk.
-      ctx.register(s.refs.podB.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, fill: 'forwards', easing: 'ease-in' }));
-      const gcHigh = routePacket(s, ctx, W_DOWN_HIGH, { delay: FADE.out + BEAT.afterHop, role: 'storage' });
-      ridingLabel(s, ctx, 'ownerReference GC', W_DOWN_HIGH, { delay: FADE.out + BEAT.afterHop });
-      // Each lane goes out behind the cascade it carried, so nothing is left pointing at a ghost.
-      vanishAt(s.refs.pvc, ctx, gcHigh.arrivalMs);
-      vanishAt(s.refs.wDownHigh, ctx, gcHigh.arrivalMs, 0);
-      const gcLow = routePacket(s, ctx, W_DOWN_LOW, { delay: gcHigh.arrivalMs + BEAT.afterHop, role: 'storage' });
-      vanishAt(s.refs.pv, ctx, gcLow.arrivalMs);
-      vanishAt(s.refs.wDownLow, ctx, gcLow.arrivalMs, 0);
-    },
+    // The chip names what BACKS the volume, so after garbage collection it reports the backing's
+    // fate in those terms rather than the policy that caused it: the disk went with the claim.
+    chipsCued: chips('deleted', 'deleted by GC', 'deleted with claim', 'ended with Pod'),
+    wires: { owner: 'cascade delete' },
+    sublabels: { pvc: 'Bound' },
+    // Nothing is left pointing at anything: the lanes go out behind the cascade they carried, so the
+    // closing frame is the collapsed column and nothing else.
+    opacity: stage({ podOn: OPACITY.terminated, claim: OPACITY.terminated, disk: OPACITY.terminated }),
+    rewind: { opacity: stage({ podOn: 1, claim: 1, disk: 1, on: ['wDownHigh', 'wDownLow'] }) },
+    // The Pod goes first, then the cascade walks down the column: the claim next, then the disk. Each
+    // lane goes out behind the cascade it carried, so nothing is left pointing at a ghost. `fill` is
+    // stated because the hand-written fades were 'forwards' where F.fade defaults to 'both'.
+    flow: [
+      F.fade({ target: 'podB', to: OPACITY.terminated, dur: FADE.out, fill: 'forwards' }),
+      F.route({ points: W_DOWN_HIGH, delay: FADE.out + BEAT.afterHop, name: 'gcHigh' }),
+      F.tag({ text: 'ownerReference GC', points: W_DOWN_HIGH, delay: FADE.out + BEAT.afterHop }),
+      F.fade({ target: 'pvc', to: OPACITY.terminated, dur: FADE.out, fill: 'forwards', at: 'gcHigh' }),
+      F.fade({ target: 'wDownHigh', to: 0, dur: FADE.out, fill: 'forwards', at: 'gcHigh' }),
+      F.route({ points: W_DOWN_LOW, after: 'gcHigh', name: 'gcLow' }),
+      F.fade({ target: 'pv', to: OPACITY.terminated, dur: FADE.out, fill: 'forwards', at: 'gcLow' }),
+      F.fade({ target: 'wDownLow', to: 0, dur: FADE.out, fill: 'forwards', at: 'gcLow' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

@@ -1,6 +1,4 @@
-import { g } from '../../lib/svg.js';
-import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, relationPath, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, BEAT, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-ephemeral-vs-persistent
 
 
@@ -39,187 +37,144 @@ const W_L_MOUNT = [[LEFT_CX + LANE, ED_TOP], [LEFT_CX + LANE, POD_BOTTOM]];     
 const W_R_WRITE = [[RIGHT_CX + LANE, POD_BOTTOM], [RIGHT_CX + LANE, PVC_TOP]];    // Pod -> PVC
 const W_R_MOUNT = [[RIGHT_CX - LANE, PVC_TOP], [RIGHT_CX - LANE, POD_BOTTOM]];    // PVC -> Pod
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage' });
+// Raise the Pod sublabel a couple pixels off its default baseline so it sits tighter under the box.
+// An ATTRIBUTE on an element the pod kind does not hand back, which is what tune is for.
+const raiseSublabel = (el) => {
+  const sub = el.querySelector('.scheme-pod-sublabel');
+  if (sub) sub.setAttribute('y', POD_H - 12);
+};
 
-function podBlock({ x, y, w, h, label, sublabel }) {
-  const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
-  // Raise the Pod sublabel a couple pixels off its default baseline so it sits tighter under the box.
-  const sub = shell.querySelector('.scheme-pod-sublabel');
-  if (sub) sub.setAttribute('y', h - 12);
-  const innerBox = box({ x: x + 24, y: y + (h - 60) / 2, w: w - 48, h: 60, label: 'app', sublabel: 'mounts /scratch and /data', role: 'storage' });
-  return wrapPod(shell, innerBox);
-}
+// The four lanes are named twice on purpose: the ARRAY is what the card has always called them as a
+// set, and the per-step opacity field resolves one element at a time. The array is filled from a
+// tune so it lands in refs FIRST and keeps the lanes[n] naming.
+const inLanes = (el, refs) => { (refs.lanes = refs.lanes || []).push(el); };
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Ephemeral versus persistent storage: one Pod mounts both an emptyDir and a PersistentVolumeClaim and writes to each. When the Pod is deleted and rescheduled onto another Node, the emptyDir comes back empty because it was tied to the old Node, while the claim reattaches the very same disk with the data intact.' });
-    root.appendChild(arrowDefs());
-
-    const podB = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'volumes: scratch, data' });
-
-    const ed  = cylinder({ x: ED_X, y: ED_Y, w: ED_W, h: ED_H, label: 'emptyDir', role: 'storage' });
-    const pvc = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data', sublabel: 'Bound', role: 'storage' });
-    const pv  = cylinder({ x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-x73a', role: 'storage' });
-
+// The list order IS the append order, which is the z-order: blocks, then the divider and the bound
+// link and the four lanes above them, then the chip strip, then the packet layer so every ball
+// rides above everything.
+export const SCENE = {
+  'aria-label': 'Ephemeral versus persistent storage: one Pod mounts both an emptyDir and a PersistentVolumeClaim and writes to each. When the Pod is deleted and rescheduled onto another Node, the emptyDir comes back empty because it was tied to the old Node, while the claim reattaches the very same disk with the data intact.',
+  parts: [
+    P.defs(),
+    P.pod({
+      key: 'pod', innerKey: 'podBox', tune: raiseSublabel,
+      x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod api-0', sublabel: 'volumes: scratch, data', containers: 0,
+      inner: { dx: 24, dy: (POD_H - 60) / 2, w: POD_W - 48, h: 60, label: 'app', sublabel: 'mounts /scratch and /data' },
+    }),
+    P.cylinder({ key: 'ed', x: ED_X, y: ED_Y, w: ED_W, h: ED_H, label: 'emptyDir' }),
+    P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data', sublabel: 'Bound' }),
+    P.cylinder({ key: 'pv', x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-x73a' }),
     // Central ephemeral | persistent split, and the dim dashed Bound link tying the claim to its PV.
-    const divider = relationPath({ points: [[DIV_X, DIV_TOP], [DIV_X, DIV_BOTTOM]], role: 'storage', dash: '4 6' });
-    const boundLink = relationPath({ points: [[PV_CX, PVC_BOTTOM], [PV_CX, PV_TOP]], role: 'storage', dash: '4 6' });
-
+    P.relation({ points: [[DIV_X, DIV_TOP], [DIV_X, DIV_BOTTOM]], dash: '4 6' }),
+    P.relation({ points: [[PV_CX, PVC_BOTTOM], [PV_CX, PV_TOP]], dash: '4 6' }),
     // Four straight arrows: a write (down) and a remount (up) lane per column.
-    const wLWrite = pathArrow({ points: W_L_WRITE, dashed: true, dim: true, role: 'storage' });
-    const wLMount = pathArrow({ points: W_L_MOUNT, dashed: true, dim: true, role: 'storage' });
-    const wRWrite = pathArrow({ points: W_R_WRITE, dashed: true, dim: true, role: 'storage' });
-    const wRMount = pathArrow({ points: W_R_MOUNT, dashed: true, dim: true, role: 'storage' });
-
+    P.lane({ key: 'wLWrite', tune: inLanes, points: W_L_WRITE, dashed: true, dim: true }),
+    P.lane({ key: 'wLMount', tune: inLanes, points: W_L_MOUNT, dashed: true, dim: true }),
+    P.lane({ key: 'wRWrite', tune: inLanes, points: W_R_WRITE, dashed: true, dim: true }),
+    P.lane({ key: 'wRMount', tune: inLanes, points: W_R_MOUNT, dashed: true, dim: true }),
     // Three state chips on the card's own strip (290..910), evenly spaced, no text overlap.
-    const edChip  = valChip({ x: CHIP_X(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'emptyDir', value: 'empty',     role: 'storage' });
-    const pvcChip = valChip({ x: CHIP_X(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'PVC',      value: 'Bound',     role: 'storage' });
-    const podChip = valChip({ x: CHIP_X(2), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Pod',      value: 'on Node-1', role: 'storage' });
+    P.chip({ key: 'edChip', x: CHIP_X(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'emptyDir', value: 'empty' }),
+    P.chip({ key: 'pvcChip', x: CHIP_X(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'PVC', value: 'Bound' }),
+    P.chip({ key: 'podChip', x: CHIP_X(2), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Pod', value: 'on Node-1' }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['ed', 'pvc', 'pv', 'podBox', 'edChip', 'pvcChip', 'podChip'],
+    pods: ['pod'],
+  },
+};
 
-    const packetLayer = g({ id: 'packetLayer' });
+// Every lane has the Pod at one end, so none is more present than the Pod. ONE formula pins blocks
+// and lanes together, or mount arrows stay at full across a Pod that has faded to the terminal
+// shade. STO.S-01 as a field: every step states the whole stack, nothing is inherited.
+const presence = ({ pod = 1, ed = 1 } = {}) => ({ pod, ed, wLWrite: pod, wLMount: pod, wRWrite: pod, wRMount: pod });
 
-    // Z-order (bottom -> top): blocks, then divider and bound link and the four arrows above them,
-    // then the chip strip, then the packet layer so every ball rides above everything.
-    [podB.group, ed, pvc, pv].forEach(el => root.appendChild(el));
-    [divider, boundLink, wLWrite, wLMount, wRWrite, wRMount].forEach(el => root.appendChild(el));
-    [edChip, pvcChip, podChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, pod: podB.group, podBox: podB.innerBox,
-      ed, pvc, pv,
-      lanes: [wLWrite, wLMount, wRWrite, wRMount],
-      edChip, pvcChip, podChip,
-      wires: {},
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { ed, pvc, pod }) {
-  setChip(s.refs.edChip, ed);
-  setChip(s.refs.pvcChip, pvc);
-  setChip(s.refs.podChip, pod);
-}
-
-// Every lane has the Pod at one end, so none is more present than the Pod. ONE helper pins blocks
-// and lanes together, or mount arrows stay at full across a Pod that has faded to the terminal shade.
-function setPresence(s, { pod = 1, ed = 1 } = {}) {
-  s.refs.pod.style.opacity = String(pod);
-  s.refs.ed.style.opacity = String(ed);
-  s.refs.lanes.forEach(el => { el.style.opacity = String(pod); });
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['ed', 'pvc', 'pv', 'podBox', 'edChip', 'pvcChip', 'podChip'], [s.refs.pod]);
-  setPresence(s);
-  clearWires(s);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { ed: 'empty', pvc: 'Bound', pod: 'on Node-1' });
-    },
+    chipsCued: { edChip: 'empty', pvcChip: 'Bound', podChip: 'on Node-1' },
+    opacity: presence(),
   },
   {
     id: 'write',
     duration: 2800,
     narration: 'The app writes to both. A log line goes into the emptyDir on the Node, and a database row goes through the claim onto the PersistentVolume. Right now both look the same, each holds the byte it was given.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ed: 'log written', pvc: 'row written', pod: 'on Node-1' });
-      if (ctx.reduced) { s.refs.ed.classList.add('highlight'); s.refs.pvc.classList.add('highlight'); s.refs.pv.classList.add('highlight'); return; }
-      // Pod to both disks: an up-arrow, so the Pod pulses first and both writes descend at afterPulse.
-      pulsePod(s.refs.pod, ctx, 0);
-      const wl = routePacket(s, ctx, W_L_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
-      ridingLabel(s, ctx, 'log line', W_L_WRITE, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.ed, ctx, wl.arrivalMs);
-      const wr = routePacket(s, ctx, W_R_WRITE, { delay: BEAT.afterPulse, role: 'storage' });
-      ridingLabel(s, ctx, 'db row', W_R_WRITE, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.pvc, ctx, wr.arrivalMs);
-      lightBoxAt(s.refs.pv, ctx, wr.arrivalMs);
-    },
+    chipsCued: { edChip: 'log written', pvcChip: 'row written', podChip: 'on Node-1' },
+    opacity: presence(),
+    // Pod to both disks: an up-arrow, so the Pod pulses first and both writes descend at afterPulse.
+    // Each cue is its own entry because the hand-written step emitted it AFTER the tag.
+    flow: [
+      F.pulse({ pod: 'pod' }),
+      F.route({ points: W_L_WRITE, delay: BEAT.afterPulse, name: 'wl' }),
+      F.tag({ text: 'log line', points: W_L_WRITE, delay: BEAT.afterPulse }),
+      F.light({ targets: ['ed'], at: 'wl' }),
+      F.route({ points: W_R_WRITE, delay: BEAT.afterPulse, name: 'wr' }),
+      F.tag({ text: 'db row', points: W_R_WRITE, delay: BEAT.afterPulse }),
+      F.light({ targets: ['pvc', 'pv'], at: 'wr' }),
+    ],
   },
   {
     id: 'delete',
     duration: 2800,
     narration: 'The Pod is deleted off Node-1. Its emptyDir was part of the Node, so it is wiped with the Pod. The PersistentVolume is a separate object with its own disk, so it simply detaches and keeps every byte.',
-    enter(s, ctx) {
-      resetStep(s);
-      // The chip is the CLAIM, and a claim does not detach: the disk does. What the claim does here is
-      // survive the Pod and stay bound, which is the whole contrast with the emptyDir beside it.
-      setChips(s, { ed: 'wiped', pvc: 'kept, still Bound', pod: 'deleted' });
-      // The PV keeps its data, so it stays lit. The Pod and its emptyDir are gone by the end, both
-      // fading to the same terminal shade.
-      s.refs.pv.classList.add('highlight');
-      setPresence(s, { pod: OPACITY.terminated, ed: OPACITY.terminated });
-      if (ctx.reduced) return;
-      setPresence(s);
-      // The lanes go with the Pod, on the Pod beat: they are the mounts it held.
-      [s.refs.pod, ...s.refs.lanes].forEach(el => ctx.register(
-        el.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: 650, fill: 'forwards', easing: 'ease-in' })));
-      ctx.register(s.refs.ed.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: 650, delay: 250, fill: 'forwards', easing: 'ease-in' }));
-    },
+    // The chip is the CLAIM, and a claim does not detach: the disk does. What the claim does here is
+    // survive the Pod and stay bound, which is the whole contrast with the emptyDir beside it.
+    chipsCued: { edChip: 'wiped', pvcChip: 'kept, still Bound', podChip: 'deleted' },
+    // The Pod and its emptyDir are gone by the END, both at the same terminal shade, so that is what
+    // the static field carries and the rewind puts the animated path back at full to travel from.
+    opacity: presence({ pod: OPACITY.terminated, ed: OPACITY.terminated }),
+    // The PV keeps its data, so it stays lit on both paths.
+    lit: ['pv'],
+    rewind: { opacity: presence() },
+    // The lanes go with the Pod, on the Pod beat: they are the mounts it held.
+    flow: [
+      ...['pod', 'wLWrite', 'wLMount', 'wRWrite', 'wRMount'].map(target =>
+        F.fade({ target, to: OPACITY.terminated, dur: 650, fill: 'forwards' })),
+      F.fade({ target: 'ed', to: OPACITY.terminated, dur: 650, delay: 250, fill: 'forwards' }),
+    ],
   },
   {
     id: 'reschedule',
     duration: 2400,
     narration: 'The controller recreates the Pod, and the scheduler places it on Node-2. This is where the two volumes stop looking alike, because one is tied to a Node it is no longer on and the other is tied to nothing but the claim.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ed: 'empty again', pvc: 'reattaching', pod: 'on Node-2' });
-      s.refs.pv.classList.add('highlight');
-      if (ctx.reduced) return;
-      // The Pod comes up fresh on Node-2, and its mount lanes rise with it.
-      setPresence(s, { pod: OPACITY.terminated });
-      [s.refs.pod, ...s.refs.lanes].forEach(el => ctx.register(
-        el.animate([{ opacity: OPACITY.terminated }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' })));
-      pulsePod(s.refs.pod, ctx, 550);
-    },
+    chipsCued: { edChip: 'empty again', pvcChip: 'reattaching', podChip: 'on Node-2' },
+    opacity: presence(),
+    lit: ['pv'],
+    // The Pod comes up fresh on Node-2, and its mount lanes rise with it.
+    rewind: { opacity: presence({ pod: OPACITY.terminated }) },
+    flow: [
+      ...['pod', 'wLWrite', 'wLMount', 'wRWrite', 'wRMount'].map(target =>
+        F.fade({ target, from: OPACITY.terminated, to: 1, dur: 500, fill: 'forwards', easing: 'ease-out' })),
+      F.pulse({ pod: 'pod', delay: 550 }),
+    ],
   },
   {
     id: 'diverge',
     duration: 2800,
     narration: 'The emptyDir comes back empty. It is a brand new directory on Node-2 and knows nothing about Node-1. The claim reattaches the very same PersistentVolume, so /data still has the database row. Same Pod spec, two completely different outcomes.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ed: 'empty', pvc: 'reattached, intact', pod: 'on Node-2' });
-      s.refs.ed.classList.add('highlight');
-      s.refs.pvc.classList.add('highlight');
-      s.refs.pv.classList.add('highlight');
-      if (ctx.reduced) return;
-      const ml = routePacket(s, ctx, W_L_MOUNT, { role: 'storage' });
-      ridingLabel(s, ctx, 'empty', W_L_MOUNT);
-      const mr = routePacket(s, ctx, W_R_MOUNT, { role: 'storage' });
-      ridingLabel(s, ctx, 'db row intact', W_R_MOUNT);
-      pulsePod(s.refs.pod, ctx, Math.max(ml.arrivalMs, mr.arrivalMs));
-    },
+    chipsCued: { edChip: 'empty', pvcChip: 'reattached, intact', podChip: 'on Node-2' },
+    opacity: presence(),
+    lit: ['ed', 'pvc', 'pv'],
+    // Both remount lanes are 92 units long, so the two routes clamp to the same routeDur and the
+    // Pod's arrival beat is either arrival: the hand-written Math.max over the pair was a no-op.
+    flow: [
+      F.route({ points: W_L_MOUNT, name: 'ml' }),
+      F.tag({ text: 'empty', points: W_L_MOUNT }),
+      F.route({ points: W_R_MOUNT }),
+      F.tag({ text: 'db row intact', points: W_R_MOUNT }),
+      F.pulse({ pod: 'pod', at: 'ml' }),
+    ],
   },
   {
     id: 'verdict',
     duration: 2200,
     narration: 'That is the whole distinction. Ephemeral storage is scratch that resets whenever the Pod is rescheduled, persistent storage follows the claim across Nodes and restarts. Put throwaway data in an emptyDir and anything you must not lose behind a PVC.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ed: 'resets on move', pvc: 'follows the claim', pod: 'on Node-2' });
-      // Verdict is a plain recap: only the Pod pulses, no block stays lit.
-      if (ctx.reduced) return;
-      pulsePod(s.refs.pod, ctx, 0);
-    },
+    chipsCued: { edChip: 'resets on move', pvcChip: 'follows the claim', podChip: 'on Node-2' },
+    opacity: presence(),
+    // Verdict is a plain recap: only the Pod pulses, no block stays lit.
+    flow: [F.pulse({ pod: 'pod' })],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

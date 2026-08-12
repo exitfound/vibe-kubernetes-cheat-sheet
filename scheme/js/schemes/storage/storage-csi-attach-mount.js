@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, cylinder, node, pathArrow, chainList, setChainActive, podShell } from '../../lib/primitives.js';
-import { valChip, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, relationPath, BEAT, lightBoxAt, makeRidingLabel, revealAt, wrapPod, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, BEAT } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-csi-attach-mount
 
 
@@ -69,25 +67,44 @@ const W_PUB_B   = [[PODB_CX, STG_BOTTOM], [PODB_CX, POD_Y]];
 const W_OWNS = `M ${OWNS_X} ${ND_Y + ND_H} L ${OWNS_X} ${STG_TOP}`;
 
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage' });
+// The two Pods differ only in x and name: same shell, same sublabel, same container box.
+const podBlock = ({ key, innerKey, x, label }) => P.pod({
+  key, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'private bind mount', containers: 0,
+  inner: { dx: 24, dy: 40, w: POD_W - 48, h: 46, label: 'app', sublabel: '/data writable' },
+  opacity: 0,
+});
 
-function podBlock({ x, label }) {
-  const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'private bind mount', containers: 0, role: 'storage' });
-  const innerBox = box({ x: x + 24, y: POD_Y + 40, w: POD_W - 48, h: 46, label: 'app', sublabel: '/data writable', role: 'storage' });
-  return wrapPod(shell, innerBox);
-}
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'The CSI attach and mount chain: four gRPC calls take a volume from nowhere to a writable path. CreateVolume makes the disk in the cloud backend, ControllerPublishVolume attaches it to the Node as a raw block device, NodeStageVolume formats it if needed and mounts it once at a global staging path, and NodePublishVolume bind-mounts that one staged filesystem into each Pod, which is how two Pods on one Node share a single attached disk.' });
-    root.appendChild(arrowDefs());
-
-    const chain = chainList({
+// Z-order, bottom to top: the node frame, then the blocks and disks and Pods inside it, then the
+// lanes and the band caption above them, then the chip strip, then the packet layer, and the LADDER
+// last of all so its lit rung stays crisp when a ball passes over it.
+export const SCENE = {
+  'aria-label': 'The CSI attach and mount chain: four gRPC calls take a volume from nowhere to a writable path. CreateVolume makes the disk in the cloud backend, ControllerPublishVolume attaches it to the Node as a raw block device, NodeStageVolume formats it if needed and mounts it once at a global staging path, and NodePublishVolume bind-mounts that one staged filesystem into each Pod, which is how two Pods on one Node share a single attached disk.',
+  parts: [
+    P.defs(),
+    P.node({ x: NF_X, y: NF_Y, w: NF_W, h: NF_H, label: 'Node-1' }),
+    P.box({ key: 'ctrl', x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'CSI controller', sublabel: 'attacher + provisioner' }),
+    P.cylinder({ key: 'cdisk', x: DISK_X, y: CDISK_Y, w: DISK_W, h: CDISK_H, label: 'Cloud Disk vol-1' }),
+    P.cylinder({ key: 'dev', x: DISK_X, y: DEV_Y, w: DISK_W, h: DEV_H, label: '/dev/nvme1n1', opacity: 0 }),
+    P.box({ key: 'nd', x: ND_X, y: ND_Y, w: ND_W, h: ND_H, label: 'CSI node driver', sublabel: 'node plugin' }),
+    P.box({ key: 'stg', x: STG_X, y: STG_Y, w: STG_W, h: STG_H, label: 'Global staging mount', sublabel: '.../csi/vol-1/globalmount' }),
+    podBlock({ key: 'podA', innerKey: 'podABox', x: PODA_X, label: 'Pod A' }),
+    podBlock({ key: 'podB', innerKey: 'podBBox', x: PODB_X, label: 'Pod B' }),
+    // W_OWNS is ownership, not traffic, so it is a markerless relation and never carries a ball.
+    P.relation({ d: W_OWNS, dash: '5 5' }),
+    P.lane({ points: W_CREATE, dashed: true, dim: true }),
+    // A block and its lanes are ONE construction: everything born mid-story starts hidden together.
+    P.lane({ key: 'wAttach', points: W_ATTACH, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wStage', points: W_STAGE, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wPubA', points: W_PUB_A, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wPubB', points: W_PUB_B, dashed: true, dim: true, opacity: 0 }),
+    P.wire({ key: 'stage', x: NODE_CX, y: STG_LBL_Y }),
+    P.chip({ key: 'diskChip', x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'disk', value: 'none' }),
+    P.chip({ key: 'devChip', x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'device on node', value: 'none' }),
+    P.chip({ key: 'stageChip', x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'staging mount', value: 'none' }),
+    P.chip({ key: 'bindChip', x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'bind mounts', value: 'none' }),
+    P.packets(),
+    P.chain({
+      key: 'chain',
       x: LAD_X, y: LAD_Y, w: LAD_W, rowH: LAD_ROW, gap: LAD_GAP,
       items: [
         '1. CreateVolume  ·  the disk now exists',
@@ -95,196 +112,127 @@ class Scene {
         '3. NodeStageVolume  ·  formatted, mounted once',
         '4. NodePublishVolume  ·  bind-mounted into the Pod',
       ],
-      role: 'storage',
-    });
-
-    const ctrl  = box({ x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'CSI controller', sublabel: 'attacher + provisioner', role: 'storage' });
-    const cdisk = cylinder({ x: DISK_X, y: CDISK_Y, w: DISK_W, h: CDISK_H, label: 'Cloud Disk vol-1', role: 'storage' });
-    const dev   = cylinder({ x: DISK_X, y: DEV_Y, w: DISK_W, h: DEV_H, label: '/dev/nvme1n1', role: 'storage' });
-    const nd    = box({ x: ND_X, y: ND_Y, w: ND_W, h: ND_H, label: 'CSI node driver', sublabel: 'node plugin', role: 'storage' });
-    const stg   = box({ x: STG_X, y: STG_Y, w: STG_W, h: STG_H, label: 'Global staging mount', sublabel: '.../csi/vol-1/globalmount', role: 'storage' });
-    const podA  = podBlock({ x: PODA_X, label: 'Pod A' });
-    const podB  = podBlock({ x: PODB_X, label: 'Pod B' });
-
-    const nodeFrame = node({ x: NF_X, y: NF_Y, w: NF_W, h: NF_H, label: 'Node-1' });
-
-    const wCreate = pathArrow({ points: W_CREATE, dashed: true, dim: true, role: 'storage' });
-    const wAttach = pathArrow({ points: W_ATTACH, dashed: true, dim: true, role: 'storage' });
-    const wStage  = pathArrow({ points: W_STAGE, dashed: true, dim: true, role: 'storage' });
-    const wPubA   = pathArrow({ points: W_PUB_A, dashed: true, dim: true, role: 'storage' });
-    const wPubB   = pathArrow({ points: W_PUB_B, dashed: true, dim: true, role: 'storage' });
-    const wOwns   = relationPath({ d: W_OWNS, role: 'storage', dash: '5 5' });
-
-    [dev, wAttach, wStage, podA.group, wPubA, podB.group, wPubB].forEach(el => { el.style.opacity = '0'; });
-
-    const stgLbl = text({ class: 'scheme-label code dim', x: NODE_CX, y: STG_LBL_Y, 'text-anchor': 'middle' }, [' ']);
-
-    const diskChip  = valChip({ x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'disk',           value: 'none', role: 'storage' });
-    const devChip   = valChip({ x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'device on node', value: 'none', role: 'storage' });
-    const stageChip = valChip({ x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'staging mount',  value: 'none', role: 'storage' });
-    const bindChip  = valChip({ x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'bind mounts',    value: 'none', role: 'storage' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    root.appendChild(nodeFrame);
-    [ctrl, cdisk, dev, nd, stg, podA.group, podB.group].forEach(el => root.appendChild(el));
-    [wOwns, wCreate, wAttach, wStage, wPubA, wPubB].forEach(el => root.appendChild(el));
-    root.appendChild(stgLbl);
-    [diskChip, devChip, stageChip, bindChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-    root.appendChild(chain);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, chain, ctrl, cdisk, dev, nd, stg,
-      podA: podA.group, podABox: podA.innerBox, podB: podB.group, podBBox: podB.innerBox,
-      wAttach, wStage, wPubA, wPubB,
-      diskChip, devChip, stageChip, bindChip,
-      wires: { stage: stgLbl },
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
+    }),
+  ],
+  reset: {
+    keys: ['ctrl', 'cdisk', 'dev', 'nd', 'stg', 'podABox', 'podBBox',
+      'diskChip', 'devChip', 'stageChip', 'bindChip'],
+    pods: ['podA', 'podB'],
+  },
+};
 
 // Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how this
 // card once showed a staging mount on the step that was explaining the disk did not exist yet.
-function setChips(s, { disk, device, staging, binds }) {
-  setChip(s.refs.diskChip, disk);
-  setChip(s.refs.devChip, device);
-  setChip(s.refs.stageChip, staging);
-  setChip(s.refs.bindChip, binds);
-}
+const chips = (disk, device, staging, binds) => ({ diskChip: disk, devChip: device, stageChip: staging, bindChip: binds });
 
-function setBorn(s, { device = 0, podA = 0, podB = 0 } = {}) {
-  [[s.refs.dev, device], [s.refs.wAttach, device], [s.refs.wStage, device],
-    [s.refs.podA, podA], [s.refs.wPubA, podA],
-    [s.refs.podB, podB], [s.refs.wPubB, podB]].forEach(([el, v]) => { el.style.opacity = String(v); });
-}
+// STO.S-01 as a field: every element born mid-story, and every lane, is pinned on EVERY step. A block
+// and its lanes are one construction, so they share the one number.
+const born = (device, podA, podB) => ({
+  dev: device, wAttach: device, wStage: device,
+  podA, wPubA: podA, podB, wPubB: podB,
+});
 
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['ctrl', 'cdisk', 'dev', 'nd', 'stg', 'podABox', 'podBBox',
-    'diskChip', 'devChip', 'stageChip', 'bindChip'], [s.refs.podA, s.refs.podB]);
-  clearWires(s);
-}
-
-function call(s, ctx, { points, tag, target, delay = BEAT.lead }) {
-  const pkt = routePacket(s, ctx, points, { delay, role: 'storage' });
-  ridingLabel(s, ctx, tag, points, { delay });
-  if (target) lightBoxAt(target, ctx, pkt.arrivalMs);
-  return pkt;
-}
-
-function publishInto(s, ctx, { podEl, lane, points, tag }) {
-  revealAt(podEl, ctx, 0);
-  revealAt(lane, ctx, 0);
-  const delay = BEAT.lead;
-  const pkt = routePacket(s, ctx, points, { delay, role: 'storage' });
-  ridingLabel(s, ctx, tag, points, { delay });
-  pulsePod(podEl, ctx, pkt.arrivalMs);
-  return pkt;
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChainActive(s.refs.chain, -1);
-      setChips(s, { disk: 'none', device: 'none', staging: 'none', binds: 'none' });
-      setBorn(s, {});
-    },
+    chipsCued: chips('none', 'none', 'none', 'none'),
+    opacity: born(0, 0, 0),
+    chain: -1,
   },
   {
     id: 'create',
     duration: 3400,
     narration: 'CreateVolume runs first, on the controller side. The provisioner asks the driver to carve a real disk out of the cloud backend. When it returns, a disk called vol-1 exists somewhere in the provider, but it is not near any Node yet and nothing can read a byte of it.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChainActive(s.refs.chain, 0);
-      setChips(s, { disk: 'vol-1 in the cloud', device: 'none', staging: 'none', binds: 'none' });
-      setBorn(s, {});
-      s.refs.ctrl.classList.add('highlight');
-      if (ctx.reduced) { s.refs.cdisk.classList.add('highlight'); return; }
-      call(s, ctx, { points: W_CREATE, tag: 'CreateVolume', target: s.refs.cdisk });
-    },
+    chipsCued: chips('vol-1 in the cloud', 'none', 'none', 'none'),
+    opacity: born(0, 0, 0),
+    lit: ['ctrl'],
+    chain: 0,
+    // An infra-to-infra call: the source is lit at entry, so the ball leaves after BEAT.lead and the
+    // destination lights on arrival. The cue is its OWN entry because it stood after the tag.
+    flow: [
+      F.route({ points: W_CREATE, delay: BEAT.lead, name: 'create' }),
+      F.tag({ text: 'CreateVolume', points: W_CREATE, delay: BEAT.lead }),
+      F.light({ targets: ['cdisk'], at: 'create' }),
+    ],
   },
   {
     id: 'attach',
     duration: 2800,
     narration: 'ControllerPublishVolume runs next, still on the controller side. The external-attacher asks the driver to attach vol-1 to the Node the Pod was scheduled on. This is a cloud operation: the disk shows up on the Node as a raw block device, here /dev/nvme1n1. It is still unformatted.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChainActive(s.refs.chain, 1);
-      setChips(s, { disk: 'attached to node-1', device: '/dev/nvme1n1', staging: 'none', binds: 'none' });
-      // The device exists on the node by the END of this step, so visible is the static end-state and
-      // the fade below only stages how it gets there.
-      setBorn(s, { device: 1 });
-      s.refs.ctrl.classList.add('highlight');
-      s.refs.cdisk.classList.add('highlight');
-      if (ctx.reduced) { s.refs.dev.classList.add('highlight'); return; }
-      revealAt(s.refs.dev, ctx, 0);
-      revealAt(s.refs.wAttach, ctx, 0);
-      revealAt(s.refs.wStage, ctx, 0);
-      call(s, ctx, { points: W_ATTACH, tag: 'ControllerPublish', target: s.refs.dev });
-    },
+    chipsCued: chips('attached to node-1', '/dev/nvme1n1', 'none', 'none'),
+    // The device exists on the node by the END of this step, so visible is the static end-state and
+    // the reveals below only stage how it gets there.
+    opacity: born(1, 0, 0),
+    lit: ['ctrl', 'cdisk'],
+    chain: 1,
+    // The device and both its lanes finish materialising BEFORE the call is sent (REVEAL_MS 500
+    // against BEAT.lead 800).
+    flow: [
+      F.reveal({ target: 'dev' }),
+      F.reveal({ target: 'wAttach' }),
+      F.reveal({ target: 'wStage' }),
+      F.route({ points: W_ATTACH, delay: BEAT.lead, name: 'attach' }),
+      F.tag({ text: 'ControllerPublish', points: W_ATTACH, delay: BEAT.lead }),
+      F.light({ targets: ['dev'], at: 'attach' }),
+    ],
   },
   {
     id: 'stage',
     duration: 3000,
     narration: 'NodeStageVolume is the first Node call. The node plugin formats the raw device if needed and mounts it once, at a global staging path under the Kubelet directory. This happens a single time per Node no matter how many Pods will use the volume, which is the whole reason stage and publish are two calls, not one.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChainActive(s.refs.chain, 2);
-      setChips(s, { disk: 'attached to node-1', device: '/dev/nvme1n1', staging: 'mounted once', binds: 'none' });
-      setBorn(s, { device: 1 });
-      s.refs.dev.classList.add('highlight');
-      s.refs.nd.classList.add('highlight');
-      setWire(s, 'stage', 'mount once per node');
-      if (ctx.reduced) { s.refs.stg.classList.add('highlight'); return; }
-      call(s, ctx, { points: W_STAGE, tag: 'NodeStage', target: s.refs.stg });
-    },
+    chipsCued: chips('attached to node-1', '/dev/nvme1n1', 'mounted once', 'none'),
+    wires: { stage: 'mount once per node' },
+    opacity: born(1, 0, 0),
+    lit: ['dev', 'nd'],
+    chain: 2,
+    flow: [
+      F.route({ points: W_STAGE, delay: BEAT.lead, name: 'stage' }),
+      F.tag({ text: 'NodeStage', points: W_STAGE, delay: BEAT.lead }),
+      F.light({ targets: ['stg'], at: 'stage' }),
+    ],
   },
   {
     id: 'publish',
     duration: 3200,
     narration: 'NodePublishVolume is the last call, once per Pod. It does not re-mount the disk. It bind-mounts the already staged filesystem into this Pod private directory, which surfaces as /data inside the container. Only now does Pod A start and begin writing.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChainActive(s.refs.chain, 3);
-      setChips(s, { disk: 'attached to node-1', device: '/dev/nvme1n1', staging: 'mounted once', binds: '1 (Pod A)' });
-      // Pod A starts on this step, so it and its lane are present by the end of it.
-      setBorn(s, { device: 1, podA: 1 });
-      // The node plugin runs this call too, so it stays lit alongside the mount it is bind-mounting.
-      s.refs.nd.classList.add('highlight');
-      s.refs.stg.classList.add('highlight');
-      setWire(s, 'stage', 'bind-mount, no remount');
-      if (ctx.reduced) return;
-      publishInto(s, ctx, { podEl: s.refs.podA, lane: s.refs.wPubA, points: W_PUB_A, tag: 'NodePublish' });
-    },
+    chipsCued: chips('attached to node-1', '/dev/nvme1n1', 'mounted once', '1 (Pod A)'),
+    wires: { stage: 'bind-mount, no remount' },
+    // Pod A starts on this step, so it and its lane are present by the end of it.
+    opacity: born(1, 1, 0),
+    // The node plugin runs this call too, so it stays lit alongside the mount it is bind-mounting.
+    lit: ['nd', 'stg'],
+    chain: 3,
+    // A publish is infra reaching a Pod, so DOWN-ARROW ordering: the ball flies first and the Pod
+    // pulses on ARRIVAL. Nothing lights, so the reduced path shows no cue here.
+    flow: [
+      F.reveal({ target: 'podA' }),
+      F.reveal({ target: 'wPubA' }),
+      F.route({ points: W_PUB_A, delay: BEAT.lead, name: 'pubA' }),
+      F.tag({ text: 'NodePublish', points: W_PUB_A, delay: BEAT.lead }),
+      F.pulse({ pod: 'podA', at: 'pubA' }),
+    ],
   },
   {
     id: 'share',
     duration: 3200,
     narration: 'A second Pod lands on the same Node and asks for the same volume. The disk is already attached and already staged, so those two calls are skipped entirely. Only one more NodePublishVolume runs, a second bind-mount off the same global staging path. That is how several Pods on one Node share a single attached disk.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChainActive(s.refs.chain, 3);
-      setChips(s, { disk: 'attached to node-1', device: '/dev/nvme1n1', staging: 'mounted once', binds: '2 (Pod A + Pod B)' });
-      // Pod A stays exactly as step 4 left it. Pod B lands on this step, so it and its lane are present
-      // by the end of it, and Pod A is re-pinned rather than inherited.
-      setBorn(s, { device: 1, podA: 1, podB: 1 });
-      s.refs.nd.classList.add('highlight');
-      s.refs.stg.classList.add('highlight');
-      setWire(s, 'stage', 'one mount, two bind mounts');
-      if (ctx.reduced) return;
-      // Pod B lands on the node with its lane, then the second bind-mount reaches it and it pulses.
-      publishInto(s, ctx, { podEl: s.refs.podB, lane: s.refs.wPubB, points: W_PUB_B, tag: 'NodePublish again' });
-    },
+    chipsCued: chips('attached to node-1', '/dev/nvme1n1', 'mounted once', '2 (Pod A + Pod B)'),
+    wires: { stage: 'one mount, two bind mounts' },
+    // Pod A stays exactly as step 4 left it. Pod B lands on this step, so it and its lane are present
+    // by the end of it, and Pod A is re-pinned rather than inherited.
+    opacity: born(1, 1, 1),
+    lit: ['nd', 'stg'],
+    chain: 3,
+    // Pod B lands on the node with its lane, then the second bind-mount reaches it and it pulses.
+    flow: [
+      F.reveal({ target: 'podB' }),
+      F.reveal({ target: 'wPubB' }),
+      F.route({ points: W_PUB_B, delay: BEAT.lead, name: 'pubB' }),
+      F.tag({ text: 'NodePublish again', points: W_PUB_B, delay: BEAT.lead }),
+      F.pulse({ pod: 'podB', at: 'pubB' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

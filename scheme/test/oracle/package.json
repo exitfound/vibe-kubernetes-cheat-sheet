@@ -17,6 +17,12 @@
     "oracle:card:reduced": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card:reduced -- <scheme-id>\"; exit 1; }; node reduced-dump.mjs \"$1\" --out=baselines/reduced' --",
     "oracle:card:reduced:base": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card:reduced:base -- <scheme-id>\"; exit 1; }; node reduced-dump.mjs \"$1\" --out=baselines/reduced-base' --",
     "oracle:card:reduced:diff": "sh -c 'test -n \"$1\" || { echo \"usage: npm run oracle:card:reduced:diff -- <scheme-id>\"; exit 1; }; for f in baselines/reduced-base/\"$1\".txt baselines/reduced/\"$1\".txt; do test -f \"$f\" || { echo \"MISSING $f: run oracle:card:reduced:base before the rewrite and oracle:card:reduced after\"; exit 1; }; done; diff -u baselines/reduced-base/\"$1\".txt baselines/reduced/\"$1\".txt && echo \"CARD CLEAN (reduced): $1 prev, reset and deep-link state identical to the baseline\"' --",
+    "settled": "node settled-dump.mjs --all --out=baselines/settled",
+    "settled:base": "node settled-dump.mjs --all --out=baselines/settled-base",
+    "settled:diff": "test -f baselines/settled/_complete || { echo 'SETTLED INCOMPLETE: a run died partway'; exit 1; }; diff -rq -x _complete baselines/settled-base baselines/settled && echo 'SETTLED CLEAN: every step settles on the same frame as the baseline'",
+    "card:settled": "sh -c 'test -n \"$1\" || { echo \"usage: npm run card:settled -- <scheme-id>\"; exit 1; }; node settled-dump.mjs \"$1\" --out=baselines/settled' --",
+    "card:settled:base": "sh -c 'test -n \"$1\" || { echo \"usage: npm run card:settled:base -- <scheme-id>\"; exit 1; }; node settled-dump.mjs \"$1\" --out=baselines/settled-base' --",
+    "card:settled:diff": "sh -c 'test -n \"$1\" || { echo \"usage: npm run card:settled:diff -- <scheme-id>\"; exit 1; }; for f in baselines/settled-base/\"$1\".txt baselines/settled/\"$1\".txt; do test -f \"$f\" || { echo \"MISSING $f: run card:settled:base before the rewrite and card:settled after\"; exit 1; }; done; diff -u baselines/settled-base/\"$1\".txt baselines/settled/\"$1\".txt && echo \"CARD SETTLED CLEAN: $1 lands on the same frame as the baseline, deferred writes included\"' --",
     "dump": "node anim-dump.mjs"
   },
   "devDependencies": {

@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setChip, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, makeRidingLabel, lightBoxAt, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, BEAT } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-container-filesystem
 
 
@@ -25,201 +23,134 @@ const CHIPS_Y = 596;
 const W_COPYUP = [[POD_CX, POD_BOTTOM], [POD_CX, WR_Y]];
 const W_VOL    = [[POD_RIGHT, EXIT_Y], [BYPASS_X, EXIT_Y], [BYPASS_X, VOL_MY], [VOL_RIGHT, VOL_MY]];
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage' });
+const LAYER_FADE = 500;                               // the layer and its wire cross-fade as one
 
-function podBlock({ x, y, w, h, label, sublabel }) {
-  const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
-  const innerBox = box({ x: x + 24, y: y + 46, w: w - 48, h: 60, label: 'Process', sublabel: 'sees one tree at /', role: 'storage' });
-  const shellWrap = g({});
-  shellWrap.appendChild(shell);
-  const group = g({});
-  group.appendChild(shellWrap);
-  group.appendChild(innerBox);
-  return { group, shellWrap, innerBox };
-}
+// Z-order (bottom -> top): blocks, then wires and the mount label above them, then the chip strip,
+// then the packet layer so every ball rides above everything. The Container is a group holding the
+// shell wrap and the Process box as PEERS, so the pulse on the group reaches both.
+export const SCENE = {
+  'aria-label': 'Container filesystem layers: a container root filesystem is read-only image layers stacked by overlayfs with one thin writable layer on top. A write copies the file up into the writable layer rather than changing the image, and that writable layer is discarded when the container is removed, which is why data written outside a volume vanishes. A mounted volume bypasses the overlay and writes straight to real storage.',
+  parts: [
+    P.defs(),
+    P.group({
+      key: 'ctr',
+      parts: [
+        P.pod({ key: 'ctrShell', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Container', sublabel: 'root filesystem', containers: 0 }),
+        P.box({ key: 'ctrBox', x: POD_X + 24, y: POD_Y + 46, w: POD_W - 48, h: 60, label: 'Process', sublabel: 'sees one tree at /' }),
+      ],
+    }),
+    P.box({ key: 'l1', x: STK_X, y: L1_Y, w: STK_W, h: LH, label: 'Image layer: base', sublabel: 'read-only' }),
+    P.box({ key: 'l2', x: STK_X, y: L2_Y, w: STK_W, h: LH, label: 'Image layer: deps', sublabel: 'read-only' }),
+    P.box({ key: 'l3', x: STK_X, y: L3_Y, w: STK_W, h: LH, label: 'Image layer: app', sublabel: 'read-only' }),
+    // Born hidden: the writable layer does not exist until its own step adds it.
+    P.box({ key: 'writable', x: STK_X, y: WR_Y, w: STK_W, h: WR_H, label: 'Writable layer', sublabel: 'upperdir, starts empty', opacity: 0 }),
+    // The primitive centers the label on the raw bbox, which reads high under the cap ellipse.
+    P.cylinder({ key: 'volume', x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: 'Volume', labelY: VOL_H / 2 + 12 }),
+    // The copy-up wire targets the writable layer, so it is born hidden with it and only ever shows
+    // while the layer itself is on screen (STO.S-02).
+    P.lane({ key: 'wCopyup', points: W_COPYUP, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ points: W_VOL, dashed: true, dim: true }),
+    P.wire({ key: 'mount', x: BYPASS_X + 14, y: 346, anchor: 'start' }),
+    P.chip({ key: 'fsChip', x: 100, y: CHIPS_Y, w: 320, h: 34, name: 'root fs', value: 'read-only image layers' }),
+    P.chip({ key: 'writeChip', x: 440, y: CHIPS_Y, w: 320, h: 34, name: 'last write', value: 'none' }),
+    P.chip({ key: 'persistChip', x: 780, y: CHIPS_Y, w: 320, h: 34, name: 'persists', value: 'no, in writable' }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['writable', 'l3', 'l2', 'l1', 'volume', 'ctrBox', 'fsChip', 'writeChip', 'persistChip'],
+    pods: ['ctrShell'],
+  },
+};
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+const RO_FS = 'read-only image layers', RW_FS = 'RO image + RW top';
+const IN_WRITABLE = 'no, in writable';
 
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Container filesystem layers: a container root filesystem is read-only image layers stacked by overlayfs with one thin writable layer on top. A write copies the file up into the writable layer rather than changing the image, and that writable layer is discarded when the container is removed, which is why data written outside a volume vanishes. A mounted volume bypasses the overlay and writes straight to real storage.' });
-    root.appendChild(arrowDefs());
+// STO.S-01 as a field: the writable layer and its wire come and go, so both are pinned on every
+// step alongside the Container, which resetStep used to pin by hand.
+const STACK_OFF = { ctr: 1, writable: 0, wCopyup: 0 };
+const STACK_ON  = { ctr: 1, writable: 1, wCopyup: 1 };
 
-    const ctr = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Container', sublabel: 'root filesystem' });
-
-    const writable = box({ x: STK_X, y: WR_Y, w: STK_W, h: WR_H, label: 'Writable layer', sublabel: 'upperdir, starts empty', role: 'storage' });
-    writable.style.opacity = '0';
-    const l3 = box({ x: STK_X, y: L3_Y, w: STK_W, h: LH, label: 'Image layer: app', sublabel: 'read-only', role: 'storage' });
-    const l2 = box({ x: STK_X, y: L2_Y, w: STK_W, h: LH, label: 'Image layer: deps', sublabel: 'read-only', role: 'storage' });
-    const l1 = box({ x: STK_X, y: L1_Y, w: STK_W, h: LH, label: 'Image layer: base', sublabel: 'read-only', role: 'storage' });
-
-    const volume = cylinder({ x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: 'Volume', role: 'storage' });
-    const volLbl = volume.querySelector('.scheme-cylinder-label');
-    if (volLbl) volLbl.setAttribute('y', 60);
-
-    // The copy-up wire targets the writable layer, which does not exist yet, so it is born hidden
-    // and only ever shows while the layer itself is on screen.
-    const wCopyup = pathArrow({ points: W_COPYUP, dashed: true, dim: true, role: 'storage' });
-    wCopyup.style.opacity = '0';
-    const wVol    = pathArrow({ points: W_VOL,    dashed: true, dim: true, role: 'storage' });
-
-    const mountLbl = text({ class: 'scheme-label code dim', x: BYPASS_X + 14, y: 346, 'text-anchor': 'start' }, [' ']);
-
-    const fsChip      = valChip({ x: 100, y: CHIPS_Y, w: 320, h: 34, name: 'root fs', value: 'read-only image layers', role: 'storage' });
-    const writeChip   = valChip({ x: 440, y: CHIPS_Y, w: 320, h: 34, name: 'last write', value: 'none',   role: 'storage' });
-    const persistChip = valChip({ x: 780, y: CHIPS_Y, w: 320, h: 34, name: 'persists', value: 'no, in writable', role: 'storage' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order (bottom -> top): blocks, then wires and the mount label above them, then the chip
-    // strip, then the packet layer so every ball rides above everything.
-    [ctr.group, l1, l2, l3, writable, volume].forEach(el => root.appendChild(el));
-    [wCopyup, wVol, mountLbl].forEach(el => root.appendChild(el));
-    [fsChip, writeChip, persistChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, ctr: ctr.group, ctrShell: ctr.shellWrap, ctrBox: ctr.innerBox,
-      writable, l3, l2, l1, volume, wCopyup,
-      fsChip, writeChip, persistChip,
-      wires: { mount: mountLbl },
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-// Sets each chip and statically highlights the ones whose value CHANGES on this step (the standard
-// set by the volume-model anchor): a chip that changes glows for the step, one that stays does not.
-function setChips(s, { fs, write, persist }) {
-  setChip(s.refs.fsChip, fs);
-  setChip(s.refs.writeChip, write);
-  setChip(s.refs.persistChip, persist);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['writable', 'l3', 'l2', 'l1', 'volume', 'ctrBox', 'fsChip', 'writeChip', 'persistChip'],
-    [s.refs.ctrShell]);
-  s.refs.ctr.style.opacity = '1';
-  clearWires(s);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      // The writable layer is hidden on the poster, so the chip must not claim an RW top yet.
-      setChips(s, { fs: 'read-only image layers', write: 'none', persist: 'no, in writable' });
-      s.refs.writable.style.opacity = '0';
-      s.refs.wCopyup.style.opacity = '0';
-    },
+    // The writable layer is hidden on the poster, so the chip must not claim an RW top yet.
+    chipsCued: { fsChip: RO_FS, writeChip: 'none', persistChip: IN_WRITABLE },
+    opacity: STACK_OFF,
   },
   {
     id: 'layers',
     duration: 2200,
     narration: 'The image layers are read-only. They come straight from the image and are shared between every container built on it, so nothing a container does can change them. This is the lower half of the overlay.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { fs: 'read-only image layers', write: 'none', persist: 'no, in writable' });
-      s.refs.writable.style.opacity = '0';
-      s.refs.wCopyup.style.opacity = '0';
-      s.refs.l3.classList.add('highlight');
-      s.refs.l2.classList.add('highlight');
-      s.refs.l1.classList.add('highlight');
-      if (ctx.reduced) return;
-      // The container starts and assembles its root from the image layers, so the shell pulses.
-      pulsePod(s.refs.ctr, ctx, 0);
-    },
+    chipsCued: { fsChip: RO_FS, writeChip: 'none', persistChip: IN_WRITABLE },
+    opacity: STACK_OFF,
+    lit: ['l3', 'l2', 'l1'],
+    // The container starts and assembles its root from the image layers, so the shell pulses.
+    flow: [F.pulse({ pod: 'ctr' })],
   },
   {
     id: 'writable',
     duration: 2200,
     narration: 'On top sits one thin writable layer, the upperdir. Every file the container creates or changes at runtime lands here, and it starts empty. Nothing else in the root filesystem can be written to.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { fs: 'RO image + RW top', write: 'none', persist: 'no, in writable' });
-      s.refs.writable.classList.add('highlight');
-      // The writable layer and its copy-up wire are present by the end of the step, so full opacity
-      // is the static end-state. They fade in together: no layer, no wire.
-      s.refs.writable.style.opacity = '1';
-      s.refs.wCopyup.style.opacity = '1';
-      if (ctx.reduced) return;
-      s.refs.writable.style.opacity = '0';
-      s.refs.wCopyup.style.opacity = '0';
-      ctx.register(s.refs.writable.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(s.refs.wCopyup.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
-    },
+    chipsCued: { fsChip: RW_FS, writeChip: 'none', persistChip: IN_WRITABLE },
+    // The layer and its wire are present by the END of the step, so full opacity is the static
+    // state the reduced path stops at, and rewind is what the fade-in starts from.
+    opacity: STACK_ON,
+    lit: ['writable'],
+    rewind: { opacity: { writable: 0, wCopyup: 0 } },
+    flow: [
+      F.fade({ target: 'writable', from: 0, to: 1, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-out' }),
+      F.fade({ target: 'wCopyup', from: 0, to: 1, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-out' }),
+    ],
   },
   {
     id: 'copyup',
     duration: 2800,
     narration: 'A write to a path that lives in an image layer does not touch the image. The overlayfs driver copies the file up into the writable layer first, then applies the change there. The read-only layer underneath is left exactly as it was.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { fs: 'RO image + RW top', write: '/app/config', persist: 'no, in writable' });
-      s.refs.writable.style.opacity = '1';
-      s.refs.wCopyup.style.opacity = '1';
-      // The process writes and the writable layer receives: both light at step entry (step-static,
-      // per the family standard), and the shell pulse fires in the same beat.
-      s.refs.ctrBox.classList.add('highlight');
-      if (ctx.reduced) { s.refs.writable.classList.add('highlight'); return; }
-      pulsePod(s.refs.ctr, ctx, 0);
-      const pkt = routePacket(s, ctx, W_COPYUP, { delay: BEAT.afterPulse, role: 'storage' });
-      lightBoxAt(s.refs.writable, ctx, pkt.arrivalMs);
-      ridingLabel(s, ctx, 'copy-up', W_COPYUP, { delay: BEAT.afterPulse });
-    },
+    chipsCued: { fsChip: RW_FS, writeChip: '/app/config', persistChip: IN_WRITABLE },
+    opacity: STACK_ON,
+    // The process writes, so it is lit from entry on both paths. The writable layer RECEIVES, so it
+    // earns its highlight on the arrival, which is also what flowLights hands the reduced path.
+    lit: ['ctrBox'],
+    flow: [
+      F.pulse({ pod: 'ctr' }),
+      F.route({ points: W_COPYUP, delay: BEAT.afterPulse, lights: ['writable'] }),
+      F.tag({ text: 'copy-up', points: W_COPYUP, delay: BEAT.afterPulse }),
+    ],
   },
   {
     id: 'discard',
     duration: 2600,
     narration: 'When the container is removed, its writable layer is thrown away with it. That is why anything written to the root filesystem, such as logs, temp files or a scratch database, is gone the moment the container restarts. The image layers remain, empty of your changes.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { fs: 'RO image + RW top', write: 'discarded', persist: 'no, in writable' });
-      // The writable layer is discarded and its copy-up wire goes with it: no layer, no wire.
-      // The Container block itself stays at full strength, the story is the vanishing layer.
-      s.refs.writable.style.opacity = '0';
-      s.refs.wCopyup.style.opacity = '0';
-      if (ctx.reduced) return;
-      s.refs.writable.style.opacity = '1';
-      s.refs.wCopyup.style.opacity = '1';
-      ctx.register(s.refs.writable.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards', easing: 'ease-in' }));
-      ctx.register(s.refs.wCopyup.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards', easing: 'ease-in' }));
-    },
+    chipsCued: { fsChip: RW_FS, writeChip: 'discarded', persistChip: IN_WRITABLE },
+    // The writable layer is discarded and its copy-up wire goes with it: no layer, no wire. The
+    // Container block itself stays at full strength, the story is the vanishing layer.
+    opacity: STACK_OFF,
+    rewind: { opacity: { writable: 1, wCopyup: 1 } },
+    flow: [
+      F.fade({ target: 'writable', from: 1, to: 0, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-in' }),
+      F.fade({ target: 'wCopyup', from: 1, to: 0, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'volume',
     duration: 3000,
     narration: 'The container comes back and gets a brand new empty writable layer, everything the old one held is gone. A mounted volume is a hole punched through the overlay straight to real storage: a write under /data skips the writable layer entirely and lands on the volume, so it survives the container being replaced. Persist anything you care about on a volume, never on the root filesystem.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { fs: 'RO image + RW top', write: '/data on volume', persist: 'yes, on volume' });
-      s.refs.writable.style.opacity = '1';
-      s.refs.wCopyup.style.opacity = '1';
-      setWire(s, 'mount', 'mounted at /data');
-      // The process writes and the volume receives: both light at step entry (step-static, per
-      // the family standard), and the shell pulse fires in the same beat.
-      s.refs.ctrBox.classList.add('highlight');
-      if (ctx.reduced) { s.refs.volume.classList.add('highlight'); return; }
-      s.refs.writable.style.opacity = '0';
-      s.refs.wCopyup.style.opacity = '0';
-      ctx.register(s.refs.writable.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(s.refs.wCopyup.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'forwards', easing: 'ease-out' }));
-      // The fresh container then writes to /data, which bypasses the overlay and lands on the disk.
-      pulsePod(s.refs.ctr, ctx, 0);
-      const pkt = routePacket(s, ctx, W_VOL, { delay: BEAT.afterPulse, role: 'storage' });
-      lightBoxAt(s.refs.volume, ctx, pkt.arrivalMs);
-      ridingLabel(s, ctx, 'write /data', W_VOL, { delay: BEAT.afterPulse });
-    },
+    chipsCued: { fsChip: RW_FS, writeChip: '/data on volume', persistChip: 'yes, on volume' },
+    opacity: STACK_ON,
+    wires: { mount: 'mounted at /data' },
+    lit: ['ctrBox'],
+    rewind: { opacity: { writable: 0, wCopyup: 0 } },
+    // The fresh container gets its empty layer back, then writes to /data, which bypasses the
+    // overlay and lands on the disk. The volume lights when that write arrives.
+    flow: [
+      F.fade({ target: 'writable', from: 0, to: 1, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-out' }),
+      F.fade({ target: 'wCopyup', from: 0, to: 1, dur: LAYER_FADE, fill: 'forwards', easing: 'ease-out' }),
+      F.pulse({ pod: 'ctr' }),
+      F.route({ points: W_VOL, delay: BEAT.afterPulse, lights: ['volume'] }),
+      F.tag({ text: 'write /data', points: W_VOL, delay: BEAT.afterPulse }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

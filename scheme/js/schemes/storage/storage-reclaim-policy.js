@@ -1,6 +1,5 @@
-import { g, text, line } from '../../lib/svg.js';
-import { arrowDefs, box, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setChip, setBoxSublabel, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, OPACITY } from './storage-kit.js';
+import { line } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-reclaim-policy
 
 
@@ -40,296 +39,219 @@ const W_RET_WIPE   = [[RET_CX, BAND_BOTTOM], [RET_CX, DISK_TOP]];  // drawn, nev
 const W_RET_BIND = [[RET_CX, PVC_BOTTOM], [RET_CX, PV_TOP]];
 const W_ADMIN_PV = [[ADMIN_CX, ADMIN_Y + ADMIN_H], [ADMIN_CX, PV_Y + PV_H / 2], [RET_RIGHT, PV_Y + PV_H / 2]];
 
-function removeAt(el, ctx, delay = 0, to = OPACITY.terminated) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); el.classList.remove('highlight'); return; }
-  const a = el.animate([{ opacity: 1 }, { opacity: to }], { duration: 500, delay, fill: 'forwards', easing: 'ease-in' });
-  a.onfinish = () => el.classList.remove('highlight');
-  ctx.register(a);
-}
+// Shorter than FADE.out, because these land ON a beat inside a step rather than closing it: the
+// wipe has to read as caused by the ball that just arrived. The Bound cross-fade shares the number
+// so its two halves swap at one rate.
+const REMOVE_MS = 500;
 
+// A block, its caption or its lane taken away exactly when the ball reaches it, dropping the
+// highlight that same ball left on it: a faded block never keeps a lit stroke.
+const removeAt = (target, at, plus = 0, to = OPACITY.terminated) => F.fade({
+  target, to, dur: REMOVE_MS, at, plus, fill: 'forwards', unlight: [target],
+});
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage' });
+// The Bound links are the ONE element no part kind emits: a bare <line>, solid and arrowhead-free,
+// because a bound relation carries no traffic. P.arrow emits a marked <path> and P.relation adds
+// the relation class and a data-role on top.
+const boundLink = (cx) => () => line({ class: 'scheme-arrow scheme-arrow-storage', x1: cx, y1: PVC_BOTTOM, x2: cx, y2: PV_TOP, fill: 'none' });
 
-function specText(cx, txt) {
-  return text({ class: 'scheme-label code dim', x: cx, y: SPEC_Y, 'text-anchor': 'middle' }, [txt]);
-}
+// The reclaim lanes: always drawn, in both columns, so the Retain side visibly HAS the lane the
+// Delete side uses and simply never sends anything down it.
+const lane = (points, key) => P.lane({ key, points, dashed: true, dim: true });
 
-function lane(points) {
-  return pathArrow({ points, dashed: true, dim: true, role: 'storage' });
-}
+const spec = (cx, key) => P.tag({ key, x: cx, y: SPEC_Y, text: 'real disk, EBS' });
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Reclaim policy decides what happens to a PersistentVolume and its real disk once the claim is deleted. Both volumes go to the Released phase, and then the same PV controller reads the reclaim policy on each one. Under Delete it calls DeleteVolume on the CSI driver, the disk is wiped and the PV object is removed. Under Retain it makes no call at all, so the disk and its data survive, but the volume stays Released carrying a stale claimRef, and a new claim asking for it is skipped and left Pending until an administrator clears that reference by hand and lets the volume bind again.' });
-    root.appendChild(arrowDefs());
-
-    const delPvc = box({ x: DEL_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-a', sublabel: 'Bound', role: 'storage' });
-    const delPv  = box({ x: DEL_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV-del', sublabel: 'reclaim: Delete', role: 'storage' });
-    const delDisk = cylinder({ x: DEL_CX - COL_W / 2, y: DISK_Y, w: COL_W, h: DISK_H, label: 'vol-aaa', role: 'storage' });
-
-    const retPvc = box({ x: RET_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-b', sublabel: 'Bound', role: 'storage' });
-    const retPv  = box({ x: RET_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV-ret', sublabel: 'reclaim: Retain', role: 'storage' });
-    const retDisk = cylinder({ x: RET_CX - COL_W / 2, y: DISK_Y, w: COL_W, h: DISK_H, label: 'vol-bbb', role: 'storage' });
-
-    const retPvc2 = box({ x: RET_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-c', sublabel: 'Pending', role: 'storage' });
-    retPvc2.style.opacity = '0';
-
+// Z-order (bottom -> top): blocks, then the lanes and their labels above them, then the chip
+// strip, then the packet layer so every ball rides above everything.
+export const SCENE = {
+  'aria-label': 'Reclaim policy decides what happens to a PersistentVolume and its real disk once the claim is deleted. Both volumes go to the Released phase, and then the same PV controller reads the reclaim policy on each one. Under Delete it calls DeleteVolume on the CSI driver, the disk is wiped and the PV object is removed. Under Retain it makes no call at all, so the disk and its data survive, but the volume stays Released carrying a stale claimRef, and a new claim asking for it is skipped and left Pending until an administrator clears that reference by hand and lets the volume bind again.',
+  parts: [
+    P.defs(),
+    P.box({ key: 'delPvc', x: DEL_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-a', sublabel: 'Bound' }),
+    P.box({ key: 'delPv', x: DEL_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV-del', sublabel: 'reclaim: Delete' }),
+    P.cylinder({ key: 'delDisk', x: DEL_CX - COL_W / 2, y: DISK_Y, w: COL_W, h: DISK_H, label: 'vol-aaa' }),
+    P.box({ key: 'retPvc', x: RET_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-b', sublabel: 'Bound' }),
+    // The claim that arrives after the first is deleted is its OWN box, born invisible.
+    P.box({ key: 'retPvc2', x: RET_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-c', sublabel: 'Pending', opacity: 0 }),
+    P.box({ key: 'retPv', x: RET_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV-ret', sublabel: 'reclaim: Retain' }),
+    P.cylinder({ key: 'retDisk', x: RET_CX - COL_W / 2, y: DISK_Y, w: COL_W, h: DISK_H, label: 'vol-bbb' }),
     // One controller for both columns: the reclaim policy is a field it reads, not two machines.
-    const band = box({ x: BAND_X, y: BAND_Y, w: BAND_W, h: BAND_H, label: 'PV controller and CSI driver', sublabel: 'reads the reclaim policy on each released volume', role: 'storage' });
+    P.box({ key: 'band', x: BAND_X, y: BAND_Y, w: BAND_W, h: BAND_H, label: 'PV controller and CSI driver', sublabel: 'reads the reclaim policy on each released volume' }),
+    P.box({ key: 'admin', x: ADMIN_X, y: ADMIN_Y, w: ADMIN_W, h: ADMIN_H, label: 'Administrator', sublabel: 'kubectl patch pv', opacity: 0 }),
+    P.raw({ key: 'delBound', make: boundLink(DEL_CX) }),
+    P.raw({ key: 'retBound', make: boundLink(RET_CX) }),
+    // The Delete column reclaims, so its two lanes have to fade with the objects they join and are
+    // named. The Retain pair never moves off full, because nothing on that side is ever taken away.
+    lane(W_DEL_POLICY, 'lDelPolicy'),
+    lane(W_DEL_WIPE, 'lDelWipe'),
+    lane(W_RET_POLICY),
+    lane(W_RET_WIPE),
+    P.lane({ key: 'wRetBind', points: W_RET_BIND, dashed: true, dim: true, opacity: 0 }),
+    P.lane({ key: 'wAdminPv', points: W_ADMIN_PV, dashed: true, dim: true, opacity: 0 }),
+    P.wire({ key: 'del', x: DEL_CX, y: VERDICT_Y }),
+    P.wire({ key: 'ret', x: RET_CX, y: VERDICT_Y }),
+    spec(DEL_CX, 'delSpec'),
+    spec(RET_CX, 'retSpec'),
+    P.chip({ key: 'delChip', x: DEL_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV-del', value: 'Bound' }),
+    P.chip({ key: 'delDiskChip', x: DEL_X, y: CHIP_ROW_2, w: CHIP_W, h: CHIP_H, name: 'vol-aaa', value: 'exists' }),
+    P.chip({ key: 'retChip', x: RET_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV-ret', value: 'Bound' }),
+    P.chip({ key: 'retDiskChip', x: RET_X, y: CHIP_ROW_2, w: CHIP_W, h: CHIP_H, name: 'vol-bbb', value: 'exists' }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['delPvc', 'delPv', 'delDisk', 'retPvc', 'retPvc2', 'retPv', 'retDisk', 'band', 'admin',
+      'delChip', 'delDiskChip', 'retChip', 'retDiskChip'],
+  },
+};
 
-    const admin = box({ x: ADMIN_X, y: ADMIN_Y, w: ADMIN_W, h: ADMIN_H, label: 'Administrator', sublabel: 'kubectl patch pv', role: 'storage' });
-    admin.style.opacity = '0';
-
-    // The Bound links: solid and arrowhead-free, because a bound relation carries no traffic.
-    const delBound = line({ class: 'scheme-arrow scheme-arrow-storage', x1: DEL_CX, y1: PVC_BOTTOM, x2: DEL_CX, y2: PV_TOP, fill: 'none' });
-    const retBound = line({ class: 'scheme-arrow scheme-arrow-storage', x1: RET_CX, y1: PVC_BOTTOM, x2: RET_CX, y2: PV_TOP, fill: 'none' });
-
-    // The reclaim lanes: always drawn, in both columns, so the Retain side visibly HAS the lane the
-    // Delete side uses and simply never sends anything down it.
-    const lDelPolicy = lane(W_DEL_POLICY);
-    const lDelWipe   = lane(W_DEL_WIPE);
-    const lRetPolicy = lane(W_RET_POLICY);
-    const lRetWipe   = lane(W_RET_WIPE);
-
-    const wRetBind = pathArrow({ points: W_RET_BIND, dashed: true, dim: true, role: 'storage' });
-    const wAdminPv = pathArrow({ points: W_ADMIN_PV, dashed: true, dim: true, role: 'storage' });
-    wRetBind.style.opacity = '0';
-    wAdminPv.style.opacity = '0';
-
-    const delLbl = text({ class: 'scheme-label code dim', x: DEL_CX, y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
-    const retLbl = text({ class: 'scheme-label code dim', x: RET_CX, y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
-
-    const delChip     = valChip({ x: DEL_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV-del', value: 'Bound', role: 'storage' });
-    const retChip     = valChip({ x: RET_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV-ret', value: 'Bound', role: 'storage' });
-    const delDiskChip = valChip({ x: DEL_X, y: CHIP_ROW_2, w: CHIP_W, h: CHIP_H, name: 'vol-aaa', value: 'exists', role: 'storage' });
-    const retDiskChip = valChip({ x: RET_X, y: CHIP_ROW_2, w: CHIP_W, h: CHIP_H, name: 'vol-bbb', value: 'exists', role: 'storage' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order (bottom -> top): blocks, then the lanes and their labels above them, then the chip
-    // strip, then the packet layer so every ball rides above everything.
-    [delPvc, delPv, delDisk, retPvc, retPvc2, retPv, retDisk, band, admin].forEach(el => root.appendChild(el));
-    [delBound, retBound, lDelPolicy, lDelWipe, lRetPolicy, lRetWipe, wRetBind, wAdminPv].forEach(el => root.appendChild(el));
-    [delLbl, retLbl].forEach(el => root.appendChild(el));
-    const delSpec = specText(DEL_CX, 'real disk, EBS');
-    const retSpec = specText(RET_CX, 'real disk, EBS');
-    root.appendChild(delSpec);
-    root.appendChild(retSpec);
-    [delChip, delDiskChip, retChip, retDiskChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      delPvc, delPv, delDisk, retPvc, retPvc2, retPv, retDisk, band, admin,
-      delBound, retBound, wRetBind, wAdminPv, delSpec, retSpec,
-      // The Delete column reclaims, so its two lanes have to fade with the objects they join. The
-      // Retain pair never moves off full, because nothing on that side is ever taken away.
-      lDelPolicy, lDelWipe,
-      delChip, delDiskChip, retChip, retDiskChip,
-      wires: { del: delLbl, ret: retLbl },
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { del, delDisk, ret, retDisk }) {
-  setChip(s.refs.delChip, del);
-  setChip(s.refs.delDiskChip, delDisk);
-  setChip(s.refs.retChip, ret);
-  setChip(s.refs.retDiskChip, retDisk);
-}
+const chips = (del, delDisk, ret, retDisk) => ({ delChip: del, delDiskChip: delDisk, retChip: ret, retDiskChip: retDisk });
 
 // Every step pins EVERY opacity that any step can change, so a step can never inherit a stale one
 // and a cancel mid-flight always lands on this step's own end state.
-function setStage(s, { delPvc, delPv, delDisk, retPvc, retPvc2, admin, delBound, retBound, retBindLane, adminLane }) {
-  s.refs.delPvc.style.opacity = String(delPvc);
-  s.refs.delPv.style.opacity = String(delPv);
-  s.refs.delDisk.style.opacity = String(delDisk);
-  s.refs.delSpec.style.opacity = String(delDisk);   // the caption dies with the disk it describes
+const stage = ({ delPvc, delPv, delDisk, retPvc, retPvc2, admin, delBound, retBound, retBindLane, adminLane }) => ({
+  delPvc, delPv, delDisk,
+  delSpec: delDisk,   // the caption dies with the disk it describes
   // A lane is only as present as its fainter end, and the policy band is drawn on every step, so
   // each Delete lane follows its object.
-  s.refs.lDelPolicy.style.opacity = String(delPv);
-  s.refs.lDelWipe.style.opacity = String(delDisk);
-  s.refs.retPvc.style.opacity = String(retPvc);
-  s.refs.retPvc2.style.opacity = String(retPvc2);
-  s.refs.admin.style.opacity = String(admin);
-  s.refs.delBound.style.opacity = String(delBound);
-  s.refs.retBound.style.opacity = String(retBound);
-  s.refs.wRetBind.style.opacity = String(retBindLane);
-  s.refs.wAdminPv.style.opacity = String(adminLane);
-}
+  lDelPolicy: delPv,
+  lDelWipe: delDisk,
+  retPvc, retPvc2, admin, delBound, retBound,
+  wRetBind: retBindLane,
+  wAdminPv: adminLane,
+});
 
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['delPvc', 'delPv', 'delDisk', 'retPvc', 'retPvc2', 'retPv', 'retDisk', 'band', 'admin',
-    'delChip', 'delDiskChip', 'retChip', 'retDiskChip'], []);
-  clearWires(s);
-}
+const T = OPACITY.terminated;
 
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { del: 'Bound', delDisk: 'exists', ret: 'Bound', retDisk: 'exists' });
-      setBoxSublabel(s.refs.delPvc, 'Bound');
-      setBoxSublabel(s.refs.retPvc, 'Bound');
-      setBoxSublabel(s.refs.retPvc2, 'Pending');
-      setStage(s, { delPvc: 1, delPv: 1, delDisk: 1, retPvc: 1, retPvc2: 0, admin: 0, delBound: 1, retBound: 1, retBindLane: 0, adminLane: 0 });
-    },
+    chipsCued: chips('Bound', 'exists', 'Bound', 'exists'),
+    sublabels: { delPvc: 'Bound', retPvc: 'Bound', retPvc2: 'Pending' },
+    opacity: stage({ delPvc: 1, delPv: 1, delDisk: 1, retPvc: 1, retPvc2: 0, admin: 0, delBound: 1, retBound: 1, retBindLane: 0, adminLane: 0 }),
   },
   {
     id: 'delete-pvc',
     duration: 2400,
     // Packet-less and Pod-less: a box flash on the two claims is the sanctioned cue.
     narration: 'You delete both claims with kubectl delete pvc. The Bound links break and both volumes move to the Released phase, which means only that the claim they belonged to is gone. Nothing has touched the disks yet. What happens next is decided entirely by the reclaim policy.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { del: 'Released', delDisk: 'exists', ret: 'Released', retDisk: 'exists' });
-      setBoxSublabel(s.refs.delPvc, 'Terminating');
-      setBoxSublabel(s.refs.retPvc, 'Terminating');
-      s.refs.delPv.classList.add('highlight');
-      s.refs.retPv.classList.add('highlight');
-      // The claims are on their way out, so they end this step faded but still readable.
-      setStage(s, { delPvc: OPACITY.terminating, delPv: 1, delDisk: 1, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
-    },
+    chipsCued: chips('Released', 'exists', 'Released', 'exists'),
+    sublabels: { delPvc: 'Terminating', retPvc: 'Terminating' },
+    // The claims are on their way out, so they end this step faded but still readable.
+    opacity: stage({ delPvc: OPACITY.terminating, delPv: 1, delDisk: 1, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 }),
+    lit: ['delPv', 'retPv'],
   },
   {
     id: 'delete-branch',
     duration: 3400,
     narration: 'The controller reads Delete on the left volume and cleans everything up. It calls DeleteVolume on the CSI driver, the real disk is wiped, and then the PV object itself is removed. Convenient for scratch data and unforgiving for anything you meant to keep, because the disk is gone for good.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'exists' });
-      setBoxSublabel(s.refs.delPvc, 'Terminating');
-      setBoxSublabel(s.refs.retPvc, 'Terminating');
-      setWire(s, 'del', 'disk wiped, PV removed');
-      // End-state: the band has acted, and the PV and its disk are gone on the Delete side.
-      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
-      s.refs.band.classList.add('highlight');
-      if (ctx.reduced) return;
-      // Replayed forward, both objects start alive and are killed by the ball that reaches them.
-      // Their lanes come back up too: each carries a ball and must be on screen for the flight.
-      s.refs.delPv.style.opacity = '1';
-      s.refs.delDisk.style.opacity = '1';
-      s.refs.delSpec.style.opacity = '1';
-      s.refs.lDelPolicy.style.opacity = '1';
-      s.refs.lDelWipe.style.opacity = '1';
-      s.refs.band.classList.remove('highlight');
-      s.refs.delPv.classList.add('highlight');
-      const policy = routePacket(s, ctx, W_DEL_POLICY, { role: 'storage' });
-      ridingLabel(s, ctx, 'policy: Delete', W_DEL_POLICY);
-      lightBoxAt(s.refs.band, ctx, policy.arrivalMs);
-      const wipe = routePacket(s, ctx, W_DEL_WIPE, { delay: policy.arrivalMs + BEAT.afterHop, role: 'storage' });
-      ridingLabel(s, ctx, 'DeleteVolume', W_DEL_WIPE, { delay: policy.arrivalMs + BEAT.afterHop });
-      lightBoxAt(s.refs.delDisk, ctx, wipe.arrivalMs);
-      removeAt(s.refs.delDisk, ctx, wipe.arrivalMs + 180);
-      removeAt(s.refs.delSpec, ctx, wipe.arrivalMs + 180);
-      removeAt(s.refs.lDelWipe, ctx, wipe.arrivalMs + 180);
-      removeAt(s.refs.delPv, ctx, wipe.arrivalMs + 580);
-      removeAt(s.refs.lDelPolicy, ctx, wipe.arrivalMs + 580);
+    chipsCued: chips('removed', 'wiped, gone', 'Released', 'exists'),
+    sublabels: { delPvc: 'Terminating', retPvc: 'Terminating' },
+    wires: { del: 'disk wiped, PV removed' },
+    // End-state: the band has acted, and the PV and its disk are gone on the Delete side.
+    opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 }),
+    // `band` is deliberately absent from lit: the static path lights it and the animated path takes
+    // it straight back off, so flowLights re-derives it for the reduced path alone.
+    // Replayed forward, both objects start alive and are killed by the ball that reaches them.
+    // Their lanes come back up too: each carries a ball and must be on screen for the flight.
+    rewind: {
+      opacity: { delPv: 1, delDisk: 1, delSpec: 1, lDelPolicy: 1, lDelWipe: 1 },
+      lit: ['delPv'],
     },
+    flow: [
+      F.route({ points: W_DEL_POLICY, name: 'policy' }),
+      F.tag({ text: 'policy: Delete', points: W_DEL_POLICY }),
+      F.light({ targets: ['band'], at: 'policy' }),
+      F.route({ points: W_DEL_WIPE, after: 'policy', name: 'wipe' }),
+      F.tag({ text: 'DeleteVolume', points: W_DEL_WIPE, after: 'policy' }),
+      // The disk's cue is an F.set on the disk itself, byte-for-byte the timer lightBoxAt hangs
+      // there. NOT `lights`: the fade below takes the class off again, so the reduced path, which
+      // returned before any of this, must not show it.
+      F.set({ on: 'delDisk', lit: ['delDisk'], at: 'wipe' }),
+      removeAt('delDisk', 'wipe', 180),
+      removeAt('delSpec', 'wipe', 180),
+      removeAt('lDelWipe', 'wipe', 180),
+      removeAt('delPv', 'wipe', 580),
+      removeAt('lDelPolicy', 'wipe', 580),
+    ],
   },
   {
     id: 'retain-branch',
     duration: 3000,
     narration: 'The same controller reads Retain on the right volume and deliberately does nothing. No call ever reaches the driver, so the disk and every byte on it survive. The volume stays parked in Released, still carrying the claimRef of a claim that no longer exists.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'data intact' });
-      setWire(s, 'ret', 'nothing touched, data kept');
-      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: OPACITY.terminated, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 });
-      // Static end state, which the reduced replay also snaps to. The disk is NOT lit: surviving
-      // intact reads off the full opacity it keeps beside a Delete column at the terminated shade.
-      s.refs.retPv.classList.add('highlight');
-      s.refs.band.classList.add('highlight');
-      if (ctx.reduced) return;
-      s.refs.band.classList.remove('highlight');
-      // The policy hop is made on this side too, and it is the SECOND hop that never happens: the
-      // lane down to the disk is drawn and stays empty. Retain shown as an absence, not as a gap.
-      const policy = routePacket(s, ctx, W_RET_POLICY, { role: 'storage' });
-      ridingLabel(s, ctx, 'policy: Retain', W_RET_POLICY);
-      lightBoxAt(s.refs.band, ctx, policy.arrivalMs);
-    },
+    chipsCued: chips('removed', 'wiped, gone', 'Released', 'data intact'),
+    wires: { ret: 'nothing touched, data kept' },
+    opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: T, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 }),
+    // Static end state, which the reduced replay also snaps to. The disk is NOT lit: surviving
+    // intact reads off the full opacity it keeps beside a Delete column at the terminated shade.
+    lit: ['retPv'],
+    // The policy hop is made on this side too, and it is the SECOND hop that never happens: the
+    // lane down to the disk is drawn and stays empty. Retain shown as an absence, not as a gap.
+    flow: [
+      F.route({ points: W_RET_POLICY, name: 'policy' }),
+      F.tag({ text: 'policy: Retain', points: W_RET_POLICY }),
+      F.light({ targets: ['band'], at: 'policy' }),
+    ],
   },
   {
     id: 'retain-stuck',
     duration: 3000,
     narration: 'A brand new claim asks for the same storage and cannot have it. The binding controller sees the leftover claimRef, decides the volume is already spoken for, and skips it. The new claim stays Pending: the disk is sitting right there, full of data, and nothing can reach it.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Released', retDisk: 'unusable' });
-      setBoxSublabel(s.refs.retPvc2, 'Pending');
-      setWire(s, 'ret', 'skipped: stale claimRef');
-      // The refused claim is dim, not faded out: it exists, it is just not getting what it asked for.
-      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: 0, retPvc2: OPACITY.pending, admin: 0, delBound: 0, retBound: 0, retBindLane: 1, adminLane: 0 });
-      // The asking claim sits at OPACITY.pending and therefore gets NO lit stroke: it is the ball leaving it that
-      // says it is the one asking, and dim plus glowing would say refused and live at the same time.
-      if (ctx.reduced) { s.refs.retPv.classList.add('highlight'); return; }
-      // The request lands on the PV and the PV lights, because it was looked at. Nothing below it
-      // lights and no Bound link appears, which is what tells the request apart from an accepted one.
-      const tryBind = routePacket(s, ctx, W_RET_BIND, { role: 'storage' });
-      ridingLabel(s, ctx, 'bind me', W_RET_BIND);
-      lightBoxAt(s.refs.retPv, ctx, tryBind.arrivalMs);
-    },
+    chipsCued: chips('removed', 'wiped, gone', 'Released', 'unusable'),
+    sublabels: { retPvc2: 'Pending' },
+    wires: { ret: 'skipped: stale claimRef' },
+    // The refused claim is dim, not faded out: it exists, it is just not getting what it asked for.
+    // It sits at OPACITY.pending and therefore gets NO lit stroke: it is the ball leaving it that
+    // says it is the one asking, and dim plus glowing would say refused and live at the same time.
+    opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: 0, retPvc2: OPACITY.pending, admin: 0, delBound: 0, retBound: 0, retBindLane: 1, adminLane: 0 }),
+    // The request lands on the PV and the PV lights, because it was looked at. Nothing below it
+    // lights and no Bound link appears, which is what tells the request apart from an accepted one.
+    flow: [
+      F.route({ points: W_RET_BIND, name: 'tryBind' }),
+      F.tag({ text: 'bind me', points: W_RET_BIND }),
+      F.light({ targets: ['retPv'], at: 'tryBind' }),
+    ],
   },
   {
     id: 'admin-clears',
     duration: 3200,
     narration: 'Only a human breaks the deadlock. An administrator patches the PV and removes the stale claimRef by hand. With the reference cleared the volume goes back to Available, which is the first moment anything is allowed to bind to it again.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Available', retDisk: 'reusable' });
-      setBoxSublabel(s.refs.retPvc2, 'Pending');
-      setWire(s, 'ret', 'claimRef cleared, Available');
-      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: 0, retPvc2: OPACITY.pending, admin: 1, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 1 });
-      // The human is the actor on this step, so the human lights.
-      s.refs.admin.classList.add('highlight');
-      if (ctx.reduced) { s.refs.retPv.classList.add('highlight'); return; }
-      const patch = routePacket(s, ctx, W_ADMIN_PV, { role: 'storage' });
-      ridingLabel(s, ctx, 'claimRef: null', W_ADMIN_PV);
-      lightBoxAt(s.refs.retPv, ctx, patch.arrivalMs);
-    },
+    chipsCued: chips('removed', 'wiped, gone', 'Available', 'reusable'),
+    sublabels: { retPvc2: 'Pending' },
+    wires: { ret: 'claimRef cleared, Available' },
+    opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: 0, retPvc2: OPACITY.pending, admin: 1, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 1 }),
+    // The human is the actor on this step, so the human lights.
+    lit: ['admin'],
+    flow: [
+      F.route({ points: W_ADMIN_PV, name: 'patch' }),
+      F.tag({ text: 'claimRef: null', points: W_ADMIN_PV }),
+      F.light({ targets: ['retPv'], at: 'patch' }),
+    ],
   },
   {
     id: 'rebind',
     duration: 3000,
     narration: 'Now the waiting claim binds, and the data that survived the whole story is reachable again. That is the trade Retain makes: it never loses your data, and it never hands it back on its own, so reuse is always a deliberate manual act.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { del: 'removed', delDisk: 'wiped, gone', ret: 'Bound', retDisk: 'in use again' });
-      setBoxSublabel(s.refs.retPvc2, 'Bound');
-      setWire(s, 'ret', 'bound to PVC data-c');
-      // This is the step where the claim DOES bind, so the Bound link is the thing that has to appear:
-      // retain-stuck taught the reader that a refused request leaves it absent.
-      setStage(s, { delPvc: OPACITY.terminated, delPv: OPACITY.terminated, delDisk: OPACITY.terminated, retPvc: 0, retPvc2: 1, admin: 0, delBound: 0, retBound: 1, retBindLane: 0, adminLane: 0 });
-      s.refs.retDisk.classList.add('highlight');
-      if (ctx.reduced) { s.refs.retPv.classList.add('highlight'); s.refs.retPvc2.classList.add('highlight'); return; }
-      s.refs.retDisk.classList.remove('highlight');
-      s.refs.retPvc2.classList.add('highlight');
-      // The request lane and the Bound link share a segment, so they HAND OVER rather than stacking:
-      // the ball rides the dashed lane, and on arrival it becomes the solid arrowhead-free link.
-      s.refs.wRetBind.style.opacity = '1';
-      s.refs.retBound.style.opacity = '0';
-      const bind = routePacket(s, ctx, W_RET_BIND, { role: 'storage' });
-      ridingLabel(s, ctx, 'bound', W_RET_BIND);
-      lightBoxAt(s.refs.retPv, ctx, bind.arrivalMs);
-      lightBoxAt(s.refs.retDisk, ctx, bind.arrivalMs);
-      removeAt(s.refs.wRetBind, ctx, bind.arrivalMs, 0);
-      const showBound = s.refs.retBound.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: bind.arrivalMs, fill: 'forwards', easing: 'ease-out' });
-      ctx.register(showBound);
-    },
+    chipsCued: chips('removed', 'wiped, gone', 'Bound', 'in use again'),
+    sublabels: { retPvc2: 'Bound' },
+    wires: { ret: 'bound to PVC data-c' },
+    // This is the step where the claim DOES bind, so the Bound link is the thing that has to appear:
+    // retain-stuck taught the reader that a refused request leaves it absent.
+    opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: 0, retPvc2: 1, admin: 0, delBound: 0, retBound: 1, retBindLane: 0, adminLane: 0 }),
+    lit: ['retPvc2'],
+    // retDisk is absent from lit for the delete-branch reason: the static path shows it and the
+    // animated path re-earns it on arrival instead.
+    // The request lane and the Bound link share a segment, so they HAND OVER rather than stacking:
+    // the ball rides the dashed lane, and on arrival it becomes the solid arrowhead-free link.
+    rewind: { opacity: { wRetBind: 1, retBound: 0 } },
+    flow: [
+      F.route({ points: W_RET_BIND, name: 'bind' }),
+      F.tag({ text: 'bound', points: W_RET_BIND }),
+      F.light({ targets: ['retPv', 'retDisk'], at: 'bind' }),
+      removeAt('wRetBind', 'bind', 0, 0),
+      F.fade({ target: 'retBound', from: 0, to: 1, dur: REMOVE_MS, at: 'bind', fill: 'forwards', easing: 'ease-out' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

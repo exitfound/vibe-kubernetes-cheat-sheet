@@ -157,6 +157,25 @@ const rectOf = (x, y, w, h, dx, dy, label, kind) =>
     ? { x: x + dx, y: y + dy, w, h, label: String(label).slice(0, 28), kind }
     : null);
 
+// A relation may state its path as a `d` STRING instead of points, and then it was invisible to
+// both rules below. That is not a second kind of line, it is a second way of spelling one: an
+// L-12 mirrored PAIR whose halves are spelled differently had its exemption fail on the half that
+// was visible. Only the straight M/L form is read; a curve or an arc yields null and stays out
+// rather than being approximated, because an approximated obstacle is worse than a missing one.
+// One `d` may hold SEVERAL subpaths (a trunk plus a stub per row). Each `M` starts a new line, and
+// joining them would invent a segment between the end of one and the start of the next: that read
+// as a diagonal on the first run of this parser.
+function straightD(d) {
+  if (typeof d !== 'string' || /[CcSsQqTtAaHhVvZz]/.test(d)) return null;
+  const subpaths = [];
+  for (const m of d.matchAll(/([ML])\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/g)) {
+    if (m[1] === 'M' || !subpaths.length) subpaths.push([]);
+    subpaths[subpaths.length - 1].push([parseFloat(m[2]), parseFloat(m[3])]);
+  }
+  const kept = subpaths.filter(s => s.length >= 2);
+  return kept.length ? kept : null;
+}
+
 function geometryOf(parts) {
   const blocks = [];     // obstacles for THROUGH and faces for OFFEDGE
   const chips = [];      // obstacles for THROUGH only
@@ -176,7 +195,16 @@ function geometryOf(parts) {
     if (kind === 'node') push(frames, rectOf(p.x, p.y, p.w, p.h, dx, dy, p.label || key || 'node', kind));
     if (kind === 'chip') push(chips, rectOf(p.x, p.y, p.w, p.h, dx, dy, p.name || key || 'chip', kind));
     let pts = null;
-    if (kind === 'lane' || kind === 'relation') pts = p.points;
+    if (kind === 'lane' || kind === 'relation') {
+      pts = p.points;
+      if (!pts) {
+        const subs = straightD(p.d);
+        if (subs) {
+          for (const s of subs) lanes.push({ kind, key, path, points: s.map(([x, y]) => [x + dx, y + dy]) });
+          continue;
+        }
+      }
+    }
     // Both arrow forms: two named points, or the four coordinates the primitive takes.
     if (kind === 'arrow') pts = p.from ? [p.from, p.to] : [[p.x1, p.y1], [p.x2, p.y2]];
     if (!Array.isArray(pts) || pts.length < 2) continue;
@@ -325,8 +353,30 @@ describe('scene geometry, read from SCENE.parts', () => {
     t.diagnostic(`${segments} declared segments, all axis-aligned within ${AXIS_EPS}`);
   });
 
+  // THE BLIND SPOT THIS TABLE COVERS. The rule reads SCENE.parts, which is the scene as BUILT, and
+  // knows nothing about per-step opacity. A card whose two branches are mutually exclusive draws
+  // both, hides one per step, and reads here as a crossing that is never once on screen. Verified
+  // by opening the frames, not by reading the code: the entry states which step shows what.
+  // An entry that stops firing FAILS, so a geometry change cannot leave a stale exemption behind.
+  const THROUGH_EXEMPT = {
+    'storage-topology-aware-provisioning [11]lane#wProvA x Disk zone-b':
+      'The Immediate and WaitForFirstConsumer branches never share a frame. On imm-provision, '
+      + 'wProvA runs to Disk zone-a and diskB is at opacity 0; on wffc-provision, diskB is drawn '
+      + 'and wProvA is at opacity 0, with wProvB serving it. Frames checked at both steps.',
+    // The second shape this table covers: a lane drawn THROUGH a block on purpose, where the block
+    // is sized around it. Satisfying the rule means routing the walk around the listing it walks,
+    // which is the "the rule can only be met by making the picture worse" case (L-16).
+    ...Object.fromEntries(['/data', 'app.log', '... 4.2M more'].map(row => [
+      `storage-fsgroup-ownership [11]lane x ${row}`,
+      'The walk lane IS the scan, and it is drawn down the corridor the listing rows leave for it: '
+      + 'each row spans x 446..754, its name column ends at 547 and its owner column starts at 653, '
+      + 'so the lane at x=600 has 53 units clear either side. Frame checked on the always step.',
+    ])),
+  };
+
   test('L-10 THROUGH: no declared segment crosses a block it does not terminate on', (t) => {
     const findings = [];
+    const usedExempt = new Set();
     let tested = 0;
     for (const s of scenes) {
       const g = geom.get(s.id);
@@ -339,6 +389,8 @@ describe('scene geometry, read from SCENE.parts', () => {
           for (const r of obstacles) {
             tested++;
             if (!crosses(a, b, r, THROUGH_INSET)) continue;
+            const ex = `${s.id} ${L.path} x ${r.label}`;
+            if (ex in THROUGH_EXEMPT) { usedExempt.add(ex); continue; }
             findings.push(`${s.id}  ${L.path}: segment (${a}) -> (${b}) crosses ${r.kind} "${r.label}" ` +
               `[${r.x}..${r.x + r.w} x ${r.y}..${r.y + r.h}]`);
           }
@@ -347,7 +399,11 @@ describe('scene geometry, read from SCENE.parts', () => {
     }
     assert.ok(tested > 0, 'zero segment-block pairs tested: either the lanes or the blocks went missing');
     assert.equal(findings.length, 0, `${findings.length} crossing(s):\n  ${listing(findings)}`);
-    t.diagnostic(`${tested} segment-block pairs tested against rects inset by ${THROUGH_INSET}`);
+    // A stale exemption is a silenced rule, so an entry that no longer fires is itself a failure.
+    const stale = Object.keys(THROUGH_EXEMPT).filter(k => !usedExempt.has(k));
+    assert.equal(stale.length, 0, `${stale.length} exemption(s) that no longer describe anything:\n  ${listing(stale)}`);
+    t.diagnostic(`${tested} segment-block pairs tested against rects inset by ${THROUGH_INSET}, `
+      + `${usedExempt.size} declared exemption(s) used`);
   });
 
   // L-11 with L-12's exemption. An endpoint is a defect only if it is ALONE on its face: a mirrored
@@ -754,7 +810,11 @@ describe('the reset prologue', () => {
           if (!e || !e.p) continue;
           const keys = e.verb === 'light' ? (e.p.targets || []) : (e.p.lights || []);
           if (keys.length) sources.push([`flow[${j}] ${e.verb}`, keys]);
-          if (e.p.unlight) sources.push([`flow[${j}] ${e.verb} unlight`, e.p.unlight]);
+          // `unlight` is NOT a fourth source: it REMOVES a highlight and cannot cause the leak
+          // above. Counting it flagged storage-pvc-protection, whose four unlights name targets no
+          // step ever lights, and the only honest repair (dropping them) flips anim-dump's
+          // `onfinish` boolean, so a dead unlight is not free to delete either. A live one names a
+          // key some other source already names, so nothing is lost by leaving it out.
         }
         for (const [field, keys] of sources) {
           for (const k of keys) {

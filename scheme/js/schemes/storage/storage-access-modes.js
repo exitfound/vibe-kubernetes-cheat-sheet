@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, podShell, cylinder, node, pathArrow } from '../../lib/primitives.js';
-import { valChip, setChip, pulsePod, pulsePodDim, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, BEAT, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-access-modes
 
 
@@ -71,230 +69,162 @@ const W_DRV_NFS_1 = nfsAttach(-NFS_LANE);   // app-1 on node-1
 const W_DRV_NFS_2 = [[NFS_CX, DRV_BOTTOM], [NFS_CX, PV_TOP]];   // app-2 on node-1
 const W_DRV_NFS_3 = nfsAttach(NFS_LANE);    // app-3 on node-2
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage' });
+// A Pod is a shell plus an inner box in one wrapper, so pulsePod reaches BOTH: querySelectorAll
+// matches descendants only, so pulsing a bare shell would fire at half strength.
+// Inset 14 rather than 20: at this POD_W the old inset left the sublabel close to the box sides.
+// 'read/write' is 59 units wide against a 100-wide box, so it keeps ~20 units of air either side.
+const podBlock = ({ key, innerKey, x, label }) => P.pod({
+  key, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0,
+  inner: { dx: 14, dy: 46, w: POD_W - 28, h: 52, label: 'ctr', sublabel: 'read/write' },
+});
 
-// A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
-// matches descendants only, so pulsing a bare pod() would fire at half strength.
-function podBlock({ x, label }) {
-  const shell = podShell({ x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'storage' });
-  // Inset 14 rather than 20: at this POD_W the old inset left the sublabel close to the box sides.
-  // 'read/write' is 59 units wide against a 100-wide box, so it keeps ~20 units of air either side.
-  const innerBox = box({ x: x + 14, y: POD_Y + 46, w: POD_W - 28, h: 52, label: 'ctr', sublabel: 'read/write', role: 'storage' });
-  return wrapPod(shell, innerBox);
-}
-
-function specText(cx, txt) {
-  return text({ class: 'scheme-label code dim', x: cx, y: SPEC_Y, 'text-anchor': 'middle' }, [txt]);
-}
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Access modes decide who can mount a volume at once: ReadWriteOnce attaches a volume to a single Node, so two Pods on that same Node can both use it but a Pod on another Node cannot, ReadWriteOncePod narrows that to one single Pod, and ReadWriteMany needs a shared filesystem because a plain block disk cannot be attached to many Nodes at all. The access mode is mostly a request that the CSI driver has to honour rather than a rule Kubernetes enforces on its own, the one exception being ReadWriteOncePod.' });
-    root.appendChild(arrowDefs());
-
-    const nodeA = node({ x: NODE_1_X, y: NODE_Y, w: NODE_1_W, h: NODE_H, label: 'Node-1' });
-    const nodeB = node({ x: NODE_2_X, y: NODE_Y, w: NODE_2_W, h: NODE_H, label: 'Node-2' });
-
-    const podA1 = podBlock({ x: P1_X, label: 'Pod app-1' });
-    const podA2 = podBlock({ x: P2_X, label: 'Pod app-2' });
-    const podB1 = podBlock({ x: P3_X, label: 'Pod app-3' });
-
-    const driver = box({ x: DRV_X, y: DRV_Y, w: DRV_W, h: DRV_H, label: 'CSI driver and attach controller', sublabel: 'grants or refuses each attach', role: 'storage' });
-
-    const pvBlock = cylinder({ x: BLOCK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-block', role: 'storage' });
-    const pvNfs   = cylinder({ x: NFS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-nfs', role: 'storage' });
-
-    const wA1 = pathArrow({ points: W_P1_DRV, dashed: true, dim: true, role: 'storage' });
-    const wA2 = pathArrow({ points: W_P2_DRV, dashed: true, dim: true, role: 'storage' });
-    const wB1 = pathArrow({ points: W_P3_DRV, dashed: true, dim: true, role: 'storage' });
-    const wBlock = pathArrow({ points: W_DRV_BLOCK, dashed: true, dim: true, role: 'storage' });
-    const wNfs1 = pathArrow({ points: W_DRV_NFS_1, dashed: true, dim: true, role: 'storage' });
-    const wNfs2 = pathArrow({ points: W_DRV_NFS_2, dashed: true, dim: true, role: 'storage' });
-    const wNfs3 = pathArrow({ points: W_DRV_NFS_3, dashed: true, dim: true, role: 'storage' });
-
-    const blockLbl = text({ class: 'scheme-label code dim', x: BLOCK_CX, y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
-    const nfsLbl   = text({ class: 'scheme-label code dim', x: NFS_CX, y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
+// The list order IS the append order, which is the z-order: node frames, the driver band and the
+// disks, then the Pods above their own frame, then the lanes and their captions, then the chip
+// strip, then the packet layer.
+export const SCENE = {
+  'aria-label': 'Access modes decide who can mount a volume at once: ReadWriteOnce attaches a volume to a single Node, so two Pods on that same Node can both use it but a Pod on another Node cannot, ReadWriteOncePod narrows that to one single Pod, and ReadWriteMany needs a shared filesystem because a plain block disk cannot be attached to many Nodes at all. The access mode is mostly a request that the CSI driver has to honour rather than a rule Kubernetes enforces on its own, the one exception being ReadWriteOncePod.',
+  parts: [
+    P.defs(),
+    P.node({ x: NODE_1_X, y: NODE_Y, w: NODE_1_W, h: NODE_H, label: 'Node-1' }),
+    P.node({ x: NODE_2_X, y: NODE_Y, w: NODE_2_W, h: NODE_H, label: 'Node-2' }),
+    P.box({ key: 'driver', x: DRV_X, y: DRV_Y, w: DRV_W, h: DRV_H, label: 'CSI driver and attach controller', sublabel: 'grants or refuses each attach' }),
+    P.cylinder({ key: 'pvBlock', x: BLOCK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-block' }),
+    P.cylinder({ key: 'pvNfs', x: NFS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-nfs' }),
+    podBlock({ key: 'podA1', innerKey: 'appA1', x: P1_X, label: 'Pod app-1' }),
+    podBlock({ key: 'podA2', innerKey: 'appA2', x: P2_X, label: 'Pod app-2' }),
+    podBlock({ key: 'podB1', innerKey: 'appB1', x: P3_X, label: 'Pod app-3' }),
+    P.lane({ points: W_P1_DRV, dashed: true, dim: true }),
+    P.lane({ points: W_P2_DRV, dashed: true, dim: true }),
+    P.lane({ points: W_P3_DRV, dashed: true, dim: true }),
+    P.lane({ points: W_DRV_BLOCK, dashed: true, dim: true }),
+    P.lane({ points: W_DRV_NFS_1, dashed: true, dim: true }),
+    P.lane({ points: W_DRV_NFS_2, dashed: true, dim: true }),
+    P.lane({ points: W_DRV_NFS_3, dashed: true, dim: true }),
+    P.wire({ key: 'block', x: BLOCK_CX, y: VERDICT_Y }),
+    P.wire({ key: 'nfs', x: NFS_CX, y: VERDICT_Y }),
     // Centered on the driver band it captions, rather than the hand-typed 725 it used to sit at.
-    const drvLbl   = text({ class: 'scheme-label code dim', x: DRV_X + DRV_W / 2, y: 408, 'text-anchor': 'middle' }, [' ']);
+    P.wire({ key: 'drv', x: DRV_X + DRV_W / 2, y: 408 }),
+    P.tag({ x: BLOCK_CX, y: SPEC_Y, text: 'block disk, single attach' }),
+    P.tag({ x: NFS_CX, y: SPEC_Y, text: 'shared filesystem' }),
+    P.chip({ key: 'modeChip', x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'accessModes', value: 'ReadWriteOnce' }),
+    P.chip({ key: 'attachChip', x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'attached to', value: 'none' }),
+    P.chip({ key: 'shareChip', x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'sharing', value: 'none' }),
+    P.chip({ key: 'driverChip', x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'enforced by', value: 'CSI driver' }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['driver', 'pvBlock', 'pvNfs', 'appA1', 'appA2', 'appB1',
+      'modeChip', 'attachChip', 'shareChip', 'driverChip'],
+    pods: ['podA1', 'podA2', 'podB1'],
+  },
+};
 
-    const modeChip   = valChip({ x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'accessModes', value: 'ReadWriteOnce', role: 'storage' });
-    const attachChip = valChip({ x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'attached to', value: 'none', role: 'storage' });
-    const shareChip  = valChip({ x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'sharing', value: 'none', role: 'storage' });
-    const driverChip = valChip({ x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: 34, name: 'enforced by', value: 'CSI driver', role: 'storage' });
+const chips = (mode, attach, share, enforcer = 'CSI driver') =>
+  ({ modeChip: mode, attachChip: attach, shareChip: share, driverChip: enforcer });
 
-    const packetLayer = g({ id: 'packetLayer' });
-
-    [nodeA, nodeB, driver, pvBlock, pvNfs, podA1.group, podA2.group, podB1.group].forEach(el => root.appendChild(el));
-    [wA1, wA2, wB1, wBlock, wNfs1, wNfs2, wNfs3].forEach(el => root.appendChild(el));
-    [blockLbl, nfsLbl, drvLbl].forEach(el => root.appendChild(el));
-    root.appendChild(specText(BLOCK_CX, 'block disk, single attach'));
-    root.appendChild(specText(NFS_CX, 'shared filesystem'));
-    [modeChip, attachChip, shareChip, driverChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      podA1: podA1.group, podA2: podA2.group, podB1: podB1.group,
-      appA1: podA1.innerBox, appA2: podA2.innerBox, appB1: podB1.innerBox,
-      driver, pvBlock, pvNfs,
-      modeChip, attachChip, shareChip, driverChip,
-      wires: { block: blockLbl, nfs: nfsLbl, drv: drvLbl },
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { mode, attach, share, enforcer = 'CSI driver' }) {
-  setChip(s.refs.modeChip, mode);
-  setChip(s.refs.attachChip, attach);
-  setChip(s.refs.shareChip, share);
-  setChip(s.refs.driverChip, enforcer);
-}
-
-function setPods(s, { a1, a2, b1 }) {
-  s.refs.podA1.style.opacity = String(a1);
-  s.refs.podA2.style.opacity = String(a2);
-  s.refs.podB1.style.opacity = String(b1);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['driver', 'pvBlock', 'pvNfs', 'appA1', 'appA2', 'appB1',
-    'modeChip', 'attachChip', 'shareChip', 'driverChip'], [s.refs.podA1, s.refs.podA2, s.refs.podB1]);
-  clearWires(s);
-}
+// STO.S-01 as a field: a refused Pod is dimmed and a granted one is not, so all three are stated on
+// every step and nothing is inherited from the step before it.
+const pods = (a1, a2, b1) => ({ podA1: a1, podA2: a2, podB1: b1 });
 
 // One attach that succeeds: the Pod blinks first (it is the actor), the request rises to the driver,
-// then the granted attach drops to the disk. Both the driver and the disk light on arrival.
-function grantMount(s, ctx, { podEl, reqPts, attachPts, tag, disk, lead = 0 }) {
-  pulsePod(podEl, ctx, lead);
-  const req = routePacket(s, ctx, reqPts, { delay: lead + BEAT.afterPulse, role: 'storage' });
-  lightBoxAt(s.refs.driver, ctx, req.arrivalMs);
-  const att = routePacket(s, ctx, attachPts, { delay: req.arrivalMs + BEAT.afterHop, role: 'storage' });
-  ridingLabel(s, ctx, tag, attachPts, { delay: req.arrivalMs + BEAT.afterHop });
-  lightBoxAt(disk, ctx, att.arrivalMs);
-  return att.arrivalMs;
-}
+// then the granted attach drops to the disk. Both the driver and the disk light on arrival. The
+// disk's cue is its OWN entry rather than `lights` on the attach, because the hand-written step
+// emitted it AFTER the riding tag, and that order is observable.
+const grantMount = ({ name, pod, reqPts, attachPts, tag, disk, lead = 0 }) => [
+  F.pulse({ pod, delay: lead }),
+  F.route({ points: reqPts, delay: lead + BEAT.afterPulse, name: `${name}Req`, lights: ['driver'] }),
+  F.route({ points: attachPts, after: `${name}Req`, name: `${name}Att` }),
+  F.tag({ text: tag, points: attachPts, after: `${name}Req` }),
+  F.light({ targets: [disk], at: `${name}Att` }),
+];
 
-function denyMount(s, ctx, { podEl, reqPts, tag, lead = 0 }) {
-  if (podEl) pulsePodDim(podEl, ctx, lead, { from: OPACITY.pending, peak: 0.95 });
-  const delay = podEl ? lead + BEAT.afterPulse : lead;
-  const req = routePacket(s, ctx, reqPts, { delay, role: 'storage' });
-  ridingLabel(s, ctx, tag, reqPts, { delay });
-  lightBoxAt(s.refs.driver, ctx, req.arrivalMs);
-  return req.arrivalMs;
-}
+// A refused attach reaches the gate and stops there, and no disk lights. The Pod still blinks first,
+// in the dim variant with an opacity lift so the blink reads against the faded shade.
+const denyMount = ({ name, pod, reqPts, tag, lead = 0 }) => [
+  F.pulse({ pod, dim: true, delay: lead, from: OPACITY.pending, peak: 0.95 }),
+  F.route({ points: reqPts, delay: lead + BEAT.afterPulse, name: `${name}Req` }),
+  F.tag({ text: tag, points: reqPts, delay: lead + BEAT.afterPulse }),
+  F.light({ targets: ['driver'], at: `${name}Req` }),
+];
 
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { mode: 'ReadWriteOnce', attach: 'none', share: 'none' });
-      setPods(s, { a1: 1, a2: 1, b1: 1 });          // idle: nobody is refused anything yet
-    },
+    chipsCued: chips('ReadWriteOnce', 'none', 'none'),
+    opacity: pods(1, 1, 1),          // idle: nobody is refused anything yet
   },
   {
     id: 'rwo-first',
     duration: 3100,
     narration: 'Pod app-1 mounts the volume. ReadWriteOnce attaches the disk to one Node, Node-1, and lets a Pod there read and write it. So far this looks exactly like a per-Pod lock, but that is not what ReadWriteOnce actually means.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { mode: 'ReadWriteOnce', attach: 'node-1', share: 'app-1' });
-      setPods(s, { a1: 1, a2: 1, b1: 1 });          // app-2 and app-3 are healthy, just not shown mounting
-      setWire(s, 'block', 'attached: node-1');
-      if (ctx.reduced) { s.refs.driver.classList.add('highlight'); s.refs.pvBlock.classList.add('highlight'); return; }
-      grantMount(s, ctx, { podEl: s.refs.podA1, reqPts: W_P1_DRV, attachPts: W_DRV_BLOCK, tag: 'mount rw', disk: s.refs.pvBlock });
-    },
+    chipsCued: chips('ReadWriteOnce', 'node-1', 'app-1'),
+    wires: { block: 'attached: node-1' },
+    opacity: pods(1, 1, 1),          // app-2 and app-3 are healthy, just not shown mounting
+    flow: grantMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, attachPts: W_DRV_BLOCK, tag: 'mount rw', disk: 'pvBlock' }),
   },
   {
     id: 'rwo-samenode',
     duration: 3100,
     narration: 'Pod app-2 sits on the same Node and it can mount the volume too. ReadWriteOnce is per Node, not per Pod. Once the disk is attached to Node-1, any number of Pods scheduled onto Node-1 can share it.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { mode: 'ReadWriteOnce', attach: 'node-1', share: 'app-1, app-2' });
-      setPods(s, { a1: 1, a2: 1, b1: 1 });          // app-3 is not refused until the next step
-      setWire(s, 'block', 'attached: node-1');
-      if (ctx.reduced) { s.refs.driver.classList.add('highlight'); s.refs.pvBlock.classList.add('highlight'); return; }
-      grantMount(s, ctx, { podEl: s.refs.podA2, reqPts: W_P2_DRV, attachPts: W_DRV_BLOCK, tag: 'shares rw', disk: s.refs.pvBlock });
-    },
+    chipsCued: chips('ReadWriteOnce', 'node-1', 'app-1, app-2'),
+    wires: { block: 'attached: node-1' },
+    opacity: pods(1, 1, 1),          // app-3 is not refused until the next step
+    flow: grantMount({ name: 'a2', pod: 'podA2', reqPts: W_P2_DRV, attachPts: W_DRV_BLOCK, tag: 'shares rw', disk: 'pvBlock' }),
   },
   {
     id: 'rwo-othernode',
     duration: 2600,
     narration: 'Pod app-3 lives on Node-2 and asks for the same volume. This one is refused. The disk is already attached to Node-1, and a block disk can be attached to only one Node at a time, so app-3 gets a Multi-Attach error and never starts.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { mode: 'ReadWriteOnce', attach: 'node-1', share: 'app-1, app-2' });
-      setPods(s, { a1: 1, a2: 1, b1: OPACITY.pending });        // app-3 refused: Multi-Attach
-      setWire(s, 'block', 'attached: node-1');
-      setWire(s, 'drv', 'held by node-1');
-      s.refs.pvBlock.classList.add('highlight');
-      if (ctx.reduced) { s.refs.driver.classList.add('highlight'); return; }
-      denyMount(s, ctx, { podEl: s.refs.podB1, reqPts: W_P3_DRV, tag: 'Multi-Attach denied' });
-    },
+    chipsCued: chips('ReadWriteOnce', 'node-1', 'app-1, app-2'),
+    wires: { block: 'attached: node-1', drv: 'held by node-1' },
+    opacity: pods(1, 1, OPACITY.pending),        // app-3 refused: Multi-Attach
+    // The block disk stays LIT on both paths: it is still attached to node-1 and it is the REASON
+    // app-3 is refused, so leaving it unlit contradicts the wire label and the narration.
+    lit: ['pvBlock'],
+    flow: denyMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, tag: 'Multi-Attach denied' }),
   },
   {
     id: 'rwop',
     duration: 2600,
     narration: 'ReadWriteOncePod is the strict one. Now even app-2 on the same Node is refused, because the volume is bound to a single Pod and nothing else. It is also the one mode Kubernetes enforces itself rather than leaving to the driver, and it is what you reach for when two Pods writing the same files would corrupt each other.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { mode: 'ReadWriteOncePod', attach: 'node-1', share: 'app-1 only', enforcer: 'Kubernetes' });
-      setPods(s, { a1: 1, a2: OPACITY.pending, b1: OPACITY.pending });      // RWOP refuses everyone but app-1
-      setWire(s, 'block', 'held by app-1');
-      setWire(s, 'drv', 'one Pod only');
-      s.refs.pvBlock.classList.add('highlight');
-      if (ctx.reduced) { s.refs.driver.classList.add('highlight'); return; }
-      denyMount(s, ctx, { podEl: s.refs.podA2, reqPts: W_P2_DRV, tag: 'RWOP refused' });
-    },
+    chipsCued: chips('ReadWriteOncePod', 'node-1', 'app-1 only', 'Kubernetes'),
+    wires: { block: 'held by app-1', drv: 'one Pod only' },
+    opacity: pods(1, OPACITY.pending, OPACITY.pending),      // RWOP refuses everyone but app-1
+    lit: ['pvBlock'],
+    flow: denyMount({ name: 'a2', pod: 'podA2', reqPts: W_P2_DRV, tag: 'RWOP refused' }),
   },
   {
     id: 'rwx-block',
     duration: 2600,
     narration: 'ReadWriteMany asks for the volume on many Nodes at once. On the block disk that request cannot be honoured at all: a raw block device simply cannot attach to more than one Node. Kubernetes will accept the access mode on the object, but the driver is where it fails.',
-    enter(s, ctx) {
-      resetStep(s);
-      // attach is 'none', not 'node-1': the narration says this request cannot be honoured at all, so
-      // leaving the previous step's node-1 in the chip would have the strip contradict the sentence.
-      setChips(s, { mode: 'ReadWriteMany', attach: 'none', share: 'none' });
-      setPods(s, { a1: OPACITY.pending, a2: OPACITY.pending, b1: OPACITY.pending });    // RWX on a block disk: nobody gets it
-      setWire(s, 'block', 'RWX unsupported');
-      setWire(s, 'drv', 'block disk, no RWX');
-      if (ctx.reduced) { s.refs.driver.classList.add('highlight'); return; }
-      // BOTH nodes ask, because asking from many nodes at once is what ReadWriteMany means and what
-      // this disk cannot do. A single request could not show the thing the step is about.
-      denyMount(s, ctx, { podEl: s.refs.podA1, reqPts: W_P1_DRV, tag: 'RWX unsupported' });
-      denyMount(s, ctx, { podEl: s.refs.podB1, reqPts: W_P3_DRV, tag: 'RWX unsupported', lead: 220 });
-    },
+    // attach is 'none', not 'node-1': the narration says this request cannot be honoured at all, so
+    // leaving the previous step's node-1 in the chip would have the strip contradict the sentence.
+    chipsCued: chips('ReadWriteMany', 'none', 'none'),
+    wires: { block: 'RWX unsupported', drv: 'block disk, no RWX' },
+    opacity: pods(OPACITY.pending, OPACITY.pending, OPACITY.pending),    // RWX on a block disk: nobody gets it
+    // BOTH nodes ask, because asking from many nodes at once is what ReadWriteMany means and what
+    // this disk cannot do. A single request could not show the thing the step is about.
+    flow: [
+      ...denyMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, tag: 'RWX unsupported' }),
+      ...denyMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, tag: 'RWX unsupported', lead: 220 }),
+    ],
   },
   {
     id: 'rwx-nfs',
     duration: 3800,
     narration: 'Point the claim at a shared filesystem instead, PV-nfs on NFS or CephFS, and ReadWriteMany works. The driver attaches it to both Nodes, and all three Pods mount it at once, on either Node, with nobody refused. The mode was always allowed by Kubernetes, what changed is a backend that can deliver it.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { mode: 'ReadWriteMany', attach: 'node-1, node-2', share: 'app-1, app-2, app-3' });
-      // Every Pod is at full opacity here: ReadWriteMany on a shared filesystem excludes nobody, so
-      // there is no Pod left in the not-holding-it state that OPACITY.pending exists to mark.
-      setPods(s, { a1: 1, a2: 1, b1: 1 });
-      setWire(s, 'nfs', 'attached: both nodes');
-      if (ctx.reduced) { s.refs.driver.classList.add('highlight'); s.refs.pvNfs.classList.add('highlight'); return; }
-      grantMount(s, ctx, { podEl: s.refs.podA1, reqPts: W_P1_DRV, attachPts: W_DRV_NFS_1, tag: 'mount rwx', disk: s.refs.pvNfs });
-      grantMount(s, ctx, { podEl: s.refs.podA2, reqPts: W_P2_DRV, attachPts: W_DRV_NFS_2, tag: 'mount rwx', disk: s.refs.pvNfs, lead: 200 });
-      grantMount(s, ctx, { podEl: s.refs.podB1, reqPts: W_P3_DRV, attachPts: W_DRV_NFS_3, tag: 'mount rwx', disk: s.refs.pvNfs, lead: 400 });
-    },
+    chipsCued: chips('ReadWriteMany', 'node-1, node-2', 'app-1, app-2, app-3'),
+    wires: { nfs: 'attached: both nodes' },
+    // Every Pod is at full opacity here: ReadWriteMany on a shared filesystem excludes nobody, so
+    // there is no Pod left in the not-holding-it state that OPACITY.pending exists to mark.
+    opacity: pods(1, 1, 1),
+    flow: [
+      ...grantMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, attachPts: W_DRV_NFS_1, tag: 'mount rwx', disk: 'pvNfs' }),
+      ...grantMount({ name: 'a2', pod: 'podA2', reqPts: W_P2_DRV, attachPts: W_DRV_NFS_2, tag: 'mount rwx', disk: 'pvNfs', lead: 200 }),
+      ...grantMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, attachPts: W_DRV_NFS_3, tag: 'mount rwx', disk: 'pvNfs', lead: 400 }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

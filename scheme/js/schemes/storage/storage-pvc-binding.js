@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setVal, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, at, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pvc-binding
 
 
@@ -47,278 +45,194 @@ const W_CTRL_TO_PVCB = [[PVCB_CX, CTRL_Y], [PVCB_CX, PVCB_BOTTOM]];   // deny, s
 const W_MOUNT_LOW   = [[MOUNT_X, PV_TOP], [MOUNT_X, PVC_BOTTOM]];   // PV -> PVC, upward
 const W_MOUNT_HIGH  = [[MOUNT_X, PVC_Y], [MOUNT_X, POD_BOTTOM]];    // PVC -> Pod, upward
 
-// Dims a rejected disk on arrival of the probe that rejected it, for the same reason.
-function dimBoxAt(el, ctx, delay = 0) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = String(OPACITY.notready); return; }
-  ctx.register(el.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: 400, delay, fill: 'forwards', easing: 'ease-out' }));
-}
+// A disk is a cylinder plus its spec line, wrapped in a group so dimming a rejected volume fades
+// the spec WITH it (the name already rides inside the cylinder). Only the winner keys its cylinder,
+// because .highlight must sit on the .scheme-cylinder element and never on the wrapper.
+const disk = ({ key, cylKey, cx, w, label, spec }) => P.group({
+  key,
+  parts: [
+    P.cylinder({ key: cylKey, x: cx - w / 2, y: PV_Y, w, h: PV_H, label }),
+    P.tag({ x: cx, y: SPEC_Y, text: spec }),
+  ],
+});
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage' });
-
-// A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
-// matches descendants only, so pulsing a bare pod() would fire at half strength.
-function podBlock({ x, y, w, h, label, sublabel }) {
-  const shell = podShell({ x, y, w, h, label, sublabel, containers: 0, role: 'storage' });
-  const innerBox = box({ x: x + 20, y: y + (h - 52) / 2, w: w - 40, h: 52, label: 'app', sublabel: 'writes to /data', role: 'storage' });
-  return wrapPod(shell, innerBox);
-}
-
-function diskBlock(cx, w, label, spec) {
-  const cyl = cylinder({ x: cx - w / 2, y: PV_Y, w, h: PV_H, label, role: 'storage' });
-  const group = g({});
-  group.appendChild(cyl);
-  group.appendChild(text({ class: 'scheme-label code dim', x: cx, y: SPEC_Y, 'text-anchor': 'middle' }, [spec]));
-  return { group, cyl };
-}
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, pairs the claim with the one that does by writing the link both ways, and only then can Kubelet mount the volume into the Pod' });
-    root.appendChild(arrowDefs());
-
-    const appPod = podBlock({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: data-claim' });
-    const ctrl   = box({ x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'PV binding controller', sublabel: 'kube-controller-manager', role: 'storage' });
-    const pvc    = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'wants 5Gi, RWO, local-ssd', role: 'storage' });
-    const pvcB   = box({ x: PVCB_X, y: PVCB_Y, w: PVCB_W, h: PVCB_H, label: 'PVC data-claim-2', sublabel: 'wants 5Gi, RWO, local-ssd', role: 'storage' });
-    pvcB.style.opacity = '0';
-
-    const pvA = diskBlock(SMALL_CX, 200, 'PV-a01', '2Gi, RWO, local-ssd');
-    const pvX = diskBlock(MATCH_CX, 230, 'PV-x73a', '5Gi, RWO, local-ssd');
-    const pvB = diskBlock(SLOW_CX, 200, 'PV-b22', '5Gi, RWO, local-hdd');
-    const pvSmall = pvA.group, pvMatch = pvX.group, pvSlow = pvB.group;
-    const pvMatchCyl = pvX.cyl;   // .highlight rides the cylinder itself, the wrapper only carries opacity
-
-    const wPvcToCtrl = pathArrow({ points: W_PVC_TO_CTRL, dashed: true, dim: true, role: 'storage' });
-    const wCtrlToPvc = pathArrow({ points: W_CTRL_TO_PVC, dashed: true, dim: true, role: 'storage' });
-    const wScanSmall = pathArrow({ points: W_SCAN_SMALL, dashed: true, dim: true, role: 'storage' });
-    const wScanMatch = pathArrow({ points: W_SCAN_MATCH, dashed: true, dim: true, role: 'storage' });
-    const wScanSlow  = pathArrow({ points: W_SCAN_SLOW,  dashed: true, dim: true, role: 'storage' });
-    const wMountLow  = pathArrow({ points: W_MOUNT_LOW,  dashed: true, dim: true, role: 'storage' });
-    const wMountHigh = pathArrow({ points: W_MOUNT_HIGH, dashed: true, dim: true, role: 'storage' });
-    const wCtrlToPvcB = pathArrow({ points: W_CTRL_TO_PVCB, dashed: true, dim: true, role: 'storage' });
-    wCtrlToPvcB.style.opacity = '0';
-
-    // Wire labels: blank at build, filled per step by setWire, cleared by clearWires.
-    const mountLbl   = text({ class: 'scheme-label code dim', x: MOUNT_X + 16, y: 200, 'text-anchor': 'start' }, [' ']);
-    const smallLbl   = text({ class: 'scheme-label code dim', x: SMALL_CX, y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
-    const matchLbl   = text({ class: 'scheme-label code dim', x: MATCH_CX, y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
-    const slowLbl    = text({ class: 'scheme-label code dim', x: SLOW_CX,  y: VERDICT_Y, 'text-anchor': 'middle' }, [' ']);
-
-    const pvcChip   = valChip({ x: 105, y: CHIPS_Y, w: 200, h: 34, name: 'PVC',     value: 'Pending',   role: 'storage' });
+// Family z-order: blocks and disks, then the wires and their labels ABOVE them so a connector that
+// crosses a block stays visible, then the chip strip, then the packet layer.
+export const SCENE = {
+  'aria-label': 'PersistentVolumeClaim to PersistentVolume binding: a claim states the capacity, access mode and class it needs, the binding controller scans the available volumes and rejects the ones that do not fit, pairs the claim with the one that does by writing the link both ways, and only then can Kubelet mount the volume into the Pod',
+  parts: [
+    P.defs(),
+    P.box({ key: 'ctrl', x: CTRL_X, y: CTRL_Y, w: CTRL_W, h: CTRL_H, label: 'PV binding controller', sublabel: 'kube-controller-manager' }),
+    P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'wants 5Gi, RWO, local-ssd' }),
+    P.box({ key: 'pvcB', x: PVCB_X, y: PVCB_Y, w: PVCB_W, h: PVCB_H, label: 'PVC data-claim-2', sublabel: 'wants 5Gi, RWO, local-ssd', opacity: 0 }),
+    // The group IS the pulse target: pulsing a bare shell would fire at half strength, since
+    // querySelectorAll matches descendants only and the inner box is a sibling of the shell.
+    P.pod({
+      key: 'appPod', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: data-claim', containers: 0,
+      inner: { dx: 20, dy: (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'app', sublabel: 'writes to /data' }, innerKey: 'appBox',
+    }),
+    // Each disk states all THREE things the claim is matched on, so the verdict can be checked
+    // rather than taken on trust. Access mode is identical on all three on purpose.
+    disk({ key: 'pvSmall', cx: SMALL_CX, w: 200, label: 'PV-a01', spec: '2Gi, RWO, local-ssd' }),
+    disk({ key: 'pvMatch', cylKey: 'pvMatchCyl', cx: MATCH_CX, w: 230, label: 'PV-x73a', spec: '5Gi, RWO, local-ssd' }),
+    disk({ key: 'pvSlow', cx: SLOW_CX, w: 200, label: 'PV-b22', spec: '5Gi, RWO, local-hdd' }),
+    P.lane({ points: W_PVC_TO_CTRL, dashed: true, dim: true }),
+    P.lane({ points: W_CTRL_TO_PVC, dashed: true, dim: true }),
+    P.lane({ points: W_SCAN_SMALL, dashed: true, dim: true }),
+    P.lane({ points: W_SCAN_MATCH, dashed: true, dim: true }),
+    P.lane({ points: W_SCAN_SLOW, dashed: true, dim: true }),
+    P.lane({ points: W_MOUNT_LOW, dashed: true, dim: true }),
+    P.lane({ points: W_MOUNT_HIGH, dashed: true, dim: true }),
+    // The deny lane arrives with the claim it denies: a lane is never visible without its block.
+    P.lane({ key: 'wCtrlToPvcB', points: W_CTRL_TO_PVCB, dashed: true, dim: true, opacity: 0 }),
+    P.wire({ key: 'mount', x: MOUNT_X + 16, y: 200, anchor: 'start' }),
+    P.wire({ key: 'small', x: SMALL_CX, y: VERDICT_Y }),
+    P.wire({ key: 'match', x: MATCH_CX, y: VERDICT_Y }),
+    P.wire({ key: 'slow', x: SLOW_CX, y: VERDICT_Y }),
+    P.chip({ key: 'pvcChip', x: 105, y: CHIPS_Y, w: 200, h: 34, name: 'PVC', value: 'Pending' }),
     // Named for the ONE volume it tracks. A bare 'PV' would be a lie from the bind step on, since
     // PV-a01 and PV-b22 stay Available after PV-x73a goes Bound.
-    const pvChip    = valChip({ x: 325, y: CHIPS_Y, w: 200, h: 34, name: 'PV-x73a', value: 'Available', role: 'storage' });
-    const bindChip  = valChip({ x: 545, y: CHIPS_Y, w: 330, h: 34, name: 'binding', value: 'none',      role: 'storage' });
-    const mountChip = valChip({ x: 895, y: CHIPS_Y, w: 200, h: 34, name: 'mount',   value: 'none',      role: 'storage' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    [ctrl, pvc, pvcB, appPod.group, pvSmall, pvMatch, pvSlow].forEach(el => root.appendChild(el));
-    [wPvcToCtrl, wCtrlToPvc, wScanSmall, wScanMatch, wScanSlow, wMountLow, wMountHigh, wCtrlToPvcB].forEach(el => root.appendChild(el));
-    [mountLbl, smallLbl, matchLbl, slowLbl].forEach(el => root.appendChild(el));
-    [pvcChip, pvChip, bindChip, mountChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, appPod: appPod.group, appBox: appPod.innerBox,
-      ctrl, pvc, pvcB, pvSmall, pvMatch, pvSlow, pvMatchCyl,
-      wCtrlToPvcB,
-      pvcChip, pvChip, bindChip, mountChip,
-      wires: { mount: mountLbl, small: smallLbl, match: matchLbl, slow: slowLbl },
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { pvc, pv, bind, mount }) {
-  setChip(s.refs.pvcChip, pvc);
-  setChip(s.refs.pvChip, pv);
-  setChip(s.refs.bindChip, bind);
-  setChip(s.refs.mountChip, mount);
-}
-
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['ctrl', 'pvc', 'pvcB', 'pvSmall', 'pvMatchCyl', 'pvSlow', 'appBox',
-    'pvcChip', 'pvChip', 'bindChip', 'mountChip'], [s.refs.appPod]);
-  s.refs.pvSmall.style.opacity = '1';
-  s.refs.pvSlow.style.opacity = '1';
-  clearWires(s);
-}
+    P.chip({ key: 'pvChip', x: 325, y: CHIPS_Y, w: 200, h: 34, name: 'PV-x73a', value: 'Available' }),
+    P.chip({ key: 'bindChip', x: 545, y: CHIPS_Y, w: 330, h: 34, name: 'binding', value: 'none' }),
+    P.chip({ key: 'mountChip', x: 895, y: CHIPS_Y, w: 200, h: 34, name: 'mount', value: 'none' }),
+    P.packets(),
+  ],
+  // appBox is named here on purpose: a highlight set during a reduced replay leaks forward, because
+  // replay never runs the motion path that would re-clear it.
+  reset: {
+    keys: ['ctrl', 'pvc', 'pvcB', 'pvSmall', 'pvMatchCyl', 'pvSlow', 'appBox',
+      'pvcChip', 'pvChip', 'bindChip', 'mountChip'],
+    pods: ['appPod'],
+  },
+};
 
 const BOUND = 'data-claim <-> PV-x73a';
+const MATCH_OK = '5Gi, RWO, local-ssd OK';
+const chips = (pvc, pv, bind, mount) => ({ pvcChip: pvc, pvChip: pv, bindChip: bind, mountChip: mount });
 
-const STEPS = [
+// STO.S-01 as fields: the two late-appearing elements and the two rejected disks are pinned on
+// EVERY step, never inherited, because the reduced replay walks 0..n and clearHighlights clears
+// classes and not inline styles.
+const CLAIM2_OFF = { pvcB: 0, wCtrlToPvcB: 0 };
+const CLAIM2_ON = { pvcB: 1, wCtrlToPvcB: 1 };
+const SHELF_UP = { pvSmall: 1, pvSlow: 1 };
+const SHELF_DIM = { pvSmall: OPACITY.notready, pvSlow: OPACITY.notready };
+const VERDICTS = { small: 'too small', slow: 'wrong class' };
+// The rejection fade, hand-rolled before as dimBoxAt: from 1, forwards, on the probe that rejected it.
+const dimAt = (target, at) => F.fade({ target, to: OPACITY.notready, dur: 400, fill: 'forwards', easing: 'ease-out', at });
+
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
-      s.refs.appPod.style.opacity = String(OPACITY.pending);
-      s.refs.pvcB.style.opacity = '0';
-      s.refs.wCtrlToPvcB.style.opacity = '0';
-    },
+    chipsCued: chips('Pending', 'Available', 'none', 'none'),
+    opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_UP },
   },
   {
     id: 'claim',
     duration: 2000,
     narration: 'A PersistentVolumeClaim is a request, not storage. It states only what the workload needs: at least 5Gi, ReadWriteOnce access, and the local-ssd StorageClass. The scheduler will not place the Pod while the claim it references is still unbound.',
-    enter(s) {
-      resetStep(s);
-      setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
-      s.refs.appPod.style.opacity = String(OPACITY.pending);
-      s.refs.pvcB.style.opacity = '0';
-      s.refs.wCtrlToPvcB.style.opacity = '0';
-      s.refs.pvc.classList.add('highlight');
-    },
+    chipsCued: chips('Pending', 'Available', 'none', 'none'),
+    opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_UP },
+    // Deliberately motionless. The claim is a statement of need, nothing acts: the Pod is the
+    // subject being blocked rather than an actor, so it does not pulse and no block flashes.
+    lit: ['pvc'],
   },
   {
     id: 'watch',
     duration: 2100,
     narration: 'The binding controller watches every claim in the cluster. It picks this one up because it is Pending, and reads the three things it has to satisfy: capacity, access mode and StorageClass.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'none', mount: 'none' });
-      s.refs.appPod.style.opacity = String(OPACITY.pending);
-      s.refs.pvcB.style.opacity = '0';
-      s.refs.wCtrlToPvcB.style.opacity = '0';
-      s.refs.pvc.classList.add('highlight');
-      if (ctx.reduced) { s.refs.ctrl.classList.add('highlight'); return; }
-      // Infra to infra: no pod is involved, so there is no pulse to lead with. The claim rides along.
-      const watch = routePacket(s, ctx, W_PVC_TO_CTRL, { role: 'storage' });
-      ridingLabel(s, ctx, '5Gi, RWO, local-ssd', W_PVC_TO_CTRL);
-      lightBoxAt(s.refs.ctrl, ctx, watch.arrivalMs);
-    },
+    chipsCued: chips('Pending', 'Available', 'none', 'none'),
+    opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_UP },
+    lit: ['pvc'],
+    // Infra to infra: no pod is involved, so there is no pulse to lead with. The claim rides along.
+    flow: [
+      F.route({ points: W_PVC_TO_CTRL, name: 'watch' }),
+      F.tag({ text: '5Gi, RWO, local-ssd', points: W_PVC_TO_CTRL }),
+      F.light({ targets: ['ctrl'], at: 'watch' }),
+    ],
   },
   {
     id: 'match',
     duration: 3400,
     narration: 'The controller checks every Available volume in one sweep. PV-a01 is only 2Gi, which is under what the claim asks for, and PV-b22 is the local-hdd class rather than local-ssd. Only PV-x73a satisfies all three conditions, so it is the candidate.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { pvc: 'Pending', pv: 'Available', bind: 'candidate PV-x73a', mount: 'none' });
-      s.refs.appPod.style.opacity = String(OPACITY.pending);
-      s.refs.pvcB.style.opacity = '0';
-      s.refs.wCtrlToPvcB.style.opacity = '0';
-      s.refs.ctrl.classList.add('highlight');
-      if (ctx.reduced) {
-        s.refs.pvMatchCyl.classList.add('highlight');
-        s.refs.pvSmall.style.opacity = String(OPACITY.notready);
-        s.refs.pvSlow.style.opacity = String(OPACITY.notready);
-        setWire(s, 'small', 'too small');
-        setWire(s, 'match', '5Gi, RWO, local-ssd OK');
-        setWire(s, 'slow', 'wrong class');
-        return;
-      }
-      // The candidate is a VERDICT of the sweep, so it starts from what the watch step left it at
-      // and is named on the same arrival that lights PV-x73a and writes its wire.
-      setVal(s.refs.bindChip, 'none');
-      const toSmall = routePacket(s, ctx, W_SCAN_SMALL, { role: 'storage' });
-      const toMatch = routePacket(s, ctx, W_SCAN_MATCH, { role: 'storage' });
-      const toSlow  = routePacket(s, ctx, W_SCAN_SLOW,  { role: 'storage' });
-      dimBoxAt(s.refs.pvSmall, ctx, toSmall.arrivalMs);
-      dimBoxAt(s.refs.pvSlow, ctx, toSlow.arrivalMs);
-      lightBoxAt(s.refs.pvMatchCyl, ctx, toMatch.arrivalMs);
-      // Each verdict is written when its OWN probe lands, and the three land 1.4s apart because the
-      // lanes differ in length. All three at entry tells the reader the winner before the sweep runs.
-      at(s, ctx, toSmall.arrivalMs, () => setWire(s, 'small', 'too small'));
-      at(s, ctx, toMatch.arrivalMs, () => {
-        setWire(s, 'match', '5Gi, RWO, local-ssd OK');
-        setChip(s.refs.bindChip, 'candidate PV-x73a');
-      });
-      at(s, ctx, toSlow.arrivalMs,  () => setWire(s, 'slow', 'wrong class'));
-    },
+    chipsCued: chips('Pending', 'Available', 'candidate PV-x73a', 'none'),
+    wires: { small: VERDICTS.small, match: MATCH_OK, slow: VERDICTS.slow },
+    opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
+    lit: ['ctrl'],
+    // The candidate is a VERDICT of the sweep, so the animated path starts from what the watch step
+    // left it at, and the shelf starts undimmed so the probes are what dim it.
+    rewind: { chips: { bindChip: 'none' }, wires: { small: '', match: '', slow: '' }, opacity: SHELF_UP },
+    // All three probes leave the controller TOGETHER: the scan is one sweep of the shelf, not a
+    // queue. They land 1.4s apart because routeDur normalizes speed and the routes differ in length.
+    // Each verdict is written when its OWN probe lands, and the candidate chip turns over inside the
+    // same write that lights the winning cylinder.
+    flow: [
+      F.route({ points: W_SCAN_SMALL, name: 'small' }),
+      F.route({ points: W_SCAN_MATCH, name: 'match' }),
+      F.route({ points: W_SCAN_SLOW, name: 'slow' }),
+      dimAt('pvSmall', 'small'),
+      dimAt('pvSlow', 'slow'),
+      F.light({ targets: ['pvMatchCyl'], at: 'match' }),
+      F.set({ wires: { small: VERDICTS.small }, at: 'small' }),
+      F.set({ wires: { match: MATCH_OK }, chipsCued: { bindChip: 'candidate PV-x73a' }, at: 'match' }),
+      F.set({ wires: { slow: VERDICTS.slow }, at: 'slow' }),
+    ],
   },
   {
     id: 'bind',
     duration: 2800,
     narration: 'Binding is written on both objects. The claim gets a volumeName pointing at PV-x73a, and the volume gets a claimRef pointing back at data-claim. Both turn Bound, and because the volume now names its claim, no other claim can ever take it.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { pvc: 'Bound', pv: 'Bound', bind: BOUND, mount: 'none' });
-      s.refs.appPod.style.opacity = String(OPACITY.pending);
-      s.refs.pvcB.style.opacity = '0';
-      s.refs.wCtrlToPvcB.style.opacity = '0';
-      s.refs.ctrl.classList.add('highlight');
-      s.refs.pvSmall.style.opacity = String(OPACITY.notready);
-      s.refs.pvSlow.style.opacity = String(OPACITY.notready);
-      setWire(s, 'small', 'too small');
-      setWire(s, 'slow', 'wrong class');
-      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); s.refs.pvMatchCyl.classList.add('highlight'); return; }
-      // Two writes leave the controller at once: one down to the claim, one down to the volume.
-      const pvcPkt = routePacket(s, ctx, W_CTRL_TO_PVC, { role: 'storage' });
-      lightBoxAt(s.refs.pvc, ctx, pvcPkt.arrivalMs);
-      ridingLabel(s, ctx, 'volumeName: PV-x73a', W_CTRL_TO_PVC);
-      const pvMatchCylPkt = routePacket(s, ctx, W_SCAN_MATCH, { role: 'storage' });
-      lightBoxAt(s.refs.pvMatchCyl, ctx, pvMatchCylPkt.arrivalMs);
-      ridingLabel(s, ctx, 'claimRef: data-claim', W_SCAN_MATCH);
-    },
+    chipsCued: chips('Bound', 'Bound', BOUND, 'none'),
+    wires: VERDICTS,
+    opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
+    lit: ['ctrl'],
+    // Two writes leave the controller at once: one down to the claim, one down to the volume.
+    flow: [
+      F.route({ points: W_CTRL_TO_PVC, lights: ['pvc'] }),
+      F.tag({ text: 'volumeName: PV-x73a', points: W_CTRL_TO_PVC }),
+      F.route({ points: W_SCAN_MATCH, lights: ['pvMatchCyl'] }),
+      F.tag({ text: 'claimRef: data-claim', points: W_SCAN_MATCH }),
+    ],
   },
   {
     id: 'mount',
     duration: 3400,
     narration: 'Only now can the volume be used. Kubelet resolves the claim to the volume it is bound to, mounts it at /data inside the container, and the Pod finally starts. The claim is the handle the Pod holds, and the volume behind it is what actually stores the bytes.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { pvc: 'Bound', pv: 'Bound', bind: BOUND, mount: 'mounted at /data' });
-      s.refs.pvcB.style.opacity = '0';
-      s.refs.wCtrlToPvcB.style.opacity = '0';
-      s.refs.pvMatchCyl.classList.add('highlight');
-      s.refs.pvSmall.style.opacity = String(OPACITY.notready);
-      s.refs.pvSlow.style.opacity = String(OPACITY.notready);
-      setWire(s, 'small', 'too small');
-      setWire(s, 'slow', 'wrong class');
-      setWire(s, 'mount', 'kubelet mount');
-      // The Pod is running by the end of this step, so full opacity is the static end-state.
-      s.refs.appPod.style.opacity = '1';
-      if (ctx.reduced) { s.refs.pvc.classList.add('highlight'); s.refs.appBox.classList.add('highlight'); return; }
-      // The volume rises PV -> PVC -> Pod, the ball entering the claim at its bottom edge and
-      // re-emerging at the top: the claim is what the mount resolves THROUGH, so it lights on arrival.
-      const hop1 = routePacket(s, ctx, W_MOUNT_LOW, { role: 'storage' });
-      lightBoxAt(s.refs.pvc, ctx, hop1.arrivalMs);
-      const hop2 = routePacket(s, ctx, W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop, role: 'storage' });
-      ridingLabel(s, ctx, '/data', W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop });
-      s.refs.appPod.style.opacity = String(OPACITY.pending);
-      // The ball arrives AT the Pod, so the Pod pulses on arrival, not before it.
-      ctx.register(s.refs.appPod.animate([{ opacity: OPACITY.pending }, { opacity: 1 }], { duration: 500, delay: hop2.arrivalMs, fill: 'forwards', easing: 'ease-out' }));
-      pulsePod(s.refs.appPod, ctx, hop2.arrivalMs);
-      lightBoxAt(s.refs.appBox, ctx, hop2.arrivalMs);
-    },
+    chipsCued: chips('Bound', 'Bound', BOUND, 'mounted at /data'),
+    wires: { ...VERDICTS, mount: 'kubelet mount' },
+    // The Pod is running by the end of this step, so full opacity is the static end-state.
+    opacity: { appPod: 1, ...CLAIM2_OFF, ...SHELF_DIM },
+    lit: ['pvMatchCyl'],
+    // Without the re-dim the Pod sits at full opacity and snaps BACK the instant the fade goes active.
+    rewind: { opacity: { appPod: OPACITY.pending } },
+    // The volume rises PV -> PVC -> Pod, the ball entering the claim at its bottom edge and
+    // re-emerging at the top: the claim is what the mount resolves THROUGH, so it lights on arrival.
+    // The ball arrives AT the Pod, so the Pod pulses on arrival, not before it.
+    flow: [
+      F.route({ points: W_MOUNT_LOW, name: 'hop1', lights: ['pvc'] }),
+      F.route({ points: W_MOUNT_HIGH, after: 'hop1', name: 'hop2' }),
+      F.tag({ text: '/data', points: W_MOUNT_HIGH, after: 'hop1' }),
+      F.fade({ target: 'appPod', from: OPACITY.pending, to: 1, dur: 500, fill: 'forwards', easing: 'ease-out', at: 'hop2' }),
+      F.pulse({ pod: 'appPod', at: 'hop2' }),
+      F.light({ targets: ['appBox'], at: 'hop2' }),
+    ],
   },
   {
     id: 'exclusive',
     duration: 2600,
     narration: 'Binding is one to one and it is permanent. A second claim asking for exactly the same thing finds PV-x73a already carrying a claimRef, so that volume is no longer Available to anyone. These volumes were pre-created by an administrator and the class has no provisioner behind it, so nothing builds a new one. The second claim just stays Pending.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { pvc: 'Bound', pv: 'Bound', bind: BOUND, mount: 'mounted at /data' });
-      s.refs.appPod.style.opacity = '1';
-      s.refs.pvcB.style.opacity = '1';
-      s.refs.wCtrlToPvcB.style.opacity = '1';
-      s.refs.ctrl.classList.add('highlight');
-      s.refs.pvMatchCyl.classList.add('highlight');
-      s.refs.pvSmall.style.opacity = String(OPACITY.notready);
-      s.refs.pvSlow.style.opacity = String(OPACITY.notready);
-      setWire(s, 'small', 'too small');
-      setWire(s, 'slow', 'wrong class');
-      setBoxSublabel(s.refs.pvcB, 'Pending, no volume');
-      if (ctx.reduced) { s.refs.pvcB.classList.add('highlight'); return; }
-      const deny = routePacket(s, ctx, W_CTRL_TO_PVCB, { role: 'storage' });
-      ridingLabel(s, ctx, 'no volume available', W_CTRL_TO_PVCB);
-      lightBoxAt(s.refs.pvcB, ctx, deny.arrivalMs);
-    },
+    chipsCued: chips('Bound', 'Bound', BOUND, 'mounted at /data'),
+    wires: VERDICTS,
+    sublabels: { pvcB: 'Pending, no volume' },
+    opacity: { appPod: 1, ...CLAIM2_ON, ...SHELF_DIM },
+    lit: ['ctrl', 'pvMatchCyl'],
+    flow: [
+      F.route({ points: W_CTRL_TO_PVCB, name: 'deny' }),
+      F.tag({ text: 'no volume available', points: W_CTRL_TO_PVCB }),
+      F.light({ targets: ['pvcB'], at: 'deny' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });
