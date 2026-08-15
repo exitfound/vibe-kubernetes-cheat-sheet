@@ -1,4 +1,4 @@
-import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, BEAT } from './workloads-kit.js';
+import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE } from './workloads-kit.js';
 import { chip } from '../../lib/primitives.js';
 
 // Design notes for this card: ./CARDS.md#workloads-cronjob
@@ -60,9 +60,6 @@ const TICK_KEYS = TICK_LABELS.map((_, i) => 'tick' + i);
 // P.raw bypasses the kit binding, so this is the one place the category role is written by hand.
 const tick = (lbl, i) => P.raw({
   key: TICK_KEYS[i],
-  // refs.tickChips is the ARRAY this card has always addressed the ticks by, and the name the
-  // reduced dump prints them under. The per-tick keys are what the step fields take.
-  tune: (el, refs) => { (refs.tickChips = refs.tickChips || [])[i] = el; },
   make: () => chip({ x: i * (TICK_W + TICK_GAP), y: 0, w: TICK_W, h: TICK_H, label: lbl, role: 'workloads' }),
 });
 

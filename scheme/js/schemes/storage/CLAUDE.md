@@ -61,7 +61,7 @@ that fixes the SPAN and derives `CHIP_W` from it keeps its own formula even wher
 
 ## The escape hooks this category needs
 
-All 31 cards are in the declarative form. **15 are fully declarative**; 16 carry a hook, the highest
+All 31 cards are in the declarative form. **17 are fully declarative**; 14 carry a hook, the highest
 share of any category, and the DSL still did not have to grow. `reset.extra` and `step.motion` are
 used by NOBODY here.
 
@@ -72,15 +72,17 @@ and `volumeclaimtemplates` hand over nine each). Read them off the imported spec
 
 | Hook | Cards | What it wraps, and why no field says it |
 |---|---|---|
-| `part.tune` | 9 cards, 42 sites | An SVG **attribute** on a nested element the part kind does not hand back (`.scheme-pod-sublabel`'s `y`, a `node()` caption's `y`, a box label's `y`), a `style.fill` on a `.scheme-box-rect`, or **an ARRAY ref**: no part kind produces one, and both dumps name array members `key[n]`, so the array is load-bearing vocabulary |
+| `part.tune` | 6 cards, 13 sites | An SVG **attribute** on a nested element the part kind does not hand back (`.scheme-pod-sublabel`'s `y`, a `node()` caption's `y`, a box label's `y`), a `style.fill` on a `.scheme-box-rect`, or an ARRAY ref that later steps READ: `storage-fsgroup-ownership` collects its listing rows that way and seven `enter` hooks address them. **The 29 sites that collected an array nothing read were removed 2026-08-15**: their justification named dumps that do not exist, and every element already carried its own `key:` |
 | `P.raw` | 7 cards, 10 sites | A markerless, role-less identity spine (`P.lane` adds a marker, `P.relation` adds the relation class and `data-role`), a bare `<line>` or `<rect>`, a frame border whose stroke is inline style, a bare `pod()` (`podShell()` is `pod()` PLUS the inline wash, so `P.pod` would add one), and the one Pod with two peer inner boxes |
 | `step.enter` | 4 cards, 27 sites | Text no field reaches: `setCylinderLabel` writes `.scheme-cylinder-label` where `labels:` writes `.scheme-box-label`, a free `<text>`'s `textContent`, a per-step `style.fill` on 24 slot rects, and on `fsgroup-ownership` per-row `textContent` plus `.highlight` reached through an array ref |
-| `F.run` at delay 0 | 5 cards, 8 sites | **Not an escape, and not a timer**: `at()` short-circuits on `delay <= 0` and runs the callback inline and registers nothing, so it is an imperative beat standing inside the flow order. It is what reproduces a card-owned `onfinish` (`F.fade` carries only `unlight`), a deferred UNLIGHT, and any write through an array ref |
+| `F.run` at delay 0 | 5 cards, 8 sites | **An escape, but not a timer**: `at()` short-circuits on `delay <= 0` (`scheme-kit.js:262`) and runs the callback inline and registers nothing, so it is an imperative beat standing inside the flow order rather than a deferred one. It is still a hook, and all eight are inside the catalogue's count of 13 `F.run`. It is what reproduces a card-owned `onfinish` (`F.fade` carries only `unlight`), a deferred UNLIGHT, and any write through an array ref |
 
 **A `P.wire` is unreachable by every opacity field.** Wires land in `refs.wires[key]` and `opacity:`,
 `rewind.opacity`, `F.fade` and `F.reveal` all resolve `refs[key]`. Adding a scalar key to make one
-reachable renames it in the reduced AND settled dumps, because both claim scalar keys before
-`wires.*` and naming is first-wins. A wire that animates needs `F.run` at delay 0.
+reachable renames it in the `settled-dump.mjs` probe, which claims scalar keys before `wires.*` and
+is first-wins. `render/reduced.test.mjs` cannot see that rename at all: it keys by DOM SHAPE (tag,
+classes minus `highlight`, `data-role`, `data-idx`) and never reads a ref name. A wire that animates
+needs `F.run` at delay 0.
 
 **`reducedLit` is declared on ZERO steps here**, against 89 in network, 20 in workloads and 2 in
 cluster, and that is a measurement rather than an omission: of the 205 steps, **165 light something**,

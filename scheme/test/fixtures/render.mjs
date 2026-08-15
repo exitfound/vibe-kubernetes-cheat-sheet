@@ -1,7 +1,13 @@
 // render.mjs: the Playwright plumbing every render test shares, so they cannot drift apart into
-// private forks again (launch, id discovery, opening a card, the deterministic-seek trio, and the
-// two opacity readings). Carried over from tools/_shared.mjs with three deliberate changes, each
-// marked below with the divergence it closes.
+// private forks again (launch, id discovery, opening a card, the deterministic-seek trio, the two
+// opacity readings, element identity, the root-space bbox mapping and the narration-panel extent).
+// Carried over from tools/_shared.mjs with three deliberate changes, each marked below with the
+// divergence it closes.
+//
+// Six of the helpers below RUN IN THE PAGE and are therefore written with no free variables:
+// effectiveOpacity, ownOpacity, elementKey, keyedElements, rootBBox and overlayProbe. The first
+// five reach the page through an install* function that serialises them into an init script; the
+// last is passed to page.evaluate() directly, which serialises it the same way.
 
 import { chromium } from 'playwright';
 
@@ -303,6 +309,81 @@ export function installKeyHelpers(page) {
   return page.addInitScript(
     `window.__key = ${elementKey.toString()};\nwindow.__keyed = ${keyedElements.toString()};`);
 }
+
+// ---------------------------------------------------------------------------------------------
+// THE ROOT-SPACE MAPPING. One element's bounding box in the diagram's own coordinates.
+//
+// getBBox() answers in the element's OWN user space and every primitive is a translated group, so a
+// bbox and a path only become comparable after both are mapped through the element-to-root matrix.
+// Without it a check compares two coordinate systems and every number it prints is fiction.
+//
+// Shared because there are three callers. render/geometry.test.mjs and report/geometry-soft.test.mjs
+// map blocks, report/arrival.test.mjs maps the blocks a route endpoint may land on. The first two
+// carried the note "a local copy rather than a shared fixture on purpose ... if a third caller
+// appears, that is the moment", the third arrived and said so, and this is that moment taken.
+//
+// The one change from the three copies: the root matrix is read per call rather than hoisted once
+// per probe. The root <svg> does not move while a probe runs, so every number is identical, and a
+// caller no longer has to keep a `rootCTM` in scope for a helper it did not write.
+//
+// `box` is optional: pass the bbox when the caller already has it (the geometry probes do), omit it
+// and the element is asked for its own (arrival does). Returns {x, y, w, h}, never the DOM's
+// {x, y, width, height}, because that is the shape all three callers already spoke.
+//
+// Runs IN THE PAGE. No free variables, so installGeometryHelpers() can serialise it.
+export function rootBBox(el, root, box) {
+  const svg = root || el.closest('svg');
+  const b = box || el.getBBox();
+  const m = svg.getScreenCTM().inverse().multiply(el.getScreenCTM());
+  const pt = (x, y) => {
+    const p = svg.createSVGPoint(); p.x = x; p.y = y;
+    const q = p.matrixTransform(m);
+    return [q.x, q.y];
+  };
+  const c = [pt(b.x, b.y), pt(b.x + b.width, b.y), pt(b.x, b.y + b.height), pt(b.x + b.width, b.y + b.height)];
+  const xs = c.map(p => p[0]), ys = c.map(p => p[1]);
+  return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+}
+
+// Install as window.__toRoot. Same rule as the two installers above: BEFORE the first navigation,
+// or the helper is undefined on the open page and every probe that calls it throws.
+export function installGeometryHelpers(page) {
+  return page.addInitScript(`window.__toRoot = ${rootBBox.toString()};`);
+}
+
+// ---------------------------------------------------------------------------------------------
+// THE NARRATION PANEL EXTENT, in viewBox units.
+//
+// The panel is HTML in CSS pixels and the diagram is an SVG with a viewBox, so the two live in
+// different coordinate systems and the mapping is the whole measurement. preserveAspectRatio is
+// xMidYMid meet: ONE uniform scale, letterboxed on whichever axis has slack, which is why the
+// offset is computed from the centred box and not from the element's own top-left.
+//
+// ALL FOUR EDGES, because the two callers wanted different halves of one number and that is exactly
+// how the copies came to exist. report/overlay.test.mjs reads all four, report/geometry-soft.test.mjs
+// uses right and bottom only. A shared probe returning two of them would have been a third
+// definition rather than a fix. The zero-size guard is the overlay copy's and it is kept: a diagram
+// mid-rebuild has no box, and returning null lets a caller skip the sample instead of pooling a NaN.
+//
+// Runs IN THE PAGE: passed to page.evaluate() by value, so it closes over nothing.
+export const overlayProbe = () => {
+  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
+  const ov = document.querySelector('.narration-overlay');
+  if (!svg || !ov) return null;
+  const sb = svg.getBoundingClientRect();
+  const ob = ov.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  if (!sb.width || !sb.height || !vb.width || !vb.height) return null;
+  const scale = Math.min(sb.width / vb.width, sb.height / vb.height);
+  const offX = sb.left + (sb.width - vb.width * scale) / 2;
+  const offY = sb.top + (sb.height - vb.height * scale) / 2;
+  return {
+    right: (ob.right - offX) / scale + vb.x,
+    bottom: (ob.bottom - offY) / scale + vb.y,
+    left: (ob.left - offX) / scale + vb.x,
+    top: (ob.top - offY) / scale + vb.y,
+  };
+};
 
 // ---------------------------------------------------------------------------------------------
 // THE FONT GUARD (L-21). Shared because four files need it and three of them had it wrong.

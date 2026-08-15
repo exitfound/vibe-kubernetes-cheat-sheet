@@ -79,12 +79,9 @@ const LAND_MS = 500;
 const fade = (target, from, to, p = {}) =>
   F.fade({ target, from, to, dur: LAND_MS, fill: 'forwards', easing: 'ease-out', ...p });
 
-// The four lanes the VolumeAttachment owns are ALSO one array: they are born and die as one
-// construction and the dumps name them `vaLanes[n]`. Only tune can hold both the key and the array.
-const vaLane = (key, points) => P.lane({
-  key, points, dashed: true, dim: true, opacity: 0,
-  tune: (el, refs) => { refs.vaLanes = [...(refs.vaLanes || []), el]; },
-});
+// The four lanes the VolumeAttachment owns are born hidden and rise with the object itself
+// (OBJ_OFF / OBJ_ON below), which is the only thing separating them from the plain lanes.
+const vaLane = (key, points) => P.lane({ key, points, dashed: true, dim: true, opacity: 0 });
 
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 

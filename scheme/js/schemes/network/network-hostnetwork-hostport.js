@@ -1,4 +1,4 @@
-import { P, F, defineCard, makeRidingLabel, laneY, midX, shade, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel, laneY, midX, shade, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS.md#network-hostnetwork-hostport
 

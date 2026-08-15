@@ -79,6 +79,7 @@ import { cards } from '../fixtures/catalog.mjs';
 import {
   DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, STEP_SETTLE_MS,
   launch, setInspect, discoverIds, openCard, stepCount, enterStep, gotoStep,
+  installGeometryHelpers,
 } from '../fixtures/render.mjs';
 
 // The recorded walk. Assertions, not notes: see the header.
@@ -95,21 +96,10 @@ const probe = ({ tol }) => {
   if (!svg) return null;
 
   // getBBox() is in the element's own user space and every primitive is a translated group, so each
-  // box is mapped through the element-to-root matrix. Same mapping as the geometry tests use, and it
-  // is the reason a hit test can compare a route endpoint with a block at all.
-  const rootCTM = svg.getScreenCTM();
-  const toRoot = (el) => {
-    const b = el.getBBox();
-    const m = rootCTM.inverse().multiply(el.getScreenCTM());
-    const pt = (x, y) => {
-      const p = svg.createSVGPoint(); p.x = x; p.y = y;
-      const q = p.matrixTransform(m);
-      return [q.x, q.y];
-    };
-    const c = [pt(b.x, b.y), pt(b.x + b.width, b.y), pt(b.x, b.y + b.height), pt(b.x + b.width, b.y + b.height)];
-    const xs = c.map(p => p[0]), ys = c.map(p => p[1]);
-    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-  };
+  // box is mapped through the element-to-root matrix. It is the reason a hit test can compare a
+  // route endpoint with a block at all. Literally the same mapping the geometry tests use now:
+  // fixtures/render.mjs rootBBox, on the page as window.__toRoot via installGeometryHelpers().
+  const toRoot = (el) => window.__toRoot(el, svg);
   const label = (el, fallback) => {
     const t = el.querySelector('text');
     return (((t && t.textContent) || fallback).trim().slice(0, 28)) || fallback;
@@ -210,6 +200,7 @@ test('arrival grammar across every step (report only, census is the one assertio
     browser = await launch();
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
     await page.addInitScript(setInspect, 'expose');
+    await installGeometryHelpers(page);
     const ids = await discoverIds(page, DEFAULT_BASE);
 
     // One retry on the diagram selector, then one more probe. See harness limit 2 in the header.

@@ -78,7 +78,7 @@ const SLOT_FILL = Object.freeze({
 const SLOT_STROKE = 'rgba(94, 202, 148, 0.35)';
 
 // Eight bare rects with inline stroke and fill inside the node group: no part kind emits them, and
-// node() has no labelY knob for the caption y. A ref key on the rects would rename both dumps.
+// node() has no labelY knob for the caption y. A ref key on the rects renames the settled-dump probe.
 const nodeFrame = (i, label) => P.node({
   x: NODE_X[i], y: NODE_Y, w: NODE_W, h: NODE_H, label,
   tune: (el, refs) => {
@@ -107,12 +107,9 @@ const counter = (i) => P.box({
   key: `cnt${i}`, x: NODE_X[i] + CNT_X, y: NODE_Y + CNT_Y, w: CNT_W, h: CNT_H, label: '0 of 8',
 });
 
-// The three report lanes are held ONLY as an array: both dumps name an array member `wReport[n]`,
-// so giving each one a scalar key would rename all three in the serialised output.
-const reportLane = (points) => P.lane({
-  points, dashed: true, dim: true,
-  tune: (el, refs) => { refs.wReport = refs.wReport || []; refs.wReport.push(el); },
-});
+// The three report lanes carry no key at all: no step addresses them, they are the static track the
+// cap-report balls ride over.
+const reportLane = (points) => P.lane({ points, dashed: true, dim: true });
 
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 

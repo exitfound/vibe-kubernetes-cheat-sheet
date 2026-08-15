@@ -70,7 +70,7 @@ function probePaint(painted) {
 
 // The numbers render/palette.test.mjs asserts, restated here so the delta is readable without
 // running the other file. If these two ever disagree, the mandatory test is the truth.
-const OPEN_ELEMENTS = 1896;
+const OPEN_ELEMENTS = 1897;
 const OPEN_COMBINATIONS = 29;
 
 // One accumulator per sampling scope, plus a union. `where` is card + sampling point, which is what

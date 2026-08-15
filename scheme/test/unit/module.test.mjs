@@ -1,6 +1,12 @@
 // module.test.mjs: what a card module owes, asserted by IMPORTING it. Successor to check-canon's
-// R-kitparity and R-modulepath, and to the part of the S- block of ../../CANON.md that is readable
-// without a browser: S-02 (runtime half), S-08b, S-20, S-21, S-22, S-23, S-28.
+// R-kitparity, and to the part of the S- block of ../../CANON.md that is readable without a
+// browser: S-02 (runtime half), S-08b, S-21, S-22, S-23, S-28. It also holds L-08a, the one canon
+// row about two categories agreeing with each other, because the two objects it is about are kit
+// exports and this is the file that compares kits.
+//
+// R-modulepath (D-02) and the folder contract (S-20, D-03) were here and are now in
+// unit/catalog.test.mjs alone. The note at the foot of this file says which test took over what,
+// and why putting a second copy back would be a loss rather than more coverage.
 //
 // Everything here runs in bare Node in well under a second, which is only possible because
 // lib/motion.js guards its window.matchMedia probe (see ../fixtures/module.mjs). Before that guard
@@ -31,7 +37,7 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-  ROOT, cards, cardsByCategory, categories, schemes, folderFiles, folderModules, census,
+  ROOT, cards, categories, census,
 } from '../fixtures/catalog.mjs';
 import { CARD_FORMS, cardForm, exportSurface, importAll, importKit, importLib } from '../fixtures/module.mjs';
 
@@ -79,15 +85,15 @@ describe('card module surface', () => {
     t.diagnostic(`${modules.size} card modules imported, no browser, nothing stubbed`);
   });
 
-  // S-02, the half of it that survives the declarative refactor: whatever the source looks like,
-  // the module hands app.js an `init` and it is a function. The surface has TWO legal forms and
-  // nothing between them, so this is a set EQUALITY per card, never a containment: a legacy card
-  // that grew one stray export would satisfy "contains init" and be counted as migrated.
+  // S-02, narrowed 2026-08-15: there is ONE legal surface, the migrated one. This is a set EQUALITY
+  // per card, never a containment: a card that grew one stray export would satisfy "contains init"
+  // and read as conforming.
   //
-  // The split between the forms is the migration counter, printed on every run. That is the point
-  // of naming the forms rather than freezing one list: the contract check doubles as the progress
-  // measure for the remaining cards and the three categories after them.
-  test('every card is in one of the two legal export forms, and the split is the migration counter', (t) => {
+  // LEGACY IS STILL NAMED, and that is the whole reason CARD_FORMS keeps two entries. A regression
+  // has to be told apart from a typo: `init` alone is a card that went back to the hand-written
+  // form, and `[init, SCENE]` is a card someone broke halfway. Both fail, with different messages.
+  // The counter stays printed because a run that walked fewer cards must not read as a clean one.
+  test('every card is on the one legal export form, and a legacy surface is a regression', (t) => {
     const findings = [];
     const tally = new Map(Object.keys(CARD_FORMS).map(f => [f, 0]));
     let walked = 0;
@@ -101,7 +107,11 @@ describe('card module surface', () => {
       }
       tally.set(form, tally.get(form) + 1);
       if (typeof ns.init !== 'function') findings.push(`${id}  init is ${typeof ns.init}, not a function`);
-      if (form !== 'migrated') continue;
+      if (form !== 'migrated') {
+        findings.push(`${id}  exports [${exportSurface(ns)}], the RETIRED hand-written surface. ` +
+          'S-02 admits one form since 2026-08-15: SCENE, STEPS_SPEC and init from defineCard');
+        continue;
+      }
       // The whole reason the surface grew: SCENE and STEPS_SPEC are DATA a test reads with no
       // browser. A card exporting the right three names with a builder function behind one of them
       // would pass the surface check and leave the spec tests nothing to read.
@@ -119,7 +129,7 @@ describe('card module surface', () => {
     }
     census('export surface', walked, CARD_COUNT);
     assert.equal(findings.length, 0,
-      `${findings.length} of ${walked} card(s) are outside both legal export forms:\n  ${listing(findings)}`);
+      `${findings.length} of ${walked} card(s) are off the one legal export form:\n  ${listing(findings)}`);
     // Sums to the catalog or the counter is not a measure of anything: a card counted in neither
     // form, or in two, would leave a plausible-looking pair of numbers that adds up short.
     const counted = [...tally.values()].reduce((a, b) => a + b, 0);
@@ -241,11 +251,20 @@ describe('kit parity', () => {
     assert.equal(findings.length, 0, `${findings.length} kit(s) have drifted:\n  ${listing(findings)}`);
 
     // A set of four empty sets agrees with itself, so parity alone is not a live rule. These two
-    // anchors are what stop an emptied re-export block from reading as green.
+    // anchors are what stop an emptied kit from reading as green.
+    //
+    // The second anchor used to name makeInit and say "which every one of its cards imports from
+    // it". Nothing imports makeInit: it is called from defineCardWith inside lib/, and the parse of
+    // all 108 import headers gives it zero importers. `defineCard` is the name that sentence was
+    // true of, on all 108, so it is the anchor now and the kit surface can lose makeInit without
+    // this turning red for the wrong reason. It is read off the kit NAMESPACE rather than off the
+    // shared set on purpose: defineCard is each kit's OWN binding, built from defineCardWith with
+    // that category's role and tint, so it is by construction not a scheme-kit re-export.
     assert.ok(refNames.size > 0, `${ref}-kit.js re-exports nothing from scheme-kit.js`);
-    for (const [cat, names] of shared) {
-      assert.ok(names.has('makeInit'),
-        `${cat}-kit.js does not re-export makeInit, which every one of its cards imports from it`);
+    for (const cat of CATS) {
+      assert.equal(typeof kits.get(cat).defineCard, 'function',
+        `${cat}-kit.js exports no defineCard function, and every card in that folder imports one ` +
+        'from it: the folder would stop loading in the browser.');
     }
     t.diagnostic(`shared kit surface: ${refNames.size} names, identical across ${shared.size} kits`);
   });
@@ -303,6 +322,69 @@ describe('kit parity', () => {
     assert.equal(findings.length, 0, `${findings.length} finding(s):\n  ${listing(findings)}`);
     assert.ok(usedShared.size > 0, 'no card imports a single shared kit name, so the parity list is decorative');
     t.diagnostic(`${usedShared.size} of the ${refNames.size} shared names are imported by at least one card`);
+  });
+
+  // L-08a. Two categories carry a two-column X grammar and read their columns out of their kit's
+  // LAYOUT rather than typing them. The canon says the two grammar objects agree where they
+  // overlap, and that a divergence between them would be a DEFECT rather than a choice, which is
+  // exactly the kind of sentence that holds until nobody is looking. Nothing guarded it before.
+  //
+  // ONLY THE OVERLAP IS A RULE. A key one object has and the other does not is the difference
+  // between the two grammars (cluster frames its rows in a Node, workloads does not), so those are
+  // printed as diagnostics and never asserted. Storage's STO is a different object, overlapping on
+  // two keys, and networking has no such grammar at all: neither belongs in this comparison.
+  const X_GRAMMARS = [['cluster', 'CLU'], ['workloads', 'WL']];
+
+  // Leaf paths of a plain object: `COL_L.x` rather than `COL_L`, so a nested pair that differs in
+  // one field lands as one finding naming that field instead of an opaque object mismatch.
+  const leaves = (obj, prefix = '', out = new Map()) => {
+    for (const [k, v] of Object.entries(obj)) {
+      const at = prefix ? `${prefix}.${k}` : k;
+      if (v && typeof v === 'object' && !Array.isArray(v)) leaves(v, at, out);
+      else out.set(at, v);
+    }
+    return out;
+  };
+
+  test(`L-08a the ${X_GRAMMARS.length} X grammars agree on every key they share`, (t) => {
+    const read = X_GRAMMARS.map(([cat, name]) => {
+      const ns = kits.get(cat);
+      assert.ok(ns, `no ${cat}-kit.js was imported, so L-08a was not read at all`);
+      assert.equal(typeof ns[name], 'object',
+        `${cat}-kit.js exports no ${name} object, and L-08a is written about it. If the grammar ` +
+        'was renamed or moved, this test names the wrong thing and CANON.md L-08a names it too.');
+      assert.equal(typeof ns.LAYOUT, 'object',
+        `${cat}-kit.js exports no LAYOUT, which L-08a says the A / B / C columns are read out of`);
+      return { cat, name, grammar: leaves(ns[name]), layout: ns.LAYOUT };
+    });
+    const [a, b] = read;
+
+    const sharedKeys = [...a.grammar.keys()].filter(k => b.grammar.has(k)).sort();
+    const onlyA = [...a.grammar.keys()].filter(k => !b.grammar.has(k)).sort();
+    const onlyB = [...b.grammar.keys()].filter(k => !a.grammar.has(k)).sort();
+    assert.ok(sharedKeys.length > 0,
+      `${a.name} and ${b.name} have no key in common, so this comparison saw nothing. Either one ` +
+      'of them was rewritten wholesale or `leaves` stopped reading them.');
+
+    const findings = sharedKeys
+      .filter(k => !Object.is(a.grammar.get(k), b.grammar.get(k)))
+      .map(k => `${k}: ${a.name} ${a.grammar.get(k)}, ${b.name} ${b.grammar.get(k)}`);
+    assert.equal(findings.length, 0,
+      `L-08a: ${findings.length} of ${sharedKeys.length} shared key(s) disagree between ` +
+      `${a.name} (${a.cat}-kit.js) and ${b.name} (${b.cat}-kit.js):\n  ${listing(findings)}\n` +
+      '  L-08a calls a divergence here a defect rather than a choice, so the fix is to bring the ' +
+      'two back together. If the two categories are meant to diverge, that is a change to the ' +
+      'CANON.md row, made first and on purpose, and this test follows it. Do not relax the test ' +
+      'to make a drift green.');
+
+    assert.deepEqual(a.layout, b.layout,
+      `L-08a: the LAYOUT derived from ${a.name} and the one derived from ${b.name} are no longer ` +
+      'equal, so the A / B / C columns a card picks depend on which folder it sits in. Same ' +
+      'ruling as above: change the canon row first, or bring the two back together.');
+
+    t.diagnostic(`${a.name} vs ${b.name}: ${sharedKeys.length} shared leaf key(s), 0 differing, ` +
+      `LAYOUT deep-equal. Only ${a.name}: ${onlyA.join(' ') || 'none'}. ` +
+      `Only ${b.name}: ${onlyB.join(' ') || 'none'}.`);
   });
 });
 
@@ -390,52 +472,20 @@ test('every module under js/lib/ imports in bare Node, with no browser global at
 });
 
 // ---------------------------------------------------------------------------------------------
-// R-modulepath. app.js imports `./schemes/${category}/${id}.js`, so the convention IS the wiring.
-// Both halves, because only the first one is obvious.
+// R-modulepath USED TO LIVE HERE, as two tests, and it has gone to unit/catalog.test.mjs, which is
+// where the module PATH belongs: this file's own header says the path is not its subject, and the
+// catalog file was already asking all three questions alongside it.
+//
+//   the id prefix            -> catalog.test.mjs `D-02`. Stricter: it also asserts the derived
+//                               `rel` path, which the copy here never read.
+//   a stray `module` field   -> catalog.test.mjs `D-01`, twice over: a deepEqual on the whole key
+//                               set of an entry, and an explicit `s.module === undefined`.
+//   the folder contract      -> catalog.test.mjs `D-03`. Stricter: a deepEqual of the folder
+//                               listing against the manifest, so a card CLAIMED but missing is
+//                               reported as well as a file on disk that nothing claims.
+//
+// Both files walked the same population (`cards()` is a projection of `schemes()`), so the
+// inclusion is total in all three cases and no coverage was traded for the smaller number. Do not
+// put them back: a second copy of a rule is a second thing to update, and the copy that goes stale
+// is the one nobody is reading.
 // ---------------------------------------------------------------------------------------------
-describe('module path and folder contract', () => {
-  test('every card id starts with its category, and no catalog entry carries a module field', async (t) => {
-    const list = await schemes();
-    census('modulepath catalog', list.length, CARD_COUNT);
-    const findings = [];
-    for (const s of list) {
-      if (s.module !== undefined) {
-        findings.push(`${s.id}  still carries a module field ("${s.module}"), which nothing reads`);
-      }
-      const prefix = s.id.split('-')[0];
-      if (prefix !== s.category) {
-        findings.push(`${s.id}  id starts with "${prefix}" but category is "${s.category}", ` +
-          `so app.js would import js/schemes/${s.category}/${s.id}.js`);
-      }
-    }
-    assert.equal(findings.length, 0, `${findings.length} finding(s) over ${list.length} entries:\n  ${listing(findings)}`);
-    t.diagnostic(`${list.length} catalog entries, every id prefixed with its category folder`);
-  });
-
-  // S-20. A .js in a category folder that no entry claims is a module no linter reads, no test walks
-  // and no grid renders.
-  test(`each of the ${CATS.length} category folders holds exactly four kinds of .js`, async (t) => {
-    const byCat = await cardsByCategory();
-    const findings = [];
-    let walked = 0;
-    for (const cat of CATS) {
-      const onDisk = await folderFiles(cat);
-      const allowed = folderModules(cat);
-      const claimed = new Set((byCat.get(cat) || []).map(c => c.base));
-      walked += claimed.size;
-      assert.ok(onDisk.length > 0, `js/schemes/${cat}/ holds no .js at all`);
-      for (const n of onDisk) {
-        if (!allowed.has(n) && !claimed.has(n)) {
-          findings.push(`js/schemes/${cat}/${n}  is on disk but no catalog entry claims it ` +
-            `(allowed besides cards: ${[...allowed].join(', ')})`);
-        }
-      }
-      for (const n of allowed) {
-        if (!onDisk.includes(n)) findings.push(`js/schemes/${cat}/${n}  is missing`);
-      }
-      t.diagnostic(`${cat}: ${onDisk.length} .js = ${claimed.size} cards + ${allowed.size} folder modules`);
-    }
-    census('folder contract', walked, CARD_COUNT);
-    assert.equal(findings.length, 0, `${findings.length} finding(s):\n  ${listing(findings)}`);
-  });
-});

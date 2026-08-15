@@ -44,10 +44,6 @@ const raiseSublabel = (el) => {
   if (sub) sub.setAttribute('y', POD_H - 12);
 };
 
-// The four lanes are named twice on purpose: the ARRAY names them as a set and the dumps say
-// `lanes[n]`, while opacity resolves one at a time. The tune fills it so it reaches refs FIRST.
-const inLanes = (el, refs) => { (refs.lanes = refs.lanes || []).push(el); };
-
 // The list order IS the append order, which is the z-order: blocks, then the divider and the bound
 // link and the four lanes above them, then the chip strip, then the packet layer on top of all.
 export const SCENE = {
@@ -66,10 +62,10 @@ export const SCENE = {
     P.relation({ points: [[DIV_X, DIV_TOP], [DIV_X, DIV_BOTTOM]], dash: '4 6' }),
     P.relation({ points: [[PV_CX, PVC_BOTTOM], [PV_CX, PV_TOP]], dash: '4 6' }),
     // Four straight arrows: a write (down) and a remount (up) lane per column.
-    P.lane({ key: 'wLWrite', tune: inLanes, points: W_L_WRITE, dashed: true, dim: true }),
-    P.lane({ key: 'wLMount', tune: inLanes, points: W_L_MOUNT, dashed: true, dim: true }),
-    P.lane({ key: 'wRWrite', tune: inLanes, points: W_R_WRITE, dashed: true, dim: true }),
-    P.lane({ key: 'wRMount', tune: inLanes, points: W_R_MOUNT, dashed: true, dim: true }),
+    P.lane({ key: 'wLWrite', points: W_L_WRITE, dashed: true, dim: true }),
+    P.lane({ key: 'wLMount', points: W_L_MOUNT, dashed: true, dim: true }),
+    P.lane({ key: 'wRWrite', points: W_R_WRITE, dashed: true, dim: true }),
+    P.lane({ key: 'wRMount', points: W_R_MOUNT, dashed: true, dim: true }),
     // Three state chips on the card's own strip (290..910), evenly spaced, no text overlap.
     P.chip({ key: 'edChip', x: CHIP_X(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'emptyDir', value: 'empty' }),
     P.chip({ key: 'pvcChip', x: CHIP_X(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'PVC', value: 'Bound' }),

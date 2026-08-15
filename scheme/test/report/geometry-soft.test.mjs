@@ -9,7 +9,7 @@
 //
 // WHY THIS FILE NEVER FAILS. L-16: a finding that can only be closed by making the picture worse
 // is left OPEN, with the measurement and the reason written into the card's record. The four
-// records carry 17 such entries today (8 cluster, 5 storage, 3 workloads, 1 network). Making these
+// records carry 18 such entries today (9 cluster, 5 storage, 3 workloads, 1 network). Making these
 // three rules mandatory would mean either editing those cards until the pictures are worse, or
 // carrying a permanent suppression list, and a suppression list is the thing L-12's numeric
 // whitelist already taught this project not to keep. So this file MEASURES and PRINTS. The
@@ -76,6 +76,7 @@ import { cards } from '../fixtures/catalog.mjs';
 import {
   DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, STEP_SETTLE_MS, DIAGRAM_FACES,
   launch, setInspect, discoverIds, openCard, stepCount, gotoStep, fallbackFaces,
+  installGeometryHelpers, overlayProbe,
 } from '../fixtures/render.mjs';
 
 // Tolerances, carried over from check-geometry.mjs unchanged.
@@ -107,23 +108,15 @@ const VIEWPORTS = [
 // populations OVERLAP and never coincide, and this line is a record census, not a target.
 const DOCUMENTED_OPEN = { total: 18, cluster: 9, storage: 5, workloads: 3, network: 1 };
 
-// Runs IN THE PAGE. No free variables: page.evaluate serialises it.
+// Runs IN THE PAGE. No free variables: page.evaluate serialises it. The root-space mapping it uses
+// is shared with render/geometry.test.mjs and report/arrival.test.mjs (fixtures/render.mjs
+// rootBBox), and reaches the page as window.__toRoot through installGeometryHelpers(). The probe
+// itself stays local: the three files read different halves of one picture.
 const probe = () => {
   const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
   if (!svg) return null;
 
-  const rootCTM = svg.getScreenCTM();
-  const toRoot = (el, b) => {
-    const m = rootCTM.inverse().multiply(el.getScreenCTM());
-    const pt = (x, y) => {
-      const p = svg.createSVGPoint(); p.x = x; p.y = y;
-      const q = p.matrixTransform(m);
-      return [q.x, q.y];
-    };
-    const c = [pt(b.x, b.y), pt(b.x + b.width, b.y), pt(b.x, b.y + b.height), pt(b.x + b.width, b.y + b.height)];
-    const xs = c.map(p => p[0]), ys = c.map(p => p[1]);
-    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-  };
+  const toRoot = (el, b) => window.__toRoot(el, svg, b);
 
   const blocks = [];
   for (const sel of ['.scheme-box', '.scheme-pod', '.scheme-cylinder', '.scheme-node']) {
@@ -173,20 +166,10 @@ const probe = () => {
 };
 
 // The extra viewport passes consume ONLY the panel extent (check-geometry.mjs:262-273 pushes
-// nothing else), so they run this instead of the full probe. Blocks and chips are viewBox geometry
-// and do not move with the viewport, so nothing is lost and two thirds of the walk gets cheaper.
-const overlayProbe = () => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  const ov = document.querySelector('.narration-overlay');
-  if (!svg || !ov) return null;
-  const sb = svg.getBoundingClientRect();
-  const ob = ov.getBoundingClientRect();
-  const vb = svg.viewBox.baseVal;
-  const scale = Math.min(sb.width / vb.width, sb.height / vb.height);
-  const offX = sb.left + (sb.width - vb.width * scale) / 2;
-  const offY = sb.top + (sb.height - vb.height * scale) / 2;
-  return { right: (ob.right - offX) / scale + vb.x, bottom: (ob.bottom - offY) / scale + vb.y };
-};
+// nothing else), so they run fixtures/render.mjs overlayProbe instead of the full probe above.
+// Blocks and chips are viewBox geometry and do not move with the viewport, so nothing is lost and
+// two thirds of the walk gets cheaper. That probe is shared with report/overlay.test.mjs and
+// returns all four panel edges; this file reads `right` and `bottom` and ignores the other two.
 
 // The worst area share of block b under any measured panel rect. The panel is anchored at the
 // top-left corner of the viewBox, so the overlap is measured from 0 on both axes, exactly as the
@@ -253,6 +236,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
     const context = await browser.newContext({ viewport: VIEWPORTS[0] });
     const page = await context.newPage();
     await page.addInitScript(setInspect, 'expose');
+    await installGeometryHelpers(page);
     const ids = await discoverIds(page, DEFAULT_BASE);
 
     for (const id of ids) {

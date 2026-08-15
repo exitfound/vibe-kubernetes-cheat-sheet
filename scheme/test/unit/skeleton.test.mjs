@@ -21,7 +21,7 @@
 //   S-11  resetStep declared once per card, packetLayer.replaceChildren() first, clearHighlights and
 //         extras in the middle, clearWires last.
 //         RETURNED as a traced call order out of makeResetStep. ONE DEVIATION IS RECORDED, not
-//         asserted: the generated prologue runs `reset.extra` AFTER clearWires, where the 21
+//         asserted: the generated prologue runs `reset.extra` AFTER clearWires, where the 108
 //         handwritten copies ran their extras before it. It is invisible today because the single
 //         extra in the catalog (cluster-api-structure resetWatchArrow) touches strokeDasharray on an
 //         arrow and no wire, which is why nothing ever caught it. See report/skeleton-census.
@@ -48,7 +48,7 @@
 // R-opacity, the source half of C-04, is here too: every shade a migrated card DECLARES is read out
 // of SCENE.parts and STEPS_SPEC and matched against the OPACITY vocabulary imported from the live
 // js/lib/tokens.js. The numbers are never copied into this file. The runtime half of C-04 is
-// render/opacity.test.mjs and covers all 108; this covers what the 21 wrote down.
+// render/opacity.test.mjs and covers all 108; this covers what the 108 wrote down.
 //
 // ===========================================================================================
 // WHY A DOM STUB FOR ONE CALL, AND WHY NOT A BUILT SCENE
@@ -64,11 +64,13 @@
 // ===========================================================================================
 // WHAT THIS FILE IS BLIND TO
 // ===========================================================================================
-//   - The 87 LEGACY cards. They export `init` alone, so none of this is readable for them and the
-//     count of what was walked is printed on every test rather than assumed.
+//   - A LEGACY card, if one is ever written again. It would export `init` alone, so none of this
+//     would be readable for it. There are 0 today, and the count of what was walked is printed on
+//     every test rather than assumed, which is what stops a shrinking population from passing this
+//     file in silence.
 //   - Anything an escape hatch builds. `P.raw` takes a `make(refs)` function and `tune(el, refs)`
 //     mutates a finished element, so a ref either of them creates is invisible to a static reader.
-//     Today that is 11 raw parts and 11 tunes on 7 cards, and one consequence is measured in
+//     Today that is 43 raw parts and 33 tunes on 29 cards, and one consequence is measured in
 //     report/skeleton-census: reset.pods on cluster-pod-sandbox-cri names `appGroup`, which a tune
 //     creates.
 //   - Flow ORDER, after/at resolution and chip turnover. That is unit/spec-steps.test.mjs. This file
@@ -114,7 +116,7 @@ const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArr
 
 // Every part of a SCENE, groups flattened, with the path that names it in a finding. `null` entries
 // are LEGAL and skipped by appendParts: cluster-node-allocatable writes `caption ? P.tag(...) : null`
-// inside a group helper, which is 1 of the 495 entries today. They are counted, never a finding.
+// inside a group helper, which is 1 of the 2216 entries today. They are counted, never a finding.
 function walkParts(parts, path, out, nulls) {
   (parts || []).forEach((part, i) => {
     const at = `${path}[${i}]`;
@@ -356,11 +358,11 @@ describe('S-04 and S-05: one camera, and no card owns it', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// S-01, S-10, S-11. The skeleton the 21 cards used to copy, now generated once. These three probes
+// S-01, S-10, S-11. The skeleton the 108 cards used to copy, now generated once. These three probes
 // are the only assertions in the suite that watch the generated enter() run, so they use fakes that
 // record rather than a DOM: what is being measured is call ORDER, not what the calls draw.
 // ---------------------------------------------------------------------------------------------
-describe('S-01, S-10, S-11: the skeleton, generated once instead of copied 21 times', () => {
+describe('S-01, S-10, S-11: the skeleton, generated once instead of copied 108 times', () => {
   // S-01, behavioural. A probe SCENE with no parts, so buildScene reaches only diagramRoot and the
   // host. Building a real card's parts would need primitives.js and a browser.
   test('S-01: makeScene builds on construction and reset() repaints from scratch', (t) => {

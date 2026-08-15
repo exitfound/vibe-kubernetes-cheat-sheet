@@ -1,4 +1,4 @@
-import { P, F, defineCard, ladder, laneY, midX, spread, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
+import { P, F, defineCard, ladder, laneY, midX, spread, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-deployment-rollback
 

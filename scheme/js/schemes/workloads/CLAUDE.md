@@ -103,7 +103,7 @@ construction.
 | `WL.L-03` | **A** (`LAYOUT.A`) ladder left, chips right, Node on the floor. Needs `PANEL_B + 20 + LADDER_H + 20 + NODE_H <= 630` |
 | `WL.L-04` | **B** (`LAYOUT.B`) the mirror, chips left and ladder right. **This is the common case, not A**: a 4-chip column is 160 tall where a 5-row ladder is 200, and the band left free below a real panel is at most about 214 |
 | `WL.L-05` | **C** (`LAYOUT.C`) tall panel, neither column fits below it: ladder right, Node just under the panel, chips as a full-width bottom strip **two or three per row** (532 or 350.7 wide). Never four or five across: 258 and 205 are narrower than the strings, and that produced 79 chip collisions |
-| `WL.L-06` | Pick the first of A / B / C that fits vertically against **that card's** measured panel bottom, and say so by reading its columns out of `LAYOUT`. Measured: A 3 cards, B 7, C 9 |
+| `WL.L-06` | The choice itself is `L-08a`, which cluster obeys too. What is workloads alone: the split over these 19 cards, measured A 3, B 7, C 9 |
 | `WL.L-07` | The trunk has to run in the `540..660` corridor to clear both columns and still leave a face midpoint, so **the actor box it leaves must be centred on `WL.SPINE_X`**. That is why several cards carry a first actor box of `420..780` rather than `420..640` |
 | `WL.A-01` | The top-row lane PAIR: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API and `RESP_Y = TOP_CY + LANE_DY` carries the answer back. 17 cards draw the pair and 6 ride the answer. Whether the answer lane is an arrow or a relation is decided by the step's own words (`A-06`) |
 | `WL.A-02` | **The top-row wire label goes ABOVE the actor row**, at `WIRE_Y = WL.TOP_Y - 12`, never below it. Below, centred at `WIRE_X` on y=146, it lands on the lane and across the spine's step. Nine cards carry that constant identically |
@@ -121,8 +121,8 @@ exists for something with no honest general verb. `step.enter`, `step.motion`, `
 
 | Card | Hook | What it wraps, and why no field expresses it |
 |---|---|---|
-| `workloads-crashloopbackoff` | `P.raw` + `tune`, one factory over six rungs | The backoff ladder is built from `chip()` in `primitives.js`, a label-only chip no part kind builds. `tune` rebuilds `refs.ladderChips` as the ARRAY the reduced dump names the lit rungs by, so per-key refs alone would redden the diff on naming |
-| `workloads-cronjob` | `P.raw` + `tune`, one factory over six rungs | The identical construct, for the schedule ticks |
+| `workloads-crashloopbackoff` | `P.raw`, one factory over six rungs | The backoff ladder is built from `chip()` in `primitives.js`, a label-only chip no part kind builds. The six rungs carry their own keys (`rung0..rung5`), which is what `lit` and `reset.keys` address. **The `tune` that also collected them into `refs.ladderChips` was removed 2026-08-15**: nothing read the array |
+| `workloads-cronjob` | `P.raw`, one factory over six rungs | The identical construct, for the schedule ticks, with keys `tick0..tick5` |
 | `workloads-init-containers-and-sidecars` | `part.tune` on the `P.pod` | The Pod holds FOUR peer container boxes; `buildPod` carries exactly one `inner` and would hand it the Pod's own role, turning four `role: 'cluster'` boxes blue. They must also sit inside the shell group, because `pulsePod` reaches only what the Pod contains |
 | `workloads-pod-image-pull` | `P.raw` | The registry cloud is a bare `<path>`, the only one in the category, and the only card importing `path` from `lib/svg.js` |
 

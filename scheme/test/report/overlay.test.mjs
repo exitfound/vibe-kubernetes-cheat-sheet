@@ -21,7 +21,8 @@
 // its bottom lands one text line HIGH, 17.5 viewBox units, on 3 of 6 sampled cards. A run without
 // fonts therefore reports a SHALLOWER panel than the truth, which is the flattering direction: it
 // would quietly widen the L-04 range at the low end and hide occlusion. No tool in the old harness
-// waited for fonts at all (`grep -rn fonts tools/*.mjs` finds one comment in frame-strip.mjs), and
+// waited for fonts at all: measured before scheme/tools/ was deleted, the only mention of them in
+// the whole directory was a single comment in frame-strip.mjs, and nothing awaited anything. And
 // document.fonts.ready alone is not enough because scheme/index.html:29 attaches the Google Fonts
 // stylesheet from a <link rel="preload"> onload handler, so `ready` can settle before the sheet is
 // even linked. Neither is fonts.check(): with no sheet attached there is no @font-face rule to be
@@ -54,6 +55,7 @@ import { cards } from '../fixtures/catalog.mjs';
 import {
   DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, STEP_SETTLE_MS, DIAGRAM_FACES,
   launch, setInspect, discoverIds, openCard, stepCount, gotoStep, fallbackFaces,
+  overlayProbe,
 } from '../fixtures/render.mjs';
 
 // L-06. All three are measured in full here: unlike the geometry rules, which read the panel on the
@@ -96,30 +98,10 @@ const EXPECTED_STEPS = 650;
 // about, so anything outside it is a real move and not a rounding artefact.
 const SAME = 0.5;
 
-// Runs IN THE PAGE. No free variables: page.evaluate serialises it.
-//
-// The panel is HTML in CSS pixels and the diagram is an SVG with a viewBox, so the two live in
-// different coordinate systems and the mapping is the whole measurement. preserveAspectRatio is
-// xMidYMid meet: ONE uniform scale, letterboxed on whichever axis has slack, which is why the
-// offset is computed from the centred box and not from the element's own top-left.
-const overlayProbe = () => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  const ov = document.querySelector('.narration-overlay');
-  if (!svg || !ov) return null;
-  const sb = svg.getBoundingClientRect();
-  const ob = ov.getBoundingClientRect();
-  const vb = svg.viewBox.baseVal;
-  if (!sb.width || !sb.height || !vb.width || !vb.height) return null;
-  const scale = Math.min(sb.width / vb.width, sb.height / vb.height);
-  const offX = sb.left + (sb.width - vb.width * scale) / 2;
-  const offY = sb.top + (sb.height - vb.height * scale) / 2;
-  return {
-    right: (ob.right - offX) / scale + vb.x,
-    bottom: (ob.bottom - offY) / scale + vb.y,
-    left: (ob.left - offX) / scale + vb.x,
-    top: (ob.top - offY) / scale + vb.y,
-  };
-};
+// The probe itself is fixtures/render.mjs overlayProbe, shared with report/geometry-soft.test.mjs:
+// one calculation of the panel rect through xMidYMid meet, four edges, of which this file reads all
+// four and that one reads two. It runs IN THE PAGE and carries the mapping argument in its own
+// comment.
 
 // One probe, with one retry when the diagram is momentarily absent (2.4c above).
 async function probeOverlay(page) {

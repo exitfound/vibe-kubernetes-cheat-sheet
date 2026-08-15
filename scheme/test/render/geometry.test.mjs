@@ -46,8 +46,9 @@
 // FONTS FIRST (L-21). A block's bbox is the bbox of its GROUP, label and sublabel included, so a
 // block measured before the webfont arrives is measured on the fallback face, which is about 20
 // percent narrower and flatters every centring and clearance number taken off it. Not one tool in
-// the old harness waited for fonts (`grep -rn fonts tools/*.mjs` finds one comment), so every
-// geometry number the gate ever printed was taken on whatever face happened to be resolved. The
+// the old harness waited for fonts: the whole of scheme/tools/ mentioned them once, in a comment,
+// and never awaited anything, so every geometry number the gate ever printed was taken on whatever
+// face happened to be resolved (measured before that directory was deleted). The
 // guard is fixtures/render.mjs fallbackFaces(), a behavioural width probe, and it is behavioural
 // because neither document.fonts.ready nor document.fonts.check() can answer this: with the font
 // hosts unreachable the stylesheet never attaches, so there is no @font-face rule to be missing and
@@ -66,6 +67,7 @@ import { cards, census } from '../fixtures/catalog.mjs';
 import {
   DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, STEP_SETTLE_MS,
   launch, setInspect, discoverIds, openCard, stepCount, gotoStep, fallbackFaces,
+  installGeometryHelpers,
 } from '../fixtures/render.mjs';
 
 // ---------------------------------------------------------------------------------------------
@@ -94,10 +96,14 @@ const VIEWPORT = { width: 1600, height: 1000 };
 // ---------------------------------------------------------------------------------------------
 // The probe. Runs IN THE PAGE, so it closes over nothing: it is serialised by page.evaluate.
 //
-// A local copy rather than a shared fixture on purpose, and the same call report/geometry-soft
-// makes: the two files read different halves of the same picture (this one wants lanes and blocks,
-// that one wants blocks, chips and the narration panel), and a fixture wide enough for both would
-// be a third definition neither file uses whole. If a third caller appears, that is the moment.
+// The PROBE stays local, and for the reason it always did: the three files that read this picture
+// read different halves of it (this one wants lanes and blocks, report/geometry-soft wants blocks,
+// chips and the narration panel, report/arrival wants blocks and route endpoints), so a probe wide
+// enough for all three would be a fourth definition none of them uses whole.
+//
+// What is NOT local any more is the root-space mapping the three of them each had a copy of. It
+// lives in fixtures/render.mjs as rootBBox and reaches the page as window.__toRoot, which
+// installGeometryHelpers() writes before the first navigation.
 // ---------------------------------------------------------------------------------------------
 const probe = () => {
   const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
@@ -106,18 +112,12 @@ const probe = () => {
   // getBBox() is in the element's own user space and primitives are translated groups, so every
   // bbox is mapped through the element-to-root matrix. Without it the check compares two
   // coordinate systems and every number it prints is fiction.
+  const toRoot = (el, b) => window.__toRoot(el, svg, b);
+
+  // The same matrix, kept here for the LANE half further down, which maps a list of path POINTS
+  // rather than a bounding box and so has nothing to hand the shared helper. Neither of the other
+  // two callers of that helper reads lanes, so this is not a fourth copy of anything.
   const rootCTM = svg.getScreenCTM();
-  const toRoot = (el, b) => {
-    const m = rootCTM.inverse().multiply(el.getScreenCTM());
-    const pt = (x, y) => {
-      const p = svg.createSVGPoint(); p.x = x; p.y = y;
-      const q = p.matrixTransform(m);
-      return [q.x, q.y];
-    };
-    const c = [pt(b.x, b.y), pt(b.x + b.width, b.y), pt(b.x, b.y + b.height), pt(b.x + b.width, b.y + b.height)];
-    const xs = c.map(p => p[0]), ys = c.map(p => p[1]);
-    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-  };
 
   // Blocks: the shapes a lane must not be drawn across, and the faces an endpoint may sit on.
   const blocks = [];
@@ -219,6 +219,7 @@ const browser = await launch();
 const context = await browser.newContext({ viewport: VIEWPORT });
 const page = await context.newPage();
 await page.addInitScript(setInspect, 'expose');
+await installGeometryHelpers(page);
 const ids = await discoverIds(page, DEFAULT_BASE);
 
 after(() => browser.close());

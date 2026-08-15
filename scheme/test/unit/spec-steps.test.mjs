@@ -5,10 +5,10 @@
 // `chips` as the state after the static block.
 //
 // ===========================================================================================
-// THE POPULATION IS MIXED, AND THAT IS THE FIRST THING THIS FILE HAS TO SURVIVE
+// THE POPULATION IS A SUBSET, AND THAT IS THE FIRST THING THIS FILE HAS TO SURVIVE
 // ===========================================================================================
 // A LEGACY card exports only `init` and seals its steps inside makeInit's closure, so there is
-// nothing here to read: 21 of the 108 cards are migrated today and 87 are not. A test that simply
+// nothing here to read: 108 of the 108 cards are migrated today and 0 are not. A test that simply
 // skipped whatever it could not read would go quiet the day `STEPS_SPEC` is renamed, and a green run
 // over an empty set is worse than a red one. So the walk is counted twice by two INDEPENDENT
 // criteria: this file collects the cards whose `STEPS_SPEC` is an array, ../fixtures/module.mjs
@@ -27,14 +27,22 @@
 //     render/reduced.test.mjs proves the two paths AGREE without proving the derivation is the one
 //     the card meant. Here it is re-derived independently, off the data, and compared.
 //   - A MISNAMED KEY IS A SILENT NO-OP. Every writer in scheme-kit is null-guarded (`setVal` is
-//     `if (node && node.valueText)`), so `chips: { termChp: '4' }` throws nothing, draws nothing and
-//     leaves the chip showing the PREVIOUS step's value, which is the one failure that looks
-//     plausible on screen. Every key a step names is resolved against the scene here.
+//     `if (node && node.valueText)`), so `lit: ['termChp']` throws nothing, draws nothing and leaves
+//     the picture showing the PREVIOUS step's state, which is the one failure that looks plausible
+//     on screen. Every key a step names OUTSIDE the six string writers is resolved against the scene
+//     here: the six themselves are resolved in unit/spec-scene.test.mjs, which asks the same
+//     question and one more (whether the part is a KIND that writer can write to). The split, and
+//     why both halves are not asked twice, is written out over the last describe block below.
+//   - THE LIFETIME OF A HIGHLIGHT, which is neither the scene's question nor the render level's.
+//     S-18 and S-19 were both `review` until 2026-08-15 and both stand at ZERO findings, which is
+//     when a check is cheap. S-19 is the expensive one to lose: the class it names ACCUMULATES over
+//     prev and reset, so five networking cards carried it at once and nothing in the suite could
+//     see it (render/reduced.test.mjs compares the two paths and both accumulate identically).
 //
 // ===========================================================================================
 // WHAT THIS FILE IS BLIND TO, BY CONSTRUCTION
 // ===========================================================================================
-//   - Anything a step does inside its `enter(s, ctx)` or `motion(s, ctx)` escape. 14 of the 137
+//   - Anything a step does inside its `enter(s, ctx)` or `motion(s, ctx)` escape. 42 of the 650
 //     steps carry one. Their bodies are functions, not data, and this file does not read them
 //     except to widen the set of legal ref names (see refsOf below).
 //   - Whether a value is TRUE. P-01 is enforced here as a CONVENTION (every step writes every chip);
@@ -42,6 +50,9 @@
 //     canon says.
 //   - Geometry. A route's points are read only for their arithmetic (length -> flight time), never
 //     for where they sit. That is the scene test's subject.
+//   - Whether a highlight the step DOES take back is taken back at the right moment. S-18 below asks
+//     only whether the fade that kills a block carries the `unlight` at all: which frame the class
+//     leaves on is a rendered fact and stays with render/reduced.test.mjs.
 //   - Real span. The arrival arithmetic below is a LOWER BOUND on what render/duration.test.mjs
 //     measures: it ignores the ripple, the packet fades and the pulse tails, and an infinite
 //     animation has no length here at all. It cannot replace that test and does not try to.
@@ -50,9 +61,13 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards, census } from '../fixtures/catalog.mjs';
 import { cardForm, importAll } from '../fixtures/module.mjs';
-import { collectFns, escapeRefs, walkParts } from '../fixtures/spec.mjs';
+import { collectFns, refNames, settledChips, staticChips, timelineOf, walkParts } from '../fixtures/spec.mjs';
 import { flowLights } from '../../js/lib/step-spec.js';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
+
+// The three kit constants the arrival arithmetic in ../fixtures/spec.mjs runs on, handed to it at
+// every call so that fixture stays importable without the kit.
+const KIT = { routeDur, REVEAL_MS, BEAT };
 
 // ---------------------------------------------------------------------------------------------
 // Gathered once. importAll() carries the census guard, so a short walk throws before any assertion
@@ -118,78 +133,25 @@ const VERB_PARAMS = {
 const VERBS = new Set(Object.keys(VERB_PARAMS));
 
 // ---------------------------------------------------------------------------------------------
-// The scene's ref surface, needed only to resolve the names a STEP uses. Built from the part list,
-// plus the two Pod sub-refs, plus whatever an escape assigns.
-//
-// WHY THE ESCAPES ARE READ AT ALL. `tune(el, refs)` and `raw.make(refs)` may write a ref, and the
-// reader for that lives in ../fixtures/spec.mjs with the argument for why reading source text is
-// safe here: it only ever WIDENS the legal set. ../report/skeleton-census.test.mjs reads the same
-// escapes to decide whether a reset key is a typo, and the two must not drift apart.
+// The scene's ref surface, needed only to resolve the names a STEP uses: every name buildScene
+// files, plus whatever an escape assigns. It is NOT built here. ../fixtures/spec.mjs holds it,
+// because ../unit/spec-scene.test.mjs and ../report/skeleton-census.test.mjs resolve names against
+// the same set and three readings of one universe is three chances to drift; that file also carries
+// the argument for why reading escape source text is safe (it only ever WIDENS the legal set) and
+// the list of names left out of the universe on purpose.
 // ---------------------------------------------------------------------------------------------
 function refsOf(card) {
-  const refs = new Set(), wires = new Set();
-  walkParts(card.scene && card.scene.parts, (part) => {
-    if (!part) return;
-    const { kind, key, p = {} } = part;
-    // A wire lands in refs.wires[key], everything else in refs[key]: two namespaces, so a
-    // `wires: { api: ... }` naming a box would resolve to nothing.
-    if (kind === 'wire') { if (key) wires.add(key); } else if (key) refs.add(key);
-    if (kind === 'pod') { if (p.shellKey) refs.add(p.shellKey); if (p.innerKey) refs.add(p.innerKey); }
-  });
-  for (const name of escapeRefs(card.scene, card.steps)) refs.add(name);
+  const refs = refNames(card.scene, card.steps);
   // The count stays the number of FUNCTIONS read, not of names found: the diagnostic below reports
   // how much of each spec was scanned, and most of those functions assign nothing.
   const fns = collectFns(card.scene).length + collectFns(card.steps).length;
-  return { refs, wires, escapes: fns };
+  return { refs, escapes: fns };
 }
 
-// ---------------------------------------------------------------------------------------------
-// The delay and arrival arithmetic, re-implemented here from what runFlow does, because the point is
-// to disagree with it when a card is wrong rather than to inherit its answer. Route flight time is
-// pure geometry (routeDur over the points), which is why an arrival is knowable with no browser.
-// ---------------------------------------------------------------------------------------------
-const HOP_MS = 700;   // topPacket's default dur, the only length not derived from the points
-
-function delayOf(p, named) {
-  const ref = (v) => (typeof v === 'number' ? v : named.get(v));
-  let d;
-  if (p.after !== undefined) d = ref(p.after) + BEAT.afterHop;
-  else if (p.at !== undefined) d = ref(p.at);
-  else d = p.delay || 0;
-  return d + (p.plus || 0);
-}
-
-function arrivalOf(verb, p, delay) {
-  switch (verb) {
-    case 'route':   return delay + (p.dur == null ? routeDur(p.points) : p.dur);
-    case 'segment': return delay + (p.dur == null ? routeDur([p.from, p.to]) : p.dur);
-    case 'top':     return delay + (p.dur == null ? HOP_MS : p.dur);
-    case 'fade':    return delay + (p.dur || 0);
-    case 'reveal':  return delay + REVEAL_MS;
-    case 'anim':    return delay + ((p.options && p.options.duration) || 0);
-    // pulse, set, light and run take effect AT their delay: runFlow leaves arrival = delay.
-    default:        return delay;
-  }
-}
-
-// The whole flow as a timeline. Returns null when a reference cannot be resolved, which is the
-// finding the reference test reports: no arithmetic downstream of an unresolvable name is meaningful.
-function timelineOf(flow) {
-  const named = new Map();
-  const rows = [];
-  for (const e of flow || []) {
-    const p = e.p || {};
-    for (const f of ['after', 'at']) {
-      if (typeof p[f] === 'string' && !named.has(p[f])) return null;
-    }
-    const delay = delayOf(p, named);
-    if (!Number.isFinite(delay)) return null;
-    const arrival = arrivalOf(e.verb, p, delay);
-    if (p.name) named.set(p.name, arrival);
-    rows.push({ verb: e.verb, p, delay, arrival });
-  }
-  return rows;
-}
+// The delay and arrival arithmetic is `timelineOf` in ../fixtures/spec.mjs, which re-implements
+// what runFlow does so it can DISAGREE with the runtime when a card is wrong. It lives there rather
+// than here because ../report/chip-beat.test.mjs times the same flow against a different question,
+// and two copies of the delay vocabulary would disagree about which card is late.
 
 // ---------------------------------------------------------------------------------------------
 describe('the migrated population', () => {
@@ -422,7 +384,7 @@ describe('flow as an ordered program', () => {
     const findings = [];
     let withFlow = 0, tightest = Infinity, tightestAt = '';
     for (const { spec, at } of steps()) {
-      const rows = timelineOf(spec.flow);
+      const rows = timelineOf(spec.flow, KIT);
       if (!rows) continue;   // an unresolvable reference: the test above owns that finding
       if (rows.length === 0) continue;
       withFlow++;
@@ -507,18 +469,12 @@ describe('the reduced-motion guard', () => {
 // winds a key back to what the step starts from and an F.set can carry it PAST its static value.
 // ---------------------------------------------------------------------------------------------
 
-// A key's value at the end of the ANIMATED path: the static block, then rewind, then every F.set in
-// flow order. `enter` is an escape and is not read, so a key it writes is reported as unknowable
-// rather than resolved wrongly.
-function finalChips(spec) {
-  const out = { ...(spec.chips || {}), ...(spec.chipsCued || {}) };
-  Object.assign(out, spec.rewind && spec.rewind.chips, spec.rewind && spec.rewind.chipsCued);
-  for (const e of spec.flow || []) {
-    if (e.verb !== 'set') continue;
-    Object.assign(out, e.p.chips, e.p.chipsCued);
-  }
-  return out;
-}
+// A key's value at the end of the ANIMATED path is `settledChips` in ../fixtures/spec.mjs: the
+// static block, then rewind, then every F.set in flow order. `enter` is an escape and is not read
+// there, so a key it writes resolves to what the fields said rather than to what the escape wrote.
+// It sits in the fixture beside `staticChips` because ../report/chip-beat.test.mjs compares one
+// step's static reading against the previous step's settled one, and a second copy of the order
+// would be a second answer to what a chip says.
 
 describe('chip turnover', () => {
   // P-01, the CONVENTION half, which becomes machine-checkable the moment a step is data: an unset
@@ -564,6 +520,40 @@ describe('chip turnover', () => {
     t.diagnostic(`${chipWrites} chip writes over ${walked} steps on ${SPECS.length} cards, one set per card`);
   });
 
+  // P-13. Four key names are banned outright, and the reason is that a chip key used to be READ as
+  // something else: check-figures took `ip: '...'` in an object literal for a Pod ADDRESS written
+  // where a block is built, so a chip keyed `ip` made its value look like a second block carrying
+  // that address, and a real duplicate address look like a duplicate of itself. The reader that
+  // misread it is gone (render/inline.test.mjs takes addresses off the RENDERED frames now), and the
+  // ban stays: the names are also the four fields of a BLOCK, so one of them on a chip is a key that
+  // reads as the wrong kind of thing to every human after it. Use podIp.
+  test('P-13: no chip is keyed label, sublabel, ip or sub', (t) => {
+    const BANNED = new Set(['label', 'sublabel', 'ip', 'sub']);
+    const findings = [];
+    let walked = 0, keys = 0;
+    for (const { spec, at } of steps()) {
+      walked++;
+      const blocks = [['chips', spec.chips], ['chipsCued', spec.chipsCued],
+        ['rewind.chips', spec.rewind && spec.rewind.chips], ['rewind.chipsCued', spec.rewind && spec.rewind.chipsCued]];
+      for (const e of spec.flow || []) {
+        if (e.verb === 'set') blocks.push(['F.set chips', e.p.chips], ['F.set chipsCued', e.p.chipsCued]);
+      }
+      for (const [where, block] of blocks) {
+        for (const k of Object.keys(block || {})) {
+          keys++;
+          if (BANNED.has(k)) findings.push(`${at}  ${where} is keyed '${k}', one of the four banned chip names (P-13). Use podIp, or a name that is not a BLOCK field`);
+        }
+      }
+    }
+    // The census, and it is INDEPENDENT: STEP_COUNT comes off the specs this file collected, so
+    // the two sides of an equality over it are one reader. CARD_COUNT comes off data.js.
+    assert.equal(SPECS.length, CARD_COUNT, `walked ${SPECS.length} cards, data.js lists ${CARD_COUNT}: a walk over a subset finds fewer defects and passes`);
+    assert.equal(walked, STEP_COUNT, `walked ${walked} steps, expected ${STEP_COUNT}`);
+    assert.equal(findings.length, 0, `${findings.length} finding(s):\n  ${listing(findings)}`);
+    assert.ok(keys > 0, 'not one chip key was read, so this ban was applied to nothing');
+    t.diagnostic(`${keys} chip keys over ${walked} steps, none of them ${[...BANNED].join(' / ')}`);
+  });
+
   // The reading rule, asserted by exercising it: a key's final value is chips, then enter, then
   // rewind, then every F.set in flow order. A check that reads `chips` as the final value is wrong
   // on exactly the steps counted below, and cluster-etcd-raft `quorum-lost` is the exemplar: it
@@ -573,15 +563,15 @@ describe('chip turnover', () => {
     const findings = [];
     let resolved = 0, rewound = 0;
     for (const { spec, at } of steps()) {
-      const stat = { ...(spec.chips || {}), ...(spec.chipsCued || {}) };
-      const final = finalChips(spec);
+      const stat = staticChips(spec);
+      const final = settledChips(spec);
       resolved += Object.keys(final).length;
       rewound += Object.keys((spec.rewind && spec.rewind.chips) || {}).length;
       for (const k of Object.keys(stat)) {
         if (final[k] !== stat[k]) carried.push(`${at}:${k} '${stat[k]}' -> '${final[k]}'`);
       }
       // Same input, same answer: the resolution must not depend on iteration luck.
-      if (JSON.stringify(finalChips(spec)) !== JSON.stringify(final)) findings.push(`${at}  the chip resolution is not deterministic`);
+      if (JSON.stringify(settledChips(spec)) !== JSON.stringify(final)) findings.push(`${at}  the chip resolution is not deterministic`);
     }
     assert.equal(findings.length, 0, `${findings.length} finding(s):\n  ${listing(findings)}`);
     // The anchor. If this ever reaches 0, either every F.set stopped moving a chip past its static
@@ -596,33 +586,154 @@ describe('chip turnover', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
+// THE LIFETIME OF A HIGHLIGHT. Both rules below were `review` until 2026-08-15 and both stand at
+// zero, and they fail in opposite directions: S-18 leaves a class on a block that is no longer
+// there, S-19 leaves one on a box the prologue never clears, where it then ACCUMULATES.
+// ---------------------------------------------------------------------------------------------
+
+// Every key a step puts a highlight on: the static `lit`, the reduced-path stand-in, and whatever
+// the flow cues, which is `targets` on an F.light and `lights` on everything else.
+//
+// `deferred` adds the two writers that light a key LATE rather than at step entry: an F.set carrying
+// a `lit` (11 sites) and a `rewind.lit` (2). They are a flag rather than part of the set because the
+// two rules below want different answers. S-19 wants them: a class is a class whenever it lands, and
+// including them changes nothing today (the same 153 pairs, the same zero). S-18 must not assert on
+// them: `storage-multi-attach-error` lights `vaA` through an F.set and takes the class back through
+// an `unlightAt` inside an F.run, because an `unlight` on the fade would drop the empty 1ms timer
+// that carries the highlight on the OTHER attachment. That is the one site the wide reading finds,
+// it is deliberate, its card says why, and a rule cannot see through an escape.
+function litKeys(spec, { deferred = false } = {}) {
+  const out = new Set([...(spec.lit || []), ...(spec.reducedLit || [])]);
+  if (deferred) for (const k of (spec.rewind && spec.rewind.lit) || []) out.add(k);
+  for (const e of spec.flow || []) {
+    const p = (e && e.p) || {};
+    const from = e.verb === 'light' ? (p.targets || []) : (p.lights || []);
+    for (const k of from) out.add(k);
+    if (deferred && e.verb === 'set') for (const k of p.lit || []) out.add(k);
+  }
+  return out;
+}
+
+describe('highlight lifetime', () => {
+  // S-18. A block that dies mid-step (a fade to nothing) has to give its highlight back in that
+  // fade's own onfinish, which is what `unlight` compiles to. Mirroring the take-back onto the
+  // static path instead leaves the animated path showing a lit outline around an invisible block.
+  // The threshold is the fade's `to`, and it is `OPACITY.terminated` itself: 0.12 is the lowest
+  // shade the vocabulary has and the one that means "gone from the API, or finished", so a fade at
+  // or under it is a block that has died. The next shade up, terminating at 0.25, is a block still
+  // on screen and still legitimately lit, which is why the line sits between them.
+  test('S-18: a fade that kills a block the step lit takes the highlight back with it', (t) => {
+    const DEAD = 0.12;
+    const findings = [];
+    const deferredLit = [];
+    let walked = 0, fades = 0, dying = 0, withUnlight = 0;
+    for (const { spec, at } of steps()) {
+      walked++;
+      const lit = litKeys(spec);
+      const late = litKeys(spec, { deferred: true });
+      for (let i = 0; i < (spec.flow || []).length; i++) {
+        const e = spec.flow[i];
+        if (!e || e.verb !== 'fade') continue;
+        const p = e.p || {};
+        fades++;
+        if (typeof p.to !== 'number' || p.to > DEAD) continue;
+        dying++;
+        if (p.unlight && p.unlight.length) { withUnlight++; continue; }
+        if (lit.has(p.target)) {
+          findings.push(`${at}[${i}]  fades '${p.target}' to ${p.to} and this step lights that same key, ` +
+            'with no unlight on the fade. The class outlives the block: take it back in the fade\'s ' +
+            'own onfinish (S-18) rather than mirroring the take-back onto the static path');
+        } else if (late.has(p.target)) deferredLit.push(`${at}[${i}]:${p.target}`);
+      }
+    }
+    // The census, and it is INDEPENDENT: STEP_COUNT comes off the specs this file collected, so
+    // the two sides of an equality over it are one reader. CARD_COUNT comes off data.js.
+    assert.equal(SPECS.length, CARD_COUNT, `walked ${SPECS.length} cards, data.js lists ${CARD_COUNT}: a walk over a subset finds fewer defects and passes`);
+    assert.equal(walked, STEP_COUNT, `walked ${walked} steps, expected ${STEP_COUNT}`);
+    assert.equal(findings.length, 0, `${findings.length} finding(s):\n  ${listing(findings)}`);
+    assert.ok(dying > 0, `${fades} fades walked and none of them ends at or below ${DEAD}, so this rule was applied to nothing`);
+    t.diagnostic(`${fades} fades, ${dying} of them down to <= ${DEAD} (a block dying mid-step), ${withUnlight} carrying an unlight` +
+      (deferredLit.length ? `. ${deferredLit.length} site(s) light the dying target through an F.set instead, and are reported rather than asserted: ${deferredLit.join(' ')}` : ''));
+  });
+
+  // S-19. A `.highlight` on a Pod's INNER BOX is cleared only by NAME, through clearHighlights' keys
+  // list. The `pods` argument runs clearPodHighlight instead, which resets inline stroke styles and
+  // touches no class at all, so a card that names the Pod and trusts it to cover the box leaves the
+  // class standing: prev and reset replay steps 0..n, the box gathers one more with every replay,
+  // and nothing in the suite can see it. Five networking cards carried this at once.
+  test('S-19: a Pod inner box a step lights is cleared by name in reset.keys', (t) => {
+    const findings = [];
+    let walked = 0, inners = 0, lit = 0;
+    for (const c of SPECS) {
+      // innerKey files a ref only when the Pod actually built an inner box, the same guard
+      // ../fixtures/spec.mjs applies when it builds the ref universe.
+      const innerOf = new Map();
+      walkParts(c.scene && c.scene.parts, (part) => {
+        if (!part || part.kind !== 'pod') return;
+        const p = part.p || {};
+        if (p.inner && p.innerKey) innerOf.set(p.innerKey, part.key || part.p.shellKey || '(unkeyed pod)');
+      });
+      inners += innerOf.size;
+      const reset = new Set(((c.scene.reset && c.scene.reset.keys) || []));
+      const pods = new Set(((c.scene.reset && c.scene.reset.pods) || []));
+      for (const spec of c.steps) {
+        walked++;
+        for (const k of litKeys(spec, { deferred: true })) {
+          if (!innerOf.has(k)) continue;
+          lit++;
+          if (reset.has(k)) continue;
+          findings.push(`${c.id}/${spec.id}  lights '${k}', the inner box of Pod '${innerOf.get(k)}', and ` +
+            `SCENE.reset.keys does not carry it${pods.has(innerOf.get(k)) ? ` (reset.pods names '${innerOf.get(k)}', and clearPodHighlight touches no class)` : ''}. ` +
+            'The class then accumulates over every prev and reset replay (S-19)');
+        }
+      }
+    }
+    // The census, and it is INDEPENDENT: STEP_COUNT comes off the specs this file collected, so
+    // the two sides of an equality over it are one reader. CARD_COUNT comes off data.js.
+    assert.equal(SPECS.length, CARD_COUNT, `walked ${SPECS.length} cards, data.js lists ${CARD_COUNT}: a walk over a subset finds fewer defects and passes`);
+    assert.equal(walked, STEP_COUNT, `walked ${walked} steps, expected ${STEP_COUNT}`);
+    assert.equal(findings.length, 0, `${findings.length} finding(s):\n  ${listing(findings)}`);
+    assert.ok(inners > 0, 'no Pod in the catalog declares an inner box, so this rule was applied to nothing');
+    t.diagnostic(`${inners} Pod inner boxes over ${SPECS.length} cards, lit on ${lit} step/key pair(s), all cleared by name`);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
 // Every writer in scheme-kit is null-guarded, so a key that names nothing is a SILENT no-op: no
 // throw, no visible change, and the element keeps whatever the previous step left on it.
+//
+// WHAT IS RESOLVED HERE AND WHAT IS RESOLVED IN ../unit/spec-scene.test.mjs. The six STRING writers
+// (chips, chipsCued, labels, sublabels, podSublabels and the separate wires bucket) are that file's
+// subject, over the same three blocks this one walks: it asks the same "does the name resolve" AND
+// the question this file cannot ask, whether the part the name lands on is a KIND that writer can
+// write to (setVal needs the valueText a chip carries, setBoxLabel needs a .scheme-box-label). Two
+// files asking the strictly weaker half of one question is a duplicate branch, not a second check,
+// so the weaker half was dropped from here on 2026-08-15 and the stricter one kept there.
+// What is left below is everything that file does NOT look at: `opacity`, `lit`, `chain`,
+// `reducedLit`, a flow entry's pod / target / lights / targets / unlight / on, and the reset
+// prologue. `on` was resolved by nobody until 2026-08-15: 15 sites, 0 of them unresolvable, and it
+// is the one key where a miss costs the whole write rather than one late frame.
 // ---------------------------------------------------------------------------------------------
 describe('key resolution', () => {
-  test('every key a step writes, lights or moves names something the SCENE declares', (t) => {
+  test('every key a step lights or moves names something the SCENE declares', (t) => {
     const findings = [];
     let walked = 0, resolved = 0, escapes = 0;
     for (const c of SPECS) {
-      const { refs, wires, escapes: n } = refsOf(c);
+      const { refs, escapes: n } = refsOf(c);
       escapes += n;
       assert.ok(refs.size > 0, `${c.id}  the SCENE declares no keyed part at all, so nothing here could resolve`);
-      const check = (key, at, field, bucket) => {
+      const check = (key, at, field) => {
         resolved++;
-        const known = bucket === 'wire' ? wires : refs;
         if (typeof key !== 'string') { findings.push(`${at}  ${field} names ${JSON.stringify(key)}, expected a key`); return; }
-        if (!known.has(key)) {
-          findings.push(`${at}  ${field} names '${key}', which no SCENE part declares as a ${bucket === 'wire' ? 'wire (refs.wires)' : 'ref'}. ` +
+        if (!refs.has(key)) {
+          findings.push(`${at}  ${field} names '${key}', which no SCENE part declares as a ref. ` +
             'Every writer is null-guarded, so this line does nothing at all. ' +
             '(If the ref is created by a computed key inside a tune/make escape, this check cannot see it.)');
         }
       };
       const writers = (o, at, prefix) => {
-        for (const f of ['chips', 'chipsCued', 'labels', 'sublabels', 'podSublabels', 'opacity']) {
-          for (const k of Object.keys(o[f] || {})) check(k, at, `${prefix}${f}`, 'ref');
-        }
-        for (const k of Object.keys(o.wires || {})) check(k, at, `${prefix}wires`, 'wire');
-        for (const k of o.lit || []) check(k, at, `${prefix}lit`, 'ref');
+        for (const k of Object.keys(o.opacity || {})) check(k, at, `${prefix}opacity`);
+        for (const k of o.lit || []) check(k, at, `${prefix}lit`);
         // setChain reaches for refs.chain by that exact name and does nothing without it.
         if (o.chain !== undefined && !refs.has('chain')) findings.push(`${at}  ${prefix}chain is declared but the SCENE has no part keyed 'chain', so setChain returns at once`);
       };
@@ -631,23 +742,27 @@ describe('key resolution', () => {
         const at = `${c.id}/${spec.id}`;
         writers(spec, at, '');
         if (spec.rewind) writers(spec.rewind, at, 'rewind.');
-        for (const k of spec.reducedLit || []) check(k, at, 'reducedLit', 'ref');
+        for (const k of spec.reducedLit || []) check(k, at, 'reducedLit');
         for (let i = 0; i < (spec.flow || []).length; i++) {
           const e = spec.flow[i];
           const p = (e && e.p) || {};
           const where = `${at}[${i}] ${e && e.verb}`;
-          if (p.pod !== undefined) check(p.pod, where, 'pod', 'ref');
-          if (p.target !== undefined) check(p.target, where, 'target', 'ref');
-          for (const k of p.lights || []) check(k, where, 'lights', 'ref');
-          for (const k of p.targets || []) check(k, where, 'targets', 'ref');
-          for (const k of p.unlight || []) check(k, where, 'unlight', 'ref');
+          if (p.pod !== undefined) check(p.pod, where, 'pod');
+          if (p.target !== undefined) check(p.target, where, 'target');
+          // `on` is the one key whose miss is WORSE than a silent no-op. atOn returns on `!el`
+          // BEFORE its own delay <= 0 short-circuit, so an unresolvable `on` drops the entire
+          // writeStatics: the chip is not written late, it is never written at all, on either path.
+          if (p.on !== undefined) check(p.on, where, 'on');
+          for (const k of p.lights || []) check(k, where, 'lights');
+          for (const k of p.targets || []) check(k, where, 'targets');
+          for (const k of p.unlight || []) check(k, where, 'unlight');
           if (e && e.verb === 'set') writers(p, where, 'set.');
         }
       }
       // The prologue clears exactly these, so a key here that resolves to nothing leaves a highlight
       // standing into the next step.
-      for (const k of (c.scene.reset && c.scene.reset.keys) || []) check(k, `${c.id} SCENE.reset`, 'keys', 'ref');
-      for (const k of (c.scene.reset && c.scene.reset.pods) || []) check(k, `${c.id} SCENE.reset`, 'pods', 'ref');
+      for (const k of (c.scene.reset && c.scene.reset.keys) || []) check(k, `${c.id} SCENE.reset`, 'keys');
+      for (const k of (c.scene.reset && c.scene.reset.pods) || []) check(k, `${c.id} SCENE.reset`, 'pods');
     }
     assert.equal(walked, STEP_COUNT, `walked ${walked} steps, expected ${STEP_COUNT}`);
     assert.equal(findings.length, 0, `${findings.length} finding(s) over ${resolved} key references:\n  ${listing(findings)}`);

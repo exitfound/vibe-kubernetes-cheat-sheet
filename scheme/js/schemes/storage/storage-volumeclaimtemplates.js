@@ -32,20 +32,11 @@ const trunkSeg = i => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [
 const bindPts = i => [[PV_X, ROW_CY[i]], [PVC_RIGHT, ROW_CY[i]]];     // pv -> PVC (into claim right edge)
 const mountPts = i => [[PVC_X, ROW_CY[i]], [POD_RIGHT, ROW_CY[i]]];   // PVC -> Pod (into Pod right edge)
 
-// Each run is held both in its ordinal array and under a scalar key. The tune lands the array first,
-// so the dumps name these elements trunkW[n] / bindW[n] / mountW[n] and opacity resolves one per key.
-const trunkLane = i => P.lane({
-  key: `trunk${i}`, points: trunkSeg(i), dashed: true, dim: true, opacity: 0,
-  tune: (el, refs) => { refs.trunkW = [...(refs.trunkW || []), el]; },
-});
-const bindLane = i => P.lane({
-  key: `bind${i}`, points: bindPts(i), dashed: true, dim: true,
-  tune: (el, refs) => { refs.bindW = [...(refs.bindW || []), el]; },
-});
-const mountLane = i => P.lane({
-  key: `mount${i}`, points: mountPts(i), dashed: true, dim: true,
-  tune: (el, refs) => { refs.mountW = [...(refs.mountW || []), el]; },
-});
+// One lane per row in each of the three families, held under its own ordinal key, which is what the
+// `opacity` field and the flow address.
+const trunkLane = i => P.lane({ key: `trunk${i}`, points: trunkSeg(i), dashed: true, dim: true, opacity: 0 });
+const bindLane = i => P.lane({ key: `bind${i}`, points: bindPts(i), dashed: true, dim: true });
+const mountLane = i => P.lane({ key: `mount${i}`, points: mountPts(i), dashed: true, dim: true });
 
 // The container box sits on the Pod centre line (h/2), balanced between the name on top and the
 // mount-path sublabel at the bottom, rather than pushed down against the sublabel.

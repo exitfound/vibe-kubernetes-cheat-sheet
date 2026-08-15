@@ -4,8 +4,9 @@ import { Timeline } from './timeline.js';
 import { PULSE_POD, PULSE_BLOCK, OPACITY } from './tokens.js';
 export { FADE, BEAT, OPACITY } from './tokens.js';
 
-// The shared BASE kit for all four categories: each kit re-exports it whole and overrides only the
-// pod tint, so no card imports this file, and a name added here goes into all four kits (S-22).
+// The shared BASE kit for all four categories. No card imports this file: a kit re-exports the
+// card-facing part of it and overrides only the pod tint, while the rest is called from lib/ (the
+// scene and step builders). A name a CARD is to import goes into all four kits at once (S-22).
 
 // ---- geometry constants ----
 // Not exported: each card owns its own spine, and the ball rides the SAME points array as the wire.
@@ -158,15 +159,6 @@ export function makeTintedPulses(tint) {
     pulsePod: (podEl, ctx, delay = 0, opts = {}) => pulsePodWithTint(podEl, ctx, delay, opts, tint),
     pulsePodDim: (podEl, ctx, delay = 0, opts = {}) => pulsePodDimWithTint(podEl, ctx, delay, opts, tint),
   };
-}
-
-// The tail every card-local podBlock() shares: geometry stays in the card, only the assembly is
-// here. The returned GROUP is what pulsePod takes, since a bare shell pulses at half strength.
-export function wrapPod(shell, innerBox) {
-  const group = g({});
-  group.appendChild(shell);
-  group.appendChild(innerBox);
-  return { group, innerBox };
 }
 
 export function clearPodHighlight(podEl) {
@@ -341,12 +333,6 @@ export function arrivalRipple(packetLayer, ctx, point, delay, role = '') {
 export function topPacket(s, ctx, { from = 540, to = 580, y = 65, delay = 0, dur = HOP_MS, role = '' } = {}) {
   return packetAlong(s.refs.packetLayer, ctx, [[from, y], [to, y]], { delay, dur, role, fadeIn: delay > 0 });
 }
-// Toggle which connector copy (down/up) is visible to match the packet direction.
-export function setConnectorDir(s, dir) {
-  s.refs.connectorDown.style.opacity = dir === 'up' ? '0' : '1';
-  s.refs.connectorUp.style.opacity   = dir === 'up' ? '1' : '0';
-}
-
 // ROUTES glide eased; a short hop is topPacket (eased, top strip) or segmentPacket (linear, body).
 // The points array is SHARED with the matching pathArrow, so the wire and the packet cannot differ.
 export function routePacket(s, ctx, points, {

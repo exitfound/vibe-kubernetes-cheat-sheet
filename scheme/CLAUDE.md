@@ -90,7 +90,13 @@ Each folder's `CLAUDE.md` carries what is true of that category ALONE, as `<CAT>
 becoming four copies of this one: **anything that would be a DEFECT if it differed between two
 categories belongs in the canon, not there.** A pointer is not duplication; a paragraph is.
 
-On top of the shared re-export list every kit adds the SAME own set: `P`, `F`, `defineCard`,
+**The shared re-export list is the card-facing API, not a mirror of `lib/scheme-kit.js`** (`S-22`):
+a name is on it because a card imports it, and a helper only `lib/` calls stays in `lib/` and is not
+re-exported. `flashChips` is the one name on it with no importer, and `S-25` is why. Taking a name
+off the list therefore removes nothing: `scene-spec.js` and `step-spec.js` go on calling what they
+called, so the picture cannot move.
+
+On top of that list every kit adds the SAME own set: `P`, `F`, `defineCard`,
 `POD_VIOLET`, the six `lib/layout.js` formulas, its `<CAT>_TINT` and the two pulses bound to that
 tint. The column below is what a kit carries beyond even that.
 
@@ -122,11 +128,11 @@ list is an editorial argument, not a set (`D-10`), and it is recorded beside the
 
 ## Scheme module contract
 
-Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There are exactly two legal
-export surfaces and nothing between them** (`S-02`), and the split between them is the migration
-counter `unit/module.test.mjs` prints on every run: **108 migrated, 0 legacy**. All four categories
-are through, so the second surface below describes no card in the tree and is kept only because
-`S-02` still admits it.
+Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There is exactly ONE legal
+export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **108 migrated,
+0 legacy**. The hand-written form was RETIRED 2026-08-15: a rule cannot admit a form this contract
+calls a regression, which is what it did while the counter sat at zero. What survives of it is the
+DETECTOR, described below, because that is how a card slipping back would be named.
 
 ### The declarative form, which every card uses
 
@@ -206,26 +212,36 @@ value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow ord
 previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
 `render/duration.test.mjs` can see it at all.
 
-**The escapes, and how narrow they are.** **75 of the 108 cards are fully declarative**; 33 carry at
-least one hook, **174 hooks in all** (`part.tune` 74, `part.raw` 43, `step.enter` 42, `F.run` 13,
-`reset.extra` 2, `step.motion` 0), and each exists for something with no honest general verb:
-`part.tune` captures a ref off an element the builder already made or writes an SVG *attribute* on
-it, `part.raw` draws a bare `<rect>` or a free text node, `step.enter` writes text or an attribute no
+**The escapes, and how narrow they are.** **77 of the 108 cards are fully declarative**; 31 carry at
+least one hook, **132 hooks in all** (`part.raw` 43, `step.enter` 42, `part.tune` 33, `F.run` 13,
+`reset.extra` 1, `step.motion` 0), and each exists for something with no honest general verb:
+`part.tune` reaches an element the builder already made, to capture a nested ref, write an SVG
+*attribute* or an inline `style.fill` no field reaches, build extra children inside a part (a second
+inner box in a Pod, a row of slot rects), or file a `P.wire` into the main ref bucket as well.
+Three of its 33 sites still accumulate an ARRAY ref, and those three are READ, by the seven `enter`
+hooks of `storage-fsgroup-ownership`. **41 sites that accumulated an array nothing read were removed
+2026-08-15**: their recorded justification named dumps that do not exist, and every element they
+collected already carried its own `key:`.
+`part.raw` draws a bare `<rect>` or a free text node, `step.enter` writes text or an attribute no
 field reaches, and `F.run` at delay 0 is an imperative beat standing inside the flow order. Ten of
 the thirteen `F.run` are that delay-0 form; the three on `cluster-cpu-throttling` carry a real delay
 and are genuine deferred callbacks, the only ones in the catalogue.
-Storage carries the highest share, 16 of 31, and its folder `CLAUDE.md` says why one by one. If a
+Storage carries the highest share, 14 of 31, and its folder `CLAUDE.md` accounts for them BY HOOK
+KIND in four rows, naming only 3 of the 14 cards, where cluster, network and workloads each name
+every card of their own. If a
 card looks like it needs a new VERB, stop and say so: three categories out of four grew the DSL zero
 times, and network's two additions (`F.tag`, `F.ripple`) were serialised through the coordinator.
 
-### The legacy form, which no card is on any more
+### The retired form, kept only as a detector
 
 A hand-written `class Scene` with `build()` and `reset()` (`S-01`), a copied `resetStep(s)`
 prologue, a hand-written `STEPS` array whose every `enter(s, ctx)` splits on `ctx.reduced` by hand,
 and `export const init = makeInit(Scene, STEPS, { posterFirst: true });`. `defineCard` produces
 exactly that shape, so `makeInit`, `Timeline` and `app.js` cannot tell the two apart: **there was no
-compatibility layer to build and there is none to remove** now that the last card has moved. Writing
-a new card in this form is a regression, not a choice.
+compatibility layer to build and there is none to remove**. Writing a new card in this form is a
+regression, not a choice, and since 2026-08-15 `S-02` says so rather than listing it as an
+alternative. `LEGACY_EXPORTS` stays in `test/fixtures/module.mjs` for exactly one reason: a
+regression has to be NAMED, and a surface of `init` alone is what names it.
 
 Both forms share `ctx`: `ctx.reduced` is true under `prefers-reduced-motion` and when prev or reset
 replays a step, `ctx.speed` is the current multiplier, `ctx.register(animation)` tracks a WAAPI

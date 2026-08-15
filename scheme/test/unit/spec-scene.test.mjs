@@ -8,40 +8,41 @@
 // and a chip's name are values a test reads in bare Node with no browser and nothing stubbed.
 //
 // ===========================================================================================
-// THE POPULATION IS MIXED, AND THAT IS THE ONE THING THIS FILE CANNOT GET WRONG
+// THE POPULATION IS A SUBSET, AND THAT IS THE ONE THING THIS FILE CANNOT GET WRONG
 // ===========================================================================================
-// 21 cards of 108 export SCENE today; the other 87 export `init` alone and their scene lives inside
-// makeInit's closure, unreachable (fixtures/module.mjs says why at length). So every rule below is
+// 108 cards of 108 export SCENE today and 0 export `init` alone, but the file is written for a
+// population that can shrink: a card that exports `init` alone keeps its scene inside makeInit's
+// closure, unreachable (fixtures/module.mjs says why at length). So every rule below is
 // asserted over a SUBSET, and a subset that shrinks to nothing passes every rule in this file.
 // The first test therefore compares the number of cards this file built a scene for against the
 // migration counter in fixtures/module.mjs, card for card and by NAME. A card that stops exporting
 // SCENE turns this file red instead of quietly taking its own rules out of the run, which is the
-// hole the old harness kept a COVERAGE_FLOOR constant for. No number here needs editing as the
-// remaining three categories migrate: the counter is derived on every run.
+// hole the old harness kept a COVERAGE_FLOOR constant for. No number here needs editing when the
+// population moves: the counter is derived on every run.
 //
 // ===========================================================================================
 // THIS FILE AND render/geometry.test.mjs ARE NOT THE SAME CHECK
 // ===========================================================================================
 // That one measures the three rules off the rendered DOM, at every step of all 108 cards, after the
-// browser has applied every transform. This one reads what the card DECLARES, on 21. Both are worth
+// browser has applied every transform. This one reads what the card DECLARES, on 108. Both are worth
 // having: this one fails in 0.4s with no server, and it is the only one that can see a DECLARED
 // geometry that the drawn picture does not contradict. A rule failing here and not there (or the
 // other way round) is a finding about the LAYER, not about the card, and both directions are real:
 //   - declared clean, drawn dirty  -> something between the data and the DOM moved it: a group
 //     transform, an escape hook, a per-step opacity that reveals a lane this file also counted.
 //   - declared dirty, drawn clean  -> the part is never visible, or an escape overwrites it.
-// Measured on this catalog today: 0 findings on both sides, over 190 declared segments here and
+// Measured on this catalog today: 0 findings on both sides, over 910 declared segments here and
 // 650 rendered steps there. The two agree.
 //
 // ===========================================================================================
 // WHAT THIS FILE IS BLIND TO
 // ===========================================================================================
 //   - THE ESCAPE HOOKS. `raw` builds a whole element from a function and `tune` adjusts one after
-//     construction. 22 such sites live in 7 cluster cards (11 raw, 11 tune), and everything they
-//     draw, including cluster-cpu-throttling's three bar captions, is DOM this file cannot evaluate
-//     without a document. They are counted, never read, and every key they assign to refs widens the
-//     universe rather than narrowing it, so an escape can only cost this file a finding it would
-//     have made, never invent one.
+//     construction. 76 such sites live in 29 cards across all four categories (43 raw, 33 tune),
+//     and everything they draw, including cluster-cpu-throttling's three bar captions, is DOM this
+//     file cannot evaluate without a document. They are counted, never read, and every key they
+//     assign to refs widens the universe rather than narrowing it, so an escape can only cost this
+//     file a finding it would have made, never invent one.
 //   - PER-STEP STATE. A step may fade a lane in, move nothing and light a block; geometry here is
 //     the resting declaration, which is exactly what makes it readable at all.
 //   - THE MAPPING. A bbox in the browser is the element's own box mapped through the
@@ -49,13 +50,18 @@
 //     render/geometry.test.mjs: no card in this catalog has one, so a declared rect and a drawn
 //     bbox are the same rectangle. The moment one does, that file sees it and this one does not.
 //   - `duration`, `narration`, step order, flow timing. Those belong to STEPS_SPEC and to
-//     unit/spec-steps.test.mjs; what is read from STEPS_SPEC here is only whether a key a step
-//     writes RESOLVES to a part of the scene.
+//     unit/spec-steps.test.mjs. Two things only are read from STEPS_SPEC here, and both are about
+//     the SCENE rather than about the step: whether a key one of the six string writers names
+//     resolves AND lands on a part of a kind that writer can write to (that pair is this file's
+//     alone), and whether a part a step lights is cleared by the reset. Resolution of everything
+//     else a step names, `lit` and `reducedLit` and a flow entry's lights / targets / unlight
+//     included, is asked once, over there, over a wider set of blocks than this file walks.
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards, census } from '../fixtures/catalog.mjs';
 import { cardForm, importAll, importKit } from '../fixtures/module.mjs';
+import { refUniverse } from '../fixtures/spec.mjs';
 
 // ---------------------------------------------------------------------------------------------
 // Tolerances. Every one is carried over from render/geometry.test.mjs unchanged, because the whole
@@ -218,33 +224,16 @@ function geometryOf(parts) {
 const geom = new Map(scenes.map(s => [s.id, geometryOf(flat.get(s.id).parts)]));
 
 // ---------------------------------------------------------------------------------------------
-// The ref namespace, which is what a key in reset.keys, in `lit` or in a step's chips means.
-// buildScene keeps TWO buckets: a wire lands in refs.wires[key], everything else in refs[key], so a
-// wire named `api` and a box named `api` are two different things. Reading one merged namespace
-// reports 8 phantom key collisions on this catalog, which is how this note came to be here.
+// The ref namespace, which is what a key in reset.keys, in `lit` or in a step's chips means, comes
+// from fixtures/spec.mjs and not from here. It used to be built here, and by a slightly different
+// reading than the two other files that ask the same question, which is the drift the fixture's own
+// header argues against for the regex one level down. The two buckets, the escapes and the names
+// left out of the set on purpose are all documented there.
 //
-// Escape hooks widen the universe: `raw` and `tune` may assign refs of their own, read out of the
-// hook's own source. A widening is never a source of findings, so a name this regex misses costs a
-// false finding, which is loud, and never a silent pass.
+// A universe is cached per card because every test below wants the same one and the escape reader
+// walks source text: built once, the whole file costs one walk per card.
 // ---------------------------------------------------------------------------------------------
-const REF_ASSIGN_RE = /refs\s*(?:\.\s*([A-Za-z_$][\w$]*)|\[\s*['"]([^'"]+)['"]\s*\])\s*=[^=]/g;
-
-function refUniverse(parts) {
-  const refs = new Map();      // key -> the kind that put it there
-  const wires = new Set();
-  const escaped = new Set();
-  for (const { kind, key, p } of parts) {
-    if (kind === 'wire') { if (key) wires.add(key); }
-    else if (key) refs.set(key, kind);
-    if (p.innerKey) refs.set(p.innerKey, 'box');
-    if (p.shellKey) refs.set(p.shellKey, 'podShell');
-    for (const fn of [p.tune, p.make]) {
-      if (typeof fn !== 'function') continue;
-      for (const m of String(fn).matchAll(REF_ASSIGN_RE)) escaped.add(m[1] || m[2]);
-    }
-  }
-  return { refs, wires, escaped };
-}
+const universe = new Map(scenes.map(s => [s.id, refUniverse(s.SCENE, s.STEPS_SPEC)]));
 
 // Every object in a step that writes statics, with a label saying where it came from. `rewind` and
 // F.set run the SAME writeStatics, so a key that draws nothing draws nothing in all three places.
@@ -675,11 +664,14 @@ describe('the strings the scene draws', () => {
       [...perField.entries()].sort((a, b) => b[1] - a[1]).map(([f, n]) => `${f} ${n}`).join(', '));
   });
 
-  // The other half of the same question. A step writes a label, a sublabel, a chip value, a Pod
+  // The other half of the same question, and the ONLY place the six string writers are resolved:
+  // ../unit/spec-steps.test.mjs asked the same names too until 2026-08-15, which was one question
+  // asked twice rather than two checks. A step writes a label, a sublabel, a chip value, a Pod
   // sublabel or a wire THROUGH A KEY, and every writer in step-spec.js is guarded (`if (el)`,
   // `if (node && node.valueText)`), so a key naming nothing draws nothing and says nothing. The
   // kind matters as much as the key: setBoxLabel wants a .scheme-box-label, setVal wants the
-  // valueText a valChip carries, so a chip write aimed at a box is the same silent blank.
+  // valueText a valChip carries, so a chip write aimed at a box is the same silent blank, and that
+  // second half is what makes this the strictest of the two readings and the one that stayed.
   // A `raw` part is an element built by a function this file cannot read, so its SHAPE is unknown
   // rather than wrong, and answering "wrong" would be the check overstating what it knows. The
   // declared alternative, same discipline as CROSS_ROLE: name the raw that deliberately imitates a
@@ -705,7 +697,7 @@ describe('the strings the scene draws', () => {
     const usedShapes = new Set();
     let writes = 0;
     for (const s of scenes) {
-      const { refs, wires, escaped } = refUniverse(flat.get(s.id).parts);
+      const { refs, wires, escaped } = universe.get(s.id);
       for (const [where, o] of writeBlocks(s.STEPS_SPEC)) {
         for (const [field, { kinds, via }] of Object.entries(WRITERS)) {
           for (const k of Object.keys(o[field] || {})) {
@@ -752,7 +744,7 @@ describe('the strings the scene draws', () => {
           if (typeof p.tune !== 'function') findings.push(`${s.id}  ${path}: tune is ${typeof p.tune}, expected a function`);
         }
       }
-      assigned += refUniverse(flat.get(s.id).parts).escaped.size;
+      assigned += universe.get(s.id).escaped.size;
     }
     assert.equal(findings.length, 0, `${findings.length} malformed escape(s):\n  ${listing(findings)}`);
     t.diagnostic(`${raws} raw parts and ${tunes} tune hooks in ${cardsWith.size} of ${scenes.length} cards, ` +
@@ -770,7 +762,7 @@ describe('the reset prologue', () => {
     const findings = [];
     let keys = 0, pods = 0;
     for (const s of scenes) {
-      const { refs, wires, escaped } = refUniverse(flat.get(s.id).parts);
+      const { refs, wires, escaped } = universe.get(s.id);
       const reset = s.SCENE.reset || {};
       if (!s.SCENE.reset) findings.push(`${s.id}  declares no reset, so resetStep clears nothing`);
       for (const [field, list] of [['keys', reset.keys || []], ['pods', reset.pods || []]]) {
@@ -794,11 +786,19 @@ describe('the reset prologue', () => {
   // survives into every later step. It is invisible on a card played straight through, because the
   // wrong block is lit in a step that also has a right one, and the reduced comparison sees only
   // that the two paths AGREE about it.
+  //
+  // ONE QUESTION ONLY, deliberately. This walk used to ask each key whether it RESOLVED before
+  // asking whether the reset clears it, which is ../unit/spec-steps.test.mjs's subject over the same
+  // five fields (lit, reducedLit, and a flow entry's lights / targets / unlight) and a wider set of
+  // blocks: it resolves them inside `rewind` and inside an F.set too, where this walk only ever read
+  // the step itself. The weaker copy came out on 2026-08-15. What follows is only the leak, so an
+  // unresolvable key still lands here as "reset.keys does not clear it" and is named for what it is
+  // one file over. `unlight` dropped out of the walk with it: it REMOVES a highlight, so it can
+  // never leak one, and resolution was the only thing this file ever asked of it.
   test('every part a step lights is cleared by the reset', (t) => {
     const findings = [];
     let lit = 0;
     for (const s of scenes) {
-      const { refs, escaped } = refUniverse(flat.get(s.id).parts);
       const cleared = new Set(s.SCENE.reset && s.SCENE.reset.keys ? s.SCENE.reset.keys : []);
       for (const [i, spec] of (s.STEPS_SPEC || []).entries()) {
         if (!spec) continue;
@@ -810,15 +810,6 @@ describe('the reset prologue', () => {
           if (!e || !e.p) continue;
           const keys = e.verb === 'light' ? (e.p.targets || []) : (e.p.lights || []);
           if (keys.length) sources.push([`flow[${j}] ${e.verb}`, keys]);
-          // `unlight` REMOVES a highlight, so it cannot cause the leak above and is not held to the
-          // reset. It is still walked, for the one thing it CAN get wrong: naming a key the scene
-          // does not answer to, which is a typo that silently unlights nothing.
-          for (const k of (e.p.unlight || [])) {
-            lit++;
-            if (k !== 'chain' && !refs.has(k) && !escaped.has(k)) {
-              findings.push(`${s.id}  ${where} flow[${j}] ${e.verb} unlight names "${k}", which no part of the scene answers to`);
-            }
-          }
         }
         for (const [field, keys] of sources) {
           for (const k of keys) {
@@ -826,10 +817,6 @@ describe('the reset prologue', () => {
             // The chain is cleared by its own sweep inside clearHighlights, row by row, so it is
             // never in reset.keys and must not be reported as a leak.
             if (k === 'chain' || cleared.has(k)) continue;
-            if (!refs.has(k) && !escaped.has(k)) {
-              findings.push(`${s.id}  ${where} ${field} names "${k}", which no part of the scene answers to`);
-              continue;
-            }
             findings.push(`${s.id}  ${where} lights "${k}" via ${field}, and reset.keys does not clear it`);
           }
         }

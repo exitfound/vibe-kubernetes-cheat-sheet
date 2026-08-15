@@ -42,9 +42,6 @@ const filled = (idx) => RUNG_KEYS.slice(0, idx + 1);
 // kind builds. The attributes are the primitive's own, so the serialised order is untouched (R3).
 const rung = (lbl, i) => P.raw({
   key: RUNG_KEYS[i],
-  // refs.ladderChips is the ARRAY this card has always addressed the rungs by, and the name the
-  // reduced dump prints them under. The per-rung keys are what the step fields take.
-  tune: (el, refs) => { (refs.ladderChips = refs.ladderChips || [])[i] = el; },
   make: () => chip({ x: i * (BACKOFF_W + BACKOFF_GAP), y: 0, w: BACKOFF_W, h: BACKOFF_H, label: lbl, role: 'cluster' }),
 });
 

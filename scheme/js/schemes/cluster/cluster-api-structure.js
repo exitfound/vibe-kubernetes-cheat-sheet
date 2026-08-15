@@ -81,15 +81,6 @@ function setSlot(slot, type, sub) {
   if (slot._bot) slot._bot.textContent = sub;
 }
 
-// The watch arrow takes no dash offset on any step, so this clears nothing today. It stands as the
-// arrow's reset guard: a step that ever dashes it needs the offset cleared before the next one.
-function resetWatchArrow(s) {
-  if (s.refs.watchArrow) {
-    s.refs.watchArrow.style.strokeDasharray = '';
-    s.refs.watchArrow.style.strokeDashoffset = '';
-  }
-}
-
 // The list order IS the append order, so it is the z-order: the four blocks that must sit on top of
 // everything else go last, after the packet layer.
 export const SCENE = {
@@ -150,7 +141,6 @@ export const SCENE = {
   ],
   reset: {
     keys: ['client', 'informer', 'cache', 'api', 'etcdC', 'rvChip', 'watchChip', 'cacheChip', ...SLOT_KEYS],
-    extra: resetWatchArrow,
   },
 };
 

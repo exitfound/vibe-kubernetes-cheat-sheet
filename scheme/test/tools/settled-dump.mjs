@@ -32,7 +32,7 @@
 
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { launch, setInspect, stepCount, discoverIds, DEFAULT_BASE } from '../fixtures/render.mjs';
+import { launch, setInspect, stepCount, discoverIds, stepSpan, DEFAULT_BASE, DIAGRAM } from '../fixtures/render.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(
@@ -58,12 +58,15 @@ if (dumpAll && !outDir) {
   process.exit(1);
 }
 
-const DIAGRAM = 'dialog.scheme-dialog svg.diagram';
 // On top of the step's own span: 300ms is the transition in diagrams.css, the rest is slack.
 const SETTLE_MS = 350;
 
 // Play one step for real: no withTimer, so nothing auto-advances, and no pause, so every deferred
 // onfinish actually fires. Step 0 is the poster and has no play path.
+//
+// NOT `fixtures/render.enterStep`, and the difference is the whole point of this file: that one
+// freezes every animation on the diagram the instant the step opens, and a paused animation never
+// fires an onfinish, so it can never see what a deferred callback wrote.
 const playStep = (page, idx) => page.evaluate((i) => {
   const c = window.__schemeCtl;
   if (!c) return false;
@@ -75,22 +78,11 @@ const playStep = (page, idx) => page.evaluate((i) => {
   return true;
 }, idx);
 
-// The step's logical length, read WHILE it plays. Same arithmetic as `fixtures/render.stepSpan`,
-// kept here because that one is written for the frozen path and this file must not pause anything.
-const spanOf = (page) => page.evaluate((sel) => {
-  const svg = document.querySelector(sel);
-  if (!svg) return 0;
-  let max = 0;
-  for (const a of document.getAnimations()) {
-    const tgt = a.effect && a.effect.target;
-    if (!tgt || !svg.contains(tgt)) continue;
-    const t = a.effect.getComputedTiming();
-    const active = Number.isFinite(t.activeDuration) ? t.activeDuration : (t.duration || 0);
-    const end = (t.delay || 0) + active + (t.endDelay || 0);
-    if (Number.isFinite(end) && end > max) max = end;
-  }
-  return Math.round(max);
-}, DIAGRAM);
+// The step's logical length is read WHILE it plays, through `fixtures/render.stepSpan`. This file
+// used to keep a copy of that arithmetic, on the grounds that the fixture "is written for the
+// frozen path and this file must not pause anything". That was not true: stepSpan only reads
+// getComputedTiming() off every animation on the diagram, and the pausing lives in seekStep() and
+// enterStep(), neither of which this file calls. `playStep` below is a real divergence and stays.
 
 // Is anything on the diagram still moving? A finite animation that has finished reports 'finished',
 // so only live work answers true. An INFINITE one (the marching dash) is excluded by construction:
@@ -187,7 +179,7 @@ async function dumpCard(ctx, id, only) {
       // reading caught a 560ms arrival ripple mid-decay and made two runs of an unchanged tree
       // disagree at the third decimal. Bounded, because a marching dash never finishes.
       for (let round = 0; round < 8; round++) {
-        const span = await spanOf(page);
+        const span = await stepSpan(page);
         await page.waitForTimeout(span + SETTLE_MS);
         if (!(await stillRunning(page))) break;
       }

@@ -290,8 +290,8 @@ test(`the grid renders the whole catalog (${CARD_TOTAL} cards)`, () => {
 test('every card loaded, built and handed over its step list (T-01, T-02)', () => {
   // The module-load rule lands here. A narration string is single-quoted JS: an apostrophe inside
   // it closes the string early, the browser refuses the module, and the card that renders nothing
-  // is the only symptom. tools/check-js.sh catches the syntax error before the file is saved, this
-  // catches the class it does not.
+  // is the only symptom. The .claude/hooks/check-js.sh write hook catches the syntax error as the
+  // file is saved, this catches the class it does not.
   assert.deepEqual(broken, [], `${broken.length} card(s) did not render:\n  ${broken.join('\n  ')}`);
   census('inline walked', collected.size, CARD_TOTAL);
 });

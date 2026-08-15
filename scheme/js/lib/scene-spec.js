@@ -53,8 +53,8 @@ function buildPod(p, refs) {
     ? box({ x: x + inner.dx, y: y + inner.dy, w: inner.w, h: inner.h, label: inner.label, sublabel: inner.sublabel, role })
     : null;
   if (innerBox && tint) innerBox.style.setProperty(`--${role}-color`, tint);
-  // wrapPod() cannot stand in: it returns g({}) with no id, and a card needs g({id:'pod1'}) to
-  // reach its wrapper. That is why no card ever called it (S-25 keeps the export).
+  // The wrapper is built here rather than by a shared helper because it needs the ID: a card
+  // reaches its Pod through g({id:'pod1'}), and a helper returning a bare g({}) is unreachable.
   const wrap = g({ id });
   if (opacity !== undefined) wrap.style.opacity = String(opacity);
   wrap.appendChild(shell);

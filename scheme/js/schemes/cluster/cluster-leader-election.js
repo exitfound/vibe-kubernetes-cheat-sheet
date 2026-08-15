@@ -1,7 +1,7 @@
 import { P, F, defineCard, midX, strip, FADE, OPACITY } from './cluster-kit.js';
 
 // One column, centred on the canvas, and every replica reaches the Lease on its own axis.
-// Design notes, including what this costs vertically: ./CARDS.md#cluster-leader-election
+// Design notes for this card: ./CARDS.md#cluster-leader-election
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas centre line

@@ -32,20 +32,11 @@ const spineSeg = i => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [
 const ownPts = i => [[POD_RIGHT, ROW_CY[i]], [PVC_X, ROW_CY[i]]];        // Pod -> claim
 const reclaimPts = i => [[PVC_RIGHT, ROW_CY[i]], [PV_X, ROW_CY[i]]];     // claim -> disk
 
-// Each run is held both in its ordinal array and under a scalar key. The tune lands the array first,
-// so the dumps name these spineW[n] / ownW[n] / reclaimW[n] and opacity resolves one element per key.
-const spineLane = i => P.lane({
-  key: `spine${i}`, points: spineSeg(i), dashed: true, dim: true, opacity: 0,
-  tune: (el, refs) => { refs.spineW = [...(refs.spineW || []), el]; },
-});
-const ownLane = i => P.lane({
-  key: `own${i}`, points: ownPts(i), dashed: true, dim: true,
-  tune: (el, refs) => { refs.ownW = [...(refs.ownW || []), el]; },
-});
-const reclaimLane = i => P.lane({
-  key: `reclaim${i}`, points: reclaimPts(i), dashed: true, dim: true,
-  tune: (el, refs) => { refs.reclaimW = [...(refs.reclaimW || []), el]; },
-});
+// One lane per row in each of the three families, held under its own ordinal key, which is what the
+// `opacity` field and the flow address.
+const spineLane = i => P.lane({ key: `spine${i}`, points: spineSeg(i), dashed: true, dim: true, opacity: 0 });
+const ownLane = i => P.lane({ key: `own${i}`, points: ownPts(i), dashed: true, dim: true });
+const reclaimLane = i => P.lane({ key: `reclaim${i}`, points: reclaimPts(i), dashed: true, dim: true });
 
 // Each Pod is a full window like the rest of the family, the ordinal name on top and a real
 // container box on the row centre line, even though no Pod here ever pulses on arrival.

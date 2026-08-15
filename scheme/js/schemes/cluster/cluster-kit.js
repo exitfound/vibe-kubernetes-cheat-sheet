@@ -1,9 +1,10 @@
+// The card-facing API: a name is here because a card imports it. What only lib/ calls (the
+// builders scene-spec.js and step-spec.js run) stays in lib/ and is not re-exported.
 export {
-  valChip, setVal, setChip, setBoxLabel, setBoxSublabel, makeInit, packetAlong,
-  routePacket, segmentPacket, routeDur, routeLength, packetArrival,
-  topPacket, setConnectorDir, clearPodHighlight,
-  diagramRoot, wrapPod, arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
-  relationPath, revealAt, laneOf, REVEAL_MS,
+  setVal, setBoxLabel, routeDur, packetArrival,
+  // flashChips is the one name here no card imports: it is the only sanctioned block flash and
+  // S-25 keeps it on the surface, so it stayed when the other unimported re-exports went.
+  flashChips, makeRidingLabel, relationPath, laneOf, REVEAL_MS,
   setPodSublabel, FADE, BEAT, OPACITY,
 } from '../../lib/scheme-kit.js';
 
@@ -33,7 +34,7 @@ export const CLU = Object.freeze({
   NODE: Object.freeze({ H: 152, POD_DY: 34, POD_H: 106 }),
 });
 
-// Which column holds what, per L-06: pick the first of A / B / C that fits against THAT card's
+// Which column holds what, per L-08a: pick the first of A / B / C that fits against THAT card's
 // measured panel bottom. C has no free column, so its chips are a bottom strip two or three across.
 export const LAYOUT = Object.freeze({
   A: Object.freeze({ ladder: CLU.COL_L, chips: CLU.COL_R }),

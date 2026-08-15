@@ -16,7 +16,7 @@
 //     108 function resetStep(s) | 650 enter() bodies, 650 of them opening with resetStep(s)
 //
 //   AFTER, the SAME regexes over the same 108 cards, reproduced below on every run. The interesting
-//   number is not that the counts fell, it is that the old census now reads 517 enter() bodies where
+//   number is not that the counts fell, it is that the old census now reads 17 enter() bodies where
 //   the catalog holds 650 steps. It cannot see a step any more, because a migrated step is an object
 //   in an array and not a method with a brace. THAT is why the census had to change form: left alone
 //   it would have gone quiet card by card, printing a smaller number every batch and never a finding.
@@ -57,13 +57,22 @@
 // WHAT COUNTS AS CREATING A REF, which is the whole of what Q1 stands on
 // ===========================================================================================
 // Two sources, and both are read:
-//   - a part's `key:`, plus a pod's shellKey / innerKey / id and a packets layer's id, off the data
+//   - a part's `key:`, plus a pod's shellKey / innerKey and the packets layer, off the data
 //   - a LITERAL `refs.x =` or `refs['x'] =` inside an escape body, read out of fn.toString()
-// The second reader is not invented here and is not copied either: it lives in
-// ../fixtures/spec.mjs, which ../unit/spec-steps.test.mjs reads the same names out of. One regex,
-// one recursive collect over the whole SCENE and STEPS_SPEC object rather than a hand-listed set of
-// hook fields. A drift between those two files would surface as a disagreement about which cards
-// are broken, which is why the reader has one home.
+// NEITHER reader is invented here and neither is copied: both are `refUniverse` in
+// ../fixtures/spec.mjs, which ../unit/spec-steps.test.mjs and ../unit/spec-scene.test.mjs resolve
+// their names against too. One regex, one recursive collect over the whole SCENE and STEPS_SPEC
+// object rather than a hand-listed set of hook fields, and one answer to what a ref IS. A drift
+// between the three files would surface as a disagreement about which cards are broken, which is
+// why the reader has one home. Q1 was the reason it had to: the two unit files would go red over a
+// reset key naming something nothing creates, and this queue, which exists for exactly that, would
+// print 0 if its own set were the wider one.
+//
+// WHAT LEFT THIS SET WHEN IT MOVED THERE, and why it changes no number: a pod's `id` and a packets
+// layer's `id` used to count as creating a ref, and neither does. Both are the DOM id of a wrapper
+// `g`, never filed in refs. Measured on this catalog: 67 pod parts carry an id and every one repeats
+// a name already filed as a ref, 0 packets parts carry one, so the set is the same set and Q1 is the
+// same 0. What it stops is a real typo hiding behind a coincidence with an element id.
 //
 // MEASURED, and printed as section 4b on every run so it cannot go stale here: of the six escape
 // kinds this file counts, only `part.tune` and the factories on `part.raw` assign a ref at all.
@@ -99,7 +108,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { cards, categories } from '../fixtures/catalog.mjs';
 import { cardForm, importAll, importLib } from '../fixtures/module.mjs';
-import { assignedRefs, collectFns, walkParts } from '../fixtures/spec.mjs';
+import { assignedRefs, collectFns, refNames, walkParts } from '../fixtures/spec.mjs';
 
 const catalogued = await cards();
 const CARD_COUNT = catalogued.length;
@@ -216,17 +225,19 @@ test('skeleton census: the old source form and the new spec form, side by side (
   lines.push(`   step is an object in an array, so it counts ${enters} where the catalog holds 650 steps.`);
 
   // -------------------------------------------------------------------------------------------
-  // 2. Per category, which is the measure the three remaining categories are run against.
+  // 2. Per category. All four are migrated, so this is a shape census and not a burn-down.
   // -------------------------------------------------------------------------------------------
   lines.push('');
-  lines.push('2. PER CATEGORY, the measure for the three categories still to migrate');
+  lines.push('2. PER CATEGORY, the same source measures split by category');
   lines.push('   category    cards  src lines  class Scene  defineCard  if (ctx.reduced)  role: \'..\'');
   for (const cat of CATS) {
     const o = perCat.get(cat);
     lines.push(`   ${cat.padEnd(10)} ${pad(o.cards, 6)} ${pad(o.lines, 10)} ${pad(o.scene, 12)} ${pad(o.define, 11)} ${pad(o.reduced, 17)} ${pad(o.role, 11)}`);
   }
-  lines.push('   A migrated category reads 0 / n / 0: the reduced guard is derived by flowLights and the');
-  lines.push('   role is bound once by the kit, so both literal counts go to zero as the category lands.');
+  lines.push('   Every category reads 0 class Scene and 0 if (ctx.reduced): the skeleton is generated');
+  lines.push('   once and the reduced guard is derived by flowLights, so a non-zero in either column is');
+  lines.push('   a card that slipped back to the legacy form. The role column is NOT one of those: the');
+  lines.push('   kit binds a role and writing one at a call site is an override (C-02), not a leftover.');
 
   // -------------------------------------------------------------------------------------------
   // 3. The new census: the spec form.
@@ -259,9 +270,9 @@ test('skeleton census: the old source form and the new spec form, side by side (
     allParts += out.length;
     nullParts += nulls.length;
 
-    // Every ref a static reader can see: declared keys here, escape-assigned names below. Wires land
-    // in refs.wires, not in refs, so a wire key and a box key of one name are two refs, never merged.
-    const refKeys = new Set();
+    // Every ref a static reader can see, off the shared universe: declared keys plus escape-assigned
+    // names, wires excluded because they land in refs.wires and clearHighlights reads refs.
+    const refKeys = refNames(scene, ns.STEPS_SPEC);
     const escRefs = new Map();
     const noteEscape = (kind, fn) => {
       for (const k of assignedRefs(fn)) {
@@ -276,11 +287,6 @@ test('skeleton census: the old source form and the new spec form, side by side (
       bump(kinds, part.kind);
       const p = part.p || {};
       if (part.key !== undefined) keyedParts++;
-      if (part.key !== undefined && part.kind !== 'wire') refKeys.add(part.key);
-      if (part.kind === 'packets') refKeys.add(p.id === undefined ? 'packetLayer' : p.id);
-      if (part.kind === 'pod') {
-        for (const k of ['shellKey', 'innerKey', 'id']) if (p[k]) refKeys.add(p[k]);
-      }
       if (typeof p.tune === 'function') { bump(hooks, 'part.tune'); mark(c.id, 'tune'); noteEscape('part.tune', p.tune); }
       if (part.kind === 'raw') {
         bump(hooks, 'part.raw'); mark(c.id, 'raw');
@@ -318,7 +324,6 @@ test('skeleton census: the old source form and the new spec form, side by side (
     collectFns(scene, wide);
     collectFns(ns.STEPS_SPEC, wide);
     for (const fn of wide) noteEscape('unattributed', fn);
-    for (const k of escRefs.keys()) refKeys.add(k);
 
     for (const field of ['keys', 'pods']) {
       for (const k of reset[field] || []) {

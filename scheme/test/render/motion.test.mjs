@@ -94,7 +94,13 @@
 //   M-33  every animation goes through ctx.register: an unregistered animation looks identical here,
 //         it just outlives its step. Visible only by stepping away and watching what keeps moving.
 //   M-34  "an added hop costs about 800ms": advice about editing, and duration.test.mjs says by how much.
-//   M-35  is about frame-strip, a reader that goes away with tools/.
+//   M-35  a SEEK cannot see a deferred effect: seekStep sets currentTime and never fires onfinish,
+//         so an at() turnover, a lightBoxAt arrival class and a deferred setWire are all missing
+//         from any frame it hands back. This is a LIVE blind spot of THIS harness, not a dead note
+//         about the deleted frame-strip reader: seekStep lives in fixtures/render.mjs, and both
+//         render/opacity.test.mjs and render/reduced.test.mjs read their frames through it. What
+//         sees a turnover is a real-time playthrough (tools/settled-dump.mjs), which is a probe and
+//         not an assertion, so the rule stays with a person until someone writes the check.
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';

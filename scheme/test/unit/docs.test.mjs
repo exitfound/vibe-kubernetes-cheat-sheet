@@ -61,6 +61,18 @@
 // are the ones cells are actually written against, and a citation resolves against any of them:
 // 43 land on the repo root, 92 on scheme/, 64 on scheme/js/, 3 in a category folder.
 //
+// AND WHY C5 READS THE OTHER HALF OF THE SAME COLUMN. C4 resolves the 207 path tokens and stops,
+// so the 57 tokens that are not paths were read by nobody. Most of them are SYMBOLS: a helper, a
+// token, a field. That half went stale in exactly the way the path half did, and worse, because a
+// symbol citation names the thing a reader is told to go call: `S-08a` instructed the reader to end
+// a Pod factory with `return wrapPod(shell, innerBox);` for months after `wrapPod` was deleted for
+// having no callers. C5 resolves every identifier-shaped token by OCCURRENCE anywhere under scheme/,
+// which is the same test E2 applies to an axis name and for the same reason: a symbol the tree does
+// not contain is a citation the reader cannot follow. 31 distinct today, all resolving. What it does
+// NOT ask is where the occurrence sits: `setConnectorDir` was deleted from the kits and survives in
+// four workloads cards as a comment, and that counts as resolving here. The rule is "a reader can
+// find it", not "it is still callable", and the second question needs a parser rather than a scan.
+//
 // ===========================================================================================
 // NOTHING HERE SKIPS
 // ===========================================================================================
@@ -102,12 +114,19 @@ const LABEL_MAX_OVERLAP = 55;                                                   
 // A FLOOR, because draining `review` is the direction of travel and a DROP means rules quietly
 // went back to being a human's job, which is a change to make deliberately rather than discover.
 // Measured 2026-08-07 right after the column was rewritten: 122 rows of 235 (130 values in all,
-// since a row may name two), against 112 `review` and 2 `hook`.
-const MACHINE_ROW_FLOOR = 122;
+// since a row may name two), against 112 `review` and 2 `hook`. Re-measured 2026-08-15 after the
+// D3 pass gave nine `review` rules a machine (S-18, S-19, S-34, S-36, S-41, P-13, L-18, C-20,
+// C-24): 144 rows against 95. The floor moves with the measurement, or the nine could go back to
+// being a human's job with nothing red.
+const MACHINE_ROW_FLOOR = 140;
 
 // Backticked PATH tokens across every Source cell. A FLOOR, and the reason is the failure this
 // group is built against: a parse that stops matching resolves nothing and reports nothing dead.
-const SOURCE_PATH_FLOOR = 190;                                                   // measured 202
+const SOURCE_PATH_FLOOR = 190;                                                   // measured 207
+
+// The other half of the same cells: backticked tokens shaped like a SYMBOL rather than a path.
+// Measured 2026-08-15: 46 citations naming 31 distinct symbols, all of them resolving.
+const SOURCE_SYMBOL_FLOOR = 38;
 
 // How each of the 39 category rules is written down in its folder. Three shapes are in use and the
 // split is asserted rather than counted loosely, because "declared" and "merely cited" are the
@@ -242,6 +261,35 @@ function sourcePaths(rows) {
     for (const m of source.matchAll(/`([^`]+)`/g)) {
       if (looksLikePath(m[1])) out.push({ id, line, token: m[1] });
     }
+  }
+  return out;
+}
+
+// A SYMBOL: an identifier, or a dotted member expression of identifiers (`spec.motion`). Deliberately
+// narrow, and the 11 citations it leaves behind are the ones no tree could resolve anyway: a rule id
+// (`NET.A-01`, carrying a dash), a card id (`workloads-force-deletion`), a CSS selector
+// (`.narration-overlay`), a measurement (`g.scheme-box 222x82`), a Check value (`report:arrival/R2`).
+const SYMBOL = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
+
+function sourceSymbols(rows) {
+  const out = [];
+  for (const { id, source, line } of rows) {
+    for (const m of source.matchAll(/`([^`]+)`/g)) {
+      if (!looksLikePath(m[1]) && SYMBOL.test(m[1])) out.push({ id, line, token: m[1] });
+    }
+  }
+  return out;
+}
+
+// Every source file under scheme/, node_modules excluded. Read once for C5, which asks only whether
+// a symbol occurs SOMEWHERE: a citation names where a rule is implemented, not where it is declared,
+// and the harness under test/ is as legitimate a home as js/ (`R2_STEP_CARRIED`, `readDoc`).
+function treeSources(dir, out = []) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+    const p = join(dir, e.name);
+    if (e.isDirectory()) treeSources(p, out);
+    else if (/\.(js|mjs|css|html|json)$/.test(e.name)) out.push([p, readFileSync(p, 'utf8')]);
   }
   return out;
 }
@@ -626,6 +674,33 @@ test('C4 every repo path a Source cell cites resolves to a file that exists', (t
     `(${Object.entries(byBase).map(([n, c]) => `${n} ${c}`).join(', ')})`);
 });
 
+test('C5 every symbol a Source cell cites still occurs somewhere under scheme/', (t) => {
+  const symbols = sourceSymbols(CHECK_ROWS);
+  assert.ok(symbols.length >= SOURCE_SYMBOL_FLOOR,
+    `only ${symbols.length} symbol(s) parsed out of the Source column, floor is ${SOURCE_SYMBOL_FLOOR}. ` +
+    'The same argument as C4: a parse that stops matching resolves nothing and finds nothing dead.');
+
+  const tree = treeSources(ROOT);
+  assert.ok(tree.length >= 100, `${tree.length} source file(s) read under scheme/, which cannot be the whole tree`);
+
+  const dead = [];
+  const where = new Map();
+  for (const { id, line, token } of symbols) {
+    if (where.has(token)) continue;
+    const esc = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(?<![A-Za-z0-9_$])${esc}(?![A-Za-z0-9_$])`);
+    const hit = tree.find(([, src]) => re.test(src));
+    if (hit) { where.set(token, hit[0]); continue; }
+    where.set(token, null);
+    dead.push(`SYMBOL    CANON.md:${line}  ${id}  cites \`${token}\`, and no file under scheme/ contains it. ` +
+      'A citation naming a helper that was deleted tells the reader to call it: S-08a said to end a ' +
+      'Pod factory with wrapPod() for months after wrapPod was removed.');
+  }
+  assert.deepEqual(dead, [], `${dead.length} dead Source symbol(s):\n  ${dead.join('\n  ')}`);
+  t.diagnostic(`SYMBOL: ${symbols.length} symbol citation(s) naming ${where.size} distinct symbols, all resolving ` +
+    `over ${tree.length} files under scheme/`);
+});
+
 // --------------------------------------------------------------------------------------------
 // GROUP D: citations. An id is the stable anchor a review, a card note and a commit message cite by,
 // so a citation that resolves to nothing is a rule the reader cannot look up.
@@ -673,7 +748,7 @@ test('E1 every Check value is one of the four shapes and names a test file that 
   assert.ok(MANDATORY_DIRS.length > 0 && REPORT_DIRS.length > 0,
     `read ${MANDATORY_DIRS.length} mandatory and ${REPORT_DIRS.length} report director(ies) out of ` +
     'test/package.json. The scripts changed shape and this whole group is now judging nothing.');
-  assert.ok(TEST_FILES.size >= 18, `found ${TEST_FILES.size} test file(s), 18 at the last green run`);
+  assert.ok(TEST_FILES.size >= 22, `found ${TEST_FILES.size} test file(s), 22 at the last green run`);
 
   const bad = [];
   let machine = 0;

@@ -91,7 +91,7 @@ const liftTreeCaption = (el) => {
 };
 
 // The listing rows, as chips: one name, one value, lighting as a unit when the scan reaches them.
-// They stay ARRAYS named rows[n] in both dumps: a scalar key adds a `chips: rowN=...` line per step.
+// They stay ARRAYS the seven enter hooks read as rows[n]: a scalar key adds a `chips: rowN=...` line per step.
 const row = (i) => P.chip({
   x: ROW_X, y: rowY(i), w: ROW_W, h: ROW_H, name: ROW_NAMES[i], value: OWNER_BEFORE,
   tune: (el, refs) => {

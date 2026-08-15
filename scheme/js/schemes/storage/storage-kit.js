@@ -1,9 +1,10 @@
+// The card-facing API: a name is here because a card imports it. What only lib/ calls (the
+// builders scene-spec.js and step-spec.js run) stays in lib/ and is not re-exported.
 export {
-  valChip, setVal, setChip, setBoxLabel, setBoxSublabel, makeInit, packetAlong,
-  routePacket, segmentPacket, routeDur, routeLength, packetArrival,
-  topPacket, setConnectorDir, clearPodHighlight,
-  diagramRoot, wrapPod, arrivalRipple, clearHighlights, clearWires, setWire, flashChips, lightBoxAt, at, makeRidingLabel,
-  relationPath, revealAt, laneOf, REVEAL_MS,
+  setVal, setBoxLabel, routeDur, packetArrival,
+  // flashChips is the one name here no card imports: it is the only sanctioned block flash and
+  // S-25 keeps it on the surface, so it stayed when the other unimported re-exports went.
+  flashChips, makeRidingLabel, relationPath, laneOf, REVEAL_MS,
   setPodSublabel, FADE, BEAT, OPACITY,
 } from '../../lib/scheme-kit.js';
 

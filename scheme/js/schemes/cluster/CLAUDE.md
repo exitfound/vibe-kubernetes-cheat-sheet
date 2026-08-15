@@ -43,7 +43,7 @@ behaviour helper: both are frozen geometry.
 
 ## The escape hooks this category needs
 
-All 21 cards are in the declarative form. **14 are fully declarative**; seven carry a hook, **42
+All 21 cards are in the declarative form. **14 are fully declarative**; seven carry a hook, **41
 sites in all**, and the DSL did not have to grow once. `step.motion` is used by NOBODY here, and by
 nobody in the catalogue.
 
@@ -57,13 +57,14 @@ totals them, never off grep.
 | `part.tune` | 6 cards, 11 sites | Three jobs, none of them a field. A `style.fill` (plus a `strokeDasharray` on `resource-quota`) on the `.scheme-box-rect` NESTED inside a `P.box`, which hands back the wrapping `g` and not the rect: `node-allocatable` x4 through one `segment()` factory, `resource-quota` x3 through `budgetBlock()`, `server-side-apply` x1, all three so a stroke-only piece laid over a bar does not double the fill under it. A nested element captured AS A REF: `scheduler-decision` takes Node-4's `.scheme-box-label` and `.scheme-box-sublabel` so the placed Pod can hide the text it covers, and `api-structure` takes the chain's `[data-idx="3"]` row and pins it hidden, because `P.chain` hands back one element and not its rows. And on `pod-sandbox-cri`, a SECOND inner box built inside the Pod shell, because `buildPod` carries exactly one `inner` and `pulsePod` reaches only what the Pod group contains |
 | `P.raw` | 3 cards, 11 sites | A bare `<rect>` carrying inline `fill`, `stroke` and `width`: `cpu-throttling` x6, a track and a fill bar per CFS period through one `period(i)` factory, where a `P.box` would drag the content centre to 750 against 600. Two STACKED `<text>` nodes in one chip group, which no part kind builds: `api-structure` x4 over `SLOT_KEYS`, its watch-event slots. A label-only `chip()` from `primitives.js`, a command rather than the name/value pair `P.chip` writes: `resource-quota` x1 |
 | `step.enter` | 3 cards, 14 sites | Text and an ATTRIBUTE, on elements the card made itself. `api-structure` x6: `setSlot` writes the `textContent` of BOTH stacked texts on a slot. `cpu-throttling` x6: `setBars` writes `style.width` in px on the three fill rects and `textContent` on the three standing captions, and every step writes every bar, or one left alone reads as a period that behaved differently. `node-allocatable` x2: `setReqWidth` writes the SVG **attribute** `width` on the rect inside `reqBar`, and no field writes a geometry attribute at all (`opacity:` goes to `style.opacity`, a different property) |
-| `F.run` | 1 card, 5 sites | All five on `cpu-throttling`, and only **two are the delay-0 form, which is not an escape**: `at()` short-circuits on `delay <= 0`, runs the callback inline and registers no timer, so it is an imperative beat standing in flow order, here back-filling the bars to empty under the fill animation. The other **three carry a real delay** (`FILL_MS`, twice it and three times it) and ARE deferred callbacks, which no other category has: a period closing and the `cpu.stat` counter it moves are ONE beat, and no flow verb writes a rect width and a chip value together |
-| `SCENE.reset.extra` | 1 card, 1 site | `api-structure`'s `resetWatchArrow`, one of the two in the whole catalogue. It clears `strokeDasharray` and `strokeDashoffset` inline on the watch lane, which no field writes. It clears nothing today and stands as the arrow's guard for the first step that ever dashes it |
+| `F.run` | 1 card, 5 sites | All five on `cpu-throttling`, and only **two are the delay-0 form, which is an escape but not a timer**: `at()` short-circuits on `delay <= 0`, runs the callback inline and registers no timer, so it is an imperative beat standing in flow order, here back-filling the bars to empty under the fill animation. The other **three carry a real delay** (`FILL_MS`, twice it and three times it) and ARE deferred callbacks, which no other category has: a period closing and the `cpu.stat` counter it moves are ONE beat, and no flow verb writes a rect width and a chip value together |
+| `SCENE.reset.extra` | **0 today.** `api-structure` carried `resetWatchArrow`, **removed 2026-08-15**: it cleared `style.strokeDasharray` on the watch lane, while `dashed: true` writes the dash as an ATTRIBUTE (`primitives.js:103`) that an inline style never touches. It was not a sleeping guard, it guarded a door that cannot open. The one `reset.extra` left in the catalogue is on `network-pod-ip-and-veth`, where it is live and paired with its `enter` |
 
-**`pod-sandbox-cri`'s `tune` creates a ref no static reader can see.** `reset.pods` names `appGroup`,
-which that `tune` builds, so `report/skeleton-census.test.mjs` prints it under Q1 as a reset key no
-declared part creates. The card is correct and the entry stays: what Q1 is waiting on is a decision
-about escape-created refs, not a repair here.
+**`pod-sandbox-cri`'s `tune` creates a ref no PART declares.** `reset.pods` names `appGroup`, which
+that `tune` builds and no `key:` does. `report/skeleton-census.test.mjs` used to print the card under
+Q1 as a reset key nothing creates; since 2026-08-14 the census counts a name landed by an escape hook
+as a created ref, so **Q1 prints 0 findings** and this card is no longer among them. The construction
+still deserves reading before you touch it: a reset key here can be born in a `tune` and not in a part.
 
 **`reducedLit` is declared on 2 steps here**, `cluster-apply-flow`'s `create-pod` and
 `cluster-node-pressure-eviction`'s `rank`, against 89 in network, 20 in workloads and 0 in storage.
@@ -95,7 +96,8 @@ was written to be read in that order:
   everything else through the kit's formulas, so `laneY`, `ladder`, `spread` and `midX` carry the
   arithmetic and nothing restates a number a formula already knows.
 - `LADDER_X` and `CHIP_X` come from `LAYOUT.A`, not from `60` and `660`. Picking a layout is
-  therefore one edit, and `L-06` decides which of `A` / `B` / `C` against that card's own panel.
+  therefore one edit, and which of `A` / `B` / `C` a card takes is `L-08a`, the rule cluster shares
+  with workloads.
 - `SCENE.parts` is ordered by z-order, and the card says so out loud: chips and lanes first, the
   packet layer under the chain, the three top-row blocks absolute last.
 - `reset.keys` lists what `clearHighlights` takes back. `placedPod` is deliberately NOT in a `pods`
