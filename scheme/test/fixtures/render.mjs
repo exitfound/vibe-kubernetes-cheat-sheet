@@ -20,8 +20,8 @@ export const DEFAULT_BASE = (process.env.BASE || 'http://localhost:8888').replac
 // ---------------------------------------------------------------------------------------------
 // DIVERGENCE 2: one selector timeout and one settle pause for the whole suite.
 //
-// The old checks waited on the SAME element with three different numbers (8000 in smoke-all and
-// anim-dump, 10000 in reduced/geometry/palette/arrival, 15000 in duration/opacity/chipfit) and
+// The old checks waited on the SAME element with three different numbers (8000 in the smoke walk,
+// 10000 in reduced/geometry/palette/arrival, 15000 in duration/opacity/chipfit) and
 // paused between steps with four (20, 30, 50, 60). Nothing chose those, they accumulated. Both
 // constants below take the most conservative value that was already in use: a flake costs a whole
 // re-run, and nothing is gained by giving up 7 seconds earlier or sampling 30 ms sooner.
@@ -201,7 +201,8 @@ export function collectPageErrors(page) {
 // This is what SVG and CSS actually composite and what a reader sees: a <g> at 0.5 holding a rect
 // at 0.5 renders at 0.25. It is the number a group wrapper controls, and the one that answers
 // "is this element visible on screen".
-// Used by: check-reduced's OPACITY-INHERITED axis (the `opEff` field).
+// Used by: render/reduced.test.mjs, its OPACITY-INHERITED axis (the `eff` field of a snapshot),
+// and render/opacity.test.mjs for the composited value under LIT.
 export function effectiveOpacity(el, root) {
   const stop = root || el.closest('svg');
   let o = 1;
@@ -215,7 +216,8 @@ export function effectiveOpacity(el, root) {
 // The element's OWN declared opacity, ancestors ignored. This is the axis a card author sets
 // directly on the element, and it answers "did this step leave the same value behind on both
 // paths", which is a question about the code, not about the picture.
-// Used by: check-reduced's OPACITY-OWN (:159-161), the only ENFORCED rule that check had.
+// Used by: render/reduced.test.mjs, its OPACITY-OWN axis (the `own` field of a snapshot), which is
+// the axis check-reduced enforced alone and all four of which are enforced today.
 export function ownOpacity(el) {
   const v = parseFloat(getComputedStyle(el).opacity);
   return Number.isFinite(v) ? Math.round(v * 100) / 100 : 1;

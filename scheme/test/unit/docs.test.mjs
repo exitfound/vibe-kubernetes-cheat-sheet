@@ -2,8 +2,8 @@
 //
 // Successor of tools/check-notes.mjs (anchors, sections, orphans, misfiled) and of the whole of
 // tools/check-canonrows.mjs: duplicate ids and numbering in group C, and the `Check` column itself
-// in group E. Plus a group nothing has ever checked: the CANON.md category index against the four
-// <cat>/CLAUDE.md.
+// in group E. Plus two things nothing had ever checked: the CANON.md category index against the
+// four <cat>/CLAUDE.md, and the `Source` column in C4.
 //
 // ===========================================================================================
 // WHY GROUP E EXISTS, AND WHAT IT INHERITS
@@ -44,17 +44,30 @@
 // change that pushes past them is a rule being restated, which is the thing this group is for.
 //
 // ===========================================================================================
-// WHAT THIS FILE DOES NOT COVER, ON PURPOSE
+// WHY C4 READS THE SOURCE COLUMN
 // ===========================================================================================
-// - The `Source` column. 74 of its cells still name a file under the deleted scheme/tools/, which
-//   is the same class as the INTERNALS.md links below and goes the same way: one pass at stage 6.
-//   CANON.md's own header already says nothing checks that column.
-// - The dead links to the deleted scheme/INTERNALS.md in CANON.md. They are stage 6 work; a test
-//   on them today is red by construction and would only teach the runner to be ignored.
-// - The INTERNALS.md leg of check-notes (S-46). The file is gone. Note that check-notes walks it
-//   with `if (!existsSync(md)) continue;`, which is how 61 of its anchors stopped being checked at
-//   exit 0 and the printed anchor count fell from 185 to 124 with nothing said. This file refuses to
-//   skip: a record it cannot open is a failure, not a shorter run.
+// `Source` is the rulebook's other citation column: where the long form, the measurement or the
+// implementation of a rule lives. Nothing read it until C4, and it went stale twice, once on line
+// numbers that had drifted 9 to 12 rows into a comment, once naming files under a scheme/tools/
+// that had been deleted. It stands at ZERO dead citations today, which is exactly when the check is
+// cheap: holding zero costs the parse below, recovering it after the next rename costs a pass over
+// every rule row.
+//
+// WHAT COUNTS AS A PATH, AND WHY THE COLUMN IS NOT ALL PATHS. A cell may cite a helper (`valChip`),
+// a token (`BEAT`), a CSS selector, a card id, a date or a measurement, and forcing those into
+// filenames would be a check that is wrong rather than strict. Measured over all 236 cells today:
+// 202 backticked path tokens against 34 distinct non-path ones, and the two separate cleanly on one
+// question, "does it hold a slash, or a stem plus a 2 to 4 character extension". The bases below
+// are the ones cells are actually written against, and a citation resolves against any of them:
+// 43 land on the repo root, 92 on scheme/, 64 on scheme/js/, 3 in a category folder.
+//
+// ===========================================================================================
+// NOTHING HERE SKIPS
+// ===========================================================================================
+// check-notes walked a second record with `if (!existsSync(md)) continue;`, which is how 61 of its
+// anchors stopped being checked at exit 0 and the printed anchor count fell from 185 to 124 with
+// nothing said. That is the surviving lesson of S-46, and readDoc below is where this file obeys
+// it: a record it cannot open is a failure, never a shorter run.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -65,6 +78,10 @@ import { ROOT, cards, catalog, categories } from '../fixtures/catalog.mjs';
 
 // scheme/test/, the directory this file lives two levels inside of.
 const TEST_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+// The repo root, one level above scheme/. Only the Source column reaches out of scheme/, for root
+// `CLAUDE.md`, `sitemap.xml` and `.claude/hooks/check-js.sh`.
+const REPO = join(ROOT, '..');
 
 // --------------------------------------------------------------------------------------------
 // Recorded on the green run of 2026-08-07, the numbers stage 0.2a of REFACTOR-PLAN.md pinned.
@@ -87,6 +104,10 @@ const LABEL_MAX_OVERLAP = 55;                                                   
 // Measured 2026-08-07 right after the column was rewritten: 122 rows of 235 (130 values in all,
 // since a row may name two), against 112 `review` and 2 `hook`.
 const MACHINE_ROW_FLOOR = 122;
+
+// Backticked PATH tokens across every Source cell. A FLOOR, and the reason is the failure this
+// group is built against: a parse that stops matching resolves nothing and reports nothing dead.
+const SOURCE_PATH_FLOOR = 190;                                                   // measured 202
 
 // How each of the 39 category rules is written down in its folder. Three shapes are in use and the
 // split is asserted rather than counted loosely, because "declared" and "merely cited" are the
@@ -175,8 +196,53 @@ function checkRows(md) {
     if (!m) return;
     const c = cells(line);
     if (c.length !== 6) return;                          // '', id, rule, check, source, ''
-    out.push({ id: m[2], check: c[3].trim(), line: i + 1 });
+    out.push({ id: m[2], check: c[3].trim(), source: c[4].trim(), line: i + 1 });
   });
+  return out;
+}
+
+// Is a backticked token from a Source cell a REPO PATH? Two shapes, and between them they take all
+// 202 paths and none of the 34 helper names, tokens, selectors, ids and dates beside them.
+//
+// A slash makes it a path outright (`test/render/geometry.test.mjs`, `scheme/css/`, `lib/tokens.js`).
+// Without one it needs a STEM and a short extension, which is what keeps `.narration-overlay` and
+// `NET.A-01` out while letting the bare `CARDS.md`, `cards.js` and `sitemap.xml` in.
+const PATH_WITH_SLASH = /^[\w.<>/-]*\/[\w.<>/-]*$/;
+const BARE_FILENAME = /^[\w<>-]+\.[a-z0-9]{2,4}$/;
+const looksLikePath = (tok) => PATH_WITH_SLASH.test(tok) || BARE_FILENAME.test(tok);
+
+// The bases a cell is written against, tried in order. Measured over the 202: the repo root 43,
+// scheme/ 92, scheme/js/ 64, a category folder 3 (the bare `CARDS.md` and `cards.js`, which a row
+// names as a set of four). The repo root goes first so the six bare `CLAUDE.md` land where the rows
+// say they do, at the root, rather than on scheme/CLAUDE.md, which exists too.
+const SOURCE_BASES = [
+  ['<repo root>', REPO],
+  ['scheme/', ROOT],
+  ['scheme/js/', join(ROOT, 'js')],
+  ...CATS.map(c => [`js/schemes/${c}/`, join(ROOT, 'js', 'schemes', c)]),
+];
+
+// `js/schemes/<cat>/cards.js` names one file per category, so all four have to exist: the token is a
+// convention, and a convention half the folders keep is the thing worth finding.
+const expand = (tok) => (tok.includes('<cat>') ? CATS.map(c => tok.replace('<cat>', c)) : [tok]);
+
+// The base a token resolves against, or null. Order only decides which name a diagnostic prints.
+function resolveSource(tok) {
+  const want = expand(tok);
+  for (const [name, base] of SOURCE_BASES) {
+    if (want.every(w => existsSync(join(base, w)))) return name;
+  }
+  return null;
+}
+
+// Every backticked path token of every Source cell, with the row it sits in.
+function sourcePaths(rows) {
+  const out = [];
+  for (const { id, source, line } of rows) {
+    for (const m of source.matchAll(/`([^`]+)`/g)) {
+      if (looksLikePath(m[1])) out.push({ id, line, token: m[1] });
+    }
+  }
   return out;
 }
 
@@ -296,11 +362,14 @@ test('A1 every card record is anchored, and no walk collapses to nothing', () =>
   assert.ok(total >= floor, `${total} anchors catalog-wide, floor is ${floor}: ${JSON.stringify(per)}`);
 });
 
-test('A2 every anchor still occurs in the card it was taken from (an anchor is DATA, never reworded)', () => {
+test('A2 every anchor still occurs in the card it was taken from (an anchor is DATA, never reworded)', (t) => {
   const stale = [];
+  const seenIn = new Map();
   let checked = 0;
   for (const cat of CATS) {
     for (const a of anchors(CARDS_MD.get(cat))) {
+      if (!seenIn.has(a.code)) seenIn.set(a.code, []);
+      seenIn.get(a.code).push(`${cat}/${a.section}`);
       const src = CARD_SOURCE.get(a.section);
       if (!src) continue;                       // reported by A4 as an orphan section
       checked++;
@@ -308,6 +377,16 @@ test('A2 every anchor still occurs in the card it was taken from (an anchor is D
         stale.push(`${relCards(cat)}:${a.line}  [${a.section}]  ${a.code.slice(0, 90)}`);
       }
     }
+  }
+
+  // A CENSUS, never an assertion: an anchor is resolved inside its own `## <card id>` section, so a
+  // text repeated across sections is legal and duplicates are the normal shape of shared geometry.
+  // What it costs is a MOVE: carry a note to another card and the old text resolves against that
+  // card's code or vanishes, with nothing red (S-38).
+  const dup = [...seenIn.entries()].filter(([, at]) => at.length > 1).sort((a, b) => b[1].length - a[1].length);
+  t.diagnostic(`ANCHORS: ${seenIn.size} distinct text(s) over ${checked} anchor(s), ${dup.length} duplicated`);
+  for (const [code, at] of dup) {
+    t.diagnostic(`  ${String(at.length).padStart(2)}x  ${code.slice(0, 60).padEnd(60)}  ${at.slice(0, 4).join(', ')}${at.length > 4 ? ' ...' : ''}`);
   }
   assert.ok(checked >= 124, `only ${checked} anchor(s) were resolved against a card source, expected at least 124`);
   assert.deepEqual(stale, [], `${stale.length} of ${checked} anchor(s) point at a line that is gone:\n  ${stale.join('\n  ')}`);
@@ -525,6 +604,26 @@ test('C3 the catalog-wide blocks and the category index share no id and no prefi
   const indexed = new Set(INDEX.flatMap(b => b.rows.map(r => r.id)));
   const stray = scoped.filter(id => !indexed.has(id));
   assert.deepEqual(stray, [], `${stray.length} category rule(s) stated in CANON.md outside the index: ${stray.join(', ')}`);
+});
+
+test('C4 every repo path a Source cell cites resolves to a file that exists', (t) => {
+  const paths = sourcePaths(CHECK_ROWS);
+  assert.ok(paths.length >= SOURCE_PATH_FLOOR,
+    `only ${paths.length} path(s) parsed out of the Source column, floor is ${SOURCE_PATH_FLOOR}. ` +
+    'A parse that stops matching finds no dead citation and passes, which is how this column went ' +
+    'stale twice while every check stayed green.');
+
+  const dead = [];
+  const byBase = {};
+  for (const { id, line, token } of paths) {
+    const base = resolveSource(token);
+    if (base) { byBase[base] = (byBase[base] || 0) + 1; continue; }
+    dead.push(`SOURCE    CANON.md:${line}  ${id}  cites \`${token}\`, and it resolves under none of ` +
+      SOURCE_BASES.map(([n]) => n).join(', '));
+  }
+  assert.deepEqual(dead, [], `${dead.length} dead Source citation(s):\n  ${dead.join('\n  ')}`);
+  t.diagnostic(`SOURCE: ${paths.length} path citation(s) over ${CHECK_ROWS.length} rule rows, all resolve ` +
+    `(${Object.entries(byBase).map(([n, c]) => `${n} ${c}`).join(', ')})`);
 });
 
 // --------------------------------------------------------------------------------------------

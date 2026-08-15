@@ -70,8 +70,8 @@ const CATS = await categories();
 // ---------------------------------------------------------------------------------------------
 
 // Paths relative to the REPO root. Three walked groups and one named list, mirroring
-// tools/check-canon.mjs `dashTargets`. The four CARDS.md and INTERNALS.md stay outside the area on
-// purpose (T-05): a design record quotes what a card must not do.
+// tools/check-canon.mjs `dashTargets`. The four CARDS.md stay outside the area on purpose (T-05):
+// a design record quotes what a card must not do.
 async function dashTargets() {
   const out = [];
   for (const c of CARDS) out.push(join('scheme', c.rel));
@@ -215,8 +215,8 @@ test('T-05 the dash area covers the card modules, the four kits, the manifests a
   }
   for (const rel of NAMED_TARGETS) assert.ok(targets.has(rel), `${rel} is outside the dash sweep`);
   // T-05 states the exclusion as flatly as the inclusion: a design record may quote what a card
-  // must not write, so the four CARDS.md and INTERNALS.md stay out.
-  const records = [...targets].filter(t => /CARDS\.md$|INTERNALS\.md$/.test(t));
+  // must not write, so the four CARDS.md stay out.
+  const records = [...targets].filter(t => /CARDS\.md$/.test(t));
   assert.deepEqual(records, [], 'a design record joined the dash sweep, and T-05 puts it deliberately outside');
 });
 

@@ -18,15 +18,14 @@
 // ===========================================================================================
 // WHAT THIS FILE ASSERTS THAT NOTHING ELSE CAN
 // ===========================================================================================
-//   - THE ORACLE CANNOT SEE `duration` AT ALL. Editing 1500 to 1501 leaves both halves of
-//     test/oracle/ reporting CARD CLEAN, because the declared duration is a Timeline hold and not a
-//     WAAPI animation (plan III.4). render/duration.test.mjs measures span <= duration off a live
-//     card; this file asserts, off the data, that the field EXISTS, is a positive integer, and that
-//     the arrival arithmetic the flow itself declares already fits inside it.
-//   - THE ORACLE NEVER WALKS THE REDUCED PATH. Both dumps open a context with
-//     reducedMotion: 'no-preference' and _shared.mjs enters every step with reduced: false (plan
-//     III.8a). `flowLights` is the newest thing the layer does and it lives exactly there, so a
-//     wrong derivation would be caught by nothing. Here it is re-derived independently and compared.
+//   - `duration` REACHES NEITHER WAAPI NOR THE DOM. Editing 1500 to 1501 is invisible to any dump
+//     of animations or of serialised markup, because the declared duration is a Timeline hold and
+//     not an animation. render/duration.test.mjs measures span <= duration off a live card; this
+//     file asserts, off the data, that the field EXISTS, is a positive integer, and that the
+//     arrival arithmetic the flow itself declares already fits inside it.
+//   - THE DERIVED GUARD IS RE-DERIVED HERE. `flowLights` is the newest thing the layer does, and
+//     render/reduced.test.mjs proves the two paths AGREE without proving the derivation is the one
+//     the card meant. Here it is re-derived independently, off the data, and compared.
 //   - A MISNAMED KEY IS A SILENT NO-OP. Every writer in scheme-kit is null-guarded (`setVal` is
 //     `if (node && node.valueText)`), so `chips: { termChp: '4' }` throws nothing, draws nothing and
 //     leaves the chip showing the PREVIOUS step's value, which is the one failure that looks
@@ -51,6 +50,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards, census } from '../fixtures/catalog.mjs';
 import { cardForm, importAll } from '../fixtures/module.mjs';
+import { collectFns, escapeRefs, walkParts } from '../fixtures/spec.mjs';
 import { flowLights } from '../../js/lib/step-spec.js';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
 
@@ -103,7 +103,7 @@ const VERB_PARAMS = {
   fade:    [...COMMON_PARAMS, 'target', 'from', 'to', 'dur', 'fill', 'easing', 'unlight'],
   reveal:  [...COMMON_PARAMS, 'target', 'from'],
   // `on` names the element the empty 1ms timer hangs on: at() uses the svg, three cards use the
-  // block the write is about, and anim-dump records which.
+  // block the write is about, and which one it is shows up in getAnimations().
   set:     [...COMMON_PARAMS, ...WRITER_FIELDS, 'on'],
   light:   [...COMMON_PARAMS, 'targets'],
   anim:    [...COMMON_PARAMS, 'target', 'keyframes', 'options'],
@@ -121,42 +121,26 @@ const VERBS = new Set(Object.keys(VERB_PARAMS));
 // The scene's ref surface, needed only to resolve the names a STEP uses. Built from the part list,
 // plus the two Pod sub-refs, plus whatever an escape assigns.
 //
-// WHY THE ESCAPES ARE READ AT ALL. `tune(el, refs)` and `raw.make(refs)` may write a ref: 3 of the
-// 21 cards do it, 5 keys in all (crdRow, appGroup, appBox, n4Label, n4Sub). Reading `refs.x =` out
-// of a function we already hold as a VALUE only ever WIDENS the legal set, so a pattern this misses
-// costs a loud false finding, never a silent pass. That is the safe direction for a guess.
+// WHY THE ESCAPES ARE READ AT ALL. `tune(el, refs)` and `raw.make(refs)` may write a ref, and the
+// reader for that lives in ../fixtures/spec.mjs with the argument for why reading source text is
+// safe here: it only ever WIDENS the legal set. ../report/skeleton-census.test.mjs reads the same
+// escapes to decide whether a reset key is a typo, and the two must not drift apart.
 // ---------------------------------------------------------------------------------------------
-const ESCAPE_ASSIGN = /\brefs\s*(?:\.\s*([A-Za-z_$][\w$]*)|\[\s*['"]([^'"]+)['"]\s*\])\s*=(?!=)/g;
-
-function collectFns(value, out, depth = 0) {
-  if (depth > 8 || value === null || typeof value !== 'object') return;
-  for (const v of Object.values(value)) {
-    if (typeof v === 'function') out.push(v);
-    else if (v && typeof v === 'object') collectFns(v, out, depth + 1);
-  }
-}
-
 function refsOf(card) {
   const refs = new Set(), wires = new Set();
-  const walk = (parts) => {
-    for (const part of parts || []) {
-      if (!part) continue;
-      const { kind, key, p = {} } = part;
-      // A wire lands in refs.wires[key], everything else in refs[key]: two namespaces, so a
-      // `wires: { api: ... }` naming a box would resolve to nothing.
-      if (kind === 'wire') { if (key) wires.add(key); } else if (key) refs.add(key);
-      if (kind === 'pod') { if (p.shellKey) refs.add(p.shellKey); if (p.innerKey) refs.add(p.innerKey); }
-      if (kind === 'group') walk(p.parts);
-    }
-  };
-  walk(card.scene && card.scene.parts);
-  const fns = [];
-  collectFns(card.scene, fns);
-  collectFns(card.steps, fns);
-  for (const fn of fns) {
-    for (const m of fn.toString().matchAll(ESCAPE_ASSIGN)) refs.add(m[1] || m[2]);
-  }
-  return { refs, wires, escapes: fns.length };
+  walkParts(card.scene && card.scene.parts, (part) => {
+    if (!part) return;
+    const { kind, key, p = {} } = part;
+    // A wire lands in refs.wires[key], everything else in refs[key]: two namespaces, so a
+    // `wires: { api: ... }` naming a box would resolve to nothing.
+    if (kind === 'wire') { if (key) wires.add(key); } else if (key) refs.add(key);
+    if (kind === 'pod') { if (p.shellKey) refs.add(p.shellKey); if (p.innerKey) refs.add(p.innerKey); }
+  });
+  for (const name of escapeRefs(card.scene, card.steps)) refs.add(name);
+  // The count stays the number of FUNCTIONS read, not of names found: the diagnostic below reports
+  // how much of each spec was scanned, and most of those functions assign nothing.
+  const fns = collectFns(card.scene).length + collectFns(card.steps).length;
+  return { refs, wires, escapes: fns };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -253,8 +237,8 @@ describe('the migrated population', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// id, duration, narration. None of the three reaches the DOM or WAAPI, so the oracle is blind to all
-// of them (plan III.4) and this is the only place their SHAPE is asserted at all.
+// id, duration, narration. None of the three reaches the DOM or WAAPI, so no dump of either can see
+// them, and this is the only place their SHAPE is asserted at all.
 // ---------------------------------------------------------------------------------------------
 describe('step identity and duration', () => {
   test(`every one of the ${STEP_COUNT} steps declares an id and a duration`, (t) => {
@@ -271,7 +255,7 @@ describe('step identity and duration', () => {
         else if (ids.has(spec.id)) findings.push(`${at}  id '${spec.id}' is used twice on this card, so a finding cannot name one step`);
         else ids.add(spec.id);
         // Not a default and not derived: Timeline holds this exact number before auto-advancing,
-        // and the oracle reports CARD CLEAN whatever it says.
+        // and nothing that reads WAAPI or the DOM can see what it says.
         if (typeof spec.duration !== 'number' || !Number.isFinite(spec.duration)) findings.push(`${at}  duration is ${JSON.stringify(spec.duration)}, expected a number of milliseconds`);
         else if (!Number.isInteger(spec.duration) || spec.duration <= 0) findings.push(`${at}  duration is ${spec.duration}, expected a positive whole number of milliseconds`);
         else durations.push(spec.duration);
@@ -458,9 +442,12 @@ describe('flow as an ordered program', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// The derived reduced-motion guard. THE ORACLE NEVER GOES HERE (plan III.8a): both dumps run with
-// reducedMotion 'no-preference' and enter every step with reduced: false, so a wrong derivation is
-// invisible to the whole refactor safety net and visible only to a reader of the data.
+// The derived reduced-motion guard. A wrong derivation used to be invisible: the refactor's dump
+// bridge ran with reducedMotion 'no-preference' and entered every step with reduced: false, so
+// nothing but a reader of the data could see one. That bridge is gone, and the HIGHLIGHT axis of
+// render/reduced.test.mjs was promoted to enforced once the derivation had landed on all four
+// categories, which is what makes the guard checkable inside `npm test`. The assertions below are
+// the half that needs no browser: they read the derivation off the data.
 // ---------------------------------------------------------------------------------------------
 describe('the reduced-motion guard', () => {
   test('flowLights is the ordered, de-duplicated union of what the flow lights', (t) => {

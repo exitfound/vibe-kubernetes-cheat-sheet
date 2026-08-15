@@ -10,9 +10,9 @@
 // "spec.unschedulabSehedulingDisabled" is the real artefact that produced the original check.
 // The fix is to shorten the VALUE, not to widen the chip (P-07, STO.L-03).
 //
-// Nothing else in the gate answers this question. check-inline reads the strings, check-labels
-// compares them across cards, check-geometry measures blocks: none of them asks whether a string
-// FITS. It has to be a rendered measurement for the same reason: the width of a string is a fact
+// Nothing else in the suite answers this question. render/inline.test.mjs reads the strings and
+// compares them across cards, render/geometry.test.mjs measures blocks: neither asks whether a
+// string FITS. It has to be a rendered measurement for the same reason: the width of a string is a fact
 // about the font, and no amount of reading the source produces it.
 //
 // WHY EVERY STEP. A chip carries different values through the story and only overflows on the step

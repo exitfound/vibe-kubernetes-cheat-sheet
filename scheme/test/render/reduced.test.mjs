@@ -7,18 +7,18 @@
 // the machine behind "everything above the guard is the complete static end-state": the moment a
 // card animates a value it never pins, or pins one it never animates, the two snapshots disagree.
 //
-// FOUR AXES, two ENFORCED, two report-only. The split is inherited from tools/check-reduced.mjs:25,
-// which had `ENFORCED = new Set(['OPACITY-OWN'])` and counted the other three without failing the
-// gate, because their queues were not empty. Making a queue green is a REPAIR JOB on the cards, not
-// a job for this file: silencing an axis here would delete the finding.
+// FOUR AXES, all four ENFORCED. Three of them were counted rather than asserted while their queues
+// held findings, because making a queue green is a REPAIR JOB on the cards and silencing an axis
+// here would delete the finding. All four queues now stand at 0.
 //
-//   OPACITY-OWN        the element's own computed opacity.                            ENFORCED.
-//   OPACITY-INHERITED  the EFFECTIVE opacity, the product down the ancestor chain.     ENFORCED.
+//   OPACITY-OWN        the element's own computed opacity.
+//   OPACITY-INHERITED  the EFFECTIVE opacity, the product down the ancestor chain.
 //                      CSS opacity does not inherit, so a card that pins state on the <g> WRAPPER
 //                      around a Pod is invisible to OPACITY-OWN entirely.
 //   WIRE-TEXT          the drawn .scheme-label text. A card whose setWire runs only below the
-//                      guard shows blank lanes on prev/reset.                          report-only.
-//   HIGHLIGHT          the .highlight class set.                                       report-only.
+//                      guard shows blank lanes on prev/reset.
+//   HIGHLIGHT          the .highlight class set. This is the axis a wrong `reducedLit` lands on,
+//                      and enforcing it is what makes the derived guard checkable inside `npm test`.
 //
 // WHY OPACITY-INHERITED IS ENFORCED (plan 2.3b). The demonstration is on cluster-node-drain, whose
 // Pod wrappers are bare `<g id="pod1">` with no class (cluster-node-drain.js:103) and therefore
@@ -26,9 +26,9 @@
 // prev visibly wrong and the only enforced axis SILENT, because the pin never sat on an element
 // OPACITY-OWN can see, and the group wrapper is the most common carrier of opacity in the catalog.
 // Its queue is 0 on all 542 compared steps, so promoting it costs nothing and closes that hole.
-// WIRE-TEXT and HIGHLIGHT stay report-only on purpose: stage 3 changes how the reduced branch is
-// produced (3.5 derives the guard from `flow`), and promoting the axes it touches before it starts
-// would buy false confidence in exactly the place it is about to move.
+// WIRE-TEXT and HIGHLIGHT were held back until the derived guard had landed on all four categories,
+// so that promoting the axes it touches could not buy false confidence in the place about to move.
+// Both are at 0 over the same 542 steps with the derivation in place, which is what earned them.
 //
 // The two opacity axes are the two fixture helpers, and they are NOT interchangeable:
 // ownOpacity() answers "did the step leave the same value behind on both paths", which is a
@@ -64,9 +64,9 @@ import {
   enterStep, gotoStep, stepSpan, seekStep, installOpacityHelpers, installKeyHelpers,
 } from '../fixtures/render.mjs';
 
-// The catalog as it stood when the oracle baseline was taken (REFACTOR-PLAN 0.2). Asserted, not
-// printed: a walk that sees fewer cards or fewer steps reports fewer findings and passes, which is
-// the failure mode this whole suite is built against. 650 counts EVERY step including each card's
+// The catalog as it stands. Asserted, not printed: a walk that sees fewer cards or fewer steps
+// reports fewer findings and passes, which is the failure mode this whole suite is built against.
+// 650 counts EVERY step including each card's
 // step 0; the comparison itself starts at 1, so 650 - 108 = 542 steps are actually diffed.
 const CARD_TOTAL = 108;
 const STEP_TOTAL = 650;
@@ -80,7 +80,9 @@ const AXES = ['OPACITY-OWN', 'OPACITY-INHERITED', 'WIRE-TEXT', 'HIGHLIGHT'];
 // file needs to change, and the env override exists so the queue can be worked with a red run
 // without editing the file:
 //   REDUCED_ENFORCE=OPACITY-OWN,WIRE-TEXT node --test 'render/reduced.test.mjs'
-const DEFAULT_ENFORCED = ['OPACITY-OWN', 'OPACITY-INHERITED'];
+// All four are enforced as of the last category's migration: both report-only queues stand at 0
+// over the 542 compared steps, so the reason they were counted rather than asserted is gone.
+const DEFAULT_ENFORCED = ['OPACITY-OWN', 'OPACITY-INHERITED', 'WIRE-TEXT', 'HIGHLIGHT'];
 const ENFORCED = new Set(
   (process.env.REDUCED_ENFORCE ?? DEFAULT_ENFORCED.join(','))
     .split(',').map(s => s.trim()).filter(Boolean));
@@ -377,14 +379,15 @@ test(`the walk covered the whole catalog (${CARD_TOTAL} cards, ${STEP_TOTAL} ste
   assert.equal(stepsSeen, STEP_TOTAL,
     `walked ${stepsSeen} steps, the baseline counted ${STEP_TOTAL}.\n` +
     '  Fewer means the walk lost steps and every axis under-reported. More means the catalog grew\n' +
-    '  and this constant, plus the oracle baseline, has to be re-taken deliberately.');
+    '  and this constant has to be re-taken deliberately.');
   assert.equal(stepsDiffed, STEP_TOTAL - CARD_TOTAL,
     `compared ${stepsDiffed} steps, expected ${STEP_TOTAL - CARD_TOTAL} (${STEP_TOTAL} minus one poster step per card)`);
 });
 
-// The report-only axes, as numbers. They are open findings on the cards, and a run that does not
-// print them lets the queue drift without anyone noticing which way.
-test('report-only axes (counted, not enforced)', (t) => {
+// The axis counts, printed. All four are enforced today, so the loop below prints nothing on the
+// first pass; it stays because `REDUCED_ENFORCE` can demote an axis to work a queue red, and that
+// is the run where an unprinted count would let the queue drift unseen.
+test('axis counts, and any axis demoted through REDUCED_ENFORCE', (t) => {
   for (const axis of AXES) {
     if (ENFORCED.has(axis)) continue;
     t.diagnostic(`${axis}: ${totals.get(axis)} mismatch(es) across ${stepsDiffed} compared steps`);
@@ -395,6 +398,6 @@ test('report-only axes (counted, not enforced)', (t) => {
   // key fell back on document order. Printed, not asserted: it says how much of the comparison still
   // rests on position, which is the number to watch while stage 3 re-orders scenes.
   t.diagnostic(`key collisions: ${keyCollisions} element(s) across ${stepsDiffed * 2} snapshots`);
-  // Nothing is asserted about the report-only counts on purpose. Pinning them to today's number
-  // would make a REPAIR turn the suite red, and pinning them to zero would mean silencing the axis.
+  // Nothing is asserted here on purpose: a demoted axis is being worked, and pinning its count
+  // would make the repair itself turn the suite red.
 });

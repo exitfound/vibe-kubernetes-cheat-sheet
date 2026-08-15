@@ -110,7 +110,8 @@ const KNOWN_DRIFT = [
   // which is out of scope for this file.
   'pod: "Pod" x21 vs "pod" x1',
   'podc: "Pod C" x3 vs "pod-c" x1',
-  'pv-x73a: "pv-x73a" x1 vs "PV-x73a" x1',
+  // The third entry, pv-x73a against PV-x73a, was CLOSED on 2026-08-14: T-11a put every volume on
+  // the claim's grammar, so both halves of that pair are the one string `PV x73a` today.
 ].sort();
 
 // T-03 bans the semicolon in narration prose, and an aria-label is the diagram read aloud, so the
@@ -485,7 +486,7 @@ test(`T-13 one object is labelled one way, with ${KNOWN_DRIFT.length} carried op
   const found = rows.map(rowText).sort();
   assert.deepEqual(found, [...KNOWN_DRIFT].sort(),
     `label drift changed.\n  now:\n    ${found.join('\n    ')}\n` +
-    '  All three carried entries are pairs no INLINE_SITE could see, because one half of each is ' +
+    '  Every carried entry is a pair no INLINE_SITE could see, because one half of each is ' +
     'drawn through a card-local helper or an array. A NEW pair is a defect.');
 });
 

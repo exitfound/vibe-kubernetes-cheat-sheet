@@ -53,7 +53,10 @@
 //      R2-ENTRY  the tool's own comparison, entry against entry. Reproduced verbatim so its number
 //                is checkable, and each finding is additionally labelled with whether a cue lands
 //                later in that same step.
-//      R2-STEP   settled against settled, which is what the rule actually asks. This is the queue.
+//      R2-STEP   settled against settled, which is what the rule actually asks. This is the queue,
+//                and R2_STEP_CARRIED below holds the findings a human has read and kept, with the
+//                reason on each. All seven carried today are one class: the chip's TEXT changed
+//                while the FACT it reports did not. Anything outside that table is work.
 //    They disagree, and the disagreement is the point: a rule can be reported faithfully and still
 //    be reading the wrong frame.
 //
@@ -178,6 +181,24 @@ const near = (b, p, tol) =>
 
 const catalogued = await cards();
 
+// R2-STEP entries a human has READ and decided to carry, with the reason, keyed `<id> <step> <chip>`.
+// All seven are ONE class: the chip's TEXT changed while the FACT it reports did not, so a cue would
+// announce a change that did not happen. Anything outside this table is the queue to work, and an
+// entry here that stops being reported is a stale carry: the count below prints both halves.
+const R2_STEP_CARRIED = new Map([
+  ['cluster-api-structure 6 resourceVersion',
+    'the 410 aside is over and the three chips go BACK to the steady state step 4 left (843, open streaming, 4). A cue would say they moved on'],
+  ['cluster-api-structure 6 watch', 'same restoration'],
+  ['cluster-api-structure 6 cache size', 'same restoration'],
+  ['cluster-static-pods 5 mirror Pod',
+    'the mirror was deleted and recreated INSIDE the previous step (present, gone, back), so this reading is the steady name returning. The news of this step is the Pod restarting, and that chip is lit'],
+  ['cluster-oom-kill 3 container state',
+    'containerStatuses[].state is STILL Running: the suffix `not yet observed` explains an unchanged fact, and the turnover the reader must catch is on the observe step, where the chip IS lit'],
+  ['network-client-ip-preservation 5 X-Forwarded-For',
+    'raw TCP carries no headers, so the header panel empties because this mode has none. The news is the mode, the reader and the recovered address, all three lit'],
+  ['network-client-ip-preservation 5 Forwarded', 'same, the other header of the pair'],
+]);
+
 test('arrival grammar across every step (report only, census is the one assertion)', async (t) => {
   const r3 = [], r2entry = [], r2step = [], notes = [];
   const r3ByCard = new Map(), entryByCard = new Map(), stepByCard = new Map();
@@ -285,12 +306,16 @@ test('arrival grammar across every step (report only, census is the one assertio
               if (was.value === c.value) continue;
               stepChanged++;
               if (c.hl) continue;
+              const key = `${id} ${i} ${c.name}`;
+              const why = R2_STEP_CARRIED.get(key);
               r2step.push({
                 id,
+                key,
+                why,
                 line: `${id} step ${i}  chip "${c.name}" changed ${JSON.stringify(was.value)} to ` +
                   `${JSON.stringify(c.value)} and carries no .highlight when the step has settled`,
               });
-              stepByCard.set(id, (stepByCard.get(id) || 0) + 1);
+              if (!why) stepByCard.set(id, (stepByCard.get(id) || 0) + 1);
             }
           }
 
@@ -333,12 +358,21 @@ test('arrival grammar across every step (report only, census is the one assertio
     for (const [id, c] of [...entryByCard.entries()].sort((a, b) => b[1] - a[1])) out.push(`    ${String(c).padStart(3)}  ${id}`);
   }
   out.push('');
-  out.push(`R2-STEP   the same rule off the SETTLED step, which is the queue to work: ${r2step.length} finding(s) on ${stepByCard.size} card(s)`);
-  for (const f of r2step) out.push('  ' + f.line);
-  if (stepByCard.size) {
+  const open = r2step.filter(f => !f.why), held = r2step.filter(f => f.why);
+  out.push(`R2-STEP   the same rule off the SETTLED step: ${r2step.length} finding(s), ` +
+    `${held.length} carried with a reason, ${open.length} left to work on ${stepByCard.size} card(s)`);
+  if (open.length) {
+    out.push('  the queue to work:');
+    for (const f of open) out.push('    ' + f.line);
     out.push('  by card:');
     for (const [id, c] of [...stepByCard.entries()].sort((a, b) => b[1] - a[1])) out.push(`    ${String(c).padStart(3)}  ${id}`);
   }
+  if (held.length) {
+    out.push('  carried, text changed and the fact did not:');
+    for (const f of held) out.push(`    ${f.line}\n      WHY ${f.why}`);
+  }
+  const stale = [...R2_STEP_CARRIED.keys()].filter(k => !r2step.some(f => f.key === k));
+  if (stale.length) out.push(`  carried entries no longer reported (stale, remove them): ${stale.join(' | ')}`);
   if (notes.length) {
     out.push('');
     out.push(`steps or cards that could not be read: ${notes.length}`);
@@ -357,5 +391,5 @@ test('arrival grammar across every step (report only, census is the one assertio
     'step whose arrival cue was never read, and this file would still print a number.');
 
   t.diagnostic(`arrival: ${walked} cards, ${sampled} steps, R3 ${r3.length}, ` +
-    `R2-ENTRY ${r2entry.length}, R2-STEP ${r2step.length}`);
+    `R2-ENTRY ${r2entry.length}, R2-STEP ${r2step.length} (${r2step.filter(f => !f.why).length} unexplained)`);
 });

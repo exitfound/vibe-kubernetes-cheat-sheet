@@ -689,7 +689,7 @@ describe('the strings the scene draws', () => {
     // its own, which is why setBoxSublabel reaches it and six steps write through it.
     'network-model.bus': 'box',
     // The Pod shell here is primitives.pod(), not podShell() + inner: it writes an inline fill on
-    // .scheme-pod-rect that dom-dump serialises, and the card hangs TWO sibling containers off it.
+    // .scheme-pod-rect no other Pod carries, and the card hangs TWO sibling containers off it.
     'network-pod-ip-and-veth.podShell': 'podShell',
   };
 
@@ -791,9 +791,9 @@ describe('the reset prologue', () => {
   });
 
   // The leak this catches: a step lights a part, resetStep does not clear it, and the highlight
-  // survives into every later step. It is invisible to the oracle on the animated path and to the
-  // eye on a card played straight through, because the wrong block is lit in a step that also has
-  // a right one.
+  // survives into every later step. It is invisible on a card played straight through, because the
+  // wrong block is lit in a step that also has a right one, and the reduced comparison sees only
+  // that the two paths AGREE about it.
   test('every part a step lights is cleared by the reset', (t) => {
     const findings = [];
     let lit = 0;
@@ -810,11 +810,15 @@ describe('the reset prologue', () => {
           if (!e || !e.p) continue;
           const keys = e.verb === 'light' ? (e.p.targets || []) : (e.p.lights || []);
           if (keys.length) sources.push([`flow[${j}] ${e.verb}`, keys]);
-          // `unlight` is NOT a fourth source: it REMOVES a highlight and cannot cause the leak
-          // above. Counting it flagged storage-pvc-protection, whose four unlights name targets no
-          // step ever lights, and the only honest repair (dropping them) flips anim-dump's
-          // `onfinish` boolean, so a dead unlight is not free to delete either. A live one names a
-          // key some other source already names, so nothing is lost by leaving it out.
+          // `unlight` REMOVES a highlight, so it cannot cause the leak above and is not held to the
+          // reset. It is still walked, for the one thing it CAN get wrong: naming a key the scene
+          // does not answer to, which is a typo that silently unlights nothing.
+          for (const k of (e.p.unlight || [])) {
+            lit++;
+            if (k !== 'chain' && !refs.has(k) && !escaped.has(k)) {
+              findings.push(`${s.id}  ${where} flow[${j}] ${e.verb} unlight names "${k}", which no part of the scene answers to`);
+            }
+          }
         }
         for (const [field, keys] of sources) {
           for (const k of keys) {

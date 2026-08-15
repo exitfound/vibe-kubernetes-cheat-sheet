@@ -8,8 +8,8 @@
 // re-measured them since, and nothing would notice them drifting. This file is the catalog-wide
 // version of the same measurement: every card, every step, all three viewports of L-06.
 //
-// WHY IT IS REPORT-LEVEL. L-02 and L-04 are recorded as `report:overlay-measure` in the canon and
-// were never in the gate. The panel is HTML the browser lays out, so its extent moves with the
+// WHY IT IS REPORT-LEVEL. The canon records L-02 and L-04 against this file, as `report:overlay/L-02`
+// and `report:overlay/L-04`, and neither they nor the ancestor were ever mandatory. The panel is HTML the browser lays out, so its extent moves with the
 // font, the viewport and the prose, and a card that grows its panel by a line has not broken
 // anything by itself: it has spent budget that L-08 says is spendable. The decision belongs to a
 // person reading the number. So this file NEVER fails. It prints, and it says loudly when what it

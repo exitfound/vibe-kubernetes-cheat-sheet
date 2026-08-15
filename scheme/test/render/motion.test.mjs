@@ -16,7 +16,7 @@
 //                              Infrastructure lights through .highlight, it never pulses.
 //   PULSE-WHOLE (M-03)         a stroke ramp without a brightness track on the block that owns it is
 //                              the half-strength pulse: pulsePod was handed a bare element, not the
-//                              group. This is exactly the anim-dump symptom M-03 names.
+//                              group. This is exactly the symptom M-03 names.
 //   PULSE-TOGETHER (M-03)      REPORTED, not asserted. The Pod of a pulsed group must blink on the
 //                              same beat as the containers inside it. 2 findings today, both on
 //                              cluster-pod-sandbox-cri, and the ceiling below keeps a third from
@@ -64,7 +64,7 @@
 // WHAT STAYS WITH A PERSON, and why (the other 24 rows of M):
 //   M-04  pulse is brightness and never scale: a scale would be visible in the keyframes, but the
 //         rule is about a composition clash a probe cannot judge.
-//   M-05  the pulse base equals the Pod's resting stroke: a colour question, check-palette's job.
+//   M-05  the pulse base equals the Pod's resting stroke: a colour question, palette.test.mjs's job.
 //   M-07  a DIM Pod needs pulsePodDim: whether a blink is VISIBLE against 0.55 is a perception call.
 //   M-10  a packet must represent traffic the step narrates: needs the narration read against the
 //         picture. This is the single most valuable row in the block and the least mechanisable.
@@ -93,7 +93,7 @@
 //   M-32  ridingLabel is bound once at module scope: a source-shape question, wave 2.
 //   M-33  every animation goes through ctx.register: an unregistered animation looks identical here,
 //         it just outlives its step. Visible only by stepping away and watching what keeps moving.
-//   M-34  "an added hop costs about 800ms": advice about editing, and check-duration says by how much.
+//   M-34  "an added hop costs about 800ms": advice about editing, and duration.test.mjs says by how much.
 //   M-35  is about frame-strip, a reader that goes away with tools/.
 
 import { test, after } from 'node:test';
@@ -130,7 +130,7 @@ const EXPECTED_TIMERS = 555;     // the 1ms deferred timers of lightBoxAt() and 
 
 // ---------------------------------------------------------------------------------------------
 // The explicit-dur registry (M-12). A route takes its time from its LENGTH; an explicit `dur` is
-// reserved for narrative pacing. check-canon.mjs:19 keeps the same kind of list under
+// reserved for narrative pacing. check-canon.mjs:19 kept the same kind of list under
 // ALLOW_EXPLICIT_DUR, per file, and this is that list measured from the other side: not "the source
 // spells dur" but "a ball flew at a speed its route does not explain".
 //
@@ -154,8 +154,8 @@ const PACING = new Map([
 ]);
 
 // PULSE-TOGETHER's ceiling (M-03). cluster-pod-sandbox-cri pulses appGroup alone on its last two
-// steps, so the app container blinks while the Pod shell holding it does not. Both are open, neither
-// is written down in that card's CARDS.md section, and closing one is not this file's business.
+// steps, so the app container blinks while the Pod shell holding it does not. Both are deliberate
+// and recorded as NOT A DEFECT in that card's CARDS.md section: the ceiling keeps a third quiet.
 const WHOLE_POD = new Map([
   ['cluster-pod-sandbox-cri', 2],
 ]);

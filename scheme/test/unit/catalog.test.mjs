@@ -23,8 +23,8 @@ import {
 } from '../fixtures/catalog.mjs';
 import { sentences } from '../fixtures/prose.mjs';
 
-// The catalog as it stood when the oracle baseline was taken. A run that sees fewer cards than this
-// is a broken walk, not a smaller catalog, and it must be red.
+// The catalog as it stands. A run that sees fewer cards than this is a broken walk, not a smaller
+// catalog, and it must be red.
 const CARD_TOTAL = 108;
 const PER_CATEGORY = { cluster: 21, workloads: 19, network: 37, storage: 31 };
 const SUBCATEGORY_TOTAL = 15;   // 3 + 3 + 5 + 4, unique across the four categories (D-07)
@@ -198,7 +198,7 @@ test(`D-03 each category folder holds its cards plus ${folderModules('cluster').
 // ---- D-06: R-poster, an exact bijection ----
 
 // Nothing else covers it end to end: renderPoster falls back to FALLBACK_POSTER, so a dropped key
-// still renders 108 tiles, smoke still passes, and both oracles look inside the dialog.
+// still renders 108 tiles, smoke still passes, and every render test looks inside the dialog.
 test(`D-06 card and poster are a bijection (${Object.keys(POSTERS).length} of ${CARD_TOTAL})`, () => {
   const posterKeys = Object.keys(POSTERS);
   const orphanCards = SCHEMES.filter(s => !(s.id in POSTERS)).map(s => s.id);

@@ -24,7 +24,7 @@
 //         asserted: the generated prologue runs `reset.extra` AFTER clearWires, where the 21
 //         handwritten copies ran their extras before it. It is invisible today because the single
 //         extra in the catalog (cluster-api-structure resetWatchArrow) touches strokeDasharray on an
-//         arrow and no wire, which is why the oracle stayed clean. See report/skeleton-census.
+//         arrow and no wire, which is why nothing ever caught it. See report/skeleton-census.
 //   S-12  no card declares clearHL(s).
 //         NO SUCCESSOR, and inventing one would be dishonest. Its subject was a card-local prologue
 //         helper; a migrated card writes no prologue at all, and `clearHL` is not on any kit, so a

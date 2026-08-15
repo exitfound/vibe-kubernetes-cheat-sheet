@@ -28,14 +28,14 @@
 // ===========================================================================================
 // THE QUEUE: skeleton facts that are measured here and NOT enforced anywhere
 // ===========================================================================================
-// Q1  reset.keys and reset.pods naming a ref no part declares. 1 today, and it is legitimate:
-//     cluster-pod-sandbox-cri lists pods ['sandboxGroup', 'appGroup'] and `appGroup` is built by a
-//     tune(el, refs) escape, so no static reader can see it. Promoting this needs a decision about
-//     escape-created refs, not a fix to a card.
+// Q1  reset.keys and reset.pods naming a ref NOTHING creates: neither a part `key:` nor a
+//     `refs.x =` inside an escape body. The decision this queue was waiting on is taken below, in
+//     WHAT COUNTS AS CREATING A REF, and the 12 findings it removes were all escape-created refs on
+//     four cards. A queue made of false findings stops being read, and a real typo drowns in it.
 // Q2  S-11 says the prologue runs the card's extras BEFORE clearWires. makeResetStep runs
 //     reset.extra AFTER it. Invisible today: the one extra in the catalog is
 //     cluster-api-structure's resetWatchArrow, which writes strokeDasharray on an arrow and touches
-//     no wire, which is why the oracle stayed clean through the migration. Recorded, not repaired:
+//     no wire, which is why nothing caught it through the migration. Recorded, not repaired:
 //     the repair is a change to js/lib/ and would need its own diff.
 // Q3  S-12 ("no card declares clearHL(s)") has NO successor as a statement about data, and none is
 //     invented in the unit file. A migrated card writes no prologue, so there is nothing to fold;
@@ -54,18 +54,42 @@
 //     fault; the sentence predates the vocabulary.
 //
 // ===========================================================================================
+// WHAT COUNTS AS CREATING A REF, which is the whole of what Q1 stands on
+// ===========================================================================================
+// Two sources, and both are read:
+//   - a part's `key:`, plus a pod's shellKey / innerKey / id and a packets layer's id, off the data
+//   - a LITERAL `refs.x =` or `refs['x'] =` inside an escape body, read out of fn.toString()
+// The second reader is not invented here and is not copied either: it lives in
+// ../fixtures/spec.mjs, which ../unit/spec-steps.test.mjs reads the same names out of. One regex,
+// one recursive collect over the whole SCENE and STEPS_SPEC object rather than a hand-listed set of
+// hook fields. A drift between those two files would surface as a disagreement about which cards
+// are broken, which is why the reader has one home.
+//
+// MEASURED, and printed as section 4b on every run so it cannot go stale here: of the six escape
+// kinds this file counts, only `part.tune` and the factories on `part.raw` assign a ref at all.
+// reset.extra, step.enter, step.motion and F.run assign none. All six are scanned anyway, because
+// collectFns takes the object and not a list of field names, and an `unattributed` row appears the
+// day a ref arrives from a function no kind branch names.
+//
+// ===========================================================================================
 // WHAT THIS FILE IS BLIND TO
 // ===========================================================================================
-//   - Anything an escape builds. A P.raw make(refs) and a tune(el, refs) are functions; their parts
-//     are counted, their effects are not.
-//   - The 87 legacy cards' step shape. Their steps are inside makeInit's closure, so the spec-form
-//     census counts 137 steps out of 650. That gap IS the migration measure and shrinks to zero.
+//   - A ref built through a COMPUTED key, `refs[k] = ...`. Unreadable by construction, which is why
+//     schemes/network/CLAUDE.md forbids one; the tree holds none, and one would read as a Q1 typo.
+//   - A ref a HELPER assigns. fn.toString() ends at the escape's own body, so an escape that calls
+//     out to a module-level builder taking `refs` hides that builder's assignments.
+//   - WHEN a ref appears. A ref a step escape creates is counted as created even though reset runs
+//     first, the same widening as above. No step escape assigns one today.
+//   - What an escape builds beyond a ref. A P.raw make(refs) and a tune(el, refs) draw elements;
+//     those elements are counted nowhere, only the names they are filed under.
+//   - Nothing is out of reach for that reason any more: the gap this bullet used to record, 137
+//     spec-form steps out of 650, closed when the last legacy card went (108 migrated, 0 legacy).
 //   - Whether any of this draws correctly. Every number here is about declarations.
 //
 // A LOCAL COMMENT BLANKER, and why it is not in ../fixtures/. The original ran its regexes over a
 // comment-stripped copy via tools/prose.mjs stripComments, which was deleted with tools/ and has no
-// successor in fixtures/prose.mjs. Rather than edit a fixture two other files are being written
-// against, this file blanks whole comment LINES only. That is sound for these particular patterns:
+// successor in fixtures/prose.mjs. It stays local because it has ONE caller, unlike the escape
+// reader above, and this file blanks whole comment LINES only. That is sound for these patterns:
 // every one of them is anchored to column 0 or column 2 of a code line, so an inline trailing comment
 // cannot produce a match and a full-line comment is removed. If this census ever grows a pattern that
 // is not line-anchored, a real stripper belongs in fixtures/prose.mjs first.
@@ -75,6 +99,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { cards, categories } from '../fixtures/catalog.mjs';
 import { cardForm, importAll, importLib } from '../fixtures/module.mjs';
+import { assignedRefs, collectFns, walkParts } from '../fixtures/spec.mjs';
 
 const catalogued = await cards();
 const CARD_COUNT = catalogued.length;
@@ -128,19 +153,11 @@ function enterBodies(code) {
   return out;
 }
 
-// Parts, groups flattened. Same walk as the unit file; kept local rather than pushed into a fixture
-// two sibling agents are writing against in the same pass.
+// Parts, groups flattened, off the shared walk. A HOLE in the list is collected rather than skipped:
+// a null part draws nothing and is a finding, not a shorter run.
 function flatParts(scene) {
   const out = [], nulls = [];
-  const walk = (parts, path) => {
-    (parts || []).forEach((part, i) => {
-      const at = `${path}[${i}]`;
-      if (!part) { nulls.push(at); return; }
-      out.push({ part, at });
-      if (part.kind === 'group') walk(part.p && part.p.parts, `${at}.parts`);
-    });
-  };
-  walk(scene.parts, 'parts');
+  walkParts(scene.parts, (part, at) => (part ? out.push({ part, at }) : nulls.push(at)));
   return { out, nulls };
 }
 
@@ -220,6 +237,10 @@ test('skeleton census: the old source form and the new spec form, side by side (
     ['step.enter', 0], ['step.motion', 0], ['F.run fn', 0],
   ]);
   const softFields = new Map([['step.rewind', 0], ['step.reducedLit', 0]]);
+  // Refs created by an escape rather than by a key, per escape kind. `unattributed` is the row that
+  // fires when a ref arrives from a function none of the six branches below reaches.
+  const escapeRefs = new Map([...hooks.keys(), 'unattributed'].map(k => [k, 0]));
+  const escapeRefCards = new Map();
   const hookCards = new Map();
   const q1 = [];
   let specMigrated = 0, specLegacy = 0;
@@ -238,9 +259,19 @@ test('skeleton census: the old source form and the new spec form, side by side (
     allParts += out.length;
     nullParts += nulls.length;
 
-    // Every ref a static reader can see. Wires land in refs.wires, not in refs, so a wire key and a
-    // box key of the same name are two different refs and must not be merged here.
+    // Every ref a static reader can see: declared keys here, escape-assigned names below. Wires land
+    // in refs.wires, not in refs, so a wire key and a box key of one name are two refs, never merged.
     const refKeys = new Set();
+    const escRefs = new Map();
+    const noteEscape = (kind, fn) => {
+      for (const k of assignedRefs(fn)) {
+        if (escRefs.has(k)) continue;
+        escRefs.set(k, kind);
+        bump(escapeRefs, kind);
+        if (!escapeRefCards.has(kind)) escapeRefCards.set(kind, new Set());
+        escapeRefCards.get(kind).add(c.id);
+      }
+    };
     for (const { part } of out) {
       bump(kinds, part.kind);
       const p = part.p || {};
@@ -250,16 +281,17 @@ test('skeleton census: the old source form and the new spec form, side by side (
       if (part.kind === 'pod') {
         for (const k of ['shellKey', 'innerKey', 'id']) if (p[k]) refKeys.add(p[k]);
       }
-      if (typeof p.tune === 'function') { bump(hooks, 'part.tune'); mark(c.id, 'tune'); }
-      if (part.kind === 'raw') { bump(hooks, 'part.raw'); mark(c.id, 'raw'); }
+      if (typeof p.tune === 'function') { bump(hooks, 'part.tune'); mark(c.id, 'tune'); noteEscape('part.tune', p.tune); }
+      if (part.kind === 'raw') {
+        bump(hooks, 'part.raw'); mark(c.id, 'raw');
+        // A raw part carries make and may carry tune, so both factories are read, not just make.
+        for (const v of Object.values(p)) if (typeof v === 'function') noteEscape('part.raw', v);
+      }
       if (p.opacity !== undefined) bump(shades, String(p.opacity));
     }
     const reset = scene.reset || {};
-    if (typeof reset.extra === 'function') { bump(hooks, 'SCENE.reset.extra'); mark(c.id, 'reset.extra'); }
-    for (const field of ['keys', 'pods']) {
-      for (const k of reset[field] || []) {
-        if (!refKeys.has(k)) q1.push(`${c.id}  reset.${field} names "${k}", which no declared part creates`);
-      }
+    if (typeof reset.extra === 'function') {
+      bump(hooks, 'SCENE.reset.extra'); mark(c.id, 'reset.extra'); noteEscape('SCENE.reset.extra', reset.extra);
     }
 
     specSteps += ns.STEPS_SPEC.length;
@@ -267,14 +299,32 @@ test('skeleton census: the old source form and the new spec form, side by side (
     bump(step0, `id "${first.id}", flow ${!!first.flow}, motion ${!!first.motion}, narration ${first.narration !== undefined}`);
     for (const step of ns.STEPS_SPEC) {
       for (const k of Object.keys(step)) bump(stepFields, k);
-      if (step.enter) { bump(hooks, 'step.enter'); mark(c.id, 'enter'); }
-      if (step.motion) { bump(hooks, 'step.motion'); mark(c.id, 'motion'); }
+      if (step.enter) { bump(hooks, 'step.enter'); mark(c.id, 'enter'); noteEscape('step.enter', step.enter); }
+      if (step.motion) { bump(hooks, 'step.motion'); mark(c.id, 'motion'); noteEscape('step.motion', step.motion); }
       if (step.rewind) { bump(softFields, 'step.rewind'); }
       if (step.reducedLit) { bump(softFields, 'step.reducedLit'); }
       for (const [, v] of Object.entries(step.opacity || {})) bump(shades, String(v));
       for (const e of step.flow || []) {
         bump(verbs, e.verb);
-        if (e.verb === 'run' && typeof (e.p || {}).fn === 'function') { bump(hooks, 'F.run fn'); mark(c.id, 'run'); }
+        if (e.verb === 'run' && typeof (e.p || {}).fn === 'function') {
+          bump(hooks, 'F.run fn'); mark(c.id, 'run'); noteEscape('F.run fn', e.p.fn);
+        }
+      }
+    }
+
+    // The safety net over the same two objects: a function the six branches missed still gets read,
+    // and the name it assigns is filed as `unattributed` rather than reported as a typo.
+    const wide = [];
+    collectFns(scene, wide);
+    collectFns(ns.STEPS_SPEC, wide);
+    for (const fn of wide) noteEscape('unattributed', fn);
+    for (const k of escRefs.keys()) refKeys.add(k);
+
+    for (const field of ['keys', 'pods']) {
+      for (const k of reset[field] || []) {
+        if (!refKeys.has(k)) {
+          q1.push(`${c.id}  reset.${field} names "${k}", which nothing creates: no part key, no refs.${k} = in an escape`);
+        }
       }
     }
   }
@@ -304,10 +354,24 @@ test('skeleton census: the old source form and the new spec form, side by side (
   lines.push(`   Q5: REFACTOR-PLAN records 18 of 21 clean and names 3 cards. Measured: ${cleanCards} of ${specMigrated} clean,`);
   lines.push('   because tune and raw did not exist as verbs when that sentence was written.');
 
+  const escapeRefTotal = [...escapeRefs.values()].reduce((a, b) => a + b, 0);
   lines.push('');
-  lines.push(`5. QUEUE Q1, reset keys naming a ref no part declares: ${q1.length} finding(s)`);
+  lines.push(`4b. REFS AN ESCAPE CREATES, read as a literal refs.x = out of the body: ${escapeRefTotal} on ` +
+    `${new Set([...escapeRefCards.values()].flatMap(s => [...s])).size} cards`);
+  for (const [k, n] of escapeRefs) {
+    const cardsWith = (escapeRefCards.get(k) || new Set()).size;
+    lines.push(`   ${pad(n)}  ${k}${n ? `  on ${cardsWith} card(s)` : '  assigns no ref at all'}`);
+  }
+  lines.push('   A name two kinds both assign is filed under the first that sees it, so a raw part with a');
+  lines.push('   tune lands on part.tune. These names are refs as much as a part key is, and Q1 counts them.');
+  lines.push('   The `unattributed` row is the alarm: anything but 0 means an escape kind is unnamed above.');
+
+  lines.push('');
+  lines.push(`5. QUEUE Q1, reset keys naming a ref NOTHING creates, no part key and no escape: ${q1.length} finding(s)`);
   for (const l of q1) lines.push(`   ${l}`);
-  lines.push('   Each one is either a typo that silently clears nothing, or a ref an escape creates.');
+  lines.push('   A finding here is a typo: every writer in the kit is null-guarded, so the key resolves to');
+  lines.push('   nothing, clears nothing and throws nothing. The 12 escape-created names it used to hold');
+  lines.push('   are counted as created since 4b reads them, which is what leaves a real typo visible.');
   lines.push(`   Q3, source count of "function clearHL(s)" over ${CARD_COUNT} cards: ` +
     `${srcTotals['function clearHL(s)']}. S-12 has no data successor, and this is its only remaining form.`);
   lines.push('===== end of report =====');

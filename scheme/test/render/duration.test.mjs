@@ -16,12 +16,11 @@
 // Nothing about that edit looks like a timing edit in the diff. A sweep when the original check was
 // written found 78 steps across 37 cards already over budget.
 //
-// WHY THIS TEST CARRIES MORE WEIGHT THAN THE OTHER RENDER TESTS. The oracle (anim-dump + dom-dump)
-// CANNOT SEE a step's declared duration. Measured in stage 0.3a of the refactor: editing
-// `duration: 1500` to `1501` leaves both halves of the oracle reporting CARD CLEAN, because the
-// declared duration is a Timeline hold, not a WAAPI animation, so it appears neither in
-// getAnimations() nor in the serialised DOM. During the card migration an empty oracle diff is
-// therefore NOT evidence that the timings survived, and this file is the only guard that is.
+// WHY THIS TEST CARRIES MORE WEIGHT THAN THE OTHER RENDER TESTS. A step's declared duration
+// reaches neither WAAPI nor the DOM: it is a Timeline hold, so it appears neither in
+// getAnimations() nor in the serialised markup. Measured: editing `duration: 1500` to `1501` is
+// invisible to any dump of either. A clean comparison of two trees is therefore NOT evidence that
+// the timings survived, and this file is the only guard that is.
 // The same blind spot covers everything that reaches neither DOM nor WAAPI: a step's `id`, its
 // `narration` (covered by the text tests) and the ORDER of keys in STEPS.
 //
