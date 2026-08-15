@@ -34,9 +34,8 @@ const W_WD = [[WR_CX, CB_BOTTOM], [WR_CX, DISK_TOP]];
 const W_ED = [[ED_CX, CB_BOTTOM], [ED_CX, DISK_TOP]];
 const W_LD = [[LG_CX, CB_BOTTOM], [LG_CX, DISK_TOP]];
 
-// The neighbour Pods are bare pod() rather than podShell(), so they carry no washed inline fill and
-// read as background actors. No part kind draws that, hence P.raw. The wrapping g is what pulsePod
-// takes, so the blink reaches the pod element itself rather than a descendant at half strength.
+// Bare pod() rather than podShell(), so the neighbours carry no wash and read as background actors.
+// No part kind draws that, hence P.raw. The wrapping g is what pulsePod takes.
 const neighbour = (gKey, key, y, label, sublabel) => P.group({
   key: gKey,
   parts: [P.raw({
@@ -70,11 +69,12 @@ export const SCENE = {
     P.lane({ points: W_ED, dashed: true, dim: true }),
     P.lane({ points: W_LD, dashed: true, dim: true }),
     P.tag({ x: DISK_X + DISK_W + 8, y: THRESH_Y + 4, anchor: 'start', text: 'eviction threshold' }),
-    // The taint note sits centered over the main column, in the band between the node top edge and
-    // the Pod top (the top-right corner belongs to the node tag). The rank note sits under the
-    // neighbour column and is filled on the rank step.
+    // The taint note sits centered over the main column between the node top edge and the Pod top
+    // (the top-right corner belongs to the node tag). The rank note sits under the neighbours.
     P.wire({ key: 'taint', x: ED_CX, y: 72 }),
-    P.wire({ key: 'rank', x: PB_X + OP_W / 2, y: 284 }),
+    // Right-aligned on the neighbour column, in the 19 unit band under it. Measured, and tight:
+    // see ./CARDS.md.
+    P.wire({ key: 'rank', x: PB_X + OP_W, y: 262, anchor: 'end' }),
     P.chip({ key: 'usageChip', x: STRIP.x(0), y: CHIPS_Y, w: STRIP.w, h: 34, name: 'usage', value: 'writable + emptyDir + logs' }),
     P.chip({ key: 'limitChip', x: STRIP.x(1), y: CHIPS_Y, w: STRIP.w, h: 34, name: 'limit', value: '1Gi' }),
     P.chip({ key: 'nodeChip', x: STRIP.x(2), y: CHIPS_Y, w: STRIP.w, h: 34, name: 'NodeFS', value: 'below threshold' }),
@@ -88,7 +88,7 @@ export const SCENE = {
 };
 
 // The three chips go through setVal, not setChip, so a changed value never lights on its own: every
-// highlight on this card is placed by hand. Argument order is the old setChips helper's.
+// highlight on this card is placed by hand.
 const chips = (usage, limit, nodefs) => ({ usageChip: usage, limitChip: limit, nodeChip: nodefs });
 const SOURCES = 'writable + emptyDir + logs';
 // STO.S-01 as a field: two steps ghost a Pod, so every step states all three at their own opacity.
@@ -96,9 +96,8 @@ const ALL_UP = { focusPod: 1, otherB: 1, otherC: 1 };
 
 const TAINT = 'taint: node.kubernetes.io/disk-pressure';
 
-// The disk carries only its static step highlight (no flash), the taint fades in after it. F.reveal
-// is the same 500ms ease-out onto full, but it snaps an inline opacity on the reduced path where the
-// hand-written step wrote none, and the label lives in refs.wires where no field can reach it.
+// The disk carries only its static step highlight (no flash), the taint fades in after it. Its
+// label lives in refs.wires, which no opacity field and no F.reveal can reach, hence the F.run.
 const revealTaint = (s, ctx) => {
   s.refs.wires.taint.style.opacity = '0';
   ctx.register(s.refs.wires.taint.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 500, fill: 'forwards', easing: 'ease-out' }));
@@ -118,9 +117,8 @@ export const STEPS_SPEC = [
     chips: chips(SOURCES, '1Gi', 'filling'),
     opacity: ALL_UP,
     lit: ['nodeChip', 'bWrite', 'bEmpty', 'bLogs'],
-    // The container is doing the writing, so the Pod pulses first, then all three contributors
-    // land on the node disk. The three lanes are the same 78 unit drop, so all three arrive
-    // together and the disk cue rides the last of them.
+    // The container is doing the writing, so the Pod pulses first. The three lanes are the same
+    // 78 unit drop, so all three balls arrive together and the disk cue rides the last of them.
     flow: [
       F.pulse({ pod: 'focusPod' }),
       F.route({ points: W_WD, delay: BEAT.afterPulse }),
@@ -182,7 +180,7 @@ export const STEPS_SPEC = [
     lit: ['nodeChip', 'disk', 'otherB'],
     wires: { taint: TAINT, rank: 'over request first, then Priority' },
     // The ranking plays as a sequence: kubelet picks pod-b (pulse), evicts it (fade out), then
-    // turns to pod-c (pulse) which dims as the next in line. The Guaranteed focus Pod never moves.
+    // turns to pod-c (pulse) which dims as next in line. app-0 is within its request, so it stays.
     flow: [
       F.pulse({ pod: 'otherBG' }),
       F.fade({ target: 'otherB', to: OPACITY.terminating, dur: 600, delay: BEAT.afterPulse, fill: 'forwards' }),

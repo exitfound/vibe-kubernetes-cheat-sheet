@@ -25,7 +25,7 @@ const FRAME_X = 144, FRAME_W = 912, FRAME_Y = 396;                          // 1
 const FRAME_H = CYL_H + FRAME_INSET * 2;                                    // middle row, 396..570
 
 const CYL_Y = FRAME_Y + FRAME_INSET;                                        // 438
-const CYL_MY = CYL_Y + CYL_H / 2, CYL_TOP = CYL_Y;                          // 443 / 398
+const CYL_MY = CYL_Y + CYL_H / 2, CYL_TOP = CYL_Y;                          // 483 / 438
 const CYL_SPREAD = 300;
 const SRC_CX = CX - CYL_SPREAD, SNAPDATA_CX = CX, RESTORED_CX = CX + CYL_SPREAD;   // 300 / 600 / 900
 // Three disks 176 wide at 300/600/900 span 212..988 inside a frame at 144..1056, so the frame keeps 68
@@ -61,11 +61,10 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true, opa
 // part of the visible front face. Re-centre on the face, derived from the height.
 const disk = (key, cx, label) => P.cylinder({ key, x: cx - CYL_W / 2, y: CYL_Y, w: CYL_W, h: CYL_H, label, labelY: CYL_H / 2 + 10 });
 
-// The list order IS the append order, which is the z-order: the backend frame, then the blocks and the
-// disks that stand inside it, then the reference and the lanes and their captions, then the chip strip,
-// then the packet layer.
+// List order IS append order, which is z-order: the backend frame, then the blocks and disks that
+// stand inside it, then the reference, lanes and captions, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Volume Snapshots: a VolumeSnapshot is the namespaced request like a PVC and a VolumeSnapshotClass names the CSI driver, the snapshot controller creates the cluster-scoped VolumeSnapshotContent and binds the two one to one before anything is taken, that content is what wakes the CSI snapshotter sidecar which calls CreateSnapshot on the driver, the driver returns a handle that the sidecar writes into the content status with readyToUse true and the controller mirrors up onto the snapshot, and a new PVC with a dataSource then seeds a fresh volume from it, but all of it lives in the same storage system as the source so a snapshot is not a backup',
+  'aria-label': 'Volume Snapshots: the namespaced VolumeSnapshot snap-1 and the cluster-scoped VolumeSnapshotContent the snapshot controller binds to it, the external-snapshotter that calls CreateSnapshot on the driver, and three disks inside one storage backend frame, the source, the snapshot beside it and a restore seeded from it, so a snapshot is not a backup',
   parts: [
     P.defs(),
     P.node({ key: 'frame', x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Storage backend' }),

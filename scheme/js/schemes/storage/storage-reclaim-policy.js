@@ -39,9 +39,8 @@ const W_RET_WIPE   = [[RET_CX, BAND_BOTTOM], [RET_CX, DISK_TOP]];  // drawn, nev
 const W_RET_BIND = [[RET_CX, PVC_BOTTOM], [RET_CX, PV_TOP]];
 const W_ADMIN_PV = [[ADMIN_CX, ADMIN_Y + ADMIN_H], [ADMIN_CX, PV_Y + PV_H / 2], [RET_RIGHT, PV_Y + PV_H / 2]];
 
-// Shorter than FADE.out, because these land ON a beat inside a step rather than closing it: the
-// wipe has to read as caused by the ball that just arrived. The Bound cross-fade shares the number
-// so its two halves swap at one rate.
+// Shorter than FADE.out because these land ON a beat inside a step: the wipe has to read as caused
+// by the ball that just arrived. The Bound cross-fade shares it so its two halves swap at one rate.
 const REMOVE_MS = 500;
 
 // A block, its caption or its lane taken away exactly when the ball reaches it, dropping the
@@ -50,9 +49,8 @@ const removeAt = (target, at, plus = 0, to = OPACITY.terminated) => F.fade({
   target, to, dur: REMOVE_MS, at, plus, fill: 'forwards', unlight: [target],
 });
 
-// The Bound links are the ONE element no part kind emits: a bare <line>, solid and arrowhead-free,
-// because a bound relation carries no traffic. P.arrow emits a marked <path> and P.relation adds
-// the relation class and a data-role on top.
+// A bare <line>, solid and arrowhead-free, because a bound relation carries no traffic: P.arrow
+// emits a marked <path> and P.relation adds the relation class and a data-role on top.
 const boundLink = (cx) => () => line({ class: 'scheme-arrow scheme-arrow-storage', x1: cx, y1: PVC_BOTTOM, x2: cx, y2: PV_TOP, fill: 'none' });
 
 // The reclaim lanes: always drawn, in both columns, so the Retain side visibly HAS the lane the
@@ -68,12 +66,12 @@ export const SCENE = {
   parts: [
     P.defs(),
     P.box({ key: 'delPvc', x: DEL_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-a', sublabel: 'Bound' }),
-    P.box({ key: 'delPv', x: DEL_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV-del', sublabel: 'reclaim: Delete' }),
+    P.box({ key: 'delPv', x: DEL_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV del', sublabel: 'reclaim: Delete' }),
     P.cylinder({ key: 'delDisk', x: DEL_CX - COL_W / 2, y: DISK_Y, w: COL_W, h: DISK_H, label: 'vol-aaa' }),
     P.box({ key: 'retPvc', x: RET_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-b', sublabel: 'Bound' }),
     // The claim that arrives after the first is deleted is its OWN box, born invisible.
     P.box({ key: 'retPvc2', x: RET_X, y: PVC_Y, w: COL_W, h: PVC_H, label: 'PVC data-c', sublabel: 'Pending', opacity: 0 }),
-    P.box({ key: 'retPv', x: RET_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV-ret', sublabel: 'reclaim: Retain' }),
+    P.box({ key: 'retPv', x: RET_X, y: PV_Y, w: COL_W, h: PV_H, label: 'PV ret', sublabel: 'reclaim: Retain' }),
     P.cylinder({ key: 'retDisk', x: RET_CX - COL_W / 2, y: DISK_Y, w: COL_W, h: DISK_H, label: 'vol-bbb' }),
     // One controller for both columns: the reclaim policy is a field it reads, not two machines.
     P.box({ key: 'band', x: BAND_X, y: BAND_Y, w: BAND_W, h: BAND_H, label: 'PV controller and CSI driver', sublabel: 'reads the reclaim policy on each released volume' }),
@@ -92,9 +90,9 @@ export const SCENE = {
     P.wire({ key: 'ret', x: RET_CX, y: VERDICT_Y }),
     spec(DEL_CX, 'delSpec'),
     spec(RET_CX, 'retSpec'),
-    P.chip({ key: 'delChip', x: DEL_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV-del', value: 'Bound' }),
+    P.chip({ key: 'delChip', x: DEL_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV del', value: 'Bound' }),
     P.chip({ key: 'delDiskChip', x: DEL_X, y: CHIP_ROW_2, w: CHIP_W, h: CHIP_H, name: 'vol-aaa', value: 'exists' }),
-    P.chip({ key: 'retChip', x: RET_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV-ret', value: 'Bound' }),
+    P.chip({ key: 'retChip', x: RET_X, y: CHIP_ROW_1, w: CHIP_W, h: CHIP_H, name: 'PV ret', value: 'Bound' }),
     P.chip({ key: 'retDiskChip', x: RET_X, y: CHIP_ROW_2, w: CHIP_W, h: CHIP_H, name: 'vol-bbb', value: 'exists' }),
     P.packets(),
   ],
@@ -133,7 +131,8 @@ export const STEPS_SPEC = [
   {
     id: 'delete-pvc',
     duration: 2400,
-    // Packet-less and Pod-less: a box flash on the two claims is the sanctioned cue.
+    // Packet-less and Pod-less, and nothing flashes: `flashChips` has zero callers catalog-wide,
+    // so the cue is the two claims going to the terminating shade under a Released chip.
     narration: 'You delete both claims with kubectl delete pvc. The Bound links break and both volumes move to the Released phase, which means only that the claim they belonged to is gone. Nothing has touched the disks yet. What happens next is decided entirely by the reclaim policy.',
     chipsCued: chips('Released', 'exists', 'Released', 'exists'),
     sublabels: { delPvc: 'Terminating', retPvc: 'Terminating' },
@@ -150,10 +149,8 @@ export const STEPS_SPEC = [
     wires: { del: 'disk wiped, PV removed' },
     // End-state: the band has acted, and the PV and its disk are gone on the Delete side.
     opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 }),
-    // `band` is deliberately absent from lit: the static path lights it and the animated path takes
-    // it straight back off, so flowLights re-derives it for the reduced path alone.
-    // Replayed forward, both objects start alive and are killed by the ball that reaches them.
-    // Their lanes come back up too: each carries a ball and must be on screen for the flight.
+    // `band` is absent from lit: F.light cues it on the arrival instead, and flowLights re-derives it
+    // for the reduced path. rewind revives the objects and lanes the balls then ride and kill.
     rewind: {
       opacity: { delPv: 1, delDisk: 1, delSpec: 1, lDelPolicy: 1, lDelWipe: 1 },
       lit: ['delPv'],
@@ -164,9 +161,8 @@ export const STEPS_SPEC = [
       F.light({ targets: ['band'], at: 'policy' }),
       F.route({ points: W_DEL_WIPE, after: 'policy', name: 'wipe' }),
       F.tag({ text: 'DeleteVolume', points: W_DEL_WIPE, after: 'policy' }),
-      // The disk's cue is an F.set on the disk itself, byte-for-byte the timer lightBoxAt hangs
-      // there. NOT `lights`: the fade below takes the class off again, so the reduced path, which
-      // returned before any of this, must not show it.
+      // An F.set on the disk, NOT `lights`: the fade below takes the class off again, and the reduced
+      // path returned before any of this, so it must not show the light at all.
       F.set({ on: 'delDisk', lit: ['delDisk'], at: 'wipe' }),
       removeAt('delDisk', 'wipe', 180),
       removeAt('delSpec', 'wipe', 180),
@@ -200,9 +196,8 @@ export const STEPS_SPEC = [
     chipsCued: chips('removed', 'wiped, gone', 'Released', 'unusable'),
     sublabels: { retPvc2: 'Pending' },
     wires: { ret: 'skipped: stale claimRef' },
-    // The refused claim is dim, not faded out: it exists, it is just not getting what it asked for.
-    // It sits at OPACITY.pending and therefore gets NO lit stroke: it is the ball leaving it that
-    // says it is the one asking, and dim plus glowing would say refused and live at the same time.
+    // The refused claim sits dim at OPACITY.pending, not faded out: it exists and is simply refused.
+    // It gets NO lit stroke, or it would read refused and live at once. The ball leaving it says it asks.
     opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: 0, retPvc2: OPACITY.pending, admin: 0, delBound: 0, retBound: 0, retBindLane: 1, adminLane: 0 }),
     // The request lands on the PV and the PV lights, because it was looked at. Nothing below it
     // lights and no Bound link appears, which is what tells the request apart from an accepted one.
@@ -239,10 +234,8 @@ export const STEPS_SPEC = [
     // retain-stuck taught the reader that a refused request leaves it absent.
     opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: 0, retPvc2: 1, admin: 0, delBound: 0, retBound: 1, retBindLane: 0, adminLane: 0 }),
     lit: ['retPvc2'],
-    // retDisk is absent from lit for the delete-branch reason: the static path shows it and the
-    // animated path re-earns it on arrival instead.
-    // The request lane and the Bound link share a segment, so they HAND OVER rather than stacking:
-    // the ball rides the dashed lane, and on arrival it becomes the solid arrowhead-free link.
+    // retDisk is absent from lit for the delete-branch reason: the animated path re-earns it on
+    // arrival. Lane and Bound link share a segment, so the dashed one HANDS OVER to the solid one.
     rewind: { opacity: { wRetBind: 1, retBound: 0 } },
     flow: [
       F.route({ points: W_RET_BIND, name: 'bind' }),

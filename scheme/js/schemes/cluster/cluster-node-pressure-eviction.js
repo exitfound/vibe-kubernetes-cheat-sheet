@@ -204,8 +204,8 @@ export const STEPS_SPEC = [
     wires: { api: 'PATCH Node.status.conditions · MemoryPressure=False' },
     // The evicted Pod is still drawn, at the terminated shade: gone from the Node, not a hole.
     opacity: { ...LIVE, pod1: GONE },
-    // The victim record clears here too, which is half of what "reset" in ladder row 5 means.
-    // It used to drop from "BestEffort Pod selected" to "none" with nothing marking it.
+    // The victim record clears here too, which is half of what "reset" in ladder row 5 means. It is
+    // lit so the drop from "BestEffort Pod selected" to "none" is not left with nothing marking it.
     lit: ['kubelet', 'memChip', 'pressureChip', 'victimChip'],
     chain: 4,
     rewind: { chips: { pressureChip: 'True' } },

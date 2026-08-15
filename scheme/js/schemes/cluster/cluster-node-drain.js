@@ -133,8 +133,8 @@ export const STEPS_SPEC = [
     opacity: LIVE,
     lit: ['kubectl', 'cordonChip'],
     chain: 0,
-    // kubectl, apiserver and cordonChip are all newly highlighted here, so the
-    // Timeline auto-delta already pulses them. The PATCH rides the top hop.
+    // kubectl, apiserver and cordonChip are newly highlighted here and only LIGHT: block
+    // auto-pulse is off catalog-wide (autoPulse: false). The PATCH rides the top hop.
     flow: [F.top({ from: KUBECTL_R, to: API_X, y: REQ_Y, lights: ['apiserver'] })],
   },
   {
@@ -221,8 +221,8 @@ export const STEPS_SPEC = [
     wires: { req: 'drain complete · Node safe for maintenance' },
     // Pin final state. Both evicted Pods stay on screen at the terminated shade.
     opacity: { ...LIVE, pod1: GONE, pod2: GONE },
-    // currentHealthy climbing back to 2 of 2 is the point of the step (the budget is satisfied
-    // again, so the drain is safe to call done), and it used to change with no cue on it.
+    // The climb happened on the retry (`1 of 2 -> 2 of 2`); here the chip settles to the plain
+    // reading, and it stays lit because a value that changes with no cue on it reads as a glitch.
     lit: ['healthyChip', 'kubectl', 'cordonChip', 'lastChip'],
     chain: 4,
     // fluentd (the DaemonSet Pod) is the lone survivor on Node-1: pulse it once

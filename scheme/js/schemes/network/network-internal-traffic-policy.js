@@ -42,8 +42,8 @@ const TO_REMOTE = [[KP_CX, NODE_BOTTOM], [KP_CX, UNDER_Y], [PODB_CX, UNDER_Y], [
 // Ownership marker from the Service down onto the Node-1 top edge, not into kube-proxy.
 const OWN = [[SVC_CX, SVC_BOTTOM], [SVC_CX, 240], [N1_CX, 240], [N1_CX, NODE_Y]];
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy, so the
-// factory is built once and handed to every F.tag as `fn`.
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: hold 0
+// drops the ClusterIP the instant the ball reaches kube-proxy, so the DNAT-ed address stands alone.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 

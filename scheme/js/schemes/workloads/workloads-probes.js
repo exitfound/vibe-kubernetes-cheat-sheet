@@ -2,9 +2,8 @@ import { P, F, defineCard, ladder, WL, LAYOUT, FADE, BEAT, OPACITY } from './wor
 
 // Design notes for this card: ./CARDS.md#workloads-probes
 
-// Layout A on the Workloads canon (WL in the kit), and THE WORKLOADS EXEMPLAR: ladder left, chip
-// column right, Node frame full width at the bottom. Panel measured at x<=397, y<=255 (worst of
-// 1600/1440/1280/1100).
+// Layout A and THE WORKLOADS EXEMPLAR: ladder left, chip column right, Node frame full width at the
+// bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).
 const PANEL_B = 255, PANEL_GAP = 21;
 const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX (WL.L-07)
 

@@ -32,9 +32,8 @@ const spineSeg = i => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [
 const ownPts = i => [[POD_RIGHT, ROW_CY[i]], [PVC_X, ROW_CY[i]]];        // Pod -> claim
 const reclaimPts = i => [[PVC_RIGHT, ROW_CY[i]], [PV_X, ROW_CY[i]]];     // claim -> disk
 
-// Each run is held BOTH in its ordinal array and under a scalar key: the dumps name these elements
-// spineW[n] / ownW[n] / reclaimW[n], and the opacity field resolves one element per key. The tune
-// runs before the scalar key lands, so the array keeps the naming.
+// Each run is held both in its ordinal array and under a scalar key. The tune lands the array first,
+// so the dumps name these spineW[n] / ownW[n] / reclaimW[n] and opacity resolves one element per key.
 const spineLane = i => P.lane({
   key: `spine${i}`, points: spineSeg(i), dashed: true, dim: true, opacity: 0,
   tune: (el, refs) => { refs.spineW = [...(refs.spineW || []), el]; },
@@ -65,7 +64,7 @@ export const SCENE = {
     P.box({ key: 'src', x: SRC_X, y: SRC_Y, w: SRC_W, h: SRC_H, label: 'StatefulSet web', sublabel: 'persistentVolumeClaimRetentionPolicy' }),
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
     // is not part of the visible front face. Re-centre on the face, derived from the height.
-    ...ROW_CY.map((cy, i) => P.cylinder({ key: `d${i}`, x: PV_X, y: cy - PV_H / 2, w: PV_W, h: PV_H, label: `pv-web-${i}`, labelY: PV_H / 2 + 10 })),
+    ...ROW_CY.map((cy, i) => P.cylinder({ key: `d${i}`, x: PV_X, y: cy - PV_H / 2, w: PV_W, h: PV_H, label: `PV web-${i}`, labelY: PV_H / 2 + 10 })),
     ...ROW_CY.map((cy, i) => P.box({ key: `v${i}`, x: PVC_X, y: cy - PVC_H / 2, w: PVC_W, h: PVC_H, label: `PVC data-web-${i}`, sublabel: 'Bound' })),
     ...ROW_CY.map((_, i) => podBlock(i)),
     // The central governance spine (hidden until the policy step, exactly like the sibling's mint
@@ -94,9 +93,8 @@ const chips = (repl, ws, wd, disks) => ({ replChip: repl, wsChip: ws, wdChip: wd
 
 const T = OPACITY.terminated;
 
-// STO.S-01 as a field: every Pod, claim and disk that a step removes, and every lane, is pinned on
-// EVERY step. A lane is only as present as the fainter of the two things it joins, so it takes the
-// MIN of its endpoints: one end alone leaves a full-strength lane hanging off a ghost.
+// STO.S-01 as a field: every Pod, claim, disk and lane is pinned on EVERY step. A lane takes the MIN
+// of its two endpoints, or one end alone leaves a full-strength lane hanging off a ghost.
 const stage = ({ pods = [1, 1, 1], claims = [1, 1, 1], disks = [1, 1, 1], govern = false } = {}) => ({
   p0: pods[0], p1: pods[1], p2: pods[2],
   v0: claims[0], v1: claims[1], v2: claims[2],
@@ -119,9 +117,8 @@ const BOUND = ['Bound', 'Bound', 'Bound'];
 // This card's riding tag sits 16 above the ball rather than the family 14.
 const TAG_DY = -16;
 
-// A Pod being removed: it pulses once (the last thing it does), then fades to a ghost. The pulse is
-// the only Pod motion on the card and marks the removal. The ownership lane leaves this Pod, so it
-// fades on the same beat: the claim it points at survives the removal, the ownership does not.
+// A Pod being removed pulses once to mark it, then fades to a ghost. Its ownership lane fades on the
+// same beat: the claim the lane points at survives the removal, the ownership does not.
 const FADE_AT = BEAT.afterHop + BEAT.afterPulse;      // 900
 const GONE_AT = FADE_AT + FADE.out;                   // 1600, when the Pod has fully faded
 const removePod = i => [
@@ -141,9 +138,8 @@ const vanish = (target, at) => F.fade({
   at, plus: LIGHT_HOLD, unlight: [target],
 });
 
-// The cue on each block is an F.set on the block itself, byte-for-byte the timer lightBoxAt hangs
-// there. It is NOT `lights`, because the reduced path must not show it: the vanish above takes the
-// class off again before the step settles, and the hand-written guard returned before any of this.
+// The cue on each block is an F.set, not `lights`, because the reduced path must not show it: the
+// vanish above takes the class off again before the step settles.
 const reclaimRow = (i, { delay, tag = null }) => [
   F.route({ points: ownPts(i), delay, name: `h${i}a` }),
   ...(tag ? [F.tag({ text: tag, points: ownPts(i), delay, dy: TAG_DY })] : []),
@@ -186,7 +182,7 @@ export const STEPS_SPEC = [
   {
     id: 'scaled-retain',
     duration: 3000,
-    narration: 'Scale down to two with whenScaled set to Retain. Pod web-2 is removed, but claim data-web-2 stays and pv-web-2 keeps its data. This is what an unset field gives you and it is safe, yet every scale-down that is never cleaned up leaves a disk behind that still costs money.',
+    narration: 'Scale down to two with whenScaled set to Retain. Pod web-2 is removed, but claim data-web-2 stays and PV web-2 keeps its data. This is what an unset field gives you and it is safe, yet every scale-down that is never cleaned up leaves a disk behind that still costs money.',
     chipsCued: chips('2', 'Retain', 'Retain', '3 kept, 1 leaks'),
     sublabels: claimLabels(['Bound', 'Bound', 'kept, no Pod']),
     wires: { g2: 'retained' },

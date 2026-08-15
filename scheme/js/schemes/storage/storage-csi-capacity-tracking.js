@@ -113,9 +113,8 @@ const stage = ({ caps = [0, 0], nodes = [1, 1], pools = [1, 1], lanes = [], pod 
   podB: pod,
 });
 
-// A node that the filter rejects dims when the read that rejects it lands, not at step entry, and a
-// filtered element loses its highlight AS it dims (`unlight`): it is no longer a live candidate, so
-// its glow must go as the fade completes rather than linger at reduced opacity.
+// A rejected node dims when the read that rejects it lands, not at step entry, and `unlight` takes
+// its glow with the fade, since a filtered candidate must not linger lit at reduced opacity.
 const dim = (target) => F.fade({
   target, to: OPACITY.notready, dur: FADE.in, at: 'read1',
   fill: 'forwards', easing: 'ease-out', unlight: [target],
@@ -131,7 +130,7 @@ export const STEPS_SPEC = [
   {
     id: 'blind-schedule',
     duration: 4300,
-    narration: 'Without capacity tracking the scheduler scores the Nodes on cpu, memory and affinity only, and Node-1 wins on those. Node-1 is recorded on the claim as the chosen one, with no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
+    narration: 'Without capacity tracking the scheduler scores the Nodes on cpu, memory and affinity only, and Node-1 wins on those. Node-1 is written down as the chosen one, with no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
     chipsCued: chips('node-1 selected', 'needs 20Gi', 'no', 'scheduling'),
     opacity: stage({ lanes: ['wDecide', 'bind1'] }),
     // The scheduler is where the ball departs from, so it is lit at step entry: a ball must never

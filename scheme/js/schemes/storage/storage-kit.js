@@ -31,36 +31,23 @@ export function setCylinderLabel(cylEl, txt) {
 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(STORAGE_TINT);
 
-// The category's X grammar, measured over the 31 cards rather than borrowed. Storage centres on a
-// spine and hangs a full-width chip strip under it, so what is shared is a CENTRE and a STRIP.
+// The category's X grammar, measured over the 31 cards. Storage centres on a spine and hangs a
+// chip strip under it, so what is shared is a CENTRE and the strip's scalars.
 export const STO = Object.freeze({
-  // 22 of the 23 cards that name a centre-X put it at 600, and 30 of the 31 chip strips are
-  // centred there by measurement. The strongest shared number in the category.
-  CX: 600,
-  M: 60, L: 60, R: 1140, W: 1080,           // canvas margin and content band, six strips run L..R
-  // The leftmost x content may take and still clear the narration panel. 9 cards, all 9 at 400.
-  SAFE_L: 400,
-  // CHIP_H 34 on 27 of 31, CHIP_GAP 16 on 18 of the 25 naming it, CHIP_W 232 on 12 (the modal
-  // scalar of the 24 with one), 4 chips on 22 cards. Reach for these; a card is free to measure.
+  CX: 600,                    // 22 of the 23 cards naming a centre-X, and 30 of the 31 chip strips
+  // CHIP_H 34 on 27 of 31, CHIP_GAP 16 on 18 of the 25 naming it, CHIP_W 232 on 12, 4 chips on 22.
   CHIP_H: 34, CHIP_GAP: 16, CHIP_W: 232, CHIP_COUNT: 4,
 });
 
-// Fix the width AND the gap, derive the span, centre it. 23 cards hand-roll exactly this and
-// lib/layout.js cannot say it: strip() fixes the gap and derives the width, spread() fixes the
-// width and derives the gap, and both span an exact from..to instead of centring.
+// Fix the width AND the gap, derive the span, centre it: 23 cards hand-roll exactly this, and
+// strip() fixes the gap while spread() fixes the width, both spanning an exact from..to instead.
 export const chipStrip = ({ cx = STO.CX, w = STO.CHIP_W, gap = STO.CHIP_GAP, count = STO.CHIP_COUNT } = {}) => {
-  const total = w * count + gap * (count - 1);
-  const x0 = cx - total / 2;
-  return { w, gap, total, x0, x: (i) => x0 + i * (w + gap) };
+  const x0 = cx - (w * count + gap * (count - 1)) / 2;
+  return { w, gap, x: (i) => x0 + i * (w + gap) };
 };
 
-// No LAYOUT presets, and that is a measurement: cluster and workloads carry A/B/C because which
-// column holds the ladder genuinely varies, while storage has one composition (content on CX, strip
-// beneath) and only 3 cards declare a column width at all, at 516, 180 and 176.
-
 // All 600 role literals in this folder are 'storage', its 26 Pods included, so no recolour.
-// The default tag that rides a ball (M-30). A card needing other timings makes its own with
-// makeRidingLabel and hands it to F.tag as `fn`.
+// The default tag that rides a ball (M-30). Other timings: own makeRidingLabel, passed as F.tag fn.
 const ridingLabel = makeRidingLabel({ role: 'storage' });
 
 const BIND = { role: 'storage', podRole: 'storage', tint: null, pulsePod, pulsePodDim, ridingLabel };

@@ -47,9 +47,8 @@ const LANE = i => [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]];
 
 const NODE_JOIN_DELAY = 200;                             // Node-4 fades in a beat before its Pod
 
-// The list order IS the append order, so it is the z-order: the two top arrows, the wire label and
-// the chip column first, then the four lanes and the packet layer, and chain / Nodes / Pods / actor
-// row above the ball.
+// Z-order: the two top arrows, the wire label and the chip column, then the four lanes and the
+// packet layer, then chain / Nodes / Pods / actor row above the ball.
 export const SCENE = {
   'aria-label': 'DaemonSet controller: keeps exactly one Pod on every matching Node, adds a Pod when a Node joins and removes one when a Node leaves',
   parts: [
@@ -63,9 +62,8 @@ export const SCENE = {
     P.chip({ key: 'currentChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'currentNumberScheduled', value: '0' }),
     P.chip({ key: 'readyChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'numberReady', value: '0' }),
     P.chip({ key: 'focusChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'focus', value: 'selector: app=fluentd' }),
-    // One drawn lane per Pod. They share the trunk and the bus, so the four paths coincide
-    // there and read as a single wiring tree with four arrowheads. Lane 3 starts pinned out:
-    // Node-4 has not joined yet.
+    // One drawn lane per Pod, sharing the trunk and the bus, so the four paths read as a single
+    // wiring tree with four arrowheads. Lane 3 starts pinned out: Node-4 has not joined yet.
     ...[0, 1, 2, 3].map(i => P.lane({ key: `lane${i}`, points: LANE(i), dim: true, dashed: true, role: 'cluster', opacity: i === 3 ? 0 : undefined })),
     P.packets(),
     // Everything below is appended AFTER the packet layer, so the ball runs under it.
@@ -100,20 +98,15 @@ export const SCENE = {
   },
 };
 
-// setLanes and the four Pod pins as FIELDS: the whole node row is written in ONE place, so no step
-// can leave a lane pointing into a Node that is not in the cluster, or a Pod on a Node that is.
-// Key order is the order the imperative writers used: Pods first, then their lanes.
+// The whole node row is written in ONE place, so no step can leave a lane pointing into a Node that
+// is not in the cluster, or a Pod sitting on one.
 const row = (pods, lanes) => ({
   ...Object.fromEntries(pods.map((v, i) => [`pod${i + 1}`, v])),
   ...Object.fromEntries(lanes.map((v, i) => [`lane${i}`, v])),
 });
 
-// One create per matching Node, each riding its own tap off the bus, so every Pod that materializes
-// has a ball that actually reached it. The two counters climb PER ARRIVAL, and the rank each landing
-// writes is a LITERAL because `routeDur` is length-based and so the arrival order is fixed geometry:
-// taps 1 and 2 sit 138 units off the spine (594 units of lane, 1320ms) and land together, tap 0 sits
-// 414 off (870 units, 1933ms) and lands last. Registration order breaks the tie, so the three
-// landings are ranked 1, 2, 3 in the order tap-1, tap-2, tap-0.
+// One create per matching Node, each on its own tap, so every Pod that pulses has a ball that
+// reached it. Ranks are LITERALS: `routeDur` is length-based, tap-0 has the longest lane and ranks 3.
 const create = (i, rank) => [
   F.route({ points: LANE(i), after: 'req', name: `create${i}` }),
   F.fade({ target: `pod${i + 1}`, from: 0, to: 1, dur: FADE.in, at: `create${i}`, fill: 'both', easing: 'ease-out' }),

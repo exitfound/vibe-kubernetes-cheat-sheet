@@ -21,7 +21,7 @@ const MASQ_Y = EGRESS_Y - MASQ_H / 2;    // 329
 // composition sits below the panel (bottom <= 181). Its right edge equals the dst chip right.
 const NET_X = 890, NET_Y = NODE_Y, NET_W = 230, NET_H = 62;
 const NET_CX = NET_X + NET_W / 2;   // 1005: horizontal center of the Internet box
-const NET_BOTTOM = NET_Y + NET_H;   // 172: where the legs meet the Internet box bottom
+const NET_BOTTOM = NET_Y + NET_H;   // 276: where the legs meet the Internet box bottom
 // The two vertical legs sit symmetric about NET_CX so entry and exit are centered on the box: the
 // forward leg rises into the box left of center, the return leg descends right of center.
 const LEG_DX = 20;

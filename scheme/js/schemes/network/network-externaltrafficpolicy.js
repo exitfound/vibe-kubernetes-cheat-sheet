@@ -40,7 +40,8 @@ const TO_N1 = [[MID_X, LB_BOTTOM], [MID_X, BUS_Y], [N1_CX, BUS_Y], [N1_CX, NODE_
 const TO_N2 = [[MID_X, LB_BOTTOM], [MID_X, BUS_Y], [N2_CX, BUS_Y], [N2_CX, NODE_Y]];
 const CROSS = [[N2_CX, NODE_BOTTOM], [N2_CX, UNDER_Y], [N1_CX, UNDER_Y], [N1_CX, NODE_BOTTOM]]; // Node-2 -> underlay -> Node-1
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+// The tag that rides a ball on this card: emergeMode floats each address out of the block the ball
+// leaves, and hold 0 retires it on arrival so the SNAT tag on the second leg is read on its own.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
@@ -97,7 +98,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'cluster',
-    // Motion: client entry leg, fan(693) + hop beat(100) + underlay(1271), Pod pulse(900), span 3771.
+    // Motion: client entry leg, fan(700, the floor) + beat(100) + underlay(1271), pulse(900), span 3771.
     // Every step here OPENS with a client hitting the external address, so that first leg rides.
     duration: 4200,
     narration: 'With the default policy Cluster, every Node accepts the traffic even with no local Pod. The balancer happens to pick Node-2, which has no backend, so the Node SNATs the packet and forwards it across the cluster network to the Pod on Node-1. Load spreads evenly over every backend, wherever it runs.',
@@ -130,7 +131,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'local',
-    // Motion: the client entry leg now precedes the fan, adding about 470ms.
+    // Motion: the client entry leg now precedes the fan, adding 800ms (the 700 floor plus the beat).
     duration: 3100,
     narration: 'Switching to externalTrafficPolicy Local changes the rules. A Node only serves the request from its own local Pods, never forwarding to another Node. The balancer sends to Node-1, the packet goes straight to its Pod with no SNAT, so the Pod sees the true client IP 198.51.100.9 and there is no extra hop.',
     chips: { modeChip: 'Local', srcChip: 'preserved', hopChip: 'no', hcChip: 'unused' },
@@ -148,7 +149,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'healthcheck',
-    // Motion: the client entry leg now precedes the fan, adding about 470ms.
+    // Motion: the client entry leg now precedes the fan, adding 800ms (the 700 floor plus the beat).
     duration: 3100,
     narration: 'But Local would silently drop traffic that lands on Node-2, which has no Pod to serve it. To avoid that, Local exposes a healthCheckNodePort that reports healthy only on Nodes with a local backend, so the load balancer stops sending to Node-2 and targets only Node-1.',
     chips: { modeChip: 'Local', srcChip: 'preserved', hopChip: 'no', hcChip: 'used' },

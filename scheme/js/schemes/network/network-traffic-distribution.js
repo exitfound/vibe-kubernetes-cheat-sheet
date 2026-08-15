@@ -73,8 +73,8 @@ export const SCENE = {
   },
 };
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy, so the
-// factory is built once and handed to every F.tag as `fn`.
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: hold 260
+// keeps the source IP up while the backend pulses, so the address and the chosen zone read as one.
 const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
@@ -91,8 +91,8 @@ const fan = (points, pod, name, after, plus) => [
   F.pulse({ pod, at: name }),
 ];
 
-// Every backend is stated on every step, because resetStep no longer restores the four shells: a zone
-// the step does not prefer is dimmed here and nowhere else.
+// Every backend is stated on every step, because the step reset clears highlights and wires but not
+// opacity: a zone the step does not prefer is dimmed here and nowhere else.
 const ALL_UP = { a1: 1, a2: 1, b1: 1, b2: 1 };
 const zoneDown = (keys) => ({ opacity: { ...ALL_UP, ...shade(keys, OPACITY.notready) } });
 

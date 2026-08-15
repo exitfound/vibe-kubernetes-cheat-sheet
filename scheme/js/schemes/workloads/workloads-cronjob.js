@@ -24,9 +24,8 @@ const POD_Y = NODE_Y + POD_TOP_PAD;                      // 424..530, clear of t
 const POD_PAD = 80;
 const POD_INNER = { dx: 30, dy: 28, h: 52 };
 
-// Chips as a full-width bottom strip, three per row so name and value never collide. Five chips
-// means a row of three and a row of two, the short row centred on CX. strip() cannot express that:
-// it spans from..to for every row, so the arithmetic below stays the card's own (R4).
+// Five chips as a full-width bottom strip, three per row so name and value never collide: a row of
+// three then a row of two centred on CX, which strip() cannot express (it spans from..to per row).
 const CHIP_PER_ROW = 3, CHIP_GAP = 14, CHIP_VGAP = 8;
 const CHIP_W = (WL.W - CHIP_GAP * (CHIP_PER_ROW - 1)) / CHIP_PER_ROW;   // 350.67
 const CHIPS_TOP = 548;                                   // two rows -> 548..624
@@ -47,8 +46,8 @@ const SLOT_SPAN = WL.W - POD_PAD * 2;
 const SLOT_X = i => WL.L + POD_PAD + i * ((SLOT_SPAN - SLOT_W) / (SLOT_N - 1));
 const SLOT_CX = i => SLOT_X(i) + SLOT_W / 2;             // 250 / 483 / 717 / 950
 
-// The schedule ticks take the left band, which only opens below the panel. They used to sit at
-// x=830, straight through the pipeline ladder.
+// The schedule ticks take the left band, which only opens below the panel: at x=830 they would run
+// straight through the pipeline ladder.
 const TICK_N = 6, TICK_W = 51, TICK_H = 28, TICK_GAP = 8, TICK_CAPTION_DY = 14;
 const TICK_SPAN = TICK_N * TICK_W + (TICK_N - 1) * TICK_GAP;   // 346
 const TICK_X = WL.L, TICK_Y = 356;
@@ -57,8 +56,7 @@ const TICK_X = WL.L, TICK_Y = 356;
 const TICK_LABELS = ['12:00', '12:05', '12:10', '12:15', '12:20', '12:25'];
 const TICK_KEYS = TICK_LABELS.map((_, i) => 'tick' + i);
 
-// A tick is a chip() from primitives, not a valChip: one centred label and no value, which no part
-// kind builds. The attributes are the primitive's own, so the serialised order is untouched (R3).
+// A tick is a chip() from primitives, one centred label and no value, which no part kind builds.
 // P.raw bypasses the kit binding, so this is the one place the category role is written by hand.
 const tick = (lbl, i) => P.raw({
   key: TICK_KEYS[i],
@@ -131,9 +129,8 @@ export const SCENE = {
   },
 };
 
-// setPods as FIELDS: a Job slot and the lane that feeds it are written in ONE place, so a tap can
-// never outlive the Pod it points at and land an arrowhead in an empty Node frame. Only slots 1
-// and 2 are ever addressed, so only those two carry a lane.
+// A Job slot and the lane feeding it are written in ONE place, so a tap can never outlive its Pod
+// and land an arrowhead in an empty frame. Only slots 1 and 2 are addressed, so only they get lanes.
 const pods = (a, b, c, d) => ({ pod1: a, lane1: a, pod2: b, lane2: b, pod3: c, pod4: d });
 
 // setTicks as FIELDS: the lit set of the ladder is named by tick INDEX, the way every step reads,

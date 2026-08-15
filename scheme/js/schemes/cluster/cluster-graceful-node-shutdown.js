@@ -20,7 +20,7 @@ const LANE_DY = CLU.LANE_DY;                             // catalog standard: a 
 const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 80
 const { out: SIG_Y, back: REL_Y } = laneY(TOP_CY, LANE_DY);   // 68 / 92, one lane per direction
 const WIRE_Y = TOP_BOTTOM + 26;                          // 146
-const WIRE_X = midX(KUBE_X + BOX_W, SYS_X);              // 724, centred in the gap
+const WIRE_X = midX(KUBE_X + BOX_W, SYS_X);              // 744, centred in the 56 unit gap
 
 // Left band, which only opens up below the panel.
 const LADDER_X = LAYOUT.A.ladder.x, LADDER_W = LAYOUT.A.ladder.w;   // 60..540

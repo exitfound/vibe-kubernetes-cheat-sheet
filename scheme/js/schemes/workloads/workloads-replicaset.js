@@ -57,9 +57,8 @@ const trunkPath = (key, points) => P.relation({ key, points, role: 'cluster', da
 // label and the ownerReference state.
 const POD_NAMES = ['web-a1', 'web-b2', 'web-c3', 'web-d4'];
 
-// The list order IS the append order, so it is the z-order: the Node frame is a 70% opaque fill,
-// so the bus that runs inside it and the balls that ride it are appended after it. Ladder, Pods
-// and the actor row sit above the packets.
+// Z-order: the Node frame is a 70% opaque fill, so the bus inside it and the balls riding it are
+// appended after it. Ladder, Pods and the actor row sit above the packets.
 export const SCENE = {
   'aria-label': 'ReplicaSet controller: a reconcile loop keeps spec.replicas Pods running, owns them through ownerReferences, adopts a matching orphan and releases a relabeled Pod',
   parts: [
@@ -107,9 +106,8 @@ export const SCENE = {
   },
 };
 
-// setPod as FIELDS: a slot's label, its owner state and its presence are ONE fact, so one helper
-// writes all three. The fourth slot owns the bus tail and its own tap, and they come and go WITH
-// the Pod, which is why that coupling lives here and in no step.
+// A slot's label, its owner state and its presence are ONE fact, so one helper writes all three.
+// The fourth slot owns the bus tail and its own tap, which come and go WITH the Pod, not per step.
 const slots = (...row) => {
   const labels = {}, sublabels = {}, opacity = {};
   row.forEach((v, i) => {

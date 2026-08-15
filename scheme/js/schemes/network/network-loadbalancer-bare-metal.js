@@ -41,8 +41,8 @@ const TO_N2 = [[MID_X, ROUTER_BOTTOM], [MID_X, NODE_Y]];
 const TO_N3 = [[MID_X, ROUTER_BOTTOM], [MID_X, BUS_Y], [N3_CX, BUS_Y], [N3_CX, NODE_Y]];
 
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy, so the
-// factory is built once and handed to every F.tag as `fn`.
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: emergeMode
+// floats the VIP out of the router block onto the fan leg, and hold 0 clears it as the Node takes it.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 

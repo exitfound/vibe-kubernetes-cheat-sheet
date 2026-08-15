@@ -76,14 +76,13 @@ function unlightAt(el, ctx, delay) {
   ctx.register(a);
 }
 
-// node() places its caption in GROUP-LOCAL coordinates and has no labelY knob of its own, the way
-// cylinder does, so the one attribute this card moves is a tune. Local y 18 drops to 14, which
-// titles the frame rather than floating the caption inside it.
+// node() has no labelY knob the way cylinder does, so the one attribute this card moves is a tune:
+// the caption's group-local y 18 drops to 14, titling the frame rather than floating inside it.
 const titleNode = (el) => { const l = el.querySelector('.scheme-node-label'); if (l) l.setAttribute('y', 14); };
 
 const pod = (key, innerKey, x, label, sublabel) => P.pod({
   key, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0,
-  inner: { dx: 14, dy: APP_DY, w: POD_W - 28, h: APP_H, label: 'app', sublabel: 'uses PV-web' },
+  inner: { dx: 14, dy: APP_DY, w: POD_W - 28, h: APP_H, label: 'app', sublabel: 'uses PV web' },
 });
 
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
@@ -91,7 +90,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the two node frames, then the blocks and the disk, then the Pods so they sit above their
 // own frame, then the five lanes and the band caption, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'A Multi-Attach error. The ReadWriteOnce volume PV-web is attached to Node-1 through the VolumeAttachment va-1, and the Pod there is using it. A replacement Pod is scheduled onto Node-2, so the attach and detach controller tries to write a second VolumeAttachment for the same volume, which ReadWriteOnce forbids. The request stops at the controller, the new Pod hangs in ContainerCreating reporting a Multi-Attach error, and nothing changes until the first attachment is removed. Node-1 stays healthy throughout: the volume is held by a Pod that is still running, and the rollout is waiting for the new Pod to become ready before it deletes that old Pod, so the two sides wait on each other. Once the old Pod is deleted va-1 is removed, the disk detaches from Node-1, the controller attaches it to Node-2, and the new Pod starts. A Deployment on ReadWriteOnce storage hits this whenever the replacement Pod lands on another Node, because the new Pod is created before the old one is deleted, and switching that Deployment to the Recreate strategy avoids it.',
+  'aria-label': 'A Multi-Attach error. PV web is ReadWriteOnce and attached to Node-1 through VolumeAttachment va-1, so when a replacement Pod lands on Node-2 the attach and detach controller refuses to write va-2. The new Pod hangs in ContainerCreating until the old Pod is deleted and the first attachment goes, which is what stalls a RollingUpdate Deployment.',
   parts: [
     P.defs(),
     P.node({ key: 'nodeA', x: NODE_A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1', tune: titleNode }),
@@ -104,7 +103,7 @@ export const SCENE = {
     P.box({ key: 'vaB', x: VA_B_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-2', sublabel: 'wanted, not written' }),
     // The primitive centers the label on the raw bbox, which reads high because the top cap ellipse
     // is not part of the visible front face. Re-center on the face, as the rest of storage does.
-    P.cylinder({ key: 'disk', x: DK_X, y: DK_Y, w: DK_W, h: DK_H, label: 'PV-web RWO', labelY: DK_H / 2 + 10 }),
+    P.cylinder({ key: 'disk', x: DK_X, y: DK_Y, w: DK_W, h: DK_H, label: 'PV web RWO', labelY: DK_H / 2 + 10 }),
     pod('podOld', 'oldApp', POD_A_X, 'Pod web-0 old', 'Running'),
     pod('podNew', 'newApp', POD_B_X, 'Pod web-0 new', 'ContainerCreating'),
     lane('wNodeBand', W_NODE_BAND),
@@ -148,8 +147,8 @@ const stage = ({
   podSublabels: { podOld: oldSub, podNew: newSub },
 });
 
-// All four chips are written through setChip, so all four are chipsCued. The argument order is the
-// legacy helper's, and the access mode never moves: an RWO volume is the premise of the card.
+// All four chips are written through setChip, so all four are chipsCued. The access mode is not an
+// argument: an RWO volume is the premise of the card and never moves.
 const chips = (attached, newPod, blocked) => ({
   modeChip: 'ReadWriteOnce', attChip: attached, podChip: newPod, blockChip: blocked,
 });
@@ -179,7 +178,7 @@ export const STEPS_SPEC = [
   {
     id: 'wantattach',
     duration: 3200,
-    narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV-web is ReadWriteOnce and the first attachment is still live, so the refusal comes before anything is written and va-2 stays a want rather than an object.',
+    narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV web is ReadWriteOnce and the first attachment is still live, so the refusal comes before anything is written and va-2 stays a want rather than an object.',
     chipsCued: chips('node-1', 'ContainerCreating', 'va-1 on node-1'),
     wires: { band: 'RWO: cannot attach twice' },
     ...stage({ nodeB: 1, newOp: 1, linkNew: 1, vaBOp: OPACITY.pending }),
@@ -206,7 +205,7 @@ export const STEPS_SPEC = [
     duration: 2600,
     // The stuck Pod is the actor, so it pulses and nothing else moves. va-1 lights because it is the
     // blocker: the reader should be looking at the OLD attachment while reading this sentence.
-    narration: 'So the new Pod hangs. Its events read Multi-Attach error for volume PV-web, already used by the old Pod on Node-1. The container never starts, because Kubelet will not mount a disk that is not attached to the Node it runs on, and the attach is refused.',
+    narration: 'So the new Pod hangs. Its events read Multi-Attach error for volume PV web, already used by the old Pod on Node-1. The container never starts, because Kubelet will not mount a disk that is not attached to the Node it runs on, and the attach is refused.',
     chipsCued: chips('node-1', 'Multi-Attach error', 'va-1 on node-1'),
     wires: { band: 'first attachment still live' },
     ...stage({ nodeB: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: OPACITY.pending }),
@@ -246,9 +245,8 @@ export const STEPS_SPEC = [
     flow: [
       F.route({ points: W_BAND_VA_A, delay: BEAT.lead, name: 'del' }),
       F.tag({ text: 'delete va-1', points: W_BAND_VA_A, delay: BEAT.lead }),
-      // va-1's cue is an F.set on va-1 itself, byte for byte the timer lightBoxAt hangs there. NOT
-      // `lights`, because the reduced path must not show it: the unlight below takes it off again
-      // before the step settles, and the hand-written reduced branch never lit it at all.
+      // va-1's cue is an F.set, not `lights`, because the reduced path must not show it: the
+      // unlight below takes it off again before the step settles.
       F.set({ on: 'vaA', lit: ['vaA'], at: 'del' }),
       F.route({ points: W_VAA_DISK, after: 'del', name: 'det' }),
       F.tag({ text: 'detach', points: W_VAA_DISK, after: 'del' }),
@@ -256,11 +254,8 @@ export const STEPS_SPEC = [
       ...['vaA', 'wBandVaA', 'wVaADisk', 'podOld'].map(target => F.fade({
         target, from: 1, to: OPACITY.terminated, dur: FADE.out, at: 'det', fill: 'forwards', easing: 'ease-in',
       })),
-      // A deleted object must not keep wearing the border that means "acting right now". No field
-      // REMOVES a highlight, and F.fade({ unlight }) would hang the handler on the fade itself and
-      // drop the empty 1ms timer of its own that anim-dump records on va-1. So this is the one
-      // imperative beat, at delay 0 where at() runs it inline and registers nothing, standing
-      // exactly where the hand-written call stood: last.
+      // A deleted object must not keep the border that means "acting now", and no field REMOVES a
+      // highlight: F.fade({ unlight }) would drop the empty 1ms timer that carries it on va-1.
       F.run({ fn: (s, ctx) => unlightAt(s.refs.vaA, ctx, DET_LANDS + FADE.out) }),
     ],
   },

@@ -48,9 +48,8 @@ const rung = (lbl, i) => P.raw({
   make: () => chip({ x: i * (BACKOFF_W + BACKOFF_GAP), y: 0, w: BACKOFF_W, h: BACKOFF_H, label: lbl, role: 'cluster' }),
 });
 
-// The list order IS the append order, so it is the z-order: the two corridors and the chip column
-// first, then the packet layer, and chain / ladder / Node / Pod / Kubelet above the ball, with the
-// two wire labels last.
+// Z-order: the two corridors and the chip column, then the packet layer, then chain / ladder /
+// Node / Pod / Kubelet above the ball, and the two wire labels last.
 export const SCENE = {
   'aria-label': 'CrashLoopBackOff: Kubelet inserts an exponentially growing delay before each container restart',
   parts: [

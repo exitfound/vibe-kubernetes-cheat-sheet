@@ -52,15 +52,15 @@ const PO_TO_ETH = [[PO_RIGHT, ROW_CY], [ETH_X, ROW_CY]];
 // where the request landed, so the two never share a point.
 const RETURN = [[ETH_CX, ROW_Y], [ETH_CX, RETURN_LANE_Y], [210, RETURN_LANE_Y], [210, ROW_Y]];
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy, so the
-// factory is built once and handed to every F.tag as `fn`.
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: emergeMode
+// floats the reply source out of eth0, and hold 0 clears each chain address before the next one rides.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
 // The list order IS the append order, which is the z-order: the Node frame in back, then the Pod and
 // the chain blocks, then wires + the exit label, then chips, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'The netfilter path a packet takes: a packet leaving a Pod enters the Node kernel at the PREROUTING hook, where conntrack records the new flow and the nat table DNATs the Service address to a backend Pod. Only then does the routing decision run, on the rewritten address, which is why DNAT must happen before it. The packet is not local, so it crosses FORWARD, where an iptables NetworkPolicy is enforced, and reaches POSTROUTING, the last hook before the wire, which is where MASQUERADE lives because only there is the outgoing interface known. The reply matches the conntrack entry at PREROUTING and every rewrite is undone with no rule walk, while an eBPF dataplane skips the whole chain by hooking the socket instead.',
+  'aria-label': 'The netfilter path a packet takes: PREROUTING with conntrack and the nat table, then the routing decision, FORWARD, POSTROUTING and eth0, drawn as one row inside the Node kernel above the conntrack table. DNAT runs before routing, MASQUERADE waits for the last hook, and the reply is untangled from the recorded flow with no rule walk.',
   parts: [
     P.defs(),
     P.node({ key: 'theNode', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node kernel' }),
@@ -183,7 +183,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'reply',
-    // Motion: the reply rides its own lane back to PREROUTING (1998ms), which lights on arrival.
+    // Motion: the reply rides its own lane back to PREROUTING (1989ms), which lights on arrival.
     duration: 3000,
     narration: 'The backend answers, and the reply arrives on the wire addressed from 10.244.2.7 to the Pod. At PREROUTING conntrack matches it against the flow it recorded and sees an established connection, so the stored translation is reversed automatically on the way back out: the source becomes 10.96.0.20 again, the address the Pod dialed. Not a single Service rule is walked, which is why the rule walk is a first-packet cost and nothing more.',
     chips: { hookChip: 'PREROUTING', dstChip: '10.244.1.5', srcChip: '10.96.0.20:80 (restored)', ctChip: 'ESTABLISHED' },

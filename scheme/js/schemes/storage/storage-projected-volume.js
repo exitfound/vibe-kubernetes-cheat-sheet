@@ -87,10 +87,10 @@ export const SCENE = {
 };
 
 // The three chips are written with setVal, not setChip, so no changed value ever lights: the
-// highlights on this card are all placed by hand. Argument order is the old setChips helper's.
+// highlights on this card are all placed by hand.
 const chips = (src, tok, exp) => ({ srcChip: src, tokChip: tok, expChip: exp });
 const SAT = 'serviceAccountToken', BOUND = 'audience-bound', SHORT = 'short-lived';
-// STO.S-01 as a field: resetStep used to pin the Pod by hand, so every step states it.
+// STO.S-01 as a field: the Pod is pinned on every step, so none inherits a stale opacity.
 const POD_ON = { pod: 1 };
 
 export const STEPS_SPEC = [
@@ -124,7 +124,7 @@ export const STEPS_SPEC = [
     chips: chips('ConfigMap + Secret', BOUND, SHORT),
     opacity: POD_ON,
     lit: ['srcChip', 'srcCM', 'srcSec'],
-    // Each row's cue stands AFTER its tag, which is where the hand-written step emitted it.
+    // Each row's cue stands AFTER its tag, and flow emission order is observable.
     flow: [
       F.route({ points: W_CM, name: 'cm' }),
       F.tag({ text: 'config.yaml', points: W_CM }),

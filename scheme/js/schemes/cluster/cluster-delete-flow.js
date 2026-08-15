@@ -101,8 +101,8 @@ export const SCENE = {
       inner: { ...POD_INNER, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27' },
     }),
     P.lane({ key: 'kubeletPodArrow', points: STOP_POD, dashed: true }),
-    // Top-row lanes straddle the Api/Kubectl/ETCD centre line (y=100): request out at y=90,
-    // response back at y=110. Each is drawn from the SAME array that carries its ball.
+    // Top-row lanes straddle the Api/Kubectl/ETCD centre line (y=150): request out at y=140,
+    // response back at y=160. Each is drawn from the SAME array that carries its ball.
     P.lane({ points: DELETE,      dim: true, dashed: true }),
     P.lane({ points: DELETE_ACK,  dim: true, dashed: true }),
     P.lane({ points: PERSIST,     dim: true, dashed: true }),

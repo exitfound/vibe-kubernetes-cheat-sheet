@@ -17,8 +17,8 @@ const LANE  = [[CLIENT_EDGE, FLOW_Y], [KP_LEFT, FLOW_Y]];                       
 const FAN_A = [[KP_RIGHT, FLOW_Y - 14], [BUS_X, FLOW_Y - 14], [BUS_X, PODA_CY], [POD_LEFT, PODA_CY]];  // kube-proxy -> web-a
 const FAN_C = [[KP_RIGHT, FLOW_Y + 14], [BUS_X, FLOW_Y + 14], [BUS_X, PODC_CY], [POD_LEFT, PODC_CY]];  // kube-proxy -> web-c
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy, so the
-// factory is built once and handed to every F.tag as `fn`.
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: linear by
+// default because the lane tags ride segment balls, and each fan tag overrides back to ease-in-out.
 const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 

@@ -61,9 +61,8 @@ const PV_MOUNT_A = [[P_A_X + POD_W, PV_CY], [PV_X, PV_CY]];
 // the arrowhead belongs on the tap that lands on a Pod.
 const trunkPath = (key, points, role = 'cluster') => P.relation({ key, points, role, dash: '5 5' });
 
-// The list order IS the append order, so it is the z-order: the Node frames are a 70% opaque fill,
-// so the lanes that run inside them and the balls that ride them follow, and ladder / Pods / actors
-// sit above the packets.
+// Z-order: the Node frames are a 70% opaque fill, so the lanes inside them and the balls riding
+// them follow, and ladder / Pods / actors sit above the packets.
 export const SCENE = {
   'aria-label': 'StatefulSet PVC stickiness: a Pod evicted from one Node is recreated with the same ordinal, reattaches the same PVC, sees the previous on-disk state',
   parts: [
@@ -123,9 +122,8 @@ export const SCENE = {
   },
 };
 
-// setLanes as FIELDS: a lane into a Pod that is not there points at nothing, so each one is pinned
-// to 0 until its Pod is on that Node (project canon: an absent block dims, its lanes disappear).
-// Key order is the order the helper wrote them in.
+// A lane into a Pod that is not there points at nothing, so each one is pinned to 0 until its Pod
+// is on that Node (project canon: an absent block dims, its lanes disappear).
 const lanes = (toA, toB) => ({
   trunk: (toA || toB) ? 1 : 0,
   busL: toA ? 1 : 0,

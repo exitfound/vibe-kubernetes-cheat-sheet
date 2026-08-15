@@ -59,9 +59,8 @@ export const SCENE = {
     // is not part of the visible front face. Re-centre on the face, derived from the height.
     P.cylinder({ key: 'srcDisk', x: SRC_CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'Source Volume', labelY: DISK_H / 2 + 10 }),
     P.cylinder({ key: 'cloneDisk', x: CLONE_CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'Cloned Volume', labelY: DISK_H / 2 + 10 }),
-    // A relationship, not traffic: no marker, because an arrowhead with no ball reads as traffic that
-    // never runs, and DASHED, because a solid line between two objects reads as a live route.
-    // Identity: each claim bound to its own volume, straight down the column centre line.
+    // A relationship, not traffic: markerless because a head with no ball reads as traffic that never
+    // runs, dashed because a solid line reads as a live route. Each claim bound to its own volume.
     P.relation({ d: `M ${SRC_CX} ${CLAIM_BOTTOM} L ${SRC_CX} ${DISK_TOP}`, dash: '5 5' }),
     P.relation({ key: 'cloneBound', d: `M ${CLONE_CX} ${CLAIM_BOTTOM} L ${CLONE_CX} ${DISK_TOP}`, dash: '5 5', opacity: 0 }),
     // dataSource: the clone references the source CLAIM directly, face midpoint to face midpoint.

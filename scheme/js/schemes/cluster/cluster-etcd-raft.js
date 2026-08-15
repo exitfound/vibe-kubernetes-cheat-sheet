@@ -92,7 +92,7 @@ export const SCENE = {
         P.lane({ key: 'laneE3Out', points: REPLICATE, dim: true, dashed: true }),
         P.lane({ key: 'laneE3Back', points: ACK_E3, dim: true, dashed: true }),
         // Tie each replica to the chips below it: a binding, not flow, so it goes through relationPath.
-        // What it used to be and what the 30 unit gap buys: ./CARDS.md#cluster-etcd-raft.
+        // What the 30 unit gap between cylinder and role row buys: ./CARDS.md#cluster-etcd-raft.
         ...CYL_CXS.map((cx, i) => P.relation({
           key: i === 0 ? undefined : 'tie' + (i + 1),
           points: [[cx, CYL_BOTTOM], [cx, ROLE_Y]],

@@ -77,11 +77,8 @@ const SLOT_FILL = Object.freeze({
 });
 const SLOT_STROKE = 'rgba(94, 202, 148, 0.35)';
 
-// The slot strip is the ONE thing no part kind emits: eight bare rects whose stroke and fill are
-// set INLINE and which live INSIDE the node group, so P.group cannot stand in for them either.
-// node() also places its caption in GROUP-LOCAL coordinates with no labelY knob of its own, the way
-// cylinder has one, so both edits ride the same tune. The rects take NO ref key: the legacy refs
-// literal never named one, and naming them here would rename them in the reduced and settled dumps.
+// Eight bare rects with inline stroke and fill inside the node group: no part kind emits them, and
+// node() has no labelY knob for the caption y. A ref key on the rects would rename both dumps.
 const nodeFrame = (i, label) => P.node({
   x: NODE_X[i], y: NODE_Y, w: NODE_W, h: NODE_H, label,
   tune: (el, refs) => {
@@ -110,8 +107,8 @@ const counter = (i) => P.box({
   key: `cnt${i}`, x: NODE_X[i] + CNT_X, y: NODE_Y + CNT_Y, w: CNT_W, h: CNT_H, label: '0 of 8',
 });
 
-// The three report lanes are held ONLY as an array, exactly as the legacy refs literal held them:
-// both dumps name an array member `wReport[n]`, so a scalar key each would rename all three.
+// The three report lanes are held ONLY as an array: both dumps name an array member `wReport[n]`,
+// so giving each one a scalar key would rename all three in the serialised output.
 const reportLane = (points) => P.lane({
   points, dashed: true, dim: true,
   tune: (el, refs) => { refs.wReport = refs.wReport || []; refs.wReport.push(el); },
@@ -122,7 +119,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the three node frames with their gauges, then the counters, then the two decision-tier
 // blocks and the Pod, then the lanes, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Node volume attach limits. Every Node has a hard ceiling on how many volumes one CSI driver may have attached to it at once. The CSI node plugin answers NodeGetInfo with max_volumes_per_node, Kubelet writes that number into the Node CSINode object as allocatable.count, and the scheduler filter NodeVolumeLimits is the only thing that reads it. Here three Nodes each report a ceiling of eight, so the cluster has twenty four attachment slots. As claims are provisioned the Nodes walk up to eight of eight and the cluster runs out of slots. Pod web-0 is then created, asks for one volume, and the filter rejects every Node, so the Pod sits in Pending reporting that the Nodes exceed max volume count even though every Node has spare CPU and spare memory. The count covers the volumes of Pods assigned to a Node plus every VolumeAttachment still live on it, so a slot is freed only when a detach completes and its VolumeAttachment is deleted, not when a Pod dies. The Pod schedules on the next attempt after one detach finishes on Node-3. The levers are fewer volumes per Pod, more Nodes, or a Node pool whose instance type reports a higher ceiling.',
+  'aria-label': 'Node volume attach limits. Three Node frames each draw eight attachment slots with a counter, a CSINode box carries allocatable.count, and the scheduler filter NodeVolumeLimits compares the two. With every Node full, Pod web-0 asks for one slot and stays Pending, and a slot frees when a detach completes and its VolumeAttachment is gone.',
   parts: [
     P.defs(),
     nodeFrame(0, 'node-1'),
@@ -162,8 +159,8 @@ export const SCENE = {
   },
 };
 
-// All four chips go through setChip, so all four are chipsCued. The argument order is the legacy
-// helper's, and the ceiling never moves: eight per node is the premise of the card.
+// All four chips go through setChip, so all four are chipsCued. The ceiling is not an argument:
+// eight per node is the premise of the card and never moves.
 const chips = (attached, pod, blocked) => ({
   capChip: '8 per node', attChip: attached, podChip: pod, blockChip: blocked,
 });
@@ -183,9 +180,8 @@ const stage = ({
 
 const usedOf = (spec) => (typeof spec === 'number' ? spec : spec.used);
 
-// A slot's FILL is the one thing no spec field writes (`opacity:` writes style.opacity, a different
-// property), so the gauge is an enter hook on every step. Its counters are ordinary labels, and
-// every step states all three: a node left unset keeps the previous reading.
+// No spec field writes a slot FILL (`opacity:` writes style.opacity), so the gauge is an enter hook
+// on every step, and all three counters are stated every step or a node keeps its previous reading.
 function setSlots(s, counts) {
   s.refs.nodes.forEach((n, i) => {
     const spec = counts[i];
@@ -203,17 +199,15 @@ const gauge = (counts) => ({
   enter: (s) => setSlots(s, counts),
 });
 
-// The fill walk. `seq` is a running counter across ALL THREE nodes: computing the delay from the
-// node index and its own starting count double-counts node-1 and pushes the last slot past the
-// step's duration. FILL_END is the instant the last slot lands, which is when the gauge turns over.
+// `seq` counts across ALL THREE nodes: a delay computed from the node index and its own starting
+// count double-counts node-1 and runs past the step. FILL_END is the instant the last slot lands.
 const FILL_FROM = [2, 1, 1];
 const FILL_GAP = 90, FILL_MS = 220;
 const FILL_N = FILL_FROM.reduce((n, from) => n + (SLOT_N - from), 0);  // 20 slots to light
 const FILL_END = FILL_GAP * (FILL_N - 1) + FILL_MS;                    // 1930
 
-// The slots carry no ref key, so no opacity field and no F.fade can reach them. F.run at delay 0
-// calls its body inline and registers no timer of its own, so the twenty animations are created
-// exactly where the hand-written loop stood and the motion record is unchanged.
+// The slots carry no ref key, so no opacity field and no F.fade reaches them. F.run at delay 0 calls
+// its body inline and registers no timer, so the twenty fades are created right here.
 const fillSlots = (s, ctx) => {
   let seq = 0;
   s.refs.nodes.forEach((n, i) => {
@@ -225,9 +219,8 @@ const fillSlots = (s, ctx) => {
   });
 };
 
-// Same escape, same reason, plus a second one: each fade's COMPLETION rewrites the counter text and
-// `unlight` is the only onfinish F.fade carries. The transient is OPACITY ONLY, never fill, so a
-// seek or an early cancel still lands on the pinned `fresh` the static gauge wrote.
+// Same escape, plus each fade's COMPLETION rewrites the counter text and `unlight` is the only
+// onfinish F.fade carries. Opacity only, never fill, so a seek or a cancel lands on the pinned `fresh`.
 const detachLag = (s, ctx) => {
   const slot = s.refs.nodes[2].slots[SLOT_N - 1];
   const cnt = s.refs.cnt2;
@@ -254,9 +247,8 @@ export const STEPS_SPEC = [
     chipsCued: chips('4 of 24', 'not created', 'nothing'),
     ...stage(),
     ...gauge([2, 1, 1]),
-    // ONE duration for all three report balls, so they leave together and LAND together, and the
-    // riding tag takes the same one or it drifts off its ball. No Pod acts and no block emits, so
-    // they leave after BEAT.lead with no preceding pulse, and the box lights on that one arrival.
+    // ONE duration for all three report balls so they land together, and the riding tag takes the
+    // same one or it drifts off its ball. No Pod acts, so they leave after BEAT.lead with no pulse.
     flow: [
       ...W_NODE_CSI.flatMap((points, i) => [
         F.route({ points, delay: BEAT.lead, dur: REPORT_DUR, name: `rep${i}` }),
@@ -275,9 +267,8 @@ export const STEPS_SPEC = [
     ...stage(),
     ...gauge([8, 8, 8]),
     lit: ['cnt0', 'cnt1', 'cnt2'],
-    // The gauge holds the count the previous step left and turns over when the LAST slot lands: its
-    // final reading at entry would count slots that are still filling for two more seconds. The
-    // roll-back goes through setVal, which keeps the highlight off it and on the verdict below.
+    // The chip holds the count the previous step left and turns over when the LAST slot lands: its
+    // final reading at entry would count slots that are still filling for two more seconds.
     rewind: { chips: { attChip: '4 of 24' } },
     flow: [
       F.run({ fn: fillSlots }),
@@ -311,9 +302,8 @@ export const STEPS_SPEC = [
     chipsCued: chips('24 of 24', 'Pending', 'max volume count'),
     ...stage({ podOp: 1, podSub: 'Pending', linkPod: 1, linkRead: 1 }),
     ...gauge([8, 8, 8]),
-    // The three counters are what the filter is actually comparing against, so all three are lit for
-    // the whole step. This is a read, not a write: nothing on the node tier changes. The Scheduler is
-    // lit from entry because a ball must never depart from an unlit block.
+    // All three counters stay lit, being what the filter compares against, and this is a read: nothing
+    // on the node tier changes. The Scheduler is lit from entry, since a ball never leaves an unlit block.
     lit: ['cnt0', 'cnt1', 'cnt2', 'sched'],
     flow: [
       F.route({ points: W_SCHED_CSI, delay: BEAT.lead, name: 'rd' }),
@@ -329,9 +319,8 @@ export const STEPS_SPEC = [
     ...stage({ podOp: 1, podSub: 'FailedScheduling', linkPod: 1, linkBack: 1, linkRead: 1 }),
     ...gauge([8, 8, 8]),
     lit: ['sched'],
-    // Down-arrow ordering, so the ball goes first and the Pod blinks on arrival. The tag rides BELOW
-    // the ball: pod() puts the sublabel 8 units above the shell bottom, and the default -14 prints
-    // on top of it for the last beat of the flight.
+    // Down-arrow ordering: the ball goes first, the Pod blinks on arrival. The tag rides BELOW the
+    // ball because pod() puts the sublabel 8 units above the shell bottom, where the default -14 prints.
     flow: [
       F.route({ points: W_SCHED_POD, delay: BEAT.lead, name: 'ans' }),
       F.tag({ text: 'exceed max volume count', points: W_SCHED_POD, delay: BEAT.lead, dy: 22 }),

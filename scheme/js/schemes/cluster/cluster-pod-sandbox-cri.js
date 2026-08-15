@@ -160,7 +160,7 @@ export const STEPS_SPEC = [
       // anything. The result comes back to the runtime before the sandbox is configured below.
       F.top({ from: CNI_X, to: RT_R, y: BACK_Y, after: 'exec' }),
       // The CNI cue is its own entry rather than `lights` on the exec hop: it is emitted AFTER the
-      // return packet, and the emission order is what anim-dump compares.
+      // return packet, and getAnimations() hands them back in emission order.
       F.light({ targets: ['cni'], at: 'exec' }),
       F.route({ points: SANDBOX_CONNECTOR, after: 'exec', name: 'conf' }),
       F.pulse({ pod: 'sandboxGroup', at: 'conf' }),

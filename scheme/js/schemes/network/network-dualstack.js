@@ -67,7 +67,8 @@ export const SCENE = {
   },
 };
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+// The tag that rides a ball on this card: dy -16 lifts the long IPv6 text clear of the ball, and the
+// short 140/150 fades retire the first address as the second hop fades its own in.
 const ridingLabel = makeRidingLabel({ role: 'network', dy: -16, inMs: 140, hold: 150 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 

@@ -52,13 +52,12 @@ const W_TAINT = [[ESC_CX, ESC_TOP], [ESC_CX, DK_BOTTOM]];
 // The two Pods differ only in x, name and sublabel: same shell, same inner box, same footprint.
 const podBlock = ({ key, shellKey, innerKey, x, label, sublabel, opacity }) => P.pod({
   key, shellKey, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel, containers: 0,
-  inner: { dx: 14, dy: 30, w: POD_W - 28, h: 44, label: 'app', sublabel: 'writes PV-web' },
+  inner: { dx: 14, dy: 30, w: POD_W - 28, h: 44, label: 'app', sublabel: 'writes PV web' },
   opacity,
 });
 
-// The list order IS the append order, which is the z-order: the two node frames, then the disk, the
-// escape box and the Pods, then the lanes and the disk caption above them, then the chip strip, then
-// the ladder, then the packet layer.
+// Z-order is the list order: the two node frames, then the disk, the escape box and the Pods, then
+// the lanes and the disk caption above them, then the chip strip, then the ladder, then the packets.
 export const SCENE = {
   'aria-label': 'Detach on Node failure: when a Node goes NotReady and its Kubelet is silent, Kubernetes will not detach the volume immediately, because the old Pod cannot be confirmed dead and detaching while it might still write would let two Nodes write one filesystem, so it waits out the 300 second unreachable toleration and then the roughly six minute force-detach before attaching the disk on a new Node, a deliberate safety property rather than a bug, and the non-graceful node shutdown out-of-service taint is the operator escape hatch that asserts the Node is truly dead and skips the wait',
   parts: [
@@ -67,7 +66,7 @@ export const SCENE = {
     P.node({ key: 'nodeB', x: B_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' }),
     // The primitive centers the label on the raw bbox, which reads high because the top cap ellipse
     // is not part of the visible front face. Re-center on the face, as storage-volume-model does.
-    P.cylinder({ key: 'disk', x: DK_X, y: DK_Y, w: DK_W, h: DK_H, label: 'PV-web RWO', labelY: 61 }),
+    P.cylinder({ key: 'disk', x: DK_X, y: DK_Y, w: DK_W, h: DK_H, label: 'PV web RWO', labelY: 61 }),
     P.box({
       key: 'escape', x: ESC_X, y: ESC_Y, w: ESC_W, h: ESC_H,
       label: 'Out-of-service taint', sublabel: 'operator asserts node is dead',
@@ -101,8 +100,7 @@ export const SCENE = {
 };
 
 // Every step writes EVERY chip and EVERY Pod sublabel: unset, the volume chip reads `force-detached`
-// on the step explaining why nothing has been detached yet, and a Pod still reading `Running` three
-// steps after its node went silent is a lie the reader cannot catch.
+// on the step explaining why nothing is detached yet, and a Pod long gone still reads `Running`.
 const chips = (nodeA, volume, newPod) => ({ nodeChip: nodeA, diskChip: volume, podChip: newPod });
 const pods = (oldSub, newSub) => ({ oldShell: oldSub, newShell: newSub });
 
@@ -134,7 +132,7 @@ export const STEPS_SPEC = [
   {
     id: 'refuse',
     duration: 2800,
-    narration: 'So Kubernetes refuses to detach the disk. Notice what it is not waiting on: no other Pod holds the volume and nothing is contending for it. It is waiting on doubt. Pull PV-web off Node-1 while the old Pod might still be writing and two Nodes write one filesystem, which corrupts it. Refusing is the safe answer to a question that cannot be answered.',
+    narration: 'So Kubernetes refuses to detach the disk. Notice what it is not waiting on: no other Pod holds the volume and nothing is contending for it. It is waiting on doubt. Pull PV web off Node-1 while the old Pod might still be writing and two Nodes write one filesystem, which corrupts it. Refusing is the safe answer to a question that cannot be answered.',
     chipsCued: chips('NotReady', 'held on node-1', 'not created'),
     podSublabels: pods('may still write', 'Pending'),
     wires: { disk: 'do not detach yet' },
@@ -157,16 +155,11 @@ export const STEPS_SPEC = [
     opacity: { oldPod: OPACITY.terminating, newPod: 1 },
     lit: ['disk'],
     chain: 0,
-    // The animated path starts where the previous step left the pair and travels to the statics
-    // above: the old Pod blinks at FULL before it takes the mark, and the replacement is not drawn
-    // at all until it fades in.
+    // The animated path starts where the previous step left the pair: the old Pod blinks at FULL
+    // before it takes the mark, and the replacement is not drawn at all until it fades in.
     rewind: { opacity: { oldPod: 1, newPod: 0 } },
-    // The OLD Pod is what this timeout acts on, so the old Pod is what blinks, again with the
-    // ordinary pulsePod. An earlier pass pulsed the new Pod here, pointing at the wrong node.
-    // It blinks at full first, then takes the mark: the pulse says which Pod this is about, the
-    // fade says what just happened to it, and the two must not read as one event. The replacement
-    // can exist from this step on, so this is where it fades in. It cannot start: the disk it needs
-    // is still held by a Node nobody can reach.
+    // The timeout acts on the OLD Pod, so that is what blinks, at full first and then takes the mark:
+    // pulse and fade must not read as one event. The replacement can exist now, so it fades in here.
     flow: [
       F.pulse({ pod: 'oldPod' }),
       F.fade({ target: 'oldPod', from: 1, to: OPACITY.terminating, dur: FADE.out, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-in' }),
@@ -196,7 +189,7 @@ export const STEPS_SPEC = [
   {
     id: 'attachb',
     duration: 3400,
-    narration: 'With PV-web detached, it attaches to Node-2 and is mounted there, and the new Pod finally starts. Nothing in that sequence was slow. The entire outage was the safety margin: the eviction wait and then six more minutes of deliberate doubt about a Node that could not be asked.',
+    narration: 'With PV web detached, it attaches to Node-2 and is mounted there, and the new Pod finally starts. Nothing in that sequence was slow. The entire outage was the safety margin: the eviction wait and then six more minutes of deliberate doubt about a Node that could not be asked.',
     chipsCued: chips('NotReady', 'attached to node-2', 'Running'),
     podSublabels: pods('assumed gone', 'Running'),
     opacity: { oldPod: OPACITY.terminated, wAttachA: OPACITY.terminated, wAttachB: 1, newPod: 1 },
@@ -227,9 +220,8 @@ export const STEPS_SPEC = [
     // the path that skips the ladder, and lighting rung 3 here would say the opposite.
     chain: -1,
     rewind: { opacity: { wTaint: 0 } },
-    // No Pod acts here (the operator does), so there is no pulse, and the ball leaves after
-    // BEAT.lead so the lit escape box registers as the source. The disk lights on arrival, which is
-    // also the cue the reduced path shows in place of the hop.
+    // No Pod acts here, the operator does, so no pulse: the ball leaves after BEAT.lead so the lit
+    // escape box registers as the source, and the disk lights on arrival, reduced path included.
     flow: [
       F.fade({ target: 'wTaint', from: 0, to: 1, dur: 300, fill: 'forwards', easing: 'ease-out' }),
       F.route({ points: W_TAINT, delay: BEAT.lead, name: 'taint' }),

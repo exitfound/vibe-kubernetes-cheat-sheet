@@ -54,8 +54,8 @@ const TO_BRIDGE = [[BR_IN_ORD, R1_BOTTOM], [BR_IN_ORD, BR_TOP]];         // NIC 
 const PM_TO_BRIDGE = [[COL1_CX, R1_BOTTOM], [COL1_CX, BUS_Y], [BR_IN_PM, BUS_Y], [BR_IN_PM, BR_TOP]];
 const VETH = [[BR_X, POD_CY], [APP_RIGHT, POD_CY]];                      // bridge -> Pod app, the veth pair
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy, so the
-// factory is built once and handed to every F.tag as `fn`.
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: emergeMode
+// floats the DNAT-ed address out of the portmap rule, and hold 0 clears each address as its hop lands.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
@@ -125,7 +125,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'hostnetwork',
-    // Motion: entry(700) + hop beat(100) + lane(700) = 1500, then the Pod pulse (900) ends at 2400.
+    // Motion: entry(700) + hop beat(100) + lane(707) = 1507, then the Pod pulse (900) ends at 2407.
     duration: 3000,
     narration: 'With hostNetwork true the Pod gets no namespace of its own at all. It runs inside the Node namespace, so there is no veth, no Pod IP and no bridge in the path: the container binds straight to the Node interfaces. A client that dials 192.168.1.20:80 is served by the Pod with no NAT anywhere, which is exactly how kube-proxy, the CNI agent and node-exporter run.',
     chips: { nsChip: 'the Node one', ipChip: '192.168.1.20 (Node)', vethChip: 'none', portChip: 'Node IP :80' },
@@ -160,8 +160,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'hostport',
-    // Motion: entry(700) + beat + rule hop(700) + beat + rewrite route(700) + beat + veth(700) = 3100,
-    // then the Pod pulse (900) ends at 4000. The floor leaves a settle.
+    // Motion: entry(700) + beat + rule hop(700) + beat + rewrite route(913) + beat + veth(700) = 3313,
+    // then the Pod pulse (900) ends at 4213. The floor leaves a settle.
     duration: 4400,
     narration: 'The hostPort field is the smaller hammer. The Pod keeps its own namespace, its Pod IP and its veth, and the CNI portmap plugin only adds one DNAT rule on the Node: anything arriving at 192.168.1.20:8080 is rewritten to 10.244.1.5:80 and then delivered down the ordinary bridge and veth. The Pod is reachable from the LAN and still never learns that it was.',
     chips: { nsChip: 'own', ipChip: '10.244.1.5', vethChip: 'yes', portChip: 'Node IP :8080' },

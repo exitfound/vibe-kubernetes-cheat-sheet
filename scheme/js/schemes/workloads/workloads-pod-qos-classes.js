@@ -181,7 +181,7 @@ export const STEPS_SPEC = [
   {
     id: 'tiers',
     // Motion: Pod A is reached at 1520, Pod B a beat later at 2327, and the second fade ends at
-    // 3227. Sequencing the two evictions costs 627ms over the old simultaneous fan.
+    // 3227. Sequencing the two evictions costs 627ms over a simultaneous fan, and buys the order.
     duration: 3400,
     narration: 'When the Node runs low on memory, Kubelet ranks Pods by whether each is using more than it requested, then by Pod Priority, then by how far over the request it sits. Pod A declared no request at all, so it is over the moment it allocates anything and goes first. Pod B is over its own request and goes next. Pod C requests exactly what it is allowed to use, so it never exceeds its request and is reached only by the kernel OOMKiller in extreme cases. QoS class does not decide this order, it only predicts it, and this is a separate mechanism from priority-based preemption (which is covered in its own card).',
     chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'over request, then Priority' },

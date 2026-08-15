@@ -54,7 +54,7 @@ const lane = (key, points, opacity) => P.lane({ key, points, dashed: true, dim: 
 // Z-order: the blocks and the disk, then the lanes and their captions, then the Pod above its own
 // half of the axis, then the disk caption, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The StorageObjectInUseProtection admission plugin puts the kubernetes.io slash pvc-protection finalizer on every claim when it is created. Deleting the claim only sets a deletionTimestamp on it, and because the finalizers list is not empty the API server will not complete the delete, so the object stays and the Pod keeps its mount. Its status phase is still Bound the whole time and only kubectl prints the word Terminating. Once the last consuming Pod is gone the controller removes the finalizer, the list empties, and only then does the API server take the object out of ETCD.',
+  'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The pvc-protection finalizer on PVC data-claim means a delete only writes a deletionTimestamp, so the object stays and Pod web-0 keeps its mount. Once the last consuming Pod is gone the controller removes the finalizer and the API server takes the object out of ETCD.',
   parts: [
     P.defs(),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'phase Bound' }),
@@ -93,7 +93,7 @@ export const SCENE = {
   },
 };
 
-// All four chips go through setChip, so all four are chipsCued. Argument order is the old helper's.
+// All four chips go through setChip, so all four are chipsCued.
 const chips = (ts, shown, finalizers, users) =>
   ({ tsChip: ts, shownChip: shown, finalChip: finalizers, usersChip: users });
 
@@ -110,12 +110,8 @@ const STACK = stage({ web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHig
 
 const PROT = 'pvc-protection', TERMINATING = 'Terminating', DELETING = 'phase Bound, deleting';
 
-// Fades an object out of existence when the delete that removes it lands, and takes its lit stroke
-// with it: a block that has gone dark must not keep glowing, or it reads as deleted-but-still-live.
-// `from` 1 and `easing` ease-in are F.fade's own defaults, which are what the hand-rolled copy used.
-// The fade a dying element takes. `unlight` is dead on all four targets (none is lit when it
-// fades) and is kept because the hand-written removeAt registered the same handler: anim-dump
-// records onfinish as a boolean, so dropping it is an observable change, not a cleanup.
+// Fades an object out of existence when the delete that removes it lands. The `unlight` is
+// defensive: none of the four is lit on the step that removes it, and see ./CARDS.md for why.
 const removeAt = (target, to, when) => F.fade({ target, to, dur: 500, fill: 'forwards', unlight: [target], ...when });
 
 export const STEPS_SPEC = [
@@ -134,9 +130,8 @@ export const STEPS_SPEC = [
     sublabels: { pvc: 'phase Bound' },
     wires: { mount: 'mounted at /data', verdict: 'Bound to data-vol' },
     opacity: STACK,
-    // Only the disk is lit to begin with, because only the disk sends a ball. The claim and the
-    // container are destinations and each earns its light at its own arrival, which is what the
-    // reduced path derives from the two cues below.
+    // Only the disk is lit at entry, because only the disk sends a ball. The claim and the container
+    // are destinations and each earns its light at its own arrival, which flowLights derives.
     lit: ['disk'],
     flow: [
       F.route({ points: W_MOUNT_LOW, name: 'hop1', lights: ['pvc'] }),

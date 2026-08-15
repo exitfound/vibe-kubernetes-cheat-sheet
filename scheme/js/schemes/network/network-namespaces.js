@@ -31,7 +31,7 @@ const BAND_CX = POD_CX;   // 824: shared-stack band center = Pod center, so the 
 const LOCAL_PATH = [[COL_L, ROW_TOP_BOT], [COL_L, RAIL_Y], [COL_R, RAIL_Y], [COL_R, ROW_TOP_BOT]];
 
 // One interior connector style: a constant dashed dim line, no arrowhead (direction is carried by the
-// packet). The empty role keeps the neutral hue the hand-written call had, since it passed none.
+// packet). The empty role is what holds the neutral hue: any role would tint the line category cyan.
 const dashLink = (key, x1, y1, x2, y2) => P.relation({ key, points: [[x1, y1], [x2, y2]], role: '' });
 
 // The netns shell and the shared-stack band sit as plain siblings inside podGroup, and no part kind

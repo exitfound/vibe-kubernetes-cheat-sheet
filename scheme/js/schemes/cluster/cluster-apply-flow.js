@@ -154,8 +154,8 @@ export const STEPS_SPEC = [
     opacity: { placedPod: 0, kubeletCriArrow: 0, kubeletPodArrow: 0 },
   },
   {
-    // 2400 rather than 1700: the client lanes climb over the frame now, so the POST rides 760
-    // units against the 360 it rode across the old top row, and routeDur is length-based.
+    // 2400 rather than 1700: the client lanes climb over the frame, so the POST rides 760 units
+    // against the 360 a flat top row would give it, and routeDur is length-based.
     id: 'post',
     duration: 2400,
     narration: 'You run kubectl apply -f deploy.yaml. The client serializes the manifest as JSON and POSTs it to /apis/apps/v1/namespaces/default/deployments on the API. On an object that already exists it is a PATCH, see Server-side Apply.',

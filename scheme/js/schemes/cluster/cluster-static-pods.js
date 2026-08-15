@@ -3,7 +3,7 @@ import { P, F, defineCard, laneY, ladder, strip, midX, shade, CLU, REVEAL_MS, FA
 // Design notes for this card: ./CARDS.md#cluster-static-pods
 
 // Three tiers on the L. Panel worst case x<=397 y<=230 at 1100x800, and the Node frame at y=380 is
-// what it clears: 390 characters per narration. Re-measure with overlay-measure after a prose edit.
+// what it clears: 390 characters per narration.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas centre by construction
@@ -205,8 +205,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'delete-mirror',
-    // Request out (700), answer home (1500), the mirror pulses and dissolves from 1600 over
-    // MIRROR_FADE, the recreate leaves at 2900 and lands at 3600 with a pulse behind it: 4500.
+    // Request out (700), answer home (1500). The mirror pulses and dissolves from 800 over
+    // MIRROR_FADE, the recreate leaves at 2100 and lands at 2800 with a pulse behind it: 3700.
     duration: 4700,
     narration: 'Deleting the mirror Pod with kubectl removes the API object and nothing else. The container on Node-1 keeps running, because the file on disk is what the Kubelet reads, and its next scan recreates the mirror. Nothing done to the object reaches the container.',
     chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'deleted, then recreated' },

@@ -34,7 +34,8 @@ const TO_N3 = [[CX, LB_BOTTOM], [CX, FAN_BUS_Y], [NODE_CX[2], FAN_BUS_Y], [NODE_
 // The nodePort rule DNATs down into the local backend Pod on Node-1.
 const NP_TO_POD = [[NODE_CX[0], NP_BOTTOM], [NODE_CX[0], POD_Y]];
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+// The tag that rides a ball on this card: emergeMode floats the node port address out of the balancer
+// block once the ball is on its way, and hold 0 clears each address as its hop lands.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 

@@ -47,7 +47,7 @@ export const SCENE = {
     P.box({ key: 'prov', x: PROV_CX - SIDE_W / 2, y: ROW_Y, w: SIDE_W, h: ROW_H, label: 'External-provisioner', sublabel: 'driver: ebs.csi.aws.com' }),
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse is
     // not part of the visible front face. Re-centre on the face, derived from the height.
-    P.cylinder({ key: 'pv', x: CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-e91c', labelY: PV_H / 2 + 10, opacity: 0 }),
+    P.cylinder({ key: 'pv', x: CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV e91c', labelY: PV_H / 2 + 10, opacity: 0 }),
     P.lane({ key: 'wClaimProv', points: W_CLAIM_PROV, dashed: true, dim: true, opacity: 0 }),
     P.lane({ key: 'wCreate', points: W_CREATE, dashed: true, dim: true, opacity: 0 }),
     P.lane({ key: 'wDownHigh', points: W_DOWN_HIGH, dashed: true, dim: true, opacity: 0 }),
@@ -72,9 +72,8 @@ export const SCENE = {
 // comes to report a mounted volume on the step that is still explaining the claim does not exist yet.
 const chips = (pod, pvc, back, life) => ({ podChip: pod, pvcChip: pvc, backChip: back, lifeChip: life });
 
-// STO.S-01 as a field: the Pod is dim until it actually reaches Running, the claim and the disk are
-// born mid-story, and every lane is pinned on EVERY step rather than inherited, since the reduced
-// replay walks 0..n and clearHighlights clears classes and not inline styles.
+// STO.S-01 as a field: the Pod is dim until it reaches Running and the claim and disk are born
+// mid-story, so every lane and box is pinned on EVERY step rather than inherited from the last.
 const LANES = ['wClaimProv', 'wCreate', 'wDownHigh', 'wDownLow', 'wUpHigh', 'wUpLow'];
 const stage = ({ podOn = OPACITY.pending, claim = OPACITY.pending, disk = 0, on = [] } = {}) => ({
   podB: podOn, pvc: claim, pv: disk,
@@ -167,14 +166,15 @@ export const STEPS_SPEC = [
     // fate in those terms rather than the policy that caused it: the disk went with the claim.
     chipsCued: chips('deleted', 'deleted by GC', 'deleted with claim', 'ended with Pod'),
     wires: { owner: 'cascade delete' },
-    sublabels: { pvc: 'Bound' },
+    // Terminating, not Bound: this is the step where the claim is collected, and its own chip reads
+    // deleted by GC. A Bound sublabel under a fading box contradicts both.
+    sublabels: { pvc: 'Terminating' },
     // Nothing is left pointing at anything: the lanes go out behind the cascade they carried, so the
     // closing frame is the collapsed column and nothing else.
     opacity: stage({ podOn: OPACITY.terminated, claim: OPACITY.terminated, disk: OPACITY.terminated }),
     rewind: { opacity: stage({ podOn: 1, claim: 1, disk: 1, on: ['wDownHigh', 'wDownLow'] }) },
-    // The Pod goes first, then the cascade walks down the column: the claim next, then the disk. Each
-    // lane goes out behind the cascade it carried, so nothing is left pointing at a ghost. `fill` is
-    // stated because the hand-written fades were 'forwards' where F.fade defaults to 'both'.
+    // The Pod goes first, then the cascade walks down the column: the claim next, then the disk, each
+    // fade timed off the arrival of the lane that carried it, which then goes out behind it.
     flow: [
       F.fade({ target: 'podB', to: OPACITY.terminated, dur: FADE.out, fill: 'forwards' }),
       F.route({ points: W_DOWN_HIGH, delay: FADE.out + BEAT.afterHop, name: 'gcHigh' }),

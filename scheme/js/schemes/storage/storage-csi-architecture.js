@@ -61,8 +61,8 @@ const FS_X = ND_R + GUTTER, FS_W = CONTENT_R - FS_X;         // 996 / 144, flush
 const FS_H = 116;
 // A cylinder's straight side edges run from y+8 to y+h-8, so the middle of its FACE is y + h/2. Pin
 // that to the node-row centre and the wire from the node driver enters the disk dead on its side.
-const FS_Y = B_CY - FS_H / 2;                                // 456 -> 456..572, inside the node band
-const FS_CY = B_CY;                                          // 514
+const FS_Y = B_CY - FS_H / 2;                                // 458 -> 458..574, 2 below the node band
+const FS_CY = B_CY;                                          // 516
 
 const CHIP_GAP = 16, CHIP_COUNT = 4;
 const CHIPS_W = CONTENT_R - CONTENT_L;                                              // 1080
@@ -84,9 +84,8 @@ const W_STUB_ATT   = [[S_CX[1], S_BOTTOM], [S_CX[1], BUS_Y]];
 const W_STUB_RES   = [[S_CX[2], S_BOTTOM], [S_CX[2], BUS_Y]];
 const W_STUB_SNAP  = [[S_CX[3], S_BOTTOM], [S_CX[3], BUS_Y]];
 
-// A frame is the ONE thing no part kind emits: a bare <rect> whose stroke and dash are set INLINE,
-// where P.box builds a labelled block with a class. Only the rect needs the escape, so the caption
-// beside it stays an ordinary P.tag and the pair stays an ordinary P.group.
+// No part kind emits a bare dashed outline, so this rect sets its stroke and dash INLINE.
+// Only the rect needs that escape: the caption stays a P.tag and the pair stays a P.group.
 const frameRect = (x, y, w, h) => {
   const r = rect({ x, y, width: w, height: h, rx: 12, fill: 'none' });
   r.style.stroke = 'var(--diag-node-stroke)';
@@ -101,9 +100,8 @@ const frame = (x, y, w, h, label) => P.group({
   ],
 });
 
-// The list order IS the append order, which is the z-order: the two frames first so every block
-// sits above its own frame, then the blocks and the disk, then the busses and the routes and their
-// captions, then the chip strip, then the packet layer.
+// List order IS append order, which is z-order: both frames first so every block sits above its own,
+// then the blocks and disk, then busses, routes and captions, then the chip strip, then the packets.
 export const SCENE = {
   'aria-label': 'CSI driver architecture: Kubernetes core knows nothing about any storage vendor, so a CSI driver ships in two halves, a controller plugin that runs as a Deployment or StatefulSet with four sidecars that each watch one kind of Kubernetes object and turn it into one gRPC call on a shared bus into a single vendor driver, and a node plugin that runs as a DaemonSet on every Node, registers itself with the local Kubelet, and is the only component that ever mounts vendor storage on the Node',
   parts: [
@@ -182,10 +180,8 @@ export const STEPS_SPEC = [
     chipsCued: chips('PVC Pending', 'CreateVolume', 'idle', 'object -> gRPC'),
     wires: { watch: 'PVC Pending' },
     lit: ['api'],
-    // Three chained hops, each timed off the previous arrival rather than a hard-coded delay:
-    // object out of the apiserver, one gRPC call into the driver, one vendor call out to the cloud.
-    // The provisioner's cue rides its own packet, because nothing stood between the two by hand; the
-    // driver's and the cloud's stand AFTER their tag, which is where the hand-written calls sat.
+    // Three chained hops, each timed off the previous arrival rather than a hard-coded delay: object
+    // out of the apiserver, one gRPC call into the driver, one vendor call out to the cloud.
     flow: [
       F.route({ points: W_API_PROV, name: 'watch', lights: ['prov'] }),
       F.route({ points: W_PROV_DRV, after: 'watch', name: 'call' }),

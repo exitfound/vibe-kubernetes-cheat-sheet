@@ -24,8 +24,8 @@ const CHIPS_Y = 566;
 const LANE_WRITE = [[APP_CX, C_BOTTOM], [APP_CX, HP_MY], [HP_X, HP_MY]];              // app -> host dir
 const LANE_READ  = [[HP_X + HP_W, HP_MY], [SIDE_CX, HP_MY], [SIDE_CX, C_BOTTOM]];     // host dir -> agent
 
-// A container is a box inside a bare g so it can be highlighted on its own. It is NEVER pulsed and
-// never lit as an inner box (STO.C-02): the Pod carries the pulse for everything in it.
+// A container is a box inside a bare g so it can be highlighted on its own. It lights as a RECEIVER
+// and is cleared by the reset, and is NEVER pulsed (STO.C-02): the Pod carries the pulse.
 const container = (key, x, label, sublabel) => P.group({
   key: `${key}C`,
   parts: [P.box({ key: `${key}Box`, x, y: C_Y, w: C_W, h: C_H, label, sublabel })],
@@ -34,7 +34,7 @@ const container = (key, x, label, sublabel) => P.group({
 // The list order IS the append order, which is the z-order: the node, then the Pod and the host
 // directory, then the two lanes and the shelf caption above them, then the chips, then the packets.
 export const SCENE = {
-  'aria-label': 'hostPath volume: a hostPath mounts a file or directory from the Node filesystem straight into the Pod. Under type Directory or File the target must already exist, DirectoryOrCreate and FileOrCreate make it, and the default empty type checks nothing at all. The directory belongs to the Node, not the Pod, so writes land in real host state and stay on the Node after the Pod is gone, but a Pod rescheduled to another Node mounts the different directory that belongs to that Node, so hostPath looks like persistence and is not. Pointed at a sensitive path it hands the whole Node to the Pod, which is why the Baseline and Restricted Pod Security Standards forbid it.',
+  'aria-label': 'hostPath volume: Pod log-agent mounts the Node directory /var/log straight into its containers, so the app writes and the agent reads real host state that stays on the Node once the Pod is gone. A Pod rescheduled elsewhere finds a different directory of that name, and pointed at a sensitive path a hostPath hands over the Node.',
   parts: [
     P.defs(),
     P.node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -69,13 +69,11 @@ export const SCENE = {
 };
 
 // The two faces of the host directory: the cylinder label and the shelf caption under it. NO field
-// writes either one, `labels:` goes through setBoxLabel and queries .scheme-box-label, and a free
-// <text> lands in the main ref bucket, so both are stated on every step as per-step state.
+// writes either one (`labels:` queries .scheme-box-label), so both are stated on every step.
 const faces = (s, cyl, shelf) => { setCylinderLabel(s.refs.hp, cyl); s.refs.diskLbl.textContent = shelf; };
 
 // STO.S-01 as a field: the reschedule step ghosts the Pod and its mount lanes, so every other step
-// states the stack at full. `diskLbl` is deliberately absent, because the legacy prologue never
-// pinned it either: this card ghosts the Pod alone and the shelf caption stays with the directory.
+// states the stack at full. `diskLbl` is absent: the Pod ghosts alone and the directory stays.
 const STACK_UP = { pod: 1, appC: 1, sideC: 1, hp: 1, wWrite: 1, wRead: 1 };
 const GONE = ['pod', 'wWrite', 'wRead'];
 
@@ -110,8 +108,7 @@ export const STEPS_SPEC = [
     lit: ['appBox'],
     enter(s) { faces(s, '/var/log', 'the node filesystem'); },
     // The write descends into the cylinder side, the read returns out of the far side and up into
-    // the Pod, which pulses again on that arrival. The cylinder cue is its OWN entry because the
-    // hand-written step emitted it after the tag, and that order is observable.
+    // the Pod, which pulses again. The cylinder cue is its own entry so it emits after the tag.
     flow: [
       F.pulse({ pod: 'pod' }),
       F.route({ points: LANE_WRITE, delay: BEAT.afterPulse, name: 'write' }),
@@ -132,8 +129,8 @@ export const STEPS_SPEC = [
     opacity: { ...STACK_UP, ...Object.fromEntries(GONE.map(k => [k, OPACITY.terminated])) },
     lit: ['hp'],
     enter(s) { faces(s, '/var/log', 'stays on Node-1'); },
-    // `fill` is stated because the hand-written fades took the WAAPI default of none where F.fade
-    // defaults to both. The static opacity above is what holds the ghost, not the fill.
+    // `fill` is stated because F.fade defaults to both, and these fades take the WAAPI default of
+    // none instead. The static opacity above is what holds the ghost, not the fill.
     flow: GONE.map(target => F.fade({ target, to: OPACITY.terminated, dur: FADE.out, fill: 'none' })),
   },
   {

@@ -128,8 +128,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'match-proxy',
-    // Motion runs pulse(800) + fan(420) + hop beat(100) + hop(420) = 1740ms, then the backend pulse
-    // (900) lands at 2300 and ends at 3200. The floor leaves a ~400ms settle rather than snapping on.
+    // Motion runs pulse(800) + fan(700, the floor) + beat(100) + hop(700, the floor), so the backend
+    // pulse (900) lands at 2300 and ends at 3200, leaving a ~400ms settle rather than snapping on.
     duration: 3600,
     narration: 'The controller reads the request Host header, shop.io, and the path, /, and matches them against its compiled rules. Only the / rule matches, so it proxies the request to Service web, and most controllers skip the ClusterIP and send straight to a Ready Pod IP read from the EndpointSlice. The api branch stays idle for this request.',
     wires: { web: 'proxy -> web' },

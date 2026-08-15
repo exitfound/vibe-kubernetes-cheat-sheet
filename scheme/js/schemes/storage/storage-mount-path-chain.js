@@ -62,7 +62,7 @@ const podBlock = (key, innerKey, x, label, opacity) => P.pod({
 // The list order IS the append order, which is the z-order: the disk and the blocks, then the Pods,
 // then every corridor lane and its caption, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Where the bytes land. One attached block device is mounted exactly once on the Node, at a global staging path under the Kubelet plugins directory. That single staged filesystem is then bind-mounted into a directory that belongs to one Pod alone, under the Kubelet Pods directory and the Pod uid, and the container runtime maps that directory to slash data inside the container. A second Pod on the same Node gets its own directory and its own bind mount off the same staging path, so two Pods share one disk through two separate bind mounts with no second attach and no second filesystem mount. A write to slash data descends the same chain, through the bind mount into the staging mount and onto the device, with no copy made at any hop.',
+  'aria-label': 'Where the bytes land. One block device is mounted exactly once on the Node, at a global staging path, and that single staged filesystem is bind-mounted into a directory belonging to one Pod alone, which the runtime maps to slash data. Pod A and Pod B share the disk through two bind mounts off that one staging path, with no copy at any hop.',
   parts: [
     P.defs(),
     // cylinder() centres its label on the raw bbox, which reads high because the top cap is not part
@@ -108,19 +108,16 @@ const chips = (mounted, binds) => ({
   devChip: '/dev/nvme1n1', mountChip: mounted, bindChip: binds, copyChip: 'none',
 });
 
-// STO.S-01 as a field: every step pins the whole skeleton, Pod B's half included, so a prev/reset
-// replay lands on the right one and a cancel mid-flight cannot strand a lane. Mount and descent are
-// mutually exclusive rather than independently toggled, which is the whole point of the pairing.
+// STO.S-01 as a field: every step pins the whole skeleton, Pod B included, so a prev/reset replay
+// lands right and a cancel mid-flight cannot strand a lane. Mount and descent are exclusive by pair.
 const stage = ({ podB = 0, binds = 0, descent = 0, podA = 1 } = {}) => ({
   podA, podB, bindB: binds, wStgBUp: binds, wBPodUp: binds,
   wDevUp: descent ? 0 : 1, wStgAUp: descent ? 0 : 1, wAPodUp: descent ? 0 : 1,
   wPodADn: descent, wAStgDn: descent, wStgDevDn: descent,
 });
 
-// A corridor turns around just before its ball uses it: the mount arrow fades out and its reversed
-// twin fades in over the same 300ms on the same centre line, so it reads as a ROTATION. The static
-// opacity above already holds the descent end-state, so `rewind` is what puts the pair back to the
-// mount state for the animated path alone, and under ctx.reduced it simply snaps.
+// A corridor turns around before its ball uses it: mount arrow out and reversed twin in over the same
+// 300ms on one centre line reads as a ROTATION, and `rewind` restages the pair from the end state.
 const flip = (up, dn, when) => [
   F.fade({ target: up, from: 1, to: 0, dur: 300, ...when, fill: 'forwards', easing: 'ease-in' }),
   F.fade({ target: dn, from: 0, to: 1, dur: 300, ...when, fill: 'forwards', easing: 'ease-out' }),

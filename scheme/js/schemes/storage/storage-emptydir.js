@@ -84,13 +84,11 @@ export const SCENE = {
 };
 
 // The two faces of the disk: the cylinder label and the shelf caption under it. NO field writes
-// either one, `labels:` goes through setBoxLabel and queries .scheme-box-label, and a free <text>
-// lands in the main ref bucket, so both are stated on every step as the per-step state they are.
+// either one (`labels:` queries .scheme-box-label), so both are stated on every step.
 const faces = (s, cyl, shelf) => { setCylinderLabel(s.refs.ed, cyl); s.refs.diskLbl.textContent = shelf; };
 
-// STO.S-01 as a field: the dies step ghosts the Pod, the spine, the lanes and the shelf caption,
-// so every other step states them at full. `ed` is deliberately absent, because the legacy
-// prologue never pinned it either and only the three steps that write it carry it.
+// STO.S-01 as a field: the dies step ghosts the Pod, the spine, the lanes and the shelf caption, so
+// every other step states them at full. `ed` is absent: only the three steps writing it carry it.
 const STACK_UP = { pod: 1, appC: 1, sideC: 1, spine: 1, wWrite: 1, wRead: 1, diskLbl: 1 };
 const GONE = ['pod', 'ed', 'spine', 'wWrite', 'wRead', 'diskLbl'];
 
@@ -124,9 +122,8 @@ export const STEPS_SPEC = [
     // both receivers, so each lights as its own ball lands, and the pulse fires on the same beat.
     lit: ['appBox'],
     enter(s) { faces(s, 'emptyDir', 'on the node disk'); },
-    // The app writes down its lane into the cylinder side, then the worker reads the same bytes
-    // out of the far side and up its own lane: two mirrored one-way hops. The disk cue is its OWN
-    // entry because the hand-written step emitted it after the tag, and that order is observable.
+    // Two mirrored one-way hops: the app writes into the cylinder side, the worker reads out of the
+    // far side. The disk cue is its own entry so it emits after the tag, an observable order.
     flow: [
       F.pulse({ pod: 'pod' }),
       F.route({ points: LANE_WRITE, delay: BEAT.afterPulse, name: 'write' }),
@@ -143,9 +140,8 @@ export const STEPS_SPEC = [
     chipsCued: { edChip: 'deleted forever', mediumChip: 'node disk', limitChip: 'none' },
     opacity: { ...STACK_UP, ...Object.fromEntries(GONE.map(k => [k, OPACITY.terminated])) },
     enter(s) { faces(s, 'emptyDir', 'on the node disk'); },
-    // 900 is this card's own fade, not FADE.out, and `fill` is stated because the hand-written
-    // fades took the WAAPI default of none where F.fade defaults to both. The static opacity above
-    // is what holds the ghost, not the fill.
+    // 900 is this card's own fade, not FADE.out. `fill` is stated as none against F.fade's default
+    // of both, because the static opacity above is what holds the ghost.
     flow: GONE.map(target => F.fade({ target, to: OPACITY.terminated, dur: 900, fill: 'none' })),
   },
   {

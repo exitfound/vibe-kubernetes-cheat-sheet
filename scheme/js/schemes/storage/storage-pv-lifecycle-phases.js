@@ -21,8 +21,8 @@ const ACT_W = 176;
 const PVC_X = BOUND_CX - ACT_W / 2, CTRL_X = RELEASED_CX - ACT_W / 2;   // 400 / 624
 const ADMIN_W = 176, ADMIN_X = RELEASED_CX - ADMIN_W / 2;              // 624
 
-// The family formula with this card's own width and gap: four phase names and their values are the
-// widest pairs in the category, so the strip is wider than STO.CHIP_W and still centred on 600.
+// The family formula with this card's own width and gap. 252 buys air, not fit: the worst pair here
+// is `claimRef` + `default/data stale`, 26 characters, which needs 203 against STO.CHIP_W 232.
 const CHIPS = chipStrip({ w: 252, gap: 24 });                  // 60 / 336 / 612 / 888
 
 // The forward lanes sit in the gaps between phases, so each is exactly GAP long and the same points
@@ -47,7 +47,7 @@ const lane = (points, p = {}) => P.lane({ points, dashed: true, dim: true, ...p 
 // Z-order (bottom -> top): the phase boxes and the actors, then every lane above them, then the
 // event labels, then the chip strip, then the packet layer so every ball rides above everything.
 export const SCENE = {
-  'aria-label': 'The phase field of a PersistentVolume as a state machine with four places. A fresh volume is Available and open to any matching claim. When a claimRef is written the volume becomes Bound. Deleting that claim moves it to Released rather than back to Available, because the claimRef stays behind and is now stale. From Released the PV controller reads the reclaim policy. Under Delete it removes both the storage asset and the PersistentVolume object, so the volume leaves the machine entirely, and if that automated reclamation errors instead the volume moves to Failed, which no automatic transition leaves. Under Retain the controller makes no call at all and the volume parks in Released. The single backward edge is manual: an administrator clears the stale claimRef and the volume returns to Available.',
+  'aria-label': 'The phase field of a PersistentVolume as a state machine with four places: Available, Bound, Released and Failed, each labelled with the condition that defines it. A claim binds the volume, deleting that claim leaves a stale claimRef behind, and from Released the PV controller acts on the reclaim policy. The one backward edge is manual.',
   parts: [
     P.defs(),
     // The four phases. Each carries the claimRef condition that defines it as a sublabel, because the
@@ -58,7 +58,7 @@ export const SCENE = {
     P.box({ key: 'stFailed', x: stX(FAILED_CX), y: ROW_Y, w: ST_W, h: ST_H, label: 'Failed', sublabel: 'reclaim errored' }),
     P.box({ key: 'pvc', x: PVC_X, y: ACT_Y, w: ACT_W, h: ACT_H, label: 'PVC default/data', sublabel: 'the claim', opacity: 0 }),
     // Delete and Retain only, never Recycle: the Recycle reclaim policy is deprecated in the upstream
-    // docs, and this sublabel used to advertise it as a live option.
+    // docs, so this sublabel must not advertise it as a live option.
     P.box({ key: 'ctrl', x: CTRL_X, y: ACT_Y, w: ACT_W, h: ACT_H, label: 'PV controller', sublabel: 'reads reclaim policy', opacity: 0 }),
     P.box({ key: 'admin', x: ADMIN_X, y: ADMIN_Y, w: ADMIN_W, h: ADMIN_H, label: 'Administrator', sublabel: 'kubectl patch pv', opacity: 0 }),
     // The three forward lanes are drawn on every step: the shape of the machine is true whether or
@@ -116,9 +116,8 @@ export const STEPS_SPEC = [
     chipsCued: chips('Bound', 'default/data', 'Delete', 'exists'),
     wires: { bind: 'claimRef written' },
     opacity: CLAIM_UP,
-    // Only the claim, the box the ball departs from, is lit from entry. The phase it acted on and the
-    // phase the volume ended in are both cued by an arrival, which is what flowLights hands the
-    // reduced path, so all three end up lit there exactly as before.
+    // Only the claim, the box the ball departs from, is lit from entry. Both phase boxes are cued by
+    // an arrival instead, which flowLights also hands the reduced path, so all three end up lit.
     lit: ['pvc'],
     flow: [
       F.route({ points: W_BIND, name: 'write' }),
@@ -140,9 +139,8 @@ export const STEPS_SPEC = [
     // The claim starts alive and is killed on this step, so its absence is the static end state and
     // the rewind puts it back for the fade below to take away.
     rewind: { opacity: { pvc: 1 } },
-    // The transition fires only once the deletion has finished going: the phase flip is caused by the
-    // deletion, so it may not overlap it. `unlight` is the onfinish that takes the lit stroke off with
-    // the block, so a box that has gone dark cannot keep glowing.
+    // The phase flip is caused by the deletion, so it may not overlap it and waits for the fade out.
+    // `unlight` takes the lit stroke off with the block, so a box that has gone dark cannot glow.
     flow: [
       F.fade({ target: 'pvc', to: 0, dur: 500, delay: 120, fill: 'forwards', unlight: ['pvc'] }),
       F.route({ points: W_BO_RE, delay: 620 + BEAT.afterHop, lights: ['stReleased'] }),

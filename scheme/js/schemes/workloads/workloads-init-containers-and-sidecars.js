@@ -44,9 +44,8 @@ const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
 const SPINE = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, POD_Y]];
 
-// The list order IS the append order, so it is the z-order: the two top lanes, the wire label and
-// the chip column first, then the spine and the packet layer, and chain / Node / Pod / actor row
-// above the ball.
+// Z-order: the two top lanes, the wire label and the chip column, then the spine and the packet
+// layer, then chain / Node / Pod / actor row above the ball.
 export const SCENE = {
   'aria-label': 'Init containers and native sidecars: strictly sequential bootstrap, sidecar gates main, then parallel run',
   parts: [
@@ -76,9 +75,8 @@ export const SCENE = {
       ],
     }),
     P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
-    // These four are containers of ONE Pod, so the Pod has to be on the canvas: without a shell
-    // there was nothing for a pulse to belong to. They are appended INSIDE the shell rather than
-    // beside it, because pulsePod only reaches what the Pod group contains.
+    // These four are containers of ONE Pod, so they go INSIDE the shell rather than beside it:
+    // pulsePod reaches only what the Pod group contains.
     P.pod({
       key: 'podGroup', id: 'podGroup', shellKey: 'shellEl',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod app-7d4', sublabel: ' ', containers: 0,

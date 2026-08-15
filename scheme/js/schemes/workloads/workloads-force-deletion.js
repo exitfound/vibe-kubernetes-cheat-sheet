@@ -47,9 +47,8 @@ const TRUNK = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.SPINE_X, JOG_Y], 
 const NODE1_LANE = [...TRUNK, [P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
 const NODE2_LANE = [...TRUNK, [P_B_CX, BUS_Y], [P_B_CX, POD_Y]];
 
-// The list order IS the append order, so it is the z-order: the two top arrows, the wire label and
-// the two lanes first, then the chip column, the packet layer, and chain / Nodes / Pods / actor row
-// above the ball.
+// Z-order: the two top arrows, the wire label and the two lanes, then the chip column and the
+// packet layer, then chain / Nodes / Pods / actor row above the ball.
 export const SCENE = {
   'aria-label': 'Force deletion and stuck Terminating Pods: an unreachable Node leaves a Pod stuck, force delete risks two live instances',
   parts: [
@@ -102,9 +101,8 @@ export const SCENE = {
   },
 };
 
-// setPods as FIELDS: each lane is pinned together with the Pod it lands on. Only the right-hand
-// pair was ever set, so the Node-1 lane kept a full-opacity arrowhead on a Pod that had already
-// dimmed away. Key order is the order the helper wrote them in.
+// Each lane is pinned together with the Pod it lands on, so no lane outlives its Pod and keeps a
+// full-opacity arrowhead on something that has already dimmed away.
 const podPair = (oldV, newV) => ({ podOld: oldV, connector: oldV, podNew: newV, connectorRight: newV });
 
 export const STEPS_SPEC = [
@@ -186,9 +184,8 @@ export const STEPS_SPEC = [
     // notready here, and that rise IS the step: the API believes it gone, the chips do not.
     opacity: podPair(OPACITY.notready, 1),
     lit: ['nodeChip', 'podChip', 'replicaChip', 'focusChip'],
-    // podNew appears on arrival, so the animated path pulses it then. Lighting podNewBox as a
-    // static `lit` would auto-pulse it at delay 0 while the Pod is still invisible (and double
-    // with the pulse), so the static path says it here instead.
+    // podNew appears on arrival, so the animated path pulses it there. As a static `lit` it would
+    // auto-pulse at delay 0 on a still-invisible Pod and double the pulse, hence reducedLit.
     reducedLit: ['podNewBox'],
     chain: 4,
     flow: [

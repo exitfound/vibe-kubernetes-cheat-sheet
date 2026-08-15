@@ -42,11 +42,11 @@ export const WORKLOADS_TINT = Object.freeze({ base: 'rgb(91, 184, 255)', bright:
 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(WORKLOADS_TINT);
 
-// Workloads Pods are already the category blue, so no Pod recolour: tint stays null.
 // The default tag that rides a ball (M-30). A card needing other timings makes its own with
 // makeRidingLabel and hands it to F.tag as `fn`.
 const ridingLabel = makeRidingLabel({ role: 'workloads' });
 
+// Workloads Pods are already the category blue, so no Pod recolour: tint stays null.
 const BIND = { role: 'workloads', podRole: 'workloads', tint: null, pulsePod, pulsePodDim, ridingLabel };
 export const P = makePartKinds(BIND);
 export const F = makeFlowKinds(BIND);

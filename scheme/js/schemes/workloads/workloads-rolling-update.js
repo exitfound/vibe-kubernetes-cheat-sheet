@@ -55,9 +55,8 @@ const trunkPath = (key, points) => P.relation({ key, points, role: 'cluster', da
 // never establishes, while the narration says the controller picks the OLDEST Pod.
 const POD_NAMES = ['web-a1', 'web-b2', 'web-c3', 'web-d4'];
 
-// The list order IS the append order, so it is the z-order: the Node frame is a 70% opaque fill,
-// so the bus that runs inside it and the balls that ride it are appended after it. Ladder, Pods
-// and the actor row sit above the packets.
+// Z-order: the Node frame is a 70% opaque fill, so the bus inside it and the balls riding it are
+// appended after it. Ladder, Pods and the actor row sit above the packets.
 export const SCENE = {
   'aria-label': 'Deployment rolling update: maxSurge surges a new ReplicaSet Pod first, maxUnavailable drains an old one once the new is Ready, repeat until converged',
   parts: [
@@ -105,9 +104,8 @@ export const SCENE = {
   },
 };
 
-// setSlots as FIELDS: a slot's version and its presence are ONE fact, so one helper writes both
-// (`null` = unoccupied, and an empty slot states no version). Two separate assignments show more
-// Pods alive than the row's own chip counts.
+// A slot's version and its presence are ONE fact, so one helper writes both (`null` = unoccupied,
+// an empty slot states no version). Two assignments show more Pods alive than the chips count.
 const slots = (...row) => {
   const opacity = {}, sublabels = {};
   row.forEach((v, i) => {

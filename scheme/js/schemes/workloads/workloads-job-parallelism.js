@@ -50,9 +50,8 @@ const LANE = i => (POD_CX(i) === WL.SPINE_X
   ? [...TRUNK, [WL.SPINE_X, POD_Y]]
   : [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]);
 
-// The list order IS the append order, so it is the z-order: the two top arrows, the wire label and
-// the five strip chips first, then the three lanes and the packet layer, and chain / Node / Pods /
-// actor row above the ball.
+// Z-order: the two top arrows, the wire label and the five strip chips, then the three lanes and
+// the packet layer, then chain / Node / Pods / actor row above the ball.
 export const SCENE = {
   'aria-label': 'Job parallelism and completions: at most parallelism workers run concurrently, until completions successful runs are recorded',
   parts: [
@@ -103,10 +102,8 @@ export const SCENE = {
 // arrowhead in an empty Node frame, and on this card the idle frame is the first thing a reader sees.
 const row = (a, b, c) => ({ pod1: a, lane0: a, pod2: b, lane1: b, pod3: c, lane2: c });
 
-// One ball per worker, all leaving together: every Pod that pulses has a ball that reached it.
-// `routeDur` is length-based, so which tap lands LAST is fixed geometry: taps 0 and 2 sit 366 units
-// off the spine (726 units of lane, 1613ms) and tie for last, tap 1 lands on the spine itself
-// (360 units, 800ms). The chip that counts the Pods therefore hangs off `create0`.
+// One ball per worker, all leaving together, so every Pod that pulses has a ball that reached it.
+// `routeDur` is length-based, so taps 0 and 2 tie for last and the counting chip hangs off create0.
 const fan = (i) => [
   F.route({ points: LANE(i), after: 'req', name: `create${i}` }),
   F.pulse({ pod: `pod${i + 1}`, at: `create${i}` }),
@@ -114,8 +111,7 @@ const fan = (i) => [
 const born = (i) => F.fade({ target: `pod${i + 1}`, from: 0, to: 1, dur: FADE.in, at: `create${i}`, fill: 'both', easing: 'ease-out' });
 
 // Every worker reports its OWN exit, so all three pulse together and nothing rides down. `fan` is
-// the CREATE helper and must not stand in here: its lane is built trunk-first from the controller
-// box down to the Pod, so a step whose wire reads `watch Pod exits` would draw three creates.
+// the CREATE helper and cannot stand in: its lane runs controller-down and would draw three creates.
 const EXITS = ['pod1', 'pod2', 'pod3'].map(pod => F.pulse({ pod }));
 
 export const STEPS_SPEC = [

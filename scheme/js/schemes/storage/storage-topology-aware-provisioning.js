@@ -40,9 +40,8 @@ const W_CROSS = [[NODE_CX[1], NODE_BOTTOM], [NODE_CX[1], CROSS_Y], [NODE_CX[0], 
 const CHIP_W = 232, CHIP_GAP = 16;
 const STRIP = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });   // 112 / 360 / 608 / 856, centred on CX
 
-// The list order IS the append order, which is the z-order: node frames and their zone captions,
-// the class and the claim, the disks, the Pod above its own frame, then the lanes and their
-// captions, then the chip strip, then the packet layer.
+// List order IS append order, which is z-order: node frames and their zone captions, the class and
+// the claim, the disks, the Pod, then lanes and captions, then the chip strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and no Node then both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
   parts: [
@@ -54,9 +53,8 @@ export const SCENE = {
     P.tag({ x: NODE_X[1] + NODE_W - 12, y: NODE_Y + 18, anchor: 'end', text: 'zone-b' }),
     P.box({ key: 'sc', x: SC_X, y: SC_Y, w: SC_W, h: SC_H, label: 'StorageClass gp3', sublabel: 'volumeBindingMode: Immediate' }),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-0', sublabel: 'Pending' }),
-    // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
-    // is not part of the visible front face. Re-centre on the face, derived from the height.
-    // Neither disk exists until it is provisioned, so both start at zero.
+    // labelY re-centres on the visible front face: the raw bbox includes the top cap ellipse, so the
+    // default label reads high. Neither disk exists until provisioned, so both start at zero.
     P.cylinder({ key: 'diskA', x: NODE_CX[0] - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'Disk zone-a', labelY: DISK_H / 2 + 10, opacity: 0 }),
     P.cylinder({ key: 'diskB', x: NODE_CX[1] - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'Disk zone-b', labelY: DISK_H / 2 + 10, opacity: 0 }),
     P.pod({
@@ -112,7 +110,7 @@ export const STEPS_SPEC = [
   {
     id: 'imm-provision',
     // 4400, not 3600: the provisioning route wraps the outer margin and runs the shelf midline into
-    // the zone-a disk from the right, which anim-dump puts at a 3960ms span (ball plus its ripple).
+    // the zone-a disk from the right, which measures out at a 3960ms span (ball plus its ripple).
     duration: 4400,
     narration: 'With Immediate the volume is provisioned the moment the claim appears, long before any Pod is scheduled. With no Pod to guide it, provisioning just picks a zone. Here it lands in zone-a, and the claim is Bound to a disk that now physically lives in zone-a, reachable only by Node-1.',
     chipsCued: chips('Immediate', 'Bound', 'Pending', 'disk in zone-a'),

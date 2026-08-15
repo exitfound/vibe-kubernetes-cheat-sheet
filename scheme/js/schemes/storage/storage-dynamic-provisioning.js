@@ -14,7 +14,7 @@ const COL_R_X = LEFT_X + COL_L_W + COL_GAP;           // 640
 // composition is centred by pulling the machinery column in, not by sliding the whole card left.
 
 const PVC_X = LEFT_X, PVC_Y = 70, PVC_W = COL_L_W, PVC_H = 80;
-const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 540 / 150
+const PVC_RIGHT = PVC_X + PVC_W, PVC_BOTTOM = PVC_Y + PVC_H;   // 600 / 150
 
 const SC_X = COL_R_X, SC_Y = 70, SC_W = COL_R_W, SC_H = 80;
 const SC_LEFT = SC_X, SC_BOTTOM = SC_Y + SC_H;                 // 640 / 150
@@ -32,16 +32,16 @@ const CLOUD_TOP = CLOUD_Y;                                     // 440
 // one stack rather than two blocks that happen to be near each other.
 const PV_X = LEFT_X, PV_Y = 430, PV_W = COL_L_W, PV_H = 110;
 const PV_TOP = PV_Y;                                           // 430
-const PV_CX = PV_X + PV_W / 2;                                 // 440
+const PV_CX = PV_X + PV_W / 2;                                 // 500
 
-const SPINE_X = PV_CX;  // 440
+const SPINE_X = PV_CX;  // 500
 const LANE_DY = 15;     // half-gap between the CreateVolume lane and the handle-return lane
-const DOWN_X = SC_CX + LANE_DY;  // 755: provisioner -> backend
-const UP_X = SC_CX - LANE_DY;    // 725: backend -> provisioner
+const DOWN_X = SC_CX + LANE_DY;  // 765: provisioner -> backend
+const UP_X = SC_CX - LANE_DY;    // 735: backend -> provisioner
 const CHIPS_Y = 585;
 
 // Chip widths keep their hand-tuned values (each is sized for its longest value, PV holds
-// 'PV-a7f2 created'), but the x positions are DERIVED so the strip is centered on CANVAS_CX.
+// 'a7f2 created'), but the x positions are DERIVED so the strip is centered on CANVAS_CX.
 const CHIP_W = [210, 250, 240, 230];
 const CHIP_GAP = 20;
 const CHIPS_W = CHIP_W.reduce((a, b) => a + b, 0) + CHIP_GAP * (CHIP_W.length - 1);   // 990
@@ -81,7 +81,7 @@ export const SCENE = {
     P.box({ key: 'prov', x: PROV_X, y: PROV_Y, w: PROV_W, h: PROV_H, label: 'External-provisioner', sublabel: 'CSI controller sidecar' }),
     P.box({ key: 'cloud', x: CLOUD_X, y: CLOUD_Y, w: CLOUD_W, h: CLOUD_H, label: 'Storage backend', sublabel: 'reached via the CSI driver' }),
     // The volume does not exist until CreateVolume returns, so it starts invisible.
-    P.cylinder({ key: 'pv', x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-a7f2', opacity: 0 }),
+    P.cylinder({ key: 'pv', x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'PV a7f2', opacity: 0 }),
     P.relation({ points: W_SC_REF, dash: '5 5' }),
     P.raw({ key: 'boundLink', make: boundLine, opacity: 0 }),
     P.lane({ points: W_PVC_TO_PROV, dashed: true, dim: true }),
@@ -132,8 +132,8 @@ export const STEPS_SPEC = [
     chipsCued: chips('Pending', 'gp3', 'none', 'none'),
     opacity: STACK_OFF,
     lit: ['pvc', 'sc'],
-    // Both routes clear on the same beat: 257 and 100 units both land under routeDur's 700ms floor,
-    // so the hand-written max() of the two arrivals is exactly the claim's own arrival.
+    // Both routes clear on the same beat: 197 and 100 units both land under routeDur's 700ms floor,
+    // so the later of the two arrivals is exactly the claim's own, which is what the light keys off.
     flow: [
       F.route({ points: W_PVC_TO_PROV, name: 'claim' }),
       F.tag({ text: '5Gi, class gp3', points: W_PVC_TO_PROV }),
@@ -166,7 +166,7 @@ export const STEPS_SPEC = [
     id: 'createpv',
     duration: 3000,
     narration: 'A disk on its own is invisible to Kubernetes. The provisioner writes a PersistentVolume object carrying the identifier it just got back, and that object is the cluster representation of the disk. Only now does the volume exist as something a claim can be paired with.',
-    chipsCued: chips('Pending', 'gp3', DISK_ID, 'PV-a7f2 created'),
+    chipsCued: chips('Pending', 'gp3', DISK_ID, 'a7f2 created'),
     wires: { pv: PV_BACKED },
     // The volume exists by the end of this step, so its visibility is the static end-state. F.reveal
     // writes its own `from`, so the animated path needs no rewind to start it hidden.
@@ -174,7 +174,7 @@ export const STEPS_SPEC = [
     lit: ['prov', 'cloud'],
     flow: [
       F.route({ points: W_PROV_TO_PV, name: 'write' }),
-      F.tag({ text: 'PV PV-a7f2', points: W_PROV_TO_PV }),
+      F.tag({ text: 'PV a7f2', points: W_PROV_TO_PV }),
       F.reveal({ target: 'pv', at: 'write' }),
       F.light({ targets: ['pv'], at: 'write' }),
     ],

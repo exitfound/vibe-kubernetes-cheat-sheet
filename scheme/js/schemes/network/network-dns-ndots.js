@@ -150,8 +150,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'walk',
-    // Four round trips back to back on the same lane, ~2090 each after the first, and the last one
-    // still has to finish its arrival pulse: the motion runs to ~10230.
+    // Four round trips back to back on the same lane, 2248 each after the first, and the last one
+    // still has to finish its arrival pulse: the motion runs to 10232.
     duration: 10400,
     narration: 'But if that first guess misses, the resolver does not give up, it walks the whole list: api.svc.cluster.local, then api.cluster.local, then finally api on its own. Every miss is a full round trip that ends in NXDOMAIN, so one name that does not exist costs four of them, and because the resolver asks for IPv4 and IPv6 the real total doubles again.',
     // The lanes end the step on the LAST candidate and its miss, the state the fourth round trip

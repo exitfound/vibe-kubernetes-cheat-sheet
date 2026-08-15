@@ -155,8 +155,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'reply',
-    // Two-hop round trip: the motion runs ~3340ms, so this floor gives a ~460ms settle after the
-    // reply lands, matching the dwell of the single-hop steps instead of snapping straight on.
+    // Two-hop round trip at SLOWMO: the motion runs 3430ms, so this floor gives a 370ms settle after
+    // the reply lands, matching the dwell of the single-hop steps instead of snapping straight on.
     duration: 3800,
     narration: 'The Pod replies from its own IP, but conntrack reverses the translation on the way back so the source looks like 10.96.0.20 again. The client only ever sees the ClusterIP it dialed, never the Pod address it was actually served by.',
     chips: { dnatChip: '-> 10.244.2.7:8080', ctChip: 'reverse NAT', backChip: '10.244.2.7', vipChip: VIP },
@@ -175,7 +175,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'balance',
-    // Same two-hop round trip as reply (~3340ms of motion): match the settle so it is not rushed.
+    // Same two-hop round trip as reply (3460ms of motion): match the settle so it is not rushed.
     duration: 3800,
     narration: 'A second connection to the same ClusterIP is a brand new flow, so kube-proxy is free to pick the other backend. It DNATs this one to 10.244.3.9 and conntrack pins it there, while the first flow stays on 10.244.2.7. Each connection sticks to its own Pod.',
     chips: { dnatChip: '-> 10.244.3.9:8080', ctChip: 'two flows', backChip: '10.244.3.9', vipChip: VIP },
@@ -196,7 +196,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'balance-reply',
-    // Same two-hop round trip (~3340ms of motion): match the settle so the final step does not snap.
+    // Same two-hop round trip (3430ms of motion): match the settle so the final step does not snap.
     duration: 3800,
     narration: 'The second backend Pod replies from its own 10.244.3.9, and conntrack reverses this second flow the same way, rewriting the source back to 10.96.0.20 before the reply reaches the client. Two Pods served two connections, and the client only ever saw the single ClusterIP.',
     chips: { dnatChip: '-> 10.244.3.9:8080', ctChip: 'reverse NAT', backChip: '10.244.3.9', vipChip: VIP },

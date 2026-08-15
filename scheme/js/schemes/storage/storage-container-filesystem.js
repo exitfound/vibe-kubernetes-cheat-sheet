@@ -25,9 +25,8 @@ const W_VOL    = [[POD_RIGHT, EXIT_Y], [BYPASS_X, EXIT_Y], [BYPASS_X, VOL_MY], [
 
 const LAYER_FADE = 500;                               // the layer and its wire cross-fade as one
 
-// Z-order (bottom -> top): blocks, then wires and the mount label above them, then the chip strip,
-// then the packet layer so every ball rides above everything. The Container is a group holding the
-// shell wrap and the Process box as PEERS, so the pulse on the group reaches both.
+// Z-order (bottom -> top): blocks, wires and the mount label, the chip strip, then the packet layer
+// so every ball rides above. The Container group holds shell and Process box as PEERS, so both pulse.
 export const SCENE = {
   'aria-label': 'Container filesystem layers: a container root filesystem is read-only image layers stacked by overlayfs with one thin writable layer on top. A write copies the file up into the writable layer rather than changing the image, and that writable layer is discarded when the container is removed, which is why data written outside a volume vanishes. A mounted volume bypasses the overlay and writes straight to real storage.',
   parts: [
@@ -66,7 +65,7 @@ const RO_FS = 'read-only image layers', RW_FS = 'RO image + RW top';
 const IN_WRITABLE = 'no, in writable';
 
 // STO.S-01 as a field: the writable layer and its wire come and go, so both are pinned on every
-// step alongside the Container, which resetStep used to pin by hand.
+// step, alongside the Container that holds them.
 const STACK_OFF = { ctr: 1, writable: 0, wCopyup: 0 };
 const STACK_ON  = { ctr: 1, writable: 1, wCopyup: 1 };
 

@@ -48,9 +48,8 @@ const SPINE = [
 
 const POD_NAMES = ['web-a1', 'web-b2', 'web-c3', 'web-d4'];
 
-// The list order IS the append order, so it is the z-order: the top lane pair, the wire label, the
-// chip column and the trunk first, then the packet layer, and chain / Node / Pods / actor row above
-// the ball.
+// Z-order: the top lane pair, the wire label, the chip column and the trunk, then the packet layer,
+// then chain / Node / Pods / actor row above the ball.
 export const SCENE = {
   'aria-label': 'Deployment rollback and revision history: a bad rollout stalls past progressDeadlineSeconds, rollout undo scales the broken ReplicaSet to zero while the previous one keeps serving',
   parts: [

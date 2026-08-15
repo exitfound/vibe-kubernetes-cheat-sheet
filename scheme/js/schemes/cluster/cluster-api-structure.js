@@ -81,8 +81,8 @@ function setSlot(slot, type, sub) {
   if (slot._bot) slot._bot.textContent = sub;
 }
 
-// The watch arrow never takes a dash offset on any step, so this clears nothing: kept because the
-// old resetStep ran it before every step and a migration reproduces behaviour, dead lines included.
+// The watch arrow takes no dash offset on any step, so this clears nothing today. It stands as the
+// arrow's reset guard: a step that ever dashes it needs the offset cleared before the next one.
 function resetWatchArrow(s) {
   if (s.refs.watchArrow) {
     s.refs.watchArrow.style.strokeDasharray = '';
@@ -93,7 +93,7 @@ function resetWatchArrow(s) {
 // The list order IS the append order, so it is the z-order: the four blocks that must sit on top of
 // everything else go last, after the packet layer.
 export const SCENE = {
-  'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. The controller opens with discovery, GET /api and GET /apis, to learn which group-version-resources it can reach. The informer then fires an initial LIST at resourceVersion 0, which the API answers from the watch cache it keeps filled from ETCD rather than with a quorum read, and that fills the Indexer cache the controller then reconciles from without going back to the API. It opens a watch from that same resourceVersion, and the API streams every later change over one connection held open for as long as the controller wants, so a new Pod reaching ETCD arrives as an ADDED event that updates the cache. When the API has compacted history past the resourceVersion the informer holds, the next chunk of that stream is HTTP 410 Gone, and the informer re-LISTs to a fresh resourceVersion and resumes watching rather than losing its place. CustomResourceDefinitions add their own API group under the same paths, with the same list-then-watch contract, so a controller for a custom resource is written exactly like one for a built-in.',
+  'aria-label': 'How a controller stays in step with the API server, over the list-watch cycle. A client-go Client, the API, an Informer, an Indexer and ETCD stand around a group-version-resource catalogue and a row of watch events. The controller lists once, then holds one watch open for later changes, re-listing when history is compacted past its resourceVersion.',
   parts: [
     P.defs(),
     P.chip({ key: 'rvChip', x: SCHIP_X, y: SCHIP_Y(0), w: SCHIP_W, h: SCHIP_H, name: 'resourceVersion', value: 'none' }),
@@ -154,8 +154,8 @@ export const SCENE = {
   },
 };
 
-// Slot TEXT only. The opacity half of the old hideAllSlots is the `opacity` field, and the caption
-// goes with the slots because it only makes sense with them on screen.
+// Slot TEXT only: hiding a slot is two halves, and the opacity half is the `opacity` field. The
+// caption goes with the slots because it only makes sense with them on screen.
 function hideSlotText(s) {
   SLOT_KEYS.forEach(k => setSlot(s.refs[k], 'none', ''));
 }
@@ -180,8 +180,8 @@ export const STEPS_SPEC = [
     chips: { rvChip: 'none', watchChip: 'closed', cacheChip: '0' },
     wires: { req: 'GET /api  +  GET /apis', gvr: 'GVR catalogue' },
     opacity: HIDDEN,
-    // Only the CLIENT is lit at entry. The API is the receiver of the one ball this step draws, and
-    // it used to be lit from entry too, which showed the answer 1156ms before the question landed.
+    // Only the CLIENT is lit at entry. The API is the receiver of the one ball this step draws, so it
+    // lights on arrival: lighting it at entry shows the answer 1156ms before the question lands.
     lit: ['client'],
     enter: hideSlotText,
     // The client calls /api and /apis on the Api to fetch the GVR catalogue.

@@ -28,7 +28,7 @@ const PV_TOP = PV_Y, PV_BOTTOM = PV_Y + PV_H;       // 384 / 470
 const SMALL_CX = 280, MATCH_CX = CX, SLOW_CX = 920; // 280 / 600 / 920
 
 const MOUNT_X = CX;     // the ONE spine lane: the mount ascent, arrowheaded, dead center
-const DROP_X = 1120;    // the probe exits the controller's right side and wraps down here, clear of PV-b22
+const DROP_X = 1120;    // the probe exits the controller's right side and wraps down here, clear of PV b22
 const BUS_Y = 520;      // the scan bus runs BELOW the shelf, a generous gap under the cylinder bottoms
 const LANE = 12;        // half-gap between the two horizontal PVC<->controller lanes
 const SPEC_Y = PV_Y + 62;   // inside the cylinder, a line under its name
@@ -45,9 +45,8 @@ const W_CTRL_TO_PVCB = [[PVCB_CX, CTRL_Y], [PVCB_CX, PVCB_BOTTOM]];   // deny, s
 const W_MOUNT_LOW   = [[MOUNT_X, PV_TOP], [MOUNT_X, PVC_BOTTOM]];   // PV -> PVC, upward
 const W_MOUNT_HIGH  = [[MOUNT_X, PVC_Y], [MOUNT_X, POD_BOTTOM]];    // PVC -> Pod, upward
 
-// A disk is a cylinder plus its spec line, wrapped in a group so dimming a rejected volume fades
-// the spec WITH it (the name already rides inside the cylinder). Only the winner keys its cylinder,
-// because .highlight must sit on the .scheme-cylinder element and never on the wrapper.
+// A disk is a cylinder plus its spec line, grouped so dimming a rejected volume fades the spec WITH
+// it. Only the winner keys its cylinder: .highlight must sit on .scheme-cylinder, never the wrapper.
 const disk = ({ key, cylKey, cx, w, label, spec }) => P.group({
   key,
   parts: [
@@ -73,9 +72,9 @@ export const SCENE = {
     }),
     // Each disk states all THREE things the claim is matched on, so the verdict can be checked
     // rather than taken on trust. Access mode is identical on all three on purpose.
-    disk({ key: 'pvSmall', cx: SMALL_CX, w: 200, label: 'PV-a01', spec: '2Gi, RWO, local-ssd' }),
-    disk({ key: 'pvMatch', cylKey: 'pvMatchCyl', cx: MATCH_CX, w: 230, label: 'PV-x73a', spec: '5Gi, RWO, local-ssd' }),
-    disk({ key: 'pvSlow', cx: SLOW_CX, w: 200, label: 'PV-b22', spec: '5Gi, RWO, local-hdd' }),
+    disk({ key: 'pvSmall', cx: SMALL_CX, w: 200, label: 'PV a01', spec: '2Gi, RWO, local-ssd' }),
+    disk({ key: 'pvMatch', cylKey: 'pvMatchCyl', cx: MATCH_CX, w: 230, label: 'PV x73a', spec: '5Gi, RWO, local-ssd' }),
+    disk({ key: 'pvSlow', cx: SLOW_CX, w: 200, label: 'PV b22', spec: '5Gi, RWO, local-hdd' }),
     P.lane({ points: W_PVC_TO_CTRL, dashed: true, dim: true }),
     P.lane({ points: W_CTRL_TO_PVC, dashed: true, dim: true }),
     P.lane({ points: W_SCAN_SMALL, dashed: true, dim: true }),
@@ -91,8 +90,8 @@ export const SCENE = {
     P.wire({ key: 'slow', x: SLOW_CX, y: VERDICT_Y }),
     P.chip({ key: 'pvcChip', x: 105, y: CHIPS_Y, w: 200, h: 34, name: 'PVC', value: 'Pending' }),
     // Named for the ONE volume it tracks. A bare 'PV' would be a lie from the bind step on, since
-    // PV-a01 and PV-b22 stay Available after PV-x73a goes Bound.
-    P.chip({ key: 'pvChip', x: 325, y: CHIPS_Y, w: 200, h: 34, name: 'PV-x73a', value: 'Available' }),
+    // PV a01 and PV b22 stay Available after PV x73a goes Bound.
+    P.chip({ key: 'pvChip', x: 325, y: CHIPS_Y, w: 200, h: 34, name: 'PV x73a', value: 'Available' }),
     P.chip({ key: 'bindChip', x: 545, y: CHIPS_Y, w: 330, h: 34, name: 'binding', value: 'none' }),
     P.chip({ key: 'mountChip', x: 895, y: CHIPS_Y, w: 200, h: 34, name: 'mount', value: 'none' }),
     P.packets(),
@@ -106,19 +105,18 @@ export const SCENE = {
   },
 };
 
-const BOUND = 'data-claim <-> PV-x73a';
+const BOUND = 'data-claim <-> PV x73a';
 const MATCH_OK = '5Gi, RWO, local-ssd OK';
 const chips = (pvc, pv, bind, mount) => ({ pvcChip: pvc, pvChip: pv, bindChip: bind, mountChip: mount });
 
-// STO.S-01 as fields: the two late-appearing elements and the two rejected disks are pinned on
-// EVERY step, never inherited, because the reduced replay walks 0..n and clearHighlights clears
-// classes and not inline styles.
+// STO.S-01 as fields: the two late-appearing elements and the two rejected disks are pinned on EVERY
+// step, because the reduced replay walks 0..n and clearHighlights clears classes, not inline styles.
 const CLAIM2_OFF = { pvcB: 0, wCtrlToPvcB: 0 };
 const CLAIM2_ON = { pvcB: 1, wCtrlToPvcB: 1 };
 const SHELF_UP = { pvSmall: 1, pvSlow: 1 };
 const SHELF_DIM = { pvSmall: OPACITY.notready, pvSlow: OPACITY.notready };
 const VERDICTS = { small: 'too small', slow: 'wrong class' };
-// The rejection fade, hand-rolled before as dimBoxAt: from 1, forwards, on the probe that rejected it.
+// The rejection fade: to notready, forwards, fired when the probe that rejected the disk lands.
 const dimAt = (target, at) => F.fade({ target, to: OPACITY.notready, dur: 400, fill: 'forwards', easing: 'ease-out', at });
 
 export const STEPS_SPEC = [
@@ -155,18 +153,16 @@ export const STEPS_SPEC = [
   {
     id: 'match',
     duration: 3400,
-    narration: 'The controller checks every Available volume in one sweep. PV-a01 is only 2Gi, which is under what the claim asks for, and PV-b22 is the local-hdd class rather than local-ssd. Only PV-x73a satisfies all three conditions, so it is the candidate.',
-    chipsCued: chips('Pending', 'Available', 'candidate PV-x73a', 'none'),
+    narration: 'The controller checks every Available volume in one sweep. PV a01 is only 2Gi, which is under what the claim asks for, and PV b22 is the local-hdd class rather than local-ssd. Only PV x73a satisfies all three conditions, so it is the candidate.',
+    chipsCued: chips('Pending', 'Available', 'candidate PV x73a', 'none'),
     wires: { small: VERDICTS.small, match: MATCH_OK, slow: VERDICTS.slow },
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
     lit: ['ctrl'],
     // The candidate is a VERDICT of the sweep, so the animated path starts from what the watch step
     // left it at, and the shelf starts undimmed so the probes are what dim it.
     rewind: { chips: { bindChip: 'none' }, wires: { small: '', match: '', slow: '' }, opacity: SHELF_UP },
-    // All three probes leave the controller TOGETHER: the scan is one sweep of the shelf, not a
-    // queue. They land 1.4s apart because routeDur normalizes speed and the routes differ in length.
-    // Each verdict is written when its OWN probe lands, and the candidate chip turns over inside the
-    // same write that lights the winning cylinder.
+    // All three probes leave the controller TOGETHER: the scan is one sweep, not a queue. They land
+    // 1.4s apart because routeDur normalizes speed, so each verdict lands with its OWN probe.
     flow: [
       F.route({ points: W_SCAN_SMALL, name: 'small' }),
       F.route({ points: W_SCAN_MATCH, name: 'match' }),
@@ -175,14 +171,14 @@ export const STEPS_SPEC = [
       dimAt('pvSlow', 'slow'),
       F.light({ targets: ['pvMatchCyl'], at: 'match' }),
       F.set({ wires: { small: VERDICTS.small }, at: 'small' }),
-      F.set({ wires: { match: MATCH_OK }, chipsCued: { bindChip: 'candidate PV-x73a' }, at: 'match' }),
+      F.set({ wires: { match: MATCH_OK }, chipsCued: { bindChip: 'candidate PV x73a' }, at: 'match' }),
       F.set({ wires: { slow: VERDICTS.slow }, at: 'slow' }),
     ],
   },
   {
     id: 'bind',
     duration: 2800,
-    narration: 'Binding is written on both objects. The claim gets a volumeName pointing at PV-x73a, and the volume gets a claimRef pointing back at data-claim. Both turn Bound, and because the volume now names its claim, no other claim can ever take it.',
+    narration: 'Binding is written on both objects. The claim gets a volumeName pointing at PV x73a, and the volume gets a claimRef pointing back at data-claim. Both turn Bound, and because the volume now names its claim, no other claim can ever take it.',
     chipsCued: chips('Bound', 'Bound', BOUND, 'none'),
     wires: VERDICTS,
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
@@ -190,7 +186,7 @@ export const STEPS_SPEC = [
     // Two writes leave the controller at once: one down to the claim, one down to the volume.
     flow: [
       F.route({ points: W_CTRL_TO_PVC, lights: ['pvc'] }),
-      F.tag({ text: 'volumeName: PV-x73a', points: W_CTRL_TO_PVC }),
+      F.tag({ text: 'volumeName: x73a', points: W_CTRL_TO_PVC }),
       F.route({ points: W_SCAN_MATCH, lights: ['pvMatchCyl'] }),
       F.tag({ text: 'claimRef: data-claim', points: W_SCAN_MATCH }),
     ],
@@ -206,9 +202,8 @@ export const STEPS_SPEC = [
     lit: ['pvMatchCyl'],
     // Without the re-dim the Pod sits at full opacity and snaps BACK the instant the fade goes active.
     rewind: { opacity: { appPod: OPACITY.pending } },
-    // The volume rises PV -> PVC -> Pod, the ball entering the claim at its bottom edge and
-    // re-emerging at the top: the claim is what the mount resolves THROUGH, so it lights on arrival.
-    // The ball arrives AT the Pod, so the Pod pulses on arrival, not before it.
+    // The volume rises PV -> PVC -> Pod: the claim is what the mount resolves THROUGH, so it lights
+    // on arrival, and the ball arrives AT the Pod, so the Pod pulses then rather than before.
     flow: [
       F.route({ points: W_MOUNT_LOW, name: 'hop1', lights: ['pvc'] }),
       F.route({ points: W_MOUNT_HIGH, after: 'hop1', name: 'hop2' }),
@@ -221,7 +216,7 @@ export const STEPS_SPEC = [
   {
     id: 'exclusive',
     duration: 2600,
-    narration: 'Binding is one to one and it is permanent. A second claim asking for exactly the same thing finds PV-x73a already carrying a claimRef, so that volume is no longer Available to anyone. These volumes were pre-created by an administrator and the class has no provisioner behind it, so nothing builds a new one. The second claim just stays Pending.',
+    narration: 'Binding is one to one and it is permanent. A second claim asking for exactly the same thing finds PV x73a already carrying a claimRef, so that volume is no longer Available to anyone. These volumes were pre-created by an administrator and the class has no provisioner behind it, so nothing builds a new one. The second claim just stays Pending.',
     chipsCued: chips('Bound', 'Bound', BOUND, 'mounted at /data'),
     wires: VERDICTS,
     sublabels: { pvcB: 'Pending, no volume' },

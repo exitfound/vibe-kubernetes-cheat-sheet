@@ -86,10 +86,8 @@ const podWire = (x) => line({
   'marker-start': 'url(#arrowhead-dim)', 'marker-end': 'url(#arrowhead-dim)',
 });
 
-// The IP line inside a Pod fades in on the address step, so each Pod hands its sublabel child up as
-// a ref: an animation target the part kinds have no key for. The tune is passed IN and assigns a
-// LITERAL key, because unit/spec-steps.test.mjs reads escape bodies for `refs.x =` and a computed
-// key is invisible to it: four writers would look like four targets that resolve to nothing.
+// The IP line fades in on the address step, so each Pod hands its sublabel child up as a ref: an
+// animation target no part kind keys. The tune assigns a LITERAL key (unit/spec-steps.test.mjs).
 const podPart = ({ key, innerKey, tune, x, label }) => P.pod({
   key, innerKey, tune, x: x - POD_W / 2, y: POD_TOP, w: POD_W, h: 120, label, sublabel: IP_PENDING,
   inner: { dx: 18, dy: 34, w: POD_W - 36, h: 50, label: 'app', sublabel: 'eth0' },
@@ -133,8 +131,8 @@ export const SCENE = {
   },
 };
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy, so the
-// factory is built once and handed to every F.tag as `fn`.
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: hold 260
+// leaves the source IP standing after the ball lands, which is how a step shows it arrived unchanged.
 const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 

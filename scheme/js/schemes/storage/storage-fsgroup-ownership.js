@@ -91,8 +91,7 @@ const liftTreeCaption = (el) => {
 };
 
 // The listing rows, as chips: one name, one value, lighting as a unit when the scan reaches them.
-// They are collected into ARRAYS and never given a scalar key: both dumps name their members
-// rows[n], and a scalar key would add a `chips: rowN=...` line per row on every step.
+// They stay ARRAYS named rows[n] in both dumps: a scalar key adds a `chips: rowN=...` line per step.
 const row = (i) => P.chip({
   x: ROW_X, y: rowY(i), w: ROW_W, h: ROW_H, name: ROW_NAMES[i], value: OWNER_BEFORE,
   tune: (el, refs) => {
@@ -115,7 +114,7 @@ export const SCENE = {
     P.defs(),
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
     // is not part of the visible front face. Re-centre on the face.
-    P.cylinder({ key: 'cyl', x: CYL_X, y: CYL_Y, w: CYL_W, h: CYL_H, label: 'PV-app', labelY: CYL_H / 2 + 10 }),
+    P.cylinder({ key: 'cyl', x: CYL_X, y: CYL_Y, w: CYL_W, h: CYL_H, label: 'PV app', labelY: CYL_H / 2 + 10 }),
     P.box({ key: 'tree', x: TREE_X, y: TREE_Y, w: TREE_W, h: TREE_H, label: 'Volume tree', sublabel: 'owned root:root', tune: liftTreeCaption }),
     row(0), row(1), row(2),
     P.box({ key: 'kube', x: KUBE_X, y: KUBE_Y, w: KUBE_W, h: KUBE_H, label: 'Kubelet', sublabel: 'applies fsGroup before start' }),
@@ -148,18 +147,15 @@ export const SCENE = {
 // card comes to report 'write: allowed' on the step that is explaining that the write is refused.
 const chips = (owner, write, policy) => ({ ownerChip: owner, writeChip: write, policyChip: policy });
 
-// The rows are the one part of this card no field can reach, so their per-step state is written
-// through the step escape, on BOTH paths, in the state the step ENDS in: the whole-tree ownership,
-// and .highlight on every row the scan visited. The animated path winds that back in walkMarks,
-// which is the rewind pattern said through the two hooks that can address an array.
+// The rows are the one part of this card no field can reach, so their per-step END state is written
+// through the step escape, on BOTH paths, and the animated path winds it back in walkMarks.
 const showRows = (chowned, visited) => (s) => {
   s.refs.rowOwners.forEach((ow, i) => { ow.textContent = chowned ? OWNER_AFTER[i] : OWNER_BEFORE; });
   s.refs.rows.forEach((r, i) => r.classList.toggle('highlight', i < visited));
 };
 
-// The scan itself. Its timers hang on the ROW, not on the svg, so no flow verb reproduces them:
-// F.run at delay 0 runs INLINE and registers nothing (at() in scheme-kit), which puts this loop
-// exactly where the hand-written one stood, between the walk packet and the cue that follows it.
+// The scan itself. Its timers hang on the ROW, not the svg, so no flow verb reproduces them: F.run
+// at delay 0 runs INLINE and registers nothing (at() in scheme-kit), so the loop keeps its position.
 const walkMarks = ({ delay, only, chown }) => (s, ctx) => {
   const endY = walkEndY(only), dur = walkDur(only);
   s.refs.rows.forEach(r => r.classList.remove('highlight'));
@@ -177,9 +173,8 @@ const walkMarks = ({ delay, only, chown }) => (s, ctx) => {
   }
 };
 
-// The ball and the row timers start together, and an F.run's fn cannot read the flow's own arrival
-// map: so the start is ONE card number that both take, rather than `after` on one and a copy of it
-// on the other. On the chown step that number is where the chown ball lands plus a hop.
+// The ball and the row timers start together, and an F.run fn cannot read the flow arrival map, so
+// the start is ONE card number both take: on the chown step, where the chown ball lands plus a hop.
 const WALK_AT = packetArrival(W_CHOWN) + BEAT.afterHop;   // 800
 const walk = ({ delay = 0, only = ROW_COUNT, chown = false } = {}) => [
   F.segment({ from: [CONTENT_CX, WALK_Y0], to: [CONTENT_CX, walkEndY(only)], delay, dur: walkDur(only), name: 'walk' }),
@@ -203,8 +198,8 @@ export const STEPS_SPEC = [
     sublabels: { secBox: 'fsGroup not set', tree: 'owned root:root' },
     wires: { disk: 'created root:root' },
     enter: showRows(false, 0),
-    // The tree lights only when the write actually gets there, so the cue is its own entry standing
-    // after the tag, which is the order the hand-written step emitted.
+    // The tree lights only when the write actually gets there, so the cue hangs off the route
+    // arrival rather than sitting in `lit` at step entry.
     flow: [
       F.pulse({ pod: 'appPod' }),
       F.route({ points: W_WRITE, delay: BEAT.afterPulse, name: 'write' }),

@@ -11,11 +11,11 @@ one card (the catalog barrels, `js/lib/`, the kits, the CSS) is recorded in a JS
 the code it describes, not in a document. None of them ships (`S-41`).
 
 **HOW TO READ THIS FILE.** (Deliberately not a `##` heading: every `## ` here is a card id, and
-`check-notes` parses it that way. A second-level heading anywhere else is reported as an orphan.)
+`unit/docs.test.mjs` parses it that way. A second-level heading anywhere else is reported as an orphan.)
 
 One `## <card-id>` section per card. `### layout` describes the whole card in labelled blocks,
 `### poster` describes the grid thumbnail, and each ``### before `<line>` `` holds the note for one
-line of code. `check-notes` verifies every anchor still occurs in its card, so **an anchor is DATA:
+line of code. `unit/docs.test.mjs` verifies every anchor still occurs in its card, so **an anchor is DATA:
 never reword one** (`S-38`).
 ``### note (anchor dropped: ...)`` is a note whose target line is not unique in the file.
 
@@ -25,9 +25,10 @@ none of your own.
 
 Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM ranges 90 to 504 over
 the standard viewport set, and it moves NON-MONOTONICALLY (`L-02`, `L-04`, `L-05`). So a `PANEL_B`
-in a card is a measurement, not a convention. Re-measure with
-`VW=1100 VH=800 node overlay-measure.mjs <card>` after any prose change: several cards here carry a
-hard character ceiling and the gate enforces none of them (`L-08`).
+in a card is a measurement, not a convention. Re-measure after any prose change with `npm run
+report` from `scheme/test/`, which prints the real extent per card, per step, over the three
+viewports: several cards here carry a hard character ceiling and nothing in `npm test` enforces one
+(`L-08`).
 
 ---
 
@@ -47,7 +48,7 @@ LANES    One spine at WL.SPINE_X into the Pod's TOP MIDPOINT. The Pod is centred
 WHY NOT  Layout A: the six-row ladder is 6*32 + 5*10 = 242 and the left band under the panel is
          250..464 = 214. Twenty-eight short.
 NOTE     CENTRE passes without a full-width bottom strip because chainList rows carry
-         .scheme-chip, so the strip check-geometry measures is chips + ladder = 60..1140.
+         .scheme-chip, so the strip the rule measures is chips + ladder = 60..1140.
 ```
 
 ### poster
@@ -183,7 +184,7 @@ The four tick dots make the circle a clock rather than a node, at four marks ins
 WHAT     One Pod per matching Node, across four Node frames, with a Node joining and a Node
          leaving.
 LAYOUT   B (chips left, ladder right). PANEL_B 230.
-           chips  60..540, 4 x 34 = 160 tall
+           chips  60..540, 4 x 34 + 3 x 8 = 160 tall
            ladder 660..1140, 5 rows = 200
            nodes  four frames on the canvas floor, 484..624
 LANES    Trunk from TOP1's bottom midpoint, stepping to WL.SPINE_X at y=140, into a bus at
@@ -221,14 +222,17 @@ pod-to-node mapping is the DaemonSet signature.
 ```
 Both counters climb PER ARRIVAL, not at step entry. The narration is `creates one Pod on each` and
 the card draws three separate creates, so the count climbing alongside the three Pods appearing IS
-the step. The `chips:` block states the final `3` on both paths by construction, which is what the
-reduced contract needs.
+the step. The `chips:` block states `0`, which is the entry state the DO NOT below demands, and the
+`3` is written by the `F.set` inside each create. `flow` runs on the ANIMATED path only, so a
+reduced replay of this step ends with both counters still reading 0. Chip text is not one of the
+four axes `render/reduced.test.mjs` compares (only WIRE-TEXT is), so nothing in the suite sees it.
 
 The visible sequence is 0, 2, 3 and NOT 0, 1, 2, 3. Two of the three taps sit 138 units off the
 spine against the third's 414, so those two land in the same millisecond and the `1` is overwritten
-in the instant it is written. That was equally true of the accumulator this replaced, which hid it.
-The rank each landing writes is now a literal, and NO half of the oracle can see it: swapping two
-ranks leaves both diffs clean. Opening the mid-count frame is the only guard there is.
+in the instant it is written. In full: 594 units of lane arrive at 1320ms twice over, 870 units at
+1933ms once. That was equally true of the accumulator this replaced, which hid it.
+The rank each landing writes is a literal, and NOTHING in the suite can see it: swapping two ranks
+leaves every check green. Opening the mid-count frame is the only guard there is.
 
 DO NOT read either counter from step entry. The step says the controller sees three matching Nodes
 and ZERO Pods, and the Pods do not fade in until their creates land about 2s later, so a counter
@@ -396,9 +400,10 @@ WHY NOT  Anything beside the panel: the left band is 399..464 = 65.
 WHY NOT  Chips two per row: three rows, leaving the Node frame 64 units where the Pod alone is
          106. Three per row is 350.67 and the widest value needs 269.
 WHY NOT  The spine leaving TOP1, Kubelet. Kubelet is a CRI CLIENT and never touches a container:
-         the runtime execs the hook and delivers the signal, which both riding steps say in their
-         own wire label (`CRI ExecSync · preStop · Sync`, `CRI StopContainer · SIGTERM · ACK`).
-         Cost 311ms per ball, both have the headroom.
+         the runtime execs the hook and delivers the signal, which all three riding steps say in
+         their own wire label (`CRI ExecSync · postStart · Exit 0`, `CRI ExecSync · preStop ·
+         Sync`, `CRI StopContainer · SIGTERM · ACK`). Cost 311ms per ball, all three have the
+         headroom.
 DO NOT   Ride the ack on `segmentPacket from [580,95] to [540,95]`. Both x values sit INSIDE the
          Kubelet box (420..640), so the ball slides across the box instead of down the arrow.
 OPEN     Layout C leaves the left band empty at wide viewports; unavoidable while unclamped.
@@ -407,24 +412,24 @@ OPEN     Layout C leaves the left band empty at wide viewports; unavoidable whil
 ### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
 
 ```
-ExecSync hops to the runtime and acks back; once that ack lands at the
-kubelet the exec order travels down to the Pod, which pulses as the hook
-starts running inside it.
+The ExecSync ask hops to the runtime, then the exec order travels down the
+spine to the Pod, which pulses as the hook starts running inside it. The ack
+hops back to the kubelet last, one beat after that arrival.
 ```
 
 ### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
 
 ```
-StopContainer hops to the runtime and acks back; once that ack lands at
-the kubelet the SIGTERM order travels down to the Pod, which pulses then
-dims out as the process exits.
+The StopContainer ask hops to the runtime, then the SIGTERM travels down the
+spine to the Pod, which pulses and then dims out as the process exits. The ack
+hops back to the kubelet last, one beat after that arrival.
 ```
 
 ### before `const ack = (after) => F.segment({ from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], after });`
 
 ```
 The ack rides at the spine ball's arrival plus a beat, never before it. Span 3280 against
-durations of 3800, 3800 and 4000, measured with anim-dump. Ordering it this way makes the steps
+durations of 3800, 3800 and 4000, measured off `getAnimations()`. Ordering it this way makes the steps
 SHORTER, not longer, because the Pod pulse moves earlier.
 
 DO NOT put the ack second. It reports `ExecSync` complete before the hook has been exec-ed and
@@ -456,7 +461,7 @@ packets frozen on a wire.
 WHAT     Init containers running to completion in order, then a native sidecar starting and
          staying up alongside the app.
 LAYOUT   B (chips left, ladder right). PANEL_B 255.
-           chips  60..540, 4 x 34 = 160
+           chips  60..540, 4 x 34 + 3 x 8 = 160
            ladder 660..1140, 5 rows = 200
            node   on the floor, one 828-wide Pod centred in it
 LANES    Spine stepping to WL.SPINE_X at y=140 (clearing the chip column) and landing on the
@@ -491,8 +496,14 @@ LANES    Trunk TOP1 midpoint -> WL.SPINE_X at y=140 -> bus at NODE_Y-12, tapping
          Each step fires one ball per lane through the card-local `fan`. The middle Pod centres
          exactly on WL.SPINE_X, so its lane skips the bus point rather than drawing a zero-length
          segment.
-MOTION   3500 / 2700 / 3500 / 2700, sized to the routes. `partial` is the exception at 2600, span
-         2060, because it carries no down-balls at all (see its own note).
+         Measured: taps 0 and 2 sit 366 units off the spine, so their lanes run 726 units and land
+         at 1613ms, tying for last; tap 1 runs the bare 360 units and lands at 800ms. That tie is
+         why the counting chip hangs off `create0` rather than off whichever ball arrives last.
+MOTION   3500 / 2600 / 3500 / 2200, sized to the routes. The two steps that fire the three creates
+         run 3500, the longest ball taking 1613ms on its own lane after the top hop and its beat.
+         The two that carry no down-balls at all are shorter:
+         `partial` at 2600 over a span of 2060 (see its own note), `complete` at 2200 over a span
+         of 900, which is the three exit pulses and nothing else.
 WHY NOT  A chip column: 202 tall against a left band of 164. The widest value needs 258, so three
          per row at 350.67 clears it.
 NOTE     POD_TOP_PAD is 24. At a smaller pad the frame's own NODE-1 label is drawn inside
@@ -515,8 +526,9 @@ draw three creates. Nothing is created here, so nothing rides down.
 
 ```
 Replacement create travels controller -> Api -> Node. worker-3 already runs
-its retry here at full opacity (the dim belonged to the previous step), all three
-live Pods pulse together on arrival (parallelism=3).
+its retry here at full opacity (the dim belonged to the previous step), and each
+of the three live Pods pulses as its OWN ball lands (parallelism=3): worker-2 at
+800ms off the bare trunk, workers 1 and 3 at 1613ms.
 ```
 
 ### poster
@@ -734,9 +746,10 @@ WHY NOT  The storage lane as NODE2_LANE reversed: that is a control route wearin
          colour.
 DO NOT   Give a ball a literal points array. One of the previous pair ran out to x=1198, off the
          content band entirely, matching no wire on the card.
-NOTE     setLanes pins each lane to 0 while the Pod it addresses is not on that Node, per the
-         project rule that an absent block dims but its lanes disappear. Without it the CSI lane
-         claims the volume is attached to Node-2 on the idle step, contradicting the narration.
+NOTE     The `lanes` helper pins each lane to 0 while the Pod it addresses is not on that Node,
+         per the project rule that an absent block dims but its lanes disappear. Without it the
+         CSI lane claims the volume is attached to Node-2 on the idle step, contradicting the
+         narration.
 ```
 
 ### before `F.route({ points: NODE1_LANE, fadeIn: true, name: 'del' }),`
@@ -852,8 +865,9 @@ LANES    None down to the Node. restartPolicy is enforced in place and every pac
 WHY NOT  Chips four across: 258 wide, and five strings collide, including "Pod B · OnFailure"
          against "Waiting (backoff)".
 WHY NOT  Api first. Kubelet is the node-facing actor and the line down to the Node has to leave a
-         box midpoint inside the corridor. With the two swapped, `bounce()` leaves the Api
-         while its own comment says "request up to the apiserver".
+         box midpoint inside the corridor. With the two swapped, `bounce()` would send its first
+         hop OUT of the Api while its own comment has Kubelet watching the Api and the spec
+         hopping back.
 ```
 
 ### poster
@@ -907,7 +921,7 @@ if the slot count or the released slot ever changes.
 
 DO NOT carry a pulse list across a slot-count change. A stale list fires one pulse on an invisible
 Pod while `pod4`, a Ready v2 Pod, never acknowledges the narration that calls it Ready, and
-`check-reduced` still passes, because the played and the reduced path are wrong IDENTICALLY.
+`render/reduced.test.mjs` still passes, because the played and the reduced path are wrong IDENTICALLY.
 ```
 
 ### poster
@@ -936,10 +950,11 @@ LAYOUT   A. PANEL_B 255.
            actors StatefulSet 420..780 centred on CX; headless Service hanging UNDER the Api at
                   840..1140 x 152..232, joined by a vertical arrow between the face midpoints,
                   its wire label below it
-LANES    Trunk, a bus at NODE_Y + 12, one tap per ordinal. Taps are drawn on every step, but
-         `ordinals` pins each Pod to 0 until its ordinal is created, so on idle the reader sees
-         three empty slots the ladder is about to fill and the ball that rides a tap is what
-         materializes that Pod.
+LANES    Trunk, a bus at NODE_Y + 12, one tap per ordinal. `ordinals` pins each tap to the SAME
+         opacity as the Pod it lands on and splits the bus at the centre slot (busL with ordinal
+         0, busR with ordinal 2), so no lane points into a slot whose Pod does not exist yet: on
+         idle all three ordinals are 0 and the Node frame is empty. A step turns its own tap on at
+         entry, and the ball that rides it is what materializes that Pod.
 WHY NOT  The Service in the actor row: at 840..1060 against an Api at 700..920 the two boxes
          overlap by 80 units, and so do their wire labels.
 ```
@@ -952,7 +967,7 @@ The Service is a receiver, so it lights on arrival rather than at step entry. Du
 4000 / 4800.
 
 DO NOT draw it with an arrowhead and no ball. The card names the registration three times in
-narration and labels this wire for it three times through `setWire(s, 'svc', ...)`.
+narration and labels this wire for it three times through the step field `wires: { svc: ... }`.
 ```
 
 ### poster

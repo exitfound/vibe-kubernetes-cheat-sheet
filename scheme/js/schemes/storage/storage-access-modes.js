@@ -60,7 +60,7 @@ const W_P1_DRV = podReq(P1_CX);
 const W_P2_DRV = podReq(P2_CX);
 const W_P3_DRV = podReq(P3_CX);
 // driver -> disk, the ball re-emerging at the disk column. The three shared-filesystem attaches fan
-// out INSIDE the PV-nfs column, not off the band, so every lane leaves on a face midpoint.
+// out INSIDE the PV nfs column, not off the band, so every lane leaves on a face midpoint.
 const W_DRV_BLOCK = [[BLOCK_CX, DRV_BOTTOM], [BLOCK_CX, PV_TOP]];
 const NFS_LANE = 16;
 const NFS_FAN_Y = (DRV_BOTTOM + PV_TOP) / 2 - 20;        // 392, above the driver caption at 408
@@ -69,18 +69,15 @@ const W_DRV_NFS_1 = nfsAttach(-NFS_LANE);   // app-1 on node-1
 const W_DRV_NFS_2 = [[NFS_CX, DRV_BOTTOM], [NFS_CX, PV_TOP]];   // app-2 on node-1
 const W_DRV_NFS_3 = nfsAttach(NFS_LANE);    // app-3 on node-2
 
-// A Pod is a shell plus an inner box in one wrapper, so pulsePod reaches BOTH: querySelectorAll
-// matches descendants only, so pulsing a bare shell would fire at half strength.
-// Inset 14 rather than 20: at this POD_W the old inset left the sublabel close to the box sides.
-// 'read/write' is 59 units wide against a 100-wide box, so it keeps ~20 units of air either side.
+// Shell plus inner box in one wrapper, so pulsePod reaches BOTH (querySelectorAll matches
+// descendants only). Inset 14 gives a 100-wide inner box: 'read/write' is 59 units, ~20 of air a side.
 const podBlock = ({ key, innerKey, x, label }) => P.pod({
   key, innerKey, x, y: POD_Y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0,
   inner: { dx: 14, dy: 46, w: POD_W - 28, h: 52, label: 'ctr', sublabel: 'read/write' },
 });
 
-// The list order IS the append order, which is the z-order: node frames, the driver band and the
-// disks, then the Pods above their own frame, then the lanes and their captions, then the chip
-// strip, then the packet layer.
+// List order IS append order, which is z-order: node frames, the driver band and the disks, then the
+// Pods above their own frame, then lanes and captions, then the chip strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'Access modes decide who can mount a volume at once: ReadWriteOnce attaches a volume to a single Node, so two Pods on that same Node can both use it but a Pod on another Node cannot, ReadWriteOncePod narrows that to one single Pod, and ReadWriteMany needs a shared filesystem because a plain block disk cannot be attached to many Nodes at all. The access mode is mostly a request that the CSI driver has to honour rather than a rule Kubernetes enforces on its own, the one exception being ReadWriteOncePod.',
   parts: [
@@ -88,8 +85,8 @@ export const SCENE = {
     P.node({ x: NODE_1_X, y: NODE_Y, w: NODE_1_W, h: NODE_H, label: 'Node-1' }),
     P.node({ x: NODE_2_X, y: NODE_Y, w: NODE_2_W, h: NODE_H, label: 'Node-2' }),
     P.box({ key: 'driver', x: DRV_X, y: DRV_Y, w: DRV_W, h: DRV_H, label: 'CSI driver and attach controller', sublabel: 'grants or refuses each attach' }),
-    P.cylinder({ key: 'pvBlock', x: BLOCK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-block' }),
-    P.cylinder({ key: 'pvNfs', x: NFS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-nfs' }),
+    P.cylinder({ key: 'pvBlock', x: BLOCK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV block' }),
+    P.cylinder({ key: 'pvNfs', x: NFS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV nfs' }),
     podBlock({ key: 'podA1', innerKey: 'appA1', x: P1_X, label: 'Pod app-1' }),
     podBlock({ key: 'podA2', innerKey: 'appA2', x: P2_X, label: 'Pod app-2' }),
     podBlock({ key: 'podB1', innerKey: 'appB1', x: P3_X, label: 'Pod app-3' }),
@@ -102,7 +99,7 @@ export const SCENE = {
     P.lane({ points: W_DRV_NFS_3, dashed: true, dim: true }),
     P.wire({ key: 'block', x: BLOCK_CX, y: VERDICT_Y }),
     P.wire({ key: 'nfs', x: NFS_CX, y: VERDICT_Y }),
-    // Centered on the driver band it captions, rather than the hand-typed 725 it used to sit at.
+    // Centered on the driver band it captions, so the caption tracks the band and not a literal x.
     P.wire({ key: 'drv', x: DRV_X + DRV_W / 2, y: 408 }),
     P.tag({ x: BLOCK_CX, y: SPEC_Y, text: 'block disk, single attach' }),
     P.tag({ x: NFS_CX, y: SPEC_Y, text: 'shared filesystem' }),
@@ -127,9 +124,7 @@ const chips = (mode, attach, share, enforcer = 'CSI driver') =>
 const pods = (a1, a2, b1) => ({ podA1: a1, podA2: a2, podB1: b1 });
 
 // One attach that succeeds: the Pod blinks first (it is the actor), the request rises to the driver,
-// then the granted attach drops to the disk. Both the driver and the disk light on arrival. The
-// disk's cue is its OWN entry rather than `lights` on the attach, because the hand-written step
-// emitted it AFTER the riding tag, and that order is observable.
+// then the granted attach drops to the disk. The driver and the disk each light on arrival.
 const grantMount = ({ name, pod, reqPts, attachPts, tag, disk, lead = 0 }) => [
   F.pulse({ pod, delay: lead }),
   F.route({ points: reqPts, delay: lead + BEAT.afterPulse, name: `${name}Req`, lights: ['driver'] }),
@@ -213,7 +208,7 @@ export const STEPS_SPEC = [
   {
     id: 'rwx-nfs',
     duration: 3800,
-    narration: 'Point the claim at a shared filesystem instead, PV-nfs on NFS or CephFS, and ReadWriteMany works. The driver attaches it to both Nodes, and all three Pods mount it at once, on either Node, with nobody refused. The mode was always allowed by Kubernetes, what changed is a backend that can deliver it.',
+    narration: 'Point the claim at a shared filesystem instead, PV nfs on NFS or CephFS, and ReadWriteMany works. The driver attaches it to both Nodes, and all three Pods mount it at once, on either Node, with nobody refused. The mode was always allowed by Kubernetes, what changed is a backend that can deliver it.',
     chipsCued: chips('ReadWriteMany', 'node-1, node-2', 'app-1, app-2, app-3'),
     wires: { nfs: 'attached: both nodes' },
     // Every Pod is at full opacity here: ReadWriteMany on a shared filesystem excludes nobody, so

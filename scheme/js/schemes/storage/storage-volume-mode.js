@@ -57,9 +57,8 @@ const podBlock = ({ key, innerKey, x, label, sublabel, ctr, ctrSub }) => P.pod({
   inner: { dx: 14, dy: 44, w: POD_W - 28, h: 52, label: ctr, sublabel: ctrSub },
 });
 
-// The list order IS the append order, which is the z-order: the node frame, then the band and the
-// two disks, then the Pods above their own frame, then the lanes and their captions, then the chip
-// strip, then the packet layer.
+// Z-order is the list order: the node frame, then the band and the two disks, then the Pods above
+// their own frame, then the lanes and their captions, then the chip strip, then the packet layer.
 export const SCENE = {
   'aria-label': 'volumeMode decides what a Pod is handed. Under Filesystem, the default, the CSI node service formats the device with mkfs if it has no filesystem yet, mounts it, and the container finds an ordinary directory at the mountPath given under volumeMounts, where file permissions and the fsGroup ownership walk apply. Under Block nothing is formatted and nothing is mounted: the raw device is published into the container at the devicePath given under volumeDevices, and every filesystem level feature stops applying. The field is immutable and must match on the PersistentVolume and the claim.',
   parts: [
@@ -69,11 +68,10 @@ export const SCENE = {
       key: 'band', x: BAND_X, y: BAND_Y, w: BAND_W, h: BAND_H,
       label: 'Kubelet and CSI Node Service', sublabel: 'stages the volume, then publishes it',
     }),
-    // Two identical disks. The label carries the size so the card never has to claim in prose that
-    // they are the same: the reader can see it. The primitive centers the label on the raw bbox,
-    // which reads high because the top cap ellipse is not part of the visible front face.
-    P.cylinder({ key: 'pvFs', x: FS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-web 20Gi', labelY: PV_H / 2 + 10 }),
-    P.cylinder({ key: 'pvBlk', x: BLK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV-db 20Gi', labelY: PV_H / 2 + 10 }),
+    // Two identical disks, with the size in the label so the reader can see they match. labelY
+    // re-centres on the visible front face: the raw bbox includes the cap ellipse and reads high.
+    P.cylinder({ key: 'pvFs', x: FS_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV web 20Gi', labelY: PV_H / 2 + 10 }),
+    P.cylinder({ key: 'pvBlk', x: BLK_CX - PV_W / 2, y: PV_Y, w: PV_W, h: PV_H, label: 'PV db 20Gi', labelY: PV_H / 2 + 10 }),
     podBlock({
       key: 'podFs', innerKey: 'ctrFs', x: P1_X,
       label: 'Pod web-0', sublabel: 'volumeMode: Filesystem', ctr: 'app', ctrSub: 'volumeMounts',
@@ -99,9 +97,8 @@ export const SCENE = {
   },
 };
 
-// Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how a
-// card comes to display 'mkfs then mount' on the step that is explaining that Block never formats.
-// All four go through setChip, so all four are chipsCued. Argument order is the old helper's.
+// Every step writes EVERY chip: a chip left unset keeps the previous value, which is how a card comes
+// to display 'mkfs then mount' on the step explaining that Block never formats. All four are cued.
 const chips = (mode, nodeDoes, container, fsgroup) => ({
   modeChip: mode, nodeChip: nodeDoes, ctrChip: container, fsgChip: fsgroup,
 });
@@ -118,9 +115,8 @@ export const STEPS_SPEC = [
     narration: 'Pod web-0 takes the default. A volumeMode of Filesystem is what you get whenever the field is absent, and it is what almost every workload wants. The Pod consumes the volume under volumeMounts, naming a mountPath, and what it expects to find at that path is a directory.',
     chipsCued: chips('Filesystem', 'nothing yet', 'nothing yet', 'applied'),
     wires: { fs: 'no filesystem yet' },
-    // The Pod states what it wants: the Pod blinks first (it is the actor), then the request drops
-    // to the node service, which lights on arrival. The cue is its OWN entry because it stood after
-    // the tag, and that order is observable.
+    // The Pod is the actor, so it blinks first and the request then drops to the node service, which
+    // lights on arrival. The cue is its OWN entry, sitting after the tag, because that order shows.
     flow: [
       F.pulse({ pod: 'podFs' }),
       F.route({ points: W_FS_ASK, delay: BEAT.afterPulse, name: 'ask' }),
@@ -135,10 +131,8 @@ export const STEPS_SPEC = [
     chipsCued: chips('Filesystem', 'mkfs then mount', 'nothing yet', 'applied'),
     wires: { fs: 'ext4 created', band: 'stage: mkfs then mount' },
     lit: ['band'],
-    // The node service acts on the disk. No Pod is involved, so nothing pulses: the ball leaves
-    // after BEAT.lead so the lit band registers before it departs, and the disk lights on arrival.
-    // The disk then hands the formatted device back, as the block branch beside it already draws.
-    // Without it the fs branch stages onto the disk and mounts a device it never received.
+    // No Pod acts, so nothing pulses: the ball leaves after BEAT.lead so the lit band registers first,
+    // and the disk lights on arrival. It hands the device back, or the fs branch mounts one it never got.
     flow: [
       F.route({ points: W_FS_STAGE, delay: BEAT.lead, name: 'staged' }),
       F.tag({ text: 'mkfs ext4', points: W_FS_STAGE, delay: BEAT.lead }),

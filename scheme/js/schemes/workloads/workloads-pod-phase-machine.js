@@ -32,9 +32,8 @@ const CONT_Y = 574, CONT_H = 36;                         // 574..610
 const SPINE_X = TOP_X + TOP_W / 2;                       // 560
 const SPINE = [[SPINE_X, WL.TOP_BOTTOM], [SPINE_X, POD_Y]];
 
-// The list order IS the append order, so it is the z-order: the Node frame is a 70% opaque fill,
-// so the lane leg that runs inside it and the ball that rides it follow it, and ladder / Pod /
-// Kubelet sit above the packets.
+// Z-order: the Node frame is a 70% opaque fill, so the lane leg inside it and the ball riding it
+// follow it, and ladder / Pod / Kubelet sit above the packets.
 export const SCENE = {
   'aria-label': 'Pod lifecycle phases: Kubelet reconciles status.phase through Pending, Running and a terminal Succeeded or Failed, with CrashLoopBackOff sitting inside Running as a container waiting reason',
   parts: [

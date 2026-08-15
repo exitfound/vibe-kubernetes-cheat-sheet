@@ -24,9 +24,8 @@ const LANE_APP_DOWN  = [[APP_CX - LANE_DX, C_BOTTOM], [APP_CX - LANE_DX, VOL_MY 
 const LANE_SIDE_UP   = [[VOL_X + VOL_W, VOL_MY - LANE_DY], [SIDE_CX - LANE_DX, VOL_MY - LANE_DY], [SIDE_CX - LANE_DX, C_BOTTOM]];
 const LANE_SIDE_DOWN = [[SIDE_CX + LANE_DX, C_BOTTOM], [SIDE_CX + LANE_DX, VOL_MY + LANE_DY], [VOL_X + VOL_W, VOL_MY + LANE_DY]];
 
-// The identity spine is the ONE element no part kind emits: it is a dashed category-coloured path
-// with NO arrowhead and NO data-role, where P.lane adds a marker and P.relation adds both the
-// relation class and the role attribute. STO.A-01 is the reason it must stay markerless.
+// No part kind emits this: P.lane adds a marker and P.relation adds a relation class and a role,
+// where STO.A-01 needs the identity spine dashed, category-coloured, markerless and role-free.
 const spine = () => path({
   class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-storage scheme-arrow-dim',
   d: `M ${SPINE_X} ${POD_BOTTOM} L ${SPINE_X} ${VOL_TOP}`,
@@ -34,8 +33,8 @@ const spine = () => path({
   fill: 'none',
 });
 
-// A container is a box inside a bare g so it can be highlighted and faded on its own. It is NEVER
-// pulsed and never lit as an inner box (STO.C-02): the Pod carries the pulse for everything in it.
+// A container is a box inside a bare g so it can be highlighted and faded on its own. It lights as a
+// RECEIVER and is cleared by the reset, and is NEVER pulsed (STO.C-02): the Pod carries the pulse.
 const container = (key, x, label, sublabel) => P.group({
   key: `${key}C`,
   parts: [P.box({ key: `${key}Box`, x, y: C_Y, w: C_W, h: C_H, label, sublabel })],
@@ -115,8 +114,8 @@ export const STEPS_SPEC = [
     narration: 'Each container opts in with its own volumeMounts entry and may choose its own path. The app sees the volume at /data and the log shipper sees the very same bytes at /backup. Two mounts, two paths, one underlying volume.',
     chipsCued: { volChip: 'mounted x2', mountChip: MOUNTS, dataChip: 'empty' },
     opacity: STACK_UP,
-    // Both containers mount the volume, so all three light for the whole step. The volume is static
-    // on both paths; the two boxes are cued by their arrivals, which is what flowLights derives.
+    // Both containers mount the volume. Only the volume lights for the whole step: the two boxes are
+    // cued by their arrivals, which is what flowLights derives for the static path.
     lit: ['volume'],
     // The two mounts leave the volume sides and rise into the containers in lockstep (the lanes
     // are mirror images, so routeDur gives them the same duration). Mounts ride the UP lanes.
@@ -137,9 +136,8 @@ export const STEPS_SPEC = [
     // The app container is the writer, so it is lit from entry. The volume takes the write before
     // it can serve the read, so it lights when the ball lands on it, like the sidecar box below.
     lit: ['appBox'],
-    // The app write descends its DOWN lane into the volume side, then the log shipper reads the
-    // same bytes back out of the far side and up its own UP lane. The volume's cue is its OWN entry
-    // because the hand-written step emitted it after the tag, and that order is observable.
+    // The app write descends its DOWN lane into the volume side, then the log shipper reads the same
+    // bytes back out of the far side and up its own UP lane.
     flow: [
       F.pulse({ pod: 'pod' }),
       F.route({ points: LANE_APP_DOWN, delay: BEAT.afterPulse, name: 'write' }),
@@ -170,8 +168,8 @@ export const STEPS_SPEC = [
     chipsCued: { volChip: 'gone with Pod', mountChip: 'unmounted', dataChip: 'lost' },
     // The containers keep their own full opacity and ghost with the Pod group that holds them.
     opacity: { ...STACK_UP, ...Object.fromEntries(GONE.map(k => [k, OPACITY.terminated])) },
-    // fill is stated: the hand-written fades took the WAAPI default of 'none', where F.fade defaults
-    // to 'both'. The static opacity above is what holds the ghost, not the fill.
+    // fill is stated: F.fade defaults to 'both', and these fades take the WAAPI default of 'none'
+    // instead. The static opacity above is what holds the ghost, not the fill.
     flow: GONE.map(target => F.fade({ target, to: OPACITY.terminated, dur: FADE.out, fill: 'none' })),
   },
 ];

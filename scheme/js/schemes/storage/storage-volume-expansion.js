@@ -43,12 +43,10 @@ const W_TO_PVC = [[ACT_R_CX, SLOT_A_BOTTOM], [ACT_R_CX, PVC_MID], [PVC_RIGHT, PV
 const W_CTRL_EXP = [[ACT_R_X, DISK_MID], [DISK_RIGHT, DISK_MID]];
 const W_NODE_EXP = [[ACT_L_RIGHT, DISK_MID], [DISK_LEFT, DISK_MID]];
 
-// Every lane in this card is a ROUTE: something travels all of them, so they are all dashed, all
-// carry a head, and all are built from the same points array as their ball.
-// The list order IS the append order, which is the z-order: blocks and the disk, then the lanes and
-// their captions above them, then the Pod, then the chip strip, then the packet layer.
+// Every lane here is a ROUTE: all dashed, all headed, all built from the same points as their ball.
+// Append order IS z-order: blocks and disk, lanes and captions, the Pod, the chip strip, the packets.
 export const SCENE = {
-  'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. You raise the storage request on the claim, and the API server accepts that edit only because the StorageClass behind it has allowVolumeExpansion set to true. Then the external-resizer calls ControllerExpandVolume and the backend grows the real block device, which is phase one. Then Kubelet calls NodeExpandVolume on the Node where the Pod runs and the filesystem grows to fill the bigger device, which is phase two. Only after both does the extra space appear inside the container, with no restart. Going the other way is refused: a request below the size already provisioned is rejected.',
+  'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. Raising the request on PVC data-claim is accepted only because the StorageClass behind it sets allowVolumeExpansion, then the external-resizer grows the real device and Kubelet grows the filesystem on it, and the space reaches web-0 with no restart. A shrink is refused.',
   parts: [
     P.defs(),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'requests 5Gi' }),

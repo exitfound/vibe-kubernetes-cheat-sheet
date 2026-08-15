@@ -79,9 +79,8 @@ const LAND_MS = 500;
 const fade = (target, from, to, p = {}) =>
   F.fade({ target, from, to, dur: LAND_MS, fill: 'forwards', easing: 'ease-out', ...p });
 
-// The four lanes the VolumeAttachment object owns are ALSO one array, because they are born and die
-// as one construction and the dumps name them `vaLanes[n]`. The keys are what the opacity field
-// writes through; the array is the vocabulary. tune is the only hook that can hold both.
+// The four lanes the VolumeAttachment owns are ALSO one array: they are born and die as one
+// construction and the dumps name them `vaLanes[n]`. Only tune can hold both the key and the array.
 const vaLane = (key, points) => P.lane({
   key, points, dashed: true, dim: true, opacity: 0,
   tune: (el, refs) => { refs.vaLanes = [...(refs.vaLanes || []), el]; },
@@ -92,7 +91,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the node frame, then the blocks and the disk, then the Pod, then the lanes and their
 // captions, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'The VolumeAttachment object. The attach and detach controller inside kube-controller-manager, not Kubelet, decides a volume must be attached to a Node and writes a VolumeAttachment naming the volume and the Node with status.attached false. The external-attacher watches those objects, calls ControllerPublishVolume on the driver, and on success writes status.attached true back onto the same object. Kubelet is blocked on that one field and mounts only once it reads true. Because the object, not the Pod, is the cluster record of the attach, deleting it is what triggers ControllerUnpublishVolume and the detach.',
+  'aria-label': 'The VolumeAttachment object. The attach and detach controller in kube-controller-manager, not Kubelet, writes va-7f naming vol-1 and Node-1 with status.attached false, the external-attacher calls ControllerPublishVolume and writes that field true, and Kubelet stays blocked on it until then. Deleting the object is what detaches.',
   parts: [
     P.defs(),
     P.node({ x: COL_L_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -134,9 +133,8 @@ export const SCENE = {
 // helper's: object, status field, device on the node, kubelet.
 const chips = (va, attached, disk, kubelet) => ({ vaChip: va, attrChip: attached, diskChip: disk, kubeChip: kubelet });
 
-// STO.S-01 as fields. `setBorn` pinned the object, its four lanes, the Pod and the mount lane, and
-// the prologue pinned the disk with the two lanes that are as present as it is. Every one of the ten
-// is stated on EVERY step, never inherited: the reduced replay walks 0..n.
+// STO.S-01 as fields: the object, its four lanes, the Pod and the mount lane, plus the disk and the
+// two lanes as present as it is. All ten are stated on EVERY step: the reduced replay walks 0..n.
 const OBJ_OFF = { va: OPACITY.pending, wWrite: 0, wWatch: 0, wStatus: 0, wGate: 0 };
 const OBJ_ON = { va: 1, wWrite: 1, wWatch: 1, wStatus: 1, wGate: 1 };
 const POD_ON = { appPod: 1, mountLane: 1 };
@@ -274,8 +272,7 @@ export const STEPS_SPEC = [
       // The watch below is the attacher reading that deletion, so it can only follow it.
       F.route({ points: W_WRITE, delay: BEAT.lead, name: 'del' }),
       F.tag({ text: 'delete va-7f', points: W_WRITE, delay: BEAT.lead }),
-      // The object's cue is an F.set on the object itself, which is byte-for-byte the timer
-      // lightBoxAt hangs there. It is NOT `lights`, because the reduced path must not show it: the
+      // The object's cue is an F.set, not `lights`, because the reduced path must not show it: the
       // unlight below takes it off again before the step settles.
       F.set({ on: 'va', lit: ['va'], at: 'del' }),
       F.route({ points: W_WATCH, after: 'del', name: 'watch' }),

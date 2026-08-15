@@ -74,9 +74,8 @@ const podBlock = ({ key, innerKey, x, label }) => P.pod({
   opacity: 0,
 });
 
-// Z-order, bottom to top: the node frame, then the blocks and disks and Pods inside it, then the
-// lanes and the band caption above them, then the chip strip, then the packet layer, and the LADDER
-// last of all so its lit rung stays crisp when a ball passes over it.
+// Z-order, bottom to top: node frame, blocks and disks and Pods, lanes and the band caption, the chip
+// strip, the packet layer, and the LADDER last so its lit rung stays crisp under a passing ball.
 export const SCENE = {
   'aria-label': 'The CSI attach and mount chain: four gRPC calls take a volume from nowhere to a writable path. CreateVolume makes the disk in the cloud backend, ControllerPublishVolume attaches it to the Node as a raw block device, NodeStageVolume formats it if needed and mounts it once at a global staging path, and NodePublishVolume bind-mounts that one staged filesystem into each Pod, which is how two Pods on one Node share a single attached disk.',
   parts: [
@@ -121,8 +120,8 @@ export const SCENE = {
   },
 };
 
-// Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how this
-// card once showed a staging mount on the step that was explaining the disk did not exist yet.
+// Every step writes EVERY chip. A chip left unset keeps the value the step before it wrote, which
+// here would show a staging mount on the step explaining that the disk does not exist yet.
 const chips = (disk, device, staging, binds) => ({ diskChip: disk, devChip: device, stageChip: staging, bindChip: binds });
 
 // STO.S-01 as a field: every element born mid-story, and every lane, is pinned on EVERY step. A block

@@ -26,11 +26,11 @@ export const { pulsePod, pulsePodDim } = makeTintedPulses(NETWORK_TINT);
 // No geometry grammar and no placeholder for one: of the 37 cards, 17 name a content band and
 // those carry SIX different literal pairs, the other 20 hang off a node() frame or off nothing.
 
-// Networking Pods carry the network role and are not recoloured, so tint stays null.
 // The default tag that rides a ball (M-30). A card needing other timings makes its own with
 // makeRidingLabel and hands it to F.tag as `fn`.
 const ridingLabel = makeRidingLabel({ role: 'network' });
 
+// Networking Pods carry the network role and are not recoloured, so tint stays null.
 const BIND = { role: 'network', podRole: 'network', tint: null, pulsePod, pulsePodDim, ridingLabel };
 export const P = makePartKinds(BIND);
 export const F = makeFlowKinds(BIND);

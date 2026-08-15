@@ -56,9 +56,8 @@ const trunkPath = (key, points) => P.relation({ key, points, role: 'cluster', da
 const POD_NAMES = ['web-0', 'web-1', 'web-2'];
 const POD_PVCS  = ['data-web-0', 'data-web-1', 'data-web-2'];
 
-// The list order IS the append order, so it is the z-order: the Node frame is a 70% opaque fill,
-// so the bus that runs inside it and the balls that ride it are appended after it. Ladder, Pods
-// and the actor row sit above the packets.
+// Z-order: the Node frame is a 70% opaque fill, so the bus inside it and the balls riding it are
+// appended after it. Ladder, Pods and the actor row sit above the packets.
 export const SCENE = {
   'aria-label': 'StatefulSet ordered rollout: Pods start one at a time in ordinal order, each gets a sticky hostname and PVC',
   parts: [
@@ -117,9 +116,8 @@ const ordinals = (o0, o1, o2) => ({
   pod0: o0, tap0: o0, pod1: o1, tap1: o1, pod2: o2, tap2: o2, busL: o0, busR: o2,
 });
 
-// Ordinal N is created the same way every time: the controller asks the API, the create travels
-// down the trunk into the slot, the Pod materializes and pulses, and registration follows
-// readiness one beat later. The Api and the Service light when their traffic LANDS.
+// Ordinal N is created the same way every time: ask the API, create down the trunk, Pod pulses,
+// registration one beat later. The Api and the Service light when their traffic LANDS.
 const createOrdinal = (i) => [
   F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
   F.route({ points: LANE(i), after: 'req', name: 'create' }),

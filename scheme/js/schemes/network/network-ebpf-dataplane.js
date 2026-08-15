@@ -38,8 +38,8 @@ const CHIP_X1 = CONTENT_L;                                   // 70
 const CHIP_X2 = CHIP_X1 + CHIP_W + CHIP_GAP;                 // 430
 const CHIP_X3 = CHIP_X2 + CHIP_W + CHIP_GAP;                 // 790, ends on CONTENT_R
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy, so the
-// factory is built once and handed to F.tag as `fn`.
+// The tag that rides a ball on this card, built once here and handed to F.tag as `fn`: hold 260
+// keeps the client source IP readable after the ball lands, which is the no-NAT claim of that step.
 const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
@@ -69,9 +69,8 @@ export const SCENE = {
       label: 'Pod web', sublabel: '10.244.3.9:8080',
       inner: { dx: 20, dy: 34, w: POD_W - 40, h: 52, label: 'app', sublabel: 'eth0' },
     }),
-    // Dim dashed wires with blank labels filled per step: client -> program (connect), the program
-    // -> map lookup link, and the right-angle fan to the two backends (chosen bright on use).
-    // All five carry `role: ''` so they keep the dim arrowhead instead of the cyan one.
+    // Five dim dashed wires, labels filled per step: connect, the map lookup pair, and the fan to
+    // the two backends. All five carry `role: ''` to keep the dim arrowhead, not the cyan one.
     P.arrow({ from: CONNECT[0], to: CONNECT[1], dashed: true, dim: true, role: '' }),
     P.arrow({ from: LOOKUP[0], to: LOOKUP[1], dashed: true, dim: true, role: '' }),
     P.arrow({ from: LOOKUP_BACK[0], to: LOOKUP_BACK[1], dashed: true, dim: true, role: '' }),

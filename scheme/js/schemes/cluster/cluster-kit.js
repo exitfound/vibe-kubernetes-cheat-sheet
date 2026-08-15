@@ -41,12 +41,12 @@ export const LAYOUT = Object.freeze({
   C: Object.freeze({ ladder: CLU.COL_R, strip: Object.freeze({ two: 532, three: 350.7 }) }),
 });
 
-// One binding for the whole category: role, Pod role, Pod tint and the two tinted pulses. A cluster
-// card cannot pick up the workloads palette by default because no path from here leads to it (S-42).
 // The default tag that rides a ball (M-30). A card needing other timings makes its own with
 // makeRidingLabel and hands it to F.tag as `fn`.
 const ridingLabel = makeRidingLabel({ role: 'cluster' });
 
+// One binding for the whole category: role, Pod role, Pod tint and the two tinted pulses. A cluster
+// card cannot pick up the workloads palette by default because no path from here leads to it (S-42).
 const BIND = { role: 'cluster', podRole: 'workloads', tint: POD_VIOLET, pulsePod, pulsePodDim, ridingLabel };
 export const P = makePartKinds(BIND);
 export const F = makeFlowKinds(BIND);

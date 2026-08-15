@@ -89,7 +89,7 @@ export const SCENE = {
     P.pod({
       key: 'podGroup', id: 'podGroup',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
-      // Born pending, exactly as the hand-written build() left it: the poster frame is `idle`.
+      // Born pending, so the poster frame reads `idle` before step 1 lights anything.
       opacity: OPACITY.pending,
       inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container' },
     }),
@@ -104,7 +104,7 @@ export const SCENE = {
 };
 
 // The four chips as FIELDS, so no step can state three of them and leave the fourth carrying the
-// previous step's value. Key order is the order the old setChips helper wrote them in.
+// previous step's value. Key order matches the chip row on screen, index 0 through 3.
 const chipRow = (image, policy, layers, status) =>
   ({ imageChip: image, policyChip: policy, layersChip: layers, statusChip: status });
 

@@ -44,14 +44,12 @@ const raiseSublabel = (el) => {
   if (sub) sub.setAttribute('y', POD_H - 12);
 };
 
-// The four lanes are named twice on purpose: the ARRAY is what the card has always called them as a
-// set, and the per-step opacity field resolves one element at a time. The array is filled from a
-// tune so it lands in refs FIRST and keeps the lanes[n] naming.
+// The four lanes are named twice on purpose: the ARRAY names them as a set and the dumps say
+// `lanes[n]`, while opacity resolves one at a time. The tune fills it so it reaches refs FIRST.
 const inLanes = (el, refs) => { (refs.lanes = refs.lanes || []).push(el); };
 
 // The list order IS the append order, which is the z-order: blocks, then the divider and the bound
-// link and the four lanes above them, then the chip strip, then the packet layer so every ball
-// rides above everything.
+// link and the four lanes above them, then the chip strip, then the packet layer on top of all.
 export const SCENE = {
   'aria-label': 'Ephemeral versus persistent storage: one Pod mounts both an emptyDir and a PersistentVolumeClaim and writes to each. When the Pod is deleted and rescheduled onto another Node, the emptyDir comes back empty because it was tied to the old Node, while the claim reattaches the very same disk with the data intact.',
   parts: [
@@ -63,7 +61,7 @@ export const SCENE = {
     }),
     P.cylinder({ key: 'ed', x: ED_X, y: ED_Y, w: ED_W, h: ED_H, label: 'emptyDir' }),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data', sublabel: 'Bound' }),
-    P.cylinder({ key: 'pv', x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'pv-x73a' }),
+    P.cylinder({ key: 'pv', x: PV_X, y: PV_Y, w: PV_W, h: PV_H, label: 'PV x73a' }),
     // Central ephemeral | persistent split, and the dim dashed Bound link tying the claim to its PV.
     P.relation({ points: [[DIV_X, DIV_TOP], [DIV_X, DIV_BOTTOM]], dash: '4 6' }),
     P.relation({ points: [[PV_CX, PVC_BOTTOM], [PV_CX, PV_TOP]], dash: '4 6' }),
@@ -84,9 +82,8 @@ export const SCENE = {
   },
 };
 
-// Every lane has the Pod at one end, so none is more present than the Pod. ONE formula pins blocks
-// and lanes together, or mount arrows stay at full across a Pod that has faded to the terminal
-// shade. STO.S-01 as a field: every step states the whole stack, nothing is inherited.
+// Every lane has the Pod at one end, so ONE formula pins blocks and lanes together, or mount arrows
+// stay at full across a Pod faded to the terminal shade. STO.S-01: every step states the stack.
 const presence = ({ pod = 1, ed = 1 } = {}) => ({ pod, ed, wLWrite: pod, wLMount: pod, wRWrite: pod, wRMount: pod });
 
 export const STEPS_SPEC = [
@@ -103,7 +100,7 @@ export const STEPS_SPEC = [
     chipsCued: { edChip: 'log written', pvcChip: 'row written', podChip: 'on Node-1' },
     opacity: presence(),
     // Pod to both disks: an up-arrow, so the Pod pulses first and both writes descend at afterPulse.
-    // Each cue is its own entry because the hand-written step emitted it AFTER the tag.
+    // Each cue is its own entry: it stands after its tag, and flow emission order is observable.
     flow: [
       F.pulse({ pod: 'pod' }),
       F.route({ points: W_L_WRITE, delay: BEAT.afterPulse, name: 'wl' }),
@@ -157,7 +154,7 @@ export const STEPS_SPEC = [
     opacity: presence(),
     lit: ['ed', 'pvc', 'pv'],
     // Both remount lanes are 92 units long, so the two routes clamp to the same routeDur and the
-    // Pod's arrival beat is either arrival: the hand-written Math.max over the pair was a no-op.
+    // Pod's arrival beat is either arrival, so keying the pulse off 'ml' alone is exact.
     flow: [
       F.route({ points: W_L_MOUNT, name: 'ml' }),
       F.tag({ text: 'empty', points: W_L_MOUNT }),
