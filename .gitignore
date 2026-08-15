@@ -18,7 +18,5 @@ Thumbs.db
 .playwright-mcp/
 smoke-*.png
 
-# Scheme test harness: the one playwright install the whole sub-app shares, and the oracle's
-# captured dumps (18 MB of anim/dom baselines, regenerable with `npm run oracle:base`).
+# Scheme test harness: the one playwright install the whole sub-app shares.
 scheme/test/node_modules/
-scheme/test/oracle/baselines/
