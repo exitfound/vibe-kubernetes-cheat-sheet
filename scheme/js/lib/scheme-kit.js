@@ -140,7 +140,7 @@ export function pulsePodDimWithTint(podEl, ctx, delay, { from = OPACITY.pending,
   ));
 }
 // The camera: only the aria sentence varies. 'aria-label' STAYS A SPELLED-OUT OBJECT KEY, because
-// the prose scrapes match it in source (108 sentences), and dom-dump compares attribute ORDER.
+// the prose scrapes match it in source (108 sentences), and attribute ORDER is observable.
 export function diagramRoot({ 'aria-label': ariaLabel }) {
   return svg({
     class: 'diagram',

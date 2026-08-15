@@ -46,7 +46,7 @@ function delayOf(p, named) {
 }
 
 // The static half of a step, and the body of an F.set. ONE at() writes three chips, never three:
-// each at() is its own row in anim-dump, so splitting them would change the motion record.
+// each at() is its own animation, so splitting them would change what getAnimations() hands back.
 function writeStatics(s, o) {
   if (o.chips) for (const k of Object.keys(o.chips)) setVal(s.refs[k], o.chips[k]);
   if (o.chipsCued) for (const k of Object.keys(o.chipsCued)) setChip(s.refs[k], o.chipsCued[k]);
@@ -137,7 +137,7 @@ function runFlow(s, ctx, flow, bind) {
       }
       case 'set':
         // `on` picks which element carries the empty 1ms timer. at() hangs it on the svg; three
-        // cards hang it on the block the write is ABOUT, and anim-dump records the target.
+        // cards hang it on the block the write is ABOUT, and the timer's target is observable.
         if (p.on) atOn(s.refs[p.on], ctx, delay, () => writeStatics(s, p));
         else at(s, ctx, delay, () => writeStatics(s, p));
         break;

@@ -26,9 +26,9 @@ is a `node:test` suite, `npm test` must be green and `npm run report` is advisor
 | add a card | `./CANON.md`, then `js/schemes/<cat>/CLAUDE.md` | `cards.js`, `<id>.js`, `posters.js`, `./CARDS.md` | `npm test` |
 | add a category | "Adding a category" below | see that checklist | `npm test` |
 | change a card's geometry | `./CANON.md` L and A, then that card's section in `./CARDS.md` | `<id>.js` | `npm test`, then **the rendered frames** |
-| change motion or timing | `./CANON.md` M | `<id>.js` | `npm test` (`duration` cannot be replaced by the oracle, see below) |
+| change motion or timing | `./CANON.md` M | `<id>.js` | `npm test` (`duration` is seen by ONE file, see below) |
 | change narration or a label | `./CANON.md` T | `<id>.js` | `npm test`, plus `npm run report` for the panel extent |
-| touch a shared helper | the JSDoc beside it | `js/lib/*` | `cd test/oracle && npm run oracle:diff`, then `npm test` |
+| touch a shared helper | the JSDoc beside it | `js/lib/*` | `npm test`, then `tools/settled-dump.mjs` against a snapshot of the tree before the change |
 | retint a category | `./CANON.md` C, "Catalog and categories" below | `css/tokens.css`, `css/styles.css`, the kit | `npm test` (`render/palette.test.mjs`) |
 | draw a poster | `./CANON.md` R | `js/schemes/<cat>/posters.js` | montage against two siblings |
 | write or debug a check | the test file itself, `test/fixtures/*` | `test/{unit,render,report}/*.test.mjs` | that file alone: `node --test '<path>'` |
@@ -37,10 +37,10 @@ is a `node:test` suite, `npm test` must be green and `npm run report` is advisor
 lane ending in empty space, a composition pushed off centre, a tag drifting off its ball) is
 invisible to every rule in it. The root `../CLAUDE.md` records what assuming otherwise cost.
 
-**The oracle does NOT see a step's declared `duration`.** It reads WAAPI animations and serialised
-DOM, and `duration` is the `Timeline` hold before auto-advance, neither of those. An empty
-`oracle:diff` is not evidence the timings survived: `render/duration.test.mjs` is the only guard.
-The same applies to a step `id`, its `narration`, and the key order of `STEPS`.
+**A step's declared `duration` reaches neither WAAPI nor the DOM.** It is the `Timeline` hold
+before auto-advance, so no dump of animations or of serialised markup can see it, and a clean run of
+either is not evidence the timings survived: `render/duration.test.mjs` is the only guard. The same
+applies to a step `id`, its `narration`, and the key order of `STEPS`.
 
 ## Directory layout
 
@@ -66,7 +66,7 @@ scheme/
       <category>-kit.js       the tint, pulsePod/pulsePodDim, the P / F / defineCard bindings
       <id>.js                 one module per diagram
   test/       the harness: unit/ render/ report/ hold the checks, fixtures/ feeds them, and
-              oracle/ is the refactor tool plus its baselines. Never shipped (S-41)
+              tools/ holds two text probes the checks do not contain. Never shipped (S-41)
 ```
 
 **A record lives in the folder it describes.** One category's card notes are its `CARDS.md`.
@@ -99,7 +99,7 @@ tint. The column below is what a kit carries beyond even that.
 | `cluster/` | 21 | violet `rgb(192, 176, 255)` | `CLU`, `LAYOUT` |
 | `workloads/` | 19 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
 | `network/` | 37 | cyan `rgb(79, 229, 255)` | none |
-| `storage/` | 31 | jade `rgb(94, 202, 148)` | `setCylinderLabel` |
+| `storage/` | 31 | jade `rgb(94, 202, 148)` | `setCylinderLabel`, `STO`, `chipStrip` |
 
 The size of the SHARED list is deliberately written down nowhere: `S-22` makes the four kits
 compared against each other the source of truth, in `unit/module.test.mjs`.
@@ -124,10 +124,11 @@ list is an editorial argument, not a set (`D-10`), and it is recorded beside the
 
 Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There are exactly two legal
 export surfaces and nothing between them** (`S-02`), and the split between them is the migration
-counter `unit/module.test.mjs` prints on every run: **40 migrated, 68 legacy** today (cluster and
-workloads are through; network and storage are not).
+counter `unit/module.test.mjs` prints on every run: **108 migrated, 0 legacy**. All four categories
+are through, so the second surface below describes no card in the tree and is kept only because
+`S-02` still admits it.
 
-### The declarative form, which new cards use
+### The declarative form, which every card uses
 
 The card states its scene and its steps as DATA, and the kit turns them into the `Scene` class and
 `STEPS` array the runtime wants:
@@ -150,7 +151,7 @@ chip tag chain arrow lane relation wire packets raw pod`, and `P.pod` builds the
 block in the byte order the hand-written copies used.
 
 `reset.keys`, `reset.pods` and `reset.extra` are written out and never inferred. Inferring pods adds
-a `clearPodHighlight` that wipes inline styles the picture depends on, and `dom-dump` sees it.
+a `clearPodHighlight` that wipes inline styles the picture depends on.
 
 A step is data plus one ordered motion PROGRAM:
 
@@ -180,7 +181,10 @@ and `plus: N` adds to whichever of the three was used. An entry earns a name wit
 **The reduced-motion guard is derived.** `flowLights(flow)` collects the ordered union of every
 `lights` list, so a card writes no `if (ctx.reduced)` at all. What it cannot derive is a highlight
 the static path shows INSTEAD of a pulse, because no `lightBoxAt` names it: that is `reducedLit`,
-and it is declared on exactly two steps in cluster.
+declared on **111 steps** (network 89, workloads 20, cluster 2, storage 0). It is the ordinary shape
+of the static path wherever a Pod pulses instead of lighting, not an exception. A wrong derivation
+lands on the HIGHLIGHT axis of `render/reduced.test.mjs`, which is enforced along with the other
+three (`S-16`), so `npm test` is what catches it.
 
 Two chip fields, because there are two writers that draw differently: `chips` goes through `setVal`
 (the value is replaced and nothing lights), `chipsCued` through `setChip` (`setVal` plus `.highlight`
@@ -189,34 +193,39 @@ second**, so a key named by both lands on the cued write whatever order the auth
 in. Do not reorder those two lines in `writeStatics`: a step is free to state a key in both fields,
 and without a fixed order the picture would depend on the shape of the literal. Which writer a card
 uses is inherited from the primitive it already called and swapping them is a VISIBLE change
-(`P-09`), so the split runs per CATEGORY rather than per card: counted on the pre-migration tree
-(`cd2363b`), cluster 166 `setVal` calls, network 178 and workloads 127, against storage's 109
-`setChip` of its 116 writes, with `storage-pvc-binding` the one file mixing both (1 and 5). Cluster
-is migrated now and those 166 calls are 515 `chips` keys over 137 steps, because every step states
-every chip (`P-01`).
+(`P-09`), so the split runs per CATEGORY rather than per card: cluster, workloads and network are
+`chips` throughout, and storage is the sole `chipsCued` category, with `storage-pvc-binding` the one
+file mixing both. Read off the migrated data: **429 steps carry `chips` and 191 carry `chipsCued`**,
+because every step states every chip (`P-01`).
 
 `chips` is the state after the STATIC block, which is not the end of the
 step: `rewind` and an `F.set` inside `flow` can both carry a key past it, so a reader after a final
 value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow order.
 
 `rewind` and `duration` are the two things deliberately not derived. `rewind` would need the
-previous step's values, which `S-13` forbids. `duration` is copied verbatim, and no half of the
-oracle can see it at all.
+previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
+`render/duration.test.mjs` can see it at all.
 
-**The escapes, and how narrow they are.** 29 of the 40 migrated cards are fully declarative; 11 carry
-at least one hook, and each hook exists for something with no honest general verb: `part.tune`
-captures a ref off an element the builder already made, `part.raw` draws a bare `<rect>` or a free
-text node, `step.enter` writes an SVG *attribute* no field writes (`width` on `node-allocatable`),
-plus `F.run` and `reset.extra`. If a card looks like it needs a new verb, stop and say so: migrating
-40 cards across two categories required the DSL to grow zero times.
+**The escapes, and how narrow they are.** **75 of the 108 cards are fully declarative**; 33 carry at
+least one hook, **174 hooks in all** (`part.tune` 74, `part.raw` 43, `step.enter` 42, `F.run` 13,
+`reset.extra` 2, `step.motion` 0), and each exists for something with no honest general verb:
+`part.tune` captures a ref off an element the builder already made or writes an SVG *attribute* on
+it, `part.raw` draws a bare `<rect>` or a free text node, `step.enter` writes text or an attribute no
+field reaches, and `F.run` at delay 0 is an imperative beat standing inside the flow order. Ten of
+the thirteen `F.run` are that delay-0 form; the three on `cluster-cpu-throttling` carry a real delay
+and are genuine deferred callbacks, the only ones in the catalogue.
+Storage carries the highest share, 16 of 31, and its folder `CLAUDE.md` says why one by one. If a
+card looks like it needs a new VERB, stop and say so: three categories out of four grew the DSL zero
+times, and network's two additions (`F.tag`, `F.ripple`) were serialised through the coordinator.
 
-### The legacy form, still on 68 cards
+### The legacy form, which no card is on any more
 
 A hand-written `class Scene` with `build()` and `reset()` (`S-01`), a copied `resetStep(s)`
 prologue, a hand-written `STEPS` array whose every `enter(s, ctx)` splits on `ctx.reduced` by hand,
 and `export const init = makeInit(Scene, STEPS, { posterFirst: true });`. `defineCard` produces
-exactly that shape, so `makeInit`, `Timeline`, `app.js` and the oracle cannot tell the two apart:
-**there is no compatibility layer to build and none to remove** when the last card moves.
+exactly that shape, so `makeInit`, `Timeline` and `app.js` cannot tell the two apart: **there was no
+compatibility layer to build and there is none to remove** now that the last card has moved. Writing
+a new card in this form is a regression, not a choice.
 
 Both forms share `ctx`: `ctx.reduced` is true under `prefers-reduced-motion` and when prev or reset
 replays a step, `ctx.speed` is the current multiplier, `ctx.register(animation)` tracks a WAAPI
@@ -308,23 +317,26 @@ Two levels, deliberately. `npm test` is what cannot land broken. `npm run report
 human rules on, including the ones `L-16` keeps open on purpose. **A report file never fails on a
 finding, so it must announce its own invalidity**: no network, a fallback font, a short walk.
 
-**The oracle is separate and is a refactor tool, not a check.** `test/oracle/` dumps every card's
-motion (WAAPI timings and sampled transforms) and structure (serialised DOM) per step:
+**`test/tools/` holds two probes, and neither is a check.** They print a card's state as text so
+two trees can be diffed against each other, which is what a refactor needs and no assertion gives:
 
 ```
-cd scheme/test/oracle
-BASE=http://localhost:8888 npm run oracle:base       take the baseline BEFORE the change
-BASE=http://localhost:8888 npm run oracle && npm run oracle:diff
-npm run oracle:card -- <id>    and oracle:card:base / oracle:card:diff for one card
+cd scheme/test
+node tools/settled-dump.mjs --all --out=DIR --base=http://localhost:8888
+node tools/buildframe.mjs   --all --out=DIR --base=http://localhost:8888
 ```
 
-`BASE` is not optional and not cosmetic: the container on `:8080` serves a snapshot of the tree as
-it was at build time, so an oracle run against it reads stale content and passes. Serve the live
-tree with `python3 -m http.server 8888`. The test suite already defaults to `:8888`; only the oracle
-needs the variable. The catalogue-wide trio dumps three halves (motion, structure, reduced path),
-but the per-card trio is the two ANIMATED halves on purpose, being the fast inner loop of a rewrite:
-`CARD CLEAN` therefore says nothing about the reduced path, which is exactly where `flowLights`
-derives every guard. `oracle:card:reduced:diff` is the third half and a rewrite must run it.
+`settled-dump` plays every step in REAL TIME and reads the frame it leaves behind: glyphs, the
+`.highlight` set, the opacities. Freezing a card hides a deferred callback (`at()` schedules its
+work as the onfinish of an empty animation, and a paused animation never fires one), so this is the
+only thing that sees WHAT such a callback wrote. `buildframe` reads the frame BEFORE step 0, the
+poster the reader looks at for the first second, which nothing else in the tree opens.
+
+Two cautions, both paid for. An element is named by its ref KEY, so renaming a ref reddens every
+line it appears on with the picture unmoved: compare the VALUES before believing the names. And
+`BASE` is not cosmetic: the container on `:8080` serves the tree as it was at build time, so a run
+against it reads stale content and agrees with itself. Serve the live tree with
+`python3 -m http.server 8888`, and a second tree (a `git archive` of some commit) on its own port.
 
 The `Check` column of `./CANON.md` is the same information from the other side: given a rule, which
 test (if any) would notice it breaking, as `test:<file>/<name>` or `report:<file>/<name>`.

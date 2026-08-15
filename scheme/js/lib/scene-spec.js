@@ -22,7 +22,7 @@ export function makePartKinds({ role = '', podRole = 'workloads', tint = null } 
     cylinder: roledPart('cylinder'),
     node:     part('node'),            // node() takes no role, so none is added: see S-42 above
     chip:     roledPart('chip'),       // valChip, the name/value pair
-    // A <text> takes NO role: adding one puts an attribute on the element that dom-dump compares.
+    // A <text> takes NO role: adding one puts an attribute on the element that nothing else has.
     tag:      part('tag'),             // a standing caption
     chain:    roledPart('chain'),
     arrow:    roledPart('arrow'),      // two points
@@ -43,7 +43,7 @@ export function makePartKinds({ role = '', podRole = 'workloads', tint = null } 
   };
 }
 
-// Shell, recolour, inner box, recolour, the g carrying the id, two appends. dom-dump compares
+// Shell, recolour, inner box, recolour, the g carrying the id, two appends. A serialised tree keeps
 // that ORDER, so it is the order the handwritten copies used.
 function buildPod(p, refs) {
   const { id, x, y, w, h, label = 'Pod', sublabel = '', containers = 0, role, tint, inner, opacity } = p;

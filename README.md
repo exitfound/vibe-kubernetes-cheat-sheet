@@ -145,7 +145,7 @@ docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet
 
 Command edits go in `cli/js/data.js`: each section is a plain JS object with a `groups` array, each group has a `title`, `desc`, and `cmds` list. Commands are sorted automatically on render, so order inside the array does not matter.
 
-New diagrams live entirely inside one category folder: a module `scheme/js/schemes/<category>/<id>.js` exporting `init(root, callbacks)`, an entry in that folder's `cards.js`, and a grid poster in its `posters.js`. The existing cards in the category are the reference: build on that folder's `<category>-kit.js` rather than starting from scratch.
+New diagrams live entirely inside one category folder: a module `scheme/js/schemes/<category>/<id>.js` exporting its scene and its steps as data (`SCENE` and `STEPS_SPEC`) plus the `init(root, callbacks)` the dialog calls, an entry in that folder's `cards.js`, and a grid poster in its `posters.js`. The existing cards in the category are the reference: build on that folder's `<category>-kit.js` rather than starting from scratch.
 
 To update contacts or sponsor links, edit `cli/js/contacts.js` and its `scheme/js/contacts.js` counterpart. To remove the header buttons entirely, delete both.
 

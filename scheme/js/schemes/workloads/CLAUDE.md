@@ -54,7 +54,7 @@ The line between the first two is whether the app container has started.
 
 ## Exemplar
 
-`workloads-probes.js`, 179 lines and fully declarative. **New cards go in this form.** Copy its
+`workloads-probes.js`, 178 lines and fully declarative. **New cards go in this form.** Copy its
 shape rather than inventing one:
 
 - One import line from `./workloads-kit.js`, the `S-36` pointer comment, the geometry header,
@@ -134,8 +134,8 @@ rung is the single `role: 'workloads'` literal left in the category for exactly 
 `daemonset`, `replicaset`, `statefulset-ordered-startup` 3 each, `cronjob` 2, `force-deletion` 1),
 against 2 steps in the whole of cluster. The shape is always the same: the animated path says "this
 Pod is here now" by PULSING the wrapper, and no `lightBoxAt` names the inner box, so `flowLights`
-cannot derive it. **`oracle:card:reduced:diff` is the only check in the repository that can see a
-wrong derivation**, and it must be run on any card that touches a guard.
+cannot derive it. A wrong derivation lands on the HIGHLIGHT axis of `render/reduced.test.mjs`,
+which is enforced, so `npm test` is what catches it.
 
 ## Four catalog-wide lane rules the canon sources here
 
