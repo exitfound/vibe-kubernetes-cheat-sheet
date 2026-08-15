@@ -122,7 +122,7 @@ export const CARDS = [
     title: 'Containers Share Localhost',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'Why can an app and its sidecar reach each other over 127.0.0.1 with no network in between? Every container in a Pod joins the same network namespace, so they share one loopback, one eth0 and one Pod IP. Calls between them cross the loopback with no veth hop, and because the port space is shared too, two of them cannot bind the same port. From outside the Pod is one host, however many containers run inside, and every one of them answers on that single IP.',
+    desc: 'Why can an app and its sidecar reach each other over 127.0.0.1 with no network in between? Every container in a Pod joins the same network namespace, so they share one loopback, one eth0 and one Pod IP. Calls between them cross the loopback with no veth hop, and because the port space is shared too, two of them cannot bind the same port. From outside the Pod is one host, however many run inside, and the container on the target port answers at that IP.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -135,7 +135,7 @@ export const CARDS = [
     title: 'hostNetwork and hostPort',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'What are the two sanctioned ways to reach a Pod on the Node address itself? With hostNetwork true the Pod gets no network namespace of its own, no veth and no Pod IP, and binds the Node interfaces directly, which is how kube-proxy and a CNI agent run. A hostPort gives up nothing: the Pod keeps its namespace, its IP and its veth, and the portmap plugin only adds a DNAT rule. Both spend a Node port, so the scheduler fits only one such replica per Node.',
+    desc: 'What are the two sanctioned ways to reach a Pod on the Node address itself? With hostNetwork true the Pod gets no network namespace of its own, no veth and no Pod IP, and binds the Node interfaces directly, which is how kube-proxy and a CNI agent run. A hostPort gives up far less: the Pod keeps its namespace, its IP and its veth, and the portmap plugin only adds a DNAT rule. Both spend a Node port, so the scheduler fits only one such replica per Node.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -354,7 +354,7 @@ export const CARDS = [
     title: 'Search Domains and ndots',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Why can one name that does not exist cost eight DNS queries? A name with fewer dots than ndots counts as relative, so the resolver appends each search domain in turn and tries the name as written only once the list runs out. A name that exists is answered on the first candidate, one that does not walks all four of them, and since the resolver asks for IPv4 and IPv6 in parallel the miss doubles again. A trailing dot skips the walk.',
+    desc: 'Why can one name that does not exist cost eight DNS queries? A name with fewer dots than ndots counts as relative, so the resolver appends each search domain in turn and tries the name as written only once the list runs out. A name in the local namespace is answered on the first candidate, one that exists nowhere walks all four of them, and since the resolver asks for IPv4 and IPv6 in parallel the miss doubles again. A trailing dot skips the walk.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

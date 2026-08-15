@@ -165,7 +165,29 @@ const LEAD_CUT_MS = 1500;
 // being reported is a stale carry the run names below.
 // -------------------------------------------------------------------------------------------
 const E_CARRIED = new Map([
-  // ['workloads-daemonset place focusChip', 'the reason someone measured, in a sentence'],
+  ['cluster-node-pressure-eviction relieve memChip',
+    'memory.available is a cAdvisor reading of the Node, and the one ball of this step is the PATCH ' +
+    'carrying MemoryPressure=False to the API, which does not produce it: the memory freed first and ' +
+    'is WHY the PATCH goes out. The card says so itself on step 1, where the same chip drops 4Gi to ' +
+    '500Mi at entry over a flow that is empty. Binding it to that arrival would claim a local stat ' +
+    'moves when the API is told.'],
+  ['cluster-oom-kill observe memChip',
+    'memory.current is a cgroup file the kernel emptied when it SIGKILLed the processes one step ' +
+    'earlier, and the ball of this step runs the OTHER way, PLEG relist from the kernel to Kubelet. ' +
+    'The rewind next door is right for terminationChip because that is what the Kubelet KNOWS, and ' +
+    'wrong here for the same reason: it would say memory frees when the Kubelet is told. Entry is ' +
+    'the earliest honest beat this step has.'],
+  ['cluster-static-pods edit-file fileChip',
+    'fileChip is the manifest file on disk, and the file is the SOURCE of the first ball here, ' +
+    'the spec segment running from fileBox to the Kubelet. The edit therefore has to be on screen ' +
+    'before the ball leaves, not after it lands. Step 1 is the same shape and reads correctly: the ' +
+    'chip takes the new filename at entry and the segment leaves REVEAL_MS later.'],
+  ['workloads-daemonset place focusChip',
+    'focusChip is named `focus` and every one of the five steps writes it as a caption of what that ' +
+    'step is about, not as object state. Here it states the controller RULE the narration states ' +
+    'in words, one Pod per matching Node, which is true before any create is issued. What the three ' +
+    'creates actually earn is currentChip and readyChip, and those are exactly the two the step ' +
+    'already steps up one arrival at a time.'],
 ]);
 
 const catalogued = await cards();

@@ -186,11 +186,14 @@ export const STEPS_SPEC = [
     opacity: { podA: 0, ...lanes(false, true), podB: 1 },
     lit: ['apiserver', 'podChip', 'pvChip'],
     chain: 3,
+    // The attach is what the binding sets off, so the volume is still on the lost Node until the
+    // ball that names Node-2 lands. The end value is above, this is where the step starts from.
+    rewind: { chips: { pvChip: 'cloud-vol-x · on lost Node-1' } },
     flow: [
       F.route({ points: NODE2_LANE, fadeIn: true, name: 'bind' }),
-      // The identity chip holds the value the previous step left and turns over when the binding
-      // LANDS: at entry it reads as bound while the slot is still empty.
-      F.set({ at: 'bind', chips: { podChip: 'web-0 · bound to Node-2' } }),
+      // Both chips hold what the previous step left and turn over when the binding LANDS: at entry
+      // they would read as placed and attaching while the slot on Node-2 is still empty.
+      F.set({ at: 'bind', chips: { podChip: 'web-0 · bound to Node-2', pvChip: 'cloud-vol-x · attaching to Node-2' } }),
       F.fade({ target: 'podB', from: 0, to: 1, dur: FADE.in, at: 'bind', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'podB', at: 'bind' }),
     ],

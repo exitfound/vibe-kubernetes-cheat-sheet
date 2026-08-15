@@ -46,7 +46,7 @@ const W_NODE_EXP = [[ACT_L_RIGHT, DISK_MID], [DISK_LEFT, DISK_MID]];
 // Every lane here is a ROUTE: all dashed, all headed, all built from the same points as their ball.
 // Append order IS z-order: blocks and disk, lanes and captions, the Pod, the chip strip, the packets.
 export const SCENE = {
-  'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. Raising the request on PVC data-claim is accepted only because the StorageClass behind it sets allowVolumeExpansion, then the external-resizer grows the real device and Kubelet grows the filesystem on it, and the space reaches web-0 with no restart. A shrink is refused.',
+  'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. Raising the request on PVC data-claim is accepted only because the StorageClass behind it sets allowVolumeExpansion, then the external-resizer grows the real device and Kubelet grows the filesystem on it, a phase a raw block volume skips entirely for having no filesystem. Where that filesystem grows online the space reaches web-0 with no restart. A shrink is refused.',
   parts: [
     P.defs(),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'requests 5Gi' }),

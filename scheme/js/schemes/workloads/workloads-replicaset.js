@@ -86,7 +86,7 @@ export const SCENE = {
         '2. reconcile ·  desired vs observed, level-triggered',
         '3. self-heal ·  a Pod dies, the controller recreates it',
         '4. adopt     ·  a matching orphan is claimed by selector',
-        '5. converge  ·  surplus deleted, never exceed replicas',
+        '5. converge  ·  surplus deleted, settles at replicas',
         '6. orphan    ·  relabel releases a Pod, RS replaces it',
       ],
     }),
@@ -210,7 +210,7 @@ export const STEPS_SPEC = [
   {
     id: 'converge',
     duration: 3700,
-    narration: 'Adoption pushed the count to 4, one above spec.replicas. The same reconcile loop now deletes one Pod to return to exactly 3. A ReplicaSet never runs more than its desired count, no matter where the extra Pod came from. When it has to pick a victim it ranks candidates (unscheduled and not-ready Pods first, then by the controller.kubernetes.io/pod-deletion-cost annotation), then issues a delete.',
+    narration: 'Adoption pushed the count to 4, one above spec.replicas. The same reconcile loop now deletes one Pod to return to exactly 3. A ReplicaSet never settles above its desired count, no matter where the extra Pod came from. When it has to pick a victim it ranks candidates (unscheduled and not-ready Pods first, then by the controller.kubernetes.io/pod-deletion-cost annotation), then issues a delete.',
     chips: { selectorChip: 'app=web', desiredChip: '3', observedChip: '4 → 3', actionChip: 'delete -1' },
     wires: { req: 'observed 4 > 3 · DELETE surplus Pod' },
     ...slots(OWNED, OWNED, OWNED, { label: 'app=web', sub: 'surplus · deleting', opacity: 0 }),

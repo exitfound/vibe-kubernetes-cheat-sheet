@@ -64,7 +64,7 @@ const disk = (key, cx, label) => P.cylinder({ key, x: cx - CYL_W / 2, y: CYL_Y, 
 // List order IS append order, which is z-order: the backend frame, then the blocks and disks that
 // stand inside it, then the reference, lanes and captions, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Volume Snapshots: the namespaced VolumeSnapshot snap-1 and the cluster-scoped VolumeSnapshotContent the snapshot controller binds to it, the external-snapshotter that calls CreateSnapshot on the driver, and three disks inside one storage backend frame, the source, the snapshot beside it and a restore seeded from it, so a snapshot is not a backup',
+  'aria-label': 'Volume Snapshots: a VolumeSnapshot is the namespaced request snap-1 and a VolumeSnapshotClass names the CSI driver, the snapshot controller creates the cluster-scoped VolumeSnapshotContent and binds the two before anything is taken, the external-snapshotter then calls CreateSnapshot on the driver, and a fresh PVC restores from the result, but source, snapshot and restore all sit in one storage backend, so a snapshot is not a backup',
   parts: [
     P.defs(),
     P.node({ key: 'frame', x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'Storage backend' }),

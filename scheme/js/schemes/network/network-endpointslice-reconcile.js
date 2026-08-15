@@ -122,7 +122,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'podB', dim: true, from: OPACITY.notready }),
       F.segment({ from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, name: 'upd' }),
-      F.tag({ text: '10.244.2.7 notReady', points: WRITE_PATH, delay: BEAT.afterPulse, easing: 'linear' }),
+      F.tag({ text: '10.244.2.7 · notReady', points: WRITE_PATH, delay: BEAT.afterPulse, easing: 'linear' }),
       F.light({ targets: ['ep2'], at: 'upd' }),
     ],
   },

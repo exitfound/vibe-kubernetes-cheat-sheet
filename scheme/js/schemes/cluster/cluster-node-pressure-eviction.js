@@ -205,17 +205,19 @@ export const STEPS_SPEC = [
     // The evicted Pod is still drawn, at the terminated shade: gone from the Node, not a hole.
     opacity: { ...LIVE, pod1: GONE },
     // The victim record clears here too, which is half of what "reset" in ladder row 5 means. It is
-    // lit so the drop from "BestEffort Pod selected" to "none" is not left with nothing marking it.
+    // lit so the drop from "BestEffort Pod evicted" to "none" is not left with nothing marking it.
     lit: ['kubelet', 'memChip', 'pressureChip', 'victimChip'],
     chain: 4,
-    rewind: { chips: { pressureChip: 'True' } },
+    // Ladder row 5 is one event, "pressure clears, reset", so both chips hold what evict left and
+    // turn over on the same beat: clearing the record before the condition reverses that order.
+    rewind: { chips: { pressureChip: 'True', victimChip: 'BestEffort Pod evicted' } },
     // Survivors pulse first, and only THEN does the condition flip back: the up-arrow order, and
     // also the sentence order. Firing both at once gives the eye two places to look.
     flow: [
       F.pulse({ pod: 'pod2' }),
       F.pulse({ pod: 'pod3' }),
       F.top({ from: KUBE_R, to: API_X, y: TOP_CY, delay: BEAT.afterPulse, name: 'clear', lights: ['api'] }),
-      F.set({ at: 'clear', chips: { pressureChip: 'False' } }),
+      F.set({ at: 'clear', chips: { pressureChip: 'False', victimChip: 'none' } }),
     ],
   },
 ];

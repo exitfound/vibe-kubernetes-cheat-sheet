@@ -169,7 +169,7 @@ export const STEPS_SPEC = [
     // Three flows staggered 180ms apart. The last one leaves at 360, reaches the router at 1060, and its
     // fan lands at 2231, so its Pod pulse ends at 3131. The floor leaves a settle after that.
     duration: 3700,
-    narration: 'BGP mode changes the shape. Every Node peers with the router and advertises the same address, so the router installs an equal-cost route and hashes each new flow across all of them. Ingress is no longer one Node wide, and router hashes are rarely stable, so losing a Node breaks most active connections and not only the ones it was carrying. The price is a router that speaks BGP with the cluster, and a change in the Node set can rehash live flows onto a different Node.',
+    narration: 'BGP mode changes the shape. Every Node peers with the router and advertises the same address, so the router installs an equal-cost route and hashes each new flow across all of them. Ingress is no longer one Node wide, and router hashes are rarely stable, so losing a Node breaks most active connections and not only the ones it was carrying. The price is a router that speaks BGP with the cluster.',
     chips: { statusChip: LB_IP, poolChip: POOL, modeChip: 'BGP (ECMP)', pathChip: 'every Node' },
     wires: { n1: 'BGP: advertise /32', n2: 'BGP: advertise /32', n3: 'BGP: advertise /32' },
     // Every Node advertises here, so all three stay at full strength.

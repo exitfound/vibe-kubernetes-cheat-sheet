@@ -34,7 +34,7 @@ const container = (key, x, label, sublabel) => P.group({
 // The list order IS the append order, which is the z-order: the node, then the Pod and the host
 // directory, then the two lanes and the shelf caption above them, then the chips, then the packets.
 export const SCENE = {
-  'aria-label': 'hostPath volume: Pod log-agent mounts the Node directory /var/log straight into its containers, so the app writes and the agent reads real host state that stays on the Node once the Pod is gone. A Pod rescheduled elsewhere finds a different directory of that name, and pointed at a sensitive path a hostPath hands over the Node.',
+  'aria-label': 'hostPath volume: Pod log-agent mounts the Node directory /var/log straight into its containers, so the app writes and the agent reads real host state that stays on the Node once the Pod is gone. Type Directory requires that path to exist while DirectoryOrCreate makes it, and the directory belongs to the Node, so a Pod rescheduled elsewhere finds a different directory of that name: hostPath looks like persistence and is not. Pointed at a sensitive path it hands over the Node.',
   parts: [
     P.defs(),
     P.node({ x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),

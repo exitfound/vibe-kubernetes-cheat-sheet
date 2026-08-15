@@ -61,7 +61,7 @@ export const SCENE = {
     P.lane({ key: 'connector', points: NODE1_LANE, dim: true, dashed: true, role: 'cluster' }),
     P.lane({ key: 'connectorRight', points: NODE2_LANE, dim: true, dashed: true, role: 'cluster' }),
     // State chips in the left band.
-    P.chip({ key: 'nodeChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'node-1', value: 'Ready' }),
+    P.chip({ key: 'nodeChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'Node-1', value: 'Ready' }),
     P.chip({ key: 'podChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'Pod A', value: 'Running' }),
     P.chip({ key: 'replicaChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'StatefulSet', value: 'replicas 1/1' }),
     P.chip({ key: 'focusChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'focus', value: 'none' }),

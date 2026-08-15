@@ -28,7 +28,7 @@ export const CARDS = [
     title: 'Deployment Rollback and Revision History',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'A rollout went bad, so how do you get back to the version that worked? A Deployment keeps its old ReplicaSets as numbered revisions, so a rollback sends the broken one to zero and brings the previous one back to full, which a stuck rollout never left. That history undoes a bad change in one command, and revisionHistoryLimit, 10 by default, caps it: a pruned ReplicaSet takes its revision with it. A rollback creates a new revision rather than erasing the bad one.',
+    desc: 'A rollout went bad, so how do you get back to the version that worked? A Deployment keeps its old ReplicaSets as numbered revisions, so a rollback sends the broken one to zero while the previous one, never scaled down, keeps serving. That history undoes a bad change in one command, and revisionHistoryLimit, 10 by default, caps it: a pruned ReplicaSet takes its revision with it. A rollback creates a new revision rather than erasing the bad one.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -142,7 +142,7 @@ export const CARDS = [
     title: 'CronJob Schedule and Concurrency',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates one Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down if startingDeadlineSeconds allows, or if under 100 ticks were missed. A CronJob never runs a Pod itself, it only creates Jobs.',
+    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates one Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down within startingDeadlineSeconds, or, with no deadline, until 100 ticks pile up. A CronJob never runs a Pod itself, it only creates Jobs.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -191,7 +191,7 @@ export const CARDS = [
     title: 'Startup, Liveness and Readiness Probes',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'How does the Kubelet tell a slow boot from a hung container? Three probes answer that on their own periodSeconds: startupProbe gates the other two until the app is up, livenessProbe restarts the container after failureThreshold consecutive failures, and readinessProbe flips that endpoint to ready=false in the EndpointSlice without removing it or restarting anything. A probe never restarts a Pod, only the container that failed it.',
+    desc: 'How does the Kubelet tell a slow boot from a hung container? Three probes answer that on their own periodSeconds: startupProbe gates the other two until the app is up, livenessProbe restarts the container after failureThreshold consecutive failures, and readinessProbe flips the Pod endpoint to ready=false in the EndpointSlice without removing it or restarting anything. A probe never restarts a Pod, only the container that failed it.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

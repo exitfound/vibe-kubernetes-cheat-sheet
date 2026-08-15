@@ -43,7 +43,7 @@ const STRIP = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });   // 112 / 360 / 
 // List order IS append order, which is z-order: node frames and their zone captions, the class and
 // the claim, the disks, the Pod, then lanes and captions, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and no Node then both fits the Pod and lies in the disk zone, so the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
+  'aria-label': 'Topology-aware provisioning with WaitForFirstConsumer: under Immediate binding a zonal disk is provisioned as soon as the claim exists, and here it lands in zone-a while Node-1 in zone-a has no room, so no Node both fits the Pod and lies in the disk zone and the Pod stays Pending unschedulable with a volume node affinity conflict, while WaitForFirstConsumer defers binding until the Pod is scheduled so the volume is created in the Pod topology',
   parts: [
     P.defs(),
     P.node({ key: 'nodeA', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'node-1' }),

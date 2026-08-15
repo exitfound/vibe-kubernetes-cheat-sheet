@@ -116,7 +116,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the three node frames with their gauges, then the counters, then the two decision-tier
 // blocks and the Pod, then the lanes, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Node volume attach limits. Three Node frames each draw eight attachment slots with a counter, a CSINode box carries allocatable.count, and the scheduler filter NodeVolumeLimits compares the two. With every Node full, Pod web-0 asks for one slot and stays Pending, and a slot frees when a detach completes and its VolumeAttachment is gone.',
+  'aria-label': 'Node volume attach limits: every Node has a hard ceiling on how many volumes one CSI driver may have attached at once, reported by the node plugin as max_volumes_per_node, written into CSINode as allocatable.count and read by the scheduler filter NodeVolumeLimits. With all three Nodes at eight of eight, Pod web-0 asks for one slot and stays Pending, and a slot frees when a detach completes and its VolumeAttachment is gone, not when a Pod dies.',
   parts: [
     P.defs(),
     nodeFrame(0, 'node-1'),

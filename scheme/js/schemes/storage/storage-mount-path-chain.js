@@ -62,7 +62,7 @@ const podBlock = (key, innerKey, x, label, opacity) => P.pod({
 // The list order IS the append order, which is the z-order: the disk and the blocks, then the Pods,
 // then every corridor lane and its caption, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Where the bytes land. One block device is mounted exactly once on the Node, at a global staging path, and that single staged filesystem is bind-mounted into a directory belonging to one Pod alone, which the runtime maps to slash data. Pod A and Pod B share the disk through two bind mounts off that one staging path, with no copy at any hop.',
+  'aria-label': 'Where the bytes land. One block device is mounted exactly once on the Node, at a global staging path, and that single staged filesystem is bind-mounted into a directory belonging to one Pod alone, which the runtime maps to slash data. Pod A and Pod B share the disk through two bind mounts off that one staging path, with no second attach and no second filesystem mount. A write descends the same chain onto the device, with no copy made at any hop.',
   parts: [
     P.defs(),
     // cylinder() centres its label on the raw bbox, which reads high because the top cap is not part
@@ -164,7 +164,7 @@ export const STEPS_SPEC = [
   {
     id: 'surface',
     duration: 3000,
-    narration: 'That per-Pod directory is what the container runtime maps to /data inside Pod A. From the container it looks like a plain folder. Underneath, it is a bind mount of a bind mount of one staged device. Pod A can now read and write.',
+    narration: 'That per-Pod directory is what the container runtime maps to /data inside Pod A. From the container it looks like a plain folder. Underneath, it is a bind mount off one staged device. Pod A can now read and write.',
     chipsCued: chips('once', 'Pod A'),
     wires: { pod: 'the runtime maps it' },
     opacity: stage(),                                   // Pod A comes up to full opacity here

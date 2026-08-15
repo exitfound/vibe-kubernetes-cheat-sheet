@@ -76,7 +76,7 @@ export const SCENE = {
 };
 
 // Chip values that recur, named once so a five-key `chips` block stays one readable line.
-const RETIRED = 'passed (retired)', NOT_RUNNING = 'not running', EP_READY = '10.244.1.5 Ready';
+const RETIRED = 'passed (retired)', NOT_RUNNING = 'not running', EP_READY = '10.244.1.5 ready=true';
 
 // setConnectorDir as FIELDS: the pair is written in one place, so no step can leave both corridors
 // on or neither. Key order is the order the helper wrote them in.

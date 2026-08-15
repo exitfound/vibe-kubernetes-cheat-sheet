@@ -121,7 +121,7 @@ export const STEPS_SPEC = [
   {
     id: 'spec',
     duration: 1700,
-    narration: 'The classification rule has three outcomes. BestEffort: no container has any requests or limits at all. Guaranteed: every container has CPU and memory requests and limits set, with requests equal to limits. Burstable: anything in between (at least one resource declared but does not match the Guaranteed pattern).',
+    narration: 'The classification rule has three outcomes. BestEffort: no container has any requests or limits at all. Guaranteed: every container has CPU and memory requests and limits set, with requests equal to limits. Burstable: anything in between (at least one resource declared, but the Pod does not match the Guaranteed pattern).',
     chips: { pod1Chip: 'pending', pod2Chip: 'pending', pod3Chip: 'pending', focusChip: '3 shapes inspected' },
     wires: { req: 'rule: empty → BestEffort · req==lim → Guaranteed · Else Burstable' },
     sublabels: shapes(...POD_SUBS),

@@ -141,7 +141,7 @@ export const STEPS_SPEC = [
   {
     id: 'exitcodes',
     duration: 2400,
-    narration: 'The exitCode names the cause. 0 is Completed, a clean exit. 1 is a generic application Error. Codes above 128 carry a signal: 137 is 128 plus 9 for SIGKILL, paired with reason OOMKilled when the kernel did it, and 143 is 128 plus 15 for SIGTERM. The number alone tells you how the container died.',
+    narration: 'The exitCode names the cause. 0 is Completed, a clean exit. 1 is a generic application Error. Codes above 128 carry a signal: 137 is 128 plus 9 for SIGKILL, paired with reason OOMKilled when the kernel did it, and 143 is 128 plus 15 for SIGTERM. The number narrows the cause, and the reason beside it names it.',
     chips: { stateChip: 'Running', detailChip: 'startedAt 09:24:30Z', lastChip: FRESH, restartChip: '3' },
     opacity: { podGroup: 1, ...corridor('down') },
     // Decoding the code is a local lookup, nothing travels and the Pod is untouched,

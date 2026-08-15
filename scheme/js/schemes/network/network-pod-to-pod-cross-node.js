@@ -84,7 +84,7 @@ export const STEPS_SPEC = [
     id: 'encap',
     duration: 2600,
     narration: 'In overlay mode the CNI dataplane wraps the original frame inside a VXLAN header carried over UDP to the Node-2 address. The outer headers are Node IPs the physical network already knows how to route, dport 8472 for flannel, while the inner Pod IPs ride untouched. The wrapped packet crosses the underlay to Node-2.',
-    chips: { innerChip: '.1.5 -> .2.7', outerChip: 'node1 -> node2', encapChip: 'VXLAN/UDP 8472', modeChip: 'overlay' },
+    chips: { innerChip: '.1.5 -> .2.7', outerChip: 'Node-1 -> Node-2', encapChip: 'VXLAN/UDP 8472', modeChip: 'overlay' },
     wires: { encap: 'VXLAN over UDP · dport 8472' },
     // The overlay device acts, infra stays lit and never pulses.
     lit: ['cni1', 'outerChip', 'encapChip'],
@@ -98,7 +98,7 @@ export const STEPS_SPEC = [
     id: 'decap',
     duration: 2400,
     narration: 'Node-2 receives the UDP packet on the VXLAN port and its kernel strips the outer headers. The bare inner frame, still addressed to 10.244.2.7, is bridged across the local cni0 and out the veth into Pod B, exactly as a same-node frame would be delivered.',
-    chips: { innerChip: '.1.5 -> .2.7', outerChip: 'node1 -> node2', encapChip: 'VXLAN/UDP 8472', modeChip: 'overlay' },
+    chips: { innerChip: '.1.5 -> .2.7', outerChip: 'Node-1 -> Node-2', encapChip: 'VXLAN/UDP 8472', modeChip: 'overlay' },
     wires: { vb: 'veth · eth0', encap: 'decap · inner frame restored' },
     lit: ['cni2', 'innerChip'],
     // The animated path says Pod B was served by PULSING it, which no lights list can name.

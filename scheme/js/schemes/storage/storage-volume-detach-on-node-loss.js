@@ -79,8 +79,8 @@ export const SCENE = {
     P.lane({ key: 'wAttachB', points: W_ATTACH_B, dashed: true, dim: false, opacity: 0 }),
     P.lane({ key: 'wTaint', points: W_TAINT, dashed: true, dim: true, opacity: 0 }),
     P.wire({ key: 'disk', x: DK_LBL_X, y: DK_LBL_Y, anchor: 'start' }),
-    P.chip({ key: 'nodeChip', x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'node-1', value: 'Ready' }),
-    P.chip({ key: 'diskChip', x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'volume', value: 'attached to node-1' }),
+    P.chip({ key: 'nodeChip', x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Node-1', value: 'Ready' }),
+    P.chip({ key: 'diskChip', x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'volume', value: 'attached to Node-1' }),
     P.chip({ key: 'podChip', x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'new Pod', value: 'not created' }),
     P.chain({
       key: 'chain',
@@ -88,7 +88,7 @@ export const SCENE = {
       items: [
         '1. unreachable taint  ·  300s, old Pod deleted',
         '2. force-detach timeout  ·  ~6 min, then rip attach',
-        '3. attach on node-2  ·  new Pod finally starts',
+        '3. attach on Node-2  ·  new Pod finally starts',
       ],
     }),
     P.packets(),
@@ -108,7 +108,7 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: chips('Ready', 'attached to node-1', 'not created'),
+    chipsCued: chips('Ready', 'attached to Node-1', 'not created'),
     podSublabels: pods('Running', 'Pending'),
     opacity: { nodeA: 1, oldPod: 1, newPod: 0, wAttachA: 1, wAttachB: 0, wTaint: 0 },
     lit: ['disk'],
@@ -118,7 +118,7 @@ export const STEPS_SPEC = [
     id: 'notready',
     duration: 2600,
     narration: 'Node-1 stops answering. Its Kubelet goes silent and the Node is marked NotReady, but there is no word from Node-1 about whether the old Pod actually stopped. It might be dead. It might be a network blip with the Pod still writing.',
-    chipsCued: chips('NotReady', 'attached to node-1', 'not created'),
+    chipsCued: chips('NotReady', 'attached to Node-1', 'not created'),
     podSublabels: pods('status unknown', 'Pending'),
     // Node-2 stays empty: nothing can create a second web-0 while the first is still a live object
     // with no deletionTimestamp. The replacement appears on the evict step, which writes it.
@@ -133,7 +133,7 @@ export const STEPS_SPEC = [
     id: 'refuse',
     duration: 2800,
     narration: 'So Kubernetes refuses to detach the disk. Notice what it is not waiting on: no other Pod holds the volume and nothing is contending for it. It is waiting on doubt. Pull PV web off Node-1 while the old Pod might still be writing and two Nodes write one filesystem, which corrupts it. Refusing is the safe answer to a question that cannot be answered.',
-    chipsCued: chips('NotReady', 'held on node-1', 'not created'),
+    chipsCued: chips('NotReady', 'held on Node-1', 'not created'),
     podSublabels: pods('may still write', 'Pending'),
     wires: { disk: 'do not detach yet' },
     opacity: { oldPod: 1, newPod: 0 },
@@ -147,7 +147,7 @@ export const STEPS_SPEC = [
     id: 'evict',
     duration: 2600,
     narration: 'The clocks start. First the eviction wait: Node-1 takes the unreachable taint, and the old Pod tolerates that for 300 seconds by default before it is marked for deletion. On a reachable Node that would delete the Pod cleanly and release the volume. On an unreachable Node the deletion cannot be confirmed, so the disk is still held. That same deletion mark is what finally lets a replacement be created on Node-2, where it sits in ContainerCreating waiting for a disk it cannot have.',
-    chipsCued: chips('NotReady', 'held on node-1', 'ContainerCreating'),
+    chipsCued: chips('NotReady', 'held on Node-1', 'ContainerCreating'),
     podSublabels: pods('marked for deletion', 'ContainerCreating'),
     wires: { disk: 'still held' },
     // Marked for deletion is the Terminating phase, so the old Pod sits at that shade rather
@@ -190,7 +190,7 @@ export const STEPS_SPEC = [
     id: 'attachb',
     duration: 3400,
     narration: 'With PV web detached, it attaches to Node-2 and is mounted there, and the new Pod finally starts. Nothing in that sequence was slow. The entire outage was the safety margin: the eviction wait and then six more minutes of deliberate doubt about a Node that could not be asked.',
-    chipsCued: chips('NotReady', 'attached to node-2', 'Running'),
+    chipsCued: chips('NotReady', 'attached to Node-2', 'Running'),
     podSublabels: pods('assumed gone', 'Running'),
     opacity: { oldPod: OPACITY.terminated, wAttachA: OPACITY.terminated, wAttachB: 1, newPod: 1 },
     // The disk is the SOURCE of the attach hop and is lit from entry, because a ball must never
@@ -203,7 +203,7 @@ export const STEPS_SPEC = [
     flow: [
       F.fade({ target: 'wAttachB', from: 0, to: 1, dur: 300, fill: 'forwards', easing: 'ease-out' }),
       F.route({ points: W_ATTACH_B, delay: BEAT.lead, name: 'attach' }),
-      F.tag({ text: 'attach to node-2', points: W_ATTACH_B, delay: BEAT.lead }),
+      F.tag({ text: 'attach to Node-2', points: W_ATTACH_B, delay: BEAT.lead }),
       F.pulse({ pod: 'newPod', at: 'attach' }),
     ],
   },

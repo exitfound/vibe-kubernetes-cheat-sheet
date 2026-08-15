@@ -88,11 +88,11 @@ BUDGET   POD_W is floored by the WIDEST TEXT INSIDE A POD. The container sublabe
          lengthen that string without re-deriving the row centre.
          CHIP_W 232 is one width for all four chips, measured worst cases in viewBox units:
            accessModes 76 + ReadWriteOncePod 110 = 186   <- the binding one, neither string can shorten
-           attached to 76 + `node-1, node-2`      96 = 172
+           attached to 76 + `Node-1, Node-2`      96 = 172
            sharing     48 + `app-1, app-2, app-3` 131 = 179
            enforced by 76 + `CSI driver`           69 = 145
          232 clears the worst pair with ~22 units between name and value.
-NAMING   The multi-value chips read as comma lists because `node-1 and node-2` and `app-1, app-2 and
+NAMING   The multi-value chips read as comma lists because `Node-1 and Node-2` and `app-1, app-2 and
          app-3` would force a wider uniform chip, and the strip is already more than twice the width
          of the diagram it captions.
 CONTENT  `enforced by` is a real value, not a constant caption: every mode here is honoured by the
@@ -1191,8 +1191,8 @@ SIZES    Block sizes follow storage-csi-architecture (family box 232 x 76). The 
          sublabel. DO NOT run it 40..86: the sublabel glyphs start at 87 and collide on both Pods.
          CHIP_W 232 clears the worst name+value pair with ~44 units between the halves. Each total is
          the name plus the value plus the 24 units of chip inset, against the 232:
-           new Pod 44 + `scheduled on node-2` 120 = 188        blocked by 63 + `old Pod running` 95 = 182
-           accessModes 69 + `ReadWriteOnce` 82 = 175           attached to 69 + `node-1` 38 = 131
+           new Pod 44 + `scheduled on Node-2` 120 = 188        blocked by 63 + `old Pod running` 95 = 182
+           accessModes 69 + `ReadWriteOnce` 82 = 175           attached to 69 + `Node-1` 38 = 131
 NOTE     The controller is 300 rather than spanning the node columns at 400, and that is what makes
          the fan below possible: its two output lanes leave its SIDE WALLS at mid-height and step
          outward before dropping, so the narrower it is the more room they have before the hard left
@@ -2253,7 +2253,7 @@ SIZES    The floor under POD_W is the widest string inside a Pod, the sublabel `
          side. The rate is PER CLASS (`L-20`).
          CHIP_W 210 rather than the family 232, measured IN THE BROWSER rather than estimated, because
          the rate under-reads on strings full of wide glyphs:
-           node-1 41 + `NotReady, tainted` 117 = 158     volume 41 + `attached to node-1` 124 = 165
+           Node-1 41 + `NotReady, tainted` 117 = 158     volume 41 + `attached to Node-1` 124 = 165
            new Pod 48 + `ContainerCreating` 117 = 165
          210 clears the worst pair with 21 units, the floor for the two halves reading as separate.
          The LADDER rows carry the longest strings on the card and are the one place a per-character
@@ -2764,7 +2764,7 @@ SIZES    BOX_W / BOX_H are storage-csi-architecture's block size, a SIZE match o
          other span leaves behind. Worst cases at 6.89 per character with the 24 unit inset:
            status.attached 103.4 + `no object` 62.0 = 189.4   <- the binding one
            VolumeAttachment 110.3 + `deleted` 48.2 = 182.5
-           disk on node-1 96.5 + `yes` 20.7 = 141.2           kubelet 48.2 + `released` 55.1 = 127.3
+           disk on Node-1 96.5 + `yes` 20.7 = 141.2           Kubelet 48.2 + `released` 55.1 = 127.3
          CHIP_W falls out at 258. The FLOOR is what matters: below ~190 the longest name and value
          touch.
 LANES    Each direction of the VolumeAttachment conversation gets its OWN lane, so the status write
@@ -2813,7 +2813,7 @@ DO NOT   Animate the create half of the delete step and drop the delete half. Th
          BOTH halves, or the step opens on the attacher's watch while W_WRITE sits drawn, aimed and at
          full opacity carrying nothing.
 NAMING   External-attacher is the name of one binary, so it takes the capital on its first segment
-         only (`T-11`). Bare identifiers keep their real casing: va-7f, web-0, vol-1, node-1, which
+         only (`T-11`). Bare identifiers keep their real casing: va-7f, web-0, vol-1, which
          `.scheme-node-label` uppercases to NODE-1 in CSS, and that form is catalog-wide (`T-12`).
 NOT A DEFECT
          The `status` and `detach` steps say `when the backend confirms the attach` and `only when the

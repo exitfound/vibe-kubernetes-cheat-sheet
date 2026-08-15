@@ -54,7 +54,7 @@ const lane = (key, points, opacity) => P.lane({ key, points, dashed: true, dim: 
 // Z-order: the blocks and the disk, then the lanes and their captions, then the Pod above its own
 // half of the axis, then the disk caption, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The pvc-protection finalizer on PVC data-claim means a delete only writes a deletionTimestamp, so the object stays and Pod web-0 keeps its mount. Once the last consuming Pod is gone the controller removes the finalizer and the API server takes the object out of ETCD.',
+  'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The pvc-protection finalizer on PVC data-claim means a delete only writes a deletionTimestamp, so the object stays and Pod web-0 keeps its mount, while the status phase reads Bound the whole time and only kubectl prints the word Terminating. Once the last consuming Pod is gone the controller removes the finalizer, and only then does the API server take the object out of ETCD.',
   parts: [
     P.defs(),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'phase Bound' }),

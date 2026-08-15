@@ -212,7 +212,7 @@ export const STEPS_SPEC = [
   {
     id: 'deleted-delete',
     duration: 4600,
-    narration: 'With whenDeleted set to Delete, removing the StatefulSet garbage-collects all three claims and every disk goes with them. This is the clean teardown, and the reason Retain on both knobs is the conservative default: deleting data is irreversible, so Kubernetes will not do it unless you ask.',
+    narration: 'With whenDeleted set to Delete, removing the StatefulSet garbage-collects all three claims and every disk goes with them. This is the clean teardown, and it is also why Retain on both knobs is the conservative default: deleting data is irreversible, so Kubernetes will not do it unless you ask.',
     chipsCued: chips('0', 'Delete', 'Delete', '0 kept'),
     sublabels: claimLabels(BOUND),
     wires: { g0: 'reclaimed', g1: 'reclaimed', g2: 'reclaimed' },

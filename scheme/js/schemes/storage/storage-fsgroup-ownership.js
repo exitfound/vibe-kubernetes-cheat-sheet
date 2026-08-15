@@ -109,7 +109,7 @@ const appShell = () => podShell({
 // Z-order, bottom to top: the disk and the tree, the listing on it, kubelet and the Pod, the five
 // wires, the disk caption, the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'fsGroup and volume ownership: a volume mounts owned by root so a non-root container cannot write, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start whereas the default Always always walks',
+  'aria-label': 'fsGroup and volume ownership: a freshly mounted volume is owned by root so a non-root container cannot write to it, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start the way the default policy Always does',
   parts: [
     P.defs(),
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse

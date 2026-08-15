@@ -153,8 +153,8 @@ export const STEPS_SPEC = [
     id: 'rwo-first',
     duration: 3100,
     narration: 'Pod app-1 mounts the volume. ReadWriteOnce attaches the disk to one Node, Node-1, and lets a Pod there read and write it. So far this looks exactly like a per-Pod lock, but that is not what ReadWriteOnce actually means.',
-    chipsCued: chips('ReadWriteOnce', 'node-1', 'app-1'),
-    wires: { block: 'attached: node-1' },
+    chipsCued: chips('ReadWriteOnce', 'Node-1', 'app-1'),
+    wires: { block: 'attached: Node-1' },
     opacity: pods(1, 1, 1),          // app-2 and app-3 are healthy, just not shown mounting
     flow: grantMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, attachPts: W_DRV_BLOCK, tag: 'mount rw', disk: 'pvBlock' }),
   },
@@ -162,8 +162,8 @@ export const STEPS_SPEC = [
     id: 'rwo-samenode',
     duration: 3100,
     narration: 'Pod app-2 sits on the same Node and it can mount the volume too. ReadWriteOnce is per Node, not per Pod. Once the disk is attached to Node-1, any number of Pods scheduled onto Node-1 can share it.',
-    chipsCued: chips('ReadWriteOnce', 'node-1', 'app-1, app-2'),
-    wires: { block: 'attached: node-1' },
+    chipsCued: chips('ReadWriteOnce', 'Node-1', 'app-1, app-2'),
+    wires: { block: 'attached: Node-1' },
     opacity: pods(1, 1, 1),          // app-3 is not refused until the next step
     flow: grantMount({ name: 'a2', pod: 'podA2', reqPts: W_P2_DRV, attachPts: W_DRV_BLOCK, tag: 'shares rw', disk: 'pvBlock' }),
   },
@@ -171,8 +171,8 @@ export const STEPS_SPEC = [
     id: 'rwo-othernode',
     duration: 2600,
     narration: 'Pod app-3 lives on Node-2 and asks for the same volume. This one is refused. The disk is already attached to Node-1, and a block disk can be attached to only one Node at a time, so app-3 gets a Multi-Attach error and never starts.',
-    chipsCued: chips('ReadWriteOnce', 'node-1', 'app-1, app-2'),
-    wires: { block: 'attached: node-1', drv: 'held by node-1' },
+    chipsCued: chips('ReadWriteOnce', 'Node-1', 'app-1, app-2'),
+    wires: { block: 'attached: Node-1', drv: 'held by Node-1' },
     opacity: pods(1, 1, OPACITY.pending),        // app-3 refused: Multi-Attach
     // The block disk stays LIT on both paths: it is still attached to node-1 and it is the REASON
     // app-3 is refused, so leaving it unlit contradicts the wire label and the narration.
@@ -183,7 +183,7 @@ export const STEPS_SPEC = [
     id: 'rwop',
     duration: 2600,
     narration: 'ReadWriteOncePod is the strict one. Now even app-2 on the same Node is refused, because the volume is bound to a single Pod and nothing else. It is also the one mode Kubernetes enforces itself rather than leaving to the driver, and it is what you reach for when two Pods writing the same files would corrupt each other.',
-    chipsCued: chips('ReadWriteOncePod', 'node-1', 'app-1 only', 'Kubernetes'),
+    chipsCued: chips('ReadWriteOncePod', 'Node-1', 'app-1 only', 'Kubernetes'),
     wires: { block: 'held by app-1', drv: 'one Pod only' },
     opacity: pods(1, OPACITY.pending, OPACITY.pending),      // RWOP refuses everyone but app-1
     lit: ['pvBlock'],
@@ -209,7 +209,7 @@ export const STEPS_SPEC = [
     id: 'rwx-nfs',
     duration: 3800,
     narration: 'Point the claim at a shared filesystem instead, PV nfs on NFS or CephFS, and ReadWriteMany works. The driver attaches it to both Nodes, and all three Pods mount it at once, on either Node, with nobody refused. The mode was always allowed by Kubernetes, what changed is a backend that can deliver it.',
-    chipsCued: chips('ReadWriteMany', 'node-1, node-2', 'app-1, app-2, app-3'),
+    chipsCued: chips('ReadWriteMany', 'Node-1, Node-2', 'app-1, app-2, app-3'),
     wires: { nfs: 'attached: both nodes' },
     // Every Pod is at full opacity here: ReadWriteMany on a shared filesystem excludes nobody, so
     // there is no Pod left in the not-holding-it state that OPACITY.pending exists to mark.

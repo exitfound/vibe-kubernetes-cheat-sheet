@@ -115,8 +115,8 @@ export const SCENE = {
     P.wire({ key: 'disk', x: DISK_CX, y: DISK_LBL_Y }),
     P.chip({ key: 'vaChip', x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'VolumeAttachment', value: 'none' }),
     P.chip({ key: 'attrChip', x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'status.attached', value: 'no object' }),
-    P.chip({ key: 'diskChip', x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'disk on node-1', value: 'no' }),
-    P.chip({ key: 'kubeChip', x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'kubelet', value: 'blocked' }),
+    P.chip({ key: 'diskChip', x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'disk on Node-1', value: 'no' }),
+    P.chip({ key: 'kubeChip', x: CHIP_X[3], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Kubelet', value: 'blocked' }),
     P.packets(),
   ],
   reset: {
@@ -139,8 +139,8 @@ const DISK_ON = { disk: 1, wPublish: 1, wOnNode: 1 };
 const DISK_DIM = { disk: OPACITY.notready, wPublish: OPACITY.notready, wOnNode: OPACITY.notready };
 const VA_LANES = ['wWrite', 'wWatch', 'wStatus', 'wGate'];
 
-const NOT_CREATED = 'not created yet', ATTACHED_FALSE = 'node-1, attached: false', ATTACHED_TRUE = 'node-1, attached: true';
-const DISK_NONE = 'not attached to any node', DISK_ON_NODE = 'attached to node-1';
+const NOT_CREATED = 'not created yet', ATTACHED_FALSE = 'Node-1, attached: false', ATTACHED_TRUE = 'Node-1, attached: true';
+const DISK_NONE = 'not attached to any node', DISK_ON_NODE = 'attached to Node-1';
 
 export const STEPS_SPEC = [
   {
@@ -182,7 +182,7 @@ export const STEPS_SPEC = [
       fade('va', OPACITY.pending, 1),
       ...VA_LANES.map(k => fade(k, 0, 1)),
       F.route({ points: W_WRITE, delay: BEAT.lead, name: 'write' }),
-      F.tag({ text: 'vol-1 on node-1', points: W_WRITE, delay: BEAT.lead }),
+      F.tag({ text: 'vol-1 on Node-1', points: W_WRITE, delay: BEAT.lead }),
       F.light({ targets: ['va'], at: 'write' }),
     ],
   },
@@ -205,7 +205,7 @@ export const STEPS_SPEC = [
       F.tag({ text: 'ControllerPublish', points: W_PUBLISH, after: 'watch' }),
       F.light({ targets: ['disk'], at: 'call' }),
       F.route({ points: W_ONNODE, after: 'call', name: 'land' }),
-      F.tag({ text: 'vol-1 on node-1', points: W_ONNODE, after: 'call' }),
+      F.tag({ text: 'vol-1 on Node-1', points: W_ONNODE, after: 'call' }),
       F.light({ targets: ['kube'], at: 'land' }),
     ],
   },
@@ -232,7 +232,7 @@ export const STEPS_SPEC = [
     narration: 'Kubelet has been blocked this whole time, watching that one field. The moment status.attached reads true it stops waiting, mounts the disk into the Pod at /data, and the Pod starts. The VolumeAttachment gated the mount.',
     chipsCued: chips('va-7f', 'true', 'yes', 'mounted'),
     sublabels: { va: ATTACHED_TRUE },
-    wires: { disk: 'attached to node-1, mounted at /data' },
+    wires: { disk: 'attached to Node-1, mounted at /data' },
     opacity: { ...OBJ_ON, ...POD_ON, ...DISK_ON },
     // The Kubelet is what the gate opens onto, and the cue below already lights it on that arrival.
     // It was lit from entry as well, so the moment it stopped waiting could not be seen.
@@ -252,7 +252,7 @@ export const STEPS_SPEC = [
     narration: 'Because the object is the record, deleting it is what tears the attach down. Once the Pod is gone the controller deletes the VolumeAttachment, the attacher sees the deletion mark, calls ControllerUnpublishVolume, and only when the backend has detached vol-1 from Node-1 does the object finally go. No object, no attach.',
     chipsCued: chips('deleted', 'gone', 'no', 'released'),
     sublabels: { va: 'deleted after detach' },
-    wires: { disk: 'detached from node-1' },
+    wires: { disk: 'detached from Node-1' },
     opacity: {
       va: OPACITY.terminated, wWrite: 0, wWatch: 0, wStatus: 0, wGate: 0,
       appPod: 0, mountLane: 0, ...DISK_DIM,

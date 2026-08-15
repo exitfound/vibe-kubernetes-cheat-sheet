@@ -90,7 +90,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the two node frames, then the blocks and the disk, then the Pods so they sit above their
 // own frame, then the five lanes and the band caption, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'A Multi-Attach error. PV web is ReadWriteOnce and attached to Node-1 through VolumeAttachment va-1, so when a replacement Pod lands on Node-2 the attach and detach controller refuses to write va-2. The new Pod hangs in ContainerCreating until the old Pod is deleted and the first attachment goes, which is what stalls a RollingUpdate Deployment.',
+  'aria-label': 'A Multi-Attach error. PV web is ReadWriteOnce and attached to Node-1 through VolumeAttachment va-1, so when a replacement Pod lands on Node-2 the attach and detach controller refuses to write va-2. The new Pod hangs in ContainerCreating until the old Pod is deleted and the first attachment goes, which is why a RollingUpdate Deployment on ReadWriteOnce storage stalls whenever its replacement Pod is scheduled to a different Node.',
   parts: [
     P.defs(),
     P.node({ key: 'nodeA', x: NODE_A_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1', tune: titleNode }),
@@ -99,7 +99,7 @@ export const SCENE = {
       key: 'ctrl', x: BAND_X, y: BAND_Y, w: BAND_W, h: BAND_H,
       label: 'Attach/Detach controller', sublabel: 'RWO: one node at a time',
     }),
-    P.box({ key: 'vaA', x: VA_A_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-1', sublabel: 'node-1, attached: true' }),
+    P.box({ key: 'vaA', x: VA_A_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-1', sublabel: 'Node-1, attached: true' }),
     P.box({ key: 'vaB', x: VA_B_X, y: VA_Y, w: VA_W, h: VA_H, label: 'VolumeAttachment va-2', sublabel: 'wanted, not written' }),
     // The primitive centers the label on the raw bbox, which reads high because the top cap ellipse
     // is not part of the visible front face. Re-center on the face, as the rest of storage does.
@@ -113,7 +113,7 @@ export const SCENE = {
     lane('wVaBDisk', W_VAB_DISK),
     P.wire({ key: 'band', x: CONTENT_CX, y: BAND_LBL_Y }),
     P.chip({ key: 'modeChip', x: CHIPS.x(0), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'accessModes', value: 'ReadWriteOnce' }),
-    P.chip({ key: 'attChip', x: CHIPS.x(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'attached to', value: 'node-1' }),
+    P.chip({ key: 'attChip', x: CHIPS.x(1), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'attached to', value: 'Node-1' }),
     P.chip({ key: 'podChip', x: CHIPS.x(2), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'new Pod', value: 'not scheduled' }),
     P.chip({ key: 'blockChip', x: CHIPS.x(3), y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'blocked by', value: 'nothing' }),
     P.packets(),
@@ -131,7 +131,7 @@ const stage = ({
   nodeB = 0,        // node-2 and everything in it: the second claimant does not exist yet
   oldOp = 1, oldSub = 'Running',
   newOp = 0, newSub = 'ContainerCreating',
-  vaAOp = 1, vaASub = 'node-1, attached: true',
+  vaAOp = 1, vaASub = 'Node-1, attached: true',
   // OPACITY.pending is va-2 as a WANT, not an object: the controller refuses before writing, so no
   // va-2 exists through the blocked stretch. A ghost, not a hole, and full only when it is written.
   vaBOp = 0, vaBSub = 'wanted, not written',
@@ -157,14 +157,14 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chipsCued: chips('node-1', 'not scheduled', 'nothing'),
+    chipsCued: chips('Node-1', 'not scheduled', 'nothing'),
     ...stage(),
   },
   {
     id: 'reschedule',
     duration: 2600,
     narration: 'Now the Pod moves. A rolling update stands the replacement up on Node-2 while the old one is still running, which is exactly what RollingUpdate is designed to do. Node-1 stays healthy throughout. A second Pod now exists on the other Node, and it wants the same volume.',
-    chipsCued: chips('node-1', 'scheduled on node-2', 'nothing'),
+    chipsCued: chips('Node-1', 'scheduled on Node-2', 'nothing'),
     ...stage({ nodeB: 1, newOp: 1 }),
     rewind: { opacity: { nodeB: 0, podNew: 0 } },
     // The node frame and the Pod arrive together as one event, because that is what scheduling onto
@@ -179,7 +179,7 @@ export const STEPS_SPEC = [
     id: 'wantattach',
     duration: 3200,
     narration: 'The attach and detach controller tries to attach the volume to Node-2, which means writing a second VolumeAttachment. The request reaches the controller and stops. PV web is ReadWriteOnce and the first attachment is still live, so the refusal comes before anything is written and va-2 stays a want rather than an object.',
-    chipsCued: chips('node-1', 'ContainerCreating', 'va-1 on node-1'),
+    chipsCued: chips('Node-1', 'ContainerCreating', 'va-1 on Node-1'),
     wires: { band: 'RWO: cannot attach twice' },
     ...stage({ nodeB: 1, newOp: 1, linkNew: 1, vaBOp: OPACITY.pending }),
     // Both the lane and the want are drawn for the first time on this step, so the animated path
@@ -193,7 +193,7 @@ export const STEPS_SPEC = [
       // blink has landed, and the controller lights when the ball reaches it.
       F.pulse({ pod: 'podNew' }),
       F.route({ points: W_NODE_BAND, delay: BEAT.afterPulse, name: 'req' }),
-      F.tag({ text: 'attach node-2', points: W_NODE_BAND, delay: BEAT.afterPulse }),
+      F.tag({ text: 'attach Node-2', points: W_NODE_BAND, delay: BEAT.afterPulse }),
       F.light({ targets: ['ctrl'], at: 'req' }),
       // The WANT appears at the placeholder shade as the refusal lands, and is never lit: nothing
       // was granted. NOT F.reveal, which lands on full.
@@ -206,7 +206,7 @@ export const STEPS_SPEC = [
     // The stuck Pod is the actor, so it pulses and nothing else moves. va-1 lights because it is the
     // blocker: the reader should be looking at the OLD attachment while reading this sentence.
     narration: 'So the new Pod hangs. Its events read Multi-Attach error for volume PV web, already used by the old Pod on Node-1. The container never starts, because Kubelet will not mount a disk that is not attached to the Node it runs on, and the attach is refused.',
-    chipsCued: chips('node-1', 'Multi-Attach error', 'va-1 on node-1'),
+    chipsCued: chips('Node-1', 'Multi-Attach error', 'va-1 on Node-1'),
     wires: { band: 'first attachment still live' },
     ...stage({ nodeB: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: OPACITY.pending }),
     lit: ['vaA'],
@@ -218,11 +218,11 @@ export const STEPS_SPEC = [
     id: 'wait',
     duration: 2800,
     narration: 'What clears it is the old attachment going away, and nothing else will. The controller will not delete va-1 while the old Pod runs, and the rollout will not delete that Pod until the new one is ready. Each side waits on the other, which is why this reads as a hang.',
-    chipsCued: chips('node-1', 'Multi-Attach error', 'old Pod running'),
+    chipsCued: chips('Node-1', 'Multi-Attach error', 'old Pod running'),
     wires: { band: 'each side waits for the other' },
     ...stage({
       nodeB: 1, newOp: 1, newSub: 'Multi-Attach error', linkNew: 1, vaBOp: OPACITY.pending,
-      vaASub: 'node-1, still held',
+      vaASub: 'Node-1, still held',
     }),
     lit: ['vaA'],
   },
@@ -263,13 +263,13 @@ export const STEPS_SPEC = [
     id: 'attach',
     duration: 3800,
     narration: 'With the volume free the controller writes va-2, the driver attaches the disk to Node-2, Kubelet mounts it, and the new Pod starts. None of that was slow. The whole stall went on waiting for the old Pod to be deleted, not on any storage operation.',
-    chipsCued: chips('node-2', 'Running', 'nothing'),
-    wires: { band: 'now attach to node-2' },
+    chipsCued: chips('Node-2', 'Running', 'nothing'),
+    wires: { band: 'now attach to Node-2' },
     ...stage({
       nodeB: 1, oldOp: OPACITY.terminated, oldSub: 'deleted',
       newOp: 1, newSub: 'Running', linkNew: 1,
       vaAOp: OPACITY.terminated, vaASub: 'deleted', linkA: OPACITY.terminated,
-      vaBOp: 1, vaBSub: 'node-2, attached: true', linkB: 1,
+      vaBOp: 1, vaBSub: 'Node-2, attached: true', linkB: 1,
     }),
     // Lit from entry for the same reason as the step before: the controller is where the write
     // comes from, so it cannot be dark while a ball is leaving it.
@@ -291,13 +291,13 @@ export const STEPS_SPEC = [
     id: 'fix',
     duration: 3400,
     narration: 'This is why a Deployment on ReadWriteOnce storage stalls whenever the replacement Pod lands on another Node. RollingUpdate creates the new Pod before deleting the old one, so both want one single-node volume and the new one is refused. Set it to Recreate, which deletes the old Pod before making the new one, the way a StatefulSet handles an ordinal.',
-    chipsCued: chips('node-2', 'Running', 'nothing'),
+    chipsCued: chips('Node-2', 'Running', 'nothing'),
     wires: { band: 'Recreate, not RollingUpdate' },
     ...stage({
       nodeB: 1, oldOp: OPACITY.terminated, oldSub: 'deleted',
       newOp: 1, newSub: 'Running', linkNew: 1,
       vaAOp: OPACITY.terminated, vaASub: 'deleted', linkA: OPACITY.terminated,
-      vaBOp: 1, vaBSub: 'node-2, attached: true', linkB: 1,
+      vaBOp: 1, vaBSub: 'Node-2, attached: true', linkB: 1,
     }),
     lit: ['vaB', 'disk'],
   },

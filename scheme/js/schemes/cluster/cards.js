@@ -16,7 +16,7 @@ export const CARDS = [
     title: 'Cluster Architecture',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'What are the moving parts of a Kubernetes cluster, and how do they talk to each other? One contract runs under all of it: desired state lives in ETCD behind the API, the single front door, and the controllers and scheduler compare it against observed state and loop until the gap closes. A Kubelet on every worker Node reconciles the same way and brings Pods to life, so nothing outside the control plane reaches ETCD, and kube-proxy programs Service rules beside it.',
+    desc: 'What are the moving parts of a Kubernetes cluster, and how do they talk to each other? One contract runs under all of it: desired state lives in ETCD behind the API, the single front door, and the controllers and scheduler compare it against observed state and loop until the gap closes. A Kubelet on every worker Node reconciles the same way and brings Pods to life, and kube-proxy programs Service rules beside it, while the API is the only client ETCD has.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

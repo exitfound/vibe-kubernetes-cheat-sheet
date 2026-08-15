@@ -185,7 +185,7 @@ export const STEPS_SPEC = [
     id: 'create',
     duration: 3100,
     narration: 'Kubelet calls CreateContainer with the sandbox id, container config (command, env, mounts), and resource limits. The runtime sets up cgroups, prepares the mounts, and returns a container id. The container now exists in the sandbox but is not yet running.',
-    chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'created (not started)', lastOpChip: 'CreateContainer' },
+    chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'created · not started', lastOpChip: 'CreateContainer' },
     wires: { kr: 'CreateContainer' },
     sublabels: { appBox: 'created · not started' },
     podSublabels: { shellEl: 'IP 10.244.1.5' },

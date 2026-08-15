@@ -47,7 +47,7 @@ const lane = (points, p = {}) => P.lane({ points, dashed: true, dim: true, ...p 
 // Z-order (bottom -> top): the phase boxes and the actors, then every lane above them, then the
 // event labels, then the chip strip, then the packet layer so every ball rides above everything.
 export const SCENE = {
-  'aria-label': 'The phase field of a PersistentVolume as a state machine with four places: Available, Bound, Released and Failed, each labelled with the condition that defines it. A claim binds the volume, deleting that claim leaves a stale claimRef behind, and from Released the PV controller acts on the reclaim policy. The one backward edge is manual.',
+  'aria-label': 'The phase field of a PersistentVolume as a state machine with four places. A fresh volume is Available, writing a claimRef makes it Bound, and deleting that claim moves it to Released, because the stale claimRef stays behind. From Released the reclaim policy decides: Delete removes disk and object, a failed Delete parks it in Failed, and Retain leaves it parked. The one backward edge is manual, an administrator clearing the stale claimRef so the volume returns to Available.',
   parts: [
     P.defs(),
     // The four phases. Each carries the claimRef condition that defines it as a sublabel, because the

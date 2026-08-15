@@ -158,7 +158,7 @@ export const STEPS_SPEC = [
   {
     id: 'fallback',
     duration: 3800,
-    narration: 'PreferSameZone is a preference, not a hard rule. The field is still PreferSameZone, but if zone-a has no ready endpoint kube-proxy falls back to a Pod in another zone rather than dropping the connection, so the client still reaches zone-b. Availability wins over locality.',
+    narration: 'PreferSameZone is a preference, not a hard rule. The field has not changed, but if zone-a has no ready endpoint kube-proxy falls back to a Pod in another zone rather than dropping the connection, so the client still reaches zone-b. Availability wins over locality.',
     chips: { modeChip: 'PreferSameZone . fallback', pinChip: 'None' },
     // zone-a has no ready endpoint: dim its Pods, traffic falls back to zone-b.
     ...zoneDown(['a1', 'a2']),

@@ -115,7 +115,7 @@ export const STEPS_SPEC = [
   {
     id: 'policy',
     duration: 2200,
-    narration: 'The restartPolicy is a Pod-level field. The Pod-level value is immutable once the Pod is created and covers every main container that does not set its own. Since 1.35 the ContainerRestartRules feature gate is beta and enabled by default, so an individual container may carry a restartPolicy that overrides the Pod one. The default is Always. Init containers may override it with their own restartPolicy (the native sidecar pattern, on by default since 1.29 and GA in 1.33). Kubelet reads the field from the Pod spec and applies it each time a container terminates.',
+    narration: 'The restartPolicy is a Pod-level field. The Pod-level value is immutable once the Pod is created and covers every main container that does not set its own. Since 1.35 the ContainerRestartRules feature gate is beta and enabled by default, so an individual container may carry a restartPolicy that overrides the Pod one. The Pod-level default is Always. Init containers may override it with their own restartPolicy (the native sidecar pattern, on by default since 1.29 and GA in 1.33). Kubelet reads the field from the Pod spec and applies it each time a container terminates.',
     chips: { pod1Chip: 'Running', pod2Chip: 'Running', pod3Chip: 'Running', focusChip: 'Pod-level, default Always' },
     wires: { req: 'watch · spec.restartPolicy delivered · Status reported back' },
     opacity: { pod1: 1, pod2: 1, pod3: 1 },
