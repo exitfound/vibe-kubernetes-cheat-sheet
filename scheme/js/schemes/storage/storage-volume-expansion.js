@@ -1,4 +1,5 @@
 import { P, F, defineCard, chipStrip } from './storage-kit.js';
+import { g, rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-volume-expansion
 
 
@@ -33,6 +34,56 @@ const CHIP_Y = 545, CHIP_H = 34;                               // strip ends at 
 const CHIP_W = 252, CHIP_GAP = 24;
 const STRIP = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });  // 60 / 336 / 612 / 888
 
+// The subject, drawn. Four cells of 5Gi under the disk, so 20Gi is a LENGTH: the device wash and
+// the filesystem core are two layers on one axis, and the gap between them IS phase one.
+const GAUGE_X = DISK_LEFT, GAUGE_W = DISK_W;
+const GAUGE_Y = DISK_Y + DISK_H + 13, GAUGE_H = 28;            // 488..516, 29 clear of the chips
+const CELL_N = 4, CELL_GAP = 6;
+const CELL_W = (GAUGE_W - CELL_GAP * (CELL_N - 1)) / CELL_N;   // 53, one cell per 5Gi
+// Three insets, so no two layers share a bbox: superimposed rects are one key to every DOM probe.
+const DEV_INSET = 1, FS_INSET = 4;
+
+// The same inline-style family as the slot gauge on storage-volume-attach-limits: no field writes a
+// fill, and a class would mean a diagrams.css rule owned by one card.
+const GAUGE_FILL = Object.freeze({
+  track: 'rgba(255, 255, 255, 0.04)',
+  device: 'rgba(94, 202, 148, 0.34)',
+  fs: 'rgba(94, 202, 148, 0.72)',
+});
+const GAUGE_STROKE = 'rgba(94, 202, 148, 0.35)';
+
+// ONE raw part for the whole gauge: no part kind emits a bare rect. The six cells that move are
+// filed by hand, which is what lets `opacity` and F.reveal reach them by name.
+function gauge(refs) {
+  const grp = g({});
+  const cell = (i, fill, inset) => {
+    const r = rect({
+      x: GAUGE_X + i * (CELL_W + CELL_GAP) + inset, y: GAUGE_Y + inset,
+      width: CELL_W - inset * 2, height: GAUGE_H - inset * 2, rx: 3,
+    });
+    r.style.fill = fill;
+    grp.appendChild(r);
+    return r;
+  };
+  for (let i = 0; i < CELL_N; i++) {
+    const r = cell(i, GAUGE_FILL.track, 0);
+    r.style.stroke = GAUGE_STROKE;
+    r.style.strokeWidth = '1';
+  }
+  // Cell 0 is the original 5Gi and is on from the start. The rest are born mid-story, the way the
+  // four actor boxes are, so they carry the same opacity 0 at build.
+  const layer = (fill, inset) => [0, 1, 2, 3].map((i) => {
+    const r = cell(i, fill, inset);
+    if (i > 0) r.style.opacity = '0';
+    return r;
+  });
+  const dev = layer(GAUGE_FILL.device, DEV_INSET);
+  const fs = layer(GAUGE_FILL.fs, FS_INSET);
+  refs.dev1 = dev[1]; refs.dev2 = dev[2]; refs.dev3 = dev[3];
+  refs.fs1 = fs[1]; refs.fs2 = fs[2]; refs.fs3 = fs[3];
+  return grp;
+}
+
 // Each lane and its ball share one points array. Every endpoint sits on a block edge, and every lane
 // is either a straight run or a single right angle. Nothing turns twice.
 const W_MOUNT_LOW  = [[CX, DISK_TOP], [CX, PVC_BOTTOM]];       // disk -> claim, upward
@@ -43,10 +94,15 @@ const W_TO_PVC = [[ACT_R_CX, SLOT_A_BOTTOM], [ACT_R_CX, PVC_MID], [PVC_RIGHT, PV
 const W_CTRL_EXP = [[ACT_R_X, DISK_MID], [DISK_RIGHT, DISK_MID]];
 const W_NODE_EXP = [[ACT_L_RIGHT, DISK_MID], [DISK_LEFT, DISK_MID]];
 
+// A tag rides clear of the tier it lands on: each of these three lanes ends on a block edge midway
+// up that block, so on the lane the block prints straight through the glyphs.
+const CLAIM_TAG_DY = PVC_BOTTOM - PVC_MID + 12;   // +46: below the claim, and clear of the slot above
+const DISK_TAG_DY = DISK_TOP - DISK_MID - 7;      // -50: in the band between the claim and the disk
+
 // Every lane here is a ROUTE: all dashed, all headed, all built from the same points as their ball.
 // Append order IS z-order: blocks and disk, lanes and captions, the Pod, the chip strip, the packets.
 export const SCENE = {
-  'aria-label': 'Growing a volume while the Pod keeps running is a two phase operation. Raising the request on PVC data-claim is accepted only because the StorageClass behind it sets allowVolumeExpansion, then the external-resizer grows the real device and Kubelet grows the filesystem on it, a phase a raw block volume skips entirely for having no filesystem. Where that filesystem grows online the space reaches web-0 with no restart. A shrink is refused.',
+  'aria-label': 'Growing a volume while the Pod keeps running normally runs in two phases. Raising the request on PVC data-claim is accepted only because the StorageClass behind it sets allowVolumeExpansion, then the external-resizer grows the real device and Kubelet grows the filesystem on it, a step a driver may skip for a raw block volume, which has no filesystem to grow and may not need the Node call at all. Where that filesystem grows online the space reaches web-0 with no restart. A shrink is refused.',
   parts: [
     P.defs(),
     P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'requests 5Gi' }),
@@ -57,6 +113,7 @@ export const SCENE = {
     P.box({ key: 'resizer', x: ACT_R_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'External-resizer', sublabel: 'ControllerExpandVolume', opacity: 0 }),
     P.box({ key: 'kubelet', x: ACT_L_X, y: BOTTOM_ACT_Y, w: ACT_W, h: ACT_H, label: 'Kubelet', sublabel: 'NodeExpandVolume', opacity: 0 }),
     P.cylinder({ key: 'disk', x: DISK_LEFT, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'PV data-vol' }),
+    P.raw({ key: 'gauge', make: gauge }),
     P.lane({ key: 'lMountLow', points: W_MOUNT_LOW, dashed: true, dim: true }),
     P.lane({ key: 'lMountHigh', points: W_MOUNT_HIGH, dashed: true, dim: true }),
     P.lane({ key: 'lToPvc', points: W_TO_PVC, dashed: true, dim: true, opacity: 0 }),
@@ -96,6 +153,16 @@ const GATE_ON = { ...OFF, klass: 1, lToPvc: 1 };
 const CTRL_ON = { ...OFF, resizer: 1, lCtrlExp: 1 };
 const NODE_ON = { ...OFF, kubelet: 1, lNodeExp: 1 };
 
+// The gauge as two extents in 5Gi cells, so who is on stage and how far each layer reaches are one
+// literal per step. Cell 0 never moves, which is why only three of each are named.
+const stage = (actors, device, fs) => ({
+  ...actors,
+  dev1: device > 1 ? 1 : 0, dev2: device > 2 ? 1 : 0, dev3: device > 3 ? 1 : 0,
+  fs1: fs > 1 ? 1 : 0, fs2: fs > 2 ? 1 : 0, fs3: fs > 3 ? 1 : 0,
+});
+
+const GROW_BEAT = 140;   // cell to cell, so the extent WALKS and the reveal is a growth not a blink
+
 export const STEPS_SPEC = [
   {
     id: 'idle',
@@ -103,7 +170,7 @@ export const STEPS_SPEC = [
     chipsCued: chips('5Gi', '5Gi', '5Gi', '5Gi'),
     wires: { cap: 'capacity 5Gi' },
     sublabels: { pvc: 'requests 5Gi' },
-    opacity: OFF,
+    opacity: stage(OFF, 1, 1),
   },
   {
     id: 'edit',
@@ -112,13 +179,13 @@ export const STEPS_SPEC = [
     chipsCued: chips('20Gi', '5Gi', '5Gi', '5Gi'),
     wires: { cap: 'capacity 5Gi', verdict: 'request raised, nothing moved' },
     sublabels: { pvc: 'requests 20Gi' },
-    opacity: EDIT_ON,
+    opacity: stage(EDIT_ON, 1, 1),
     // Kubectl sends the ball, so only kubectl is lit at entry and the claim waits for it to land.
     // The claim's cue is its OWN entry because the tag stands between it and the packet.
     lit: ['kubectl'],
     flow: [
       F.route({ points: W_TO_PVC, name: 'edit' }),
-      F.tag({ text: 'requests: 20Gi', points: W_TO_PVC }),
+      F.tag({ text: 'requests: 20Gi', points: W_TO_PVC, dy: CLAIM_TAG_DY }),
       F.light({ targets: ['pvc'], at: 'edit' }),
     ],
   },
@@ -129,11 +196,11 @@ export const STEPS_SPEC = [
     chipsCued: chips('20Gi', '5Gi', '5Gi', '5Gi'),
     wires: { cap: 'capacity 5Gi', verdict: 'expansion allowed' },
     sublabels: { pvc: 'requests 20Gi' },
-    opacity: GATE_ON,
+    opacity: stage(GATE_ON, 1, 1),
     lit: ['klass'],
     flow: [
       F.route({ points: W_TO_PVC, name: 'gate' }),
-      F.tag({ text: 'allowVolumeExpansion: true', points: W_TO_PVC }),
+      F.tag({ text: 'checked at admission', points: W_TO_PVC, dy: CLAIM_TAG_DY }),
       F.light({ targets: ['pvc'], at: 'gate' }),
     ],
   },
@@ -144,38 +211,48 @@ export const STEPS_SPEC = [
     chipsCued: chips('20Gi', '20Gi', '5Gi', '5Gi'),
     wires: { cap: 'capacity 20Gi', verdict: 'device grown, fs pending' },
     sublabels: { pvc: 'FileSystemResizePending' },
-    opacity: CTRL_ON,
+    opacity: stage(CTRL_ON, 4, 1),
     // The resizer sends the ball, so the disk earns its light when the call lands on it.
     lit: ['resizer'],
     flow: [
       F.route({ points: W_CTRL_EXP, name: 'exp' }),
-      F.tag({ text: 'ControllerExpandVolume', points: W_CTRL_EXP }),
+      F.tag({ text: 'device 5Gi to 20Gi', points: W_CTRL_EXP, dy: DISK_TAG_DY }),
       F.light({ targets: ['disk'], at: 'exp' }),
+      // The device extent walks out one cell at a time from the call landing, and the filesystem
+      // core stays one cell wide behind it. That gap is what the step is about.
+      F.reveal({ target: 'dev1', at: 'exp' }),
+      F.reveal({ target: 'dev2', at: 'exp', plus: GROW_BEAT }),
+      F.reveal({ target: 'dev3', at: 'exp', plus: GROW_BEAT * 2 }),
     ],
   },
   {
     id: 'node-expand',
     duration: 3200,
-    narration: 'Phase two runs on the Node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device until it fills the larger disk. This half can only happen where the Pod actually is, because a filesystem is only growable where it is mounted. A raw block volume has no filesystem at all, so it skips this phase entirely.',
+    narration: 'Phase two runs on the Node. Kubelet calls NodeExpandVolume, which grows the filesystem on the mounted device until it fills the larger disk. This half can only happen where the Pod actually is, because a filesystem is only growable where it is mounted. A raw block volume has no filesystem to grow, so a driver may skip that work.',
     chipsCued: chips('20Gi', '20Gi', '20Gi', '5Gi'),
     wires: { cap: 'capacity 20Gi', verdict: 'filesystem grown' },
     sublabels: { pvc: 'filesystem resized' },
-    opacity: NODE_ON,
+    opacity: stage(NODE_ON, 4, 4),
     lit: ['kubelet'],
     flow: [
       F.route({ points: W_NODE_EXP, name: 'exp' }),
-      F.tag({ text: 'NodeExpandVolume', points: W_NODE_EXP }),
+      F.tag({ text: 'filesystem 5Gi to 20Gi', points: W_NODE_EXP, dy: DISK_TAG_DY }),
       F.light({ targets: ['disk'], at: 'exp' }),
+      // Phase two closes the gap phase one opened: the core fills the outline cell by cell, on the
+      // same beat, so the two halves read as one motion split in two.
+      F.reveal({ target: 'fs1', at: 'exp' }),
+      F.reveal({ target: 'fs2', at: 'exp', plus: GROW_BEAT }),
+      F.reveal({ target: 'fs3', at: 'exp', plus: GROW_BEAT * 2 }),
     ],
   },
   {
     id: 'pod-sees',
     duration: 3400,
-    narration: 'Only now does the space reach the workload. The device grew, then the filesystem grew, and the extra room shows up inside the running container with no restart, so df in web-0 finally reads 20Gi. The order is the whole point: a filesystem can never grow past the device underneath it.',
+    narration: 'Only now does the space reach the workload. The device grew, then the filesystem grew, and because this filesystem grows online the extra room shows up inside the running container with no restart, so df in web-0 finally reads 20Gi. The order is the whole point: a filesystem can never grow past the device underneath it.',
     chipsCued: chips('20Gi', '20Gi', '20Gi', '20Gi'),
     wires: { cap: 'capacity 20Gi', mount: 'now 20Gi at /data', verdict: 'Bound, 20Gi' },
     sublabels: { pvc: 'Bound, 20Gi' },
-    opacity: OFF,
+    opacity: stage(OFF, 4, 4),
     lit: ['disk'],
     // The new room rises the same axis the volume always did: disk to claim, claim to Pod. The claim
     // is cued straight off its own hop, the Pod block and its pulse off the second one.
@@ -194,11 +271,11 @@ export const STEPS_SPEC = [
     chipsCued: chips('20Gi', '20Gi', '20Gi', '20Gi'),
     wires: { cap: 'capacity 20Gi', verdict: 'request stays 20Gi' },
     sublabels: { pvc: 'shrink refused' },
-    opacity: EDIT_ON,
+    opacity: stage(EDIT_ON, 4, 4),
     lit: ['kubectl'],
     flow: [
       F.route({ points: W_TO_PVC, name: 'shrink' }),
-      F.tag({ text: 'requests: 5Gi rejected', points: W_TO_PVC }),
+      F.tag({ text: 'requests: 5Gi rejected', points: W_TO_PVC, dy: CLAIM_TAG_DY }),
       F.light({ targets: ['pvc'], at: 'shrink' }),
     ],
   },

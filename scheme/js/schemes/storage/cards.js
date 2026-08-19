@@ -121,7 +121,7 @@ export const CARDS = [
     title: 'PVC to PV Binding',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'A PersistentVolumeClaim is a request, not storage, so who turns it into a real disk? The binding controller scans the volumes that are Available, throws out the ones too small, of the wrong class or short on access mode, and pairs the claim with one that satisfies all three by writing the link on both objects at once. That pairing is exclusive and permanent, so a second claim for the same volume waits until a volume it can have appears.',
+    desc: 'A PersistentVolumeClaim is a request, not storage, so who turns it into a real disk? The binding controller scans the volumes that are Available, throws out the ones too small, of the wrong class or short on access mode, and pairs the claim with one that satisfies all three by writing the link on both objects at once. That pairing is exclusive and permanent, so a second claim for the same volume stays Pending until an administrator creates another one.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -173,7 +173,7 @@ export const CARDS = [
     title: 'Online Volume Expansion',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'Bumping a PVC to a bigger size grows nothing on its own, so what makes a Pod see more space? The API accepts the edit only if allowVolumeExpansion is true on the StorageClass, then runs two phases: the external-resizer grows the disk, and Kubelet grows the filesystem, a phase a raw block volume skips entirely. Where that filesystem grows online the room appears with no restart. Shrinking is refused, there being no safe way to shrink a live filesystem.',
+    desc: 'Bumping a PVC to a bigger size grows nothing on its own, so what makes a Pod see more space? The API accepts the edit only if allowVolumeExpansion is true on the StorageClass, then runs one or two phases: the external-resizer grows the disk, and Kubelet grows the filesystem, a step a driver may skip on a raw block volume. Where that filesystem grows online the room appears with no restart. Shrinking is refused, there being no safe way to shrink a live filesystem.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -280,7 +280,7 @@ export const CARDS = [
     title: 'fsGroup and Volume Ownership',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'A freshly mounted volume is owned by root, so why can a non-root container not write to it? The securityContext.fsGroup field names a GID, and Kubelet chowns the whole volume tree to that group before the container starts. That walk is cheap on a small volume but adds minutes on one with millions of files, which is what fsGroupChangePolicy OnRootMismatch exists to skip. The default walks the whole tree every start.',
+    desc: 'A freshly mounted volume is owned by root, so why can a non-root container not write to it? The securityContext.fsGroup field names a GID, and Kubelet chowns the whole volume tree to that group before the container starts, unless a CSI driver does it instead. That walk is cheap on a small volume but adds minutes on one with millions of files, which is what fsGroupChangePolicy OnRootMismatch exists to skip. The default walks the whole tree every start.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

@@ -92,11 +92,15 @@ const branch = (active) => ({
   },
 });
 
+// The two rule rows are the Ingress SPEC drawn as a document, and the TLS note is a standing
+// property of this topology: constants of the diagram, so every step states all three.
+const SPEC = { ruleA: '-> Service web:80', ruleB: '-> Service api:80', tlsChip: 'terminated at controller' };
+
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { hostChip: 'none', pathChip: 'none' },
+    chips: { hostChip: 'none', pathChip: 'none', ...SPEC },
     ...branch('both'),
   },
   {
@@ -104,7 +108,7 @@ export const STEPS_SPEC = [
     duration: 2200,
     narration: 'The controller watches the Ingress objects that name its ingressClassName. This Ingress shop says that requests to shop.io/ go to Service web and shop.io/api go to Service api. The controller compiles those rules into its proxy config and waits for traffic.',
     // No request yet, so the request chips stay empty and both branches stay neutral.
-    chips: { hostChip: 'none', pathChip: 'none' },
+    chips: { hostChip: 'none', pathChip: 'none', ...SPEC },
     ...branch('both'),
     lit: ['ruleA', 'ruleB'],
     // The controller compiles the rules: it pulses, the rule chips just light.
@@ -116,7 +120,7 @@ export const STEPS_SPEC = [
     duration: 2200,
     narration: 'External traffic does not reach the controller magically: it arrives through a Service of its own, usually a LoadBalancer or NodePort in front of it. A client request for shop.io lands on the controller Pod, and it terminates TLS here before looking at anything else.',
     wires: { w: 'GET shop.io/' },
-    chips: { hostChip: 'shop.io', pathChip: '/' },
+    chips: { hostChip: 'shop.io', pathChip: '/', ...SPEC },
     ...branch('both'),
     lit: ['hostChip', 'pathChip', 'extLB', 'tlsChip'],
     reducedLit: ['ctrlBox'],
@@ -131,9 +135,9 @@ export const STEPS_SPEC = [
     // Motion runs pulse(800) + fan(700, the floor) + beat(100) + hop(700, the floor), so the backend
     // pulse (900) lands at 2300 and ends at 3200, leaving a ~400ms settle rather than snapping on.
     duration: 3600,
-    narration: 'The controller reads the request Host header, shop.io, and the path, /, and matches them against its compiled rules. Only the / rule matches, so it proxies the request to Service web, and most controllers skip the ClusterIP and send straight to a Ready Pod IP read from the EndpointSlice. The api branch stays idle for this request.',
+    narration: 'The controller reads the request Host header, shop.io, and the path, /, and matches them against its compiled rules. Only the / rule matches, so it proxies the request to Service web and resolves it through the EndpointSlice to a Ready Pod IP. The api branch stays idle for this request.',
     wires: { web: 'proxy -> web' },
-    chips: { hostChip: 'shop.io', pathChip: '/' },
+    chips: { hostChip: 'shop.io', pathChip: '/', ...SPEC },
     ...branch('web'),
     lit: ['ruleA', 'hostChip', 'pathChip'],
     reducedLit: ['ctrlBox', 'podWebBox'],
@@ -153,7 +157,7 @@ export const STEPS_SPEC = [
     // Exact mirror of the entry step: a request lands and TLS is terminated, nothing is matched yet,
     // so no rule chip lights and BOTH branches stay neutral. The rule is chosen in api-proxy.
     wires: { w: 'GET shop.io/api' },
-    chips: { hostChip: 'shop.io', pathChip: '/api' },
+    chips: { hostChip: 'shop.io', pathChip: '/api', ...SPEC },
     ...branch('both'),
     lit: ['pathChip', 'extLB', 'tlsChip'],
     reducedLit: ['ctrlBox'],
@@ -168,7 +172,7 @@ export const STEPS_SPEC = [
     duration: 3600,           // same beat budget as match-proxy, which it mirrors
     narration: 'This time both rules match, because the Prefix path / is a prefix of every path. Kubernetes breaks the tie by longest matching path, so shop.io/api wins and the controller proxies down the other branch, to Service api and on to a Ready Pod behind it.',
     wires: { api: 'proxy -> api' },
-    chips: { hostChip: 'shop.io', pathChip: '/api' },
+    chips: { hostChip: 'shop.io', pathChip: '/api', ...SPEC },
     ...branch('api'),
     // Both rules matched, so BOTH chips light. The longest match, ruleB, is the one that wins, and it
     // is the only branch that carries the ball.

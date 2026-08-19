@@ -74,12 +74,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
-import { importAll } from '../fixtures/module.mjs';
+import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
 // The recorded walk. Assertions, not notes: see the header.
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
 
 // What the walk measured the day this file was written, as chips / cards. Printed beside the live
 // numbers, never asserted: a card repaired in phase F is SUPPOSED to move them, and an assertion
@@ -98,7 +96,6 @@ const RECORDED = {
 // R2_STEP_CARRIED in ./arrival.test.mjs: an entry here is a decision with a measurement behind it,
 // never a way to quiet the queue.
 // -------------------------------------------------------------------------------------------
-const CHIP_CARRIED = new Map([]);
 
 const catalogued = await cards();
 const modules = await importAll();
@@ -110,33 +107,16 @@ const countsOf = (rows) => [rows.length, new Set(rows.map(r => r.card)).size];
 // Every key any step writes: the static block, the rewind the animated path adds, and every F.set
 // in the flow. The same four places ../fixtures/spec.mjs resolves a chip through, asked as a set of
 // NAMES rather than of values, because the question here is whether a writer exists at all.
-function writtenKeys(spec) {
-  const out = new Set();
-  const add = (o) => { if (o) for (const k of Object.keys(o)) out.add(k); };
-  for (const s of spec) {
-    add(s.chips);
-    add(s.chipsCued);
-    if (s.rewind) { add(s.rewind.chips); add(s.rewind.chipsCued); }
-    for (const e of s.flow || []) if (e.verb === 'set') { add(e.p.chips); add(e.p.chipsCued); }
-  }
-  return out;
-}
+// The walk and the carried table live in ../fixtures/chip-unwritten.mjs, shared with the gate
+// file that asserts the queue. See that file's header for why.
+import { writtenKeys, cuedKeys } from '../fixtures/chip-unwritten.mjs';
+import { CHIP_CARRIED } from '../fixtures/chip-unwritten.mjs';
 
-// Every key any step POINTS AT, through all four cues that put `.highlight` on an element: the
-// static `lit`, the reduced-path `reducedLit`, an F.light target list, and the `lights` a packet
-// entry hangs off its own arrival.
-function cuedKeys(spec) {
-  const out = new Set();
-  for (const s of spec) {
-    for (const k of s.lit || []) out.add(k);
-    for (const k of s.reducedLit || []) out.add(k);
-    for (const e of s.flow || []) {
-      if (e.verb === 'light') for (const k of e.p.targets || []) out.add(k);
-      for (const k of e.p.lights || []) out.add(k);
-    }
-  }
-  return out;
-}
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = (await cards()).length;
+const EXPECTED_STEPS = await stepTotal();
+
 
 test('a chip no step writes (report only, census is the assertion)', (t) => {
   const litNotWritten = [], silent = [];

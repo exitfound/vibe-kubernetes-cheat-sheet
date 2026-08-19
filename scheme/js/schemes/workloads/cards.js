@@ -142,7 +142,7 @@ export const CARDS = [
     title: 'CronJob Schedule and Concurrency',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates one Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down within startingDeadlineSeconds, or, with no deadline, until 100 ticks pile up. A CronJob never runs a Pod itself, it only creates Jobs.',
+    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates one Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down, bounded both by startingDeadlineSeconds and by a ceiling of 100 missed ticks. A CronJob never runs a Pod itself, it only creates Jobs.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -167,7 +167,7 @@ export const CARDS = [
     title: 'Pod restartPolicy: Always, OnFailure, Never',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'When a container in a Pod exits, what should happen next? The restartPolicy field is the Pod-level answer Kubernetes follows: Always brings the container back whatever the exit code, OnFailure retries only a non-zero exit, and Never leaves it alone. That choice separates a Pod that runs forever from one that retries and one that finishes. The Job controller relies on OnFailure and Never for exactly this, and every restart still waits out the same backoff.',
+    desc: 'When a container in a Pod exits, what should happen next? The restartPolicy field is the Pod-level answer Kubernetes follows: Always brings the container back whatever the exit code, OnFailure retries only a non-zero exit, and Never leaves it alone. That choice separates a Pod that runs forever from one that retries and one that finishes. The Job controller relies on OnFailure and Never for exactly this, and the shared backoff only starts after the first restart.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

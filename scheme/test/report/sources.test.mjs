@@ -41,7 +41,8 @@
 //           a third of the bibliography and not an edge case.
 
 import { test } from 'node:test';
-import { schemes } from '../fixtures/catalog.mjs';
+import assert from 'node:assert/strict';
+import { schemes, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
 
 // Unrelated to the catalog on purpose. See guard 1 in the header.
 const PROBE_HOSTS = ['https://example.com/', 'https://cloudflare.com/'];
@@ -56,7 +57,7 @@ const CONCURRENCY = 6;
 
 const UA = 'kube.how source check (scheme/test/report/sources.test.mjs)';
 
-// The census taken when this suite was built (REFACTOR-PLAN, stage 0). Printed for comparison so a
+// The recorded census, taken on a green tree at 108 cards. Printed for comparison so a
 // bibliography that shrinks by half is visible, never used to clamp anything.
 const RECORDED = { rows: 213, unique: 149, cards: 108 };
 
@@ -119,8 +120,8 @@ test('source links are alive (report only, never fails, needs the network)', asy
 
   // ---- the half that needs no network ------------------------------------------------------
   out.push(`  source rows   ${rows} over ${SCHEMES.length} cards ` +
-    `(recorded at stage 0: ${RECORDED.rows} over ${RECORDED.cards})`);
-  out.push(`  unique hrefs  ${urls.length} (recorded at stage 0: ${RECORDED.unique})`);
+    `(recorded: ${RECORDED.rows} over ${RECORDED.cards})`);
+  out.push(`  unique hrefs  ${urls.length} (recorded: ${RECORDED.unique})`);
   out.push(`  reuse         ${rows - urls.length} row(s) cite an href another card already cites`);
   out.push(`  with fragment ${urls.filter(u => u.includes('#')).length} of ${urls.length} hrefs carry a #anchor`);
   out.push(`  cards with no sources: ${cardsWithoutSources.length}` +
@@ -134,8 +135,8 @@ test('source links are alive (report only, never fails, needs the network)', asy
   out.push(`  hosts         ${byHost.size}: ` +
     [...byHost.entries()].sort((a, b) => b[1] - a[1]).map(([h, n]) => `${h} ${n}`).join(', '));
   if (rows !== RECORDED.rows || urls.length !== RECORDED.unique) {
-    out.push('  NOTE: the census moved since stage 0. That is expected after cards are added or');
-    out.push('  removed, and it is here so the move is seen rather than assumed.');
+    out.push('  NOTE: the census differs from the recorded one. A card added or removed moves it, so a');
+    out.push('  MOVED verdict means read the diff, then update the record: never the other way round.');
   }
   out.push('');
 
@@ -260,7 +261,18 @@ test('source links are alive (report only, never fails, needs the network)', asy
   out.push('===== end of report =====');
 
   console.log(out.join('\n'));
-  // No assertion, on purpose. Every finding here is about somebody else's website, which no commit
-  // in this repository can fix atomically, and a red run for a documentation site's Tuesday outage
-  // trains people to ignore red runs. See the header.
+
+  // NO ASSERTION ON A LINK, and one on the WALK. Every liveness finding here is about somebody
+  // else's website, which no commit in this repository can fix atomically, and a red run for a
+  // documentation site's Tuesday outage trains people to ignore red runs.
+  //
+  // What is not about anybody else's website is whether this file READ the catalog. A rename that
+  // empties `sources` leaves nothing to check, prints a clean report and exits 0, and that is the
+  // one failure a report may still go red on (`S-46`). Deliberately a floor and not an equality:
+  // the url count moves with every card that cites a new page, while zero means the reader died.
+  assert.ok(SCHEMES.length === CATALOG_BASELINE.cards,
+    `read ${SCHEMES.length} catalog entr(ies), the baseline is ${CATALOG_BASELINE.cards}`);
+  assert.ok(rows > 0 && urls.length > 0,
+    `collected ${rows} source row(s) over ${urls.length} url(s) from ${SCHEMES.length} cards: ` +
+    'a liveness report with no urls checks nothing and prints a clean page.');
 });

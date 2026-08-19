@@ -182,6 +182,9 @@ export const STEPS_SPEC = [
     ...serving('podY'),
     lit: ['dnatChip', 'ctChip', 'backChip'],
     reducedLit: ['podYBox'],
+    // The pick, the second conntrack entry and the backend it names are one decision kube-proxy
+    // makes when the client packet reaches it, so all three carry the reply values until 1570.
+    rewind: { chips: { dnatChip: '-> 10.244.2.7:8080', ctChip: 'reverse NAT', backChip: '10.244.2.7' } },
     // This step is the send and the DNAT in one, so kube-proxy lights on the client packet
     // arriving, exactly as it does on the send step, and only then picks the second backend.
     flow: [
@@ -189,6 +192,7 @@ export const STEPS_SPEC = [
       F.segment({ from: LANE_FWD[0], to: LANE_FWD[1], delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), name: 'send' }),
       F.tag({ text: 'dst 10.96.0.20:80', points: LANE_FWD, delay: BEAT.afterPulse, dur: slowDur(LANE_FWD), easing: 'linear' }),
       F.light({ targets: ['kproxy'], at: 'send' }),
+      F.set({ at: 'send', chips: { dnatChip: '-> 10.244.3.9:8080', ctChip: 'two flows', backChip: '10.244.3.9' } }),
       F.route({ points: FAN_FWD_Y, after: 'send', dur: slowDur(FAN_FWD_Y), name: 'give' }),
       F.tag({ text: 'dst 10.244.3.9:8080', points: FAN_FWD_Y, after: 'send', dur: slowDur(FAN_FWD_Y) }),
       F.pulse({ pod: 'podY', at: 'give' }),

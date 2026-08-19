@@ -121,11 +121,15 @@ export const STEPS_SPEC = [
     // The reply originates at the Internet server (net stays lit as the ball departs it) and
     // conntrack reverses the mapping.
     chips: { srcChip: POD_IP, snatChip: NODE_IP, ctChip: 'reverse SNAT', dstChip: DST },
-    lit: ['net', 'ctChip', 'dstChip'],
+    lit: ['net', 'ctChip'],
+    // Conntrack reverses the mapping only when the reply reaches MASQUERADE, so the chip keeps the
+    // recorded flow of the previous step until that arrival at 1091.
+    rewind: { chips: { ctChip: 'flow recorded' } },
     // Nothing stands between the ball and its cue here, so the masquerade box is cued by `lights`.
     flow: [
-      F.route({ points: RET_PATH, lights: ['masq'] }),
+      F.route({ points: RET_PATH, lights: ['masq'], name: 'back' }),
       F.tag({ text: 'dst 192.168.1.20', points: RET_PATH }),
+      F.set({ at: 'back', chips: { ctChip: 'reverse SNAT' } }),
     ],
   },
   {

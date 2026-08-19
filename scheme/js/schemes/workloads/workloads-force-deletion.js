@@ -188,10 +188,17 @@ export const STEPS_SPEC = [
     // auto-pulse at delay 0 on a still-invisible Pod and double the pulse, hence reducedLit.
     reducedLit: ['podNewBox'],
     chain: 4,
+    // The narration recreates Pod B first and only then says Pod A may still be running, so Pod A
+    // and its lane are wound back to the shade the previous step left and RISE after Pod B lands.
+    rewind: { opacity: { podOld: OPACITY.terminated, connector: OPACITY.terminated } },
     flow: [
       F.route({ points: NODE2_LANE, fadeIn: true, name: 'recreate' }),
       F.fade({ target: 'podNew', from: 0, to: 1, dur: FADE.in, at: 'recreate', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'podNew', at: 'recreate' }),
+      // Pod B is fully on screen before Pod A comes back up, so the two sentences read in order
+      // rather than as one event: `plus: FADE.in` is the end of the fade above, not a guess.
+      F.fade({ target: 'podOld', from: OPACITY.terminated, to: OPACITY.notready, dur: FADE.in, at: 'recreate', plus: FADE.in, fill: 'both', easing: 'ease-out' }),
+      F.fade({ target: 'connector', from: OPACITY.terminated, to: OPACITY.notready, dur: FADE.in, at: 'recreate', plus: FADE.in, fill: 'both', easing: 'ease-out' }),
     ],
   },
 ];

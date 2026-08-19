@@ -133,7 +133,7 @@ export const SCENE = {
 
 // The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: hold 260
 // leaves the source IP standing after the ball lands, which is how a step shows it arrived unchanged.
-const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
+const ridingLabel = makeRidingLabel({ role: 'network', dy: -46, inMs: 160, outMs: 200, hold: 260 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
 // Pods return to full opacity (the node-agent step dims out-of-scope ones), and the CNI badge with
@@ -248,13 +248,14 @@ export const STEPS_SPEC = [
     id: 'cni',
     duration: 2600,
     narration: 'None of this is hard-wired into the core. A CNI plugin, such as Calico, Cilium or Flannel, is what attaches every Pod to the flat space and upholds all of these rules. Here it lights up the whole fabric. Swap the plugin and the model stays the same.',
-    chips: { ipChip: 'unique, cluster-wide', natChip: 'none', reachChip: 'agent to local Pod' },
+    chips: { ipChip: 'unique, cluster-wide', natChip: 'none', reachChip: 'any to any' },
     sublabels: { bus: 'implemented by your CNI plugin' },
     podSublabels: REAL_IPS,
     // The badge, its wire, and the spine reaching the band's right edge to meet that wire, all of
     // which the animated path fades in on top of this resting state.
     opacity: { podA: 1, podB: 1, podC: 1, podD: 1, cni: 1, cniWire: 1, busRailExt: 1 },
-    lit: ['bus', 'cni'],
+    // reachability returns to any to any here, so the chip that carries it lights with the fabric.
+    lit: ['bus', 'cni', 'reachChip'],
     // The badge appears and energizes the fabric: the bus spine and every Pod wire get marching
     // dashes, as if the plugin is wiring the whole flat space at once.
     flow: [

@@ -132,13 +132,13 @@ export const STEPS_SPEC = [
     narration: 'The wait-for-db container exits 0. Kubelet observes the exit via PLEG (Pod Lifecycle Event Generator) and immediately creates migrate-schema. The same rule applies, it must exit 0 before any later container can start. Each init container image is pulled lazily, just before that container is created, per its imagePullPolicy.',
     chips: { waitDbChip: DONE, migrateChip: RUNNING, sidecarChip: WAITING, mainChip: WAITING },
     wires: { req: 'wait-for-db exit 0 (PLEG) · StartContainer · migrate-schema' },
-    lit: ['waitDbChip', 'runtime', 'migrateChip'],
+    lit: ['waitDbChip', 'migrateChip'],
     chain: 1,
     // PLEG callback, then the next CRI request, then the create down to the node, each hop chained
-    // on the previous arrival. The runtime REPORTS first, so the Kubelet lights when it lands.
+    // on the previous arrival. Both boxes RECEIVE here, so each lights on its own arrival.
     flow: [
       F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, name: 'pleg', lights: ['kubelet'] }),
-      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, after: 'pleg', name: 'req' }),
+      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, after: 'pleg', name: 'req', lights: ['runtime'] }),
       F.route({ points: SPINE, after: 'req', fadeIn: true, lights: ['containerMigrate'] }),
     ],
   },

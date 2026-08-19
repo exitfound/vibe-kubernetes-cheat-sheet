@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, midX } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-apply-flow
+// Design notes for this card: ./CARDS.md#cluster-object-create-path
 
 // One grid with cluster-architecture, minus the cloud-controller-manager. The client is the only
 // block outside the frame, so its lanes address the FRAME rather than a block.
@@ -10,13 +10,13 @@ const IN_L = FRAME_X + PAD, IN_R = FRAME_X + FRAME_W - PAD;   // 170 / 1030
 const CX = midX(FRAME_X, FRAME_R);                       // 600
 const BOX_W = 220, BOX_H = 80;                           // architecture's block, catalog standard
 
-// The columns are architecture's, the rows were solved here and architecture copied them, so the
-// two read as one family in both axes. Why the stack sits this low is in ./CARDS.md.
+// Columns and rows are shared with cluster-architecture, so the two read as one family in both
+// axes. Why the stack sits this low is in ./CARDS.md.
 const CP_Y = 90, CP_H = 350, CP_CY = midX(CP_Y, CP_Y + CP_H);    // 90..440, wall midpoint 265
 const NODE_Y = 475, NODE_H = 153;                        // 475..628, 12 of canvas floor under it
 
 // Top row: the API on the centre, ETCD on the right wall, architecture's own slot. The 190 unit
-// gap is what the label needs, write Deployment my-app measures 153. The left slot is empty.
+// gap is what the label needs, write Deployment my-app measures 158.5. The left slot is empty.
 const TOP_Y = 140, TOP_BOTTOM = TOP_Y + BOX_H;           // 140 / 220, 50 under the frame top
 const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 180
 const LANE_DY = 10;
@@ -42,10 +42,12 @@ const T2_BELOW = T2_Y + BOX_H + 20;                      // 428, architecture's 
 // Architecture's tier-3 slots: the Kubelet left, the Pod right. The Pod is 106 tall rather than
 // 80, so it centres on the Kubelet's own line and the two share LANE_Y by construction.
 const KUBELET_X = IN_L, KUBELET_R = KUBELET_X + BOX_W;   // 170..390
-const KUBELET_Y = NODE_Y + 47;                           // 522..602, on the frame's own centre
-const LANE_Y = midX(KUBELET_Y, KUBELET_Y + BOX_H);       // 562, and the Pod shares it
+const KUBELET_Y = NODE_Y + 41;                           // 516..596, architecture's row exactly:
+// that card moved its Node row up by 6 so its two watch labels could take tier 2's 20 unit gap,
+// and this row follows it rather than sitting 6 off the sister card it shares its rows with.
+const LANE_Y = midX(KUBELET_Y, KUBELET_Y + BOX_H);       // 556, and the Pod shares it
 const POD_W = BOX_W, POD_X = IN_R - POD_W;               // 810..1030
-const POD_H = 106, POD_Y = LANE_Y - POD_H / 2;           // 509..615, 34 under the frame label
+const POD_H = 106, POD_Y = LANE_Y - POD_H / 2;           // 503..609, 28 under the frame top
 // The Runtime takes architecture's centre Node column, so the row reads Kubelet, Runtime, Pod on
 // one line. The last step NAMES the runtime as the actor, so it has to be on the card.
 const RT_X = CX - BOX_W / 2, RT_R = RT_X + BOX_W;        // 490..710
@@ -116,8 +118,10 @@ export const SCENE = {
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
       inner: { dx: 30, dy: 28, w: POD_W - 60, h: 52, label: 'my-app-7d4-abc', sublabel: 'nginx:1.27' },
     }),
-    P.lane({ key: 'kubeletCriArrow', points: CRI, dashed: true, opacity: 0 }),
-    P.lane({ key: 'kubeletPodArrow', points: START, dashed: true, opacity: 0 }),
+    // dim like every other lane: without it these two draw at stroke-width 1.6 against the 1.4 the
+    // helper gives the other nine, and the Node band reads heavier than the control plane.
+    P.lane({ key: 'kubeletCriArrow', points: CRI, dim: true, dashed: true, opacity: 0 }),
+    P.lane({ key: 'kubeletPodArrow', points: START, dim: true, dashed: true, opacity: 0 }),
     // Top-row lanes straddle the Api centre (OUT_Y out, BACK_Y back) on both sides.
     // Each top-row lane is drawn from the SAME array that carries its ball.
     lane(POST),
@@ -154,11 +158,11 @@ export const STEPS_SPEC = [
     opacity: { placedPod: 0, kubeletCriArrow: 0, kubeletPodArrow: 0 },
   },
   {
-    // 2400 rather than 1700: the client lanes climb over the frame, so the POST rides 760 units
-    // against the 360 a flat top row would give it, and routeDur is length-based.
+    // 3000 rather than 1700: the client lanes climb over the frame, so the POST rides 760 units
+    // against the 360 a flat top row would give it, and the PATCH sentence has to be read.
     id: 'post',
-    duration: 2400,
-    narration: 'You run kubectl apply -f deploy.yaml. The client serializes the manifest as JSON and POSTs it to /apis/apps/v1/namespaces/default/deployments on the API. On an object that already exists it is a PATCH, see Server-side Apply.',
+    duration: 3000,
+    narration: 'You run kubectl apply -f deploy.yaml. The client serializes the manifest as JSON and POSTs it to /apis/apps/v1/namespaces/default/deployments on the API. On an object that already exists the client sends a three-way merge PATCH instead, and Server-side Apply is the same PATCH under its own content type.',
     // Elided to fit between the blocks, the card's own idiom (step 5 writes POST .../binding).
     // Nothing is lost: the step narration spells the full path out.
     wires: { post: 'POST .../deployments' },
@@ -167,7 +171,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'persist',
-    duration: 1700,
+    duration: 2200,
     narration: 'The API authenticates the caller from your kubeconfig, checks RBAC, runs admission and schema validation, then writes the new Deployment my-app to ETCD. ETCD commits the write via Raft quorum at rv=842.',
     // The REQUEST, not its outcome: this register sits above the OUTBOUND lane. The commit is
     // what step 3 brings back, on the ack register, as ack · rv=842.
@@ -211,10 +215,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'schedule',
-    // 2400, not 2200: widening the tier-2 lane band took the span to 2211, and the auto-advance
-    // would have cut the Binding off mid-flight.
-    duration: 2400,
-    narration: 'The Scheduler picks up my-app-7d4-abc, filters candidate Nodes (taints, resources, affinity), scores the survivors on free resources and topology spread, then posts a Binding that pins the Pod to Node-1.',
+    // 2900, not 2200: widening the tier-2 lane band took the span to 2211, and the auto-advance
+    // would have cut the Binding off mid-flight. The rest is reading time for the ETCD sentence.
+    duration: 2900,
+    narration: 'The Scheduler picks up my-app-7d4-abc, filters candidate Nodes (taints, resources, affinity), scores the survivors on free resources and topology spread, then posts a Binding that pins the Pod to Node-1. That write goes through the API into ETCD like the first one.',
     wires: { schedule: 'POST .../binding · node=Node-1' },
     lit: ['apisrv'],
     // Watch in, Binding back out on the return lane. It lights when the watch reaches it:
@@ -236,7 +240,7 @@ export const STEPS_SPEC = [
     id: 'create-pod',
     // 3300: two hops now, the CRI call and the container starting, not one.
     duration: 3300,
-    narration: 'The Kubelet calls the Runtime over CRI. The Runtime creates a Pod sandbox, which gets the Pod its network namespace and IP, then pulls nginx:1.27 and starts the container inside that sandbox. The Pod my-app-7d4-abc is Running on Node-1.',
+    narration: 'The Kubelet drives the Runtime over CRI, one call at a time: first a Pod sandbox, which gets the Pod its network namespace and IP, then the nginx:1.27 image, then the container starting inside that sandbox. The Pod my-app-7d4-abc is Running on Node-1.',
     // Pin the arrows/pod visible so cancel returns cleanly. The Pod appears in its
     // normal (thin) outline, pulses once on arrival, then eases back to it.
     opacity: { kubeletCriArrow: 1, kubeletPodArrow: 1, placedPod: 1 },

@@ -1,4 +1,4 @@
-import { P, F, defineCard, BEAT, FADE, chipStrip, routeDur, setBoxLabel } from './storage-kit.js';
+import { P, F, defineCard, BEAT, FADE, chipStrip, routeDur, setBoxLabel, makeRidingLabel } from './storage-kit.js';
 import { rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-volume-attach-limits
 
@@ -69,6 +69,18 @@ const W_NODE_CSI = [
 ];
 
 const REPORT_DUR = Math.max(...W_NODE_CSI.map(routeDur));
+
+// The outer report lanes end on the CSINode side faces, so a centred tag straddles them for 400 ms.
+// Each outer tag steps 16 further out, the middle one enters the floor and takes CAP_TAG_DY instead.
+const CAP_TAG_DX = [-16, 0, 16];
+// The middle lane ends on the CSINode floor, dead over `allocatable.count: 8`. Below the ball it parks
+// 14 clear of that floor, and 22 rather than 16 because at 16 the ball prints on the line.
+const CAP_TAG_DY = [-14, 22, -14];
+
+// The read lane is 44 long between two boxes, so the tag starts inside the Scheduler and on its
+// sublabel. It fades in only once the ball is clear of that floor: 22 of the 44 units, 300 ms.
+const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
+const READ_TAG_EMERGE = 300;
 
 const SLOT_FILL = Object.freeze({
   free: 'rgba(255, 255, 255, 0.04)',
@@ -216,6 +228,10 @@ const fillSlots = (s, ctx) => {
   });
 };
 
+// The slot is retaken at 1600 plus a 400 fade, and THAT instant is when web-0 is placed: the Pod
+// blink and every value the placement earns hang off this one number.
+const PLACE_MS = 2000;
+
 // Same escape, plus each fade's COMPLETION rewrites the counter text and `unlight` is the only
 // onfinish F.fade carries. Opacity only, never fill, so a seek or a cancel lands on the pinned `fresh`.
 const detachLag = (s, ctx) => {
@@ -249,7 +265,7 @@ export const STEPS_SPEC = [
     flow: [
       ...W_NODE_CSI.flatMap((points, i) => [
         F.route({ points, delay: BEAT.lead, dur: REPORT_DUR, name: `rep${i}` }),
-        F.tag({ text: 'cap 8', points, delay: BEAT.lead, dur: REPORT_DUR }),
+        F.tag({ text: 'cap 8', points, delay: BEAT.lead, dur: REPORT_DUR, dx: CAP_TAG_DX[i], dy: CAP_TAG_DY[i] }),
       ]),
       F.light({ targets: ['csinode'], at: 'rep2' }),
     ],
@@ -275,7 +291,7 @@ export const STEPS_SPEC = [
   {
     id: 'ask',
     duration: 3000,
-    narration: 'Now Pod web-0 is created and it asks for one volume of its own. Before the scheduler can score any Node it has to filter out the ones that cannot take the Pod at all, and one filter exists purely for this ceiling. It is called NodeVolumeLimits, and it skips Pods that ask for no volumes.',
+    narration: 'Now Pod web-0 is created and it asks for one volume of its own. Before the scheduler can score any Node it has to filter out the ones that cannot take the Pod at all, and one filter exists purely for this ceiling. It is called NodeVolumeLimits, and a Pod that claims no volume is skipped.',
     chipsCued: chips('24 of 24', 'Pending', 'nothing'),
     ...stage({ podOp: 1, podSub: 'Pending', linkPod: 1 }),
     ...gauge([8, 8, 8]),
@@ -304,7 +320,7 @@ export const STEPS_SPEC = [
     lit: ['cnt0', 'cnt1', 'cnt2', 'sched'],
     flow: [
       F.route({ points: W_SCHED_CSI, delay: BEAT.lead, name: 'rd' }),
-      F.tag({ text: 'read allocatable.count', points: W_SCHED_CSI, delay: BEAT.lead }),
+      F.tag({ text: 'read allocatable.count', points: W_SCHED_CSI, delay: BEAT.lead, fn: emergeTag, emerge: READ_TAG_EMERGE }),
       F.light({ targets: ['csinode'], at: 'rd' }),
     ],
   },
@@ -334,9 +350,22 @@ export const STEPS_SPEC = [
     ...stage({ podOp: 1, podSub: 'Running on node-3', pvcSub: 'attached on node-3', linkPod: 1, linkBack: 1, linkRead: 1 }),
     ...gauge([8, 8, { used: 8, fresh: true }]),
     lit: ['cnt2'],
+    // web-0 is Pending until the freed slot is taken, so the chip and both sublabels hold what the
+    // reject step left and turn over together on the placement, the way `fill` waits for its slots.
+    rewind: {
+      chips: { podChip: 'FailedScheduling' },
+      podSublabels: { podShell: 'FailedScheduling' },
+      sublabels: { podBox: 'needs one slot' },
+    },
     flow: [
       F.run({ fn: detachLag }),
-      F.pulse({ pod: 'podNew', delay: 2000 }),
+      F.pulse({ pod: 'podNew', delay: PLACE_MS }),
+      F.set({
+        delay: PLACE_MS,
+        chipsCued: { podChip: 'Running on node-3' },
+        podSublabels: { podShell: 'Running on node-3' },
+        sublabels: { podBox: 'attached on node-3' },
+      }),
     ],
   },
   {

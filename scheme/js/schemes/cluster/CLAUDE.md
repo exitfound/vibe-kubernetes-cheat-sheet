@@ -7,8 +7,8 @@ be true of another category, it is in the wrong file.**
 
 The rows below carry `CLU.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `CLU.*`
 rule lives here and only here**: the canon carries the id and a subject label, never a second copy
-of the rule. Six ids across the four folders had drifted into meaning two different things, and
-`CLU.S-01` was one of them: what the canon carried under it now lives here as `CLU.S-02`.
+of the rule. Where an id could name two different rules, the FOLDER keeps the id and the canon's
+version takes a new one: that is why the canon's subject sits here as `CLU.S-02`, not `CLU.S-01`.
 
 ## The folder
 
@@ -58,15 +58,14 @@ totals them, never off grep.
 | `P.raw` | 3 cards, 11 sites | A bare `<rect>` carrying inline `fill`, `stroke` and `width`: `cpu-throttling` x6, a track and a fill bar per CFS period through one `period(i)` factory, where a `P.box` would drag the content centre to 750 against 600. Two STACKED `<text>` nodes in one chip group, which no part kind builds: `api-structure` x4 over `SLOT_KEYS`, its watch-event slots. A label-only `chip()` from `primitives.js`, a command rather than the name/value pair `P.chip` writes: `resource-quota` x1 |
 | `step.enter` | 3 cards, 14 sites | Text and an ATTRIBUTE, on elements the card made itself. `api-structure` x6: `setSlot` writes the `textContent` of BOTH stacked texts on a slot. `cpu-throttling` x6: `setBars` writes `style.width` in px on the three fill rects and `textContent` on the three standing captions, and every step writes every bar, or one left alone reads as a period that behaved differently. `node-allocatable` x2: `setReqWidth` writes the SVG **attribute** `width` on the rect inside `reqBar`, and no field writes a geometry attribute at all (`opacity:` goes to `style.opacity`, a different property) |
 | `F.run` | 1 card, 5 sites | All five on `cpu-throttling`, and only **two are the delay-0 form, which is an escape but not a timer**: `at()` short-circuits on `delay <= 0`, runs the callback inline and registers no timer, so it is an imperative beat standing in flow order, here back-filling the bars to empty under the fill animation. The other **three carry a real delay** (`FILL_MS`, twice it and three times it) and ARE deferred callbacks, which no other category has: a period closing and the `cpu.stat` counter it moves are ONE beat, and no flow verb writes a rect width and a chip value together |
-| `SCENE.reset.extra` | **0 today.** `api-structure` carried `resetWatchArrow`, **removed 2026-08-15**: it cleared `style.strokeDasharray` on the watch lane, while `dashed: true` writes the dash as an ATTRIBUTE (`primitives.js:103`) that an inline style never touches. It was not a sleeping guard, it guarded a door that cannot open. The one `reset.extra` left in the catalogue is on `network-pod-ip-and-veth`, where it is live and paired with its `enter` |
+| `SCENE.reset.extra` | **0 here.** A reset hook clearing `style.strokeDasharray` on `api-structure`'s watch lane would guard a door that cannot open: `dashed: true` writes the dash as an ATTRIBUTE (`primitives.js:103`) that an inline style never touches. The one `reset.extra` in the catalogue is on `network-pod-ip-and-veth`, where it is live and paired with its `enter` |
 
 **`pod-sandbox-cri`'s `tune` creates a ref no PART declares.** `reset.pods` names `appGroup`, which
-that `tune` builds and no `key:` does. `report/skeleton-census.test.mjs` used to print the card under
-Q1 as a reset key nothing creates; since 2026-08-14 the census counts a name landed by an escape hook
-as a created ref, so **Q1 prints 0 findings** and this card is no longer among them. The construction
-still deserves reading before you touch it: a reset key here can be born in a `tune` and not in a part.
+that `tune` builds and no `key:` does. `report/skeleton-census.test.mjs` counts a name landed by an
+escape hook as a created ref, so **Q1 prints 0 findings**. The construction still deserves reading
+before you touch it: a reset key here can be born in a `tune` and not in a part.
 
-**`reducedLit` is declared on 2 steps here**, `cluster-apply-flow`'s `create-pod` and
+**`reducedLit` is declared on 2 steps here**, `cluster-object-create-path`'s `create-pod` and
 `cluster-node-pressure-eviction`'s `rank`, against 89 in network, 20 in workloads and 0 in storage.
 That is the lowest non-zero count in the catalogue and it is a measurement rather than an omission:
 cluster's steps name their receivers in `lights:`, so `flowLights` derives the whole static path,

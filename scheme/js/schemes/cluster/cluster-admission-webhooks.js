@@ -2,8 +2,8 @@ import { P, F, defineCard, laneY, strip, midX } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS.md#cluster-admission-webhooks
 
-// Laid out on the L. Panel x<=397 y<=230, kubectl at KCTL_Y 300: 70 units of clearance and roughly
-// 480 characters. The wrap is token-bound, so MEASURE rather than counting.
+// Laid out on the L. Panel x<=397 y<=230, kubectl at KCTL_Y 300: 70 units of clearance. The depth
+// is a LINE count, not a character count, so measure it: ./CARDS.md BUDGET says with what.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 // Reserved narration corner: 400 x 230. Nothing on this card derives from it, and the measured
@@ -28,9 +28,11 @@ const ETCD_OPTICAL = 4;
 const ETCD_W = 140, ETCD_X = BAND_R - ETCD_OPTICAL - ETCD_W;   // 956..1096
 const LANE_DY = 15;
 const { out: OUT_Y, back: BACK_Y } = laneY(TOP_CY, LANE_DY);   // 85 / 115
+// The 136-unit gutter between the Api and ETCD, which is what the two ETCD wire labels have.
+const ETCD_MID = midX(API_R, ETCD_X);                    // 888
 
 // Both lanes leave the kubectl TOP face, one right angle each, out left of back at both ends so they
-// never cross. 73% and 68% of the two runs sit behind the panel: an accepted cost, see ./CARDS.md.
+// never cross. 78% and 61% of the two runs sit behind the panel: an accepted cost, see ./CARDS.md.
 const { out: KCTL_OUT_X, back: KCTL_BACK_X } = laneY(KCTL_CX, LANE_DY);   // 205 / 235
 const KCTL_TO_API = [[KCTL_OUT_X, KCTL_Y], [KCTL_OUT_X, OUT_Y], [API_X, OUT_Y]];
 const API_TO_KCTL = [[API_X, BACK_Y], [KCTL_BACK_X, BACK_Y], [KCTL_BACK_X, KCTL_Y]];
@@ -48,7 +50,7 @@ const { w: CHIP_W, x: CHIP_X } = strip({ from: BAND_L, to: BAND_R, count: 2, gap
 // The list order IS the append order, so it is the z-order: chips and lanes first, the packet layer
 // under the chain, and the three top-row blocks absolute last.
 export const SCENE = {
-  'aria-label': 'Admission chain: five stages from API request to ETCD',
+  'aria-label': 'The write path through the API: authentication and authorization, then mutating admission, schema validation and validating admission, then the write to ETCD',
   parts: [
     P.defs(),
     // Chip strip: it spans the same inset band as the flanks, so its left edge is the kubectl left
@@ -68,6 +70,10 @@ export const SCENE = {
     // Centred under kubectl now that both lanes leave its top face: the gap to its right is down to
     // 80 units, and the whole band below the box is empty until the chip strip at y=520.
     P.wire({ key: 'resp', x: KCTL_CX, y: KCTL_Y + KCTL_H + 26 }),
+    // One label per ETCD hop, stacked in the gutter: above the out lane at y=85, below the back
+    // lane at y=115. Both clear the Api right edge at 820 and the cylinder left edge at 956.
+    P.wire({ key: 'write', x: ETCD_MID, y: 74 }),
+    P.wire({ key: 'commit', x: ETCD_MID, y: 137 }),
     P.packets(),
     P.chain({
       key: 'chain', x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: 32, gap: 12,
@@ -76,7 +82,7 @@ export const SCENE = {
       items: [
         '1. authn, authz ·  who the caller is, what they may do',
         '2. mutating     ·  plugins and webhooks rewrite it',
-        '3. schema       ·  types and required fields checked',
+        '3. schema       ·  required fields and values checked',
         '4. validating   ·  plugins, policies and webhooks',
         '5. persist      ·  write final object to ETCD',
       ],
@@ -93,7 +99,9 @@ export const SCENE = {
 };
 
 const AT_REST = { objChip: '{cpu=100m}', failurePolicy: 'Fail | Ignore' };
-const MUTATED = { objChip: '{cpu=100m, runAsNonRoot=true}', failurePolicy: 'Fail | Ignore' };
+// One field per half of the step: sa=default is ServiceAccount, an always-on plugin, and
+// runAsNonRoot=true is the policy webhook, so both actors the narration names leave a trace.
+const MUTATED = { objChip: '{cpu=100m, sa=default, runAsNonRoot=true}', failurePolicy: 'Fail | Ignore' };
 
 export const STEPS_SPEC = [
   {
@@ -104,8 +112,8 @@ export const STEPS_SPEC = [
   {
     id: 'authn-authz',
     // The top-face exit makes the request route 430 units, a 956ms glide. One ball, span 1516.
-    duration: 2200,
-    narration: 'Built-in, and already done. The request arrives authenticated, so admission never sees an anonymous caller. Authorizers run in configured order, commonly Node then RBAC, and the first to allow or to deny ends it, so no later one runs. Nothing allowing it means 403.',
+    duration: 2800,
+    narration: 'Already done, and not admission at all. Admission runs after authentication, so every caller has an identity, even system:anonymous. Authorizers run in configured order, commonly Node then RBAC, and the first to allow or to deny ends it, so no later one runs. Nothing allowing it means 403.',
     chips: AT_REST,
     wires: { req: 'POST /api/v1/namespaces/default/pods' },
     lit: ['kubectl'],
@@ -116,42 +124,42 @@ export const STEPS_SPEC = [
   },
   {
     id: 'mutating',
-    duration: 1700,
-    narration: 'Pluggable plus built-in. Always-on mutating plugins like ServiceAccount, LimitRanger and DefaultTolerationSeconds rewrite the Pod here, and MutatingWebhookConfiguration adds external policy webhooks (Kyverno, OPA Gatekeeper, sidecar injectors) on top, all before validation.',
+    duration: 3400,
+    narration: 'Pluggable plus built-in. Always-on mutating plugins like ServiceAccount, LimitRanger and DefaultTolerationSeconds rewrite the Pod here, and MutatingWebhookConfiguration adds external policy webhooks (Kyverno, OPA Gatekeeper, sidecar injectors) on top, all before validation. Their failurePolicy decides whether a timeout blocks the write.',
     chips: MUTATED,
-    // Rewrites land on statically highlighted chips, no block flash. The Api is lit because this
-    // stage runs INSIDE it: otherwise the three motionless middle steps light no actor at all.
+    // Everything this stage touches is a STATIC highlight, the Api included: a chip never flashes
+    // (M-26) and infrastructure never pulses (M-01). Nothing on this step moves.
     lit: ['objChip', 'failurePolicy', 'api'],
     chain: [1],
   },
   {
     id: 'schema',
     duration: 1700,
-    narration: 'Built-in. The API validates the mutated object for its kind, so bad types and missing required fields fail here, before any validating webhook runs.',
+    narration: 'Built-in. The API validates the mutated object for its kind, so a missing required field or a value outside its allowed range fails here, before any validating webhook runs.',
     chips: MUTATED,
-    // Schema validation happens inside the Api, so the Api is lit and the object under check
-    // stays statically highlighted, no block flash.
+    // Schema validation happens inside the Api, so the Api is what lights, statically, and the
+    // object under check is lit beside it (M-26, M-01).
     lit: ['objChip', 'api'],
     chain: [2],
   },
   {
     id: 'validating',
-    duration: 1700,
+    duration: 2700,
     // NOT "called last": AllOrderedPlugins ends validatingwebhook, resourcequota, deny, so a webhook
     // that admits an object can still be followed by a quota denial.
-    narration: 'Pluggable plus built-in. LimitRanger is back to check min and max, ValidatingAdmissionPolicy runs in process, validating webhooks call out over HTTP, and ResourceQuota runs after all of them. None may mutate, and any deny aborts the request. See the ResourceQuota and LimitRange card.',
+    narration: 'Pluggable plus built-in. LimitRanger is back to check min and max, ValidatingAdmissionPolicy runs in process, validating webhooks call out over HTTPS, and ResourceQuota runs after all of them. None may mutate, and any deny aborts the request. See the ResourceQuota and LimitRange card.',
     chips: MUTATED,
-    // Validating webhooks may only allow or deny; the policy chip stays statically
-    // highlighted, no block flash. The Api is lit for the same reason as the two stages above.
-    lit: ['failurePolicy', 'api'],
+    // Lit, never flashed or pulsed (M-26, M-01): the policy chip, the Api, and objChip for the
+    // reason the schema step lights it, this stage checks that same object. Why: ./CARDS.md
+    lit: ['objChip', 'failurePolicy', 'api'],
     chain: [3],
   },
   {
     id: 'persist',
-    duration: 3000,
-    narration: 'Built-in. The API writes the final object to ETCD via Raft. Once ETCD commits, the API returns HTTP 201 Created to the client and every open watch receives an ADDED event so informers can update their caches.',
+    duration: 3300,
+    narration: 'Built-in. The API writes the final object to ETCD via Raft. Once ETCD commits, the API returns HTTP 201 Created to the client and every watch that matches the new Pod receives an ADDED event so informers can update their caches.',
     chips: MUTATED,
-    wires: { resp: 'HTTP 201 Created' },
+    wires: { write: 'final object', commit: 'commit ack', resp: 'HTTP 201 Created' },
     lit: ['api'],
     chain: [4],
     // Three arrow segments, sequenced. Each packet is visible only on its own arrow. The Api is

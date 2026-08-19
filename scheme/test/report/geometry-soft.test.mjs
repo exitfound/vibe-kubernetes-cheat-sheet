@@ -44,8 +44,8 @@
 // GROUP, label and sublabel included, so the content span these three rules centre on is partly a
 // text measurement. Measured before the webfont arrives it is the fallback face, about 20 percent
 // narrower, and every span, centre and occluded area computed from it is wrong in the same
-// direction. No tool in the old harness waited for fonts, so the recorded counts were taken on
-// whatever face happened to be resolved. document.fonts.ready alone is not enough:
+// direction. A run that does not wait for the real face takes every count below on whatever face
+// happened to be resolved, so waiting is mandatory. document.fonts.ready alone is not enough:
 // scheme/index.html attaches the Google Fonts stylesheet from the onload handler of a
 // <link rel="preload">, so `ready` can settle before the sheet is linked. Neither is
 // document.fonts.check(), which is why the guard moved into fixtures/render.mjs as a behavioural
@@ -63,8 +63,8 @@
 //                   workloads-pod-phase-machine 317 -> 299.5). The panel right edge does not move.
 // So the exposure is entirely on the two rules that read the panel: a run without fonts gets a
 // SHORTER panel, which hides occluded area and moves the line CENTRE-LOW counts blocks below. Both
-// under-report, quietly, at exit 0. That is the shape of the risk L-21 describes, and no tool in
-// the old harness could see it.
+// under-report, quietly, at exit 0. That is the shape of the risk L-21 describes, and without the
+// face probe nothing in a run can see it.
 //
 // The probe is a LOCAL COPY, deliberately, and it is NOT the same probe render/geometry.test.mjs
 // carries: this file reads blocks, chips and the panel, that one reads blocks and lanes. Neither is
@@ -72,11 +72,12 @@
 // caller uses whole. Same call report/palette-steps.test.mjs made, same reason.
 
 import { test } from 'node:test';
+import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { stepTotal } from '../fixtures/module.mjs';
 import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, STEP_SETTLE_MS, DIAGRAM_FACES,
-  launch, setInspect, discoverIds, openCard, stepCount, gotoStep, fallbackFaces,
-  installGeometryHelpers, overlayProbe,
+  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, DIAGRAM_FACES, launch, initPage, discoverIds,
+  openCard, stepCount, gotoStep, fallbackFaces, installGeometryHelpers, overlayProbe,
 } from '../fixtures/render.mjs';
 
 // Tolerances, carried over from check-geometry.mjs unchanged.
@@ -100,13 +101,14 @@ const VIEWPORTS = [
 // note the report prints.
 //
 // TWO NUMBERS, AND THEY ARE NOT ONE NUMBER. This file prints 8 findings on the live catalog (CENTRE
-// 2, CENTRE-LOW 4, OCCLUDED 2), and the four records carry 18 `^OPEN` entries. Both counted
-// 2026-08-07. The constant below was 17 for months, which was neither of them: it was an old
-// finding count carried into a slot that holds a record count, so a reader comparing the two lines
-// of the report was comparing a stale figure with a live one. The records cover more than geometry
+// 2, CENTRE-LOW 4, OCCLUDED 2), and the four records carry the 45 `^OPEN` entries the constant
+// below counts (recounted 2026-08-17). The slot holds a RECORD count and nothing else: a finding
+// count put in it leaves a reader comparing the two lines of the report against a stale figure, and
+// 17 sat there once and was neither of the two numbers. The records cover more than geometry
 // (a frame label under the panel, a band empty by construction, a lane pair declined), so the two
-// populations OVERLAP and never coincide, and this line is a record census, not a target.
-const DOCUMENTED_OPEN = { total: 18, cluster: 9, storage: 5, workloads: 3, network: 1 };
+// populations OVERLAP and never coincide, and this line is a record census, not a target. It is a
+// RECORD, never an assertion: this file prints the comparison and a person rules.
+const DOCUMENTED_OPEN = { total: 45, cluster: 10, storage: 14, workloads: 5, network: 16 };
 
 // Runs IN THE PAGE. No free variables: page.evaluate serialises it. The root-space mapping it uses
 // is shared with render/geometry.test.mjs and report/arrival.test.mjs (fixtures/render.mjs
@@ -211,7 +213,9 @@ async function probeStep(page) {
 }
 
 // The step census of a green run of the whole catalog (REFACTOR-PLAN 0.2). Printed, never asserted.
-const EXPECTED_STEPS = 650;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_STEPS = await stepTotal();
 
 const catalogued = await cards();
 const fx = n => Number.isFinite(n) ? n.toFixed(0) : 'n/a';
@@ -235,7 +239,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
     browser = await launch();
     const context = await browser.newContext({ viewport: VIEWPORTS[0] });
     const page = await context.newPage();
-    await page.addInitScript(setInspect, 'expose');
+    await page.addInitScript(initPage, 'expose');
     await installGeometryHelpers(page);
     const ids = await discoverIds(page, DEFAULT_BASE);
 
@@ -255,7 +259,6 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
 
         for (let i = 0; i < total; i++) {
           await gotoStep(page, i);
-          await page.waitForTimeout(STEP_SETTLE_MS);
           const data = await probeStep(page);
           if (!data) { notes.push(`${id}: step ${i} had no diagram, not sampled`); continue; }
           steps++;
@@ -280,7 +283,6 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
           await page.setViewportSize(vp);
           for (let i = 0; i < total; i++) {
             await gotoStep(page, i);
-            await page.waitForTimeout(STEP_SETTLE_MS);
             const o = await page.evaluate(overlayProbe);
             if (o) { ovRects.push(o); extraSteps++; }
           }
@@ -417,6 +419,17 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   out.push('===== end of report =====');
 
   console.log(out.join('\n'));
-  // No assertion, on purpose. Every line above is a measurement, and L-16 puts the decision about
-  // it with a person reading the card's record. See the header.
+
+  // NO ASSERTION ON A FINDING, and one on the WALK. Every line above is a measurement, and the
+  // decision about it belongs to a person reading the card's record. What is NOT a measurement is
+  // whether this file ran at all: a browser that never launched, a server that answered nothing or
+  // a card that threw on every open leaves `notes` full, prints REPORT INCOMPLETE into a page of
+  // output nobody has to read, and exits 0. That is the failure the rest of the harness is built
+  // against (`S-46`), and it is the one thing a report may go red on.
+  assert.equal(sampledCards, catalogued.length,
+    `sampled ${sampledCards} of ${catalogued.length} card(s). A report that scans nothing reports ` +
+    'nothing, and every number above undercounts by whatever it missed.');
+  assert.ok(steps >= EXPECTED_STEPS,
+    `walked ${steps} step(s), the specs declare ${EXPECTED_STEPS}. Every missing step is a ` +
+    'composition nobody looked at.');
 });

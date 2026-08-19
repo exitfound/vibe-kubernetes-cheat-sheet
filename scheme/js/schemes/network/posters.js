@@ -524,7 +524,7 @@ export const POSTERS = {
       <rect x="124" y="128" width="72" height="40" rx="6" fill="rgba(255,255,255,0.04)"/>
       <rect x="228" y="128" width="72" height="40" rx="6" fill="rgba(255,255,255,0.04)"/>
       <rect x="32"  y="138" width="48" height="20" rx="4" fill="rgba(255,255,255,0.05)"/>
-      <rect x="136" y="138" width="48" height="20" rx="4" fill="rgba(255,255,255,0.05)"/>
+      <rect x="240" y="138" width="48" height="20" rx="4" fill="rgba(255,255,255,0.05)"/>
       <g stroke-dasharray="4 3">
         <line x1="160" y1="40"  x2="160" y2="60"/>
         <line x1="232" y1="75"  x2="208" y2="75"/>

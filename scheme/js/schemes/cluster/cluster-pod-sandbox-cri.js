@@ -156,8 +156,8 @@ export const STEPS_SPEC = [
     flow: [
       // Runtime execs CNI (right arrow), then the netns config lands on the sandbox.
       F.top({ from: RT_R, to: CNI_X, y: CALL_Y, name: 'exec' }),
-      // "returns the result" is in the narration, and the return lane is drawn: it just never carried
-      // anything. The result comes back to the runtime before the sandbox is configured below.
+      // The narration promises a returned result and the return lane is drawn, so a packet must ride
+      // it. The result comes back to the runtime before the sandbox is configured below.
       F.top({ from: CNI_X, to: RT_R, y: BACK_Y, after: 'exec' }),
       // The CNI cue is its own entry rather than `lights` on the exec hop: it is emitted AFTER the
       // return packet, and getAnimations() hands them back in emission order.

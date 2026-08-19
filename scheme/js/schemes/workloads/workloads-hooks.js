@@ -70,7 +70,7 @@ export const SCENE = {
         '3. postStart ·  hook races the ENTRYPOINT, no order',
         '4. running   ·  both settled, container serves',
         '5. preStop   ·  delete fires hook before any signal',
-        '6. sigterm   ·  SIGTERM, then SIGKILL at grace=0',
+        '6. sigterm   ·  SIGTERM, SIGKILL if alive at grace 0',
       ],
     }),
     P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
@@ -127,10 +127,10 @@ export const STEPS_SPEC = [
     id: 'created',
     duration: 2200,
     narration: 'The runtime creates the container from the image and starts the ENTRYPOINT process as PID 1. The Kubelet has issued the CreateContainer and StartContainer calls over the CRI socket, so the container has just been started and is moving into the Running state.',
-    chips: { postStartChip: DECLARED, entrypointChip: 'starting (PID 1)', preStopChip: DECLARED, stateChip: 'Running', graceChip: '30s' },
+    chips: { postStartChip: 'fires with ENTRYPOINT', entrypointChip: 'starting (PID 1)', preStopChip: DECLARED, stateChip: 'Running', graceChip: '30s' },
     wires: { req: 'CRI CreateContainer + StartContainer · OK' },
     opacity: { podGroup: 1 },
-    lit: ['stateChip', 'kubelet', 'entrypointChip'],
+    lit: ['stateChip', 'kubelet', 'entrypointChip', 'postStartChip'],
     chain: 1,
     // The CRI calls hop to the runtime, the OK hops back, and the container
     // materializes once the start call lands.
@@ -177,7 +177,7 @@ export const STEPS_SPEC = [
     id: 'sigterm',
     duration: 4000,
     narration: 'Once preStop returns, Kubelet asks the runtime to stop the container via CRI StopContainer. The runtime delivers SIGTERM to the ENTRYPOINT process inside the Pod. The grace timer keeps counting down from where preStop left off. If the process is still alive when it reaches 0, the runtime escalates to SIGKILL. The container then exits and the Pod object is removed from the API.',
-    chips: { postStartChip: EXIT0, entrypointChip: 'received SIGTERM', preStopChip: EXIT0, stateChip: 'Terminated', graceChip: '0s · SIGKILL' },
+    chips: { postStartChip: EXIT0, entrypointChip: 'received SIGTERM', preStopChip: EXIT0, stateChip: 'Terminated', graceChip: '0s · SIGKILL if alive' },
     wires: { req: 'CRI StopContainer · SIGTERM · ACK' },
     // Final state pinned on the static path too, so cancel between steps does not flash to default.
     opacity: { podGroup: OPACITY.terminating },

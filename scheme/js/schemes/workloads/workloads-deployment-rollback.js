@@ -1,4 +1,4 @@
-import { P, F, defineCard, ladder, laneY, midX, spread, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
+import { P, F, defineCard, ladder, laneY, midX, spread, WL, LAYOUT, BEAT, FADE, OPACITY } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-deployment-rollback
 
@@ -103,9 +103,12 @@ const V2_CRASH = { v: 'v2.0 · CrashLoopBackOff', op: OPACITY.notready };
 const V2_STUCK = { v: 'v2.0 · stuck', op: OPACITY.notready };
 // setSlots as FIELDS: an empty slot writes no sublabel, so a vanished Pod keeps the version text it
 // died with. Key order is the order the helper wrote them in.
+const shadeOf = v => (v ? (v.op === undefined ? 1 : v.op) : 0);
+// The one lane ends on web-d4 and on nothing else, so it takes that slot's own shade (A-13) and
+// goes with it when the slot empties (A-14). Pinned here, so no step can state the two apart.
 const slots = (...vs) => ({
   sublabels: Object.fromEntries(vs.flatMap((v, i) => (v ? [[`pod${i + 1}Box`, v.v]] : []))),
-  opacity: Object.fromEntries(vs.map((v, i) => [`pod${i + 1}`, v ? (v.op === undefined ? 1 : v.op) : 0])),
+  opacity: { ...Object.fromEntries(vs.map((v, i) => [`pod${i + 1}`, shadeOf(v)])), connector: shadeOf(vs[3]) },
 });
 
 export const STEPS_SPEC = [
@@ -127,11 +130,15 @@ export const STEPS_SPEC = [
     // The surging Pod is only PULSED, so the static path has to say the v2 slot is the subject.
     reducedLit: ['pod4Box'],
     chain: 1,
+    // The surge Pod does not exist until the order lands, so it winds back to absent and RISES on
+    // that arrival. Drawn at entry it is a create standing 2700ms ahead of its own ball.
+    rewind: { opacity: { pod4: 0 } },
     flow: [
       // The PATCH hits the Api, then the surge order travels down the
       // connector and the surging Pod pulses on arrival.
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
       F.route({ points: SPINE, after: 'req', name: 'surge' }),
+      F.fade({ target: 'pod4', from: 0, to: 1, dur: FADE.in, at: 'surge', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'pod4', at: 'surge' }),
     ],
   },
@@ -142,17 +149,19 @@ export const STEPS_SPEC = [
     chips: { rs1Chip: '3 / 3', rs2Chip: '0 / 1 (crashing)', condChip: 'Progressing=True', revChip: 'rev 2 never Ready' },
     wires: { req: 'readinessProbe fail · v2 not Ready' },
     ...slots(V1, V1, V1, V2_CRASH),
-    lit: ['revChip', 'apiserver', 'rs2Chip'],
+    lit: ['revChip', 'rs2Chip'],
     chain: 2,
     // The static block already carries the crashed shade, so the animated path winds the v2 Pod
     // back to full and dims it on arrival instead.
-    rewind: { opacity: { pod4: 1 } },
+    rewind: { opacity: { pod4: 1, connector: 1 } },
     flow: [
-      // The failed status reaches the controller over the connector. The v2 Pod pulses then dims to
-      // show it is crash-looping, and the three v1 Pods are untouched throughout.
-      F.route({ points: SPINE, name: 'status' }),
-      F.pulse({ pod: 'pod4', at: 'status' }),
-      F.fade({ target: 'pod4', from: 1, to: OPACITY.notready, dur: FADE.out, at: 'status', fill: 'both', easing: 'ease-in' }),
+      // NOTHING travels on this step, which is the content: the probe NEVER passes, so no Ready
+      // report leaves the Pod. It crash-loops in place, pulses, then settles to the crashed shade.
+      F.pulse({ pod: 'pod4' }),
+      F.fade({ target: 'pod4', from: 1, to: OPACITY.notready, dur: FADE.out, delay: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
+      // The lane dims on the same beat as the Pod it lands on: with no ball on this step it is the
+      // only bright thing left pointing at a crashed Pod (A-13).
+      F.fade({ target: 'connector', from: 1, to: OPACITY.notready, dur: FADE.out, delay: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
     ],
   },
   {
@@ -180,12 +189,15 @@ export const STEPS_SPEC = [
     chain: 4,
     // The broken v2 Pod is DELETED, not converted back: RS-v2 goes to zero and the three v1 Pods
     // simply keep serving, so the row LOSES its fourth Pod.
-    rewind: { opacity: { pod4: OPACITY.notready } },
+    rewind: { opacity: { pod4: OPACITY.notready, connector: OPACITY.notready } },
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
       F.route({ points: SPINE, after: 'req', name: 'undo' }),
       F.pulse({ pod: 'pod4', at: 'undo' }),
       F.fade({ target: 'pod4', from: OPACITY.notready, to: 0, dur: FADE.out, at: 'undo', fill: 'both', easing: 'ease-in' }),
+      // Pod and lane leave on one beat. `fill: both` holds the lane on screen for the whole flight
+      // that deletes the Pod, and takes it with the slot it pointed at (A-14, A-15).
+      F.fade({ target: 'connector', from: OPACITY.notready, to: 0, dur: FADE.out, at: 'undo', fill: 'both', easing: 'ease-in' }),
     ],
   },
   {

@@ -129,7 +129,7 @@ export const SCENE = {
     // Both ETCD registers sit on the BOTTOM legs, not up on the row: the lanes turn down at 764 and
     // 740, so a label centred on 890 would float 120 units right of anything it could be labelling.
     P.wire({ key: 'api-etcd', x: midX(RISER_OUT_X, ETCD_X), y: ETCD_CY - ETCD_LANE_DY - 10 }),
-    // Left of the watch arrow: the corridor on its right now carries the two ETCD risers.
+    // Left of the watch arrow: the corridor on its right carries the two ETCD risers.
     P.wire({ key: 'watch', x: 580, y: WIRE_WATCH_Y, anchor: 'end' }),
     P.wire({ key: 'etcd-ret', x: midX(RISER_BACK_X, ETCD_X), y: ETCD_CY + ETCD_LANE_DY + 18 }),
     P.wire({ key: 'gvr', x: GVR_X + GVR_W / 2, y: GVR_Y - 12 }),

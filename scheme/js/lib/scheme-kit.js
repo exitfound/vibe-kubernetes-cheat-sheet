@@ -39,8 +39,7 @@ export function setBoxSublabel(boxEl, txt) {
   const sub = boxEl && boxEl.querySelector('.scheme-box-sublabel');
   if (sub) sub.textContent = txt;
 }
-// The pod shell's own sublabel (its state line). Was byte-identical in all three
-// category kits before it was hoisted here.
+// The pod shell's own sublabel (its state line). Shared by all category kits.
 export function setPodSublabel(podEl, txt) {
   const sub = podEl && podEl.querySelector('.scheme-pod-sublabel');
   if (sub) sub.textContent = txt;
@@ -65,7 +64,7 @@ export function setWire(s, key, txt) {
   if (s.refs.wires && s.refs.wires[key]) s.refs.wires[key].textContent = txt;
 }
 
-// ---- init() boilerplate (20 cards were byte-identical) ----
+// ---- init() boilerplate ----
 export function makeInit(SceneClass, STEPS, opts = {}) {
   return function init(root, callbacks = {}) {
     const scene = new SceneClass(root);
@@ -168,8 +167,11 @@ export function clearPodHighlight(podEl) {
   }
 }
 
-// The only sanctioned block flash, for a step with no packet motion and no Pod so it does not read
-// as a frozen frame. ZERO CALLERS: it stays exported because dropping it takes all four kits (S-25).
+// A brightness pulse on any ref, reached through `F.flash` and never imported by a card. NO CARD
+// CALLS IT and none may: this is `filter: brightness`, which M-04 calls a pulse and M-01 forbids on
+// infrastructure, so a packet-less pod-less step takes a static `.highlight` instead (M-27, S-25c).
+// It stays because S-25 names it the reason PULSE_BLOCK lives in tokens.js rather than as keyframes
+// in a card, and because unit/spec-steps.test.mjs watches this door for M-26.
 export function flashChips(s, ctx, keys, delay = 0) {
   if (ctx.reduced) return;
   const FRAMES = [

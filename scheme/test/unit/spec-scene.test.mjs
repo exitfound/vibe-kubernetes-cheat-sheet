@@ -3,9 +3,9 @@
 // (THROUGH), L-11 and L-12 (OFFEDGE), plus S-42 (where a role comes from), S-07 (one packet layer),
 // and the reset prologue S-11 states as a shape.
 //
-// This is wave 2 of the harness: the rules that used to be a regex over card source and were
-// deliberately deferred. SCENE.parts is module-level data now, so a lane's points, a block's rect
-// and a chip's name are values a test reads in bare Node with no browser and nothing stubbed.
+// These rules read the SCENE spec, not the card source. SCENE.parts is module-level data, so a
+// lane's points, a block's rect and a chip's name are values a test reads in bare Node with no
+// browser and nothing stubbed.
 //
 // ===========================================================================================
 // THE POPULATION IS A SUBSET, AND THAT IS THE ONE THING THIS FILE CANNOT GET WRONG
@@ -17,8 +17,8 @@
 // The first test therefore compares the number of cards this file built a scene for against the
 // migration counter in fixtures/module.mjs, card for card and by NAME. A card that stops exporting
 // SCENE turns this file red instead of quietly taking its own rules out of the run, which is the
-// hole the old harness kept a COVERAGE_FLOOR constant for. No number here needs editing when the
-// population moves: the counter is derived on every run.
+// hole a coverage-floor constant exists to cover. No such constant is needed here and no number
+// needs editing when the population moves: the counter is derived on every run.
 //
 // ===========================================================================================
 // THIS FILE AND render/geometry.test.mjs ARE NOT THE SAME CHECK
@@ -61,7 +61,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards, census } from '../fixtures/catalog.mjs';
 import { cardForm, importAll, importKit } from '../fixtures/module.mjs';
-import { refUniverse } from '../fixtures/spec.mjs';
+import { pathRuns, refUniverse } from '../fixtures/spec.mjs';
 
 // ---------------------------------------------------------------------------------------------
 // Tolerances. Every one is carried over from render/geometry.test.mjs unchanged, because the whole
@@ -171,15 +171,12 @@ const rectOf = (x, y, w, h, dx, dy, label, kind) =>
 // One `d` may hold SEVERAL subpaths (a trunk plus a stub per row). Each `M` starts a new line, and
 // joining them would invent a segment between the end of one and the start of the next: that read
 // as a diagonal on the first run of this parser.
+// The reader itself is ../fixtures/spec.mjs, shared with fixtures/lane-traffic.mjs: two copies of
+// it disagreed about which paths exist, which is the drift the fixture layer is for. What stays
+// here is only this file's contract, null for "nothing readable", which its callers branch on.
 function straightD(d) {
-  if (typeof d !== 'string' || /[CcSsQqTtAaHhVvZz]/.test(d)) return null;
-  const subpaths = [];
-  for (const m of d.matchAll(/([ML])\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/g)) {
-    if (m[1] === 'M' || !subpaths.length) subpaths.push([]);
-    subpaths[subpaths.length - 1].push([parseFloat(m[2]), parseFloat(m[3])]);
-  }
-  const kept = subpaths.filter(s => s.length >= 2);
-  return kept.length ? kept : null;
+  const runs = pathRuns(d);
+  return runs.length ? runs : null;
 }
 
 function geometryOf(parts) {
@@ -225,10 +222,10 @@ const geom = new Map(scenes.map(s => [s.id, geometryOf(flat.get(s.id).parts)]));
 
 // ---------------------------------------------------------------------------------------------
 // The ref namespace, which is what a key in reset.keys, in `lit` or in a step's chips means, comes
-// from fixtures/spec.mjs and not from here. It used to be built here, and by a slightly different
-// reading than the two other files that ask the same question, which is the drift the fixture's own
-// header argues against for the regex one level down. The two buckets, the escapes and the names
-// left out of the set on purpose are all documented there.
+// from fixtures/spec.mjs and not from here. Built there, never here: three files ask that same
+// question, and a second reading of it would drift, which is the drift the fixture's own header
+// argues against for the regex one level down. The two buckets, the escapes and the names left out
+// of the set on purpose are all documented there.
 //
 // A universe is cached per card because every test below wants the same one and the escape reader
 // walks source text: built once, the whole file costs one walk per card.
@@ -459,9 +456,9 @@ describe('scene geometry, read from SCENE.parts', () => {
 // ---------------------------------------------------------------------------------------------
 // S-42. The role is the palette: css/styles.css maps --cluster-color and its three siblings to the
 // tint inside a tinted dialog, so a wrong role does not SPREAD colour and render/palette.test.mjs
-// would not catch it (REFACTOR-PLAN III.7). What catches it is this: the role a part carries must
-// be the one its category kit binds, and the expectation is obtained by CALLING the kit's own
-// constructors, so the four conditions S-42 names stay readable rather than restated.
+// would not catch it. What catches it is this: the role a part carries must be the one its category
+// kit binds, and the expectation is obtained by CALLING the kit's own constructors, so the four
+// conditions S-42 names stay readable rather than restated.
 // ---------------------------------------------------------------------------------------------
 // S-42's fourth clause lets a part override the bound role at its own call. That is legal, and it
 // is also exactly how P-08 happened (82 chips silently on the cluster palette), so an override
@@ -665,13 +662,13 @@ describe('the strings the scene draws', () => {
   });
 
   // The other half of the same question, and the ONLY place the six string writers are resolved:
-  // ../unit/spec-steps.test.mjs asked the same names too until 2026-08-15, which was one question
-  // asked twice rather than two checks. A step writes a label, a sublabel, a chip value, a Pod
+  // ../unit/spec-steps.test.mjs does not ask these names, because one question asked twice is a
+  // duplicate branch rather than two checks. A step writes a label, a sublabel, a chip value, a Pod
   // sublabel or a wire THROUGH A KEY, and every writer in step-spec.js is guarded (`if (el)`,
   // `if (node && node.valueText)`), so a key naming nothing draws nothing and says nothing. The
   // kind matters as much as the key: setBoxLabel wants a .scheme-box-label, setVal wants the
   // valueText a valChip carries, so a chip write aimed at a box is the same silent blank, and that
-  // second half is what makes this the strictest of the two readings and the one that stayed.
+  // second half is the stricter reading, which is why the question is asked here.
   // A `raw` part is an element built by a function this file cannot read, so its SHAPE is unknown
   // rather than wrong, and answering "wrong" would be the check overstating what it knows. The
   // declared alternative, same discipline as CROSS_ROLE: name the raw that deliberately imitates a
@@ -787,14 +784,13 @@ describe('the reset prologue', () => {
   // wrong block is lit in a step that also has a right one, and the reduced comparison sees only
   // that the two paths AGREE about it.
   //
-  // ONE QUESTION ONLY, deliberately. This walk used to ask each key whether it RESOLVED before
-  // asking whether the reset clears it, which is ../unit/spec-steps.test.mjs's subject over the same
-  // five fields (lit, reducedLit, and a flow entry's lights / targets / unlight) and a wider set of
-  // blocks: it resolves them inside `rewind` and inside an F.set too, where this walk only ever read
-  // the step itself. The weaker copy came out on 2026-08-15. What follows is only the leak, so an
-  // unresolvable key still lands here as "reset.keys does not clear it" and is named for what it is
-  // one file over. `unlight` dropped out of the walk with it: it REMOVES a highlight, so it can
-  // never leak one, and resolution was the only thing this file ever asked of it.
+  // ONE QUESTION ONLY, deliberately: this walk asks only about the leak. Whether a key RESOLVES is
+  // ../unit/spec-steps.test.mjs's subject over the same five fields (lit, reducedLit, and a flow
+  // entry's lights / targets / unlight) and a wider set of blocks: it resolves them inside `rewind`
+  // and inside an F.set too, where this walk only ever reads the step itself. So an unresolvable key
+  // still lands here as "reset.keys does not clear it" and is named for what it is one file over.
+  // `unlight` is outside this walk entirely: it REMOVES a highlight, so it can never leak one, and
+  // resolution is the only question there is to ask of it, asked one file over.
   test('every part a step lights is cleared by the reset', (t) => {
     const findings = [];
     let lit = 0;

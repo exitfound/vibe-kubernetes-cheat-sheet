@@ -60,6 +60,33 @@ NOT A DEFECT
          not an event. The news of the step is the preamble, and `mode`, `app reads` and `client IP`
          all light. DO NOT cue the header pair here: it would read as the headers being cleared BY
          something on this step.
+         The empty rectangle in the left middle, about 440 wide by 216 tall between the header-chip
+         column at x 440 and the Client top at y 372, is the narration panel FOOTPRINT and not a void.
+         At 1600x1000 the panel bottom runs 125.11..229.77 and leaves 142 to 247 of it bare; at
+         1100x800 it runs 180.12..354.05, and on step 5 the panel reaches 354 and fills the rectangle
+         down to the Client block. That is the L shape `L-01` describes, and `FLOW_Y` 410 exists to
+         leave exactly this room. Filling it with a block would put that block under the panel on the
+         viewport the card is measured against.
+```
+
+### before `F.set({ at: 'out', chips: { srcChip: 'proxy 10.244.0.9', readsChip: 'socket', ipChip: 'lost' } }),`
+
+```
+P-03 on `reproxy`. All three of these read the packet the BACKEND receives, so none of them can be
+true before that packet gets there. `chips` still keeps the end state, which is what the static path
+shows, `rewind` winds the trio back to what `arrive` actually left (none, none, seen at the edge),
+and this F.set turns all three over on the `out` arrival at 1500ms: the proxy pulses at 0, the new
+connection leaves at BEAT.afterPulse 800 and the 240 unit hop takes the 700ms routeDur floor.
+All three move on ONE beat because they are one reading of one packet (P-04): the source the socket
+carries, what the app can read out of it, and whether the client IP survived. Splitting them would
+say the address is lost before the app has read anything.
+Measured in real time, not by seeking: 300 and 1200ms read none / none / seen at the edge with the
+ball still in flight under its `src 10.244.0.9 (proxy)` tag, 1750 and 2600ms read
+proxy 10.244.0.9 / socket / lost. A seek-based probe shows the rewound value at EVERY timestamp,
+because an F.set rides an onfinish and a paused animation never fires one.
+DO NOT put the start value in `chips` and raise it with the F.set alone. The static path never runs
+the flow, so it would end on none while the animated path ends on lost, and
+report/chip-beat.test.mjs section 4 counts exactly that divergence.
 ```
 
 ### before `const FLOW_Y = 410;`
@@ -96,6 +123,10 @@ NOT A DEFECT
          drawing is centred, the rule is not.
 DO NOT   Shift the boxes the rule CAN see to make the number go green. That decentres the picture a
          reader actually looks at.
+CONTENT  The result step and the eth0 step describe what the BALL does, and the ball runs down the
+         spine and then into the sandbox. The CNI result is of course returned to the runtime
+         upstream, but no motion here runs back to the `cri` box, so neither step says it is handed
+         back or recorded there: the eth0 step closes on `CNI op: ADD ok`, which is drawn.
 ```
 
 ### before `const RAISE = 64;`
@@ -185,6 +216,35 @@ lean on. Pull the Pod in and the card decentres, since the ladder and the chips 
 CENTRE cannot see them.
 ```
 
+### before `lit: ['rcSearch', 'rcNdots', 'queryChip'],`
+
+```
+NOT A DEFECT on `queryChip`. It reads `web.default.svc.cluster.local` and is lit from step ENTRY while
+the ball is still crossing to CoreDNS, which `report/chip-beat.test.mjs` lists as FORM-B with a 1933ms
+lead, one of the longest in the category. It is not repaired, and two things on the same frame are why.
+The value is made by the CLIENT, not by CoreDNS. Expanding the short name against the search list is
+what the resolver does before it sends anything, and the two lines that rule reads, `search` and
+`options ndots:5`, are lit on this step beside the chip. Binding the chip to the CoreDNS arrival would
+say the query string only becomes true once the server has it.
+The wire label already states it, statically. `q` reads `A? web.default.svc...` on the lane the ball is
+riding, written in the static block on both paths, so a chip winding back to `-` would sit under a
+bigger, brighter copy of the same fact. Read off the 1600x1000 frame at t=1400: the query panel filled
+and lit, the lane caption naming the same question, the `answer A` panel below it still reading `-`,
+which is the value that genuinely waits and does wait. P-04 moves what a component KNOWS on arrival,
+and what it DID when the call lands; the expansion is what the client did before either.
+```
+
+### before `const RESOLV = { rcNS: '10.96.0.10',`
+
+```
+The chip-unwritten queue, ruled CONSTANTS OF THE DIAGRAM. The three chips are a FILE, and the resolv
+step says so in words: the Kubelet wrote it at startup, before anything on this card happens, so no
+step can produce one of its lines. Every step states all three, which puts them inside P-01, and the
+values are the ones the scene was built with, so no step moves the settled frame.
+The highlights stay: resolv points at the whole file it is narrating, query at the two lines the
+expansion rule reads. Both cue a value the reader has to look at, not a value that just changed.
+```
+
 ### poster
 
 ```
@@ -209,6 +269,11 @@ PANEL    right <= 397, bottom <= 230 over the three OCCLUDED viewports. FLOW_Y 4
          at 335, well below it, and the resolv.conf chips take the space under it.
 LANES    Query and answer on SEPARATE lanes, because the whole point is the cost of a ROUND TRIP: a
          miss is a packet out AND an NXDOMAIN back, four times over.
+WIRE LABELS
+         Three, not two: the query and answer labels on x 600, plus a `branch` caption centred on
+         the ladder at x 935, y 48, written on the walk step alone and blank on the other four.
+         It is the T-35 counterfactual sign, and the anchored note on that part holds the
+         measurement that put it there.
 WHY NOT  A deliberately SHORT lane (190 units, CoreDNS pulled in close), on the argument that the
          card is about how MANY queries are sent rather than how far they travel. The ladder is
          chips, so the only things CENTRE can see are the Pod and the CoreDNS box, and centring them
@@ -245,12 +310,74 @@ NOT A DEFECT
          pair IS the subject of the step: one name is absolute and the other is not.
 ```
 
+### before `F.set({ chips: { namesChip: '1', answerChip: 'NOERROR' }, at: 'a0' }),`
+
+```
+P-03. The two counters WAIT for the answer, so neither value is on screen before the packet that
+earns it. `chips` keeps the state the step ENDS in, which is what the static path shows, `rewind`
+winds it back to what the step before actually left (append to 0 / none, fqdn to the 4 and
+NXDOMAIN x4 the walk settled on), and this F.set turns both over on the `a0` arrival at 2588ms. The
+lane is 380 units, so the question lands at 1644 and the answer 100ms later plus its own 844 of
+travel.
+The append step winds the ladder row back on the same rewind, so row 0 lights when the question
+DEPARTS at 800, which is what askOnce already says it does and what the walk step already did.
+Measured in real time, not by seeking: 200ms reads 0 / none over an empty ladder, row 0 lights just
+after 900, and 2700ms reads 1 / NOERROR. A seek-based probe cannot see any of it, because an F.set
+rides an onfinish and a paused animation never fires one.
+DO NOT put the START value in `chips` and raise it with the F.set alone. The static path never runs
+the flow, so it would end on 0 / none while the animated path ends on 1 / NOERROR, and
+report/chip-beat.test.mjs counts exactly that divergence.
+```
+
 ### before `const CANDIDATES =`
 
 ```
 Four candidates, so four round trips per address family, and the step budget of 10400 is sized off
 exactly this list on a 380 unit lane. Adding a fifth candidate lengthens the walk past the budget
 and the auto-advance clips it.
+```
+
+### before `P.wire({ key: 'branch', x: ROWS_X + ROWS_W / 2, y: ROWS_Y - 12 }),`
+
+```
+T-35, and the measurement that decided it against a refusal. The walk step IS a counterfactual, not
+a second legitimate case of a search-list walk: its first round trip asks api.ns.svc.cluster.local,
+the exact name the append step resolved a moment earlier, and answers NXDOMAIN for it. Played in
+real time the contradictory pair stands on the canvas from the a0 arrival at 2588 until the second
+question departs at 3048, and the frame at 2900 is the append frame with the answer flipped, same
+query label, same single lit ladder row, names tried 1, rcode NXDOMAIN where append reads NOERROR.
+The fqdn step then resolves that same name again, so the walk sits between two steps in which the
+name exists, and nothing on the canvas said the middle one is a supposition. The narration naming
+the branch (`if that first guess misses`) is what kept the review finding a DECISION rather than a
+defect, and it is not enough by itself: a reader with the panel closed sees one name answered two
+ways.
+The caption is centred ON THE LADDER because the ladder is the branching group. Row 0 alone lights
+on append and all four light here, so the ladder is the one object whose state differs between the
+two worlds, and a caption 12 above its top row reads as its title, exactly as the /etc/resolv.conf
+tag does over the resolv.conf chips.
+Measured, `if instead that first guess misses` in the 11px mono of `scheme-label code dim`: 234.29
+units wide at 1600x1000, 214.06 at 1280x860, 208.59 at 1100x800, spanning 817.85..1052.14 /
+827.97..1042.03 / 830.71..1039.30. Inside the ladder span 740..1130 at every viewport, and 421 clear
+of the deepest panel right edge in the set, 396.55. Its bbox bottom is 51.4 against the ladder top
+60, the same 8.6 gap the resolv.conf tag keeps. A 12 percent width swing across the set with the
+WIDEST reading at the LARGEST viewport: nothing in the suite measures a wire label (`L-19`), so a
+longer caption has to be re-measured at 1600x1000, not at the narrowest.
+WHY NOT centred over the lanes at x 600, above the flow row. At y 310 it would sit 66 above the
+query label on the same axis, in the same class and the same size, so it would read as a second
+lane label instead of as a condition.
+DO NOT put `branch` in the walk step rewind. It states the premise of the whole step, so it is
+written once in `wires` and left standing while q and a wind back to blank.
+```
+
+### before `const RESOLV = { rcSearch: 'ns.svc / svc / cluster.local',`
+
+```
+The chip-unwritten queue, the same ruling as on network-dns-coredns and for the same reason: the two
+resolv.conf lines are the file the whole card reasons about, true before the first query and after
+the last, so every step states them and none turns one over. The values are the ones the scene was
+built with, so the settled frame is byte-identical.
+The resolvconf step keeps its highlight on both lines. It is the step that reads them out, and the
+NOTE above already records that they are drawn as chips rather than as a box sublabel.
 ```
 
 ### poster
@@ -293,6 +420,25 @@ CONTENT  The FQDN band is the LIVE QUERY NAME and it MUTATES per step, because t
          where it is a NUMBER, stated on every step and comparable across them.
 ```
 
+### before `const record = (rowIdx, ans, was) =>`
+
+```
+P-03. The answer count WAITS for the answer, on the very beat the ladder row was already waiting on.
+Each record step states its count in `chips`, `rewind` winds it back to the count the step before
+left, and the single F.set inside `lookup` writes the row and the count together on the `ans`
+arrival: 2438ms for the A row and 2300ms for the other three, the difference being that row 0 is the
+longest climb off the bus. Measured in real time, 2200ms still reads the old count on all four
+steps and 2700ms reads the new one.
+`was` for srv-record is the same 1 record the a-record step left, so that step rewinds to the value
+it already shows. It is stated anyway, because P-01 wants every step to say every value and a helper
+that skipped one would make the silent step look like the odd one out.
+QCHIP IS DELIBERATELY NOT ON A BEAT, and report/chip-beat.test.mjs reports the four steps as FORM-E
+for it. The question is the step's PREMISE rather than something an arrival produces: `asking()`
+states the same name in the FQDN band above at entry, so binding the chip alone would leave the chip
+and the band contradicting each other for the 800ms before the query even leaves the client. Binding
+the band too would blank the name while the narration is read, which is worse than the finding.
+```
+
 ### before `const CONTENT_L = 80, CONTENT_R = 1120;`
 
 ```
@@ -332,9 +478,20 @@ MOTION   Enabling the feature is a config change with no per-object traffic, so 
          On the connect step the client picks a family and the Service policy is unchanged: the card
          shows the client dialling the IPv6 ClusterIP and highlights that ADDRESS rather than
          overloading the ipFamilyPolicy chip with a client-side choice. The Service is on the path
-         (kube-proxy DNATs here), so it lights and does not pulse. A riding label on each hop makes
+         and rewrites there, so it lights and does not pulse. A riding label on each hop makes
          the chosen family visible and shows the DNAT, the destination rewritten from ClusterIP to
          Pod IPv6 on the way out.
+CONTENT  The connect step names the SERVICE as the forwarder, not kube-proxy. kube-proxy is what does
+         it upstream and it has no block here: the four blocks are config, svc, client and pod, and
+         the step lights and forwards through `Service web`. A sentence naming an actor the card does
+         not draw sends the reader hunting for a box that is not there.
+OPEN     Both tags on `client-chooses` are cut for their whole 900ms readable life, on all four
+         viewports: `dst fd00:96::a` by the Service web left face and the Client Pod right face, and
+         `dst fd00::1:5` by the Pod web left face and the Service web right face. The row is one
+         straight line of three blocks and each hop ends on a face, so the address lands on the block
+         it is addressed to. NOTHING within 44 of this card's resting -16 changes the number by a
+         single sample: the first offset that clears either tag is -78, 62 from the rest height, which
+         would park the address a whole block above its own ball. Both stay.
 ```
 
 ### before `const CONFIG_X = 480, CONFIG_W = 600;`
@@ -363,6 +520,20 @@ of families lives on ONE eth0, not that every path is drawn twice.
 WHAT     The eBPF dataplane replacing kube-proxy: a program at the socket hook reads a BPF service map
          and rewrites the connection at connect() time, so there is no per-packet iptables walk and no
          DNAT.
+MOTION   Three of the five working steps land no ball and carry NO motion at all: `attach`, `maps` and
+         `no-kube-proxy` register zero animations and hold a still picture for their whole duration.
+         That is `M-27`, and it is deliberate. The beat on each is the static `.highlight` its `lit`
+         already names: `attach` lights `hook`, the box that IS the attached program, `maps` lights
+         `bpfmap`, the box the lookup lives in, plus `svcChip` carrying the result, and
+         `no-kube-proxy` lights both `hook` and `bpfmap`, the one two-actor step here, because its
+         sentence is that programs plus maps together are the whole dataplane. The thing it removes,
+         kube-proxy, has no block on this card at all and exists only as `kpChip`.
+         Step 0 is the static poster, and `connect-time` and `deliver` already carry balls.
+DO NOT   Put `F.flash` back on those three. It animates `filter: brightness(1) -> 1.55 -> 1` on the
+         block GROUP, which `M-04` calls a pulse and `M-01` forbids on infrastructure, and its peak
+         of 1.55 is above the 1.4 of the Pod pulse `M-01` reserves the mechanism for. It is also
+         unreviewable: 600ms against a step span of 600ms puts every freeze point inside the pulse,
+         so a still frame cannot tell it from the static highlight it replaced.
 NOTE     FAN_X is DERIVED (midway between the program right edge and the Pod left edge), so widening
          the card moves the fan turn with it rather than leaving it behind.
          The destination label sits UNDER the first fan segment, just as the rewritten connection
@@ -371,6 +542,15 @@ NOTE     FAN_X is DERIVED (midway between the program right edge and the Pod lef
 NOT A DEFECT
          `TO_PODY` carries no ball. It is the ALTERNATIVE backend, drawn so the reader can see the map
          lookup picked one of two, and the card says so in words. N destinations, N wires.
+CONTENT  The deliver step carries a `src` tag on a ball whose wire label reads `to .2.7`, so the
+         narration has to name BOTH: the destination it goes to and the source it still carries. A
+         tag stating something no sentence states reads as the wrong address on the wrong ball.
+OPEN     `src 10.244.1.5` on `deliver` is cut for 700ms of its 1400ms readable life, the same on all
+         four viewports, by the Pod web left face and the app box left and top faces: the fan turns
+         down into the Pod, so the tag arrives with the ball at a face. It clears at -61, which is 46
+         from this card's resting -15 and well past the ceiling that keeps a tag reading as its own
+         ball's address. Measured directly, not inferred: at -46 the cut is still 600ms, and only -61
+         takes it to zero. Everything inside the ceiling buys 100ms of the 700, so the tag stays.
 ```
 
 ### before `const CONTENT_L = 70, CONTENT_R = 1130;`
@@ -412,6 +592,11 @@ MOTION   The endpoint rows are the DURABLE state and hold the addresses. What MO
          later step restates (`B_DROPPED`) rather than something the flow does. Left to the flow, a
          prev or a reset would draw Pod B at full brightness directly beneath its own sublabel
          reading notReady.
+CONTENT  Every endpoint row carries IP AND PORT, on the notReady rows as much as the Ready ones,
+         because a real EndpointSlice endpoint has both whatever its conditions say. The three rows
+         therefore read `ip:port · state` throughout, and `dropped (notReady)` is not a state a row
+         may take: it costs the port the row exists to carry (`P-07`) and says removed where the row
+         is still present.
 DO NOT   Pulse Pod B with a plain pulse while it sits at 0.40. That pulse ramps the STROKE from the
          resting tint, which on an already dim Pod is close to invisible. It takes `F.pulse` with
          `dim: true` and `from: OPACITY.notready`, which adds the opacity flash the dim variant
@@ -420,12 +605,62 @@ DO NOT   Pulse Pod B with a plain pulse while it sits at 0.40. That pulse ramps 
          a blink returns to where it started.
 ```
 
+### before `F.set({ at: 'write', chips: { ep1: EP1_READY, ep2: EP2_READY, ep3: EP3_NOTREADY } }),`
+
+```
+P-03 on `reconcile`. The slice is EMPTY until the controller writes it. `chips` keeps the three rows
+the write produces, which is what the static path shows, `rewind` puts all three back to (empty),
+and this F.set fills them on the `write` arrival at 1500ms: the two Ready candidates pulse at 0, the
+write leaves at BEAT.afterPulse 800 and the 138 unit climb takes the 700ms routeDur floor.
+ALL THREE ROWS, not the two Ready ones. One reconcile writes the whole slice, notReady row included,
+which is what the narration says (the third Pod is recorded too, just flagged), and binding two of
+three would leave the third as the FORM-E shape P-04 calls worse than doing neither.
+`ep3` moved out of `lit` and into the F.light beside `ep1` and `ep2` for the same reason: a
+highlighted row reading (empty) for 1500ms marks a value that is not there yet. flowLights derives
+the reduced path off that same list, so the static end state and the settled frame are unchanged,
+which `tools/settled-dump.mjs` confirms byte for byte.
+Measured in real time, 300 and 1200ms read (empty) three times with the ball still climbing under
+its `ready endpoints` tag, 1750 and 2500ms read all three rows.
+```
+
 ### before `const CTLR_TOP = 350;`
 
 ```
 The controller writes UP into the slice at SLICE_BOTTOM, and WRITE_PATH is built from both, so the
 lane re-solves when either tier moves. Service, slice rows and controller are all centred at x600,
 well right of the panel.
+```
+
+### before `const UPD_TAG_DY = 14;`
+
+```
+BOTH WRITE TAGS RIDE 14 BELOW THEIR BALL, the mirror of the default and the same value
+`network-externalname` takes on its connect lane. WRITE_PATH ends on SLICE_BOTTOM 290, which is the
+ep3 row's own bottom edge, so at -14 a tag parked at 276, INSIDE that row and on its baseline: the
+readiness tag printed `10.244.2.7 · notReady` across `10.244.3.9:8080 · notReady`, ink 51.8 x 7.0
+units, baseline gap 3.00, for 300ms.
+The reconcile tag has the same collision and NO probe frame shows it. Its rows are written by an
+`F.set` on arrival, and a seeked frame never runs a deferred callback, so every sampled frame of that
+step reads (empty) and the pair never forms in the dump. The geometry is the same either way: the row
+value is anchored END at x 778 and `ready endpoints` spans 550..650 on the identical baseline, so both
+tags move together.
++14 puts them at 304, in the 60 units of clear canvas between the slice floor and CTLR_TOP.
+Riding BELOW the ball costs the START of the ride, though: the ball leaves ON the controller's top
+edge, so a tag 14 under it fades in inside that box with the border through its glyphs, measured at
+100ms per step. `emergeMode` closes that, the mechanic five other cards here already use, and 200ms
+of the 700ms write is enough: at the 0.9 readable threshold the ball has climbed to 316 and the tag
+ink sits 19 clear of the edge, and even at half alpha it is 15 clear. Measured after on all four
+viewports: the card is back to exactly the finding it had before this change, `reads slice` on
+`consume` and nothing else, with the readiness pair gone.
+OPEN: on `readiness` the lane ends on ep3's edge while the row that lights is ep2, and the route
+cannot be brought to ep2. The row is right (the endpoint that flips is 10.244.2.7) and the geometry
+shuts every approach: ep2's bottom edge is 242 with ep3 occupying 248..290, so a lane from the
+controller crosses a whole 42 unit row (A-19); the corridor left of the slice is x<410, inside the
+reserved narration zone (x<=380 plus the swing the panel takes with viewport height); the corridor
+right of it is the READ_PATH lane at y 222. A side entry also parks the tag inside the stack, where
+the rows are 6 units apart against 9 units of tag ink, so it would take dx -70 to clear the stack and
+the tag would no longer read as its ball's. The ball stops on the bottom edge of the SLICE, which is
+also what `reconcile` writes to, and the flipped row is named by the tag and by the row that lights.
 ```
 
 ### poster
@@ -458,6 +693,36 @@ Both rows hang BELOW the measured panel bottom of 230: ROW_A 300 puts its Pod to
 quarter of the row-A client sits under the overlay on the narrow viewports.
 ```
 
+### before `const CONNECT_TAG_DY = 14;`
+
+```
+The connect lane leaves a Pod floor and lands on a box floor, so both of its ends are a block face and
+the default -14 puts the tag INSIDE a block at each end: over the `svc lookup` sublabel for 200ms (ink
+60.0 x 8.7) and over `external host` for 400ms (78.0 x 5.8). Riding 14 BELOW the ball is the mirror of
+the default and clears both, with 3.7 units under the Pod floor and 3.7 under the host box floor.
+Measured clear from +12 to +32 on all four viewports.
+```
+
+### before `const DNAT_TAG_DY = -40;`
+
+```
+Row B is 60 tall and its two hops are 160 units against a 118 unit address, so on the lane the proxy and
+EndpointSlice faces cut the tag for 800ms. -40 parks it 7 above the row, clear on all four viewports.
+THE CEILING IS A DELTA FROM THE DEFAULT -14, not an absolute dy: about 30, so about -44 to +16. -40 is
+26 from the default and is inside it, which is why four tags took that value on this card, on
+`network-netfilter-path` and on `network-hostnetwork-hostport`.
+OPEN, same step: `dst 10.96.0.7` needs -58 to clear the Client Pod right face (the Pod is 108 tall, so
+the tag has to climb past its whole height), which is 44 from the default and past the ceiling, so the
+two hops of one flow sit at two heights for the roughly 200ms both are on screen. `db.default.svc`
+(-46, 32 from the default) and `CNAME -> db.example.com` (-70, 56 from it) are the same case on row A,
+and the second is cut for 1000ms by the Client Pod right face and the `curl` box beside it.
+OPEN, and viewport-only: on row A the tag `CNAME -> db.example.com` prints over the `curl` sublabel
+inside the Client Pod at 2300ms, ink 3.42 x 7.8 units at 1280x860 and 2.21 x 7.8 at 1100x800, 300ms
+each. At 1600x1000 and 900x650 the glyphs do not touch: the tag is a fixed pixel font over a scaled
+canvas, so its WIDTH in viewBox units moves with the viewport and this pair opens and closes with it.
+It is the same tag the -70 above cannot move.
+```
+
 ### poster
 
 ```
@@ -484,16 +749,39 @@ WHAT     externalTrafficPolicy Cluster against Local. Client above the LB, the L
          path is straight.
 NOTE     The backend is centred BOTH ways inside Node-1, on N1_CX and on the node rect centre, so the
          fan drops straight down the Pod axis onto the Node edge above it.
+MOTION   ONE MECHANISM PER STEP: `local` and `healthcheck` must not both run `duration: 3100` with
+         the IDENTICAL four flow entries (entry, TO_N1, tag, pulse), which a deterministic capture
+         finds matching pixel for pixel, the only deltas being the two health wire labels and a
+         moved chip highlight. The second step then animates nothing new, and the first already
+         draws the LB targeting Node-1 alone, which is the outcome the health check exists to
+         produce.
+         `local` draws what Local costs: the served connection to Node-1 (entry 0..700, fan
+         800..1500, pulse to 2400), then a SECOND connection out at 1600 that lands on the Node-2 edge
+         at 3100 and goes no further. Nothing leaves Node-2, which is how this category draws a drop
+         (`network-internal-traffic-policy` no-local-backend is the precedent: `the absent second hop
+         is the whole point of the step`). Duration 3800 for a 3660 span, the ripple on the dead
+         ball being the last thing to end.
+         `healthcheck` draws the PROBE: the balancer sends one to each Node, `PROBE_GAP` 500 apart
+         (700 and 1200), each answer written where its probe lands, and only THEN the steered client
+         connection to Node-1 alone, pulse ending at 3700. Duration 3900. The two probes share
+         the first 36 units of the fan, which a ball clears in 80ms, so 500 is a read gap and not a
+         collision gap.
+         The narration of `local` closes on the drop. `healthcheck` opens on `But Local would
+         silently drop traffic that lands on Node-2`, which is a callback to something the reader
+         has just watched instead of a claim with no picture.
 DO NOT   Draw a ghost Pod in Node-2 to balance the count. It would contradict its own label.
+WHY NOT  Putting the drop on `healthcheck` beside the probe, which is where its narration mentions it.
+         That step would then carry three mechanisms and five balls, and `local` would show only
+         the Node-1 path, pre-empting it. One new mechanism per step is what splits them.
 NOT A DEFECT
          CENTRE-LOW is OPEN here. The two blocks below the overlay span 255..465, centre 360, and they
          are the backend Pod and its inner box; everything else in that band is Node frames, which the
          rule ignores. The Pod cannot move to the centre: it is inside Node-1 BECAUSE Node-1 is the
          Node with a local backend, and Node-2 having none is the entire subject.
-         Neither unridden lane is a bright lane pointing into a dimmed block. They are the Node-2
-         fan leg and the underlay cross lane, and neither carries a key at all: no lane on this card
-         does. This card never changes an opacity either, on any of its five steps, so it has no
-         dimmed end for a lane to point at. The premise is vacuous.
+         No lane on this card is unridden: `local` rides the Node-2 fan leg to its drop and
+         `cluster` rides the underlay. An unridden lane would not be a defect here in any case: no
+         lane here carries a key, and this card changes no opacity on any of its five steps, so it
+         has no dimmed end for a lane to point at.
 ```
 
 ### before `const MID_X = 600;`
@@ -502,6 +790,52 @@ NOT A DEFECT
 The two Nodes are mirrored about MID_X with NODE_GAP between them, so the scheme spans 180..1020 and
 the chip strip takes that extent 1:1. The vertical margins above the client and below the chips are
 equal, which is what centres it on the canvas.
+```
+
+### before `F.set({ at: 'hop', chips: { srcChip: 'lost (SNAT)', hopChip: 'yes' } }),`
+
+```
+P-03 on `cluster`. Both chips are OUTCOMES of the request, which the scene comment beside them
+already says, so neither can read before the request finishes. `chips` keeps the end state, `rewind`
+holds the idle none on both, and this F.set writes them on the `hop` arrival at 2871ms, the moment
+the SNAT-ed cross-node leg lands on the Pod: entry leg 0..700, the LB to Node-2 fan 800..1500, then
+the underlay 1600..2871.
+2871 and not 1600. The tag `src Node-2 (SNAT)` starts riding at 1600, so the SNAT is visible as it
+happens, but `client src IP` is what the POD sees and the extra hop is only spent once the packet
+has crossed. Writing them as the leg departs would put the answer on screen while the ball that
+proves it is still over the underlay.
+Measured in real time, 300 to 2700ms read none / none and 3200ms onward reads lost (SNAT) / yes.
+```
+
+### before `const CROSS_OFF = { crossWire: OPACITY.notready };`
+
+```
+The Node-2 to Node-1 underlay is the lane THE POLICY DECIDES ON, so its shade is a step field and not
+a constant. On `cluster` it carries the SNAT-ed ball and stays at 1. On `local` and `healthcheck` it
+goes to OPACITY.notready: those two steps say a Node serves only its own local Pods and NEVER forwards
+to another Node, and a full-strength arrow entering Node-1 sits directly under that sentence and
+denies it.
+A-13 reads min(source, sink) and both Node frames are at 1 on those steps, so this is deliberately a
+lane dimmer than either of its ends. It is the shape `network-kube-proxy-modes` already uses
+(`ipvsLane` and `iptLane` shaded with the Pod they serve) and `network-loadbalancer-bare-metal`
+(`triple`), and the reading is the same: on those steps the lane is a capability the policy has
+switched off, not a wire between two blocks that went away. A-14 does not apply, since neither end is
+gone and the lane still leaves a hole. Nothing is half-dimmed either (P-04): every other lane on those
+two steps carries a ball.
+```
+
+### before `F.set({ at: 'p1', wires: { n1: 'health: 1 local pod' }, chips: { hcChip: 'used' } }),`
+
+```
+P-03 on `healthcheck`, and the wire labels take the same beat as the chip because they are the same
+fact: a healthCheckNodePort answer is produced BY a probe, so neither answer may be on screen before
+its probe lands. `wires` and `chips` keep the end state, `rewind` blanks both labels and holds the
+`unused` the Local step left, and the two F.set write each answer on its own arrival, 700 for Node-1
+and 1200 for Node-2.
+The other three chips take no beat here and are not a FORM-E shape: `Local`, `preserved` and `no` are
+all exactly what the previous step settled on, so no arrival on this step produces any of them.
+`local` uses the same technique on its own two labels, at 1500 for the served Node and 3100 for the
+Node whose connection died, so neither verdict pre-announces its ball.
 ```
 
 ### poster
@@ -536,12 +870,22 @@ NOTE     One role caption per stack block, each on its own block row. The top tw
          and the Service occupy it), and a caption parked above the Service reads as labelling the
          Service, so that one goes to the LEFT of the route, where it also fills the quadrant the panel
          leaves empty. Sitting on ROUTE_CY 502 keeps it clear of the measured panel bottom of 330.
+         SO THE THREE DO NOT FORM A COLUMN, and the number is why. `ROLE_X` is 700, and on the
+         HTTPRoute row 700 is inside the backendRef lane, which runs STACK_RIGHT 670 to SVC_X 730:
+         the caption would start on the wire and run into the Service box 30 units later, against
+         its own width of about 195. It is mirrored instead, right-anchored at STACK_X - 24 = 386,
+         which keeps it on its own block row and reading as one of a set with the other two.
          Each chip is one real API field, which is why hostnames and match are SEPARATE: in an
          HTTPRoute the hostname lives in the top-level `hostnames` list while the path lives in
          `rules[].matches[].path`, whose default type is PathPrefix. Folding them into one match chip
          would state the spec wrongly. The request chip reads none until a request arrives.
 MOTION   NOTHING flashes here, not even the packet-less gatewayclass step: a declarative object being
          installed has no motion to show.
+CONTENT  The request step names the GATEWAY as what matches the route, not the controller: the poster
+         note above already says the card draws no controller at all, and the blocks are client,
+         gwClass, gw, route, svc and podW. It also does not say the implementation skips the
+         ClusterIP, for the reason recorded on `network-ingress-routing`: the ball enters the Service
+         block on one edge and leaves on the other, which is a rewrite inside it (`NET.A-01`).
 ```
 
 ### before `const FLOW_Y = 380;`
@@ -550,6 +894,21 @@ MOTION   NOTHING flashes here, not even the packet-less gatewayclass step: a dec
 The Gateway sits on this row because it is the row a real request enters on, which is what lets the
 Client sit beside it with its top edge at 344, clear of the measured panel bottom of 330. Raising it
 puts the Client under the overlay.
+```
+
+### before `const SPEC = { listenerChip: ':443 HTTPS',`
+
+```
+The chip-unwritten queue, ruled CONSTANTS OF THE DIAGRAM rather than repaired. Each of the four is
+one real API field of an object the card draws from its first frame, and the MOTION note above is the
+reason there is no moment to bind them to: a declarative object being installed has no motion to
+show, so no arrival on this card produces a listener or a backendRef. The listener is also the
+Gateway sublabel, so blanking that chip would leave it reading none beside a box spelling the same
+field, which is the argument E_CARRIED already carries for network-dns-records qChip.
+What changed is that every step now STATES all four, which is what puts them inside P-01 instead of
+beside it. The values are the ones the scene was built with, so the settled frame is byte-identical.
+The highlight on gateway and httproute stays: it points at the object that OWNS the field, and
+whether such a cue is deserved is R2's question, not this one.
 ```
 
 ### poster
@@ -639,10 +998,23 @@ NOTE     Four chips span the Node 1:1 with even 20px gaps. They are the four thi
 DO NOT   Lengthen the Node frame label much further. It sits at the Node top-left (x+12, y+18), above
          and left of the portmap box at x=110, and runs under it if extended. The Node address stays
          on the eth0 block, which is where it belongs anyway.
+CONTENT  Only hostPort is a scheduling resource upstream, so the hostNetwork cost step says a second
+         Pod wanting that port cannot RUN here rather than that it cannot be scheduled: a
+         hostNetwork Pod that declares no container port is scheduled and then fails to bind, and
+         the scheduler sentence belongs to the tradeoff step, where hostPort is what it is about.
 MOTION   The two reflective steps carry no motion at all: they compare, they do not move traffic.
          On the hostPort step the rewrite happens INSIDE the portmap box, so the ball re-emerges at
          its bottom edge already carrying the Pod address and only then joins the ordinary path,
          bridge then veth.
+NOT A DEFECT
+         The `hostport` tag `dst 10.244.1.5:80` is reported grazing the `Portmap rule` and `Node eth0`
+         bottom edges for 400ms (four samples, t 1900 to 2200) on all four viewports. That is the EM
+         band and not the glyphs: the em box overlaps the edge by 0.7 to 1.5 units depending on
+         viewport, while the ink box sits at y 395..404 against an edge at 394.3, so the ink is
+         entirely below the line and the probe reports ZERO ink cuts on all four. Confirmed by eye on
+         a 250 percent crop of the 1600x1000 frame at t=2200: there is dark ground between the border
+         stroke and the tallest glyph. Moving the tag to close a graze the reader cannot see would
+         spend the only clear band this hop has.
 ```
 
 ### before `const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;`
@@ -651,6 +1023,17 @@ MOTION   The two reflective steps carry no motion at all: they compare, they do 
 The Node frame is the outer extent and the three column centres are spaced inside it. NODE_Y 305 is
 what puts the frame just under the panel, and the client above it sits at x >= 450 only because of
 that. Raising the frame puts its top-left corner and the portmap box under the overlay.
+```
+
+### before `const AGENT_TAG_DY = -40;`
+
+```
+The hostNetwork hop starts on the NIC right face, so the default -14 leaves the tag tail inside Node eth0
+and its border strikes the first character for 100ms. -40 parks the tag in the band between the Node
+frame top (305) and the NIC row (330), level with the frame caption: 6.7 under the frame, 5.4 over the
+row, clear on all four viewports. The dx alternative was measured and rejected: the overlap is 4.4 units
+at 1600x1000 but 8.4 at 900x650, so the clear dx set starts at +10 there and a horizontal offset large
+enough to be safe stops reading as the ball's own address.
 ```
 
 ### poster
@@ -691,6 +1074,11 @@ NOTE     The Ingress controller is the same Pod shell as the web and api backend
 DO NOT   Put the branch wire labels in the FAN_X..SVC_X gap. It is 40 wide and the text prints
          straight through the Service border. They sit clear of the Service box they name, above the
          web one and below the api one, mirrored.
+CONTENT  The match step does NOT say the controller skips the ClusterIP. Most controllers do, but the
+         ball here enters the Service block on one edge and leaves on the other, which `NET.A-01`
+         defines as a rewrite happening INSIDE that box, so a sentence denying the hop would deny the
+         motion under it. The endpoint half of the fact survives as `resolves it through the
+         EndpointSlice to a Ready Pod IP`. Same sentence, same reason, on `network-gateway-api`.
 MOTION   On the entry step the Host and path are on the wire, so both chips light with the TLS one:
          the request has arrived and terminated, but the controller only READS the rules in the
          next step, so neither branch is lit and both stay neutral.
@@ -704,6 +1092,19 @@ MOTION   On the entry step the Host and path are on the wire, so both chips ligh
 Derived as (RULE_BOTTOM + CHIP_Y) / 2, so the whole flow re-centres when the rules panel or the chip
 strip moves. The web and api branches are FLOW_Y -/+ ROW_DY, so both fans, both Services and both
 backend Pods follow it.
+```
+
+### before `const SPEC = { ruleA: '-> Service web:80',`
+
+```
+The chip-unwritten queue, ruled CONSTANTS OF THE DIAGRAM. ruleA and ruleB are the Ingress spec drawn
+as a document under its own object caption and present in the first frame, and the TLS chip is a
+standing property of this topology, which is why the NOTE above pairs Host and path against it: those
+two are properties of the REQUEST and read none until one arrives, the TLS one never does.
+Every step states all three at the value the panel is drawn with, so they are inside P-01 and no step
+moves the settled frame. The rules step lights ruleA and ruleB as the object the controller
+is reading, not as a change, and the entry and api-request steps light TLS as the thing that happened
+to the request they just received.
 ```
 
 ### poster
@@ -746,6 +1147,49 @@ MOTION   The client Pod is the SENDER, so it pulses before the packet leaves car
          and the DNAT happens INSIDE kube-proxy. Under Cluster the ball re-emerges BELOW that box on
          the Node edge carrying the remote Pod address. Under Local the DNAT resolves to the local
          Pod, so the ball leaves the FAR edge of kube-proxy and never leaves the Node.
+```
+
+### before `F.set({ at: 'toKp', chips: { scopeChip: 'all ready (2)' } }),`
+
+```
+P-03 on all three working steps. The NOTE above already draws the line this repair follows: the
+policy is a property of the Service and true from the start, while the scope, the hop and the result
+are outcomes of a call. Those three now wait, and the policy does not.
+Two beats per step, because the scope is read where kube-proxy is and the result is only known where
+the packet stops. `cluster` writes the scope on `toKp` at 1500 and the hop plus the result on `out`
+at 3067. `local` writes the scope at the same 1500 and the pair on `give` at 2300. `no-local-backend`
+writes the empty scope AND the drop together on `toKp` at 1500, since the drop IS kube-proxy finding
+nothing to DNAT to and no later ball exists to hang it on.
+`rewind` is measured off the step before in every case, never guessed: `cluster` from the idle none,
+`local` from what `cluster` settled on (all ready (2) / yes / served by Node-2), `no-local-backend`
+from what `local` settled on. So the strip visibly carries the previous answer while the same call is
+made again, and flips only where this call resolves.
+POLICYCHIP IS DELIBERATELY NOT ON A BEAT, and report/chip-beat.test.mjs reports `local` as FORM-E for
+it, carried in `test/fixtures/chip-beat.mjs` with that reason. internalTrafficPolicy is a field the
+operator set before anything was dialed. The rest of the entry frame is written from the same
+premise, the two endpoint notes already reading in scope and out of scope and the remote Pod already
+dim, so binding the chip alone would leave it saying Cluster over a picture that is already Local.
+The wire notes and the dim stay at entry for that same reason and are NOT part of this repair.
+Measured in real time on `cluster`: 300 and 1400ms read none / none / none, 1800 and 3000ms read
+all ready (2) with the hop and the result still none, 3400ms reads all three.
+```
+
+### before `const IN_NODE_TAG_DY = POD_Y - FLOW_Y - 4;`
+
+```
+The two hops inside Node-1 are 40 and 50 units long against an address 102 to 120 wide, so at the
+default -14 the Client Pod, kube-proxy and Pod web faces all print through the glyphs. A dy of -78
+(`NODE_Y + 18 - FLOW_Y - 3`) puts the tag ink at 319..328 against the NODE-1 caption baseline at
+330: level with the frame heading, 77 units above its own ball, reading as a second caption of the
+frame rather than as the address the packet carries. The constant is -56.
+MEASURED with the ink box over 1600x1000, 1280x860, 1100x800 and 900x650, the clear band is
+IDENTICAL on all four and it is dy -82 to -56 with nothing below it. The window is shut from both
+sides: above -84 the em box crosses the Node frame top at 312, below -54 it crosses the Pod tops at
+353. -56 is the LOWEST clear value, 22 units closer to the ball than -78, ink 341..350 with 3 to the
+Pod tops and 20 below the caption, and it clears on the three tags that use it on all four viewports.
+WHY NOT  -44, which would sit inside the usual 30 unit ceiling off the default. The em box then runs
+to 361 and the probe reports it cut by the Client Pod and Pod web top faces on all four viewports.
+The window itself is 26 units wide, so 42 off the default is the whole of what exists here.
 ```
 
 ### before `const FLOW_Y = 405;`
@@ -841,6 +1285,12 @@ NOTE     The chain row does NOT centre on 600: its boxes sit ABOVE the panel bot
          client on the left and the backend column on the right, which is what puts the CONTENT bbox
          on 600.
 MOTION   The inactive lane dims on each mode step.
+CONTENT  Two things this card may NOT say. It must not claim the two modes select the same way: the
+         iptables step says `statistic random` and the IPVS step says round-robin and
+         least-connection, so the scale step names the LOOKUP as what scale exposes and stops there.
+         And nothing here draws conntrack, not as a block, a chip or a narration, so the `desc` in
+         `cards.js` closes on the shared outcome (`Either mode turns the ClusterIP into one chosen
+         backend`) instead of on a mechanism the reader cannot find on the card.
 ```
 
 ### before `const SCHEME_L = 40, SCHEME_R = 1160;  // content edges, mirrored about the canvas centre 600`
@@ -935,6 +1385,11 @@ MOTION   A src-IP tag rides WITH the packet across the band and arrives UNCHANGE
 NOTE     The src tag belongs to the Pod-to-Pod steps only. The agent path is not a Pod source, so the
          chip is cleared rather than left holding a stale 10.244.1.5, and it stays highlighted
          because the value CHANGES there.
+CONTENT  The closing CNI step returns `reachability` to `any to any`. That step says the plugin
+         upholds ALL of these rules and the `aria-label` says any Pod reaches any other Pod, so the
+         chip may not be left holding `agent to local Pod`, which belongs to rule three alone and is
+         the narrowest of the three. The step also brings every Pod back to full opacity, so the
+         picture is already back on the whole model when the chip reads it.
 NOT A DEFECT
          CNI_CONNECTOR IS animated, with the repeating `MARCH` dash offset rather than a ball: this
          card's vocabulary for "this is what implements the model". No packet rides it because
@@ -948,6 +1403,32 @@ NOT A DEFECT
 Band, Pods and chips all move with RAISE, while the kubelet keeps its own higher KUBELET_RAISE, so
 the gap between it and the band is deliberate rather than left over. Pod centres are spread with
 equal end-margins inside SCHEME_L..SCHEME_R.
+```
+
+### before `const ridingLabel = makeRidingLabel({ role: 'network', dy: -46, inMs: 160, outMs: 200, hold: 260 });`
+
+```
+THE TAG RIDES 46 ABOVE ITS BALL, which is the only band that works on this card. The ball crosses the
+flat-network band ON THE RAIL at BUS_Y 280, and the band's own label sits at 265: at the default -15
+the tag baseline WAS 265, so `src 10.244.1.5` printed across `Flat Pod Network` with a baseline gap of
+0.00 for 300ms, ink 74.2 x 9.0 units, which was the worst text pair in the catalogue.
+The window is four units wide. The tag ink is 9.0 tall with an ascent of 8, the band is 238..318 and
+the Pod tops are at 376, so a dy has to clear the band TOP on the crossing (dy <= -45) and the band
+FLOOR at rest (dy >= -48). -46 takes the middle: ink 226..235 on the crossing, 3 under the band top,
+and 322..331 at rest, 4 under the band floor. Measured on all four viewports, the label pair is gone
+and no new pair opens.
+WHY NOT  `emerge`, the fix `storage-topology-aware-provisioning` uses. It hides the tag until after
+the ball has left the block it emerged from, and this collision is MID-FLIGHT: the label spans x
+563..637 on a route that starts at 258, so the tag would have to stay invisible for the first 1000ms
+of a 1440ms ride. `same-node` never reaches the label at all (it turns down at BX 486), so the two
+steps the card deliberately draws with one mechanism would end up with two different tag treatments.
+WHY NOT  -30, which keeps the tag INSIDE the band, above the label, with 6 units of ink clearance.
+Opened as a frame: it reads as a second line of the band heading, sits 4 under the band's top border
+and puts three rows of ink inside an 80 unit band.
+OPEN: the tag now crosses the band FLOOR twice a step instead of once, 200ms against 100ms at -15,
+and on the descent it still sweeps the band sublabel, 24.5 x 3.6 units of ink for 100ms. Both are
+structural: a tag that clears the label on the rail has to be outside the band, and any dy at all
+crosses the sublabel row somewhere on a 96 unit descent.
 ```
 
 ### poster
@@ -974,11 +1455,86 @@ LAYOUT   The host block is vertically centred on the Pod netns block, so the vet
          veth) and lo hang off the rail from below, the two tenant containers tap it from above. The
          band, rail and taps live in podGroup, so they pulse as one unit with the Pod.
 LANES    Every dashed line, the veth plus the rail and its four taps, is drawn ONCE in the same
-         constant dim-dashed style and its opacity is NEVER changed per step. Progression shows only
-         through `.highlight` and the packets riding the connectors.
+         constant dim-dashed style. The rail and its four taps never change opacity on any step, and
+         the veth is the ONE exception, on the ONE step where it does not exist yet. Progression
+         otherwise shows only through `.highlight` and the packets riding the connectors.
+         THE VETH CARRIES NO ARROWHEAD. It was a plain `P.arrow`, which always attaches a marker, so a
+         permanent arrowhead pointed host to Pod on a line labelled `veth pair`: a two-ENDED cable
+         drawn as one-way traffic, on the step whose own sentence is `all Pod traffic to the Node and
+         beyond crosses it`, which is the other direction. It was carried to `P.relation`, which draws
+         no marker, and is a `P.arrow` again today with `marker-end` removed by a `tune`: A-06 puts it
+         on the ARROW side, since its step names traffic crossing it and a ball rides it, and no part
+         kind draws a markerless arrow. `pathArrow` hardcodes the marker, and `P.relation` drops it
+         only by adding `.scheme-arrow-relation`, whose CSS is written for lines nothing rides.
+         MEASURED, composite stroke alpha (the computed `stroke` alpha times `stroke-opacity` times
+         the `effectiveOpacity` chain), IDENTICAL on all five steps at 1600x1000 and at 1100x800:
+           as `P.relation`      0.45   painted rgb(39,114,129)   contrast 3.39 against the ground
+           as `P.arrow` + tune   1.0   painted rgb(79,229,255)   contrast 12.53
+           rail and four taps   0.45   painted rgb(28,67,77)     contrast 1.75
+         The interior five have an empty role, so their stroke is `--diag-arrow-dim`, which the tinted
+         dialog resolves to the OPAQUE `--tint-deep`, and the relation shade then multiplies it twice
+         as dark as the tinted cable at the same stroke-width 1.4. So the shade never made the cable
+         the faintest line on the card: it outread the interior links by 1.9x contrast at both
+         viewports, and the faintest stroke here is the stack band border at alpha 0.28. What it cost is
+         HIERARCHY, the one wire a ball rides sitting below every box border it joins, and the
+         isolation step already claimed in a comment that the cable reads bright, which was false
+         until this change.
+         Step 1 says the namespace is fully cut off from the host stack, and at full strength the cable
+         was the loudest line on the card while that sentence was on screen. It sits at
+         `OPACITY.notready` there now, and the residue is named in the note under the line that does it.
+         The ball on `veth` still runs host to Pod. CNI plugging the peer end in is what that step
+         narrates first, eth0 lights on its arrival, and the sentence about Pod egress is the
+         consequence the unmarked cable no longer contradicts.
+NOTE     The veth path is `M 410 312 L 600 312`, 190 units long under a `5 5` dash, which is 19 exact
+         periods, so the run ENDS on a gap: the paint stops 5 units short of the Pod NETNS left edge
+         while the Host NETNS end starts on a dash and is flush. Read out of the DOM, and identical on
+         all four viewports because both numbers are viewBox units. Both endpoints sit on the face
+         midpoints (`L-11`), so this is a dash PHASE and not a geometry error, and closing it needs
+         either a length that is not a multiple of 10 or a dash array this card does not share with its
+         other five dashed lines.
 MOTION   The localhost hop is ONE ball that drops down the app tap, crosses the rail and climbs the
          sidecar tap, so a single motion traces both joins and the hop itself, and lo, the loopback
          that serves it, lights on arrival.
+NOTE     `portChip` is DECLARED `shared`, the value four of the five steps write. It was declared
+         `private`, a string no step ever wrote: `app.js` calls `gotoStep(0)` the moment the dialog
+         opens, so step 0 statics overwrite the declared value before the first frame, and a settled
+         dump is byte-identical either way. The isolation step already says the private half in words
+         the reader can act on, `own space`, so the fix was the declaration and not a new step value.
+WHY NOT  Drawing the veth as a lane PAIR, one arrow each way. It states two-way honestly and keeps
+         full brightness, and it draws TWO cables where the object is one link with two ends, and the
+         return leg would be a lane no ball ever rides on any step: a new `report/lane-traffic.test.mjs`
+         finding created by a repair, on a card that has none today.
+         Leaving the cable a `P.relation` and recording the shade. Zero cost, and it leaves the card
+         subject reading as structure while a ball rides it, which A-06 and the relation CSS both call
+         wrong, and it keeps the isolation step comment untrue.
+         `P.raw` with a bare `line()`, the `storage-reclaim-policy` identity-spine idiom. The same one
+         escape, and it hides the geometry from `report/lane-traffic.test.mjs`, which reads parts as
+         DATA and not as DOM: the veth segment drops out of its COPIED tier into UNDRAWN, the sharpest
+         finding that file has, on a card with none. A hand-spelled class list is also what A-07 warns
+         about, and the idiom sets no `data-role`, so unless one is hand-written the cable drops out of
+         the painted set `render/palette.test.mjs` holds to a baseline of 1897 elements.
+         Raising `stroke-opacity` only on the steps a ball crosses, the `network-pod-ip-and-veth`
+         loopback precedent (`reset.extra` plus a per-step write). The truest picture of the five, and
+         it costs an `enter` on all five steps plus a `reset.extra` to write a property no field
+         writes, six escapes for one line, and it breaks the constant-opacity rule this LANES block
+         holds all six dashed lines to.
+```
+
+### before `opacity: { vethWire: OPACITY.notready },`
+
+```
+C-14 on `fresh`. The veth pair is created by CNI on the NEXT step, so on this one the cable does not
+exist, and the narration says so in the strongest words the card uses: `fully cut off from the host
+stack and from every other Pod`. Drawn at 1 it was the brightest line on the frame while that
+sentence was on screen, an arrow between the two blocks the sentence separates.
+`notready` 0.40 rather than 0, because C-14 wants an absent thing DIM and not cut out: a hole where a
+cable joins two drawn blocks reads as a rendering fault. All five steps state `vethWire`, since the
+field writes an inline `style.opacity` that would otherwise carry 0.40 forward into `veth`.
+THE RESIDUE, and it is deliberate. `eth0` is the in-Pod END of the same pair and is still drawn at
+full weight on `fresh`, unlit, with `interfaces` reading `lo only` in the strip below it. The step
+sentence names the CABLE and not the interface, and the chips carry the interface half, so the line
+is drawn where the narration draws it. Dimming the box as well makes the shared-stack row half ghost
+on one step, which is a composition change and not this repair.
 ```
 
 ### before `const POD_TOP = 160;`
@@ -1023,6 +1579,72 @@ NOTE     hook is where the packet is right now, dst and src are what it carries 
 MOTION   The closing eBPF step carries no motion at all: it is a comparison, not traffic. Every step
          states the opacity of every dimmable block (`CHAIN_UP`), so the dim that step puts on the
          chain cannot leak into a replay of an earlier one.
+CONTENT  The conntrack row is a FLOW, one grammar the whole way down: source then destination, the
+         same pair the `src` and `dst` chips carry, with the DNAT visible as the destination half
+         changing. Writing the post-DNAT row as the translation instead (`10.96.0.20:80 ->
+         10.244.2.7:8080`) makes the arrow mean two different things on two adjacent steps, and the
+         narration already says the translation was stored.
+```
+
+### before `F.set({ at: 'inb', chips: { hookChip: 'PREROUTING', ctChip: 'new flow' }, sublabels: { ct: '10.244.1.5 -> 10.96.0.20:80' } }),`
+
+```
+P-03 on `prerouting`. A packet is not AT a hook until it arrives there, and conntrack has no flow to
+record until it does. `chips` keeps the end state, `rewind` holds the idle none on both chips and
+`no flow yet` on the table, and this F.set writes all three on the `inb` arrival at 2189ms: the Pod
+pulses at 0, the ball leaves at BEAT.afterPulse 800 and the 625 unit entry route takes 1389ms.
+The table sublabel travels with the chips because the row IS the conntrack chip written long, and
+P-04 wants one family on one beat.
+Measured in real time, 300 to 2200ms read none / none / no flow yet, 2500 and 2900ms read
+PREROUTING / new flow with the row filled. Note the beat is only 11ms past the 2200 mark, so a frame
+taken there lands on either side of it: take the before frame at 1800.
+```
+
+### before `chips: { hookChip: 'PREROUTING (nat)', dstChip: '10.244.2.7:8080', srcChip: '10.244.1.5', ctChip: 'DNAT recorded' },`
+
+```
+NOT A DEFECT, and it is the one step of this card that deliberately does NOT take a P-03 repair. All
+three changed values stand from step ENTRY, 700ms before the only ball lands, and
+`report/chip-beat.test.mjs` lists them as FORM-B at 700ms, the bottom of its four lead bands, where
+209 of its 341 catalog-wide records sit.
+The direction of the motion is the reason. On `prerouting` and on `reply` a ball travels TO the place
+that makes the value, so the value has to wait for the arrival, and both are bound. Here the nat table
+runs INSIDE PREROUTING, where the packet already is at entry, and the drawn motion is the packet
+LEAVING that hook with the rewrite already done: the ball wears `dst 10.244.2.7:8080` from the moment
+it emerges, and the next arrival is the routing decision, which is a different fact.
+Binding `dstChip` to that arrival would put the strip 700ms BEHIND the tag on its own ball, the chip
+reading 10.96.0.20:80 while the ball crossing the gap above it reads 10.244.2.7:8080, and it would
+disagree with the conntrack row, which writes the DNAT-ed flow at entry too. Read off the 1600x1000
+frame at t=350: PREROUTING lit, ball just clear of its right face under the backend address, strip and
+row both already rewritten, everything on the frame agreeing. P-06 puts a value chip turning over at
+step entry inside the rules, and this is that case.
+```
+
+### before `F.set({ at: 'back', chips: { hookChip: 'PREROUTING', dstChip: '10.244.1.5', srcChip: '10.96.0.20:80 (restored)', ctChip: 'ESTABLISHED' } }),`
+
+```
+P-03 on `reply`. All four chips read what conntrack does when the reply REACHES PREROUTING, and the
+`(restored)` in the source is the word for it. `chips` keeps the end state, `rewind` carries what
+`postrouting` left, and this F.set turns all four over on the `back` arrival at 1989ms, the whole
+lane being one route with no departure delay.
+Four on one beat, because the reversal is one act: the hook the packet is at, the destination it
+was rewritten to, the source that was put back and the state conntrack matched.
+THE REWIND IS THE PREVIOUS STEP, NOT THE REPLY IN FLIGHT. The alternative was to rewind `src` to
+10.244.2.7:8080, the value the ball's own riding tag carries for the full 1989ms, which would have
+matched the tag exactly. It was dropped because that string is stated by no step, and the strip on
+this card reads the last state a HOOK saw rather than what is on the wire: entry to 1989 it shows the
+outbound packet leaving POSTROUTING, which is history rather than an answer that has not happened.
+The chip and the tag therefore still differ during the flight, and that is a LAG and no longer a
+claim about the future.
+MEASURED, because the two DO share a string for most of the flight: the tag `src 10.244.2.7:8080` is
+readable from 300 to 2000ms (1800ms of the 2549ms step, same on all four viewports) while `dst` reads
+the same 10.244.2.7:8080 until the turnover at 1989. They are not in conflict, and the frame says why:
+`hook` reads `FORWARD, POSTROUTING` beside them, which is a hook this reply has not reached, so the
+strip is unmistakably the outbound packet. The request dst IS the reply src, which is what DNAT means,
+and moving that string to `src` to match the tag puts a chip and a riding tag on the same word at the
+same moment, which P-02 names as the thing chip naming exists to avoid.
+Measured in real time, 300 to 2000ms read FORWARD, POSTROUTING / 10.244.2.7:8080 /
+10.244.1.5 (no SNAT) / DNAT recorded, and 2350ms onward reads the restored four.
 ```
 
 ### before `const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 251;`
@@ -1041,6 +1663,21 @@ together; changing only one breaks the single-column reading.
 Four UNEQUAL widths, each sized for its own longest value, summing with the gaps to the frame span.
 They are not a computed row: editing one value without re-measuring is what `render/chipfit.test.mjs`
 catches.
+```
+
+### before `const HOOK_TAG_DY = -40;`
+
+```
+A hop between two hooks is a 40 unit gap against an address 100 to 108 wide, so at the default -14 both
+hook faces cut every one of the three chain tags for 600ms each. -40 parks the tag in the band between
+the return lane (360) and the row top (380): 4.7 under the lane, 2.4 over the row. Measured clear from
+-38 to -94 on all four viewports, and -38 was rejected because it leaves 0.4 to the row.
+OPEN: the `prerouting` tag `dst 10.96.0.20:80` prints over the Pod sublabel `10.244.1.5` for 100ms and
+over the `Node kernel` caption for 100ms, and NO dy in +-80 is clear on any viewport. The window is shut
+from both sides: the Node frame top forbids anything above -8, the PREROUTING top anything below -3, the
+caption needs at least 13.4 of separation and the sublabel needs the tag 12 lower. dx +34 clears the
+caption alone and is past the ceiling. The sublabel pair sits at alpha 0.84 during the fade-in, so an
+`emerge` of 150 would close it without moving the tag.
 ```
 
 ### poster
@@ -1115,11 +1752,34 @@ MOTION   The tag on the LB leg names the Node and its nodePort, since the balanc
          rewritten both. Each leg only shows the text in the OPEN GAP between blocks: it emerges from
          the client into the first gap, vanishes into the LB, then re-emerges out of the LB bottom and
          rides the fan, never sliding the text over the LB itself.
+WIRE LABELS
+         There are none, and the removed declaration is why the entry says so. A `P.wire({ key: 'c' })`
+         sat at (660, 138) and the file carried no `wires:` field on any step, so it drew an empty
+         `[scheme-label code dim]` on all five: the only such element on the card. It is deleted rather
+         than written, because that spot is exactly where the `to 203.0.113.7` tag EMERGES from the
+         client leg on `client-hit`, and a static caption there would print through a riding one. This
+         card names its hops with tags only (NET.T-01).
 NOT A DEFECT
          `TO_N2` and `TO_N3` carry no ball on a given step. A NodePort opens the SAME port on EVERY
          Node, which is the card's whole first claim, so all three lanes have to exist for the reader
          to see that any Node would have served the request. One step takes one of them, and which one
          is the arbitrary part. `network-headless-service`'s `TO_W2` is the precedent.
+```
+
+### before `F.set({ at: 'prov', chips: { vipChip: '203.0.113.7' } }),`
+
+```
+P-03 on `lb-provision`, the weakest instance of the class in this repair and fixed anyway. The chip
+is `status.loadBalancer`, the field the narration says is written back WHEN the balancer is ready,
+so it cannot carry an address while the provisioning call is still travelling. `chips` keeps the
+address, `rewind` holds pending, and this F.set writes it on the `prov` arrival at 700ms, the
+routeDur floor and the shortest lead anywhere in this class.
+It is weak for a second reason worth writing down: the LoadBalancer block already carries
+`VIP 203.0.113.7` as a static sublabel on every step, so the address is on screen regardless. That
+sublabel is the balancer naming itself and the chip is the Service STATUS recording it, which are
+two facts, and only the second is produced by this call. The sublabel is deliberately left alone.
+Measured in real time, 200 and 500ms read pending with the ball mid-hop, 950 and 1800ms read
+203.0.113.7.
 ```
 
 ### before `const CX = 600;`
@@ -1130,11 +1790,43 @@ inside SCHEME_L..SCHEME_R. NODE_CX then centres the nodePort chip, the backend P
 info chip of each column, so one grid drives every tier.
 ```
 
+### before `const reserved = (open) => ({`
+
+```
+The chip-unwritten queue. np1, np2, np3 and chainChip carried :31000 and KUBE-NODEPORTS from the
+build, no step ever wrote one, and the nodeport step LIT all four: a highlight cueing values that had
+stood since the first frame. They are not constants of the diagram, they are the reservation that
+step narrates, so they read none until it and turn over on it together.
+The step carries no packet and no Pod, so entry is the only beat it has (P-06) and its highlight is
+now the change M-27 asks such a step to carry. The build values were moved to none with them, so the
+frame before step 0 agrees with the idle step.
+rangeChip is the opposite reading and keeps its value: 30000-32767 is the API server
+service-node-port-range, true before any Service exists, so every step states it and none points at
+it. That is what took it out of the SILENT tier without giving it a highlight it has not earned.
+```
+
+### before `const VIP_TAG_DY = -4;`
+
+```
+C_TO_LB is a 50 unit drop from the client floor, so at the default -14 the tag is still inside the
+External client block when it becomes readable and the block floor at 100 cuts it for 200ms. -4 is the
+only offset in +-80 that clears every readable sample, and it does so on 1600x1000, 1280x860 and
+1100x800. On 900x650 nothing in +-80 is clean: at -4 the glyphs are clear on all four, and one 100ms
+sample keeps an em-box graze there. The ball ends up level with the string rather than under it, which
+is what a 50 unit lane costs.
+```
+
 ### poster
 
 ```
 External client on top -> cloud LoadBalancer (ccm provisioning it from the right) -> a right-angle
-fan down to three Nodes, backend Pods only under two of them (the third Node runs no Pod).
+fan down to three Nodes, backend Pods inside the OUTER two and the MIDDLE Node empty, which is the
+arrangement the card draws and the one the NOTE above gives the reason for.
+The empty slot is the MIDDLE Node, the one the card leaves without a backend: node rects at
+x=20/124/228 with Pod rects at x=32/240, each the same 12 unit inset inside its own Node. DO NOT
+fill it, and DO NOT put the Pod-less Node on the right (Pod rects at x=32/136): the poster then
+disagrees with the card. Judged next to `network-loadbalancer-bare-metal`, whose three Nodes all
+hold a Pod: the gap is the one fact that tells the two tiles apart.
 ```
 
 ## network-north-south-path
@@ -1170,6 +1862,38 @@ below) meet every block on its edge. Move a single block off FLOW_Y and one of t
 short of a face.
 ```
 
+### before `const SVC_TYPE = 'type: LoadBalancer';`
+
+```
+The chip-unwritten queue, and the exemplar its report names of the sharp form: three steps light
+svcChip and no step writes it. Ruled a CONSTANT OF THE DIAGRAM. The Service type is the
+premise of the whole path, the aria-label opens on it, and no step on this card changes a Service
+type, so there is no arrival to bind it to.
+Every step states it beside stage, DNAT and backend, which puts it inside P-01, and the value is the
+one the scene was built with, so no step moves the settled frame. The highlight on lb,
+nodeport and dnat stays: it names the object that owns the path being drawn, and whether pointing at
+an unchanging value is right on those steps is R2 and P-03, not this queue.
+```
+
+### before `const LAST_HOP_TAG_DY = 30;`
+
+```
+The three reply tags share dy 24, and on the last hop alone that is wrong: the Client and the Cloud LB
+are 74 tall against the 80 and 100 of the blocks the other two hops join, so their floor at 393 lands
+inside the tag band and the border runs through the glyph tops for the whole 1000ms flight. Measured on
+the four viewports, dy 28 and up is clear, and 30 is taken so the em box clears the floor by 2.7 rather
+than 0.7.
+```
+
+### before `tag({ text: 'src 192.168.1.20:31000', points: KP2LB, after: 'h1', dy: 24 }),`
+
+```
+OPEN, the same step: `src 192.168.1.20:31000` has no clear offset at all (81 candidates, 10 readable
+samples, a free band of 12 against a line 12.8 tall), and `src 10.244.2.7:8080` clears only 7 samples of
+10 at dy 32..38, because the kube-proxy floor wants 31 or more, the Pod floor 41 or more, and the
+conntrack table top forbids past 39. Both are left where they are.
+```
+
 ### poster
 
 ```
@@ -1198,6 +1922,30 @@ WHY NOT  The Internet box lifted to y110, above the measured panel bottom of 181
          DO sit below the panel then span 110..630 and centre on 370: CENTRE-LOW. Levelling it with the
          Node frame is what puts that row on 600, and the forward leg still turns UP out of the Node
          into it.
+OPEN     Four riding tags are cut for 2200ms in total, the same on all four viewports, and none of
+         them can be moved. The worst is `src 10.244.1.5` on `send`, 800ms with the MASQUERADE box
+         left and top faces plus the Client Pod across the glyphs: it clears at -54, which is 40 from
+         the default -14 and past the ceiling, and the largest legal move (-44) still leaves 300ms.
+         `dst 10.244.1.5` on `deliver` (600ms) needs -78. `src 192.168.1.20` on `masquerade` (300ms)
+         and `dst 192.168.1.20` on `reply` (500ms) have NO clear offset within +-80 on either axis:
+         both ride the egress lanes between the MASQUERADE box and the Node frame, and that band is
+         narrower than the address they carry.
+```
+
+### before `F.set({ at: 'back', chips: { ctChip: 'reverse SNAT' } }),`
+
+```
+P-03 on `reply`. Conntrack reverses the mapping where the reply MEETS the MASQUERADE box, so the
+chip cannot read reverse SNAT while that reply is still crossing from the Internet. `chips` keeps
+the end state, `rewind` carries the `flow recorded` the masquerade step left, and this F.set writes
+it on the return route's arrival at 1091ms, which is also where `lights: ['masq']` cues the box. The
+route needed a `name` for the F.set to hang off and got one.
+`src`, `SNAT` and `dst` are unchanged on this step and stay where they are: only the conntrack state
+is news here, so there is no family to move with it. `dst` is not LIT here either. It holds
+1.1.1.1:443, the destination of the outbound flow, while the ball on this step rides under a
+`dst 192.168.1.20` tag, and lighting the chip puts two different destinations on screen at once.
+Measured in real time, 300 and 900ms read flow recorded with the ball still under its
+`dst 192.168.1.20` tag, 1350 and 2200ms read reverse SNAT.
 ```
 
 ### before `const EGRESS_Y = 360;`
@@ -1230,6 +1978,23 @@ WHY NOT  The row at 150..960 inside a frame spanning 80..1120: that is 70 of mar
 MOTION   No pulses on this sequence, just persistent highlight borders like the workloads cards: the
          app block lights first and stays lit, then the loopback ball travels, then the pause block
          lights on arrival.
+```
+
+### before `rewind: { chips: { ipChip: 'none', vethChip: 'none' }, wires: { veth: '' }, podSublabels: { podShell: 'netns: open' } },`
+
+```
+P-03 on `cni-add`. One CNI ADD produces the address, the link, the wire label naming that link and
+the Pod sublabel carrying the address, and all four are the SAME result (P-04). `chips` keeps the end
+state, this rewind holds the empty form of all four, and the F.set below writes them together on the
+`conf` arrival at 1500ms, which is also where the Pod pulses: the exec hop runs 0..700, the beat adds
+100 and the veth leg lands at 1500.
+The veth wire label goes with them rather than staying at entry, unlike the wire labels on the TLS
+card. That label NAMES the veth pair, and the pair does not exist until this call creates it, so the
+lane is deliberately bare while the config ball rides it. A label that describes a LANE would stay,
+a label that is a RESULT travels.
+Measured in real time, 300 and 1200ms read none / none over a bare lane with the Pod still saying
+netns: open, 1750 and 2300ms read 10.244.1.5 / eth0 to veth, the lane labelled and the Pod carrying
+its IP.
 ```
 
 ### before `const LINK_Y = 396;`
@@ -1293,8 +2058,24 @@ LANES    The cni0-to-cni0 link is ONE continuous turning path (cni1 bottom -> un
          not three arrows, and both ends sit on block bottom EDGES so the ball never travels under a
          cni0 box. The short veth hops are linear `F.segment`s, while the cross-underlay leg is an
          `F.route` over the SAME UNDERLAY_PATH array that drew the lane.
+         THIS LANE BREAKS `NET.A-02` ON PURPOSE, and it is the only place in the category that does.
+         The rule says no wire and no ball crosses a Node border: a ball stops on the frame edge and
+         the Pod inside pulses. UNDERLAY_PATH starts at the cni0 bottom edge INSIDE Node-1, drops
+         through the Node-1 frame floor to y 495, crosses, and climbs back through the Node-2 floor
+         into the remote cni0, so it cuts both borders. `network-internal-traffic-policy` draws the
+         compliant version of the same journey, its cross-node leg leaving the Node-1 BOTTOM EDGE and
+         landing on the Node-2 bottom edge, and that shape is wrong HERE: the subject of this card is
+         which component wraps and unwraps the frame, so the two cni0 boxes have to be the endpoints.
+         Stopping at the frame would leave the encap and decap steps pointing at a border.
 MOTION   The journey is three wire-only hops, each ending at a block edge with the next starting from
          the far edge, so the ball visibly enters a cni0 and re-emerges on the other side.
+CONTENT  The two boxes are `cni0`, the same block the same-node card draws as `cni0 / L2 bridge`, so
+         no step may set the route AGAINST the bridge: the route step says the frame goes to the CNI
+         dataplane instead of to a local Pod, which is what being off-subnet actually decides, and
+         the decap step is then free to say the inner frame is bridged across the local cni0.
+         The `outer` and `encap` chips TRACK the packet, so decap flips them to `stripped` and
+         `none`: leaving the VXLAN pair standing on a step whose own wire reads `inner frame
+         restored` states headers the packet no longer has.
 ```
 
 ### before `const VETH_Y = 338;`
@@ -1365,12 +2146,44 @@ NOTE     The IPAddress chip is a FULL-WIDTH bottom strip (SCHEME_L..SCHEME_R). A
          web is not lost, because the value names the Service.
 ```
 
+### before `const assigned = (k8s, dns, web) => ({ sublabels: { svcK8s: k8s, svcDns: dns, svcWeb: web } });`
+
+```
+P-03. A clusterIP WAITS for the packet that carries it. The card already wound the IPAddress chip's
+OPACITY back and raised it on arrival, and the three Service sublabels are the same kind of value
+written as text, so they now travel the same way: `assigned()` keeps the end state for the static
+path, `rewind` puts the Service back to clusterIP pending, and an F.set writes the address where its
+own ball lands. well-known has two of them, 540ms for Service kubernetes (an explicit dur on a 46
+unit drop) and 858ms for Service kube-dns off the rail, and dynamic has one at 700ms.
+The dynamic step writes the IPAddress chip's VALUE on that same 700ms beat as well, not only its
+opacity. The address and the object recording it are one fact, and P-04 says the two halves of a
+fact move together or not at all.
+Measured in real time: the entry frame of well-known reads pending on all three Services, and the
+entry frame of dynamic keeps the two static-band addresses and leaves Service web pending with no
+IPAddress strip at all.
+```
+
 ### before `const SCHEME_L = 120, SCHEME_R = 1080;`
 
 ```
 Services sit on an even 260 / 600 / 940 grid with their edges flush to this band, and SVC_GAP is
 solved from it rather than typed. The IPAddress chip spans the same band, which is what stops it
 from being a lone chip centred on 940.
+```
+
+### before `F.segment({ from: K8S_ROUTE[0], to: K8S_ROUTE[1], dur: 540, name: 'k8s', lights: ['svcK8s'] }),`
+
+```
+M-14 and the ripple-double queue. Four F.ripple entries stood beside these routes, one on well-known
+for each reservation, one on dynamic and one on extend, and each named the LAST POINT of a route in
+its own step at that route's own arrival. packetAlong rings there already with no opt-in, so two
+identical rings opened from one pixel on one millisecond. Measured at the arrival instant before the
+repair: 2 rings at matrix(0.390055, 0, 0, 0.390055, 260, 450), both at opacity 0.936, and the same
+doubling at 940,450 and at 1080,362.
+NOTHING WAS RETIMED. The four arrivals stand at 540, 858, 700 and 1518ms, no points array moved and
+no duration changed, so this is not an A-11 edit and render/duration.test.mjs reads the same card.
+DO NOT put an F.ripple at the end of a route. The verb is for a receiving BOX no ball reaches, where
+a Pod would get a pulse, and these four were the only uses of it in the catalog.
 ```
 
 ### poster
@@ -1420,6 +2233,17 @@ NOTE     On the dnat step the backend Pods are NOT highlighted: nothing has been
          clientBox, podXBox and podYBox are listed by KEY in `SCENE.reset` so their highlight is
          cleared every step, and both Pod opacities are stated on EVERY step so a dim set by an
          earlier flow cannot persist.
+OPEN     The second worst card in the category for riding-tag ink: EIGHT tags cut for 4700ms in total
+         (5100 at 1280x860, where the glyph advances round up). Every lane on this card ends on a
+         block FACE, which is what the round trip is made of, so each address is struck by the face it
+         lands on for the 500 to 700ms the ball rests there. Nothing inside the offset ceiling helps.
+         `dst 10.96.0.20:80` on `send` and on `balance` (600ms each at 1280x860, 500 elsewhere) needs
+         -52, which is 38 from the default -14; the largest legal move, -44, still leaves 200ms of it.
+         `dst 10.244.2.7:8080` on `dnat` (600ms) has no clear offset in +-80 at all, boxed between the
+         Pod face and the kube-proxy face. The reply pair `src 10.96.0.20` (500 to 600ms each) needs
+         -76. The card is the category exemplar for LANE geometry and this is what that geometry
+         costs: the faces are where the rewrites happen (`NET.A-01`), so the tags cannot be moved off
+         them without moving the story.
 ```
 
 ### before `const CX = 600;`
@@ -1429,6 +2253,23 @@ The three extents the rest of the category copies. Every block on this card is d
 SCHEME_L and SCHEME_R, so moving one of them moves the client, the kube-proxy column, the backend
 column and both fan buses together. The chip strip does NOT follow: its four widths are sized to
 their own longest values, so re-run `render/chipfit.test.mjs` after any change here.
+```
+
+### before `F.set({ at: 'send', chips: { dnatChip: '-> 10.244.3.9:8080', ctChip: 'two flows', backChip: '10.244.3.9' } }),`
+
+```
+P-03 on `balance`. The step comment says it in as many words: kube-proxy lights on the client packet
+arriving and ONLY THEN picks the second backend. `chips` keeps the end state, `rewind` carries what
+`reply` left (the first flow, still on 10.244.2.7), and this F.set writes all three on the `send`
+arrival at 1570ms.
+1570 and not the 2560 of the delivery. The pick, the second conntrack entry and the backend named by
+it are one decision, taken inside kube-proxy the moment the packet reaches it, and the second leg
+rides out carrying the address that decision produced. Hanging the backend chip on the delivery
+instead would split one decision across two beats for no gain.
+Steps 5 and 7 carry the same shape on `ctChip` and are NOT part of this repair, so the report still
+lists them.
+Measured in real time, 300 and 1400ms read the first flow, 1800ms onward reads
+10.244.3.9:8080 / two flows / 10.244.3.9 while the second leg is still in the air.
 ```
 
 ### before `const SLOWMO = 1.1;`
@@ -1459,6 +2300,17 @@ MOTION   The translation happens INSIDE the Service box: the ball fades in at it
          from the right edge on the deliver hop. The client dials web:80 on the way in and the
          named-port resolution http -> 8080 rides the way out, so the rewrite is visible as a change
          in what the ball carries. The chip strip tracks the four port numbers as fixed facts.
+PANEL    right <= 397, bottom <= 204.97 over 1600x1000 / 1280x860 / 1100x800. The Client Pod spans
+         x 80..270, left of the 420 the panel reserves, so the flow row is pinned below that bottom.
+OPEN     A 187 unit empty band across the full width, y 373..559, on every step, and IDENTICAL on all
+         four viewports because both edges are viewBox constants. The card draws 342 units of content
+         (252..594) in a 640 canvas, so 298 units are blank whatever is done with them and the only
+         choice is WHERE they sit. Raising the chip strip closes the band and opens the same blank
+         under it, and takes the strip off the 500..592 baseline the other networking cards share.
+         Lowering the flow row puts the blank directly under the narration panel, where a full-width
+         void beside drawn text reads as a hole rather than as air. The row cannot rise more than 47
+         either, because the Client Pod is pinned under the 204.97. Growing the blocks to fill it is
+         what `L-16` forbids and adding content is a redesign, so this is left open with the number.
 ```
 
 ### before `const FLOW_Y = 312;`
@@ -1487,15 +2339,70 @@ WHAT     The few seconds while a backing Pod shuts down, and why a clean rollout
 LAYOUT   Client left, kube-proxy in the middle, two backends on the right: web-a stays Ready on top,
          web-c is the one being retired below.
 NOTE     The bottom chip strip is the endpoint state that actually drives routing: web-c's endpoint
-         conditions (ready / serving / terminating), where new connections may land, and the
-         grace-period window.
-MOTION   Each hop tags itself `new conn` or `in-flight` via a riding label. web-c dims to the
+         conditions, where new connections may land, and the grace-period window.
+CONTENT  An endpoint carries THREE conditions and the chip has two slots, so slot two is always
+         `serving` and slot one carries whichever of the other two just became true: `terminating`
+         on the step that takes SIGTERM, then `notReady` from the condition step on. The third is
+         drawn on the Pod sublabel of the step that sets it.
+DO NOT   Write `ready · serving` on the terminate step. `ready` is a SHORTCUT for `serving and not
+         terminating` (endpoint-slices reference), so it is already false the instant the Pod takes
+         a deletionTimestamp, and the pair states a combination the API cannot produce. It was
+         written that way once, to force a fixed [ready] [serving] grammar, and the technical-truth
+         lens caught it the same day.
+         Credit `terminating endpoints` or kube-proxy with keeping the in-flight flow alive. The
+         drain narration did, and it was false: that rule fires ONLY when the traffic policy is
+         `Local` AND every ready endpoint is terminating, neither of which holds in this scene, so
+         kube-proxy would never select web-c. The proxy-terminating-endpoints KEP states the case
+         this card actually draws:
+         `when the traffic policy is Cluster and some endpoints are terminating, all traffic should
+         be routed to the ready endpoints that are not terminating`. The established flow survives
+         on its CONNTRACK entry, which already maps it to web-c so no fresh endpoint pick happens at
+         all, and web-c keeps answering because a Pod shutting down `should start terminating and
+         finish processing open connections`. The mechanism the card named was idle at the moment it
+         described. The passive `aria-label` (`in-flight connections keep draining`) never carried
+         the error and was left alone.
+         https://github.com/kubernetes/enhancements/tree/master/keps/sig-network/1669-proxy-terminating-endpoints
+         https://kubernetes.io/docs/reference/networking/virtual-ips/#traffic-to-terminating-endpoints
+         https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination
+         Say the replacement is Ready `elsewhere in the ReplicaSet`. The card frames the event as a
+         rollout, and a rolling update puts the replacement in the NEW ReplicaSet while the old one
+         is scaled down rather than refilled: `A new ReplicaSet is created, and the Deployment
+         gradually scales it up while scaling down the old ReplicaSet`.
+         https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+MOTION   The `steady` step runs TWO client connections, one per backend, staggered by `CONN_GAP` 540:
+         the first reaches web-a at 2409 and the second web-c at 2949. DO NOT fire BOTH fans off
+         ONE client hop at the identical delay 1600: two balls then leave kube-proxy on the same
+         millisecond and arrive at 2409 each, pulsing both backends together, which draws one
+         connection splitting across two Pods, the one thing a connection cannot do.
+         `network-traffic-distribution` records the same shape as a DO NOT and answers the same
+         sentence with two client hops. Duration 4000 for a 3849 span.
+         The second connection carries NO `new conn` tag of its own. The first tag holds at the lane
+         end until 1660 and fades out by 1840, and the second ball is on that same 185 unit lane from
+         1340, so a second copy of the text would be up while the first is still fading, on a lane
+         too short to hold two.
+         Each hop tags itself `new conn` or `in-flight` via a riding label. web-c dims to the
          terminating shade on the step where it takes SIGTERM, while it is still serving, and that
          shade is HELD on the two steps after it so the fade never reads as a new state. It drops
          once more, to the terminated shade, on the closing step, where the endpoint really is gone.
          The drain step runs two flows at once: the in-flight connection keeps draining to web-c, which
          pulses through its dimmed state on arrival, and as it lands a fresh connection starts from the
          client, runs the lane and the web-a fan, and web-a pulses. New and in-flight, side by side.
+WHY NOT  Staggering the two FANS off one client hop and leaving the client hop alone. It separates the
+         two Pod pulses, which was the visible symptom, and leaves the false claim untouched: one ball
+         arriving at kube-proxy and two leaving it is still one connection becoming two. The stagger
+         belongs on the thing there are two of, and there are two connections.
+         A second client pulse for the second connection. One pulse per step is the shape the sibling
+         card uses for the same sentence, and `PULSE_POD.ms` is 900 against the 540 gap, so a second
+         blink of the client would run into the first.
+OPEN     The third worst card in the category for riding-tag ink: SEVEN tags cut for 3300ms in total
+         (3200 at 1600x1000). It is the price of the lane pair plus the fan, both of which end on a
+         block face. `new conn` on `steady`, `condition`, `drain` and `gone` (400 / 400 / 500 / 400ms)
+         is cut by the kube-proxy left face and the Client Pod right face and needs -60, which is 46
+         from the default -14; inside the ceiling NOTHING helps, the first relief at all is -46 and it
+         buys 300ms of the 400. `to web-a` on `condition` and `drain` (600ms each) needs -56, 42 from
+         the default, and the largest legal move leaves 400ms. `in-flight` on `drain` (400ms) needs
+         -58. Every one of them is past the ceiling that keeps a tag reading as its own ball's
+         address, so all seven stay where they are.
 ```
 
 ### before `const FLOW_Y = 326;`
@@ -1519,11 +2426,16 @@ against dashed pair is the whole idea.
 ### layout
 
 ```
-WHAT     A MAP card, not a traffic flow: five Service types on the left pointing straight across to what
-         each one targets. ClusterIP, NodePort and LoadBalancer all proxy to the same shared backend
-         node (they stack, each building on the one above), while ExternalName and Headless are the odd
-         ones out (no proxy, DNS alone) and point at their own boxes. `no selector` belongs to the
-         ExternalName row only, which is where the card prints it.
+WHAT     A MAP card, not a traffic flow: four Service types plus the headless variant on the left,
+         pointing straight across to what each one targets. ClusterIP, NodePort and LoadBalancer all
+         proxy to the same shared backend node (they stack, each building on the one above), while
+         ExternalName and headless are the odd ones out (no proxy, DNS alone) and point at their own
+         boxes. `no selector` belongs to the ExternalName row only, which is where the card prints it.
+CONTENT  FIVE ROWS, FOUR TYPES. Headless is a ClusterIP with `clusterIP: None`, so the count of rows
+         is not a count of types: the `desc` says four Service types plus a headless variant and the
+         `aria-label` calls it the headless variant for that reason. The row is drawn beside the four
+         because the reader meets it as one of the shapes a Service can take, and only the WORD type
+         is withheld from it.
 LAYOUT   No round trip, no return lane and no bottom chip strip. The type column starts at x210, LEFT
          of the panel's right edge, so the rows clear the panel by HEIGHT instead.
 WHY NOT  ROW0 at 132: the top ClusterIP row is then 46% under the panel. Moving the columns right
@@ -1543,6 +2455,26 @@ The type and target columns sit symmetric about x600 (210..990). TYPE_X is LEFT 
 edge on purpose: the rows clear the overlay by HEIGHT instead, which is what ROW0 186 pays for.
 ```
 
+### before `const HOP = (y) => [[TYPE_EDGE, cy(y)], [TGT_X, cy(y)]];`
+
+```
+ALL FIVE ROWS KEEP THE DEFAULT TAG HEIGHT -14. Every row is one horizontal hop that ENDS on the target
+face, so that face cuts the tag for the time the ball rests there: measured 400 / 400 / 400 / 400 /
+300ms for clusterip / nodeport / loadbalancer / externalname / headless, the same on all four
+viewports, 1900ms in total.
+-40 lifts a tag into the 18 unit gap above its own row and clears it (clusterip, externalname and
+headless clear from -38 on), but only three of the five rows HAVE that gap, so the card carried three
+tags at -40 and two at -14: on a card whose whole subject is five identical parallel rows, the tag
+height then alternates down the column. On clusterip -40 also parks the tag ABOVE the backend node
+frame (row centre 221, frame top 186), where it reads as that frame's caption rather than as the
+address of a ball on the row below. One grammar is worth the 1100ms.
+OPEN: the 1900ms above stays. `nodeport` has no clear offset at all, because its lane is boxed between
+the np row face on the left and the two Pods on the right, and the free band between the Pods is 22
+units wide but only reachable from inside. `loadbalancer` clears only at +46, below the node frame,
+which is 60 from the default and sits on the ExternalName row. The ceiling is a DELTA: about 30 from
+the default -14, so about -44 to +16, past which the tag stops reading as its own ball's address.
+```
+
 ### poster
 
 ```
@@ -1559,6 +2491,52 @@ ExternalName and Headless each get their own box.
 WHAT     Where TLS is decrypted: the Ingress terminates it and talks plain HTTP to the backend.
 LAYOUT   The TLS Secret sits ABOVE the Ingress as the source of the certificate, and is the only
          block off the flow line.
+CONTENT  The `wire` chip names a LEG, so it may only read what a drawn leg carries. The terminate
+         step draws no leg at all (the plaintext one is labelled on the proxy step after it), so the
+         chip holds `https`, the client leg that is still up, and is not lit: what changes there is
+         the TLS state, and the plaintext request the controller now holds is inside the box rather
+         than on any wire.
+WIRE LABELS
+         The two captions sit at DIFFERENT offsets because they label different things, and the pair
+         is the reason. `p` labels a SINGLE lane on FLOW_Y (312) and sits 12 above it at 300. `c`
+         labels the client leg, which is a PAIR at `laneY(312, 12)`, so 12 above FLOW_Y IS the out
+         lane and the caption stood exactly on the traffic. Measured at 1600x1000 on `handshake`
+         t=350: the caption bbox was y 288.8..303.4 while the ball sat at (370, 300) with r=5, glyphs
+         and ball overlapping for the whole flight. It now hangs off `HS_OUT_Y - 12` (288), bbox
+         y 276.8..291.4 against a ball spanning 295..305, so 3.6 units of clearance, which is the
+         same clearance the nine `FWD_Y - 12` captions in this category carry.
+WHY NOT  Lifting it further, to `HS_OUT_Y - 18`. It buys 6 units of air nothing needs and breaks the
+         one offset the category shares, and the gap between the client and Ingress rows is empty
+         down to the Secret at y206, so nothing was crowding it.
+PANEL    right <= 397, bottom 142.56..229.82 over 1600x1000 / 1280x860 / 1100x800.
+OPEN     166 units of bare canvas below the chip strip, which ends at 474 on a 640 canvas, on every
+         step and identical on all four viewports. It is NOT a composition sitting too high: the
+         content runs 150..474 and centres on 312 against the canvas centre 320, so the bare bottom is
+         the mirror of an equal void above, and only one of the two looks bare because the narration
+         panel covers the top LEFT. Dropping the chip strip to the 500..592 baseline the sibling cards
+         use moves the content centre to 372, 52 off centre, and trades the bare bottom for a 187 unit
+         band in the middle, which is the same finding one card over. Moving everything up is capped by
+         the Client block at x 70..270, which must clear the panel bottom. 324 units of content in a
+         640 canvas leaves 316 blank however they are arranged, so closing this needs content or taller
+         blocks, and `L-16` forbids the second. Left open with the number.
+```
+
+### before `F.set({ at: 'hello', chips: { schemeChip: 'https', tlsChip: 'handshake' } }),`
+
+```
+P-03 on `handshake`. Three chips move here and they do NOT move together, because two different
+balls earn them. `chips` keeps the end state, `rewind` holds the idle three, this F.set writes the
+wire and the TLS state on the `hello` arrival at 700ms (the client hello reaching the Ingress), and
+the second F.set writes the certificate on the `cert` arrival at 1500ms, when it comes down out of
+the Secret. The finding was raised on `certChip` alone, and `schemeChip` and `tlsChip` are bound
+because leaving them at entry beside a bound neighbour is the FORM-E shape P-04 calls worse than
+doing neither.
+THE WIRE LABEL STAYS AT ENTRY. `TLS handshake · https` names the LANE the hello rides, so it is
+there to explain the ball in flight, and pulling it to 700ms would leave the leg unlabelled for
+exactly the stretch a reader is watching it. A wire label that names a lane is not the same kind of
+value as a chip that reports a result.
+Measured in real time, 300 and 700ms read idle / none / in Secret, 1000 and 1450ms read
+https / handshake with the certificate still in the Secret, 1800ms onward reads presented.
 ```
 
 ### before `const FLOW_Y = 312;`
@@ -1591,22 +2569,72 @@ WHY NOT  The setting chips stacked under the client. That puts the chip strip at
          everything right of 740 from y340 down.
 LANES    Each zone stacks its two Pods VERTICALLY, so the fan from kube-proxy reaches every Pod at its
          own left edge over a shared vertical rail at x=700, with no route crossing another Pod.
-MOTION   The fan is deliberately slowed (`routeDur * FAN_SLOW`) so the riding source-IP tag stays
-         readable, and the label rides the SAME dur so it stays locked to the ball. Speed stays
+MOTION   The fan runs at `routeDur * FAN_SLOW`, and the label rides the SAME dur so it stays locked to
+         the ball. It does NOT buy a readable tag: measured,
+         every tag on the fan is cut for its whole readable life whatever the speed, and a slower ball
+         LENGTHENS that in proportion (the OPEN below carries the numbers). Speed stays
          distance-normalized: one shared multiplier, and the card is named for it in the `PACING` map
          of `render/motion.test.mjs`.
          The default step runs TWO client hops, the second staggered by 540, because its narration
          says two connections from the same client can land in different zones, which is exactly
          what having no zone preference looks like. Duration 4600 for a 4412ms span.
+         TWO GAPS, and which one a step takes depends on whether the two rides END ON ONE POD. The
+         default step sends to a1 and b2, two different elements, so 540 is only a read gap. The
+         `session-affinity` step sends BOTH rides to a1, so it holds them `SAME_POD_GAP` 900 apart,
+         one whole `PULSE_POD.ms`: arrivals 2973 and 3873, so the second blink starts on the
+         millisecond the first ends. A delay of 540 blinks a1 twice inside one pulse length (gap 540
+         against 900) and composites the two on the same element. Duration 4900 for a 4773 span.
 DO NOT   Fire both fans at the identical delay off ONE client hop. That reads as a single connection
          being split across two backends, which is the one thing a connection cannot do.
-         Add a second Pod pulse there. `PULSE_POD.ms` is 900 against a 540 stagger, so the second would
-         composite over the first on the same element, and `session-affinity` already establishes one
-         pulse per step with two rides.
+         Land two rides on ONE Pod less than 900 apart. That is the defect above, and the reason the
+         two steps carry two different gaps rather than one shared constant.
+         Call `trafficDistribution` topology-aware routing. That is the proper name of a DIFFERENT and
+         older feature, the `service.kubernetes.io/topology-mode: Auto` annotation, which the docs
+         explicitly contrast with this field: `there is a key difference in their approaches`, the
+         annotation spreading traffic proportionally by allocatable CPU while `trafficDistribution:
+         PreferSameZone aims to be simpler and more predictable`. The annotation also takes PRECEDENCE
+         over the field. The `aria-label` carried that name and the sources cited the annotation page
+         end to end, while no narration on this card ever discussed the older feature: the label now
+         reads `traffic distribution` and the source is the trafficDistribution section. Removing it
+         left the catalog with no citation of the topology-aware-routing page, which is correct, since
+         no card covers it.
+         https://kubernetes.io/docs/reference/networking/virtual-ips/#traffic-distribution
 NOT A DEFECT
          `FAN_A2` carries no ball on its step. It is the endpoint the traffic distribution did NOT
          pick, and the point of the card is that the choice was made among the drawn candidates rather
          than forced. Same basis as the nodeport fan.
+         The step id `topology` stays. A step id reaches neither the DOM nor the hash, which routes on
+         the step INDEX (`app.js` writes `&step=${idx + 1}`), so no reader ever sees it, and renaming
+         it would move nothing on screen.
+WHY NOT  Dropping the second Pod pulse on `session-affinity` instead of widening the gap. It is the
+         cheaper edit, it holds the duration at 4600, and it leaves the second ball landing on a1 with
+         nothing acknowledging it, which reads as a connection that was not served. The pin is the
+         subject of the step, so the arrival that PROVES the pin is the one that must be seen.
+OPEN     THE WORST CARD IN THE CATEGORY for riding-tag ink, and it stays open. Six `src 10.244.2.50`
+         tags are cut for 9800ms in total (1700 default, 1600 default second ride, 1700 + 1700
+         session-affinity, 1700 topology, 1400 fallback), identical on all four viewports, and NO
+         offset within +-80 on EITHER axis clears a single one of them. It is by construction: a fan
+         leg from kube-proxy has to enter a zone frame and then the Pod inside it, so the tag crosses
+         two edges on every ride, and the free band between them is narrower than the address. The
+         best partial move measured is dy -72, which takes 1300ms off ONE tag and is 58 past the
+         default, far outside the offset ceiling that keeps a tag reading as its own ball's address.
+```
+
+### before `F.set({ at: 'fa1', chips: { pinChip: 'ClientIP . pin .2.7' } }),`
+
+```
+P-03 on `session-affinity`. The narration states the order outright: the opening connection still
+picks a backend FREELY, and only then does kube-proxy pin that client source IP to the Pod it
+chose. `chips` keeps the pinned value, `rewind` holds the None the default step left, and this F.set
+writes the pin on the `fa1` arrival at 2973ms, where the first connection actually reaches
+10.244.2.7. The second ride at 3873 changes nothing, which is the point of a pin.
+The rewind is None and not an invented halfway value such as ClientIP with no pin yet. The chip
+bundles the setting and its outcome, and inventing a third string to split them would put a value on
+screen that no step states. Reading None until the pin exists matches the narration order and costs
+nothing, since the sentence being read says the pin comes after.
+`modeChip` is unchanged on this step and takes no beat.
+Measured in real time, 300 to 2900ms read None while the first connection is still climbing under
+its `src 10.244.2.50` tag, 3300 and 4200ms read ClientIP . pin .2.7.
 ```
 
 ### before `const SCHEME_L = 60, SCHEME_R = 1140;`
@@ -1619,8 +2647,11 @@ category uses. Narrow it and the strip centres on the client column instead of o
 ### before `const FAN_SLOW = 1.6;`
 
 ```
-One shared multiplier on the fan so the riding source-IP tag stays readable, and the label rides the
-SAME dur or it unglues. Speed stays distance-normalized. Registered in ALLOW_EXPLICIT_DUR.
+One shared multiplier on the fan, and the label rides the SAME dur or it unglues (M-30). Speed stays
+distance-normalized. Registered in ALLOW_EXPLICIT_DUR.
+It is not the tag that the slow ride buys. The tag is cut by the zone frame and the Pod inside it for
+every readable sample of every fan leg, so the multiplier lengthens the cut rather than relieving it:
+1.6 times the routeDur is 1.6 times the time the reader spends with a struck-through address.
 ```
 
 ### poster

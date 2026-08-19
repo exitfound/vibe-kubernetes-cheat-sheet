@@ -64,10 +64,10 @@ const tick = (lbl, i) => P.raw({
 });
 
 // The trunk drops from the CronJob box into the free middle band and ends in a bus above the Job
-// row, tapping into the two slots any ball is ever addressed to.
+// row, tapping the two slots any ball is addressed to. One array each, so wire and ball cannot drift.
 const BUS_Y = NODE_Y - 8;                                // 396, between the ticks and the frame
 const TRUNK = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, BUS_Y]];
-const LANE = i => [...TRUNK, [SLOT_CX(i), BUS_Y], [SLOT_CX(i), POD_Y]];
+const LANES = [0, 1].map(i => [...TRUNK, [SLOT_CX(i), BUS_Y], [SLOT_CX(i), POD_Y]]);
 
 const JOB_NAMES = ['backup-28394400', 'backup-28394410', 'backup-28394415', 'backup-28394420'];
 
@@ -92,7 +92,7 @@ export const SCENE = {
     P.chip({ key: 'eventChip', x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'last event', value: 'none' }),
     // A drawn lane per Job slot that ever receives a create. They share the trunk and the bus,
     // so the two paths coincide there and read as one wiring tree with two arrowheads.
-    ...[0, 1].map(i => P.lane({ key: `lane${i + 1}`, points: LANE(i), dim: true, dashed: true, role: 'cluster' })),
+    ...[0, 1].map(i => P.lane({ key: `lane${i + 1}`, points: LANES[i], dim: true, dashed: true, role: 'cluster' })),
     P.packets(),
     // Everything below is appended AFTER the packet layer, so the ball runs under it.
     P.chain({
@@ -146,7 +146,7 @@ export const STEPS_SPEC = [
   {
     id: 'create',
     duration: 3100,
-    narration: 'At 12:00 the wall clock matches the schedule. The controller creates one Job, backup-28394400, from spec.jobTemplate through the API, and that Job in turn creates its own Pod. The path is always CronJob then Job then Pod, never CronJob straight to Pod. The numeric suffix is derived from the scheduled time, so a single tick can only ever produce one Job, which keeps creation idempotent. The status.active field becomes 1 and lastScheduleTime records 12:00.',
+    narration: 'At 12:00 the wall clock matches the schedule. The controller creates one Job, backup-28394400, from spec.jobTemplate through the API, and that Job in turn creates its own Pod. The path is always CronJob then Job then Pod, never CronJob straight to Pod. The numeric suffix is derived from the scheduled time, so a repeated create for one tick collides on the name instead of adding a Job. The status.active field becomes 1 and lastScheduleTime records 12:00.',
     chips: { scheduleChip: '*/5 * * * *', concChip: 'Forbid', activeChip: '1', lastChip: '12:00', eventChip: 'created backup-28394400' },
     sublabels: { pod1Box: 'Running' },
     wires: { req: 'create Job backup-28394400 · from jobTemplate' },
@@ -162,7 +162,7 @@ export const STEPS_SPEC = [
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
       // Create reaches the node, the Job Pod materializes and pulses on arrival.
-      F.route({ points: LANE(0), after: 'req', name: 'create' }),
+      F.route({ points: LANES[0], after: 'req', name: 'create' }),
       F.fade({ target: 'pod1', from: 0, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'pod1', at: 'create' }),
     ],
@@ -170,14 +170,14 @@ export const STEPS_SPEC = [
   {
     id: 'forbid',
     duration: 2100,
-    narration: 'This backup is slow and still Running when the 12:05 tick arrives. The spec.concurrencyPolicy field decides what happens to overlapping runs. With Forbid the controller skips the new tick entirely and records the Event JobAlreadyActive, it does not queue the run for later. The default Allow would let a second Job start alongside the first, and Replace would delete the still-running Job and start a fresh one in its place. Here nothing new is created and the 12:00 run keeps going.',
+    narration: 'This backup is slow and still Running when the 12:05 tick arrives. The spec.concurrencyPolicy field decides what happens to overlapping runs. With Forbid the controller skips the new tick and records the Event JobAlreadyActive, but a new Job can start once this one completes. The default Allow would let a second Job start alongside the first, and Replace would delete the still-running Job and start a fresh one in its place. Here nothing new is created and the 12:00 run keeps going.',
     chips: { scheduleChip: '*/5 * * * *', concChip: 'Forbid', activeChip: '1', lastChip: '12:00', eventChip: 'JobAlreadyActive · skipped' },
     sublabels: { pod1Box: 'Running' },
     wires: { req: 'concurrencyPolicy=Forbid · skip new run' },
     // No Job is created, so the only visible run is the one still going.
     opacity: pods(1, 0, 0, 0),
-    // No connector packet: nothing reaches the node because creation is SKIPPED, so the
-    // static highlight on CronJob and the policy chip is the whole picture.
+    // Nothing reaches the node because creation is SKIPPED, so the beat is the CronJob box lit:
+    // it is what consults the policy, and neither it nor the policy chip flashes (M-26, M-01).
     lit: ['cronjob', 'concChip', 'eventChip', ...ticks(0)],
     chain: 1,
   },
@@ -196,7 +196,7 @@ export const STEPS_SPEC = [
     reducedLit: ['pod2Box'],
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
-      F.route({ points: LANE(1), after: 'req', name: 'create' }),
+      F.route({ points: LANES[1], after: 'req', name: 'create' }),
       F.fade({ target: 'pod2', from: 0, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'pod2', at: 'create' }),
     ],
@@ -221,7 +221,7 @@ export const STEPS_SPEC = [
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
       // The DELETE reaches the node, the oldest Job pulses then its Pod is removed.
-      F.route({ points: LANE(0), after: 'req', name: 'prune' }),
+      F.route({ points: LANES[0], after: 'req', name: 'prune' }),
       F.pulse({ pod: 'pod1', at: 'prune' }),
       F.fade({ target: 'pod1', from: 1, to: 0, dur: FADE.out, at: 'prune', fill: 'both', easing: 'ease-in' }),
       F.fade({ target: 'lane1', from: 1, to: 0, dur: FADE.out, at: 'prune', fill: 'both', easing: 'ease-in' }),
@@ -230,14 +230,14 @@ export const STEPS_SPEC = [
   {
     id: 'missed',
     duration: 2200,
-    narration: 'Suppose the controller was down for a while. On recovery it sees ticks it missed. The spec.startingDeadlineSeconds field bounds how late a missed run may still start, any tick older than that deadline is skipped and counted as missed rather than run late. With no deadline set the controller instead refuses to schedule once it finds more than 100 missed start times, logging an error. Because a CronJob is not exactly-once and may rarely create two Jobs or none for a tick, the Job itself should be idempotent.',
+    narration: 'Suppose the controller was down for a while. On recovery it sees ticks it missed. The spec.startingDeadlineSeconds field bounds how late a missed run may still start, any tick older than that deadline is skipped and counted as missed rather than run late. Deadline or not, the controller also refuses to schedule once it finds more than 100 missed start times, logging an error. Because a CronJob is not exactly-once and may rarely create two Jobs or none for a tick, the Job itself should be idempotent.',
     chips: { scheduleChip: '*/5 * * * *', concChip: 'Forbid', activeChip: '0', lastChip: '12:20', eventChip: 'missed 12:25 · past deadline' },
     sublabels: { pod2Box: 'Completed · exit 0', pod3Box: 'Completed · exit 0', pod4Box: 'Completed · exit 0' },
     wires: { req: 'missed start > startingDeadlineSeconds · skip' },
     // No run is created for the missed tick, the retained history is unchanged.
     opacity: pods(0, 1, 1, 1),
-    // No connector packet: the missed tick produces no Job, so the 12:25 rung stays dark and
-    // the event chip carries the recorded MISS.
+    // The missed tick produces no Job and the 12:25 rung stays dark, so the CronJob box is lit:
+    // the controller is what weighs the deadline, and nothing on the step flashes (M-26, M-01).
     lit: ['cronjob', 'eventChip', ...ticks(0, 2, 3, 4)],
     chain: 4,
   },
@@ -249,8 +249,8 @@ export const STEPS_SPEC = [
     sublabels: { pod2Box: 'Completed · exit 0', pod3Box: 'Completed · exit 0', pod4Box: 'Completed · exit 0' },
     wires: { req: 'spec.suspend=true · no Jobs created' },
     opacity: pods(0, 1, 1, 1),
-    // Suspension is a spec flag, nothing travels: the paused state shows via the static highlight
-    // only (no chip pulse). Earlier runs stay on the ladder, no new tick lights while suspended.
+    // Suspension is a spec flag and nothing travels, so the paused CronJob itself carries the beat.
+    // Earlier runs stay on the ladder, no new tick lights while suspended.
     lit: ['cronjob', 'eventChip', ...ticks(0, 2, 3, 4)],
     chain: 5,
   },

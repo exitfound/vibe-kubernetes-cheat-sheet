@@ -1,4 +1,4 @@
-import { P, F, defineCard, chipStrip, BEAT, FADE, OPACITY, REVEAL_MS } from './storage-kit.js';
+import { P, F, defineCard, chipStrip, makeRidingLabel, BEAT, FADE, OPACITY, REVEAL_MS } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-topology-aware-provisioning
 
 
@@ -36,6 +36,11 @@ const W_MOUNT_B = [[NODE_CX[1], DISK_TOP], [NODE_CX[1], NODE_BOTTOM]];
 // The doomed reach: node-2 would have to cross into zone-a for its disk. It leaves the node-2 frame
 // bottom centre and enters the zone-a disk through its top centre.
 const W_CROSS = [[NODE_CX[1], NODE_BOTTOM], [NODE_CX[1], CROSS_Y], [NODE_CX[0], CROSS_Y], [NODE_CX[0], DISK_TOP]];
+
+// The mount tag starts ON the zone-b caption, which sits 14 above the disk exactly where the tag
+// rides: it fades in 300ms into the flight instead, 40 units clear of it. See ./CARDS.md.
+const MOUNT_TAG_EMERGE = 300;
+const mountLabel = makeRidingLabel({ role: 'storage', emergeMode: true });
 
 const CHIP_W = 232, CHIP_GAP = 16;
 const STRIP = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });   // 112 / 360 / 608 / 856, centred on CX
@@ -95,9 +100,12 @@ const WFFC = 'volumeBindingMode: WaitForFirstConsumer';
 // Pins the visibility of EVERY element that is born mid-story, exactly as `chips` pins every chip,
 // so a step can never silently inherit a disk, a Pod or a lane from the step before it (STO.S-01).
 const OFF = { diskA: 0, diskB: 0, podB: 0, crossLink: 0, nodeA: 1, nodeB: 1, wProvA: 0, wProvB: 0, wMountB: 0 };
-// node-1 is filtered out (no room), node-2 is reachable but wrong zone for the disk. The Pod is
-// admitted to neither, so it stays a Pending Pod hovering at node-2, the only node it fits on cpu.
-const STRANDED = { ...OFF, diskA: 1, podB: OPACITY.pending, crossLink: 1, nodeA: OPACITY.notready };
+// The scheduler rejects BOTH (node-1 for room, node-2 for the zone), so both frames carry the
+// filtered-out shade: it is also what separates these steps from the wffc one. See ./CARDS.md.
+const STRANDED = {
+  ...OFF, diskA: 1, podB: OPACITY.pending, crossLink: 1,
+  nodeA: OPACITY.notready, nodeB: OPACITY.notready,
+};
 
 export const STEPS_SPEC = [
   {
@@ -192,7 +200,7 @@ export const STEPS_SPEC = [
       F.light({ targets: ['diskB'], at: 'prov' }),
       F.reveal({ target: 'diskB', at: 'prov', from: OPACITY.pending }),
       F.route({ points: W_MOUNT_B, after: 'prov', plus: REVEAL_MS, name: 'mount' }),
-      F.tag({ text: 'attach and mount', points: W_MOUNT_B, after: 'prov', plus: REVEAL_MS }),
+      F.tag({ text: 'attach and mount', points: W_MOUNT_B, after: 'prov', plus: REVEAL_MS, fn: mountLabel, emerge: MOUNT_TAG_EMERGE }),
       F.fade({ target: 'podB', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'mount', fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'podB', at: 'mount' }),
       F.light({ targets: ['podBox'], at: 'mount' }),

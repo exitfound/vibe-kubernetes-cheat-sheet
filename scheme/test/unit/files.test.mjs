@@ -2,11 +2,10 @@
 // what they share is that the spec cannot answer any of them: a card's own source TEXT (its comments
 // and the pointer to its record), the three stylesheets, and the three shipping exclusion lists.
 //
-// Every rule here was `review` in CANON.md until 2026-08-15 and every one of them stands at ZERO
-// findings today, which is exactly when a check is cheap: holding zero costs the parse below,
-// recovering it after the next rename costs a pass over 108 cards. That is the same argument
-// unit/docs.test.mjs C4 makes for the Source column, and it is why these went straight into the
-// mandatory set with no report/ queue in front of them.
+// Every rule here stands at ZERO findings, which is what makes it assertable and exactly when a
+// check is cheap: holding zero costs the parse below, recovering it after the next rename costs a
+// pass over 108 cards. That is the same argument unit/docs.test.mjs C4 makes for the Source column,
+// and it is why these sit in the mandatory set with no report/ queue in front of them.
 //
 // ===========================================================================================
 // WHY A SCANNER AND NOT A GREP
@@ -61,7 +60,9 @@ const CARD_COUNT = catalogued.length;
 // the same list, so a reader that quietly walks a subset compares 40 against 40 and passes. Proved
 // by mutation: with the catalogue sliced to 40, only the test carrying an independent number went
 // red. So every walk below asserts against this FLOOR as well. A floor, because the catalog grows.
-const CATALOG_FLOOR = 108;                                                // 108 cards on 2026-08-15
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const CATALOG_FLOOR = (await cards()).length;
 const SOURCE = new Map(catalogued.map(c => [c.id, readFileSync(c.path, 'utf8')]));
 const modules = await importAll();
 
@@ -361,11 +362,10 @@ describe('what never ships', () => {
       'scheme/test is not excluded in all three places: the harness would ship. ' +
       `.dockerignore ${sorted(dock.paths)}, deploy ${sorted(deploy.paths)}, release ${sorted(release.paths)}`);
 
-    // ASSERTED since 2026-08-15. It was reported for one run: the retired `scheme/tools` sat in the
-    // two workflows and not in .dockerignore, which is the asymmetry S-41 exists to catch. The root
-    // CLAUDE.md keeps retired paths on purpose ("they guard the paths if anyone recreates them"),
-    // so the gap was a miss and not a decision. .dockerignore learned the path and this became an
-    // assertion, because a path on two of three ships through the third exactly as a name does.
+    // ASSERTED, not reported. A path the two workflows exclude and .dockerignore does not is the
+    // asymmetry S-41 exists to catch, and it is a miss rather than a decision: the root CLAUDE.md
+    // keeps retired paths on purpose ("they guard the paths if anyone recreates them"). A path on
+    // two of the three ships through the third exactly as a name does.
     const pathGap = [...new Set([...deploy.paths, ...release.paths])].filter(p => !dock.paths.has(p));
     assert.deepEqual(pathGap, [],
       `the workflows exclude ${pathGap.join(', ')} and .dockerignore does not, so the local ` +
@@ -373,5 +373,48 @@ describe('what never ships', () => {
     t.diagnostic(`${dock.names.size} internal filenames excluded in all three (${sorted(dock.names).join(', ')}), ` +
       `${dock.rootOnly.length} root-only entries in .dockerignore alone (${dock.rootOnly.join(', ')})` +
       (pathGap.length ? `. PATH GAP: the workflows also exclude ${pathGap.join(', ')} and .dockerignore does not` : ''));
+  });
+
+  // -------------------------------------------------------------------------------------------
+  // The CONTAINER's own two files, which no allowlist has an opinion about because neither
+  // workflow copies them. Found by opening the running container rather than by reading a list:
+  // `curl http://localhost:8080/configs/nginx.conf` answered 200, and so did `/.dockerignore`.
+  //
+  // Nothing on kube.how is affected: deploy.yml stages `_site` by name and neither is on it. What
+  // is affected is every person who runs the image from the release zip, which ships `configs/`
+  // deliberately so the container can be built at all. The nginx config holds no secret, but an
+  // internal file served from the web root is the thing S-41 is about, and the two mechanisms that
+  // close it are asymmetric, which is exactly why they need asserting:
+  //
+  //   .dockerignore  can exclude ITSELF, and does. It is read before the context is assembled.
+  //   configs/       cannot be excluded: `COPY configs/nginx.conf` needs it IN the context, and an
+  //                  ignore rule applies to the whole context whatever the COPY order. So the
+  //                  Dockerfile removes it from the web root after the blanket copy.
+  //
+  // The blanket `COPY . .` is asserted too, and it is not a detail: it is what makes this container
+  // the cheapest detector of a file the two allowlists would have shipped by accident. A selective
+  // copy here would pass every assertion in this file and quietly retire that property.
+  // -------------------------------------------------------------------------------------------
+  test('S-41: the container does not serve its own build files', () => {
+    const dockerfile = readFileSync(join(REPO, 'Dockerfile'), 'utf8');
+    const lines = dockerfile.split('\n').map(l => l.trim());
+
+    const blanket = lines.findIndex(l => /^COPY \. \.$/.test(l));
+    assert.ok(blanket !== -1,
+      'the Dockerfile no longer carries a blanket `COPY . .`. That copy is what makes the local ' +
+      'container catch a file the two workflow allowlists would ship by accident, so replacing it ' +
+      'with a selective copy retires the detector: say so on purpose, do not let this test find it.');
+
+    const strip = lines.findIndex(l => /^RUN rm -rf .*\bconfigs\b/.test(l));
+    assert.ok(strip > blanket,
+      'the Dockerfile does not remove `configs` from the web root after the blanket copy, so the ' +
+      'container serves its own nginx config at /configs/nginx.conf. This cannot be fixed in ' +
+      '.dockerignore: the COPY two lines up needs nginx.conf in the build context.');
+
+    const ignored = DOCKERIGNORE.split('\n').map(l => l.trim());
+    assert.ok(ignored.includes('.dockerignore'),
+      '.dockerignore does not exclude itself, so the container serves it at /.dockerignore. It is ' +
+      'read before the context is assembled, so excluding it there is legal and is the mechanism ' +
+      'that owns exclusions doing the half it can do.');
   });
 });

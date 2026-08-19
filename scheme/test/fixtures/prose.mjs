@@ -2,15 +2,16 @@
 // user-visible text (a card `desc`, a step `narration`, an `aria-label`). Two copies would drift
 // and then two tests would disagree about how many sentences a description has. No dependencies.
 //
-// NOT carried over from tools/prose.mjs, on purpose: INLINE_SITES and everything downstream of it
-// (extractInline, chipDecls, chipValues, extractIndirect, matchBracket, splitTop, callsOf, and
-// stripComments, which only that machinery used). All of it scrapes a card's SOURCE with regexes to
-// guess which strings get drawn, and that is the mechanism this refactor retires: wave 2 reads
-// SCENE and STEPS_SPEC instead. The matcher below never needed stripComments, because its input is
-// a prose string, not a source file.
+// WHAT THIS FILE DELIBERATELY DOES NOT HOLD: any machinery that scrapes a card's SOURCE with
+// regexes to guess which strings get drawn, which is an INLINE_SITES table and everything
+// downstream of it (extractInline, chipDecls, chipValues, extractIndirect, matchBracket, splitTop,
+// callsOf, and the stripComments only that machinery needs). A guess off source text is not what a
+// test should assert: the drawn strings are read off SCENE and STEPS_SPEC, which are data. The
+// matcher below needs no stripComments either, because its input is a prose string, not a source
+// file.
 //
-// Where the input comes from in wave 1: `desc` from fixtures/catalog.mjs (it lives in cards.js and
-// imports cleanly), `narration` and step ids from fixtures/render.mjs stepMeta() (they live inside
+// Where the input comes from: `desc` from fixtures/catalog.mjs (it lives in cards.js and imports
+// cleanly), `narration` and step ids from fixtures/render.mjs stepMeta() (they live inside
 // makeInit's closure and only the running controller can reach them).
 
 import { readFile } from 'node:fs/promises';
@@ -35,7 +36,7 @@ export async function loadTerms() {
 // rule, whose entire job is telling a real lowercase opening from a false one.
 const ABBREV = ['e\\.g', 'i\\.e', 'etc', 'vs', 'cf', 'approx'];
 
-export const SENTENCE_SPLIT = new RegExp(
+const SENTENCE_SPLIT = new RegExp(
   `(?<=(?<![0-9])[.!?])(?<!\\b(?:${ABBREV.join('|')})\\.)\\s+`
 );
 
@@ -68,7 +69,7 @@ export const termRegex = t => new RegExp(`(?<![\\w-]|\\w\\.|\\/)${esc(t)}s?(?![\
 const COMMAND_TAIL = /[Kk]ubectl\s+[a-z-]+(?:\s+[a-z-]+)?\s+$/;
 
 // Ranges in `text` where this term is a literal name rather than the term.
-export function exceptionRanges(dict, term, text) {
+function exceptionRanges(dict, term, text) {
   const pats = (dict.exceptions || {})[term];
   if (!pats) return [];
   const out = [];

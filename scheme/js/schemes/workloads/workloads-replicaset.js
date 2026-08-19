@@ -189,7 +189,9 @@ export const STEPS_SPEC = [
   },
   {
     id: 'adopt',
-    duration: 3700,
+    // Motion: the orphan appears (600), the PATCH leaves a beat later and lands at 1400, the adopt
+    // ball rides to 3322 and the arrival pulse closes at 4222. The two-beat shape cost 700ms.
+    duration: 4400,
     narration: 'A standalone Pod is created with the label app=web and no controller ownerReference. The ReplicaSet matches Pods by selector, not by who created them, so it adopts this orphan: it PATCHes the Pod metadata.ownerReferences to point at itself. The Pod was already running, adoption only restamps its owner, and it now joins the set on the Node as the fourth replica. The observed count is now 4.',
     chips: { selectorChip: 'app=web', desiredChip: '3', observedChip: '3 → 4', actionChip: 'adopt +1' },
     wires: { req: 'PATCH ownerReferences · adopt web-d4 (app=web)' },
@@ -197,13 +199,19 @@ export const STEPS_SPEC = [
     lit: ['rs', 'observedChip', 'actionChip'],
     reducedLit: ['pod4Box'],
     chain: 3,
-    // The Pod alone winds back, not the tail and tap the static block also turned on: the ball rides
-    // both of those on its way in, and it cannot fly over blank canvas to reach a slot.
-    rewind: { opacity: { pod4: 0 } },
+    // The orphan is NOT created by the ReplicaSet, so it winds back to absent and to `owner: none`,
+    // the sublabel the idle frame already carries. The tail and tap stay on: the ball rides them.
+    rewind: { opacity: { pod4: 0 }, sublabels: { pod4Box: 'owner: none' } },
     flow: [
-      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'patch', lights: ['api'] }),
+      // The standalone Pod appears on its own, unmanaged (OPACITY.notready, outside this path), and
+      // only THEN does the ReplicaSet see a selector match and PATCH the ownerReference.
+      F.fade({ target: 'pod4', from: 0, to: OPACITY.notready, dur: FADE.in, delay: 0, fill: 'both', easing: 'ease-out' }),
+      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: FADE.in + BEAT.afterHop, name: 'patch', lights: ['api'] }),
       F.route({ points: LANE(3), after: 'patch', name: 'join' }),
-      F.fade({ target: 'pod4', from: 0, to: 1, dur: FADE.in, at: 'join', fill: 'both', easing: 'ease-out' }),
+      // Adoption is a change of OWNER, not a birth: the Pod rises out of unmanaged and its sublabel
+      // turns over on the same beat, so the ball lands on a Pod that was already running.
+      F.fade({ target: 'pod4', from: OPACITY.notready, to: 1, dur: FADE.in, at: 'join', fill: 'both', easing: 'ease-out' }),
+      F.set({ at: 'join', sublabels: { pod4Box: 'adopted · owner: rs' } }),
       F.pulse({ pod: 'pod4', at: 'join' }),
     ],
   },

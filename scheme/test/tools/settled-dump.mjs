@@ -32,7 +32,7 @@
 
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { launch, setInspect, stepCount, discoverIds, stepSpan, DEFAULT_BASE, DIAGRAM } from '../fixtures/render.mjs';
+import { launch, initPage, stepCount, discoverIds, stepSpan, DEFAULT_BASE, DIAGRAM } from '../fixtures/render.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(
@@ -78,11 +78,11 @@ const playStep = (page, idx) => page.evaluate((i) => {
   return true;
 }, idx);
 
-// The step's logical length is read WHILE it plays, through `fixtures/render.stepSpan`. This file
-// used to keep a copy of that arithmetic, on the grounds that the fixture "is written for the
-// frozen path and this file must not pause anything". That was not true: stepSpan only reads
-// getComputedTiming() off every animation on the diagram, and the pausing lives in seekStep() and
-// enterStep(), neither of which this file calls. `playStep` below is a real divergence and stays.
+// The step's logical length is read WHILE it plays, through `fixtures/render.stepSpan`. That
+// arithmetic lives in the fixture and nowhere else, this file keeps no copy of it: stepSpan only
+// reads getComputedTiming() off every animation on the diagram, and the pausing lives in seekStep()
+// and enterStep(), neither of which this file calls, so it is safe to call from the playing path.
+// `playStep` is a real divergence and stays.
 
 // Is anything on the diagram still moving? A finite animation that has finished reports 'finished',
 // so only live work answers true. An INFINITE one (the marching dash) is excluded by construction:
@@ -202,7 +202,7 @@ async function dumpCard(ctx, id, only) {
   const browser = await launch();
   // no-preference explicitly: this tool is the ANIMATED path played out to its end.
   const ctx = await browser.newContext({ reducedMotion: 'no-preference', viewport: { width: 1400, height: 900 } });
-  await ctx.addInitScript(setInspect, 'expose');
+  await ctx.addInitScript(initPage, 'expose');
 
   if (dumpAll) {
     const probe = await ctx.newPage();

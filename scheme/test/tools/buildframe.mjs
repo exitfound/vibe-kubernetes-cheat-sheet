@@ -14,7 +14,7 @@
 // one ordered list and their initial opacity is the only per-part state `build()` sets.
 //
 // WHAT IT IS BLIND TO. Geometry, colour, text placement, and anything a step does. It answers one
-// question, "does the card start from the same picture it used to", which is the question a
+// question, "does the card start from the recorded picture", which is the question a
 // migration has to answer and no test file asks.
 //
 // THE RACE, AND WHY THE CONTROLLER IS PAUSED FIRST. The poster auto-plays step 1 about a second
@@ -24,7 +24,7 @@
 // the pause won the race: a dump that disagrees with itself is reported instead of returned.
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { launch, setInspect, openCard, discoverIds, DEFAULT_BASE, DIAGRAM } from '../fixtures/render.mjs';
+import { launch, initPage, openCard, discoverIds, DEFAULT_BASE, DIAGRAM } from '../fixtures/render.mjs';
 
 const args = process.argv.slice(2);
 const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
@@ -77,7 +77,7 @@ async function dump(ctx, id) {
 
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
-await ctx.addInitScript(setInspect, 'expose');
+await ctx.addInitScript(initPage, 'expose');
 try {
   if (!flags.all) {
     console.log(await dump(ctx, positional[0]));

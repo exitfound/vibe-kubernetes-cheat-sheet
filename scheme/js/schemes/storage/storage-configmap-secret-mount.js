@@ -35,6 +35,16 @@ const GAP_MY = (POD_BOTTOM + VOL_Y) / 2;                                 // 222
 const SUB_IN_X = DATA_CX - 60;                                           // 540
 const W_SUBPATH   = [[OLD_CX, DIR_Y], [OLD_CX, GAP_MY], [SUB_IN_X, GAP_MY], [SUB_IN_X, POD_BOTTOM]];
 
+// The spine ends on the Pod floor, where the default -14 prints the tag over the mounts /etc/config
+// sublabel. Riding 10 BELOW the ball parts the two, and clears the volume title under the start.
+const READ_TAG_DY = 10;
+// Only the sync step carries the clock caption, which starts at x 618 and takes 15 units of the tag
+// as it climbs past: -20 is what its widest measured half needs to clear that caption.
+const SYNC_TAG_DX = -20;
+// The source lanes run through the middle of two 64-tall boxes, so a tag riding above the ball has to
+// clear their tops: -36 is the least that does, measured on all four viewports.
+const SRC_TAG_DY = -36;
+
 const SYM_OLD = [[DATA_X, SYM_Y], [OLD_CX, SYM_Y], [OLD_CX, DIR_Y]];
 const SYM_NEW = [[DATA_X + DATA_W, SYM_Y], [NEW_CX, SYM_Y], [NEW_CX, DIR_Y]];
 
@@ -57,8 +67,8 @@ export const SCENE = {
     // The mounted volume directory, named by a title centered on its top band. The title sits
     // between the two inner lanes (x=460 and x=600 never cross it) and above ..data.
     P.box({ x: VOL_X, y: VOL_Y, w: VOL_W, h: VOL_H, label: '', sublabel: '', tune: washFrame }),
-    // shellWrap survives as a handle for code that wants the shell alone. The PULSE is not that:
-    // it takes the whole Pod group, so the app box blinks with the Pod it belongs to (2026-07-29).
+    // shellWrap is the handle for code that wants the shell alone. The PULSE is not that:
+    // it takes the whole Pod group, so the app box blinks with the Pod it belongs to.
     P.group({
       key: 'pod',
       parts: [
@@ -78,7 +88,9 @@ export const SCENE = {
     P.relation({ key: 'symOld', points: SYM_OLD }),
     P.relation({ key: 'symNew', points: SYM_NEW, opacity: 0 }),
     P.lane({ points: W_CM_READ, dashed: true, dim: true }),
-    P.lane({ points: W_SEC_READ, dashed: true, dim: true }),
+    // Keyed because the Secret is a ghost until its own step, and its read lane is the Secret: an
+    // arrowhead at full strength out of a dimmed block reads as traffic that block is not carrying.
+    P.lane({ key: 'wSecRead', points: W_SEC_READ, dashed: true, dim: true }),
     P.lane({ points: W_WRITE_OLD, dashed: true, dim: true }),
     P.lane({ key: 'wWriteNew', points: W_WRITE_NEW, dashed: true, dim: true, opacity: 0 }),
     P.lane({ points: W_APP_READ, dashed: true, dim: true }),
@@ -103,8 +115,11 @@ export const SCENE = {
 };
 
 // STO.S-01 as a field: the v2 dir, its pointer and its write lane are born mid-story, the subPath
-// lane and the Secret change shade, so every one of them is pinned on EVERY step.
-const STAGE = { symOld: 1, symNew: 0, dirNew: 0, wWriteNew: 0, wSubpath: 0, sec: OPACITY.notready };
+// lane and the Secret WITH ITS READ LANE change shade, so every one of them is pinned on EVERY step.
+const STAGE = {
+  symOld: 1, symNew: 0, dirNew: 0, wWriteNew: 0, wSubpath: 0,
+  sec: OPACITY.notready, wSecRead: OPACITY.notready,
+};
 const FLIPPED = { ...STAGE, symOld: 0, symNew: 1, dirNew: 1, wWriteNew: 1 };
 const UP = { pod: 1 };
 
@@ -143,7 +158,7 @@ export const STEPS_SPEC = [
     // pulses on arrival.
     flow: [
       F.route({ points: W_APP_READ, name: 'read' }),
-      F.tag({ text: 'resolves v1', points: W_APP_READ }),
+      F.tag({ text: 'resolves v1', points: W_APP_READ, dy: READ_TAG_DY }),
       F.pulse({ pod: 'pod', at: 'read' }),
     ],
   },
@@ -161,7 +176,7 @@ export const STEPS_SPEC = [
     // pointer the instant that dir is complete: old pointer out, new pointer in.
     flow: [
       F.route({ points: W_CM_READ, name: 'read' }),
-      F.tag({ text: 'app.conf v2', points: W_CM_READ }),
+      F.tag({ text: 'app.conf v2', points: W_CM_READ, dy: SRC_TAG_DY }),
       F.light({ targets: ['kubelet'], at: 'read' }),
       F.fade({ target: 'dirNew', from: 0, to: 1, dur: 400, after: 'read', fill: 'forwards', easing: 'ease-out' }),
       F.fade({ target: 'wWriteNew', from: 0, to: 1, dur: 400, after: 'read', fill: 'forwards', easing: 'ease-out' }),
@@ -182,7 +197,7 @@ export const STEPS_SPEC = [
     // After the sync delay the app re-reads, and ..data now resolves to v2.
     flow: [
       F.route({ points: W_APP_READ, delay: 900, name: 'read' }),
-      F.tag({ text: 'resolves v2', points: W_APP_READ, delay: 900 }),
+      F.tag({ text: 'resolves v2', points: W_APP_READ, delay: 900, dy: READ_TAG_DY, dx: SYNC_TAG_DX }),
       F.pulse({ pod: 'pod', at: 'read' }),
     ],
   },
@@ -205,11 +220,11 @@ export const STEPS_SPEC = [
     duration: 2400,
     narration: 'A Secret mounted as a volume works exactly the same way, keys become files behind the atomic symlink swap. The one difference is that a Secret directory defaults to tmpfs, so its files live in memory and never get written to the Node disk.',
     chipsCued: { modeChip: 'Secret (tmpfs)', swapChip: 'same symlink swap', valueChip: 'tls.crt from RAM' },
-    opacity: { ...UP, ...FLIPPED, sec: 1 },
+    opacity: { ...UP, ...FLIPPED, sec: 1, wSecRead: 1 },
     lit: ['sec'],
     flow: [
       F.route({ points: W_SEC_READ, lights: ['kubelet'] }),
-      F.tag({ text: 'tls.crt in RAM', points: W_SEC_READ }),
+      F.tag({ text: 'tls.crt in RAM', points: W_SEC_READ, dy: SRC_TAG_DY }),
     ],
   },
 ];

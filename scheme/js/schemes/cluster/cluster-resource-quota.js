@@ -8,8 +8,8 @@ import { P, F, defineCard, laneY, ladder, strip, midX, laneOf, CLU, OPACITY, REV
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 
-// TWO actors, both at the family 232. The LimitRange stood here as a third until 2026-08-04 and is
-// not an actor at all: it moved down beside the two ladder rows that read it.
+// TWO actors, both at the family 232. The LimitRange is not an actor, so it sits beside the two
+// ladder rows that read it.
 const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
 const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
 const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 80
@@ -56,6 +56,9 @@ const OVER_X = BAR_R, OVER_W = REQ_W;                    // 900..1140, past the 
 const CAP_Y = BAR_Y - 10;                                // 376
 const OVER_CX = OVER_X + OVER_W / 2;                     // 1020
 const OVER_WIRE_Y = BAR_Y + BAR_H + 18;                  // 468
+// The counterfactual caption sits in the one empty band the branch has, between the LimitRange and
+// the quota tag, and starts on the 420 rail the LimitRange, the bar and that tag all share.
+const WIRE_IF_Y = midX(LR_Y + LR_H, CAP_Y);              // 301, ink centred in the 226..376 band
 
 // What a reader can actually observe, in the corner the panel frees once its text ends. Three
 // rows, one per desired replica, because the whole point of the card is that the third is absent.
@@ -115,6 +118,9 @@ export const SCENE = {
     P.box({ key: 'bar', x: BAR_X, y: BAR_Y, w: BAR_W, h: BAR_H, rx: 6 }),
     P.tag({ x: BAR_X, y: CAP_Y, anchor: 'start', text: 'ResourceQuota team-quota · namespace team-a' }),
     P.tag({ x: BAR_R, y: CAP_Y, text: 'spec.hard 1' }),
+    // T-35: the sign that a step draws a HYPOTHESIS rather than state that happened. The reset
+    // prologue blanks every wire, so this one is a caption for the one step that writes it.
+    P.wire({ key: 'branch', x: BAR_X, y: WIRE_IF_Y, anchor: 'start' }),
     budgetBlock({ key: 'slot0', x: SLOT_X(0), w: REQ_W, label: 'web-1' }),
     budgetBlock({ key: 'slot1', x: SLOT_X(1), w: REQ_W, label: 'web-2' }),
     // Past the bar edge and dashed, because it is a request that never became an object.
@@ -328,7 +334,10 @@ export const STEPS_SPEC = [
     narration: 'Take the LimitRange away and web-1 would not have got in either. Once a quota constrains requests.cpu, every new Pod in that namespace must name requests.cpu or limits.cpu, because a Pod carrying neither is a Pod the quota cannot count. That is what makes a LimitRange structural here rather than a convenience.',
     chips: chipsOf('requests.cpu 0', '403 · no requests.cpu on the Pod', '3 desired · 0 ready'),
     ...NO_LIMITRANGE,
-    wires: { over: 'nothing here for the quota to count' },
+    wires: {
+      branch: 'if instead no LimitRange existed',
+      over: 'nothing here for the quota to count',
+    },
     lit: ['bar', 'over', 'hardChip', 'usedChip', 'admitChip', 'rsChip'],
     chain: 3,
   },

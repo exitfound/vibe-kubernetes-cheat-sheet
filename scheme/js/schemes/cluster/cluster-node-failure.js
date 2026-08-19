@@ -1,4 +1,4 @@
-import { P, F, defineCard, ladder, strip, midX, shade, CLU, LAYOUT, FADE, OPACITY, laneOf } from './cluster-kit.js';
+import { P, F, defineCard, ladder, strip, midX, CLU, LAYOUT, FADE, OPACITY, laneOf } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS.md#cluster-node-failure
 
@@ -47,22 +47,26 @@ const CHIP_ROW = ladder({ y: CHIPS_Y, rowH: CHIP_H, gap: CHIP_VGAP });
 const CHIP_X = i => CHIP_COL.x(i % CHIP_COLS);
 const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 
-// Every lane starts and ends on a NODE FRAME face, never on a Pod inside one: which Pod the step
-// lands on is carried by the pulse. No Pod renews a Lease either, the Kubelet on the Node does.
-const LANE_DX = 12;                                      // the two lanes share the Node-1 top face
+// The heartbeat leaves the Node-1 FRAME, because no Pod renews a Lease and the Kubelet on the Node
+// does. The eviction DELETE lands on the Pod OBJECT it names: ./CARDS.md#cluster-node-failure.
+const LANE_DX = 12;                                      // both lanes sit 12 off the Node-1 midpoint
 // The heartbeat riser and the reschedule drop share the 502..660 band, so 640 keeps 20 off the
 // ladder and 40 off the drop: wide enough that the two do not read as one LANE_DX pair.
 const GUTTER_X = LADDER_X - 20;                          // 640, between the drop and the ladder
 const UNDER_TOP_Y = TOP_BOTTOM + 16;                     // 136, below the top row, above the ladder
 const EV_JOG_Y = NODE_Y - 66;                            // 340, the outbound lane of the corridor
 const HB_JOG_Y = NODE_Y - 44;                            // 362, the return lane, 22 below it
+// The heartbeat caption rides the leg it names, not the top row. Anchored on the riser it leaves
+// rather than centred, because the string measures 282.5 at 1600x1000 and a centred box reaches 607.
+const HB_WIRE_X = NODE_A_CX + LANE_DX + 10;              // 303, 10 clear of the riser
+const HB_WIRE_Y = HB_JOG_Y + 18;                         // 380, the below-a-lane offset of the catalog
 
 const HEARTBEAT_CONNECTOR = [[NODE_A_CX + LANE_DX, NODE_Y], [NODE_A_CX + LANE_DX, HB_JOG_Y], [GUTTER_X, HB_JOG_Y], [GUTTER_X, UNDER_TOP_Y], [LEASE_CX, UNDER_TOP_Y], [LEASE_CX, TOP_BOTTOM]];
 // Both leave the controller, the actor both steps name. NOT a mirrored pair: Node-2's top face is
 // unreachable under the ladder, so the reschedule takes the corridor and the midpoint outright.
 const RS_X = CX;                                         // 600, corridor centre and face midpoint
 const EV_X = CX - LANE_DX * 2;                           // 576, clear of it by 24
-const EVICT_CONNECTOR     = [[EV_X, TOP_BOTTOM], [EV_X, EV_JOG_Y], [NODE_A_CX - LANE_DX, EV_JOG_Y], [NODE_A_CX - LANE_DX, NODE_Y]];
+const EVICT_CONNECTOR     = [[EV_X, TOP_BOTTOM], [EV_X, EV_JOG_Y], [NODE_A_CX - LANE_DX, EV_JOG_Y], [NODE_A_CX - LANE_DX, POD_Y]];
 const RESCHED_CONNECTOR   = [[RS_X, TOP_BOTTOM], [RS_X, NODE_CY], [NODE_B_X, NODE_CY]];
 
 // The list order IS the append order, so it is the z-order: the ladder, the two frames and their Pods
@@ -76,11 +80,14 @@ export const SCENE = {
     P.relation({ points: [[CTRL_R, TOP_CY], [LEASE_X, TOP_CY]] }),
     // Heartbeat connector: Node-1 top centre up and over into the Lease bottom centre.
     P.lane({ key: 'hbLane', points: HEARTBEAT_CONNECTOR, dim: true, dashed: true }),
-    // Two controller-sourced lanes into the Node band: the eviction DELETE drops onto the Node-1
-    // frame, and the creation of the replacement turns into the Node-2 frame.
+    // Two controller-sourced lanes into the Node band: the eviction DELETE drops through the Node-1
+    // frame onto its Pod, and the creation of the replacement turns into the Node-2 frame.
     P.lane({ key: 'evictLane', points: EVICT_CONNECTOR, dim: true, dashed: true }),
     P.lane({ key: 'reschedLane', points: RESCHED_CONNECTOR, dim: true, dashed: true }),
+    // Two registers: `ctrl` captions what the controller writes, `hb` rides the heartbeat leg,
+    // because the Kubelet PUT is the one string on this card that has a lane of its own.
     P.wire({ key: 'ctrl', x: WIRE_X, y: WIRE_Y }),
+    P.wire({ key: 'hb', x: HB_WIRE_X, y: HB_WIRE_Y, anchor: 'start' }),
     // Row 1, the detection trio. The grace period is the THRESHOLD the Lease age is measured
     // against: it is what makes 30s of staleness harmless and 52s fatal.
     P.chip({ key: 'readyChip', x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'Ready',      value: 'True' }),
@@ -129,11 +136,12 @@ export const SCENE = {
   },
 };
 
-// Every step writes the whole set, and each lane takes the Node-1 FRAME shade, the dimmer of its two
-// ends. The reschedule lane is drawn or not: an early arrowhead promises a delivery that never comes.
+// Every step writes the whole set. The heartbeat ends on the Node-1 FRAME and takes its shade, the
+// eviction ends on the POD and takes the dimmer of that Pod and the frame it crosses to reach it.
 const shades = ({ nodeA = 1, podA = 1, podB = 0, resched = 0 } = {}) => ({
   nodeA, nodeB: 1, podA, podB,
-  ...shade(['hbLane', 'evictLane'], laneOf(nodeA, OPACITY.running)),
+  hbLane: laneOf(nodeA, OPACITY.running),
+  evictLane: laneOf(podA, nodeA),
   reschedLane: resched,
 });
 
@@ -158,7 +166,7 @@ export const STEPS_SPEC = [
     duration: 2600,
     narration: 'Kubelet on Node-1 proves liveness with two heartbeats. It renews its Lease in kube-node-lease every 10s and PATCHes Node.status every 5 min. The Node-lifecycle-controller treats the fast Lease renewal as its primary liveness signal.',
     chips: { ...FRESH, leaseChip: '2s · Fresh · renewed' },
-    wires: { ctrl: 'Kubelet · PUT lease renewTime · every 10s' },
+    wires: { hb: 'Kubelet · PUT lease renewTime · every 10s' },
     opacity: shades(),
     lit: ['leaseChip'],
     chain: 0,
@@ -210,12 +218,12 @@ export const STEPS_SPEC = [
     id: 'evict',
     duration: 2400,
     narration: 'Toleration expires. The taint-eviction-controller deletes the Pod with a plain DELETE that bypasses PodDisruptionBudgets (unlike kubectl drain, which uses the PDB-aware Eviction API). The Pod gets a deletionTimestamp and sits in Terminating, because the API can only finish the delete once the Kubelet confirms it, and the unreachable Node-1 still holds the orphaned container.',
-    chips: { ...FRESH, ...EXPIRED, ...TAINTED, evictChip: '0s · Terminating' },
+    chips: { ...FRESH, ...EXPIRED, ...TAINTED, leaseChip: 'over 350s · Expired', evictChip: '0s · Terminating' },
     wires: { ctrl: 'DELETE /api/v1/.../pods/{name} · taint-eviction' },
-    // Terminating is a phase, not an absence, so the Pod stays drawn at that shade. Its two lanes
-    // do NOT follow it: both end on the Node-1 frame and hold the frame shade.
+    // Terminating is a phase, not an absence, so the Pod stays drawn at that shade. The eviction lane
+    // ends ON that Pod and follows it down, the heartbeat ends on the frame and keeps the frame shade.
     opacity: shades({ nodeA: DOWN, podA: DYING }),
-    lit: ['evictChip', 'ctrl'],
+    lit: ['leaseChip', 'evictChip', 'ctrl'],
     chain: 4,
     // The DELETE travels from the controller down the left margin to the Pod on
     // Node-1; the Pod flinches and sinks to Terminating when the packet reaches it.
@@ -223,6 +231,9 @@ export const STEPS_SPEC = [
       F.route({ points: EVICT_CONNECTOR, name: 'del' }),
       F.pulse({ pod: 'podA', at: 'del' }),
       F.fade({ target: 'podA', to: DYING, dur: FADE.out, at: 'del' }),
+      // The lane sinks with the Pod it ends on, same beat and same 700: it holds 0.4 for the whole
+      // 1353 of the flight (A-15) and matches its fainter end from the moment the ball lands.
+      F.fade({ target: 'evictLane', from: DOWN, to: DYING, dur: FADE.out, at: 'del' }),
     ],
   },
   {
@@ -231,12 +242,12 @@ export const STEPS_SPEC = [
     narration: 'The owning controller (Deployment via its ReplicaSet) sees the missing replica and creates a replacement Pod. Scheduler picks the healthy Node-2 and Kubelet there starts it. End-to-end recovery takes about 50s plus 300s by default, the grace period plus the toleration.',
     chips: { ...FRESH, ...EXPIRED, ...TAINTED, leaseChip: 'over 350s · Expired', evictChip: 'none · Node-2 has no taint' },
     wires: { ctrl: 'Deployment recreates replica · Scheduler binds Node-2' },
-    // Pin the final state inline: the old Pod is still Terminating, not gone, so it and its lanes
-    // keep the Node-1 shade. The reschedule lane comes on now, the first step anything travels it.
+    // Pin the final state inline: the old Pod is still Terminating, not gone, so its own lane stays
+    // at that shade. The reschedule lane comes on now, the first step anything travels it.
     opacity: shades({ nodeA: DOWN, podA: DYING, podB: 1, resched: 1 }),
-    // The two chips that move on this step carry the card's usual cue. The Lease age IS the
-    // 50s plus 300s the narration adds up, and the timer has nothing left to run against.
-    lit: ['leaseChip', 'evictChip', 'ctrl'],
+    // The eviction timer is the one chip that moves here, and it has nothing left to count: the
+    // Lease age reached the 50s plus 300s the narration adds up one step ago, with the toleration.
+    lit: ['evictChip', 'ctrl'],
     chain: 5,
     // Nothing moves from the dying Pod: the controller CREATES a replacement, so the ball leaves
     // the controller and the new Pod materialises and pulses only when it arrives on Node-2.

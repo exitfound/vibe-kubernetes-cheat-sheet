@@ -89,6 +89,9 @@ export const SCENE = {
 const assigned = (k8s, dns, web) => ({ sublabels: { svcK8s: k8s, svcDns: dns, svcWeb: web } });
 const PENDING = 'clusterIP pending';
 const K8S_IP = 'clusterIP 10.96.0.1', DNS_IP = 'clusterIP 10.96.0.10', WEB_IP = 'clusterIP 10.96.137.42';
+// The IPAddress object, said twice on the dynamic step: once as the state it ends in, once as the
+// value the flow writes when the address lands.
+const IPADDR = '10.96.137.42 . default/web';
 // The add-on CIDR, its wire and the IPAddress object are revealed only on later steps.
 const LATER_HIDDEN = { cidr2: 0, aExtend: 0, ipaddrChip: 0 };
 
@@ -123,38 +126,44 @@ export const STEPS_SPEC = [
     ...assigned(K8S_IP, DNS_IP, PENDING),
     opacity: LATER_HIDDEN,
     lit: ['staticBand'],
-    // Two reservations leave the static band together (packet first, ripple on arrival: the
-    // Service boxes are receivers, and only Pods pulse so a box gets the ripple instead).
+    // Both Services end the step holding their reserved IP, which is what the static path shows. The
+    // animated path winds them back to pending so each address arrives with its own packet.
+    rewind: { sublabels: { svcK8s: PENDING, svcDns: PENDING } },
+    // Two reservations leave the static band together, and each ball rings on the Service it lands
+    // on: the Service boxes are receivers, and only Pods pulse.
     flow: [
       F.segment({ from: K8S_ROUTE[0], to: K8S_ROUTE[1], dur: 540, name: 'k8s', lights: ['svcK8s'] }),
       F.route({ points: DNS_ROUTE, fadeIn: true, name: 'dns', lights: ['svcDns'] }),
-      F.ripple({ point: K8S_ROUTE[1], at: 'k8s' }),
-      F.ripple({ point: DNS_ROUTE[DNS_ROUTE.length - 1], at: 'dns' }),
+      // Each IP is written where its own ball lands, 540 for the API Service and 858 for kube-dns.
+      F.set({ sublabels: { svcK8s: K8S_IP }, at: 'k8s' }),
+      F.set({ sublabels: { svcDns: DNS_IP }, at: 'dns' }),
     ],
   },
   {
     id: 'dynamic',
     duration: 2600,
     narration: 'A new Service web is created with no clusterIP, so the allocator picks the next free address from the dynamic band, here 10.96.137.42, and records it as an IPAddress object that points back to the Service. Every ClusterIP in the cluster is now tracked by one of these objects.',
-    chips: { ipaddrChip: '10.96.137.42 . default/web' },
+    chips: { ipaddrChip: IPADDR },
     ...assigned(K8S_IP, DNS_IP, WEB_IP),
     // The IPAddress object ends the step present, which is what the static path shows. The animated
     // path winds it back to hidden so its own fade can bring it in on arrival.
     opacity: { cidr2: 0, aExtend: 0, ipaddrChip: 1 },
     lit: ['dynamicBand', 'ipaddrChip'],
-    rewind: { opacity: { ipaddrChip: 0 } },
+    // The address is one fact said in two places, the Service sublabel and the IPAddress object, so
+    // both wind back to what the step before left and both are written on the same arrival.
+    rewind: { opacity: { ipaddrChip: 0 }, sublabels: { svcWeb: PENDING }, chips: { ipaddrChip: ' ' } },
     flow: [
       F.route({ points: WEB_ROUTE, name: 'give', lights: ['svcWeb'] }),
-      F.ripple({ point: WEB_ROUTE[WEB_ROUTE.length - 1], at: 'give' }),
-      // The IPAddress object materializes once the address lands on the Service.
+      // The IPAddress object materializes once the address lands on the Service, at 700.
       F.anim({ target: 'ipaddrChip', ...REVEAL, at: 'give' }),
+      F.set({ sublabels: { svcWeb: WEB_IP }, chips: { ipaddrChip: IPADDR }, at: 'give' }),
     ],
   },
   {
     id: 'extend',
     duration: 2600,
     narration: 'When the whole range fills up, the old fix was to resize the API server service-cluster-ip-range and restart it, a disruptive operation. Now you add a second ServiceCIDR object, here 10.97.0.0/16, and fresh ClusterIPs are drawn from it. The Service IP space grows with no downtime.',
-    chips: { ipaddrChip: '10.96.137.42 . default/web' },
+    chips: { ipaddrChip: IPADDR },
     // Keep the earlier assignments visible.
     ...assigned(K8S_IP, DNS_IP, WEB_IP),
     opacity: { cidr2: 1, aExtend: 1, ipaddrChip: 1 },
@@ -167,7 +176,6 @@ export const STEPS_SPEC = [
       F.anim({ target: 'aExtend', ...REVEAL }),
       // The add-on CIDR feeds fresh addresses into the dynamic band from its right side.
       F.route({ points: EXTEND_ROUTE, delay: 420, name: 'give', lights: ['dynamicBand'] }),
-      F.ripple({ point: EXTEND_ROUTE[EXTEND_ROUTE.length - 1], at: 'give' }),
     ],
   },
 ];

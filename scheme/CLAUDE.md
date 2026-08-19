@@ -18,8 +18,8 @@ a tiny `createElementNS` helper.
 
 ## Where to look
 
-Every command below runs from `scheme/test/`. **The old `gate` chain no longer exists**: the harness
-is a `node:test` suite, `npm test` must be green and `npm run report` is advisory.
+Every command below runs from `scheme/test/`. The harness is a `node:test` suite, `npm test` must
+be green and `npm run report` is advisory.
 
 | Task | Read | Edit | Verify |
 |---|---|---|---|
@@ -31,6 +31,7 @@ is a `node:test` suite, `npm test` must be green and `npm run report` is advisor
 | touch a shared helper | the JSDoc beside it | `js/lib/*` | `npm test`, then `tools/settled-dump.mjs` against a snapshot of the tree before the change |
 | retint a category | `./CANON.md` C, "Catalog and categories" below | `css/tokens.css`, `css/styles.css`, the kit | `npm test` (`render/palette.test.mjs`) |
 | draw a poster | `./CANON.md` R | `js/schemes/<cat>/posters.js` | montage against two siblings |
+| review a card | `./CANON.md`, narrowed with `tools/canon.mjs --check=review` to the rows no machine covers | whatever the findings name | `npm test`, then **the rendered frames** |
 | write or debug a check | the test file itself, `test/fixtures/*` | `test/{unit,render,report}/*.test.mjs` | that file alone: `node --test '<path>'` |
 
 **Verification ends at the rendered frames, never at the suite.** Most of what goes wrong here (a
@@ -66,7 +67,7 @@ scheme/
       <category>-kit.js       the tint, pulsePod/pulsePodDim, the P / F / defineCard bindings
       <id>.js                 one module per diagram
   test/       the harness: unit/ render/ report/ hold the checks, fixtures/ feeds them, and
-              tools/ holds two text probes the checks do not contain. Never shipped (S-41)
+              tools/ holds three probes the checks do not contain. Never shipped (S-41)
 ```
 
 **A record lives in the folder it describes.** One category's card notes are its `CARDS.md`.
@@ -130,9 +131,9 @@ list is an editorial argument, not a set (`D-10`), and it is recorded beside the
 
 Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There is exactly ONE legal
 export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **108 migrated,
-0 legacy**. The hand-written form was RETIRED 2026-08-15: a rule cannot admit a form this contract
-calls a regression, which is what it did while the counter sat at zero. What survives of it is the
-DETECTOR, described below, because that is how a card slipping back would be named.
+0 legacy**. That surface is the declarative form below, and a hand-written one is a regression
+rather than an alternative this contract admits. What NAMES a card slipping back is the DETECTOR
+described below.
 
 ### The declarative form, which every card uses
 
@@ -169,7 +170,7 @@ A step is data plus one ordered motion PROGRAM:
   enter(s, ctx) {},        // escape, runs on BOTH paths, last in the static block
   reducedLit: [],          // a highlight the reduced path shows INSTEAD of motion it cannot show
   rewind: {},              // winds a key back before the flow runs, animated path only
-  flow: [ ... ],           // F.route / segment / top / pulse / fade / reveal / set / light / anim / run
+  flow: [ ... ],           // F.route / segment / top / pulse / fade / reveal / set / light / anim / run / tag / ripple / flash
   motion(s, ctx) {},       // escape, animated path only, after flow
 }
 ```
@@ -212,35 +213,36 @@ value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow ord
 previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
 `render/duration.test.mjs` can see it at all.
 
-**The escapes, and how narrow they are.** **77 of the 108 cards are fully declarative**; 31 carry at
-least one hook, **132 hooks in all** (`part.raw` 43, `step.enter` 42, `part.tune` 33, `F.run` 13,
+**The escapes, and how narrow they are.** **76 of the 108 cards are fully declarative**; 32 carry at
+least one hook, **134 hooks in all** (`part.raw` 44, `step.enter` 42, `part.tune` 34, `F.run` 13,
 `reset.extra` 1, `step.motion` 0), and each exists for something with no honest general verb:
 `part.tune` reaches an element the builder already made, to capture a nested ref, write an SVG
 *attribute* or an inline `style.fill` no field reaches, build extra children inside a part (a second
 inner box in a Pod, a row of slot rects), or file a `P.wire` into the main ref bucket as well.
-Three of its 33 sites still accumulate an ARRAY ref, and those three are READ, by the seven `enter`
-hooks of `storage-fsgroup-ownership`. **41 sites that accumulated an array nothing read were removed
-2026-08-15**: their recorded justification named dumps that do not exist, and every element they
-collected already carried its own `key:`.
+Three of its 34 sites accumulate an ARRAY ref, and those three are READ, by the seven `enter`
+hooks of `storage-fsgroup-ownership`. An array ref nothing reads does not belong in `tune`: every
+element already carries its own `key:`.
 `part.raw` draws a bare `<rect>` or a free text node, `step.enter` writes text or an attribute no
 field reaches, and `F.run` at delay 0 is an imperative beat standing inside the flow order. Ten of
 the thirteen `F.run` are that delay-0 form; the three on `cluster-cpu-throttling` carry a real delay
 and are genuine deferred callbacks, the only ones in the catalogue.
-Storage carries the highest share, 14 of 31, and its folder `CLAUDE.md` accounts for them BY HOOK
-KIND in four rows, naming only 3 of the 14 cards, where cluster, network and workloads each name
+Storage carries the highest share, 15 of 31, and its folder `CLAUDE.md` accounts for them BY HOOK
+KIND in four rows, naming only 3 of the 15 cards, where cluster, network and workloads each name
 every card of their own. If a
 card looks like it needs a new VERB, stop and say so: three categories out of four grew the DSL zero
-times, and network's two additions (`F.tag`, `F.ripple`) were serialised through the coordinator.
+times, and its three additions were each serialised through the coordinator: `F.tag` and `F.ripple`
+for network, and `F.flash`, which is the declarative door to `flashChips` and the only reason
+`S-25` kept that export alive (`M-27`).
 
-### The retired form, kept only as a detector
+### The form that must not come back, and the detector that names it
 
 A hand-written `class Scene` with `build()` and `reset()` (`S-01`), a copied `resetStep(s)`
 prologue, a hand-written `STEPS` array whose every `enter(s, ctx)` splits on `ctx.reduced` by hand,
 and `export const init = makeInit(Scene, STEPS, { posterFirst: true });`. `defineCard` produces
-exactly that shape, so `makeInit`, `Timeline` and `app.js` cannot tell the two apart: **there was no
-compatibility layer to build and there is none to remove**. Writing a new card in this form is a
-regression, not a choice, and since 2026-08-15 `S-02` says so rather than listing it as an
-alternative. `LEGACY_EXPORTS` stays in `test/fixtures/module.mjs` for exactly one reason: a
+exactly that shape, so `makeInit`, `Timeline` and `app.js` cannot tell the two apart: **no
+compatibility layer stands between them**. Writing a new card in this form is a
+regression, not a choice, and `S-02` says so rather than listing it as an alternative.
+`LEGACY_EXPORTS` stays in `test/fixtures/module.mjs` for exactly one reason: a
 regression has to be NAMED, and a surface of `init` alone is what names it.
 
 Both forms share `ctx`: `ctx.reduced` is true under `prefers-reduced-motion` and when prev or reset
@@ -333,13 +335,15 @@ Two levels, deliberately. `npm test` is what cannot land broken. `npm run report
 human rules on, including the ones `L-16` keeps open on purpose. **A report file never fails on a
 finding, so it must announce its own invalidity**: no network, a fallback font, a short walk.
 
-**`test/tools/` holds two probes, and neither is a check.** They print a card's state as text so
-two trees can be diffed against each other, which is what a refactor needs and no assertion gives:
+**`test/tools/` holds three probes, and none of them is a check.** Two print a card's state as
+text so two trees can be diffed against each other, which is what a refactor needs and no assertion
+gives. The third reads the rulebook rather than a card:
 
 ```
 cd scheme/test
 node tools/settled-dump.mjs --all --out=DIR --base=http://localhost:8888
 node tools/buildframe.mjs   --all --out=DIR --base=http://localhost:8888
+node tools/canon.mjs --check=review --block=L,A
 ```
 
 `settled-dump` plays every step in REAL TIME and reads the frame it leaves behind: glyphs, the
@@ -359,8 +363,8 @@ test (if any) would notice it breaking, as `test:<file>/<name>` or `report:<file
 
 ## The findings that are left open
 
-**The `OPEN` findings in the four card records are not to be closed without a reason**: **18** today
-(cluster 9, storage 5, workloads 3, network 1). Each carries its own measurement and an explanation
+**The `OPEN` findings in the four card records are not to be closed without a reason**: **45** today
+(cluster 10, storage 14, workloads 5, network 16). Each carries its own measurement and an explanation
 of why the rule can only be satisfied by making the picture worse (`L-16`).
 
 **That is not the same population as the soft geometry findings, which number 8** (CENTRE 2,

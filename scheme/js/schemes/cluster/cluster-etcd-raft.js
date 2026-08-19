@@ -156,13 +156,22 @@ export const STEPS_SPEC = [
     wires: { replicate: 'AppendEntries · entry 9' },
     opacity: LIVE,
     lit: ['acksChip', 'e1', 'l2', 'l3'],
+    // A Follower log reads 9 because THIS step delivered entry 9 to it, and the counter reads 2
+    // because both acks landed here, so the animated path starts on the state append-log left.
+    rewind: { chips: { l2: '8 / 8', l3: '8 / 8', acksChip: '0 of 2' } },
     // Both AppendEntries leave together at natural travel speed. Each Follower is a receiver, so it
     // lights when ITS OWN packet lands, and its ack leaves a beat after that, on its own lane.
     flow: [
       F.segment({ from: E1_TO_E2[0], to: E1_TO_E2[1], name: 'toE2', lights: ['e2'] }),
       F.route({ points: REPLICATE, name: 'toE3', lights: ['e3'] }),
-      F.segment({ from: E2_TO_E1[0], to: E2_TO_E1[1], after: 'toE2' }),
-      F.route({ points: ACK_E3, after: 'toE3' }),
+      F.segment({ from: E2_TO_E1[0], to: E2_TO_E1[1], after: 'toE2', name: 'ackE2' }),
+      F.route({ points: ACK_E3, after: 'toE3', name: 'ackE3' }),
+      // Each write lands with its own AppendEntries (700, 1564) and the counter steps on each ack
+      // (1500, 3068), so no value stands before the packet that earns it.
+      F.set({ at: 'toE2', chips: { l2: '9 / 8' } }),
+      F.set({ at: 'toE3', chips: { l3: '9 / 8' } }),
+      F.set({ at: 'ackE2', chips: { acksChip: '1 of 2' } }),
+      F.set({ at: 'ackE3', chips: { acksChip: '2 of 2' } }),
     ],
   },
   {
@@ -188,7 +197,7 @@ export const STEPS_SPEC = [
     opacity: LIVE,
     lit: ['e1', 'l1', 'l2', 'l3'],
     // Both Followers RECEIVE the heartbeat, so they are dark at step entry and light when it lands:
-    // check-arrival R3 fired the moment the balls were added. Same two outbound lanes replicate uses.
+    // a block that receives must be dark at entry (check-arrival R3). Same two outbound lanes replicate uses.
     flow: [
       F.segment({ from: E1_TO_E2[0], to: E1_TO_E2[1], lights: ['e2'] }),
       F.route({ points: REPLICATE, lights: ['e3'] }),
@@ -200,12 +209,14 @@ export const STEPS_SPEC = [
     // an election beat after it: 1501ms. No packet, and the reason is on the flow below.
     duration: 2600,
     narration: 'Both Followers go silent, so the Leader holds one vote of three and quorum is lost. Entry 10 appends but never commits, the write fails with etcdserver: request timed out, and an election timeout later the Leader steps down. Linearizable reads stop, while serializable reads answer locally from stale data until a majority returns.',
-    chips: { ...ROLES, l1: '10 / 9', l2: '9 / 9', l3: '9 / 9', termChip: TERM, acksChip: '0 of 2', quorumChip: QUORUM_LOST },
+    // r1 ends the step stood down (S-13), so the static block says Follower and the rewind below
+    // puts the Leader back: prev must not leave a Leader standing beside a lost quorum.
+    chips: { ...ROLES, r1: 'Follower', l1: '10 / 9', l2: '9 / 9', l3: '9 / 9', termChip: TERM, acksChip: '0 of 2', quorumChip: QUORUM_LOST },
     opacity: SILENCED,
     lit: ['e1', 'r1', 'l1', 'acksChip', 'quorumChip'],
-    // The step STARTS with a healthy cluster and ends with a silent one, so the rewind is the whole
-    // of that start: twelve live shades and the counters that still read a met quorum.
-    rewind: { chips: { termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM_MET }, opacity: LIVE },
+    // The step STARTS with a healthy cluster and ends with a silent one, so the rewind is that whole
+    // start: twelve live shades, the role still Leader, the counters still reading a met quorum.
+    rewind: { chips: { r1: ROLES.r1, termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM_MET }, opacity: LIVE },
     // NO ball, on purpose: a packet into a member that is not answering says the opposite of the
     // step. The beat is the replicas going quiet, then the counters, then the Leader standing down.
     flow: [

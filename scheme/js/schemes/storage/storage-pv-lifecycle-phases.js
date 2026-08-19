@@ -11,6 +11,9 @@ const stX = cx => cx - ST_W / 2;                               // 182 / 406 / 63
 const ACT_Y = 60, ACT_H = 68, ACT_BOTTOM = ACT_Y + ACT_H;      // 60 / 128
 const TRANSIT_Y = 214;
 const RECOVER_LBL_Y = 238;                                     // names the backward edge, under its run
+// T-35: the counterfactual caption for the three reclaim branches, ending 22 left of the reclaim
+// lane so the text stops at the lane the ball comes down.
+const BRANCH_LBL_Y = 264, BRANCH_LBL_X = RELEASED_CX - 22;     // 264 / 690
 const ROW_Y = 300, ST_H = 72;
 const ROW_BOTTOM = ROW_Y + ST_H, ROW_MID = ROW_Y + ST_H / 2;   // 372 / 336
 const WIRE_LBL_Y = 392;                                        // event names, under the row
@@ -76,6 +79,9 @@ export const SCENE = {
     P.wire({ key: 'fail', x: gapMid(RELEASED_CX), y: WIRE_LBL_Y }),
     P.wire({ key: 'verdict', x: RELEASED_CX, y: WIRE_LBL_Y }),
     P.wire({ key: 'recover', x: (AVAIL_CX + RELEASED_CX) / 2, y: RECOVER_LBL_Y }),
+    // Written on the three reclaim steps only: they are branches of ONE moment, so each says which
+    // branch it is and the frame stops reading as a state the volume passed through (T-35).
+    P.wire({ key: 'branch', x: BRANCH_LBL_X, y: BRANCH_LBL_Y, anchor: 'end' }),
     P.chip({ key: 'phaseChip', x: CHIPS.x(0), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'phase', value: 'Available' }),
     P.chip({ key: 'claimRefChip', x: CHIPS.x(1), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'claimRef', value: 'none' }),
     P.chip({ key: 'policyChip', x: CHIPS.x(2), y: CHIP_Y, w: CHIPS.w, h: CHIP_H, name: 'reclaim', value: 'Delete' }),
@@ -122,7 +128,7 @@ export const STEPS_SPEC = [
     flow: [
       F.route({ points: W_BIND, name: 'write' }),
       F.tag({ text: 'claimRef: default/data', points: W_BIND }),
-      // Its own entry, not `lights` on the route: the cue stood AFTER the tag and that order is
+      // Its own entry, not `lights` on the route: the cue must come AFTER the tag, and that order is
       // observable. The flip below carries no tag, so its cue can ride the packet.
       F.light({ targets: ['stAvail'], at: 'write' }),
       F.route({ points: W_AV_BO, after: 'write', lights: ['stBound'] }),
@@ -151,7 +157,7 @@ export const STEPS_SPEC = [
     duration: 3600,
     narration: 'Now the PV controller reads the reclaim policy on the released volume. Under Delete, the default for anything dynamically provisioned, it calls DeleteVolume on the driver, and on success both the storage asset and the PersistentVolume object itself are removed. Released is where this volume ends its life rather than a phase it passes through.',
     chipsCued: chips('none, object gone', 'gone with the PV', 'Delete', 'deleted'),
-    wires: { verdict: 'PV object removed' },
+    wires: { verdict: 'PV object removed', branch: 'if the policy is Delete' },
     opacity: CTRL_UP,
     // The controller sends the ball, so only the controller is lit to begin with. Released is the
     // destination and waits for the call to land on it.
@@ -167,7 +173,7 @@ export const STEPS_SPEC = [
     duration: 3600,
     narration: 'Take that same call and let the backend reject it. The volume has failed its automated reclamation, so it moves to Failed. This is where automatic cleanup gives up, and the volume sits in Failed until a person works out what went wrong and sorts it out by hand.',
     chipsCued: chips('Failed', 'default/data stale', 'Delete', 'exists'),
-    wires: { fail: 'reclaim error' },
+    wires: { fail: 'reclaim error', branch: 'if instead the backend rejects it' },
     opacity: CTRL_UP,
     lit: ['ctrl'],
     flow: [
@@ -182,7 +188,7 @@ export const STEPS_SPEC = [
     duration: 3200,
     narration: 'Set the policy to Retain, the default for a volume you create by hand, and the controller makes no call at all. Nothing errors, so nothing moves: the volume parks in Released holding the stale claimRef, and every fresh claim that asks for it is skipped. The data is intact and completely out of reach.',
     chipsCued: chips('Released', 'default/data stale', 'Retain', 'exists'),
-    wires: { verdict: 'no DeleteVolume call' },
+    wires: { verdict: 'no DeleteVolume call', branch: 'if instead the policy is Retain' },
     opacity: CTRL_UP,
     lit: ['ctrl'],
     // The policy read still happens, and it is the SECOND act that never comes: the lane on to

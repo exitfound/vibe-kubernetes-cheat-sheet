@@ -7,9 +7,8 @@ be true of another category, it is in the wrong file.**
 
 The rows below carry `STO.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `STO.*`
 rule lives here and only here**: the canon carries the id and a subject label, never a second copy
-of the rule. `STO.S-02` and `STO.S-03` had come to mean one thing here and a different thing there,
-and the numbering below is the one that stands. The exemplar the canon used to carry as `STO.S-03`
-is now `STO.S-04`, below.
+of the rule. Where an id could name two different rules, the FOLDER keeps it: `STO.S-02` and
+`STO.S-03` mean what the rows below say. The exemplar is `STO.S-04`, below.
 
 ## The folder
 
@@ -61,19 +60,20 @@ that fixes the SPAN and derives `CHIP_W` from it keeps its own formula even wher
 
 ## The escape hooks this category needs
 
-All 31 cards are in the declarative form. **17 are fully declarative**; 14 carry a hook, the highest
+All 31 cards are in the declarative form. **16 are fully declarative**; 15 carry a hook, the highest
 share of any category, and the DSL still did not have to grow. `reset.extra` and `step.motion` are
 used by NOBODY here.
 
-The counts are SITES the layer receives, not literals in the source, and here the two are far apart:
-seven cards build their hooks in a factory, so 21 written `tune:` become 42 (`pvc-retention-policy`
-and `volumeclaimtemplates` hand over nine each). Read them off the imported specs, the way
-`report/skeleton-census.test.mjs` totals them, never off grep.
+The counts are SITES the layer receives, not literals in the source, and a card that builds its hooks
+in a factory hands over more than it writes. `part.tune` is 13 sites on `configmap-secret-mount`,
+`ephemeral-vs-persistent`, `fsgroup-ownership`, `multi-attach-error`, `projected-volume` and
+`volume-attach-limits`, and no other card here carries one. Read the counts off the imported specs,
+the way `report/skeleton-census.test.mjs` totals them, never off grep.
 
 | Hook | Cards | What it wraps, and why no field says it |
 |---|---|---|
-| `part.tune` | 6 cards, 13 sites | An SVG **attribute** on a nested element the part kind does not hand back (`.scheme-pod-sublabel`'s `y`, a `node()` caption's `y`, a box label's `y`), a `style.fill` on a `.scheme-box-rect`, or an ARRAY ref that later steps READ: `storage-fsgroup-ownership` collects its listing rows that way and seven `enter` hooks address them. **The 29 sites that collected an array nothing read were removed 2026-08-15**: their justification named dumps that do not exist, and every element already carried its own `key:` |
-| `P.raw` | 7 cards, 10 sites | A markerless, role-less identity spine (`P.lane` adds a marker, `P.relation` adds the relation class and `data-role`), a bare `<line>` or `<rect>`, a frame border whose stroke is inline style, a bare `pod()` (`podShell()` is `pod()` PLUS the inline wash, so `P.pod` would add one), and the one Pod with two peer inner boxes |
+| `part.tune` | 6 cards, 13 sites | An SVG **attribute** on a nested element the part kind does not hand back (`.scheme-pod-sublabel`'s `y`, a `node()` caption's `y`, a box label's `y`), a `style.fill` on a `.scheme-box-rect`, or an ARRAY ref that later steps READ: `storage-fsgroup-ownership` collects its listing rows that way and seven `enter` hooks address them. **An ARRAY ref belongs in a `tune` only when later steps READ it**, which makes that card the one case: every other element carries its own `key:`, so an array over them would be read by nothing |
+| `P.raw` | 8 cards, 11 sites | A markerless, role-less identity spine (`P.lane` adds a marker, `P.relation` adds the relation class and `data-role`), a bare `<line>` or `<rect>`, a frame border whose stroke is inline style, a bare `pod()` (`podShell()` is `pod()` PLUS the inline wash, so `P.pod` would add one), and the one Pod with two peer inner boxes |
 | `step.enter` | 4 cards, 27 sites | Text no field reaches: `setCylinderLabel` writes `.scheme-cylinder-label` where `labels:` writes `.scheme-box-label`, a free `<text>`'s `textContent`, a per-step `style.fill` on 24 slot rects, and on `fsgroup-ownership` per-row `textContent` plus `.highlight` reached through an array ref |
 | `F.run` at delay 0 | 5 cards, 8 sites | **An escape, but not a timer**: `at()` short-circuits on `delay <= 0` (`scheme-kit.js:262`) and runs the callback inline and registers nothing, so it is an imperative beat standing inside the flow order rather than a deferred one. It is still a hook, and all eight are inside the catalogue's count of 13 `F.run`. It is what reproduces a card-owned `onfinish` (`F.fade` carries only `unlight`), a deferred UNLIGHT, and any write through an array ref |
 
@@ -106,11 +106,10 @@ Both numbers come from reading the spec data after the migration, not from grep.
   build. Both are recorded in `./CARDS.md`; do not copy the shortcut into a new card, and do not
   "fix" them either, since writing the inherited value out changes the serialised DOM for nothing.
 
-**A volume is named the way a claim has always been named** (`T-11a`): `PV web`, `PV x73a`,
-`PV web-0`, matching the `PVC data-claim` this category wrote 14 times. Until 2026-08-14 three forms
-were in use at once, `PV-x73a` glued (37 strings), `pv-web-0` lowercase (11) and `PV data-vol`
-correct (1), with two of them on `storage-pvc-binding` alone. Bare names belong in a YAML field a
-tag quotes (`volumeName: x73a`) and nowhere else.
+**A volume is named the way a claim is named** (`T-11a`): `PV web`, `PV x73a`, `PV web-0`, matching
+the `PVC data-claim` this category writes 14 times. There is ONE form, the kind then a space then
+the bare name: `PV-x73a` glued and `pv-web-0` lowercase are both wrong. Bare names belong in a YAML
+field a tag quotes (`volumeName: x73a`) and nowhere else.
 
 ## Subcategories (`STO.D-01`)
 

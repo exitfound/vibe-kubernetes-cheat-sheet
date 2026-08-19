@@ -58,6 +58,9 @@ const VETH = [[BR_X, POD_CY], [APP_RIGHT, POD_CY]];                      // brid
 // floats the DNAT-ed address out of the portmap rule, and hold 0 clears each address as its hop lands.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
+// The hostNetwork hop leaves the NIC face, which on the lane cuts the address it carries. -40 parks
+// the tag in the band between the Node frame and the NIC row, clear on all four viewports.
+const AGENT_TAG_DY = -40;
 
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' };
 
@@ -80,14 +83,15 @@ export const SCENE = {
       key: 'podAgent', innerKey: 'podAgentBox', x: AGENT_X, y: R2_Y, w: POD_W, h: POD_H,
       label: 'Pod node-agent', sublabel: 'hostNetwork: true', inner: POD_INNER,
     }),
+    // The entry hop is the one lane whose two ends are lit on every step, so it alone needs no key.
     P.arrow({ from: ENTRY[0], to: ENTRY[1], dashed: true, dim: true }),
-    P.arrow({ from: TO_PM[0], to: TO_PM[1], dashed: true, dim: true }),
+    P.arrow({ key: 'wToPm', from: TO_PM[0], to: TO_PM[1], dashed: true, dim: true }),
     // The ordinary route is a relationship, not a route: no ball ever rides it on any step, so it
     // carries no arrowhead. An arrowhead with no traffic under it reads as traffic.
-    P.relation({ points: TO_BRIDGE, dash: '5 5' }),
-    P.arrow({ from: VETH[0], to: VETH[1], dashed: true, dim: true }),
-    P.lane({ points: TO_AGENT, dashed: true, dim: true }),
-    P.lane({ points: PM_TO_BRIDGE, dashed: true, dim: true }),
+    P.relation({ key: 'wOrdinary', points: TO_BRIDGE, dash: '5 5' }),
+    P.arrow({ key: 'wVeth', from: VETH[0], to: VETH[1], dashed: true, dim: true }),
+    P.lane({ key: 'wToAgent', points: TO_AGENT, dashed: true, dim: true }),
+    P.lane({ key: 'wPmToBridge', points: PM_TO_BRIDGE, dashed: true, dim: true }),
     // The veth is the thing the two Pods differ by, so the wire that carries it is the one wire that is
     // named. Everything else a step needs to say rides the chips or the Pod sublabels.
     P.wire({ key: 'veth', x: VETH_MID_X, y: POD_CY - 12 }),
@@ -105,9 +109,16 @@ export const SCENE = {
 
 // The ordinary wiring (bridge, veth Pod, and the portmap rule that exists only for hostPort) is not what a
 // hostNetwork Pod uses, so those blocks dim while that case is on screen, and the other way round.
-const ALL_UP = { podApp: 1, podAgent: 1, portmap: 1, bridge: 1 };
+const ALL_UP = {
+  podApp: 1, podAgent: 1, portmap: 1, bridge: 1,
+  wToPm: 1, wOrdinary: 1, wVeth: 1, wPmToBridge: 1, wToAgent: 1,
+};
+// Each list is a case AND its lanes: a lane takes the shade of the dimmer of its two ends (A-13),
+// so an arrowhead never lands at full strength on a ghost the step says is not in the path.
+const ORDINARY_PATH = ['podApp', 'bridge', 'portmap', 'wToPm', 'wOrdinary', 'wVeth', 'wPmToBridge'];
+const HOSTNET_PATH = ['podAgent', 'wToAgent'];
 const only = (which) => ({
-  opacity: { ...ALL_UP, ...shade(which === 'hostnet' ? ['podApp', 'bridge', 'portmap'] : ['podAgent'], OPACITY.notready) },
+  opacity: { ...ALL_UP, ...shade(which === 'hostnet' ? ORDINARY_PATH : HOSTNET_PATH, OPACITY.notready) },
 });
 
 const PM_MAPPED = 'nodeIP:8080 -> pod:80';
@@ -142,14 +153,14 @@ export const STEPS_SPEC = [
       tag({ text: 'dst 192.168.1.20:80', points: ENTRY, easing: 'linear' }),
       F.light({ targets: ['eth'], at: 'inb' }),
       F.route({ points: TO_AGENT, after: 'inb', name: 'out' }),
-      tag({ text: 'dst 192.168.1.20:80', points: TO_AGENT, after: 'inb' }),
+      tag({ text: 'dst 192.168.1.20:80', points: TO_AGENT, after: 'inb', dy: AGENT_TAG_DY }),
       F.pulse({ pod: 'podAgent', at: 'out' }),
     ],
   },
   {
     id: 'hostnetwork-cost',
     duration: 2400,
-    narration: 'The price is the Node port space and the isolation. The container listens on the Node itself, so a second Pod that wants the same port cannot be scheduled here at all, and the Pod sees every Node interface with nothing of its own between it and the host. That is a privilege for the agents that must see the Node, not for applications.',
+    narration: 'The price is the Node port space and the isolation. The container listens on the Node itself, so a second Pod that wants the same port cannot run here, and the Pod sees every Node interface with nothing of its own between it and the host. That is a privilege for the agents that must see the Node, not for applications.',
     chips: { nsChip: 'the Node one', ipChip: '192.168.1.20 (Node)', vethChip: 'none', portChip: 'Node IP :80' },
     sublabels: { portmap: 'none' },
     podSublabels: { podApp: '10.244.1.5' },

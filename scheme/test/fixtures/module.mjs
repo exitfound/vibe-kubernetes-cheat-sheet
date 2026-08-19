@@ -37,8 +37,11 @@ import { ROOT, cards, census } from './catalog.mjs';
 // The two legal export surfaces of a card, written down as an expectation rather than discovered
 // from what the catalog happens to hold. A card outside both has changed its contract, and the
 // point of naming the forms is that it says so out loud instead of quietly widening one of them.
-export const LEGACY_EXPORTS = Object.freeze(['init']);
-export const MIGRATED_EXPORTS = Object.freeze(['SCENE', 'STEPS_SPEC', 'init']);
+// `LEGACY_EXPORTS` is the DETECTOR `S-02` keeps alive: a regression has to be named to be
+// reported. Neither is exported, because naming a form and publishing a symbol are different
+// things and no file outside this one reads either: `CARD_FORMS` below is the surface.
+const LEGACY_EXPORTS = Object.freeze(['init']);
+const MIGRATED_EXPORTS = Object.freeze(['SCENE', 'STEPS_SPEC', 'init']);
 
 // form name -> its surface as one sorted, comma-joined string, which is the shape a comparison
 // needs. Order here is the order the migration counter reports in.
@@ -61,7 +64,7 @@ export function cardForm(ns) {
 const importAt = (...seg) => import(pathToFileURL(join(ROOT, ...seg)).href);
 
 // One card's module namespace. Takes an id or a card record from catalog.mjs.
-export async function importCard(card) {
+async function importCard(card) {
   const rec = typeof card === 'string'
     ? (await cards()).find(c => c.id === card)
     : card;
@@ -86,5 +89,26 @@ export const importKit = (category) => importAt('js', 'schemes', category, `${ca
 // A shared module under js/lib/, by basename: importLib('tokens.js').
 export const importLib = (name) => importAt('js', 'lib', name);
 
-// A category's manifest module: { CARDS, SUBCATEGORIES }.
-export const importManifest = (category) => importAt('js', 'schemes', category, 'cards.js');
+// The catalog's step count, summed off the declared specs, for every walk that judges itself
+// against a step total. It lives HERE rather than beside `CATALOG_BASELINE` in catalog.mjs because
+// counting steps means importing every card, and catalog.mjs is the layer that must not: it is
+// imported by fixtures/render.mjs, which has no use for 108 module namespaces.
+//
+// Memoised, and deliberately a FUNCTION rather than a top-level constant, so a file that imports
+// this module for `importLib` alone does not pay for the whole catalog.
+//
+// WHAT IT CANNOT SEE. A card in the legacy form carries no STEPS_SPEC and contributes 0, so a card
+// that regressed would LOWER the total instead of failing here. That is not this function's job to
+// catch: `unit/module.test.mjs` fails on the export surface (`S-02`) before any floor built on this
+// number is reached, and `unit/spec-steps.test.mjs` holds the sum against `CATALOG_BASELINE.steps`.
+let stepTotalMemo = null;
+export async function stepTotal() {
+  if (stepTotalMemo === null) {
+    let n = 0;
+    for (const ns of (await importAll()).values()) {
+      if (Array.isArray(ns.STEPS_SPEC)) n += ns.STEPS_SPEC.length;
+    }
+    stepTotalMemo = n;
+  }
+  return stepTotalMemo;
+}

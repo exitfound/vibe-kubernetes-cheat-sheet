@@ -141,9 +141,9 @@ svg.diagram {
    stroke and dim survives only as stroke-width 1.4. 315 of the catalog's 358 `dim: true` calls pass
    a role, so dim looks like a no-op almost everywhere. IT IS NOT A BUG: dim here is a stroke WEIGHT,
    not a lifecycle state, and a wire a ball rides is normally drawn dim. Measured: 601 dim lanes
-   carry a packet across 511 steps. Making dim outrank role was implemented and reverted the same
-   day, because it greys out most of the route wires and breaks the per-category colour identity:
-   94 of 103 rendered cards changed, and the networking exemplar's kube-proxy fan went cyan to grey.
+   carry a packet across 511 steps. DO NOT make dim outrank role: it greys out most route wires and
+   breaks the per-category colour identity. Measured: 94 of 103 rendered cards change, and the
+   networking exemplar's kube-proxy fan goes cyan to grey.
    What actually needed separating was a RELATIONSHIP line from a resting ROUTE wire, below. */
 .scheme-arrow-dim { stroke: var(--diag-arrow-dim); stroke-width: 1.4; }
 .scheme-arrow-dashed { stroke-dasharray: 5 5; }

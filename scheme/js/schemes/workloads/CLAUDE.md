@@ -7,8 +7,8 @@ be true of another category, it is in the wrong file.**
 
 The rows below carry `WL.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `WL.*` rule
 lives here and only here**: the canon carries the id and a subject label, never a second copy of the
-rule. This is the folder that paid for the second copy: `WL.L-03`, `WL.L-04` and `WL.L-05` had come
-to mean one thing here and a different thing there, and the numbering below is the one that stands.
+rule. Where an id could name two different rules, the FOLDER keeps it: `WL.L-03`, `WL.L-04` and
+`WL.L-05` mean what the rows below say and nothing else.
 
 ## The folder
 
@@ -88,10 +88,10 @@ LAYOUT = { A: { ladder: WL.COL_L, chips: WL.COL_R },
            C: { ladder: WL.COL_R, strip: { two: 532, three: 350.7 } } }
 ```
 
-**The columns are named by POSITION, and that is the whole reason `LAYOUT` exists.** They used to be
-`LADDER_X` and `CHIP_X`, named for their role in layout A, and B and C dominate: 16 of the 19 cards
-opened with `const LAD_X = WL.CHIP_X`, a line whose name states the opposite of what it does. Picking
-a layout is now one edit, `LAYOUT.A` / `.B` / `.C`, and the four role-named keys are gone.
+**The columns are named by POSITION, and that is the whole reason `LAYOUT` exists.** A role name
+(`LADDER_X`, `CHIP_X`) states the job that column holds in layout A, and B and C dominate: on 16 of
+the 19 cards such a name states the opposite of what it does. Picking a layout is one edit,
+`LAYOUT.A` / `.B` / `.C`, and no role-named column key belongs here.
 
 The shape is an actor row clear of the narration panel, a pipeline ladder and a chip column
 flanking a central spine, and a Node frame spanning `L..R` so the content bbox centres on `CX` by
@@ -107,11 +107,11 @@ construction.
 | `WL.L-07` | The trunk has to run in the `540..660` corridor to clear both columns and still leave a face midpoint, so **the actor box it leaves must be centred on `WL.SPINE_X`**. That is why several cards carry a first actor box of `420..780` rather than `420..640` |
 | `WL.A-01` | The top-row lane PAIR: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API and `RESP_Y = TOP_CY + LANE_DY` carries the answer back. 17 cards draw the pair and 6 ride the answer. Whether the answer lane is an arrow or a relation is decided by the step's own words (`A-06`) |
 | `WL.A-02` | **The top-row wire label goes ABOVE the actor row**, at `WIRE_Y = WL.TOP_Y - 12`, never below it. Below, centred at `WIRE_X` on y=146, it lands on the lane and across the spine's step. Nine cards carry that constant identically |
-| `WL.S-01` | Each card owns its own `SPINE` points array, and the same array feeds both the drawn wire and the ball. **There is no shared connector helper, and there must not be one**: the previous version kept the wire's points in the card and the ball's points in the kit, two independent copies of the same numbers |
+| `WL.S-01` | Each card owns its own `SPINE` points array, and the same array feeds both the drawn wire and the ball. **There is no shared connector helper, and there must not be one**: a helper holding the ball's points in the kit while the card holds the wire's leaves two independent copies of the same numbers |
 
-`WL.L-05` is the rule that cost the most: the pass that introduced the 79 collisions closed a
-`CENTRE` finding by stretching the chip strip to straddle 600, and the rule went green on a drawing
-the author rejected. That is `L-16`, and four findings in the catalog are left open under it.
+`WL.L-05` is the rule that cost the most: stretching the chip strip to straddle 600 closes a
+`CENTRE` finding and produces the 79 collisions, so the rule goes green on a drawing that is
+rejected under `L-16`, and four findings are left open under it.
 
 ## The escape hooks this category still needs
 
@@ -121,7 +121,7 @@ exists for something with no honest general verb. `step.enter`, `step.motion`, `
 
 | Card | Hook | What it wraps, and why no field expresses it |
 |---|---|---|
-| `workloads-crashloopbackoff` | `P.raw`, one factory over six rungs | The backoff ladder is built from `chip()` in `primitives.js`, a label-only chip no part kind builds. The six rungs carry their own keys (`rung0..rung5`), which is what `lit` and `reset.keys` address. **The `tune` that also collected them into `refs.ladderChips` was removed 2026-08-15**: nothing read the array |
+| `workloads-crashloopbackoff` | `P.raw`, one factory over six rungs | The backoff ladder is built from `chip()` in `primitives.js`, a label-only chip no part kind builds. The six rungs carry their own keys (`rung0..rung5`), which is what `lit` and `reset.keys` address. No array ref is collected: nothing would read it |
 | `workloads-cronjob` | `P.raw`, one factory over six rungs | The identical construct, for the schedule ticks, with keys `tick0..tick5` |
 | `workloads-init-containers-and-sidecars` | `part.tune` on the `P.pod` | The Pod holds FOUR peer container boxes; `buildPod` carries exactly one `inner` and would hand it the Pod's own role, turning four `role: 'cluster'` boxes blue. They must also sit inside the shell group, because `pulsePod` reaches only what the Pod contains |
 | `workloads-pod-image-pull` | `P.raw` | The registry cloud is a bare `<path>`, the only one in the category, and the only card importing `path` from `lib/svg.js` |

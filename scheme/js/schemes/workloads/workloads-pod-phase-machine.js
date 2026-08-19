@@ -83,26 +83,40 @@ const phaseState = (phase, cstate, restart, policy = 'OnFailure') => ({
   phaseChip: phase, cStateChip: cstate, restartChip: restart, policyChip: policy,
 });
 
+// The Pod, the Node frame around it and the lane into it are pinned in ONE place (A-16). The lane
+// ENDS on the Pod, so it is only as present as the Pod is (A-13); only `admit` is unplaced.
+const stage = (podGroup, placed = true) => ({
+  podGroup, nodeEl: placed ? 1 : OPACITY.pending, connector: podGroup,
+});
+
 const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;
+
+// A phase move re-shades the Pod AND the lane into it, one event, stated once. `fill: both` holds
+// both at `from` through the delay, which is what keeps the lane lit under its riding ball (A-15).
+const phaseFade = (from, to, delay = PHASE_FADE_DELAY) => {
+  const easing = to > from ? 'ease-out' : 'ease-in';
+  return ['podGroup', 'connector'].map(target =>
+    F.fade({ target, from, to, dur: PHASE_FADE_MS, delay, fill: 'both', easing }));
+};
 
 export const STEPS_SPEC = [
   {
     id: 'admit',
     duration: 1500,
     chips: phaseState('Pending', 'none', '0'),
-    sublabels: { containerBox: 'no container yet' },
+    sublabels: { containerBox: 'no node yet · no container' },
     wires: { req: 'spec.nodeName not set · Waiting for scheduler' },
-    opacity: { podGroup: OPACITY.pending },
+    opacity: stage(OPACITY.pending, false),
     chain: 0,
   },
   {
     id: 'schedule',
     duration: 2000,
-    narration: 'The scheduler has bound the Pod to Node-1, so spec.nodeName is set and Kubelet picks the Pod up via its watch. Kubelet pulls images, creates the Pod sandbox and the container is in Waiting with reason ContainerCreating. The status.phase field is still Pending until at least one container has started.',
+    narration: 'The scheduler has bound the Pod to Node-1, so spec.nodeName is set and Kubelet picks the Pod up via its watch. Kubelet pulls images, creates the Pod sandbox and the container is in Waiting with reason ContainerCreating. The status.phase field stays Pending while any container is still waiting.',
     chips: phaseState('Pending', 'Waiting · ContainerCreating', '0'),
     sublabels: { containerBox: 'Waiting · ContainerCreating' },
     wires: { req: 'spec.nodeName=Node-1 · SyncPod · Image pull + sandbox' },
-    opacity: { podGroup: OPACITY.pending },
+    opacity: stage(OPACITY.pending),
     lit: ['kubelet', 'phaseChip', 'cStateChip'],
     chain: 1,
     flow: [
@@ -116,31 +130,31 @@ export const STEPS_SPEC = [
     chips: phaseState('Running', 'Running', '0'),
     sublabels: { containerBox: 'Running · serving' },
     wires: { req: 'StartContainer OK · Phase Pending → Running' },
-    opacity: { podGroup: 1 },
+    opacity: stage(1),
     lit: ['kubelet', 'phaseChip', 'cStateChip'],
     chain: 2,
     flow: [
       F.route({ points: SPINE, fadeIn: true, name: 'sync' }),
       // The phase cross-fade hangs off the step, not off the ball: it is the state machine moving,
       // and the Pod blinks when the sync that moved it lands.
-      F.fade({ target: 'podGroup', from: OPACITY.pending, to: OPACITY.running, dur: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }),
+      ...phaseFade(OPACITY.pending, OPACITY.running),
       F.pulse({ pod: 'podGroup', at: 'sync' }),
     ],
   },
   {
     id: 'crashloop',
     duration: 2400,
-    narration: 'The container exits with a non-zero code. With restartPolicy OnFailure Kubelet restarts it inside the same sandbox, but repeated fast failures trigger an exponential backoff: the delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s). The container sits in Waiting with reason=CrashLoopBackOff while the timer ticks. The status.phase field stays Running the whole time, because CrashLoopBackOff is a container-level waiting reason, never a phase of its own.',
+    narration: 'The container exits with a non-zero code. With restartPolicy OnFailure Kubelet restarts it inside the same sandbox, but repeated fast failures trigger an exponential backoff: the delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s by default). The container sits in Waiting with reason=CrashLoopBackOff while the timer ticks. The status.phase field stays Running the whole time, because CrashLoopBackOff is a container-level waiting reason, never a phase of its own.',
     chips: phaseState('Running', 'Waiting · CrashLoopBackOff', '4'),
     sublabels: { containerBox: 'CrashLoopBackOff' },
     wires: { req: 'exit != 0 · CrashLoopBackOff · Phase stays Running' },
-    opacity: { podGroup: OPACITY.notready },
+    opacity: stage(OPACITY.notready),
     lit: ['kubelet', 'cStateChip', 'restartChip'],
     chain: 3,
     flow: [
       F.route({ points: SPINE, fadeIn: true }),
       // The crash dims the Pod from the start of the step: no delay, unlike the recoveries.
-      F.fade({ target: 'podGroup', from: OPACITY.running, to: OPACITY.notready, dur: PHASE_FADE_MS, fill: 'both', easing: 'ease-in' }),
+      ...phaseFade(OPACITY.running, OPACITY.notready, 0),
     ],
   },
   {
@@ -150,12 +164,12 @@ export const STEPS_SPEC = [
     chips: phaseState('Running', 'Running', '5'),
     sublabels: { containerBox: 'Running · restarted' },
     wires: { req: 'backoff elapsed · StartContainer · restartCount++' },
-    opacity: { podGroup: 1 },
+    opacity: stage(1),
     lit: ['kubelet', 'cStateChip', 'restartChip'],
     chain: 4,
     flow: [
       F.route({ points: SPINE, fadeIn: true, name: 'sync' }),
-      F.fade({ target: 'podGroup', from: OPACITY.notready, to: OPACITY.running, dur: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-out' }),
+      ...phaseFade(OPACITY.notready, OPACITY.running),
       F.pulse({ pod: 'podGroup', at: 'sync' }),
     ],
   },
@@ -166,13 +180,13 @@ export const STEPS_SPEC = [
     chips: phaseState('Succeeded', 'Terminated · Completed · exit 0', '5'),
     sublabels: { containerBox: 'Terminated · Completed' },
     wires: { req: 'exit 0 · Phase Running → Succeeded · Terminal' },
-    opacity: { podGroup: OPACITY.terminated },
+    opacity: stage(OPACITY.terminated),
     lit: ['kubelet', 'phaseChip', 'cStateChip'],
     chain: 5,
     flow: [
       F.route({ points: SPINE, fadeIn: true }),
       // Terminal is a phase move like Running, so it keeps the same beat of delay before the fade.
-      F.fade({ target: 'podGroup', from: OPACITY.running, to: OPACITY.terminated, dur: PHASE_FADE_MS, delay: PHASE_FADE_DELAY, fill: 'both', easing: 'ease-in' }),
+      ...phaseFade(OPACITY.running, OPACITY.terminated),
     ],
   },
 ];

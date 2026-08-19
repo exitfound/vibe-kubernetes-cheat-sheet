@@ -196,8 +196,8 @@
     "23 cards because they open with a capital. Only a dictionary of real component names sees them.",
     "It holds names that are objectively WRONG (a missing hyphen, a Title-cased acronym), never",
     "names that are merely inconsistent with the rest of the catalog: Kube-apiserver against API x22",
-    "and Conntrack against conntrack are both legitimate spellings, so they belong to check-labels,",
-    "where a human picks the winner. Mixing the two classes is what makes a rule unenforceable."
+    "and Conntrack against conntrack are both legitimate spellings, so they belong to a human",
+    "review, where someone picks the winner. Mixing the two classes is what makes a rule unenforceable."
   ],
   "inline": {
     "names": [
@@ -355,7 +355,7 @@
       "memory"
     ],
     "_homographsDoc": [
-      "Two spellings that are two different objects, so check-labels must not merge them.",
+      "Two spellings that are two different objects, so no term rule may merge them.",
       "Each earns its line by evidence, never by convenience: an entry here hides a real defect.",
       "forward: the CoreDNS forward plugin block, against the netfilter FORWARD chain.",
       "podb: Pod B is the generic second Pod on five cards, pod-b is a Pod that",

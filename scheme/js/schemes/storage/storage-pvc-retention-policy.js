@@ -26,17 +26,17 @@ const CHIPS_Y = 600;
 // Family CHIP_W 232 at the family gap, four across, centred on CX: 112..1088.
 const CHIPS = chipStrip();
 
-// Straight axis runs, every array shared by the static wire and the ball that rides it, arrowheads at
-// the RECEIVER: the governance into each claim top, the reclaim into the claim then into the disk.
-const spineSeg = i => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [CX, ROW_CY[i] - PVC_H / 2]];
-const ownPts = i => [[POD_RIGHT, ROW_CY[i]], [PVC_X, ROW_CY[i]]];        // Pod -> claim
-const reclaimPts = i => [[PVC_RIGHT, ROW_CY[i]], [PV_X, ROW_CY[i]]];     // claim -> disk
+// Straight axis runs, ONE array per row built once so the static wire and the ball that rides it are
+// the same array (A-02). Arrowheads at the RECEIVER: each claim top, then the claim, then the disk.
+const SPINE = ROW_CY.map((cy, i) => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [CX, cy - PVC_H / 2]]);
+const OWN = ROW_CY.map(cy => [[POD_RIGHT, cy], [PVC_X, cy]]);        // Pod -> claim
+const RECLAIM = ROW_CY.map(cy => [[PVC_RIGHT, cy], [PV_X, cy]]);     // claim -> disk
 
 // One lane per row in each of the three families, held under its own ordinal key, which is what the
 // `opacity` field and the flow address.
-const spineLane = i => P.lane({ key: `spine${i}`, points: spineSeg(i), dashed: true, dim: true, opacity: 0 });
-const ownLane = i => P.lane({ key: `own${i}`, points: ownPts(i), dashed: true, dim: true });
-const reclaimLane = i => P.lane({ key: `reclaim${i}`, points: reclaimPts(i), dashed: true, dim: true });
+const spineLane = i => P.lane({ key: `spine${i}`, points: SPINE[i], dashed: true, dim: true, opacity: 0 });
+const ownLane = i => P.lane({ key: `own${i}`, points: OWN[i], dashed: true, dim: true });
+const reclaimLane = i => P.lane({ key: `reclaim${i}`, points: RECLAIM[i], dashed: true, dim: true });
 
 // Each Pod is a full window like the rest of the family, the ordinal name on top and a real
 // container box on the row centre line, even though no Pod here ever pulses on arrival.
@@ -105,8 +105,9 @@ const FULL = stage();
 const claimLabels = labels => ({ v0: labels[0], v1: labels[1], v2: labels[2] });
 const BOUND = ['Bound', 'Bound', 'Bound'];
 
-// This card's riding tag sits 16 above the ball rather than the family 14.
-const TAG_DY = -16;
+// The reclaim lane runs into the claim at its own mid height, so at -16 the tag is cut by the claim
+// and Pod edges for 600 ms. -32 is the least that clears them on all four viewports.
+const TAG_DY = -32;
 
 // A Pod being removed pulses once to mark it, then fades to a ghost. Its ownership lane fades on the
 // same beat: the claim the lane points at survives the removal, the ownership does not.
@@ -132,12 +133,12 @@ const vanish = (target, at) => F.fade({
 // The cue on each block is an F.set, not `lights`, because the reduced path must not show it: the
 // vanish above takes the class off again before the step settles.
 const reclaimRow = (i, { delay, tag = null }) => [
-  F.route({ points: ownPts(i), delay, name: `h${i}a` }),
-  ...(tag ? [F.tag({ text: tag, points: ownPts(i), delay, dy: TAG_DY })] : []),
+  F.route({ points: OWN[i], delay, name: `h${i}a` }),
+  ...(tag ? [F.tag({ text: tag, points: OWN[i], delay, dy: TAG_DY })] : []),
   F.set({ on: `v${i}`, lit: [`v${i}`], at: `h${i}a` }),
   vanish(`v${i}`, `h${i}a`),
   vanish(`own${i}`, `h${i}a`),
-  F.route({ points: reclaimPts(i), after: `h${i}a`, name: `h${i}b` }),
+  F.route({ points: RECLAIM[i], after: `h${i}a`, name: `h${i}b` }),
   F.set({ on: `d${i}`, lit: [`d${i}`], at: `h${i}b` }),
   vanish(`d${i}`, `h${i}b`),
   vanish(`reclaim${i}`, `h${i}b`),
@@ -165,9 +166,9 @@ export const STEPS_SPEC = [
     // The one policy reaches every claim: a governance ball cascades down the spine and each claim
     // lights as it lands, exactly as the sibling mints each claim down the same spine.
     flow: [
-      F.route({ points: spineSeg(0), delay: BEAT.lead, name: 'gov0', lights: ['v0'] }),
-      F.route({ points: spineSeg(1), after: 'gov0', name: 'gov1', lights: ['v1'] }),
-      F.route({ points: spineSeg(2), after: 'gov1', name: 'gov2', lights: ['v2'] }),
+      F.route({ points: SPINE[0], delay: BEAT.lead, name: 'gov0', lights: ['v0'] }),
+      F.route({ points: SPINE[1], after: 'gov0', name: 'gov1', lights: ['v1'] }),
+      F.route({ points: SPINE[2], after: 'gov1', name: 'gov2', lights: ['v2'] }),
     ],
   },
   {

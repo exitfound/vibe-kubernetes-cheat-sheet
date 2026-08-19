@@ -37,6 +37,9 @@ const CANDIDATES = ['api.ns.svc.cluster.local', 'api.svc.cluster.local', 'api.cl
 // ends in, once as the value the flow writes when the reply lands.
 const FQDN = 'api.ns.svc.cluster.local.';
 const A_RECORD = 'A 10.96.0.42';
+// The two resolv.conf lines are the FILE this card reasons about, true before the first query
+// and after the last, so every step states them and no step turns one over.
+const RESOLV = { rcSearch: 'ns.svc / svc / cluster.local', rcNdots: 'ndots:5' };
 
 // The ladder ACCUMULATES as the search list is walked, so each attempt lights every row up to its
 // own: the `chain` field toggles, and a bare newest row would blank the rows already tried.
@@ -58,6 +61,9 @@ export const SCENE = {
     P.box({ key: 'dns', x: DNS_LEFT, y: FLOW_Y - DNS_H / 2, w: DNS_W, h: DNS_H, label: 'CoreDNS', sublabel: 'kube-dns 10.96.0.10' }),
     // The candidate ladder: every name this one lookup may have to ask for, in the order tried.
     P.chain({ key: 'chain', x: ROWS_X, y: ROWS_Y, w: ROWS_W, rowH: ROW_H, gap: ROW_GAP, items: CANDIDATES }),
+    // T-35. The walk step re-asks the name the step before it resolved, so the caption over the
+    // ladder marks that state as a hypothesis. Written on the walk alone, blank everywhere else.
+    P.wire({ key: 'branch', x: ROWS_X + ROWS_W / 2, y: ROWS_Y - 12 }),
     P.arrow({ from: QUERY[0], to: QUERY[1], dashed: true, dim: true }),
     P.arrow({ from: ANSWER[0], to: ANSWER[1], dashed: true, dim: true }),
     // No `A? ` prefix: measured at the real 11px, the longest string either label takes is 172 units,
@@ -115,14 +121,14 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { namesChip: '0', answerChip: 'none' },
+    chips: { namesChip: '0', answerChip: 'none', ...RESOLV },
     chain: -1,
   },
   {
     id: 'resolvconf',
     duration: 2400,
     narration: 'The default resolv.conf points at the kube-dns Service and lists the namespace search domains, ending with ndots set to 5. The rule is simple: if a name has fewer than ndots dots, treat it as relative and try the search domains first.',
-    chips: { namesChip: '0', answerChip: 'none' },
+    chips: { namesChip: '0', answerChip: 'none', ...RESOLV },
     lit: ['rcSearch', 'rcNdots'],
     chain: -1,
     // The Pod is reading its own resolv.conf and no cue names the resolver box, so the static path
@@ -138,15 +144,19 @@ export const STEPS_SPEC = [
     // answer (900) ends at ~3490.
     duration: 3600,
     narration: 'The name api has zero dots, well under ndots 5, so the resolver does not send it as is. It appends the first search domain and asks for api.ns.svc.cluster.local. Here that name exists, CoreDNS answers, and the lookup is done in a single round trip.',
-    // The state the round trip ENDS in, which the static path shows at once: the animated path winds
-    // the two lanes back to empty so they can be written as the question leaves and the answer lands.
-    wires: { q: CANDIDATES[0], a: A_RECORD },
-    chips: { namesChip: '1', answerChip: 'NOERROR' },
+    // The state the round trip ENDS in, which the static path shows at once. The animated path winds
+    // the lanes, the ladder row and both counters back, so each is written on the beat that earns it.
+    wires: { q: CANDIDATES[0], a: A_RECORD, branch: '' },
+    chips: { namesChip: '1', answerChip: 'NOERROR', ...RESOLV },
     lit: ['namesChip', 'answerChip'],
     chain: 0,
     reducedLit: ['podBox'],
-    rewind: { wires: { q: '', a: '' } },
-    flow: askOnce({ i: 0, name: CANDIDATES[0], result: A_RECORD, rows: [0], depart: { delay: BEAT.afterPulse } }),
+    rewind: { wires: { q: '', a: '' }, chips: { namesChip: '0', answerChip: 'none' }, chain: -1 },
+    flow: [
+      ...askOnce({ i: 0, name: CANDIDATES[0], result: A_RECORD, rows: [0], depart: { delay: BEAT.afterPulse } }),
+      // One name tried and one NOERROR, both counted when the answer lands at 2588, never before it.
+      F.set({ chips: { namesChip: '1', answerChip: 'NOERROR' }, at: 'a0' }),
+    ],
   },
   {
     id: 'walk',
@@ -156,8 +166,8 @@ export const STEPS_SPEC = [
     narration: 'But if that first guess misses, the resolver does not give up, it walks the whole list: api.svc.cluster.local, then api.cluster.local, then finally api on its own. Every miss is a full round trip that ends in NXDOMAIN, so one name that does not exist costs four of them, and because the resolver asks for IPv4 and IPv6 the real total doubles again.',
     // The lanes end the step on the LAST candidate and its miss, the state the fourth round trip
     // leaves behind, and the counters end on the full cost of the walk.
-    wires: { q: 'api', a: 'NXDOMAIN' },
-    chips: { namesChip: '4', answerChip: 'NXDOMAIN x4' },
+    wires: { q: 'api', a: 'NXDOMAIN', branch: 'if instead that first guess misses' },
+    chips: { namesChip: '4', answerChip: 'NXDOMAIN x4', ...RESOLV },
     lit: ['namesChip', 'answerChip'],
     chain: upTo(CANDIDATES.length - 1),
     reducedLit: ['podBox'],
@@ -171,13 +181,18 @@ export const STEPS_SPEC = [
     narration: 'A trailing dot makes the name absolute no matter what ndots says, as in api.ns.svc.cluster.local., so the resolver skips the search list entirely and not one candidate below is tried. The name goes on the wire exactly once. Fully qualifying hot names, or lowering ndots, is the usual fix for noisy cluster DNS.',
     // The trailing dot has to survive here: it is the whole subject of the step. Deliberately NO
     // ladder row, since an absolute name never touches the search list.
-    wires: { q: FQDN, a: A_RECORD },
-    chips: { namesChip: '1', answerChip: 'NOERROR' },
+    wires: { q: FQDN, a: A_RECORD, branch: '' },
+    chips: { namesChip: '1', answerChip: 'NOERROR', ...RESOLV },
     lit: ['namesChip', 'answerChip'],
     chain: -1,
     reducedLit: ['podBox'],
-    rewind: { wires: { q: '', a: '' } },
-    flow: askOnce({ i: 0, name: FQDN, result: A_RECORD, depart: { delay: BEAT.afterPulse } }),
+    // The counters carry the state the walk left, 4 names and its four misses, until this one round
+    // trip replaces them on its answer at 2588.
+    rewind: { wires: { q: '', a: '' }, chips: { namesChip: '4', answerChip: 'NXDOMAIN x4' } },
+    flow: [
+      ...askOnce({ i: 0, name: FQDN, result: A_RECORD, depart: { delay: BEAT.afterPulse } }),
+      F.set({ chips: { namesChip: '1', answerChip: 'NOERROR' }, at: 'a0' }),
+    ],
   },
 ];
 

@@ -47,6 +47,10 @@ const OWN = [[SVC_CX, SVC_BOTTOM], [SVC_CX, 240], [N1_CX, 240], [N1_CX, NODE_Y]]
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
+// A tag on a hop INSIDE Node-1 rides in the band under the Node frame label: those two hops are 40
+// and 50 units long against a 121 unit address, so on the lane a Pod face prints through the glyphs.
+const IN_NODE_TAG_DY = POD_Y - FLOW_Y - 4;   // -56: the lowest clear offset, ink 3 above the Pod tops
+
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 46, label: 'app', sublabel: 'eth0' };
 
 // The list order IS the append order, which is the z-order: the two Nodes in back, then the blocks
@@ -119,16 +123,21 @@ export const STEPS_SPEC = [
     lit: ['resultChip', 'svc', 'policyChip', 'scopeChip', 'hopChip'],
     // The animated path says the remote backend was served by PULSING it, which no lights list names.
     reducedLit: ['podBBox'],
+    // The three outcome chips hold the idle none: the scope is read when the call reaches kube-proxy
+    // at 1500, and the hop and the result are only true once the remote leg lands at 3067.
+    rewind: { chips: { scopeChip: 'none', hopChip: 'none', resultChip: 'none' } },
     // Up-arrow: the client is the sender, so it pulses FIRST and the ball leaves at BEAT.afterPulse
     // carrying the ClusterIP. The DNAT happens inside kube-proxy, so the remote leg carries the Pod address.
     flow: [
       F.pulse({ pod: 'client' }),
       F.segment({ from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, name: 'toKp' }),
-      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear' }),
+      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear', dy: IN_NODE_TAG_DY }),
       F.light({ targets: ['kproxy'], at: 'toKp' }),
+      F.set({ at: 'toKp', chips: { scopeChip: 'all ready (2)' } }),
       F.route({ points: TO_REMOTE, after: 'toKp', name: 'out' }),
       tag({ text: 'dst 10.244.2.7:8080', points: TO_REMOTE, after: 'toKp', dy: 20 }),
       F.pulse({ pod: 'podB', at: 'out' }),
+      F.set({ at: 'out', chips: { hopChip: 'yes', resultChip: 'served by Node-2' } }),
     ],
   },
   {
@@ -145,16 +154,21 @@ export const STEPS_SPEC = [
     lit: ['resultChip', 'svc', 'policyChip', 'scopeChip', 'hopChip'],
     // The animated path says the local backend was served by PULSING it, which no lights list names.
     reducedLit: ['podABox'],
+    // The policy is the PREMISE of the step and stands from entry. The three outcomes carry what the
+    // Cluster step left until the call re-earns them, at kube-proxy (1500) and at the local Pod (2300).
+    rewind: { chips: { scopeChip: 'all ready (2)', hopChip: 'yes', resultChip: 'served by Node-2' } },
     // The DNAT resolves to the local Pod, so the ball leaves the FAR edge of kube-proxy and the
     // packet never leaves the Node.
     flow: [
       F.pulse({ pod: 'client' }),
       F.segment({ from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, name: 'toKp' }),
-      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear' }),
+      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear', dy: IN_NODE_TAG_DY }),
       F.light({ targets: ['kproxy'], at: 'toKp' }),
+      F.set({ at: 'toKp', chips: { scopeChip: 'node-local (1)' } }),
       F.segment({ from: TO_LOCAL[0], to: TO_LOCAL[1], after: 'toKp', name: 'give' }),
-      tag({ text: 'dst 10.244.1.9:8080', points: TO_LOCAL, after: 'toKp', easing: 'linear' }),
+      tag({ text: 'dst 10.244.1.9:8080', points: TO_LOCAL, after: 'toKp', easing: 'linear', dy: IN_NODE_TAG_DY }),
       F.pulse({ pod: 'podA', at: 'give' }),
+      F.set({ at: 'give', chips: { hopChip: 'no', resultChip: 'served by Node-1' } }),
     ],
   },
   {
@@ -169,13 +183,17 @@ export const STEPS_SPEC = [
     // both lanes with them: there is nothing left for kube-proxy to send to.
     ...outOfScope([...LOCAL, ...REMOTE]),
     lit: ['policyChip', 'scopeChip', 'resultChip'],
+    // The empty scope and the drop are one reading, taken where the packet dies: both carry the
+    // Local step values until the ball reaches kube-proxy at 1500.
+    rewind: { chips: { scopeChip: 'node-local (1)', resultChip: 'served by Node-1' } },
     // The call is made exactly as before, and it dies at kube-proxy: the ball arrives, the box lights,
     // and no further ball leaves. The absent second hop is the whole point of the step.
     flow: [
       F.pulse({ pod: 'client' }),
       F.segment({ from: TO_KP[0], to: TO_KP[1], delay: BEAT.afterPulse, name: 'toKp' }),
-      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear' }),
+      tag({ text: 'dst 10.96.0.20:80', points: TO_KP, delay: BEAT.afterPulse, easing: 'linear', dy: IN_NODE_TAG_DY }),
       F.light({ targets: ['kproxy'], at: 'toKp' }),
+      F.set({ at: 'toKp', chips: { scopeChip: 'node-local (0)', resultChip: 'traffic dropped' } }),
     ],
   },
 ];

@@ -110,6 +110,8 @@ export const STEPS_SPEC = [
     chips: { svcChip: 'pending', modeChip: 'per-packet DNAT', kpChip: 'present' },
     opacity: { w2: 1 },
     lit: ['hook'],
+    // The attach lands ON the program at the socket hook and nothing travels, so the beat is the
+    // static highlight on that block (M-27): infrastructure lights, it never pulses (M-01).
   },
   {
     id: 'maps',
@@ -118,6 +120,8 @@ export const STEPS_SPEC = [
     chips: { svcChip: MAP_HIT, modeChip: 'per-packet DNAT', kpChip: 'present' },
     opacity: { w2: 1 },
     lit: ['bpfmap', 'svcChip'],
+    // The maps hold the state this step is about, so the box is lit and the chip carrying the
+    // lookup result is lit beside it. Neither flashes (M-26, M-27).
   },
   {
     id: 'connect-time',
@@ -143,7 +147,7 @@ export const STEPS_SPEC = [
   {
     id: 'deliver',
     duration: 2500,
-    narration: 'The connection then goes straight to the Pod address, 10.244.2.7. Because the destination was chosen at the socket, this in-cluster connection needs no connection-tracking reversal on the way back, the socket talks to the Pod as if it had dialed that address directly.',
+    narration: 'The connection then goes straight to the Pod address, 10.244.2.7, and the client source IP arrives unchanged because nothing was NATed. The destination was chosen at the socket, so this in-cluster connection needs no connection-tracking reversal on the way back.',
     chips: { svcChip: MAP_HIT, modeChip: 'connect-time', kpChip: 'present' },
     wires: { deliver: 'to .2.7' },
     opacity: { w2: OPACITY.notready },
@@ -165,6 +169,8 @@ export const STEPS_SPEC = [
     chips: { svcChip: MAP_HIT, modeChip: 'connect-time', kpChip: 'not needed' },
     opacity: { w2: 1 },
     lit: ['hook', 'bpfmap', 'kpChip'],
+    // Two actors lit, because the sentence names both halves of the replacement: programs plus maps
+    // are what remains once kube-proxy goes, and kube-proxy itself is only a chip here (M-26).
   },
 ];
 

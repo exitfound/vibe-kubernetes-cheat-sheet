@@ -174,8 +174,8 @@ export const POSTERS = {
     <rect x="212" y="87" width="58" height="6" rx="1" fill="currentColor" opacity="0.7"/>
   `,
 
-  // A list, then the watch that follows it. DO NOT rebuild it as the pipe version: that was built
-  // and declined. Its two known weaknesses are open, and are to be worked FROM this shape.
+  // A list, then the watch that follows it. DO NOT rebuild it as the pipe version: it is declined.
+  // Its two known weaknesses are open, and are to be worked FROM this shape.
   'cluster-api-structure': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="36" y="48"  width="160" height="22" rx="3" fill="rgba(255,255,255,0.04)"/>
@@ -195,7 +195,7 @@ export const POSTERS = {
 
   // Two converge into one, and one goes on. The two left lanes SHARE their last segment into the
   // middle block rather than each taking its own row: the merge is the point. No arrowheads.
-  'cluster-apply-flow': `
+  'cluster-object-create-path': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="14"  y="22"  width="76" height="44" rx="7" fill="rgba(255,255,255,0.04)"/>
       <rect x="14"  y="114" width="76" height="44" rx="7" fill="rgba(255,255,255,0.04)"/>
@@ -317,24 +317,23 @@ export const POSTERS = {
     </g>
   `,
 
+  // Chain of stages, rhythm carried by the CONTENT of a repeated block rather than by a glyph per
+  // stage: one object, three times, gaining a bar at each gate it passes. Accent is the newest bar.
   'cluster-admission-webhooks': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="20"  y="74" width="44" height="40" rx="4" fill="rgba(255,255,255,0.04)"/>
-      <line x1="28"  y1="86"  x2="56"  y2="86"/>
-      <line x1="28"  y1="96"  x2="56"  y2="96"/>
-      <line x1="28"  y1="106" x2="46"  y2="106"/>
-      <rect x="100" y="64" width="56" height="60" rx="4" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 2"/>
-      <path d="M 110 96 Q 120 86 128 96 T 146 96"/>
-      <rect x="180" y="64" width="56" height="60" rx="4" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 2"/>
-      <path d="M 190 96 L 200 108 L 226 80" stroke-linejoin="round" stroke-linecap="round" stroke-width="1.6"/>
-      <ellipse cx="280" cy="74"  rx="18" ry="5" fill="rgba(255,255,255,0.06)"/>
-      <line x1="262" y1="74"  x2="262" y2="114"/>
-      <line x1="298" y1="74"  x2="298" y2="114"/>
-      <path d="M 262 114 A 18 5 0 0 0 298 114" fill="rgba(255,255,255,0.06)"/>
-      <ellipse cx="280" cy="114" rx="18" ry="5" stroke-opacity="0.4"/>
-      <line x1="64"  y1="94" x2="100" y2="94" stroke-dasharray="3 2"/>
-      <line x1="156" y1="94" x2="180" y2="94" stroke-dasharray="3 2"/>
-      <line x1="236" y1="94" x2="262" y2="94" stroke-dasharray="3 2"/>
+      <rect x="8"   y="52" width="72" height="76" rx="7" fill="rgba(255,255,255,0.04)"/>
+      <rect x="124" y="52" width="72" height="76" rx="7" fill="rgba(255,255,255,0.05)"/>
+      <rect x="240" y="52" width="72" height="76" rx="7" fill="rgba(255,255,255,0.08)" stroke-width="2"/>
+      <rect x="91"  y="44" width="22" height="92" rx="5" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 3"/>
+      <rect x="207" y="44" width="22" height="92" rx="5" fill="rgba(255,255,255,0.04)" stroke-dasharray="4 3"/>
+    </g>
+    <g fill="currentColor" stroke="none">
+      <rect x="15"  y="110.5" width="58" height="7" rx="1" opacity="0.28"/>
+      <rect x="131" y="110.5" width="58" height="7" rx="1" opacity="0.28"/>
+      <rect x="131" y="98.5"  width="58" height="7" rx="1" opacity="0.28"/>
+      <rect x="247" y="110.5" width="58" height="7" rx="1" opacity="0.28"/>
+      <rect x="247" y="98.5"  width="58" height="7" rx="1" opacity="0.28"/>
+      <rect x="247" y="86.5"  width="58" height="7" rx="1" opacity="0.9"/>
     </g>
   `,
 

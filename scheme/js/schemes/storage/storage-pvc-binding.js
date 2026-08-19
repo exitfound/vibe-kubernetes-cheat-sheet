@@ -45,6 +45,10 @@ const W_CTRL_TO_PVCB = [[PVCB_CX, CTRL_Y], [PVCB_CX, PVCB_BOTTOM]];   // deny, s
 const W_MOUNT_LOW   = [[MOUNT_X, PV_TOP], [MOUNT_X, PVC_BOTTOM]];   // PV -> PVC, upward
 const W_MOUNT_HIGH  = [[MOUNT_X, PVC_Y], [MOUNT_X, POD_BOTTOM]];    // PVC -> Pod, upward
 
+// The watch lane runs between the claim and the controller at their own mid height, so at the default
+// -14 the tag is cut by both box edges for 800 ms. -28 clears their tops on all four viewports.
+const WATCH_TAG_DY = -28;
+
 // A disk is a cylinder plus its spec line, grouped so dimming a rejected volume fades the spec WITH
 // it. Only the winner keys its cylinder: .highlight must sit on .scheme-cylinder, never the wrapper.
 const disk = ({ key, cylKey, cx, w, label, spec }) => P.group({
@@ -77,9 +81,11 @@ export const SCENE = {
     disk({ key: 'pvSlow', cx: SLOW_CX, w: 200, label: 'PV b22', spec: '5Gi, RWO, local-hdd' }),
     P.lane({ points: W_PVC_TO_CTRL, dashed: true, dim: true }),
     P.lane({ points: W_CTRL_TO_PVC, dashed: true, dim: true }),
-    P.lane({ points: W_SCAN_SMALL, dashed: true, dim: true }),
+    // The two probes into the rejected disks are keyed: a lane dies with the disk it ends on, or the
+    // shelf carries two full-strength arrowheads into ghosts (A-13).
+    P.lane({ key: 'wScanSmall', points: W_SCAN_SMALL, dashed: true, dim: true }),
     P.lane({ points: W_SCAN_MATCH, dashed: true, dim: true }),
-    P.lane({ points: W_SCAN_SLOW, dashed: true, dim: true }),
+    P.lane({ key: 'wScanSlow', points: W_SCAN_SLOW, dashed: true, dim: true }),
     P.lane({ points: W_MOUNT_LOW, dashed: true, dim: true }),
     P.lane({ points: W_MOUNT_HIGH, dashed: true, dim: true }),
     // The deny lane arrives with the claim it denies: a lane is never visible without its block.
@@ -109,12 +115,17 @@ const BOUND = 'data-claim <-> PV x73a';
 const MATCH_OK = '5Gi, RWO, local-ssd OK';
 const chips = (pvc, pv, bind, mount) => ({ pvcChip: pvc, pvChip: pv, bindChip: bind, mountChip: mount });
 
-// STO.S-01 as fields: the two late-appearing elements and the two rejected disks are pinned on EVERY
-// step, because the reduced replay walks 0..n and clearHighlights clears classes, not inline styles.
+// STO.S-01 as fields: the two late-appearing elements and the two rejected disks WITH THEIR PROBES
+// are pinned on EVERY step, since the reduced replay walks 0..n and reset clears classes, not styles.
 const CLAIM2_OFF = { pvcB: 0, wCtrlToPvcB: 0 };
 const CLAIM2_ON = { pvcB: 1, wCtrlToPvcB: 1 };
-const SHELF_UP = { pvSmall: 1, pvSlow: 1 };
-const SHELF_DIM = { pvSmall: OPACITY.notready, pvSlow: OPACITY.notready };
+// A disk and its probe move as one pair (A-13). The shared trunk stays lit because the winning
+// probe draws over it, so only the branch that ends on a ghost goes dim.
+const SHELF_UP = { pvSmall: 1, wScanSmall: 1, pvSlow: 1, wScanSlow: 1 };
+const SHELF_DIM = {
+  pvSmall: OPACITY.notready, wScanSmall: OPACITY.notready,
+  pvSlow: OPACITY.notready, wScanSlow: OPACITY.notready,
+};
 const VERDICTS = { small: 'too small', slow: 'wrong class' };
 // The rejection fade: to notready, forwards, fired when the probe that rejected the disk lands.
 const dimAt = (target, at) => F.fade({ target, to: OPACITY.notready, dur: 400, fill: 'forwards', easing: 'ease-out', at });
@@ -146,7 +157,7 @@ export const STEPS_SPEC = [
     // Infra to infra: no pod is involved, so there is no pulse to lead with. The claim rides along.
     flow: [
       F.route({ points: W_PVC_TO_CTRL, name: 'watch' }),
-      F.tag({ text: '5Gi, RWO, local-ssd', points: W_PVC_TO_CTRL }),
+      F.tag({ text: '5Gi, RWO, local-ssd', points: W_PVC_TO_CTRL, dy: WATCH_TAG_DY }),
       F.light({ targets: ['ctrl'], at: 'watch' }),
     ],
   },
@@ -167,8 +178,12 @@ export const STEPS_SPEC = [
       F.route({ points: W_SCAN_SMALL, name: 'small' }),
       F.route({ points: W_SCAN_MATCH, name: 'match' }),
       F.route({ points: W_SCAN_SLOW, name: 'slow' }),
+      // Each probe dims its own lane WITH its disk, on its own arrival, so the lane is at full
+      // strength for the whole flight (A-15) and down to the disk shade once the verdict is in.
       dimAt('pvSmall', 'small'),
+      dimAt('wScanSmall', 'small'),
       dimAt('pvSlow', 'slow'),
+      dimAt('wScanSlow', 'slow'),
       F.light({ targets: ['pvMatchCyl'], at: 'match' }),
       F.set({ wires: { small: VERDICTS.small }, at: 'small' }),
       F.set({ wires: { match: MATCH_OK }, chipsCued: { bindChip: 'candidate PV x73a' }, at: 'match' }),
@@ -183,12 +198,17 @@ export const STEPS_SPEC = [
     wires: VERDICTS,
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_DIM },
     lit: ['ctrl'],
+    // Each side turns Bound when ITS OWN write lands, and the pair is only a pair once the second
+    // one has, so all three hold what the match step left until the ball that earns them arrives.
+    rewind: { chips: { pvcChip: 'Pending', pvChip: 'Available', bindChip: 'candidate PV x73a' } },
     // Two writes leave the controller at once: one down to the claim, one down to the volume.
     flow: [
-      F.route({ points: W_CTRL_TO_PVC, lights: ['pvc'] }),
+      F.route({ points: W_CTRL_TO_PVC, name: 'toClaim', lights: ['pvc'] }),
       F.tag({ text: 'volumeName: x73a', points: W_CTRL_TO_PVC }),
-      F.route({ points: W_SCAN_MATCH, lights: ['pvMatchCyl'] }),
+      F.route({ points: W_SCAN_MATCH, name: 'toVolume', lights: ['pvMatchCyl'] }),
       F.tag({ text: 'claimRef: data-claim', points: W_SCAN_MATCH }),
+      F.set({ at: 'toClaim', chipsCued: { pvcChip: 'Bound' } }),
+      F.set({ at: 'toVolume', chipsCued: { pvChip: 'Bound', bindChip: BOUND } }),
     ],
   },
   {

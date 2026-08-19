@@ -1,17 +1,16 @@
 // catalog.test.mjs: the D block of ../../CANON.md (card metadata and the catalog) plus the
-// catalog-reading rules of the old tools/check-canon.mjs: R-desc, R-modulepath, R-poster,
-// R-srclabel, R-srcdup, and R-dash over the strings the catalog itself renders.
+// catalog-reading rules R-desc, R-modulepath, R-poster, R-srclabel, R-srcdup, and R-dash over the
+// strings the catalog itself renders.
 //
 // Everything here reads DATA, through fixtures/catalog.mjs, which imports js/data.js. No regex over
 // a card source. The two inputs that are not JS (sitemap.xml, and SCHEME_ALIASES inside app.js,
 // which imports document and cannot be imported here) are read as text and then parsed into the
 // object they declare, never matched pair by pair.
 //
-// Every walk that filters ends in census(): a check that scans nothing reports nothing, and the six
-// browser-free checks this file replaces could all be reduced to a green run over an empty set by
-// one bad directory filter. The counts below are the numbers a green gate printed at the start of
-// the refactor, and they are asserted rather than merely printed, because coverage can collapse to a
-// third at zero findings.
+// Every walk that filters ends in census(): a check that scans nothing reports nothing, and one bad
+// directory filter is enough to turn a whole file into a green run over an empty set. The counts
+// below are asserted rather than merely printed, because coverage can collapse to a third at zero
+// findings.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,20 +18,22 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   ROOT, catalog, cards, cardsByCategory, categories, categoryRegistry, census,
-  folderFiles, folderModules, manifest, posters, schemes, subcategories,
+  folderFiles, folderModules, manifest, posters, schemes, subcategories, CATALOG_BASELINE,
 } from '../fixtures/catalog.mjs';
 import { sentences } from '../fixtures/prose.mjs';
 
 // The catalog as it stands. A run that sees fewer cards than this is a broken walk, not a smaller
 // catalog, and it must be red.
-const CARD_TOTAL = 108;
+// The typed half, and its one assertion is below: this is where a card added to or removed from
+// data.js has to be acknowledged on purpose. Every other file derives its own total.
+const CARD_TOTAL = CATALOG_BASELINE.cards;
 const PER_CATEGORY = { cluster: 21, workloads: 19, network: 37, storage: 31 };
 const SUBCATEGORY_TOTAL = 15;   // 3 + 3 + 5 + 4, unique across the four categories (D-07)
-const ALIAS_TOTAL = 29;         // SCHEME_ALIASES in js/app.js
+const ALIAS_TOTAL = 30;         // SCHEME_ALIASES in js/app.js
 
-// R-desc thresholds, taken from tools/check-canon.mjs:399-400 rather than from the canon text.
-// The hard band was widened from 400-420 on 2026-07-26 because that ceiling was pushing qualifying
-// conditions out of descriptions and left 29 true sentences standing as false absolutes.
+// The desc bands D-04 and D-05 state: 400 to 470 characters hard (410 to 460 target) and 2 to 4
+// sentences. A tighter ceiling pushes qualifying conditions out of the desc and leaves true
+// sentences standing as false absolutes, which is the spend T-20 asks for.
 const DESC_MIN = 400;
 const DESC_MAX = 470;
 const DESC_SENTENCES_MIN = 2;
@@ -173,8 +174,8 @@ test('D-02 an id starts with its category, which is the folder app.js imports fr
   census('id prefix', seen, CARD_TOTAL);
 });
 
-// The half that used to come free from every check walking the directory: a module nobody lists is
-// a module nobody lints and the grid never renders. S-20 caps a category folder at four kinds of
+// The other half of the same rule, asserted against the folder: a module nobody lists is a module
+// nobody lints and the grid never renders. S-20 caps a category folder at four kinds of
 // .js, and folderModules names the three that are not cards.
 test(`D-03 each category folder holds its cards plus ${folderModules('cluster').size} declared modules and nothing else`, async () => {
   let claimed = 0;

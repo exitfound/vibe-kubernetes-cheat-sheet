@@ -62,7 +62,7 @@ export const SCENE = {
     P.chain({
       key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
-        '1. policy    ·  Pod-level, all containers, default Always',
+        '1. policy    ·  Pod-level default Always, container may override',
         '2. exit 0    ·  Always restarts, OnFailure and Never do not',
         '3. exit != 0 ·  Always and OnFailure restart, Never does not',
         '4. backoff   ·  Always and OnFailure share the restart backoff',
@@ -115,7 +115,7 @@ export const STEPS_SPEC = [
   {
     id: 'policy',
     duration: 2200,
-    narration: 'The restartPolicy is a Pod-level field. The Pod-level value is immutable once the Pod is created and covers every main container that does not set its own. Since 1.35 the ContainerRestartRules feature gate is beta and enabled by default, so an individual container may carry a restartPolicy that overrides the Pod one. The Pod-level default is Always. Init containers may override it with their own restartPolicy (the native sidecar pattern, on by default since 1.29 and GA in 1.33). Kubelet reads the field from the Pod spec and applies it each time a container terminates.',
+    narration: 'The restartPolicy is a Pod-level field. The Pod-level value is immutable once the Pod is created and covers every main and regular init container that does not set its own. Since 1.35 the ContainerRestartRules feature gate is beta and enabled by default, so an individual container may carry a restartPolicy that overrides the Pod one. The Pod-level default is Always. A sidecar (an initContainer with restartPolicy Always, on by default since 1.29 and GA in 1.33) ignores it. Kubelet reads the field from the Pod spec and applies it each time a container terminates.',
     chips: { pod1Chip: 'Running', pod2Chip: 'Running', pod3Chip: 'Running', focusChip: 'Pod-level, default Always' },
     wires: { req: 'watch · spec.restartPolicy delivered · Status reported back' },
     opacity: { pod1: 1, pod2: 1, pod3: 1 },
@@ -156,7 +156,7 @@ export const STEPS_SPEC = [
   {
     id: 'backoff',
     duration: 2400,
-    narration: 'Every restart, whether driven by Always or by OnFailure, goes through the same exponential backoff. The delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s). The container sits in Waiting with reason=CrashLoopBackOff during the wait, and the timer resets after the container has run successfully for 10 minutes. A Never Pod never restarts at all, so it cannot enter this loop.',
+    narration: 'The first restart is immediate, and every restart after it, whether driven by Always or by OnFailure, waits out the same exponential backoff. The delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s by default). The container sits in Waiting with reason=CrashLoopBackOff during the wait, and the timer resets after the container has run successfully for 10 minutes. A Never Pod never restarts at all, so it cannot enter this loop.',
     chips: { pod1Chip: 'Waiting (backoff)', pod2Chip: 'Waiting (backoff)', pod3Chip: 'never enters backoff', focusChip: 'backoff 10s..300s, shared' },
     wires: { req: 'restart backoff: 10s → 20s → ... → 300s cap' },
     // Pin: A and B sit in backoff (alive, not serving), C runs normally.

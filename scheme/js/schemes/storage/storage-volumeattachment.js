@@ -1,4 +1,4 @@
-import { P, F, defineCard, BEAT, OPACITY } from './storage-kit.js';
+import { P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volumeattachment
 
 
@@ -70,6 +70,22 @@ const W_PUBLISH = [[COL_R_CX, ATT_BOTTOM], [COL_R_CX, PUBLISH_JOG_Y], [DISK_CX, 
 const W_ONNODE  = [[DISK_RIGHT, DISK_CY], [COL_L_CX, DISK_CY], [COL_L_CX, KUBE_BOTTOM]];
 const W_GATE    = [[COL_R_X, VA_CY], [CORRIDOR_X, VA_CY], [CORRIDOR_X, KUBE_CY], [KUBE_RIGHT, KUBE_CY]];
 const W_MOUNT   = [[COL_L_CX, KUBE_TOP], [COL_L_CX, POD_BOTTOM]];
+
+// The write tag rides LEFT of its lane: anchored middle on x=1024 it is 90.4 wide, and the static
+// `create` caption starts 12 right of the lane at 1036, so at dx 0 the two overlap for about 200ms.
+const WRITE_TAG_DX = -46;
+
+// The publish lane leaves the attacher floor and enters the disk, so at the default -14 the driver
+// call is cut for 200 ms. Below the ball it clears from 12 to 42, and 22 also clears the ball itself.
+const DRIVER_TAG_DY = 22;
+
+// The right column's lanes are 84 long between 76-tall boxes, so a tag at any fixed offset starts or
+// ends inside a block. This one fades in only once its ball is clear: 250 covers the 252ms crossing.
+const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
+const TAG_EMERGE = 250;
+// The status write ENDS on the object it updates, where emerging cannot help: below the ball it
+// parks 14 clear of the box floor, and 22 is the offset the publish lane already uses.
+const STATUS_TAG_DY = DRIVER_TAG_DY;
 
 // How long a born-mid-story construction takes to materialise, and how long it takes to leave. It runs
 // before the ball is sent (BEAT.lead is 800), so nothing is ever aimed at a block that is not there.
@@ -173,17 +189,22 @@ export const STEPS_SPEC = [
     // The object exists by the END of this step, so visible is the static end-state.
     opacity: { ...OBJ_ON, ...POD_ON, ...DISK_ON },
     lit: ['adc'],
-    // The animated path starts from the absence the step before it left, and the construction below
-    // is what closes the gap.
-    rewind: { opacity: OBJ_OFF },
+    // The animated path starts from the absence the step before it left. The name, the field and the
+    // state line are what the write PRODUCES, so all three read no object until it lands (P-03, P-04).
+    rewind: {
+      opacity: OBJ_OFF,
+      chips: { vaChip: 'none', attrChip: 'no object' },
+      sublabels: { va: NOT_CREATED },
+    },
     // The object and all four of its lanes materialise as ONE construction, and finish before the
     // write is sent (LAND_MS 500 against BEAT.lead 800), so no arrowhead is ever aimed at nothing.
     flow: [
       fade('va', OPACITY.pending, 1),
       ...VA_LANES.map(k => fade(k, 0, 1)),
       F.route({ points: W_WRITE, delay: BEAT.lead, name: 'write' }),
-      F.tag({ text: 'vol-1 on Node-1', points: W_WRITE, delay: BEAT.lead }),
+      F.tag({ text: 'vol-1 on Node-1', points: W_WRITE, delay: BEAT.lead, dx: WRITE_TAG_DX, fn: emergeTag, emerge: TAG_EMERGE }),
       F.light({ targets: ['va'], at: 'write' }),
+      F.set({ at: 'write', chipsCued: { vaChip: 'va-7f', attrChip: 'false' }, sublabels: { va: ATTACHED_FALSE } }),
     ],
   },
   {
@@ -197,16 +218,21 @@ export const STEPS_SPEC = [
     wires: { disk: DISK_ON_NODE },
     opacity: { ...OBJ_ON, ...POD_ON, ...DISK_ON },
     lit: ['va'],
+    // The device is on the Node by the end of this step, and the third hop is what puts it there, so
+    // the chip that records it waits for that hop instead of standing at entry (P-03).
+    rewind: { chips: { diskChip: 'no' } },
     // The watch carries no tag, so its cue rides the packet. The other two do carry one, and a cue
     // written as `lights` there would stand BEFORE the tag instead of after it.
     flow: [
       F.route({ points: W_WATCH, name: 'watch', lights: ['att'] }),
       F.route({ points: W_PUBLISH, after: 'watch', name: 'call' }),
-      F.tag({ text: 'ControllerPublish', points: W_PUBLISH, after: 'watch' }),
+      F.tag({ text: 'ControllerPublish', points: W_PUBLISH, after: 'watch', dy: DRIVER_TAG_DY }),
       F.light({ targets: ['disk'], at: 'call' }),
       F.route({ points: W_ONNODE, after: 'call', name: 'land' }),
       F.tag({ text: 'vol-1 on Node-1', points: W_ONNODE, after: 'call' }),
-      F.light({ targets: ['kube'], at: 'land' }),
+      // The device surfacing where Kubelet can see it is not Kubelet acting, which this step says in
+      // words: the arrival turns the DEVICE chip over and Kubelet stays dark until the `mount` gate.
+      F.set({ at: 'land', chipsCued: { diskChip: 'yes' } }),
     ],
   },
   {
@@ -222,7 +248,7 @@ export const STEPS_SPEC = [
     // the watch it answers, so it never reads as the watch bouncing back.
     flow: [
       F.route({ points: W_STATUS, name: 'status' }),
-      F.tag({ text: 'attached: true', points: W_STATUS }),
+      F.tag({ text: 'attached: true', points: W_STATUS, fn: emergeTag, emerge: TAG_EMERGE, dy: STATUS_TAG_DY }),
       F.light({ targets: ['va'], at: 'status' }),
     ],
   },
@@ -235,7 +261,7 @@ export const STEPS_SPEC = [
     wires: { disk: 'attached to Node-1, mounted at /data' },
     opacity: { ...OBJ_ON, ...POD_ON, ...DISK_ON },
     // The Kubelet is what the gate opens onto, and the cue below already lights it on that arrival.
-    // It was lit from entry as well, so the moment it stopped waiting could not be seen.
+    // Lighting it from entry as well would hide the moment it stops waiting.
     lit: ['va', 'disk'],
     flow: [
       F.route({ points: W_GATE, name: 'gate' }),
@@ -263,23 +289,26 @@ export const STEPS_SPEC = [
     // take it away.
     rewind: { opacity: { ...OBJ_ON, ...POD_ON, ...DISK_ON } },
     flow: [
-      fade('appPod', 1, 0),
-      fade('mountLane', 1, 0),
+      // The Pod going is the first clause of the narration and everything below follows from it, so
+      // it blinks at full before it fades, and its mount lane leaves on the same beat (M-08, P-04).
+      F.pulse({ pod: 'appPod' }),
+      fade('appPod', 1, 0, { delay: BEAT.afterPulse }),
+      fade('mountLane', 1, 0, { delay: BEAT.afterPulse }),
       // The delete rides the SAME lane the create did, because the same controller writes both.
       // The watch below is the attacher reading that deletion, so it can only follow it.
       F.route({ points: W_WRITE, delay: BEAT.lead, name: 'del' }),
-      F.tag({ text: 'delete va-7f', points: W_WRITE, delay: BEAT.lead }),
+      F.tag({ text: 'delete va-7f', points: W_WRITE, delay: BEAT.lead, fn: emergeTag, emerge: TAG_EMERGE }),
       // The object's cue is an F.set, not `lights`, because the reduced path must not show it: the
       // unlight below takes it off again before the step settles.
       F.set({ on: 'va', lit: ['va'], at: 'del' }),
       F.route({ points: W_WATCH, after: 'del', name: 'watch' }),
-      F.tag({ text: 'va-7f deleted', points: W_WATCH, after: 'del' }),
+      F.tag({ text: 'va-7f deleted', points: W_WATCH, after: 'del', fn: emergeTag, emerge: TAG_EMERGE }),
       F.light({ targets: ['att'], at: 'watch' }),
       // The deletion mark, not the deletion: the attacher sees deletionTimestamp and the object
       // drops to the terminating shade, still holding its finalizer.
       fade('va', 1, OPACITY.terminating, { at: 'watch' }),
       F.route({ points: W_PUBLISH, after: 'watch', name: 'call' }),
-      F.tag({ text: 'ControllerUnpublish', points: W_PUBLISH, after: 'watch' }),
+      F.tag({ text: 'ControllerUnpublish', points: W_PUBLISH, after: 'watch', dy: DRIVER_TAG_DY }),
       // The disk and its two lanes sink together, and only after the unpublish ball has landed on it:
       // the lane the ball is riding has to be on screen for the whole flight.
       ...['disk', 'wPublish', 'wOnNode'].map(k => fade(k, 1, OPACITY.notready, { dur: 400, at: 'call' })),

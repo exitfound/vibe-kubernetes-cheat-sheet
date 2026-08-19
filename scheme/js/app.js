@@ -439,10 +439,10 @@ function renderPoster(scheme) {
 // Old scheme ids still resolve, so deep links, bookmarks and indexed sitemap URLs keep opening the
 // right card. A rename is cheap only because this map exists: add the entry WITH it, never later.
 const SCHEME_ALIASES = {
-  // The Cluster category was keyed `control` until the code was aligned with its
-  // user-facing label. Every old id still resolves.
+  // Old Cluster ids were keyed `control`. Every one still resolves.
   'control-plane-architecture': 'cluster-architecture',
-  'control-plane-apply-flow': 'cluster-apply-flow',
+  'control-plane-apply-flow': 'cluster-object-create-path',
+  'cluster-apply-flow': 'cluster-object-create-path',
   'control-plane-delete-flow': 'cluster-delete-flow',
   'control-etcd-raft': 'cluster-etcd-raft',
   'control-leader-election': 'cluster-leader-election',
@@ -465,7 +465,7 @@ const SCHEME_ALIASES = {
   'lifecycle-crashloopbackoff': 'workloads-crashloopbackoff',
   'lifecycle-graceful-shutdown': 'workloads-graceful-shutdown',
   'lifecycle-force-deletion': 'workloads-force-deletion',
-  // Preemption is the PostFilter stage of the scheduler, so the card moved to Cluster on 2026-08-04.
+  // Preemption is the PostFilter stage of the scheduler, so the card lives in Cluster.
   'workloads-pod-priority-preemption': 'cluster-pod-priority-preemption',
   'deployment-rolling-update': 'workloads-rolling-update',
   'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',

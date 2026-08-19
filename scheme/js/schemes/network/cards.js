@@ -70,7 +70,7 @@ export const CARDS = [
     title: 'kube-proxy: iptables vs IPVS',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'How does kube-proxy pick a backend, and why does the mode matter at scale? In iptables mode a packet to a ClusterIP walks KUBE-SERVICES into a per-Service chain that picks an endpoint by probability, then a per-endpoint chain DNATs it to the Pod. IPVS mode makes the same choice with an in-kernel hash table, trading the rule walk for constant-time lookup, though v1.35 deprecates it in favour of nftables. Either way conntrack pins the flow to the chosen backend.',
+    desc: 'How does kube-proxy pick a backend, and why does the mode matter at scale? In iptables mode a packet to a ClusterIP walks KUBE-SERVICES into a per-Service chain that picks an endpoint by probability, then a per-endpoint chain DNATs it to the Pod. IPVS mode makes the same choice with an in-kernel hash table, trading the rule walk for constant-time lookup, though v1.35 deprecates it in favour of nftables. Either mode turns the ClusterIP into one chosen backend.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -268,7 +268,7 @@ export const CARDS = [
     k8sVersion: '1.35',
     tinted: true,
     sources: [
-      { label: 'Topology Aware Routing', href: 'https://kubernetes.io/docs/concepts/services-networking/topology-aware-routing/' },
+      { label: 'Traffic Distribution Control', href: 'https://kubernetes.io/docs/concepts/services-networking/service/#traffic-distribution' },
       { label: 'Service Session Affinity', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/#session-affinity' },
     ],
   },
@@ -303,7 +303,7 @@ export const CARDS = [
     title: 'Terminating Endpoints and Draining',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'When a rolling update deletes a backing Pod, why do requests keep flowing instead of failing? The Pod enters Terminating and its endpoint flips to notReady while serving and terminating stay true, so kube-proxy stops sending new connections but keeps draining the in-flight ones. Only after the grace period does the endpoint leave the slice, so a clean rollout drops nothing. The window is the grace period, no more.',
+    desc: 'When a rolling update deletes a backing Pod, why do requests keep flowing instead of failing? The Pod enters Terminating and its endpoint flips to notReady while serving and terminating stay true, so kube-proxy stops sending it new connections while the flows already established on it finish on their conntrack entries. Only after the grace period does the endpoint leave the slice, so a clean rollout drops nothing. The window is the grace period, no more.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

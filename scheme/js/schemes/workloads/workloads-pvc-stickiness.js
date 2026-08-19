@@ -122,9 +122,10 @@ export const SCENE = {
   },
 };
 
-// A lane into a Pod that is not there points at nothing, so each one is pinned to 0 until its Pod
-// is on that Node (project canon: an absent block dims, its lanes disappear).
-const lanes = (toA, toB) => ({
+// A lane into a Pod that is not there points at nothing, so each is pinned to 0 until its Pod is on
+// that Node, and Node-1 is pinned here too (A-16): LOST on four of five steps, so that is `alive`s default.
+const lanes = (toA, toB, alive = false) => ({
+  nodeA: alive ? 1 : OPACITY.notready,
   trunk: (toA || toB) ? 1 : 0,
   busL: toA ? 1 : 0,
   connector: toA ? 1 : 0,
@@ -139,8 +140,10 @@ export const STEPS_SPEC = [
     id: 'idle',
     duration: 1500,
     chips: { podChip: 'web-0 · Running on Node-1', pvcChip: 'data-web-0 · Bound', pvChip: 'cloud-vol-x · ReadWriteOnce', dataChip: 'rev=1234' },
-    opacity: { podA: 1, podB: 0, ...lanes(true, false) },
-    chain: -1,
+    opacity: { podA: 1, podB: 0, ...lanes(true, false, true) },
+    // Row 0 is the steady state this frame draws, so the poster lights it: eight cards in the
+    // category open on `chain: 0` and the four steps below then take rows 1 to 4.
+    chain: 0,
   },
   {
     id: 'evict',
@@ -154,7 +157,13 @@ export const STEPS_SPEC = [
     opacity: { podB: 0, ...lanes(true, false), podA: OPACITY.terminating },
     lit: ['controller', 'apiserver', 'podChip', 'pvcChip', 'pvChip', 'dataChip'],
     chain: 1,
+    // Node-1 is at full strength until this step: the heartbeats stop HERE, which is the first
+    // sentence, so the frame is wound back and dims where the words say it goes NotReady.
+    rewind: { opacity: { nodeA: 1 } },
     flow: [
+      // The Node goes first and the eviction follows it: the ball is still 1858ms out when the
+      // frame has finished dimming, so no delay is needed to put the two in the right order.
+      F.fade({ target: 'nodeA', from: 1, to: OPACITY.notready, dur: FADE.out, delay: 0, fill: 'both', easing: 'ease-in' }),
       F.route({ points: NODE1_LANE, fadeIn: true, name: 'del' }),
       F.fade({ target: 'podA', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'del', fill: 'both', easing: 'ease-in' }),
     ],
@@ -180,7 +189,7 @@ export const STEPS_SPEC = [
     // Motion: the binding now leaves the API and crosses to the far Node, running to 3069ms.
     duration: 3200,
     narration: 'Scheduler binds web-0 to Node-2. POST .../pods/web-0/binding writes spec.nodeName=Node-2 in ETCD. PVC data-web-0 stays bound to the same PV cloud-vol-x. The cloud volume is ReadWriteOnce, so it can be safely attached to Node-2 only because the old Pod is fully removed from API (force-delete a stuck Pod and you risk a dual mount, see the Force Deletion card).',
-    chips: { podChip: 'web-0 · Pending (created again)', pvcChip: 'data-web-0 · Bound (reused)', pvChip: 'cloud-vol-x · attaching to Node-2', dataChip: 'rev=1234 · preserved' },
+    chips: { podChip: 'web-0 · bound to Node-2', pvcChip: 'data-web-0 · Bound (reused)', pvChip: 'cloud-vol-x · attaching to Node-2', dataChip: 'rev=1234 · preserved' },
     wires: { req: 'POST .../pods/web-0/binding · Node-2' },
     // Pin final opacity inline (web-0 now placed on Node-2) so a cancel does not hide it.
     opacity: { podA: 0, ...lanes(false, true), podB: 1 },
@@ -188,11 +197,11 @@ export const STEPS_SPEC = [
     chain: 3,
     // The attach is what the binding sets off, so the volume is still on the lost Node until the
     // ball that names Node-2 lands. The end value is above, this is where the step starts from.
-    rewind: { chips: { pvChip: 'cloud-vol-x · on lost Node-1' } },
+    rewind: { chips: { podChip: 'web-0 · Pending (created again)', pvChip: 'cloud-vol-x · on lost Node-1' } },
     flow: [
       F.route({ points: NODE2_LANE, fadeIn: true, name: 'bind' }),
-      // Both chips hold what the previous step left and turn over when the binding LANDS: at entry
-      // they would read as placed and attaching while the slot on Node-2 is still empty.
+      // Both chips are wound back to what the previous step left and turn over when the binding
+      // LANDS: at entry they would read as placed and attaching while the slot on Node-2 is empty.
       F.set({ at: 'bind', chips: { podChip: 'web-0 · bound to Node-2', pvChip: 'cloud-vol-x · attaching to Node-2' } }),
       F.fade({ target: 'podB', from: 0, to: 1, dur: FADE.in, at: 'bind', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'podB', at: 'bind' }),

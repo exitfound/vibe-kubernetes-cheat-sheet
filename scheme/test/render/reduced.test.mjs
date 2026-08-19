@@ -17,10 +17,17 @@
 //                      around a Pod is invisible to OPACITY-OWN entirely.
 //   WIRE-TEXT          the drawn .scheme-label text. A card whose setWire runs only below the
 //                      guard shows blank lanes on prev/reset.
+//   BLOCK-TEXT         the drawn <text> inside a block: chip name and value, box label and
+//                      sublabel, Pod sublabel, chain row. This is the axis a chip pinned at the
+//                      value from BEFORE the step's event lands on, which is the whole `rewind`
+//                      idiom (`T-30` states it for wires, and a chip is the same shape). Fourteen
+//                      chips on six cards read one step behind on prev while the opacity beside
+//                      them was pinned at the end state, so prev drew a terminated Pod next to a
+//                      count saying nothing had happened, and no axis here could see it.
 //   HIGHLIGHT          the .highlight class set. This is the axis a wrong `reducedLit` lands on,
 //                      and enforcing it is what makes the derived guard checkable inside `npm test`.
 //
-// WHY OPACITY-INHERITED IS ENFORCED (plan 2.3b). The demonstration is on cluster-node-drain, whose
+// WHY OPACITY-INHERITED IS ENFORCED. The demonstration is on cluster-node-drain, whose
 // Pod wrappers are bare `<g id="pod1">` with no class (cluster-node-drain.js:103) and therefore
 // outside the element selector. Removing the static pin from one of them leaves the picture on
 // prev visibly wrong and the only enforced axis SILENT, because the pin never sat on an element
@@ -33,46 +40,48 @@
 // The two opacity axes are the two fixture helpers, and they are NOT interchangeable:
 // ownOpacity() answers "did the step leave the same value behind on both paths", which is a
 // question about the code, and effectiveOpacity() answers "does the reader see the same thing",
-// which is a question about the picture. The old harness had one private definition per check and
-// they disagreed (see DIVERGENCE 3 in ../fixtures/render.mjs); here each axis names the one it
-// means.
+// which is a question about the picture. One helper named `opacity` would hand a caller whichever
+// of the two it happened to be written for, and the number that comes back is not wrong, it is the
+// answer to a question the caller did not ask (DIVERGENCE 3 in ../fixtures/render.mjs). So each
+// axis here names the one it means.
 //
-// WHY THIS FILE MATTERS MORE AFTER STAGE 3. The reduced guard stops being hand-written and starts
-// being DERIVED from `flow` (plan 3.5: flowLights collects the ordered union of every `lights`, and
-// 93 of 93 cluster guards were checked against it). At that point the guard is generated code and
-// this test is the only thing standing between a wrong derivation and a card that shows a different
-// picture on prev than on play. That is why every finding names the card, the step INDEX AND ID,
-// the axis and the element: after stage 3 the question will be "which derived guard is wrong",
-// and "reduced state diverged" does not answer it.
+// WHY THIS FILE CARRIES THE DERIVED GUARD. The reduced guard is not hand-written, it is DERIVED
+// from `flow`: flowLights collects the ordered union of every `lights`, checked against 93 of 93
+// cluster guards. The guard is generated code, and this test is the only thing standing between a
+// wrong derivation and a card that shows a different picture on prev than on play. That is why
+// every finding names the card, the step INDEX AND ID, the axis and the element: the question a
+// finding has to answer is "which derived guard is wrong", and "reduced state diverged" does not
+// answer it.
 //
-// AND WHY THE TWO SNAPSHOTS ARE MATCHED BY KEY (plan 2.3c, closed before stage 3 could start).
-// The comparison used to walk the two element lists in parallel by slot number. Stage 3 makes the
-// SCENE part list the append order, so creation order stops being append order and a migrated card
-// puts its elements on screen in a different sequence: a positional diff would then line up
-// unrelated pairs and report noise no one could tell from a regression, on the one test that is
-// supposed to be stage 3's guard. Each element now carries an identity key that has no slot number
-// in it (../fixtures/render.mjs, elementKey), the two snapshots are matched through it, and the
-// two cases the old loop swallowed, a key present on one path only and lists of unequal length,
-// are findings.
+// AND WHY THE TWO SNAPSHOTS ARE MATCHED BY KEY. The comparison matches elements by IDENTITY and
+// never by slot number. The SCENE part list is the append order, so creation order is not screen
+// order and a card can put its elements up in a different sequence: a positional diff lines up
+// unrelated pairs and reports noise no one can tell from a regression, on the one test that is
+// supposed to be the guard on a derived guard. Each element carries an identity key with no slot
+// number in it (../fixtures/render.mjs, elementKey), the two snapshots are matched through it, and
+// the two cases a parallel walk by slot swallows, a key present on one path only and lists of
+// unequal length, are findings here.
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, floor, SUBSET, FULL_ONLY, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
+import { stepTotal } from '../fixtures/module.mjs';
 import {
-  DEFAULT_BASE, STEP_SETTLE_MS,
-  launch, setInspect, discoverIds, openCard, stepCount, stepMeta,
-  enterStep, gotoStep, stepSpan, seekStep, installOpacityHelpers, installKeyHelpers,
+  DEFAULT_BASE, discoverIds, enterStep, gotoStep, installKeyHelpers, installOpacityHelpers,
+  launch, openCard, seekStep, initPage, stepCount, stepMeta, stepSpan,
 } from '../fixtures/render.mjs';
 
 // The catalog as it stands. Asserted, not printed: a walk that sees fewer cards or fewer steps
 // reports fewer findings and passes, which is the failure mode this whole suite is built against.
 // 650 counts EVERY step including each card's
 // step 0; the comparison itself starts at 1, so 650 - 108 = 542 steps are actually diffed.
-const CARD_TOTAL = 108;
-const STEP_TOTAL = 650;
+const CARD_TOTAL = CATALOG_BASELINE.cards;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const STEP_TOTAL = await stepTotal();
 
 // Axis names, in the order a summary lists them.
-const AXES = ['OPACITY-OWN', 'OPACITY-INHERITED', 'WIRE-TEXT', 'HIGHLIGHT'];
+const AXES = ['OPACITY-OWN', 'OPACITY-INHERITED', 'WIRE-TEXT', 'BLOCK-TEXT', 'HIGHLIGHT'];
 
 // Which axes fail `npm test`. Everything else is counted and reported.
 //
@@ -80,9 +89,10 @@ const AXES = ['OPACITY-OWN', 'OPACITY-INHERITED', 'WIRE-TEXT', 'HIGHLIGHT'];
 // file needs to change, and the env override exists so the queue can be worked with a red run
 // without editing the file:
 //   REDUCED_ENFORCE=OPACITY-OWN,WIRE-TEXT node --test 'render/reduced.test.mjs'
-// All four are enforced as of the last category's migration: both report-only queues stand at 0
-// over the 542 compared steps, so the reason they were counted rather than asserted is gone.
-const DEFAULT_ENFORCED = ['OPACITY-OWN', 'OPACITY-INHERITED', 'WIRE-TEXT', 'HIGHLIGHT'];
+// All five are enforced: the two that were once report-only stand at 0 over the 542 compared steps,
+// so the reason they were counted rather than asserted is gone, and BLOCK-TEXT went in green after
+// the fourteen chips it found were repaired.
+const DEFAULT_ENFORCED = ['OPACITY-OWN', 'OPACITY-INHERITED', 'WIRE-TEXT', 'BLOCK-TEXT', 'HIGHLIGHT'];
 const ENFORCED = new Set(
   (process.env.REDUCED_ENFORCE ?? DEFAULT_ENFORCED.join(','))
     .split(',').map(s => s.trim()).filter(Boolean));
@@ -91,13 +101,16 @@ for (const name of ENFORCED) {
   if (!AXES.includes(name)) throw new Error(`REDUCED_ENFORCE names "${name}", which is not one of ${AXES.join(', ')}`);
 }
 
-// Tolerance on both opacity axes (check-reduced.mjs:159,162). A fill-forwards animation lands on
-// its end value through a float, so an exact compare would report arithmetic as a defect.
+// Tolerance on both opacity axes, and it covers float drift and nothing else: a fill-forwards
+// animation lands on its end value through a float, and both fixture helpers round to 2 decimals,
+// so an exact compare would report arithmetic as a defect. The ceiling on it is the OPACITY
+// vocabulary, whose closest pair is terminated 0.12 against a bare 0: at 0.06 a shade written where
+// its neighbour belongs is still twice the slack away and still reports.
 const OPACITY_SLACK = 0.06;
 
-// How far past its own span a step is seeked before the snapshot. 400 (check-reduced.mjs:145-146):
-// far enough that every delayed effect is behind the playhead, and it costs nothing because the
-// seek is instant.
+// How far past its own span a step is seeked before the snapshot. 400 has one job: put every
+// delayed effect of the step behind the playhead, deferred handlers included. It costs nothing
+// because the seek is instant, so the only way this number is wrong is by being too small.
 const SETTLE_PAST_SPAN_MS = 400;
 
 // Findings kept per axis for the summary. A queue that is only counted cannot be drained.
@@ -136,12 +149,27 @@ const snap = (sel) => {
   let collisions = 0;
   const count = (c) => { if (c) collisions++; };
 
+  // The <text> a block draws ITSELF, never the text of a block nested inside it. A Pod contains an
+  // inner .scheme-box and a Node frame contains whole Pods, so plain textContent would report one
+  // wrong sublabel on the box that owns it AND on every ancestor, and one repair would close three
+  // findings at once. `closest` answers which element in the list owns a given text node, and the
+  // join is by drawn order, which for a value chip is name then value.
+  const ownText = (el) => {
+    const out = [];
+    for (const t of el.querySelectorAll('text')) {
+      if (t.closest(sel.els) !== el) continue;
+      out.push((t.textContent || '').trim());
+    }
+    return out.join(' | ');
+  };
+
   const els = window.__keyed(svg, sel.els, sel.transient).map(({ el, key, collision }) => {
     count(collision);
     return {
       key,
       own: window.__opacity.own(el),
       eff: window.__opacity.effective(el, svg),
+      txt: ownText(el),
       hl: el.classList.contains('highlight'),
     };
   });
@@ -200,8 +228,8 @@ const captureDeferred = (sel) => {
     pulsedTargets.add(tgt);
   }
   // Returned as KEYS, the same ones snap() reads, so the exemption survives the scene being
-  // re-ordered. It used to be a list of slot numbers, which silently pointed at whatever element
-  // happened to occupy that slot.
+  // re-ordered. Never return slot numbers here: a slot number points at whatever element happens
+  // to occupy that slot, silently.
   const pulsedKeys = [];
   for (const { el, key } of window.__keyed(svg, sel.els, sel.transient)) {
     for (const t of pulsedTargets) { if (el === t || el.contains(t)) { pulsedKeys.push(key); break; } }
@@ -209,10 +237,16 @@ const captureDeferred = (sel) => {
   return pulsedKeys;
 };
 
+// Replayed in END-TIME order, which is the only order that reproduces a real playback: two handlers
+// writing the SAME value are a last-writer-wins race, and getAnimations() hands them back in
+// composite order, which for timers on one element is CREATION order. workloads-daemonset step 1
+// is the demonstration: three creates raise one count, tap 0 has the longest lane (1933ms against
+// 1320) and lands the final 3, and replaying as captured ended on tap 2 and its 2. The sort is
+// stable, so handlers that genuinely finish together keep the order the browser would fire them in.
 const runDeferred = (t) => {
   let n = 0;
-  for (const d of (window.__deferred || [])) {
-    if (d.end > t) continue;
+  const due = (window.__deferred || []).filter(d => d.end <= t).sort((a, b) => a.end - b.end);
+  for (const d of due) {
     try { d.fn(); n++; } catch (_) {}
   }
   return n;
@@ -223,13 +257,20 @@ const runDeferred = (t) => {
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 // NOT reducedMotion, and NOT a shared default viewport: the played path has to run the real motion,
-// and 1600x1000 is the size check-reduced measured at (:124). Geometry moves with viewport height.
+// and 1600x1000 is the size every geometry number in this suite is measured at (L-06's first row).
+// Geometry moves with viewport height, so a shared default would compare two different pictures.
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
 const page = await context.newPage();
 // Every init script BEFORE the first navigation. An init script only runs on a document still to be
 // created, so installing __opacity or __keyed after openCard leaves it undefined and snap() throws.
-await page.addInitScript(setInspect, 'expose');
+await page.addInitScript(initPage, 'expose');
 await installOpacityHelpers(page);
 await installKeyHelpers(page);
 
@@ -237,8 +278,6 @@ await installKeyHelpers(page);
 const SELECTORS = { els: SEL, wires: WIRE_SEL, transient: TRANSIENT };
 
 const ids = await discoverIds(page, DEFAULT_BASE);
-
-after(() => browser.close());
 
 // Per-axis totals over the whole catalog, and a few worked examples of each.
 const totals = new Map(AXES.map(a => [a, 0]));
@@ -266,14 +305,14 @@ for (const id of ids) {
     assert.ok(total > 0, `${id}: stepCount is ${total}, there are no steps to compare`);
     stepsSeen += total;
 
-    // Step ids off the live controller, only so a finding can name the step the author named. A
+    // Step ids off the live controller, only so a finding can name the step by its own id. A
     // card without the debug handle still gets compared, it just reports by index.
     const meta = await stepMeta(page);
 
     const found = new Map(AXES.map(a => [a, []]));
 
     // Step 0 is the poster: it has no play path of its own, so there is nothing to compare it
-    // against. Same lower bound the old check used.
+    // against. The comparison starts at step 1.
     for (let i = 1; i < total; i++) {
       const label = meta && meta[i] && meta[i].id ? `step ${i} (${meta[i].id})` : `step ${i}`;
 
@@ -284,12 +323,10 @@ for (const id of ids) {
       const span = await stepSpan(page);
       await seekStep(page, span + SETTLE_PAST_SPAN_MS);
       await page.evaluate(runDeferred, span + SETTLE_PAST_SPAN_MS);
-      await page.waitForTimeout(STEP_SETTLE_MS);
       const played = await page.evaluate(snap, SELECTORS);
 
       // REDUCED: the same step applied statically, the way prev and reset replay it.
       await gotoStep(page, i);
-      await page.waitForTimeout(STEP_SETTLE_MS);
       const reduced = await page.evaluate(snap, SELECTORS);
 
       stepsDiffed++;
@@ -299,22 +336,21 @@ for (const id of ids) {
 
       // MATCHED BY KEY, NOT BY SLOT, and the three consequences are the point of the change:
       //
-      //   1. re-ordering the scene between the two paths changes nothing here. The old loop walked
-      //      the two lists in parallel and its key CARRIED the index, so one moved element shifted
-      //      every key after it and the rest of the scene fell out of the comparison.
+      //   1. re-ordering the scene between the two paths changes nothing here. NEVER put the slot
+      //      index in the key: a key that CARRIES it shifts on every element after a moved one, and
+      //      the rest of the scene drops out of the comparison.
       //   2. a key on one path and not on the other is a FINDING. That is the defect this file
-      //      exists for, an element the reader sees on play and not on prev, and it used to be the
-      //      one thing the loop silently skipped.
-      //   3. lists of unequal length are covered by 2, so there is nothing left to truncate. The
-      //      old Math.min dropped the tail of the longer list, which is exactly where an added or
-      //      a missing element sits.
+      //      exists for, an element the reader sees on play and not on prev, and a walk of the two
+      //      lists in parallel is exactly what skips it in silence.
+      //   3. lists of unequal length are covered by 2, so there is nothing left to truncate. NEVER
+      //      Math.min the two lengths: that drops the tail of the longer list, which is exactly
+      //      where an added or a missing element sits.
       //
       // The structural half is reported on OPACITY-OWN: an element that is not there left no value
       // behind at all, which is the strongest form of the question that axis asks, and reporting it
-      // on the enforced axis is what makes it red rather than a note. A missing WIRE LABEL goes to
-      // WIRE-TEXT, the axis that owns that list, and stays report-only with the rest of it: routing
-      // it to an enforced axis would be promoting half of WIRE-TEXT, which 2.3c holds back until
-      // stage 3 has moved the reduced branch.
+      // on that axis is what makes it red rather than a note. A missing WIRE LABEL goes to
+      // WIRE-TEXT, the axis that owns that list, and is red there too: all four axes are enforced,
+      // so the routing decides WHICH axis names a defect and never whether it goes red.
       const index = (list) => new Map(list.map(e => [e.key, e]));
       const rEls = index(reduced.els);
 
@@ -327,6 +363,14 @@ for (const id of ids) {
         } else if (Math.abs(p.eff - r.eff) > OPACITY_SLACK) {
           // Only when the own-opacity axis agrees, so one defect is not reported on two axes.
           hit('OPACITY-INHERITED', `${p.key}  effective opacity played=${p.eff} reduced=${r.eff}`);
+        }
+
+        // What the block DRAWS. Separate from the opacity axes rather than folded into one of
+        // them: a value pinned one step behind is a different repair from a shade pinned wrong
+        // (the text moves into `rewind`, the shade does not), and an axis that named both would
+        // not say which.
+        if (p.txt !== r.txt) {
+          hit('BLOCK-TEXT', `${p.key}  played=${JSON.stringify(p.txt)} reduced=${JSON.stringify(r.txt)}`);
         }
 
         // A reduced-only highlight on something this step PULSES is the stand-in convention. The
@@ -372,9 +416,9 @@ for (const id of ids) {
   });
 }
 
-// Coverage guard, and the reason it is an assertion and not a printout: check-reduced could report
-// zero findings over a subset and exit 0, so the number of steps compared is part of the result.
-test(`the walk covered the whole catalog (${CARD_TOTAL} cards, ${STEP_TOTAL} steps)`, () => {
+// Coverage guard, and the reason it is an assertion and not a printout: a walk over a subset
+// reports zero findings and exits 0, so the number of steps compared is part of the result.
+test(`the walk covered the whole catalog (${CARD_TOTAL} cards, ${STEP_TOTAL} steps)`, FULL_ONLY, () => {
   census('reduced walked', cardsWalked, catalogued.length);
   assert.equal(stepsSeen, STEP_TOTAL,
     `walked ${stepsSeen} steps, the baseline counted ${STEP_TOTAL}.\n` +
@@ -396,7 +440,7 @@ test('axis counts, and any axis demoted through REDUCED_ENFORCE', (t) => {
   for (const axis of ENFORCED) t.diagnostic(`${axis}: ENFORCED, ${totals.get(axis)} mismatch(es)`);
   // How often two elements in one snapshot were indistinguishable by every stable attribute and the
   // key fell back on document order. Printed, not asserted: it says how much of the comparison still
-  // rests on position, which is the number to watch while stage 3 re-orders scenes.
+  // rests on position, which is the number to watch whenever a scene is re-ordered.
   t.diagnostic(`key collisions: ${keyCollisions} element(s) across ${stepsDiffed * 2} snapshots`);
   // Nothing is asserted here on purpose: a demoted axis is being worked, and pinning its count
   // would make the repair itself turn the suite red.

@@ -127,7 +127,7 @@ export const STEPS_SPEC = [
   {
     id: 'client-chooses',
     duration: 3300,
-    narration: 'A client resolving the Service gets both an A and an AAAA record, and connects over whichever family it prefers. Here it dials the IPv6 ClusterIP, and kube-proxy forwards the connection to the Pod IPv6 address. The same Service is reachable both ways.',
+    narration: 'A client resolving the Service gets both an A and an AAAA record, and connects over whichever family it prefers. Here it dials the IPv6 ClusterIP, and the Service forwards the connection to the Pod IPv6 address. The same Service is reachable both ways.',
     chips: { ...DUAL },
     sublabels: { clientBox: 'dials IPv6 fd00:96::a' },
     podSublabels: { pod: 'IPv4 10.244.1.5 . IPv6 fd00::1:5' },

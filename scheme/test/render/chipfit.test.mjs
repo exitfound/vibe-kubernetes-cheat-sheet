@@ -44,10 +44,11 @@
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, floor, SUBSET } from '../fixtures/catalog.mjs';
+import { stepTotal } from '../fixtures/module.mjs';
 import {
-  DEFAULT_BASE, STEP_SETTLE_MS, FACE_MONO,
-  launch, setInspect, discoverIds, openCard, stepCount, gotoStep, fallbackFaces,
+  DEFAULT_BASE, discoverIds, FACE_MONO, fallbackFaces, gotoStep, launch, openCard, initPage,
+  stepCount,
 } from '../fixtures/render.mjs';
 
 // ---------------------------------------------------------------------------------------------
@@ -75,9 +76,21 @@ const CHIP_FACES = [FACE_MONO];
 // than this has scanned a subset, and a subset reporting zero collisions looks exactly like a clean
 // catalog. The card count is additionally pinned to data.js exactly, through census().
 // ---------------------------------------------------------------------------------------------
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
-const EXPECTED_PAIRS = 1143;    // distinct card+name+value chip pairs measured on the green run
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = floor((await cards()).length);
+const EXPECTED_STEPS = floor(await stepTotal());
+// Cards that DECLARE a chip, counted off the specs: 104 of the 108, the four without one being
+// cluster-object-create-path, cluster-architecture, cluster-delete-flow and network-service-types. This is
+// the guard the pair floor below was being asked to be and could not: it is immune to what a card
+// SAYS and falls only when the selector stops matching chips, which is the failure being guarded.
+const EXPECTED_CHIP_CARDS = floor(104);
+// Distinct card+name+value pairs. CONTENT-DEPENDENT, and deliberately carrying headroom: two chips
+// that come to share a value are ONE pair, so an ordinary text repair lowers this number without
+// anything being wrong. Three separate agents tripped it in one session on honest de-duplication
+// while it sat at the measured 1143 with zero margin. A narrowed selector does not cost three
+// pairs, it collapses the count, so the floor is set well under the measurement on purpose.
+const EXPECTED_PAIRS = floor(1080);    // measured 1143 on 2026-08-17
 
 // Runs IN THE PAGE, serialised across the CDP boundary, so it closes over nothing. Returns EVERY
 // name/value pair it measured, not only the failing ones: the passing ones are the coverage census
@@ -106,13 +119,17 @@ const probe = ({ stackTol }) => {
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 // 1600x1000, as the original set on its page. getBBox reports viewBox units, so the window size is
 // not load-bearing for the measurement, but it is what the numbers below were measured under.
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
-await page.addInitScript(setInspect, 'expose');
+await page.addInitScript(initPage, 'expose');
 const ids = await discoverIds(page, DEFAULT_BASE);
-
-after(() => browser.close());
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
   assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
@@ -143,7 +160,6 @@ for (const id of ids) {
     const mine = new Map();
     for (let i = 0; i < total; i++) {
       await gotoStep(page, i);
-      await page.waitForTimeout(STEP_SETTLE_MS);
       const rows = await page.evaluate(probe, { stackTol: STACK_TOL });
       assert.ok(rows, `step ${i}: no svg.diagram, the dialog never opened`);
       stepped++;
@@ -183,6 +199,14 @@ test('every catalogued card was walked, every step and every chip was measured',
   assert.ok(stepped >= EXPECTED_STEPS,
     `measured ${stepped} step(s), expected at least ${EXPECTED_STEPS}. A chip takes its longest ` +
     'value on exactly one step, so a missing step is a chip nobody measured at its widest.');
+  // The precise reading of "the selector still matches chips": how many CARDS handed this walk at
+  // least one pair. A card that declares a chip and contributes none is a card the probe went blind
+  // on, and no amount of editing a value can move this number.
+  const chipCards = new Set([...tightest.values()].map(h => h.id)).size;
+  assert.ok(chipCards >= EXPECTED_CHIP_CARDS,
+    `measured a chip on ${chipCards} card(s), expected at least ${EXPECTED_CHIP_CARDS}. The specs ` +
+    'declare a chip part on that many, so a card missing here is one the probe read nothing on, and ' +
+    'zero collisions over a shrunken set is not a pass.');
   assert.ok(tightest.size >= EXPECTED_PAIRS,
     `measured ${tightest.size} distinct chip pair(s), expected at least ${EXPECTED_PAIRS}. ` +
     'The selector or the pair test has narrowed: zero collisions over a shrunken set is not a pass.');

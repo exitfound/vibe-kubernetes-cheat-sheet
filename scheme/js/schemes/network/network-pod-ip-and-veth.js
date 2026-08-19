@@ -107,12 +107,21 @@ export const STEPS_SPEC = [
     wires: { veth: 'eth0 <-> veth' },
     podSublabels: { podShell: 'IP 10.244.1.5' },
     lit: ['cniPlugin', 'ipChip', 'vethChip'],
+    // The address, the link, its wire label and the Pod sublabel are one result of one CNI ADD, so
+    // all four wait for the config to reach the Pod at 1500, where the Pod pulses.
+    rewind: { chips: { ipChip: 'none', vethChip: 'none' }, wires: { veth: '' }, podSublabels: { podShell: 'netns: open' } },
     // CNI execs (plugin -> bridge), then the IP and link are configured into the Pod over the veth.
     // The bridge is the receiver of that exec, so it lights when the ball lands on it.
     flow: [
       F.segment({ from: CNI_EXEC[0], to: CNI_EXEC[1], name: 'exec', lights: ['cni0'] }),
       F.segment({ from: VETH[0], to: VETH[1], after: 'exec', name: 'conf' }),
       F.pulse({ pod: 'podGroup', at: 'conf' }),
+      F.set({
+        at: 'conf',
+        chips: { ipChip: '10.244.1.5', vethChip: 'eth0 <-> veth' },
+        wires: { veth: 'eth0 <-> veth' },
+        podSublabels: { podShell: 'IP 10.244.1.5' },
+      }),
     ],
   },
   {

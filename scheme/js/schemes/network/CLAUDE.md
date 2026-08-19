@@ -7,8 +7,8 @@ be true of another category, it is in the wrong file.**
 
 The rows below carry `NET.*` ids and are indexed from `scheme/CANON.md`. **The TEXT of a `NET.*`
 rule lives here and only here**: the canon carries the id and a subject label, never a second copy
-of the rule. Six ids across the four folders had drifted into meaning two different things. None of
-them was a `NET.*` id, and keeping the text in one place is how that stays true.
+of the rule. Where an id could name two different rules, the FOLDER keeps it. No `NET.*` id is in
+that position, and keeping the text in one place is how that stays true.
 
 ## The folder
 
@@ -52,7 +52,7 @@ exists for something with no honest general verb. `step.motion` and `F.run` are 
 |---|---|---|
 | `network-model` | `P.raw` x5, `tune` x4 | The flat-network band is a hand-forged `g.scheme-box` carrying `data-role` and six ordered children, which `P.group` cannot express. The four Pod wires are bare `<line>` with BOTH `marker-start` and `marker-end`, where the lane kinds emit a `<path>` with `marker-end` only. The four `tune` hand the `.scheme-pod-sublabel` child up as a ref, because the IP fade needs a target no part kind keys |
 | `network-kube-proxy-modes` | `P.raw`, `tune` x2 | The IPVS engine is a box plus a row of seven `.scheme-grid-cell` rects, and no part kind emits a bare `<rect>`. The two `tune` file a `P.wire` into the MAIN ref bucket as well, because `F.anim` and `rewind` read `s.refs[k]` while a wire lands only in `refs.wires[k]` |
-| `network-namespaces` | `P.raw` x2 | The netns shell is a lone `podShell` sitting as a plain sibling, where `P.pod` would wrap it in its own `g`. The stack band is a bare `<rect>` |
+| `network-namespaces` | `P.raw` x2, `tune` x1 | The `veth` cable is an ARROW a ball rides, so `A-06` forbids `P.relation`, and a two-ENDED cable takes no arrowhead: `pathArrow` writes `marker-end` unconditionally, so the tune strips it. The netns shell is a lone `podShell` sitting as a plain sibling, where `P.pod` would wrap it in its own `g`. The stack band is a bare `<rect>` |
 | `network-pod-ip-and-veth` | `P.raw`, `enter`, `reset.extra` | Its Pod comes from `pod()` rather than `podShell()`, which writes an inline fill that lands in the serialised tree, and it carries two sibling containers against `buildPod`'s one `inner`. The `enter` and the `extra` write **`stroke-opacity`**, which no field writes: the `opacity` field goes to `style.opacity`, a different property |
 | `network-dns-coredns`, `network-pod-localhost` | `tune` | The Pod holds three (CoreDNS) or four (localhost) peer container boxes against `buildPod`'s single `inner`, and they must sit INSIDE the shell group because `pulsePod` reaches only what the Pod contains. The `workloads-init-containers-and-sidecars` precedent |
 

@@ -25,10 +25,11 @@
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, floor, SUBSET, FULL_ONLY } from '../fixtures/catalog.mjs';
+import { stepTotal } from '../fixtures/module.mjs';
 import {
   DEFAULT_BASE,
-  launch, setInspect, discoverIds, openCard, stepCount, enterStep, stepSpan, seekStep,
+  launch, initPage, discoverIds, openCard, stepCount, enterStep, stepSpan, seekStep,
   installOpacityHelpers,
 } from '../fixtures/render.mjs';
 import { OPACITY } from '../../js/lib/tokens.js';
@@ -40,8 +41,10 @@ import { OPACITY } from '../../js/lib/tokens.js';
 // widening and must not turn this file red on its own. The card count is additionally pinned to
 // data.js exactly, through census().
 // ---------------------------------------------------------------------------------------------
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = floor((await cards()).length);
+const EXPECTED_STEPS = floor(await stepTotal());
 const EXPECTED_SHADES = 5;      // running, pending, notready, terminating, terminated
 
 // Floats compared at 3 decimals, so 0.4 and 0.40 agree and 0.123 does not become 0.12. The two
@@ -51,12 +54,12 @@ const NAME = new Map(Object.entries(OPACITY).map(([k, v]) => [key(v), `OPACITY.$
 const ALLOWED = new Set([key(0), ...NAME.keys()]);
 
 // ---------------------------------------------------------------------------------------------
-// WHICH OPACITY EACH RULE READS. The fixture offers two, under two names, because the old checks
-// each had a private one and they disagreed silently (check-reduced multiplied down the ancestor
-// chain, check-opacity took the minimum). They answer two different questions:
+// WHICH OPACITY EACH RULE READS. The fixture offers two, under two names, and a check that reads
+// the wrong one disagrees with its neighbour silently: one multiplies down the ancestor chain and
+// one ignores ancestors entirely. They answer two different questions:
 //
-//   ownOpacity(el)             the element's OWN declared value, ancestors ignored.
-//                              "did the author write a value from the vocabulary here?"
+//   ownOpacity(el)             the element's OWN declared value, ancestors ignored. The SOURCE
+//                              value: "is the value declared HERE one from the vocabulary?"
 //   effectiveOpacity(el, root) the PRODUCT down the ancestor chain: what SVG composites and what
 //                              a reader sees. "is this thing visible on screen?"
 //
@@ -199,14 +202,18 @@ const probe = ({ terminated }) => {
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 const context = await browser.newContext();
 const page = await context.newPage();
-await page.addInitScript(setInspect, 'expose');
+await page.addInitScript(initPage, 'expose');
 // Before the first navigation: an init script only runs on a document still to be created.
 await installOpacityHelpers(page);
 const ids = await discoverIds(page, DEFAULT_BASE);
-
-after(() => browser.close());
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
   assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);

@@ -1,4 +1,4 @@
-import { P, F, defineCard } from './network-kit.js';
+import { P, F, defineCard, OPACITY } from './network-kit.js';
 import { rect } from '../../lib/svg.js';
 import { podShell } from '../../lib/primitives.js';
 
@@ -38,7 +38,7 @@ const dashLink = (key, x1, y1, x2, y2) => P.relation({ key, points: [[x1, y1], [
 // emits a lone podShell or a bare rect, so both are P.raw and hand their role to the primitive.
 const netnsShell = () => podShell({ x: POD_LEFT, y: POD_TOP, w: POD_W, h: POD_H, label: 'Pod NETNS', sublabel: 'isolated stack · 10.244.1.5', containers: 0, role: 'network' });
 // `width`/`height`, not `w`/`h`: svg.js sets whatever key it is handed as an ATTRIBUTE, and an SVG
-// rect with no width renders nothing, so this band was in the DOM and invisible since it was written.
+// rect with no width renders nothing, so a band given `w`/`h` is in the DOM and invisible.
 const stackBand = () => rect({ class: 'netns-stack-band', x: BAND_CX - 204, y: 276, width: 408, height: 122, rx: 10,
   style: 'fill:rgba(79,229,255,0.035);stroke:rgba(79,229,255,0.28);stroke-width:1' });
 
@@ -61,7 +61,7 @@ export const SCENE = {
         dashLink('tapEth', COL_L, ROW_BOT, COL_L, RAIL_Y),       // eth0    -> rail
         dashLink('tapLo', COL_R, ROW_BOT, COL_R, RAIL_Y),        // lo      -> rail
         // The four boxes drawn inside the Pod go INSIDE its group, so the pulse reaches them: a Pod
-        // blinks as one thing and everything drawn inside it blinks with it (2026-07-29).
+        // blinks as one thing and everything drawn inside it blinks with it (M-03).
         P.box({ key: 'eth0', x: COL_L - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'eth0', sublabel: '10.244.1.5' }),
         P.box({ key: 'lo', x: COL_R - 79, y: ROW_BOT, w: 158, h: IFACE_H, label: 'lo', sublabel: '127.0.0.1' }),
         // Containers (tenants) on top, the shared stack (eth0 + lo) on the row below.
@@ -69,15 +69,16 @@ export const SCENE = {
         P.box({ key: 'side', x: COL_R - 79, y: ROW_TOP, w: 158, h: ROW_TOP_H, label: 'sidecar', sublabel: 'container' }),
       ],
     }),
-    // veth pair host stack -> Pod namespace: the only cross-namespace link, a single dashed cable
-    // that plugs into the Pod netns boundary (its in-Pod end is eth0, just inside).
-    P.arrow({ key: 'vethWire', x1: HOST_EDGE, y1: AXIS_Y, x2: POD_LEFT, y2: AXIS_Y, dashed: true, dim: true }),
+    // A ball rides this cable, so A-06 makes it an arrow rather than a relation, and a two-ENDED cable
+    // takes no arrowhead: no part kind draws that combination, which is what the tune is for.
+    P.arrow({ key: 'vethWire', from: [HOST_EDGE, AXIS_Y], to: [POD_LEFT, AXIS_Y], dashed: true, dim: true,
+      tune: (el) => el.removeAttribute('marker-end') }),
     P.wire({ key: 'veth', x: 505, y: AXIS_Y - 12 }),
     P.wire({ key: 'local', x: BAND_CX, y: RAIL_Y - 12 }),
     // Info chips centered under the diagram: the row spans exactly host-left (150) to Pod-right (1048).
     P.chip({ key: 'scopeChip', x: 150, y: 500, w: 210, h: 34, name: 'namespace', value: 'host' }),
     P.chip({ key: 'ifaceChip', x: 376, y: 500, w: 205, h: 34, name: 'interfaces', value: 'node NICs' }),
-    P.chip({ key: 'portChip', x: 597, y: 500, w: 180, h: 34, name: 'ports', value: 'private' }),
+    P.chip({ key: 'portChip', x: 597, y: 500, w: 180, h: 34, name: 'ports', value: 'shared' }),
     P.chip({ key: 'reachChip', x: 793, y: 500, w: 255, h: 34, name: 'reach', value: 'node + beyond' }),
     P.packets(),
   ],
@@ -92,12 +93,16 @@ export const STEPS_SPEC = [
     id: 'idle',
     duration: 1500,
     chips: { scopeChip: 'host', ifaceChip: 'node NICs', portChip: 'shared', reachChip: 'node + beyond' },
+    opacity: { vethWire: 1 },
   },
   {
     id: 'fresh',
     duration: 2200,
     narration: 'When the Pod sandbox starts, the pause container is handed a brand new network namespace. At first it holds only a loopback device and nothing else, fully cut off from the host stack and from every other Pod. It cannot yet reach anything outside itself.',
     chips: { scopeChip: 'pod', ifaceChip: 'lo only', portChip: 'shared', reachChip: 'isolated' },
+    // The veth does not exist until CNI adds it next step, so the cable to the host is drawn dim
+    // (C-14): at full strength it contradicted the fully cut off this narration states.
+    opacity: { vethWire: OPACITY.notready },
     // Only lo is live yet: every block and wire is drawn, but lo is the one that lights. Nothing
     // flows in or out yet, so lo simply holds its highlight outline, no flash.
     lit: ['lo', 'ifaceChip', 'reachChip', 'scopeChip'],
@@ -108,6 +113,7 @@ export const STEPS_SPEC = [
     narration: 'CNI then adds a veth pair: one end becomes eth0 inside the Pod namespace with the Pod IP, the peer stays in the host namespace, plugged straight into the host stack. That single cable is the only path between the two stacks, so all Pod traffic to the Node and beyond crosses it.',
     chips: { scopeChip: 'pod', ifaceChip: 'lo + eth0', portChip: 'shared', reachChip: 'node + beyond' },
     wires: { veth: 'veth pair' },
+    opacity: { vethWire: 1 },
     // The host link comes alive: the host stack lights, and the packet that rides the veth lights eth0.
     lit: ['host', 'ifaceChip', 'reachChip'],
     // Down-arrow: the packet crosses the veth from the host side into eth0, which lights on arrival,
@@ -123,6 +129,7 @@ export const STEPS_SPEC = [
     narration: 'Every container in the Pod joins this same namespace, so app and sidecar share one eth0 and one set of ports. They reach each other over 127.0.0.1 with no network hop, which is why two containers in a Pod cannot both bind the same port.',
     chips: { scopeChip: 'pod', ifaceChip: 'lo + eth0', portChip: 'shared', reachChip: 'node + beyond' },
     wires: { local: 'localhost' },
+    opacity: { vethWire: 1 },
     // Every container now shares the one stack: app, sidecar and eth0 all light, lo lights on arrival.
     lit: ['app', 'eth0', 'portChip'],
     flow: [
@@ -135,6 +142,7 @@ export const STEPS_SPEC = [
     narration: 'Because the stack is private, the Pod has its own routing table, its own iptables and its own port space, all separate from the host and from other Pods. Delete the Pod and the namespace is torn down, releasing the veth and the IP in one move.',
     chips: { scopeChip: 'pod · private', ifaceChip: 'lo + eth0', portChip: 'own space', reachChip: 'node + beyond' },
     wires: { veth: 'veth pair' },
+    opacity: { vethWire: 1 },
     // The veth still links the two stacks here, so keep the host lit and the cable bright instead of
     // letting it read as a dead line: this is the contrast the step is about (pod-private vs host).
     lit: ['host', 'eth0', 'lo', 'scopeChip', 'portChip', 'reachChip'],

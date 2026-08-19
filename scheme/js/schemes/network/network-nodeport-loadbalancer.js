@@ -38,6 +38,9 @@ const NP_TO_POD = [[NODE_CX[0], NP_BOTTOM], [NODE_CX[0], POD_Y]];
 // block once the ball is on its way, and hold 0 clears each address as its hop lands.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
+// The client floor at 100 cuts the VIP tag on the short drop to the balancer. -4 is the only offset
+// clear on three viewports, and it halves the cut on 900x650, where no offset in +-80 is clean.
+const VIP_TAG_DY = -4;
 
 // The list order IS the append order, which is the z-order: Node frames, their nodePort chips and the
 // backend Pods in back, then the upper tier, then the wires, then the bottom strip and the packets.
@@ -48,9 +51,9 @@ export const SCENE = {
     P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
     P.node({ key: 'node2', x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' }),
     P.node({ key: 'node3', x: NODE_X[2], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3' }),
-    P.chip({ key: 'np1', x: NODE_CX[0] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000' }),
-    P.chip({ key: 'np2', x: NODE_CX[1] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000' }),
-    P.chip({ key: 'np3', x: NODE_CX[2] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000' }),
+    P.chip({ key: 'np1', x: NODE_CX[0] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
+    P.chip({ key: 'np2', x: NODE_CX[1] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
+    P.chip({ key: 'np3', x: NODE_CX[2] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
     // Backends sit on the two outer Nodes, so the middle Node is the one that opens the port with no
     // Pod behind it, which is what the nodePort step narrates.
     P.pod({
@@ -74,11 +77,10 @@ export const SCENE = {
     P.lane({ points: TO_N2, dashed: true, dim: true }),
     P.lane({ points: TO_N3, dashed: true, dim: true }),
     P.arrow({ from: NP_TO_POD[0], to: NP_TO_POD[1], dashed: true, dim: true }),
-    P.wire({ key: 'c', x: CX + 60, y: LB_Y - 12 }),
     // The bottom strip, one chip per Node column.
     P.chip({ key: 'rangeChip', x: NODE_CX[0] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'port range', value: '30000-32767' }),
     P.chip({ key: 'vipChip', x: NODE_CX[1] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'status.loadBalancer', value: 'pending' }),
-    P.chip({ key: 'chainChip', x: NODE_CX[2] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'chain', value: 'KUBE-NODEPORTS' }),
+    P.chip({ key: 'chainChip', x: NODE_CX[2] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'chain', value: 'none' }),
     P.packets(),
   ],
   // pod1Box is a key, not a pod group: the pod-group list only resets inline pulse strokes, so the
@@ -89,36 +91,51 @@ export const SCENE = {
   },
 };
 
+const PORT = ':31000', CHAIN = 'KUBE-NODEPORTS', NONE = 'none';
+// The API server service-node-port-range, true before any Service exists: a constant of the
+// diagram, stated by every step and turned over by none.
+const RANGE = '30000-32767';
+// The same port on every Node plus the kube-proxy chain that catches it: one reservation, said in
+// four places, so all four read none until the nodeport step opens them together.
+const reserved = (open) => ({
+  np1: open ? PORT : NONE, np2: open ? PORT : NONE, np3: open ? PORT : NONE,
+  chainChip: open ? CHAIN : NONE, rangeChip: RANGE,
+});
+
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { vipChip: 'pending' },
+    chips: { vipChip: 'pending', ...reserved(false) },
   },
   {
     id: 'nodeport',
     duration: 2300,
     narration: 'A NodePort Service reserves the same high port, here 31000 out of the 30000 to 32767 range, on every Node in the cluster. The kube-proxy adds a KUBE-NODEPORTS rule so a packet arriving on that port at any Node is treated as Service traffic, even on Nodes that run no backend Pod.',
-    chips: { vipChip: 'pending' },
-    // The same port opens on every Node; the chips just light, they never flash.
+    chips: { vipChip: 'pending', ...reserved(true) },
+    // The reservation lands with the step, and the highlight is the beat of a packet-less step.
     lit: ['np1', 'np2', 'np3', 'chainChip'],
   },
   {
     id: 'lb-provision',
     duration: 2400,
     narration: 'Asking for type LoadBalancer makes the cloud-controller-manager provision an external load balancer in the cloud, with its backends set to every Node on the nodePort. When the balancer is ready its address is written back into status.loadBalancer.ingress, giving clients one stable VIP.',
-    chips: { vipChip: '203.0.113.7' },
+    chips: { vipChip: '203.0.113.7', ...reserved(true) },
     lit: ['ccm', 'vipChip'],
+    // status.loadBalancer is written back only once the balancer exists, so the chip stays pending
+    // until the provisioning hop lands at 700, the routeDur floor and the shortest lead on the card.
+    rewind: { chips: { vipChip: 'pending' } },
     // ccm provisions the LB: one clean hop, the LB lights on arrival.
     flow: [
-      F.segment({ from: PROVISION[0], to: PROVISION[1], lights: ['lb'] }),
+      F.segment({ from: PROVISION[0], to: PROVISION[1], lights: ['lb'], name: 'prov' }),
+      F.set({ at: 'prov', chips: { vipChip: '203.0.113.7' } }),
     ],
   },
   {
     id: 'client-hit',
     duration: 2400,
     narration: 'An external client connects to the load balancer VIP. The balancer forwards the connection to one of its Node targets on port 31000, spreading load across the Nodes without knowing or caring which of them actually hosts a backend Pod.',
-    chips: { vipChip: '203.0.113.7' },
+    chips: { vipChip: '203.0.113.7', ...reserved(true) },
     // The client dials, so only the client is lit at entry. The balancer and the nodePort each
     // light as the connection reaches them, which is what makes the two hops read as one path.
     lit: ['client'],
@@ -126,7 +143,7 @@ export const STEPS_SPEC = [
     // the emission order is observable.
     flow: [
       F.segment({ from: C_TO_LB[0], to: C_TO_LB[1], name: 'toLb' }),
-      tag({ text: 'to 203.0.113.7', points: C_TO_LB, easing: 'linear' }),
+      tag({ text: 'to 203.0.113.7', points: C_TO_LB, easing: 'linear', dy: VIP_TAG_DY }),
       F.light({ targets: ['lb'], at: 'toLb' }),
       F.route({ points: TO_N1, after: 'toLb', name: 'toNode' }),
       tag({ text: 'to node-1:31000', points: TO_N1, after: 'toLb', emerge: 150 }),
@@ -137,7 +154,7 @@ export const STEPS_SPEC = [
     id: 'dnat',
     duration: 2400,
     narration: 'On the Node that received it, the nodePort rule DNATs the packet to a backend Pod IP. That Pod can sit on this same Node, as here, or on another Node reached across the cluster network, since kube-proxy load-balances across every backend. A single external address has now reached a private Pod.',
-    chips: { vipChip: '203.0.113.7' },
+    chips: { vipChip: '203.0.113.7', ...reserved(true) },
     lit: ['np1'],
     // The animated path says the Pod was served by PULSING it, which no lights list can name.
     reducedLit: ['pod1Box'],

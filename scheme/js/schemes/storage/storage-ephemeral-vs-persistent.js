@@ -37,6 +37,10 @@ const W_L_MOUNT = [[LEFT_CX + LANE, ED_TOP], [LEFT_CX + LANE, POD_BOTTOM]];     
 const W_R_WRITE = [[RIGHT_CX + LANE, POD_BOTTOM], [RIGHT_CX + LANE, PVC_TOP]];    // Pod -> PVC
 const W_R_MOUNT = [[RIGHT_CX - LANE, PVC_TOP], [RIGHT_CX - LANE, POD_BOTTOM]];    // PVC -> Pod
 
+// Both remounts end on the Pod floor, where the default -14 puts the tag under the shell edge for
+// 100 ms. Riding 12 BELOW the ball is the least that clears all four viewports.
+const MOUNT_TAG_DY = 12;
+
 // Raise the Pod sublabel a couple pixels off its default baseline so it sits tighter under the box.
 // An ATTRIBUTE on an element the pod kind does not hand back, which is what tune is for.
 const raiseSublabel = (el) => {
@@ -120,11 +124,13 @@ export const STEPS_SPEC = [
     // The PV keeps its data, so it stays lit on both paths.
     lit: ['pv'],
     rewind: { opacity: presence() },
-    // The lanes go with the Pod, on the Pod beat: they are the mounts it held.
+    // The deleted Pod blinks at full FIRST and goes at afterPulse, so the two never read as one
+    // event (M-08). The lanes go with the Pod, on the Pod beat: they are the mounts it held.
     flow: [
+      F.pulse({ pod: 'pod' }),
       ...['pod', 'wLWrite', 'wLMount', 'wRWrite', 'wRMount'].map(target =>
-        F.fade({ target, to: OPACITY.terminated, dur: 650, fill: 'forwards' })),
-      F.fade({ target: 'ed', to: OPACITY.terminated, dur: 650, delay: 250, fill: 'forwards' }),
+        F.fade({ target, to: OPACITY.terminated, dur: 650, delay: BEAT.afterPulse, fill: 'forwards' })),
+      F.fade({ target: 'ed', to: OPACITY.terminated, dur: 650, delay: BEAT.afterPulse + 250, fill: 'forwards' }),
     ],
   },
   {
@@ -134,11 +140,15 @@ export const STEPS_SPEC = [
     chipsCued: { edChip: 'empty again', pvcChip: 'reattaching', podChip: 'on Node-2' },
     opacity: presence(),
     lit: ['pv'],
-    // The Pod comes up fresh on Node-2, and its mount lanes rise with it.
-    rewind: { opacity: presence({ pod: OPACITY.terminated }) },
+    // The Pod comes up fresh on Node-2 and its mount lanes rise with it. The emptyDir was wiped with
+    // the Pod, so it starts this step gone too: an emptyDir outliving its Pod is what the card denies.
+    rewind: { opacity: presence({ pod: OPACITY.terminated, ed: OPACITY.terminated }) },
     flow: [
       ...['pod', 'wLWrite', 'wLMount', 'wRWrite', 'wRMount'].map(target =>
         F.fade({ target, from: OPACITY.terminated, to: 1, dur: 500, fill: 'forwards', easing: 'ease-out' })),
+      // The mirror of the delete: the directory left 250 after the Pod and comes back 250 after it,
+      // because a brand new emptyDir is made for the Pod on the Node it landed on.
+      F.fade({ target: 'ed', from: OPACITY.terminated, to: 1, dur: 500, delay: 250, fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'pod', delay: 550 }),
     ],
   },
@@ -153,9 +163,9 @@ export const STEPS_SPEC = [
     // Pod's arrival beat is either arrival, so keying the pulse off 'ml' alone is exact.
     flow: [
       F.route({ points: W_L_MOUNT, name: 'ml' }),
-      F.tag({ text: 'empty', points: W_L_MOUNT }),
+      F.tag({ text: 'empty', points: W_L_MOUNT, dy: MOUNT_TAG_DY }),
       F.route({ points: W_R_MOUNT }),
-      F.tag({ text: 'db row intact', points: W_R_MOUNT }),
+      F.tag({ text: 'db row intact', points: W_R_MOUNT, dy: MOUNT_TAG_DY }),
       F.pulse({ pod: 'pod', at: 'ml' }),
     ],
   },

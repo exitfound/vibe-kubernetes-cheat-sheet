@@ -34,6 +34,9 @@ const POD_LANE = 100;
 const META_ELBOW_Y = 232, READ_ELBOW_Y = 200;   // the metadata elbow clears the panel floor (181)
 const W_POD_META = [[POD_CX - POD_LANE, POD_BOTTOM], [POD_CX - POD_LANE, META_ELBOW_Y], [SRC_CX, META_ELBOW_Y], [SRC_CX, DOWN_Y]];
 const W_READ = [[DIR_CX, DIR_Y], [DIR_CX, READ_ELBOW_Y], [POD_CX + POD_LANE, READ_ELBOW_Y], [POD_CX + POD_LANE, POD_BOTTOM]];
+// The read lane ends on the Pod floor, where the default -14 puts the tag under the shell edge for
+// 100 ms. Below the ball only 12 and 14 clear all four viewports, and 14 keeps the ball off the line.
+const READ_TAG_DY = 14;
 
 const source = (key, y, label, sublabel) => P.box({ key, x: SRC_X, y, w: SRC_W, h: SRC_H, label, sublabel });
 const fileRow = (key, y, label) => P.box({ key, x: ROW_X, y, w: ROW_W, h: ROW_H, label, sublabel: '' });
@@ -58,7 +61,7 @@ export const SCENE = {
     }),
     // Column order top to bottom: downwardAPI first (the metadata drop from the Pod bottom lands on
     // its top edge without crossing anything), then the plain sources, the token source last.
-    source('srcDown', DOWN_Y, 'downwardAPI', 'Pod labels, name'),
+    source('srcDown', DOWN_Y, 'downwardAPI', 'Pod labels'),
     source('srcCM', CM_Y, 'ConfigMap', 'key: config.yaml'),
     source('srcSec', SEC_Y, 'Secret', 'key: password'),
     source('srcTok', TOK_Y, 'serviceAccountToken', 'audience-bound'),
@@ -137,7 +140,7 @@ export const STEPS_SPEC = [
   {
     id: 'downward',
     duration: 3400,
-    narration: 'The downwardAPI projects facts about the Pod itself. Its labels, its name, its namespace, even a resource limit, are written out as files, computed by Kubelet from the Pod object rather than fetched from anywhere.',
+    narration: 'The downwardAPI projects facts about the Pod itself: labels, name, namespace, even a resource limit. Here the labels land, as one file computed by Kubelet from the Pod object rather than fetched from anywhere.',
     chips: chips('downwardAPI: Pod metadata', BOUND, SHORT),
     opacity: POD_ON,
     lit: ['srcChip'],
@@ -146,7 +149,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'pod' }),
       F.route({ points: W_POD_META, delay: BEAT.afterPulse, name: 'meta' }),
-      F.tag({ text: 'labels, name', points: W_POD_META, delay: BEAT.afterPulse }),
+      F.tag({ text: 'labels', points: W_POD_META, delay: BEAT.afterPulse }),
       F.light({ targets: ['srcDown'], at: 'meta' }),
       F.route({ points: W_DOWN, after: 'meta', lights: ['rowLbl'] }),
     ],
@@ -184,13 +187,13 @@ export const STEPS_SPEC = [
     id: 'contrast',
     duration: 2600,
     narration: 'This is the whole reason to use the projected token over the old style. A legacy Secret-based service account token never expired and stayed valid forever if leaked, while a projected token rotates, expires, and is scoped to an audience.',
-    chips: chips(SAT, 'rotated, scoped', 'legacy token never expired'),
+    chips: chips(SAT, 'rotated, scoped', 'expires, legacy did not'),
     opacity: POD_ON,
     lit: ['expChip', 'tokChip', 'rowTok'],
     // The app reads the current, rotated token straight out of the dir.
     flow: [
       F.route({ points: W_READ, name: 'read' }),
-      F.tag({ text: 'valid token', points: W_READ }),
+      F.tag({ text: 'valid token', points: W_READ, dy: READ_TAG_DY }),
       F.pulse({ pod: 'pod', at: 'read' }),
     ],
   },

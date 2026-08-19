@@ -13,6 +13,8 @@ const PODA_CY = 168, PODC_CY = 484;
 const BUS_X = 770;                       // shared vertical bus: the fans turn here so each one enters
                                          // its Pod horizontally, a right-angle approach not a diagonal
 const PULSE_MS = 900;                    // PULSE_POD.ms: web-c fades only after its pulse completes
+const CONN_GAP = 540;                    // gap between two connections off one client, the stagger
+                                         // `network-traffic-distribution` uses for the same sentence
 const LANE  = [[CLIENT_EDGE, FLOW_Y], [KP_LEFT, FLOW_Y]];                                              // client -> kube-proxy
 const FAN_A = [[KP_RIGHT, FLOW_Y - 14], [BUS_X, FLOW_Y - 14], [BUS_X, PODA_CY], [POD_LEFT, PODA_CY]];  // kube-proxy -> web-a
 const FAN_C = [[KP_RIGHT, FLOW_Y + 14], [BUS_X, FLOW_Y + 14], [BUS_X, PODC_CY], [POD_LEFT, PODC_CY]];  // kube-proxy -> web-c
@@ -81,7 +83,9 @@ export const STEPS_SPEC = [
   },
   {
     id: 'steady',
-    duration: 3500,
+    // Motion: client pulse, the first connection lands on web-a at 2409, the second leaves 540 later
+    // and lands on web-c at 2949, whose pulse ends at 3849.
+    duration: 4000,
     narration: 'Both Pods are Ready endpoints in the slice, so kube-proxy spreads new connections across the two of them. This is the normal state, before anything starts to change.',
     chips: { condChip: 'ready · serving', newChip: 'web-a and web-c', graceChip: 'not draining' },
     podSublabels: { podC: '10.244.3.9 · ready' },
@@ -89,16 +93,19 @@ export const STEPS_SPEC = [
     // The animated path says the client sent and both backends were served by PULSING them, and no
     // cue names those three inner boxes.
     reducedLit: ['clientBox', 'podABox', 'podCBox'],
-    // Up-arrow: the client pulses, one packet runs the lane to kube-proxy, then both fans fire so the
-    // two backends light together and the balancing across both endpoints reads clearly.
+    // Up-arrow: the client pulses, then TWO connections leave it in turn, one per backend, so the
+    // spread across both endpoints is two rides rather than one ball splitting in two.
     flow: [
       F.pulse({ pod: 'client' }),
       F.segment({ from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, name: 'send' }),
       tag({ text: 'new conn', points: LANE, delay: BEAT.afterPulse }),
       F.light({ targets: ['kproxy'], at: 'send' }),
       F.route({ points: FAN_A, after: 'send', name: 'giveA' }),
-      F.route({ points: FAN_C, after: 'send', name: 'giveC' }),
       F.pulse({ pod: 'podA', at: 'giveA' }),
+      // The second connection, staggered by CONN_GAP. It carries no tag of its own: a second `new conn`
+      // on the same 185 unit lane would still be up while the first one fades.
+      F.segment({ from: LANE[0], to: LANE[1], delay: BEAT.afterPulse + CONN_GAP, name: 'send2' }),
+      F.route({ points: FAN_C, after: 'send2', name: 'giveC' }),
       F.pulse({ pod: 'podC', at: 'giveC' }),
     ],
   },
@@ -106,6 +113,8 @@ export const STEPS_SPEC = [
     id: 'terminate',
     duration: 2400,
     narration: 'The rollout deletes Pod web-c. Its preStop hook runs first and SIGTERM follows from the Kubelet, but the container does not vanish at once. It enters Terminating and keeps serving whatever it is already handling.',
+    // NOT `ready · serving`: ready is a shortcut for serving AND NOT terminating, so it is already
+    // false the moment this Pod takes a deletionTimestamp. The two slots carry what just became true.
     chips: { condChip: 'terminating · serving', newChip: 'web-a and web-c', graceChip: GRACE_30S },
     podSublabels: { podC: C_TERMINATING_SUB },
     // Static end-state: web-c has taken the signal and dimmed out of the normal set.
@@ -147,8 +156,8 @@ export const STEPS_SPEC = [
   {
     id: 'drain',
     duration: 4600,
-    narration: 'The connection already established on web-c is not cut. With terminating endpoints kube-proxy keeps forwarding that in-flight flow to web-c for the grace window, while every new connection lands on web-a. That overlap is what lets a rollout finish without dropped requests.',
-    chips: { condChip: 'notReady · draining', newChip: 'web-a only', graceChip: 'draining in grace window' },
+    narration: 'The connection already established on web-c is not cut. Its conntrack entry already maps that flow to web-c, so kube-proxy never picks a backend for it again and web-c finishes the request it holds, while every new connection lands on web-a. That overlap lets a rollout finish without dropped requests.',
+    chips: { condChip: 'notReady · serving', newChip: 'web-a only', graceChip: 'draining in grace window' },
     podSublabels: { podC: C_TERMINATING_SUB },
     opacity: C_TERMINATING,
     lit: ['kproxy', 'condChip', 'graceChip'],
@@ -172,7 +181,7 @@ export const STEPS_SPEC = [
   {
     id: 'gone',
     duration: 3500,
-    narration: 'When the grace period ends web-c exits and its endpoint leaves the slice. Its replacement is already Ready elsewhere in the ReplicaSet, so the Service never dropped below its backend count. Traffic carried on throughout, and no client saw a reset.',
+    narration: 'When the grace period ends web-c exits and its endpoint leaves the slice. Its replacement is already Ready in the new ReplicaSet, so the Service never dropped below its backend count. Traffic carried on throughout, and no client saw a reset.',
     chips: { condChip: 'removed', newChip: 'web-a + replica', graceChip: 'grace elapsed' },
     podSublabels: { podC: '10.244.3.9 · terminated' },
     // web-c is gone, so it drops from the terminating shade to the terminated one.

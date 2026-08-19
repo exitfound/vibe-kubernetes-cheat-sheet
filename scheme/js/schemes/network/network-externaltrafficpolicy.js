@@ -1,4 +1,4 @@
-import { P, F, defineCard, makeRidingLabel } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS.md#network-externaltrafficpolicy
 
@@ -45,6 +45,15 @@ const CROSS = [[N2_CX, NODE_BOTTOM], [N2_CX, UNDER_Y], [N1_CX, UNDER_Y], [N1_CX,
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
+// The Node-to-Node lane is what the POLICY decides, so its shade is a step field: Local never
+// forwards to another Node, and a bright lane under that sentence contradicts it.
+const CROSS_LIVE = { crossWire: 1 };
+const CROSS_OFF = { crossWire: OPACITY.notready };
+
+// Gap between the two health probes. They share the first 36 units of the fan, which a ball clears in
+// 80ms, so this is the read gap rather than a collision gap: two answers landing in turn.
+const PROBE_GAP = 500;
+
 // The list order IS the append order, which is the z-order: the Node frames and the Pod in back,
 // then the client and the LB, then the wires and their notes, then chips, then the packet layer.
 export const SCENE = {
@@ -65,7 +74,7 @@ export const SCENE = {
     P.arrow({ from: C_WIRE[0], to: C_WIRE[1], dashed: true, dim: true }),
     P.lane({ points: TO_N1, dashed: true, dim: true }),
     P.lane({ points: TO_N2, dashed: true, dim: true }),
-    P.lane({ points: CROSS, dashed: true, dim: true }),
+    P.lane({ key: 'crossWire', points: CROSS, dashed: true, dim: true }),
     // What the healthCheckNodePort reports on each Node. Both sit on the same baseline so they read as a
     // pair, low enough to clear the Pod above (sublabel baseline 423) and the crossWire arrowhead below.
     P.wire({ key: 'n1', x: N1_CX, y: 448 }),
@@ -92,6 +101,7 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
+    opacity: CROSS_LIVE,
     // Cluster is the default policy, so the mode chip is true from the start. Its consequences are
     // not: nothing has been SNAT-ed or hopped yet.
     chips: { modeChip: 'Cluster', srcChip: 'none', hopChip: 'none', hcChip: 'unused' },
@@ -103,11 +113,15 @@ export const STEPS_SPEC = [
     duration: 4200,
     narration: 'With the default policy Cluster, every Node accepts the traffic even with no local Pod. The balancer happens to pick Node-2, which has no backend, so the Node SNATs the packet and forwards it across the cluster network to the Pod on Node-1. Load spreads evenly over every backend, wherever it runs.',
     chips: { modeChip: 'Cluster', srcChip: 'lost (SNAT)', hopChip: 'yes', hcChip: 'unused' },
+    opacity: CROSS_LIVE,
     // The SNAT and the Node-to-Node hop both happen in THIS step, so their chips take their values
     // here. The next step is the one that highlights them and talks about what they cost.
     lit: ['srcChip', 'hopChip', 'modeChip'],
     // The animated path says the Pod was served by PULSING it, which no lights list can name.
     reducedLit: ['podWBox'],
+    // Both chips read what the Pod on Node-1 finally receives, so the animated path holds the idle
+    // none until the SNAT-ed cross leg lands on it at 2871.
+    rewind: { chips: { srcChip: 'none', hopChip: 'none' } },
     // Client to LB first, then LB -> Node-2 (no backend), then SNAT and forward across the underlay
     // to the Pod on Node-1. The ball is hidden inside Node-2 between the two legs.
     flow: [
@@ -118,6 +132,7 @@ export const STEPS_SPEC = [
       // Node-2 SNAT-ed it, so the second leg carries the Node as its source, not the client.
       tag({ text: 'src Node-2 (SNAT)', points: CROSS, after: 'toN2', dy: 20 }),
       F.pulse({ pod: 'podW', at: 'hop' }),
+      F.set({ at: 'hop', chips: { srcChip: 'lost (SNAT)', hopChip: 'yes' } }),
     ],
   },
   {
@@ -126,43 +141,65 @@ export const STEPS_SPEC = [
     duration: 2300,
     narration: 'That convenience has a cost. The extra Node-to-Node hop adds latency, and because Node-2 had to SNAT, the Pod sees the packet as coming from the Node, not from 198.51.100.9. The real client IP is gone, which breaks source-IP allowlists and access logs.',
     chips: { modeChip: 'Cluster', srcChip: 'lost (SNAT)', hopChip: 'yes', hcChip: 'unused' },
+    opacity: CROSS_LIVE,
     // Reflective beat: the cost chips just light, no flash.
     lit: ['srcChip', 'hopChip'],
   },
   {
     id: 'local',
-    // Motion: the client entry leg now precedes the fan, adding 800ms (the 700 floor plus the beat).
-    duration: 3100,
-    narration: 'Switching to externalTrafficPolicy Local changes the rules. A Node only serves the request from its own local Pods, never forwarding to another Node. The balancer sends to Node-1, the packet goes straight to its Pod with no SNAT, so the Pod sees the true client IP 198.51.100.9 and there is no extra hop.',
+    // Motion: entry(700) + the served leg to Node-1 (1500) + its pulse, then a SECOND connection
+    // leaving at 1600 and dying on the Node-2 edge at 3100, whose ripple closes at 3660.
+    duration: 3800,
+    narration: 'Switching to externalTrafficPolicy Local changes the rules. A Node serves only from its own local Pods and never forwards to another Node, so the connection reaching Node-1 goes straight to its Pod with no SNAT and the true client IP 198.51.100.9 survives with no extra hop. A connection landing on Node-2 has no local Pod, and Local drops it.',
     chips: { modeChip: 'Local', srcChip: 'preserved', hopChip: 'no', hcChip: 'unused' },
+    opacity: CROSS_OFF,
+    // What each Node did with the connection it got. Both notes are the OUTCOME of a ball, so each is
+    // written where its ball lands and neither pre-announces the other.
+    wires: { n1: 'served by its local pod', n2: 'no local pod · dropped' },
     lit: ['modeChip', 'srcChip', 'hopChip'],
     // The animated path says the Pod was served by PULSING it, which no lights list can name.
     reducedLit: ['podWBox'],
-    // Client to LB first, then LB -> Node-1 stopping on the Node edge. No SNAT, so the ball carries
-    // the client address the whole way and the local Pod pulses as it is served.
+    rewind: { wires: { n1: '', n2: '' } },
+    // Two connections, because Local has two outcomes: served on Node-1 with no SNAT, and stopped dead
+    // on the Node-2 edge with nothing leaving it, which is how this category draws a drop.
     flow: [
       F.segment({ from: C_WIRE[0], to: C_WIRE[1], name: 'entry', lights: ['lb'] }),
       F.route({ points: TO_N1, after: 'entry', name: 'toN1' }),
       tag({ text: 'src 198.51.100.9', points: TO_N1, after: 'entry', emerge: 140 }),
       F.pulse({ pod: 'podW', at: 'toN1' }),
+      F.set({ at: 'toN1', wires: { n1: 'served by its local pod' } }),
+      F.segment({ from: C_WIRE[0], to: C_WIRE[1], after: 'toN1', name: 'entry2' }),
+      F.route({ points: TO_N2, after: 'entry2', name: 'drop' }),
+      tag({ text: 'src 198.51.100.9', points: TO_N2, after: 'entry2', emerge: 140 }),
+      F.set({ at: 'drop', wires: { n2: 'no local pod · dropped' } }),
     ],
   },
   {
     id: 'healthcheck',
-    // Motion: the client entry leg now precedes the fan, adding 800ms (the 700 floor plus the beat).
-    duration: 3100,
+    // Motion: the two probes leave the balancer PROBE_GAP apart and answer at 700 and 1200, then the
+    // steered connection leaves at 1300 and its Pod blink ends at 3700.
+    duration: 3900,
     narration: 'But Local would silently drop traffic that lands on Node-2, which has no Pod to serve it. To avoid that, Local exposes a healthCheckNodePort that reports healthy only on Nodes with a local backend, so the load balancer stops sending to Node-2 and targets only Node-1.',
     chips: { modeChip: 'Local', srcChip: 'preserved', hopChip: 'no', hcChip: 'used' },
+    opacity: CROSS_OFF,
     // The probe answers on BOTH Nodes, healthy only where a local backend exists. Showing only the
     // failing Node would assert the rule instead of demonstrating it.
     wires: { n1: 'health: 1 local pod', n2: 'health: 0 local pods' },
-    lit: ['hcChip'],
+    lit: ['lb', 'hcChip'],
     // The animated path says the Pod was served by PULSING it, which no lights list can name.
     reducedLit: ['podWBox'],
-    // Client to LB first. The health check excludes Node-2, so the LB steers only to Node-1 and
-    // its local Pod pulses.
+    // Each answer, and the chip that says the check is in play, are held back until a probe lands.
+    rewind: { wires: { n1: '', n2: '' }, chips: { hcChip: 'unused' } },
+    // The balancer probes BOTH Nodes and each Node answers where the probe lands. Only then does the
+    // client connection go out, and it goes to Node-1 alone, which is what the answers bought.
     flow: [
-      F.segment({ from: C_WIRE[0], to: C_WIRE[1], name: 'entry', lights: ['lb'] }),
+      F.route({ points: TO_N1, name: 'p1' }),
+      tag({ text: 'healthz probe', points: TO_N1, emerge: 140 }),
+      F.set({ at: 'p1', wires: { n1: 'health: 1 local pod' }, chips: { hcChip: 'used' } }),
+      F.route({ points: TO_N2, delay: PROBE_GAP, name: 'p2' }),
+      tag({ text: 'healthz probe', points: TO_N2, delay: PROBE_GAP, emerge: 140 }),
+      F.set({ at: 'p2', wires: { n2: 'health: 0 local pods' } }),
+      F.segment({ from: C_WIRE[0], to: C_WIRE[1], after: 'p2', name: 'entry' }),
       F.route({ points: TO_N1, after: 'entry', name: 'toN1' }),
       tag({ text: 'src 198.51.100.9', points: TO_N1, after: 'entry', emerge: 140 }),
       F.pulse({ pod: 'podW', at: 'toN1' }),

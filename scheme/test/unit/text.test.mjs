@@ -1,6 +1,6 @@
 // text.test.mjs: the half of the T block of ../../CANON.md that a test can read WITHOUT a browser.
-// Successor of tools/check-terms.mjs over `desc`, and of the R-dash sweep that tools/check-canon.mjs
-// ran over a FILE TREE rather than over catalog strings.
+// The term rules over `desc`, and the R-dash sweep, which runs over a FILE TREE rather than over
+// catalog strings.
 //
 // ===========================================================================================
 // WHY THE T BLOCK IS SPLIT ACROSS TWO FILES, and it is not a preference
@@ -18,14 +18,14 @@
 // only the strings the CATALOG owns (title, desc, source labels, posters). That leaves the card
 // modules themselves, the four kits, the four manifests, the four poster maps, js/lib, the CSS,
 // the three page shells and the named cli files with no dash coverage whatsoever, and a dash in a
-// COMMENT is exactly the kind that survives review. tools/check-canon.mjs covered them by walking
-// the tree, and the walk is carried over here unchanged in spirit: T-05 names the area, and a
-// directory is WALKED rather than listed, because twice during one refactor a file moved into
-// these folders and silently left the scan behind.
+// COMMENT is exactly the kind that survives review. T-05 names the area, and a directory is WALKED
+// rather than listed, because a listed scan silently leaves out the next file that lands in one of
+// these folders: a walk covers a file the day it moves in, a list covers it whenever someone
+// remembers to add it.
 //
-// Two deliberate differences from the predecessor:
-//   1. A target that cannot be read is a FINDING here. check-canon.mjs:468 swallowed it
-//      (`catch (_) { continue; }`), so a renamed file left the sweep quietly smaller.
+// Two rules this sweep is built on:
+//   1. A target that cannot be read is a FINDING. A catch that continues (`catch (_) { continue; }`)
+//      makes the sweep silently smaller on the next rename: never swallow.
 //   2. The counts below are asserted, not printed. Coverage can collapse at zero findings.
 
 import { test } from 'node:test';
@@ -40,7 +40,9 @@ const REPO = join(ROOT, '..');
 
 // The catalog as it stood when this suite was written. Fewer than this is a broken walk, not a
 // smaller catalog, and it must be red.
-const CARD_TOTAL = 108;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const CARD_TOTAL = (await cards()).length;
 
 // Measured 2026-08-07 by walking the tree below: 108 cards + 12 category modules (four folders x
 // kit, cards.js, posters.js) + 11 js/lib modules + 3 stylesheets + the 8 named files. A floor
@@ -69,9 +71,8 @@ const CATS = await categories();
 // The dash area (T-04, T-05)
 // ---------------------------------------------------------------------------------------------
 
-// Paths relative to the REPO root. Three walked groups and one named list, mirroring
-// tools/check-canon.mjs `dashTargets`. The four CARDS.md stay outside the area on purpose (T-05):
-// a design record quotes what a card must not do.
+// Paths relative to the REPO root. Three walked groups and one named list. The four CARDS.md stay
+// outside the area on purpose (T-05): a design record quotes what a card must not do.
 async function dashTargets() {
   const out = [];
   for (const c of CARDS) out.push(join('scheme', c.rel));
@@ -101,7 +102,7 @@ async function walkedDirs() {
 }
 
 // The files that belong to no walk: the three page shells, the barrels, and the cli modules whose
-// prose reaches the same reader. Same list tools/check-canon.mjs carried.
+// prose reaches the same reader.
 const NAMED_TARGETS = [
   join('scheme', 'js', 'data.js'),
   join('scheme', 'js', 'app.js'),
@@ -183,7 +184,8 @@ test(`T-04 no em-dash or en-dash in any of the ${DASH_TARGET_FLOOR}+ files the r
     try {
       src = await readFile(join(REPO, rel), 'utf8');
     } catch (e) {
-      // A predecessor swallowed this, so a renamed file made the sweep smaller without a word.
+      // Collected, never swallowed: a catch that continued in silence here would make the sweep
+      // smaller on the next rename without a word.
       unreadable.push(`${rel} (${e.code || e.message})`);
       continue;
     }

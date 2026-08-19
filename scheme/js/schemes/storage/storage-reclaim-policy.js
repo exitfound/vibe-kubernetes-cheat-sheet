@@ -131,8 +131,8 @@ export const STEPS_SPEC = [
   {
     id: 'delete-pvc',
     duration: 2400,
-    // Packet-less and Pod-less, and nothing flashes: `flashChips` has zero callers catalog-wide,
-    // so the cue is the two claims going to the terminating shade under a Released chip.
+    // Packet-less and Pod-less, and no block flashes: the two claims going to the terminating
+    // shade under a Released chip IS the movement, so a flash would compete with it.
     narration: 'You delete both claims with kubectl delete pvc. The Bound links break and both volumes move to the Released phase, which means only that the claim they belonged to is gone. Nothing has touched the disks yet. What happens next is decided entirely by the reclaim policy.',
     chipsCued: chips('Released', 'exists', 'Released', 'exists'),
     sublabels: { delPvc: 'Terminating', retPvc: 'Terminating' },
@@ -145,7 +145,7 @@ export const STEPS_SPEC = [
     duration: 3400,
     narration: 'The controller reads Delete on the left volume and cleans everything up. It calls DeleteVolume on the CSI driver, the real disk is wiped, and then the PV object itself is removed. Convenient for scratch data and unforgiving for anything you meant to keep, because the disk is gone for good.',
     chipsCued: chips('removed', 'wiped, gone', 'Released', 'exists'),
-    sublabels: { delPvc: 'Terminating', retPvc: 'Terminating' },
+    sublabels: { delPvc: 'deleted', retPvc: 'deleted' },
     wires: { del: 'disk wiped, PV removed' },
     // End-state: the band has acted, and the PV and its disk are gone on the Delete side.
     opacity: stage({ delPvc: T, delPv: T, delDisk: T, retPvc: OPACITY.terminating, retPvc2: 0, admin: 0, delBound: 0, retBound: 0, retBindLane: 0, adminLane: 0 }),

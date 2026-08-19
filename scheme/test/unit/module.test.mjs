@@ -1,12 +1,12 @@
-// module.test.mjs: what a card module owes, asserted by IMPORTING it. Successor to check-canon's
-// R-kitparity, and to the part of the S- block of ../../CANON.md that is readable without a
-// browser: S-02 (runtime half), S-08b, S-21, S-22, S-23, S-28. It also holds L-08a, the one canon
-// row about two categories agreeing with each other, because the two objects it is about are kit
-// exports and this is the file that compares kits.
+// module.test.mjs: what a card module owes, asserted by IMPORTING it. It carries R-kitparity, the
+// four-way kit comparison S-22 names as the source of truth, and the part of the S- block of
+// ../../CANON.md that is readable without a browser: S-02 (runtime half), S-08b, S-21, S-22, S-23,
+// S-28. It also holds L-08a, the one canon row about two categories agreeing with each other,
+// because the two objects it is about are kit exports and this is the file that compares kits.
 //
-// R-modulepath (D-02) and the folder contract (S-20, D-03) were here and are now in
-// unit/catalog.test.mjs alone. The note at the foot of this file says which test took over what,
-// and why putting a second copy back would be a loss rather than more coverage.
+// R-modulepath (D-02) and the folder contract (S-20, D-03) are asserted in unit/catalog.test.mjs
+// alone, never here. The note at the foot of this file says which test owns what, and why putting a
+// second copy back would be a loss rather than more coverage.
 //
 // Everything here runs in bare Node in well under a second, which is only possible because
 // lib/motion.js guards its window.matchMedia probe (see ../fixtures/module.mjs). Before that guard
@@ -29,8 +29,8 @@
 // rather than passing silently.
 //
 // Not here because they need a rendered card: the shape of `Scene`, the `resetStep` prologue, the
-// reduced-motion split, z-order, viewBox. Not here because they are body-text scans that belong to
-// a source-text test or to wave 2: BANNED-SYMBOL, RIPPLE-OPT, R-rawpulse, R-skeleton, R-opacity.
+// reduced-motion split, z-order, viewBox. Not here because they are body-text scans and belong to a
+// source-text test: BANNED-SYMBOL, RIPPLE-OPT, R-rawpulse, R-skeleton, R-opacity.
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -85,9 +85,9 @@ describe('card module surface', () => {
     t.diagnostic(`${modules.size} card modules imported, no browser, nothing stubbed`);
   });
 
-  // S-02, narrowed 2026-08-15: there is ONE legal surface, the migrated one. This is a set EQUALITY
-  // per card, never a containment: a card that grew one stray export would satisfy "contains init"
-  // and read as conforming.
+  // S-02: there is ONE legal surface, the migrated one. This is a set EQUALITY per card, never a
+  // containment: a card that grew one stray export would satisfy "contains init" and read as
+  // conforming.
   //
   // LEGACY IS STILL NAMED, and that is the whole reason CARD_FORMS keeps two entries. A regression
   // has to be told apart from a typo: `init` alone is a card that went back to the hand-written
@@ -109,7 +109,7 @@ describe('card module surface', () => {
       if (typeof ns.init !== 'function') findings.push(`${id}  init is ${typeof ns.init}, not a function`);
       if (form !== 'migrated') {
         findings.push(`${id}  exports [${exportSurface(ns)}], the RETIRED hand-written surface. ` +
-          'S-02 admits one form since 2026-08-15: SCENE, STEPS_SPEC and init from defineCard');
+          'S-02 admits ONE form: SCENE, STEPS_SPEC and init from defineCard');
         continue;
       }
       // The whole reason the surface grew: SCENE and STEPS_SPEC are DATA a test reads with no
@@ -253,13 +253,13 @@ describe('kit parity', () => {
     // A set of four empty sets agrees with itself, so parity alone is not a live rule. These two
     // anchors are what stop an emptied kit from reading as green.
     //
-    // The second anchor used to name makeInit and say "which every one of its cards imports from
-    // it". Nothing imports makeInit: it is called from defineCardWith inside lib/, and the parse of
-    // all 108 import headers gives it zero importers. `defineCard` is the name that sentence was
-    // true of, on all 108, so it is the anchor now and the kit surface can lose makeInit without
-    // this turning red for the wrong reason. It is read off the kit NAMESPACE rather than off the
-    // shared set on purpose: defineCard is each kit's OWN binding, built from defineCardWith with
-    // that category's role and tint, so it is by construction not a scheme-kit re-export.
+    // The second anchor names `defineCard`, which every one of the 108 cards imports from its kit.
+    // It is deliberately not makeInit: nothing imports makeInit, it is called from defineCardWith
+    // inside lib/, and the parse of all 108 import headers gives it zero importers, so an anchor on
+    // it would turn red for the wrong reason the day the kit surface drops it. It is read off the
+    // kit NAMESPACE rather than off the shared set on purpose: defineCard is each kit's OWN
+    // binding, built from defineCardWith with that category's role and tint, so it is by
+    // construction not a scheme-kit re-export.
     assert.ok(refNames.size > 0, `${ref}-kit.js re-exports nothing from scheme-kit.js`);
     for (const cat of CATS) {
       assert.equal(typeof kits.get(cat).defineCard, 'function',

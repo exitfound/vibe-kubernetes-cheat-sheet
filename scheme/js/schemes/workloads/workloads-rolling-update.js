@@ -153,13 +153,25 @@ export const STEPS_SPEC = [
     // the static path has to say it with the inner box instead.
     reducedLit: ['pod4Box'],
     chain: 1,
+    // The surge Pod winds back to absent and RISES on the create arrival: drawn at entry it stood
+    // 3400ms ahead of its own ball, and the count that includes it moves with it.
+    rewind: {
+      opacity: { pod4: 0 },
+      chips: { v2Chip: '0 / 0', progressChip: 'spec PATCHed · RS-v2 created' },
+    },
     flow: [
       // kubectl-style scale PATCH reaches Api, then the create flows down to the node.
       patchApi('patch'),
+      // RS-v2 wants one replica the moment the scale PATCH lands, which is the wire label of this
+      // step. What it has Ready is a different beat, below.
+      F.set({ at: 'patch', chips: { v2Chip: '0 / 1' } }),
       // The surge Pod is created in the FOURTH slot, beside the three v1 Pods rather than on top of
       // one of them: that is what being one above .spec.replicas looks like.
       F.route({ points: LANE(3), after: 'patch', name: 'create' }),
+      F.fade({ target: 'pod4', from: 0, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'pod4', at: 'create' }),
+      // Four Pods are alive when the fourth is on screen, not before it.
+      F.set({ at: 'create', chips: { progressChip: 'surged +1 · 4 Pods alive' } }),
     ],
   },
   {
@@ -171,17 +183,27 @@ export const STEPS_SPEC = [
     ...slots(V1, V1, GOING, V2),
     lit: ['apiserver', 'v1Chip', 'v2Chip', 'progressChip'],
     reducedLit: ['pod4Box'],
-    chain: 2,
-    // The drained Pod is dimmed by the static block and comes back to full for the animated path,
-    // which fades it out on the drain arrival instead.
-    rewind: { opacity: { pod3: 1 } },
+    // The step narrates BOTH rows: the probe passing is the precondition and the drain is what it
+    // permits, so the ladder lights the pair rather than claiming one of the two.
+    chain: [2, 3],
+    // The drained Pod comes back to full for the animated path, and the three chips wind back to
+    // what the surge left: four Pods really are alive until the drain lands.
+    rewind: {
+      opacity: { pod3: 1 },
+      chips: { v1Chip: '3 / 3', v2Chip: '0 / 1', progressChip: 'surged +1 · 4 Pods alive' },
+      sublabels: { pod3Box: V1.v, pod4Box: V2_NEW.v },
+    },
     flow: [
       // Readiness comes FIRST and is the precondition: only then does maxUnavailable allow the
       // scale-down. Pulsing both on one arrival draws the permission and its effect as one event.
       F.pulse({ pod: 'pod4' }),
+      // RS-v2 counts the Pod Ready as the probe pulse finishes, which is the moment that unlocks
+      // the scale-down below it, and the slot stops reading `starting` on the same beat.
+      F.set({ delay: BEAT.afterPulse, chips: { v2Chip: '1 / 1' }, sublabels: { pod4Box: V2.v } }),
       F.route({ points: LANE(2), delay: BEAT.afterPulse, name: 'drain' }),
       F.pulse({ pod: 'pod3', at: 'drain' }),
       F.fade({ target: 'pod3', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'drain', fill: 'both', easing: 'ease-in' }),
+      F.set({ at: 'drain', chips: { v1Chip: '2 / 2', progressChip: 'replaced 1/3 · 3 Pods alive' }, sublabels: { pod3Box: GOING.v } }),
     ],
   },
   {
@@ -195,10 +217,16 @@ export const STEPS_SPEC = [
     ...slots(V1, GOING, V2, V2),
     lit: ['controller', 'v1Chip', 'v2Chip', 'progressChip'],
     reducedLit: ['pod3Box'],
-    chain: 3,
-    // The refilled slot starts dim and the one about to drain starts bright: the animated path
-    // plays the swap the static block states as its outcome.
-    rewind: { opacity: { pod3: OPACITY.terminating, pod2: 1 } },
+    // Rows 2 and 3 were the first cycle. This one and the next are what row 4 names, so both light
+    // it: the ladder ran one short of the steps and row 4 was never reached.
+    chain: 4,
+    // The refilled slot starts dim and the one about to drain starts bright, and the counters start
+    // where the previous step settled: each step of the cycle is its own beat below.
+    rewind: {
+      opacity: { pod3: OPACITY.terminating, pod2: 1 },
+      chips: { v1Chip: '2 / 2', v2Chip: '1 / 1', progressChip: 'replaced 1/3 · 3 Pods alive' },
+      sublabels: { pod2Box: V1.v, pod3Box: GOING.v },
+    },
     flow: [
       // Scale PATCH reaches Api, then the create flows down into the slot the previous drain freed:
       // the surge is always one Pod, so it reuses the room the last old Pod gave back.
@@ -206,10 +234,14 @@ export const STEPS_SPEC = [
       F.route({ points: LANE(2), after: 'patch', name: 'create' }),
       F.fade({ target: 'pod3', from: OPACITY.terminating, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'pod3', at: 'create' }),
+      // The surge is the moment four Pods are alive, which is maxSurge=1 on screen: RS-v2 wants two
+      // and has one Ready.
+      F.set({ at: 'create', chips: { v2Chip: '1 / 2', progressChip: 'replaced 1/3 · 4 Pods alive' }, sublabels: { pod3Box: V2_NEW.v } }),
       // and the next old Pod leaves on the same beat the new one lands
       F.route({ points: LANE(1), after: 'create', name: 'drain' }),
       F.pulse({ pod: 'pod2', at: 'drain' }),
       F.fade({ target: 'pod2', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'drain', fill: 'both', easing: 'ease-in' }),
+      F.set({ at: 'drain', chips: { v1Chip: '1 / 1', v2Chip: '2 / 2', progressChip: 'replaced 2/3 · 3 Pods alive' }, sublabels: { pod2Box: GOING.v, pod3Box: V2.v } }),
     ],
   },
   {
@@ -223,16 +255,24 @@ export const STEPS_SPEC = [
     ...slots(GOING, V2, V2, V2),
     lit: ['apiserver', 'v1Chip', 'v2Chip', 'progressChip'],
     reducedLit: ['pod2Box'],
+    // The third cycle is row 4 as well: `repeat · surge + drain per old replica` is what both of
+    // the remaining cycles are, and row 5 belongs to the converged step alone.
     chain: 4,
-    rewind: { opacity: { pod2: OPACITY.terminating, pod1: 1 } },
+    rewind: {
+      opacity: { pod2: OPACITY.terminating, pod1: 1 },
+      chips: { v1Chip: '1 / 1', v2Chip: '2 / 2', progressChip: 'replaced 2/3 · 3 Pods alive' },
+      sublabels: { pod1Box: V1.v, pod2Box: GOING.v },
+    },
     flow: [
       // The last cycle: the final v2 lands in the slot the second drain freed, and the last v1 leaves.
       F.route({ points: LANE(1), delay: BEAT.lead, name: 'create' }),
       F.fade({ target: 'pod2', from: OPACITY.terminating, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'pod2', at: 'create' }),
+      F.set({ at: 'create', chips: { v2Chip: '2 / 3', progressChip: 'replaced 2/3 · 4 Pods alive' }, sublabels: { pod2Box: V2_NEW.v } }),
       F.route({ points: LANE(0), after: 'create', name: 'drain' }),
       F.pulse({ pod: 'pod1', at: 'drain' }),
       F.fade({ target: 'pod1', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'drain', fill: 'both', easing: 'ease-in' }),
+      F.set({ at: 'drain', chips: { v1Chip: '0 / 0', v2Chip: '3 / 3', progressChip: 'replaced 3/3 · 3 Pods alive' }, sublabels: { pod1Box: GOING.v, pod2Box: V2.v } }),
     ],
   },
   {

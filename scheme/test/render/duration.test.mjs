@@ -42,9 +42,10 @@
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, floor, SUBSET } from '../fixtures/catalog.mjs';
+import { stepTotal } from '../fixtures/module.mjs';
 import {
-  DEFAULT_BASE, launch, setInspect, discoverIds, openCard, stepCount, stepMeta, enterStep, stepSpan,
+  DEFAULT_BASE, launch, initPage, discoverIds, openCard, stepCount, stepMeta, enterStep, stepSpan,
 } from '../fixtures/render.mjs';
 
 // ---------------------------------------------------------------------------------------------
@@ -55,8 +56,10 @@ import {
 // legitimate widening and must not turn this file red on its own. The card count is additionally
 // pinned to data.js exactly, through census().
 // ---------------------------------------------------------------------------------------------
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = floor((await cards()).length);
+const EXPECTED_STEPS = floor(await stepTotal());
 
 // No tolerance, matching the original's strict `>` (check-duration.mjs:38). A step that ends on the
 // same millisecond its motion ends is legal and sits at margin 0; one millisecond past it is not.
@@ -65,14 +68,18 @@ const overrun = (span, duration) => span - duration;
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 // No explicit viewport, as the original had none. Spans are computed from route LENGTH in viewBox
 // units, so the size of the window is not load-bearing here, and keeping the original's conditions
 // is what makes its green run reproducible rather than merely similar.
 const page = await browser.newPage();
-await page.addInitScript(setInspect, 'expose');
+await page.addInitScript(initPage, 'expose');
 const ids = await discoverIds(page, DEFAULT_BASE);
-
-after(() => browser.close());
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
   assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);

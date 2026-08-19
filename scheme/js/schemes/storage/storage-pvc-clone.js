@@ -45,6 +45,10 @@ const W_REQ = [[CLONE_CX, CLAIM_TOP], [CLONE_CX, REQ_CORRIDOR_Y], [CX, REQ_CORRI
 const W_CALL = [[PROV_X + PROV_W, PROV_Y + PROV_H / 2], [CALL_WRAP_X, PROV_Y + PROV_H / 2], [CALL_WRAP_X, DISK_MY], [CLONE_CX + DISK_W / 2, DISK_MY]];
 const W_COPY = [[SRC_CX + DISK_W / 2, DISK_MY], [CLONE_CX - DISK_W / 2, DISK_MY]];
 
+// A tag on the shelf hop rides in the band between the frame top and the disks, not on the disk
+// midline: on the midline a disk wall prints through it at both ends of the hop.
+const SHELF_TAG_DY = FRAME_Y + FRAME_INSET / 2 + 4 - DISK_MY;   // -62
+
 // The list order IS the append order, which is the z-order: the frame, then the blocks and disks on
 // it, then the relationships and lanes and their captions, then the chip strip, then the packets.
 export const SCENE = {
@@ -165,7 +169,7 @@ export const STEPS_SPEC = [
       // The duplicate is only made once the target volume exists, so it waits out the materialisation.
       F.reveal({ target: 'cloneDisk', from: OPACITY.pending, at: 'call', name: 'made' }),
       F.route({ points: W_COPY, at: 'made', name: 'copy' }),
-      F.tag({ text: 'exact duplicate', points: W_COPY, at: 'made' }),
+      F.tag({ text: 'exact duplicate', points: W_COPY, at: 'made', dy: SHELF_TAG_DY }),
       F.light({ targets: ['srcDisk'], at: 'made' }),
       F.light({ targets: ['cloneDisk'], at: 'copy' }),
     ],

@@ -54,7 +54,7 @@ const lane = (key, points, opacity) => P.lane({ key, points, dashed: true, dim: 
 // The list order IS the append order, which is the z-order: frames, blocks and disks, then the Pod
 // above its own frame, then the lanes and their captions, then the chip strip, then the packets.
 export const SCENE = {
-  'aria-label': 'CSI storage capacity tracking: without it the scheduler can pick a Node whose local storage pool is already full, provisioning of the volume fails there, and because binding waits on provisioning the Pod never schedules and stays Pending forever, while CSIStorageCapacity objects published by the driver per topology segment let the scheduler see the free capacity and filter out Nodes that cannot fit the claim before committing',
+  'aria-label': 'CSI storage capacity tracking: without it the scheduler can pick a Node whose local storage pool is already full, provisioning of the volume fails there, and because binding waits on provisioning the Pod never schedules and stays Pending forever, while CSIStorageCapacity objects, one per topology segment, report the free space and let the scheduler filter out Nodes that cannot fit the claim before committing',
   parts: [
     P.defs(),
     P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -101,6 +101,12 @@ export const SCENE = {
 const chips = (pod, need, aware, res) => ({ podChip: pod, needChip: need, awareChip: aware, resChip: res });
 
 const DECIDE_DUR = 850, BIND_DUR = 1000, READ_DUR = 1000;
+
+// A provisioning tag enters through the node frame TOP edge, which cuts its glyphs at the default
+// -14, and on `success` it also lands on the bind tag parked there: -40 clears both (./CARDS.md).
+const PROV_TAG_DY = -40;
+// The two reads run into the scheduler side edges at -14: -38 carries them over its top edge instead.
+const READ_TAG_DY = -38;
 
 // STO.S-01 as a field: every element born or removed mid-story, and every lane, is pinned on every
 // step. The Pod is dim until it actually reaches Running.
@@ -156,7 +162,7 @@ export const STEPS_SPEC = [
     lit: ['node1'],
     flow: [
       F.route({ points: W_PROV[0], delay: BEAT.lead, name: 'prov' }),
-      F.tag({ text: 'provision fails', points: W_PROV[0], delay: BEAT.lead }),
+      F.tag({ text: 'provision fails', points: W_PROV[0], delay: BEAT.lead, dy: PROV_TAG_DY }),
       F.light({ targets: ['pool1'], at: 'prov' }),
       // The Pod never went Ready, so it stays dim and needs the dim variant with an opacity lift or
       // the blink is invisible against the 0.55 it sits at.
@@ -166,7 +172,7 @@ export const STEPS_SPEC = [
   {
     id: 'publish',
     duration: 3600,
-    narration: 'Turn on capacity tracking, which means storageCapacity true on the CSIDriver, and a CSIStorageCapacity object appears for each Node, published by the driver from the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
+    narration: 'Turn on capacity tracking, which means storageCapacity true on the CSIDriver, and a CSIStorageCapacity object appears for each Node, reporting the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
     chipsCued: chips('Pending', 'needs 20Gi', 'yes', 'rescheduling'),
     opacity: stage({ caps: [1, 1], lanes: ['pub1', 'pub2'] }),
     // The pools are where the balls depart from, so both are lit at step entry.
@@ -204,8 +210,8 @@ export const STEPS_SPEC = [
     flow: [
       F.route({ points: W_READ[0], delay: BEAT.lead, dur: READ_DUR, name: 'read1' }),
       F.route({ points: W_READ[1], delay: BEAT.lead, dur: READ_DUR }),
-      F.tag({ text: 'only 5Gi', points: W_READ[0], delay: BEAT.lead, dur: READ_DUR }),
-      F.tag({ text: '50Gi free', points: W_READ[1], delay: BEAT.lead, dur: READ_DUR }),
+      F.tag({ text: 'only 5Gi', points: W_READ[0], delay: BEAT.lead, dur: READ_DUR, dy: READ_TAG_DY }),
+      F.tag({ text: '50Gi free', points: W_READ[1], delay: BEAT.lead, dur: READ_DUR, dy: READ_TAG_DY }),
       F.light({ targets: ['sched'], at: 'read1' }),
       dim('node1'),
       dim('pool1'),
@@ -230,7 +236,7 @@ export const STEPS_SPEC = [
       F.route({ points: W_BIND[1], at: 'decide', plus: BEAT.afterPulse, dur: BIND_DUR, name: 'bind' }),
       F.tag({ text: 'assign app-0 to node-2', points: W_BIND[1], at: 'decide', plus: BEAT.afterPulse, dur: BIND_DUR }),
       F.route({ points: W_PROV[1], after: 'bind', name: 'prov' }),
-      F.tag({ text: 'provision ok', points: W_PROV[1], after: 'bind' }),
+      F.tag({ text: 'provision ok', points: W_PROV[1], after: 'bind', dy: PROV_TAG_DY }),
       F.light({ targets: ['pool2'], at: 'prov' }),
       F.fade({ target: 'podB', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'prov', fill: 'forwards', easing: 'ease-out' }),
       F.pulse({ pod: 'podB', at: 'prov' }),

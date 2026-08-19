@@ -31,9 +31,9 @@ const LEASE_Y = ROLE_BOTTOM + LANE_RUN, LEASE_H = 80;    // 352..432
 const LEASE_TOP = LEASE_Y;
 
 // The request goes down the left lane (cx-10) from the role chip to the Lease, the answer back up
-// the right one. Wire and packet share one points array, so a ball cannot leave its own lane.
-const putRoute = cx => [[cx - LANE_DX, ROLE_BOTTOM], [cx - LANE_DX, LEASE_TOP]];
-const ackRoute = cx => [[cx + LANE_DX, LEASE_TOP], [cx + LANE_DX, ROLE_BOTTOM]];
+// the right one. Built ONCE per replica: wire and packet read one array, so a ball cannot leave it.
+const PUT = REP_CXS.map(cx => [[cx - LANE_DX, ROLE_BOTTOM], [cx - LANE_DX, LEASE_TOP]]);
+const ACK = REP_CXS.map(cx => [[cx + LANE_DX, LEASE_TOP], [cx + LANE_DX, ROLE_BOTTOM]]);
 
 // The three Lease fields split the column with the same 20 unit gap the row above uses: fixed GAP,
 // derived width. strip reproduces (LEASE_W - 2 * FIELD_GAP) / 3 to the bit, 226.66666666666666.
@@ -58,9 +58,9 @@ export const SCENE = {
     P.chip({ key: 'v3', x: REP_XS[2], y: ROLE_Y, w: REP_W, h: ROW_H, name: 'role', value: 'standby' }),
     // Each replica's CAS exchange is a parallel pair on its own axis: PUT straight down the left
     // lane, 409 or 200 straight back up the right one.
-    ...REP_CXS.flatMap(cx => [
-      P.lane({ points: putRoute(cx), dim: true, dashed: true }),
-      P.lane({ points: ackRoute(cx), dim: true, dashed: true }),
+    ...PUT.flatMap((put, i) => [
+      P.lane({ points: put, dim: true, dashed: true }),
+      P.lane({ points: ACK[i], dim: true, dashed: true }),
     ]),
     // PUT result labels, set per step, beside each replica's own lane pair at mid-run, so the
     // answer a step reports sits on the axis of the replica that received it.
@@ -86,9 +86,9 @@ export const SCENE = {
 
 // One request/answer exchange per replica axis: the call VARIES by step, so do not name it after
 // one. It returns the two flow ENTRIES, which spread into the program in their emission order.
-const exchange = (cx, name) => [
-  F.route({ points: putRoute(cx), name }),
-  F.route({ points: ackRoute(cx), after: name }),
+const exchange = (i, name) => [
+  F.route({ points: PUT[i], name }),
+  F.route({ points: ACK[i], after: name }),
 ];
 
 const LIVE = { r1: 1, r2: 1, r3: 1 };
@@ -117,10 +117,10 @@ export const STEPS_SPEC = [
     // Three creates leave together, each answered on its own lane. The Lease lights when the
     // WINNING write lands, the same shape renew uses.
     flow: [
-      ...exchange(REP_CXS[0], 'wins'),
+      ...exchange(0, 'wins'),
       F.light({ targets: ['lease'], at: 'wins' }),
-      ...exchange(REP_CXS[1], 'race2'),
-      ...exchange(REP_CXS[2], 'race3'),
+      ...exchange(1, 'race2'),
+      ...exchange(2, 'race3'),
     ],
   },
   {
@@ -138,12 +138,12 @@ export const STEPS_SPEC = [
     flow: [
       // A renewal is the same CAS-PUT and comes back 200, so it rides the answer lane home like
       // every other PUT here. Without it mgr-1's answer lane is the one drawn lane nothing rides.
-      ...exchange(REP_CXS[0], 'renewal'),
+      ...exchange(0, 'renewal'),
       F.light({ targets: ['lease'], at: 'renewal' }),
       // The two standby polls, the same shape: a read down the request lane, the answer back up the
-      // reply lane. Without them the sentence named a GET per standby that no lane ever carried.
-      ...exchange(REP_CXS[1], 'poll2'),
-      ...exchange(REP_CXS[2], 'poll3'),
+      // reply lane. Without them the sentence names a GET per standby that no lane carries.
+      ...exchange(1, 'poll2'),
+      ...exchange(2, 'poll3'),
     ],
   },
   {
@@ -171,9 +171,9 @@ export const STEPS_SPEC = [
     // The two survivors race, and each is answered: mgr-2 takes the 200 OK, mgr-3 the 409.
     // The Lease lights on the winning write landing, not before it.
     flow: [
-      ...exchange(REP_CXS[1], 'wins'),
+      ...exchange(1, 'wins'),
       F.light({ targets: ['lease'], at: 'wins' }),
-      ...exchange(REP_CXS[2], 'loses'),
+      ...exchange(2, 'loses'),
     ],
   },
 ];

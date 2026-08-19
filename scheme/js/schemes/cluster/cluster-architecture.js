@@ -5,10 +5,10 @@ import { P, F, defineCard, laneY, midX, shade, OPACITY } from './cluster-kit.js'
 const BOX_W = 220, BOX_H = 80;
 const CX = 600;
 
-// Both frames span 150..1050 with 20 of padding on each wall, so every block lives inside
-// 170..1030 and the two bands read as one column. The rows are cluster-apply-flow's, to the unit.
+// Both frames span 150..1050 with 20 of padding on each wall, so every block lives inside 170..1030
+// and the two bands read as one column. The rows are cluster-object-create-path's, to the unit.
 const FRAME_X = 150, FRAME_W = 900;
-const CP_Y = 90, CP_H = 350;                             // 90..440, apply-flow's frame exactly
+const CP_Y = 90, CP_H = 350;                             // 90..440, the create-path frame exactly
 const NODE_Y = 475, NODE_H = 153;                        // 475..628, 12 of canvas floor under it
 
 const API_Y = 140, API_BOTTOM = API_Y + BOX_H;           // 140 / 220
@@ -26,13 +26,14 @@ const SCHED_X = 810, SCHED_CX = SCHED_X + BOX_W / 2;     // 810..1030, 920
 const T2_BELOW = T2_Y + BOX_H + 20;                      // 428, one wire label under each tier-2 box,
                                                          // 12 clear of the frame floor
 
-const T3_Y = NODE_Y + 47;                                // 522, Runtime, Kubelet, kube-proxy.
-// 47 is apply-flow's offset, copied rather than re-derived so the two Node rows sit on one line.
+const T3_Y = NODE_Y + 41;                                // 516, Runtime, Kubelet, kube-proxy.
+// 41 rather than 47, so the two watch labels under it get tier 2's 20 unit gap.
+// cluster-object-create-path holds the same offset, so the two share the row.
 const RT_X = 170, KUBE_X = CX - BOX_W / 2, KP_X = 810;
 const KUBE_CX = KUBE_X + BOX_W / 2, KP_CX = KP_X + BOX_W / 2;    // 600 / 920
-const T3_CY = T3_Y + BOX_H / 2;                          // 562
-const T3_BELOW = T3_Y + BOX_H + 14;                      // 616, tier 2's rhythm inside the Node
-// frame. 14 rather than 20: the shorter frame leaves 26 under the row, so +20 lands 3 off the floor.
+const T3_CY = T3_Y + BOX_H / 2;                          // 556
+const T3_BELOW = T3_Y + BOX_H + 20;                      // 616, tier 2's rhythm inside the Node
+// frame, gap included: +20 here lands the label on the y the tier-2 rhythm gives.
 
 // Each control-plane exchange is a lane PAIR straddling the flow line, so no endpoint sits alone.
 // The two Node-bound lanes are single and therefore leave the API on a face MIDPOINT instead.
@@ -55,9 +56,9 @@ const API_TO_KPROXY  = [[API_R, API_CY], [R_CORR, API_CY], [R_CORR, BAND_Y], [KP
 // CRI, and it runs Kubelet to Runtime because that is the direction the last step narrates.
 const KUBELET_TO_RUNTIME = [[KUBE_X, T3_CY], [RT_X + BOX_W, T3_CY]];
 
-// The two ETCD labels share one centre line in the 190 unit gap between the API and the
-// cylinder: the write above its lane, the read below its own.
-const ETCD_LABEL_X = midX(API_R, ETCD_X);                // 805
+// The two ETCD labels share one centre line in the 190 unit gap between the API and the cylinder:
+// the write above its lane, the read below its own. The gap is the BUDGET: see ./CARDS.md.
+const ETCD_LABEL_X = midX(API_R, ETCD_X);                // 805, and 27 characters is the ceiling
 
 const lane = (key, points) => P.lane({ key, points, dim: true, dashed: true });
 
@@ -67,8 +68,8 @@ export const SCENE = {
   'aria-label': 'Kubernetes cluster architecture: the API, ETCD, the controller-manager, the cloud-controller-manager and the Scheduler inside the control plane, with the Kubelet and kube-proxy on Node-1 each watching the API for itself, and the Kubelet driving the Runtime over CRI',
   parts: [
     P.defs(),
-    // Both frame labels sit on their own frame corner, which is where node() puts them: CONTROL
-    // PLANE at (162, 108) and NODE-1 at (162, 493). What that costs is in ./CARDS.md.
+    // Both frame labels sit on the LEFT top corner node() gives them, CONTROL PLANE at (162, 108)
+    // and NODE-1 at (162, 493). What the first one costs is in ./CARDS.md.
     P.node({ key: 'cpEl', x: FRAME_X, y: CP_Y, w: FRAME_W, h: CP_H, label: 'Control plane' }),
     P.node({ key: 'nodeEl', x: FRAME_X, y: NODE_Y, w: FRAME_W, h: NODE_H, label: 'Node-1' }),
     // Tier 1: API (centre) + ETCD (top-right). All component boxes use the
@@ -106,8 +107,9 @@ export const SCENE = {
     P.wire({ key: 'controllers', x: CM_CX, y: T2_BELOW }),
     P.wire({ key: 'cloud', x: CX, y: T2_BELOW }),
     P.wire({ key: 'scheduler', x: SCHED_CX, y: T2_BELOW }),
-    // The two Node lane labels sit UNDER the block they describe, as each tier-2 label does: a watch
-    // label belongs beside the component doing the watching, not out in the band.
+    // The three Node lane labels sit UNDER the block they describe, as each tier-2 label does: a
+    // watch label belongs beside the component watching, not out in the band.
+    P.wire({ key: 'cri', x: RT_X + BOX_W / 2, y: T3_BELOW }),      // the CRI route carries a ball too
     P.wire({ key: 'kubelet', x: KUBE_CX, y: T3_BELOW }),
     P.wire({ key: 'kproxy', x: KP_CX, y: T3_BELOW }),
     P.packets(),
@@ -132,15 +134,15 @@ export const STEPS_SPEC = [
   },
   {
     id: 'api',
-    duration: 1700,
+    duration: 2800,
     narration: 'The API is the only way in for clients and controllers. Every read and every write passes through it, and a write clears authentication, authorization and admission before it is stored. Replicas are stateless and scale horizontally. The one path that skips it is a static Pod, which the Kubelet reads off the Node.',
     opacity: CONTROL_HALF,
     lit: ['apisrv'],
   },
   {
     id: 'etcd',
-    duration: 1700,
-    narration: 'ETCD is the only durable store in the cluster, and the API is its only client. Every change is replicated through Raft, where a quorum of replicas must agree before the write is committed and the revision moves forward.',
+    duration: 2300,
+    narration: 'ETCD holds the cluster state the API serves, and in a standard cluster the API is the only client it has. Every change is replicated through Raft, where a quorum of replicas must agree before the write is committed and the revision moves forward.',
     wires: { 'etcd-write': 'write · Raft quorum commit' },
     opacity: CONTROL_HALF,
     lit: ['apisrv'],
@@ -148,7 +150,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'etcd-response',
-    duration: 1700,
+    duration: 2600,
     narration: 'On the way back ETCD serves reads to the API, which is a separate exchange rather than the answer to that write. A watch keeps the stream open and pushes later changes through it without another round trip. Clients watch the API, never ETCD, and it answers them from its own cache.',
     wires: { 'etcd-read': 'read · watch stream' },
     opacity: CONTROL_HALF,
@@ -158,7 +160,7 @@ export const STEPS_SPEC = [
   {
     id: 'controllers',
     duration: 2600,
-    narration: 'The controller-manager runs one control loop per resource kind (Deployment, ReplicaSet, Job and so on). Each watches the API, never ETCD, and writes back to reconcile observed state with desired state.',
+    narration: 'The controller-manager runs the built-in control loops, roughly one per resource kind (Deployment, ReplicaSet, Job and so on), plus loops that cut across all of them like the garbage collector. Each watches the API, never ETCD, and writes back to reconcile observed state with desired state.',
     wires: { controllers: 'watch · reconcile loop' },
     opacity: CONTROL_HALF,
     lit: ['apisrv'],
@@ -175,7 +177,7 @@ export const STEPS_SPEC = [
     narration: 'The cloud-controller-manager runs the loops that talk to a cloud provider: Node lifecycle, cloud routes and Service load balancers. It is optional and a cluster on your own hardware has none. It writes what it learns back to the API, and it is split out so provider code lives outside the core.',
     // The lane pair runs API to CCM and back, so the label names what rides it. The call to the
     // provider is in the narration, because no provider is drawn and no ball goes to one.
-    wires: { cloud: 'watch Nodes · write Node and Service status' },
+    wires: { cloud: 'watch Nodes and Services · write status back' },
     opacity: CONTROL_HALF,
     lit: ['apisrv'],
     // Same beat as the controller-manager beside it: watch in, write-back out.
@@ -199,10 +201,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'node-side',
-    duration: 3100,
-    narration: 'The Kubelet watches the API for Pods assigned to its Node, then calls the Runtime over CRI to start their containers. Beside it kube-proxy watches the API on its own, for Services and EndpointSlices, and programs the local rules. It is optional too, and an eBPF dataplane can replace it.',
-    wires: { kubelet: 'watch Pods · spec.nodeName=Node-1', kproxy: 'watch Services · EndpointSlices' },
-    // The Node half takes over: the two lanes into the Node band are DRAWN for the first time
+    duration: 3400,
+    narration: 'The Kubelet watches the API for Pods assigned to its Node, then calls the Runtime over CRI to start their containers, and PATCHes Pod status back so the loops above have observed state to compare. Beside it kube-proxy watches the API on its own, for Services and EndpointSlices, and programs the local rules. It is optional too, and an eBPF dataplane can replace it.',
+    wires: { cri: 'CRI · start containers', kubelet: 'watch Pods · spec.nodeName=Node-1', kproxy: 'watch Services · EndpointSlices' },
+    // The Node half takes over: the lanes into the Node band are DRAWN for the first time
     // here, at full strength, and the control-plane exchanges mute behind them.
     opacity: NODE_HALF,
     lit: ['apisrv'],

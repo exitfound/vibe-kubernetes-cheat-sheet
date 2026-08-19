@@ -101,8 +101,16 @@ export const SCENE = {
 // setSublabels as FIELDS: the three resource shapes are written in one place, so no step can state
 // two of them and leave the third carrying the previous step's text.
 const shapes = (a, b, c) => ({ pod1Box: a, pod2Box: b, pod3Box: c });
-// The three Pods alive at full opacity, which is every step but the eviction.
-const ALL_LIVE = { pod1: 1, pod2: 1, pod3: 1 };
+// A tap into a Pod no Node holds yet is as faint as the Pod it points at (A-13), so the Pod row
+// and the wiring that feeds it are one value per step, stated here and nowhere else (A-16).
+const wiring = (shade) => ({ trunk: shade, bus: shade, tap1: shade, tap2: shade, tap3: shade });
+// The three Pods alive at full opacity, which is every step from the binding on.
+const ALL_LIVE = { pod1: 1, pod2: 1, pod3: 1, ...wiring(1) };
+// Declared but not placed: the qosClass is written on an object no Node holds yet, so the three
+// Pods and their taps rest at OPACITY.pending until `schedule` binds them (C-06, C-14).
+const ALL_PENDING = { pod1: OPACITY.pending, pod2: OPACITY.pending, pod3: OPACITY.pending, ...wiring(OPACITY.pending) };
+// The eviction sinks A and B but the taps keep carrying their balls, so the wiring stays at full.
+const EVICTED = { ...ALL_LIVE, pod1: OPACITY.terminating, pod2: OPACITY.terminating };
 // One ball per tap. The outer lanes are longer, so each Pod pulses on its own ball landing.
 const fanToPods = (when = {}) => [0, 1, 2].flatMap(i => [
   F.route({ points: LANE(i), ...when, name: `fan${i}` }),
@@ -115,7 +123,7 @@ export const STEPS_SPEC = [
     duration: 1500,
     chips: { pod1Chip: 'pending', pod2Chip: 'pending', pod3Chip: 'pending', focusChip: 'none' },
     sublabels: shapes(...POD_SUBS),
-    opacity: { ...ALL_LIVE },
+    opacity: { ...ALL_PENDING },
     chain: -1,
   },
   {
@@ -125,7 +133,7 @@ export const STEPS_SPEC = [
     chips: { pod1Chip: 'pending', pod2Chip: 'pending', pod3Chip: 'pending', focusChip: '3 shapes inspected' },
     wires: { req: 'rule: empty → BestEffort · req==lim → Guaranteed · Else Burstable' },
     sublabels: shapes(...POD_SUBS),
-    opacity: { ...ALL_LIVE },
+    opacity: { ...ALL_PENDING },
     // The rule is read inside the Api, nothing travels: the focus chip takes the
     // static highlight only, no flash (info chips do not pulse).
     lit: ['apiserver', 'focusChip'],
@@ -138,14 +146,15 @@ export const STEPS_SPEC = [
     chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'status.qosClass written' },
     wires: { req: 'status.qosClass · A=BestEffort · B=Burstable · C=Guaranteed' },
     sublabels: shapes('BestEffort', 'Burstable', 'Guaranteed'),
-    opacity: { ...ALL_LIVE },
+    opacity: { ...ALL_PENDING },
     lit: ['apiserver', 'pod1Chip', 'pod2Chip', 'pod3Chip', 'focusChip'],
     chain: 1,
     flow: [
-      // Api tags all three Pods with their qosClass at once: they pulse together.
-      F.pulse({ pod: 'pod1' }),
-      F.pulse({ pod: 'pod2' }),
-      F.pulse({ pod: 'pod3' }),
+      // Api tags all three Pods with their qosClass at once: they pulse together. The three are
+      // still unplaced, so the blink needs the dim pulse to be seen against 0.55 (M-07).
+      F.pulse({ pod: 'pod1', dim: true }),
+      F.pulse({ pod: 'pod2', dim: true }),
+      F.pulse({ pod: 'pod3', dim: true }),
     ],
   },
   {
@@ -158,17 +167,23 @@ export const STEPS_SPEC = [
     opacity: { ...ALL_LIVE },
     lit: ['apiserver', 'focusChip'],
     chain: 2,
+    // The three Pods are unplaced until this step: the static block pins them placed, the rewind
+    // puts them back at OPACITY.pending and each rises on the ball that names its Node.
+    rewind: { opacity: { pod1: OPACITY.pending, pod2: OPACITY.pending, pod3: OPACITY.pending } },
     flow: [
       // Api writes the binding, the Kubelet observes it and places each Pod. The Kubelet lights when
       // the binding REACHES it, since placing the Pods is its answer to it.
       F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, name: 'bind', lights: ['kubelet'] }),
       ...fanToPods({ after: 'bind' }),
+      // The placement is what raises each Pod out of pending, so it rides its OWN tap: the outer
+      // lanes are 813ms longer, and the difference is the point (M-24, the lane already points at it).
+      ...[0, 1, 2].map(i => F.fade({ target: `pod${i + 1}`, from: OPACITY.pending, to: 1, dur: FADE.in, at: `fan${i}`, fill: 'both', easing: 'ease-out' })),
     ],
   },
   {
     id: 'cgroups',
     duration: 2600,
-    narration: 'Kubelet on the chosen Node writes the Linux cgroup config for each Pod. The container memory cap (memory.max) and CPU cap (cpu.max) come from limits. If limits are absent (Pod A is BestEffort) there is no cap at all. Kubelet also writes oom_score_adj for each container process, a number the kernel uses to choose which process to kill first under memory pressure. BestEffort gets 1000 (kernel picks it first). Guaranteed gets -997 (almost never picked). Burstable sits in between, scaled by its memory request via 1000 - 1000*(request/capacity), clamped to range 3..999.',
+    narration: 'Kubelet on the chosen Node writes the Linux cgroup config for each Pod. The container memory cap (memory.max) and CPU cap (cpu.max) come from limits. Neither Pod A nor Pod B sets any, so neither gets a cap at all. Kubelet also writes oom_score_adj for each container process, a number the kernel uses to choose which process to kill first under memory pressure. BestEffort gets 1000 (kernel picks it first). Guaranteed gets -997 (almost never picked). Burstable sits in between, scaled by its memory request via 1000 - 1000*(request/capacity), clamped to range 3..999.',
     chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'memory.max · oom_score_adj' },
     wires: { req: 'cgroup v2 · memory.max + cpu.max + oom_score_adj' },
     sublabels: shapes('BestEffort · oom_score=1000', 'Burstable · oom_score~scaled', 'Guaranteed · oom_score=-997'),
@@ -189,7 +204,7 @@ export const STEPS_SPEC = [
     sublabels: shapes('BestEffort · evicted 1st', 'Burstable · evicted 2nd', 'Guaranteed · survives'),
     // A and B are evicted and dim together, C survives at full opacity. The final state is pinned
     // on the static path too, so a cancelled step cannot leave a Pod half faded.
-    opacity: { pod1: OPACITY.terminating, pod2: OPACITY.terminating, pod3: 1 },
+    opacity: { ...EVICTED },
     lit: ['kubelet', 'pod1Chip', 'focusChip'],
     chain: 4,
     flow: [

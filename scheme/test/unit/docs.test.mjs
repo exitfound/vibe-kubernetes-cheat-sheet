@@ -1,23 +1,26 @@
 // docs.test.mjs: do the four records and the rulebook still describe the code, and each other?
 //
-// Successor of tools/check-notes.mjs (anchors, sections, orphans, misfiled) and of the whole of
-// tools/check-canonrows.mjs: duplicate ids and numbering in group C, and the `Check` column itself
-// in group E. Plus two things nothing had ever checked: the CANON.md category index against the
-// four <cat>/CLAUDE.md, and the `Source` column in C4.
+// What it reads: the four card records against the code in group A (anchors, sections, orphans,
+// misfiled), CANON.md about itself in group C (duplicate ids and numbering, and the category index
+// against the four <cat>/CLAUDE.md), the `Source` column in C4, the citations of every document
+// that cites a rule in group D, INCLUDING the card skills at <repo root>/.claude/skills/, and the
+// `Check` column in group E. Nothing else in the suite reads the index, the Source column or the
+// skills. The COUNTS those same documents state are a different question and a different file,
+// ./docs-census.test.mjs (`S-49`).
 //
 // ===========================================================================================
-// WHY GROUP E EXISTS, AND WHAT IT INHERITS
+// WHY GROUP E EXISTS, AND WHAT IT READS
 // ===========================================================================================
-// The `Check` column says whether a rule has a machine behind it. Nothing verified it until
-// check-canonrows, and check-canonrows only ever read the TOOL half of a value: its regex was
-// /\| (gate|report):([a-z][a-z-]*)/, so `gate:check-opacity PHASE` was checked as far as
-// "check-opacity.mjs exists and the chain runs it" and the word PHASE was never looked at. An axis
-// could be renamed or deleted inside a check and the rulebook would keep pointing at it.
+// The `Check` column says whether a rule has a machine behind it, and a value has TWO halves: the
+// FILE and the AXIS inside it, as in `report:overlay/L-02`. A reader that matches the file half
+// only gets as far as "overlay.test.mjs exists and the suite runs it" and never looks at L-02, so
+// an axis can be renamed or deleted inside a check and the rulebook goes on pointing at it, with
+// every value still parsing.
 //
-// Group E reads the whole value. It is the successor of TOOL (the file exists), NOTGATED (a `test:`
-// value names a file `npm test` really runs, and a report/ file is never claimed as mandatory
-// because it cannot fail) and ORPHAN (a test file no rule cites is a test whose subject is written
-// down nowhere), and it adds the half that was missing: the NAME has to occur in the file.
+// Group E reads the whole value, on four axes: TOOL (the file exists), NOTGATED (a `test:` value
+// names a file `npm test` really runs, and a report/ file is never claimed as mandatory because it
+// cannot fail), ORPHAN (a test file no rule cites is a test whose subject is written down nowhere)
+// and NAME (the axis name has to occur in the file).
 //
 // WHAT A NAME IS, AND WHY OCCURRENCE IS THE RIGHT TEST. A test file names the rules it carries in
 // its own header, and it prints an axis label on every finding it reports. Those two are the same
@@ -30,11 +33,11 @@
 // WHY THE INDEX GROUP EXISTS
 // ===========================================================================================
 // A category rule lives in its folder. CANON.md indexes it: id plus a SUBJECT LABEL, never a second
-// copy of the rule text. That was not always so, and nothing watched it: by 2026-08-07 six ids named
-// DIFFERENT rules in the two files (CLU.S-01, WL.L-03, WL.L-04, WL.L-05, STO.S-02, STO.S-03), five
-// more disagreed on how much the rule said, six ids the index carried did not exist in any folder,
-// and three the folders carried were missing from the index. Every one of those was invisible to the
-// gate, because check-canonrows reads CANON.md alone and never opens a folder.
+// copy of the rule text. Nothing else watches this: a check that reads CANON.md alone and never
+// opens a folder cannot see an id naming DIFFERENT rules in the two files, an index label that
+// disagrees with the folder about how much the rule says, an id the index carries and no folder
+// declares, or an id a folder carries and the index leaves out. A rule id must resolve to one copy
+// of the rule text.
 //
 // So the three assertions below are: the id sets are a bijection, each id has exactly ONE declaration
 // site, and an index label does not restate the rule it points at. The last one is measured rather
@@ -47,11 +50,11 @@
 // WHY C4 READS THE SOURCE COLUMN
 // ===========================================================================================
 // `Source` is the rulebook's other citation column: where the long form, the measurement or the
-// implementation of a rule lives. Nothing read it until C4, and it went stale twice, once on line
-// numbers that had drifted 9 to 12 rows into a comment, once naming files under a scheme/tools/
-// that had been deleted. It stands at ZERO dead citations today, which is exactly when the check is
-// cheap: holding zero costs the parse below, recovering it after the next rename costs a pass over
-// every rule row.
+// implementation of a rule lives. C4 is the only reader of it, and the two ways it goes stale are
+// line numbers that drift rows into a comment and cells naming files under a directory that has
+// been deleted. The column stands at ZERO dead citations, which is exactly when the check is cheap:
+// holding zero costs the parse below, recovering it after the next rename costs a pass over every
+// rule row.
 //
 // WHAT COUNTS AS A PATH, AND WHY THE COLUMN IS NOT ALL PATHS. A cell may cite a helper (`valChip`),
 // a token (`BEAT`), a CSS selector, a card id, a date or a measurement, and forcing those into
@@ -62,24 +65,24 @@
 // 43 land on the repo root, 92 on scheme/, 64 on scheme/js/, 3 in a category folder.
 //
 // AND WHY C5 READS THE OTHER HALF OF THE SAME COLUMN. C4 resolves the 207 path tokens and stops,
-// so the 57 tokens that are not paths were read by nobody. Most of them are SYMBOLS: a helper, a
-// token, a field. That half went stale in exactly the way the path half did, and worse, because a
-// symbol citation names the thing a reader is told to go call: `S-08a` instructed the reader to end
-// a Pod factory with `return wrapPod(shell, innerBox);` for months after `wrapPod` was deleted for
-// having no callers. C5 resolves every identifier-shaped token by OCCURRENCE anywhere under scheme/,
-// which is the same test E2 applies to an axis name and for the same reason: a symbol the tree does
-// not contain is a citation the reader cannot follow. 31 distinct today, all resolving. What it does
-// NOT ask is where the occurrence sits: `setConnectorDir` was deleted from the kits and survives in
-// four workloads cards as a comment, and that counts as resolving here. The rule is "a reader can
-// find it", not "it is still callable", and the second question needs a parser rather than a scan.
+// so the 57 tokens that are not paths are C5's subject. Most of them are SYMBOLS: a helper, a
+// token, a field. That half goes stale in exactly the way the path half does, and worse, because a
+// symbol citation names the thing a reader is told to go call: a rule telling the reader to end a
+// Pod factory with `return wrapPod(shell, innerBox);` sends them after a helper the tree no longer
+// holds. C5 resolves every identifier-shaped token by OCCURRENCE anywhere under scheme/, which is
+// the same test E2 applies to an axis name and for the same reason: a symbol the tree does not
+// contain is a citation the reader cannot follow. 31 distinct today, all resolving. What it does
+// NOT ask is where the occurrence sits: `setConnectorDir` is in no kit and survives in four
+// workloads cards as a comment, and that counts as resolving here. The rule is "a reader can find
+// it", not "it is still callable", and the second question needs a parser rather than a scan.
 //
 // ===========================================================================================
 // NOTHING HERE SKIPS
 // ===========================================================================================
-// check-notes walked a second record with `if (!existsSync(md)) continue;`, which is how 61 of its
-// anchors stopped being checked at exit 0 and the printed anchor count fell from 185 to 124 with
-// nothing said. That is the surviving lesson of S-46, and readDoc below is where this file obeys
-// it: a record it cannot open is a failure, never a shorter run.
+// A walk that skips a record it cannot open (`if (!existsSync(md)) continue;`) stops checking that
+// record's anchors at exit 0, with no finding and no error: 61 anchors leaving the run take a
+// printed count from 185 to 124 and say nothing. That is the surviving lesson of S-46, and readDoc
+// below is where this file obeys it: a record it cannot open is a failure, never a shorter run.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -96,7 +99,7 @@ const TEST_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(ROOT, '..');
 
 // --------------------------------------------------------------------------------------------
-// Recorded on the green run of 2026-08-07, the numbers stage 0.2a of REFACTOR-PLAN.md pinned.
+// The recorded counts, re-measured on any green run.
 // FLOORS, not equalities, wherever the quantity is allowed to GROW: a record gains notes and the
 // rulebook gains rules, and an equality there would go red on healthy work and be edited away. What
 // a floor still catches is the failure that actually happened here twice: a walker that stops
@@ -105,7 +108,7 @@ const REPO = join(ROOT, '..');
 const ANCHOR_FLOOR = { cluster: 15, workloads: 24, network: 41, storage: 44 };   // 124 total
 const CATALOG_RULE_FLOOR = 235;                                                  // the L A M C T P D R S blocks
 const INDEX_ROWS = 39;                                                           // CLU 5, WL 12, NET 9, STO 13
-const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 274, the figure check-canonrows prints
+const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 274 rule rows in CANON.md
 const REF_FLOOR = 400;                                                           // measured 469 id-shaped tokens
 const LABEL_MAX_CHARS = 90;                                                      // measured max 73 (NET.C-01)
 const LABEL_MAX_OVERLAP = 55;                                                    // measured max 35 (WL.S-01)
@@ -113,11 +116,9 @@ const LABEL_MAX_OVERLAP = 55;                                                   
 // Rule ROWS carrying at least one test: or report: value, as against `review` or `hook` alone.
 // A FLOOR, because draining `review` is the direction of travel and a DROP means rules quietly
 // went back to being a human's job, which is a change to make deliberately rather than discover.
-// Measured 2026-08-07 right after the column was rewritten: 122 rows of 235 (130 values in all,
-// since a row may name two), against 112 `review` and 2 `hook`. Re-measured 2026-08-15 after the
-// D3 pass gave nine `review` rules a machine (S-18, S-19, S-34, S-36, S-41, P-13, L-18, C-20,
-// C-24): 144 rows against 95. The floor moves with the measurement, or the nine could go back to
-// being a human's job with nothing red.
+// Measured 2026-08-15: 144 rows of 235 name a machine (a row may name two), against 95 `review`.
+// The floor moves with the measurement, or a rule could go back to being a human's job with
+// nothing red.
 const MACHINE_ROW_FLOOR = 140;
 
 // Backticked PATH tokens across every Source cell. A FLOOR, and the reason is the failure this
@@ -152,6 +153,37 @@ const FOLDER_MD = new Map(CATS.map(c => [c, readDoc(join('js', 'schemes', c, 'CL
 const CANON = readDoc('CANON.md');
 const CONTRACT = readDoc('CLAUDE.md');
 
+// The card skills at `<repo root>/.claude/skills/`, which are the fifth reader of the rulebook and
+// the only one outside `scheme/`. They cite rule ids instead of restating rules, which is what
+// keeps a skill short, and that makes every citation in them a link that can rot exactly the way a
+// record's can. Nothing else in the tree opens them.
+//
+// Read by SHAPE rather than from a list, so a fourth skill is covered the day it is written. Every
+// `.md` under a skill folder counts: `SKILL.md` and the reference pages beside it are the same kind
+// of document. A missing directory is a failure and not a shorter run (`S-46`), and the floor below
+// is what stops a walk that finds nothing from passing as a walk that found nothing wrong.
+const SKILLS_DIR = join(REPO, '.claude', 'skills');
+const SKILL_DOC_FLOOR = 4;                                   // 3 SKILL.md + card-poster's patterns.md
+
+function skillDocs() {
+  assert.ok(existsSync(SKILLS_DIR), `MISSING ${SKILLS_DIR}: the card skills are part of this repo, ` +
+    'and a walk that cannot open them is a failure rather than a shorter run');
+  const out = [];
+  const walk = (dir, rel) => {
+    for (const e of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p, `${rel}/${e.name}`);
+      else if (e.name.endsWith('.md')) out.push([`${rel}/${e.name}`, readFileSync(p, 'utf8')]);
+    }
+  };
+  walk(SKILLS_DIR, '.claude/skills');
+  assert.ok(out.length >= SKILL_DOC_FLOOR,
+    `only ${out.length} skill document(s) found under .claude/skills/, floor ${SKILL_DOC_FLOOR}`);
+  return out;
+}
+
+const SKILL_MD = skillDocs();
+
 const relCards = (cat) => `js/schemes/${cat}/CARDS.md`;
 const relFolder = (cat) => `js/schemes/${cat}/CLAUDE.md`;
 
@@ -160,7 +192,7 @@ const relFolder = (cat) => `js/schemes/${cat}/CLAUDE.md`;
 // convention a human types by hand.
 // --------------------------------------------------------------------------------------------
 
-// A record section: `## <card id>`. Same regex check-notes uses.
+// A record section: `## <card id>`.
 function sections(md) {
   const out = [];
   md.split('\n').forEach((line, i) => {
@@ -184,8 +216,8 @@ function anchors(md) {
   return out;
 }
 
-// Every row CANON.md states a rule on, by the same regex check-canonrows counts with, so the two
-// agree on what a rule row is. `| ID | ... |`, id optionally backticked.
+// Every row CANON.md states a rule on, and the regex is what "a rule row" MEANS here, so the
+// floors above count the same thing this returns. `| ID | ... |`, id optionally backticked.
 function canonRows(md) {
   return [...md.matchAll(/^\| (`?)([A-Z]{1,3}\.?[A-Z]?-\d+[a-z]?)\1 \|(.*)$/gm)]
     .map(m => ({ id: m[2], rest: m[3] }));
@@ -215,7 +247,7 @@ function checkRows(md) {
     if (!m) return;
     const c = cells(line);
     if (c.length !== 6) return;                          // '', id, rule, check, source, ''
-    out.push({ id: m[2], check: c[3].trim(), source: c[4].trim(), line: i + 1 });
+    out.push({ id: m[2], rule: c[2].trim(), check: c[3].trim(), source: c[4].trim(), line: i + 1 });
   });
   return out;
 }
@@ -354,9 +386,9 @@ const ROWS = canonRows(CANON);
 const CHECK_ROWS = checkRows(CANON);
 
 // --------------------------------------------------------------------------------------------
-// The test suite, read the way check-canonrows read the gate chain: out of the package.json where
-// it EXECUTES, never restated. `npm test` runs unit/ and render/; `npm run report` runs report/.
-// A directory that stops being run stops being a mandatory home, and this picks that up for free.
+// The test suite, read out of the package.json where it EXECUTES, never restated here. `npm test`
+// runs unit/ and render/; `npm run report` runs report/. A directory that stops being run stops
+// being a mandatory home, and this picks that up for free.
 // --------------------------------------------------------------------------------------------
 const PKG = JSON.parse(readFileSync(join(TEST_ROOT, 'package.json'), 'utf8'));
 const dirsOf = (script) => [...(PKG.scripts[script] || '').matchAll(/'([a-z-]+)\/\*\*\/\*\.test\.mjs'/g)].map(m => m[1]);
@@ -393,7 +425,7 @@ const nameOccurs = (src, name) => {
 };
 
 // --------------------------------------------------------------------------------------------
-// GROUP A: the card records against the code. Heir of check-notes.
+// GROUP A: the card records against the code.
 // --------------------------------------------------------------------------------------------
 
 test('A1 every card record is anchored, and no walk collapses to nothing', () => {
@@ -592,7 +624,8 @@ test('B5 an index row carries a SUBJECT LABEL, never a second copy of the rule',
 });
 
 // --------------------------------------------------------------------------------------------
-// GROUP C: CANON.md about itself. The half of check-canonrows that is not the `Check` column.
+// GROUP C: CANON.md about itself. Everything but the `Check` column, which is group E: duplicate
+// ids, the numbering, the category index against the folders, and the Source column in C4/C5.
 // --------------------------------------------------------------------------------------------
 
 test('C1 the rulebook states at least as many rules as it did, and no id is used twice', () => {
@@ -715,6 +748,7 @@ test('D1 every id a document cites resolves to a declared rule', () => {
     ['CLAUDE.md', CONTRACT],
     ...CATS.map(c => [relFolder(c), FOLDER_MD.get(c)]),
     ...CATS.map(c => [relCards(c), CARDS_MD.get(c)]),
+    ...SKILL_MD,
   ];
   // Backticked, bolded or bare. The lookarounds keep arithmetic out: `NODE_Y-24` inside a lane
   // description is not a citation of Y-24, and five of those live in the workloads record.
@@ -737,8 +771,8 @@ test('D1 every id a document cites resolves to a declared rule', () => {
 });
 
 // --------------------------------------------------------------------------------------------
-// GROUP E: the `Check` column. Heir of check-canonrows' TOOL / NOTGATED / ORPHAN, reading the whole
-// value instead of the tool half of it. See the header for what that changes.
+// GROUP E: the `Check` column, read WHOLE: TOOL / NOTGATED / ORPHAN over the file half, and NAME
+// over the axis inside the value. See the header for why the axis half is the one that rots.
 // --------------------------------------------------------------------------------------------
 
 test('E1 every Check value is one of the four shapes and names a test file that exists', () => {
@@ -827,4 +861,76 @@ test('E3 every test file is cited by at least one rule', () => {
   assert.deepEqual(orphans, [], `${orphans.length} orphan test file(s):\n  ${orphans.join('\n  ')}`);
   assert.equal(cited.size, TEST_FILES.size,
     `${cited.size} file(s) cited against ${TEST_FILES.size} on disk`);
+});
+
+// --------------------------------------------------------------------------------------------
+// GROUP F: the `Rule` column stays ONE line, and the argument that does not fit it lives in "The
+// long form" under the same id.
+//
+// WHY A CEILING AT ALL. The header of CANON.md promises "one line, stated as the thing that must be
+// true", and the file had drifted a long way past it: 116 of 245 rule cells ran over 200 characters
+// and 39 over 400, which turns a table into paragraphs in a grid. A grid of paragraphs cannot be
+// SKIMMED, and skimming is the whole reason the rules are a table: a reader looking for the rule
+// about lane shading should find it by running an eye down a column, not by reading an essay about
+// each of its 20 neighbours. `tools/canon.mjs` reads the same column, so an unbounded cell also
+// makes every filtered listing unreadable.
+//
+// WHERE THE ARGUMENT WENT. Nowhere: it moved to a `### <id>` block at the end of the file. The
+// measurement that fixed a number, the alternative that was tried, what a rule cost the day it was
+// missed are what make a rule obeyable rather than merely known, and deleting them to fit a ceiling
+// would be the ceiling doing harm. F1 is what keeps the two halves attached to each other.
+// --------------------------------------------------------------------------------------------
+
+// The measured worst cell after the split is 235. The ceiling sits just above it, so a row that
+// grows an argument back into itself is caught while it is still one row.
+const RULE_MAX_CHARS = 240;
+const LONG_FORM_FLOOR = 80;                                  // 90 blocks today
+
+// `## The long form` to the end of the file, split into its `### <id>` blocks.
+function longForms(md) {
+  const at = md.indexOf('\n## The long form\n');
+  assert.ok(at !== -1, 'CANON.md has no "## The long form" section: the argument half of every ' +
+    'oversized rule lived there, and a walk that cannot find it reports nothing rather than nothing wrong');
+  const out = [];
+  let id = null;
+  for (const line of md.slice(at).split('\n')) {
+    const h3 = /^### ([A-Z]{1,3}\.?[A-Z]?-\d+[a-z]?)\s*$/.exec(line);
+    if (h3) { id = h3[1]; out.push({ id, body: [] }); continue; }
+    if (id) out[out.length - 1].body.push(line);
+  }
+  return out.map(b => ({ id: b.id, body: b.body.join('\n').trim() }));
+}
+
+test('F1 every long form names a declared rule, once, and says something', () => {
+  const blocks = longForms(CANON);
+  const known = new Set(ROWS.map(r => r.id));
+  assert.ok(blocks.length >= LONG_FORM_FLOOR,
+    `only ${blocks.length} long form block(s) parsed, floor ${LONG_FORM_FLOOR}. A parse that stops ` +
+    'matching finds no dangling block and passes.');
+
+  const dangling = blocks.filter(b => !known.has(b.id)).map(b => b.id);
+  assert.deepEqual(dangling, [], `long form(s) for a rule no table declares: ${dangling.join(', ')}`);
+
+  const seen = new Map();
+  for (const b of blocks) seen.set(b.id, (seen.get(b.id) || 0) + 1);
+  const twice = [...seen].filter(([, n]) => n > 1).map(([id]) => id);
+  assert.deepEqual(twice, [], `a rule may have ONE long form: ${twice.join(', ')}`);
+
+  // A long form may be one sentence: `S-33`'s is the shortest at 31 characters and says the whole of
+  // what the row could not hold. The floor is only there to catch a heading with NOTHING under it.
+  const empty = blocks.filter(b => b.body.length < 25).map(b => b.id);
+  assert.deepEqual(empty, [], `long form block(s) with nothing in them: ${empty.join(', ')}. ` +
+    'An empty block is a rule whose argument was deleted rather than moved.');
+});
+
+test('F2 no rule cell outgrows one line', (t) => {
+  const over = CHECK_ROWS
+    .filter(r => r.rule.length > RULE_MAX_CHARS)
+    .map(r => `CANON.md:${r.line}  ${r.id} is ${r.rule.length} chars: ${r.rule.slice(0, 90)}...`);
+  const lens = CHECK_ROWS.map(r => r.rule.length).sort((a, b) => a - b);
+  t.diagnostic(`RULE CELL: ${CHECK_ROWS.length} rows, median ${lens[Math.floor(lens.length / 2)]}, ` +
+    `worst ${lens[lens.length - 1]}, ceiling ${RULE_MAX_CHARS}`);
+  assert.deepEqual(over, [], `${over.length} rule cell(s) past the ceiling. The row keeps the RULE ` +
+    'and the argument moves to a `### <id>` block in "The long form", where F1 will hold it to the ' +
+    'rule it belongs to. Do not delete it to fit.\n  ' + over.join('\n  '));
 });

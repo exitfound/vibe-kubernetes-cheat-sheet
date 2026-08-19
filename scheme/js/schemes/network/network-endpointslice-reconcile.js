@@ -1,4 +1,4 @@
-import { P, F, defineCard, BEAT, OPACITY } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS.md#network-endpointslice-reconcile
 
@@ -8,6 +8,15 @@ const SLICE_BOTTOM = 290;                   // bottom edge of the lowest endpoin
 const WRITE_PATH = [[600, CTLR_TOP], [600, SLICE_BOTTOM]];   // controller -> slice, straight up
 const SLICE_RIGHT = 790, KPROXY_LEFT = 840; // slice right edge, kube-proxy left edge
 const READ_PATH = [[SLICE_RIGHT, 222], [KPROXY_LEFT, 222]];  // slice -> kube-proxy, straight right
+
+// The write tags ride 14 BELOW their ball: at the default -14 they park inside the ep3 row the lane
+// ends on, over the address it prints. The 60 units under the slice (290 to CTLR_TOP) are clear.
+const UPD_TAG_DY = 14;
+// Riding BELOW the ball puts the tag inside the controller at the start, so it emerges from that
+// box after the ball has climbed clear of its top edge (200ms of the 700ms write).
+const ridingLabel = makeRidingLabel({ role: 'network', dy: UPD_TAG_DY, emergeMode: true });
+const tag = (p) => F.tag({ fn: ridingLabel, ...p });
+const UPD_EMERGE = 200;
 
 const POD_Y = 488, POD_W = 250, POD_H = 128;
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' };
@@ -61,8 +70,8 @@ const B_DROPPED = { podB: OPACITY.notready, podC: OPACITY.notready };
 const EMPTY = '(empty)';
 const EP1_READY = '10.244.1.5:8080 · ready';
 const EP2_READY = '10.244.2.7:8080 · ready';
-const EP2_DROPPED = '10.244.2.7 · dropped (notReady)';
-const EP3_NOTREADY = '10.244.3.9 · notReady';
+const EP2_DROPPED = '10.244.2.7:8080 · notReady';
+const EP3_NOTREADY = '10.244.3.9:8080 · notReady';
 
 export const STEPS_SPEC = [
   {
@@ -95,15 +104,19 @@ export const STEPS_SPEC = [
     chips: { ep1: EP1_READY, ep2: EP2_READY, ep3: EP3_NOTREADY },
     podSublabels: { podB: '10.244.2.7 · ready' },
     opacity: B_READY,
-    lit: ['ctlr', 'ep3'],
+    lit: ['ctlr'],
+    // One write fills all three rows, so the animated path holds the slice empty until it lands at
+    // 1500 and the rows take their values and their highlight there together.
+    rewind: { chips: { ep1: EMPTY, ep2: EMPTY, ep3: EMPTY } },
     // Both Ready endpoints are committed in this write and light together, so the tag names the
     // set it commits rather than a single address.
     flow: [
       F.pulse({ pod: 'podA' }),
       F.pulse({ pod: 'podB' }),
       F.segment({ from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, name: 'write' }),
-      F.tag({ text: 'ready endpoints', points: WRITE_PATH, delay: BEAT.afterPulse, easing: 'linear' }),
-      F.light({ targets: ['ep1', 'ep2'], at: 'write' }),
+      tag({ text: 'ready endpoints', points: WRITE_PATH, delay: BEAT.afterPulse, easing: 'linear', emerge: UPD_EMERGE }),
+      F.light({ targets: ['ep1', 'ep2', 'ep3'], at: 'write' }),
+      F.set({ at: 'write', chips: { ep1: EP1_READY, ep2: EP2_READY, ep3: EP3_NOTREADY } }),
     ],
   },
   {
@@ -122,7 +135,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'podB', dim: true, from: OPACITY.notready }),
       F.segment({ from: WRITE_PATH[0], to: WRITE_PATH[1], delay: BEAT.afterPulse, name: 'upd' }),
-      F.tag({ text: '10.244.2.7 · notReady', points: WRITE_PATH, delay: BEAT.afterPulse, easing: 'linear' }),
+      tag({ text: '10.244.2.7 · notReady', points: WRITE_PATH, delay: BEAT.afterPulse, easing: 'linear', emerge: UPD_EMERGE }),
       F.light({ targets: ['ep2'], at: 'upd' }),
     ],
   },

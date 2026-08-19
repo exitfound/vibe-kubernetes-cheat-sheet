@@ -13,8 +13,8 @@
 //
 // WHY THE ESCAPES HAVE TO BE READ AT ALL. `tune(el, refs)` and `raw.make(refs)` may write a ref,
 // and 10 cards do it: 33 assignments naming 27 distinct keys, which is what report section 4b
-// prints. A reader that ignored them would call every reset key naming one a typo: that was queue
-// Q1, twelve false findings, until 2026-08-14.
+// prints. A reader that ignored them would call every reset key naming one a typo: twelve false
+// findings.
 //
 // THE READER ONLY EVER WIDENS THE LEGAL SET, which is the safe direction for a regex over source
 // text: a pattern it misses costs a loud false finding, never a silent pass. It reads a LITERAL key
@@ -31,7 +31,7 @@
 // against, which is why `refUniverse` is here too and not three times over: see its own note.
 
 // A literal `refs.x =` or `refs['x'] =` assignment. The `(?!=)` keeps `refs.x ==` out.
-export const ESCAPE_ASSIGN = /\brefs\s*(?:\.\s*([A-Za-z_$][\w$]*)|\[\s*['"]([^'"]+)['"]\s*\])\s*=(?!=)/g;
+const ESCAPE_ASSIGN = /\brefs\s*(?:\.\s*([A-Za-z_$][\w$]*)|\[\s*['"]([^'"]+)['"]\s*\])\s*=(?!=)/g;
 
 // Every function ANYWHERE in an object, so a hook kind invented after this file was written is
 // still scanned. Depth 8 is the tree's own ceiling: groups nest, flow entries carry options.
@@ -53,6 +53,34 @@ export function escapeRefs(...objects) {
   const names = new Set();
   for (const obj of objects) for (const fn of collectFns(obj)) for (const k of assignedRefs(fn)) names.add(k);
   return names;
+}
+
+// ---------------------------------------------------------------------------------------------
+// THE `d` READER, and why it is here rather than twice.
+//
+// A `path` part carries its geometry as an SVG `d` string, and two readers had to turn one into
+// point runs: `unit/spec-scene.test.mjs` (DIAGONAL, THROUGH, OFFEDGE) and `fixtures/lane-traffic.mjs`
+// (A-02, A-05). They shared the regex and DISAGREED on everything around it, which is worse than a
+// copy because the two answers looked equally plausible:
+//   - a `d` opening with `L` and no `M` was a run to one and nothing to the other
+//   - one rejected the six curve/arc commands by name, the other rejected any character outside a
+//     literal set, which also threw out exponent notation
+//   - one returned null on nothing found, the other an empty array
+// One reader now, with the FORGIVING half of each disagreement, because a checker that drops a
+// segment stops seeing an obstacle: a leading `L` opens a run, and rejection is by COMMAND, so any
+// letter that is not M or L (a curve, an arc, a close, an exponent) takes the whole string out.
+// Returning an empty array is the one contract; a caller wanting null wraps it in one line.
+//
+// A path it refuses is unread LOUDLY rather than approximated: an approximated obstacle is worse
+// than a missing one, and no `d` in the catalog is anything but absolute M/L today.
+export function pathRuns(d) {
+  if (typeof d !== 'string' || /[A-KN-Za-kn-z]/.test(d)) return [];
+  const runs = [];
+  for (const m of d.matchAll(/([ML])\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/g)) {
+    if (m[1] === 'M' || !runs.length) runs.push([]);
+    runs[runs.length - 1].push([Number(m[2]), Number(m[3])]);
+  }
+  return runs.filter(r => r.length > 1);
 }
 
 // The part tree with groups flattened, in document order, which is z-order (scene-spec.js appends
@@ -141,8 +169,8 @@ export function delayOf(p, named, BEAT) {
   return d + (p.plus || 0);
 }
 
-// When the entry LANDS. pulse, set, light, run, tag and ripple land nothing, so runFlow leaves
-// their arrival at their delay and so does this.
+// When the entry LANDS. pulse, set, light, run, tag, ripple and flash land nothing, so runFlow
+// leaves their arrival at their delay and so does this.
 export function arrivalOf(verb, p, delay, { routeDur, REVEAL_MS }) {
   switch (verb) {
     case 'route':   return delay + (p.dur == null ? routeDur(p.points) : p.dur);

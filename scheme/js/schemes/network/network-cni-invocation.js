@@ -150,7 +150,7 @@ export const STEPS_SPEC = [
   {
     id: 'result',
     duration: 2400,
-    narration: 'The chain finishes and the plugin assembles a single CNI result. It carries everything that was produced, the IP, the routes and the DNS, and is handed back up to the runtime.',
+    narration: 'The chain finishes and the plugin assembles a single CNI result. It carries everything the chain produced, the IP, the routes and the DNS, collected into one structure.',
     chips: { ipChip: POD_IP, opChip: 'ADD' },
     podSublabels: { sandbox: 'netns: lo only' },
     lit: ['ipChip', 'opChip'],
@@ -165,7 +165,7 @@ export const STEPS_SPEC = [
   {
     id: 'write-eth0',
     duration: 2600,
-    narration: 'The veth end the plugin placed in the sandbox namespace now comes up as eth0, carrying 10.244.1.5. The Pod has its single network identity, and the runtime records the CNI result.',
+    narration: 'The veth end the plugin placed in the sandbox namespace now comes up as eth0, carrying 10.244.1.5. The Pod has its single network identity, and the CNI op finishes with ADD ok.',
     chips: { ipChip: POD_IP, opChip: 'ADD ok' },
     wires: { result: 'eth0 up' },
     podSublabels: { sandbox: 'eth0: 10.244.1.5' },

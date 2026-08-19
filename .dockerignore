@@ -2,6 +2,7 @@
 .github
 .claude
 .gitignore
+.dockerignore
 README.md
 LICENSE
 **/CLAUDE.md
@@ -11,6 +12,12 @@ LICENSE
 REFACTOR-PLAN.md
 CARD-REVIEW.md
 REVIEW-PLAN.md
+# Gitignored scratch that the blanket COPY . . would still bake in, and nginx has no dotfile deny:
+# without these the image serves /.playwright-mcp/console-*.log and every smoke screenshot. Pages
+# and the release zip are allowlists and were never affected, so the container is the only carrier.
+.playwright-mcp
+smoke-*.png
+*.log
 Dockerfile
 images/og-image.svg
 scheme/test

@@ -2,7 +2,7 @@ import { P, F, defineCard, laneY, midX, CLU, OPACITY } from './cluster-kit.js';
 
 // Design notes for this card: ./CARDS.md#cluster-delete-flow
 
-// Every row centred on CX and symmetric about it, cluster-apply-flow's grammar. Panel x<=397 on
+// Every row centred on CX and symmetric about it, cluster-object-create-path's grammar. Panel x<=397 on
 // every step, bottom 282 on gc-cascade. The occlusion that buys the centring is under TOP_Y.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
@@ -33,7 +33,7 @@ const T2_D = CX - (110 + M) - T2_W / 2;                  // 310
 const CM_CX = CX - T2_D, CM_X = CM_CX - T2_W / 2;        // 290, 170..410
 const GC_CX = CX + T2_D, GC_X = GC_CX - T2_W / 2;        // 910, 790..1030
 
-// The frame and its contents are cluster-apply-flow's to the unit. NODE_PAD applies to BOTH walls,
+// The frame and its contents are cluster-object-create-path's to the unit. NODE_PAD applies to BOTH walls,
 // so the insets are equal by construction rather than by hand.
 const NODE_X = 110, NODE_W = 980, NODE_Y = 440, NODE_H = 150;   // 110..1090, 440..590
 const NODE_PAD = M;                                      // 60, left and right alike

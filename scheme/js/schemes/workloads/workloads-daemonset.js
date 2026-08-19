@@ -43,7 +43,9 @@ const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
 const BUS_Y = NODE_Y - 24;                               // 460, clear of the chip column
 const TRUNK = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, BUS_Y]];
-const LANE = i => [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]];
+// Built ONCE per Pod: the drawn lane and every ball addressed to it read one array, so the two
+// cannot drift apart on a geometry edit.
+const LANES = [0, 1, 2, 3].map(i => [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]);
 
 const NODE_JOIN_DELAY = 200;                             // Node-4 fades in a beat before its Pod
 
@@ -64,7 +66,7 @@ export const SCENE = {
     P.chip({ key: 'focusChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'focus', value: 'selector: app=fluentd' }),
     // One drawn lane per Pod, sharing the trunk and the bus, so the four paths read as a single
     // wiring tree with four arrowheads. Lane 3 starts pinned out: Node-4 has not joined yet.
-    ...[0, 1, 2, 3].map(i => P.lane({ key: `lane${i}`, points: LANE(i), dim: true, dashed: true, role: 'cluster', opacity: i === 3 ? 0 : undefined })),
+    ...[0, 1, 2, 3].map(i => P.lane({ key: `lane${i}`, points: LANES[i], dim: true, dashed: true, role: 'cluster', opacity: i === 3 ? 0 : undefined })),
     P.packets(),
     // Everything below is appended AFTER the packet layer, so the ball runs under it.
     P.chain({
@@ -108,7 +110,7 @@ const row = (pods, lanes) => ({
 // One create per matching Node, each on its own tap, so every Pod that pulses has a ball that
 // reached it. Ranks are LITERALS: `routeDur` is length-based, tap-0 has the longest lane and ranks 3.
 const create = (i, rank) => [
-  F.route({ points: LANE(i), after: 'req', name: `create${i}` }),
+  F.route({ points: LANES[i], after: 'req', name: `create${i}` }),
   F.fade({ target: `pod${i + 1}`, from: 0, to: 1, dur: FADE.in, at: `create${i}`, fill: 'both', easing: 'ease-out' }),
   F.pulse({ pod: `pod${i + 1}`, at: `create${i}` }),
   F.set({ at: `create${i}`, chips: { currentChip: rank, readyChip: rank } }),
@@ -126,9 +128,7 @@ export const STEPS_SPEC = [
     id: 'place',
     duration: 3800,
     narration: 'The controller sees three matching Nodes and zero Pods, so it creates one Pod on each through the API and the local Kubelet starts it. A DaemonSet places exactly one Pod per Node, never a second, so the count follows the Nodes themselves rather than a fixed replica number you set.',
-    // The step starts from what it narrates, three matching Nodes and ZERO Pods, so both counts
-    // are 0 here and are raised one at a time as the creates land.
-    chips: { desiredChip: '3', currentChip: '0', readyChip: '0', focusChip: 'one Pod per matching node' },
+    chips: { desiredChip: '3', currentChip: '3', readyChip: '3', focusChip: 'one Pod per matching node' },
     wires: { req: 'create one Pod per matching node' },
     // Pin final opacities so a step change does not revert the Pods to the built 0.
     opacity: { ...row([1, 1, 1, 0], [1, 1, 1, 0]), node4El: 0 },
@@ -137,6 +137,9 @@ export const STEPS_SPEC = [
     // list can name: the static path has to say it with the inner boxes instead.
     reducedLit: ['pod1Box', 'pod2Box', 'pod3Box'],
     chain: 1,
+    // The step starts from what it narrates, three matching Nodes and ZERO Pods, and the creates
+    // raise both counts one at a time. The static block states where it ENDS (S-13).
+    rewind: { chips: { currentChip: '0', readyChip: '0' } },
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
       ...create(0, '3'),
@@ -160,15 +163,23 @@ export const STEPS_SPEC = [
     chain: 2,
     // The node joins FIRST, and the controller learns of it by watching Node objects, so it stays
     // dark until that event lands. Only then does the create go out.
-    rewind: { opacity: { node4El: 0, pod4: 0, lane3: 0 } },
+    rewind: {
+      opacity: { node4El: 0, pod4: 0, lane3: 0 },
+      // The counters start on the cluster this step INHERITS: three Nodes each running a Pod.
+      chips: { desiredChip: '3', currentChip: '3', readyChip: '3' },
+    },
     flow: [
       F.fade({ target: 'node4El', from: 0, to: 1, dur: FADE.in, delay: NODE_JOIN_DELAY, fill: 'both', easing: 'ease-out' }),
       F.fade({ target: 'lane3', from: 0, to: 1, dur: FADE.in, delay: NODE_JOIN_DELAY, fill: 'both', easing: 'ease-out' }),
       F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: NODE_JOIN_DELAY + FADE.in, name: 'watch', lights: ['daemonset'] }),
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, after: 'watch', name: 'req', lights: ['apiserver'] }),
-      F.route({ points: LANE(3), after: 'req', name: 'create' }),
+      F.route({ points: LANES[3], after: 'req', name: 'create' }),
       F.fade({ target: 'pod4', from: 0, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
       F.pulse({ pod: 'pod4', at: 'create' }),
+      // desiredNumberScheduled is recomputed from the WATCH, 2833ms before the Pod exists, and the
+      // two Pod counters follow the create, which is the split create() makes on the step above.
+      F.set({ at: 'watch', chips: { desiredChip: '4' } }),
+      F.set({ at: 'create', chips: { currentChip: '4', readyChip: '4' } }),
     ],
   },
   {
@@ -188,7 +199,7 @@ export const STEPS_SPEC = [
     rewind: { opacity: { pod1: 1 } },
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req' }),
-      F.route({ points: LANE(0), after: 'req', name: 'update' }),
+      F.route({ points: LANES[0], after: 'req', name: 'update' }),
       F.pulse({ pod: 'pod1', at: 'update' }),
       F.fade({ target: 'pod1', from: 1, to: OPACITY.notready, dur: FADE.out, at: 'update', fill: 'both', easing: 'ease-in' }),
     ],
@@ -208,7 +219,7 @@ export const STEPS_SPEC = [
     // as it leaves the cluster, and the lane into it goes with it.
     rewind: { opacity: { pod2: 1, node2El: 1, lane1: 1 } },
     flow: [
-      F.route({ points: LANE(1), name: 'del' }),
+      F.route({ points: LANES[1], name: 'del' }),
       F.pulse({ pod: 'pod2', at: 'del' }),
       F.fade({ target: 'pod2', from: 1, to: 0, dur: FADE.out, at: 'del', fill: 'both', easing: 'ease-in' }),
       F.fade({ target: 'node2El', from: 1, to: OPACITY.terminated, dur: FADE.out, at: 'del', fill: 'both', easing: 'ease-in' }),

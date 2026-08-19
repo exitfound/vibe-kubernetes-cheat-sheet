@@ -131,6 +131,17 @@ ONE width for all four chips, sized against the accessModes + ReadWriteOncePod p
 of which can shorten. Below ~190 the name and the value touch.
 ```
 
+### before `const DENY_LEAD = 450, MOUNT_LEAD = 520;`
+
+```
+These are TAG spacing, not pacing. Both refusals park at the driver top and all three RWX mounts land
+within 32 units of the disk top, so each tag has to fade before the next one lands. At the previous
+220 and 200 they printed on each other for 100ms and 400ms, at baseline gaps of 0.49 and 0.00. After:
+35 and 23 units of ink gap on all four viewports. The rwx-nfs duration follows to 4300 for a span of
+3900 (`M-19`). Separating them in SPACE was measured first and does not exist here, because the three
+arrivals share one point.
+```
+
 ### poster
 
 ```
@@ -193,6 +204,32 @@ clear of the panel measured on the family cards at (300, 163); on narrow windows
 its corner, the accepted family trade.
 ```
 
+### before `const READ_TAG_DY = 10;`
+
+```
+The spine ends on the Pod floor at 176, where -14 parks the tag on the `mounts /etc/config` sublabel:
+66.3 x 9.0 units of ink for 400ms, baseline gap 0.24. Below the ball only 10 and 12 clear all four
+viewports, and 10 is taken: at 12 the tag starts inside the volume frame and grazes the
+`Volume /etc/config` title by 1.0 unit at the sync step, where the ball waits 900ms before departing.
+```
+
+### before `const SYNC_TAG_DX = -20;`
+
+```
+Only the sync step writes the `clock` caption, anchored start at x 618, which took 15.2 units of the
+tag as it climbed past, for 100ms. The tag runs 66 to 69 units wide over the four viewports, so -20
+is what its widest half needs. The other steps on this lane leave the caption blank and stay centred.
+```
+
+### before `const SRC_TAG_DY = -36;`
+
+```
+The two source lanes run through the middle of 64 tall boxes, so at -14 the tag is cut by the
+ConfigMap or Secret side face for 600ms. -36 is the least that clears their tops on all four
+viewports. `app.conf` on the keys step cannot take the same number: `write v1` rides the neighbouring
+lane at the same height there, and the pair only parts at -58.
+```
+
 ### poster
 
 ```
@@ -223,7 +260,9 @@ MOTION   The writable layer does not exist until its step, so its copy-up wire d
          `ctr` group holds the shell and the Process box as PEERS, so pulsing the GROUP blinks both.
          DO NOT aim the pulse at the shell alone: it then cannot reach the Process box.
 NOTE     The writable layer is not on screen at build time, so the root-fs chip starts honest: only the
-         read-only image layers exist until the writable step adds the RW top.
+         read-only image layers exist until the writable step adds the RW top. The same holds on the
+         way out: the discard step throws the layer away, so the chip returns to the read-only value
+         and never claims an RW top the picture does not have.
 ```
 
 ### before `const POD_X = 440, POD_Y = 48, POD_W = 320, POD_H = 140;`
@@ -303,9 +342,10 @@ LANES    The run out to the cloud leaves the driver from the CENTRE of its botto
          that sharing is the point of the card. No ball rides it, so it carries NO arrowhead.
 NOTE     A frame is a label for a SET, not a thing traffic touches, so it stays fill-less with a
          sparser `3 6` dash and reads as subordinate to a real node. Its caption baseline leaves 12
-         units of air above the row inside; DO NOT shrink that 12 or the caption touches the box tops.
-         DO NOT give its border a flat white at 0.22, which sits outside the category tint: it takes
-         the catalog node-rect token (--diag-node-stroke), being the same kind of grouping element.
+         units of air above the row inside.
+DO NOT   shrink that 12 or the caption touches the box tops.
+DO NOT   give its border a flat white at 0.22, which sits outside the category tint: it takes the
+         catalog node-rect token (--diag-node-stroke), being the same kind of grouping element.
 NAMING   External-provisioner and Node-driver-registrar are one identifier each, not a phrase, so
          capitalizing every segment would read as three separate proper nouns (`T-11`).
 WIRE LABELS
@@ -322,8 +362,17 @@ DO NOT   Hang `CreateVolume` on the wire caption of the DRIVER to CLOUD line two
 NOTE     Three chained hops measure span 3122ms against a duration of 3600, so ~480ms of headroom.
          A route's flight time comes from its LENGTH, so moving a block here is silently a timing
          change: anything added has to be re-checked by `render/duration.test.mjs`.
-NOTE     Every chip means exactly what its name says. DO NOT let `bridge` report `registered` or
-         `touches fs`: neither is a bridge, both are node-plugin facts.
+NOTE     Every chip means exactly what its name says.
+DO NOT   let `bridge` report `registered`, `touches fs` or `gRPC NodePublish`: none of the three is
+         a bridge, all are node-plugin facts, and the last one also repeated the riding tag on the
+         step that draws it. On the fstoucher step the bridge fact is that there is no sidecar in
+         the mount path at all, so the value states that ABSENCE, `no sidecar in path`.
+DO NOT   write `Kubelet calls direct` there, true though it is (the registrar docs say Kubelet
+         issues NodeGetInfo, NodeStageVolume and NodePublishVolume against the driver itself). The
+         sentence beside it says Kubelet never mounts vendor storage itself, so a chip pairing
+         Kubelet with `direct` is read as Kubelet doing the mount, which is the one thing the step
+         denies. The name+value pair measures 165.3 against the 258 chip, so it is not a width
+         question either.
 NOTE     The last step is a static highlight only, with no motion at all. The usual argument for a
          flash on a packet-less step does not apply to the LAST step, which is supposed to come to
          rest: lighting the whole chain at once IS the summary, and it wants to be read.
@@ -334,6 +383,34 @@ NOTE     The last step is a static highlight only, with no motion at all. The us
 ```
 One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it and the canvas centre is
 construction rather than a typed 600. Changing M re-solves every tier.
+```
+
+### before `id: 'core',`
+
+```
+core, controller and bridge are the three mute steps of this card, 7100ms in which nothing travels
+and nothing animates. There is no Pod anywhere here, so nothing may pulse, and M-27 makes the static
+`.highlight` the whole of the beat: on this card a mute step is mute (M-01).
+
+core lights api. The sentence is about Kubernetes core knowing nothing about any vendor, and the
+apiserver is the only block on the card that IS core. The chips reporting its state are values and
+are lit rather than flashed (M-26), so the cue is the box going bright and staying bright.
+
+controller lights all four sidecars as ONE set, which is what its `lit` already names. The
+narration names each of the four and gives it its job, so the actor is the set rather than any
+member of it.
+WHY NOT the controller frame: it is a label for a set, drawn as a keyless P.group, so no ref
+reaches it at all.
+WHY NOT the provisioner alone: "follow one sidecar" is the NEXT step's opening line, and singling
+the provisioner out here spends that sentence a step early.
+WHY NOT drv: nothing calls the driver until translate, and this step does not light it.
+
+bridge lights seven blocks and adds nothing on top. The seven ARE the summary and it wants to be
+read, so a beat on the last step works against it, and there is no honest single target either:
+every block the sentence names was already the actor on an earlier step.
+DO NOT   Put F.flash back on core or controller. It animates filter brightness 1 to 1.55 to 1 on the
+block group, which M-04 calls a pulse and M-01 forbids on infrastructure, and no still frame can
+tell it from the static highlight it replaced, because its 600ms equals the whole span of the step.
 ```
 
 ### poster
@@ -367,12 +444,13 @@ LAYOUT   Two columns of EQUAL width sharing one centre: 2*M + 2*COL_W + G = 1200
          The chip strip is the one tier spanning the WHOLE content width rather than one column, so
          it reads as a rail under both.
 NOTE     The CSI controller lives in the LEFT column, because it is the one actor NOT on the node.
-         WHY NOT leave it inside the node column level with the cloud disk: that puts EVERY block in
-         the right half, content bbox 624..1140 centre 882, with the whole left half below the panel
-         blank apart from the ladder. Moving the one off-node actor to the off-node side puts a block
-         on each side and takes the low content to centre 592. CreateVolume pays for it with two
-         corners: it leaves the controller's right face, turns up at x=520 (right of the panel at
-         every viewport) and runs to the cloud disk's left face in the free band above the frame.
+WHY NOT  leave it inside the node column level with the cloud disk: that puts EVERY block in the
+         right half, content bbox 624..1140 centre 882, with the whole left half below the panel
+         blank apart from the ladder. Moving the one off-node actor to the off-node side puts a
+         block on each side and takes the low content to centre 592.
+NOTE     CreateVolume pays for it with two corners: it leaves the controller's right face, turns up
+         at x=520 (right of the panel at every viewport) and runs to the cloud disk's left face in
+         the free band above the frame.
 PANEL    Worst step, right / bottom by viewport:
            1920x1080 -> 203 / 146    1440x900 -> 319 / 183    1280x800 -> 358 / 213
            1100x800  -> 397 / 230     900x650 -> 398 / 375
@@ -401,8 +479,8 @@ SIZES    The widest ladder rung is 51 characters and renders ~338 units at the 6
          POD_W falls out of 2*POD_W + POD_GAP = IN_W. The widest string inside a Pod is `private bind
          mount`, 18 characters, which is 108.5 at the canon 10px mono rate (`L-20`, 6.03), so the
          width is set by the TIER MATHS and not by the text, with ~58.7 units of air either side.
-         The 99.7 this line used to carry is 5.54 per character, the pre-`fonts.ready` fallback the
-         BUDGET block below forbids measuring on.
+         DO NOT measure at 5.54 per character (99.7 for that string): it is the pre-`fonts.ready`
+         fallback the BUDGET block below forbids measuring on.
          CHIP_W is solved from the content width. Worst pair `bind mounts` 75.8 + `2 (Pod A + Pod B)`
          117.1 + 24 of inset = 216.9, so 41 units of air at the tightest step.
          The band caption's nearest obstacles are the two publish lanes, so the clear width is 258;
@@ -426,12 +504,13 @@ LANES    No lane carries return traffic, so none needs an offset twin: this card
          W_OWNS is ownership, not traffic: the node plugin performs both node calls, so it owns the
          staging mount below it. No ball rides it, so it is a bare dashed path, not a pathArrow.
 NOTE     A BLOCK AND ITS LANES ARE ONE CONSTRUCTION AND APPEAR TOGETHER (`STO.S-02`). Only the
-         standing topology is drawn from the first frame. DO NOT hide only the blocks and leave the
-         four lanes drawn from frame one: the card then opens on an arrowhead pointing into empty
-         canvas and two more pointing at Pods that do not exist, and it gives away the punchline (one
-         staged mount serves many Pods) three steps before the narration gets there. The device and
-         both its lanes finish materialising BEFORE the call is sent (REVEAL_MS 500 against
-         BEAT.lead 800).
+         standing topology is drawn from the first frame.
+DO NOT   hide only the blocks and leave the four lanes drawn from frame one: the card then opens on
+         an arrowhead pointing into empty canvas and two more pointing at Pods that do not exist,
+         and it gives away the punchline (one staged mount serves many Pods) three steps before the
+         narration gets there.
+NOTE     The device and both its lanes finish materialising BEFORE the call is sent (REVEAL_MS 500
+         against BEAT.lead 800).
 MOTION   A Pod arrives at FULL strength. DO NOT fade it in at 0.5 and ramp to 1, on the theory that a
          Pod with no volume yet has not started: Pod A then sits visibly greyed out for three steps
          next to blocks at full and looks broken rather than pending. A Pod that is not there yet is
@@ -477,8 +556,10 @@ to the backend is a call. Numbering the bars was rejected, it would make the pos
 WHAT     CSIStorageCapacity. With local or topology-constrained storage the scheduler can pick a node
          whose storage pool is already full. Provisioning then fails there, and because the Pod cannot
          bind until its volume does, it never schedules and stays Pending forever. CSIStorageCapacity
-         objects, published by the driver per topology segment, let the scheduler SEE the free capacity
-         and filter out the nodes that cannot fit the claim before it commits.
+         objects, one per topology segment, let the scheduler SEE the free capacity and filter out the
+         nodes that cannot fit the claim before it commits. No driver is drawn anywhere here and the
+         publish balls leave the POOLS, so DO NOT let a string name the driver as the publisher
+         (`T-21`): the objects report the free space, and who writes them is off this card.
 LAYOUT   Each frame HOLDS its capacity object and its pool, so the frames carry content instead of
          framing empty canvas. The scheduler and the pending Pod stack on the centre line above them,
          because there is one scheduler and one Pod and the whole question is which of the two
@@ -528,6 +609,16 @@ gap rather than typed.
 ```
 Three explicit durs, deliberately slower than routeDur would pick, so the decision beat reads: ball
 in, full Pod pulse, then the bind ball. Registered in `PACING`, `render/motion.test.mjs`.
+```
+
+### before `const PROV_TAG_DY = -40;`
+
+```
+Both numbers are absolute, against the family default of -14. At -14 the node frame top edge cuts the
+provisioning tags, and `provision ok` lands on the parked bind tag: 72.4 x 10.0 units of ink at a
+baseline gap of 0.00 for 300ms. At -40 the provisioning tags clear the frame and the pair gap is 12.6
+on all four viewports. `READ_TAG_DY` -38 is the same correction for the two reads, which ran into the
+Scheduler side edges for 500ms and now pass over its top.
 ```
 
 ### poster
@@ -591,6 +682,13 @@ DO NOT   Rebuild the class reference and the Bound link from hand-copied coordin
 MOTION   This card has no Pod at all, so NOTHING pulses or blinks. The packet-less first step is fully
          static by design and its read is carried by the .highlight outline alone: a box flash would be
          canon-legal there but is wrong, because the StorageClass is being READ, not acting.
+         Both values a ball EARNS wait for that ball (`P-03`). The `disk` chip holds the `none` the
+         provision step left and takes vol-0abc123 when the handle comes back up (`back`, 1500ms),
+         which is the arrival of the ball whose riding tag carries that same string. The `PV` chip and
+         the `backed by vol-0abc123` caption hold what createvolume left until the write lands in the
+         cylinder (`write`, 700ms), the beat that reveals the cylinder itself, so the caption never
+         describes a link that is not on screen yet. Both use the `rewind` form and leave `chipsCued`
+         and `wires` carrying the END value, so the static path lands exactly where it did before.
 NAMING   The backend sublabel names the CSI driver because the narration says CreateVolume is called ON
          the driver, and the driver has no box of its own: the ball lands here, so this box has to
          admit it is the driver plus the backend behind it, or the text names an actor the picture does
@@ -614,6 +712,24 @@ sized to their own values and do not have to be, because none of the four is any
 neediest pair is `disk` + `vol-0abc123`, 127 of the 240 it gets, while the WIDEST chip carries the
 shortest pair, `class` + `gp3` at 79 of 250. The widths are a rhythm across the strip, not a fit.
 Hand-placed x values had it spanning 90..1080, a centre of 585.
+```
+
+### before `const RETURN_TAG_DX = -30;`
+
+```
+The call tag parks on the backend top where the return tag leaves 100ms later, so the pair needs to
+be apart on x. At 101 and 69 units of ink and dx 0 the two printed as `voCr@ate1V2i5lume 5Gi` for
+200ms at a baseline gap of 0.00, and +-30 cleared that but put the call tag across the static
+`CreateVolume` wire over 58 units of x. Both are gone because the call tag is now three characters.
+NAMING   The riding tag says what the ball CARRIES, the wire says what the lane IS. `CreateVolume
+         5Gi` said both, and the wire beside it already said the verb, so the two printed the word
+         `CreateVolume` twice within 58 units of each other. The tag is `5Gi`, which is the size the
+         claim asked for and the one thing on that ball the wire does not name.
+NOTE     At 18 units of ink the call tag needs no offset at all: on its own lane it clears the wire,
+         which starts 22 right of that lane, by 13, and the return tag beside it by 16.4 at
+         1280x860. Only the return tag keeps an offset, which is why the constant is named for it.
+`PARAMS_TAG_DY` -6 keeps the params tag inside the class box instead of astride its bottom edge, and
+`PV_TAG_DX` -2 clears the provisioner edge.
 ```
 
 ### poster
@@ -694,6 +810,9 @@ PANEL    COL_CX is 620 rather than the node's own 600, and that 20 unit offset i
          lanes still drop on +/-160 either side of its own midpoint and stay a mirrored pair.
 LANES    Every lane is ONE straight vertical segment: the disk is wide enough (440..800) that all three
          contributor centres drop straight onto its top, no corners anywhere.
+NOTE     The `usage` chip reports what the Pod is USING and nothing else. On the request step, whose
+         sentence exists to separate the two, it says the request does not cap that usage: a value
+         reading `reserved by request` there makes the chip report the reservation instead.
 SIZES    The `rank` caption is the tightest thing on the card and it is placed by MEASUREMENT, not by
          eye. It is 227 units wide and 14.6 tall, right-aligned on the neighbour column so it ends on
          970 and clears the node edge at 990 by 20, and it sits in the only free band there is: the
@@ -712,9 +831,26 @@ NOT A DEFECT
          so the alternatives were a prose sweep over two whole cards into the passive voice, which
          throws the mechanism away, or drawing a Kubelet block, which is geometry. storage-hostpath is
          exempt on the same grounds. Do not file these again.
+MOTION   THE CLOSING STEP LEAVES BOTH NEIGHBOURS WHERE THE RANKING PUT THEM. `rankEvict` takes pod-b and
+         then pod-c, both to OPACITY.terminating, and `distinct` must name BOTH of them at that shade.
+         Naming only pod-b restores pod-c to 1: measured off the settled frames, `rankEvict` ends at
+         0.25 / 0.25 and `distinct` has to end there too, not at 0.25 / 1. No narration on the recap
+         brings either Pod back, and a Pod that returns unannounced reads as the eviction being undone.
 OPEN     The left third of the frame is empty for the same reason the node is centred. On a wide
          viewport, where the panel is short, it reads as empty rather than as reserved. Clamping the
          panel height in CSS is what would let this card put something there.
+OPEN     Four chip values still stand at step entry ahead of the ball that earns them, and the card names
+         them as the news of the step in `lit` (`sources` nodeChip, and usageChip / limitChip / nodeChip
+         on `podLimit`), which is `FORM-B` of `P-03` rather than the weaker A. Read one by one, THREE OF
+         THE FOUR MUST NOT MOVE. `sources` nodeChip is `filling`, and that step's own sentence says
+         kubelet adds the three up CONTINUOUSLY, so cueing it on the last ball would say the disk starts
+         filling when a ball lands. `podLimit` nodeChip is `below threshold`, a state of the NODE that
+         holds all through the step and is the contrast the DiskPressure step turns over. `podLimit`
+         usageChip is the SUM the three balls illustrate, the premise of the sentence rather than its
+         news. The one that genuinely reads early is `podLimit` limitChip: it says `1Gi exceeded,
+         evicted` from entry while the card animates the eviction it announces, the Pod fading at
+         `land` + 150. Cueing that one ALONE breaks `P-04` against its neighbour usageChip, which must
+         not move, so this stays open on the beat argument rather than on the cost.
 ```
 
 ### before `const COL_CX = 620;`
@@ -757,9 +893,25 @@ PANEL    Because the diagram is centred on the canvas, the Pod's left shell edge
          The divider between the halves starts under the Pod (POD_BOTTOM + 16) rather than at a typed
          206, so it can never poke into the Pod when the Pod moves. The three state chips are a single
          width on one pitch, centred on the canvas.
+MOTION   THE DELETED POD BLINKS BEFORE IT GOES (`M-08`). The pulse stands alone at 0 and the fade of the
+         Pod and its four lanes waits `BEAT.afterPulse`, so the blink is over before the shade moves and
+         the two do not read as one event, which is the ordering `storage-volume-detach-on-node-loss`
+         uses on `evict`. DO NOT fade the Pod at delay 0 with no pulse anywhere in the step, which
+         `render/opacity.test.mjs` ORDER cannot see: it skips a fade that carries no pulse at all. The
+         emptyDir keeps its 250 offset behind the POD FADE rather than behind step entry, so the mirror
+         with the reschedule holds on that beat. Measured span 1700 against a duration of 2800.
 MOTION   All three volumes are attached from the start of the remount step, so they light at entry.
          Then the two mount balls ride up their INNER lanes (volume to Pod) and the Pod pulses on
          arrival: the left mount carries nothing, the right mount carries the surviving row.
+         THE RESCHEDULE OPENS ON WHAT THE DELETE LEFT, emptyDir included. Its rewind restores the Pod,
+         the four lanes AND `ed` to the terminated shade. Leaving `ed` at the factory default of 1 opens
+         the frame on a full-strength emptyDir over a ghost Pod, and an emptyDir outliving its Pod is
+         the single claim this card exists to deny (`STO.S-02`). Measured at 350ms into the step: Pod
+         0.78 with its lanes, emptyDir 0.22, so the directory follows the Pod up instead of predating
+         it.
+NOTE     The directory comes back 250 after the Pod, the exact mirror of the delete step, where it was
+         wiped 250 AFTER the Pod went. A fresh emptyDir is made for the Pod on the node it lands on, so
+         the Pod leads in both directions.
 ```
 
 ### before `const SPINE_X = 600;`
@@ -768,6 +920,14 @@ MOTION   All three volumes are attached from the start of the remount step, so t
 The Pod straddles this spine and each volume hangs an equal distance either side of it, so the halves
 are a true mirror. The divider between them starts from POD_BOTTOM rather than a typed y, so it can
 never poke into the Pod when the Pod moves.
+```
+
+### before `const MOUNT_TAG_DY = 12;`
+
+```
+Both remounts end on the Pod floor, and at -14 each tag spends 100ms cut by it and 400ms inside the
+Pod. 12 below the ball is the ONLY offset that clears on all four viewports: at 14 and beyond the tag
+meets the emptyDir cap and the PVC top, which sit 100 units under the Pod.
 ```
 
 ### poster
@@ -789,6 +949,39 @@ WHAT     fsGroup and volume ownership. A volume mounts owned by root, so a conta
          decides whether kubelet walks the entire tree on every start (Always, the default) or checks
          only the top-level directory and skips the walk when it already matches (OnRootMismatch),
          which is what keeps a volume of millions of files from adding minutes to every Pod start.
+CONTENT  Two things this card asserted that are not true unqualified, both settled at
+         https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ .
+         1. OnRootMismatch WEIGHS TWO THINGS, not one. "OnRootMismatch: Only change permissions and
+            ownership if the permission and the ownership of root directory does not match with
+            expected permissions of the volume". The API type agrees, at v1.FSGroupChangeOnRootMismatch
+            ("only when permission and ownership of root directory does not match"). A tree whose root
+            carries the right GID and the wrong MODE still gets the whole walk. The aria-label was
+            already right, saying only "the top-level directory"; the last narration was the outlier
+            and now names the owner AND the permission bits.
+         2. KUBELET IS NOT ALWAYS THE ACTOR. FEATURE STATE Kubernetes v1.26 stable: "If you deploy a
+            Container Storage Interface (CSI) driver which supports the VOLUME_MOUNT_GROUP
+            NodeServiceCapability, the process of setting file ownership and permissions based on the
+            fsGroup specified in the securityContext will be performed by the CSI driver instead of
+            Kubernetes. In this case, since Kubernetes doesn't perform any ownership and permission
+            change, fsGroupChangePolicy does not take effect". That retires the whole second half of
+            the card wherever it applies, so it is a SCOPE limit rather than a wrong word, and it is
+            paid for in the three strings that stated the mechanism as universal and nowhere else: the
+            chown narration, which is where the actor claim is made and which precedes both policy
+            steps, the desc, which is read on the grid with no narration under it, and the aria-label,
+            which is the standalone summary of the drawn scene.
+            DO NOT also qualify the Kubelet box sublabel ("applies fsGroup before start") or the
+            fsgroup step ("Kubelet reads this before it ever starts the container"). Both survive the
+            exception: kubelet applies fsGroup either way, by chowning or by handing the GID to the
+            driver, which pkg/volume/csi/csi_client.go does as
+            mountVolume.VolumeMountGroup = strconv.FormatInt(*fsGroup, 10) on the mount access type.
+         3. ONCE IS PER MOUNT, NOT ONCE EVER. The chown step must NOT say the work is "done once at
+            mount time" while the Always step says the default "walks and re-checks the entire tree on
+            every single Pod start" and the desc says "The default walks the whole tree every start".
+            Both cannot be the reader's takeaway, and the chown step is the outlier: it is where the
+            mechanism is taught, three steps before the policy. It reads "done once per mount", which
+            keeps the contrast the clause is written for (paid at mount, not per write), drops the
+            false absolute, and is 4 characters SHORTER than it, which is the direction the PANEL
+            budget wants. The `writes` step is scoped correctly, at "paid for once at startup".
 LAYOUT   ONE spine, nothing beside it, in storage stack grammar: Pod app-0 over kubelet over the
          volume tree over the disk the tree lives on.
          WHY NOT put the disk and the tree SIDE BY SIDE on a shelf: that one choice causes most of
@@ -800,29 +993,35 @@ LAYOUT   ONE spine, nothing beside it, in storage stack grammar: Pod app-0 over 
          (a field OF the Pod, not a peer of it) and what buys back the room the listing needs.
          Tier heights and gaps are declared once, summed, and the leftover split evenly, so the card
          centres by moving one number.
-PANEL    Worst right / bottom across all 7 steps:
-           1920x1080 -> 203 / 146    1440x900 -> 319 / 183    1280x800 -> 358 / 213
-           1100x800  -> 397 / 205     900x650 -> 398 / 375
-         Reserved rectangle x<=398 AND y<=375. The narrowest block on the spine is the Pod at 226
+PANEL    Worst right / bottom across all 7 steps, the worst step being the chown:
+           1920x1080 -> 203 / 177    1600x1000 -> 291 / 195    1440x900 -> 319 / 222
+           1280x860  -> 378 / 235    1280x800  -> 358 / 259    1100x800 -> 397 / 280
+           900x650   -> 386 / 495
+         Reserved rectangle x<=397 AND y<=495. The narrowest block on the spine is the Pod at 226
          wide (left edge 487) and the widest the tree at 340 (left edge 430), so the x condition
          alone keeps every block out of the panel at any height and the stack is free to be centred
-         vertically. A longer narration invalidates these.
+         vertically. The ONE thing that reaches left of the panel edge is the chip strip, whose first
+         chip starts at x=134, and it sits at y=582: the 495 at 900x650 clears it by 87 units, which is
+         the whole remaining budget on this card. A longer narration invalidates these.
+         The chown narration is the deepest by a wide margin because it carries the VOLUME_MOUNT_GROUP
+         scope limit (CONTENT 2 above): at 1100x800 it costs 75 units against the next deepest step.
 NOTE     The container and securityContext share the Pod's inset, so their edges line up and read as
          two fields of one object. pod() puts its own label baseline at y+16, so the first row starts
          at 26 to clear it. The Pod carries NO sublabel of its own: runAsUser belongs to the
          container row, which is the thing actually running as that user.
-NOTE     THE VOLUME TREE IS THE LOAD-BEARING ELEMENT. WHY NOT five blank rectangles with a ball swept
-         across them: the one thing that actually happens during a chown, the ownership CHANGING, is
-         then nowhere on screen and the sweep reads as decoration.
-         Row 0 is the TOP-LEVEL DIRECTORY, and that is not cosmetic: OnRootMismatch is defined in
+NOTE     THE VOLUME TREE IS THE LOAD-BEARING ELEMENT.
+WHY NOT  five blank rectangles with a ball swept across them: the one thing that actually happens
+         during a chown, the ownership CHANGING, is then nowhere on screen and the sweep reads as
+         decoration.
+NOTE     Row 0 is the TOP-LEVEL DIRECTORY, and that is not cosmetic: OnRootMismatch is defined in
          terms of exactly that directory, so a labelled row is what lets the last step SHOW the rule
          instead of asserting it. Row 2 stands in for the rest of the tree, which is what makes the
-         "minutes per start" claim on the Always step something the reader can see.
-         A row is a `P.chip`, the same part kind as the strip along the bottom, because a row is also
-         a name with a value against it: that brings the chip weight and colour, and it brings
-         .highlight, which is how a row shows it has been visited. DO NOT hand-roll rows out of a
-         scheme-box-rect at 3% inside a group at 0.75: that reads as grey furniture sitting BEHIND
-         the tree rather than as content on it.
+         "minutes per start" claim on the Always step something the reader can see. A row is a
+         `P.chip`, the same part kind as the strip along the bottom, because a row is also a name
+         with a value against it: that brings the chip weight and colour, and it brings .highlight,
+         which is how a row shows it has been visited.
+DO NOT   hand-roll rows out of a scheme-box-rect at 3% inside a group at 0.75: that reads as grey
+         furniture sitting BEHIND the tree rather than as content on it.
 BUDGET   The gap between the name column and the owner column is where the walk lane runs, so it is
          sized off the longest string on each side:
            name  `... 4.2M more`  13 ch = 89, from local 12  -> ends local 101
@@ -850,6 +1049,11 @@ MOTION   The walk deliberately LEAVES the PKT_SPEED canon, because a walk is WOR
          and the finished frame shows how far kubelet got, which is what makes the last two steps
          comparable at a glance. Rows are readouts, not actors, so it is a static highlight, never a
          blink.
+         The `owner` chip SUMMARISES that walk, so it waits for it (`P-03`). It holds the root:root
+         the fsgroup step left and turns over when the ball reaches the last entry (`walk`, 2271ms),
+         behind the three rows flipping at 1094, 1594 and 2094. Stated at t=0 it announced the outcome
+         of a walk the reader then watches happen, against a listing the walk had just reset to
+         root:root. `rewind` carries the roll-back, `chipsCued` keeps the end value.
 NOTE     Every step writes EVERY row, so no row can be left displaying an ownership the current step
          has moved past. The state is whole-tree, because the tree is only ever entirely before the
          chown or entirely after it.
@@ -858,9 +1062,9 @@ DO NOT   Let `walkMarks` alone carry the rows. It rides `F.run`, which is the AN
          runs on BOTH paths; `walkMarks` then winds that state back and re-marks row by row as the
          ball crosses. Drop the `enter` and the static path shows an unvisited listing on the one
          card whose subject is the walk.
-NOTE     DO NOT fire a ball with no pulse, or the one block the packet came out of is the only inert
-         thing on the step.
-         The volume is lit FROM ENTRY on the two policy steps, because there it is the SOURCE: every
+DO NOT   fire a ball with no pulse, or the one block the packet came out of is the only inert thing
+         on the step.
+NOTE     The volume is lit FROM ENTRY on the two policy steps, because there it is the SOURCE: every
          entry the scan re-checks is an inode read off this disk, which is where the narrated cost
          comes from, and on the OnRootMismatch step the ownership it trusts is the ownership sitting
          on that disk from the last start. Without it the rule looks like kubelet guessing.
@@ -887,6 +1091,26 @@ rather than on its own numbers.
 ```
 The family EXCEPTION: fsGroupChangePolicy + `Always (default)` measures 265, so 232 would collide and
 300 clears it by 35.
+```
+
+### before `const WRITE_TAG_DX = 26;`
+
+```
+Both write tags ride the W_WRITE elbow, whose ends sit on the Pod and the tree side faces, so a
+centred tag is cut for 600ms. The clear band starts at 20 for `EACCES` and at 26 for `write ok` over
+the four viewports, and ONE number is taken for both, since two tags on one lane with different
+offsets read as a slip.
+NOTE     The fsgroup step carries NO riding tag, and that is the resolution of a finding, not an
+         omission. `fsGroup: 2000` on that ball printed the securityContext sublabel a second time
+         over itself, 81.8 x 7.8 of ink for 300ms at a baseline gap of 2.22, and it is not a
+         geometry question: the two strings share the centre line, the corridor between the Pod
+         floor (152) and Kubelet (192) is 40 units against a ball that travels all 40 and a tag ink
+         box 10 tall, and no dy exists that clears both ends.
+WHY NOT  Rewording it. Every candidate restates something already drawn: the field itself is the
+         secBox sublabel it launches from, and what Kubelet does with it is the Kubelet sublabel it
+         is flying at (`applies fsGroup before start`). With no honest string the tag is not
+         information, and the ball on a lit `securityContext` box reads the step on its own, the way
+         the untagged watch route does on `storage-volumeattachment`.
 ```
 
 ### poster
@@ -950,6 +1174,10 @@ MOTION   The owner step carries no packet and no Pod pulse, and the canon would 
          claim comes up to full on its arrival.
          The claim defaults to OPACITY.pending rather than to 0: it is the middle block of a
          three-block row, and cutting it out leaves a hole in that row rather than an absence.
+MOTION   THE DELETED POD BLINKS BEFORE IT GOES (`M-08`). On gc the pulse stands alone at 0 and the Pod
+         fade waits `BEAT.afterPulse`, so the blink is over before the shade moves, and the cascade
+         leaves at `GC_SEND` 1600, a `BEAT.afterHop` after the Pod has finished going rather than while
+         it is still fading. Measured span 3800 against a duration of 4200, so the beat costs nothing.
 BUDGET   Family CHIP_W 232: worst case is `backing` + `mounted at /scratch` at 26 characters, so
          26 * 6.89 + 24 of padding is 203 against the 232 available.
 ```
@@ -1162,8 +1390,8 @@ LAYOUT   FOUR tiers, one per object in the chain: the claimants, the decider, th
          node row 30 units of air while the three lower tiers were packed at 52.
 NOTE     CONTENT_W puts CONTENT_CX exactly on 600, and that exactness matters because the chip strip
          at 976 units is far wider than the diagram above it and is therefore the tier that sets the
-         visual centre: on 600 it spans 112..1088, so the margins agree at 112. DO NOT widen
-         CONTENT_W, or the strip slides right while every other tier still looks internally
+         visual centre: on 600 it spans 112..1088, so the margins agree at 112.
+DO NOT   widen CONTENT_W, or the strip slides right while every other tier still looks internally
          symmetric, which is the failure mode that shipped in the sibling cards.
 PANEL    Worst step, right / bottom by viewport:
            1920x1080 -> 203 / 130    1440x900 -> 319 / 163    1280x800 -> 358 / 189
@@ -1236,12 +1464,39 @@ MOTION   THE REFUSAL is the idiom shared with storage-access-modes: a ball trave
          anything at all. DO NOT use the sanctioned packet-less block flash on va-1, because a
          blinking attachment reads as activity. The closing step also comes to rest, no packet, no
          pulse, no flash: the reader is meant to sit and read it.
+MOTION   THE CHIP BEATS (`P-03`), measured with a real-time probe rather than a frozen one, because a
+         deferred `F.set` rides an `onfinish` and a paused animation never fires one. On `detach` the
+         two chips read what `wait` left (`Node-1` / `old Pod running`) until the detach ball reaches
+         the disk at 2300, and va-1's own state line turns to `deleted` on the earlier delete arrival
+         at 1500: the object is removed then, the volume only belongs to nobody once the detach lands.
+         On `attach` there are three beats, 1500 / 2300 / 2400: the write creates va-2 (`Node-2,
+         attached: false`), the attach makes the field true and the `attached to` chip read Node-2, and
+         the Pod chip and the Pod state line both reach `Running` on the blink, together (`P-04`).
+         `attached: false` is not an invented state: it is the same two-beat vocabulary
+         `storage-volumeattachment` is built on, and without it the box read `attached: true` for the
+         800ms between the write landing and the attach landing.
+WHY NOT  Turning `blocked by` over on the delete arrival (1500) instead of the detach (2300): the chip
+         answers what blocks the NEW Pod, and what blocks it is the volume being held, not the object
+         existing. Both chips therefore ride one arrival and stay on one beat.
+MOTION   THE HAND FROM OUTSIDE LANDS ON THE POD FIRST, and two constraints below ride on that order. The old Pod blinks at 0, fades over `FADE.out` from `BEAT.afterPulse`, and its state
+         line turns to `deleted` on that same beat, so the va-1 delete ball (`BEAT.lead`, the same 800)
+         leaves as the deletion that causes it happens. Measured composite alpha on the animated path:
+         1.0 at 800, 0.90 at 1000, 0.65 at 1200, 0.12 from 1500, va-1 and its two lanes following at
+         2300..3000. THE BLINK COMES FIRST AND THE FADE FOLLOWS IT (`M-08`): a Pod that fades with NO
+         pulse anywhere in the step is invisible to `render/opacity.test.mjs` ORDER, which skips a fade
+         that carries no pulse. `deleted` must not stand from step entry over a Pod at full strength.
+         What carries this is the ORDER and not the timing: the delete and detach arrivals are 1500 and
+         2300 and the span is 3001 against a duration of 3400.
+         The blink is the right cue here even though the deletion comes from outside the card: the Pod
+         is what the hand acts ON, which is the same reading `cluster-node-drain` and
+         `workloads-force-deletion` take for an evicted and a force-deleted Pod.
 NOTE     va-1 gives its highlight up once it has finished fading: a deleted object must not wear the
          border that means "acting right now" (unlightAt).
-NOTE     The new Pod has NO dim `booting` state. DO NOT sit it at 0.55 and pulse it through
-         pulsePodDim, which stacks an opacity swing on the standard blink and reads as a faster,
-         busier pulse at the identical 900ms. The OLD Pod stays at FULL through step 4: the entire
-         problem is that it is still very much alive and still holding the attachment.
+NOTE     The new Pod has NO dim `booting` state.
+DO NOT   sit it at 0.55 and pulse it through pulsePodDim, which stacks an opacity swing on the
+         standard blink and reads as a faster, busier pulse at the identical 900ms. The OLD Pod
+         stays at FULL through step 4: the entire problem is that it is still very much alive and
+         still holding the attachment.
 NOTE     node-2 is ABSENT at rest, not empty. An empty frame from the first frame says the second
          node is already part of the picture and merely unused, the opposite of the setup. The
          request lane is likewise OFF until the step that rides it: a lane appears when it first
@@ -1272,6 +1527,15 @@ free. The two upper tiers obey it, the VolumeAttachment row at y=359 does not ha
 Heights and gaps are declared once, summed, and the leftover split evenly, so the whole card
 re-centres by changing one number. Typing each tier y is what left the node row 30 units of air
 while the three lower tiers were packed at 52.
+```
+
+### before `const WRITE_TAG_DX = 32;`
+
+```
+The write leaves the controller right face, so a centred tag straddles that edge for 500ms. There is
+no clear dy in +-80 on three of the four viewports, so the fix is on x: +32 is the least that clears
+all four, where +30 clears 1600x1000 alone.
+OPEN: `delete va-1`, the mirror on the detach step, needs -36 and stays where it is.
 ```
 
 ### poster
@@ -1335,6 +1599,12 @@ PANEL    This card's panel bottoms out at y=181 (measured over 1600/1280/1100). 
          y=264, well clear. The metadata corridor at y=232 is what those 181 units pin: it cannot rise.
          A longer narration invalidates this.
 MOTION   Only the Pod pulses: it is the source of downwardAPI metadata and the reader of the token.
+NOTE     The directory draws ONE downwardAPI row, `labels`, so the narration, the source sublabel and
+         the riding tag all say labels and stop there. Listing four kinds of Pod metadata as what is
+         projected, while one file is drawn, gave that step three different inventories at once.
+NOTE     Each chip reports the token that is DRAWN, the projected one. The `expiry` chip therefore
+         says that token expires even on the closing comparison step, and the legacy token that never
+         expired is left to the narration, where the contrast belongs.
 NOT A DEFECT
          The projected directory is an ENCLOSURE, not a receiver, and this stays open in the tool on
          purpose. `report/arrival.test.mjs` R3 reports the block as lit at step entry while four balls
@@ -1343,8 +1613,9 @@ NOT A DEFECT
          dimming the enclosing frame until the first ball lands would draw a directory that does not
          exist yet on the step whose whole subject is four sources feeding one directory that does.
          The rule cannot tell an enclosure from a destination, and a card-level exception list would
-         hide the real ones, so the finding is left reported. The downward step on this same card WAS a
-         real finding and was fixed: there downwardAPI is a genuine mid-chain receiver.
+         hide the real ones, so the finding is left reported. The downward step on this same card is
+         the opposite case and R3 binds there: `srcDown` lights `at: 'meta'`, on the arrival, because
+         downwardAPI is a genuine mid-chain receiver.
 ```
 
 ### before `const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;`
@@ -1353,6 +1624,14 @@ NOT A DEFECT
 The Pod sits over the DIRECTORY column only. Running it flush over both columns puts the source
 column under it, as though the ConfigMap and the Secret lived inside the Pod, and drags the content
 bbox to 650.
+```
+
+### before `const READ_TAG_DY = 14;`
+
+```
+The read lane ends on the Pod floor, where -14 puts the tag under the shell edge, 100ms of cut and
+400ms inside the Pod. Below the ball only 12 and 14 clear all four viewports, and 14 is taken so the
+ball does not print on the top of the line.
 ```
 
 ### poster
@@ -1395,24 +1674,45 @@ LAYOUT   ONE pitch governs the card: the phase box width plus the gap each forwa
          reads as concentric with the wider row beneath it.
 PANEL    A centred four-phase row cannot dodge the panel HORIZONTALLY, because staying centred on 600
          is the whole point and its leftmost box lands at 182, deep inside the panel column. So the
-         row dodges it VERTICALLY, sitting below the panel entirely. WHY NOT keep the row at y=250
-         inside the panel band and pay horizontally: all four boxes then shove right to x>=420, which
-         puts the row centre at 780 against a canvas centre of 600 and leaves a 420 unit left margin
-         against a 60 unit right one. Dropping the row under the panel buys back the full width and
+         row dodges it VERTICALLY, sitting below the panel over every sampled viewport. WHY NOT keep
+         the row at y=250 inside the panel band and pay horizontally: all four boxes then shove right
+         to x>=420, which puts the row centre at 780 against a canvas centre of 600 and leaves a 420
+         unit left margin against a 60 unit right one. Dropping the row under the panel buys back the full width and
          costs only vertical room, which this card has to spare because it carries no disk shelf.
-         MEASURED across widths 1920 down to 900: right edge peaks at 399, bottom at 201, both at the
-         narrow end. The right edge is driven by the VIEWPORT, not the text, so 399 at 900px is a
-         property of every card in the catalog; the house value of x>=400 clears it by a single unit.
-         The BOTTOM is driven by the text, so 201 is this card's own number and lengthening any
-         narration invalidates it. So the card splits the difference: the actors live in the top band
-         held to x>=400, and everything reaching left of 400 (the phase row and the dog-leg feeding
-         it) is kept BELOW 201, where the panel cannot reach at any width.
+         MEASURED across widths 1920 down to 900. Worst step (reclaim-delete, 344 characters), right
+         / bottom by viewport:
+           1920x1080 -> 203 / 146    1440x900 -> 319 / 183    1280x800 -> 358 / 213
+           1100x800  -> 397 / 255     900x650 -> 398 / 406
+         The right edge is driven by the VIEWPORT, not the text, so the 398.29 at 900 wide is a
+         property of every card in the catalog, and the house value of x>=400 clears it by 1.7 units.
+         The BOTTOM is driven by the text, so it is this card's own number and lengthening any
+         narration invalidates it. DO NOT quote 201 for it: that figure reproduces at no width and on
+         no step, and the two measurements nearest it are 212.67 on reclaim-delete at 1280x800 and
+         204.97 on recover at 1100x800. So the card splits the
+         difference: the actors live in the top band held to x>=400, and everything reaching left of
+         400 (the phase row and the dog-leg feeding it) is kept as low as the card can put it, which
+         is low enough over the sampled viewports and not low enough at 900x650, see the OPEN below.
          Both the bind dog-leg and the backward arc turn in ONE corridor at TRANSIT_Y, the exact
          midpoint of the gap it crosses, so the horizontal run sits centred in its band rather than
-         hugging the row. It also has to clear the measured panel bottom of 201, because both runs
-         reach left of 400, and at 214 it does that by 13. Those two constraints very nearly collide,
-         which is what sets the height of everything above: the actor band cannot go lower and the row
+         hugging the row. It also has to clear the panel, because both runs reach left of 400, and
+         the number that binds is the panel on the STEPS THAT DRAW THEM rather than the card worst:
+         the dog-leg is on stage on bind alone (deepest sampled 166.30, at 1280x800) and the arc on
+         recover alone (deepest sampled 204.97, at 1100x800), so at 214 the corridor clears by 9.0.
+         Those two constraints very nearly collide, which
+         is what sets the height of everything above: the actor band cannot go lower and the row
          cannot go higher without pushing the corridor into the panel.
+OPEN     TWO STANDARDS, AND THEY DISAGREE. Over the three viewports the harness samples
+         (`report/geometry-soft.test.mjs` OCCLUDED, `report/overlay.test.mjs`) the deepest this panel
+         goes is 254.66, which the phase row at y=300 clears by 45.3 and which the corridor at 214
+         clears on both of the steps that draw it, so nothing reports. The 900x650 hand row is
+         stricter by 151 units: there the panel reaches 405.51 on reclaim-delete and the Available
+         box, measured ink x 182..346 over y 300..372, is ENTIRELY behind it. The same box is 61
+         percent covered on retain-parked (343.94), 18 percent on reclaim-failed and on recover
+         (313.16), and clear by 17.6 on the other three steps. The corridor is buried on both of its
+         own steps too, by 68.4 on bind and 99.2 on recover. Nothing can be moved to close it: the
+         row cannot drop, because the event labels sit at 392, the admin actor at 440..508 and the
+         chip strip at 548..582, and it cannot shift right without giving up the centre on 600 the
+         whole card is composed around, which the WHY NOT above prices at a 420 unit left margin.
 LANES    Actors that DRIVE transitions sit above the row, and the one actor driving the single
          backward edge sits below it. Each transition is a real event, so it is a lane that CARRIES a
          ball when it fires.
@@ -1441,9 +1741,9 @@ DO NOT   Give a box up its highlight part way through a step, and note there is 
 NOTE     No block blink anywhere, unlike the sibling cards. The sanctioned blink exists so a step with
          no packet and no Pod does not read frozen, and this card has no such step: idle is the static
          poster and all six narrated steps carry at least one ball.
-NOTE     The claim is DELETED on its step, so it ends at zero rather than as a ghost. DO NOT settle
-         it at a dim 0.45 and leave it on canvas for the rest of the card: it then reads as an object
-         that is still somehow around and pulls the eye away from the row.
+NOTE     The claim is DELETED on its step, so it ends at zero rather than as a ghost.
+DO NOT   settle it at a dim 0.45 and leave it on canvas for the rest of the card: it then reads as
+         an object that is still somehow around and pulls the eye away from the row.
 WIRE LABELS
          The verdict reports an outcome that moves the volume NOWHERE, exactly the case the row lanes
          cannot express: a successful Delete and a Retain that declines to act. It centres on
@@ -1451,6 +1751,24 @@ WIRE LABELS
          The backward edge gets its own name, centred under its own horizontal run. DO NOT park it in
          the Available-to-Bound gap: that puts the caption for a right-to-left event on the one lane
          that runs left to right.
+         THE COUNTERFACTUAL CAPTION (`T-35`). The three reclaim steps are branches of ONE moment, the
+         controller reading the policy on a Released volume, and they play in sequence, so the PV object
+         is removed on reclaim-delete and exists again one step later. THREE captions, one per branch,
+         each naming the condition that selects it (`if the policy is Delete`, `if instead the backend
+         rejects it`, `if instead the policy is Retain`). A fan of alternatives needs every arm marked:
+         marking the second and third only leaves the first reading as the story rather than as one of
+         three, which is the defect this rule is about.
+         It sits in the empty band above the phase row, ending 22 left of the reclaim lane, so the line
+         stops at the lane the ball comes down. Anchored `end` for that reason rather than centred: the
+         lane owns x=712 and a centred caption would have the dashes run through the glyphs.
+         MEASURED IN THE BROWSER, worst string `if instead the backend rejects it` at 227.4 / 207.8 /
+         202.5 units over 1600x1000 / 1280x860 / 1100x800, and 200.7 at 900x650. The widest is the
+         WIDEST viewport, not the narrowest, so a caption measured at 900x650 alone under-reads by 13
+         percent. Nearest neighbour is the reclaim lane at 22 units, then the row top 32.3 below the
+         ink. The panel never reaches it: the worst horizontal clearance is 91.0 units, on reclaim-failed
+         at both 1100x800 and 900x650. At 1100x800 on reclaim-delete the caption SHARES a band with the
+         panel bottom (ink 252.96..267.68 against a bottom of 254.66) and is kept clear by x alone,
+         which holds because this card's panel right edge is driven by the viewport and not by the text.
 ```
 
 ### before `const PITCH = 224;`
@@ -1517,8 +1835,9 @@ NOTE     A disk is a cylinder plus its spec line, wrapped in a g so dimming a re
 DO NOT   Leave appBox out of `reset.keys`. A highlight set during a reduced replay leaks forward,
          because replay never runs the motion path that would re-clear it. The disk OPACITIES and the
          two late-appearing elements are a different mechanism and must not be moved here: `reset`
-         takes back CLASSES, not inline styles, so those four are pinned on EVERY step through the
-         `opacity` field instead (`STO.S-01`).
+         takes back CLASSES, not inline styles, so those SIX are pinned on EVERY step through the
+         `opacity` field instead (`STO.S-01`). Two lane keys are pinned the same way: a branch whose
+         far end is a ghost dims with it, or the arrowhead lands at full strength on nothing.
 MOTION   The opening step is deliberately motionless and must STAY that way. The claim is a statement of
          need, nothing acts: the Pod does not pulse (it is the subject being blocked, not an actor) and
          the PVC takes a static .highlight only. A block flash would be canon-legal there (packet-less
@@ -1540,6 +1859,11 @@ CONTENT  The `binding` chip turns over on the probe arrival, not at t=0. It name
          (`setChip`) for the turnover, so the highlight
          fires on the verdict rather than on the reset. The three wire verdicts already turn over on
          their own probe arrivals.
+         The `bind` step is the same repair on three chips at once, and each waits for a DIFFERENT
+         ball (`P-04`): the claim turns Bound when the volumeName write reaches it (`toClaim`, 700ms),
+         and the volume plus the `binding` pair turn over on the claimRef arrival (`toVolume`,
+         1933ms), which is the moment the pairing exists on both objects. All three were stated at
+         t=0, up to 1.9s before the write that earns them.
 ```
 
 ### before `const CX = 600;`
@@ -1548,6 +1872,16 @@ CONTENT  The `binding` chip turns over on the probe arrival, not at t=0. It name
 The identity column Pod -> PVC -> PV shares this one line, because binding is what fuses the three
 into one chain. It is the only vertical the tops of the Pod and the centre cylinder touch, so a
 second line beside it turns the centre into a crowded pair.
+```
+
+### before `const WATCH_TAG_DY = -28;`
+
+```
+The watch lane runs between the claim and the controller at their shared mid height, so a centred tag
+is cut by one box face or the other for the whole 800ms flight. -28 is the least that clears both
+tops on all four viewports.
+OPEN: `volumeName: x73a` on the bind step is the same geometry one lane lower and needs -38, which is
+past the offset ceiling that keeps a tag reading as its own ball's address.
 ```
 
 ### poster
@@ -1758,6 +2092,15 @@ DO NOT   Strip `unlight` from the card's `removeAt` on the grounds that nothing 
          the ball lands, the Pod BLINKS to acknowledge, and only once that blink has landed does it
          start to go. DO NOT fade straight from arrival: that skips the acknowledgement, and the Pod
          dimming under an arriving ball reads as the ball erasing it.
+MOTION   THE CONSUMER COUNT is bound to the Pod's fade COMPLETION (2113), not to the delete arrival
+         (813) and not to step entry (`P-03`). Measured on the animated path: at 2033 the Pod still
+         stands at 0.34 and the chip still reads 1 Pod, and both reach their end together. The claim
+         loses its last consumer when the Pod has actually gone, so a chip reading 0 Pods over a Pod at
+         full or half strength is the one frame this step must not have.
+WHY NOT  Binding it to the delete arrival at 813, which is where the tag and the pulse already are: the
+         Pod is alive for the whole 1300ms that follows, mount and all, and the mount lane only leaves
+         at 2113 with it. The count would then contradict the picture beside it for longer than it
+         agreed with it.
 NAMING   The lowercase pvc-protection in the finalizers chip and the narration is not a lapse from the
          capitalized block labels: it is the literal finalizer string kubernetes.io/pvc-protection,
          spelled as the API spells it.
@@ -1768,6 +2111,25 @@ NAMING   The lowercase pvc-protection in the finalizers chip and the narration i
 ```
 The identity spine, and TIER is the one vertical pitch on the card. storage-volume-expansion reuses
 both numbers so the two cards in this subcategory read as one family.
+```
+
+### before `const DEL_TAG_DY = -40, RM_TAG_DY = -38;`
+
+```
+Both requests travel at PVC_MID, half a box height below the claim top, so at -14 each tag rides
+inside the boxes at its ends: 800ms for the delete, 400ms for the finalizer patch. -40 and -38 are
+the least that clear on all four viewports, and they differ only because the two strings differ in
+width. They are large because the boxes are 68 and 72 tall and the lane is at their middle.
+```
+
+### before `const MOUNT_TAG_DY = 12;`
+
+```
+The mount ascent ends on the Pod floor, where -14 parks the tag on the `volumes: data-claim` sublabel
+for 500ms (90.4 x 6.1 units of ink). At 12 below the ball the tag stops short of the floor instead and
+never enters the Pod. It cannot go further: at 22 it would meet the `still mounted` caption at 204.
+That caption is still grazed in transit for 100ms, which no offset removes, because the tag has to
+cross its band. Ink depth there went 3.9 to 6.8 units, the price of the 500ms pair being closed.
 ```
 
 ### poster
@@ -1804,6 +2166,12 @@ LAYOUT   The SAME grammar as its sibling storage-volumeclaimtemplates: three ord
          step, because a relationship with no ball would read as traffic that never runs.
          Each Pod is a full window like the rest of the storage cards, which keeps the shape uniform
          with the family even though no Pod here ever pulses on arrival.
+LANES    THE THREE FAMILIES ARE BUILT ONCE PER ROW, as `SPINE` / `OWN` / `RECLAIM`, and the `P.lane`
+         and every `F.route` over them read the SAME array (`A-02`). DO NOT make them factories called
+         once for the lane and again for the ball: the 11 routes over policy, scaled-delete and
+         deleted-delete then each ride an equal COPY of the numbers under them, which comes apart the
+         first time a row moves. Sharing the array is a pure identity change, the 18 lane arrays across
+         this card and its sibling being equal in value either way, so no span moves (`A-11`).
 PANEL    The panel covers only the top-left band (measured bottom ~173, right ~397 worst case). The
          policy box spans x 430..770, clear of the x<=397 band, and the first Pod row starts at y=195,
          below the panel. A much longer narration invalidates this.
@@ -1839,6 +2207,13 @@ BUDGET   Family CHIP_W 232: worst case is `disks` + `3 kept, 1 leaks` at 20 char
 ```
 The same spine grammar as storage-volumeclaimtemplates: three ordinal rows, claim in the centre, Pod
 and disk mirrored about it. The policy box above is centred on CX too.
+```
+
+### before `const TAG_DY = -32;`
+
+```
+The reclaim lane enters the claim at its own mid height, so at -16 the tag is cut by the claim and
+the ghost Pod for 600ms. -32 is the least that clears them on all four viewports.
 ```
 
 ### poster
@@ -1903,9 +2278,9 @@ SIZES    cylinder() puts its own name on the baseline h/2+5, and the spec line g
          strip clears the verdict by another one, both derived so raising the shelf carries them.
 NOTE     The readout is a 2x2 GRID, not a row of four: each column of the diagram gets its own pair
          of chips stacked directly under it, at exactly the column x and width. One row per kind of
-         object, so reading ACROSS compares the two policies and reading DOWN walks one stack. WHY
-         NOT a single row of four: four chips wide enough for their text come to 920 units against a
-         400 unit stack, so the strip would be more than twice the width of what it reports on.
+         object, so reading ACROSS compares the two policies and reading DOWN walks one stack.
+WHY NOT  a single row of four: four chips wide enough for their text come to 920 units against a 400
+         unit stack, so the strip would be more than twice the width of what it reports on.
 BUDGET   The cost is a hard 152 units of text per chip (176 minus 12 of padding each end), so values
          are kept to about 12 characters. The longest pair is `vol-bbb` plus `in use again`, 19
          characters, about 48 + 83 units of 11px JetBrains Mono at 6.89, with `vol-aaa` plus
@@ -1915,20 +2290,25 @@ NOTE     Each chip names ONE object and reports only that object's state, so a v
          read as a caption for something else. The two PV chips carry the PHASE, which is why the PV
          boxes keep their reclaim policy as a fixed sublabel instead of flipping between meanings.
 NOTE     The claim that arrives AFTER the first is deleted is its OWN box, not the old one turned
-         back on. DO NOT reuse the element with a new sublabel: the step narrating a brand new claim
-         then shows the deleted claim rising from the dead under its original name.
+         back on.
+DO NOT   reuse the element with a new sublabel: the step narrating a brand new claim then shows the
+         deleted claim rising from the dead under its original name.
 NOTE     The spec line is a SIBLING of the cylinder, not a child, so it must be faded BY HAND when
          the disk it describes is deleted, or a bright `real disk, EBS` hangs under a wiped disk.
 NOTE     On the delete step the two VOLUMES light because their phase flipped to Released. The two
          CLAIMS do not, even though they are what you deleted: they end the step faded, and a faded
          block never keeps a lit stroke. What marks them is that fade plus their Terminating sublabel.
+         That sublabel is true for ONE step only. From the next step on both claims read `deleted`,
+         because every sentence after it (a claimRef pointing at a claim that no longer exists, a
+         brand new claim asking for the same storage) is written on a claim that is already gone.
 NOTE     `retBound` and `wRetBind` are drawn on the SAME segment, so on the one step where both are
-         true they HAND OVER rather than stack. DO NOT have `rebind` pass `retBound: 0` like the
-         refused `retain-stuck` step does: that shows an identical picture for a claim that binds and
-         a claim that is skipped. Raising it alone is not enough either: with retBindLane also at 1
-         the solid arrowhead-free link renders underneath a dashed arrowhead. The end state is the
-         link alone, the lane is re-raised below the guard so the ball has something to ride, and the
-         two cross-fade on bind.arrivalMs.
+         true they HAND OVER rather than stack.
+DO NOT   have `rebind` pass `retBound: 0` like the refused `retain-stuck` step does: that shows an
+         identical picture for a claim that binds and a claim that is skipped.
+NOTE     Raising it alone is not enough either: with retBindLane also at 1 the solid arrowhead-free
+         link renders underneath a dashed arrowhead. The end state is the link alone, the lane is
+         re-raised below the guard so the ball has something to ride, and the two cross-fade on
+         bind.arrivalMs.
 OPEN     CENTRE is open here on purpose. Content spans 400..1010, centre 705 against a wanted ~600.
          Both columns are locked by the PVC row above them, which has to sit right of the panel, and
          the only way to pull the centre left is to stretch the policy band across the full width.
@@ -2009,6 +2389,23 @@ DO NOT   Leave the lanes permanently visible. The step `opacity` field pins them
          not exist there.
 MOTION   On the failure step the scheduler keeps re-queuing the Pending Pod and rejecting it, so the
          Pod blinks, but it never went Ready: pulsePodDim with an opacity lift.
+NOTE     BOTH FRAMES CARRY THE FILTERED-OUT SHADE on the two Immediate steps, because the narration
+         rejects both nodes: `STRANDED` dims node-1 for room and node-2 for the zone. Dimming node-1
+         alone leaves node-2 at 1 while the sentence beside it says it is rejected, and the Pod at
+         OPACITY.pending inside a full-strength frame. The shade is also the ONLY thing separating
+         these steps from `wffc-schedule`: the Pod occupies 765..925 / 256..356 on all three, and on the
+         WaitForFirstConsumer step it is genuinely placed there, with node-2 at 1 AND lit. Measured:
+         0.4 / 0.4 on `imm-schedule` and `imm-fail`, 1 / 1 with node-2 lit on `wffc-schedule`.
+WHY NOT  Moving the Pod OUT of the node-2 frame on the two failure steps so an unplaced Pod is not drawn
+         inside a node: the Pod's x and y are scene geometry, so a per-step move needs a transform hook,
+         and the only clear canvas at that tier is under the panel (which reaches x<=397, y<=230) or in
+         the 60 unit gap between the frames. Both cost more than the shade buys, and the shade says the
+         same thing: neither frame took it.
+NOT A DEFECT
+         The cross-zone reach stays at 1 while the frame it leaves is at 0.4. It is a RELATION, not a
+         lane: no ball rides it and it has no arrowhead, and its real ends are the Pod (0.55) and the
+         zone-a disk (1), not the frame edge it happens to touch. It is also the subject of the step, so
+         the caption `volume node affinity conflict` names it.
 BUDGET   The WaitForFirstConsumer step is 5800, not 4400: it provisions, materialises the disk and then
          mounts it, and the pulse on arrival adds PULSE_POD.ms on top, which measures out at a 5047ms
          span (mount lands at 4147, the blink runs the 900 past it). At 4400 the auto-advance cuts
@@ -2029,6 +2426,16 @@ resolving into ONE of two zones.
 
 ```
 Family width. Worst case `mode` + `WaitForFirstConsumer` at 189 against 232.
+```
+
+### before `const MOUNT_TAG_EMERGE = 300;`
+
+```
+CAPTION_Y is DISK_TOP-14, which is exactly where a tag riding W_MOUNT_B sits when its ball leaves the
+disk, so the two printed on each other for 300ms: 96.5 x 9.0 units of ink and a baseline gap of 0.00,
+the worst pair in the catalogue. No dx or dy fixes it, the corridor is 68 units with the caption at
+430 and the Pod sublabel at 348. The tag emerges 300ms into the flight instead, by which point it is
+25 units clear when first readable and 40 clear at full alpha.
 ```
 
 ### poster
@@ -2059,7 +2466,14 @@ CONTENT  Three points checked against source, each of which the card had wrong:
             spec.drivers[].allocatable.count.
          2. NodeVolumeLimits does NOT run on every scheduling attempt: PreFilter returns Skip when
             the Pod has no PVC, no generic ephemeral volume and nothing inline-migratable, which
-            suppresses Filter for that Pod entirely.
+            suppresses Filter for that Pod entirely. Verbatim, from
+            pkg/scheduler/framework/plugins/nodevolumelimits/csi.go at release-1.35:
+            `if vol.PersistentVolumeClaim != nil || vol.Ephemeral != nil ||
+            pl.translator.IsInlineMigratable(vol) { return nil, nil }` over pod.Spec.Volumes, and
+            `fwk.NewStatus(fwk.Skip)` when the loop finds none. DO NOT let the `ask` narration close
+            on "it skips Pods that ask for no volumes", which contradicts this very note: a Pod
+            carrying only an emptyDir, a configMap or a secret ASKS for volumes and is skipped anyway.
+            It says "a Pod that claims no volume is skipped", keyed on the claim the way the code is.
          3. What Filter counts changed in 1.32 (PR 127757, issue 126502). Before, it counted only the
             volumes of Pods assigned to the node, so deleting a Pod freed its slot instantly and the
             replacement landed in ContainerCreating with FailedAttachVolume. Since 1.32 the count is
@@ -2100,11 +2514,11 @@ SIZES    PVC_H is centred in the Pod's free band. DO NOT sit it at 40..86 agains
          CHIP_W 232 clears the worst pair with ~22 units between the halves:
            allocatable.count 117 + `8 per node` 69 = 186    Pod web-0 62 + `Running on node-3` 117 = 179
            blocked by 69 + `max volume count` 110 = 179     attached 55 + `24 of 24` 55 = 110
-NOTE     ONE CSINode box spanning the full node tier, not three stacked over three columns. WHY NOT
-         three: they are identical in every field that matters, so the row reads as a repetition the
+NOTE     ONE CSINode box spanning the full node tier, not three stacked over three columns.
+WHY NOT  three: they are identical in every field that matters, so the row reads as a repetition the
          card never uses, and the story is about that number against the slots. Spanning the tier
          also lets all three report lanes converge into one face.
-         CSI_W 280 rather than 400, narrowed so the two outer report lanes have somewhere to travel:
+SIZES    CSI_W 280 rather than 400, narrowed so the two outer report lanes have somewhere to travel:
          they rise on their own node centres, 350 and 850, and run IN to a side wall, so every unit
          the box gives up on each flank is a unit of visible horizontal run. At 280 the box is
          460..740 and each run is 110 units; at 400 it reaches 400..800, the run drops to 50 and the
@@ -2127,20 +2541,27 @@ MOTION   ONE duration for all three report balls, so they leave together and LAN
          The riding label takes the SAME dur, or it drifts off its ball and rejoins at the endpoints.
          All three fire together rather than in sequence: three copies of one mechanism, and walking
          them would suggest an ordering that does not exist.
+         The placement on `detachlag` is ONE number, PLACE_MS 2000: the freed slot is retaken at 1600
+         plus a 400 fade, the Pod blinks on that instant, and the Pod chip, the Pod sublabel and the
+         PVC sublabel all turn over on it as one family (`P-04`). Stated at t=0 the three read
+         `Running on node-3` while the reader is still watching the slot free at about 900ms. Same
+         shape as `fill` two steps up, whose chip waits for FILL_END.
 NOTE     The newly taken slots fade in one after another, left to right and node by node, so the
          strip reads as FILLING rather than cutting to a full state. Pinned full above the guard
          first, so a cancel mid-fill lands on eight of eight. `seq` is a running counter across ALL
          THREE nodes: computing the delay from i and the node's own starting count double-counts
          node-1 and pushes the last slot past the step's duration, so auto-advance cuts the fill off.
 NOTE     The last step's transient (slot empties, counter reads seven of eight, slot comes back
-         bright) is OPACITY ONLY, never fill. DO NOT drive the fill through onfinish: the step's END
-         state then depends on a callback firing, so a seek or early cancel leaves the slot showing
-         the transient instead of the pinned `fresh`. The counter text is the one thing that still
-         rides onfinish, and it self-heals because the next step rewrites every counter.
+         bright) is OPACITY ONLY, never fill.
+DO NOT   drive the fill through onfinish: the step's END state then depends on a callback firing, so
+         a seek or early cancel leaves the slot showing the transient instead of the pinned `fresh`.
+NOTE     The counter text is the one thing that still rides onfinish, and it self-heals because the
+         next step rewrites every counter.
 NOTE     The slots are plain rects, not box() primitives: they are not blocks that can act, so they
          must never take .highlight, pulse or receive a packet. They are a gauge, and the only thing
-         they ever do is change fill. DO NOT add a `detaching` fill: the detach that frees a slot is
-         a transient, and a resting colour invites the reader to look for it in the end state.
+         they ever do is change fill.
+DO NOT   add a `detaching` fill: the detach that frees a slot is a transient, and a resting colour
+         invites the reader to look for it in the end state.
 NOTE     The Pod is ABSENT at rest, not dim: a ghost Pod from the first frame says the scheduling
          attempt is already under way, the opposite of the setup. The three report lanes stand at full
          from the first frame, unlike every other lane here, because what they carry is a standing
@@ -2181,6 +2602,33 @@ is the one tier allowed outside CONTENT_W, because it sits below the panel floor
 
 ```
 Sized against allocatable.count + `8 per node` at 186, leaving ~22 units between the halves.
+```
+
+### before `const CAP_TAG_DX = [-16, 0, 16];`
+
+```
+The two outer report lanes end on the CSINode side faces, so a centred tag straddles them for 400ms.
+Each outer tag steps 16 further out, mirrored, which is the least that clears on all four viewports.
+The middle entry stays 0 on x: that lane enters the box floor dead centre, where
+`allocatable.count: 8` sits, and the only clear band on x is 74 units away, far past the offset
+ceiling. It takes CAP_TAG_DY instead and rides BELOW its ball.
+NOTE     CAP_TAG_DY is [-14, 22, -14] because the three lanes do not land on the same face. The
+         outer two arrive at the side faces and keep the family offset. The middle one arrives at
+         the FLOOR, where -14 parked it on `allocatable.count: 8` (31.5 x 7.8 of ink, 400ms at a
+         baseline gap of 1.22) and inside the box for 500ms more. At 22 it parks 14 clear of the
+         floor, in the corridor above node-2, and 22 rather than 16 because the ball is r=5 with a
+         6 unit glow and at 16 it prints on the line.
+NOTE     `read allocatable.count` on the filter step was the widest text-on-text pair in the
+         catalogue (138.5 x 5.8, 200ms), and no offset could close it: the Scheduler sublabel and
+         the tag are both centred on 600, so they overlap on x at every dx, and the corridor is only
+         44 units. Shortening the string does not help for the same reason. It is closed by TIME:
+         READ_TAG_EMERGE 300 is half the flight, which is what the ball needs to put 22 of the 44
+         units between its tag and the Scheduler floor. The 100ms cut on the same tag went with it.
+OPEN     The middle `cap 8` crosses the node-2 frame TOP at 406 on its way out, 80ms of ink on a
+         20ms grid, and every dy that clears the CSINode floor starts the tag inside that frame,
+         because the lane runs from one to the other. It replaces an 80ms cut of the CSINode BOX
+         floor plus 500ms inside that box, which is the trade: a dashed room instead of a filled
+         body, and no text under it.
 ```
 
 ### poster
@@ -2242,12 +2690,26 @@ LAYOUT   TWO vertical stacks side by side, because the story is one disk moving 
          the SPINE under the disk it acts on, which also turns its taint lane into a straight climb
          into the disk floor instead of an elbow into its right face. The ladder and the chips then
          take one side each, so the strip still spans 60..1140 and centres on 600.
-PANEL    Worst step (escape, the longest narration), right / bottom by viewport:
-           1920x1080 -> 203 / 161    1440x900 -> 319 / 203    1280x800 -> 358 / 236
-           1100x800  -> 397 / 255     900x650 -> 398 / 436
-         x<=398 and y<=436. LEFT_X 400 has about 2 units of slack and cannot move left at all, and
-         LAD_Y 448 clears the 436 bottom by 12. DO NOT re-derive either from a single wide-window
-         screenshot, and note that a longer narration invalidates both.
+PANEL    Worst step (evict, 483 characters, the longest narration on the card), right / bottom by
+         viewport:
+           1920x1080 -> 203 / 209    1440x900 -> 319 / 262    1280x800 -> 358 / 305
+           1100x800  -> 397 / 329     900x650 -> 398 / 498
+         x<=398 and y<=498. LEFT_X 400 has about 2 units of slack against a measured 398.29 and
+         cannot move left at all. The row above is the EVICT step, the deepest on the card. The
+         161 / 203 / 236 / 255 / 436 are the ESCAPE step, which is only the second deepest: LAD_Y 448 clears escape's 436.29 by 11.7 at
+         900x650, and against evict it clears every sampled width but not 900x650, which is the OPEN
+         below. DO NOT re-derive either number from a single wide-window screenshot, and note that a
+         longer narration invalidates both.
+OPEN     TWO STANDARDS, AND THEY DISAGREE. The harness samples 1600x1000, 1280x860 and 1100x800 only
+         (`report/geometry-soft.test.mjs` OCCLUDED, `report/overlay.test.mjs`), and over those three
+         the deepest this panel goes is 329.20, which the ladder top at 448 clears by 118.8, so
+         nothing reports. The 900x650 row above is a hand sample and is the stricter number by 169
+         units: on evict the panel reaches 497.86 and takes the top rung (measured ink x 60..440,
+         y 448..486) over 338 of its 380 units, plus the top 2.9 units of the second rung at
+         y 495..533. The ladder has nowhere to go. Below it the chip strip stands at y=598, to its
+         right the escape box holds x 485..715 over y 478..550, and lifting the rungs walks them
+         further INTO the panel. The only lever is the evict narration, and that is the one step that
+         has to explain why a Pod which cannot be confirmed dead is not enough to detach.
 SIZES    The floor under POD_W is the widest string inside a Pod, the sublabel `marked for deletion`,
          114.6 units (10px mono at 6.03), so POD_W 168 (NODE_W less two NODE_PAD) keeps ~26.7 either
          side. The rate is PER CLASS (`L-20`).
@@ -2280,7 +2742,9 @@ MOTION   DO NOT give the unconfirmed Pod a dim `unknown` state pulsed with pulse
          and the chip instead.
          Being MARKED is a phase, and the card walks the old Pod down the vocabulary in the two steps
          that earn it: the sublabel reading `marked for deletion` IS Terminating and drawing that at
-         full is a catalog-wide defect. The fade to terminated STARTS at terminating rather than at 1,
+         full is a catalog-wide defect. Rung 1 of the ladder is on that same vocabulary and says
+         `old Pod marked`, not `old Pod deleted`: on an unreachable Node the deletion is exactly what
+         cannot be confirmed, which is the whole reason the disk is still held. The fade to terminated STARTS at terminating rather than at 1,
          because an animation keyframed from full brightens a marked Pod back up for one frame before
          killing it. A Pod at either shade never pulses.
          The replacement Pod is not drawn at all until it EXISTS. DO NOT fade it in on the notready
@@ -2293,6 +2757,24 @@ MOTION   DO NOT give the unconfirmed Pod a dim `unknown` state pulsed with pulse
          The disk does NOT flash on force-detach. It is a static receiver, shown by its highlight plus
          the sublabel and the chip flipping; the severing is carried by the two fades. On the closing
          taint step no Pod acts (the operator does), so there is no pulse and no block flash.
+WIRE LABELS
+         THE COUNTERFACTUAL CAPTION (`T-35`). The escape step plays AFTER the card has ended: attachb
+         closes with the volume on Node-2 and the new Pod Running, and escape then draws the taint path
+         as real state, chips and lane included. ONE caption, `if instead the taint lands first`, is what
+         stops that frame reading as a seventh thing that happened to this cluster.
+         It sits in the empty band between the disk floor and the escape box, anchored `start` 20 right
+         of the spine, so it reads as a condition on the box below it. WHY NOT centred on the escape
+         box: the taint lane owns x=600 through that whole band, so a centred caption takes the dashed
+         line through its glyphs. WHY NOT anchored `end` left of the spine: 220 units of string then
+         reach back to x=380, and on THIS step at 900x650 the panel is x<=398.29 with a bottom of
+         436.29, so the opening words go under it.
+         MEASURED IN THE BROWSER at 220.5 / 201.5 / 196.3 units over 1600x1000 / 1280x860 / 1100x800,
+         and 194.6 at 900x650, so the widest is the widest viewport. Nearest neighbour is the taint lane
+         at 20 units, then the escape box top 34.6 below the ink and the disk floor 42.8 above it. The
+         ink bottom lands at 443.4, which is 4.6 above LAD_Y, and the ladder is 180 units to the left in
+         any case. Panel clearance on the escape step at 900x650 is 221.7 units horizontally.
+         The wording stays off the Pod on purpose: this card names the old Pod's end three ways across
+         its steps already, and a caption is not the place to add a fourth.
 NOT A DEFECT
          W_ATTACH_A is reported as a lane nobody rides, and converting it to a relationPath is
          DECLINED: sinking one half of a deliberately symmetric pair makes the left lane the lesser
@@ -2306,8 +2788,9 @@ NOTE     node() puts its own label RELATIVE to the frame group. Use the primitiv
 ### before `const LEFT_X = 400;`
 
 ```
-The panel wall, ~2 units of slack against a measured 398. LAD_Y 448 clears the 436 bottom by 12, so
-the bottom band is the tier a longer narration takes out first.
+The panel wall, ~2 units of slack against a measured 398.29. LAD_Y 448 clears the deepest SAMPLED
+bottom of 329.20 by 119, and does not clear the 497.86 the evict step reaches at 900x650, so the
+bottom band is the tier a longer narration takes out first.
 ```
 
 ### before `const NODE_W = 192, NODE_GAP = 16, NODE_PAD = 12;`
@@ -2348,9 +2831,31 @@ CONTENT  The allowVolumeExpansion gate is enforced by the API SERVER on the edit
          a request at all. DO NOT have the resizer consult the class before acting: that puts the gate
          one component too far downstream and makes a rejected edit look like a resize that quietly
          declined to run.
-         The second phase is for FILESYSTEM volumes only. A raw block volume has no filesystem to grow,
-         so NodeExpandVolume does not apply and the bigger device is visible as soon as phase one
-         lands. The node-expand narration says so rather than implying every volume needs both halves.
+         The second phase is where a FILESYSTEM is grown and a raw block volume has none, but skipping
+         it is a DRIVER OPTION, never Kubernetes behaviour. The CSI spec says MAY twice, at
+         https://raw.githubusercontent.com/container-storage-interface/spec/master/spec.md : on
+         NodeExpandVolumeRequest.volume_capability, "if volume is being used as a block device the SP
+         MAY choose to skip expanding the filesystem in NodeExpandVolume implementation but still
+         perform rest of the housekeeping needed for expanding the volume", and on
+         ControllerExpandVolumeRequest.volume_capability, "the SP MAY set node_expansion_required to
+         false in ControllerExpandVolumeResponse to skip invocation of NodeExpandVolume on the node by
+         the CO". Kubernetes makes the call either way: pkg/volume/csi/csi_client.go sets
+         req.VolumeCapability.AccessType to VolumeCapability_Block inside NodeExpandVolume when fsType
+         is the block sentinel, and operation_generator.go runs node expansion out of the block MAP
+         path as well (the "MapVolume.NodeExpandVolume failed with %v" log), with no block short
+         circuit anywhere in nodeExpandVolume. So all three strings say a driver MAY skip that work.
+         ONLINE IS A CONDITION, not a given: "File system expansion is either done when a Pod is
+         starting up or when a Pod is running and the underlying file system supports online
+         expansion", https://kubernetes.io/docs/concepts/storage/persistent-volumes/ , which also
+         limits filesystem resize to XFS, Ext3 and Ext4. The desc hedges it ("Where that filesystem
+         grows online"), and the pod-sees narration has to hedge it too: it says "because this
+         filesystem grows online".
+         TWO PHASES IS THE COMMON SHAPE, not the rule. A driver may implement EXPAND_VOLUME on the
+         controller, on the node, or both, and the external-resizer sidecar runs either way, doing a
+         NO-OP expansion when the driver has no controller capability,
+         https://kubernetes-csi.github.io/docs/volume-expansion.html . Judged worth exactly two words
+         in the desc, which reads "runs one or two phases" and sits at 467 of the 470 characters D-04
+         allows: the node-only NO-OP case is recorded here rather than bought with those 3 characters.
          Shrinking: the API refuses a request below the size already provisioned. What newer clusters
          do allow is walking a request back DOWN while an expansion is still pending, which cancels a
          grow that has not happened yet. That is not shrinking a volume and the narration is worded not
@@ -2371,22 +2876,87 @@ LAYOUT   The centred vertical stack, with tier heights and block footprints take
 PANEL    Kubelet sits at x=130, well inside the panel's horizontal reach, and clears it only on the y
          axis, at y=396. That clearance was argued from the blanket `y<=300`, which is not a
          measurement: the panel bottom is PER CARD and reaches 504 on the longest narration in the
-         catalog. Kubelet is therefore safe only while THIS card's own bottom stays under 396, so
-         lengthening any narration here can put the panel over it. Re-measure with
-         `npm run report` from `scheme/test/`, whose OCCLUDED block prints the real extent.
+         catalog. Kubelet is therefore safe only while THIS card's own bottom stays under 396, which
+         the table below shows holding on the three sampled viewports and failing at 900x650.
+         Re-measure with `npm run report` from `scheme/test/`, whose OCCLUDED block prints the extent.
          The one element placed on a MEASUREMENT is the verdict caption left of the claim, anchored end
-         at x=464, y=274, reaching back to about x=273 on its longest string. This card's own panel was
-         measured across viewport widths 1920 down to 900: right peaks at 399 and bottom peaks at 231,
-         both at the narrow end, so the caption clears that bottom by 43 units. This card runs 30 units
-         LOWER than storage-pvc-protection, whose same caption measured 201, purely because the
-         node-expand narration is longer: the bottom is driven by the text, so it is a per-card number
-         and copying a sibling's is not safe. LENGTHENING ANY NARRATION HERE INVALIDATES THE 231.
+         at x=464, y=274, reaching back to about x=273 on its longest string. Worst step of the seven,
+         right / bottom by viewport:
+           1920x1080 -> 203 / 161    1600x1000 -> 291 / 177    1440x900 -> 319 / 203
+           1280x860  -> 378 / 214    1280x800  -> 358 / 236    1100x800 -> 397 / 255
+           900x650   -> 386 / 430
+         Over the three standard viewports the bottom peaks at 254.66 at 1100x800. MEASURE THE CAPTION
+         BY ITS RECT, NOT BY ITS BASELINE: y=274 is where the baseline sits, so the 19 units that
+         follow from 254.66 are baseline clearance, while the INK starts at 262.7 and the real
+         clearance is 8.3, a third of a narration line. A bottom of 231 for this card, and the 43 units
+         that follow from it, reproduce at no viewport in the list: do not reinstate either number.
+         The bottom is driven by the TEXT, so it is a per-card number: storage-pvc-protection's same
+         caption is shallower purely because its strings are shorter. Every correction to prose here is
+         sized against the 255 rather than against a sibling. LENGTHENING ANY NARRATION MOVES IT.
+MOTION   The two phases are DRAWN. Measured before the gauge landed: the card held ONE cylinder and not
+         one of its 7 steps changed its size, so a fourfold growth was carried by chip text alone.
+         The gauge under the disk is four cells of 5Gi in three layers, a track that is always there,
+         a device wash, and a brighter filesystem core inset inside that wash. Cell 0 is the original
+         5Gi and never moves, which is why only three of each layer carry a ref.
+         controller-expand reveals the device wash on cells 1 to 3, 140ms apart, from the moment the
+         call LANDS (`at: 'exp'`, never step entry). node-expand reveals the filesystem core on the
+         same beat. The settled frame between the two is the teaching point: three cells holding a
+         device and no filesystem. Longest span about 1480ms against a duration of 3200.
+NAMING   The three riding tags say what the call CARRIES, never what it is CALLED: the block the ball
+         leaves already prints the method name as its sublabel, and all three tags were once a
+         verbatim copy of it. `checked at admission` adds WHERE the gate runs, and the two phase tags
+         carry the extent each call moves.
+         Re-measured at 1600x1000 at the instant each tag is fully opaque at the END of its flight,
+         which is where a block can print through it: the two claim-lane tags clear the claim by 1.7
+         units and the two disk-lane tags clear the disk by 4.4, both of which are the DY above and
+         not the text. Only `filesystem 5Gi to 20Gi` grew, 93.4 units to 128.5, and at the START of
+         its flight it still clears Kubelet by 11.4. The rate behind those numbers is 5.84 units per
+         character on `.scheme-box-sublabel`, measured here rather than taken off L-20.
 NOTE     The verdict slot reports the state of the CLAIM, which changes kind across the card, so it is
          named for its job rather than for a lane, and it sits hard against the claim instead of
          beside a lane it does not describe.
          The four chips (CHIP_W 252) are the whole lesson: they hold the same number at the start, then
          change ONE AT A TIME in order, so the staggered highlight walking left to right IS the
          two-phase story.
+WHY NOT  Scaling the cylinder GROUP, measured in the browser at 1600x1000 on the controller-expand
+         step. Composed honestly against the group's own translate, `scale(1.6, 1)` stretches the
+         label `PV data-vol` from 79.00px to 122.32px wide while its height goes 18.00 to 17.24, so
+         the glyphs are distorted rather than scaled. The scale is about the group's local origin, so
+         the disk grows to the RIGHT only: its centre travels 80.1px (69 viewBox units), its right
+         edge reaches 853 against the External-resizer at x=850, and the mount spine at x=600 stops
+         landing on the face midpoint L-11 measures it against. Written the way a keyframe would
+         write it, as a bare `scale(1.6, 1)`, the CSS transform property REPLACES the SVG transform
+         attribute and the disk teleports 483px left, under the narration panel. M-04 as a number.
+DO NOT   Do not write "a raw block volume skips this phase entirely", in the narration, the desc or the
+         aria-label, however natural it reads. It has been restored once as a lost qualification and it
+         is false: the CSI spec says the SP MAY skip the filesystem step and MAY answer
+         node_expansion_required false, so the option is the DRIVER's and Kubernetes issues
+         NodeExpandVolume for a block volume all the same. The two MAY quotations and the two source
+         files that settle it are in the CONTENT block above. The honest verb is "may skip".
+         Do not caption the gauge. Its two layers are named by the two chips that move with them
+         (`real disk` and `filesystem`), and a caption would be the defect the three riding tags were
+         repaired for: a string carrying nothing the reader does not already have two lines away.
+         Do not give a cell a class instead of an inline fill: no field writes a fill, and a class
+         here is a `diagrams.css` rule owned by one card.
+OPEN     BELOW THE STANDARD SET THIS CARD DOES NOT HOLD, and the cost is per element rather than one
+         panel number. At 900x650 the panel measures right 386.10 / bottom 430.03 on `gate`,
+         `node-expand` and `no-shrink`, 397.38 on `controller-expand` and `pod-sees`, and 364.74 on
+         `idle` and `edit`, re-measured step by step (`overlayProbe`, rects through `__toRoot`):
+           verdict caption   y 262.7..277.2, right edge pinned at 464, so its LEFT end is under the
+                             panel on every step: 109.1 of the 187 units of `request raised, nothing
+                             moved` (58 percent) and 25.2 of the 103.2 of `filesystem grown`.
+           Kubelet           x 130..350, y 396..468, so the top 34 units (47 percent of its height) sit
+                             under the 430. It is drawn on ONE step, `node-expand` through NODE_ON, and
+                             that step is one of the three at 430.
+         NO CHEAP CLEARANCE EXISTS. The caption is anchored `end` hard against the claim and its only
+         free direction is DOWN, into the disk cap at 389 and the two phase lanes on DISK_MID 432.
+         Kubelet is the LEFT half of the mirrored pair the whole layout is built on (the two phases
+         reaching the disk from opposite sides at one height), so moving it right or down says something
+         false about which side each phase comes from, and the panel still reaches 430 whatever it does.
+         The remaining lever is prose, and CONTENT above is why each of these narrations is at its
+         floor. 900x650 is a hand sample no check takes (`STO.L-04`, `L-06`), which is why this is OPEN
+         rather than a regression: over the three sampled viewports every element clears, the caption by
+         8.3 units.
 ```
 
 ### before `const CX = 600;`
@@ -2402,6 +2972,17 @@ than a single turn.
 ```
 Four chips, derived rather than hand-placed. They hold the same number at the start and change ONE
 AT A TIME, so the staggered highlight walking left to right IS the two-phase story.
+```
+
+### before `const GAUGE_X = DISK_LEFT, GAUGE_W = DISK_W;`
+
+```
+Four cells of 5Gi, sized off the disk so the strip reads as THAT disk's capacity axis rather than as
+a fifth chip. 488..516 is the whole clearance this band has: the cylinder ends at 475 and the chip
+strip starts at 545, so a taller gauge is bought from one of those two.
+The six moving cells are filed as scalar refs inside the one `make()` hook, by literal assignment.
+A computed key (`refs['dev' + i]`) is invisible to the ESCAPE_ASSIGN regex three test readers share,
+and every `opacity` and `F.reveal` key on this card resolves against that set.
 ```
 
 ### poster
@@ -2484,6 +3065,20 @@ NOT A DEFECT
          the card is built on, so the lane exists to be visibly empty beside the fs branch that uses
          its twin. Its sibling `W_FS_DEV` was on the same finding and is now ridden, because the fs
          branch really does get the formatted device back.
+         `A-05` asks the follow-up question, whether it should therefore be a `P.relation`, and the
+         answer here is NO, on a measurement. A dim storage lane renders at `stroke-opacity` 1 with
+         `marker-end` `url(#arrowhead-storage)`, and `.scheme-arrow-relation` pins 0.45 and drops the
+         marker (read off the live tree: this card against `storage-volume-model`). Both repairs, the
+         relation and the `P.arrow` plus a `tune` that removes only the marker, act on ONE lane of a
+         MIRRORED pair, so the Block column would then be drawn as the weaker structure while the card
+         claims in words and in the layout that the two columns are identical and only the field
+         differs. That is the `storage-volume-detach-on-node-loss` argument, arrived at from the other
+         side: there the pair is left and right of one action, here it is the two columns of the
+         comparison. Opened all 7 steps at 1600x1000 and at 1100x800 to check it: the two columns carry
+         four identically drawn lanes each on every step, and the closing `trade` step, which is the
+         frame the reader sits on, is exactly the frame the asymmetry would show in. The lane keeps its
+         arrowhead and says so at its declaration, in the form `storage-reclaim-policy` already uses for
+         `W_RET_WIPE`: `drawn, never travelled`.
 ```
 
 ### before `const LEFT_X = 400;`
@@ -2498,6 +3093,42 @@ slides the chip strip off the canvas centre while each tier still looks internal
 
 ```
 One width for all four chips, sized against `node does` + `no mkfs, no mount` at 179.
+```
+
+### before `const STAGE_TAG_DX = -46;`
+
+```
+The stage tag parks on the disk top and the return tag leaves it 100ms later, lanes 24 apart against
+57 and 69 units of ink, so the two printed as `mkfexb4tdevice` for 200ms at a baseline gap of 0.00.
+-46 puts the stage tag left of its own lane and the worst gap after is 7.0 at 1280x860.
+WHY NOT  Splitting them +-24: it clears the pair but widens two grazes, of the band sublabel and of
+         `stage: mkfs then mount`, from 28 and 14 units to 69 and 35.
+```
+
+### before `const MOUNT_TAG_DY = 22;`
+
+```
+Four tags park on a Pod sublabel at the default (tag ink at POD_BOTTOM-14 against the sublabel at
+-8): 88.1 x 8.0 of ink on fs-mount, 91.9 x 7.0 on block-claim, 75.5 x 8.0 on fs-claim and on
+block-publish, all at a baseline gap of 2.03. No offset within +-80 clears any of them, because the
+sublabel is centred on the same x the lane rides and the tag sweeps the entire 97 units the ball
+does. It takes two levers, not one.
+NOTE     The two tags LEAVING the Pod keep -14 and fade in at delay + TAG_EMERGE instead of at
+         delay - 150, so they are first readable about 250ms out, past the Pod floor. The two
+         LANDING on the Pod floor cannot be helped by timing at all, because they come to REST 6
+         above the sublabel and stay there for the hold: those ride 22 BELOW the ball instead.
+WHY NOT  12 below, the number `storage-ephemeral-vs-persistent` takes on the same landing: the ball
+         is r=5 with a 6 unit glow, and at 12 it prints on the line. 22 is the offset
+         `storage-volumeattachment` already took for the same reason.
+WHY NOT  Moving the Pod sublabel, which the earlier reading of this finding called the only fix. The
+         band it could move into is the 30 units between the container box floor (178) and the Pod
+         floor (208), and the parked tag ink tops out at 186.8, so the sublabel would have 8.8 units
+         to live in and would touch both edges.
+OPEN     All four still cross the NODE-1 frame bottom at 241, 20 to 60ms of ink measured on a 20ms
+         grid at 1280x860. That crossing is in every version of this card, the one before this
+         repair included, where it was measured as part of a 140ms em-box cut alongside the pod-face
+         cut that is now gone. The lane runs from the Pod through the frame edge to the band, so no
+         offset removes it, and a dim dashed room is the cheapest thing left for a tag to cross.
 ```
 
 ### poster
@@ -2779,7 +3410,8 @@ LANES    Each direction of the VolumeAttachment conversation gets its OWN lane, 
          W_GATE is the ONLY lane crossing the corridor: the object gating the node. It enters kubelet
          from the right while W_ONNODE enters from below, so the card has ZERO wire crossings.
          Only two static wire captions, both where there is measured room: the write caption anchored
-         12 right of the W_WRITE lane with 138 units (20 characters at 6.89), and the disk caption
+         12 right of the W_WRITE lane with 138 units (20 characters at 6.89), which is why the tag
+         riding that lane is offset (WIRE LABELS below), and the disk caption
          centred in the empty strip above it, longest string 241 units spanning 110..350. Everything
          else is carried by a ridingLabel, because the inter-row gaps in the control column cannot
          hold a static caption without it landing on a lane arrowhead.
@@ -2808,6 +3440,25 @@ MOTION   The VolumeAttachment is BORN MID-STORY but its SLOT is drawn the whole 
          has nothing to mirror. `render/opacity.test.mjs` LIT reads inline style on the played path only, so it
          sees neither version, which is why the answer is written down. Same shape as removeAt
          (storage-reclaim-policy) and vanish (storage-pvc-retention-policy).
+MOTION   ON `write` the name, the field and the state line are all bound to the create arrival at 1500
+         (`P-03`, `P-04`): before it the chips read `none` / `no object` and the box reads `not created
+         yet`. The SLOT still materialises first, at 0..500, because a lane may not be aimed at a block
+         that is absent, so the object is on canvas as a placeholder for the 1000ms the write is in
+         flight and its sublabel is what says so.
+         ON `attach` the third hop turns the DEVICE chip over (`no` -> `yes` at 3716) and Kubelet is NOT
+         lit. The step's own narration says Kubelet will not touch the device and its chip reads
+         `blocked`, so lighting the box the ball lands on said the opposite of the sentence beside it: a
+         lit block in this catalogue means acting now. Kubelet lights two steps later, on the gate that
+         frees it, which is the contrast the card is built on.
+MOTION   THE DELETED POD BLINKS BEFORE IT GOES (`M-08`). On detach the pulse stands alone at 0 and the
+         Pod fade waits `BEAT.afterPulse`, its mount lane on the same beat because a lane goes with the
+         block on the end of it (`STO.S-02`). The fade ends at 1300 against a span of 5076 and a
+         duration of 5400, so nothing downstream moved: the delete still leaves at `BEAT.lead`.
+WHY NOT  Re-aiming that hop at the NODE FRAME instead of at the Kubelet face, so the delivery lands on
+         something the step does not deny: the frame's bottom edge is y=420 and Kubelet's bottom face is
+         y=400, so the two arrowheads would sit 20 units apart and no reader could tell which was meant.
+         The frame also carries no ref key, so nothing could cue the arrival. Landing it back on the
+         disk was rejected too: that is where the ball came FROM.
 DO NOT   Animate the create half of the delete step and drop the delete half. The clause this card
          exists to teach, that the CONTROLLER writes AND deletes the object, has to be animated on
          BOTH halves, or the step opens on the attacher's watch while W_WRITE sits drawn, aimed and at
@@ -2815,6 +3466,24 @@ DO NOT   Animate the create half of the delete step and drop the delete half. Th
 NAMING   External-attacher is the name of one binary, so it takes the capital on its first segment
          only (`T-11`). Bare identifiers keep their real casing: va-7f, web-0, vol-1, which
          `.scheme-node-label` uppercases to NODE-1 in CSS, and that form is catalog-wide (`T-12`).
+WIRE LABELS
+         THE WRITE TAG RIDES 46 UNITS LEFT OF ITS LANE, and the number comes off the caption beside it.
+         `vol-1 on Node-1` is 90.4 units wide and anchored middle on the lane at x=1024, so at dx 0 it
+         spans 978.8..1069.2 and runs over the static `create` caption at 1036..1077.3, y 134.8..149.4:
+         about 200ms of glyph on glyph, from the moment the tag crosses y=121.9 (measured at 1600x1000
+         with `__toRoot`). At dx -46 it spans 932.8..1023.2 and clears the caption by 12.8. The rect is
+         the SAME at 1100x800: a tag is viewBox geometry and does not move with the viewport, so the
+         finding was never viewport-specific. Only the `write` step needs the offset, because the
+         caption is blank on `detach`, where the same lane carries `delete va-7f`.
+NOTE     The first 14 units of that flight are inside the Attach/Detach controller box, and NO
+         offset closes it: W_WRITE is 84 units long between two 76-tall boxes, so a constant dy that
+         clears both ends would need the tag baseline at or below 100 at the start and at or above
+         184 at the end, which is not one number (clear of both boxes means baseline >= 109.8 at the
+         start and <= 180.9 at the end, and the ball travels exactly that span). Clearing the column
+         outright takes dx -161, which reads as a tag that has come off its ball, and riding below
+         the ball trades the source box for the DESTINATION box at the arrival, where the tag would
+         sit 5.7 above the box label for 340ms while that label turns over. What closes it is not an
+         offset: the tag is not DRAWN until it is out, which is what TAG_EMERGE is for.
 NOT A DEFECT
          The `status` and `detach` steps say `when the backend confirms the attach` and `only when the
          backend has detached`, and this card draws no storage-backend block. Both are subordinate
@@ -2828,6 +3497,26 @@ NOT A DEFECT
 One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it. LEFT_X is a separate wall at
 400 that only the TOP band obeys: the usable area is an L and the disk lives in its free bottom-left
 corner.
+```
+
+### before `const DRIVER_TAG_DY = 22;`
+
+```
+The publish lane leaves the attacher floor at 420 and enters the disk at 514, so a tag riding the
+family -14 is cut by both faces for 200ms and sits inside the attacher for 600ms more. Measured on
+the four viewports, the clear band below the ball is 12..42, and 22 is taken rather than the minimum
+because at 12 the ink starts 4 units from the ball centre and the ball prints on the line.
+NOTE     The four tags on the right column (`vol-1 on Node-1`, `delete va-7f`, `va-7f deleted` and
+         `attached: true`) could not be fixed by an offset at all, and are not fixed by one. Those
+         lanes are 84 units between 76-tall boxes, so a 10 unit line riding any fixed distance off
+         its ball is inside a block whenever the ball is within 23 of a face, which it is at both
+         ends of every flight. Three of them start inside a block and are fixed by TIME: they fade
+         in at delay + TAG_EMERGE, which is the 252ms their ball needs to clear the face it left,
+         so 200ms of INSIDE and a 100ms edge cut each become nothing.
+NOTE     `attached: true` on the status step is the one that ENDS inside, printing under the
+         object's own `Node-1, attached: true` for 400ms and reading as a second sublabel. Timing
+         cannot touch a tag that comes to rest, so it takes STATUS_TAG_DY as well and parks 14 below
+         the object floor, in the same corridor the write tag parks in.
 ```
 
 ### poster
@@ -2862,13 +3551,37 @@ WHY NOT  One column PER ORDINAL with the mints fanned in through bent side corri
          the mount and bind pure horizontal runs. Identity (Pod, claim and disk are one object under
          one name data-web-N) is then read ACROSS a row rather than DOWN a column, carried by the
          shared name in the three block labels plus the row alignment.
-PANEL    The panel covers only the top-left band: right edge ~291, bottom ~143 in viewBox units for
-         these narrations. The source box spans x 430..770 (clear of the x<=397 band) and the first Pod
-         row starts at y=195 (ROW_CY 245 less half of POD_H), below the panel. A much longer narration
-         invalidates this.
+PANEL    The panel covers only the top-left band, and this card has TWO panel depths because two of its
+         narrations are much longer than the rest. Measured with `overlayProbe`: right 290.77 / bottom
+         142.56 at 1600x1000, right 377.76 / bottom 171.42 at 1280x860, and at 1100x800 right 396.55
+         with bottom 180.12 on the short steps but 204.97 on `rebind` and `scale`.
+         ROW_CY IS SET AGAINST THE 204.97, not against the 142.56. At the old [245, 385, 525] the row-0
+         Pod LABEL `web-0` spanned y 198.7..214.7 (`__toRoot`, x 286.6..323.4, well inside the panel's
+         396.55 right edge), so its top 6.3 units sat under the panel on both long steps. At
+         [261, 395, 529] the label ink starts at 214.7 and clears the 204.97 by 9.7. The source box
+         spans x 430..770, clear of the x<=397 band at any depth.
+         WHY NOT move the Pod column right instead: the claim is centred at 500..700, so a Pod whose
+         label cleared x=397 would have to start at 415 and the mount lane feeding it would be 10 units
+         long. There is no horizontal escape on this card, only a vertical one.
+NOTE     The pitch is 134 rather than 140 because row 2 STAYS where it was: the clearance is bought at
+         the top of the stack and nothing at the bottom gets tighter (the row-2 Pod still ends at 579
+         against the chip strip at 600). All three trunk segments (117 / 78 / 78 units) stay under the
+         314 unit flat-pace band, so every mint hop still floors at `HOP_MS` 700 and the geometry change
+         is not a timing change (`A-11`, `M-20`). The 34 units left between rows still hold the row tag:
+         TAG_DY puts its baseline 3 above the Pod top and it is 13 tall.
+BUDGET   That 9.7 units of label clearance is 0.39 of a narration LINE at 1100x800, where one line
+         measures 24.85 (180.12 short against 204.97 long). LENGTHENING `rebind` OR `scale` BY ONE LINE
+         BURIES `web-0` AGAIN, and there is no further vertical room to buy: the next move would have to
+         come out of the 21 units between the row-2 Pod and the chip strip.
 LANES    The mint spine relays the deterministic name into each claim in turn (data-web-0, then -1,
          then -2) and appears once the template stamps. The two horizontal lanes per row point INWARD
          toward the consumer, and both are permanent dim structure.
+         THE THREE FAMILIES ARE BUILT ONCE PER ROW, as `TRUNK` / `BIND` / `MOUNT`, and the `P.lane`
+         and every `F.route` over them read the SAME array (`A-02`). DO NOT make them factories called
+         once for the lane and again for the ball, which returns two equal copies of one set of
+         numbers: 14 routes across mint, bind, mount and rebind, every one of them a copy that would
+         survive any check until the day somebody moved a row. Sharing the array is a pure identity
+         change, the 18 lane arrays being equal in value either way, so no span moves (`A-11`).
 MOTION   The three replica Pods are declared from the start, so they sit at FULL opacity the whole way
          through and never dim between steps, and mounting is shown by the pulse plus the container
          lighting. DO NOT fade a Pod up from a dim resting state on each mount: that up-and-down
@@ -2882,8 +3595,37 @@ MOTION   The three replica Pods are declared from the start, so they sit at FULL
          A claim that has not been minted yet is drawn dim rather than hidden. Removing it leaves a
          claim-sized hole in the row that reads as a rendering fault, and it leaves the mount arrowhead
          aimed at nothing for the whole flight.
+         A GHOST GOES THROUGH `stage()`, never over it (`A-13`, `A-16`). `scale` spread the factory and
+         then overrode `p2` after it, so `mount2` kept the value the factory had already computed from a
+         live Pod: measured at t=1500 the row-3 Pod group stood at 0.12 with its mount lane at 1.0, a
+         full-strength arrow into a ghost. Passing the shade in as `pods: [1, 1, GONE]` lets `laneOf`
+         take the MIN, and the lane now fades with the Pod (0.65 / 0.65 mid-fade, 0.12 / 0.12 settled).
+         The same held on `rebind`, where nothing overrode anything: the flow faded `p1` alone, so for
+         the whole 550ms ghost hold the mount lane stood at 1 over a Pod at 0.12. It now leaves with the
+         Pod and returns exactly as the recreate finishes at REBORN + IN, which is when the rebind ball
+         starts riding it.
+MOTION   THE MINT COUNTER steps 1, 2, 3 on the three arrivals (1500, 2300, 3100), and each claim takes
+         its `Pending` line on its OWN arrival rather than all three at entry (`P-03`, `P-04`). Read at
+         1900 on the animated path: `1 minted`, claim 0 at full and `Pending`, claims 1 and 2 still
+         placeholders reading `not created yet`. The static field still carries the end state, so the
+         reduced path and a mid-step cancel land on `3 minted` and three Pending claims.
 BUDGET   Family CHIP_W 232: worst case is `on delete` + `retained` at 17 characters, so
          17 * 6.89 + 24 of padding is 141 against the 232 available.
+         The intermediate counter values are shorter than the final one, so the strip is unaffected:
+         `1 minted` measures under `3 (1 idle)`, which is this chip's own worst case.
+MOTION   THE REMOVED POD BLINKS BEFORE IT GOES on `scale` (`M-08`): `p2` pulses at 0 and it and its
+         mount lane fade from `BEAT.afterPulse`, so the blink is spent before the fade starts. A fade
+         at `BEAT.afterHop` with no pulse anywhere in the step is invisible to
+         `render/opacity.test.mjs` ORDER. Span 1500 against a duration of 3000.
+OPEN     THE `rebind` DELETE IS THE ONE POD FADE HERE WITH NO PULSE IN FRONT OF IT, and it stays that
+         way on a number. `p1` fades from delay 0 and the only pulse on it answers the RETURN (the
+         remount, at 3700), which `render/opacity.test.mjs` ORDER correctly discounts and then skips
+         the fade entirely. Putting a blink in front of it costs `BEAT.afterPulse` on every beat of the
+         step: the fade, the 550 hold, the recreate, the rebind hops and the closing pulse all move
+         800 later, so the measured span goes 4600 to 5400 against a duration of 4900 and the duration
+         has to rise with it. That is a pacing change to the longest step here in exchange for a cue
+         the shape already carries, since a Pod dissolving over 850ms with a 550ms hold at the ghost is
+         two readable beats on its own.
 ```
 
 ### before `const CX = 600;`

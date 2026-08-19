@@ -79,7 +79,7 @@ export const STEPS_SPEC = [
   {
     id: 'map',
     duration: 2400,
-    narration: 'The Service definition maps port 80 to its targetPort. That mapping becomes a DNAT rule on the Node, written by kube-proxy, so the destination port is rewritten as the packet goes to a backend Pod IP. The port the client used and the port the container listens on are now two independent values joined only by this rule.',
+    narration: 'The Service definition maps port 80 to its targetPort. That mapping is a DNAT rule, so the destination port is rewritten as the packet goes to a backend Pod IP. The port the client used and the port the container listens on are now two independent values joined only by this rule.',
     chips: PORTS,
     // Packet-less, pod-less: the Service box lights via .highlight where the port translation lives.
     // Blocks light, they never blink. Only Pods pulse.

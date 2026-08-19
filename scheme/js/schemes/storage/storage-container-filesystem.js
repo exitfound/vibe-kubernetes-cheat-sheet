@@ -121,7 +121,7 @@ export const STEPS_SPEC = [
     id: 'discard',
     duration: 2600,
     narration: 'When the container is removed, its writable layer is thrown away with it. That is why anything written to the root filesystem, such as logs, temp files or a scratch database, is gone the moment the container restarts. The image layers remain, empty of your changes.',
-    chipsCued: { fsChip: RW_FS, writeChip: 'discarded', persistChip: IN_WRITABLE },
+    chipsCued: { fsChip: RO_FS, writeChip: 'discarded', persistChip: IN_WRITABLE },
     // The writable layer is discarded and its copy-up wire goes with it: no layer, no wire. The
     // Container block itself stays at full strength, the story is the vanishing layer.
     opacity: STACK_OFF,

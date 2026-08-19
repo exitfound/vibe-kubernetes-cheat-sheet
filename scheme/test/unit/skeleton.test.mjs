@@ -1,14 +1,15 @@
 // skeleton.test.mjs: the shape of a MIGRATED card, asserted against the exported SPECIFICATION and
-// against the live lib/ bindings that turn it into a card. Successor to check-canon's R-skeleton and
-// R-viewbox, and to the source half of R-opacity. Nothing here reads a card's source text.
+// against the live lib/ bindings that turn it into a card. It carries the skeleton rules, the
+// camera rules S-04 and S-05, and the declared half of C-04. Nothing here reads a card's source
+// text.
 //
 // ===========================================================================================
 // WHICH RELAXED RULES THIS FILE RETURNS, AND IN WHAT FORM
 // ===========================================================================================
-// Stage 1.3b honestly dropped seven source-shape rules to `review` because their subject was about
-// to stop existing. Four of them have a real successor as a statement about DATA, two are the same
-// rule read one layer up, and one has no successor at all. Written out so the next reader does not
-// have to reconstruct which is which:
+// Seven rules lost their SUBJECT when a card became data: no card writes a Scene, a prologue, an
+// enter() or a viewBox any more. Four of them have a real successor as a statement about DATA, two
+// are the same rule read one layer up, and one has no successor at all. Written out so the next
+// reader does not have to reconstruct which is which:
 //
 //   S-01  `class Scene { constructor(host){...} build(){...} reset(){ this.build(); } }` once per card.
 //         RETURNED, one layer up. No migrated card writes a Scene: makeScene(SCENE) is the only
@@ -157,9 +158,9 @@ test(`the migrated population is ${N} card(s), and the split accounts for the wh
 // is what they hold actually the shape the declarative layer consumes.
 // ---------------------------------------------------------------------------------------------
 describe('the migrated module, as data', () => {
-  // The SCENE surface is CLOSED to three keys. That is the successor of "a card declares one Scene
-  // and nothing else": a card can no longer smuggle a builder, a second camera or a stray option
-  // into the scene, because a fourth key would be read by nobody and would say so here.
+  // The SCENE surface is CLOSED to three keys, which is what "a card declares one Scene and nothing
+  // else" means when the scene is data: a card cannot smuggle a builder, a second camera or a stray
+  // option into it, because a fourth key would be read by nobody and would say so here.
   const SCENE_KEYS = ['aria-label', 'parts', 'reset'];
   const RESET_KEYS = ['keys', 'pods', 'extra'];
 
@@ -358,7 +359,7 @@ describe('S-04 and S-05: one camera, and no card owns it', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// S-01, S-10, S-11. The skeleton the 108 cards used to copy, now generated once. These three probes
+// S-01, S-10, S-11. The skeleton every migrated card's enter() is generated from. These three probes
 // are the only assertions in the suite that watch the generated enter() run, so they use fakes that
 // record rather than a DOM: what is being measured is call ORDER, not what the calls draw.
 // ---------------------------------------------------------------------------------------------
@@ -417,8 +418,9 @@ describe('S-01, S-10, S-11: the skeleton, generated once instead of copied 108 t
     t.diagnostic(`prologue order: ${trace.join(' -> ')}`);
   });
 
-  // S-10: what the generated enter() does, in order, on both paths. This is the successor of "every
-  // enter() opens with resetStep(s) and nothing before it": there is now one enter() and it is here.
+  // S-10: what the generated enter() does, in order, on both paths. There is exactly ONE enter() in
+  // the catalog and it is generated, so "opens with the prologue and nothing before it" is a fact
+  // about one function rather than a convention 108 hand-written copies each have to honour.
   test('S-10: the generated enter() opens with the prologue, and the escape closes the static block', (t) => {
     const F = stepSpec.makeFlowKinds({ role: 'probe' });
     const build = (extra = {}) => {
@@ -469,9 +471,9 @@ describe('S-01, S-10, S-11: the skeleton, generated once instead of copied 108 t
 });
 
 // ---------------------------------------------------------------------------------------------
-// C-04, the half R-opacity used to cover by scanning source expressions. Every shade a migrated card
-// DECLARES, read off the spec. The vocabulary is imported from the live tokens.js: copying the five
-// numbers into this file would let the two drift and leave the test green.
+// C-04 covers every shade a migrated card DECLARES, read off the spec rather than out of a source
+// expression. The vocabulary is imported from the live tokens.js: copying the five numbers into
+// this file would let the two drift and leave the test green.
 // ---------------------------------------------------------------------------------------------
 describe('C-04: every declared shade comes from the OPACITY vocabulary', () => {
   const ALLOWED = new Map([

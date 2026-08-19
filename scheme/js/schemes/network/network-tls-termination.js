@@ -55,7 +55,9 @@ export const SCENE = {
     P.arrow({ from: HS_BACK[0], to: HS_BACK[1], dashed: true, dim: true }),
     P.arrow({ from: TO_POD[0], to: TO_POD[1], dashed: true, dim: true }),
     P.arrow({ from: CERT[0], to: CERT[1], dashed: true, dim: true }),
-    P.wire({ key: 'c', x: midX(CLIENT_EDGE, ING_LEFT), y: FLOW_Y - 12 }),
+    // The client leg is a lane PAIR, so its caption clears the OUT lane at 300 rather than sitting on
+    // it. The backend leg is a single lane on FLOW_Y, so 12 above FLOW_Y is already clear of the ball.
+    P.wire({ key: 'c', x: midX(CLIENT_EDGE, ING_LEFT), y: HS_OUT_Y - 12 }),
     P.wire({ key: 'p', x: midX(ING_RIGHT, POD_LEFT), y: FLOW_Y - 12 }),
     P.chip({ key: 'schemeChip', x: CHIP_X[0], y: CHIP_Y, w: CHIP_W[0], h: CHIP_H, name: 'wire', value: 'idle' }),
     P.chip({ key: 'tlsChip', x: CHIP_X[1], y: CHIP_Y, w: CHIP_W[1], h: CHIP_H, name: 'TLS', value: 'none' }),
@@ -86,24 +88,29 @@ export const STEPS_SPEC = [
     chips: { schemeChip: 'https', tlsChip: 'handshake', certChip: 'presented', backChip: 'none' },
     wires: { c: 'TLS handshake · https' },
     lit: ['secret', 'schemeChip', 'tlsChip', 'certChip', 'client'],
+    // The wire turns https and the handshake opens when the hello lands at 700, and the certificate
+    // is presented only when it leaves the Secret and arrives at 1500.
+    rewind: { chips: { schemeChip: 'idle', tlsChip: 'none', certChip: 'in Secret' } },
     // No Pod on this leg: the client and ingress are infra. The encrypted hello rides client ->
     // ingress, which lights on arrival along with the Secret it pulled the cert from.
     flow: [
       F.segment({ from: HELLO[0], to: HELLO[1], name: 'hello', lights: ['ingress'] }),
+      F.set({ at: 'hello', chips: { schemeChip: 'https', tlsChip: 'handshake' } }),
       // The certificate the controller PRESENTS, then the server side of the handshake reaching the
       // client, so the exchange completes where the narration says it completes.
       F.segment({ from: CERT[0], to: CERT[1], after: 'hello', name: 'cert' }),
       F.segment({ from: HS_BACK[0], to: HS_BACK[1], after: 'cert' }),
+      F.set({ at: 'cert', chips: { certChip: 'presented' } }),
     ],
   },
   {
     id: 'terminate',
     duration: 2400,
     narration: 'With the session established, the Ingress decrypts the request. This is the termination point: the encrypted stream ends here and the controller now holds the plain HTTP request, headers and body in the clear, ready to be routed by host and path.',
-    chips: { schemeChip: 'now http', tlsChip: 'terminated', certChip: 'presented', backChip: 'none' },
+    chips: { schemeChip: 'https', tlsChip: 'terminated', certChip: 'presented', backChip: 'none' },
     // Decryption happens inside the highlighted Ingress. The box lights via .highlight, it does not
     // flash, so this step reads as the calm termination point rather than a blink.
-    lit: ['ingress', 'tlsChip', 'schemeChip'],
+    lit: ['ingress', 'tlsChip'],
   },
   {
     id: 'proxy',

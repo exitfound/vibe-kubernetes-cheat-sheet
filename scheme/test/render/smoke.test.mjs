@@ -11,23 +11,26 @@
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, floor, SUBSET } from '../fixtures/catalog.mjs';
 import {
-  DEFAULT_BASE, STEP_SETTLE_MS,
-  launch, setInspect, discoverIds, openCard, builtChildren, stepCount, enterStep, gotoStep,
-  collectPageErrors,
+  builtChildren, collectPageErrors, DEFAULT_BASE, discoverIds, enterStep, gotoStep, launch,
+  openCard, initPage, stepCount,
 } from '../fixtures/render.mjs';
 
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 // NOT reducedMotion: the played pass has to run the real motion path.
 const context = await browser.newContext();
 const page = await context.newPage();
-await page.addInitScript(setInspect, 'expose');
+await page.addInitScript(initPage, 'expose');
 const ids = await discoverIds(page, DEFAULT_BASE);
-
-after(() => browser.close());
 
 // Two independent answers to "how many cards are there": the rendered grid and data.js. Comparing
 // them is what makes a short run red instead of quietly green over a subset.
@@ -54,13 +57,11 @@ for (const id of ids) {
       // Pass 1, reduced: the static end state of every step, the path prev and reset take.
       for (let i = 0; i < total; i++) {
         await gotoStep(page, i);
-        await page.waitForTimeout(STEP_SETTLE_MS);
       }
       // Pass 2, played: enterStep runs each step's real enter() with reduced:false and freezes it.
       // Starts at 1, because step 0 is the static poster and has no play path of its own.
       for (let i = 1; i < total; i++) {
         await enterStep(page, i);
-        await page.waitForTimeout(STEP_SETTLE_MS);
       }
 
       const errs = collector.errors;

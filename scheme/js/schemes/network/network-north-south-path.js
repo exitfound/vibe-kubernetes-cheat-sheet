@@ -53,6 +53,13 @@ const LB2C = [[LB_X, RET_Y], [CLIENT_RIGHT, RET_Y]];
 const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
+// A request-lane tag rides ABOVE the row, clearing the taller of the two blocks its hop joins by 3
+// (-23 / -26 / -36): every gap here is narrower than the address, so on the lane the edge cuts it.
+const fwdTagDy = (h) => FLOW_Y - h / 2 - FWD_Y - 6;
+// The last reply hop passes under the two 74-tall outside blocks, whose floor at 393 runs through the
+// glyph tops at the 24 the other two use. Clear from 28 on all four viewports, taken at 30 for margin.
+const LAST_HOP_TAG_DY = 30;
+
 // The list order IS the append order, which is the z-order: the two framing regions in back, then
 // the blocks, then wires + labels above them, then chips, then the packet layer with its tags on top.
 export const SCENE = {
@@ -96,25 +103,28 @@ export const SCENE = {
 
 const NO_FLOW = 'no flow yet';
 const PINNED = '192.168.1.20:31000 -> 10.244.2.7:8080  pinned';
+// The Service type is the premise of the whole path and no step changes it, so every step states it
+// at the one value the strip is built with.
+const SVC_TYPE = 'type: LoadBalancer';
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { stageChip: 'idle', dnatChip: 'none', backChip: 'none' },
+    chips: { stageChip: 'idle', svcChip: SVC_TYPE, dnatChip: 'none', backChip: 'none' },
     sublabels: { conntrack: NO_FLOW },
   },
   {
     id: 'lb',
     duration: 2200,
     narration: 'The client connects to the public IP, which belongs to a cloud load balancer provisioned for the LoadBalancer Service. The LB is the only address exposed to the internet, and it is still outside the cluster. It picks one healthy Node to forward the connection to.',
-    chips: { stageChip: 'cloud LB', dnatChip: 'none', backChip: 'none' },
+    chips: { stageChip: 'cloud LB', svcChip: SVC_TYPE, dnatChip: 'none', backChip: 'none' },
     sublabels: { conntrack: NO_FLOW },
     lit: ['client', 'stageChip', 'svcChip'],
     // The packet carries the public IP as its destination, and the tag rides with it.
     flow: [
       F.segment({ from: C2LB[0], to: C2LB[1], name: 'hop' }),
-      tag({ text: 'dst 203.0.113.9:443', points: C2LB }),
+      tag({ text: 'dst 203.0.113.9:443', points: C2LB, dy: fwdTagDy(LB_H) }),
       F.light({ targets: ['lb'], at: 'hop' }),
     ],
   },
@@ -122,13 +132,13 @@ export const STEPS_SPEC = [
     id: 'nodeport',
     duration: 2400,
     narration: 'The load balancer rewrites the destination to a Node and the Service NodePort, a high port opened on every Node, and the packet crosses the cluster edge. The kube-proxy programmed the rules that catch that port, so the packet is matched on arrival with the destination still the Node IP and that port.',
-    chips: { stageChip: 'NodePort', dnatChip: 'none', backChip: 'none' },
+    chips: { stageChip: 'NodePort', svcChip: SVC_TYPE, dnatChip: 'none', backChip: 'none' },
     sublabels: { conntrack: NO_FLOW },
     lit: ['lb', 'stageChip', 'svcChip'],
     // The only hop that crosses the region gap on the way in: the destination is now a Node, not the LB.
     flow: [
       F.segment({ from: LB2KP[0], to: LB2KP[1], name: 'hop' }),
-      tag({ text: 'dst 192.168.1.20:31000', points: LB2KP }),
+      tag({ text: 'dst 192.168.1.20:31000', points: LB2KP, dy: fwdTagDy(KP_H) }),
       F.light({ targets: ['kproxy'], at: 'hop' }),
     ],
   },
@@ -136,7 +146,7 @@ export const STEPS_SPEC = [
     id: 'dnat',
     duration: 2800,
     narration: 'The Service rules DNAT the destination to a backing Pod IP, and conntrack records the flow so every later packet of this connection takes the same backend and the reply can be unwound. The rewritten packet is delivered to the Pod, which serves the request on its real port.',
-    chips: { stageChip: 'DNAT', dnatChip: '-> 10.244.2.7:8080', backChip: '10.244.2.7:8080' },
+    chips: { stageChip: 'DNAT', svcChip: SVC_TYPE, dnatChip: '-> 10.244.2.7:8080', backChip: '10.244.2.7:8080' },
     sublabels: { conntrack: PINNED },
     lit: ['kproxy', 'conntrack', 'stageChip', 'svcChip', 'dnatChip', 'backChip'],
     // The animated path says the Pod was served by PULSING it, which no lights list can name.
@@ -145,7 +155,7 @@ export const STEPS_SPEC = [
     // carrying the Pod address. Down-arrow: packet first, the Pod pulses on arrival.
     flow: [
       F.segment({ from: KP2POD[0], to: KP2POD[1], name: 'give' }),
-      tag({ text: 'dst 10.244.2.7:8080', points: KP2POD }),
+      tag({ text: 'dst 10.244.2.7:8080', points: KP2POD, dy: fwdTagDy(POD_H) }),
       F.pulse({ pod: 'podX', at: 'give' }),
     ],
   },
@@ -155,7 +165,7 @@ export const STEPS_SPEC = [
     // ripple + tag fade run to ~3660, so the step holds a touch longer than that before auto-advancing.
     duration: 3700,
     narration: 'The Pod replies, and the answer retraces the same chain in reverse, drawn here as its own lane. The conntrack table matches the reply to the flow it pinned and undoes the DNAT, so the source becomes the Node and its NodePort again, then the load balancer rewrites it once more and the client sees an answer from the public IP it dialed. The client never learns the Pod address, and every rewrite the request crossed is unwound on the way out.',
-    chips: { stageChip: 'reply unwinds', dnatChip: 'reverse NAT', backChip: '10.244.2.7:8080' },
+    chips: { stageChip: 'reply unwinds', svcChip: SVC_TYPE, dnatChip: 'reverse NAT', backChip: '10.244.2.7:8080' },
     sublabels: { conntrack: PINNED },
     lit: ['conntrack', 'stageChip', 'dnatChip', 'backChip'],
     // Up-arrow: the Pod is the sender, so it pulses FIRST and the reply leaves at BEAT.afterPulse.
@@ -169,7 +179,7 @@ export const STEPS_SPEC = [
       tag({ text: 'src 192.168.1.20:31000', points: KP2LB, after: 'h1', dy: 24 }),
       F.light({ targets: ['lb'], at: 'h2' }),
       F.segment({ from: LB2C[0], to: LB2C[1], after: 'h2', name: 'h3' }),
-      tag({ text: 'src 203.0.113.9:443', points: LB2C, after: 'h2', dy: 24 }),
+      tag({ text: 'src 203.0.113.9:443', points: LB2C, after: 'h2', dy: LAST_HOP_TAG_DY }),
       F.light({ targets: ['client'], at: 'h3' }),
     ],
   },

@@ -148,7 +148,7 @@ export const STEPS_SPEC = [
     lit: ['ctrl'],
     chain: 0,
     // An infra-to-infra call: the source is lit at entry, so the ball leaves after BEAT.lead and the
-    // destination lights on arrival. The cue is its OWN entry because it stood after the tag.
+    // destination lights on arrival. The cue is its OWN entry so it lands after the tag.
     flow: [
       F.route({ points: W_CREATE, delay: BEAT.lead, name: 'create' }),
       F.tag({ text: 'CreateVolume', points: W_CREATE, delay: BEAT.lead }),

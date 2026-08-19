@@ -178,7 +178,7 @@ export const STEPS_SPEC = [
   {
     id: 'scale',
     duration: 2600,
-    narration: 'Either mode turns the ClusterIP into a ready backend, so the only real difference is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new Service slows the walk, while the IPVS hash stays one step. That constant-time behaviour is why large clusters long preferred IPVS, though Kubernetes deprecated the IPVS mode in v1.35 in favour of the newer nftables mode.',
+    narration: 'Either mode turns the ClusterIP into a ready backend, and the difference scale exposes is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new Service slows the walk, while the IPVS hash stays one step. That constant-time behaviour is why large clusters long preferred IPVS, though Kubernetes deprecated the IPVS mode in v1.35 in favour of the newer nftables mode.',
     chips: { iptChip: 'thousands of rules', pickChip: 'unchanged by scale', ipvsChip: 'still one lookup' },
     wires: { ipt: 'grows with every Service', ipvs: 'constant time' },
     opacity: ALL_UP,

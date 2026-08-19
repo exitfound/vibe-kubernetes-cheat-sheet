@@ -24,9 +24,9 @@ const GRID_MID_X = midX(COL_L, COL_R + BW);                        // 870, midpo
 const EXT_PATH = [[CLIENT_EDGE, SHELL_CY], [SHELL_X, SHELL_CY]];
 const LOCAL_HOP = [[APP_EDGE, LOCAL_Y], [SIDE_LEFT, LOCAL_Y]];
 
-// The tag that rides a ball on this card: hold 260 leaves the dialled address up while the Pod pulse
-// and the eth0 and app lights land on arrival, so the address and what answered it read together.
-const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
+// The tag that rides a ball on this card. Both lanes end ON a block edge with the address centred on
+// it, so hold 0 + emergeMode is what keeps the tag off the two faces it flies between.
+const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
 // The four boxes drawn inside the Pod go INSIDE its group, so the pulse reaches them: a Pod blinks
@@ -114,7 +114,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'client' }),
       F.route({ points: EXT_PATH, delay: BEAT.afterPulse, name: 'hop' }),
-      tag({ text: 'dst 10.244.1.5:8080', points: EXT_PATH, delay: BEAT.afterPulse, dur: routeDur(EXT_PATH) }),
+      tag({ text: 'dst 10.244.1.5:8080', points: EXT_PATH, delay: BEAT.afterPulse, dur: routeDur(EXT_PATH), emerge: 150 }),
       F.pulse({ pod: 'podGroup', at: 'hop' }),
       F.light({ targets: ['eth0', 'app'], at: 'hop' }),
     ],

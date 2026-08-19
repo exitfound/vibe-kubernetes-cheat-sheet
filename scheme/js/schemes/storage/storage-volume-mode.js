@@ -1,4 +1,4 @@
-import { P, F, defineCard, BEAT, laneY } from './storage-kit.js';
+import { P, F, defineCard, BEAT, laneY, makeRidingLabel } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volume-mode
 
 
@@ -42,13 +42,25 @@ const FS = laneY(FS_CX, LANE);                           // 486 / 510
 const BLK = laneY(BLK_CX, LANE);                         // 690 / 714
 const run = (x, y1, y2) => [[x, y1], [x, y2]];
 
+// The stage tag parks on the disk top and the return tag leaves from it 100ms later, 24 apart on x
+// with 57 and 69 of ink: -46 puts the pair 6 units apart at the widest viewport. See ./CARDS.md.
+const STAGE_TAG_DX = -46;
+
+// Every Pod lane ends on a Pod face, 14 from the sublabel the family offset parks on. This tag fades
+// in only once its ball is clear of that face: 200 hides the whole crossing on all four viewports.
+const emergeTag = makeRidingLabel({ role: 'storage', emergeMode: true });
+const TAG_EMERGE = 200;
+// A tag LANDING on the Pod floor rides below the ball instead: at -14 it parks 4 units of ink inside
+// `volumeMode: ...`, and at 12 the ball prints on the line. 22 is the offset volumeattachment uses.
+const MOUNT_TAG_DY = 22;
+
 const W_FS_ASK   = run(FS.out,  POD_BOTTOM,  BAND_TOP);  // Pod states what it wants
 const W_FS_PUB   = run(FS.back, BAND_TOP,    POD_BOTTOM);// node service hands it back
 const W_FS_STAGE = run(FS.out,  BAND_BOTTOM, PV_TOP);    // stage: mkfs then mount
 const W_FS_DEV   = run(FS.back, PV_TOP,      BAND_BOTTOM);// the disk answers
 const W_BLK_ASK   = run(BLK.out,  POD_BOTTOM,  BAND_TOP);
 const W_BLK_PUB   = run(BLK.back, BAND_TOP,    POD_BOTTOM);
-const W_BLK_STAGE = run(BLK.out,  BAND_BOTTOM, PV_TOP);
+const W_BLK_STAGE = run(BLK.out,  BAND_BOTTOM, PV_TOP);  // drawn, never travelled: Block has no staging
 const W_BLK_DEV   = run(BLK.back, PV_TOP,      BAND_BOTTOM);
 
 // The two Pods differ only in x, name and what they consume the volume under.
@@ -120,7 +132,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'podFs' }),
       F.route({ points: W_FS_ASK, delay: BEAT.afterPulse, name: 'ask' }),
-      F.tag({ text: 'wants a path', points: W_FS_ASK, delay: BEAT.afterPulse }),
+      F.tag({ text: 'wants a path', points: W_FS_ASK, delay: BEAT.afterPulse, fn: emergeTag, emerge: TAG_EMERGE }),
       F.light({ targets: ['band'], at: 'ask' }),
     ],
   },
@@ -135,7 +147,7 @@ export const STEPS_SPEC = [
     // and the disk lights on arrival. It hands the device back, or the fs branch mounts one it never got.
     flow: [
       F.route({ points: W_FS_STAGE, delay: BEAT.lead, name: 'staged' }),
-      F.tag({ text: 'mkfs ext4', points: W_FS_STAGE, delay: BEAT.lead }),
+      F.tag({ text: 'mkfs ext4', points: W_FS_STAGE, delay: BEAT.lead, dx: STAGE_TAG_DX }),
       F.light({ targets: ['pvFs'], at: 'staged' }),
       F.route({ points: W_FS_DEV, after: 'staged', name: 'handed' }),
       F.tag({ text: 'ext4 device', points: W_FS_DEV, after: 'staged' }),
@@ -153,7 +165,7 @@ export const STEPS_SPEC = [
     // arrival. Nothing lights, so the reduced path shows no cue here.
     flow: [
       F.route({ points: W_FS_PUB, delay: BEAT.lead, name: 'mounted' }),
-      F.tag({ text: 'mount at /data', points: W_FS_PUB, delay: BEAT.lead }),
+      F.tag({ text: 'mount at /data', points: W_FS_PUB, delay: BEAT.lead, fn: emergeTag, emerge: TAG_EMERGE, dy: MOUNT_TAG_DY }),
       F.pulse({ pod: 'podFs', at: 'mounted' }),
     ],
   },
@@ -166,7 +178,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'podBlk' }),
       F.route({ points: W_BLK_ASK, delay: BEAT.afterPulse, name: 'ask' }),
-      F.tag({ text: 'wants the device', points: W_BLK_ASK, delay: BEAT.afterPulse }),
+      F.tag({ text: 'wants the device', points: W_BLK_ASK, delay: BEAT.afterPulse, fn: emergeTag, emerge: TAG_EMERGE }),
       F.light({ targets: ['band'], at: 'ask' }),
     ],
   },
@@ -186,7 +198,7 @@ export const STEPS_SPEC = [
       F.tag({ text: 'device as is', points: W_BLK_DEV, delay: BEAT.lead }),
       F.light({ targets: ['band'], at: 'up' }),
       F.route({ points: W_BLK_PUB, after: 'up', name: 'published' }),
-      F.tag({ text: 'at /dev/xvda', points: W_BLK_PUB, after: 'up' }),
+      F.tag({ text: 'at /dev/xvda', points: W_BLK_PUB, after: 'up', fn: emergeTag, emerge: TAG_EMERGE, dy: MOUNT_TAG_DY }),
       F.pulse({ pod: 'podBlk', at: 'published' }),
     ],
   },

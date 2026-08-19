@@ -76,15 +76,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { stepTotal } from '../fixtures/module.mjs';
 import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, STEP_SETTLE_MS,
-  launch, setInspect, discoverIds, openCard, stepCount, enterStep, gotoStep,
-  installGeometryHelpers,
+  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, launch, initPage, discoverIds, openCard, stepCount,
+  enterStep, gotoStep, installGeometryHelpers,
 } from '../fixtures/render.mjs';
 
 // The recorded walk. Assertions, not notes: see the header.
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = (await cards()).length;
+const EXPECTED_STEPS = await stepTotal();
 
 // How far off a block's bbox a route endpoint may land and still count as arriving at it, from
 // check-arrival.mjs:28. Lanes stop on a FACE rather than in the middle of a block, and a lane pair is
@@ -199,7 +201,7 @@ test('arrival grammar across every step (report only, census is the one assertio
   try {
     browser = await launch();
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
-    await page.addInitScript(setInspect, 'expose');
+    await page.addInitScript(initPage, 'expose');
     await installGeometryHelpers(page);
     const ids = await discoverIds(page, DEFAULT_BASE);
 
@@ -235,7 +237,6 @@ test('arrival grammar across every step (report only, census is the one assertio
           // ctx.reduced so every deferred branch has already run. This is the settled end state, and
           // it is the only way a frozen harness can see a cue that lands mid-step.
           await gotoStep(page, i);
-          await page.waitForTimeout(STEP_SETTLE_MS);
           const settledData = await sample();
           const settled = (settledData && settledData.chips) || null;
 

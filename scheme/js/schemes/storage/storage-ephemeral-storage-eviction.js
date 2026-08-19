@@ -130,7 +130,7 @@ export const STEPS_SPEC = [
     id: 'request',
     duration: 2200,
     narration: 'The requests.ephemeral-storage value is what the Pod reserves on the Node when it is placed, the same way it reserves CPU and memory. The Pod lands only on a Node with room for that request, but the request alone does not cap what it may actually use.',
-    chips: chips('reserved by request', '1Gi', 'filling'),
+    chips: chips('not capped by request', '1Gi', 'filling'),
     opacity: ALL_UP,
     lit: ['usageChip', 'focusBox'],
     flow: [F.pulse({ pod: 'focusPod' })],
@@ -193,8 +193,9 @@ export const STEPS_SPEC = [
     duration: 2400,
     narration: 'So keep the two apart. A per-Pod limit is a promise about one Pod, enforced on that Pod alone. Node DiskPressure is a whole-node emergency that evicts by Pod Priority and by how far each Pod is over its request, and can take out a Pod that was well within its own limit.',
     chips: chips(SOURCES, 'per-Pod limit', 'node-wide pressure'),
-    // pod-b stays evicted from the node-wide path for contrast.
-    opacity: { ...ALL_UP, otherB: OPACITY.terminating },
+    // BOTH neighbours stay where the ranking left them: it took pod-b and then pod-c, and no narration
+    // here brings either back, so both carry the terminating shade rather than one of them.
+    opacity: { ...ALL_UP, otherB: OPACITY.terminating, otherC: OPACITY.terminating },
     // Recap both paths side by side: the Pod pool is the per-Pod limit actor, the node disk is the
     // node-wide pressure actor, so both light while the summary plays.
     lit: ['limitChip', 'nodeChip', 'usageChip', 'focusBox', 'disk'],

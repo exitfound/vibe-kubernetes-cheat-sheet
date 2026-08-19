@@ -46,9 +46,11 @@ const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
 const BUS_Y = NODE_Y - 12;                               // 374, between the ladder and the frame
 const TRUNK = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, BUS_Y]];
-const LANE = i => (POD_CX(i) === WL.SPINE_X
+// Built ONCE per worker: the drawn lane and every ball addressed to it read one array, so the two
+// cannot drift apart on a geometry edit.
+const LANES = [0, 1, 2].map(i => (POD_CX(i) === WL.SPINE_X
   ? [...TRUNK, [WL.SPINE_X, POD_Y]]
-  : [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]);
+  : [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]));
 
 // Z-order: the two top arrows, the wire label and the five strip chips, then the three lanes and
 // the packet layer, then chain / Node / Pods / actor row above the ball.
@@ -61,20 +63,20 @@ export const SCENE = {
     // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
     P.wire({ key: 'req', x: WIRE_X, y: WIRE_Y }),
     P.chip({ key: 'parChip', x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'parallelism', value: '3' }),
-    P.chip({ key: 'compChip', x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'completions', value: '6' }),
+    P.chip({ key: 'compChip', x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'completions', value: '5' }),
     P.chip({ key: 'succChip', x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'succeeded', value: '0' }),
     P.chip({ key: 'failChip', x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'failed', value: '0' }),
     // State chip for the Job status: last chip of the strip.
     P.chip({ key: 'phaseChip', x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'job status', value: '0 active' }),
     // One drawn lane per worker. They share the trunk and the bus, so the three paths coincide
     // there and read as a single wiring tree with three arrowheads.
-    ...[0, 1, 2].map(i => P.lane({ key: `lane${i}`, points: LANE(i), dim: true, dashed: true, role: 'cluster' })),
+    ...[0, 1, 2].map(i => P.lane({ key: `lane${i}`, points: LANES[i], dim: true, dashed: true, role: 'cluster' })),
     P.packets(),
     // Everything below is appended AFTER the packet layer, so the ball runs under it.
     P.chain({
       key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
-        '1. spec     ·  parallelism=3, completions=6',
+        '1. spec     ·  parallelism=3, completions=5',
         '2. spawn    ·  controller creates Pods up to parallelism',
         '3. progress ·  exit 0 → succeeded++ · then start next',
         '4. retry    ·  exit != 0 → failed++ · respawn (backoffLimit)',
@@ -105,7 +107,7 @@ const row = (a, b, c) => ({ pod1: a, lane0: a, pod2: b, lane1: b, pod3: c, lane2
 // One ball per worker, all leaving together, so every Pod that pulses has a ball that reached it.
 // `routeDur` is length-based, so taps 0 and 2 tie for last and the counting chip hangs off create0.
 const fan = (i) => [
-  F.route({ points: LANE(i), after: 'req', name: `create${i}` }),
+  F.route({ points: LANES[i], after: 'req', name: `create${i}` }),
   F.pulse({ pod: `pod${i + 1}`, at: `create${i}` }),
 ];
 const born = (i) => F.fade({ target: `pod${i + 1}`, from: 0, to: 1, dur: FADE.in, at: `create${i}`, fill: 'both', easing: 'ease-out' });
@@ -118,7 +120,7 @@ export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { parChip: '3', compChip: '6', succChip: '0', failChip: '0', phaseChip: '0 active' },
+    chips: { parChip: '3', compChip: '5', succChip: '0', failChip: '0', phaseChip: '0 active' },
     sublabels: { pod1Box: 'idle', pod2Box: 'idle', pod3Box: 'idle' },
     opacity: row(0, 0, 0),
     chain: 0,
@@ -127,9 +129,7 @@ export const STEPS_SPEC = [
     id: 'spawn',
     duration: 3500,
     narration: 'Job controller observes 0 live Pods against a parallelism of 3, so it creates 3 Pods to fill the cap. They all run the same Pod template. How they divide work is up to the app (pull from an external queue, or, with completionMode=Indexed, read JOB_COMPLETION_INDEX from the env). With three Pods now running, .status.active becomes 3.',
-    // The step STARTS from zero live Pods, the observation its narration opens with, and the chip
-    // turns over only once the creates land: parallelism=3 starts the three Pods simultaneously.
-    chips: { parChip: '3', compChip: '6', succChip: '0', failChip: '0', phaseChip: '0 active' },
+    chips: { parChip: '3', compChip: '5', succChip: '0', failChip: '0', phaseChip: 'Running · 3 active' },
     wires: { req: 'create 3 Pods (parallelism cap)' },
     sublabels: { pod1Box: 'running · unit-1', pod2Box: 'running · unit-2', pod3Box: 'running · unit-3' },
     // Pin final opacities so a step change (which cancels the fade-in animations) leaves the Pods
@@ -137,6 +137,9 @@ export const STEPS_SPEC = [
     opacity: row(1, 1, 1),
     lit: ['controller', 'phaseChip'],
     chain: 1,
+    // The step STARTS from zero live Pods, the observation its narration opens with, and turns the
+    // chip over once the creates land: parallelism=3 starts the three Pods simultaneously.
+    rewind: { chips: { phaseChip: '0 active' } },
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
       ...fan(0), ...fan(1), ...fan(2),
@@ -149,8 +152,8 @@ export const STEPS_SPEC = [
     // Motion: the three workers pulse their exits (to 900), then the watch event leaves at 800 and
     // lands on the controller at 1500, its ripple closing the step at 2060.
     duration: 2600,
-    narration: 'Both worker-1 and worker-2 exit 0, so .status.succeeded increments to 2. worker-3 exits with code 1, .status.failed becomes 1. The failed Pod is retained in Failed phase as a tombstone (visible in kubectl get pods until the Job is garbage-collected), so the post-mortem stays inspectable. A replacement still needs to run to reach completions=6.',
-    chips: { parChip: '3', compChip: '6', succChip: '2', failChip: '1', phaseChip: 'Running · 1 failed' },
+    narration: 'Both worker-1 and worker-2 exit 0, so .status.succeeded increments to 2. worker-3 exits with code 1, .status.failed becomes 1. The failed Pod is retained in Failed phase as a tombstone (visible in kubectl get pods until the Job is garbage-collected), so the post-mortem stays inspectable. A replacement still needs to run to reach completions=5.',
+    chips: { parChip: '3', compChip: '5', succChip: '2', failChip: '1', phaseChip: 'Running · 1 failed' },
     wires: { req: 'watch Pod exits · 2 exit 0 · 1 exit 1' },
     sublabels: { pod1Box: 'unit-1 done · exit 0', pod2Box: 'unit-2 done · exit 0', pod3Box: 'unit-3 FAILED · exit 1' },
     // Pin final opacities (worker-3 exited 1 and settles to the terminated shade) so a cancel does
@@ -175,7 +178,7 @@ export const STEPS_SPEC = [
     id: 'retry',
     duration: 3500,
     narration: 'Per spec.backoffLimit (default 6, total failures across the Job), the controller respawns a replacement Pod for the failed unit, gated by an exponential backoff that starts at 10s. Meanwhile worker-1 and worker-2 have finished, so fresh Pods take their slots for units 4 and 5 (each completion is its own Pod run, Pods are never reused). Three Pods active again, the parallelism cap respected.',
-    chips: { parChip: '3', compChip: '6', succChip: '2', failChip: '1', phaseChip: 'Running · 3 active' },
+    chips: { parChip: '3', compChip: '5', succChip: '2', failChip: '1', phaseChip: 'Running · 3 active' },
     wires: { req: 'create Pods · units 4, 5 + unit-3 retry' },
     sublabels: { pod1Box: 'running · unit-4', pod2Box: 'running · unit-5', pod3Box: 'running · unit-3 (retry)' },
     // Pin final opacities (worker-3 replacement back to 1) so a cancel does not drop the three live
@@ -192,10 +195,10 @@ export const STEPS_SPEC = [
     id: 'complete',
     // Motion: the three workers pulse their final exits and nothing else, so the step closes at 900.
     duration: 2200,
-    narration: 'Between them the three workers have completed all 6 units, the last one (unit-6) just finishing on worker-1. .status.succeeded now equals .spec.completions (6), so the controller sets condition Complete=True and stops creating Pods. The earlier single failure stays counted in .status.failed, and the terminated Pods are retained until ttlSecondsAfterFinished elapses (Job auto-cleanup) or until kubectl delete job is issued.',
-    chips: { parChip: '3', compChip: '6', succChip: '6', failChip: '1', phaseChip: 'Complete · 6/6 succeeded' },
+    narration: 'The last three runs each exit 0: the unit-3 retry alongside units 4 and 5. .status.succeeded now equals .spec.completions (5), so the controller sets condition Complete=True and stops creating Pods. The earlier single failure stays counted in .status.failed, and the terminated Pods are retained until ttlSecondsAfterFinished elapses (Job auto-cleanup) or until kubectl delete job is issued.',
+    chips: { parChip: '3', compChip: '5', succChip: '5', failChip: '1', phaseChip: 'Complete · 5/5 succeeded' },
     wires: { req: 'watch final exit · succeeded == completions' },
-    sublabels: { pod1Box: 'unit-6 done · exit 0', pod2Box: 'unit-5 done · exit 0', pod3Box: 'unit-3 done · exit 0' },
+    sublabels: { pod1Box: 'unit-4 done · exit 0', pod2Box: 'unit-5 done · exit 0', pod3Box: 'unit-3 done · exit 0' },
     // Pin final opacities so the three Pods stay visible after a cancel.
     opacity: row(1, 1, 1),
     lit: ['controller', 'phaseChip', 'succChip'],

@@ -23,6 +23,12 @@ const CHIPS_Y = 570;              // 34 above the canvas floor, equal to the top
 const CHIP_W = 232, CHIP_GAP = 16;
 const STRIP = chipStrip({ w: CHIP_W, gap: CHIP_GAP });      // 976 wide, x0 112, so it centres on CX
 
+const ROW_TAG_DY = ROW_Y - ROW_MY - 6;    // -42: a tag on a row hop rides 3 above the row top
+
+// When the cascade leaves on the gc step: the deleted Pod blinks, then it goes, then the ordinary
+// gap between an event and the send it causes. 1600, and the step spans 3800 against a 4200 hold.
+const GC_SEND = BEAT.afterPulse + FADE.out + BEAT.afterHop;
+
 const W_CLAIM_PROV = [[CX + CLAIM_W / 2, ROW_MY], [PROV_CX - SIDE_W / 2, ROW_MY]];
 const W_CREATE     = [[PROV_CX, ROW_BOTTOM], [PROV_CX, PV_MY], [CX + PV_W / 2, PV_MY]];
 const W_DOWN_HIGH  = [[CX, POD_BOTTOM], [CX, ROW_Y]];
@@ -117,7 +123,9 @@ export const STEPS_SPEC = [
     rewind: { opacity: stage({ claim: 1, disk: OPACITY.pending, on: ['wClaimProv', 'wCreate'] }) },
     flow: [
       F.route({ points: W_CLAIM_PROV, delay: BEAT.lead, name: 'claim' }),
-      F.tag({ text: 'storageClassName: fast-ssd', points: W_CLAIM_PROV, delay: BEAT.lead }),
+      // Rides above the row: the claim and the provisioner leave a 60 unit gap and the tag is three
+      // times that, so on the midline the two block edges print through it for the whole hop.
+      F.tag({ text: 'storageClassName: fast-ssd', points: W_CLAIM_PROV, delay: BEAT.lead, dy: ROW_TAG_DY }),
       F.light({ targets: ['prov'], at: 'claim' }),
       F.route({ points: W_CREATE, after: 'claim', name: 'create' }),
       F.tag({ text: 'CreateVolume', points: W_CREATE, after: 'claim' }),
@@ -173,12 +181,13 @@ export const STEPS_SPEC = [
     // closing frame is the collapsed column and nothing else.
     opacity: stage({ podOn: OPACITY.terminated, claim: OPACITY.terminated, disk: OPACITY.terminated }),
     rewind: { opacity: stage({ podOn: 1, claim: 1, disk: 1, on: ['wDownHigh', 'wDownLow'] }) },
-    // The Pod goes first, then the cascade walks down the column: the claim next, then the disk, each
-    // fade timed off the arrival of the lane that carried it, which then goes out behind it.
+    // The deleted Pod blinks at full and only then goes (M-08), and the cascade follows it down the
+    // column: the claim, then the disk, each fade timed off the arrival of the lane that carried it.
     flow: [
-      F.fade({ target: 'podB', to: OPACITY.terminated, dur: FADE.out, fill: 'forwards' }),
-      F.route({ points: W_DOWN_HIGH, delay: FADE.out + BEAT.afterHop, name: 'gcHigh' }),
-      F.tag({ text: 'ownerReference GC', points: W_DOWN_HIGH, delay: FADE.out + BEAT.afterHop }),
+      F.pulse({ pod: 'podB' }),
+      F.fade({ target: 'podB', to: OPACITY.terminated, dur: FADE.out, delay: BEAT.afterPulse, fill: 'forwards' }),
+      F.route({ points: W_DOWN_HIGH, delay: GC_SEND, name: 'gcHigh' }),
+      F.tag({ text: 'ownerReference GC', points: W_DOWN_HIGH, delay: GC_SEND }),
       F.fade({ target: 'pvc', to: OPACITY.terminated, dur: FADE.out, fill: 'forwards', at: 'gcHigh' }),
       F.fade({ target: 'wDownHigh', to: 0, dur: FADE.out, fill: 'forwards', at: 'gcHigh' }),
       F.route({ points: W_DOWN_LOW, after: 'gcHigh', name: 'gcLow' }),

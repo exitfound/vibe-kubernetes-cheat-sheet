@@ -1,12 +1,13 @@
 // catalog.mjs: the one place that knows which cards exist and where their files live. The list
 // comes from data.js by IMPORT, never from a directory listing.
 //
-// Why not a readdir. Every filesystem check used to open the card directory itself with
-// `(await readdir(DIR)).filter(n => n.endsWith('.js'))`. That filter reports ZERO files the moment
-// cards live in subdirectories, because a directory name does not end in '.js', and five of the six
-// browser-free checks would then scan nothing, find nothing and exit 0. A green run over an empty
-// set is worse than a red one, so the list comes from the catalog and every walker asserts with
-// census() that it collected all of it.
+// Why not a readdir. A check that opens the card directory itself with
+// `(await readdir(DIR)).filter(n => n.endsWith('.js'))` reports ZERO files the moment cards live in
+// subdirectories, because a directory name does not end in '.js', and every browser-free check
+// would then scan nothing, find nothing and exit 0. A green run over an empty set is worse than a
+// red one, so the list comes from the catalog and every walker asserts with census() that it
+// collected all of it. data.js is the only listing: a module nobody lists is invisible, which is
+// what CATALOG asserts.
 //
 // No browser here on purpose: the unit tests must not pull in playwright.
 
@@ -22,6 +23,49 @@ export const ROOT = join(__dirname, '..', '..');
 
 const importFromRoot = (...seg) => import(pathToFileURL(join(ROOT, ...seg)).href);
 
+// ---------------------------------------------------------------------------------------------
+// THE CATALOG BASELINE: the two numbers the harness is calibrated against, TYPED EXACTLY ONCE.
+//
+// Every other file derives its own baseline from what it actually reads: a card count from
+// `(await cards()).length`, a step count from `stepTotal()` in ./module.mjs. Sixteen files used to
+// type `108` and `650` themselves, eight of them as the only guard they had, and a floor written
+// as a literal weakens the moment the catalog grows past it: with 109 cards a walk that silently
+// skips one still clears `>= 108` and reports a clean catalog. `S-49` says a count a DOCUMENT
+// states is measured rather than typed, and the harness owes itself the same.
+//
+// So what is left here is a baseline rather than a floor, and it has one job: notice that the
+// catalog itself changed. One assertion per half holds it against the tree:
+//   cards  `unit/catalog.test.mjs`, against the length of SCHEMES in data.js
+//   steps  `unit/spec-steps.test.mjs`, against the sum of every card's STEPS_SPEC
+// A render file that states which catalog it was calibrated against reads the same constant
+// rather than typing one, which is the whole point: there is one number to change, not sixteen.
+// Changing a number here is how a card being added or removed is acknowledged on purpose. If you
+// are about to edit one of these to make a run go green, read what the run is telling you first.
+// ---------------------------------------------------------------------------------------------
+export const CATALOG_BASELINE = Object.freeze({ cards: 108, steps: 650 });
+
+// ---------------------------------------------------------------------------------------------
+// SCHEME_IDS=a,b restricts the BROWSER walks to those cards, the way OVERLAY_IDS already restricts
+// the panel report. It exists for one workflow: reviewing a single card, where the render suite
+// spends 70 seconds walking 108 cards to reach a second of work on the one being reviewed.
+//
+// IT MUST NOT BE ABLE TO FAKE A GREEN GATE. Two things enforce that. `census()` below refuses to
+// compare a subset against the catalog and returns instead of passing quietly, and `floor()`
+// collapses a catalog-scale baseline to zero, because a floor is a statement about a FULL walk and
+// a subset run was never given the input to make it. The run announces itself on stdout as well, so
+// a scrollback cannot be mistaken for the real thing. The gate before a commit is the unfiltered
+// run, always.
+//
+// The filter deliberately does NOT touch cards(): the browser-free unit tests read the whole
+// catalog in 1.7 seconds and have nothing to gain from a subset.
+// ---------------------------------------------------------------------------------------------
+export const ONLY = (process.env.SCHEME_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+export const SUBSET = ONLY.length > 0;
+export const floor = (n) => (SUBSET ? 0 : n);
+// For a test that asserts an EXACT catalog census rather than a floor: zeroing the number would
+// only make it wrong in the other direction, so the test is skipped by name on a subset run.
+export const FULL_ONLY = SUBSET ? { skip: 'SCHEME_IDS subset: a census needs the full walk' } : {};
+
 // The raw catalog barrel: CATEGORIES, CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE, SCHEMES,
 // SUBCATEGORIES. Everything below is a projection of this, so a test that needs a field nobody
 // wrapped yet can reach it without a second import path appearing.
@@ -34,8 +78,7 @@ export async function schemes() {
   return SCHEMES;
 }
 
-// Every card with the path of its module, sorted by basename (the order readdir().sort() used to
-// give, so output stays comparable with the old checks).
+// Every card with the path of its module, sorted by basename.
 //
 // `path` is built from the convention app.js imports by, js/schemes/<cat>/<id>.js, so a test reads
 // exactly what the browser loads. The convention itself is not assumed: asserting both halves of it
@@ -50,8 +93,8 @@ export async function cards() {
     .sort((a, b) => (a.base < b.base ? -1 : a.base > b.base ? 1 : 0));
 
   // Every catalogued card must have a file, checked HERE so a walker cannot start on a partial set.
-  // This is the guarantee a directory listing used to give away for free and that data.js alone
-  // cannot: data.js will happily point at a path nobody created. Reading a missing file would throw
+  // data.js has to guarantee that every entry it lists has a file behind it, and it cannot do that
+  // on its own: it will happily point at a path nobody created. Reading a missing file would throw
   // anyway, but only midway through a run, after half the assertions had already passed.
   const missing = list.filter(c => !existsSync(c.path));
   if (missing.length) {
@@ -59,11 +102,6 @@ export async function cards() {
     throw new Error(`catalog FAILED: ${missing.length} of ${list.length} catalogued card(s) have no source file.\n  ${detail}`);
   }
   return list;
-}
-
-// The cards of one category, in catalog order.
-export async function cardsIn(category) {
-  return (await cards()).filter(c => c.category === category);
 }
 
 // category key -> its cards. Built from the same list, so the two views cannot disagree.
@@ -132,7 +170,7 @@ export async function folderFiles(category) {
 // and is not. Skipped when the caller was handed an explicit subset, the one legitimate way to
 // scan fewer.
 export function census(label, collected, total, { subset = false } = {}) {
-  if (subset) return;
+  if (subset || SUBSET) return;                 // SCHEME_IDS: a subset walk has nothing to census
   if (collected !== total) {
     throw new Error(
       `${label} CENSUS FAILED: collected ${collected} card(s), data.js lists ${total}.\n` +

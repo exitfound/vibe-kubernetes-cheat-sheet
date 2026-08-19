@@ -27,7 +27,7 @@ const LADDER_X = LAYOUT.C.ladder.x, LADDER_W = LAYOUT.C.ladder.w;   // 660..1140
 const LADDER_Y = 170, ROW_H = CLU.ROW_H, ROW_GAP = CLU.ROW_GAP;     // 5 rows -> 170..370
 
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
-const NODE_Y = 380, NODE_H = CLU.NODE.H;                 // 380..532, clear of the panel by 76 since 2026-08-04
+const NODE_Y = 380, NODE_H = CLU.NODE.H;                 // 380..532, clear of the panel by 76
 const POD_W = 300, POD_H = CLU.NODE.POD_H, POD_Y = NODE_Y + CLU.NODE.POD_DY;   // 414..520
 const POD_PAD = 24;
 // Fixed WIDTH, derived gap: three 300-wide Pods inset by POD_PAD leave 66 between them.
@@ -154,10 +154,11 @@ export const STEPS_SPEC = [
     // POD_FADE 1200, so it runs to 2700ms and duration follows it.
     duration: 2800,
     narration: 'The drain command POSTs an eviction for web-1. The API reads the matching PDB, whose status the disruption controller keeps at disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed decrements to 0 under optimistic concurrency, and the Pod is deleted with its grace period. The owning ReplicaSet replaces it elsewhere, covered in the Deployment rolling update card.',
-    // The count the API READS is 2, and the eviction is what takes it to 1, so the chip stays at
-    // what the previous step left and turns over when the eviction ball lands on web-1.
-    chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '2 of 2', lastChip: 'none' },
+    chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '1 of 2', lastChip: 'web-1 · 200 OK' },
     wires: { req: 'POST .../pods/web-1/eviction · 200 OK' },
+    // S-13: the static block states the END, so prev lands on a count that agrees with the
+    // terminated shade below. The API READS 2 and the eviction takes it to 1, hence the rewind.
+    rewind: { chips: { healthyChip: '2 of 2', lastChip: 'none' } },
     // Pin final state so cancel between steps does not flash to default. The evicted Pod ends at
     // the terminated shade, so the static path must NOT stand a highlight in for the pulse here.
     opacity: { ...LIVE, pod1: GONE },
@@ -186,10 +187,11 @@ export const STEPS_SPEC = [
     // Four hops plus the drop, ending on the POD_FADE dissolve: 4300ms.
     duration: 4400,
     narration: 'The drain command POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so disruptionsAllowed is 0 and the API returns 429 Too Many Requests. The drain command retries every 5 seconds. Once the replacement turns Ready elsewhere, currentHealthy is back to 2 and the next retry returns 200 OK, evicting web-2.',
-    // Both chips START from what evict-A left. The pinned values are TRANSITIONS, so announcing them
-    // at entry would give away the 429 and the retry that clears it before either is drawn.
-    chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '1 of 2', lastChip: 'web-1 · 200 OK' },
+    chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '1 of 2 → 2 of 2', lastChip: 'web-2 · 429 → 200 OK' },
     wires: { req: 'POST .../pods/web-2/eviction · 429 → retry → 200' },
+    // Both pinned values are TRANSITIONS and both chips START from what evict-A left: announcing
+    // them at entry would give away the 429 and the retry that clears it before either is drawn.
+    rewind: { chips: { healthyChip: '1 of 2', lastChip: 'web-1 · 200 OK' } },
     // Pin final state. Both evicted Pods hold the terminated shade, so neither takes a stand-in
     // highlight on the static path.
     opacity: { ...LIVE, pod1: GONE, pod2: GONE },

@@ -40,8 +40,8 @@ const DOWN_X = SC_CX + LANE_DY;  // 765: provisioner -> backend
 const UP_X = SC_CX - LANE_DY;    // 735: backend -> provisioner
 const CHIPS_Y = 585;
 
-// Chip widths keep their hand-tuned values (each is sized for its longest value, PV holds
-// 'a7f2 created'), but the x positions are DERIVED so the strip is centered on CANVAS_CX.
+// The four widths are a rhythm across the strip rather than a fit to their own values (see the
+// record), while the x positions are DERIVED so the strip is centered on CANVAS_CX.
 const CHIP_W = [210, 250, 240, 230];
 const CHIP_GAP = 20;
 const CHIPS_W = CHIP_W.reduce((a, b) => a + b, 0) + CHIP_GAP * (CHIP_W.length - 1);   // 990
@@ -51,6 +51,14 @@ const CHIPS_X0 = CHIP_W.reduce((acc, w, i) => {
 }, []);                                                                               // 105 / 335 / 605 / 865
 
 const ELBOW_X = PVC_RIGHT + COL_GAP / 2;   // 620
+
+// Only the RETURN tag steps out now: the call tag is 18 units of ink once the wire beside it carries
+// the verb, so it rides its own lane and still clears the handle it parks beside by 16.
+const RETURN_TAG_DX = -30;
+// At the default -14 the class box bottom edge runs through the params tag: -6 keeps it inside.
+const PARAMS_TAG_DY = -6;
+// The write tag clears the provisioner left edge by 2.
+const PV_TAG_DX = -2;
 
 // Two lanes share each of these two faces, so they sit as a mirrored pair either side of the face
 // midpoint: alone and off-centre, a single endpoint reads as a slip rather than as a pair.
@@ -138,7 +146,7 @@ export const STEPS_SPEC = [
       F.route({ points: W_PVC_TO_PROV, name: 'claim' }),
       F.tag({ text: '5Gi, class gp3', points: W_PVC_TO_PROV }),
       F.route({ points: W_SC_TO_PROV, name: 'params' }),
-      F.tag({ text: 'ebs.csi.aws.com', points: W_SC_TO_PROV }),
+      F.tag({ text: 'ebs.csi.aws.com', points: W_SC_TO_PROV, dy: PARAMS_TAG_DY }),
       F.light({ targets: ['prov'], at: 'claim' }),
     ],
   },
@@ -152,14 +160,18 @@ export const STEPS_SPEC = [
     // The provisioner calls, so it is lit from entry. The backend is NOT lit statically, which would
     // hide its own arrival cue below: a call cannot land on a block that was already answering.
     lit: ['prov'],
+    // The identifier is what the backend HANDS BACK, so the chip holds the 'none' the provision step
+    // left and turns over when the return ball whose tag carries the same string lands.
+    rewind: { chips: { diskChip: 'none' } },
     // Descent then ascent, on separate lanes, so the round trip reads as a loop, not a retrace.
     flow: [
       F.route({ points: W_PROV_TO_CLOUD, name: 'call' }),
-      F.tag({ text: 'CreateVolume 5Gi', points: W_PROV_TO_CLOUD }),
+      F.tag({ text: '5Gi', points: W_PROV_TO_CLOUD }),
       F.light({ targets: ['cloud'], at: 'call' }),
       F.route({ points: W_CLOUD_TO_PROV, after: 'call', name: 'back' }),
-      F.tag({ text: DISK_ID, points: W_CLOUD_TO_PROV, after: 'call' }),
+      F.tag({ text: DISK_ID, points: W_CLOUD_TO_PROV, after: 'call', dx: RETURN_TAG_DX }),
       F.light({ targets: ['prov'], at: 'back' }),
+      F.set({ at: 'back', chipsCued: { diskChip: DISK_ID } }),
     ],
   },
   {
@@ -172,11 +184,15 @@ export const STEPS_SPEC = [
     // writes its own `from`, so the animated path needs no rewind to start it hidden.
     opacity: { pv: 1, wProvToPv: 1, boundLink: 0 },
     lit: ['prov', 'cloud'],
+    // The object and its caption are what the WRITE produces, so both hold what the createvolume
+    // step left and land with the ball, on the same beat as the volume itself.
+    rewind: { chips: { pvChip: 'none' }, wires: { pv: '' } },
     flow: [
       F.route({ points: W_PROV_TO_PV, name: 'write' }),
-      F.tag({ text: 'PV a7f2', points: W_PROV_TO_PV }),
+      F.tag({ text: 'PV a7f2', points: W_PROV_TO_PV, dx: PV_TAG_DX }),
       F.reveal({ target: 'pv', at: 'write' }),
       F.light({ targets: ['pv'], at: 'write' }),
+      F.set({ at: 'write', chipsCued: { pvChip: 'a7f2 created' }, wires: { pv: PV_BACKED } }),
     ],
   },
   {

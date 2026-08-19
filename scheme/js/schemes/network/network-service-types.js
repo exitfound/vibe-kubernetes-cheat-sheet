@@ -42,7 +42,7 @@ const backend = (key, y, ip) => P.pod({
 // The list order IS the append order, which is the z-order: the shared backend node in back, then
 // the type boxes + targets + Pods, then the arrows ABOVE them, then the packet layer on top.
 export const SCENE = {
-  'aria-label': 'Kubernetes Service types at a glance: ClusterIP is the internal base, NodePort and LoadBalancer build on it to expose backends externally, while ExternalName and Headless skip the proxy and work purely through DNS',
+  'aria-label': 'Kubernetes Service types at a glance: ClusterIP is the internal base, NodePort and LoadBalancer build on it to expose backends externally, while ExternalName and the headless variant skip the proxy and work purely through DNS',
   parts: [
     P.defs(),
     // Shared backend node for the three proxy types, spanning their three rows. Two Pods inside,

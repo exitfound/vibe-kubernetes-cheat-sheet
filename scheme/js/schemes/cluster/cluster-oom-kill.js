@@ -204,7 +204,7 @@ export const STEPS_SPEC = [
       sublabels: { containerBox: 'terminated · exit 137' },
     },
     // The create drops down the connector while the CRI call rides the top hop 200ms behind it. The
-    // turnover is emitted where the handwritten at() stood, AFTER that hop, because order is observable.
+    // turnover is emitted AFTER that hop, because order is observable.
     flow: [
       F.route({ points: NODE_CONNECTOR, name: 'create' }),
       F.top({ from: KUBE_R, to: KERN_X, y: UP_Y, delay: 200, lights: ['kernel'] }),

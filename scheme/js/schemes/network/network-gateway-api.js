@@ -88,17 +88,21 @@ export const SCENE = {
   },
 };
 
+// The four field chips restate fields of objects the card draws from its first frame, and the
+// Gateway sublabel spells the listener already, so they are constants every step states.
+const SPEC = { listenerChip: ':443 HTTPS', hostnamesChip: 'shop.io', matchChip: 'PathPrefix /', backendChip: 'Service web:80' };
+
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { requestChip: 'none' },
+    chips: { requestChip: 'none', ...SPEC },
   },
   {
     id: 'gatewayclass',
     duration: 2100,
     narration: 'At the base, a cluster-scoped GatewayClass names in controllerName which controller implementation will serve Gateways of this class, much like a StorageClass names a provisioner. It is installed by the infrastructure provider and rarely touched after that.',
-    chips: { requestChip: 'none' },
+    chips: { requestChip: 'none', ...SPEC },
     // Nothing references the class yet, so nothing moves: the block only lights. No flash, by design.
     lit: ['gwClass'],
   },
@@ -106,7 +110,7 @@ export const STEPS_SPEC = [
     id: 'gateway',
     duration: 2200,
     narration: 'A Gateway names that class in gatewayClassName and declares the actual listeners: which ports, protocols and TLS the cluster accepts traffic on, here HTTPS on 443. It is owned by the cluster operator, who controls the entry points and, through allowedRoutes on each listener, which namespaces may attach routes to them. What those routes actually match is not the operator decision.',
-    chips: { requestChip: 'none' },
+    chips: { requestChip: 'none', ...SPEC },
     lit: ['gw', 'listenerChip'],
     // The Gateway resolves its class: the ball runs UP the reference wire, and the class lights when
     // it lands. This is a reconcile-time lookup, not data-plane traffic, which is why it goes up.
@@ -118,7 +122,7 @@ export const STEPS_SPEC = [
     id: 'httproute',
     duration: 2200,
     narration: 'An HTTPRoute attaches to the Gateway through parentRefs. A top-level hostnames list selects shop.io, and each rule matches on a path, here the default PathPrefix type, then forwards to a backendRef, which is a Service unless another kind is named. The route is owned by the application team, so developers manage their own routing without needing rights on the shared Gateway.',
-    chips: { requestChip: 'none' },
+    chips: { requestChip: 'none', ...SPEC },
     // The Gateway it attaches to lights with it: the two are now one parent-child pair, and the three
     // fields the object owns are hostnames, the path match, and the backendRef.
     lit: ['gw', 'route', 'hostnamesChip', 'matchChip', 'backendChip'],
@@ -133,8 +137,8 @@ export const STEPS_SPEC = [
     // Four 700ms hops chained on BEAT.afterHop land the ball at 3100, and the Pod pulse (900) ends at
     // 4000. The floor leaves a settle rather than snapping straight on to the next step.
     duration: 4400,
-    narration: 'With all three objects in place a live request finally has a path. A client hits the Gateway listener, the controller matches the request against the HTTPRoute rule and follows the backendRef to the Service. Most implementations then skip the ClusterIP and send straight to a Ready endpoint read from the EndpointSlice. A backendRef in another namespace would need a ReferenceGrant, while a route from another namespace is admitted by the listener allowedRoutes instead.',
-    chips: { requestChip: 'GET shop.io/' },
+    narration: 'With all three objects in place a live request finally has a path. A client hits the Gateway listener, the Gateway matches the request against the HTTPRoute rule and follows the backendRef to the Service. The Service then resolves to a Ready endpoint read from the EndpointSlice. A backendRef in another namespace would need a ReferenceGrant, while a route from another namespace is admitted by the listener allowedRoutes instead.',
+    chips: { requestChip: 'GET shop.io/', ...SPEC },
     wires: { entry: 'GET shop.io/', pod: 'Ready endpoint' },
     // The whole chain is what serves this request, so every field the controller consults lights:
     // the listener it arrived on, the hostname and path it matched, and the backend it resolved to.

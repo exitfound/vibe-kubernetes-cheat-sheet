@@ -889,19 +889,16 @@ body.sidebar-collapsed .side-expand { display: grid; }
   border-top-color: var(--tint-border);
 }
 /* --tint-panel is the canvas at 86%, so only the border and the accent edge draw the box.
-   NO border-left-color here. It carried `var(--tint-bright)` and was DEAD: the four
-   `.scheme-dialog[data-cat="..."] .narration-overlay` rules further down have the identical
-   specificity (0,3,0) and come later, so source order hands them the win. Measured on
-   cluster-node-drain, the left edge computes to rgb(125, 134, 255), which is --tint-base, not the
-   --tint-bright rgb(171, 176, 245) this line asked for. Every card is tinted, so those four rules
-   resolve their --<cat>-color to --tint-base and the edge is the base tone catalog-wide.
+   NO border-left-color here: the four `.scheme-dialog[data-cat="..."] .narration-overlay` rules
+   further down have the identical specificity (0,3,0) and come later, so source order hands them
+   the win. Measured on cluster-node-drain, the left edge computes to rgb(125, 134, 255), which is
+   --tint-base, not the --tint-bright rgb(171, 176, 245) a declaration here would ask for. Every
+   card is tinted, so those four rules resolve their --<cat>-color to --tint-base and the edge is
+   the base tone catalog-wide.
    Restoring the brighter edge is a VISUAL change to all 107 cards, not a cleanup: it means moving
    this block below those four rules. Left as it renders.
    DO NOT add a per-category `.narration-overlay` background rule back: retint a category by
-   changing its --tint-canvas-rgb and the panel follows. It used to be one shared literal plus a
-   hand-copied override per category, and Cluster never got one, so a violet card carried a navy
-   panel for as long as the category existed. Workloads looked right only by coincidence, because
-   the shared default WAS the Workloads canvas, near enough. */
+   changing its --tint-canvas-rgb and the panel follows. */
 .scheme-dialog[data-tinted="true"] .narration-overlay {
   background: var(--tint-panel);
   border-color: var(--tint-border);
@@ -1009,19 +1006,19 @@ body.sidebar-collapsed .side-expand { display: grid; }
    2. It changes height BETWEEN VIEWPORTS by up to 186 viewBox units (workloads-pod-phase-machine
       reaches 503 at 1100x800 and 317 at 1600x1000), so the band every card reserves for its 1100
       worst case reads as a hole at 1600. Five card records leave a finding OPEN on this.
-   Pinning min-height to the card's tallest narration was BUILT, MEASURED AND REVERTED. It fixes (1)
-   completely (0 of 216 pairs move) and does nothing for (2), because (2) is not a height problem:
+   DO NOT pin min-height to the card's tallest narration. It fixes (1) completely (0 of 216 pairs
+   move) and does nothing for (2), because (2) is not a height problem:
    what varies is the fixed-pixel FONT, so a wider viewport wraps the same text into fewer lines and
    divides by a larger scale. The panel's WIDTH in viewBox units is BOUNDED, not constant, and the
    distinction matters to anyone measuring on one viewport: x<=397 holds everywhere, but the right
    edge still travels 105.78 units across the standard set (cluster-architecture, 290.77 at
    1600x1000 against 396.55 at 1100x800), so the bound is reached only at the narrowest one. Closing
-   (2) means typography that scales with the diagram, a design decision and not a cleanup. The clamp
-   was reverted because its cost is visible: pinned to its tallest narration, a card with a wide
+   (2) means typography that scales with the diagram, a design decision and not a cleanup.
+   WHY NOT the clamp: its cost is visible. Pinned to its tallest narration, a card with a wide
    spread of narration lengths shows about 100px of empty strip inside a drawn border, and an empty
-   strip inside a border reads as a fault where empty canvas reads as space. Geometry was unaffected
+   strip inside a border reads as a fault where empty canvas reads as space. Geometry is unaffected
    either way. If (1) is worth solving alone, the direction is a transition on the height rather
-   than a clamp, which keeps the panel snug and removes the jump. That was not tried. */
+   than a clamp, which keeps the panel snug and removes the jump. */
 /* Initial hidden state while the card module loads, so the box never flashes empty.
    updateNarration removes it the instant the first step's text is set (no fade, 0ms). */
 .narration-overlay.is-poster {

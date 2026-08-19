@@ -47,6 +47,13 @@ const W_DEL_POD = [[ACT_R_CX, KUBECTL_Y], [ACT_R_CX, POD_MID], [POD_RIGHT, POD_M
 // are never drawn on the same run of canvas.
 const W_RM_FINAL = [[ACT_L_CX, CTRL_Y], [ACT_L_CX, PVC_MID], [PVC_X, PVC_MID]];
 
+// Both requests end on the claim at PVC_MID, half a box height below its top, so at the default -14
+// the tag rides inside the boxes it passes. -40 and -38 are the least that clear all four viewports.
+const DEL_TAG_DY = -40, RM_TAG_DY = -38;
+// The mount ascent ends on the Pod floor, where the default -14 parks the tag on the volumes:
+// data-claim sublabel for 500 ms. At 12 BELOW the ball it stops short of the floor instead.
+const MOUNT_TAG_DY = 12;
+
 // Every lane in this card is a ROUTE: something travels all of them, so they are all dashed, all
 // carry a head, and all are built from the same points array as their ball.
 const lane = (key, points, opacity) => P.lane({ key, points, dashed: true, dim: true, opacity });
@@ -153,7 +160,7 @@ export const STEPS_SPEC = [
     lit: ['kubectl'],
     flow: [
       F.route({ points: W_DEL_PVC, name: 'del' }),
-      F.tag({ text: 'deletionTimestamp set', points: W_DEL_PVC }),
+      F.tag({ text: 'deletionTimestamp set', points: W_DEL_PVC, dy: DEL_TAG_DY }),
       F.light({ targets: ['pvc'], at: 'del' }),
     ],
   },
@@ -168,7 +175,7 @@ export const STEPS_SPEC = [
     lit: ['pvc'],
     flow: [
       F.route({ points: W_MOUNT_HIGH, name: 'write' }),
-      F.tag({ text: 'writes continue', points: W_MOUNT_HIGH }),
+      F.tag({ text: 'writes continue', points: W_MOUNT_HIGH, dy: MOUNT_TAG_DY }),
       F.light({ targets: ['app'], at: 'write' }),
       F.pulse({ pod: 'web', at: 'write' }),
     ],
@@ -198,16 +205,22 @@ export const STEPS_SPEC = [
     opacity: stage({ web: OPACITY.terminated, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 1, rmFinal: 0 }),
     lit: ['kubectl'],
     // The Pod is alive until the delete lands on it, so the motion path restores it and the fade
-    // carries it back down to the OPACITY.terminated pinned above.
-    rewind: { opacity: stage({ web: 1, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 1, rmFinal: 0 }) },
+    // carries it back down to the OPACITY.terminated pinned above, the consumer count with it (P-03).
+    rewind: {
+      opacity: stage({ web: 1, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 1, rmFinal: 0 }),
+      chips: { usersChip: '1 Pod' },
+    },
     flow: [
       F.route({ points: W_DEL_POD, name: 'del' }),
       F.tag({ text: 'delete pod web-0', points: W_DEL_POD }),
       F.pulse({ pod: 'web', at: 'del' }),
-      removeAt('web', OPACITY.terminated, { at: 'del', plus: BEAT.afterPulse }),
+      removeAt('web', OPACITY.terminated, { at: 'del', plus: BEAT.afterPulse, name: 'gone' }),
       // The mount goes with the Pod, so the upper lane leaves on the same beat rather than lingering
       // as an arrow pointing at a ghost.
       removeAt('lMountHigh', 0, { at: 'del', plus: BEAT.afterPulse }),
+      // The last consumer is gone when the Pod has finished going (2113), not when the delete lands
+      // on it: for the 500ms of the fade the Pod is still there and still mounting.
+      F.set({ at: 'gone', chipsCued: { usersChip: '0 Pods' } }),
     ],
   },
   {
@@ -222,7 +235,7 @@ export const STEPS_SPEC = [
     lit: ['ctrl'],
     flow: [
       F.route({ points: W_RM_FINAL, name: 'rm' }),
-      F.tag({ text: 'finalizers: []', points: W_RM_FINAL }),
+      F.tag({ text: 'finalizers: []', points: W_RM_FINAL, dy: RM_TAG_DY }),
       F.light({ targets: ['pvc'], at: 'rm' }),
     ],
   },

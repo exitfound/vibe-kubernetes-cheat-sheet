@@ -158,8 +158,8 @@ export const STEPS_SPEC = [
   {
     id: 'core',
     duration: 2100,
-    // Packet-less and Pod-less, and still NO blink: the pulse is reserved for Pods, and this card has
-    // none, so an infrastructure box states itself with a steady .highlight outline and nothing else.
+    // Nothing travels and the card has no Pod, so the beat is the static highlight on the apiserver
+    // (M-27): the sentence is about core itself, and no chip and no block flashes (M-26, M-01).
     narration: 'Kubernetes core deals only in objects: a PVC, a PersistentVolume, a VolumeAttachment. It has no idea how any particular disk is made or attached. That deliberate ignorance is what lets one Kubernetes talk to dozens of storage backends it was never taught about.',
     chipsCued: chips('objects only', 'idle', 'idle', 'sidecars'),
     lit: ['api'],
@@ -167,8 +167,8 @@ export const STEPS_SPEC = [
   {
     id: 'controller',
     duration: 2400,
-    // Structural step: the four sidecars light and STAY lit. No blink here either, same reason as
-    // the core step: this is a set of four boxes to be read side by side, not a beat to be noticed.
+    // Structural step: the four sidecars light as ONE set and STAY lit, because the sentence names
+    // all four as the actor and singling one out would say what the next step says.
     narration: 'The controller plugin runs as a Deployment or a StatefulSet, and inside it ride the sidecars. Each watches one kind of object and does one job: provisioner for claims, attacher for attachments, resizer for resizes, snapshotter for snapshots. All four call one driver.',
     chipsCued: chips('objects only', 'four sidecars', 'idle', 'one call each'),
     lit: ['prov', 'att', 'res', 'snap'],
@@ -209,7 +209,7 @@ export const STEPS_SPEC = [
     id: 'fstoucher',
     duration: 2800,
     narration: 'One rule holds the whole design together: only the node plugin ever mounts the volume on the Node. The controller talks to the cloud and never sees a mount, and Kubelet never mounts vendor storage itself. When bytes finally land on disk, it is the CSI node driver that put them there.',
-    chipsCued: chips('objects only', 'never mounts', 'mounts the disk', 'gRPC NodePublish'),
+    chipsCued: chips('objects only', 'never mounts', 'mounts the disk', 'no sidecar in path'),
     wires: { fs: 'mount' },
     lit: ['nd'],
     flow: [

@@ -103,10 +103,10 @@ const THR = n => `nr_throttled ${n} of ${n} · throttled_usec ${n * 50000}`;
 const STAT_IDLE = THR(0);
 const MAX_UNSET = 'max 100000 · no quota';
 const MAX_SET = '50000 100000 · 50ms of every 100ms';
-// requests.cpu 250m is 250 * 1024 / 1000 = 256 cpu.shares, which cgroup v2 maps to
-// 1 + ((256 - 2) * 9999) / 262142 = 10, ten times LESS than the 100 a fresh cgroup starts at.
+// requests.cpu 250m is 250 * 1024 / 1000 = 256 cpu.shares, which the QUADRATIC cgroup v2 fit
+// ceil(10 ** ((L*L + 125*L) / 612 - 7/34)), L = log2(shares), maps to 35. One full CPU maps to 100.
 const WEIGHT_UNSET = 'unset · 100 is the raw cgroup default';
-const WEIGHT_SET = '10 · from requests.cpu 250m';
+const WEIGHT_SET = '35 · from requests.cpu 250m';
 const SPEC_LINE = 'requests.cpu 250m · limits.cpu 500m';
 
 // The list order IS the append order, so it is the z-order: the time scale, the Node frame and its Pod
@@ -192,7 +192,7 @@ export const STEPS_SPEC = [
   {
     id: 'request',
     duration: 2400,
-    narration: 'The Kubelet hands the CPU request to the container runtime, which turns it into a cgroup v2 cpu.weight. A weight is not a reservation. It only decides how the runnable cgroups on this Node divide the CPUs when they all want to run at once, so on a quiet Node this container may use far more than its 250m.',
+    narration: 'The Kubelet sends the CPU request down the CRI and it lands as a cgroup v2 cpu.weight. A weight is not a reservation. It only decides how the runnable cgroups on this Node divide the CPUs when they all want to run at once, so on a quiet Node this container may use far more than its 250m.',
     chips: { weightChip: WEIGHT_SET, maxChip: MAX_UNSET, statChip: STAT_IDLE, stateChip: STATE },
     wires: { kernel: 'requests.cpu 250m · cgroup cpu.weight' },
     sublabels: { containerBox: SPEC_LINE },
@@ -210,7 +210,7 @@ export const STEPS_SPEC = [
   {
     id: 'quota',
     duration: 2800,
-    narration: 'The CPU limit becomes a quota. On cgroup v2 the runtime writes one line, cpu.max, carrying the quota and the period together, so limits.cpu 500m against the default 100ms period is 50000 100000. That is 50ms of run time this cgroup may spend inside every 100ms period, and the period repeats for as long as the container lives.',
+    narration: 'The CPU limit becomes a quota. On cgroup v2 that is one line, cpu.max, carrying the quota and the period together, so limits.cpu 500m against the default 100ms period is 50000 100000. That is 50ms of run time this cgroup may spend inside every 100ms period, and the period repeats for as long as the container lives.',
     chips: { weightChip: WEIGHT_SET, maxChip: MAX_SET, statChip: STAT_IDLE, stateChip: STATE },
     wires: { kernel: 'limits.cpu 500m · cpu.max 50000 100000' },
     sublabels: { containerBox: SPEC_LINE },

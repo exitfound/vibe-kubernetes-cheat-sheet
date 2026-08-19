@@ -56,6 +56,9 @@ const RETURN = [[ETH_CX, ROW_Y], [ETH_CX, RETURN_LANE_Y], [210, RETURN_LANE_Y], 
 // floats the reply source out of eth0, and hold 0 clears each chain address before the next one rides.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
+// A hop between two hooks is a 40 unit gap against a 100 unit address, so on the lane both hook faces
+// cut it. -40 parks the tag in the band between the return lane and the row, clear on all viewports.
+const HOOK_TAG_DY = -40;
 
 // The list order IS the append order, which is the z-order: the Node frame in back, then the Pod and
 // the chain blocks, then wires + the exit label, then chips, then the packet layer on top.
@@ -102,7 +105,7 @@ export const SCENE = {
 // Every dimmable block states its opacity on EVERY step, so the dim the eBPF step puts on the chain
 // cannot leak into a replay of an earlier one.
 const CHAIN_UP = { pre: 1, rt: 1, fw: 1, po: 1, eth: 1, ct: 1 };
-const FLOW_CT = '10.96.0.20:80 -> 10.244.2.7:8080';
+const FLOW_CT = '10.244.1.5 -> 10.244.2.7:8080';
 
 export const STEPS_SPEC = [
   {
@@ -122,6 +125,9 @@ export const STEPS_SPEC = [
     sublabels: { ct: '10.244.1.5 -> 10.96.0.20:80' },
     opacity: CHAIN_UP,
     lit: ['ct', 'hookChip', 'ctChip'],
+    // The hook the packet is AT and the flow conntrack records are both made by the arrival, so the
+    // animated path holds the idle none and the empty table until the ball lands at 2189.
+    rewind: { chips: { hookChip: 'none', ctChip: 'none' }, sublabels: { ct: 'no flow yet' } },
     // Up-arrow: the Pod is the sender, so it pulses FIRST and the packet leaves at BEAT.afterPulse. It
     // still carries the ClusterIP, which is what the tag says, and PREROUTING lights on arrival.
     flow: [
@@ -129,6 +135,7 @@ export const STEPS_SPEC = [
       F.route({ points: ENTRY, delay: BEAT.afterPulse, name: 'inb' }),
       tag({ text: 'dst 10.96.0.20:80', points: ENTRY, delay: BEAT.afterPulse }),
       F.light({ targets: ['pre'], at: 'inb' }),
+      F.set({ at: 'inb', chips: { hookChip: 'PREROUTING', ctChip: 'new flow' }, sublabels: { ct: '10.244.1.5 -> 10.96.0.20:80' } }),
     ],
   },
   {
@@ -143,7 +150,7 @@ export const STEPS_SPEC = [
     // the backend address, and the routing decision lights as it arrives.
     flow: [
       F.segment({ from: PRE_TO_RT[0], to: PRE_TO_RT[1], name: 'hop' }),
-      tag({ text: 'dst 10.244.2.7:8080', points: PRE_TO_RT, easing: 'linear' }),
+      tag({ text: 'dst 10.244.2.7:8080', points: PRE_TO_RT, easing: 'linear', dy: HOOK_TAG_DY }),
       F.light({ targets: ['rt'], at: 'hop' }),
     ],
   },
@@ -158,7 +165,7 @@ export const STEPS_SPEC = [
     // Not local, so the packet is handed to the FORWARD chain, which lights as it arrives.
     flow: [
       F.segment({ from: RT_TO_FW[0], to: RT_TO_FW[1], name: 'hop' }),
-      tag({ text: 'not local, forward', points: RT_TO_FW, easing: 'linear' }),
+      tag({ text: 'not local, forward', points: RT_TO_FW, easing: 'linear', dy: HOOK_TAG_DY }),
       F.light({ targets: ['fw'], at: 'hop' }),
     ],
   },
@@ -177,7 +184,7 @@ export const STEPS_SPEC = [
     flow: [
       F.segment({ from: FW_TO_PO[0], to: FW_TO_PO[1], name: 'toPo', lights: ['po'] }),
       F.segment({ from: PO_TO_ETH[0], to: PO_TO_ETH[1], after: 'toPo', name: 'out' }),
-      tag({ text: 'src 10.244.1.5', points: PO_TO_ETH, after: 'toPo', easing: 'linear' }),
+      tag({ text: 'src 10.244.1.5', points: PO_TO_ETH, after: 'toPo', easing: 'linear', dy: HOOK_TAG_DY }),
       F.light({ targets: ['eth'], at: 'out' }),
     ],
   },
@@ -190,12 +197,16 @@ export const STEPS_SPEC = [
     sublabels: { ct: FLOW_CT },
     opacity: CHAIN_UP,
     lit: ['hookChip', 'dstChip', 'ct', 'ctChip', 'srcChip'],
+    // The strip reads the last state a hook saw, so it carries the outbound values until the reply
+    // reaches PREROUTING at 1989 and conntrack reverses the translation there.
+    rewind: { chips: { hookChip: 'FORWARD, POSTROUTING', dstChip: '10.244.2.7:8080', srcChip: '10.244.1.5 (no SNAT)', ctChip: 'DNAT recorded' } },
     // The reply rides its own lane, never a forward wire backwards, and PREROUTING lights as it lands.
     // The tag carries the source the backend actually sent, which conntrack is about to rewrite.
     flow: [
       F.route({ points: RETURN, name: 'back' }),
       tag({ text: 'src 10.244.2.7:8080', points: RETURN, emerge: 150 }),
       F.light({ targets: ['pre'], at: 'back' }),
+      F.set({ at: 'back', chips: { hookChip: 'PREROUTING', dstChip: '10.244.1.5', srcChip: '10.96.0.20:80 (restored)', ctChip: 'ESTABLISHED' } }),
     ],
   },
   {

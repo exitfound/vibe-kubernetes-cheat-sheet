@@ -108,17 +108,21 @@ const GONE = OPACITY.terminated;
 const PODS = ['pod1', 'pod2', 'pod3'];
 const LIVE = shade(PODS, 1);
 const ALL_DOWN = shade(PODS, GONE);
-// The phase value one step ends on is the value the next one starts from, so each of these is
-// written in exactly two places and the hand-off is visible.
+// Each phase is written in exactly two places, so the hand-off is visible: the static END of the
+// step that earns it (S-13), and the `rewind` of that same step, which is where it started.
+const NORMAL = 'normal';
+const SIGNALLED = 'shutdown signal received';
 const BUCKETING = 'NotReady · bucketing pods';
 const NON_CRIT = 'terminating non-critical · 40s';
 const CRITICAL = 'terminating critical · 20s';
+const RELEASED = 'lock released · OS shutdown';
+const LOCK_HELD = 'held by Kubelet';
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { lockChip: 'held by Kubelet', gpChip: '60s', gpCritChip: '20s', phaseChip: 'normal' },
+    chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: NORMAL },
     opacity: LIVE,
     // Idle baseline: nothing is happening yet, no chain row highlighted.
     chain: -1,
@@ -127,22 +131,24 @@ export const STEPS_SPEC = [
     id: 'signal',
     duration: 2000,
     narration: 'The Node is about to shut down (poweroff, reboot, or hibernate), and systemd emits PrepareForShutdown over D-Bus. Kubelet catches the signal via its logind subscription. Its delay-type inhibitor lock makes systemd pause the actual shutdown, so Kubelet can enter shutdown mode rather than let the OS kill processes outright.',
-    chips: { lockChip: 'held by Kubelet', gpChip: '60s', gpCritChip: '20s', phaseChip: 'normal' },
+    chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: SIGNALLED },
     wires: { sig: 'PrepareForShutdown · D-Bus' },
     opacity: LIVE,
     lit: ['systemd', 'phaseChip'],
     chain: 0,
-    // The Kubelet has not received anything until the signal lands, so the phase waits for it.
+    // The Kubelet has not received anything until the signal lands, so the animated path winds the
+    // phase back to where the step started and the F.set turns it over when the ball arrives.
+    rewind: { chips: { phaseChip: NORMAL } },
     flow: [
       F.top({ from: SYS_X, to: KUBE_X + BOX_W, y: SIG_Y, name: 'sig', lights: ['kubelet'] }),
-      F.set({ at: 'sig', chips: { phaseChip: 'shutdown signal received' } }),
+      F.set({ at: 'sig', chips: { phaseChip: SIGNALLED } }),
     ],
   },
   {
     id: 'condition',
     duration: 1900,
     narration: 'Kubelet sets a NotReady condition on the Node with the reason node is shutting down, which is what stops the Scheduler placing anything here, and its admission handler rejects Pods that were already bound. Existing Pods are bucketed by priority: at or above 2,000,000,000 is the critical bucket, the rest are non-critical.',
-    chips: { lockChip: 'held by Kubelet', gpChip: '60s', gpCritChip: '20s', phaseChip: BUCKETING },
+    chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: BUCKETING },
     opacity: LIVE,
     lit: ['kubelet', 'phaseChip'],
     chain: 1,
@@ -153,12 +159,13 @@ export const STEPS_SPEC = [
     id: 'terminate-normal',
     duration: 2400,
     narration: 'Kubelet sends SIGTERM to every non-critical Pod in parallel. They get shutdownGracePeriod minus shutdownGracePeriodCriticalPods to finish (40s with this configuration). Each ends up with the status reason Terminated.',
-    chips: { lockChip: 'held by Kubelet', gpChip: '60s', gpCritChip: '20s', phaseChip: BUCKETING },
+    chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: NON_CRIT },
     // Pin final state so cancel between steps does not flash to default. The two non-critical Pods
     // stay on screen as ghosts at the terminated shade, the critical Pod survives at full.
     opacity: { ...LIVE, pod1: GONE, pod2: GONE },
     lit: ['kubelet', 'phaseChip', 'gpChip'],
     chain: 2,
+    rewind: { chips: { phaseChip: BUCKETING } },
     // ONE SIGTERM down the one lane, and BOTH non-critical Pods react to it on arrival, which is
     // what the narration means by in parallel. The phase waits for the signal to land too.
     flow: [
@@ -176,12 +183,13 @@ export const STEPS_SPEC = [
     id: 'terminate-critical',
     duration: 2400,
     narration: 'After non-critical Pods are gone (or their grace expired), Kubelet sends SIGTERM to system-critical Pods. They get shutdownGracePeriodCriticalPods (20s here). DaemonSet infra workloads such as CNI or kube-proxy usually sit in this bucket.',
-    chips: { lockChip: 'held by Kubelet', gpChip: '60s', gpCritChip: '20s', phaseChip: NON_CRIT },
+    chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: CRITICAL },
     // Pin final state. Nothing is left running in the Node frame, and all three Pods hold the
     // terminated shade rather than leaving three block-sized holes in the Pod row.
     opacity: ALL_DOWN,
     lit: ['kubelet', 'phaseChip', 'gpCritChip'],
     chain: 3,
+    rewind: { chips: { phaseChip: NON_CRIT } },
     // SIGTERM reaches the critical Pod: it flinches (pulse) then terminates (fade).
     flow: [
       F.route({ points: SIG_LANE, name: 'sig' }),
@@ -194,16 +202,18 @@ export const STEPS_SPEC = [
     id: 'release',
     duration: 2200,
     narration: 'All Pods are gone or their grace expired. Kubelet releases the inhibitor lock, and systemd resumes the shutdown sequence. The Node has carried NotReady since the Kubelet set that condition, and once Lease renewals in kube-node-lease stop the control plane treats it as unreachable as well.',
-    chips: { lockChip: 'held by Kubelet', gpChip: '60s', gpCritChip: '20s', phaseChip: CRITICAL },
+    chips: { lockChip: 'released', gpChip: '60s', gpCritChip: '20s', phaseChip: RELEASED },
     wires: { sig: 'release lock' },
     // Pin final state. All three Pods stay on screen at the terminated shade.
     opacity: ALL_DOWN,
     lit: ['kubelet', 'lockChip', 'phaseChip'],
     chain: 4,
-    // systemd is not free to proceed until the release actually reaches it, so both chips wait.
+    // systemd is not free to proceed until the release actually reaches it, so both chips wind
+    // back to what the step started from and turn over when the ball lands.
+    rewind: { chips: { lockChip: LOCK_HELD, phaseChip: CRITICAL } },
     flow: [
       F.top({ from: KUBE_X + BOX_W, to: SYS_X, y: REL_Y, name: 'rel', lights: ['systemd'] }),
-      F.set({ at: 'rel', chips: { lockChip: 'released', phaseChip: 'lock released · OS shutdown' } }),
+      F.set({ at: 'rel', chips: { lockChip: 'released', phaseChip: RELEASED } }),
     ],
   },
 ];

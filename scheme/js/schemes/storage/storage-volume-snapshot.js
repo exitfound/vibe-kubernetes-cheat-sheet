@@ -31,7 +31,7 @@ const SRC_CX = CX - CYL_SPREAD, SNAPDATA_CX = CX, RESTORED_CX = CX + CYL_SPREAD;
 // Three disks 176 wide at 300/600/900 span 212..988 inside a frame at 144..1056, so the frame keeps 68
 // of margin on each side and the disks keep 124 between them, which is the run each shelf hop travels.
 
-// Kept clear of the frame rather than midway to it: the middle row now sits much closer.
+// Kept clear of the frame rather than midway to it: the middle row sits close.
 const CORRIDOR_Y = FRAME_Y - 18;                            // 378
 const REQ_CORRIDOR_Y = 157;
 const CAPTION_Y = CYL_Y + CYL_H + 24;             // 552
@@ -53,6 +53,11 @@ const W_SNAP_VSC  = [[SNAP_RIGHT, MID_MY], [VSC_LEFT, MID_MY]];
 const W_VSC_REQ   = [[CX + REQ_LANE, MID_Y], [CX + REQ_LANE, REQ_BOTTOM]];
 const W_COPY      = [[SRC_CX + CYL_W / 2, CYL_MY], [SNAPDATA_CX - CYL_W / 2, CYL_MY]];
 const W_SEED      = [[SNAPDATA_CX + CYL_W / 2, CYL_MY], [RESTORED_CX - CYL_W / 2, CYL_MY]];
+
+// A tag on a hop BETWEEN two blocks of one row rides above that row, not on its midline: every such
+// hop here is shorter than the tag, so on the midline a block edge prints through it the whole way.
+const ROW_TAG_DY = MID_Y - MID_MY - 6;                          // -40: the tag floor lands 3 above the row
+const SHELF_TAG_DY = FRAME_Y + FRAME_INSET / 2 + 4 - CYL_MY;    // -62: centred in the band above the disks
 
 // Every lane on this card is born hidden: STO.S-02 keeps a lane off screen until the step that runs it.
 const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true, opacity: 0 });
@@ -165,7 +170,9 @@ export const STEPS_SPEC = [
       F.tag({ text: 'snap-1', points: W_REQ_CTRL, delay: BEAT.lead, dy: 22 }),
       F.light({ targets: ['ctrl'], at: 'watch' }),
       F.route({ points: W_CTRL_VSC, after: 'watch', name: 'write' }),
-      F.tag({ text: 'create and bind', points: W_CTRL_VSC, after: 'watch' }),
+      // Rides in the band above the middle row: the row gap is 108 and the tag is wider, so at the
+      // default offset the row edge prints through it at both ends of the hop.
+      F.tag({ text: 'create and bind', points: W_CTRL_VSC, after: 'watch', dy: ROW_TAG_DY }),
       F.reveal({ target: 'vsc', from: OPACITY.pending, at: 'write' }),
       F.light({ targets: ['vsc'], at: 'write' }),
     ],
@@ -183,7 +190,7 @@ export const STEPS_SPEC = [
     rewind: { opacity: { snapData: OPACITY.pending } },
     flow: [
       F.route({ points: W_VSC_SNAP, delay: BEAT.lead, name: 'wake' }),
-      F.tag({ text: 'new content', points: W_VSC_SNAP, delay: BEAT.lead }),
+      F.tag({ text: 'new content', points: W_VSC_SNAP, delay: BEAT.lead, dy: ROW_TAG_DY }),
       F.light({ targets: ['snapper'], at: 'wake' }),
       F.route({ points: W_CREATE, after: 'wake', name: 'call' }),
       F.tag({ text: 'CreateSnapshot', points: W_CREATE, after: 'wake' }),
@@ -210,7 +217,7 @@ export const STEPS_SPEC = [
       F.tag({ text: 'snapshotHandle', points: W_ACK, delay: BEAT.lead }),
       F.light({ targets: ['snapper'], at: 'ack' }),
       F.route({ points: W_SNAP_VSC, after: 'ack', name: 'status' }),
-      F.tag({ text: 'readyToUse true', points: W_SNAP_VSC, after: 'ack' }),
+      F.tag({ text: 'readyToUse true', points: W_SNAP_VSC, after: 'ack', dy: ROW_TAG_DY }),
       F.light({ targets: ['vsc'], at: 'status' }),
       F.route({ points: W_VSC_REQ, after: 'status', name: 'mirror' }),
       // Rides BELOW the ball: this hop ends ON the request box bottom edge, and above the ball the tag
@@ -236,7 +243,7 @@ export const STEPS_SPEC = [
       F.fade({ target: 'dsRef', from: 0, to: 1, dur: FADE.in, delay: REVEAL_MS, fill: 'forwards', easing: 'ease-out' }),
       F.light({ targets: ['restore'], delay: REVEAL_MS }),
       F.route({ points: W_SEED, delay: BEAT.lead + REVEAL_MS, name: 'seed' }),
-      F.tag({ text: 'new volume from snap-1', points: W_SEED, delay: BEAT.lead + REVEAL_MS }),
+      F.tag({ text: 'new volume from snap-1', points: W_SEED, delay: BEAT.lead + REVEAL_MS, dy: SHELF_TAG_DY }),
       F.reveal({ target: 'restored', from: OPACITY.pending, at: 'seed' }),
       F.light({ targets: ['restored'], at: 'seed' }),
     ],

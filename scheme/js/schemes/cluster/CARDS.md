@@ -41,14 +41,16 @@ WHAT     A write running the admission gauntlet: authn/authz, mutating, schema, 
 LAYOUT   The L read correctly. The panel owns the top-left, so API_X is 420 (first multiple of 20
          clear of the measured right edge 397) and kubectl sits in the freed BOTTOM-left. Both of
          its risers stand on KCTL_CX +/- LANE_DY, x=205 and x=235, INSIDE the panel's own column,
-         and each turns once into the API's left face. The 397..420 corridor version was built and
-         rejected as a zigzag, and what the shipped shape costs is measured in the OPEN entry below.
+         and each turns once into the API's left face. A 397..420 corridor route is rejected: it
+         reads as a zigzag, and what the shipped shape costs is measured in the OPEN entry below.
 PANEL    bottom 230, measured. The nearest thing under the panel corner is kubectl at KCTL_Y 300,
          so 70 units of clearance.
-WHY NOT  Chips four across at 258. The longest value is `{cpu=100m, runAsNonRoot=true}` on the
-         `Pod object` chip, and at 258 it overlaps its own name. Two across at 490 is the floor here.
+WHY NOT  Chips four across at 258. The longest value is `{cpu=100m, sa=default, runAsNonRoot=true}`
+         on the `Pod object` chip, 251.5 units rendered at 1100x800, and `valChip` anchors a value
+         12 from the right, so at 258 it starts left of the chip. Two across at 490 is the floor
+         here: there the value starts at 326.5 against a name ending at 173.3.
 WHY NOT  Jogging each lane right into the 404..416 corridor before rising, to keep every segment out
-         from under the panel. Rejected as a zigzag; the single right angle is the shape that ships,
+         from under the panel. It reads as a zigzag: the single right angle is the shape that ships,
          and its cost is the OPEN entry below.
 WHY NOT  Moving kubectl so its centre clears x=397: it collides with the ladder column at 420..820,
          or below the ladder with the chip strip at y=520. Widening it breaks the left-edge
@@ -58,58 +60,217 @@ NOTE     ETCD is pulled 4 units inside BAND_R while the chips sit flush on it. T
          correction: flush, the two right edges differ by one antialiased pixel, yet the cylinder
          reads as overhanging because its right wall is straight while the chip is a rounded rect
          whose rx=4 pulls its own edge in. The inset IS that rx.
-OPEN     Both kubectl risers run behind the overlay from the bottom up to their turn. Measured
-         against the panel worst case with the two lanes 430 and 370 units long:
-           KCTL_TO_API  120 of the 215 riser + 192 of the 215 crossing at y=85   =  73% hidden
-           API_TO_KCTL  162 of the 185 crossing at y=115 + 90 of the 185 riser   =  68% hidden
+OPEN     Both kubectl risers run behind the overlay from the bottom up to their turn. Each lane is
+         measured against the panel of the step that CARRIES it, never against one panel for both:
+         KCTL_TO_API rides on `authn-authz` and API_TO_KCTL on `persist`, and those two steps do
+         not have the same panel depth. The lanes are 430 and 370 units long, the panel right edge
+         and the two bottoms are what the overlay report prints:
+           1100x800  out  riser 144.8 + crossing 191.6 = 78% hidden   back  161.6 + 65.1 = 61%
+           1280x860  out  riser  86.4 + crossing 172.8 = 60% hidden   back  142.8 + 35.2 = 48%
+           1600x1000 out  riser  57.6 + crossing  85.8 = 33% hidden   back   55.8 + 10.1 = 18%
          So it is not the out lane alone and not its left third: on the two steps that carry these
          balls the reader sees a stub leaving kubectl and an arrowhead arriving beside the API, with
          most of the flight behind the overlay. Nothing measures this: OCCLUDED scores BLOCKS, never
-         lanes or packets. At 1280 and wider most of it returns.
-         WHY NOT a staircase into the free 404..416 corridor: built first, rejected as a zigzag.
-         There is no third option, because the API face it must reach sits at y=85/115 above the
-         panel bottom, and every kubectl position whose centre clears x=397 collides with the ladder
-         column at 420..820 or the chip strip at y=520. Reopening this means moving the API row.
-BUDGET   The panel bottom is a LINE count, not a character count: the validating step measured 205
-         at 257 characters and 230 at the 284 it carries today, both measured. Do not count
-         characters on this card, measure it from `scheme/test` with
+         lanes or packets. Only at 1600x1000 is the greater part of both lanes in view.
+         WHY NOT a staircase into the free 404..416 corridor: it reads as a zigzag. There is no
+         third option, because the API face it must reach sits at y=85/115 above the panel bottom,
+         and every kubectl position whose centre clears x=397 collides with the ladder column at
+         420..820 or the chip strip at y=520. Reopening this means moving the API row.
+BUDGET   The panel bottom is a LINE count, not a character count, and the card proves it against
+         itself: at 1100x800 the authn-authz, mutating and validating steps carry 290, 338 and 284
+         characters and all three measure the SAME 229.8, because all three wrap to 8 lines. So a
+         character figure cannot be a budget here and none is stated anywhere on this card.
+         The line pitch is 24.85 units and the panel chrome is 53.9, measured off the schema step
+         at 4 lines / 130.4 against validating at 8 lines / 229.8. kubectl sits at y=300, so the
+         panel reaches it at 11 lines and **10 lines is the ceiling**. Measure, never count, from
+         `scheme/test` with
          `OVERLAY_IDS=cluster-admission-webhooks node --test report/overlay.test.mjs`
          and read the 1100x800 row it prints.
 CONTENT  LimitRanger is named in BOTH the mutating and the validating steps, which is what the
          reference types it ("Mutating and Validating") and what cluster-resource-quota spells out.
          The validating step opens `LimitRanger is back to check min and max` so the repeat reads as
          deliberate rather than as a duplication bug.
-         Row 3, the schema row, is `types and required fields checked`, not `validate against
-         OpenAPI schema`: for a built-in kind the API server runs its own Go validation, an OpenAPI
-         structural schema is what a CUSTOM resource is checked against, and type errors are caught
-         earlier still when the body is decoded.
+         Row 3, the schema row, is `required fields and values checked`. It names neither TYPES nor
+         `validate against OpenAPI schema`, and both omissions are deliberate: for a built-in kind
+         the API server runs its own Go validation, an OpenAPI structural schema is what a CUSTOM
+         resource is checked against, and a type error never reaches this stage at all because
+         decoding the request body rejected it earlier. The narration is the same claim in prose,
+         `a missing required field or a value outside its allowed range fails here`.
          ValidatingAdmissionPolicy is in the default-enabled list, so the validating stage has THREE
          paths and row 4 says "policies".
+         The mutating step is the ONLY place failurePolicy is explained, and it has to be explained
+         somewhere: the chip is standing, it lights on mutating and on validating, and the card
+         `desc` that would otherwise carry the point is grid text a reader inside the dialog never
+         sees. The clause is `Their failurePolicy decides whether a timeout blocks the write`, on
+         the step where the first webhook appears.
+         The Pod object goes `{cpu=100m}` to `{cpu=100m, sa=default, runAsNonRoot=true}`, one field
+         per HALF of the mutating step: `sa=default` is ServiceAccount, one of the three always-on
+         plugins the narration names, and `runAsNonRoot=true` is the policy webhook. With only the
+         webhook field drawn, three named built-in plugins rewrite the Pod and leave no trace.
+         The persist step says `every watch that MATCHES the new Pod`, never `every open watch`: a
+         watch is scoped by resource, namespace and selector, so a watch on Services gets nothing.
+         The qualifier is the whole fix (T-20) and the sentence must not lose it again.
+         The `aria-label` describes the WRITE PATH, not "the admission chain". Only rows 2 to 4 are
+         admission: row 1 is authn/authz, which step 1 itself puts BEFORE admission ("Admission runs
+         after authentication, so every caller has an identity"), and row 5 is the
+         persist. The box sublabel `admission pipeline` stays, and is not the same defect: it names
+         what the API is doing in THIS card, cluster-resource-quota carries the identical sublabel
+         on the identical box, and a heading over a block is not a claim about all five rows.
+         Validating webhooks `call out over HTTPS`, not "over HTTP". The reference calls webhooks
+         "HTTP callbacks" in prose, which is what the earlier wording leaned on, but the same page
+         is absolute about the transport, in its own words `The scheme must be "https"` and `the
+         URL must begin with "https://"`. The clause carries the OUT-OF-PROCESS half of a contrast
+         drawn against `ValidatingAdmissionPolicy runs in process` in the same sentence, and HTTPS
+         makes that point at one character more.
+         https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
+         The validating step lights `objChip`, for the reason the schema step does: both stages
+         check the object, so the object under check is lit beside the stage checking it. Lighting
+         it on schema and leaving it dark on validating was the picture disagreeing with a narration
+         that has LimitRanger checking min and max and ResourceQuota counting, both against that
+         object. `failurePolicy` stays lit beside it because this stage is where webhooks are called.
+         MutatingAdmissionPolicy is deliberately ABSENT from the mutating step and from row 2 at the
+         `k8sVersion` this card declares. The gate is off by default there, and only there:
+           MutatingAdmissionPolicy  false  Alpha  1.30  1.33
+           MutatingAdmissionPolicy  false  Beta   1.34  1.35
+           MutatingAdmissionPolicy  true   GA     1.36  -
+         At 1.36 it is GA and on, "a declarative, in-process alternative to mutating admission
+         webhooks", the exact mirror of what row 4 already says with "policies". So a bump of
+         `k8sVersion` to 1.36 is not a metadata edit for this card: row 2 becomes `plugins, policies
+         and webhooks` and the mutating narration gains a MutatingAdmissionPolicy clause, which fits,
+         because that narration measures 8 lines against the 10-line ceiling the BUDGET note sets.
+         Do not add it while the card says 1.35, and do not read its absence as an oversight.
+         https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/
+         https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/
+         The watches and informers of the persist step are NARRATED and not drawn, deliberately: the
+         sentence is about who learns of the write, and the card has no watcher block because the
+         write path is what it draws. Adding one would put a sixth actor on a card whose subject is
+         the five rungs.
+CHECKED  2026-08-19, full fact pass, 24 claims, 19 against a fetched reference and none unverified.
+         Confirmed and NOT to be re-litigated: authorizers run in configured order and the first to
+         allow or to deny ends it, with 403 when none allows ("If any authorizer approves or denies
+         a request, that decision is immediately returned and no other authorizer is consulted",
+         https://kubernetes.io/docs/reference/access-authn-authz/authorization/, now cited in
+         `sources` because step 1 leaned on a page the card did not name). ServiceAccount,
+         LimitRanger and DefaultTolerationSeconds are all in the default-enabled list and all
+         mutating. Mutation precedes validation ("Mutating admission webhooks are invoked first...
+         After all object modifications are complete, and after the incoming object is validated by
+         the API server, validating admission webhooks are invoked"), which is what carries both
+         `all before validation` on the mutating step and `before any validating webhook runs` on
+         the schema step. failurePolicy governs timeouts. ADDED is the watch event for a create, and
+         201 Created is the create response, spelled the same way on cluster-object-create-path,
+         cluster-server-side-apply and cluster-leader-election.
+         A trap worth naming: a summarising fetch of the admission-controllers page reported
+         LimitRanger as "Type: Validating" and the feature gate as beta-default-true at 1.35. Both
+         are wrong, and both were caught by reading the raw page. Type lines and gate tables are
+         parsed off the HTML on this card, never off a summary.
+WHY NOT  A caption or a heading on the LADDER, saying the five rungs are the write path rather than
+         five admission stages. REJECTED, and the ROOM is not the reason: the ladder runs y
+         220..428, the chip strip starts at 520, and the panel is 230 deep at worst with its right
+         edge at x<=397 against a ladder column at 420..820, so a caption at y=450 or at y=180 fits
+         at every viewport. Three other things kill it. The catalogue draws 37 chain ladders and NOT
+         ONE carries a caption. There is no text class for one: all 187 `P.wire` labels in the
+         catalogue are blank at build and filled per step out of `wires` (T-29), which is what makes
+         a `scheme-label` the name of traffic on its own lane (T-22), and the four standing text
+         nodes outside that class are each a block label inside a drawn frame. And the pattern is
+         not this card's: cluster-resource-quota hangs five rungs under the byte-identical `API` /
+         `admission pipeline` box and its rung 5 is `persist  ·  the Pod object is written to ETCD`,
+         as far outside admission as row 5 is here, so captioning one and leaving the other is the
+         drift, and captioning both is a two-card change to close a scope statement the cards
+         already make. The scope IS stated, in three places: the `aria-label` above, the numbering
+         plus `chain: [i]` which makes the ladder a STEP INDEX rather than a taxonomy of admission,
+         and step 1 opening `Already done, and not admission at all`. A second heading 40 units under a sublabel
+         that says something else reads as a contradiction rather than as a clarification.
+DO NOT   Write that the request "arrives authenticated, so admission never sees an anonymous caller",
+         which is what step 1 said and is false. An anonymous request PASSES authentication, as
+         system:anonymous in group system:unauthenticated, and anonymous access is ON BY DEFAULT
+         whenever the authorization mode is anything other than AlwaysAllow, so admission sees
+         anonymous callers routinely. What is true is the weaker claim the same sentence already
+         opened with, and that is what it says now: admission runs after authentication, so every
+         caller has an identity, even system:anonymous. The reference sentence that settles it:
+         "A request providing no bearer token would be treated as an anonymous request." and
+         "Anonymous access is enabled by default if an authorization mode other than AlwaysAllow is
+         used". https://kubernetes.io/docs/reference/access-authn-authz/authentication/
+NAMING   Every step opens by sorting its stage into `Built-in.` or `Pluggable plus built-in.`, and
+         step 1 carries NEITHER. It opens `Already done, and not admission at all`, because the
+         sorting is a statement about the admission pipeline and row 1 is not in it. Reading it as
+         a gap and filling in `Built-in.` states something false as well: authentication takes
+         webhook token authentication, JWT/OIDC, an authenticating reverse proxy and client-go
+         credential plugins, and authorization takes a Webhook mode, so authn/authz is the MOST
+         pluggable stage on the card. The absent label is what says row 1 is outside the taxonomy.
+         https://kubernetes.io/docs/reference/access-authn-authz/authentication/
 DO NOT   Name DefaultStorageClass as the always-on mutating example. It acts on
          PersistentVolumeClaims, and this card follows a Pod. DefaultTolerationSeconds is the one
          that applies.
-DO NOT   Leave the Api box dark on mutating, schema and validating. Those three carry no motion, so
+DO NOT   Leave the Api box dark on mutating, schema and validating. Those three carry no packet, so
          with the Api unlit the only thing on screen is one ladder row, and the block whose pipeline
          the card is about reads as idle for half its length.
+MOTION   The mutating, schema and validating steps carry NO flow at all. Everything they change is
+         a static highlight: the Api, the ladder row and the chips. Measured with the card-review
+         frame tool at 1600x1000, comparing each step frozen at 0 against the same step at half its
+         span, those three steps differ by 0 pixels and the two ball-carrying steps by 2150 and
+         1763. Nothing on them moves, by construction.
+DO NOT   Put `F.flash({ targets: ['api'] })` back on those three steps. `flashChips` is implemented
+         as `filter: brightness(1) -> 1.55 -> 1` over 600ms on the box GROUP, so it brightens and
+         dims the frame, the `API` label and the `admission pipeline` sublabel together: that is a
+         block PULSE, which `M-01` forbids on infrastructure, and its peak of 1.55 is brighter than
+         the 1.4 of the Pod pulse that `M-01` reserves as the only pulse on a card. `M-27` reads as
+         permission for it, and the two rows disagree; on this card `M-01` wins and the beat is the
+         `.highlight` that the same `M-27` names first.
+         It also cannot be seen in a still. The flash is 600ms and those steps had a span of 600ms,
+         so a frame at half span sits at peak brightness and a frame at 95 percent is still lit,
+         and both read as an ordinary static highlight. Only a frame at 0 compared against one
+         mid-span shows it, which is why the frame tool now takes 0 as well.
+         Every `duration` here is sized off READING LOAD, which is the one thing on a card that has
+         no machine at all. Measured with the card-review timing probe, the catalogue median is
+         10.14 ms per narration character over 532 steps, and the five steps here sit at 9.66,
+         10.06, 9.83, 9.51 and 14.47, ranks 217 to 471. Sizing the three flash steps off the flash
+         instead puts two of them at 5.99 and 6.20, inside the most hurried 8 percent of the whole
+         catalogue, which is what a reader pays for a duration chosen by the motion.
+         DO NOT read `span <= duration` (`M-19`) as the constraint that fixes these numbers. It is
+         a floor and only persist comes near it, at span 2982 against 3300. That margin of 318 is
+         also what a geometry change spends first, because `routeDur` is length-based (`A-11`).
+WIRE LABELS
+         Four labels, one per drawn exchange, and every one of them names traffic that rides THAT
+         lane (`T-22`). `req` sits above the Api because the request is what the Api received.
+         `write` and `commit` stack in the 136-unit gutter between the Api right edge at 820 and
+         the cylinder left edge at 956, `write` above the out lane at y=85 and `commit` below the
+         back lane at y=115, measured 73.6 and 61.3 units wide at 1100x800 against that gutter.
+         `resp` sits under kubectl. Three balls fly on the persist step and all three are named.
 ```
 
 ### poster
 
 ```
-One sentence: a write passes a rewrite gate and a check gate before it reaches storage. Four
-elements left to right chained by dashed links: the request as a small box with three text lines,
-the mutating gate as a dashed box carrying a squiggle, the validating gate as a dashed box carrying
-a tick, and the etcd cylinder. The two gates are DASHED while the request and the cylinder are
-solid, which is the whole idea in one attribute: the ends of the chain are fixed, the middle is
-pluggable. No ladder, no kubectl, no chips, no API frame.
+Sentence: the object that reaches storage is not the object that was sent, and the gates are what
+rewrote it.
 
-Emphasis is FLAT on purpose, all four at 0.04 to 0.06, where the canon asks for one brightest
-element.
+Chain of stages, but the rhythm is the CONTENT of a repeated block rather than a glyph per stage.
+One 72 x 76 object block drawn three times on the baseline at x=8, 124 and 240, carrying one, two
+and three accent bars stacked upward from y=110.5 at a 12-unit pitch. Two 22 x 92 dashed slots at
+x=91 and x=207 stand between them, overhanging the blocks by 8 above and below so the object reads
+as passing THROUGH rather than past. Fills ramp 0.04 / 0.05 / 0.08 and the last block alone takes
+stroke-width 2. The accent is the newest bar, the one the last gate added, at 0.9 against 0.28 on
+the five it inherited. No cylinder, no kubectl, no ladder, no API frame.
 
-DO NOT raise the two gates to 0.16 as a canon fix. It was tried and reverted on sight. The open
-question, if flat emphasis is ever revisited, is whether a poster whose subject is a PAIR can take
-the single-brightest treatment at all: brightening both is two focal points, and brightening one
-means choosing between mutating and validating on a card about both.
+This replaced a four-element chain (request box, dashed mutating gate with a squiggle, dashed
+validating gate with a tick, etcd cylinder) whose emphasis was FLAT, all four at 0.04 to 0.06. On
+the category sheet that made it the dimmest poster of the 21 and the only one with no accent, and
+its silhouette repeated cluster-object-create-path next door: small boxes on one axis joined by
+dashes. The old note recorded the reason as an open question, whether a poster whose subject is a
+PAIR can take the single-brightest treatment at all. The answer taken here is that it cannot, and
+that the fix is a different SENTENCE rather than a brighter pair. The old poster answered "is it
+allowed", which is the whole subject of cluster-resource-quota one card to the right, and the break
+vocabulary it would need is already spent twice in this category on cluster-pod-priority-preemption
+and cluster-node-pressure-eviction. The rewrite sentence is unheld by any sibling and it is the
+second half of the card `desc` question, "and how it looks".
+
+DO NOT drop the inherited bars to the 0.14 that cluster-object-create-path uses for its losers.
+Counting them IS the sentence here, and below about 0.25 the growth stops reading at grid size while
+the accent gains nothing. 0.28 was set against the 200px render, not the montage.
+
+The nearest neighbour in silhouette is cluster-server-side-apply, also three blocks with one bright
+bar. It is not adjacent, and the two separate on the ramp: that poster accents the CONTESTED middle
+and its outer blocks are equal, this one accumulates left to right and accents the end.
 ```
 
 ---
@@ -129,6 +290,11 @@ WHY NOT  Moving the chip column left. The chip strip pools value chips AND chain
          event slots, and it centres on 600 precisely BECAUSE the ladder holds 60 while the chips
          hold 1140. Nothing else can hold 60: the event slots start at 290 and widening them moves
          the timeline off the spine.
+WHY NOT  A second, upward Informer-to-API lane so the LIST gets a lane of its own. WATCH_LANE is the
+         single vertical on the spine at x=600 and the `watch` caption anchors `end` on 580 beside it,
+         so a pair would have to split the spine into two risers, move that caption, and move the
+         F.segment endpoints four steps share. It would also stand unridden on five of the seven steps
+         even after the LIST and the re-LIST were animated on it, where the register costs nothing.
 NOTE     Both ETCD wire registers sit on the BOTTOM legs, not up on the row: the lanes turn down at
          764 and 740, so a label centred on 890 floats in blank canvas 120 units right of anything it
          could be labelling. The LIST label sits BESIDE the riser, not in the 112 unit gap under it,
@@ -164,6 +330,22 @@ NOTE     The 410 step is a conditional aside (its sentence opens with If), so th
 NOT A DEFECT
          `render/chipfit.test.mjs` is silent on `eventSlot`, which draws two STACKED texts rather than a
          name/value pair. The tool skips chips whose two texts sit on different baselines.
+NOT A DEFECT
+         The `req` register naming a LIST and a re-LIST on two steps that put no ball on the Client
+         lane. `T-22` asks whether a caption names traffic that RIDES that lane, and it does: the lane
+         through RISER_X is the process's one outbound HTTP channel to the API, and client-go's
+         reflector issues both the LIST and the re-LIST over the same clientset the informer factory
+         was built with, so all three strings the register carries are requests leaving on it. What
+         those two steps lack is a BALL, and a ball per step is not the thing T-22 measures: `list`
+         animates the ANSWER only, on purpose, because gating it upstream draws the quorum read the
+         panel denies, and the CONTENT block above already states that the register carries rv=0 out
+         while rv=842 comes back. Measured on `list` at 1600x1000: the register spans 422..587.4 on
+         337.3..351.9, which is 10 right of the riser at x=412 and vertically inside the 100..430 run
+         of it, so it is pinned to that lane and to no other thing on the card.
+         What a reader can still get wrong is WHO issues it, since the panel credits the informer and
+         the caption stands beside the Client. That is the missing process boundary, which is the OPEN
+         finding below rather than a second finding: with Client, Informer and Indexer drawn as three
+         unrelated blocks, every string on the shared channel reads as the Client's.
 OPEN     THE PROCESS FRAME. Client, Informer and Indexer are ONE process drawn as three independent
          blocks with no boundary, so the Client reads as an actor talking to an informer it contains.
          One dashed frame around the three is the fix and it is NOT done, because every placement
@@ -179,16 +361,16 @@ OPEN     THE PROCESS FRAME. Client, Informer and Indexer are ONE process drawn a
               502..648 on a 640 canvas and crosses the slot row at 290..910. Narrowing it to clear
               the slots is unavailable: the longest row string measures 234.3 and chainList draws it
               at x=10.
-         A notched outline (a hexagon with a bite where the ladder sits) is geometrically free and was
+         A notched outline (a hexagon with a bite where the ladder sits) is geometrically free and is
          DECLINED: a Tetris-shaped process boundary asserts a shape the mechanism does not have. What
          a future attempt has to buy is not the frame but a home for the discovery catalogue that
          keeps a chip on x=60, keeps the spine straight on CX, and does not push the timeline off it.
-         The general reason the three placements above all fail, re-derived 2026-08-06: the Informer
-         (235..307) shares its horizontal band with the ladder rows (217..330), and the Client is at
-         60..300 against a centre column at 510..690. So ANY frame holding the Informer and reaching
-         left to the Client crosses the ladder, and any frame clearing the ladder loses the Informer.
-         Restacking the Client into the column instead needs about 100 more units and the slot row
-         starts at 548. The finding stays open until the catalogue moves.
+         The general reason the three placements above all fail: the Informer (235..307) shares its
+         horizontal band with the ladder rows (217..330), and the Client is at 60..300 against a
+         centre column at 510..690. So ANY frame holding the Informer and reaching left to the
+         Client crosses the ladder, and any frame clearing the ladder loses the Informer. Restacking
+         the Client into the column instead needs about 100 more units and the slot row starts at
+         548. The finding stays open until the catalogue moves.
 NOT A DEFECT
          `report/arrival.test.mjs` carries three R2-STEP findings here, all on the `crd` step:
          `resourceVersion`, `watch` and `cache size` change text and take no highlight. The 410 step
@@ -208,18 +390,35 @@ stream of later changes arriving over the open watch.
 OPEN, and known: at grid size this reads as rectangles joined by dashes, the same silhouette as
 cluster-server-side-apply, and the 2 and 2.5 radius dots are near-invisible at the ~200px the grid
 renders. A pipe version (API block, cache block, one long horizontal channel carrying four event
-cells) was built and declined. Rework FROM the shape above rather than replacing it with the pipe.
+cells) is declined. Rework FROM the shape above rather than replacing it with the pipe.
 ```
 
-## cluster-apply-flow
+## cluster-object-create-path
 
 ### layout
 
 ```
 WHAT     A manifest becoming a running Pod. Every handoff AFTER the write is one component reacting
-         to a change on its own watch rather than a call from the component before it.
-PANEL    x 291 / 378 / 397, bottom 143 / 171 / 205 on the worst step. The first block under it is
-         the controller-manager at 328, so 123 units of slack at the worst viewport.
+         to a change on its own watch rather than a call, UNTIL the Kubelet drives the Runtime over
+         CRI, which is a call and is drawn as one. The clause is not optional: without it the
+         sentence is an absolute the card's own last step contradicts, and the `CONTENT` line below
+         keeps the Kubelet the caller of every CRI call.
+PANEL    x 291 / 378 / 397, bottom 160 / 193 / 230 on the worst step, which is `post` at 1100x800,
+         measured against the current narration. The first block under it is the controller-manager
+         at 328, so 98.2 units of slack at the worst viewport. The narrowest viewport is the one
+         that does NOT move when the `post` narration grows: it already wraps to the same line
+         count, so a prose edit shows up on the two WIDER heights first. Re-measure on all three heights after
+         any narration edit: the bottom swings with the line count and the line count swings with
+         the viewport WIDTH.
+MOTION   The durations are sized off READING LOAD, not off the motion: 3000 / 2200 / 3000 / 4400 /
+         2900 / 2400 / 3300 against narrations of 304 / 202 / 195 / 270 / 265 / 183 / 251
+         characters, a band of 9.9 to 16.3 ms per character. Only `span <= duration` has a machine
+         (`M-19`) and it is not the constraint here: the longest chain, `controller`, ends 180 ms
+         before its step does. `persist` sits at 2200 and reads at 10.9. DO NOT drop it back to
+         1700, where it reads at 8.4 against the 16.3 of the step beside it, the widest spread the
+         card can carry. NOT HARMONISED with cluster-architecture, which holds 8.2 to 9.4. The two
+         sisters agree on rows and columns and not on pace. Re-timing all seven to the tighter band
+         is available and costs nothing but the floor each step's span sets.
 DO NOT   Swap which side of each face the client pair takes. The out lane runs on the upper level 50
          and the return on the lower 70, so an out vertical standing LEFT of where the return turns
          down cuts through the return horizontal. At the client the out lane takes the OUTER slot and
@@ -247,47 +446,105 @@ WHY NOT  Giving the client the API's 220 width. The band outside the wall is 150
          centring, or a wider viewBox: the viewBox width available is 1200 at 1280x860 and below, so
          there is slack only while the dialog is wider than about 1.88:1, 39 units at 1600x1000. +90
          shrinks the whole card by 7% at 1280x860, and R-viewbox holds all 108 cards on 0 0 1200 640.
-OPEN     CENTRE reports content 150..1190 centred on 670 and CENTRE-LOW reports the same span. Both
-         are the client hanging off the right of a composition centred on the frames. DO NOT close
-         them by re-centring: it drags the frames off 600, which is what keeps the Node lane one
-         straight segment.
+OPEN     CENTRE reports content 150..1190 centred on 670, CENTRE-LOW 170..1190 centred on 680: the
+         same complaint with the frame walls left out. Both are the client hanging off the right of
+         a composition centred on the frames. DO NOT close them by re-centring: it drags the frames
+         off 600, which is what keeps the Node lane one straight segment. CENTRE-LOW judges against
+         the panel bottom of ONE viewport, 143 at 1600x1000, and the report says so itself: at the
+         worst-of-three bottom, 230, the finding drops.
 OPEN     The stack sits low because ETCD once held the LEFT slot, in the panel's column. ETCD is back
          on the right and nothing on either card sits in that column now, so the drop is unpaid for
          on BOTH cards. What it still buys is that the two cards agree in both axes. Raising the rows
          is available and is a TIMING change, because routeDur is length-based.
-CONTENT  The HTTP mechanics: POST to the collection path on a create, 201 Created back, PATCH on an
-         object that already exists, the field selector spec.nodeName, the binding subresource, watch
-         event type ADDED, and the name chain my-app -> my-app-7d4 -> my-app-7d4-abc.
+NOTE     The row INSIDE the Node frame is `NODE_Y + 41`, which gives architecture's two watch labels
+         tier 2's 20 unit gap, and both cards hold it. Nothing here is timed off it: every hop in
+         the Node band is horizontal, so no span moved. Restoring 47 on one card only is what breaks
+         the pair.
+CONTENT  Server-side Apply is `the same PATCH under its own content type`, not `a verb of its own`.
+         Server-Side Apply names the operations in field-management scope as `Server-Side Apply
+         (HTTP PATCH, with content type application/apply-patch+yaml)`, so there is no APPLY method
+         at the protocol level, and `cluster-server-side-apply` opens on that exact wording: `a
+         PATCH sent with the content type application/apply-patch+yaml`. The two cards sit two
+         apart and have to tell one story.
+         `checks RBAC` names the default authorizer where the mechanism is authorization. The
+         counter-cases are real (Node, webhook, ABAC) and the wording is KEPT anyway: RBAC is on in
+         every cluster a reader of this card has, and `cluster-admission-webhooks` owns the generic
+         chain. DO NOT widen it to `checks authorization`, which says less than the card knows.
+         The Pod is NAMED from `controller` on and DRAWN from `create-pod`. That is not a gap: the
+         block is the Pod RUNNING on Node-1, and the API reference is explicit that a Pod with an
+         empty `spec.nodeName` `is a candidate for scheduling`, so drawing it inside the Node frame
+         before the Binding lands would state a placement that has not happened.
+         The HTTP mechanics: POST to the collection path on a create, 201 Created back, a THREE-WAY
+         MERGE PATCH on an object that already exists (which is client-side apply, and naming it
+         that way is what keeps the pointer to Server-side Apply from reading as the same verb), the
+         field selector spec.nodeName, the binding subresource, watch event type ADDED, and the name
+         chain my-app -> my-app-7d4 -> my-app-7d4-abc.
          The controller step animates FOUR balls, not one out-and-back: watch the Deployment, create
          the ReplicaSet, watch the ReplicaSet, create the Pod. The narration names TWO handoffs by
          TWO controllers and the desc makes it the card's whole point.
          The create-pod step draws the Runtime as a block and takes TWO hops, CRI from the Kubelet
          then the container coming up into the Pod. One ball Kubelet-to-Pod reads as the Kubelet
-         creating the container itself.
+         creating the container itself. The narration keeps the KUBELET the caller of every CRI
+         call, which is what cluster-pod-sandbox-cri spells out call by call: a Runtime that pulls
+         and starts on its own contradicts that card.
+BUDGET   The tier-2 label slots are floored by the two COLUMN walls at 170 and 1030, so a label
+         centred on 280 or on 920 may run 110 either way: 220 units, and at 6.89 per character that
+         is a ceiling of 31, with a 32nd touching the wall. MEASURED at 1600x1000, their widest:
+         `POST .../binding . node=Node-1` is 206.7 on 816.6..1023.4, 6.6 inside the right wall at
+         30 characters. The controller-manager slot is over that ceiling: `watch ADDED Deployment
+         my-app` is 199.8 on 180.1..379.9, but the string the `F.set` TURNS IT OVER TO,
+         `watch ADDED ReplicaSet my-app-7d4`, is 227.4 on 166.3..393.7 at 33 characters, so it
+         overhangs the column wall by 3.7 a side. No repair is called for: it is still 16.3 inside
+         the FRAME wall at 150 and reads clean. The number is here because the slot is already over
+         its ceiling, so the next string put in it starts from 33 and not from zero.
+         **No frame shows that string.** `frames.mjs` seeks the animated path, which applies
+         `rewind` and never fires the turnover (`M-35`), so every rendered frame of step 4 carries
+         the SHORTER label while a reader watching the step sees the longer one for 2.5 of its 4.4
+         seconds. Measure this slot on the REDUCED path (`gotoStep(4)`), where `wires` states the
+         end value above the guard, and nowhere else.
+NOTE     ETCD is drawn ONCE, as one round trip over the `persist` and `etcd-response` steps, and is
+         dark for the four steps after it. Every later write lands there too, the ReplicaSet, the
+         Pod and the Binding, so the `schedule` step says that in WORDS. Four more round trips to
+         the right-hand cylinder is a picture about storage, and the card is about who reacts to
+         whom.
+NOTE     The two client labels share ONE register, `KCTL_LABEL_Y`, over the OUT lane, while the ETCD
+         pair splits its own, the request above the out lane and the ack below the back one. That
+         asymmetry is forced: under the client return lane there are 20 units to the frame top at
+         90, so an ack register there would sit on the frame. The two never show on one step.
+OPEN     The CONTROL PLANE frame label at (162, 108) is covered by the panel on every measured
+         viewport, exactly as on cluster-architecture, and for the same reason: the panel is 291
+         wide at its narrowest and the label starts at 162. Same author decision, same reason
+         OCCLUDED cannot report it, and the same instruction not to fix it by cutting narrations.
 DO NOT   Promise a status report back from the Node. The card draws no lane from the Node to the API,
          and adding one means splitting the straight API-to-Node spine into a mirrored pair.
-NAMING   Titled `From Manifest to Running Pod`. A CLI verb names one step of seven, and
+NAMING   Titled `Object Create Path`. A CLI verb names one step of seven, and
          `Kubectl Apply` beside `Server-side Apply` two cards away invites the reader to guess which
          is which. `Watch` or `Reconcile` was rejected: the catalog already holds `List-Watch and
          Informers` and `Kubelet Reconcile Loop`. app.js searches title + desc, so the desc keeps
          "between kubectl apply and a running Pod".
+         The id carries the title and not the CLI verb, for the reason above: the id is the name a
+         reader meets in the file tree and in a deep link. `D-02` is why the category prefix stays.
+         `control-plane-apply-flow` and `cluster-apply-flow` both resolve through `SCHEME_ALIASES`,
+         which is two of the 30 the census in `unit/catalog.test.mjs` pins.
 ```
 
 ### poster
 
 ```
-Sentence: a manifest walks DOWN a chain and comes out the far end as a Pod.
+Sentence: two things come in, one Pod comes out.
 
-A descending staircase of four 72 x 38 blocks, each 76 units right and 40 lower than the last:
-manifest, API, controller, Pod. Three dashed legs leave a block's right face, run 40 right and turn
-down into the next block's top face, so the risers read as the handoffs. Only the last block is lit
-(0.10 against 0.04) and only it carries the accent bar at 0.9, the first three at 0.3: the sentence
-is about what the chain PRODUCES. The 40 unit drop against a 38 unit block means consecutive steps
-barely overlap in y, which is what makes the diagonal silhouette survive the ~200px the grid renders.
+SHIPPED, and this block describes what posters.js draws. Four 76 x 44 blocks: two on the left at
+(14, 22) and (14, 114), one at (122, 68), one at (230, 68). Each left block sends a dashed leg out
+of its right face at its own middle (44 and 136), turns at x=106 onto the centre line y=90 and
+enters the middle block, so the two legs MERGE. A straight dashed leg then runs 198 to 230 into the
+last block. Only that last block is lit (0.10 against 0.04) and only it carries its accent bar at
+0.9, the other three at 0.14: the sentence is about what the chain PRODUCES.
+
+Do not read the geometry of a poster out of this file without opening posters.js.
 
 DO NOT go back to a row of boxes on one horizontal axis. That version was indistinguishable from
 cluster-delete-flow on the grid, and the mirror-of-delete-flow idea behind it (fills rising against
-fills falling) is invisible at grid size. Direction is carried by SHAPE here.
+fills falling) is invisible at grid size.
 ```
 
 ### before `    P.box({ key: 'client', x: KCTL_X, y: KCTL_Y, w: KCTL_W, h: BOX_H, label: 'kubectl' }),`
@@ -304,8 +561,11 @@ wall its lanes address. DO NOT hardcode either: a literal would survive the next
 ```
 Two registers for the ETCD pair, both BETWEEN the blocks: the request above its out lane at 158, the
 ack below its return lane at 208, both centred on ETCD_GAP_CX 805, the middle of the 190 unit gap.
-`write Deployment my-app` measures 153 rendered and `ack . rv=842` measures 80, so both clear their
-blocks with air either side.
+MEASURED at 1600x1000 after document.fonts.ready, `write Deployment my-app` is 158.5 on 725.8..884.2
+and `ack . rv=842` is 82.7 on 763.7..846.3, so the wider of the two clears the API on 710 and the
+cylinder on 900 by 15.8 a side. Both are 6.89 per character to the decimal, which is the `L-20`
+rate. MEASURE AFTER document.fonts.ready: a read taken in the fallback face comes back about 3.5
+percent low and reproduces on no viewport.
 
 The CLIENT pair cannot use this register: its lanes are 100 units above the row, in the band over the
 frame. Its two labels share ONE register at y=34, centred at 862 on the level run they ride, and they
@@ -341,10 +601,21 @@ WHAT     The moving parts of a cluster and who talks to whom: control plane over
 NOTE     ETCD right-aligns on 1030, the Scheduler's right edge, rather than centring on the Scheduler
          axis at 920. The card is three columns whose outer walls are 170 and 1030, and a centred
          cylinder would sit at 855..985, breaking that wall to line up an axis nobody can see. It
-         also costs the ETCD write label its home: that string needs 179 units and the gap to a
-         cylinder starting at 855 is 145.
+         also costs the ETCD write label its home: that string measures 179.2 units and the gap to
+         a cylinder starting at 855 is 145.
 NOTE     A frame move under about 25 units is not a visible change: 10 viewBox units is about 12
          rendered pixels on a 1600 wide dialog.
+PANEL    bottom 125.11 at 1600x1000 to 254.66 at 1100x800, deepest on the node-side step, measured
+         against the current narration. The nearest thing under the panel corner is the tier-2 row
+         at 328, so 73 units of clearance at the worst. The right edge 396.55 at 1100x800 is the
+         CATALOG worst and the number `L-02` records, and it is geometry rather than prose: it does
+         not move when a narration is rewritten.
+MOTION   The durations are sized off READING LOAD, not off the motion: 2800 / 2300 / 2600 / 2600 /
+         2400 / 2600 / 3400 against narrations of 314 / 246 / 281 / 291 / 294 / 300 / 366 characters
+         as the panel renders them, a band of 8.2 to 9.4 ms per character against a catalog median
+         of 10.2 over 532 steps. The api step carries NO motion at all, so its duration is the whole
+         hold a reader gets. Only `span <= duration` has a machine (`M-19`), and it passed at 1700
+         on three steps that were unreadable at that speed.
 LANES    The two tier-2 levels are DERIVED from BAND_CY, D10 either side, so the pair re-centres
          whenever a row moves. The band is 108 units and a fixed +40 / +60 glues both levels to the
          API and leaves dead air under them.
@@ -367,34 +638,88 @@ NOT A DEFECT
          carry none at all. They do: the card shows one half at a time, so a lane idle on the step
          you are reading is ridden on another one.
 WIRE LABELS
-         Seven, and none can sit in the band under the API: the two Node-bound lanes run vertical
-         corridors at x=440 and x=760 straight through it, and FOUR of the seven had a dashed lane
+         Eight, and none can sit in the band under the API: the two Node-bound lanes run vertical
+         corridors at x=440 and x=760 straight through it, and four of them had a dashed lane
          drawn through the string. `render/geometry.test.mjs` cannot see any of it, because THROUGH
          scores lanes against BLOCKS and a text is not a block. They live in the two bands the
          corridors do not reach: T2_BELOW, one under each tier-2 box (440 and 760 fall in the gaps
-         between those three strings), and T3_BELOW under the Kubelet and kube-proxy, the tier-2
-         rhythm repeated inside the Node frame. A watch label belongs next to the component doing
-         the watching.
+         between those three strings), and T3_BELOW under the Runtime, the Kubelet and kube-proxy,
+         the tier-2 rhythm repeated inside the Node frame. A watch label belongs next to the
+         component doing the watching, and the CRI label under the Runtime the Kubelet drives.
+         The three tier-3 strings MEASURE 151.6, 227.4 and 213.6 units at 1600x1000, their widest,
+         on centres 280, 600 and 920: they span 204.2..355.8, 486.3..713.7 and 813.2..1026.8, the
+         tightest gap between two of them is 99.5, and the row ends 3.2 inside the 1030 column wall
+         and 23.2 inside the frame wall on 1050. All three shrink on a narrower viewport.
+         The tier-2 row is floored by the cloud label, 303.2 units at 1600x1000 on 448.4..751.6,
+         which clears the x=440 and x=760 corridors by 8.4 a side. 46 characters is the ceiling
+         there and a 47th crosses both corridors, against 44 today. That margin is INSURANCE and
+         not a live clearance: the tier-2 labels and the Node corridors are never on screen
+         together, because the Node lanes sit at opacity 0 for the six control-plane steps and the
+         tier-2 labels are cleared by the prologue on the node-side step.
 DO NOT   Put a label under the API at (CM_CX + 135, 186). That is inside the panel's column, and the
          panel is widest and DEEPEST on the SMALLEST viewport because a narrower panel wraps into
          more lines: one line is 25 viewBox units, five lines bottom 155, six 180. A six-line
          controllers step then renders `watch . reconcile loop` half behind the panel, and OCCLUDED
          reports the card clean either way.
-OPEN     The CONTROL PLANE frame label at (162, 108) is fully covered by the panel on EVERY measured
-         viewport (worst x<=397 y<=230, best x<=291 y<=125). The one thing on the card that is
-         knowingly INVISIBLE rather than dimmed, taken by author decision. OCCLUDED cannot report it
-         because the rule excludes node frames by construction. DO NOT try to fix it by shortening
-         narrations: even a ONE line panel reaches x<=291, which still covers x=162 onward.
-CONTENT  cloud-controller-manager carries the sublabel `optional` and the narration says a cluster on
+OPEN     The CONTROL PLANE frame label keeps the LEFT top corner at (162, 108), where `node()`
+         prints it and where the rest of the catalog draws a frame label, and the panel covers that
+         corner on EVERY measured viewport (worst x<=397 y<=254.66, best x<=291 y<=125.11). So the
+         string is the one thing on the card that is INVISIBLE rather than dimmed, by author
+         decision, and OCCLUDED cannot report it because the rule excludes node frames.
+         DO NOT move it to the right corner through the `tune` escape: the overlap is to be fixed at
+         the panel and the scale, not by walking the label around the frame.
+WHY NOT  Shortening the narrations to pull the panel off the left corner: even a ONE line panel
+         reaches x<=291, which still covers x=162 onward. There is no prose that fixes it.
+CONTENT  Every claim on this card is checked against the two pages it cites. Components carries the
+         `(optional)` marks on cloud-controller-manager and on kube-proxy and the one-line job of
+         each component. Architecture carries `kube-apiserver is designed to scale horizontally`,
+         the three cloud-controller-manager controllers (Node, Route, Service), `If you use a
+         network plugin that implements packet forwarding for Services by itself ... you do not
+         need to run kube-proxy`, and `A scheduler watches for newly created Pods that have no Node
+         assigned`. `spec.nodeName` is the API reference wording: empty means `a candidate for
+         scheduling`, set means `the kubelet for this node becomes responsible`.
+         cloud-controller-manager carries the sublabel `optional` and the narration says a cluster on
          your own hardware has none, which is what Components lists literally. kube-proxy is optional
          upstream too, but that is said in WORDS: a second `optional` sublabel in the same drawing
          reads as a pattern rather than as a fact.
          The API is "the only way in for clients and controllers", not "the only entry point":
          cluster-static-pods exists to show the path that skips it.
          The Scheduler's one write is "on the ordinary path", because preemption also deletes.
-         The cloud lane is labelled `watch Nodes . write Node and Service status`, which is what
+         The cloud lane is labelled `watch Nodes and Services . write status back`, which is what
          actually rides it. No provider is drawn, so a label naming a provider call was promising a
-         call the card does not draw.
+         call the card does not draw. BOTH watches are named because the right half writes Service
+         status: naming the Nodes watch alone asks for a read the left half does not have.
+         Architecture gives the cloud-controller-manager three controllers, Node, Route and
+         Service, and the Service one watches Services to write the load balancer status back.
+         The controller-manager runs `the built-in control loops, roughly one per resource kind`,
+         not one loop per kind flat: the garbage collector works across every kind, and namespace
+         and node-lifecycle are per mechanism rather than per kind.
+         ETCD `holds the cluster state the API serves, and in a standard cluster the API is the
+         only client it has`, not `the only durable store in the cluster`: an aggregated API server
+         brings storage of its own, and events can be split onto a second instance (`T-19`).
+         The `desc` in cards.js carries THAT SAME qualifier and has to keep it: unqualified, the
+         grid tile states an absolute the step behind it does not. It ends `while in a standard
+         cluster only the API talks to ETCD`, and the opening question is short by `to each other`
+         to pay for the clause: 458 characters against the 470 hard ceiling and the 460 target top
+         of `D-04`, so there is no room to spend twice. No machine reads this: `T-19` over
+         descriptions only prints, and this card sits in its `only` row either way.
+         The Kubelet also `PATCHes Pod status back`, said in WORDS on the node-side step. It is the
+         observed half every loop above compares against, and with no lane drawn for it the card
+         showed desired state travelling down and nothing coming back.
+BUDGET   The two ETCD strings live in the 190 unit gap between the API on 710 and the cylinder on
+         900, on the centre line 805. MEASURED at 1600x1000, their widest, `write . Raft quorum
+         commit` is 179.2 wide at 715.4..894.6: 26 characters clear each wall by 5.4, 27 is the
+         CEILING and a 28th touches both. MEASURE IT AFTER document.fonts.ready. The same string
+         reads 173.6 in the fallback face, which is what a measurement taken before
+         `document.fonts.ready` returns.
+SCOPE    The Kubelet status PATCH is narrated here and DRAWN by cluster-kubelet-sync-loop. The CRI
+         call is one ball and one label here, and the RunPodSandbox to StartContainer sequence
+         behind it is cluster-pod-sandbox-cri.
+         No CLIENT is drawn, and the first step names one (`the only way in for clients and
+         controllers`). That is scope and not an omission: six of the seven steps stand inside the
+         control plane, and the sister card on this exact grid, cluster-object-create-path, is the one that
+         draws the client, in the 150 unit band right of the frame at 1060..1190 which this card
+         leaves empty on purpose. Filling that slot here moves the subject of the card.
 NOTE     KUBELET_TO_RUNTIME is a ROUTE, not a relationship, because the last step says the Kubelet
          CALLS the Runtime over CRI. Two things follow. It runs Kubelet to Runtime WITH the ball: a
          relationPath the other way carries no arrowhead to contradict it, and a ball on those points
@@ -424,7 +749,7 @@ PANEL    x<=397 on every step, bottom reaching 282 on gc-cascade, the deepest na
 OPEN     TOP_Y 110 is as low as the row can go: below it sit band 1, tier 2, band 2 and the Node
          frame, and tier 2 cannot rise. So kubectl at 170..330 and the two labels in the left gap are
          inside the panel's column and are COVERED rather than clipped. Taken knowingly, the same
-         trade as cluster-apply-flow. WHY NOT keeping the top row right of the panel (420..1080): it
+         trade as cluster-object-create-path. WHY NOT keeping the top row right of the panel (420..1080): it
          centres nothing, the row sits 150 units right of the centre the Node frame sets, and the
          whole drawing leans.
 NOTE     WHICH LANE GETS WHICH SLOT on the API's bottom face (540 / 590 / 610 / 630 / 660) is FORCED,
@@ -506,7 +831,7 @@ top wire labels their clearance above the cap.
 Every lane is drawn here, each from the SAME points array its ball rides.
 
 `unit/docs.test.mjs` verifies that an anchor points at code that still exists, NEVER that the sentence under
-it is about that code. This anchor and its twin on cluster-apply-flow both carried a note about a
+it is about that code. This anchor and its twin on cluster-object-create-path both carried a note about a
 different lane for exactly that reason.
 ```
 
@@ -569,6 +894,37 @@ WHY NOT  A relationPath from the ladder down to the bar: the bar's top face midp
          the seam between slot0 and slot1, so the lane would land on a join rather than on a face.
 ```
 
+### before `const WIRE_IF_Y = midX(LR_Y + LR_H, CAP_Y);              // 301, ink centred in the 226..376 band`
+
+```
+T-35, the counterfactual sign. The no-request step draws state that never happened: both slots gone,
+status.used back to 0, the whole listing at `no Pod object` and the LimitRange at OPACITY.terminated.
+Nothing on the canvas said so, and no check can say so, because every check reads one step at a time.
+The sign is the caption `if instead no LimitRange existed`, on `branch`, written by that step alone.
+The reset prologue calls clearWires, so blank on the other five steps costs no field and cannot rot.
+
+WHERE, and why there. The premise is the ghosted LimitRange and the consequence is the bar plus the
+listing, so the caption governs both and sits in the one empty band between them, y 226..376. It
+starts at BAR_X, the rail LR_X, BAR_X and the `ResourceQuota team-quota` tag all share, so it reads
+as one register above that tag rather than as a floating note. Measured on the rendered frame, the
+step and all three viewports: ink 289.8..304.4 at 1600x1000, 63.8 clear under the LimitRange box,
+60.4 clear above the tag, 99.5 clear left of ladder row 4 (740..1140 x 278..312), and clear of the
+panel everywhere (worst 1100x800: panel right 396.55 bottom 229.82 against a caption at x>=420,
+y>=290).
+
+WIDTH, which nothing measures (L-19). 220.5 units at 1600x1000, 201.5 at 1280x860, 196.3 at
+1100x800: an 11px mono string is WIDEST at the largest viewport, because advances rasterise in
+device pixels and map back through the uniform viewBox scale, so 1600x1000 is the case to clear.
+
+WHY NOT the y=140 corridor above the LimitRange, which is where a caption over the whole branch
+belongs geometrically. Rendered and rejected: that corridor sits under the ReplicaSet box, which
+spans the same 420..652, so the line reads as a second sublabel on the ReplicaSet, and it collides
+with the 403 the reject step writes on `ack`. WHY NOT the y=376 tag row at x=60, which is free: it
+lands 6 units over list0 and reads as a column heading for the listing, leaving the bar unmarked.
+WHY NOT y=340, one register higher: 22 units over the tag reads as a two-line caption block, and it
+lines up with ladder row 5 and the command chip instead of with the bar.
+```
+
 ### poster
 
 ```
@@ -618,6 +974,10 @@ NOTE     The three inputs of the client-side three-way merge sit in the bottom-l
 DO NOT   Remove a field row when it leaves the object. A removed row leaves a row-sized hole in a
          table on screen for the whole card, which reads as a rendering fault. It dims to
          OPACITY.terminated, keeps its field path, and its value cell says Removed.
+CONTENT  The `desc` opens on `Two field managers`, not `Two controllers`. The card draws kubectl and
+         hpa-controller, and only one of the two is a controller: the first step says `You run
+         kubectl apply --server-side` and the conflict step says `kubectl owns that field`. Field
+         manager is also the term the rest of the desc and the whole card already use.
 NOTE     The two right-hand cells are spelled with the primitive's own key names (`label:` and
          `sublabel:`) so `render/inline.test.mjs` reads them where they are written. A `val:` key hides nine
          drawn strings from the lint; a `value:` key makes the lint demand lowercase for a string
@@ -877,6 +1237,13 @@ faults were invisible on the file and obvious on a montage.
 
 ```
 WHAT     Three replicas racing for one Lease, and the renewals and failover that follow.
+LANES    One request lane and one answer lane per replica, on that replica's own axis. `PUT` and
+         `ACK` are built ONCE, one array per replica, and the `P.lane` and the `F.route` both index
+         them, so the drawn wire and the ball it carries are the same array (A-02 SHARED). All 16
+         routes on this card read them and none is carried.
+DO NOT   Turn them back into `f(cx)` factories that build the points at the call site. The lane and
+         the route are then two equal copies, and the first geometry edit moves one of them: that is
+         exactly the defect the DO NOT below names, one level further up.
 WHY NOT  One shared horizontal corridor for all six CAS routes. Every PUT then lies on top of its own
          answer and it is unreadable which answer belongs to which replica.
 WHY NOT  A replica row at 420..1140 while the Lease and its chips span 60..1140: the bottom then reads
@@ -1111,6 +1478,86 @@ on a card where two leave and one stays.
 WHAT     A Node going unreachable: the Lease going stale, the NotReady condition, the unreachable
          taint, and the eviction timer that finally moves the Pods.
 WHY NOT  Five chips across at 206: the unreachable taint value alone needs 335.
+LANES    THE TWO LANES ON NODE-1 END ON DIFFERENT FACES, and that is the fact rather than an
+         oversight. The heartbeat leaves the FRAME top at [293, 406], because a Lease is renewed by
+         the Kubelet and the Kubelet is the Node. The eviction DELETE lands on the POD top at
+         [269, 422], because a DELETE is an API write on the Pod object: nothing about it travels to
+         Node-1 at all, which is exactly why the object then sits in Terminating with an orphaned
+         container. Ending it on the frame top drew the delivery the step's own sentence denies, and
+         the comment beside that flow already said "to the Pod on Node-1" while the geometry said
+         the Node. Sibling form, read today: `workloads-pvc-stickiness` ends the same DELETE on
+         [P_A_CX, POD_Y], its Pod top-face midpoint, and crosses its own Node frame to get there.
+         The endpoint x stays on NODE_A_CX - LANE_DX = 269 and is NOT moved to the Pod midpoint 281,
+         so the drop keeps 24 units of daylight from the heartbeat riser at 293 instead of running
+         12 from it. OFFEDGE is unbothered either way: 12 off a 300 unit face is 4%, inside the 18%
+         a lone endpoint is allowed. THROUGH is unbothered by the frame crossing, which is its own
+         documented exception, a frame being a container lanes run inside to reach what it holds.
+         A-11, measured: the drop grows 16 units (406 to 422), the route 593 to 609, so the arrival
+         moves 1318 to 1353 at PKT_SPEED 0.45 and the `evict` span 2218 to 2253 of 2400, arrival
+         plus the 900 of PULSE_POD. That leaves 147 clear of the 2400, so the longer drop is paid
+         for out of slack rather than out of the duration.
+         THE SHADE FOLLOWS THE ENDPOINT. `evictLane` is `laneOf(podA, nodeA)`, the dimmer of the Pod
+         it ends on and the frame it crosses to reach it. DO NOT write it as `laneOf(nodeA,
+         OPACITY.running)`, which never sees the Pod at all. Measured with the harness
+         `effectiveOpacity` over all seven steps. Source end, the controller bottom face at [576,
+         120]: composites 1.00 on every step. Sink end, podA top face at [269, 422]: 1.00 through
+         `taint-applied`, then 0.25 from the `evict` arrival on, and the INK at that face is that
+         0.25 times the 0.65 `stroke-opacity` the outline style gives `.scheme-pod-rect`, so 0.16. A
+         lane at 0.40 with `stroke-opacity` 1.00 on those two steps carries 2.5 times the ink of the
+         object it terminates on, so the lane's own series is 1.00 / 1.00 / 0.40 / 0.40 / 0.40 / 0.25
+         / 0.25.
+         The frame STAYS in the min, and that is what keeps the DO NOT below satisfied: three of the
+         four legs are outside the frame, so dropping nodeA from the expression would have drawn a
+         1.00 lane over a 0.40 frame for three steps.
+         WHY NOT let 0.25 reach the flight. `F.fade` from DOWN to DYING at `at: 'del'` runs the lane
+         down on the Pod's own beat over the same 700, and `fill: 'both'` holds keyframe one at 0.40
+         through the whole 1353 of the delay window, so the ball rides a 0.40 lane end to end (A-15)
+         and the span stays 2253 of 2400. Read at 1600x1000 and 1100x800, the side effect is a gain:
+         the eviction drop at x=269 and the heartbeat riser at x=293 are 24 apart and now carry
+         different shades, so the pair cannot read as one LANE_DX pair at either viewport.
+NOTE     The Pod PULSES on `evict`, and the lane ending on the Pod is what makes that pulse mark the
+         object the ball actually reaches. M-08 wants that order, pulse then fade, and both fire on
+         the arrival. BOTH shapes were compared on the rendered frame: the pulse SHIPS. Census over
+         the catalogue, off the specs: of the 22 beats where a Pod fades on a ball arrival, 19 carry
+         the pulse and 3 do not, and one of the three (`cluster-delete-flow`) is a second fade on a
+         Pod that already pulsed in the same card, so the sibling `workloads-pvc-stickiness` is one
+         of two true exceptions and this card sits with the 19 that pulse. The frames settle it:
+         with the pulse the deleted object is the brightest thing on the canvas at 1803, which is
+         450 into the 900, at both viewports. Without it the only arrival cue is the ripple M-14
+         gives every packet, a ring at [269, 422] sitting ON the Node-1 frame edge, so the beat is
+         not UNMARKED without the pulse, it is marked on the point instead of on the object.
+WHY NOT  match the sibling and drop it. The argument was that a Pod on a Node the narration calls
+         unreachable cannot acknowledge anything, and what the pulse TARGETS answers it: M-03 pulses
+         the whole Pod GROUP, which here draws the Pod OBJECT in the API, and the object is what
+         changes, since this step says it gets a deletionTimestamp while the container on Node-1 is
+         orphaned. Two numbers that carry no verdict: the pulse is what sets the span, 2253 with it
+         against 2053 without, both inside the 2400, and neither path shows it statically, so
+         `reducedLit` needs nothing and `render/reduced.test.mjs` cannot see the choice at all.
+         `render/opacity.test.mjs` ORDER cannot either. It skips a fade with no pulse of its own
+         (`if (!mine.length) continue`), so M-08 ORDERS a pulse and never requires one.
+WIRE LABELS
+         TWO REGISTERS, because one of the five strings has a lane of its own. `ctrl` sits at
+         [785, 26], above the top row and centred on the controller-to-Lease relation, and carries
+         what the CONTROLLER writes: the status PATCH, the taint PATCH, the DELETE, the recreate. The
+         `heartbeat` string is the Kubelet's PUT, not the controller's, and the ball for it rides
+         hbLane out of [293, 406], so under `T-22` that caption cannot sit over a relation that
+         carries nothing on any step. It moved to `hb`, pinned on the leg it names, and `ctrl` is
+         simply unwritten on that step, the way the poster step already leaves it.
+         Measured at all three viewports: `hb` is anchored `start` on [303, 380] and not centred on
+         the leg, because the string renders 251.5 wide at 1100x800, 258.1 at 1280x860 and 282.5 at
+         1600x1000, so a box centred on the leg midpoint 466.5 reaches 607.7 at the widest and lands
+         over the reschedule drop at x=600. Anchored it spans 303..585.5 worst case, box on
+         368.5..383.4: 6.5 under the leg at 362, 22.6 over the frame top at 406, 34 clear of the
+         eviction drop at 269, 14.5 clear of the reschedule drop at 600. The +18 under the lane is
+         the catalog offset for a caption below a wire, and the panel is 180 deep at worst, so
+         nothing here is reachable by it.
+WHY NOT  Re-centring `ctrl` on the controller spine at 600 so it reads as the controller's own
+         caption, which the four remaining strings are. It moves a label on four steps to close a
+         finding about a fifth, and the DELETE string measures 323.9, so centred on 600 it would
+         hang 162 either side of the spine across both top-row blocks instead of between them.
+WHY NOT  A caption on the controller-to-Lease relation for the `heartbeat` step. The relation is
+         drawn because the flip is COMPUTED from an expired Lease, and no step puts anything on it,
+         so a caption there would be a second string naming traffic that does not exist.
 NOTE     THE PAIR IS NOT MIRRORED, and Node-2 is why. The frame runs 698..1140, so its TOP face
          midpoint is x=919 and the whole face sits under the ladder band at 660..1140, with the
          ladder bottom 12 units above it, so that face cannot be reached at all: the reschedule
@@ -1130,9 +1577,10 @@ DO NOT   Run the reschedule lane from Pod A's right edge to Pod B's left edge. T
 DO NOT   Draw Pod A at 0 on the evict and reschedule steps. Terminating is a phase in the vocabulary,
          not an absence: an object with a deletionTimestamp the API cannot finish deleting is exactly
          what this card is about, and drawing it as gone deletes the subject of its own sentence. It
-         holds OPACITY.terminating, and its lanes take laneOf() off the Node-1 FRAME, the dimmer of
-         their two ends from kubelet-stops onward. Pinned to the Pod instead, a full-strength lane
-         sits on a 0.4 frame for three steps. The reschedule step brings only the REPLACEMENT to
+         holds OPACITY.terminating, and every lane on the Node-1 side keeps the FRAME inside its
+         laneOf() min, so none of them is ever brighter than what it crosses. Pinned to the Pod ALONE,
+         the eviction lane would run at full strength over a 0.4 frame for three steps, which is the
+         opposite error to the one the LANES note closes. The reschedule step brings only the REPLACEMENT to
          full, because a Pod carrying a deletionTimestamp no longer counts towards the replica total,
          which is what lets the controller create it while the old one is still on screen.
 CONTENT  The box sublabel is `node-lifecycle + taint-eviction`. Since 1.29 those are two independent
@@ -1142,6 +1590,10 @@ CONTENT  The box sublabel is `node-lifecycle + taint-eviction`. Since 1.29 those
          The toleration is added to any Pod that does not set one itself, NOT to "every Pod".
          DaemonSet Pods set theirs with no tolerationSeconds, so this path never evicts them, which
          is why the DaemonSet agents survive the eviction the card shows.
+         The Lease age moves to `over 350s` on the EVICT step, not on the reschedule. The toleration
+         expiring IS 300s after the 50s grace period, so a Lease still reading 52s while the eviction
+         timer reads 0s would be two clocks disagreeing on one card. It is the one Lease age change
+         after `not-ready`, so evict lights it and reschedule, where it no longer moves, does not.
 NOTE     SIX chips, not five: the grid is three wide, so five left a hole. The one worth adding was
          the THRESHOLD, `grace period`, beside `Lease age`, which is what makes 30s of staleness
          harmless and 52s fatal. The rows are meaningful now: Ready / Lease age / grace period is
@@ -1266,8 +1718,9 @@ NOTE     The scale hangs off the KERNEL, not the Kubelet. cpu.max is what makes 
          say the Kubelet runs the clock, the one thing the card exists to deny.
 MOTION   The fill grows by ANIMATING THE rect WIDTH, a real WAAPI animation on an SVG geometry
          property. It is not a packet, so no packet canon applies and `render/opacity.test.mjs` never sees it.
-         `render/duration.test.mjs` does: three fills at 700ms staggered 700 apart put the throttle span at 2100
-         plus the pulse, which is why that step is 3400.
+         `render/duration.test.mjs` does: three fills at 700ms staggered 700 apart measure a span of 2101 on
+         `throttle`, and the Pod pulse runs 0 to 900 INSIDE that span rather than after it, so the
+         3400 is the span plus 1299 of reading time for the narration and not a sum of the two.
          Every enter() writes EVERY bar through setBars. A bar left alone keeps the previous step's
          fill and caption, which on a time scale does not read as a stale value, it reads as a period
          that behaved differently.
@@ -1275,9 +1728,19 @@ NOTE     cpu.stat deliberately does NOT move on `spend`. The kernel increments n
          nr_throttled from the period TIMER, when an interval elapses, so half way through the first
          period both are still 0. An earlier draft read `nr_throttled 0 of 1` there, which claims a
          period has closed on the step whose whole subject is the middle of one.
-NOTE     The Pod does NOT pulse and does NOT fade anywhere on this card. The sibling dims its whole
-         Pod group on the kill; here the container SURVIVING is the answer, and a Pod that flinches
-         when a metric is scraped would be saying something happened to it.
+CONTENT  Two blocks are drawn, `Kubelet` and `Linux kernel`, so no step may hand the work to "the
+         container runtime": the `request` step says the Kubelet sends it DOWN THE CRI, which the
+         Kubelet's own sublabel (`CRI resources + cAdvisor`) draws, and the `quota` step names no
+         actor at all (`On cgroup v2 that is one line, cpu.max`). Both steps light the kernel, so a
+         third actor in the words was the only thing on the card with nowhere to look.
+NOTE     The Pod PULSES on `spend` and on `throttle`, and does NOT fade anywhere on this card. Those
+         are the two steps where nothing travels and the container itself is the actor, first
+         emptying the budget and then sitting dequeued, so the pulse is the only thing that says
+         WHEN, and `M-01` makes a Pod the one element allowed to carry it. It does not pulse on
+         `observe`: the sibling dims its whole Pod group on the kill, here the container SURVIVING
+         is the answer, and a Pod that flinches when a metric is scraped would be saying something
+         happened to it. Both pulses were read off the rendered frame at 450ms, the peak: the shell
+         and the container box brighten together, which is the whole-Pod pulse the catalog draws.
 NOT A DEFECT
          `report/arrival.test.mjs` reports one R2, its documented blind spot: cpu.weight turns over on `request`
          where the chip IS lit, and the tool sees it at `quota`. DO NOT close it by lighting
@@ -1323,13 +1786,30 @@ does not. The multi-thread case is the more interesting fact and it is kept in W
 `throttle` narration where nothing on the canvas argues with it.
 
 THE cpu.weight CHIP PRINTS THE NUMBER AND SAYS WHAT SET IT: `unset · 100 is the raw cgroup default`
-at rest, `10 · from requests.cpu 250m` once the request lands. Both halves earn their place. The
+at rest, `35 · from requests.cpu 250m` once the request lands. Both halves earn their place. The
 value is two conversions deep, so the chip that showed only the source would be asking the reader
 to do them: the Kubelet turns the request into CFS shares (`MilliCPUToShares`, 250m -> 256) and
-cgroup v2 maps shares to a weight by 1 + ((256 - 2) * 9999) / 262142 = 10. The unset reading carries
-the kernel default of 100 so the pair of readings is the comparison: 10 is TEN TIMES LESS than what
-a fresh cgroup starts at, and neither number says that alone. Re-derive both if the request ever
-changes, because a stale number here reads exactly like a measured one.
+cgroup v2 maps shares to a weight through the QUADRATIC fit in the library Kubernetes vendors,
+`ConvertCPUSharesToCgroupV2Value` in `vendor/github.com/opencontainers/cgroups/utils.go`:
+
+  exponent = (log2(s) * log2(s) + 125 * log2(s)) / 612 - 7 / 34
+  weight   = ceil(10 ** exponent)
+
+   100m ->  102 shares ->  17      500m ->  512 shares ->  59
+   250m ->  256 shares ->  35     1000m -> 1024 shares -> 100     2000m -> 2048 shares -> 174
+
+Recomputed off that source, not copied. The 1000m row is the curve's OWN FIT POINT: the function is
+fitted to min, max and default, so one whole CPU lands exactly on the cgroup default of 100. That is
+what makes the unset reading of 100 the right thing to pair the chip against, and 35 reads as a
+quarter of a CPU asking for rather less than the default. Re-derive both if the request ever changes,
+because a stale number here reads exactly like a measured one.
+https://github.com/opencontainers/cgroups/blob/main/utils.go
+
+DO NOT restate the weight as 1 + ((shares - 2) * 9999) / 262142, and DO NOT gloss the result as "10
+is TEN TIMES LESS than the 100 a fresh cgroup starts at". That linear conversion gives 10 for 256
+shares, and both claims are false. The linear form is not even an approximation of the live one: it
+disagrees at every row of the table above (4 against 17, 10 against 35, 39 against 100), and the
+mapping compresses nothing, it is fitted so one CPU IS the default.
 ```
 
 ### before `const SCALE_RELATION = [[KERN_CX, TOP_BOTTOM], [KERN_CX, JOG_Y], [SCALE_CX, JOG_Y], [SCALE_CX, SCALE_Y]];`
@@ -1691,6 +2171,29 @@ LAYOUT   Four across was 258 and six of the eight chip strings
          collided, including `Pod NEW · pri` against `2e9 (system-cluster-critical)`.
 LANES    The Scheduler never reaches a Node. It writes to the API and the Node acts on what it reads,
          so picking one owner would have lied about the other.
+CONTENT  Rung 2 named a phase the step it lights excludes, and no longer does. It read `2. attempt ·
+         Filter + Score · NoFit on every node` while the narration beside it says every Node fails
+         Filter, and Score never runs when Filter empties the list, which is precisely why PostFilter
+         is reached at all. It reads `2. attempt ·  filter · NoFit on every node` now, 8 characters
+         shorter, so nothing about the column width moves. Score is not lost from the canvas: it stays
+         on the Scheduler sublabel, which is the plugin ROSTER rather than a claim about this step.
+NAMING   The plugin-phase names on the canvas are LOWERCASE, and the Scheduler sublabel was the one
+         string out of line, `filter + Score + Preempt` capitalising two of the three words it wrote
+         `filter` in. It is `filter + score + preempt`. T-09 is the rule, a block LABEL is a heading
+         and takes a capital while everything else on the canvas is body text, and a sublabel is body
+         text. The sibling that walks the same scheduling cycle confirms the case rather than the
+         rule alone: cluster-scheduler-decision draws `2. filter` and `3. score` as rungs and
+         `queue, filter, score, bind` in its aria-label. Neither word is in `terms.json`, so no
+         dictionary entry rescues a capital.
+         WHY NOT close the drift the other way and capitalise both sides. System A in
+         `render/inline.test.mjs` judges the FIRST TOKEN only, so `Filter + Score + Preempt` puts
+         `Filter` first, `isIdentifier` rejects it (it matches none of the six shapes, the
+         initial-capital-then-capital one included) and the dictionary does not carry it, so the
+         sublabel scores DOWN and the gate goes red. That same test is BLIND to the rung either way,
+         because its first token is `2.` and a token holding a digit is an identifier: the rung was
+         found by reading it against its own narration, not by a check. The narration keeps its
+         capitals (`Filter plugins drop every Node`), which is prose, outside System A, and what the
+         exemplar does too.
 NOTE     Slot 0 is the victim it preempts (Pod A) and the slot Pod NEW is bound into, which is why
          everything sent down addresses it. Same one-slot-two-identities shape cluster-resource-quota
          uses for its refused block.
@@ -1699,6 +2202,37 @@ DO NOT   Draw Pod A at 0 on the delete step. A Pod inside its terminationGracePe
          reads `Pod A · Terminating` while the narration spends two sentences on the grace period it
          is serving. It holds OPACITY.terminating and keeps its slot, and leaves it on the BIND step,
          where the narration says it has exited and its capacity has returned to the Node.
+DO NOT   Say preemption runs NO PDB CHECK. It runs one, twice: once choosing the victim set and once
+         ranking candidate nodes (`pkg/scheduler/framework/preemption/preemption.go` threads `pdbs`
+         into `SelectVictimsOnNode` and scores with `minNumPDBViolatingScoreFunc`). The reference is
+         explicit: "Kubernetes supports PDB when preempting Pods, but respecting PDB is best effort.
+         The scheduler tries to find victims whose PDB are not violated by preemption, but if no such
+         victims are found, preemption will still happen". The ladder rung, the focus chip and the
+         `desc` all read `no PDB check` while the delete narration on this same card already said
+         `victim choice prefers PDB-friendly sets`, and that internal contradiction is what found it.
+         The distinction the card reaches for is real and stays: preemption is a plain DELETE and not
+         the Eviction API, so the budget is honoured BEST EFFORT rather than enforced. Rung 4 and the
+         focus chip both read `standard DELETE · PDB best effort` now, and the `desc` says `not an
+         eviction, so a PodDisruptionBudget is honoured best effort, not enforced`. That desc is 462
+         characters, so there are 8 left before D-04 fails.
+         https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
+DO NOT   Call it the PriorityClass admission plugin, and do not say a raw spec.priority is refused by
+         VALIDATION. Both were on the spec step. The plugin is named `Priority`
+         (`plugin/pkg/admission/priority/admission.go` sets `PluginName = "Priority"`, and the
+         reference lists "Priority, Type: Mutating and Validating"); `PriorityClass` is the API object
+         it reads. It is that plugin and not API validation that refuses the field, and only when the
+         supplied value DIFFERS from the one it computed: `if pod.Spec.Priority != nil &&
+         *pod.Spec.Priority != priority`. The conclusion the step draws is unaffected, so it stays
+         word for word: PriorityClass is the only route.
+         The WIRE deliberately still reads `PriorityClass admission`, and it is not the same defect:
+         it names the admission stage by the field it acts on and never calls that the plugin name.
+         DO NOT rewrite it to `Priority admission plugin`. It was, and T-09 in
+         `render/inline.test.mjs` went red: a wire is a `scheme-label`, System A wants body text
+         lowercase, and `Priority` alone is neither an identifier by its shape nor a dictionary name,
+         so it scores DOWN. `PriorityClass` passes because `^[A-Z][a-z]+[A-Z]` reads it as an
+         identifier. Lowercasing it to `priority admission plugin` would pass and would print the
+         plugin name wrong, so the wire keeps the field.
+         https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
 NOTE     THE CARD MOVED FROM WORKLOADS TO CLUSTER, because preemption is the PostFilter stage of the
          same scheduling cycle cluster-scheduler-decision walks. The old id still resolves through
          SCHEME_ALIASES. Three things changed with it: the kit import (so the pulse carries
@@ -1715,6 +2249,12 @@ NOT A DEFECT
          describe events explicitly OFF this card: a replacement placed elsewhere, and a mechanism
          the sentence itself marks as covered separately. Neither points the reader at a box that
          should be on the diagram. Do not file these again.
+         Nor is `NoFit on all nodes`, the wire `filter all nodes`, the rung `NoFit on every node` or
+         `scans the running Pods on each Node` a defect against the ONE drawn frame. The frame is
+         labelled `Node-1`, a numbered member of a set the way cluster-node-failure draws Node-1 and
+         Node-2, and preemption only starts once no Node fits, so a card that said `NoFit on Node-1`
+         would state the smaller fact that does not produce the behaviour. The card follows the one
+         Node the victim sits on, which is what the aria-label's `on a full Node` says.
 ```
 
 ### before `opacity: { ...STANDING, pod1: OPACITY.terminating },`

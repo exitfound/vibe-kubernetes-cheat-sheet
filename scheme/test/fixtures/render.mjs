@@ -10,38 +10,60 @@
 // last is passed to page.evaluate() directly, which serialises it the same way.
 
 import { chromium } from 'playwright';
+import { ONLY, SUBSET } from './catalog.mjs';
 
 // ---------------------------------------------------------------------------------------------
 // DIVERGENCE 1: the default base is :8888, the LIVE tree, not :8080.
 //
 // :8080 is the Docker container, and the Dockerfile is a blanket `COPY . .` with no mounts, so it
-// serves a SNAPSHOT. Pointing the old harness at it meant every render check silently read the
-// files as they were at the last image build and passed on stale content. That was the single most
-// expensive trap in the harness, so the default now points at
+// serves a SNAPSHOT: a run pointed at it silently reads the files as they were at the last image
+// build and passes on stale content. That is the single most expensive trap in this harness, so the
+// default points at
 //   python3 -m http.server 8888   (from the repo root)
 // which serves the working tree. BASE= still overrides, for checking a built container on purpose.
 // ---------------------------------------------------------------------------------------------
 export const DEFAULT_BASE = (process.env.BASE || 'http://localhost:8888').replace(/\/$/, '');
 
 // ---------------------------------------------------------------------------------------------
-// DIVERGENCE 2: one selector timeout and one settle pause for the whole suite.
+// DIVERGENCE 2: one selector timeout for the whole suite, and NO settle pause anywhere.
 //
-// The old checks waited on the SAME element with three different numbers (8000 in the smoke walk,
-// 10000 in reduced/geometry/palette/arrival, 15000 in duration/opacity/chipfit) and
-// paused between steps with four (20, 30, 50, 60). Nothing chose those, they accumulated. Both
-// constants below take the most conservative value that was already in use: a flake costs a whole
-// re-run, and nothing is gained by giving up 7 seconds earlier or sampling 30 ms sooner.
+// ONE NUMBER, for every walk in render/ and report/. Per-walk timings are never chosen, they
+// accumulate: left alone they become three different timeouts on the SAME element, and nobody can
+// say which one is the rule. It takes the most conservative value any walk needs, because a flake
+// costs a whole re-run and nothing is gained by giving a slow browser 7 seconds less.
 // ---------------------------------------------------------------------------------------------
 
-// 15000: the longest waitForSelector in the old set (check-duration:21, check-opacity:124,
-// check-chipfit:46). Generous on purpose, a browser sharing a machine with another Playwright run
-// starts slowly.
+// 15000: covers the slowest waitForSelector in the suite, the duration, opacity and chip-fit
+// walks. Generous on purpose, a browser sharing a machine with another Playwright run starts
+// slowly.
 export const SELECTOR_TIMEOUT_MS = 15000;
 
-// 50: the longest step-walk pause in the old set (check-reduced:147,152 and check-geometry:193).
-// The two-snapshot comparisons were tuned against it, so shortening it is a silent risk, not a
-// speed-up.
-export const STEP_SETTLE_MS = 50;
+// ===========================================================================================
+// WHY THERE IS NO SETTLE BETWEEN A STEP AND THE READ THAT FOLLOWS IT
+// ===========================================================================================
+// Every walk used to sleep `STEP_SETTLE_MS` (50) after setting a step. It bought nothing, and this
+// is the argument rather than the measurement: the data path is SYNCHRONOUS through CDP. `gotoStep`,
+// `enterStep` and `seekStep` are each one `page.evaluate` that returns only after its DOM writes,
+// and the probe that follows reads through `getBBox` / `getComputedStyle`, which force style and
+// layout at the moment of the read. There is no frame in that chain to wait for.
+//
+// The only thing 50ms could have covered is the CSS transition on seven rect classes in
+// `css/diagrams.css`, fill / stroke / filter / opacity over 300ms. It did not cover that either, and
+// the reason is worth writing down because it is not the obvious one: MEASURED over 6 cards and 40
+// steps with no freeze at all, the computed opacity, stroke and fill are already final the instant
+// `gotoStep` returns, and reading again at 50ms and at 450ms gives the same bytes. Headless Chromium
+// produces no frames for a page nobody is looking at, so its animation timeline does not advance and
+// the transition never runs. It is the same fact that made a `requestAnimationFrame` settle 2.5x
+// SLOWER than the sleep it replaced: that experiment cost the gate 158s -> 394s and was reverted.
+//
+// So the freeze `initPage` installs is not a repair of an interpolated read: it makes deterministic
+// BY CONSTRUCTION what is currently deterministic by an accident of headless frame scheduling. It
+// costs nothing, and it is what keeps these numbers true the day a walk runs headful, with a GPU, or
+// on whatever a future Playwright does with frame production.
+//
+// Measured over the whole gate: 155s to 87s, and with the report tier and the doc edits that landed
+// with it, 72s, with the diagnostics, censuses and findings of all 1026 tests byte for byte what they
+// were. Verified over five full runs plus one under 3x CPU oversubscription, all identical.
 
 export const DIAGRAM = 'dialog.scheme-dialog svg.diagram';
 
@@ -52,25 +74,72 @@ export function launch(opts = {}) {
   return chromium.launch({ headless: true, ...(exe ? { executablePath: exe } : {}), ...opts });
 }
 
-// Init script (page.addInitScript(setInspect, 'expose')) that exposes window.__schemeCtl.
-// Pass 'grid' instead to also draw the inspector overlay.
-export function setInspect(mode) {
+// The init script EVERY browser walk installs: `page.addInitScript(initPage, 'expose')`. Two jobs,
+// and they are together on purpose, because the second one must not be forgettable.
+//
+//   1. Expose `window.__schemeCtl`, the debug handle the step walks drive. Pass 'grid' instead of
+//      'expose' to also draw the inspector overlay.
+//   2. Freeze CSS transitions. `css/diagrams.css` transitions fill, stroke, filter and opacity over
+//      300ms on the seven rect classes. Headless Chromium does not advance them today (see above),
+//      so this changes no reading in this environment and is measured to change none: it is what
+//      makes every static read final BY CONSTRUCTION rather than by that accident. A walk that
+//      forgot to ask for it would not fail, it would read a plausible number, which is the worst way
+//      to be wrong, and a separate init script per file is exactly the thing a new render file would
+//      leave out. So it lives here, with the handle nobody forgets.
+//
+// It does NOT touch WAAPI: `element.animate` is what the cards run and what render/motion,
+// render/opacity and render/reduced measure. Only the CSS transition layer is frozen.
+export function initPage(mode) {
   try { localStorage.setItem('scheme:inspect', mode); } catch (_) {}
+  const freeze = () => {
+    const st = document.createElement('style');
+    st.textContent = '*, *::before, *::after { transition: none !important; }';
+    (document.head || document.documentElement).appendChild(st);
+  };
+  if (document.head) freeze();
+  else addEventListener('DOMContentLoaded', freeze, { once: true });
 }
 
 // Every scheme id, in catalog order, off the rendered grid. Deliberately the BROWSER's answer and
 // not data.js: comparing the two with census() is what catches a grid that renders a subset.
 // Navigates the page.
+//
+// SCHEME_IDS narrows the answer here, in ONE place, because all nine render files walk the ids this
+// returns. The announcement is printed once per process so a filtered run cannot be read as a full
+// one. What keeps it honest is in fixtures/catalog.mjs beside `floor()`.
+let announced = false;
 export async function discoverIds(page, base = DEFAULT_BASE) {
-  await page.goto(`${base}/scheme/`, { waitUntil: 'networkidle' });
-  return page.$$eval('article.card', els =>
+  await page.goto(`${base}/scheme/`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('article.card', { timeout: SELECTOR_TIMEOUT_MS });
+  const all = await page.$$eval('article.card', els =>
     els.map(e => e.dataset.id || e.getAttribute('data-id')).filter(Boolean));
+  if (!SUBSET) return all;
+  const ids = all.filter(i => ONLY.includes(i));
+  if (!announced) {
+    announced = true;
+    const missing = ONLY.filter(i => !all.includes(i));
+    console.log(`# SUBSET: SCHEME_IDS restricted this walk to ${ids.length} of ${all.length} card(s): ${ids.join(', ')}`);
+    console.log('#   Floors and censuses are OFF. This is not the gate: run it unfiltered before a commit.');
+    if (missing.length) console.log(`#   SCHEME_IDS named ${missing.length} id(s) the grid does not render: ${missing.join(', ')}`);
+  }
+  // A typo must not read green. An empty walk passes every assertion in the suite vacuously, which
+  // is the one failure mode a filter like this can introduce, so it is a hard error instead.
+  if (!ids.length) {
+    throw new Error(`SCHEME_IDS matched no card: ${ONLY.join(', ')}. The grid renders ${all.length}.`);
+  }
+  return ids;
 }
 
 // Open one card's dialog and wait for its diagram to exist. Every render test starts here.
+//
+// NOT `networkidle`: measured, it costs 157ms per card against 67ms for domcontentloaded plus the
+// selector, and the suite opens a card 972 times. What the idle wait was really buying is the
+// WEBFONT, and a diagram measured in the fallback face reports the wrong width, so that is waited
+// for explicitly instead of hoped for. `fallbackFaces()` remains the check that it worked.
 export async function openCard(page, id, base = DEFAULT_BASE) {
-  await page.goto(`${base}/scheme/#scheme=${id}`, { waitUntil: 'networkidle' });
+  await page.goto(`${base}/scheme/#scheme=${id}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS });
+  await page.evaluate(() => document.fonts.ready.then(() => true));
 }
 
 // Child element count of the diagram. Zero means the scene never built, which is the cheapest
@@ -91,10 +160,12 @@ export function stepCount(page) {
 
 // Per-step metadata off the live controller: id, duration and narration.
 //
-// This is the ONLY way to read a step's text in wave 1. A card exports just `init`, so the step
-// list is sealed inside makeInit's closure (see fixtures/module.mjs). The path is not new, it is
-// how check-duration read durations. Returns null when the debug handle is absent, and a caller
-// that treats null as "no findings" has written a check that cannot fail.
+// This is the ONLY way to read a step's text. A card exports just `init`, so the step list is
+// sealed inside makeInit's closure (see fixtures/module.mjs), and the debug handle the controller
+// hangs on window is the one way in: render/duration.test.mjs reads durations by it, and
+// render/inline.test.mjs and render/reduced.test.mjs read the same list. Returns null when the
+// debug handle is absent, and a caller that treats null as "no findings" has written a check that
+// cannot fail.
 export function stepMeta(page) {
   return page.evaluate(() => {
     const tl = window.__schemeCtl && window.__schemeCtl._timeline;
@@ -168,8 +239,8 @@ export function seekStep(page, t) {
   }, { tt: t, sel: DIAGRAM });
 }
 
-// The Cloudflare RUM analytics beacon fails CORS on localhost. Pre-existing, unrelated to the JS
-// under test, and the same filter the old smoke used.
+// The Cloudflare RUM analytics beacon fails CORS on localhost. Pre-existing and unrelated to the JS
+// under test.
 const IGNORED_NOISE = /cloudflareinsights|cdn-cgi\/rum|ERR_FAILED/;
 
 // Collect console errors and uncaught page exceptions until stop(). Attach BEFORE navigating: a
@@ -192,11 +263,11 @@ export function collectPageErrors(page) {
 // ---------------------------------------------------------------------------------------------
 // DIVERGENCE 3: two opacity readings under two unambiguous names.
 //
-// The old checks each had a private one and they disagreed: check-reduced.mjs:33-42 multiplied
-// down the ancestor chain, check-opacity.mjs:101-109 took the minimum of the inline styles on it.
-// That is not a dispute about the right answer, it is two different questions, and naming them
-// apart is the fix. Both round to 2 decimals, as both originals did, so a float artefact of a
-// fill-forwards landing is not a finding.
+// A single helper called "opacity" invites two different answers: the PRODUCT down the ancestor
+// chain, and the element's OWN declared value with ancestors ignored. A caller that gets the other
+// one reads a number that is not wrong, it is the answer to a question it did not ask. That is not
+// a dispute to settle, it is two questions, and naming them apart is the fix. Both round to 2
+// decimals, so a float artefact of a fill-forwards landing is not a finding.
 //
 // BOTH RUN IN THE PAGE. They are written with no free variables so installOpacityHelpers() can
 // serialise them with Function.prototype.toString(). Do not close over anything from this module,
@@ -222,8 +293,8 @@ export function effectiveOpacity(el, root) {
 // The element's OWN declared opacity, ancestors ignored. This is the axis a card author sets
 // directly on the element, and it answers "did this step leave the same value behind on both
 // paths", which is a question about the code, not about the picture.
-// Used by: render/reduced.test.mjs, its OPACITY-OWN axis (the `own` field of a snapshot), which is
-// the axis check-reduced enforced alone and all four of which are enforced today.
+// Used by: render/reduced.test.mjs, its OPACITY-OWN axis (the `own` field of a snapshot), one of
+// the four axes that file enforces.
 export function ownOpacity(el) {
   const v = parseFloat(getComputedStyle(el).opacity);
   return Number.isFinite(v) ? Math.round(v * 100) / 100 : 1;
@@ -290,7 +361,7 @@ export function elementKey(el, root) {
 //
 // Runs IN THE PAGE, and calls window.__key rather than closing over elementKey: a serialised
 // function cannot reach a Node-side name.
-export function keyedElements(root, sel, exclude) {
+function keyedElements(root, sel, exclude) {
   const seen = new Map();
   const out = [];
   for (const el of root.querySelectorAll(sel)) {
@@ -395,7 +466,7 @@ export const overlayProbe = () => {
 // back to, which the probe below cannot work without.
 // ---------------------------------------------------------------------------------------------
 export const FACE_MONO = { spec: '11px "JetBrains Mono"', family: 'JetBrains Mono', generic: 'monospace' };
-export const FACE_SANS = { spec: '12px "Space Grotesk"', family: 'Space Grotesk', generic: 'sans-serif' };
+const FACE_SANS = { spec: '12px "Space Grotesk"', family: 'Space Grotesk', generic: 'sans-serif' };
 export const DIAGRAM_FACES = [FACE_MONO, FACE_SANS];
 
 // Wait for the real faces, then decide whether they are the ones PAINTING. Returns one description

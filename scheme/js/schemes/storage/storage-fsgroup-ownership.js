@@ -65,6 +65,10 @@ const W_CHOWN    = [[CONTENT_CX, KUBE_BOTTOM], [CONTENT_CX, TREE_Y]];
 const WRITE_X = 800;                                     // 30 clear of the tree, 87 clear of the Pod
 const W_WRITE = [[POD_RIGHT, POD_CY], [WRITE_X, POD_CY], [WRITE_X, TREE_CY], [TREE_RIGHT, TREE_CY]];
 
+// Both write tags ride the W_WRITE elbow, whose ends sit on the Pod and tree side faces: centred on
+// the lane they are cut for 600 ms, and +26 is the least that clears both on all four viewports.
+const WRITE_TAG_DX = 26;
+
 const W_PERSIST = [[CONTENT_CX, TREE_BOTTOM], [CONTENT_CX, CYL_Y]];
 
 // The walk continues straight down the spine THROUGH the listing, so the chown and the walk read as
@@ -109,7 +113,7 @@ const appShell = () => podShell({
 // Z-order, bottom to top: the disk and the tree, the listing on it, kubelet and the Pod, the five
 // wires, the disk caption, the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'fsGroup and volume ownership: a freshly mounted volume is owned by root so a non-root container cannot write to it, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start the way the default policy Always does',
+  'aria-label': 'fsGroup and volume ownership: a freshly mounted volume is owned by root so a non-root container cannot write to it, and securityContext.fsGroup makes Kubelet chown and setgid the whole volume tree to that GID before the container starts, unless a CSI driver advertising VOLUME_MOUNT_GROUP does it instead, while fsGroupChangePolicy OnRootMismatch checks only the top-level directory and skips the walk when it already matches, which stops a volume of millions of files adding minutes to every Pod start the way the default policy Always does',
   parts: [
     P.defs(),
     // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
@@ -203,7 +207,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'appPod' }),
       F.route({ points: W_WRITE, delay: BEAT.afterPulse, name: 'write' }),
-      F.tag({ text: 'EACCES', points: W_WRITE, delay: BEAT.afterPulse }),
+      F.tag({ text: 'EACCES', points: W_WRITE, delay: BEAT.afterPulse, dx: WRITE_TAG_DX }),
       F.light({ targets: ['tree'], at: 'write' }),
     ],
   },
@@ -220,8 +224,9 @@ export const STEPS_SPEC = [
     enter: showRows(false, 0),
     flow: [
       F.pulse({ pod: 'appPod' }),
+      // No tag: it printed `fsGroup: 2000` over the identical secBox sublabel 2.22 above it, and every
+      // honest rewording restates the Kubelet sublabel the ball is flying at. See ./CARDS.md.
       F.route({ points: W_SEC_KUBE, delay: BEAT.afterPulse, name: 'read' }),
-      F.tag({ text: 'fsGroup: 2000', points: W_SEC_KUBE, delay: BEAT.afterPulse }),
       F.light({ targets: ['kube'], at: 'read' }),
     ],
   },
@@ -230,18 +235,22 @@ export const STEPS_SPEC = [
     // 4200 rather than 3400: adding the persist hop down to the volume pushed the step's own motion
     // to 3631ms, and a duration under that would auto-advance while the change was still in flight.
     duration: 4200,
-    narration: 'Before the container starts, Kubelet walks the volume tree and chowns every entry to group 2000, setting the setgid bit on directories so new files inherit it too. The owner stays root, the group becomes 2000. This is real work on real inodes, done once at mount time.',
+    narration: 'Before the container starts, Kubelet walks the volume tree and chowns every entry to group 2000, setting the setgid bit on directories so new files inherit it too. The owner stays root, the group becomes 2000. This is real work on real inodes, done once per mount. A CSI driver that advertises VOLUME_MOUNT_GROUP does the ownership itself instead, and then fsGroupChangePolicy has no effect at all.',
     chipsCued: chips('root:2000 g+s', 'denied', 'Always (default)'),
     sublabels: { secBox: 'fsGroup: 2000', tree: 'chown + setgid, entry by entry' },
     wires: { disk: 'now group 2000' },
     // kubelet is the SOURCE here, so it is lit from step entry. Only destinations wait for a ball.
     lit: ['kube'],
     enter: showRows(true, ROW_COUNT),
+    // The walk resets every row to root:root and flips them one at a time, so the chip holds the
+    // owner the fsgroup step left and takes the new one when the walk reaches the last entry.
+    rewind: { chips: { ownerChip: 'root:root' } },
     flow: [
       F.route({ points: W_CHOWN }),
       F.tag({ text: 'chown -R :2000', points: W_CHOWN }),
       ...walk({ delay: WALK_AT, chown: true }),
       F.light({ targets: ['tree'], at: 'walk' }),
+      F.set({ at: 'walk', chipsCued: { ownerChip: 'root:2000 g+s' } }),
       F.route({ points: W_PERSIST, after: 'walk', name: 'persist' }),
       F.tag({ text: 'persisted', points: W_PERSIST, after: 'walk' }),
       F.light({ targets: ['cyl'], at: 'persist' }),
@@ -258,7 +267,7 @@ export const STEPS_SPEC = [
     flow: [
       F.pulse({ pod: 'appPod' }),
       F.route({ points: W_WRITE, delay: BEAT.afterPulse, name: 'write' }),
-      F.tag({ text: 'write ok', points: W_WRITE, delay: BEAT.afterPulse }),
+      F.tag({ text: 'write ok', points: W_WRITE, delay: BEAT.afterPulse, dx: WRITE_TAG_DX }),
       F.light({ targets: ['tree', 'cyl'], at: 'write' }),
     ],
   },
@@ -285,7 +294,7 @@ export const STEPS_SPEC = [
   {
     id: 'onmismatch',
     duration: 3000,
-    narration: 'The fsGroupChangePolicy: OnRootMismatch setting is the escape. Kubelet checks only the ownership of the top-level directory. If it already matches the expected fsGroup, it assumes the tree was set on a previous start and skips the walk entirely. The next start is fast no matter how many files sit below.',
+    narration: 'The fsGroupChangePolicy: OnRootMismatch setting is the escape. Kubelet checks only the owner and the permission bits of the top-level directory. If both already match what fsGroup asks for, it assumes the tree was set on a previous start and skips the walk entirely. The next start is fast no matter how many files sit below.',
     chipsCued: chips('root:2000 g+s', 'allowed', 'OnRootMismatch'),
     sublabels: { secBox: 'fsGroup: 2000', tree: 'top dir matches, walk skipped' },
     wires: { disk: 'set on a previous start' },

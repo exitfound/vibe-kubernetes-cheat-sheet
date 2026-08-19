@@ -48,7 +48,7 @@ const rung = (lbl, i) => P.raw({
 // Z-order: the two corridors and the chip column, then the packet layer, then chain / ladder /
 // Node / Pod / Kubelet above the ball, and the two wire labels last.
 export const SCENE = {
-  'aria-label': 'CrashLoopBackOff: Kubelet inserts an exponentially growing delay before each container restart',
+  'aria-label': 'CrashLoopBackOff: the first restart is immediate, then Kubelet inserts an exponentially growing delay before each later restart, doubling to a 300s cap',
   parts: [
     P.defs(),
     // One corridor drawn twice, down for the restart order and up for the exit report. Exactly one
@@ -150,7 +150,7 @@ export const STEPS_SPEC = [
   {
     id: 'cap',
     duration: 2200,
-    narration: 'The next doubling would exceed 300s, so the delay is clamped at the 300s ceiling and stays there. Kubelet now retries the container at most once every 5 minutes for as long as it keeps failing. The restartCount continues to climb at this slow cadence.',
+    narration: 'The next doubling would exceed 300s, so the delay is clamped at the 300s ceiling, a per-node default since 1.35, and stays there. Kubelet now retries the container at most once every 5 minutes for as long as it keeps failing. The restartCount continues to climb at this slow cadence.',
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '7', delayChip: '300s · capped' },
     wires: { out: 'retry every 5 min' },
     opacity: { podGroup: OPACITY.notready, ...corridor('down') },
@@ -163,11 +163,11 @@ export const STEPS_SPEC = [
     id: 'reset',
     duration: 2600,
     narration: 'The bug is fixed and the new container runs stably. After a sustained healthy run Kubelet resets the backoff counter, so the next crash would start over from the 10s base rather than the 300s cap. The container state returns to Running and the CrashLoopBackOff reason clears.',
-    chips: { stateChip: 'Running', reasonChip: 'none', restartChip: '7', delayChip: '0s · reset to base' },
+    chips: { stateChip: 'Running', reasonChip: 'none', restartChip: '8', delayChip: '0s · reset to base' },
     wires: { in: 'healthy run, backoff reset' },
     // Pin final state inline so cancel between steps does not flash to default.
     opacity: { podGroup: 1, ...corridor('up') },
-    lit: ['reasonChip', 'stateChip', 'delayChip', ...filled(0)],
+    lit: ['reasonChip', 'stateChip', 'restartChip', 'delayChip', ...filled(0)],
     chain: 5,
     flow: [
       // Pod recovers to full opacity first (the visible blink of a healthy run),

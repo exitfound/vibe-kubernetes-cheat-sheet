@@ -67,7 +67,7 @@ export const STEPS_SPEC = [
   {
     id: 'route',
     duration: 2200,
-    narration: 'Pod A sends to 10.244.2.7 out its eth0. The frame rides the veth into the Node-1 network stack, which consults its routing table. The destination is not in the local Pod subnet, so the route points at the CNI dataplane that handles off-Node traffic rather than the local bridge path.',
+    narration: 'Pod A sends to 10.244.2.7 out its eth0. The frame rides the veth into the Node-1 network stack, which consults its routing table. The destination is not in the local Pod subnet, so the route hands the frame to the CNI dataplane that carries off-Node traffic instead of to a local Pod.',
     chips: { innerChip: '.1.5 -> .2.7', outerChip: 'node IPs', encapChip: 'none', modeChip: 'overlay' },
     wires: { va: 'veth · eth0' },
     lit: ['innerChip'],
@@ -98,9 +98,10 @@ export const STEPS_SPEC = [
     id: 'decap',
     duration: 2400,
     narration: 'Node-2 receives the UDP packet on the VXLAN port and its kernel strips the outer headers. The bare inner frame, still addressed to 10.244.2.7, is bridged across the local cni0 and out the veth into Pod B, exactly as a same-node frame would be delivered.',
-    chips: { innerChip: '.1.5 -> .2.7', outerChip: 'Node-1 -> Node-2', encapChip: 'VXLAN/UDP 8472', modeChip: 'overlay' },
+    chips: { innerChip: '.1.5 -> .2.7', outerChip: 'stripped', encapChip: 'none', modeChip: 'overlay' },
     wires: { vb: 'veth · eth0', encap: 'decap · inner frame restored' },
-    lit: ['cni2', 'innerChip'],
+    // The two chips the decap turns over light with the inner frame that survived it.
+    lit: ['cni2', 'innerChip', 'outerChip', 'encapChip'],
     // The animated path says Pod B was served by PULSING it, which no lights list can name.
     reducedLit: ['podBBox'],
     // Down-arrow: the decapsulated inner frame leaves cni2 and hops the veth into Pod B,

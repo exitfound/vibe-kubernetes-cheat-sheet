@@ -62,7 +62,7 @@ export const SCENE = {
     P.chip({ key: 'preStopChip', x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'preStop hook', value: 'idle' }),
     P.chip({ key: 'sigChip', x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'signal', value: 'none' }),
     P.chip({ key: 'graceChip', x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'grace remaining', value: '30s' }),
-    P.chip({ key: 'statusChip', x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'pod status', value: 'Running' }),
+    P.chip({ key: 'statusChip', x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'kubectl shows', value: 'Running' }),
     P.chip({ key: 'sliceChip', x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'EndpointSlice', value: '[10.244.1.7]' }),
     P.packets(),
     // Everything below is appended AFTER the packet layer, so the ball runs under it.
@@ -145,7 +145,7 @@ export const STEPS_SPEC = [
   {
     id: 'sigterm',
     duration: 2000,
-    narration: 'Once preStop returns, the Kubelet asks the runtime to send SIGTERM to PID 1. A well-behaved app traps this signal, stops accepting new work, drains in-flight requests and closes its connections and pools. The time the preStop hook consumed is already gone from the same grace budget.',
+    narration: 'Once preStop returns, the Kubelet asks the runtime to send the stop signal to PID 1, SIGTERM unless the image defines a different STOPSIGNAL. A well-behaved app traps this signal, stops accepting new work, drains in-flight requests and closes its connections and pools. The time the preStop hook consumed is already gone from the same grace budget.',
     chips: { preStopChip: 'completed', sigChip: 'SIGTERM', graceChip: '25s', statusChip: TERMINATING, sliceChip: SLICE_NR },
     opacity: { podGroup: 1, ...corridor('down') },
     lit: ['preStopChip', 'sigChip', 'graceChip'],
@@ -168,7 +168,7 @@ export const STEPS_SPEC = [
   {
     id: 'sigkill',
     duration: 3500,
-    narration: 'If the container is still alive when the grace timer reaches 0, the runtime sends SIGKILL, which the kernel delivers unconditionally to PID 1. Once the process is gone the Kubelet reports the terminated container, and the API removes the Pod object from ETCD.',
+    narration: 'If the container is still alive when the grace timer reaches 0, the runtime sends SIGKILL to every process still running in any container of the Pod, not just to PID 1. Once they are gone the Kubelet reports the terminated container, and the API removes the Pod object from ETCD.',
     chips: { preStopChip: 'completed', sigChip: 'SIGKILL', graceChip: '0s · expired', statusChip: 'deleted', sliceChip: '[]' },
     wires: { req: 'Pod removed from etcd' },
     // Killed and purged: the whole Pod block drops to its faint terminal state.

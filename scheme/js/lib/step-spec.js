@@ -1,7 +1,7 @@
 import { setChainActive } from './primitives.js';
 import {
   makeInit, at, lightBoxAt, revealAt, routePacket, segmentPacket, topPacket, arrivalRipple,
-  setVal, setChip, setWire, setBoxLabel, setBoxSublabel, setPodSublabel, BEAT, REVEAL_MS,
+  flashChips, setVal, setChip, setWire, setBoxLabel, setBoxSublabel, setPodSublabel, BEAT, REVEAL_MS,
 } from './scheme-kit.js';
 import { makeScene, makeResetStep } from './scene-spec.js';
 
@@ -27,6 +27,10 @@ export function makeFlowKinds({ role = '', pulsePod = null, pulsePodDim = null }
     // tag timings passes its own `fn`, and every other entry stays free of a function.
     tag:     (p = {}) => ({ verb: 'tag',     p }),
     ripple:  (p = {}) => ({ verb: 'ripple',  p: roled(p) }),
+    // The beat of a step that has no packet and no Pod. It carries no function and no magnitude:
+    // both live in `flashChips` and `PULSE_BLOCK`, which is the whole reason it is a verb and not
+    // an `F.anim` with keyframes typed into the card.
+    flash:   (p = {}) => ({ verb: 'flash',   p }),
   };
 }
 
@@ -77,8 +81,15 @@ function setChain(s, want) {
 
 // at() with the timer on a chosen element rather than on the svg, and the same delay <= 0
 // short-circuit, so a zero-delay write stays a plain call and registers nothing.
-function atOn(el, ctx, delay, fn) {
-  if (!el) return;
+//
+// A MISSING element falls back on at(), and never on returning: `on` picks WHERE the timer hangs,
+// which is observable but is not what the entry is for. Returning here drops the whole writeStatics
+// payload of that F.set (chips, wires, labels, sublabels, lit) in silence, and nothing in the suite
+// can see it: the reduced path never runs `flow`, so both paths agree and reduced.test.mjs stays
+// green over a step that writes nothing. The plain at() branch has no such failure mode, so the
+// only difference a typo in `on` may make is which element carries an empty 1ms timer.
+function atOn(s, el, ctx, delay, fn) {
+  if (!el) { at(s, ctx, delay, fn); return; }
   if (ctx.reduced || delay <= 0) { fn(); return; }
   const a = el.animate([], { duration: 1, delay });
   a.onfinish = fn;
@@ -138,7 +149,7 @@ function runFlow(s, ctx, flow, bind) {
       case 'set':
         // `on` picks which element carries the empty 1ms timer. at() hangs it on the svg; three
         // cards hang it on the block the write is ABOUT, and the timer's target is observable.
-        if (p.on) atOn(s.refs[p.on], ctx, delay, () => writeStatics(s, p));
+        if (p.on) atOn(s, s.refs[p.on], ctx, delay, () => writeStatics(s, p));
         else at(s, ctx, delay, () => writeStatics(s, p));
         break;
       case 'light':
@@ -160,8 +171,13 @@ function runFlow(s, ctx, flow, bind) {
       case 'ripple':
         arrivalRipple(s.refs.packetLayer, ctx, p.point, delay, p.role);
         break;
-      // A tag RIDES a packet, so it is its own entry standing where the hand-written call stood,
-      // right after that packet. It lands nothing, so `arrival` stays `delay` and nothing chains off it.
+      // Lands nothing, so `arrival` stays `delay`, exactly as pulse does. Targets are BLOCKS: a
+      // value chip never flashes (M-26), and the reduced path is opted out inside flashChips.
+      case 'flash':
+        flashChips(s, ctx, p.targets || [], delay);
+        break;
+      // A tag RIDES a packet, so it is its own entry right after that packet. It lands nothing, so
+      // `arrival` stays `delay` and nothing chains off it.
       case 'tag': {
         const fn = p.fn || bind.ridingLabel;
         if (fn) fn(s, ctx, p.text, p.points, { delay, dur: p.dur, easing: p.easing, emerge: p.emerge, dy: p.dy, dx: p.dx });

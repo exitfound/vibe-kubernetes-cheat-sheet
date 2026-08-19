@@ -35,36 +35,36 @@
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, floor, SUBSET, FULL_ONLY, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
 import { loadTerms, sentences, sentenceStarts, termIssues, termRegex } from '../fixtures/prose.mjs';
 import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, STEP_SETTLE_MS,
-  launch, setInspect, discoverIds, openCard, stepCount, stepMeta, gotoStep, collectPageErrors,
+  collectPageErrors, DEFAULT_BASE, DIAGRAM, discoverIds, gotoStep, launch, openCard,
+  SELECTOR_TIMEOUT_MS, initPage, stepCount, stepMeta,
 } from '../fixtures/render.mjs';
 
 // ---------------------------------------------------------------------------------------------
 // The census. Measured 2026-08-07 on a green tree, at 108 cards and 650 steps.
 // ---------------------------------------------------------------------------------------------
-const CARD_TOTAL = 108;
+const CARD_TOTAL = CATALOG_BASELINE.cards;
 
 // Prose reachable only through the running controller: one narration per step that has one (the
 // poster step of each card has none), plus one aria-label per card.
-const NARRATION_FLOOR = 542;
-const ARIA_TOTAL = 108;
+const NARRATION_FLOOR = floor(542);
+const ARIA_TOTAL = (await cards()).length;
 
 // Distinct (card, text class, string) triples over a static walk of every step. Counted once per
 // card even when a string is redrawn on six steps, because the question is which strings exist,
 // not how often they are painted. The predecessors counted OCCURRENCES IN THE SOURCE and reported
 // 3093 (check-inline) and 3041 (check-labels), so these numbers are not comparable to those: a
 // different mechanism counting a different thing, deliberately.
-const DRAWN_FLOOR = 3509;
-const CASE_ELIGIBLE_FLOOR = 3420;   // the same set minus the node frame labels, see T-12 below
+const DRAWN_FLOOR = floor(3509);
+const CASE_ELIGIBLE_FLOOR = floor(3420);   // the same set minus the node frame labels, see T-12 below
 
 // Strings a diagram BLOCK owns: its own label and sublabel texts, nested frames excluded. This is
 // the input to the two figure rules. tools/check-figures.mjs anchored a string to the nearest
 // preceding label in the FILE and counted 1251; ownership here is structural, which is both the
 // stronger claim and a different count.
-const ANCHORED_FLOOR = 1599;
+const ANCHORED_FLOOR = floor(1599);
 
 // Every class a drawn string can carry. Asserted as a closed set, and this is the real successor
 // of COVERAGE FLOOR: a new primitive that draws text under a class nobody listed would fall
@@ -110,8 +110,6 @@ const KNOWN_DRIFT = [
   // which is out of scope for this file.
   'pod: "Pod" x21 vs "pod" x1',
   'podc: "Pod C" x3 vs "pod-c" x1',
-  // The third entry, pv-x73a against PV-x73a, was CLOSED on 2026-08-14: T-11a put every volume on
-  // the claim's grammar, so both halves of that pair are the one string `PV x73a` today.
 ].sort();
 
 // T-03 bans the semicolon in narration prose, and an aria-label is the diagram read aloud, so the
@@ -177,14 +175,19 @@ function verdict(text, want) {
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 // reducedMotion is not set: gotoStep already replays a step the way prev and reset do, which is
 // the deterministic path. The PLAYED path is deliberately not walked here, because it is not
 // reproducible between runs (measured while porting check-palette) and every string it adds is a
 // riding label that a static frame also carries at its destination.
 const context = await browser.newContext();
 const page = await context.newPage();
-await page.addInitScript(setInspect, 'expose');
-after(() => browser.close());
+await page.addInitScript(initPage, 'expose');
 
 const ids = await discoverIds(page, DEFAULT_BASE);
 
@@ -219,7 +222,6 @@ for (const id of ids) {
   const frames = new Map();    // `${kind}@${transform}` -> {kind, labels:Set, texts:Set}
   for (let i = 0; i < total; i++) {
     await gotoStep(page, i);
-    await page.waitForTimeout(STEP_SETTLE_MS);
     const shot = await page.evaluate((sel) => {
       const svg = document.querySelector(sel);
       if (!svg) return null;
@@ -296,7 +298,7 @@ test('every card loaded, built and handed over its step list (T-01, T-02)', () =
   census('inline walked', collected.size, CARD_TOTAL);
 });
 
-test(`the prose census holds (${NARRATION_FLOOR}+ narration, ${ARIA_TOTAL} aria-label)`, () => {
+test(`the prose census holds (${NARRATION_FLOOR}+ narration, ${ARIA_TOTAL} aria-label)`, FULL_ONLY, () => {
   const narration = prose.filter(p => p.where.startsWith('narration')).length;
   const aria = prose.filter(p => p.where === 'aria-label').length;
   // A floor, not an equality: a new card raises it. A run that reads FEWER strings has lost a path
@@ -319,7 +321,7 @@ test(`the drawn-string census holds (${DRAWN_FLOOR}+ strings over ${CARD_TOTAL} 
   census('inline drawn walk', new Set(drawn.map(d => d.id)).size, CARD_TOTAL);
 });
 
-test('every drawn string carries a known text class, and no primitive draws outside them', () => {
+test('every drawn string carries a known text class, and no primitive draws outside them', FULL_ONLY, () => {
   // The other half of the census, and the sharper half. A count cannot see a NEW class: a new
   // primitive drawing text under .scheme-badge-label would add strings, raise the count and be
   // judged by nothing. This closes the set instead.
@@ -345,7 +347,7 @@ function issuesOf(p) {
 test('T-06 every narration and aria-label spells a dictionary term the one correct way (CASE)', () => {
   const bad = [];
   for (const p of prose) bad.push(...issuesOf(p).case);
-  assert.ok(prose.length >= NARRATION_FLOOR + ARIA_TOTAL, `the walk saw ${prose.length} prose strings`);
+  assert.ok(prose.length >= NARRATION_FLOOR + floor(ARIA_TOTAL), `the walk saw ${prose.length} prose strings`);
   assert.deepEqual(bad, [], `${bad.length} terminology defect(s) in narration or aria-label`);
 });
 
@@ -415,7 +417,7 @@ test('T-03 no semicolon in narration prose, and the one known aria-label is stil
 // T-09 / T-10 / T-11: System A, the casing of strings drawn ON the diagram
 // ---------------------------------------------------------------------------------------------
 
-test(`T-09 System A over ${CASE_ELIGIBLE_FLOOR}+ drawn strings, with ${KNOWN_CASING.length} carried open`, () => {
+test(`T-09 System A over ${CASE_ELIGIBLE_FLOOR}+ drawn strings, with ${KNOWN_CASING.length} carried open`, FULL_ONLY, () => {
   const found = [];
   for (const d of eligible) {
     const v = verdict(d.text, d.want);
@@ -481,7 +483,7 @@ function driftRows(list) {
 const rowText = r => `${r.norm}: ` +
   [...r.forms].sort((a, b) => b[1].length - a[1].length).map(([s, u]) => `${JSON.stringify(s)} x${u.length}`).join(' vs ');
 
-test(`T-13 one object is labelled one way, with ${KNOWN_DRIFT.length} carried open (DRIFT)`, () => {
+test(`T-13 one object is labelled one way, with ${KNOWN_DRIFT.length} carried open (DRIFT)`, FULL_ONLY, () => {
   const rows = driftRows(eligible).filter(r => r.want === 'title');
   const found = rows.map(rowText).sort();
   assert.deepEqual(found, [...KNOWN_DRIFT].sort(),

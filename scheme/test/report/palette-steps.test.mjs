@@ -26,47 +26,12 @@
 // ever appears, that is the moment to move it.
 
 import { test } from 'node:test';
+import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { PAINTED, classify, probePaint } from '../fixtures/palette.mjs';
 import {
-  DEFAULT_BASE, STEP_SETTLE_MS,
-  launch, setInspect, discoverIds, openCard, stepCount, gotoStep, enterStep,
+  DEFAULT_BASE, launch, initPage, discoverIds, openCard, stepCount, gotoStep, enterStep,
 } from '../fixtures/render.mjs';
-
-const ROLES = ['cluster', 'workloads', 'network', 'storage'];
-
-const PAINTED = [
-  ['.scheme-pod', '.scheme-pod-rect'],
-  ['.scheme-box', '.scheme-box-rect'],
-  ['.scheme-chip', '.scheme-chip-rect'],
-  ['.scheme-cylinder', '.scheme-cylinder-body'],
-  ['.scheme-packet', null],
-  ['.scheme-ripple', null],
-  ['.scheme-arrow', null],
-];
-
-function probePaint(painted) {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-  const out = [];
-  for (const [sel, childSel] of painted) {
-    for (const el of svg.querySelectorAll(`${sel}[data-role]`)) {
-      const paint = childSel ? el.querySelector(childSel) : el;
-      if (!paint) continue;
-      const cs = getComputedStyle(paint);
-      const state = ['highlight', 'scheme-arrow-dim']
-        .filter(c => el.classList.contains(c)).join('+') || 'rest';
-      out.push({
-        cls: sel.slice(1),
-        role: el.getAttribute('data-role'),
-        state,
-        stroke: cs.stroke,
-        fill: cs.fill,
-        paintProp: sel === '.scheme-packet' ? 'fill' : 'stroke',
-      });
-    }
-  }
-  return out;
-}
 
 // The numbers render/palette.test.mjs asserts, restated here so the delta is readable without
 // running the other file. If these two ever disagree, the mandatory test is the truth.
@@ -79,21 +44,22 @@ function makeScope(name) {
   return { name, tuples: new Map(), elements: 0, unknown: [], unpainted: [] };
 }
 
+// The JUDGEMENT is ../fixtures/palette.mjs, the same reader render/palette.test.mjs folds with, so
+// the gate and this census cannot disagree about which element resolved a colour. What stays here is
+// this walk's bookkeeping: SITES rather than cards, because a step is what it reports on.
 function fold(scope, id, where, rows) {
-  const category = id.split('-')[0];
   for (const r of rows) {
     scope.elements++;
-    if (!ROLES.includes(r.role)) { scope.unknown.push(`${id} @${where}  ${r.cls} role="${r.role}"`); continue; }
-    const colour = r.paintProp === 'fill' ? r.fill : r.stroke;
-    if (!colour || colour === 'none' || /^rgba\(\s*0,\s*0,\s*0,\s*0\s*\)$/.test(colour)) {
-      scope.unpainted.push(`${id} @${where}  ${r.cls}[data-role="${r.role}"] ${r.paintProp}=${colour}`);
+    const v = classify(id, r);
+    if (v.verdict === 'unknown') { scope.unknown.push(`${id} @${where}  ${r.cls} role="${r.role}"`); continue; }
+    if (v.verdict === 'unpainted') {
+      scope.unpainted.push(`${id} @${where}  ${r.cls}[data-role="${r.role}"] ${r.paintProp}=${v.colour}`);
       continue;
     }
-    const key = `${category}|${r.cls}|${r.role}|${r.state}|${r.paintProp}`;
-    if (!scope.tuples.has(key)) scope.tuples.set(key, new Map());
-    const byColour = scope.tuples.get(key);
-    if (!byColour.has(colour)) byColour.set(colour, []);
-    const sites = byColour.get(colour);
+    if (!scope.tuples.has(v.key)) scope.tuples.set(v.key, new Map());
+    const byColour = scope.tuples.get(v.key);
+    if (!byColour.has(v.colour)) byColour.set(v.colour, []);
+    const sites = byColour.get(v.colour);
     if (sites.length < 4 && !sites.some(s => s.startsWith(`${id}@`))) sites.push(`${id}@${where}`);
   }
 }
@@ -119,7 +85,7 @@ test('palette across every step (report only, never fails)', async () => {
     // which is the same route smoke.test.mjs takes.
     const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
-    await page.addInitScript(setInspect, 'expose');
+    await page.addInitScript(initPage, 'expose');
     const ids = await discoverIds(page, DEFAULT_BASE);
 
     for (const id of ids) {
@@ -134,7 +100,6 @@ test('palette across every step (report only, never fails)', async () => {
 
         for (let i = 0; i < total; i++) {
           await gotoStep(page, i);
-          await page.waitForTimeout(STEP_SETTLE_MS);
           const rows = await page.evaluate(probePaint, PAINTED);
           if (!rows) continue;
           steps++;
@@ -145,7 +110,6 @@ test('palette across every step (report only, never fails)', async () => {
         // Step 0 is the static poster and has no play path of its own.
         for (let i = 1; i < total; i++) {
           await enterStep(page, i);
-          await page.waitForTimeout(STEP_SETTLE_MS);
           const rows = await page.evaluate(probePaint, PAINTED);
           if (!rows) continue;
           playedSteps++;
@@ -222,6 +186,17 @@ test('palette across every step (report only, never fails)', async () => {
   out.push('===== end of report =====');
 
   console.log(out.join('\n'));
-  // No assertion on purpose. Everything above is a measurement, and the acceptance decision about
-  // it belongs to a person, not to this file. See the header.
+
+  // NO ASSERTION ON A FINDING, and one on the WALK. Every line above is a measurement, and the
+  // decision about it belongs to a person reading the card's record. What is NOT a measurement is
+  // whether this file ran at all: a browser that never launched, a server that answered nothing or
+  // a card that threw on every open leaves `notes` full, prints REPORT INCOMPLETE into a page of
+  // output nobody has to read, and exits 0. That is the failure the rest of the harness is built
+  // against (`S-46`), and it is the one thing a report may go red on.
+  assert.equal(sampledCards, catalogued.length,
+    `sampled ${sampledCards} of ${catalogued.length} card(s). A report that scans nothing reports ` +
+    'nothing, and every number above undercounts by whatever it missed.');
+  assert.ok(steps > 0 && playedSteps > 0,
+    `walked ${steps} static and ${playedSteps} played step(s): a run that samples neither has ` +
+    'measured no palette at all.');
 });

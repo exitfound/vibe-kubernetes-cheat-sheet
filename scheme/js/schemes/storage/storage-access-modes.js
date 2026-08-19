@@ -133,6 +133,10 @@ const grantMount = ({ name, pod, reqPts, attachPts, tag, disk, lead = 0 }) => [
   F.light({ targets: [disk], at: `${name}Att` }),
 ];
 
+// Both refusals park their tag on the same driver-top point, and all three RWX mounts park theirs
+// within 32 units on the same disk top: each must fade before the next one lands. See ./CARDS.md.
+const DENY_LEAD = 450, MOUNT_LEAD = 520;
+
 // A refused attach reaches the gate and stops there, and no disk lights. The Pod still blinks first,
 // in the dim variant with an opacity lift so the blink reads against the faded shade.
 const denyMount = ({ name, pod, reqPts, tag, lead = 0 }) => [
@@ -202,12 +206,14 @@ export const STEPS_SPEC = [
     // this disk cannot do. A single request could not show the thing the step is about.
     flow: [
       ...denyMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, tag: 'RWX unsupported' }),
-      ...denyMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, tag: 'RWX unsupported', lead: 220 }),
+      ...denyMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, tag: 'RWX unsupported', lead: DENY_LEAD }),
     ],
   },
   {
     id: 'rwx-nfs',
-    duration: 3800,
+    // 4300, not 3800: the three mounts are spaced by MOUNT_LEAD so their tags never share the disk
+    // top, which puts the last ball 1040 later and the span at 3900.
+    duration: 4300,
     narration: 'Point the claim at a shared filesystem instead, PV nfs on NFS or CephFS, and ReadWriteMany works. The driver attaches it to both Nodes, and all three Pods mount it at once, on either Node, with nobody refused. The mode was always allowed by Kubernetes, what changed is a backend that can deliver it.',
     chipsCued: chips('ReadWriteMany', 'Node-1, Node-2', 'app-1, app-2, app-3'),
     wires: { nfs: 'attached: both nodes' },
@@ -216,8 +222,8 @@ export const STEPS_SPEC = [
     opacity: pods(1, 1, 1),
     flow: [
       ...grantMount({ name: 'a1', pod: 'podA1', reqPts: W_P1_DRV, attachPts: W_DRV_NFS_1, tag: 'mount rwx', disk: 'pvNfs' }),
-      ...grantMount({ name: 'a2', pod: 'podA2', reqPts: W_P2_DRV, attachPts: W_DRV_NFS_2, tag: 'mount rwx', disk: 'pvNfs', lead: 200 }),
-      ...grantMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, attachPts: W_DRV_NFS_3, tag: 'mount rwx', disk: 'pvNfs', lead: 400 }),
+      ...grantMount({ name: 'a2', pod: 'podA2', reqPts: W_P2_DRV, attachPts: W_DRV_NFS_2, tag: 'mount rwx', disk: 'pvNfs', lead: MOUNT_LEAD }),
+      ...grantMount({ name: 'b1', pod: 'podB1', reqPts: W_P3_DRV, attachPts: W_DRV_NFS_3, tag: 'mount rwx', disk: 'pvNfs', lead: 2 * MOUNT_LEAD }),
     ],
   },
 ];

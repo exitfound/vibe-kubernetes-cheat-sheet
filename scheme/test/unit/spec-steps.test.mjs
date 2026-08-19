@@ -34,8 +34,8 @@
 //     question and one more (whether the part is a KIND that writer can write to). The split, and
 //     why both halves are not asked twice, is written out over the last describe block below.
 //   - THE LIFETIME OF A HIGHLIGHT, which is neither the scene's question nor the render level's.
-//     S-18 and S-19 were both `review` until 2026-08-15 and both stand at ZERO findings, which is
-//     when a check is cheap. S-19 is the expensive one to lose: the class it names ACCUMULATES over
+//     S-18 and S-19 both stand at ZERO findings, which is what makes them assertable and when a
+//     check is cheap. S-19 is the expensive one to lose: the class it names ACCUMULATES over
 //     prev and reset, so five networking cards carried it at once and nothing in the suite could
 //     see it (render/reduced.test.mjs compares the two paths and both accumulate identically).
 //
@@ -59,9 +59,9 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
 import { cardForm, importAll } from '../fixtures/module.mjs';
-import { collectFns, refNames, settledChips, staticChips, timelineOf, walkParts } from '../fixtures/spec.mjs';
+import { collectFns, refNames, refUniverse, settledChips, staticChips, timelineOf, walkParts } from '../fixtures/spec.mjs';
 import { flowLights } from '../../js/lib/step-spec.js';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
 
@@ -129,6 +129,9 @@ const VERB_PARAMS = {
   // A ripple is what a receiving BOX gets where a Pod would pulse, so like pulse it takes effect
   // AT its delay and lands nothing.
   ripple:  [...COMMON_PARAMS, 'point', 'role'],
+  // The block flash of a packet-less, Pod-less step (M-27). Takes a LIST like light does, because
+  // the magnitude is one token and the step names whichever blocks its beat is about.
+  flash:   [...COMMON_PARAMS, 'targets'],
 };
 const VERBS = new Set(Object.keys(VERB_PARAMS));
 
@@ -166,6 +169,14 @@ describe('the migrated population', () => {
       'the cards whose STEPS_SPEC this file can read are not the cards ../fixtures/module.mjs counts ' +
       'as migrated. One of the two readers has gone blind.');
     assert.ok(STEP_COUNT > 0, `${SPECS.length} card(s) carry a STEPS_SPEC but they hold 0 steps between them`);
+    // The step half of the catalog baseline, and this is its one assertion: every other file in
+    // the harness DERIVES its step total from these same specs, through `stepTotal()`, so this is
+    // the only place a step appearing or disappearing has to be acknowledged on purpose.
+    assert.equal(STEP_COUNT, CATALOG_BASELINE.steps,
+      `the catalog declares ${STEP_COUNT} steps, the baseline is ${CATALOG_BASELINE.steps}. A step ` +
+      'added or removed is a deliberate change: update CATALOG_BASELINE in ../fixtures/catalog.mjs. ' +
+      'Every floor in the harness is derived from this sum, so a step that vanished would only ' +
+      'lower every floor with it and nothing else would go red.');
     for (const c of SPECS) {
       assert.ok(c.steps.length > 0, `${c.id}  exports an empty STEPS_SPEC, so this card declares no step`);
       assert.ok(c.scene && typeof c.scene === 'object', `${c.id}  exports STEPS_SPEC without a SCENE to resolve its keys against`);
@@ -320,6 +331,9 @@ describe('flow as an ordered program', () => {
           case 'run':
             if (typeof p.fn !== 'function') findings.push(`${where}  run fn is ${typeof p.fn}`);
             break;
+          case 'flash':
+            if (!Array.isArray(p.targets) || p.targets.length === 0) findings.push(`${where}  flash carries no targets`);
+            break;
           case 'set': {
             const writes = WRITER_FIELDS.filter(k => p[k] !== undefined);
             if (writes.length === 0) findings.push(`${where}  set writes nothing: it carries none of ${WRITER_FIELDS.join(' ')}`);
@@ -338,6 +352,32 @@ describe('flow as an ordered program', () => {
   // WALKS, so a name declared later in the list, or never, resolves to undefined: `undefined + 100`
   // is NaN, WAAPI reads a NaN delay as 0, and the whole chain collapses onto the step's first frame
   // instead of throwing. That is the failure this test exists for.
+  // M-26 is a rule whose population is EMPTY and whose emptiness is the whole content of the row:
+  // nothing in the catalog flashes a value chip, so a green run of the motion walk says nothing
+  // about it. `F.flash` is the one verb that could open that population without anybody noticing,
+  // since `flashChips` is named for chips and takes any ref. This asks the question the name
+  // invites and the runtime does not: what KIND of part is on the end of each target.
+  test('M-26: F.flash targets blocks, never a value chip', (t) => {
+    const findings = [];
+    let entries = 0, targets = 0;
+    for (const c of SPECS) {
+      const { refs } = refUniverse(c.scene, c.steps);
+      for (const spec of c.steps) {
+        for (const e of spec.flow || []) {
+          if (!e || e.verb !== 'flash') continue;
+          entries++;
+          for (const k of (e.p && e.p.targets) || []) {
+            targets++;
+            const kind = refs.get(k);
+            if (kind === 'chip') findings.push(`${c.id}/${spec.id}  flash targets '${k}', which the SCENE declares as a chip. A value chip never flashes (M-26): flash the block the value is ABOUT`);
+          }
+        }
+      }
+    }
+    assert.equal(findings.length, 0, `${findings.length} finding(s):\n  ${listing(findings)}`);
+    t.diagnostic(`${entries} F.flash entr(ies) over ${targets} target(s), zero of them a chip`);
+  });
+
   test('every after/at names an entry declared EARLIER in the same flow', (t) => {
     const findings = [];
     let refs = 0, namesDeclared = 0, dead = [];
@@ -404,12 +444,11 @@ describe('flow as an ordered program', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// The derived reduced-motion guard. A wrong derivation used to be invisible: the refactor's dump
-// bridge ran with reducedMotion 'no-preference' and entered every step with reduced: false, so
-// nothing but a reader of the data could see one. That bridge is gone, and the HIGHLIGHT axis of
-// render/reduced.test.mjs was promoted to enforced once the derivation had landed on all four
-// categories, which is what makes the guard checkable inside `npm test`. The assertions below are
-// the half that needs no browser: they read the derivation off the data.
+// The derived reduced-motion guard, and what it catches is a WRONG derivation. Anything that enters
+// a step with reduced: false never runs the derived path at all, so a wrong one is invisible to it
+// and only a reader of the data sees it. The HIGHLIGHT axis of render/reduced.test.mjs holds the
+// live half on a rendered card, and the assertions below are the half that needs no browser: they
+// read the derivation off the data.
 // ---------------------------------------------------------------------------------------------
 describe('the reduced-motion guard', () => {
   test('flowLights is the ordered, de-duplicated union of what the flow lights', (t) => {
@@ -520,13 +559,13 @@ describe('chip turnover', () => {
     t.diagnostic(`${chipWrites} chip writes over ${walked} steps on ${SPECS.length} cards, one set per card`);
   });
 
-  // P-13. Four key names are banned outright, and the reason is that a chip key used to be READ as
-  // something else: check-figures took `ip: '...'` in an object literal for a Pod ADDRESS written
-  // where a block is built, so a chip keyed `ip` made its value look like a second block carrying
-  // that address, and a real duplicate address look like a duplicate of itself. The reader that
-  // misread it is gone (render/inline.test.mjs takes addresses off the RENDERED frames now), and the
-  // ban stays: the names are also the four fields of a BLOCK, so one of them on a chip is a key that
-  // reads as the wrong kind of thing to every human after it. Use podIp.
+  // P-13. Four key names are banned outright, and the reason is that a chip key of this shape is
+  // READ as something else: a scan of card source takes `ip: '...'` in an object literal for a Pod
+  // ADDRESS written where a block is built, so a chip keyed `ip` makes its value look like a second
+  // block carrying that address, and a real duplicate address look like a duplicate of itself. No
+  // check in the suite reads addresses that way (render/inline.test.mjs takes them off the RENDERED
+  // frames), and the ban holds anyway: the names are also the four fields of a BLOCK, so one of them
+  // on a chip is a key that reads as the wrong kind of thing to every human after it. Use podIp.
   test('P-13: no chip is keyed label, sublabel, ip or sub', (t) => {
     const BANNED = new Set(['label', 'sublabel', 'ip', 'sub']);
     const findings = [];
@@ -708,11 +747,11 @@ describe('highlight lifetime', () => {
 // the question this file cannot ask, whether the part the name lands on is a KIND that writer can
 // write to (setVal needs the valueText a chip carries, setBoxLabel needs a .scheme-box-label). Two
 // files asking the strictly weaker half of one question is a duplicate branch, not a second check,
-// so the weaker half was dropped from here on 2026-08-15 and the stricter one kept there.
+// so the six string writers are resolved THERE and nowhere else, by the stricter reading.
 // What is left below is everything that file does NOT look at: `opacity`, `lit`, `chain`,
 // `reducedLit`, a flow entry's pod / target / lights / targets / unlight / on, and the reset
-// prologue. `on` was resolved by nobody until 2026-08-15: 15 sites, 0 of them unresolvable, and it
-// is the one key where a miss costs the whole write rather than one late frame.
+// prologue. `on` is resolved here and by nobody else: 15 sites, 0 of them unresolvable, and it is
+// the one key where a miss costs the whole write rather than one late frame.
 // ---------------------------------------------------------------------------------------------
 describe('key resolution', () => {
   test('every key a step lights or moves names something the SCENE declares', (t) => {

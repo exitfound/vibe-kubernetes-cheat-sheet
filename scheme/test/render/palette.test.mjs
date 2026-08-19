@@ -20,85 +20,34 @@
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
-import { DEFAULT_BASE, launch, setInspect, discoverIds, openCard } from '../fixtures/render.mjs';
+import { cards, census, floor, SUBSET, FULL_ONLY } from '../fixtures/catalog.mjs';
+import { DEFAULT_BASE, launch, initPage, discoverIds, openCard } from '../fixtures/render.mjs';
+import { PAINTED, ROLES, classify, probePaint } from '../fixtures/palette.mjs';
 
-// The four real palette slots. `role` is a palette slot and NOT the card's category (C-01): a
-// workloads card writes role 'cluster' on its kubelet box on purpose.
-export const ROLES = ['cluster', 'workloads', 'network', 'storage'];
-
-// Element class -> the descendant that actually carries the paint (null = the element itself).
-// `.scheme-arrow` was added to the original list on 2026-07-29 as a regression guard: arrows were
-// absent from it entirely, which is why `dim: true` painting like a live lane on 315 calls was
-// invisible to every check.
-export const PAINTED = [
-  ['.scheme-pod', '.scheme-pod-rect'],
-  ['.scheme-box', '.scheme-box-rect'],
-  ['.scheme-chip', '.scheme-chip-rect'],
-  ['.scheme-cylinder', '.scheme-cylinder-body'],
-  ['.scheme-packet', null],
-  ['.scheme-ripple', null],
-  ['.scheme-arrow', null],
-];
-
-// Runs IN THE PAGE. Every painted element carrying a data-role, with the colour it resolves to.
-// No free variables: it is serialised across the CDP boundary, so it can close over nothing.
-export function probePaint(painted) {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-  const out = [];
-  for (const [sel, childSel] of painted) {
-    for (const el of svg.querySelectorAll(`${sel}[data-role]`)) {
-      const paint = childSel ? el.querySelector(childSel) : el;
-      if (!paint) continue;
-      const cs = getComputedStyle(paint);
-      // State matters. `.highlight` repaints to the bright stop, so a lit chip and a resting one
-      // legitimately differ, and `scheme-arrow-dim` is a weight rather than a variant: a dim lane
-      // and a live one of the same role are MEANT to differ. Without both in the key the check
-      // would report its own blindness as a card defect.
-      const state = ['highlight', 'scheme-arrow-dim']
-        .filter(c => el.classList.contains(c)).join('+') || 'rest';
-      out.push({
-        cls: sel.slice(1),
-        role: el.getAttribute('data-role'),
-        state,
-        stroke: cs.stroke,
-        fill: cs.fill,
-        // A packet paints with fill, everything else with stroke.
-        paintProp: sel === '.scheme-packet' ? 'fill' : 'stroke',
-      });
-    }
-  }
-  return out;
-}
-
-export const UNPAINTED_RE = /^rgba\(\s*0,\s*0,\s*0,\s*0\s*\)$/;
-
-// Fold one card's rows into the shared tuple map. Exported so the report test walks steps with the
-// same accounting rather than a second private copy of it.
-export function foldRows(id, rows, { spread, unknown, unpainted }) {
-  const category = id.split('-')[0];
+// Fold one card's rows into the shared tuple map. The JUDGEMENT is ../fixtures/palette.mjs, shared
+// with report/palette-steps.test.mjs, which cannot import this file: importing a test file registers
+// its tests. What stays here is this walk's bookkeeping, cards per colour.
+function foldRows(id, rows, { spread, unknown, unpainted }) {
   let seen = 0;
   for (const r of rows) {
     seen++;
-    if (!ROLES.includes(r.role)) { unknown.push(`${id}  ${r.cls} role="${r.role}"`); continue; }
-    const colour = r.paintProp === 'fill' ? r.fill : r.stroke;
-    if (!colour || colour === 'none' || UNPAINTED_RE.test(colour)) {
-      unpainted.push(`${id}  ${r.cls}[data-role="${r.role}"] ${r.paintProp}=${colour}`);
+    const v = classify(id, r);
+    if (v.verdict === 'unknown') { unknown.push(`${id}  ${r.cls} role="${r.role}"`); continue; }
+    if (v.verdict === 'unpainted') {
+      unpainted.push(`${id}  ${r.cls}[data-role="${r.role}"] ${r.paintProp}=${v.colour}`);
       continue;
     }
-    const key = `${category}|${r.cls}|${r.role}|${r.state}|${r.paintProp}`;
-    if (!spread.has(key)) spread.set(key, new Map());
-    const byColour = spread.get(key);
-    if (!byColour.has(colour)) byColour.set(colour, []);
-    const cards = byColour.get(colour);
+    if (!spread.has(v.key)) spread.set(v.key, new Map());
+    const byColour = spread.get(v.key);
+    if (!byColour.has(v.colour)) byColour.set(v.colour, []);
+    const cards = byColour.get(v.colour);
     if (!cards.includes(id)) cards.push(id);
   }
   return seen;
 }
 
 // Every tuple holding more than one colour, formatted the way the original printed it.
-export function describeSpread(spread) {
+function describeSpread(spread) {
   return [...spread.entries()]
     .filter(([, byColour]) => byColour.size > 1)
     .map(([key, byColour]) => {
@@ -114,7 +63,7 @@ export function describeSpread(spread) {
 // decoration: a check whose coverage silently collapses still reports zero findings and exits 0.
 // Either number moving means the CATALOG moved (a card added, an element added or a role changed),
 // and the right response is to look at the diff and then update the constant, never the reverse.
-// 1897 since 2026-08-11: network-dns-records gave the category role to its four answer lanes, which
+// 1897: network-dns-records gives the category role to its four answer lanes, which
 // carry a ball exactly like the two client lanes that already had it (+4), and network-headless-service
 // took it off the three endpoint fans, which carry nothing, per the rule the card states itself (-3).
 const EXPECTED_PAINTED = 1897;
@@ -123,14 +72,18 @@ const EXPECTED_COMBINATIONS = 29;
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 // reducedMotion: a pulse mid-flight repaints the stroke, and sampling one would turn a motion
 // magnitude into a colour finding.
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce' });
 const page = await context.newPage();
-await page.addInitScript(setInspect, 'expose');
+await page.addInitScript(initPage, 'expose');
 const ids = await discoverIds(page, DEFAULT_BASE);
-
-after(() => browser.close());
 
 const spread = new Map();
 const unknown = [];
@@ -177,13 +130,13 @@ test('SPREAD: one category+class+role+state resolves to one colour', () => {
     `SPREAD (one category+class+role+state resolving to more than one colour): ${bad.length}\n${bad.join('\n')}`);
 });
 
-test(`${EXPECTED_PAINTED} painted elements carry a role`, () => {
+test(`${EXPECTED_PAINTED} painted elements carry a role`, FULL_ONLY, () => {
   assert.equal(seen, EXPECTED_PAINTED,
     `painted-element census moved: ${seen} now, ${EXPECTED_PAINTED} at the last green run.\n` +
     '  Zero findings over a shrunken set is not a pass. Read the catalog diff before touching this number.');
 });
 
-test(`${EXPECTED_COMBINATIONS} category+class+role+state combinations`, () => {
+test(`${EXPECTED_COMBINATIONS} category+class+role+state combinations`, FULL_ONLY, () => {
   assert.equal(spread.size, EXPECTED_COMBINATIONS,
     `combination census moved: ${spread.size} now, ${EXPECTED_COMBINATIONS} at the last green run.\n` +
     `  Combinations present:\n    ${[...spread.keys()].sort().join('\n    ')}`);

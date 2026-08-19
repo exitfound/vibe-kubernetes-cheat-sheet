@@ -46,8 +46,8 @@ const NAME_SRV      = [['_http._tcp.web', 'port and protocol'], ['default', 'nam
 const NAME_HEADLESS = [['web', 'headless service'], ['default', 'namespace'], ['svc', 'subdomain'], ['cluster.local', 'cluster domain']];
 const NAME_POD      = [['10-244-2-7', 'pod address'], ['default', 'namespace'], ['pod', 'subdomain'], ['cluster.local', 'cluster domain']];
 
-// All six wires carry a ball, so all six take the category arrowhead. The four answer lanes used to
-// drop the role, which left them neutral-headed beside the two identical client lanes.
+// All six wires carry a ball, so all six take the category arrowhead. A lane that drops the role
+// renders neutral-headed beside the identical client lanes, so all six state it.
 const ANS_WIRE = { dashed: true, dim: true };
 
 // The list order IS the append order, which is the z-order: the band, CoreDNS, the client and the
@@ -102,27 +102,32 @@ const asking = (parts, light = true) => {
 };
 
 // One record lookup: query out, the record climbs into its ladder row, the answer goes home. The row
-// lights on the ANSWER arrival through a timer hung on CoreDNS, which is where the card put it.
-const lookup = (rowIdx) => [
+// and the answer count both land on the ANSWER arrival, through a timer hung on CoreDNS.
+const lookup = (rowIdx, ans) => [
   F.pulse({ pod: 'client' }),
   F.segment({ from: QUERY[0], to: QUERY[1], delay: BEAT.afterPulse, name: 'q', lights: ['coredns'] }),
   F.route({ points: ANS[rowIdx], after: 'q', name: 'ans' }),
-  F.set({ chain: rowIdx, on: 'coredns', at: 'ans' }),
+  F.set({ chain: rowIdx, chips: { ansChip: ans }, on: 'coredns', at: 'ans' }),
   // The record lights in the ladder, and THEN the same answer goes home: the client is what gets the
   // record, and the ladder is a display rather than an arrival.
   F.segment({ from: REPLY[0], to: REPLY[1], after: 'ans', name: 'reply' }),
   F.pulse({ pod: 'client', at: 'reply' }),
 ];
 
-// A record step ends with its row lit, which is what the static path shows at once. The animated
-// path winds the ladder back so the row can light on the answer instead.
-const record = (rowIdx) => ({ chain: rowIdx, rewind: { chain: -1 }, flow: lookup(rowIdx) });
+// A record step ends with its row lit and the count answered, which is what the static path shows at
+// once. The animated path winds both back to what the step before left, so the answer earns them.
+const record = (rowIdx, ans, was) =>
+  ({ chain: rowIdx, rewind: { chain: -1, chips: { ansChip: was } }, flow: lookup(rowIdx, ans) });
+
+// The answer counts, named because each is said twice: once as the state a step ends in, once as the
+// state the step before it left behind.
+const NO_ANS = '-', ONE_REC = '1 record', THREE_REC = '3 records';
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { qChip: '-', ansChip: '-' },
+    chips: { qChip: '-', ansChip: NO_ANS },
     ...asking(NAME_SVC, false),
     chain: -1,
   },
@@ -130,7 +135,7 @@ export const STEPS_SPEC = [
     id: 'fqdn',
     duration: 2500,
     narration: 'The full name is web.default.svc.cluster.local: the Service, its namespace, the literal svc, then the cluster domain. A Pod resolv.conf carries search domains and ndots:5, so a short name like web is expanded to this fully qualified form before it leaves the Pod. Every record below is a variation on these four segments.',
-    chips: { qChip: 'web expands to web.default.svc.cluster.local', ansChip: '-' },
+    chips: { qChip: 'web expands to web.default.svc.cluster.local', ansChip: NO_ANS },
     ...asking(NAME_SVC),
     lit: [...SEGS.map(s => s.key), 'qChip'],
     chain: -1,
@@ -147,10 +152,10 @@ export const STEPS_SPEC = [
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
     narration: 'Ask for the name itself and you get an A record, or AAAA on IPv6, pointing at the Service ClusterIP, 10.96.0.20. This is the common case: a name in, the stable virtual IP out, which kube-proxy then load-balances to a Pod. Note that this is the web Service address, not 10.96.0.10, which is the kube-dns ClusterIP the query was sent to.',
-    chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: '1 record' },
+    chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: ONE_REC },
     ...asking(NAME_SVC),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
-    ...record(0),
+    ...record(0, ONE_REC, NO_ANS),
   },
   {
     id: 'srv-record',
@@ -158,10 +163,10 @@ export const STEPS_SPEC = [
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
     narration: 'A named port also publishes an SRV record. The name grows a prefix, _http._tcp, naming the port and the protocol, and the answer carries the port number and the target host. It lets a client discover which port a Service exposes without that port being hard-coded anywhere.',
-    chips: { qChip: '_http._tcp.web.default.svc.cluster.local  IN SRV', ansChip: '1 record' },
+    chips: { qChip: '_http._tcp.web.default.svc.cluster.local  IN SRV', ansChip: ONE_REC },
     ...asking(NAME_SRV),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
-    ...record(1),
+    ...record(1, ONE_REC, ONE_REC),
   },
   {
     id: 'headless-record',
@@ -169,10 +174,10 @@ export const STEPS_SPEC = [
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
     narration: 'If the Service is headless, the name does not change at all: the client asks exactly what it asked for the A record. What changes is the answer, one A record per ready Pod instead of a single virtual IP, here three of them, and the client chooses an endpoint itself.',
-    chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: '3 records' },
+    chips: { qChip: 'web.default.svc.cluster.local  IN A', ansChip: THREE_REC },
     ...asking(NAME_HEADLESS),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
-    ...record(2),
+    ...record(2, THREE_REC, ONE_REC),
   },
   {
     id: 'pod-record',
@@ -180,10 +185,10 @@ export const STEPS_SPEC = [
     // client and its arrival pulse, ending at ~4100.
     duration: 4400,
     narration: 'Finally a Pod can be addressed directly, and here the name changes twice: the Pod IP written with dashes takes the place of the Service, and the subdomain flips from svc to pod. CoreDNS only serves this when the kubernetes plugin has pods enabled, which kubeadm sets to insecure by default, and in that mode it reads the address straight back out of the name without checking that such a Pod exists. The stable way to reach one specific replica is a StatefulSet Pod hostname under a headless Service.',
-    chips: { qChip: '10-244-2-7.default.pod.cluster.local  IN A', ansChip: '1 record' },
+    chips: { qChip: '10-244-2-7.default.pod.cluster.local  IN A', ansChip: ONE_REC },
     ...asking(NAME_POD),
     lit: [...SEGS.map(s => s.key), 'qChip', 'ansChip'],
-    ...record(3),
+    ...record(3, ONE_REC, THREE_REC),
   },
 ];
 

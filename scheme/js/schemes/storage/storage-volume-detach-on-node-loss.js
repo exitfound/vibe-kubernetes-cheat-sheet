@@ -39,6 +39,9 @@ const ESC_X = CONTENT_CX - ESC_W / 2;                    // 485
 const ESC_Y = LAD_Y + (LAD_BOTTOM - LAD_Y - ESC_H) / 2;  // 478, vertically centered on the ladder
 const ESC_CX = CONTENT_CX;                               // on the spine, under the disk it acts on
 const ESC_TOP = ESC_Y;
+// T-35: the counterfactual caption, in the gap above the escape box. Right of the spine so the
+// taint lane never runs through it, and clear of a panel that reaches x=398 at 900x650.
+const BRANCH_LBL_X = ESC_CX + 20, BRANCH_LBL_Y = 440;    // 620 / 440
 
 
 const LANE = 22, CORRIDOR_Y = 260;
@@ -79,6 +82,9 @@ export const SCENE = {
     P.lane({ key: 'wAttachB', points: W_ATTACH_B, dashed: true, dim: false, opacity: 0 }),
     P.lane({ key: 'wTaint', points: W_TAINT, dashed: true, dim: true, opacity: 0 }),
     P.wire({ key: 'disk', x: DK_LBL_X, y: DK_LBL_Y, anchor: 'start' }),
+    // Written on the escape step alone: that step replays the story on the path the taint takes, so
+    // the caption is what stops the frame reading as a seventh thing that happened (T-35).
+    P.wire({ key: 'branch', x: BRANCH_LBL_X, y: BRANCH_LBL_Y, anchor: 'start' }),
     P.chip({ key: 'nodeChip', x: CHIP_X[0], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'Node-1', value: 'Ready' }),
     P.chip({ key: 'diskChip', x: CHIP_X[1], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'volume', value: 'attached to Node-1' }),
     P.chip({ key: 'podChip', x: CHIP_X[2], y: CHIPS_Y, w: CHIP_W, h: CHIP_H, name: 'new Pod', value: 'not created' }),
@@ -86,7 +92,7 @@ export const SCENE = {
       key: 'chain',
       x: LAD_X, y: LAD_Y, w: LAD_W, rowH: LAD_ROW, gap: LAD_GAP,
       items: [
-        '1. unreachable taint  ·  300s, old Pod deleted',
+        '1. unreachable taint  ·  300s, old Pod marked',
         '2. force-detach timeout  ·  ~6 min, then rip attach',
         '3. attach on Node-2  ·  new Pod finally starts',
       ],
@@ -213,7 +219,7 @@ export const STEPS_SPEC = [
     narration: 'If an operator knows the Node is really dead, waiting out both clocks is wasted downtime. Non-graceful node shutdown is the escape hatch: tainting the Node out-of-service tells Kubernetes to stop assuming the Pod might live, so it deletes the Pod and detaches the volume at once. The safety wait exists for uncertainty, and the taint is how you remove the uncertainty by hand.',
     chipsCued: chips('NotReady, tainted', 'detached at once', 'Running'),
     podSublabels: pods('deleted by taint', 'Running'),
-    wires: { disk: 'skip the wait' },
+    wires: { disk: 'skip the wait', branch: 'if instead the taint lands first' },
     opacity: { oldPod: OPACITY.terminated, wAttachA: OPACITY.terminated, wAttachB: 1, wTaint: 1, newPod: 1 },
     lit: ['escape'],
     // The ladder is deliberately left with NO active rung. This step is not the next rung, it is

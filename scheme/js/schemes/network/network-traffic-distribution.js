@@ -41,7 +41,7 @@ const backend = (key, cy, ip) => P.pod({
 // The list order IS the append order, which is the z-order: the zone frames in back, then the Pods
 // inside them, the client and kube-proxy, then the wires ABOVE, then the chips, then the packets.
 export const SCENE = {
-  'aria-label': 'Session affinity and topology-aware routing: kube-proxy spreads connections across all endpoints by default, sessionAffinity pins a client to one Pod, and trafficDistribution PreferSameZone keeps traffic in the client zone with a fallback to other zones',
+  'aria-label': 'Session affinity and traffic distribution: kube-proxy spreads connections across all endpoints by default, sessionAffinity pins a client to one Pod, and trafficDistribution PreferSameZone keeps traffic in the client zone with a fallback to other zones',
   parts: [
     P.defs(),
     P.node({ key: 'zoneA', x: ZONE_X, y: ZONE_A_Y, w: ZONE_W, h: ZONE_H, label: 'zone-a' }),
@@ -80,6 +80,10 @@ const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
 const FAN_SLOW = 1.6;
 const fanDur = (points) => Math.round(routeDur(points) * FAN_SLOW);
+
+// Two connections landing on ONE Pod are held a whole PULSE_POD.ms (900) apart, so the second blink
+// starts on the millisecond the first one ends. The 540 of the default step is for two DIFFERENT Pods.
+const SAME_POD_GAP = 900;
 
 const CLIENT_IP = 'src 10.244.2.50';
 
@@ -124,19 +128,25 @@ export const STEPS_SPEC = [
   },
   {
     id: 'session-affinity',
-    duration: 4600,
+    // Motion: the first connection reaches a1 at 2973 and the second at 3873, whose blink ends at 4773.
+    duration: 4900,
     narration: 'First lever: stickiness. Set sessionAffinity to ClientIP and the opening connection still picks a backend freely, then kube-proxy pins that client source IP to the chosen Pod, here 10.244.2.7. Every later connection from the same client returns to that one Pod, so a session stays put.',
     chips: { modeChip: 'unset . spread all', pinChip: 'ClientIP . pin .2.7' },
     opacity: ALL_UP,
     lit: ['pinChip'],
     // The animated path says the pinned backend was served by PULSING it, which no lights list names.
     reducedLit: ['a1Box'],
-    // Two connections from the same client both land on the SAME Pod (a1, 10.244.2.7).
+    // The narration is explicit that the opening connection picks freely and the pin follows, so the
+    // chip holds None until that first connection reaches 10.244.2.7 at 2973.
+    rewind: { chips: { pinChip: 'None' } },
+    // Two connections from the same client both land on the SAME Pod (a1, 10.244.2.7), so the second
+    // is staggered by SAME_POD_GAP: both arrivals blink a1, and neither blink runs into the other.
     flow: [
       F.pulse({ pod: 'client' }),
       F.segment({ from: CLIENT_OUT, to: KP_IN, delay: BEAT.afterPulse, name: 'arr', lights: ['kproxy'] }),
       ...fan(FAN_A1, 'a1', 'fa1', 'arr'),
-      ...fan(FAN_A1, 'a1', 'fa2', 'arr', 540),
+      ...fan(FAN_A1, 'a1', 'fa2', 'arr', SAME_POD_GAP),
+      F.set({ at: 'fa1', chips: { pinChip: 'ClientIP . pin .2.7' } }),
     ],
   },
   {

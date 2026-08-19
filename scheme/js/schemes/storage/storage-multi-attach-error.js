@@ -63,6 +63,10 @@ const W_BAND_VA_B = [[BAND_RIGHT, BAND_MID_Y], [VA_B_CX, BAND_MID_Y], [VA_B_CX, 
 const W_VAA_DISK  = [[VA_A_CX, VA_BOTTOM], [VA_A_CX, DK_SIDE_Y], [DK_LEFT, DK_SIDE_Y]];
 const W_VAB_DISK  = [[VA_B_CX, VA_BOTTOM], [VA_B_CX, DK_SIDE_Y], [DK_RIGHT, DK_SIDE_Y]];
 
+// The write leaves the controller's right face, so centred on the lane the tag straddles that edge
+// for 500 ms. +32 is the least that clears all four viewports: 30 clears 1600x1000 alone.
+const WRITE_TAG_DX = 32;
+
 // The two arrivals the detach step chains on, off the same geometry runFlow reads, for the one call
 // that cannot be a flow entry: the unlight note on that step says why it needs a number.
 const DEL_LANDS = packetArrival(W_BAND_VA_A, { delay: BEAT.lead });
@@ -239,24 +243,37 @@ export const STEPS_SPEC = [
       vaAOp: OPACITY.terminated, vaASub: 'deleted', linkA: OPACITY.terminated,
     }),
     lit: ['ctrl'],
-    // Everything this step tears down stands at full when the animated path starts, and the four
-    // fades below are what take it away.
-    rewind: { opacity: { vaA: 1, wBandVaA: 1, wVaADisk: 1, podOld: 1 } },
+    // Everything this step tears down stands at full when the animated path starts, and the two chips
+    // read what the wait step left: the volume belongs to nobody only once the detach lands (P-03).
+    rewind: {
+      opacity: { vaA: 1, wBandVaA: 1, wVaADisk: 1, podOld: 1 },
+      chips: { attChip: 'Node-1', blockChip: 'old Pod running' },
+      sublabels: { vaA: 'Node-1, still held' },
+      podSublabels: { podOld: 'Running' },
+    },
     flow: [
+      // The hand from outside lands on the Pod first: it blinks at full, then goes at afterPulse with
+      // its state line, so the va-1 delete follows the deletion that causes it (M-08, P-04).
+      F.pulse({ pod: 'podOld' }),
+      F.fade({ target: 'podOld', from: 1, to: OPACITY.terminated, dur: FADE.out, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-in' }),
+      F.set({ delay: BEAT.afterPulse, podSublabels: { podOld: 'deleted' } }),
       F.route({ points: W_BAND_VA_A, delay: BEAT.lead, name: 'del' }),
       F.tag({ text: 'delete va-1', points: W_BAND_VA_A, delay: BEAT.lead }),
       // va-1's cue is an F.set, not `lights`, because the reduced path must not show it: the
-      // unlight below takes it off again before the step settles.
-      F.set({ on: 'vaA', lit: ['vaA'], at: 'del' }),
+      // unlight below takes it off again before the step settles. Its state line turns over with it.
+      F.set({ on: 'vaA', lit: ['vaA'], at: 'del', sublabels: { vaA: 'deleted' } }),
       F.route({ points: W_VAA_DISK, after: 'del', name: 'det' }),
       F.tag({ text: 'detach', points: W_VAA_DISK, after: 'del' }),
       F.light({ targets: ['disk'], at: 'det' }),
-      ...['vaA', 'wBandVaA', 'wVaADisk', 'podOld'].map(target => F.fade({
+      ...['vaA', 'wBandVaA', 'wVaADisk'].map(target => F.fade({
         target, from: 1, to: OPACITY.terminated, dur: FADE.out, at: 'det', fill: 'forwards', easing: 'ease-in',
       })),
       // A deleted object must not keep the border that means "acting now", and no field REMOVES a
       // highlight: F.fade({ unlight }) would drop the empty 1ms timer that carries it on va-1.
       F.run({ fn: (s, ctx) => unlightAt(s.refs.vaA, ctx, DET_LANDS + FADE.out) }),
+      // Both chips turn on the detach landing (2300), not at entry: until that ball reaches the disk
+      // the volume is still attached to Node-1 and va-1 is still what blocks the new Pod.
+      F.set({ at: 'det', chipsCued: { attChip: 'nothing', blockChip: 'nothing' } }),
     ],
   },
   {
@@ -274,17 +291,31 @@ export const STEPS_SPEC = [
     // Lit from entry for the same reason as the step before: the controller is where the write
     // comes from, so it cannot be dark while a ball is leaving it.
     lit: ['ctrl'],
+    // The animated path opens on what the detach left, and each of the three is turned over by the
+    // arrival that earns it below (P-03, P-04).
+    rewind: {
+      chips: { attChip: 'nothing', podChip: 'Multi-Attach error' },
+      sublabels: { vaB: 'wanted, not written' },
+      podSublabels: { podNew: 'Multi-Attach error' },
+    },
     flow: [
       F.route({ points: W_BAND_VA_B, delay: BEAT.lead, name: 'wr' }),
-      F.tag({ text: 'write va-2', points: W_BAND_VA_B, delay: BEAT.lead }),
+      F.tag({ text: 'write va-2', points: W_BAND_VA_B, delay: BEAT.lead, dx: WRITE_TAG_DX }),
       // This is the step that actually creates va-2, so it rises from the want to the object as the
       // write lands rather than being at full strength before the ball has left.
       F.reveal({ target: 'vaB', from: OPACITY.pending, at: 'wr' }),
       F.light({ targets: ['vaB'], at: 'wr' }),
+      // The write names the Node before the driver has attached anything, which is the same two-beat
+      // shape storage-volumeattachment is built on: the object first, the field after the attach.
+      F.set({ at: 'wr', sublabels: { vaB: 'Node-2, attached: false' } }),
       F.route({ points: W_VAB_DISK, after: 'wr', name: 'att' }),
       F.tag({ text: 'attach', points: W_VAB_DISK, after: 'wr' }),
       F.light({ targets: ['disk'], at: 'att' }),
+      F.set({ at: 'att', chipsCued: { attChip: 'Node-2' }, sublabels: { vaB: 'Node-2, attached: true' } }),
       F.pulse({ pod: 'podNew', after: 'att' }),
+      // The Pod is Running when it blinks (2400), one beat after the attach, and its chip and its own
+      // state line turn over together on that beat rather than at entry (P-04).
+      F.set({ after: 'att', chipsCued: { podChip: 'Running' }, podSublabels: { podNew: 'Running' } }),
     ],
   },
   {

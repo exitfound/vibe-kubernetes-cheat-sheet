@@ -14,6 +14,10 @@
 //                              written by hand has a filter track and nothing else.
 //   PULSE-POD   (M-01)         the pulsed element is a Pod or lives inside a Pod-bearing group.
 //                              Infrastructure lights through .highlight, it never pulses.
+//   FLASH-SHAPE (M-27)         a block flash is PULSE_BLOCK-shaped, start and end at 1. It shares the
+//                              brightness track with the pod pulse and is told apart by MAGNITUDE.
+//   FLASH-BLOCK (M-01, M-27)   the mirror of PULSE-POD: a flash lands on infrastructure, never inside
+//                              a Pod-bearing group. A Pod blinks, it does not flash.
 //   PULSE-WHOLE (M-03)         a stroke ramp without a brightness track on the block that owns it is
 //                              the half-strength pulse: pulsePod was handed a bare element, not the
 //                              group. This is exactly the symptom M-03 names.
@@ -46,7 +50,7 @@
 //
 // TWO HARNESS LIMITS THIS FILE IS BUILT AROUND.
 //
-// 1. A PAUSED ANIMATION NEVER FIRES onfinish (stage 2.3a). enterStep freezes the step, so any class
+// 1. A PAUSED ANIMATION NEVER FIRES onfinish. enterStep freezes the step, so any class
 //    a card adds or removes in a completion handler is invisible to a frozen probe. The live example
 //    is storage-reclaim-policy.js:43-49, where removeAt() drops .highlight in onfinish and a frozen
 //    read accuses the card of holding it. EVERY rule above therefore reads WAAPI timings and
@@ -54,7 +58,7 @@
 //    a computed style. The one DOM value read at all is the riding tag's build-time transform pin
 //    (M-31), which is written by makeRidingLabel before any animation starts and is not deferred.
 //
-// 2. THE PROBE CAN CATCH A STEP WITH NO DIAGRAM (stage 2.4c). Scene.build() empties the host and
+// 2. THE PROBE CAN CATCH A STEP WITH NO DIAGRAM. Scene.build() empties the host and
 //    appends a fresh <svg.diagram>, so a probe that lands in that window sees nothing. openCard waits
 //    for the selector once, which is not enough: the rebuild happens again on every reset(). Every
 //    sample below therefore re-waits on the selector and probes a second time before giving up, and
@@ -87,27 +91,31 @@
 //   M-25  animateAlong honours options.delay: a regression that would show up as every ball starting
 //         at 0. The BEAT census would collapse to "zero 714" and is the standing witness, which is
 //         weaker than an assertion and is named as such.
-//   M-26  M-27: value chips never flash, and flashChips is the only sanctioned block flash. Nothing
-//         to assert: the walk finds ZERO PULSE_BLOCK-magnitude tracks in the whole catalog, so no
-//         card calls flashChips at all today. A rule with an empty population is not a green rule.
-//   M-32  ridingLabel is bound once at module scope: a source-shape question, wave 2.
+//   M-26  value chips never flash. Asserted where the target is DECLARED, not here: this walk sees
+//         a rendered element and not the part kind behind it, so unit/spec-steps.test.mjs owns it.
+//   M-27  the sanctioned block flash. FLASH-SHAPE and FLASH-BLOCK below, and the population is no
+//         longer empty: the two magnitudes are what separates a flash from a pod pulse, which is
+//         what the setup assertion on PULSE_POD.bright against PULSE_BLOCK.bright is FOR.
+//   M-32  ridingLabel is bound once at module scope: a question about the SOURCE shape, which the
+//         rendered tree cannot answer at all.
 //   M-33  every animation goes through ctx.register: an unregistered animation looks identical here,
 //         it just outlives its step. Visible only by stepping away and watching what keeps moving.
 //   M-34  "an added hop costs about 800ms": advice about editing, and duration.test.mjs says by how much.
 //   M-35  a SEEK cannot see a deferred effect: seekStep sets currentTime and never fires onfinish,
 //         so an at() turnover, a lightBoxAt arrival class and a deferred setWire are all missing
-//         from any frame it hands back. This is a LIVE blind spot of THIS harness, not a dead note
-//         about the deleted frame-strip reader: seekStep lives in fixtures/render.mjs, and both
+//         from any frame it hands back. This is a LIVE blind spot of THIS harness, and it reaches
+//         every file that seeks: seekStep lives in fixtures/render.mjs, and both
 //         render/opacity.test.mjs and render/reduced.test.mjs read their frames through it. What
 //         sees a turnover is a real-time playthrough (tools/settled-dump.mjs), which is a probe and
 //         not an assertion, so the rule stays with a person until someone writes the check.
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, floor, SUBSET, FULL_ONLY } from '../fixtures/catalog.mjs';
+import { stepTotal } from '../fixtures/module.mjs';
 import {
   DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS,
-  launch, setInspect, discoverIds, openCard, stepCount, enterStep,
+  launch, initPage, discoverIds, openCard, stepCount, enterStep,
 } from '../fixtures/render.mjs';
 import { PULSE_POD, PULSE_BLOCK, BEAT, FADE } from '../../js/lib/tokens.js';
 import { routeDur, routeLength, REVEAL_MS } from '../../js/lib/scheme-kit.js';
@@ -117,22 +125,35 @@ import { routeDur, routeLength, REVEAL_MS } from '../../js/lib/scheme-kit.js';
 //
 // The card and step floors are the same two every render test carries. The four population floors
 // under them are NOT decoration: every rule in this file selects its input with a class name, so
-// renaming .scheme-packet or .scheme-pod-rect would empty the input and turn the file green with no
-// error and no finding. That is the exact failure the old harness paid for twice, and a population
-// floor is the only thing that sees it. It is a FLOOR: a card added later legitimately raises these
-// numbers, and a card edit that lowers one is a deliberate change that has to move the floor too.
+// renaming .scheme-packet or .scheme-pod-rect empties the input and turns the file green with no
+// error and no finding. That failure has been paid for twice, and a population floor is the only
+// thing that sees it: never drop one to make a rename green. It is a FLOOR: a card added later
+// legitimately raises these numbers, and a card edit that lowers one is a deliberate change that
+// has to move the floor too.
 //
-// This is not the case stage 0.4a refused to port. COVERAGE FLOOR and UNREAD CEILING insured a
-// REGEX that was about to be replaced by an import; these insure a SELECTOR, which wave 2 does not
-// remove, because the rendered tree stays the only place a WAAPI timing exists.
+// A FLOOR OVER A REGEX IS A DIFFERENT THING. COVERAGE FLOOR and UNREAD CEILING insure a source
+// shape, which an import can replace; these insure a SELECTOR, and the rendered tree stays the
+// only place a WAAPI timing exists, so the selector stays.
 // ---------------------------------------------------------------------------------------------
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
-const EXPECTED_PULSES = 784;     // brightness tracks (pod shells and the boxes inside them)
-const EXPECTED_RAMPS = 1568;     // stroke ramps, two per rect per pulse (up, then down)
-const EXPECTED_BALLS = 714;      // .scheme-packet transform tracks
-const EXPECTED_LABELS = 241;     // riding tags
-const EXPECTED_TIMERS = 555;     // the 1ms deferred timers of lightBoxAt() and at()
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = floor((await cards()).length);
+const EXPECTED_STEPS = floor(await stepTotal());
+// Cards that DECLARE an F.pulse, counted off the specs: 92 of the 108. This is the guard the track
+// floor below was being asked to be and could not, and it is the same repair the chip-pair floor in
+// render/chipfit.test.mjs took the same day: a card losing ONE of its several pulses does not move
+// this number, while a selector that stops matching brightness collapses it.
+const EXPECTED_PULSE_CARDS = floor(92);
+// Brightness tracks (pod shells and the boxes inside them). CONTENT-DEPENDENT, and now carrying
+// headroom on purpose: a repair that legitimately drops one Pod pulse costs about four tracks, and
+// with the floor sitting on the measurement that reddens the gate for every agent in the tree. It
+// happened twice in one session, and both times the honest fix was redesigned around the number
+// rather than the number being examined. A narrowed selector does not cost four tracks, it collapses.
+const EXPECTED_PULSES = floor(740);     // measured 784 on 2026-08-17
+const EXPECTED_RAMPS = floor(1568);     // stroke ramps, two per rect per pulse (up, then down)
+const EXPECTED_BALLS = floor(714);      // .scheme-packet transform tracks
+const EXPECTED_LABELS = floor(241);     // riding tags
+const EXPECTED_TIMERS = floor(555);     // the 1ms deferred timers of lightBoxAt() and at()
 
 // ---------------------------------------------------------------------------------------------
 // The explicit-dur registry (M-12). A route takes its time from its LENGTH; an explicit `dur` is
@@ -242,6 +263,12 @@ const probe = () => {
       peak: peaks.length ? Math.max(...peaks) : null,
       kitPaired: strokeA.some(s => s.delay === b.delay && rects.includes(s.el)),
       inPod, coTimed,
+      // DESCENDANTS, where inPod reads ANCESTORS, and the two answer different questions. A card
+      // names a Pod by the key of its WRAPPER g, which carries no class and sits directly under the
+      // svg, so the ancestor walk never starts and inPod stays false on the very element a card
+      // would hand to F.flash. Measured on network-ebpf-dataplane: parent is the svg, class null,
+      // one .scheme-pod inside. FLASH-BLOCK reads this one.
+      ownsPod: b.el.classList.contains('scheme-pod') || !!b.el.querySelector('.scheme-pod'),
     });
   }
 
@@ -308,14 +335,18 @@ const probe = () => {
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 // 1600x1000, the viewport check-arrival and check-geometry used. Route lengths are in viewBox units
 // so the window size does not move a duration, but keeping one viewport across the render tests is
 // what makes two of their numbers comparable.
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
-await page.addInitScript(setInspect, 'expose');
+await page.addInitScript(initPage, 'expose');
 const ids = await discoverIds(page, DEFAULT_BASE);
-
-after(() => browser.close());
 
 // One retry on the diagram selector, then one more probe. See harness limit 2 in the header: the
 // scene is torn down and rebuilt on every reset, so a null here is a race and not a broken card.
@@ -349,7 +380,10 @@ test('the motion vocabulary is the one tokens.js and scheme-kit.js declare', () 
 });
 
 let walked = 0, sampled = 0;
-const n = { pulses: 0, ramps: 0, balls: 0, labels: 0, timers: 0 };
+const n = { pulses: 0, flashes: 0, ramps: 0, balls: 0, labels: 0, timers: 0 };
+// Card ids that handed this walk at least one POD pulse: the selector guard, immune to a card
+// dropping one of several. See EXPECTED_PULSE_CARDS.
+const pulseCards = new Set();
 const beats = new Map();
 const fadeHist = new Map();
 const together = [];        // PULSE-TOGETHER findings, reported rather than asserted
@@ -390,7 +424,29 @@ for (const id of ids) {
       sampled++;
 
       for (const p of r.pulses) {
+        // TWO POPULATIONS SHARE THE BRIGHTNESS TRACK, and telling them apart is what the magnitude
+        // assertion in the setup exists for. A block flash (`F.flash`, M-27) is PULSE_BLOCK-shaped
+        // and lands on infrastructure; a Pod pulse is PULSE_POD-shaped. Judging a flash by the pod
+        // rules reports three findings per flashed block and every one of them is noise.
+        if (p.peak === PULSE_BLOCK.bright && p.dur === PULSE_BLOCK.ms) {
+          n.flashes++;
+          if (p.easing !== PULSE_BLOCK.easing || p.first !== 1 || p.last !== 1) {
+            findings.push(`FLASH-SHAPE step ${i} "${p.label}" [${p.cls}] brightness ${p.first} to ` +
+              `${p.peak} to ${p.last} over ${p.dur}ms ${p.easing}: the sanctioned block flash is ` +
+              `1 to ${PULSE_BLOCK.bright} to 1 over ${PULSE_BLOCK.ms}ms ${PULSE_BLOCK.easing}, and it ` +
+              'comes from flashChips through F.flash, never from keyframes typed into a card');
+          }
+          // The mirror of PULSE-POD, and it is the half M-01 does not say out loud: only Pods pulse,
+          // and the flash is what a BLOCK gets instead. A flash inside a Pod is a pulse written wrong.
+          if (p.inPod || p.ownsPod) {
+            findings.push(`FLASH-BLOCK step ${i} "${p.label}" [${p.cls}] flashes at ${p.delay}ms ` +
+              'on a Pod or the group holding one. A Pod blinks through pulsePod at the pod ' +
+              'magnitude: F.flash is for infrastructure, which never pulses');
+          }
+          continue;
+        }
         n.pulses++;
+        pulseCards.add(id);
         if (p.peak !== PULSE_POD.bright || p.dur !== PULSE_POD.ms || p.easing !== 'ease-in-out' ||
             p.first !== 1 || p.last !== 1) {
           findings.push(`PULSE-SHAPE step ${i} "${p.label}" [${p.cls}] brightness ${p.first} to ` +
@@ -505,7 +561,7 @@ for (const id of ids) {
   });
 }
 
-test('the explicit-dur registry has no dead and no under-sized entries', () => {
+test('the explicit-dur registry has no dead and no under-sized entries', FULL_ONLY, () => {
   // A registry that outlives its reason is a hole with a comment on it. Two failure modes, and both
   // are silent without this: an entry for a card that no longer deviates (latitude nobody uses, and
   // the next author reads it as permission), and an allowance larger than the deviation it covers
@@ -541,7 +597,7 @@ test('PULSE-TOGETHER: a Pod blinks with everything inside it (M-03, reported)', 
 
 test('every catalogued card was walked, every population was seen', (t) => {
   t.diagnostic(`motion: ${walked} cards, ${sampled} steps`);
-  t.diagnostic(`  pulses ${n.pulses}  stroke ramps ${n.ramps}  balls ${n.balls}  riding tags ${n.labels}  deferred timers ${n.timers}`);
+  t.diagnostic(`  pulses ${n.pulses}  block flashes ${n.flashes}  stroke ramps ${n.ramps}  balls ${n.balls}  riding tags ${n.labels}  deferred timers ${n.timers}`);
 
   // Printed on a GREEN run, because it is a measurement and not a finding. It is also the only
   // standing witness for M-25 (animateAlong honours options.delay): if that regressed, every ball
@@ -563,6 +619,10 @@ test('every catalogued card was walked, every population was seen', (t) => {
     `sampled ${sampled} step(s), expected at least ${EXPECTED_STEPS}. A step nobody sampled is a ` +
     'step whose motion can be wrong while this file stays green.');
   // The population floors. Each of these is a selector that could go quiet.
+  assert.ok(pulseCards.size >= EXPECTED_PULSE_CARDS,
+    `measured a Pod pulse on ${pulseCards.size} card(s), expected at least ${EXPECTED_PULSE_CARDS}. ` +
+    'The specs declare an F.pulse on that many, so a card missing here is one whose brightness this ' +
+    'walk read nothing of, and every pulse rule is then judging a shrunken set.');
   assert.ok(n.pulses >= EXPECTED_PULSES,
     `saw ${n.pulses} pulse(s), expected at least ${EXPECTED_PULSES}: the brightness track is how ` +
     'every pulse rule finds its input');

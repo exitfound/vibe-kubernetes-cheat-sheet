@@ -37,9 +37,13 @@ const CHIP_X = i => CONTENT_L + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHI
 const ENTRY = [[CLIENT_RIGHT, FLOW_Y], [PROXY_X, FLOW_Y]];
 const DELIVER = [[PROXY_RIGHT, FLOW_Y], [POD_X, FLOW_Y]];
 
-// The tag that rides a ball here. Every ball on this card is a linear segmentPacket, so the tag
-// rides LINEAR too: the eased default drifts off its ball mid-flight and rejoins at the ends.
-const ridingLabel = makeRidingLabel({ role: 'network', hold: 140, easing: 'linear' });
+// The tag rides the free band BELOW the row: every hop is shorter than the header it carries, and
+// the panel floor at 355 leaves nothing above, so on the lane the proxy face prints through it.
+const TAG_DY = PROXY_H / 2 + 20;      // +82: 10 under the row, 57 clear of the chip strip
+
+// Every ball on this card is a linear segmentPacket, so the tag rides LINEAR too: the eased default
+// drifts off its ball mid-flight and rejoins at the ends.
+const ridingLabel = makeRidingLabel({ role: 'network', hold: 140, easing: 'linear', dy: TAG_DY });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
 const podInner = (w) => ({ dx: 20, dy: 34, w: w - 40, h: 52, label: 'app', sublabel: 'eth0' });
@@ -110,11 +114,15 @@ export const STEPS_SPEC = [
     lit: ['srcChip', 'readsChip', 'ipChip'],
     // The animated path says the backend Pod was served by PULSING it, which no lights list can name.
     reducedLit: ['podWBox'],
+    // All three read the packet the backend RECEIVES, so the animated path starts on what the
+    // arrive step left and writes them together when that packet lands.
+    rewind: { chips: { srcChip: 'none', readsChip: 'none', ipChip: 'seen at the edge' } },
     flow: [
       F.pulse({ pod: 'proxy' }),
       F.segment({ from: DELIVER[0], to: DELIVER[1], delay: BEAT.afterPulse, name: 'out' }),
       tag({ text: 'src 10.244.0.9 (proxy)', points: DELIVER, delay: BEAT.afterPulse }),
       F.pulse({ pod: 'podW', at: 'out' }),
+      F.set({ at: 'out', chips: { srcChip: 'proxy 10.244.0.9', readsChip: 'socket', ipChip: 'lost' } }),
     ],
   },
   {

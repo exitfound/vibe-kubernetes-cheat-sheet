@@ -16,20 +16,20 @@ export const CARDS = [
     title: 'Cluster Architecture',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'What are the moving parts of a Kubernetes cluster, and how do they talk to each other? One contract runs under all of it: desired state lives in ETCD behind the API, the single front door, and the controllers and scheduler compare it against observed state and loop until the gap closes. A Kubelet on every worker Node reconciles the same way and brings Pods to life, and kube-proxy programs Service rules beside it, while the API is the only client ETCD has.',
+    desc: 'What are the moving parts of a Kubernetes cluster, and how do they talk? One contract runs under all of it: desired state lives in ETCD behind the API, the single front door, and the controllers and Scheduler compare it against observed state and loop until the gap closes. A Kubelet on every worker Node reconciles the same way and brings Pods to life, and kube-proxy programs Service rules beside it, while in a standard cluster only the API talks to ETCD.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
-      { label: 'Components', href: 'https://kubernetes.io/docs/concepts/overview/components/' },
       { label: 'Architecture', href: 'https://kubernetes.io/docs/concepts/architecture/' },
+      { label: 'Components', href: 'https://kubernetes.io/docs/concepts/overview/components/' },
     ],
   },
   {
-    id: 'cluster-apply-flow',
+    id: 'cluster-object-create-path',
     title: 'Object Create Path',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'What actually happens between kubectl apply and a running Pod? The manifest travels to the API and lands in ETCD, and then a chain of watchers takes over: the Deployment controller creates a ReplicaSet, the ReplicaSet controller creates a Pod, the Scheduler assigns that Pod a Node, and the Kubelet there starts the container. Every handoff after the write is one component reacting to a change on its own watch rather than a call from the component before it.',
+    desc: 'What happens between kubectl apply and a running Pod? The manifest travels to the API and lands in ETCD, and then a chain of watchers takes over: the Deployment controller creates a ReplicaSet, the ReplicaSet controller creates a Pod, the Scheduler assigns that Pod a Node, and the Kubelet there starts it. Every handoff after the write is one component reacting to a change on its own watch rather than a call, until the Kubelet drives the Runtime over CRI.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -48,6 +48,7 @@ export const CARDS = [
     sources: [
       { label: 'Admission Controllers', href: 'https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/' },
       { label: 'Dynamic Admission Control', href: 'https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/' },
+      { label: 'Authorization', href: 'https://kubernetes.io/docs/reference/access-authn-authz/authorization/' },
     ],
   },
   {
@@ -69,7 +70,7 @@ export const CARDS = [
     title: 'Server-side Apply and Field Ownership',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'Two controllers write the same Deployment, so who wins and how does the API even know? Server-side apply records a field manager for every field an actor sets, keeping that ledger in managedFields on the object, and an apply that stops sending a field it used to own is what removes that field. A second manager setting the same field to a different value raises a conflict the API refuses until it is forced, which is what replaces the client-side three-way merge.',
+    desc: 'Two field managers write the same Deployment, so who wins and how does the API even know? Server-side apply records a field manager for every field an actor sets, keeping that ledger in managedFields on the object, and an apply that stops sending a field it used to own is what removes that field. A second manager setting the same field to a different value raises a conflict the API refuses until it is forced, which is what replaces the client-side three-way merge.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -109,7 +110,7 @@ export const CARDS = [
     title: 'Pod Priority and Preemption',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'What happens when an important Pod has nowhere to fit on a full cluster? Its PriorityClass resolves to a numeric priority, and when every Node fails on capacity the scheduler preempts, unless that class sets preemptionPolicy Never. It picks the smallest set of lower-priority Pods whose removal makes room and deletes them with a plain DELETE, bypassing the PodDisruptionBudgets normal eviction respects. The Pod is then bound in their place.',
+    desc: 'What happens when an important Pod has nowhere to fit on a full cluster? Its PriorityClass resolves to a numeric priority, and when every Node fails on capacity the scheduler preempts, unless that class sets preemptionPolicy Never. It picks the smallest set of lower-priority Pods whose removal makes room and deletes them with a plain DELETE, not an eviction, so a PodDisruptionBudget is honoured best effort, not enforced. The Pod is then bound in their place.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

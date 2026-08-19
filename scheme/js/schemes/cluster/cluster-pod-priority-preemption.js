@@ -5,7 +5,7 @@ import { P, F, defineCard, laneY, ladder, strip, spread, midX, shade, CLU, LAYOU
 // Layout C. Panel x<=397 y<=280 against NODE_Y 404, and the CEILING is 360 characters per narration,
 // the tightest in the category. Growth costs about 0.5 units of panel per character.
 
-// The X grammar the card was built on, restated locally when it moved to Cluster: same numbers.
+// The category X grammar, restated locally: same numbers as CLU.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CONTENT_W = CONTENT_R - CONTENT_L;                 // 1080
@@ -89,9 +89,9 @@ export const SCENE = {
       key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: ROW_H, gap: ROW_GAP,
       items: [
         '1. spec    ·  priorityClassName → spec.priority',
-        '2. attempt ·  Filter + Score · NoFit on every node',
+        '2. attempt ·  filter · NoFit on every node',
         '3. preempt ·  find min-priority victim set',
-        '4. delete  ·  standard DELETE · no PDB check',
+        '4. delete  ·  standard DELETE · PDB best effort',
         '5. bind    ·  nominatedNodeName → bind freed slot',
       ],
     }),
@@ -104,7 +104,7 @@ export const SCENE = {
     })),
     // Top-row blocks ABSOLUTE LAST.
     P.box({ key: 'apiserver', x: TOP2_X, y: TOP_Y, w: TOP2_W, h: BOX_H, label: 'API', sublabel: 'PriorityClass + delete + bind' }),
-    P.box({ key: 'scheduler', x: TOP1_X, y: TOP_Y, w: TOP1_W, h: BOX_H, label: 'Scheduler', sublabel: 'filter + Score + Preempt' }),
+    P.box({ key: 'scheduler', x: TOP1_X, y: TOP_Y, w: TOP1_W, h: BOX_H, label: 'Scheduler', sublabel: 'filter + score + preempt' }),
   ],
   // All four Pods DO go to clearHighlights: this card pulses three of them across the steps and the
   // pulse has to be taken back off between them.
@@ -130,7 +130,7 @@ export const STEPS_SPEC = [
   {
     id: 'spec',
     duration: 1900,
-    narration: 'Pod NEW arrives at the API. The PriorityClass admission plugin resolves spec.priorityClassName to a number, system-cluster-critical being 2000000000, and writes it into spec.priority. A raw spec.priority on a user Pod is rejected by validation, so PriorityClass is the only route. The other built-in class, system-node-critical, is slightly higher.',
+    narration: 'Pod NEW arrives at the API. The Priority admission plugin resolves spec.priorityClassName to a number, system-cluster-critical being 2000000000, and writes it into spec.priority. That plugin rejects a spec.priority differing from the one it computed, so PriorityClass is the only route. The other built-in class, system-node-critical, is slightly higher.',
     chips: { newPodChip: NEW_PRI, attemptChip: 'pending', victimChip: 'none', focusChip: 'priority resolved at admission' },
     wires: { req: 'PriorityClass admission · spec.priority=2e9' },
     opacity: STANDING,
@@ -173,7 +173,7 @@ export const STEPS_SPEC = [
     // further along and 867ms slower end to end: 3400 cut it off mid-flight.
     duration: 4200,
     narration: 'Scheduler sends a standard DELETE for Pod A, not an eviction, so PodDisruptionBudget gates are bypassed, though victim choice prefers PDB-friendly sets. Pod A enters Terminating for its terminationGracePeriodSeconds: preStop, SIGTERM, SIGKILL. Pod NEW gets status.nominatedNodeName=Node-1, a hint, not a reservation: a higher priority Pod can still take it.',
-    chips: { newPodChip: NEW_PRI, attemptChip: 'preempt · nominated Node-1', victimChip: 'Pod A · Terminating', focusChip: 'DELETE · no PDB check for preempt' },
+    chips: { newPodChip: NEW_PRI, attemptChip: 'preempt · nominated Node-1', victimChip: 'Pod A · Terminating', focusChip: 'standard DELETE · PDB best effort' },
     wires: { req: 'DELETE .../pods/pod-a · Graceful · nominatedNodeName=Node-1' },
     // Pin final state inline so cancel does not flash to default. Pod A is Terminating here, as
     // the victim chip says in words, so it keeps its slot at that shade.

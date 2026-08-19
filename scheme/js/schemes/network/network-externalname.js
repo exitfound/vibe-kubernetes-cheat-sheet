@@ -35,6 +35,13 @@ const B_HOP2 = [[B_PROXY_RIGHT, ROW_B], [B_EP_LEFT, ROW_B]];    // kube-proxy ->
 
 const POD_INNER = { dx: 18, dy: 30, h: 48 };
 
+// The connect lane leaves a Pod floor and lands on a box floor, so its tag rides BELOW the ball: at
+// the default -14 it prints over the Pod sublabel and then over `external host`. Clear from 12.
+const CONNECT_TAG_DY = 14;
+// Row B is 60 tall against a 118 unit address, so on the lane the box faces cut the DNAT tag. -40
+// clears all four viewports and leaves the string 7 above the row.
+const DNAT_TAG_DY = -40;
+
 const clientPod = (key, cy, ip) => P.pod({
   key, innerKey: `${key}Box`, x: CLIENT_X, y: cy - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H,
   label: 'Client Pod', sublabel: ip,
@@ -104,7 +111,7 @@ export const STEPS_SPEC = [
       // Holding the name, the client connects to the external host itself, on a lane that never
       // touches CoreDNS. Eased route, so the tag rides it on the wrapper default easing.
       F.route({ points: A_HOP3, at: 'ans', plus: BEAT.afterPulse, name: 'conn' }),
-      F.tag({ text: 'connect db.example.com', points: A_HOP3, at: 'ans', plus: BEAT.afterPulse }),
+      F.tag({ text: 'connect db.example.com', points: A_HOP3, at: 'ans', plus: BEAT.afterPulse, dy: CONNECT_TAG_DY }),
       F.light({ targets: ['host'], at: 'conn' }),
     ],
   },
@@ -122,7 +129,7 @@ export const STEPS_SPEC = [
       F.tag({ text: 'dst 10.96.0.7', points: B_HOP1, delay: BEAT.afterPulse, easing: 'linear' }),
       F.light({ targets: ['proxy'], at: 'send' }),
       F.segment({ from: B_HOP2[0], to: B_HOP2[1], after: 'send', name: 'fwd' }),
-      F.tag({ text: 'DNAT -> 203.0.113.5', points: B_HOP2, after: 'send', easing: 'linear' }),
+      F.tag({ text: 'DNAT -> 203.0.113.5', points: B_HOP2, after: 'send', easing: 'linear', dy: DNAT_TAG_DY }),
       F.light({ targets: ['ep'], at: 'fwd' }),
     ],
   },

@@ -27,9 +27,17 @@
 // lands anywhere. A chip that turns over 2971ms before anything arrives is a different animal from
 // one 700ms ahead, and only the reader can say which of them is wrong.
 //
-// FOUR FORMS, NARROWING. The two printed queues are what CANON.md P-03 cites, as FORM-B and
-// FORM-E. All four are counted on every run so the shape of the population is visible; only the
-// two named ones are printed in full.
+// WHERE THE FORMS ARE COMPUTED, AND WHY NOT HERE. The walk, the four form definitions, the census
+// floor and the carried table are all in ../fixtures/chip-beat.mjs, because FORM-E has since been
+// promoted and ../unit/chip-beat-e.test.mjs asks the same question as a VERDICT. Two copies of "what
+// a FORM-E record is" would let the gate and this report describe two different catalogues while
+// both stayed green. This file owns the PRINTING and nothing else; that fixture's header carries the
+// argument for its own address.
+//
+// FOUR FORMS, NARROWING. The two printed queues are the two CANON.md P-03 cites: FORM-B here, as
+// `report:chip-beat/FORM-B`, and FORM-E in the gate, as `test:chip-beat-e/FORM-E`. All four are
+// counted on every run so the shape of the population is visible; only the two named ones are
+// printed in full.
 //
 //   FORM-A       step i > 0, the flow carries a packet, the chip's ENTRY value (chips + chipsCued
 //                + rewind) differs from the previous step's SETTLED value, and no F.set with a
@@ -43,9 +51,9 @@
 //                `probe-and-drain` and `third-cycle` at 2860ms.
 //   FORM-B-LEAD  FORM-B with a first arrival at or past 1500ms.    157 rec /  69 steps / 39 cards
 //   FORM-E       FORM-B, and ANOTHER chip on the SAME step IS turned over on a beat (an F.set with
-//                a delay). The card knows the technique and applied it to a neighbour, so this is
-//                the strongest reading the data can give: the author's own hand is on both sides of
-//                the comparison. P-04 names exactly this shape and calls it worse than doing
+//                a delay). The card knows the technique and applies it to a neighbour, so this is
+//                the strongest reading the data can give: both sides of the comparison stand on one
+//                step of one card. P-04 names exactly this shape and calls it worse than doing
 //                neither. Printed as its own queue.       6 rec /   5 steps /  5 cards
 //
 // The ~25 findings a human read lie between FORM-E and FORM-B-LEAD, and no form reproduces them
@@ -53,21 +61,28 @@
 // whether the arrival EARNS the value, and P-06 is the reason no field says so.
 //
 // ===========================================================================================
-// WHY report/ AND NOT render/ OR unit/, AND WHAT WOULD HAVE TO HAPPEN FIRST
+// WHY THREE OF THE FOUR ARE STILL report/, AND WHY FORM-E IS NOT
 // ===========================================================================================
-// The cycle is written in ../report/arrival.test.mjs and this project has run it twice: report-only,
-// then a human triage of the queue, then promotion into the mandatory set. FORM-B is 400 records on
-// 67 of the 108 cards. Promoted straight into the gate it would redden two thirds of the catalog
-// against work nobody has scheduled, and the gate would stop being usable. So nothing here fails on
-// a finding, FORM-E included. FORM-E gets the CARRIED-LIST shape R2_STEP_CARRIED has in
-// arrival.test.mjs, and it starts EMPTY on purpose: not one of the six has been read by a person
-// yet, so everything outside the table is work by definition, and a reason lands in the table only
-// after someone has looked at the card.
+// The cycle is written in ../report/arrival.test.mjs and this project has now run it three times:
+// report-only, then a human triage of the queue, then promotion into the mandatory set. FORM-E
+// reached the end of it. Its queue was read card by card, nine findings, nine carried with a written
+// reason, none left to work, and on that day it left this file for ../unit/chip-beat-e.test.mjs,
+// where a new one goes red. This file still COUNTS it and still prints the carried table, because
+// the queue is the record of that triage and the reasons are the only place the argument for each
+// one is written down.
 //
-// WHAT DOES FAIL HERE: the census, and the shape of the carried table. A report that walked less
-// than the catalog prints few findings and looks exactly like a clean catalog, which is the lesson
-// of stage 2.4c, where the first run of a report test counted 649 steps of 650 and nothing in the
-// output looked wrong. Fewer than 108 cards or 650 steps is an assertion failure, not a note.
+// The other three stay here, and the numbers are the argument: FORM-A is 556 records and FORM-B is
+// 384 on two thirds of the catalogue, so either of them promoted would redden the gate against work
+// nobody has scheduled, and the gate would stop being usable. Section 4's path divergence is 15 open
+// findings on 7 cards and is the same case.
+//
+// WHAT FAILS HERE: the census, and nothing else. A report that walked less than the catalog prints
+// few findings and looks exactly like a clean catalog: a walk that reaches 649 steps of 650 drops
+// the 650th silently and nothing in the output looks wrong, which is why the floor below is
+// asserted rather than printed. Fewer than the recorded cards or steps is an assertion failure,
+// not a note. The SHAPE of the carried
+// table (a reason on every entry, three fields in every key) is asserted in the gate file,
+// ../unit/chip-beat-e.test.mjs, where a table that has gone soft can go red.
 //
 // ===========================================================================================
 // THE TRAP: THE TWO EXEMPLARS DO IT RIGHT IN TWO DIFFERENT WAYS, AND ONE OF THEM OPENS A SECOND HOLE
@@ -122,21 +137,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
-import { importAll } from '../fixtures/module.mjs';
-import { entryChips, settledChips, staticChips, timelineOf } from '../fixtures/spec.mjs';
-import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
+import { stepTotal } from '../fixtures/module.mjs';
+import { chipBeat } from '../fixtures/chip-beat.mjs';
 
-// The recorded walk. Assertions, not notes: see the header.
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = (await cards()).length;
+const EXPECTED_STEPS = await stepTotal();
 
-// The kit constants the fixture's arrival arithmetic runs on.
-const KIT = { routeDur, REVEAL_MS, BEAT };
-
-// The verbs that put a BALL on the wire. pulse, set, light, run, fade, reveal and anim move no
-// packet, and tag rides one rather than being one, so a step made only of those has no arrival for a
-// chip to run ahead of and is not a candidate at all.
-const PACKET_VERBS = new Set(['route', 'segment', 'top']);
 
 // The bands the queue is summarised in. Chosen off the measured distribution, not in advance: the
 // population starts at 700ms because that is the shortest flight in the catalog.
@@ -153,140 +161,25 @@ const RECORDED = {
   'FORM-E': [6, 5, 5],
 };
 
-// The lead at or past which a FORM-B record is also counted as FORM-B-LEAD.
-const LEAD_CUT_MS = 1500;
-
-// -------------------------------------------------------------------------------------------
-// FORM-E entries a human has READ and decided to carry, keyed `<card id> <step id> <chip key>`,
-// with the reason on each. EMPTY ON PURPOSE, and that is the statement this table makes: the six FORM-E
-// findings the walk reports today have not been read by anybody, so every one of them is work.
-// Same shape and same discipline as R2_STEP_CARRIED in ./arrival.test.mjs: an entry here is a
-// decision with a measurement behind it, never a way to quiet the queue, and an entry that stops
-// being reported is a stale carry the run names below.
-// -------------------------------------------------------------------------------------------
-const E_CARRIED = new Map([
-  ['cluster-node-pressure-eviction relieve memChip',
-    'memory.available is a cAdvisor reading of the Node, and the one ball of this step is the PATCH ' +
-    'carrying MemoryPressure=False to the API, which does not produce it: the memory freed first and ' +
-    'is WHY the PATCH goes out. The card says so itself on step 1, where the same chip drops 4Gi to ' +
-    '500Mi at entry over a flow that is empty. Binding it to that arrival would claim a local stat ' +
-    'moves when the API is told.'],
-  ['cluster-oom-kill observe memChip',
-    'memory.current is a cgroup file the kernel emptied when it SIGKILLed the processes one step ' +
-    'earlier, and the ball of this step runs the OTHER way, PLEG relist from the kernel to Kubelet. ' +
-    'The rewind next door is right for terminationChip because that is what the Kubelet KNOWS, and ' +
-    'wrong here for the same reason: it would say memory frees when the Kubelet is told. Entry is ' +
-    'the earliest honest beat this step has.'],
-  ['cluster-static-pods edit-file fileChip',
-    'fileChip is the manifest file on disk, and the file is the SOURCE of the first ball here, ' +
-    'the spec segment running from fileBox to the Kubelet. The edit therefore has to be on screen ' +
-    'before the ball leaves, not after it lands. Step 1 is the same shape and reads correctly: the ' +
-    'chip takes the new filename at entry and the segment leaves REVEAL_MS later.'],
-  ['workloads-daemonset place focusChip',
-    'focusChip is named `focus` and every one of the five steps writes it as a caption of what that ' +
-    'step is about, not as object state. Here it states the controller RULE the narration states ' +
-    'in words, one Pod per matching Node, which is true before any create is issued. What the three ' +
-    'creates actually earn is currentChip and readyChip, and those are exactly the two the step ' +
-    'already steps up one arrival at a time.'],
-]);
-
-const catalogued = await cards();
-const modules = await importAll();
+// The walk itself, and every number this file prints, come from the fixture. See the header.
+const FORMS = await chipBeat();
 
 const pad = (n) => String(n).padStart(4);
 const countsOf = (recs) => [recs.length, new Set(recs.map(r => r.step)).size, new Set(recs.map(r => r.card)).size];
 const fmt = ([a, b, c]) => `${a} record(s) / ${b} step(s) / ${c} card(s)`;
 
 test('P-03, a chip that runs ahead of the ball (report only, census is the assertion)', (t) => {
-  const A = [], B = [], E = [];
-  const divergent = [];          // the second hole: static path and animated path end on different text
-  const notes = [];
-  let walked = 0, steps = 0, candidateSteps = 0, compared = 0, unresolved = 0;
+  const {
+    A, B, bLead, E, eOpen, eHeld, divergent, notes, stale,
+    walked, steps, candidateSteps, compared, unresolved, catalogSize,
+  } = FORMS;
 
-  for (const c of catalogued) {
-    const ns = modules.get(c.id);
-    if (!ns || !Array.isArray(ns.STEPS_SPEC)) {
-      notes.push(`${c.id}: exports no STEPS_SPEC array, so this card was never read`);
-      continue;
-    }
-    walked++;
-    const spec = ns.STEPS_SPEC;
-
-    for (let i = 0; i < spec.length; i++) {
-      const s = spec[i];
-      steps++;
-
-      // Section 4, measured on the way past: a key whose static value is not where the animated
-      // path leaves it. Every step, not only a candidate one, since the divergence has nothing to
-      // do with packets. See the trap in the header.
-      const stat = staticChips(s), settled = settledChips(s);
-      for (const k of Object.keys(stat)) {
-        if (settled[k] !== stat[k]) {
-          divergent.push({
-            card: c.id,
-            line: `${c.id} '${s.id}' chip "${k}": the static path ends on ${JSON.stringify(stat[k])}, ` +
-              `the animated path on ${JSON.stringify(settled[k])}`,
-          });
-        }
-      }
-
-      if (i === 0) continue;      // the poster carries no flow by construction (S-09)
-
-      const rows = timelineOf(s.flow, KIT);
-      if (rows === null) { unresolved++; continue; }   // unit/spec-steps.test.mjs owns that finding
-      const balls = rows.filter(r => PACKET_VERBS.has(r.verb));
-      if (!balls.length) continue;
-      candidateSteps++;
-
-      // The lead: the first moment ANY ball of this step lands. A value on screen before this had
-      // nothing to arrive for it.
-      const lead = Math.min(...balls.map(r => r.arrival));
-
-      // Keys this step turns over ON A BEAT, which is the technique P-03 asks for. A key here is
-      // doing the right thing and is not a candidate; the SAME set is what makes a neighbour's
-      // failure form E.
-      const onBeat = new Set();
-      for (const r of rows) {
-        if (r.verb !== 'set' || !(r.delay > 0)) continue;
-        for (const k of [...Object.keys(r.p.chips || {}), ...Object.keys(r.p.chipsCued || {})]) onBeat.add(k);
-      }
-
-      const now = entryChips(s);
-      const before = settledChips(spec[i - 1]);
-      const lit = new Set(s.lit || []);
-
-      for (const k of Object.keys(now)) {
-        // A key the previous step does not state cannot be compared. P-01 makes that empty today
-        // (every step of a card writes the same chip set) and it stays guarded rather than assumed.
-        if (!(k in before)) continue;
-        compared++;
-        if (before[k] === now[k]) continue;
-        if (onBeat.has(k)) continue;
-
-        const rec = {
-          card: c.id, step: `${c.id}#${i}`, i, stepId: s.id, key: k,
-          from: before[k], to: now[k], lead,
-          neighbours: [...onBeat].filter(x => x !== k),
-        };
-        A.push(rec);
-        if (!lit.has(k)) continue;           // the card does not call this value the news: A only
-        B.push(rec);
-        if (rec.neighbours.length) {
-          rec.carryKey = `${c.id} ${s.id} ${k}`;
-          rec.why = E_CARRIED.get(rec.carryKey);
-          E.push(rec);
-        }
-      }
-    }
-  }
-
-  const bLead = B.filter(r => r.lead >= LEAD_CUT_MS);
   const live = { 'FORM-A': countsOf(A), 'FORM-B': countsOf(B), 'FORM-B-LEAD': countsOf(bLead), 'FORM-E': countsOf(E) };
 
   const out = [];
   out.push('');
   out.push('===== P-03, value ahead of motion, REPORT ONLY =====');
-  out.push(`  cards walked ${walked} of ${catalogued.length} in the catalog, steps read ${steps}`);
+  out.push(`  cards walked ${walked} of ${catalogSize} in the catalog, steps read ${steps}`);
   out.push(`  steps carrying a ball ${candidateSteps}, chip slots compared against the previous step ${compared}` +
     (unresolved ? `, flows with an unresolvable after/at reference and therefore no arithmetic ${unresolved}` : ''));
   if (walked < EXPECTED_CARDS || steps < EXPECTED_STEPS) {
@@ -323,7 +216,6 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   }
 
   out.push('');
-  const eOpen = E.filter(r => !r.why), eHeld = E.filter(r => r.why);
   out.push(`3. FORM-E, THE STRONGEST CLASS THE DATA CAN NAME: ${E.length} finding(s), ` +
     `${eHeld.length} carried with a reason, ${eOpen.length} left to work`);
   out.push('   Every one of these steps turns ANOTHER chip over on a beat, so the card already knows');
@@ -335,7 +227,6 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
       'wait for their beat');
   }
   for (const r of eHeld) out.push(`   CARRIED  ${r.carryKey}\n      WHY ${r.why}`);
-  const stale = [...E_CARRIED.keys()].filter(k => !E.some(r => r.carryKey === k));
   if (stale.length) out.push(`   carried entries no longer reported (stale, remove them): ${stale.join(' | ')}`);
 
   out.push('');
@@ -356,9 +247,10 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   console.log(out.join('\n'));
 
   // -------------------------------------------------------------------------------------------
-  // The assertions, and neither of them is about a card. A finding here is a statement about a
-  // card and its acceptance belongs to a person; a walk that covered less than the catalog is not a
-  // measurement at all, and a carried entry with no reason is a queue quietly getting shorter.
+  // The assertions, and not one of them is about a card. A FORM-A or FORM-B finding is a statement
+  // about a card and its acceptance belongs to a person; a walk that covered less than the catalog
+  // is not a measurement at all. FORM-E is the one form that IS a verdict now, and it is asserted in
+  // ../unit/chip-beat-e.test.mjs, on the same records, off the same fixture.
   // -------------------------------------------------------------------------------------------
   assert.ok(walked >= EXPECTED_CARDS,
     `walked ${walked} card(s), the catalog had ${EXPECTED_CARDS} when this report was written. ` +
@@ -369,14 +261,6 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   assert.ok(compared > 0,
     'not one chip slot was compared against the previous step, so every form above measured an ' +
     'empty set. Either the chip resolution has gone blind or no step carries a ball.');
-  for (const [key, why] of E_CARRIED) {
-    assert.ok(typeof why === 'string' && why.trim().length > 20,
-      `E_CARRIED['${key}'] carries no reason. A carried finding is a decision somebody measured, ` +
-      'and without the reason it is only a shorter queue.');
-    assert.equal(key.split(' ').length, 3,
-      `E_CARRIED key '${key}' is not '<card id> <step id> <chip key>', so it can never match a finding`);
-  }
-
   t.diagnostic(`P-03: ${walked} cards, ${steps} steps, A ${A.length}, B ${B.length}, ` +
     `B+lead ${bLead.length}, E ${E.length} (${eOpen.length} unread), path divergence ${divergent.length}`);
 });

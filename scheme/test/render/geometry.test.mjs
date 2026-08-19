@@ -14,7 +14,7 @@
 // never fail a run. L-16 says a finding that can only be closed by making the picture worse stays
 // OPEN, and the four card records carry such findings today. Promoting those three rules into this
 // file would turn a documented, deliberate set of exceptions into a red gate for nobody's work.
-// The old check drew the same line, by running only three of its six rules from the gate.
+// The line is the check's own and not this file's: of its six rules, three gate and three report.
 //
 // Why the browser and not the source. The numbers a card types are in its own coordinate system:
 // primitives are translated groups, so a bbox and a path only become comparable after both are
@@ -45,10 +45,9 @@
 //
 // FONTS FIRST (L-21). A block's bbox is the bbox of its GROUP, label and sublabel included, so a
 // block measured before the webfont arrives is measured on the fallback face, which is about 20
-// percent narrower and flatters every centring and clearance number taken off it. Not one tool in
-// the old harness waited for fonts: the whole of scheme/tools/ mentioned them once, in a comment,
-// and never awaited anything, so every geometry number the gate ever printed was taken on whatever
-// face happened to be resolved (measured before that directory was deleted). The
+// percent narrower and flatters every centring and clearance number taken off it. NEVER measure
+// geometry without waiting for the real face: a run that does not wait reports numbers taken on
+// whatever face happened to be resolved, and nothing in its output says which one that was. The
 // guard is fixtures/render.mjs fallbackFaces(), a behavioural width probe, and it is behavioural
 // because neither document.fonts.ready nor document.fonts.check() can answer this: with the font
 // hosts unreachable the stylesheet never attaches, so there is no @font-face rule to be missing and
@@ -63,11 +62,11 @@
 
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census } from '../fixtures/catalog.mjs';
+import { cards, census, floor, SUBSET } from '../fixtures/catalog.mjs';
+import { stepTotal } from '../fixtures/module.mjs';
 import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, STEP_SETTLE_MS,
-  launch, setInspect, discoverIds, openCard, stepCount, gotoStep, fallbackFaces,
-  installGeometryHelpers,
+  DEFAULT_BASE, DIAGRAM, discoverIds, fallbackFaces, gotoStep, installGeometryHelpers, launch,
+  openCard, SELECTOR_TIMEOUT_MS, initPage, stepCount,
 } from '../fixtures/render.mjs';
 
 // ---------------------------------------------------------------------------------------------
@@ -78,8 +77,10 @@ import {
 // legitimate widening and must not turn this file red by itself. The card count is additionally
 // pinned to data.js exactly, through census().
 // ---------------------------------------------------------------------------------------------
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = floor((await cards()).length);
+const EXPECTED_STEPS = floor(await stepTotal());
 
 // Tolerances, all four carried over unchanged from check-geometry.mjs:6-13. Every one of them is a
 // decision about what counts as deliberate, so none of them is a free parameter to retune here.
@@ -216,13 +217,17 @@ async function probeStep(page) {
 const catalogued = await cards();
 
 const browser = await launch();
+// Registered on the line after the launch, before the page setup below: node:test runs an
+// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
+// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
+// then nobody's to close for the rest of the run.
+after(() => browser.close());
+
 const context = await browser.newContext({ viewport: VIEWPORT });
 const page = await context.newPage();
-await page.addInitScript(setInspect, 'expose');
+await page.addInitScript(initPage, 'expose');
 await installGeometryHelpers(page);
 const ids = await discoverIds(page, DEFAULT_BASE);
-
-after(() => browser.close());
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
   assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
@@ -260,7 +265,6 @@ for (const id of ids) {
 
     for (let i = 0; i < total; i++) {
       await gotoStep(page, i);
-      await page.waitForTimeout(STEP_SETTLE_MS);
       const data = await probeStep(page);
       if (!data) continue;
       sampled++;
@@ -350,7 +354,7 @@ test('every catalogued card was walked, every step was sampled, and all of them 
     `sampled ${sampled} step(s), expected at least ${EXPECTED_STEPS}. ` +
     'A step goes missing when a card fails to build or the debug handle is absent, and every ' +
     'missing step is geometry nobody looked at.');
-  // The control number itself, in the words the gate used to print. The per-card tests above have
+  // The control number itself, in the words the run prints. The per-card tests above have
   // already failed by the time this line disagrees with them: it is here so a reader of the last
   // line of the run sees the claim being made, not just the absence of a failure.
   assert.deepEqual(dirty, [],

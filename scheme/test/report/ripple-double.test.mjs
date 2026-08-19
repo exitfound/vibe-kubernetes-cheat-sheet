@@ -24,7 +24,7 @@
 // TWO TIERS, AND ONLY THE FIRST IS A DEFECT
 // ===========================================================================================
 //   SIMULTANEOUS   two or more rings at the SAME point with dt = 0. One ring drawn twice. There is
-//                  no reading of the picture where this is what the author wanted, because the
+//                  no reading of the picture in which two rings on one point are correct, because the
 //                  second ring adds no information: it is the first one, again.
 //   STAGGERED      same point, dt above zero and under the 560ms a ring lives. They overlap in time
 //                  and are legible as a sequence rather than as one mark, which is what a card
@@ -49,8 +49,8 @@
 //
 // WHAT DOES FAIL: the census, the shape of the carried table, and the one constant this file copies.
 // A report that walked less than the catalog prints few findings and looks exactly like a clean
-// catalog, which is the lesson of stage 2.4c, where the first run of a report test counted 649 steps
-// of 650 and nothing in the output looked wrong.
+// catalog: a walk that reaches 649 steps of 650 drops the 650th silently and nothing in the output
+// looks wrong, which is why the floor below is asserted rather than printed.
 //
 // ===========================================================================================
 // WHAT THIS FILE IS BLIND TO
@@ -81,54 +81,29 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { cards, ROOT } from '../fixtures/catalog.mjs';
-import { importAll } from '../fixtures/module.mjs';
+import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { timelineOf } from '../fixtures/spec.mjs';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
 
 // The recorded walk. Assertions, not notes: see the header.
-const EXPECTED_CARDS = 108;
-const EXPECTED_STEPS = 650;
+// The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
+// what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
+const EXPECTED_CARDS = (await cards()).length;
+const EXPECTED_STEPS = await stepTotal();
 
 // The kit constants the fixture's arrival arithmetic runs on.
 const KIT = { routeDur, REVEAL_MS, BEAT };
 
 // How long a ring lives, copied from arrivalRipple's animate options because nothing exports it.
 // Two rings starting further apart than this never share the canvas. The copy is checked, see below.
-const RIPPLE_MS = 560;
+// The walk, the window and the carried table live in ../fixtures/ripple-double.mjs, shared with
+// the gate file that asserts the queue. See that file's header for why.
+import { RIPPLE_MS, TOP_DEFAULT, RIPPLE_CARRIED, ringOf, at } from '../fixtures/ripple-double.mjs';
 
-// topPacket's own defaults, for the one verb whose path is not written out in the entry.
-const TOP_DEFAULT = { to: 580, y: 65 };
-
-// What the walk measured the day this file was written. Printed beside the live numbers, never
-// asserted: a repair is SUPPOSED to move them.
 const RECORDED = { rings: 718, 'F.ripple': 4, SIMULTANEOUS: 4, STAGGERED: 7, NEAR: 0 };
-
-// -------------------------------------------------------------------------------------------
-// Findings a human has READ and decided to carry, keyed `<card id> <step id> <x>,<y>`, with the
-// reason on each. EMPTY ON PURPOSE, and that is the statement this table makes: not one of the four
-// has been read by a person yet, so everything outside the table is work by definition. Same shape
-// and same discipline as R2_STEP_CARRIED in ./arrival.test.mjs.
-// -------------------------------------------------------------------------------------------
-const RIPPLE_CARRIED = new Map([]);
-
 const catalogued = await cards();
 const modules = await importAll();
-
 const pad = (n) => String(n).padStart(4);
-const at = (pt) => `${pt[0]},${pt[1]}`;
-
-// Where one flow entry leaves a ring, or null when it leaves none. The three ball verbs each get one
-// with no opt-in, because packetAlong calls arrivalRipple on every launch (M-14), and F.ripple is a
-// direct call to the same function. pulse, set, light, run, fade, reveal, anim and tag ring nothing.
-function ringOf(row) {
-  const { verb, p, delay, arrival } = row;
-  if (verb === 'route') return Array.isArray(p.points) && p.points.length ? { src: 'route', pt: p.points[p.points.length - 1], t: arrival } : null;
-  if (verb === 'segment') return p.to ? { src: 'segment', pt: p.to, t: arrival } : null;
-  if (verb === 'top') return { src: 'top', pt: [p.to === undefined ? TOP_DEFAULT.to : p.to, p.y === undefined ? TOP_DEFAULT.y : p.y], t: arrival };
-  // The verb rings where it is told, and its own delay IS the moment: it lands nothing itself.
-  if (verb === 'ripple') return p.point ? { src: 'F.ripple', pt: p.point, t: delay } : null;
-  return null;
-}
 
 test('how many rings land on one arrival (report only, census is the assertion)', async (t) => {
   const simultaneous = [], staggered = [], near = [], ripples = [];

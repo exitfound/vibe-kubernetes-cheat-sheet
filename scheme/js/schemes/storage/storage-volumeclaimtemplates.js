@@ -7,9 +7,9 @@ const CX = 600;
 const SRC_W = 340, SRC_H = 64, SRC_X = CX - SRC_W / 2, SRC_Y = 52;   // 430..770
 const SRC_BOTTOM = SRC_Y + SRC_H;                                   // 116
 
-// The three ordinal rows. Row centres are the y midline of every block in the row, so mount and bind
-// lanes run dead level and the mint spine segments sit in the gaps between the stacked claims.
-const ROW_CY = [245, 385, 525];
+// The three ordinal rows, each centre the y midline of every block in its row, so mount and bind lanes
+// run level. Row 0 is set by the panel (its Pod label clears 205 at 1100x800), row 2 holds, pitch 134.
+const ROW_CY = [261, 395, 529];
 
 const POD_W = 150, POD_H = 100;
 const PVC_W = 200, PVC_H = 56;
@@ -26,17 +26,17 @@ const CHIPS_Y = 600;
 // Family CHIP_W 232 at the family gap, four across, centred on CX: 112..1088.
 const CHIPS = chipStrip();
 
-// Straight axis runs. Every array is shared by the static lane and its ball, and the arrowheads
-// point at the RECEIVER: the mint into the claim top, the disk into the claim, the claim into the Pod.
-const trunkSeg = i => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [CX, ROW_CY[i] - PVC_H / 2]];
-const bindPts = i => [[PV_X, ROW_CY[i]], [PVC_RIGHT, ROW_CY[i]]];     // pv -> PVC (into claim right edge)
-const mountPts = i => [[PVC_X, ROW_CY[i]], [POD_RIGHT, ROW_CY[i]]];   // PVC -> Pod (into Pod right edge)
+// Straight axis runs, ONE array per row built once so the lane and the ball that rides it are the
+// same array (A-02). Arrowheads land on the RECEIVER: the claim top, the claim, then the Pod.
+const TRUNK = ROW_CY.map((cy, i) => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [CX, cy - PVC_H / 2]]);
+const BIND = ROW_CY.map(cy => [[PV_X, cy], [PVC_RIGHT, cy]]);     // pv -> PVC (into claim right edge)
+const MOUNT = ROW_CY.map(cy => [[PVC_X, cy], [POD_RIGHT, cy]]);   // PVC -> Pod (into Pod right edge)
 
 // One lane per row in each of the three families, held under its own ordinal key, which is what the
 // `opacity` field and the flow address.
-const trunkLane = i => P.lane({ key: `trunk${i}`, points: trunkSeg(i), dashed: true, dim: true, opacity: 0 });
-const bindLane = i => P.lane({ key: `bind${i}`, points: bindPts(i), dashed: true, dim: true });
-const mountLane = i => P.lane({ key: `mount${i}`, points: mountPts(i), dashed: true, dim: true });
+const trunkLane = i => P.lane({ key: `trunk${i}`, points: TRUNK[i], dashed: true, dim: true, opacity: 0 });
+const bindLane = i => P.lane({ key: `bind${i}`, points: BIND[i], dashed: true, dim: true });
+const mountLane = i => P.lane({ key: `mount${i}`, points: MOUNT[i], dashed: true, dim: true });
 
 // The container box sits on the Pod centre line (h/2), balanced between the name on top and the
 // mount-path sublabel at the bottom, rather than pushed down against the sublabel.
@@ -99,17 +99,19 @@ const MOUNTED = { p0: 'mounts /data', p1: 'mounts /data', p2: 'mounts /data' };
 const claimLabels = labels => ({ v0: labels[0], v1: labels[1], v2: labels[2] });
 const BOUND = ['Bound', 'Bound', 'Bound'];
 
-// This card's riding tag sits 16 above the ball rather than the family 14, and the mint tag rides
-// clear of the vertical spine it follows.
-const TAG_DY = -16;
+// The riding tag sits ABOVE the row, not on it: both row hops are 120 long against a tag of up to
+// 128, so on the row midline a claim or Pod face prints through the glyphs at both ends.
+const TAG_DY = -(POD_H / 2) - 6;      // -56: 3 clear of the Pod top, the tallest block of a row
+
+// The mint tag rides clear of the vertical spine it follows.
 const MINT_DY = -22, MINT_DX = 44;
 
 // A row mounts in two hops: the ball crosses the bind lane from disk into claim, then the mount lane
 // up into the Pod. The Pod is already at full opacity, so it is pulsed and lit, never ramped.
 const mountRow = (i, { delay, tag = null }) => [
-  F.route({ points: bindPts(i), delay, name: `lo${i}` }),
-  F.route({ points: mountPts(i), after: `lo${i}`, name: `hi${i}` }),
-  ...(tag ? [F.tag({ text: tag, points: mountPts(i), after: `lo${i}`, dy: TAG_DY })] : []),
+  F.route({ points: BIND[i], delay, name: `lo${i}` }),
+  F.route({ points: MOUNT[i], after: `lo${i}`, name: `hi${i}` }),
+  ...(tag ? [F.tag({ text: tag, points: MOUNT[i], after: `lo${i}`, dy: TAG_DY })] : []),
   F.light({ targets: [`v${i}`], at: `lo${i}` }),
   F.pulse({ pod: `p${i}`, at: `hi${i}` }),
   F.light({ targets: [`b${i}`], at: `hi${i}` }),
@@ -151,17 +153,24 @@ export const STEPS_SPEC = [
     // receivers and earn their highlight on arrival.
     lit: ['src'],
     // The claims are minted DURING the step, so the animated path winds them back to the placeholder
-    // shade and each reveal brings one up. The static field above is where the step ends.
-    rewind: { opacity: stage({ mint: true }) },
+    // shade, the counter and the three phase lines with them: nothing minted yet (P-03, P-04).
+    rewind: {
+      opacity: stage({ mint: true }),
+      chips: { pvcChip: 'none yet' },
+      sublabels: claimLabels(['not created yet', 'not created yet', 'not created yet']),
+    },
     // The name relays down the spine, materialising each claim in turn once the hop above lands. Each
     // claim comes up WITH its two lanes: both have it at one end, so they are as present as it is.
     flow: ROW_CY.flatMap((_, i) => [
-      F.route({ points: trunkSeg(i), ...(i === 0 ? { delay: BEAT.lead } : { after: `m${i - 1}` }), name: `m${i}` }),
-      F.tag({ text: `data-web-${i}`, points: trunkSeg(i), ...(i === 0 ? { delay: BEAT.lead } : { after: `m${i - 1}` }), dy: MINT_DY, dx: MINT_DX }),
+      F.route({ points: TRUNK[i], ...(i === 0 ? { delay: BEAT.lead } : { after: `m${i - 1}` }), name: `m${i}` }),
+      F.tag({ text: `data-web-${i}`, points: TRUNK[i], ...(i === 0 ? { delay: BEAT.lead } : { after: `m${i - 1}` }), dy: MINT_DY, dx: MINT_DX }),
       F.reveal({ target: `v${i}`, at: `m${i}`, from: PEND }),
       F.reveal({ target: `bind${i}`, at: `m${i}`, from: PEND }),
       F.reveal({ target: `mount${i}`, at: `m${i}`, from: PEND }),
       F.light({ targets: [`v${i}`], at: `m${i}` }),
+      // The counter steps one per arrival (1500, 2300, 3100) rather than reading 3 minted over two
+      // claims that are still placeholders, and each claim takes its Pending line as it appears.
+      F.set({ at: `m${i}`, chipsCued: { pvcChip: `${i + 1} minted` }, sublabels: { [`v${i}`]: 'Pending' } }),
     ]),
   },
   {
@@ -178,8 +187,8 @@ export const STEPS_SPEC = [
     // Each disk binds to its claim, straight along the bind lane. The three binds are independent
     // and simultaneous, so they leave together on one beat rather than a stagger.
     flow: ROW_CY.flatMap((_, i) => [
-      F.route({ points: bindPts(i), delay: BEAT.lead, name: `b${i}` }),
-      F.tag({ text: 'bound', points: bindPts(i), delay: BEAT.lead, dy: TAG_DY }),
+      F.route({ points: BIND[i], delay: BEAT.lead, name: `b${i}` }),
+      F.tag({ text: 'bound', points: BIND[i], delay: BEAT.lead, dy: TAG_DY }),
       F.light({ targets: [`v${i}`], at: `b${i}` }),
     ]),
   },
@@ -214,7 +223,11 @@ export const STEPS_SPEC = [
     rewind: { podSublabels: { p1: 'deleted' } },
     flow: [
       F.fade({ target: 'p1', from: 1, to: GONE, dur: OUT, fill: 'forwards', easing: 'ease-in' }),
+      // The mount lane is as present as its fainter end (A-13), so it goes down with the Pod and comes
+      // back with it rather than standing over the 550ms ghost hold at full strength.
+      F.fade({ target: 'mount1', from: 1, to: GONE, dur: OUT, fill: 'forwards', easing: 'ease-in' }),
       recreate,
+      F.fade({ target: 'mount1', from: GONE, to: 1, dur: IN, delay: REBORN, fill: 'forwards', easing: 'ease-out' }),
       ...mountRow(1, { delay: REBORN + IN, tag: 'data-web-1 rebound' }),
     ],
   },
@@ -228,13 +241,18 @@ export const STEPS_SPEC = [
     sublabels: claimLabels(['Bound', 'Bound', 'kept, no Pod']),
     podSublabels: MOUNTED,
     // web-2 leaves, but data-web-2 and PV web-2 stay put: the claim is the thing that persists. The
-    // ghost opacity is pinned statically so a mid-step cancel and reduced motion land on it too.
-    opacity: { ...stage({ claims: [1, 1, 1] }), p2: OPACITY.terminated },
+    // ghost goes THROUGH stage(), so mount2 takes the MIN of the pair and dims with its Pod (A-13).
+    opacity: stage({ claims: [1, 1, 1], pods: [1, 1, GONE] }),
     wires: { n2: 'retained' },
     lit: ['d0', 'd1', 'v2', 'd2'],
-    rewind: { opacity: { p2: 1 } },
+    rewind: { opacity: { p2: 1, mount2: 1 } },
+    // The removed Pod blinks at full first and goes at afterPulse, so the blink is over before the
+    // shade moves and the two are not one event (M-08). Its mount lane leaves with it (A-13).
     flow: [
-      F.fade({ target: 'p2', from: 1, to: OPACITY.terminated, dur: FADE.out, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-in' }),
+      F.pulse({ pod: 'p2' }),
+      ...['p2', 'mount2'].map(target => F.fade({
+        target, from: 1, to: GONE, dur: FADE.out, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-in',
+      })),
     ],
   },
 ];
