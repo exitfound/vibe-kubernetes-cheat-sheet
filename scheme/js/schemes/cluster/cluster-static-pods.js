@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, ladder, strip, midX, shade, CLU, REVEAL_MS, FADE, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-static-pods
+// Design notes for this card: ./CARDS/cluster-static-pods.md
 
 // Three tiers on the L. Panel worst case x<=397 y<=230 at 1100x800, and the Node frame at y=380 is
 // what it clears: 390 characters per narration.
@@ -10,7 +10,7 @@ const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas cent
 
 const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
 // Tier 1. API centred on CX so the mirror hangs straight below it and the Kubelet lane is one drop.
-// kubectl therefore goes RIGHT, reversing the top row's reading direction: see ./CARDS.md.
+// kubectl therefore goes RIGHT, reversing the top row's reading direction: see ./CARDS/cluster-static-pods.md.
 const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
 const TOP_GAP = 56;
 const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 484..716
@@ -61,7 +61,7 @@ const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 // The list order IS the append order, so it is the z-order: the Node frame and everything that must
 // sit above the balls follow the packet layer, and the two top-row blocks go absolute last.
 export const SCENE = {
-  'aria-label': 'Static Pods and mirror Pods: the Kubelet runs a manifest file on the Node and mirrors it into the API',
+  'aria-label': 'Static Pods and mirror Pods: the Kubelet runs a manifest file on the Node with no Scheduler and no owner, mirrors it into the API as a read-only record, puts that record back when kubectl deletes it, restarts the container when the file changes, and carries it through a drain',
   parts: [
     P.defs(),
     // Top-row lanes, one per direction, straddling the row centre line by LANE_DY.
@@ -165,7 +165,7 @@ export const STEPS_SPEC = [
   {
     id: 'kubelet-starts',
     duration: 2800,
-    narration: 'The Kubelet starts the container itself. No Scheduler placed this Pod and no controller owns it, so the Kubelet supervises it directly and restarts it when it fails. That is how a kubeadm control plane comes up: the API server, the controller-manager, the Scheduler and ETCD all run as static Pods.',
+    narration: 'The Kubelet starts the container itself. No Scheduler placed this Pod and no controller owns it, so the Kubelet supervises it directly and restarts it when it fails. That is how a kubeadm control plane comes up: the API server, the controller-manager and the Scheduler run as static Pods, and so does ETCD in the default stacked topology.',
     chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'none' },
     sublabels: NO_MIRROR.sublabels,
     opacity: NO_MIRROR.opacity,
@@ -208,7 +208,7 @@ export const STEPS_SPEC = [
     // Request out (700), answer home (1500). The mirror pulses and dissolves from 800 over
     // MIRROR_FADE, the recreate leaves at 2100 and lands at 2800 with a pulse behind it: 3700.
     duration: 4700,
-    narration: 'Deleting the mirror Pod with kubectl removes the API object and nothing else. The container on Node-1 keeps running, because the file on disk is what the Kubelet reads, and its next scan recreates the mirror. Nothing done to the object reaches the container.',
+    narration: 'Deleting the mirror Pod with kubectl removes the API object and nothing else. The container on Node-1 keeps running, because the file on disk is what the Kubelet reads, and the Kubelet puts the mirror back on its next sync loop pass. Nothing done to the object reaches the container.',
     chips: { pathChip: PATH, fileChip: 'static-web.yaml', podChip: 'static-web · Running', mirrorChip: 'deleted, then recreated' },
     wires: { top: 'DELETE /api/v1/namespaces/default/pods/static-web-Node-1', mirror: 'POST /api/v1/namespaces/default/pods' },
     sublabels: FULL.sublabels,
@@ -238,7 +238,7 @@ export const STEPS_SPEC = [
     id: 'edit-file',
     // Spec off the disk (700), restart lands at 1500, the Pod pulse runs to 2400.
     duration: 3000,
-    narration: 'To change a static Pod you change its file. The Kubelet applies the new spec on its next scan and restarts the container, and moving the file out of the directory removes the Pod. The spec cannot refer to a ConfigMap, a Secret or a ServiceAccount, so everything it needs comes off the file or the Node filesystem.',
+    narration: 'To change a static Pod you change its file. The Kubelet applies the new spec on its next scan and restarts the container, and moving the file out of the directory removes the Pod. The spec cannot refer to other API objects such as a ConfigMap, a Secret or a ServiceAccount, so everything it needs comes off the file or the Node filesystem.',
     chips: { pathChip: PATH, fileChip: 'static-web.yaml · image nginx:1.27', podChip: 'static-web · restarted', mirrorChip: 'static-web-Node-1' },
     sublabels: FULL.sublabels,
     opacity: FULL.opacity,

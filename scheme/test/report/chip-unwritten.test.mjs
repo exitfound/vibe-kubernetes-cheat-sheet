@@ -44,8 +44,8 @@
 //
 // WHAT DOES FAIL: the census, and the shape of the carried table. A report that walked less than the
 // catalog prints few findings and looks exactly like a clean catalog, which is the lesson of stage
-// 2.4c, where the first run of a report test counted 649 steps of 650 and nothing in the output
-// looked wrong. Fewer than 108 cards or 650 steps is an assertion failure, not a note.
+// once, when the first run of a report test came back one step short and nothing in the output
+// looked wrong. Fewer cards or steps than the catalog holds is an assertion failure, not a note.
 //
 // ===========================================================================================
 // WHAT THIS FILE IS BLIND TO
@@ -78,15 +78,6 @@ import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
 // The recorded walk. Assertions, not notes: see the header.
-
-// What the walk measured the day this file was written, as chips / cards. Printed beside the live
-// numbers, never asserted: a card repaired in phase F is SUPPOSED to move them, and an assertion
-// here would make a repair look like a regression.
-const RECORDED = {
-  'chip parts': [411, 108],
-  'LIT-NOT-WRITTEN': [17, 6],
-  SILENT: [1, 1],
-};
 
 // -------------------------------------------------------------------------------------------
 // Findings a human has READ and decided to carry, keyed `<card id> <chip key>`, with the reason on
@@ -171,11 +162,8 @@ test('a chip no step writes (report only, census is the assertion)', (t) => {
   }
 
   out.push('');
-  out.push('1. THE POPULATION, live against what was recorded when this file was written');
-  for (const k of Object.keys(RECORDED)) {
-    const same = live[k].every((n, j) => n === RECORDED[k][j]);
-    out.push(`   ${k.padEnd(16)} ${fmt(live[k])}${same ? '' : `   (recorded ${fmt(RECORDED[k])})`}`);
-  }
+  out.push('1. THE POPULATION, counted live on this walk');
+  for (const k of Object.keys(live)) out.push(`   ${k.padEnd(16)} ${fmt(live[k])}`);
   out.push('   P-01 compares one step\'s chip set against the other steps of the same card, so a chip');
   out.push('   missing from EVERY set is a chip every set agrees about. That is this population.');
 

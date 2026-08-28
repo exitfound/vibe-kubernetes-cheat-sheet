@@ -136,7 +136,7 @@ export const STEPS_SPEC = [
   {
     id: 'reschedule',
     duration: 2400,
-    narration: 'The controller recreates the Pod, and the scheduler places it on Node-2. This is where the two volumes stop looking alike, because one is tied to a Node it is no longer on and the other is tied to nothing but the claim.',
+    narration: 'The controller recreates the Pod, and the Scheduler places it on Node-2. This is where the two volumes stop looking alike, because one is tied to a Node it is no longer on and the other is tied to nothing but the claim.',
     chipsCued: { edChip: 'empty again', pvcChip: 'reattaching', podChip: 'on Node-2' },
     opacity: presence(),
     lit: ['pv'],

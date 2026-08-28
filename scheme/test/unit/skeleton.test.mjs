@@ -22,9 +22,9 @@
 //   S-11  resetStep declared once per card, packetLayer.replaceChildren() first, clearHighlights and
 //         extras in the middle, clearWires last.
 //         RETURNED as a traced call order out of makeResetStep. ONE DEVIATION IS RECORDED, not
-//         asserted: the generated prologue runs `reset.extra` AFTER clearWires, where the 108
+//         asserted: the generated prologue runs `reset.extra` AFTER clearWires, where the
 //         handwritten copies ran their extras before it. It is invisible today because the single
-//         extra in the catalog (cluster-api-structure resetWatchArrow) touches strokeDasharray on an
+//         extra in the catalog (cluster-list-watch-informers resetWatchArrow) touches strokeDasharray on an
 //         arrow and no wire, which is why nothing ever caught it. See report/skeleton-census.
 //   S-12  no card declares clearHL(s).
 //         NO SUCCESSOR, and inventing one would be dishonest. Its subject was a card-local prologue
@@ -49,7 +49,7 @@
 // R-opacity, the source half of C-04, is here too: every shade a migrated card DECLARES is read out
 // of SCENE.parts and STEPS_SPEC and matched against the OPACITY vocabulary imported from the live
 // js/lib/tokens.js. The numbers are never copied into this file. The runtime half of C-04 is
-// render/opacity.test.mjs and covers all 108; this covers what the 108 wrote down.
+// render/opacity.test.mjs and covers every card; this covers what the cards wrote down.
 //
 // ===========================================================================================
 // WHY A DOM STUB FOR ONE CALL, AND WHY NOT A BUILT SCENE
@@ -275,7 +275,7 @@ describe('the migrated module, as data', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// S-04 / S-05. One camera for 108 cards. See "WHY A DOM STUB" in the header.
+// S-04 / S-05. One camera for the whole catalog. See "WHY A DOM STUB" in the header.
 // ---------------------------------------------------------------------------------------------
 const CANON_VIEWBOX = '0 0 1200 640';
 const CANON_PAR = 'xMidYMid meet';
@@ -363,7 +363,7 @@ describe('S-04 and S-05: one camera, and no card owns it', () => {
 // are the only assertions in the suite that watch the generated enter() run, so they use fakes that
 // record rather than a DOM: what is being measured is call ORDER, not what the calls draw.
 // ---------------------------------------------------------------------------------------------
-describe('S-01, S-10, S-11: the skeleton, generated once instead of copied 108 times', () => {
+describe('S-01, S-10, S-11: the skeleton, generated once instead of copied per card', () => {
   // S-01, behavioural. A probe SCENE with no parts, so buildScene reaches only diagramRoot and the
   // host. Building a real card's parts would need primitives.js and a browser.
   test('S-01: makeScene builds on construction and reset() repaints from scratch', (t) => {
@@ -420,7 +420,7 @@ describe('S-01, S-10, S-11: the skeleton, generated once instead of copied 108 t
 
   // S-10: what the generated enter() does, in order, on both paths. There is exactly ONE enter() in
   // the catalog and it is generated, so "opens with the prologue and nothing before it" is a fact
-  // about one function rather than a convention 108 hand-written copies each have to honour.
+  // about one function rather than a convention every hand-written copy has to honour.
   test('S-10: the generated enter() opens with the prologue, and the escape closes the static block', (t) => {
     const F = stepSpec.makeFlowKinds({ role: 'probe' });
     const build = (extra = {}) => {

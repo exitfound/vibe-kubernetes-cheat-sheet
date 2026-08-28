@@ -50,7 +50,7 @@ Read alongside it:
 
 - the card source (`scheme/js/schemes/<category>/<card-id>.js`), for what each step declares
 - the catalog entry in `cards.js`: `title`, `desc`, `k8sVersion`, `sources`
-- the `CONTENT` block of the `## <card-id>` section in that folder's `CARDS.md`: it already holds
+- the `CONTENT` block of the `## <card-id>` section in that folder's record: it already holds
   the claims a previous pass checked and the wording those checks forced. Do not re-litigate a
   settled wording without a source that overturns it.
 - `scheme/CANON.md`, the `T-` group: the terminology and prose rules the fixes must land inside.
@@ -243,10 +243,15 @@ and the meaning broken (`T-31`).
 
 ## 8. Update the records
 
+Whatever you edited here, the LAST step is the markdown sweep in `card-review`'s phase 8, "sweep the
+numbers, do not judge them". A reworded `desc` or narration moves a character count, and a count is
+a claim about the tree that can go stale in a file you never opened. Run it and report its verdicts.
+
 The fact check owns two places, and it is not finished until both are true:
 
 1. **The `CONTENT` block** of the `## <card-id>` section in
-   `scheme/js/schemes/<category>/CARDS.md`. Its vocabulary definition is exactly this: a technical
+   `scheme/js/schemes/<category>/CARDS.md`, or `CARDS/<card-id>.md` where the category has split
+   it. Its vocabulary definition is exactly this: a technical
    claim checked against the reference, and the wording it forced. For each claim you changed or
    deliberately kept, one entry: the wording that ships, the wording that was rejected, and the
    reason. That is what stops the next pass from "simplifying" a qualifier back out.
@@ -258,8 +263,14 @@ The fact check owns two places, and it is not finished until both are true:
    `desc` whole (`T-31`): it is 2 to 4 sentences, so a reworded opening breaks the grammar of the
    rest more often than in a narration.
 
-If a check changed nothing, still record the claims you verified and the date, in one line. A claim
-verified once and not written down is a claim that gets re-verified every time.
+If a check changed nothing, still record the claims you verified, in one line. A claim verified once
+and not written down is a claim that gets re-verified every time.
+
+**Date the EVIDENCE, never the edit** (`S-48`). A record states what IS, so `checked on 2026-08-23`
+and `used to say X` are both banned, and a rejected wording is written as a constraint in the
+present tense: `X is rejected because <the quote>`. What a claim decays against is the RELEASE, so
+the release is what dates it, and `k8sVersion` in `cards.js` already carries that number. Say the
+claims were read against it rather than stamping a calendar date the canon will make you delete.
 
 Leave `CANON.md`, the category `CLAUDE.md`, `scheme/CLAUDE.md` and `README.md` alone unless a
 terminology RULE changed, in which case it is a rulebook edit and belongs to a separate decision.

@@ -121,7 +121,7 @@ import { PULSE_POD, PULSE_BLOCK, BEAT, FADE } from '../../js/lib/tokens.js';
 import { routeDur, routeLength, REVEAL_MS } from '../../js/lib/scheme-kit.js';
 
 // ---------------------------------------------------------------------------------------------
-// Control numbers, measured on a green walk of the whole catalog (108 cards, 650 steps).
+// Control numbers, measured on a green walk of the whole catalog.
 //
 // The card and step floors are the same two every render test carries. The four population floors
 // under them are NOT decoration: every rule in this file selects its input with a class name, so
@@ -139,7 +139,8 @@ import { routeDur, routeLength, REVEAL_MS } from '../../js/lib/scheme-kit.js';
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = floor((await cards()).length);
 const EXPECTED_STEPS = floor(await stepTotal());
-// Cards that DECLARE an F.pulse, counted off the specs: 92 of the 108. This is the guard the track
+// Cards that DECLARE an F.pulse, counted off the specs: 94 today, and the floor keeps headroom under
+// that. This is the guard the track
 // floor below was being asked to be and could not, and it is the same repair the chip-pair floor in
 // render/chipfit.test.mjs took the same day: a card losing ONE of its several pulses does not move
 // this number, while a selector that stops matching brightness collapses it.

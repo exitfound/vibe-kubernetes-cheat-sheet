@@ -54,7 +54,7 @@
 // check() returns true for every family including invented ones. The full measurement is in the
 // comment on that function. Here it is an ASSERTION: a missing face fails the run.
 //   Measured, and it is worth knowing which way: with fonts.gstatic.com blocked, the content span
-//   of all 108 cards is UNCHANGED, because no card has a label wider than the rect around it, so a
+//   of every card is UNCHANGED, because no card has a label wider than the rect around it, so a
 //   block's bbox is its rect either way. The panel is the font-sensitive part (one text line, 17.5
 //   units, on 3 of 6 cards sampled), and the panel belongs to report/geometry-soft.test.mjs. The
 //   guard stays here regardless: "no card overflows its rect today" is a fact about the catalog,
@@ -70,8 +70,7 @@ import {
 } from '../fixtures/render.mjs';
 
 // ---------------------------------------------------------------------------------------------
-// Control numbers, taken off a green run of the whole catalog and matching the gate's own line at
-// the start of this refactor: "108 cards clean on [DIAGONAL, THROUGH, OFFEDGE]" (REFACTOR-PLAN 0.2a).
+// Control numbers, taken off a green run of the whole catalog, clean on [DIAGONAL, THROUGH, OFFEDGE].
 // They are FLOORS, not equalities. A run that walks fewer cards or fewer steps than this has
 // scanned a subset, and a subset that passes is worse than a red run; a card added later is a
 // legitimate widening and must not turn this file red by itself. The card count is additionally

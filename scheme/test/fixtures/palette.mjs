@@ -54,7 +54,7 @@ export function classify(id, row) {
 
 // Element class -> the descendant that actually carries the paint (null = the element itself).
 // `.scheme-arrow` is in the list as a regression guard: leaving arrows out of it is what made
-// `dim: true` painting like a live lane on 315 calls invisible to every check.
+// `dim: true` painting like a live lane invisible to every check.
 export const PAINTED = [
   ['.scheme-pod', '.scheme-pod-rect'],
   ['.scheme-box', '.scheme-box-rect'],

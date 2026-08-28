@@ -9,6 +9,12 @@
 // duration, hold (what the Timeline really waits: max(duration, span + 60)), narration characters,
 // ms per character, and the rank of that pace inside the whole catalog. A step near the top of the
 // catalog ranking is a step to read out loud before defending its number.
+//
+// IT PRINTS span AND duration AND NEVER SUBTRACTS THEM, which is the blind spot that shipped a card
+// whose ball landed at 700ms under a 3800ms hold: green on `M-19`, ordinary on the pace ranking
+// here, and 82% of the step spent at a picture that had stopped changing. That difference is
+// `M-19a` and `deadair.mjs` is its reader. Run the two together or the pace number reads as an
+// all-clear it is not.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {

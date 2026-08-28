@@ -1,9 +1,9 @@
 import { P, F, defineCard, laneY, ladder, spread, midX, shade, CLU, LAYOUT, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-graceful-node-shutdown
+// Design notes for this card: ./CARDS/cluster-graceful-node-shutdown.md
 
-// Laid out on the L. Panel x<=397 y<=230 against a ladder and chip column starting at 250, so 20
-// units of headroom: NO NARRATION MAY PASS 323 CHARACTERS, which is what the signal step spends.
+// Laid out on the L. Panel x<=397 y<=230 against a ladder starting at 250, so 20 units of
+// headroom. The budget is a LINE count, measured: see ./CARDS/cluster-graceful-node-shutdown.md before passing 326 characters.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas centre by construction
@@ -14,23 +14,28 @@ const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
 const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
 const SPINE_X = CX;                                      // 600
 const KUBE_X = SPINE_X - BOX_W / 2;                      // 484..716
-const SYS_GAP = 56;
-const SYS_X = KUBE_X + BOX_W + SYS_GAP;                  // 772..1004
+// systemd sits at the right wall, its edge on the chip column's, so the top row spans the same
+// 484..1140 the band below it does and the wire label gets the whole gap to breathe in.
+const SYS_X = CONTENT_R - BOX_W;                         // 908..1140
 const LANE_DY = CLU.LANE_DY;                             // catalog standard: a lane pair straddles the flow line
 const TOP_CY = midX(TOP_Y, TOP_BOTTOM);                  // 80
 const { out: SIG_Y, back: REL_Y } = laneY(TOP_CY, LANE_DY);   // 68 / 92, one lane per direction
 const WIRE_Y = TOP_BOTTOM + 26;                          // 146
-const WIRE_X = midX(KUBE_X + BOX_W, SYS_X);              // 744, centred in the 56 unit gap
+const WIRE_X = midX(KUBE_X + BOX_W, SYS_X);              // 812, centred in the 192 unit gap
 
 // Left band, which only opens up below the panel.
 const LADDER_X = LAYOUT.A.ladder.x, LADDER_W = LAYOUT.A.ladder.w;   // 60..540
 const LADDER_Y = 250, ROW_H = CLU.ROW_H, ROW_GAP = CLU.ROW_GAP;     // 5 rows -> 250..450
+const LADDER_BOTTOM = LADDER_Y + 5 * ROW_H + 4 * ROW_GAP;           // 450
 
 // The chip column is this card's own 520 wide band, not LAYOUT.A.chips at 660: it starts where the
 // 540..620 lane corridor ends.
 const CHIP_X = 620, CHIP_W = CONTENT_R - CHIP_X;         // 520, 620..1140
-const CHIP_H = CLU.CHIP_H, CHIP_GAP = 21;
-const CHIP_Y = ladder({ y: LADDER_Y, rowH: CHIP_H, gap: CHIP_GAP });  // 250 / 305 / 360 / 415, bottom 449
+// Four chips on the cluster house gap of 8, then hung off the ladder's BOTTOM rather than its top,
+// so the two columns close on one line at 450 and the shorter one takes its slack above.
+const CHIP_H = CLU.CHIP_H, CHIP_GAP = 8, CHIP_N = 4;
+const CHIP_TOP = LADDER_BOTTOM - (CHIP_N * CHIP_H + (CHIP_N - 1) * CHIP_GAP);   // 290
+const CHIP_Y = ladder({ y: CHIP_TOP, rowH: CHIP_H, gap: CHIP_GAP });  // 290 / 332 / 374 / 416, bottom 450
 
 // node() draws its own label at NODE_Y + 18, so the Pod row needs the family's 34 of top padding or
 // NODE-1 prints on the first Pod. 34 + 106 + 12 is the family 152.
@@ -53,7 +58,7 @@ const POD_SUBS = ['priority: 0', 'priority: 0', 'priority: 2e9'];
 // The list order IS the append order, so it is the z-order: the two top lanes and the wire label,
 // the four chips, the signal lane, the packet layer, the ladder, the Node frame and its Pods.
 export const SCENE = {
-  'aria-label': 'Graceful Node shutdown: systemd inhibitor lock, priority-ordered Pod termination',
+  'aria-label': 'Graceful Node shutdown: the Kubelet holds a delay inhibitor lock, systemd signals it over D-Bus, and the Kubelet sets NotReady, terminates non-critical then critical Pods, then releases the lock',
   parts: [
     P.defs(),
     // Top-row lanes, one per direction, straddling the row centre line by LANE_DY.
@@ -65,7 +70,7 @@ export const SCENE = {
     P.chip({ key: 'lockChip',   x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'inhibitor lock',                   value: 'held by Kubelet' }),
     P.chip({ key: 'gpChip',     x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'shutdownGracePeriod',              value: '60s' }),
     P.chip({ key: 'gpCritChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'shutdownGracePeriodCriticalPods', value: '20s' }),
-    P.chip({ key: 'phaseChip',  x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'phase',                            value: 'normal' }),
+    P.chip({ key: 'phaseChip',  x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'shutdown phase',                   value: 'normal' }),
     P.lane({ points: SIG_LANE, dim: true, dashed: true }),
     P.packets(),
     P.chain({
@@ -89,7 +94,7 @@ export const SCENE = {
       inner: { ...POD_INNER, label: 'app', sublabel: sub },
     })),
     // Top-row blocks ABSOLUTE LAST.
-    P.box({ key: 'systemd', x: SYS_X,  y: TOP_Y, w: BOX_W, h: BOX_H, label: 'systemd', sublabel: 'inhibitor lock' }),
+    P.box({ key: 'systemd', x: SYS_X,  y: TOP_Y, w: BOX_W, h: BOX_H, label: 'systemd', sublabel: 'logind' }),
     P.box({ key: 'kubelet', x: KUBE_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'Kubelet', sublabel: 'shutdown manager' }),
   ],
   reset: {
@@ -117,6 +122,7 @@ const NON_CRIT = 'terminating non-critical · 40s';
 const CRITICAL = 'terminating critical · 20s';
 const RELEASED = 'lock released · OS shutdown';
 const LOCK_HELD = 'held by Kubelet';
+const LOCK_FREE = 'released';
 
 export const STEPS_SPEC = [
   {
@@ -129,8 +135,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'signal',
-    duration: 2000,
-    narration: 'The Node is about to shut down (poweroff, reboot, or hibernate), and systemd emits PrepareForShutdown over D-Bus. Kubelet catches the signal via its logind subscription. Its delay-type inhibitor lock makes systemd pause the actual shutdown, so Kubelet can enter shutdown mode rather than let the OS kill processes outright.',
+    duration: 2800,
+    narration: 'The Node is about to shut down (poweroff, reboot, or halt), and systemd emits PrepareForShutdown over D-Bus. Kubelet catches the signal via its logind subscription. Its delay-type inhibitor lock makes systemd pause the actual shutdown, so Kubelet can enter shutdown mode rather than let the OS kill processes outright.',
     chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: SIGNALLED },
     wires: { sig: 'PrepareForShutdown · D-Bus' },
     opacity: LIVE,
@@ -146,8 +152,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'condition',
-    duration: 1900,
-    narration: 'Kubelet sets a NotReady condition on the Node with the reason node is shutting down, which is what stops the Scheduler placing anything here, and its admission handler rejects Pods that were already bound. Existing Pods are bucketed by priority: at or above 2,000,000,000 is the critical bucket, the rest are non-critical.',
+    duration: 2850,
+    narration: 'Kubelet sets a NotReady condition on the Node with the reason node is shutting down, which stops the Scheduler placing anything here, and its admission handler rejects even Pods tolerating the not-ready taint. Existing Pods are bucketed by priority: at or above 2,000,000,000 is the critical bucket, the rest are non-critical.',
     chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: BUCKETING },
     opacity: LIVE,
     lit: ['kubelet', 'phaseChip'],
@@ -157,8 +163,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'terminate-normal',
-    duration: 2400,
-    narration: 'Kubelet sends SIGTERM to every non-critical Pod in parallel. They get shutdownGracePeriod minus shutdownGracePeriodCriticalPods to finish (40s with this configuration). Each ends up with the status reason Terminated.',
+    duration: 2650,
+    narration: 'Kubelet sends SIGTERM to every non-critical Pod in parallel. The window is shutdownGracePeriod minus shutdownGracePeriodCriticalPods (40s here), or the terminationGracePeriodSeconds on the Pod when that is shorter. Each ends up with the status reason Terminated.',
     chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: NON_CRIT },
     // Pin final state so cancel between steps does not flash to default. The two non-critical Pods
     // stay on screen as ghosts at the terminated shade, the critical Pod survives at full.
@@ -181,8 +187,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'terminate-critical',
-    duration: 2400,
-    narration: 'After non-critical Pods are gone (or their grace expired), Kubelet sends SIGTERM to system-critical Pods. They get shutdownGracePeriodCriticalPods (20s here). DaemonSet infra workloads such as CNI or kube-proxy usually sit in this bucket.',
+    duration: 3200,
+    narration: 'After non-critical Pods are gone (or their grace expired), Kubelet sends SIGTERM to system-critical Pods, again in parallel. The window is shutdownGracePeriodCriticalPods (20s here), capped the same way by terminationGracePeriodSeconds. DaemonSet infra workloads such as CNI or kube-proxy usually sit in this bucket.',
     chips: { lockChip: LOCK_HELD, gpChip: '60s', gpCritChip: '20s', phaseChip: CRITICAL },
     // Pin final state. Nothing is left running in the Node frame, and all three Pods hold the
     // terminated shade rather than leaving three block-sized holes in the Pod row.
@@ -200,9 +206,9 @@ export const STEPS_SPEC = [
   },
   {
     id: 'release',
-    duration: 2200,
+    duration: 2900,
     narration: 'All Pods are gone or their grace expired. Kubelet releases the inhibitor lock, and systemd resumes the shutdown sequence. The Node has carried NotReady since the Kubelet set that condition, and once Lease renewals in kube-node-lease stop the control plane treats it as unreachable as well.',
-    chips: { lockChip: 'released', gpChip: '60s', gpCritChip: '20s', phaseChip: RELEASED },
+    chips: { lockChip: LOCK_FREE, gpChip: '60s', gpCritChip: '20s', phaseChip: RELEASED },
     wires: { sig: 'release lock' },
     // Pin final state. All three Pods stay on screen at the terminated shade.
     opacity: ALL_DOWN,
@@ -213,7 +219,7 @@ export const STEPS_SPEC = [
     rewind: { chips: { lockChip: LOCK_HELD, phaseChip: CRITICAL } },
     flow: [
       F.top({ from: KUBE_X + BOX_W, to: SYS_X, y: REL_Y, name: 'rel', lights: ['systemd'] }),
-      F.set({ at: 'rel', chips: { lockChip: 'released', phaseChip: RELEASED } }),
+      F.set({ at: 'rel', chips: { lockChip: LOCK_FREE, phaseChip: RELEASED } }),
     ],
   },
 ];

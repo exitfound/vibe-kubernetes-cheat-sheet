@@ -25,9 +25,9 @@
 // and the run stays green.
 //
 // WHAT DOES FAIL HERE, and it is the only thing that does: the CENSUS. A report that scanned nothing
-// prints no findings and looks exactly like a clean catalog. Fewer than the recorded 108 cards or
-// 650 steps is therefore an assertion failure, not a note. This is the lesson of stage 2.4c, where
-// the first run of a report test counted 649 of 650 and nothing about the output looked wrong.
+// prints no findings and looks exactly like a clean catalog. Fewer cards or steps than the catalog
+// holds is therefore an assertion failure, not a note. The lesson was paid for once: the first run
+// of a report test came back one step short and nothing about the output looked wrong.
 //
 // TWO HARNESS LIMITS THIS FILE IS BUILT AROUND.
 //
@@ -60,7 +60,7 @@
 //    They disagree, and the disagreement is the point: a rule can be reported faithfully and still
 //    be reading the wrong frame.
 //
-// 2. THE PROBE CAN CATCH A STEP WITH NO DIAGRAM (stage 2.4c). Scene.build() empties the host and
+// 2. THE PROBE CAN CATCH A STEP WITH NO DIAGRAM. Scene.build() empties the host and
 //    appends a fresh <svg.diagram>, so a probe landing in that window sees nothing at all. The
 //    original wrote `if (!data) continue;` and would have undercounted silently. Here the sample
 //    re-waits on the selector and probes once more, and a step that still has no diagram is counted
@@ -178,10 +178,10 @@ const catalogued = await cards();
 // announce a change that did not happen. Anything outside this table is the queue to work, and an
 // entry here that stops being reported is a stale carry: the count below prints both halves.
 const R2_STEP_CARRIED = new Map([
-  ['cluster-api-structure 6 resourceVersion',
+  ['cluster-list-watch-informers 6 resourceVersion',
     'the 410 aside is over and the three chips go BACK to the steady state step 4 left (843, open streaming, 4). A cue would say they moved on'],
-  ['cluster-api-structure 6 watch', 'same restoration'],
-  ['cluster-api-structure 6 cache size', 'same restoration'],
+  ['cluster-list-watch-informers 6 watch', 'same restoration'],
+  ['cluster-list-watch-informers 6 cache size', 'same restoration'],
   ['cluster-static-pods 5 mirror Pod',
     'the mirror was deleted and recreated INSIDE the previous step (present, gone, back), so this reading is the steady name returning. The news of this step is the Pod restarting, and that chip is lit'],
   ['cluster-oom-kill 3 container state',

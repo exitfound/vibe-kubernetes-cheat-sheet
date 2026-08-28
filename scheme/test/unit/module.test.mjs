@@ -10,7 +10,7 @@
 //
 // Everything here runs in bare Node in well under a second, which is only possible because
 // lib/motion.js guards its window.matchMedia probe (see ../fixtures/module.mjs). Before that guard
-// all 108 cards threw at module load and every one of these facts would have needed a browser.
+// every card threw at module load and every one of these facts would have needed a browser.
 //
 // ===========================================================================================
 // WHAT THIS FILE DELIBERATELY DOES NOT TRY TO SEE
@@ -142,7 +142,7 @@ describe('card module surface', () => {
 
 // ---------------------------------------------------------------------------------------------
 // The controller contract. `init` is not written by a card: makeInit returns it, so its signature
-// and the object it returns are one fact for all 108, provable by identity of source text rather
+// and the object it returns are one fact for every card, provable by identity of source text rather
 // than by matching the call site with a regex.
 // ---------------------------------------------------------------------------------------------
 class ProbeScene {
@@ -253,9 +253,9 @@ describe('kit parity', () => {
     // A set of four empty sets agrees with itself, so parity alone is not a live rule. These two
     // anchors are what stop an emptied kit from reading as green.
     //
-    // The second anchor names `defineCard`, which every one of the 108 cards imports from its kit.
+    // The second anchor names `defineCard`, which every card imports from its kit.
     // It is deliberately not makeInit: nothing imports makeInit, it is called from defineCardWith
-    // inside lib/, and the parse of all 108 import headers gives it zero importers, so an anchor on
+    // inside lib/, and the parse of every card's import header gives it zero importers, so an anchor on
     // it would turn red for the wrong reason the day the kit surface drops it. It is read off the
     // kit NAMESPACE rather than off the shared set on purpose: defineCard is each kit's OWN
     // binding, built from defineCardWith with that category's role and tint, so it is by
@@ -442,7 +442,7 @@ describe('the import boundary', () => {
 // ---------------------------------------------------------------------------------------------
 // S-28, and the property 0.4b of the refactor plan bought by guarding motion.js. A lib module that
 // touches window or document at module load takes the whole unit level of this suite down with it,
-// because scheme-kit.js and all 108 cards import through lib/. Keeping it true is cheaper than
+// because scheme-kit.js and every card import through lib/. Keeping it true is cheaper than
 // rediscovering it: the failure mode is a ReferenceError at import, not a wrong picture.
 // ---------------------------------------------------------------------------------------------
 const LIB_REQUIRED = [

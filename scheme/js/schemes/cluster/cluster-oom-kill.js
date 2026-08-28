@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, ladder, strip, midX, CLU, LAYOUT, FADE, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-oom-kill
+// Design notes for this card: ./CARDS/cluster-oom-kill.md
 
 // Layout C: ladder right, chips in a two-row bottom strip. Panel x<=397 y<=280, frame top 388, so
 // NO NARRATION MAY PASS ROUGHLY 570 CHARACTERS. The ceiling belongs to the frame, not to the text.
@@ -146,8 +146,8 @@ export const STEPS_SPEC = [
     id: 'oomkill',
     duration: 2300,
     // The RUNTIME writes memory.oom.group, the Kubelet only asks for it over CRI. Verification and
-    // the singleProcessOOMKill footnote are in ./CARDS.md.
-    narration: 'Reclaim has failed at memory.max, so the kernel invokes the cgroup-scoped OOM killer. The runtime sets memory.oom.group on that cgroup under cgroup v2, so the kernel SIGKILLs every process in the container as one unit rather than the single worst offender. The oom_score_adj applied at container start from the QoS class ranks containers when the whole Node runs out, not inside one cgroup.',
+    // the singleProcessOOMKill footnote are in ./CARDS/cluster-oom-kill.md.
+    narration: 'Reclaim has failed at memory.max, so the kernel invokes the cgroup-scoped OOM killer. The runtime set memory.oom.group on that cgroup at container start under cgroup v2, so the kernel SIGKILLs every process in the container as one unit rather than the single worst offender. The oom_score_adj applied at container start from the QoS class ranks containers when the whole Node runs out, not inside one cgroup.',
     // containerStatuses[].state is still Running at this instant: the kernel killed the process
     // and the Kubelet has not told the API yet, which is the observe step.
     chips: { memChip: AT_LIMIT, oomScoreChip: OOM_SCORE, terminationChip: 'Running · not yet observed', restartChip: '0' },
@@ -167,7 +167,7 @@ export const STEPS_SPEC = [
   {
     id: 'observe',
     duration: 2100,
-    narration: 'PLEG (Pod Lifecycle Event Generator) spots the dead container on its next relist of the container runtime. Kubelet PATCHes the container status to terminated with reason OOMKilled and exitCode 137 (128 + 9 for SIGKILL). After the restart this record moves to lastState.terminated, which is what kubectl describe and get show.',
+    narration: 'PLEG (Pod Lifecycle Event Generator) spots the dead container on its next relist of the container runtime. Kubelet PATCHes the container status to terminated with reason OOMKilled and exitCode 137 (128 + 9 for SIGKILL). Where that record goes once the container restarts is covered in the Container Restarts and lastState card.',
     // memory.current fell away with the processes the SIGKILL took: it read at limit here for as
     // long as the step wrote only one chip, beside a container the same step calls terminated.
     chips: { memChip: DEAD_MEM, oomScoreChip: OOM_SCORE, terminationChip: DEAD_STATE, restartChip: '0' },
@@ -187,7 +187,7 @@ export const STEPS_SPEC = [
   {
     id: 'restart',
     duration: 2500,
-    narration: 'The restartPolicy is Always (the default), so Kubelet starts a fresh container inside the same Pod sandbox. The Pod IP and Linux namespaces are preserved and restartCount increments. Repeated OOMKills trip CrashLoopBackOff, so each retry is delayed exponentially from 10s up to a 5 min cap, and 10 minutes of clean running resets it.',
+    narration: 'The restartPolicy is Always (the default), so Kubelet starts a fresh container inside the same Pod sandbox. The Pod IP and Linux namespaces are preserved and restartCount increments. Repeated OOMKills trip CrashLoopBackOff, and the backoff behind it is covered in the CrashLoopBackOff and Restart Backoff card.',
     chips: { memChip: '120Mi / 256Mi', oomScoreChip: OOM_SCORE, terminationChip: 'Running (restarted)', restartChip: '1' },
     // "applied", not "written": Kubelet passes both in the CRI create call and the runtime is what
     // touches the cgroup file and /proc/PID/oom_score_adj. This card draws no runtime block.

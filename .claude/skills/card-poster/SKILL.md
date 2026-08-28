@@ -46,7 +46,8 @@ Read, in this order:
 2. The card source: the `WHAT` line of its record, then the narration of step 1 and of the last
    step. The poster is the still that makes a reader want to press play, so it belongs closer to the
    question than to the ending.
-3. The `### poster` note in `scheme/js/schemes/<category>/CARDS.md`. If a note exists, it says what
+3. The `### poster` note in that card's record (`CARDS.md`, or `CARDS/<card-id>.md` where the
+   category has split it). If a note exists, it says what
    was tried and what was rejected. Do not rediscover it.
 
 Then write ONE sentence, in words, in the user's language. Not "the architecture of a cluster", but
@@ -68,17 +69,23 @@ cannot show you:
 
 `poster-lint.mjs` covers the mechanical half in milliseconds: tokens that will not resolve,
 arrowheads, packet dots, a flat drawing with no subject, a mostly empty canvas, a missing record
-note. Its thresholds are calibrated against the shipped 108, so a finding is worth opening.
+note. Its thresholds are calibrated against the posters that ship, so a finding is worth opening.
 
 ---
 
 ## 3. Pick the family
 
 `reference/patterns.md` holds the composition families in use, mined from the catalog: hub and
-spokes, row of peers, chain of stages, stack of layers, stream into a cache, two zones compared,
-ghost zone to solid, branch, ring of states, nested containment, segmented budget bar, gauge
-columns, fan, the break. Each entry says what that shape SAYS, how its rhythm is built, and how it
-fails.
+spokes, row of peers, overlapping sets, chain of stages, stack of layers, stream into a cache, two
+zones compared, ghost zone to solid, branch, ring of states, nested containment, segmented budget
+bar, flatline into a wait, gauge columns, fan, the break, the wall, rank ladder, held object. Each
+entry says what that shape SAYS, how its rhythm is built, and how it fails.
+
+**That library is a SNAPSHOT and nothing re-mines it.** Redrawing a poster into a different family
+falsifies the row that points at it, and the sweep in step 8 is the only thing that catches it: run
+the wording grep over `--include=*.md`, not just the counts. When a redraw lands a composition the
+library does not name, say so in the deliverable rather than adding it here: this skill owns
+`posters.js` and the record, and the library is the user's to extend.
 
 Choose in three steps: is the sentence about structure, sequence or quantity; which family says that
 kind of sentence; what is the subject that gets the one accent.
@@ -150,8 +157,8 @@ how you catch a family used three times in a row.
 
 ## 7. Record the choice
 
-In `scheme/js/schemes/<category>/CARDS.md`, under `## <card-id>`, the `### poster` subsection
-(`R-12`, coverage is 108 of 108 so a missing one is a regression). Three or four lines, in the
+In that card's record, under `## <card-id>`, the `### poster` subsection
+(`R-12`, coverage is every card so a missing one is a regression). Three or four lines, in the
 record's own voice:
 
 - the sentence the poster says
@@ -169,6 +176,10 @@ its `CONTENT` block belongs to `card-facts`.
 ```bash
 cd scheme/test && npm run test:unit        # D-06 bijection card <-> poster, and the record parses
 ```
+
+Then the LAST step, the markdown sweep in `card-review`'s phase 8, "sweep the numbers, do not judge
+them". Adding or redrawing a poster moves a coverage count (`R-12` claims every card), which is a
+claim about the tree stated in files this skill never opens. Run it and report its verdicts.
 
 Then rebuild the local container, because a poster is served content:
 

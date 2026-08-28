@@ -18,7 +18,7 @@ repeated here:
 
 A rule here is a rule you should KNOW, not a rule you must obey. The concept of a card is not
 constrained: a new card may break a row deliberately, and the way to do that is to write the reason
-into its section of `js/schemes/<category>/CARDS.md`. What is not allowed is breaking one by
+into its section of that category's record. What is not allowed is breaking one by
 accident.
 
 ## How to read a row
@@ -66,7 +66,7 @@ strings, and the file list `dashTargets` names.
 
 ## The numbers this file is written against
 
-108 cards: cluster 21, workloads 19, network 37, storage 31. 650 steps. Re-measure before trusting
+116 cards: cluster 28, workloads 20, network 37, storage 31. 704 steps. Re-measure before trusting
 any figure below that carries a date-free absolute, and if you change one, change it here.
 
 ---
@@ -78,7 +78,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | L-01 | The safe-zone is an L, not a forbidden box: the overlay covers the top-left quadrant only, so the usable area is the full width below its bottom PLUS the full height right of its right edge | review | this file |
 | L-02 | The narration panel's RIGHT edge is `x<=397` on every card, on every viewport. Measured: worst 396.55, `cluster-architecture` at 1100x800 | report:overlay/L-02 | `test/report/overlay.test.mjs` |
 | L-03 | Nothing starts left of x=420 unless it also sits below that card's own panel bottom | review | L-02 |
-| L-04 | The panel BOTTOM is per card and ranges 90 to 504 over the standard viewport set. Worst 503.13 (`workloads-pod-phase-machine`, 1100x800, step 5), shallowest 90.23 (`cluster-admission-webhooks`, 1600x1000, step 3) | report:overlay/L-04 | measured 2026-08-06 over all 108 cards |
+| L-04 | The panel BOTTOM is per card and ranges 90 to 504 over the standard viewport set. Deepest 503.13 (`workloads-pod-phase-machine`, 1100x800, step 5). The shallow end is a CLUSTER many cards share, not one card | report:overlay/L-04 | measured over all 110 cards |
 | L-05 | The panel moves NON-MONOTONICALLY against the PICTURE and one way only against the VIEWPORT, so it is never measured on one viewport | report:overlay/L-05 | `test/report/overlay.test.mjs` |
 | L-05a | **It is a TYPOGRAPHY problem, not a height problem**: clamping the height does not touch it, and closing it needs type that scales with the diagram | report:overlay/L-05a | measured 2026-08-07, `scheme/css/styles.css` under `.narration-overlay` |
 | L-05b | The panel ALSO changes height between the STEPS of one card, so the diagram area under it moves while the card plays. Pinning `min-height` to the tallest narration is DECLINED | review | measured 2026-08-06, `scheme/css/styles.css` under `.narration-overlay` |
@@ -100,8 +100,8 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | L-20 | Text rates are PER CLASS and are MEASURED, never estimated | review | `js/schemes/storage/CLAUDE.md` |
 | L-21 | **Await `document.fonts.ready` before measuring anything in the DOM**, or you measure the fallback, which is about 20 percent narrower and flatters you. Never eyeball a width off a screenshot | test:geometry/L-21, test:chipfit/L-21 | root `CLAUDE.md` |
 | L-22 | A card that needs room should check L-01 first: on a cramped card the room is usually already there | review | this file |
-| L-23 | **A card drawing a Node frame around Pods uses the family geometry** `POD_Y = NODE_Y + 34`, `POD_H = 106`, `NODE_H = 152`, and `cluster-node-drain.js` is the card to copy it from | review | measured catalog-wide 2026-08-06 |
-| L-24 | Growing a Node frame to fix L-23 grows it UPWARD if the bottom stays at 624, so re-check the gap to whatever sits above | review | L-23 |
+| L-23 | **A Node frame around Pods is sized per CATEGORY, and there is no catalog-wide family.** Take the numbers from the category record, and clear the frame label whatever they are | review | measured catalog-wide 2026-08-27, 75 frames on 59 cards |
+| L-24 | Growing a Node frame to match its category family grows it UPWARD if the bottom stays at 624, so re-check the gap to whatever sits above | review | L-23 |
 
 ## A: arrows, lanes, wires, connectors
 
@@ -151,6 +151,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | M-17 | Chained hops: `delay: prevHop.arrivalMs + BEAT.afterHop` (100). **Never hard-code a delay** | report:motion/BEAT | `lib/tokens.js`, `BEAT` |
 | M-18 | A controller that self-initiates with no preceding hop or pulse waits `BEAT.lead` (800), so the lit source registers before the ball leaves | report:motion/BEAT | `lib/tokens.js`, `BEAT` |
 | M-19 | A step must OUTLAST its own motion: `span <= duration`. Fix an overrun by raising `duration`, never by shortening motion | test:duration/M-19, test:spec-steps/M-19 | `test/render/duration.test.mjs` |
+| M-19a | The OTHER side of M-19: a step also stands STILL for `duration - span`, and that is not a free variable either | review | `.claude/skills/card-review/tools/deadair.mjs` |
 | M-20 | **Geometry changes are timing changes**, because `routeDur` is length-based. After ANY geometry change re-check the span of EVERY step, not just the one you moved | test:duration/M-20 | `test/render/duration.test.mjs` |
 | M-21 | A Pod materialises over `FADE.in` (600, ease-out) and dissolves over `FADE.out` (700, ease-in). A narrative-slow fade keeps an explicit duration with a justification at the call | report:motion/FADE | `lib/tokens.js`, `FADE` |
 | M-22 | A newborn construction reveals over `REVEAL_MS` (500), which runs BEFORE the ball leaves (`BEAT.lead` is 800), so a block and its lanes are fully present by the time anything is sent down them | report:motion/FADE | `lib/scheme-kit.js`, `REVEAL_MS` |
@@ -206,8 +207,8 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | T-02a | **`node --check` and the browser do not agree.** Never derive an identifier from data (a chip name, a label) without checking it against the reserved-word list | test:smoke | measured 2026-08-06, `.claude/hooks/check-js.sh` |
 | T-03 | **No semicolons** in narration prose: use a comma, or a period plus a capital | test:text/T-03, test:inline/T-03 | this file |
 | T-04 | **Neither an em-dash nor an en-dash, anywhere.** The prose says "no em-dashes", the rule bans both | test:text/T-04, test:inline/T-04 | `test/unit/text.test.mjs` |
-| T-05 | `R-dash` scans the card modules, the four manifests, the kits, this file, and the named root and `cli/` files. The four `CARDS.md` are deliberately OUTSIDE its area, because a design record quotes what a card must not write | test:text/T-05 | `test/unit/text.test.mjs`, `dashTargets` |
-| T-06 | **Terminology is a dictionary, not taste.** `test/fixtures/terms.json` is the source of truth: 70 hard terms, 13 hard-lowercase, 11 range exceptions, 8 soft terms reported only | test:text/T-06, test:inline/T-06 | `test/fixtures/terms.json` |
+| T-05 | `R-dash` scans the card modules, the four manifests, the kits, this file, and the named root and `cli/` files. The four records are deliberately OUTSIDE its area, because a design record quotes what a card must not write | test:text/T-05 | `test/unit/text.test.mjs`, `dashTargets` |
+| T-06 | **Terminology is a dictionary, not taste.** `test/fixtures/terms.json` is the source of truth: 71 hard terms, 13 hard-lowercase, 11 range exceptions, 8 soft terms reported only | test:text/T-06, test:inline/T-06 | `test/fixtures/terms.json` |
 | T-07 | Two dictionary decisions are deliberately NOT the upstream ones: the catalogue majority wins (`Kubelet`, `ETCD`, `Node-1` keep their capitals), and `Node`, `Pod`, `Service` are ALWAYS capitalised. `kubectl` is always lowercase | test:text/T-07, test:inline/T-07 | `test/fixtures/terms.json` |
 | T-08 | Between them `unit/text.test.mjs` (`desc`) and `render/inline.test.mjs` (every `narration` and every `aria-label`) read all of the prose. Neither can read MEANING | test:inline/T-08 | `test/render/inline.test.mjs` |
 | T-09 | **System A for strings drawn ON the diagram**: a BLOCK LABEL is a heading and takes a capital, everything else on the canvas is body text and stays lowercase | test:inline/T-09 | `test/render/inline.test.mjs` |
@@ -251,7 +252,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | P-13 | A `setChips` key may NOT be spelled `label`, `sublabel`, `ip` or `sub`. Use `podIp` | test:spec-steps/P-13 | `test/render/inline.test.mjs` |
 | P-14 | Nor may a key be a RESERVED WORD. See T-02a | test:smoke | 2026-08-06 |
 | P-02 | **A chip always means what its name says.** If a step needs to report something else, that is a second chip, not a reused one | review | this file |
-| P-03 | **A chip must not run ahead of the motion that produces its value.** Pin the end value above the guard, then on the played path set the chip back to what the step STARTS from and turn it over on `pkt.arrivalMs` through `at(...)` | test:chip-beat-e/FORM-E, report:chip-beat/FORM-B | FORM-E, the narrowest class (this step turns ANOTHER chip over on a beat), was triaged to nine findings all carried with a reason and is now a red gate: `test/unit/chip-beat-e.test.mjs`, off the shared walk in `test/fixtures/chip-beat.mjs`. FORM-A and FORM-B stay a queue in `test/report/chip-beat.test.mjs`, which reads this off the spec with no browser and ranks it by how long the value stands on screen before the first ball lands. `report:arrival/R2` was cited here and asks the OTHER half: whether a changed value is CUED, never whether the arrival that earns it has happened |
+| P-03 | **A chip must not run ahead of the motion that produces its value.** Pin the end value above the guard, then on the played path set the chip back to what the step STARTS from and turn it over on `pkt.arrivalMs` through `at(...)` | test:chip-beat-e/FORM-E, report:chip-beat/FORM-B | FORM-E, the narrowest class (this step turns ANOTHER chip over on a beat), was triaged to nineteen findings all carried with a reason and is now a red gate: `test/unit/chip-beat-e.test.mjs`, off the shared walk in `test/fixtures/chip-beat.mjs`. FORM-A and FORM-B stay a queue in `test/report/chip-beat.test.mjs`, which reads this off the spec with no browser and ranks it by how long the value stands on screen before the first ball lands. `report:arrival/R2` was cited here and asks the OTHER half: whether a changed value is CUED, never whether the arrival that earns it has happened |
 | P-04 | Picking the beat is the whole job, and **doing this to one chip and not its neighbour is worse than doing it to neither** | review | this file |
 | P-05 | A chip whose value CHANGED this step lights as a STATIC highlight, never a flash | report:arrival/R2 | `lib/scheme-kit.js`, `setChip` |
 | P-05a | **The cue does not have to be a highlight on the chip** | report:arrival/R2-ENTRY | `test/report/arrival.test.mjs` |
@@ -294,12 +295,12 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | R-05 | **A poster is judged next to its SIBLINGS, not on its own.** Build a montage of the card plus two neighbours at about 260 percent before deciding | review | this file |
 | R-06 | Siblings are 76 to 80 unit blocks with fills between 0.03 and 0.10. Specks at 200px, a track dimmed below its siblings and a quarter of the canvas left as empty air are all invisible on the file and obvious on the montage | review | this file |
 | R-07 | House idiom one: the accent is a `rect` with `fill="currentColor"` at `opacity="0.9"` INSIDE the block it belongs to, with the losers carrying the same bar at 0.3. Never a bright fill on a whole shape | review | this file |
-| R-08 | House idiom two: **a poster carries no arrowhead by default.** Direction comes from the composition being closed, or from a dashed leg, or from a fill ramp. 97 of 108 have none | review | measured 2026-08-06 |
+| R-08 | House idiom two: **a poster carries no arrowhead by default.** Direction comes from the composition being closed, or from a dashed leg, or from a fill ramp. 99 of 110 have none | review | measured 2026-08-23 |
 | R-08a | The exception, and it is earned rather than tolerated: **11 posters carry one light chevron or filled triangle, on the ones whose whole sentence IS a direction** that composition cannot say | review | measured 2026-08-06 |
 | R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | review | this file |
 | R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | root `CLAUDE.md` |
 | R-11 | `FALLBACK_POSTER` in `js/app.js` breaks R-08 and R-09 on purpose. Do not "fix" it into canon and do not delete it: it is the failure mode made visible | test:catalog/D-06 | `js/app.js` |
-| R-12 | Poster notes go to that category's `CARDS.md` under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 108 of 108**, so a missing one is now a regression | review | the four `CARDS.md` |
+| R-12 | Poster notes go to that category's record under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 116 of 116**, so a missing one is now a regression | review | the four `CARDS.md` |
 
 ## S: module structure
 
@@ -346,22 +347,22 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | S-33 | A missing import in a card throws a `ReferenceError` that `Timeline` swallows into `console.error`, so the step plays its first packet and silently stops. **Run `render/smoke.test.mjs` after touching any card's imports** | test:smoke | `lib/timeline.js` |
 | S-34 | **A comment in a card is at most TWO lines.** It says WHAT the line beside it does or where a number came from. It carries no date, no past defect, no account of an earlier version | test:files/S-34 | `scheme/CLAUDE.md`, where the record lives |
 | S-35 | Anything longer than S-34 is not a comment, and each length has one home | review | `scheme/CLAUDE.md` |
-| S-36 | Each card carries exactly ONE pointer comment under its imports: `// Design notes for this card: ./CARDS.md#<id>` | test:files/S-36 | `test/unit/docs.test.mjs` |
+| S-36 | Each card carries exactly ONE pointer comment under its imports, in the shape its category's record is in: `./CARDS.md#<id>` for one file per category, `./CARDS/<id>.md` for one file per card | test:files/S-36 | `test/unit/docs.test.mjs` |
 | S-37 | Notes on anything that is NOT one card go to the JSDoc BESIDE THE CODE they describe: `lib/*`, the four kits, `app.js`, `data.js`, and a comment block in the CSS for a rule about a CSS rule | review | `scheme/CLAUDE.md`, where the record lives |
 | S-48 | **A comment and a record state what IS, never what CHANGED.** No date on an edit, no `used to`, no `renamed on`, no `this block carried`: a reader needs the constraint and the number behind it, and the repository is not a diary | review | `scheme/CLAUDE.md`, the "Where the record lives" table, which already sends history to the bin |
-| S-49 | **A count a document states is MEASURED, not typed**, and a sentence reworded past its pattern fails as loudly as a wrong number | test:docs-census/CENSUS | `test/unit/docs-census.test.mjs` |
+| S-49 | **A count a document states is MEASURED, not typed**, and a sentence reworded past its pattern fails as loudly as a wrong number | test:docs-census/CENSUS, report:baselines/BASELINES | `test/unit/docs-census.test.mjs`, `test/report/baselines.test.mjs` |
 | S-50 | **A card skill CITES a rule and never restates it.** The skills under `.claude/skills/` are the fifth reader of this file and the only one outside `scheme/` | test:docs/D1 | `.claude/skills/card-review/SKILL.md` |
 | S-38 | **A note anchor is DATA: never reword one.** MOVING a note to another card needs a NEW anchor taken off the destination card, because the old text will resolve there against the wrong code or vanish with no finding | test:docs/A2 | `test/unit/docs.test.mjs`, counted 2026-08-07 |
-| S-39 | When a card is renamed, rename its `CARDS.md` heading too | test:docs/A4 | `test/unit/docs.test.mjs` |
+| S-39 | When a card is renamed, rename its record heading too, and the record FILE with it where the category is split | test:docs/A4 | `test/unit/docs.test.mjs` |
 | S-40 | A test file under `scheme/test/` keeps its knowledge in its OWN HEADER rather than moving it to a record, and the two-line cap on a card comment does not apply there | review | `scheme/test/`, and every test file header |
-| S-41 | **Internal markdown never ships.** Three filenames (`CLAUDE.md`, `CARDS.md`, `CANON.md`) plus `scheme/test/`, excluded BY NAME in three places that must agree: `deploy.yml`, `release.yml`, `.dockerignore` | test:files/S-41 | root `CLAUDE.md` |
+| S-41 | **Internal markdown never ships.** Three filenames (`CLAUDE.md`, `CARDS.md`, `CANON.md`), the `CARDS/` record folder, plus `scheme/test/`, excluded BY NAME in three places that must agree: `deploy.yml`, `release.yml`, `.dockerignore` | test:files/S-41 | root `CLAUDE.md` |
 | S-42 | Do not unify what VARIES between cards: the kit, block size, geometry, step count, connector style. **The `role` passed to primitives and the Pod tint are the one exception, and only when the binding is made IN THE CATEGORY KIT** | test:spec-scene/S-42 | `scheme/CLAUDE.md`, and C-02 / P-08 for the cost of the cross-category default |
 
 ---
 
 ## The record vocabulary
 
-One list for all four `CARDS.md` files, so a label cannot mean one thing in `cluster/` and another
+One list for all four records, so a label cannot mean one thing in `cluster/` and another
 in `storage/`. A record uses the ones that apply, in this order, and adds none of its own.
 
 **Every one of them is written in the present tense** (`S-48`). A block says what the card does and what
@@ -392,7 +393,7 @@ first four and group E for the last:
 
 | ID | Rule | Check | Source |
 |---|---|---|---|
-| S-43 | Every `## ` heading in a `CARDS.md` is a CARD ID and nothing else. A second-level heading anywhere else is reported as an orphan, which is why the preamble headings are bold text rather than `##` | test:docs/A4 | `test/unit/docs.test.mjs` |
+| S-43 | Every `## ` heading in a record is a CARD ID and nothing else, in either shape. A second-level heading anywhere else is reported as an orphan, which is why the preamble headings are bold text rather than `##` | test:docs/A4 | `test/unit/docs.test.mjs` |
 | S-44 | A card's section must be in ITS OWN category's file. A section filed in the wrong one is named as `MISFILED`, not as a missing file | test:docs/A5 | `test/unit/docs.test.mjs` |
 | S-45 | Every card has a section. A card with no design record is how a measurement gets lost | test:docs/A3 | `test/unit/docs.test.mjs` |
 | S-46 | **A record the walk cannot OPEN is a failure, never a shorter run.** Nothing may be read with a `continue` on absence | test:docs | `test/unit/docs.test.mjs`, `readDoc` |
@@ -423,7 +424,8 @@ wrong file.
 | `CLU.C-01` | the tint against the chrome colour |
 | `CLU.S-01` | what a cluster card's own record states |
 | `CLU.S-02` | the exemplar card |
-| `CLU.L-01` | the Node frame family geometry |
+| `CLU.S-03` | what a record is for at the margin, and the measured length band |
+| `CLU.L-01` | the Cluster Node frame family, and the six cards that deviate |
 | `CLU.D-01` | the subcategory split |
 
 ### `WL.*` workloads, `js/schemes/workloads/CLAUDE.md`
@@ -496,16 +498,16 @@ Not defects. Each is a rule broken on purpose, with the reason and the number th
 | What | Why it stands |
 |---|---|
 | `FALLBACK_POSTER` breaks R-08 and R-09 | R-11 |
-| `dim` losing to `role` on an arrow | A-18. Making `dim` outrank `role` changes 94 of 103 cards and greys the networking exemplar's fan |
+| `dim` losing to `role` on an arrow | A-18. Making `dim` outrank `role` reaches almost the whole catalog (101 of 110 cards declare a dim arrow or lane carrying a role) and greys the networking exemplar's fan |
 | `flashChips` exported with no card importing it | S-25. `F.flash` is its one caller |
-| `F.flash` a live flow verb with zero call sites on 650 steps | S-25c, and `M-27` is why the zero is a ban rather than a gap |
-| 69 of 542 narrated steps register no animation at all, 162.6 seconds | M-27. A packet-less, pod-less step is STILL on purpose: the alternative was a brightness pulse on infrastructure that `M-01` forbids and no still frame can show |
-| `step.motion` a live field with zero uses on 650 steps | S-25a |
+| `F.flash` a live flow verb with zero call sites on 665 steps | S-25c, and `M-27` is why the zero is a ban rather than a gap |
+| 78 of 590 narrated steps register no animation at all, 191.9 seconds | M-27. A packet-less, pod-less step is STILL on purpose: the alternative was a brightness pulse on infrastructure that `M-01` forbids and no still frame can show |
+| `step.motion` a live field with zero uses on 665 steps | S-25a |
 | Six `svg.js` exports with no importer | S-29 |
 | No module constant declares a number nothing reads. **Zero, catalog-wide** | A dangling name is worse than a dead line: a constant and the comment naming it always move together. An axis is stated as the literal 600, a pitch as a two-line comment on the block it spaces |
 | Header chrome duplicated three ways (`cli/js/app.js`, `scheme/js/app.js`, inline in the root `index.html`): `renderHeaderActions` at 86 lines, plus `fallbackCopy`, `closeAllDropdowns` and the icons, about 240 lines | Deliberate. Each path prefix stays self-contained, which is the reason the duplication exists |
 | `cli/css/styles.css` (227 rules) and `scheme/css/styles.css` (217 rules) share 63 selectors with a byte-identical body | 22 more share a SELECTOR with a DIFFERENT body (`html`, `body`, `.card`, `.footer`, `.cat-btn`, `.logo`, `.section-header` and others), so cascade order decides. Merging is a real visual risk. Measured 2026-08-06 |
-| 45 `OPEN` findings across the four records, against 8 findings in the soft geometry report | L-16, and the two counts are not one count. Each `OPEN` entry carries its own measurement and the reason the rule can only be satisfied by making the picture worse |
+| 54 `OPEN` findings across the four records, against 10 findings in the soft geometry report | L-16, and the two counts are not one count. Each `OPEN` entry carries its own measurement and the reason the rule can only be satisfied by making the picture worse |
 | 11 ambiguous label pairs | T-14 |
 
 ---
@@ -525,13 +527,34 @@ carry, the row is the one that is wrong and the row is what gets fixed. Every he
 `unit/docs.test.mjs` group F resolves against the tables above, so a long form for a rule that does
 not exist, or two for one rule, is a failure and not a stray paragraph.
 
+### L-04
+
+**The two ends of this range are not the same kind of number, and treating them alike is what makes
+the shallow one look stale every time somebody edits a narration.**
+
+The deep end is a card. 503.13 belongs to `workloads-pod-phase-machine` at 1100x800 on step 5,
+because that step has the longest narration in the catalog and the narrowest viewport wraps it into
+the most lines. Move that prose and the number moves with it, which is what the report's attribution
+line is for.
+
+The shallow end is a CLUSTER, and one card now sits a line below it. Panel bottoms are quantized by
+the line height, about 17.44 units at 1600x1000, so the measured set clusters on 90.23, 107.67,
+125.11, 142.56, 160.00 and 177.44 rather than spreading. **15 cards sit on 107.67**, so the id the
+report prints beside that value is whichever the walk reaches first, and an `attribution DIFFERS`
+there says nothing about the tree. Read the VALUE, never the name.
+
+90.23 is one line shallower and one card reaches it, `cluster-leader-election` on step 2, which
+carries the shortest narrations in the catalog so that its diagram clears the panel. 107.67 is
+therefore not a panel of ONE line and not the fewest a narrated step can have: it is FOUR narration
+lines at 1600x1000, and the shallow end is only ever the shortest prose anyone has written.
+
 ### L-05
 
 The difference between the two is what a reader gets wrong. The panel is HTML at a fraction of the
 dialog width while the diagram scales past it, so a WIDER dialog gives a WIDER panel that wraps into
 FEWER lines and is therefore SHORTER in viewBox units, while every drawn thing around it grows.
 
-Against the viewport the bottom is orderly: **650 of 650 comparable steps** fall as the viewport
+Against the viewport the bottom is orderly: **665 of 665 comparable steps** fall as the viewport
 widens, 0 break that order.
 
 ### L-05a
@@ -591,8 +614,16 @@ them: measure the string.
 
 ### L-23
 
-34 of label padding, 106 of Pod, 12 of floor. `node()` prints its own label at `NODE_Y + 18`, so
-less padding puts the frame label inside the first Pod.
+Measured over the 58 cards that draw a Node frame with Pods inside it, 74 frames in all. Only two
+readings are shared by more than a handful: `POD_H = 106` on 21 cards and `POD_Y = NODE_Y + 34` on
+17. `NODE_H` has no plurality worth the name, 152 on 9 cards against 140 on 8, and 41 distinct
+`NODE_H / POD_H / POD_Y-NODE_Y` triples cover the 58. The largest single family is `152 / 106 / 34`
+on 9 cards, and all nine are Cluster, which is why the numbers live in `CLU.L-01` and not here.
+
+What IS catalog-wide is the floor under the top padding: `node()` prints its own label at `x: 12,
+y: 18` (`primitives.js`), whose box measures `NODE_Y + 6.8` to `NODE_Y + 21.4` and `NODE_X + 12` to
+about `NODE_X + 57` at 1600x1000. A Pod row starting above that band has to clear the label
+horizontally instead, which is what the cards at `POD_Y - NODE_Y` of 14 to 22 rely on.
 
 ### A-06
 
@@ -667,6 +698,18 @@ arrow would finish in 489ms and read as a dart next to the long glide.
 nothing can say a given 800 was one rather than the other. `render/motion.test.mjs` therefore prints
 the vocabulary as a CENSUS (it explains 671 of 714 balls) and asserts none of the four.
 
+### M-19a
+
+A step holds for `duration` and animates for `span`, so it also stands STILL for the difference.
+`M-19` bounds that difference below and nothing bounds it above, so a ball can land a third of the
+way in and leave the viewer at a picture that has stopped changing. The hold is READING time, so
+still time is what a long narration charges a short motion and a high reading alone is not a
+defect. It is a finding when a step is an outlier on BOTH readings at once: far more still than its
+siblings AND unremarkable on ms per character, which means the hold is not buying reading either.
+The fix is then the MOTION (a narrated exchange the picture never draws is the usual cause) or the
+narration, never `duration` alone, because `M-19` still has to hold.
+`tools/deadair.mjs` prints both readings with the catalog distribution behind them.
+
 ### M-22
 
 `REVEAL_MS` is exported precisely so three cards can sequence the next beat off it rather than
@@ -685,8 +728,8 @@ a pulse as `filter: brightness(...)`, and `flashChips` is exactly `brightness(1)
 600ms, so the flash one row sanctioned was the motion the other row bans. It also peaks HARDER than
 the thing `M-01` reserves the mechanism for: 1.55 against the Pod pulse's 1.4.
 
-The cost is a frozen step, and it is paid on purpose. Measured over all 108 cards: **69 of the 542
-narrated steps (650 total less the 108 poster slots), 162.6 seconds, register no animation at all.**
+The cost is a frozen step, and it is paid on purpose. Measured over all 115 cards: **77 of the 585
+narrated steps (700 total less the 115 poster slots), 188.8 seconds, register no animation at all.**
 That is the same population the verb used to move, 58 already still plus the 11 it flashed.
 
 Three things buy it back, and none of them is a pulse. The step still CHANGES on entry: a `.highlight`
@@ -808,8 +851,8 @@ There is no offline copy to fall back on: the liveness report writes no page cac
 
 ### T-28
 
-**Two shapes are in use and both are legitimate**, measured over all 108: **24 end in a full stop**
-and are two to four sentences of description, **84 do not** and are a headline phrase with a colon
+**Two shapes are in use and both are legitimate**, measured over all 110: **24 end in a full stop**
+and are two to four sentences of description, **86 do not** and are a headline phrase with a colon
 and a list of stages.
 
 Match your own card's neighbours rather than converging the catalogue.
@@ -825,14 +868,15 @@ and let the `F.set` fill it on the beat.
 ### T-34
 
 **Nothing is cached**, deliberately: a green run means the links were alive at the moment it ran, and
-a run with no route out fails every url. 149 unique urls, all alive on 2026-08-06.
+a run with no route out fails every url. The size of the bibliography is stated where it EXECUTES,
+in `report/sources.test.mjs`, which prints the live census beside the recorded one on every run: a
+number restated here goes stale the next time a card is added and nothing sees it happen.
 
 ### T-35
 
-Four cards show an alternative path as real state: `cluster-resource-quota` un-admits both Pods and
-zeroes the quota, `storage-pv-lifecycle-phases` deletes a PV that exists again a step later,
-`storage-volume-detach-on-node-loss` plays a branch AFTER its own ending, and `network-dns-ndots`
-answers NOERROR on the name its next step gets NXDOMAIN for.
+Three cards show an alternative path as real state: `storage-pv-lifecycle-phases` deletes a PV that
+exists again a step later, `storage-volume-detach-on-node-loss` plays a branch AFTER its own ending,
+and `network-dns-ndots` answers NOERROR on the name its next step gets NXDOMAIN for.
 
 A reader looking at the frame without the panel sees a state that never happened, and no rule caught
 it because every check reads one step at a time.
@@ -841,9 +885,14 @@ The sign is ONE grammar catalog-wide, and the two alternatives are ruled out rat
 ghost shades already mean `terminating` and `notready` on 94 cards, and a dashed frame does not fit
 the two cards whose branch spans the width.
 
+**All three carry it as a `P.wire` caption**, so the grammar has no deviation in the catalogue
+today: `if the policy is Delete`, `if instead the taint lands first`, `if instead that first guess
+misses`. A card that argues an alternative in PROSE alone is outside this row rather than a
+deviation from it, because there is no counterfactual state on the canvas for a caption to sign.
+
 ### P-01a
 
-Read off the migrated data over all 108 cards: **2 361 chip writes over 650 steps, one identical chip
+Read off the migrated data over all 115 cards: **2 703 chip writes over 700 steps, one identical chip
 set per card, zero unstated steps.**
 
 What the rule does NOT reach is the other text axes. Labels, sublabels and pod sublabels are still
@@ -905,13 +954,13 @@ a reader whose input is the rendered diagram.
 ### P-09a
 
 `report/arrival.test.mjs` carries all seven of those in `R2_STEP_CARRIED` with the reason on each: a
-value RETURNING to the steady state after a conditional aside (`cluster-api-structure` crd x3,
+value RETURNING to the steady state after a conditional aside (`cluster-list-watch-informers` crd x3,
 `cluster-static-pods` edit-file), a panel emptying because THIS MODE has no such field
 (`network-client-ip-preservation` passthrough x2), and a suffix explaining an unchanged state
 (`cluster-oom-kill` oomkill, where the state really is still Running).
 
 Cueing any of them announces an event that did not happen, and each is written down in its own
-`CARDS.md` section as well.
+record section as well.
 
 ### P-10
 
@@ -922,7 +971,7 @@ A `prose.mjs` seed on a writer's NAME is the same coupling one layer out, and `T
 
 ### D-13
 
-The folder, `cards.js`, `posters.js`, `<cat>-kit.js`, `CLAUDE.md`, `CARDS.md`, `CATEGORIES` in
+The folder, `cards.js`, `posters.js`, `<cat>-kit.js`, `CLAUDE.md`, the record, `CATEGORIES` in
 `js/data.js`, the tint block in `css/styles.css`, the colour in `css/tokens.css`, `POSTER_COLORS` in
 `js/app.js`, the header of any test that has to know about it, and a `<CAT>.*` block in this file.
 
@@ -1007,8 +1056,11 @@ can never precede the reset.
 Only the middle is per card, and it is DECLARED (`keys`, `pods`, `extra`) rather than written.
 
 **`reset.extra` running LAST is load-bearing, and an extra put before `clearWires` fails silently.**
-The one extra in the catalog (`cluster-api-structure`) touches `strokeDasharray` and nothing a wire
-label owns, so an extra that wrote a wire label would be wiped by the clear that follows it.
+The one extra in the catalog (`network-pod-ip-and-veth`) writes `style.strokeOpacity` on a lane and
+nothing a wire label owns, so an extra that wrote a wire label would be wiped by the clear that
+follows it. No cluster card declares one, and `js/schemes/cluster/CLAUDE.md` records why the
+candidate there cannot want one: `dashed: true` writes the dash as an ATTRIBUTE, which an inline
+style never touches.
 
 ### S-12
 
@@ -1094,8 +1146,9 @@ the skeleton.
 
 ### S-27
 
-What is left per card is the escapes, 132 hooks on 31 cards. Three categories out of four grew the
-DSL zero times, and network's two additions were serialised through the coordinator.
+What is left per card is the escapes, counted by hook kind in `scheme/CLAUDE.md`, which is where
+`unit/docs-census.test.mjs` compares that census against the tree. Three categories out of four grew
+the DSL zero times, and network's two additions were serialised through the coordinator.
 
 ### S-33
 
@@ -1104,7 +1157,7 @@ Only the browser smoke sees it.
 ### S-35
 
 A rule true of one category goes to that folder's `CLAUDE.md`. A rule true of two or more goes here.
-A measurement or a rejected alternative goes to that card's `CARDS.md` section. History goes to the
+A measurement or a rejected alternative goes to that card's record section. History goes to the
 bin.
 
 ### S-37
@@ -1115,7 +1168,7 @@ the code it describes has no owner yet.
 ### S-48
 
 **The distinction is what the date is ATTACHED to.** A date on a MEASUREMENT is provenance for a
-figure someone can re-measure and is legal (`measured 2026-08-06 over 108 cards`). A date on an EDIT
+figure someone can re-measure and is legal (`measured 2026-08-06 over the whole catalog`). A date on an EDIT
 is a changelog and is not (`renamed 2026-08-19`, `the 153 this block carried until`).
 
 Where a rejected attempt still has to bind, it binds as a `DO NOT` or a `WHY NOT` carrying the number
@@ -1129,16 +1182,36 @@ the tree and EVERY block of a record.
 The absolutes in this file, in `scheme/CLAUDE.md` and in the four folder contracts are compared
 against a census computed off the specs and the records.
 
+**A CATALOG-WIDE quantity is not stated in a card record at all.** A record explains ONE card, and
+a card's own measurement stays true until that card is edited. A population, a catalog median or a
+rank against either belongs to the CATALOG: it goes stale the moment a card lands in any category,
+including a category the record has nothing to do with. One card arriving in `cluster/` invalidated
+37 such numbers across 15 cluster records at once.
+
+So a record names the EXECUTING HOME instead of copying the answer, which is the same rule the root
+`CLAUDE.md` states for the count of checks the suite runs. The homes are
+`report/baselines.test.mjs` for the reading-pace baseline, the long-narration cohort, the per
+category duration shape and the `M-27` population, `card-review/tools/deadair.mjs` for still time,
+`card-review/tools/pace.mjs` for ball speed, `report/overlay.test.mjs` for panel extents and
+`card-poster/tools/poster-lint.mjs` for the poster medians. Section 7 of `baselines` prints which
+records still carry a copy. The cluster record is the worked example.
+
 ### S-50
 
-They name 37 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
+They name 55 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
 short and what stops it drifting from the rulebook it drives.
 
 ### S-38
 
-`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **202 anchors
-today**, all four `CARDS.md` (cluster 16, workloads 41, network 80, storage 65). **The walk fails on a
+`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **205 anchors
+today**, all four records (cluster 19, workloads 41, network 80, storage 65). **The walk fails on a
 record it cannot read instead of running shorter** (`S-46`).
+
+**A RECORD HAS TWO SHAPES and the walk reads both.** One `CARDS.md` holding every `## <card id>`
+section, or a `CARDS/<card-id>.md` per card with `CARDS.md` keeping the preamble and the index.
+`recordFiles` in `test/fixtures/catalog.mjs` decides which by looking for the folder, so a category
+choosing either is covered without a reader knowing its name, and a `CARDS/` that exists and reads
+empty is a failure rather than a shorter walk. Cluster is split, the other three are not.
 
 **An anchor is unique only WITHIN its `## <card id>` section, never across a record.** The resolver
 looks the line up in that card alone, so duplicates are legal where they sit: 13 anchor texts are

@@ -49,7 +49,7 @@
 //
 // WHAT DOES FAIL: the census, the shape of the carried table, and the one constant this file copies.
 // A report that walked less than the catalog prints few findings and looks exactly like a clean
-// catalog: a walk that reaches 649 steps of 650 drops the 650th silently and nothing in the output
+// catalog: a walk one step short drops that step silently and nothing in the output
 // looks wrong, which is why the floor below is asserted rather than printed.
 //
 // ===========================================================================================
@@ -100,7 +100,6 @@ const KIT = { routeDur, REVEAL_MS, BEAT };
 // the gate file that asserts the queue. See that file's header for why.
 import { RIPPLE_MS, TOP_DEFAULT, RIPPLE_CARRIED, ringOf, at } from '../fixtures/ripple-double.mjs';
 
-const RECORDED = { rings: 718, 'F.ripple': 4, SIMULTANEOUS: 4, STAGGERED: 7, NEAR: 0 };
 const catalogued = await cards();
 const modules = await importAll();
 const pad = (n) => String(n).padStart(4);
@@ -185,10 +184,8 @@ test('how many rings land on one arrival (report only, census is the assertion)'
   }
 
   out.push('');
-  out.push('1. THE POPULATION, live against what was recorded when this file was written');
-  for (const k of Object.keys(RECORDED)) {
-    out.push(`   ${k.padEnd(13)} ${pad(live[k])}${live[k] === RECORDED[k] ? '' : `   (recorded ${RECORDED[k]})`}`);
-  }
+  out.push('1. THE POPULATION, counted live on this walk');
+  for (const k of Object.keys(live)) out.push(`   ${k.padEnd(13)} ${pad(live[k])}`);
 
   out.push('');
   out.push(`2. SIMULTANEOUS, THE QUEUE: ${simultaneous.length} place(s) where two rings start on the ` +

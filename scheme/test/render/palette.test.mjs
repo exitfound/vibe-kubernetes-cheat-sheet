@@ -63,10 +63,45 @@ function describeSpread(spread) {
 // decoration: a check whose coverage silently collapses still reports zero findings and exits 0.
 // Either number moving means the CATALOG moved (a card added, an element added or a role changed),
 // and the right response is to look at the diff and then update the constant, never the reverse.
-// 1897: network-dns-records gives the category role to its four answer lanes, which
-// carry a ball exactly like the two client lanes that already had it (+4), and network-headless-service
-// took it off the three endpoint fans, which carry nothing, per the rule the card states itself (-3).
-const EXPECTED_PAINTED = 1897;
+// 1897: cluster-scheduler-decision draws the Kubelet that picks the Pod up (+1) and the two lanes
+// the placement write travels to reach it (+2). Before them the Pod materialised on the Node with
+// nothing arriving, which no rule in this suite can see.
+// 1896: cluster-pod-priority-preemption went from two lanes to one (-1). The two coincided over 664
+// of their units and both ended on one Pod, so the second was drawing the first a second time.
+// 1895: the same card dropped its top-row ANSWER lane (-1). No step names anything returning from
+// the API, so the relation drew a direction the card never uses. It now runs one lane on TOP_CY.
+// 1911: cluster-pod-disruption-budget joins the catalog (+16): two top lanes, one drop, three
+// wire labels, four chips, the ledger box, two standing captions and three Pods.
+// 1929: cluster-taints-tolerations joins the catalog (+18): one top lane, one elbow and one drop,
+// six chips, three blocks plus the three inner app boxes, and three Pods. Wire labels carry no role.
+// 1948: cluster-rbac joined the catalog (+19): seven chips, seven blocks, the two request lanes and
+// the three roleRef relations. Recorded here after the fact, because that pass moved the constant
+// and wrote no line for it.
+// 1929: cluster-rbac leaves the catalog again (-19), the same nineteen. The card is the anchor of
+// the planned security category and was never published from this one.
+// 1966: the two Node Runtime cards join the catalog (+37). cluster-pod-cgroup-hierarchy +20: nine
+// blocks (the five tiers, its three children and the top row), three chips, six lanes and the
+// two parentage relations. cluster-pod-resize +17: five blocks, four chips, two top arrows, two
+// lanes, the two branch relations and the Pod with its inner box. The Node frame and the wire
+// labels carry no role.
+// 1987: cluster-image-container-gc joins the catalog (+21): six chips, five blocks (the two
+// actors and three of the dead-container slots that are not the two collected ends), the Node
+// frame, four standing tags, three lanes and the two naked ruler rects. The move of
+// cluster-pod-resize to workloads changed the category on its 17, not the count.
+// 2030: cluster-node-registration and cluster-node-restart join the catalog (+43 between them).
+// The split per card is NOT recorded, because the assertion is FULL_ONLY and a SCHEME_IDS run
+// skips it, so no per-card figure was measured and inventing one would be worse than this line.
+// 2046: cluster-node-eviction-rate joins the catalog (+16): five blocks (the controller and the
+// four Node slots), four chips, two lanes and the five chain rows. The two zone frames and the
+// three wire labels carry no role.
+// 2062: cluster-node-conditions joins the catalog (+16): six chips, two taint blocks, two lanes
+// and three Pods with their inner boxes. The Node frame and the two wire labels carry no role.
+// 2046: cluster-pod-disruption-budget LEAVES the catalog (-16), giving back exactly what the
+// 1911 line above records it brought: two top lanes, one drop, three wire labels, four chips, the
+// ledger box, two standing captions and three Pods.
+// 2047: cluster-node-conditions trades its two taint boxes for one actor box and gains a fourth
+// Pod (+1), a Pod being a shell plus its inner box where a box is one painted element.
+const EXPECTED_PAINTED = 2047;
 const EXPECTED_COMBINATIONS = 29;
 
 const catalogued = await cards();

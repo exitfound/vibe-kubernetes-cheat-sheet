@@ -43,13 +43,13 @@ import {
 } from '../fixtures/render.mjs';
 
 // ---------------------------------------------------------------------------------------------
-// The census. Measured 2026-08-07 on a green tree, at 108 cards and 650 steps.
+// The census. Measured 2026-08-24 on a green tree, at 110 cards and 665 steps.
 // ---------------------------------------------------------------------------------------------
 const CARD_TOTAL = CATALOG_BASELINE.cards;
 
 // Prose reachable only through the running controller: one narration per step that has one (the
 // poster step of each card has none), plus one aria-label per card.
-const NARRATION_FLOOR = floor(542);
+const NARRATION_FLOOR = floor(555);
 const ARIA_TOTAL = (await cards()).length;
 
 // Distinct (card, text class, string) triples over a static walk of every step. Counted once per
@@ -57,14 +57,20 @@ const ARIA_TOTAL = (await cards()).length;
 // not how often they are painted. The predecessors counted OCCURRENCES IN THE SOURCE and reported
 // 3093 (check-inline) and 3041 (check-labels), so these numbers are not comparable to those: a
 // different mechanism counting a different thing, deliberately.
-const DRAWN_FLOOR = floor(3509);
-const CASE_ELIGIBLE_FLOOR = floor(3420);   // the same set minus the node frame labels, see T-12 below
+// 3613 / 3520: `cluster-leader-election` draws its `holderIdentity` as the bare replica name on
+// every step that has one, so `expire` and `renew` share one string where a `(stale)` marker on the
+// expire reading would be a second. A chip named for a field states what the FIELD holds (-1).
+const DRAWN_FLOOR = floor(3613);
+const CASE_ELIGIBLE_FLOOR = floor(3520);   // the same set minus the node frame labels, see T-12 below
 
 // Strings a diagram BLOCK owns: its own label and sublabel texts, nested frames excluded. This is
 // the input to the two figure rules. tools/check-figures.mjs anchored a string to the nearest
 // preceding label in the FILE and counted 1251; ownership here is structural, which is both the
 // stronger claim and a different count.
-const ANCHORED_FLOOR = floor(1599);
+// A step earns a line here only for a string no other step of its card draws, so the count moves
+// with what a step SAYS and not with how many steps a card has.
+// 1638: the same one string, and the kubectl block is what owns it (+1).
+const ANCHORED_FLOOR = floor(1638);
 
 // Every class a drawn string can carry. Asserted as a closed set, and this is the real successor
 // of COVERAGE FLOOR: a new primitive that draws text under a class nobody listed would fall
@@ -108,7 +114,9 @@ const KNOWN_DRIFT = [
   // "pod" here is the DNS subdomain under the cluster domain, not the object. terms.json carries a
   // `homographs` list for exactly this, and it has no entry for it. Adding one is a fixture edit,
   // which is out of scope for this file.
-  'pod: "Pod" x21 vs "pod" x1',
+  // x25 since cluster-node-conditions joined. Still the same PAIR, which is what this list
+  // freezes: a new pair is a defect, a higher count is not.
+  'pod: "Pod" x24 vs "pod" x1',
   'podc: "Pod C" x3 vs "pod-c" x1',
 ].sort();
 
@@ -572,7 +580,9 @@ test('T-18 no block asks for more than its own limit (REQ>LIMIT)', () => {
 // ../unit/text.test.mjs.
 // ---------------------------------------------------------------------------------------------
 
-test('SOFT ambiguous terms across narration and aria-label, minority form listed (reporting)', (t) => {
+// FULL_ONLY because the closing assertion is a matcher-collapse guard over the whole prose set: a
+// one-card walk matches no soft term and reads as a collapse, which reddens every filtered run.
+test('SOFT ambiguous terms across narration and aria-label, minority form listed (reporting)', FULL_ONLY, (t) => {
   const forms = new Map();
   for (const p of prose) {
     const starts = new Set(sentenceStarts(p.text));
@@ -597,5 +607,5 @@ test('SOFT ambiguous terms across narration and aria-label, minority form listed
     t.diagnostic(`  ${term.padEnd(12)} ${ranked.map(([form, at]) => `${form} ${at.length}`).join(' | ')}`);
     for (const [form, at] of ranked.slice(1)) t.diagnostic(`      ${form}: ${at.slice(0, 10).join(', ')}${at.length > 10 ? ' ...' : ''}`);
   }
-  assert.ok(forms.size > 0, 'no soft term matched anywhere in 650 prose strings: the matcher collapsed');
+  assert.ok(forms.size > 0, 'no soft term matched anywhere in the prose strings: the matcher collapsed');
 });

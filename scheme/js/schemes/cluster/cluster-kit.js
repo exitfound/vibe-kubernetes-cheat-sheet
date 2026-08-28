@@ -25,7 +25,11 @@ export const CLUSTER_TINT = Object.freeze({ base: 'rgb(192, 176, 255)', bright: 
 export const { pulsePod, pulsePodDim } = makeTintedPulses(CLUSTER_TINT);
 
 // The Cluster grammar: a grammar is named after the category that owns it, so CLU lives here alone.
-// Every number is the MODE: TOP_Y 40/13 cards, BOX_W 232/6, CHIP_H 34/13, LANE_DY 12/11, POD_H 106/8.
+// Every number was the MODE of the category when the grammar was frozen, and the count beside each
+// is what takes it from here TODAY, which is the reading that can be re-measured: TOP_Y on 18 cards,
+// CHIP_H on 17, BOX_W on 14, LANE_DY on 12, NODE on 11. POD_H 106 resolves on 12 cards, the two
+// beyond NODE being cascading-deletion and object-create-path, which write the literal because they
+// share one grid with each other rather than with this family (CLU.L-01).
 export const CLU = Object.freeze({
   M: 60, L: 60, R: 1140, CX: 600, W: 1080,
   TOP_Y: 40, BOX_H: 80, TOP_BOTTOM: 120, BOX_W: 232, SPINE_X: 600,

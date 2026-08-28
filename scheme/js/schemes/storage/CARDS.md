@@ -27,9 +27,9 @@ reads the same numbers off it, so a paragraph restating a coordinate is a second
 rot. What is below is what the code cannot say: a measurement a browser took, the string that floors
 a width, the alternative that was tried and failed, and the defect a constraint prevents.
 
-Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM ranges 90 to 504 over
-the standard viewport set, and it moves NON-MONOTONICALLY (`L-02`, `L-04`, `L-05`). So a `PANEL_B`
-in a card is a measurement, not a convention. Re-measure with `npm run report`
+Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM varies per card
+and per viewport inside the band `L-04` states, and it moves NON-MONOTONICALLY (`L-02`, `L-04`,
+`L-05`). So a `PANEL_B` in a card is a measurement, not a convention. Re-measure with `npm run report`
 (`report/overlay.test.mjs`, which walks every card at 1600x1000, 1280x860 and 1100x800) after any
 prose change: several cards here carry a hard character ceiling and nothing enforces them (`L-08`).
 

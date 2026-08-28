@@ -46,6 +46,23 @@ export const POSTERS = {
     </g>
   `,
 
+  // Ghost zone to solid zone. Left of the dashed rule the OLD way, two staggered Pod outlines with
+  // a gap of nothing between them: the delete and the recreate. Right of it ONE tall solid Pod, and
+  // its single 0.9 bar is the number the resize moved, wider than the faint bars it replaces.
+  'workloads-pod-resize': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="22" y="26"  width="96" height="48" rx="6" fill="rgba(255,255,255,0.03)" opacity="0.5" stroke-dasharray="4 3"/>
+      <rect x="42" y="106" width="96" height="48" rx="6" fill="rgba(255,255,255,0.03)" opacity="0.5" stroke-dasharray="4 3"/>
+      <line x1="160" y1="18" x2="160" y2="162" opacity="0.45" stroke-dasharray="4 3"/>
+      <rect x="182" y="26" width="114" height="128" rx="8" fill="rgba(255,255,255,0.08)" stroke-width="2"/>
+    </g>
+    <g fill="currentColor" stroke="none">
+      <rect x="34"  y="44"  width="60" height="10" rx="1" opacity="0.16"/>
+      <rect x="54"  y="124" width="60" height="10" rx="1" opacity="0.16"/>
+      <rect x="198" y="83"  width="82" height="14" rx="2" opacity="0.9"/>
+    </g>
+  `,
+
   'workloads-probes': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="124" y="52" width="92" height="76" rx="12" fill="rgba(255,255,255,0.04)"/>

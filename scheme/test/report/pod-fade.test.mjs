@@ -31,7 +31,7 @@
 //   workloads-replicaset  orphan        the Pod loses its owner and keeps running. A blink here reads
 //                                       as a create, which is the defect the adoption step was
 //                                       repaired for.
-//   cluster-delete-flow  purge          a SECOND fade on a Pod that already pulsed earlier in the
+//   cluster-cascading-deletion  purge          a SECOND fade on a Pod that already pulsed earlier in the
 //                                       card, so the beat is spent.
 //   storage-volume-detach-on-node-loss  forcedetach
 //                                       measured permanent: the Pod is already at 0.25 and blinked on
@@ -63,8 +63,8 @@
 // WHAT FAILS HERE
 // ===========================================================================================
 // The census, and nothing else. A walk that read fewer cards or steps than the catalogue prints few
-// findings and looks exactly like a clean catalogue: a walk that reaches 649 steps of 650 drops the
-// 650th silently and nothing in the output looks wrong, which is why the floor below is asserted
+// findings and looks exactly like a clean catalogue: a walk one step short drops that step silently
+// and nothing in the output looks wrong, which is why the floor below is asserted
 // rather than printed.
 
 import { test } from 'node:test';
@@ -98,8 +98,20 @@ const RULED = new Map([
   ['workloads-replicaset orphan pod3',
     'CORRECT. The Pod loses its owner and keeps running. A blink reads as a create, which is the ' +
     'defect the adoption step on this same card was repaired for.'],
-  ['cluster-delete-flow purge placedPod',
+  ['cluster-cascading-deletion purge placedPod',
     'CORRECT. A second fade on a Pod that already pulsed earlier in the card, so the beat is spent.'],
+  ['cluster-node-restart reboot podWeb',
+    'CORRECT. A reboot signals nobody, so there is no beat for a Pod to answer. A blink would claim ' +
+    'an acknowledgement that never happened, and the Pod object is untouched in the API.'],
+  ['cluster-node-restart reboot podAgent',
+    'CORRECT. Same reboot, same reason: the machine goes down under all three Pods at once.'],
+  ['cluster-node-restart reboot podDbg',
+    'CORRECT. Same reboot, same reason.'],
+  ['cluster-node-restart replaced podWeb',
+    'CORRECT. The DELETE landed while the Node was away, so it reaches nothing on this Node that ' +
+    'could answer it. The card draws no control-plane block for the same reason.'],
+  ['cluster-node-restart standalone podDbg',
+    'CORRECT. Same eviction, one Pod later, and nothing recreates a standalone Pod afterwards.'],
   ['storage-volume-detach-on-node-loss forcedetach oldPod',
     'CORRECT, and measured permanent. The Pod is already at 0.25 and blinked on the previous step, ' +
     'whose comment is that a pulse and a fade must not read as one event. A blink at 0.25 needs ' +

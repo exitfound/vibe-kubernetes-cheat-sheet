@@ -22,6 +22,7 @@
   ],
   "hard": {
     "Kubelet": "component name, capitalized here by decision (catalog majority 130 to 57)",
+    "Scheduler": "component name, capitalized here by decision. The count does NOT settle this one (22 capital to 19 lower), so the tie is broken the way hardLower already broke it for kube-scheduler: the binary name stays lowercase, and the COMPONENT takes a capital as a heading does, like Kubelet. Bare Scheduler only, never the kube-scheduler spelling, which the hardLower entry owns",
     "ETCD": "capitalized here by decision (catalog majority 25 to 6)",
     "Kubernetes": "project name",
     "CoreDNS": "project name",

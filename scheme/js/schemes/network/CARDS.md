@@ -22,12 +22,12 @@ The label vocabulary a `### layout` block uses is ONE list for all four records,
 `scheme/CANON.md` under "The record vocabulary". Use the labels that apply, in that order, and add
 none of your own.
 
-Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM ranges 90 to 504 over
-the standard viewport set, and it moves NON-MONOTONICALLY (`L-02`, `L-04`, `L-05`). So a `PANEL_B`
-in a card is a measurement, not a convention. Re-measure after any prose change with `npm run
-report` from `scheme/test/`, which prints the real extent per card, per step, over the three
-viewports: several cards here carry a hard character ceiling and nothing in `npm test` enforces one
-(`L-08`).
+Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM varies per card
+and per viewport inside the band `L-04` states, and it moves NON-MONOTONICALLY (`L-02`, `L-04`,
+`L-05`). So a `PANEL_B` in a card is a measurement, not a convention. Re-measure after any
+prose change with `npm run report` from `scheme/test/`, which prints the real extent per card,
+per step, over the three viewports: several cards here carry a hard character ceiling and
+nothing in `npm test` enforces one (`L-08`).
 
 ---
 
@@ -1512,7 +1512,7 @@ WHY NOT  Drawing the veth as a lane PAIR, one arrow each way. It states two-way 
          DATA and not as DOM: the veth segment drops out of its COPIED tier into UNDRAWN, the sharpest
          finding that file has, on a card with none. A hand-spelled class list is also what A-07 warns
          about, and the idiom sets no `data-role`, so unless one is hand-written the cable drops out of
-         the painted set `render/palette.test.mjs` holds to a baseline of 1897 elements.
+         the painted set `render/palette.test.mjs` holds to a baseline of 1895 elements.
          Raising `stroke-opacity` only on the steps a ball crosses, the `network-pod-ip-and-veth`
          loopback precedent (`reset.extra` plus a per-step write). The truest picture of the five, and
          it costs an `enter` on all five steps plus a `reset.extra` to write a property no field
@@ -1606,7 +1606,7 @@ taken there lands on either side of it: take the before frame at 1800.
 NOT A DEFECT, and it is the one step of this card that deliberately does NOT take a P-03 repair. All
 three changed values stand from step ENTRY, 700ms before the only ball lands, and
 `report/chip-beat.test.mjs` lists them as FORM-B at 700ms, the bottom of its four lead bands, where
-209 of its 341 catalog-wide records sit.
+most of its catalog-wide records sit.
 The direction of the motion is the reason. On `prerouting` and on `reply` a ball travels TO the place
 that makes the value, so the value has to wait for the arrival, and both are bound. Here the nat table
 runs INSIDE PREROUTING, where the packet already is at entry, and the drawn motion is the packet

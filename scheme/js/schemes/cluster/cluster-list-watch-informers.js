@@ -1,7 +1,7 @@
 import { P, F, defineCard, laneY, ladder, midX, shade, FADE } from './cluster-kit.js';
 import { g, rect, text } from '../../lib/svg.js';
 
-// Design notes for this card: ./CARDS.md#cluster-api-structure
+// Design notes for this card: ./CARDS/cluster-list-watch-informers.md
 
 // Laid out on the L. Panel worst case x<=397 y<=181, so the Client sits in the freed bottom-left
 // and reaches the API up a riser clear of it. The Informer/Indexer stack keeps the centre column.
@@ -168,7 +168,7 @@ export const STEPS_SPEC = [
     duration: 1900,
     narration: 'The controller first asks the API what it can talk to. GET /api and GET /apis return the discovery document, the catalogue of every group, version and resource the informer can list and watch.',
     chips: { rvChip: 'none', watchChip: 'closed', cacheChip: '0' },
-    wires: { req: 'GET /api  +  GET /apis', gvr: 'GVR catalogue' },
+    wires: { req: 'GET /api · GET /apis', gvr: 'GVR catalogue' },
     opacity: HIDDEN,
     // Only the CLIENT is lit at entry. The API is the receiver of the one ball this step draws, so it
     // lights on arrival: lighting it at entry shows the answer 1156ms before the question lands.
@@ -186,7 +186,10 @@ export const STEPS_SPEC = [
     chips: { rvChip: '842', watchChip: 'closed', cacheChip: '3' },
     // The two ETCD lanes are the API keeping its OWN cache current, not this LIST being read
     // through: an rv=0 list is answered by the Cacher and never reaches etcd.
-    wires: { req: 'LIST /api/v1/pods · rv=0', 'api-etcd': 'list-watch on ETCD', 'etcd-ret': 'objects · rv=842' },
+    wires: {
+      req: 'LIST /api/v1/pods · rv=0', watch: '200 OK · rv=842',
+      'api-etcd': 'list-watch on ETCD', 'etcd-ret': 'objects · rv=842',
+    },
     // Caption is the cancel/reduced final; the fade below back-fills it hidden until arrival.
     opacity: { ...HIDDEN, ...SHOWN },
     // The API SOURCES both balls, so it alone is lit at entry. ETCD, Informer and Indexer receive,
@@ -218,7 +221,7 @@ export const STEPS_SPEC = [
     duration: 2000,
     narration: 'The informer opens GET /api/v1/pods?watch=true&resourceVersion=842. The API streams every change since that RV as a chunked HTTP response. The connection stays open for as long as the controller wants.',
     chips: { rvChip: '842', watchChip: 'open · chunked HTTP', cacheChip: '3' },
-    wires: { watch: 'chunked HTTP · streaming' },
+    wires: { watch: 'chunked HTTP · stream' },
     opacity: SHOWN,
     lit: ['api', 'watchChip'],
     // Watch stream: Api -> Informer, straight vertical drop.
@@ -229,7 +232,7 @@ export const STEPS_SPEC = [
     duration: 3800,
     narration: 'A new Pod lands in ETCD. The API pushes an ADDED event over the open watch (rv=843). The informer enqueues the object key and updates the Indexer cache.',
     chips: { rvChip: '843', watchChip: 'open · streaming', cacheChip: '4' },
-    wires: { watch: 'ADDED · rv=843' },
+    wires: { watch: 'ADDED · rv=843', 'etcd-ret': 'new Pod · rv=843' },
     opacity: { ...SHOWN, slot3: 1 },
     lit: ['etcdC', 'rvChip', 'cacheChip', 'watchChip', 'slot3'],
     enter(s) { setSlot(s.refs.slot3, 'ADDED', 'pod-d · rv=843'); },
@@ -259,8 +262,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'crd',
-    duration: 1900,
-    narration: 'CRDs add their own group (example.com/v1). The API serves them under /apis just like built-ins. Same list-then-watch contract, same informer story, same controller pattern.',
+    duration: 2800,
+    narration: 'CRDs add their own group (example.com/v1). The API serves them under /apis just like built-ins. Same list-then-watch contract, same informer story. Since 1.35 client-go opens that watch with the initial list on it, falling back to the LIST drawn here.',
     // The 410 step is a conditional aside, so the informer is back in the steady state `event`
     // left it in. Without these three the coda runs under `410 Gone . re-listing`.
     chips: { rvChip: '843', watchChip: 'open · streaming', cacheChip: '4' },

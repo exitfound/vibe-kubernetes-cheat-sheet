@@ -135,7 +135,7 @@ export const CARDS = [
     title: 'hostNetwork and hostPort',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'What are the two sanctioned ways to reach a Pod on the Node address itself? With hostNetwork true the Pod gets no network namespace of its own, no veth and no Pod IP, and binds the Node interfaces directly, which is how kube-proxy and a CNI agent run. A hostPort gives up far less: the Pod keeps its namespace, its IP and its veth, and the portmap plugin only adds a DNAT rule. Both spend a Node port, so the scheduler fits only one such replica per Node.',
+    desc: 'What are the two sanctioned ways to reach a Pod on the Node address itself? With hostNetwork true the Pod gets no network namespace of its own, no veth and no Pod IP, and binds the Node interfaces directly, which is how kube-proxy and a CNI agent run. A hostPort gives up far less: the Pod keeps its namespace, its IP and its veth, and the portmap plugin only adds a DNAT rule. Both spend a Node port, so the Scheduler fits only one such replica per Node.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

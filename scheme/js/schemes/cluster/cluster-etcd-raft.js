@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, ladder, midX, shade, laneOf, BEAT, FADE, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-etcd-raft
+// Design notes for this card: ./CARDS/cluster-etcd-raft.md
 
 // Laid out on the L. Panel x<=397 y<=230 against CYL_Y 230, ONE unit off the artwork, so every
 // narration has a HARD CEILING of 334 characters. Margin 40, not 60, and both sides take it.
@@ -46,7 +46,7 @@ const E2_TO_E1  = [[CYL_XS[1], ROW_BACK], [CYL_XS[0] + CYL_W, ROW_BACK]];
 const ARC_RISE = 80;
 const ARC_Y = CYL_Y - ARC_RISE;                          // 150
 // The far Follower is a round trip too, and the two arcs are CONCENTRIC, which takes OPPOSITE stubs
-// at the two ends. Why mirrored stubs cross: ./CARDS.md#cluster-etcd-raft.
+// at the two ends. Why mirrored stubs cross: ./CARDS/cluster-etcd-raft.md.
 const ARC_BACK_Y = ARC_Y + LANE_DY;                      // 162
 const REPLICATE = [[CYL_CXS[0] - LANE_DY, CYL_Y], [CYL_CXS[0] - LANE_DY, ARC_Y], [CYL_CXS[2] + LANE_DY, ARC_Y], [CYL_CXS[2] + LANE_DY, CYL_Y]];
 const ACK_E3    = [[CYL_CXS[2] - LANE_DY, CYL_Y], [CYL_CXS[2] - LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, ARC_BACK_Y], [CYL_CXS[0] + LANE_DY, CYL_Y]];
@@ -58,7 +58,7 @@ const SCHIP_X = API_X, SCHIP_W = API_W;                  // 40..260, the API col
 // The list order IS the append order, so it is the z-order: the three replicas, the four chip
 // columns, the API, the six lanes, the ties, the wire labels, and the packet layer last.
 export const SCENE = {
-  'aria-label': 'ETCD Raft Consensus: replicate, ack, commit, and stop writing when quorum is lost',
+  'aria-label': 'ETCD Raft Consensus: the API sends a write to the Leader of three ETCD replicas, which appends it, replicates it to both Followers, commits once a majority has stored it, carries the commit index on the next heartbeat, and stops writing when quorum is lost',
   parts: [
     P.defs(),
     // Laid out at scale 1.0 (no shrink wrapper) so every block and its text match
@@ -73,7 +73,7 @@ export const SCENE = {
         // role and log rows use. The width is the API column, so the four blocks line up.
         P.chip({ key: 'termChip', x: SCHIP_X, y: ROW_Y(0), w: SCHIP_W, h: ROW_H, name: 'term', value: '4' }),
         // The name states the POPULATION it counts, because the quorum chip under it counts a different
-        // one: acks come from the two Followers, quorum is out of all three replicas. See ./CARDS.md.
+        // one: acks come from the two Followers, quorum is out of all three replicas. See ./CARDS/cluster-etcd-raft.md.
         P.chip({ key: 'acksChip', x: SCHIP_X, y: ROW_Y(1), w: SCHIP_W, h: ROW_H, name: 'acks from Followers', value: 'idle' }),
         P.chip({ key: 'quorumChip', x: SCHIP_X, y: ROW_Y(2), w: SCHIP_W, h: ROW_H, name: 'quorum', value: '2 of 3' }),
         P.chip({ key: 'r1', x: CYL_XS[0], y: ROLE_Y, w: CYL_W, h: ROW_H, name: 'role', value: 'Leader' }),
@@ -92,15 +92,21 @@ export const SCENE = {
         P.lane({ key: 'laneE3Out', points: REPLICATE, dim: true, dashed: true }),
         P.lane({ key: 'laneE3Back', points: ACK_E3, dim: true, dashed: true }),
         // Tie each replica to the chips below it: a binding, not flow, so it goes through relationPath.
-        // What the 30 unit gap between cylinder and role row buys: ./CARDS.md#cluster-etcd-raft.
+        // What the 30 unit gap between cylinder and role row buys: ./CARDS/cluster-etcd-raft.md.
         ...CYL_CXS.map((cx, i) => P.relation({
           key: i === 0 ? undefined : 'tie' + (i + 1),
           points: [[cx, CYL_BOTTOM], [cx, ROLE_Y]],
         })),
-        // 14 above the outbound lane, the clearance the sibling control-plane cards use. It read
-        // CYL_CY - 12, which is ROW_OUT to the unit, so the dashes ran through the glyphs.
+        // 14 above the outbound lane, the clearance the sibling control-plane cards use. At ROW_OUT
+        // the dashes run through the glyphs, so the offset carries the label rather than decorates it.
         P.wire({ key: 'proposal', x: midX(API_R, CYL_XS[0]), y: ROW_OUT - 14 }),
+        // 21 below the answer lane, not 14: a text box reaches about 11 units ABOVE its baseline, so
+        // the 10 unit optical gap the outbound label has costs 7 more units on this side.
+        P.wire({ key: 'report', x: midX(API_R, CYL_XS[0]), y: ROW_BACK + 21 }),
         P.wire({ key: 'replicate', x: CX + 100, y: ARC_Y - 10 }),
+        // Under the ack arc, mirroring what replicate does above the outbound one, so each label
+        // hugs its own line from the outside and the concentric pair reads as a pair.
+        P.wire({ key: 'ack', x: CX + 100, y: ARC_BACK_Y + 18 }),
         P.packets(),
       ],
     }),
@@ -129,8 +135,9 @@ export const STEPS_SPEC = [
   },
   {
     id: 'proposal',
-    duration: 1900,
-    narration: 'The API issues a write for a new Pod, the only path by which Kubernetes state ever reaches ETCD. Every write is funneled through the Leader so the cluster has a single point that orders all changes. A request that lands on a Follower is not served there but forwarded to the Leader, so a linearizable read never observes a split view.',
+    // Sized by the 332 characters below rather than by the 1260ms of motion: 8.13ms per character.
+    duration: 2700,
+    narration: 'The API issues a write for a new Pod, and it should be the only component reaching ETCD at all. Every write is funneled through the Leader so the cluster has a single point that orders all changes. A write that lands on a Follower is not served there but forwarded to the Leader, so a linearizable read never observes a split view.',
     chips: { ...ROLES, l1: '8 / 8', l2: '8 / 8', l3: '8 / 8', termChip: TERM, acksChip: 'idle', quorumChip: QUORUM },
     wires: { proposal: 'write Pod · via Leader' },
     opacity: LIVE,
@@ -139,8 +146,9 @@ export const STEPS_SPEC = [
   },
   {
     id: 'append-log',
-    duration: 1700,
-    narration: 'The Leader appends the write as entry 9 in its own log, right after the 8 entries already stored. For now the entry lives on a single replica and stays uncommitted, so commitIndex is still 8 and the new Pod is invisible to readers. Nothing becomes durable until a majority of replicas also hold it.',
+    // No motion at all, so the hold IS the reading time: 298 characters at 8.05ms each.
+    duration: 2400,
+    narration: 'The Leader appends the write as entry 9 in its own log, right after the 8 entries already stored. For now the entry lives on a single replica and stays uncommitted, so commitIndex is still 8 and the new Pod is invisible to readers. Nothing becomes durable until a majority holds it, and the Leader counts as one.',
     chips: { ...ROLES, l1: '9 / 8', l2: '8 / 8', l3: '8 / 8', termChip: TERM, acksChip: '0 of 2', quorumChip: QUORUM },
     opacity: LIVE,
     lit: ['acksChip', 'e1', 'l1'],
@@ -153,7 +161,7 @@ export const STEPS_SPEC = [
     // Both acks land inside this step, so the counter ends on 2 and says so in the same notation
     // as the steps either side of it.
     chips: { ...ROLES, l1: '9 / 8', l2: '9 / 8', l3: '9 / 8', termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM },
-    wires: { replicate: 'AppendEntries · entry 9' },
+    wires: { replicate: 'AppendEntries · entry 9', ack: 'ack · entry 9' },
     opacity: LIVE,
     lit: ['acksChip', 'e1', 'l2', 'l3'],
     // A Follower log reads 9 because THIS step delivered entry 9 to it, and the counter reads 2
@@ -178,10 +186,11 @@ export const STEPS_SPEC = [
     id: 'quorum',
     // Motion: the durable report leaves after BEAT.lead and reaches the API at 2060ms.
     duration: 2500,
-    narration: 'The Leader counts how many replicas now hold entry 9: itself plus at least one Follower makes 2 of 3, which meets quorum. With a majority persisted, entry 9 is committed and can no longer be lost, so the Leader advances commitIndex to 9 and reports the write back to the API as durable.',
+    narration: 'The Leader needs a majority rather than every replica: itself plus the first Follower to ack already makes 2 of 3, which meets quorum. With a majority persisted, entry 9 is committed and can no longer be lost, so the Leader advances commitIndex to 9 and reports the write back to the API as durable.',
     // The acks chip COUNTS, it does not judge: Raft commits on the FIRST ack, because Leader plus
     // one Follower is already the majority. The verdict belongs to the chip whose threshold it is.
     chips: { ...ROLES, l1: '9 / 9', l2: '9 / 8', l3: '9 / 8', termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM_MET },
+    wires: { report: 'durable · commit 9' },
     opacity: LIVE,
     lit: ['e1', 'l1', 'acksChip', 'quorumChip'],
     // The durable report is the whole point of a quorum, so it rides the answer lane home and the
@@ -192,8 +201,9 @@ export const STEPS_SPEC = [
     id: 'apply',
     // Motion: the commitIndex heartbeat to both Followers, the far one over the arc: 2071ms.
     duration: 2500,
-    narration: 'On the next heartbeat the Leader carries the new commitIndex to the Followers, signalling that entry 9 is safe to apply. Each Follower applies entry 9 to its state machine, the key-value view that clients actually read from. All three replicas now hold the Pod at index 9, and while quorum holds every read returns it consistently.',
+    narration: 'On the next heartbeat the Leader carries the new commitIndex to the Followers, signalling that entry 9 is safe to apply. Each Follower applies entry 9 to its state machine, the key-value view that clients actually read from. All three replicas now hold the Pod at index 9, and a linearizable read returns it from any member.',
     chips: { ...ROLES, l1: '9 / 9', l2: '9 / 9', l3: '9 / 9', termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM_MET },
+    wires: { replicate: 'commit index 9 · heartbeat' },
     opacity: LIVE,
     lit: ['e1', 'l1', 'l2', 'l3'],
     // Both Followers RECEIVE the heartbeat, so they are dark at step entry and light when it lands:
@@ -215,13 +225,13 @@ export const STEPS_SPEC = [
     opacity: SILENCED,
     lit: ['e1', 'r1', 'l1', 'acksChip', 'quorumChip'],
     // The step STARTS with a healthy cluster and ends with a silent one, so the rewind is that whole
-    // start: twelve live shades, the role still Leader, the counters still reading a met quorum.
-    rewind: { chips: { r1: ROLES.r1, termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM_MET }, opacity: LIVE },
+    // start: twelve live shades, the role still Leader, the log at 9 and the counters reading a met quorum.
+    rewind: { chips: { r1: ROLES.r1, l1: '9 / 9', termChip: TERM, acksChip: '2 of 2', quorumChip: QUORUM_MET }, opacity: LIVE },
     // NO ball, on purpose: a packet into a member that is not answering says the opposite of the
     // step. The beat is the replicas going quiet, then the counters, then the Leader standing down.
     flow: [
       ...SILENT.map(k => F.fade({ target: k, from: OPACITY.running, to: OPACITY.notready, dur: FADE.out, fill: 'forwards', easing: 'ease-out' })),
-      F.set({ delay: FADE.out, chips: { termChip: TERM, acksChip: '0 of 2', quorumChip: QUORUM_LOST } }),
+      F.set({ delay: FADE.out, chips: { l1: '10 / 9', termChip: TERM, acksChip: '0 of 2', quorumChip: QUORUM_LOST } }),
       F.set({ delay: FADE.out + BEAT.lead, chips: { r1: 'Follower' } }),
     ],
   },

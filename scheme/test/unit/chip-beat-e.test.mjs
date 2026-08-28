@@ -9,15 +9,15 @@
 // ===========================================================================================
 // The cycle is written in ../report/arrival.test.mjs and this project has run it three times:
 // report-only, then a human triage of the queue, then promotion into the mandatory set. FORM-E
-// reached the end of it. Its queue was read card by card: nine findings, nine carried with a written
+// reached the end of it. Its queue was read card by card: every finding carried with a written
 // reason in E_CARRIED, none left to work. A check goes into `npm test` only from that state, because
 // a check that reddens the gate on a queue nobody has read makes work impossible rather than
 // visible.
 //
-// The other three forms stay in ../report/chip-beat.test.mjs and the numbers are the whole argument:
-// FORM-A is 556 records, FORM-B is 384 on two thirds of the catalogue, and section 4's path
-// divergence is 15 on 7 cards. Any of them promoted today would redden the gate against work nobody
-// has scheduled.
+// The other three forms stay in ../report/chip-beat.test.mjs and their SIZE is the whole argument:
+// FORM-A and FORM-B run to hundreds of records over most of the catalogue, and section 4's path
+// divergence is open beside them. Any of them promoted today would redden the gate against work
+// nobody has scheduled. `npm run report` prints the three populations live.
 //
 // ===========================================================================================
 // WHERE THE ANSWER COMES FROM
@@ -40,9 +40,9 @@
 //            decide the value is the PREMISE of the step rather than something an arrival produces,
 //            and write that reason into E_CARRIED. An entry with no reason is not a decision.
 //   census   fewer than the recorded cards or steps. A walk over a subset finds no FORM-E record and
-//            looks exactly like a clean catalogue: a walk that reaches 649 steps of 650 drops the
-//            650th silently and nothing in the output looks wrong. Every walker in this harness
-//            carries the same floor.
+//            looks exactly like a clean catalogue: a walk one step short drops that step silently
+//            and nothing in the output looks wrong. Every walker in this harness carries the same
+//            floor.
 //   table    a carried entry with no reason, a key that is not three fields, or a key that no longer
 //            matches any finding. The last one is a stale carry: the finding was repaired and the
 //            table still claims it. It is loud on purpose, and the fix is one line.
@@ -118,5 +118,5 @@ test('FORM-E: every carried entry is a decision, and none of them is stale', () 
     `${FORMS.stale.length} carried entry(ies) no longer match any FORM-E record: ` +
     `${FORMS.stale.join(' | ')}. The finding was repaired or the card was renamed, and the table ` +
     'still claims it. Remove the entry: a carry nothing matches quietly widens what the next one ' +
-    'would forgive. An empty table is a legitimate end state, reached by repairing all nine.');
+    'would forgive. An empty table is a legitimate end state, reached by repairing every one.');
 });

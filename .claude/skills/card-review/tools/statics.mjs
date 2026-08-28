@@ -38,6 +38,43 @@ const body = bodyLines.join('\n');
 const lineOf = (needle) => lines.findIndex(l => l.includes(needle)) + 1;
 const uses = (name) => (body.match(new RegExp(`\\b${name}\\b`, 'g')) || []).length;
 
+// A BALANCED `{...}` slice from the brace at `i`, string literals skipped. The old reader stopped at
+// the first `})` within 400 characters, which a nested `inner:` or a `tune` body walks straight past.
+function objectAt(src, i) {
+  let depth = 0, q = null;
+  for (let j = i; j < src.length; j++) {
+    const c = src[j];
+    if (q) { if (c === '\\') j++; else if (c === q) q = null; continue; }
+    if (c === "'" || c === '"' || c === '`') { q = c; continue; }
+    if (c === '{' || c === '[') depth++;
+    else if (c === '}' || c === ']') { if (--depth === 0) return src.slice(i, j + 1); }
+  }
+  return src.slice(i);
+}
+
+// `key:` at depth 1 only, so a nested `inner: { ... }` cannot claim the part kind for itself.
+function topKey(obj) {
+  let depth = 0, q = null;
+  for (let j = 0; j < obj.length; j++) {
+    const c = obj[j];
+    if (q) { if (c === '\\') j++; else if (c === q) q = null; continue; }
+    if (c === "'" || c === '"' || c === '`') { q = c; continue; }
+    if (c === '{' || c === '[') { depth++; continue; }
+    if (c === '}' || c === ']') { depth--; continue; }
+    if (depth === 1 && obj.startsWith('key:', j)) {
+      const m = /^key:\s*'([\w-]+)'/.exec(obj.slice(j));
+      if (m) return m[1];
+    }
+  }
+  return null;
+}
+
+// Keys of an object literal with its string VALUES blanked first. Without that blanking
+// `wires: { kr: 'PullImage · nginx:1.27' }` reads `nginx` as a second key and reports it as a ghost.
+// A quoted string followed by a colon is a KEY, not a value, and survives: hyphenated keys need one.
+const keysOf = (obj) => [...obj.replace(/'(?:[^'\\]|\\.)*'(\s*:)?/g, (m, colon) => (colon ? m : "''"))
+  .matchAll(/(?:^|[{,])\s*(?:'([\w-]+)'|([A-Za-z_$][\w$]*))\s*:/g)].map(m => m[1] || m[2]);
+
 // ---- dead constants -------------------------------------------------------------------------
 for (const m of body.matchAll(/^const\s+([A-Za-z_$][\w$]*)\s*=/gm)) {
   if (uses(m[1]) <= 1) say('DEAD-CONST', `${rel}:${lineOf(`const ${m[1]}`)}  ${m[1]} is declared and never read`);
@@ -52,34 +89,64 @@ for (const m of body.matchAll(/^const\s*\{([^}]*)\}\s*=/gm)) {
 // ---- part keys, and the fields that address them ----------------------------------------------
 // Keys minted by a CARD-LOCAL helper (`lane('laneEtcdOut', POINTS)`) are invisible here: this reads
 // `key:` literals only. That is a known hole, not a claim that such a card has no keys.
-const kindOf = new Map();
-for (const m of body.matchAll(/P\.(\w+)\(\{([\s\S]{0,400}?)\}\)/g)) {
-  const k = m[2].match(/key:\s*'([\w-]+)'/);
-  if (k) kindOf.set(k[1], m[1]);
+// A wire and a box may SHARE a name: they land in refs.wires and refs, two buckets. So a name maps
+// to a SET of kinds, and a single-kind map loses the wire half of `key: 'kernel'` twice over.
+const partCalls = [];
+const kindsOf = new Map();
+for (const m of body.matchAll(/P\.(\w+)\(\{/g)) {
+  const k = topKey(objectAt(body, m.index + m[0].length - 1));
+  if (!k) continue;
+  partCalls.push({ name: k, kind: m[1] });
+  if (!kindsOf.has(k)) kindsOf.set(k, new Set());
+  kindsOf.get(k).add(m[1]);
 }
+const isKind = (k, kind) => kindsOf.get(k)?.has(kind) === true;
 const partKeys = [...body.matchAll(/key:\s*'([\w-]+)'/g)].map(m => m[1]);
-const wireKeys = partKeys.filter(k => kindOf.get(k) === 'wire');
-// A wire and a box may SHARE a name: they land in refs.wires and refs, two buckets. Only a clash
-// inside one bucket overwrites a ref.
-const bucketed = partKeys.filter(k => kindOf.get(k) !== 'wire');
-const dupes = bucketed.filter((k, i) => bucketed.indexOf(k) !== i);
+const wireKeys = partKeys.filter(k => isKind(k, 'wire'));
+// Only a clash INSIDE one bucket overwrites a ref, so the two buckets are counted apart.
+const inWires = partCalls.filter(p => p.kind === 'wire').map(p => p.name);
+const inRefs = partCalls.filter(p => p.kind !== 'wire').map(p => p.name);
+const dupes = [...inRefs.filter((k, i) => inRefs.indexOf(k) !== i),
+               ...inWires.filter((k, i) => inWires.indexOf(k) !== i)];
 if (dupes.length) say('DUP-KEY', `${rel}  key used twice in one bucket: ${[...new Set(dupes)].join(', ')} (last one wins)`);
 
-const STATIC_KINDS = new Set(['node', 'defs', 'packets', 'tag']);
+// Being addressed BY KEY is the norm for a chip, a box, a Pod, and an unaddressed one is a name
+// that outlived its use. It is NOT the norm for these kinds, each of which has its own reader below.
+const NOT_BY_KEY = new Map([
+  ['chain',    'a step addresses a chain by ROW INDEX (`chain: 2`): IDLE-CHAIN reads that'],
+  ['lane',     'a lane is addressed by its POINTS array: DEAD-PATH and IDLE-LANE read that'],
+  ['relation', 'addressed by its points array, same as a lane'],
+  ['arrow',    'addressed by its endpoints, same as a lane'],
+  ['node',     'a frame is scenery, and the occlusion rule excludes it'],
+  ['tag',      'a caption is scenery'],
+  ['defs',     'no key of its own to address'],
+  ['packets',  'no key of its own to address'],
+]);
+const notByKey = [];
 for (const k of new Set(partKeys)) {
-  if (kindOf.get(k) === 'wire') continue;                       // BLANK-WIRE covers those
+  if (isKind(k, 'wire')) continue;                              // BLANK-WIRE covers those
   if ((body.match(new RegExp(`'${k}'`, 'g')) || []).length > 1) continue;
-  const tag = STATIC_KINDS.has(kindOf.get(k)) ? 'STATIC-KEY' : 'UNREAD-KEY';
-  const why = tag === 'STATIC-KEY'
-    ? 'nothing addresses it, which is ordinary for a frame or a caption: drop the key if nothing ever will'
-    : 'built and never addressed by a step, reset or flow';
-  say(tag, `${rel}  ${kindOf.get(k) || 'part'} key '${k}' ${why}`);
+  const kinds = [...(kindsOf.get(k) || [])];
+  // No kind at all means the key never sat at depth 1 of a `P.<kind>({`: it was minted through a
+  // CARD-LOCAL factory (a data array walked by .map, a `disk({key})` wrapper), which no text scan
+  // follows. DEAD-CONST is what covers the container it lives in.
+  if (!kinds.length) { notByKey.push(`'${k}': minted through a card-local factory, not a P.<kind> call`); continue; }
+  if (kinds.every(kind => NOT_BY_KEY.has(kind))) {
+    notByKey.push(`${kinds.join('/')} '${k}': ${NOT_BY_KEY.get(kinds[0])}`);
+    continue;
+  }
+  say('UNREAD-KEY', `${rel}  ${kinds[0]} key '${k}' built and never addressed by a step, reset or flow`);
+}
+// The chain's real question, since its key never carries it: a ladder no step ever advances. The row
+// index takes three shapes, a number, an array of them and the string 'all', and all three count.
+if (partKeys.some(k => isKind(k, 'chain')) && !/\bchain:\s*(?:-?\d|\[|')/.test(body)) {
+  say('IDLE-CHAIN', `${rel}  a chain is drawn and no step carries a chain: row index`);
 }
 
 // A wire whose text is never written renders a blank string forever (T-30 is the reverse case).
 const written = new Set();
-for (const m of body.matchAll(/wires:\s*\{([\s\S]*?)\}/g)) {
-  for (const w of m[1].matchAll(/(?:'([\w-]+)'|([A-Za-z_$][\w$]*))\s*:/g)) written.add(w[1] || w[2]);
+for (const m of body.matchAll(/\bwires:\s*\{/g)) {
+  for (const w of keysOf(objectAt(body, m.index + m[0].length - 1))) written.add(w);
 }
 for (const m of body.matchAll(/setWire\(\s*\w+\s*,\s*'([\w-]+)'/g)) written.add(m[1]);
 for (const k of wireKeys) if (!written.has(k)) say('BLANK-WIRE', `${rel}  P.wire '${k}' is drawn and no step ever writes its text`);
@@ -90,8 +157,8 @@ const addressed = new Set();
 for (const m of body.matchAll(/(?:lit|lights|keys):\s*\[([^\]]*)\]/g)) {
   for (const k of m[1].matchAll(/'([\w-]+)'/g)) addressed.add(k[1]);
 }
-for (const m of body.matchAll(/opacity:\s*\{([\s\S]*?)\n\s*\}/g)) {
-  for (const k of m[1].matchAll(/(?:'([\w-]+)'|([A-Za-z_$][\w$]*))\s*:/g)) addressed.add(k[1] || k[2]);
+for (const m of body.matchAll(/\bopacity:\s*\{/g)) {
+  for (const k of keysOf(objectAt(body, m.index + m[0].length - 1))) addressed.add(k);
 }
 const declared = new Set([...partKeys, ...[...body.matchAll(/(?:shellKey|innerKey|id):\s*'([\w-]+)'/g)].map(m => m[1])]);
 for (const k of addressed) {
@@ -151,12 +218,18 @@ const posters = join(SCHEMES, category, 'posters.js');
 if (existsSync(posters) && !readFileSync(posters, 'utf8').includes(`'${id}'`)) {
   say('CATALOG', `${id} has no poster in ${category}/posters.js`);
 }
-const cardsMd = readFileSync(join(SCHEMES, category, 'CARDS.md'), 'utf8');
-if (!cardsMd.includes(`\n## ${id}\n`)) say('RECORD', `${category}/CARDS.md has no "## ${id}" section`);
+// Two shapes of record: one `CARDS.md` per category, or a `CARDS/<id>.md` per card beside it. The
+// per-card file wins when it exists, and the section is parsed the same way out of either.
+const perCard = join(SCHEMES, category, 'CARDS', `${id}.md`);
+const recordRel = existsSync(perCard) ? `${category}/CARDS/${id}.md` : `${category}/CARDS.md`;
+const recordMd = existsSync(perCard)
+  ? readFileSync(perCard, 'utf8')
+  : readFileSync(join(SCHEMES, category, 'CARDS.md'), 'utf8');
+if (!recordMd.includes(`## ${id}\n`)) say('RECORD', `${recordRel} has no "## ${id}" section`);
 else {
-  const section = cardsMd.split(`\n## ${id}\n`)[1].split('\n## ')[0];
+  const section = recordMd.split(`## ${id}\n`)[1].split('\n## ')[0];
   for (const a of section.matchAll(/^### before `(.+)`$/gm)) {
-    if (!src.includes(a[1])) say('ANCHOR', `${category}/CARDS.md anchor no longer occurs in the card: ${a[1].slice(0, 70)}`);
+    if (!src.includes(a[1])) say('ANCHOR', `${recordRel} anchor no longer occurs in the card: ${a[1].slice(0, 70)}`);
   }
   for (const label of ['WHAT']) if (!section.includes(label)) say('RECORD', `the ${id} record has no ${label} block`);
 }
@@ -165,4 +238,7 @@ const aliases = [...appJs.matchAll(/'([\w-]+)':\s*'([\w-]+)'/g)].filter(m => m[2
 if (aliases.length) say('ALIASES', `old hashes forwarding here: ${aliases.join(', ')} (keep them, and check they still resolve)`);
 
 console.log(out.length ? out.join('\n') : 'nothing found by the static sweep.');
+if (notByKey.length) {
+  console.log(`\nnot reported, these kinds are not addressed by key:\n  ${notByKey.join('\n  ')}`);
+}
 console.log(`\n${out.length} heuristic finding(s). Confirm each one in the source before you act on it.`);

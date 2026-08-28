@@ -8,7 +8,7 @@
 // THE POPULATION IS A SUBSET, AND THAT IS THE FIRST THING THIS FILE HAS TO SURVIVE
 // ===========================================================================================
 // A LEGACY card exports only `init` and seals its steps inside makeInit's closure, so there is
-// nothing here to read: 108 of the 108 cards are migrated today and 0 are not. A test that simply
+// nothing here to read: every card in the catalog is migrated today and none is legacy. A test that simply
 // skipped whatever it could not read would go quiet the day `STEPS_SPEC` is renamed, and a green run
 // over an empty set is worse than a red one. So the walk is counted twice by two INDEPENDENT
 // criteria: this file collects the cards whose `STEPS_SPEC` is an array, ../fixtures/module.mjs
@@ -42,7 +42,7 @@
 // ===========================================================================================
 // WHAT THIS FILE IS BLIND TO, BY CONSTRUCTION
 // ===========================================================================================
-//   - Anything a step does inside its `enter(s, ctx)` or `motion(s, ctx)` escape. 42 of the 650
+//   - Anything a step does inside its `enter(s, ctx)` or `motion(s, ctx)` escape. 42 of the 665
 //     steps carry one. Their bodies are functions, not data, and this file does not read them
 //     except to widen the set of legal ref names (see refsOf below).
 //   - Whether a value is TRUE. P-01 is enforced here as a CONVENTION (every step writes every chip);

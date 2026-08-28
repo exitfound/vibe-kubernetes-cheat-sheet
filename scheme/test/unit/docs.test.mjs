@@ -26,7 +26,7 @@
 // its own header, and it prints an axis label on every finding it reports. Those two are the same
 // vocabulary, so "the name occurs in the file" is the question, and it is deliberately not "the
 // name is a test() title": most axes are labels inside a per-card subtest (the geometry file has
-// 108 subtests, one per card, and DIAGONAL / THROUGH / OFFEDGE are the labels of its findings).
+// one subtest per card, and DIAGONAL / THROUGH / OFFEDGE are the labels of its findings).
 // What this catches is the real drift: a rule pointing at a file that says nothing about it.
 //
 // ===========================================================================================
@@ -89,7 +89,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOT, cards, catalog, categories } from '../fixtures/catalog.mjs';
+import { ROOT, cards, catalog, categories, recordFiles } from '../fixtures/catalog.mjs';
 
 // scheme/test/, the directory this file lives two levels inside of.
 const TEST_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -107,7 +107,7 @@ const REPO = join(ROOT, '..');
 // --------------------------------------------------------------------------------------------
 const ANCHOR_FLOOR = { cluster: 15, workloads: 24, network: 41, storage: 44 };   // 124 total
 const CATALOG_RULE_FLOOR = 235;                                                  // the L A M C T P D R S blocks
-const INDEX_ROWS = 39;                                                           // CLU 5, WL 12, NET 9, STO 13
+const INDEX_ROWS = 40;                                                           // CLU 6, WL 12, NET 9, STO 13
 const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 274 rule rows in CANON.md
 const REF_FLOOR = 400;                                                           // measured 469 id-shaped tokens
 const LABEL_MAX_CHARS = 90;                                                      // measured max 73 (NET.C-01)
@@ -129,11 +129,11 @@ const SOURCE_PATH_FLOOR = 190;                                                  
 // Measured 2026-08-15: 46 citations naming 31 distinct symbols, all of them resolving.
 const SOURCE_SYMBOL_FLOOR = 38;
 
-// How each of the 39 category rules is written down in its folder. Three shapes are in use and the
+// How each of the 40 category rules is written down in its folder. Three shapes are in use and the
 // split is asserted rather than counted loosely, because "declared" and "merely cited" are the
 // distinction this whole group turns on, and a parser that stopped telling them apart would go
 // quiet, not red.
-const DECLARATION_SHAPES = { row: 27, heading: 10, bullet: 2 };
+const DECLARATION_SHAPES = { row: 28, heading: 10, bullet: 2 };
 
 const CATS = await categories();
 const { CATEGORY_LABEL } = await catalog();
@@ -148,7 +148,16 @@ const readDoc = (rel) => {
   return readFileSync(p, 'utf8');
 };
 
-const CARDS_MD = new Map(CATS.map(c => [c, readDoc(join('js', 'schemes', c, 'CARDS.md'))]));
+// A category's record is one document or many, and group A walks the flattened set either way, so
+// every finding names the FILE it sits in and the line inside that file. `recordFiles` decides the
+// shape off the tree; `readDoc` still refuses to run a shorter walk over a document it cannot open.
+const CARDS_MD = new Map(CATS.map(c => [c, recordFiles(c).map(f => ({ rel: f.rel, md: readDoc(f.rel) }))]));
+
+// Every `## <card id>` in a category, carrying the file and the line it was found at.
+const recordSections = (cat) =>
+  CARDS_MD.get(cat).flatMap(d => sections(d.md).map(s => ({ ...s, rel: d.rel })));
+const recordAnchors = (cat) =>
+  CARDS_MD.get(cat).flatMap(d => anchors(d.md).map(a => ({ ...a, rel: d.rel })));
 const FOLDER_MD = new Map(CATS.map(c => [c, readDoc(join('js', 'schemes', c, 'CLAUDE.md'))]));
 const CANON = readDoc('CANON.md');
 const CONTRACT = readDoc('CLAUDE.md');
@@ -432,10 +441,11 @@ test('A1 every card record is anchored, and no walk collapses to nothing', () =>
   const per = {};
   let total = 0;
   for (const cat of CATS) {
-    per[cat] = anchors(CARDS_MD.get(cat)).length;
+    per[cat] = recordAnchors(cat).length;
     total += per[cat];
     assert.ok(per[cat] >= ANCHOR_FLOOR[cat],
-      `${relCards(cat)} holds ${per[cat]} anchor(s), floor is ${ANCHOR_FLOOR[cat]}. ` +
+      `the ${cat} record holds ${per[cat]} anchor(s) over ${CARDS_MD.get(cat).length} document(s), ` +
+      `floor is ${ANCHOR_FLOOR[cat]}. ` +
       'An anchor is a measurement someone took with a browser: losing one is losing that.');
   }
   const floor = Object.values(ANCHOR_FLOOR).reduce((a, b) => a + b, 0);
@@ -447,14 +457,14 @@ test('A2 every anchor still occurs in the card it was taken from (an anchor is D
   const seenIn = new Map();
   let checked = 0;
   for (const cat of CATS) {
-    for (const a of anchors(CARDS_MD.get(cat))) {
+    for (const a of recordAnchors(cat)) {
       if (!seenIn.has(a.code)) seenIn.set(a.code, []);
       seenIn.get(a.code).push(`${cat}/${a.section}`);
       const src = CARD_SOURCE.get(a.section);
       if (!src) continue;                       // reported by A4 as an orphan section
       checked++;
       if (!src.includes(a.code)) {
-        stale.push(`${relCards(cat)}:${a.line}  [${a.section}]  ${a.code.slice(0, 90)}`);
+        stale.push(`${a.rel}:${a.line}  [${a.section}]  ${a.code.slice(0, 90)}`);
       }
     }
   }
@@ -474,7 +484,7 @@ test('A2 every anchor still occurs in the card it was taken from (an anchor is D
 
 test('A3 every catalogued card has a "## <id>" section, in its own category record', () => {
   const have = new Map();
-  for (const cat of CATS) for (const s of sections(CARDS_MD.get(cat))) have.set(s.id, cat);
+  for (const cat of CATS) for (const s of recordSections(cat)) have.set(s.id, cat);
   const missing = CATALOGUE.filter(c => !have.has(c.id))
     .map(c => `${c.id} (no "## ${c.id}" in ${relCards(c.category)})`);
   assert.deepEqual(missing, [], `${missing.length} card(s) with no design record:\n  ${missing.join('\n  ')}`);
@@ -485,8 +495,8 @@ test('A3 every catalogued card has a "## <id>" section, in its own category reco
 test('A4 no orphan section: every "## <id>" names a card the catalog lists', () => {
   const orphans = [];
   for (const cat of CATS) {
-    for (const s of sections(CARDS_MD.get(cat))) {
-      if (!CAT_OF.has(s.id)) orphans.push(`${relCards(cat)}:${s.line}  ## ${s.id}  (no such card in data.js)`);
+    for (const s of recordSections(cat)) {
+      if (!CAT_OF.has(s.id)) orphans.push(`${s.rel}:${s.line}  ## ${s.id}  (no such card in data.js)`);
     }
   }
   assert.deepEqual(orphans, [], `${orphans.length} orphan section(s):\n  ${orphans.join('\n  ')}`);
@@ -495,10 +505,10 @@ test('A4 no orphan section: every "## <id>" names a card the catalog lists', () 
 test('A5 no misfiled section: a record sits in its own category file', () => {
   const misfiled = [];
   for (const cat of CATS) {
-    for (const s of sections(CARDS_MD.get(cat))) {
+    for (const s of recordSections(cat)) {
       const real = CAT_OF.get(s.id);
       if (real && real !== cat) {
-        misfiled.push(`${relCards(cat)}:${s.line}  ## ${s.id}  belongs in ${relCards(real)}`);
+        misfiled.push(`${s.rel}:${s.line}  ## ${s.id}  belongs in the ${real} record`);
       }
     }
   }
@@ -512,8 +522,8 @@ test('A6 no card is described twice, and the per-file census matches the catalog
   for (const c of CATALOGUE) expected[c.category] = (expected[c.category] || 0) + 1;
   for (const cat of CATS) {
     const seen = new Set();
-    for (const s of sections(CARDS_MD.get(cat))) {
-      if (seen.has(s.id)) dup.push(`${relCards(cat)}:${s.line}  ## ${s.id} appears twice`);
+    for (const s of recordSections(cat)) {
+      if (seen.has(s.id)) dup.push(`${s.rel}:${s.line}  ## ${s.id} appears twice`);
       seen.add(s.id);
     }
     census[cat] = seen.size;
@@ -747,7 +757,7 @@ test('D1 every id a document cites resolves to a declared rule', () => {
     ['CANON.md', CANON],
     ['CLAUDE.md', CONTRACT],
     ...CATS.map(c => [relFolder(c), FOLDER_MD.get(c)]),
-    ...CATS.map(c => [relCards(c), CARDS_MD.get(c)]),
+    ...CATS.flatMap(c => CARDS_MD.get(c).map(d => [d.rel, d.md])),
     ...SKILL_MD,
   ];
   // Backticked, bolded or bare. The lookarounds keep arithmetic out: `NODE_Y-24` inside a lane

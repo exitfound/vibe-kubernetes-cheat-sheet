@@ -163,6 +163,21 @@ export const CARDS = [
     ],
   },
   {
+    id: 'workloads-pod-resize',
+    title: 'In-place Pod Resize',
+    category: 'workloads',
+    subcategory: 'pods-lifecycle',
+    desc: 'A running Pod is short on CPU, so does it have to be replaced to get more? Since 1.35 you can patch spec.containers[].resources through the resize subresource, and the Kubelet applies the new numbers to the container that is already running, in place or by restarting it, as resizePolicy says per resource. It answers PodResizePending when the Node cannot take the change, and the QoS class the Pod was created with never moves.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Resize Container Resources', href: 'https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/' },
+      { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
+      { label: 'Pod v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/core/pod-v1/' },
+      { label: 'CRI Spec', href: 'https://github.com/kubernetes/cri-api/blob/master/pkg/apis/runtime/v1/api.proto' },
+    ],
+  },
+  {
     id: 'workloads-restart-policy',
     title: 'Pod restartPolicy: Always, OnFailure, Never',
     category: 'workloads',

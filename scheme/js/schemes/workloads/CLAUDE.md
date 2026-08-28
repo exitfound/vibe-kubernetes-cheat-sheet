@@ -47,7 +47,7 @@ own elements, so every surviving `role:` literal is a deliberate cross-category 
 | key | label | cards | what belongs here |
 |---|---|---|---|
 | `pods-bootstrap` | Pods Bootstrap | 3 | what happens before the app container is running: init and sidecar ordering, image pull, the QoS class the Pod is born with |
-| `pods-lifecycle` | Pods Lifecycle | 8 | one Pod's own state machine: phases, restart policy, hooks, probes, container states, crash loops, shutdown, force deletion |
+| `pods-lifecycle` | Pods Lifecycle | 9 | one Pod's own state machine: phases, restart policy, hooks, probes, container states, crash loops, in-place resize, shutdown, force deletion |
 | `controllers` | Controllers | 8 | an object that manages Pods rather than being one: Deployment, ReplicaSet, StatefulSet, DaemonSet, Job, CronJob |
 
 The line between the first two is whether the app container has started.
@@ -115,7 +115,7 @@ rejected under `L-16`, and four findings are left open under it.
 
 ## The escape hooks this category still needs
 
-All 19 cards are in the declarative form. **15 are fully declarative**; four carry a hook, and each
+All 20 cards are in the declarative form. **16 are fully declarative**; four carry a hook, and each
 exists for something with no honest general verb. `step.enter`, `step.motion`, `F.run` and
 `reset.extra` are used by NOBODY here, and migrating the category required the DSL to grow zero times.
 

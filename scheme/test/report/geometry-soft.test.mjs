@@ -56,10 +56,10 @@
 //
 // MEASURED, because "about 20 percent" is not a number anyone can act on. With fonts.gstatic.com
 // blocked and everything else identical:
-//   block geometry  UNCHANGED on all 108 cards. A block's bbox is its rect, and no card has a
+//   block geometry  UNCHANGED on every card. A block's bbox is its rect, and no card has a
 //                   label wider than the rect around it, so the content span does not move at all.
 //   panel bottom    SHORTER by 17.5 units, one text line, on 3 of 6 cards sampled
-//                   (cluster-delete-flow 194.9 -> 177.4, network-ipam-pod-cidr 177.4 -> 160,
+//                   (cluster-cascading-deletion 194.9 -> 177.4, network-ipam-pod-cidr 177.4 -> 160,
 //                   workloads-pod-phase-machine 317 -> 299.5). The panel right edge does not move.
 // So the exposure is entirely on the two rules that read the panel: a run without fonts gets a
 // SHORTER panel, which hides occluded area and moves the line CENTRE-LOW counts blocks below. Both
@@ -95,20 +95,14 @@ const VIEWPORTS = [
   { width: 1100, height: 800 },
 ];
 
-// What the four card records say is left open on purpose (L-16, and the "Known deliberate
-// exceptions" table of CANON.md). Printed for comparison, never asserted: it counts OPEN ENTRIES IN
-// THE RECORDS, which is a different population from findings this tool produces. See the closing
-// note the report prints.
-//
-// TWO NUMBERS, AND THEY ARE NOT ONE NUMBER. This file prints 8 findings on the live catalog (CENTRE
-// 2, CENTRE-LOW 4, OCCLUDED 2), and the four records carry the 45 `^OPEN` entries the constant
-// below counts (recounted 2026-08-17). The slot holds a RECORD count and nothing else: a finding
-// count put in it leaves a reader comparing the two lines of the report against a stale figure, and
-// 17 sat there once and was neither of the two numbers. The records cover more than geometry
-// (a frame label under the panel, a band empty by construction, a lane pair declined), so the two
-// populations OVERLAP and never coincide, and this line is a record census, not a target. It is a
-// RECORD, never an assertion: this file prints the comparison and a person rules.
-const DOCUMENTED_OPEN = { total: 45, cluster: 10, storage: 14, workloads: 5, network: 16 };
+// TWO POPULATIONS, AND THEY ARE NOT ONE POPULATION. This file counts what its three rules can see
+// on the live catalog (CENTRE, CENTRE-LOW, OCCLUDED). The four card records separately carry the
+// `^OPEN` entries L-16 leaves open on purpose, and that census is stated in `scheme/CLAUDE.md` and
+// machine-compared there by `unit/docs-census.test.mjs`, which is its one executing home. No copy of
+// it is typed here: the records cover more than geometry (a frame label under the panel, a band
+// empty by construction, a lane pair declined), so the two populations OVERLAP and never coincide,
+// and a stale copy in this slot would have a reader comparing the report against a figure nobody
+// recounted. See the closing note the report prints.
 
 // Runs IN THE PAGE. No free variables: page.evaluate serialises it. The root-space mapping it uses
 // is shared with render/geometry.test.mjs and report/arrival.test.mjs (fixtures/render.mjs
@@ -202,8 +196,8 @@ function centreLow(blockSeen, ovBottom) {
 
 // One probe, with one retry when the diagram is momentarily absent. Scene.build() empties the host
 // and appends a NEW <svg.diagram>, so a step change has an instant with no diagram in the dialog and
-// a probe landing in it returns null. Measured: without the retry this walk sampled 649 of 650 steps
-// where the mandatory file, doing the same walk, sampled 650. One unsampled step is one step of a
+// a probe landing in it returns null. Measured: without the retry this walk came back one step short
+// of what the mandatory file, doing the same walk, sampled. One unsampled step is one step of a
 // composition nobody looked at, and in a file that never fails it would have gone unnoticed.
 async function probeStep(page) {
   let data = await page.evaluate(probe);
@@ -212,7 +206,7 @@ async function probeStep(page) {
   return page.evaluate(probe);
 }
 
-// The step census of a green run of the whole catalog (REFACTOR-PLAN 0.2). Printed, never asserted.
+// The step census of a green run of the whole catalog. Printed, never asserted.
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_STEPS = await stepTotal();
@@ -402,9 +396,8 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   for (const l of lowDelta) out.push(`    ${l}`);
   out.push('');
 
-  out.push(`  Against the record: the four CARDS.md carry ${DOCUMENTED_OPEN.total} OPEN entries ` +
-    `(cluster ${DOCUMENTED_OPEN.cluster}, storage ${DOCUMENTED_OPEN.storage}, ` +
-    `workloads ${DOCUMENTED_OPEN.workloads}, network ${DOCUMENTED_OPEN.network}).`);
+  out.push('  Against the record: the four CARDS.md carry the OPEN entries L-16 leaves open on purpose,');
+  out.push('  counted in scheme/CLAUDE.md and machine-compared by unit/docs-census.test.mjs.');
   out.push(`  This walk produced ${total}. The two counts are NOT the same population and are not expected to`);
   out.push('  match: an OPEN entry is any finding a card record leaves open, including review-level ones no');
   out.push('  tool produces (an empty band at wide viewports, a frame label the panel covers, a poster');

@@ -4,8 +4,8 @@
 // WHY THIS CAN NEVER BE MANDATORY. It needs the public internet. The ancestor was never in the gate
 // for exactly that reason, and the reason is not squeamishness: a run with no route out produces
 // one finding per url, so a laptop on a plane reports the entire bibliography of the catalog as
-// broken. That output is worse than no output, because it is 149 confident false statements about
-// somebody else's website. Everything below is arranged around making that impossible.
+// broken. That output is worse than no output, because it is one confident false statement per url
+// about somebody else's website. Everything below is arranged around making that impossible.
 //
 // THE ONE THING THIS FILE OWES ABOVE ALL ELSE. With no network it must say `REPORT INVALID: no
 // network` and PASS, not print findings. Two independent guards, because one is not enough:
@@ -26,8 +26,8 @@
 // nothing about today, and only --refresh made green mean anything. The cache had one real
 // consumer, a planned text pass that would verify narration against the real docs without hundreds
 // of round trips, and that pass does not exist. A store whose only reader is hypothetical, and
-// whose presence silently disables the check, is not worth the 149 files or the .gitignore line.
-// 149 GETs at concurrency 6 take well under a minute. If the text pass is ever built, it should own
+// whose presence silently disables the check, is not worth the page files or the .gitignore line.
+// The whole bibliography at concurrency 6 takes well under a minute. If the text pass is ever built, it should own
 // its own store and its own staleness policy rather than inherit this one by accident.
 //
 // WHAT A FINDING MEANS, per class (carried over from the ancestor, whose taxonomy is right):
@@ -37,8 +37,8 @@
 //           status check misses entirely, and on documentation sites it is the common one.
 //   MOVED   landed somewhere else. The link works, the card should name the new address.
 //   ANCHOR  the #fragment is not in the page, so the link opens at the top and the reader has to
-//           hunt for the paragraph the card cites. 54 of the 149 hrefs carry a fragment, so this is
-//           a third of the bibliography and not an edge case.
+//           hunt for the paragraph the card cites. Better than a third of the hrefs carry a fragment,
+//           which the run counts and prints, so this is not an edge case.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -49,17 +49,17 @@ const PROBE_HOSTS = ['https://example.com/', 'https://cloudflare.com/'];
 const PREFLIGHT_TIMEOUT_MS = 8000;
 
 // One request budget for the walk. Long enough that a slow documentation site is not called dead,
-// short enough that 149 of them cannot wedge a report.
+// short enough that the whole bibliography cannot wedge a report.
 const REQUEST_TIMEOUT_MS = 20000;
 
-// 149 urls at once is rude and gets throttled, one at a time is slow. The ancestor's number.
+// The whole bibliography at once is rude and gets throttled, one at a time is slow. The ancestor's number.
 const CONCURRENCY = 6;
 
 const UA = 'kube.how source check (scheme/test/report/sources.test.mjs)';
 
-// The recorded census, taken on a green tree at 108 cards. Printed for comparison so a
+// The recorded census, taken on a green tree at 115 cards. Printed for comparison so a
 // bibliography that shrinks by half is visible, never used to clamp anything.
-const RECORDED = { rows: 213, unique: 149, cards: 108 };
+const RECORDED = { rows: 252, unique: 171, cards: 115 };
 
 async function reachable(url, ms) {
   try {

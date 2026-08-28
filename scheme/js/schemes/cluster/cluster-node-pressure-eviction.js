@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, spread, midX, shade, CLU, LAYOUT, BEAT, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-node-pressure-eviction
+// Design notes for this card: ./CARDS/cluster-node-pressure-eviction.md
 
 // Layout B: chips left under the panel, ladder right, Node frame full width. Panel x<=397 y<=280
 // against a chip column at 296, so 16 units of headroom. CEILING 383 characters. Re-measure.
@@ -54,8 +54,8 @@ const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 const CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
 
 // The Kubelet owns EVERY ladder row, so the tie is a RELATIONSHIP: no ball, no arrowhead, or the
-// ladder becomes a destination. Face midpoint to face midpoint, turn halfway between them.
-const TIE_X = SPINE_X;                                   // 600
+// ladder becomes a destination. Offset by LANE_DY off the face midpoint the kill lane already takes.
+const TIE_X = SPINE_X + CLU.LANE_DY;                     // 612
 const TIE_LAND_X = midX(LADDER_X, LADDER_X + LADDER_W);  // 900
 const TIE_JOG_Y = midX(TOP_BOTTOM, LADDER_Y);            // 188
 const KUBE_TO_CHAIN = [[TIE_X, TOP_BOTTOM], [TIE_X, TIE_JOG_Y], [TIE_LAND_X, TIE_JOG_Y], [TIE_LAND_X, LADDER_Y]];
@@ -132,7 +132,7 @@ export const STEPS_SPEC = [
   {
     id: 'detect',
     duration: 2000,
-    narration: 'The cAdvisor stats report memory.available has dropped to 500Mi. Eviction manager polls these stats every 10s in its own synchronize loop (separate from cAdvisor housekeeping) and compares against the --eviction-hard signals. The threshold is breached.',
+    narration: 'The cAdvisor stats report memory.available has dropped to 500Mi. Eviction manager polls these stats every 10s and compares against the --eviction-hard signals. The threshold is breached.',
     chips: { memChip: '500Mi', thresholdChip: THRESHOLD, pressureChip: 'False', victimChip: 'none' },
     opacity: LIVE,
     // Local stats comparison: nothing travels and no block flashes, the
@@ -142,7 +142,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'condition',
-    duration: 2000,
+    duration: 3700,
     narration: 'Kubelet PATCHes Node.status.conditions: MemoryPressure flips from False to True. The node controller translates this into a NoSchedule taint (node.kubernetes.io/memory-pressure), so Pods that do not tolerate it can no longer be scheduled here. By default only BestEffort workloads carry no such toleration, the control plane adds it to every Pod in the Burstable or Guaranteed class.',
     chips: { memChip: '500Mi', thresholdChip: THRESHOLD, pressureChip: 'True', victimChip: 'none' },
     wires: { api: 'PATCH Node.status.conditions · MemoryPressure=True' },
@@ -159,7 +159,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'rank',
-    duration: 2200,
+    duration: 3600,
     narration: 'Eviction manager ranks running Pods by three things in order: whether each is using more of the starved resource than it requested, then Pod Priority, then how far over the request it sits. QoS class does not decide that order, it only estimates it, because a class derived from CPU and memory says nothing about the resource under pressure. See the Pod QoS Classes card.',
     chips: { memChip: '500Mi', thresholdChip: THRESHOLD, pressureChip: 'True', victimChip: 'BestEffort Pod selected' },
     opacity: LIVE,
@@ -168,12 +168,12 @@ export const STEPS_SPEC = [
     // The ranking lands on the BestEffort Pod: mark the victim with a pulse. The reduced path has no
     // pulse to show, so it stands the inner box highlight in for it instead.
     reducedLit: ['pod1Box'],
-    flow: [F.pulse({ pod: 'pod1', delay: 400 })],
+    flow: [F.pulse({ pod: 'pod1', delay: BEAT.lead })],
   },
   {
     id: 'evict',
     duration: 2700,
-    narration: 'Kubelet evicts the BestEffort Pod itself rather than through the Eviction API, so no PodDisruptionBudget is consulted and the terminationGracePeriodSeconds in the spec is ignored. For hard thresholds the grace period is forced to 0, an immediate SIGKILL, where normal termination gives 30s after SIGTERM. The Pod phase is set to Failed with reason Evicted and reported to the API.',
+    narration: 'Kubelet evicts the BestEffort Pod itself, not through the Eviction API, so no PodDisruptionBudget is consulted and the spec terminationGracePeriodSeconds is ignored. For hard thresholds the grace period is forced to 0, an immediate SIGKILL, where normal termination waits the 30s default after SIGTERM. The Pod phase is set to Failed with reason Evicted and reported to the API.',
     chips: { memChip: '500Mi', thresholdChip: THRESHOLD, pressureChip: 'True', victimChip: 'BestEffort Pod evicted' },
     wires: { api: 'PATCH Pod status · phase=Failed reason=Evicted' },
     // Pin final state so cancel does not snap back to opacity 1. The victim stays on screen as a
@@ -199,7 +199,7 @@ export const STEPS_SPEC = [
   {
     id: 'relieve',
     duration: 2200,
-    narration: 'Memory frees up, and cAdvisor reports memory.available back above the threshold. After --eviction-pressure-transition-period (default 5min) of staying clear, Kubelet flips MemoryPressure back to False. Scheduling resumes for new Pods.',
+    narration: 'Memory frees up, and cAdvisor reports memory.available back above the threshold. After --eviction-pressure-transition-period (default 5m) of staying clear, Kubelet flips MemoryPressure back to False. Scheduling resumes for new Pods.',
     chips: { memChip: '3.5Gi', thresholdChip: THRESHOLD, pressureChip: 'False', victimChip: 'none' },
     wires: { api: 'PATCH Node.status.conditions · MemoryPressure=False' },
     // The evicted Pod is still drawn, at the terminated shade: gone from the Node, not a hole.

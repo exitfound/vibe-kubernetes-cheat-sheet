@@ -10,7 +10,7 @@
 // ===========================================================================================
 // THE POPULATION IS A SUBSET, AND THAT IS THE ONE THING THIS FILE CANNOT GET WRONG
 // ===========================================================================================
-// 108 cards of 108 export SCENE today and 0 export `init` alone, but the file is written for a
+// Every card in the catalog exports SCENE today and none exports `init` alone, but the file is written for a
 // population that can shrink: a card that exports `init` alone keeps its scene inside makeInit's
 // closure, unreachable (fixtures/module.mjs says why at length). So every rule below is
 // asserted over a SUBSET, and a subset that shrinks to nothing passes every rule in this file.
@@ -23,16 +23,16 @@
 // ===========================================================================================
 // THIS FILE AND render/geometry.test.mjs ARE NOT THE SAME CHECK
 // ===========================================================================================
-// That one measures the three rules off the rendered DOM, at every step of all 108 cards, after the
-// browser has applied every transform. This one reads what the card DECLARES, on 108. Both are worth
+// That one measures the three rules off the rendered DOM, at every step of every card, after the
+// browser has applied every transform. This one reads what the card DECLARES. Both are worth
 // having: this one fails in 0.4s with no server, and it is the only one that can see a DECLARED
 // geometry that the drawn picture does not contradict. A rule failing here and not there (or the
 // other way round) is a finding about the LAYER, not about the card, and both directions are real:
 //   - declared clean, drawn dirty  -> something between the data and the DOM moved it: a group
 //     transform, an escape hook, a per-step opacity that reveals a lane this file also counted.
 //   - declared dirty, drawn clean  -> the part is never visible, or an escape overwrites it.
-// Measured on this catalog today: 0 findings on both sides, over 910 declared segments here and
-// 650 rendered steps there. The two agree.
+// Measured on this catalog today: 0 findings on both sides, over every declared segment here and
+// every rendered step there. The two agree.
 //
 // ===========================================================================================
 // WHAT THIS FILE IS BLIND TO

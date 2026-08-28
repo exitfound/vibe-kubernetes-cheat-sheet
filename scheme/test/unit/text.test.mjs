@@ -44,7 +44,7 @@ const REPO = join(ROOT, '..');
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const CARD_TOTAL = (await cards()).length;
 
-// Measured 2026-08-07 by walking the tree below: 108 cards + 12 category modules (four folders x
+// Measured by walking the tree below: 110 cards + 12 category modules (four folders x
 // kit, cards.js, posters.js) + 11 js/lib modules + 3 stylesheets + the 8 named files. A floor
 // rather than an equality, because a new card or a new lib module legitimately raises it, and the
 // failure this guards against is the sweep getting SMALLER.
@@ -52,7 +52,7 @@ const DASH_TARGET_FLOOR = 142;
 
 // terms.json is DATA and it is the source of truth for T-06. Its section sizes are asserted so a
 // dictionary that silently loses half its entries cannot turn every rule below green.
-const DICT_SIZES = { hard: 70, hardLower: 13, exceptions: 11, soft: 8 };
+const DICT_SIZES = { hard: 71, hardLower: 13, exceptions: 11, soft: 8 };
 const INLINE_SIZES = { names: 32, apiWords: 105, components: 29, homographs: 3 };
 
 // Built from code points, so this file does not itself contain the characters it bans.
@@ -78,7 +78,7 @@ async function dashTargets() {
   for (const c of CARDS) out.push(join('scheme', c.rel));
   // Everything in a category folder that is NOT a card: the kit, the manifest that holds that
   // category's descriptions, the poster map. Walked, never listed: when the kits left js/lib and
-  // when the 108 descriptions left js/data.js, a listed set would have kept passing over an area
+  // when the card descriptions left js/data.js, a listed set would have kept passing over an area
   // that no longer contained them.
   for (const cat of CATS) {
     const allowed = folderModules(cat);
@@ -173,7 +173,7 @@ test(`T-04 no em-dash or en-dash in any of the ${DASH_TARGET_FLOOR}+ files the r
   const targets = await allDashTargets();
   assert.ok(targets.length >= DASH_TARGET_FLOOR,
     `the dash sweep collected ${targets.length} files, fewer than the recorded ${DASH_TARGET_FLOOR}. ` +
-    'A file that leaves the walk leaves the rule, which is how the four kits and all 108 descriptions ' +
+    'A file that leaves the walk leaves the rule, which is how the four kits and every card description ' +
     'once slipped out of it at zero findings.');
 
   const bad = [];
@@ -361,5 +361,5 @@ test('SOFT ambiguous terms across the descriptions, minority form listed (report
     t.diagnostic(`  ${term.padEnd(12)} ${ranked.map(([form, ids]) => `${form} ${ids.length}`).join(' | ')}`);
     for (const [form, ids] of ranked.slice(1)) t.diagnostic(`      ${form}: ${ids.join(', ')}`);
   }
-  assert.ok(forms.size > 0, 'no soft term matched anywhere in 108 descriptions: the matcher collapsed');
+  assert.ok(forms.size > 0, 'no soft term matched anywhere in the card descriptions: the matcher collapsed');
 });

@@ -49,8 +49,8 @@ import {
 } from '../fixtures/render.mjs';
 
 // ---------------------------------------------------------------------------------------------
-// Control numbers, taken off a green run of the whole catalog (stage 0.2a: 108 cards, 650 steps,
-// every step outlasts its own motion). They are FLOORS, not equalities: a run that measures fewer
+// Control numbers, taken off a green run of the whole catalog, where every step outlasts its own
+// motion. They are FLOORS, not equalities: a run that measures fewer
 // cards or fewer steps than this has scanned a subset, and a subset that reports zero findings is
 // worse than a red run, because nothing about it looks wrong. A card or a step added later is a
 // legitimate widening and must not turn this file red on its own. The card count is additionally
@@ -146,7 +146,7 @@ test('every step declares its own duration', () => {
   // A strengthening of the original, and a small one: it compared spans against `durations[i] || 0`,
   // so a step declaring no duration was judged against 0 while the Timeline would actually hold it
   // for defaultDuration (2000). Both readings are defensible and they disagree, so the ambiguity is
-  // removed rather than resolved. It costs nothing today: all 650 steps declare one.
+  // removed rather than resolved. It costs nothing today: every step declares one.
   assert.equal(undeclared, 0,
     `${undeclared} step(s) declare no duration. Such a step is judged against 0 here and held for ` +
     "Timeline's defaultDuration (2000) when played, so the rule would mean two different things.");

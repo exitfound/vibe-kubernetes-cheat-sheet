@@ -17,7 +17,7 @@
 //
 // FONTS ARE NOT A FORMALITY HERE, THEY ARE THE MEASUREMENT (L-21). Of everything the geometry
 // rules read, the panel is the ONLY font-sensitive quantity: block bboxes are frames and a frame is
-// wider than its label on all 108 cards, but the panel is wrapped text, and on the fallback face
+// wider than its label on every card, but the panel is wrapped text, and on the fallback face
 // its bottom lands one text line HIGH, 17.5 viewBox units, on 3 of 6 sampled cards. A run without
 // fonts therefore reports a SHALLOWER panel than the truth, which is the flattering direction: it
 // would quietly widen the L-04 range at the low end and hide occlusion. So waiting for the real
@@ -43,10 +43,10 @@
 // the direction, because the direction is what L-05 claims and a report that assumed it could not
 // test it.
 //
-// THE PROBE CAN LOSE A STEP (see REFACTOR-PLAN 2.4c). Scene.build() empties the dialog host and
+// THE PROBE CAN LOSE A STEP. Scene.build() empties the dialog host and
 // appends a NEW <svg.diagram>, so a probe can land in the instant with no diagram and read null.
-// One retry on the selector closes it. Without the retry a walk of this catalog sampled 649 of 650
-// where the mandatory files sampled 650, and in a file that never fails one missing step is one
+// One retry on the selector closes it. Without the retry a walk of this catalog came back one step
+// short of what the mandatory files sampled, and in a file that never fails one missing step is one
 // composition nobody looked at, reported as nothing.
 
 import { test } from 'node:test';
@@ -80,17 +80,19 @@ const vpName = vp => `${vp.width}x${vp.height}`;
 const RIGHT_CEILING = 397;
 const RECORDED_RIGHT = { value: 396.55, id: 'cluster-architecture', viewport: '1100x800' };
 
-// L-04: the bottom ranges 90 to 504 over the standard set, with both ends attributed.
+// L-04: the bottom ranges 90 to 504 over the standard set. Only the DEEP end belongs to one card.
+// 107.67 is the four-line panel at 1600x1000 and 15 cards sit on it, so an "attribution DIFFERS" on
+// the shallow end says nothing. 90.23 is one line under that cluster and one card reaches it.
 const RECORDED_BOTTOM = {
   lo: 90, hi: 504,
-  shallowest: { value: 90.23, id: 'cluster-admission-webhooks', viewport: '1600x1000', step: 3 },
+  shallowest: { value: 90.23, id: 'cluster-leader-election', viewport: '1600x1000', step: 2 },
   deepest: { value: 503.13, id: 'workloads-pod-phase-machine', viewport: '1100x800', step: 5 },
 };
 
 // L-05a: the panel shrinks in units by up to 186 across the viewport set.
 const RECORDED_SWING = 186;
 
-// The step census of a green run of the whole catalog (REFACTOR-PLAN 0.2), per viewport.
+// The step census of a green run of the whole catalog, per viewport.
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_STEPS = await stepTotal();
@@ -125,7 +127,7 @@ const near = (a, b) => Number.isFinite(a) && Math.abs(a - b) <= SAME;
 // full run, so the report says so when it was not one.
 //
 // SCHEME_IDS does the same thing for the rest of the suite, and this file answers to BOTH: two
-// names for one job is how a reviewer who set SCHEME_IDS for the gate gets a full 108-card panel
+// names for one job is how a reviewer who set SCHEME_IDS for the gate gets a full catalog panel
 // walk they did not ask for. OVERLAY_IDS wins where both are set, because it is the narrower
 // instrument and the one L-08 names.
 const ONLY_VAR = process.env.OVERLAY_IDS ? 'OVERLAY_IDS' : 'SCHEME_IDS';
@@ -245,7 +247,7 @@ test('narration panel extent, per card and per viewport (report only, never fail
     for (const f of fellBack) out.push(`    ${f}`);
     out.push(`  The two faces this report needs are ${DIAGRAM_FACES.map(f => f.family).join(' and ')}.`);
     out.push('  The panel is the one font-sensitive quantity in this suite: block bboxes are frames and');
-    out.push('  a frame is wider than its label on all 108 cards, but the panel is wrapped text. On the');
+    out.push('  a frame is wider than its label on every card, but the panel is wrapped text. On the');
     out.push('  fallback its bottom lands about one text line (17.5 units) HIGH, so every bottom below');
     out.push('  is flatter than the truth and the L-04 range is wider at the shallow end than it should');
     out.push('  be. Measured against a full-font run of the same card: 24.85 units shallower. That is');

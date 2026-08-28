@@ -54,7 +54,7 @@ if (!schemeId && !dumpAll) {
   process.exit(1);
 }
 if (dumpAll && !outDir) {
-  console.error('--all needs --out=DIR (108 dumps do not belong on stdout).');
+  console.error('--all needs --out=DIR (a dump per card does not belong on stdout).');
   process.exit(1);
 }
 

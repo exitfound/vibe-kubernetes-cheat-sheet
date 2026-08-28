@@ -12,9 +12,8 @@
 // was pulled in here to end.
 //
 // WHY THE ESCAPES HAVE TO BE READ AT ALL. `tune(el, refs)` and `raw.make(refs)` may write a ref,
-// and 10 cards do it: 33 assignments naming 27 distinct keys, which is what report section 4b
-// prints. A reader that ignored them would call every reset key naming one a typo: twelve false
-// findings.
+// and section 4b of report/skeleton-census.test.mjs counts the cards that do. A reader that ignored
+// them would call every reset key naming one a typo.
 //
 // THE READER ONLY EVER WIDENS THE LEGAL SET, which is the safe direction for a regex over source
 // text: a pattern it misses costs a loud false finding, never a silent pass. It reads a LITERAL key
@@ -226,8 +225,8 @@ export function entryChips(spec) {
 }
 
 // What the animated path LEAVES BEHIND: entry plus every F.set in flow order. This is the value the
-// next step starts from, and it is NOT `chips`: an F.set can carry a key past its static value on
-// 15 step/chip pairs today.
+// next step starts from, and it is NOT `chips`: an F.set can carry a key past its static value,
+// which section 4 of report/chip-beat.test.mjs counts.
 export function settledChips(spec) {
   const out = entryChips(spec);
   for (const e of spec.flow || []) {

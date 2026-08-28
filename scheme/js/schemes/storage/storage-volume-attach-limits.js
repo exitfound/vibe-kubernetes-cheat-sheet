@@ -128,7 +128,7 @@ const lane = (key, points) => P.lane({ key, points, dashed: true, dim: true });
 // Z-order: the three node frames with their gauges, then the counters, then the two decision-tier
 // blocks and the Pod, then the lanes, then the chip strip, then the packet layer.
 export const SCENE = {
-  'aria-label': 'Node volume attach limits: every Node has a hard ceiling on how many volumes one CSI driver may have attached at once, reported by the node plugin as max_volumes_per_node, written into CSINode as allocatable.count and read by the scheduler filter NodeVolumeLimits. With all three Nodes at eight of eight, Pod web-0 asks for one slot and stays Pending, and a slot frees when a detach completes and its VolumeAttachment is gone, not when a Pod dies.',
+  'aria-label': 'Node volume attach limits: every Node has a hard ceiling on how many volumes one CSI driver may have attached at once, reported by the node plugin as max_volumes_per_node, written into CSINode as allocatable.count and read by the Scheduler filter NodeVolumeLimits. With all three Nodes at eight of eight, Pod web-0 asks for one slot and stays Pending, and a slot frees when a detach completes and its VolumeAttachment is gone, not when a Pod dies.',
   parts: [
     P.defs(),
     nodeFrame(0, 'node-1'),
@@ -291,7 +291,7 @@ export const STEPS_SPEC = [
   {
     id: 'ask',
     duration: 3000,
-    narration: 'Now Pod web-0 is created and it asks for one volume of its own. Before the scheduler can score any Node it has to filter out the ones that cannot take the Pod at all, and one filter exists purely for this ceiling. It is called NodeVolumeLimits, and a Pod that claims no volume is skipped.',
+    narration: 'Now Pod web-0 is created and it asks for one volume of its own. Before the Scheduler can score any Node it has to filter out the ones that cannot take the Pod at all, and one filter exists purely for this ceiling. It is called NodeVolumeLimits, and a Pod that claims no volume is skipped.',
     chipsCued: chips('24 of 24', 'Pending', 'nothing'),
     ...stage({ podOp: 1, podSub: 'Pending', linkPod: 1 }),
     ...gauge([8, 8, 8]),

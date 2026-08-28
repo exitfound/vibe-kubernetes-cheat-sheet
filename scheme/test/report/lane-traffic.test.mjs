@@ -66,8 +66,8 @@
 //
 // WHAT DOES FAIL: the census, and the shape of the carried table. A report that walked less than the
 // catalog prints few findings and looks exactly like a clean catalog, which is the lesson of stage
-// 2.4c, where the first run of a report test counted 649 steps of 650 and nothing in the output
-// looked wrong. Fewer than 108 cards or 650 steps is an assertion failure, not a note.
+// once, when the first run of a report test came back one step short and nothing in the output
+// looked wrong. Fewer cards or steps than the catalog holds is an assertion failure, not a note.
 //
 // ===========================================================================================
 // WHAT THIS FILE IS BLIND TO
@@ -117,18 +117,6 @@ import { walkParts } from '../fixtures/spec.mjs';
 
 // Half a unit. Coordinates in this catalog are integers or exact thirds (`464.6666666666667`), and
 // nothing is meant to be near-collinear, so the tolerance only has to survive float arithmetic.
-
-// What the walk measured the day this file was written. Printed beside the live numbers, never
-// asserted: a card repaired in phase F is SUPPOSED to move them, and an assertion here would make a
-// repair look like a regression.
-const RECORDED = {
-  'A-02 SHARED': 405,
-  'A-02 COPIED': 0,
-  'A-02 NO LANE': 34,
-  'A-05 no exact rider': 26,
-  'A-05 TRAVERSED': 17,
-  'A-05 DEAD': 9,
-};
 
 // -------------------------------------------------------------------------------------------
 // A-05 findings a human has READ and decided to carry, keyed `<card id> <points as JSON>`, with the
@@ -199,11 +187,9 @@ test('A-02, a ball rides the array that drew its wire (report only, census is th
   }
 
   out.push('');
-  out.push('1. THE THREE LEVELS THE RULE IS ABOUT, over F.route, live against what was recorded');
+  out.push('1. THE THREE LEVELS THE RULE IS ABOUT, over F.route, counted live on this walk');
   const live = { 'A-02 SHARED': routeTier.get('SHARED').length, 'A-02 COPIED': routeTier.get('COPIED').length, 'A-02 NO LANE': noLane };
-  for (const k of Object.keys(live)) {
-    out.push(`   ${k.padEnd(14)} ${pad(live[k])}${live[k] === RECORDED[k] ? '' : `   (recorded ${RECORDED[k]})`}`);
-  }
+  for (const k of Object.keys(live)) out.push(`   ${k.padEnd(14)} ${pad(live[k])}`);
   out.push('   SHARED is the rule satisfied literally and is counted only. COPIED is the queue: two');
   out.push('   independent copies of one set of numbers, which come apart on the first geometry edit.');
 
@@ -327,10 +313,8 @@ test('A-05, a drawn lane nothing rides (report only, census is the assertion)', 
   const exact = traversed.length + dead.length;
   out.push('');
   out.push(`1. THE UPPER BOUND, AND WHY IT IS NOT THE ANSWER: ${exact} lane(s) on ` +
-    `${cardsOf([...traversed, ...dead])} card(s) carry no ball path with their own points` +
-    (exact === RECORDED['A-05 no exact rider'] ? '' : `   (recorded ${RECORDED['A-05 no exact rider']})`));
+    `${cardsOf([...traversed, ...dead])} card(s) carry no ball path with their own points`);
   out.push(`   of those, ${traversed.length} are TRAVERSED` +
-    (traversed.length === RECORDED['A-05 TRAVERSED'] ? '' : ` (recorded ${RECORDED['A-05 TRAVERSED']})`) +
     ': every segment of the lane lies under a');
   out.push('   LONGER ball path that runs straight through it, which an exact comparison cannot see.');
   out.push('   Most are 22 unit taps from a block edge down to the row below. Not findings.');
@@ -338,7 +322,6 @@ test('A-05, a drawn lane nothing rides (report only, census is the assertion)', 
 
   out.push('');
   out.push(`2. THE QUEUE: ${dead.length} lane(s)` +
-    (dead.length === RECORDED['A-05 DEAD'] ? '' : ` (recorded ${RECORDED['A-05 DEAD']})`) +
     ` on ${cardsOf(dead)} card(s) have nothing running over them, ` +
     `${held.length} carried with a reason, ${open.length} left to work`);
   for (const r of open) {

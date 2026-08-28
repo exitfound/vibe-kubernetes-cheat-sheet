@@ -1,9 +1,9 @@
 import { P, F, defineCard, laneY, ladder, spread, midX, LAYOUT, FADE, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-scheduler-decision
+// Design notes for this card: ./CARDS/cluster-scheduler-decision.md
 
 // Layout A, the Cluster exemplar: actor row clear of the panel, ladder left, chips right, candidate
-// Nodes full width at the bottom. Panel x<=397 y<=180, and JOG_Y sits on that line.
+// Nodes full width at the bottom. Panel x<=397 y<=180.12, and JOG_Y clears it at 190.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 // Reserved narration corner: 400 x 180. Nothing on this card derives from it, and the measured
@@ -23,31 +23,55 @@ const WIRE_AE_X = midX(API_R, ETCD_X);                   // 985
 
 const ROW_H = 32, ROW_GAP = 12;
 // LAYOUT.A of the kit, which this card is the exemplar of: ladder in the left column, state chips
-// in the right, both 480 wide.
+// in the right. The chip WIDTH is the one number this card takes off the preset, see CHIP_W.
 const LADDER_X = LAYOUT.A.ladder.x, LADDER_W = LAYOUT.A.ladder.w;      // 60..540
 const LADDER_Y = 220, LADDER_CX = midX(LADDER_X, LADDER_X + LADDER_W); // 220, 300
-const CHIP_X = LAYOUT.A.chips.x, CHIP_W = LAYOUT.A.chips.w;            // 480, 660..1140
+// 270, not the preset 480: the last 210 units of the preset column are the only channel from the
+// control-plane band down to the Node band, and the kubelet lane needs them. Floor is 171.2.
+const CHIP_X = LAYOUT.A.chips.x, CHIP_W = 270;                         // 660..930
 const CHIP_Y = ladder({ y: LADDER_Y, rowH: ROW_H, gap: ROW_GAP });     // chips share the ladder rhythm
 
-// A relationship, not a route: the API owns the Pod objects the cycle below reads. Face midpoint to
-// face midpoint, turn halfway between them rather than hugging the ladder.
-const JOG_Y = midX(TOP_BOTTOM, LADDER_Y);    // 180
-const API_TO_CHAIN = [[API_CX, TOP_BOTTOM], [API_CX, JOG_Y], [LADDER_CX, JOG_Y], [LADDER_CX, LADDER_Y]];
-// Centred in the band between the top row and that dashed jog, not pinned under the boxes: the +4
-// puts the glyph MIDDLE on the band centre, where y=158 sat 7 under the row and 19 clear of the jog.
-const WIRE_RESP_Y = midX(TOP_BOTTOM, JOG_Y) + 4;         // 164, visual centre 160.1 against 160
+// The two lanes leaving the API bottom face are a mirrored pair at +-LANE_DX (L-12), so neither is
+// off-midpoint alone: the relation down to the ladder, and the watch stream out to the Node.
+const LANE_DX = 30;
+// 190, not the band midpoint 180: BOTH horizontal legs sit on it, and at 180 the left one ran
+// under the panel at 1100x800, whose bottom measures 180.12. At 190 it clears on every viewport.
+const JOG_Y = 190;
+const REL_X = API_CX - LANE_DX, WATCH_X = API_CX + LANE_DX;   // 780 / 840
+// A relationship, not a route: the API owns the Pod objects the cycle below reads. It turns halfway
+// between the two faces rather than hugging the ladder.
+const API_TO_CHAIN = [[REL_X, TOP_BOTTOM], [REL_X, JOG_Y], [LADDER_CX, JOG_Y], [LADDER_CX, LADDER_Y]];
+// Centred in the band between the top row and the jog, not pinned under the boxes: the +4 puts the
+// glyph MIDDLE on the band centre. Both labels in this band share it, so the two read as one row.
+const WIRE_RESP_Y = midX(TOP_BOTTOM, JOG_Y) + 4;         // 169, visual centre 165.1 against 165
 
 const NODE_Y = 410, NODE_H = 130, NODE_W = 240;
 // Fixed WIDTH, derived gap: four 240-wide Nodes spanning the content band leave 40 between them.
 const NODE_X = spread({ from: CONTENT_L, to: CONTENT_R, count: 4, w: NODE_W }).x;   // 60/340/620/900
 const VERDICT_Y = 552, VERDICT_H = 32;
+
+// The Kubelet sits in the channel the narrowed chips open, centred on the Node it belongs to, so
+// both of its lanes are straight drops. ETCD_W wide, so it reads as a top-row peer and not a chip.
+const KUBELET_W = ETCD_W, KUBELET_H = TOP_H;
+// Centred on the three-chip band 220..340, whose middle is 280, so KUBELET_Y is 280 - h/2.
+const KUBELET_Y = midX(CHIP_Y(0), CHIP_Y(2) + ROW_H) - KUBELET_H / 2;   // 240..320
+const NODE4_CX = midX(NODE_X(3), NODE_X(3) + NODE_W);          // 1020
+const KUBELET_X = NODE4_CX - KUBELET_W / 2;                    // 955..1085
+const KUBELET_BOTTOM = KUBELET_Y + KUBELET_H;                  // 320
+// Api.bottom -> Kubelet.top, then Kubelet.bottom -> Node-4.top. The binding write reaching the Node
+// is what step 5 narrates, and before these two lanes the Pod materialised with nothing arriving.
+const API_TO_KUBELET = [[WATCH_X, TOP_BOTTOM], [WATCH_X, JOG_Y], [NODE4_CX, JOG_Y], [NODE4_CX, KUBELET_Y]];
+const KUBELET_TO_NODE = [[NODE4_CX, KUBELET_BOTTOM], [NODE4_CX, NODE_Y]];
+// Anchored START just right of the drop it labels: centred anywhere on the leg the 234.3 wide
+// string runs back over the WATCH_X drop at 840, which no lint sees and a frame does.
+const WIRE_WATCH_X = WATCH_X + 14;                                          // 854
 const PLACED_X = 912, PLACED_Y = 422, PLACED_W = 216, PLACED_H = 106;
 const PLACED_INNER = { dx: 10, dy: 28, w: 196, h: 52 };
 
 // The list order IS the append order, so it is the z-order: chips, lanes and the Node row first, the
 // packet layer under the chain, and the three top-row blocks absolute last.
 export const SCENE = {
-  'aria-label': 'Scheduler decision cycle: queue, filter, score, bind',
+  'aria-label': 'Scheduler decision cycle: a Pod taken off the queue, four candidate Nodes filtered and then scored, the winning choice written back through the API into ETCD, and the Kubelet on Node-4 picking the Pod up and running it',
   parts: [
     P.defs(),
     // State chips in the right column, one per ladder row so the two columns share a rhythm.
@@ -62,13 +86,18 @@ export const SCENE = {
     // Api.bottom -> pipeline.top. No arrowhead and no ball: it states that the cycle below works on
     // the Pod objects the API holds, it does not carry traffic.
     P.relation({ points: API_TO_CHAIN }),
+    // The two lanes the placement write travels, both carrying a ball on the last step. No `key`:
+    // nothing addresses them, and the routes ride the SAME arrays these are drawn from (A-02).
+    P.lane({ points: API_TO_KUBELET, dim: true, dashed: true }),
+    P.lane({ points: KUBELET_TO_NODE, dim: true, dashed: true }),
     // Wire labels at fixed positions, populated per step.
     P.wire({ key: 'req', x: WIRE_SA_X, y: 46 }),
     P.wire({ key: 'resp', x: WIRE_SA_X, y: WIRE_RESP_Y }),
     P.wire({ key: 'persist', x: WIRE_AE_X, y: 46 }),
+    P.wire({ key: 'watch', x: WIRE_WATCH_X, y: WIRE_RESP_Y, anchor: 'start' }),
     // Bottom row: 4 candidate Nodes side-by-side on the derived spread.
     P.box({ key: 'n1', x: NODE_X(0), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1', sublabel: 'taint dedicated=db:NoSchedule' }),
-    P.box({ key: 'n2', x: NODE_X(1), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2', sublabel: 'mem free 200Mi (req 800Mi)' }),
+    P.box({ key: 'n2', x: NODE_X(1), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2', sublabel: 'mem unreserved 200Mi (req 800Mi)' }),
     P.box({ key: 'n3', x: NODE_X(2), y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3', sublabel: 'cpu 40% / mem 60%' }),
     // Node-4 is the one whose own text has to stay reachable: `placed` hides it behind the Pod.
     // tune() only CAPTURES two refs here, it changes nothing the builder made.
@@ -85,6 +114,12 @@ export const SCENE = {
     P.chip({ key: 'v2', x: NODE_X(1), y: VERDICT_Y, w: NODE_W, h: VERDICT_H, name: 'verdict', value: 'none' }),
     P.chip({ key: 'v3', x: NODE_X(2), y: VERDICT_Y, w: NODE_W, h: VERDICT_H, name: 'verdict', value: 'none' }),
     P.chip({ key: 'v4', x: NODE_X(3), y: VERDICT_Y, w: NODE_W, h: VERDICT_H, name: 'verdict', value: 'none' }),
+    // The one actor that is not control plane. It stands in the channel above the Node it runs on,
+    // so the reader can see WHO picks the Pod up rather than only reading it in the panel.
+    P.box({
+      key: 'kubelet', x: KUBELET_X, y: KUBELET_Y, w: KUBELET_W, h: KUBELET_H,
+      label: 'Kubelet', sublabel: 'on Node-4',
+    }),
     // The Pod the cycle places, hidden until the last step. Inner box matches the workloads canon
     // for a 216-wide shell: 10px side insets (w=196).
     P.pod({
@@ -112,12 +147,15 @@ export const SCENE = {
   ],
   // placedPod is deliberately NOT in a `pods` list: the card pulses it and never clears the pulse,
   // and a clearPodHighlight here would wipe four inline styles the picture depends on.
-  reset: { keys: ['sched', 'api', 'etcdC', 'queueChip', 'candChip', 'winnerChip', 'n1', 'n2', 'n3', 'n4', 'v1', 'v2', 'v3', 'v4', 'placedPodBox'] },
+  reset: { keys: ['sched', 'api', 'etcdC', 'kubelet', 'queueChip', 'candChip', 'winnerChip', 'n1', 'n2', 'n3', 'n4', 'v1', 'v2', 'v3', 'v4', 'placedPodBox'] },
 };
 
 const POD = 'my-app-7d4-abc';
 const SURVIVORS = '2 of 4', WINNER = 'Node-4 · 92';
 const DROPPED = OPACITY.notready;
+// Node-4 hands its slot to the Pod. 200 clears both strings before an ease-out Pod fade is legible:
+// at 150 into a simultaneous crossfade the two label pairs sat on top of each other.
+const HANDOVER_MS = 200;
 // P-01: a step that does not CHANGE a verdict still writes it. Nothing resets a scene between two
 // forward steps, so these are the values already on the four chips, restated rather than inherited.
 const FILTERED = { v1: 'filtered · taint', v2: 'filtered · resources' };
@@ -163,7 +201,7 @@ export const STEPS_SPEC = [
     // 1400ms was the shortest step on the card and it carries the densest text with no motion at
     // all, so nothing but reading time sets it: 2200 matches the packet-less pace of the siblings.
     duration: 2200,
-    narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 for a Node and the weighted sum is the final score: Node-3 gets 78, Node-4 gets 92. See the Pod Priority and Preemption card.',
+    narration: 'Surviving Nodes are ranked by score plugins like NodeResourcesFit, NodeAffinity and PodTopologySpread. Each returns 0 to 100 per Node and the weighted sum of all of them ranks the Nodes: Node-3 78, Node-4 92. See the Pod Priority and Preemption card.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: 'none', ...SCORED },
     opacity: { n1: DROPPED, n2: DROPPED },
     // Computed inside the Scheduler, so nothing travels and nothing pulses: the verdicts settle
@@ -193,20 +231,30 @@ export const STEPS_SPEC = [
   },
   {
     id: 'placed',
-    duration: 2200,
+    // Two hops now, arriving at 1500, plus the handover and the pulse behind it: span 2600.
+    duration: 2800,
     narration: 'The Kubelet on Node-4 watches /api/v1/pods?fieldSelector=spec.nodeName=Node-4, so the write arrives there as an ADDED event. It pulls the image and starts the containers, and the Pod goes from Pending to Running.',
     chips: { queueChip: POD, candChip: SURVIVORS, winnerChip: WINNER, ...SCORED },
+    wires: { watch: 'watch ADDED · spec.nodeName=Node-4' },
     // Hide node-4's own label and sublabel so the inner box reads cleanly inside the slot, and pin
     // the placed Pod's final state inline so cancel returns to the right value, not default.
     opacity: { n1: DROPPED, n2: DROPPED, n4Label: 0, n4Sub: 0, placedPod: 1 },
-    // The verdict chip belongs to the Node above it, so it takes the same highlight: without it
-    // the winning column ended with a lit frame over a chip shaded like the two filtered ones.
-    lit: ['n4', 'v4', 'placedPodBox'],
+    // The Api streams the event, so it stays lit from the bind step. The verdict chip belongs to the
+    // Node above it and takes the same highlight, or the winning column ends shaded like a filtered one.
+    lit: ['api', 'n4', 'v4', 'placedPodBox'],
     flow: [
+      // The write reaching the Node is the whole of this step: the Api streams it to the Kubelet,
+      // and the Kubelet is what starts the containers. Nothing arrived here before these two hops.
+      F.route({ points: API_TO_KUBELET, name: 'watch', lights: ['kubelet'] }),
+      F.route({ points: KUBELET_TO_NODE, after: 'watch', name: 'start' }),
+      // Node-4 own text clears the slot on arrival, over HANDOVER_MS, so the frame is never empty
+      // and never doubled: the two strings sit on the same baselines as the Pod ones.
+      F.fade({ target: 'n4Label', from: 1, to: 0, dur: HANDOVER_MS, at: 'start', fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'n4Sub', from: 1, to: 0, dur: HANDOVER_MS, at: 'start', fill: 'both', easing: 'ease-in' }),
       // The placed Pod fades in and pulses together (shared delay), matching the
       // workloads pod-pulse canon, instead of pulsing a beat after the fade.
-      F.fade({ target: 'placedPod', from: 0, to: 1, dur: FADE.in, fill: 'both', easing: 'ease-out' }),
-      F.pulse({ pod: 'placedPod' }),
+      F.fade({ target: 'placedPod', from: 0, to: 1, dur: FADE.in, at: 'start', plus: HANDOVER_MS, fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'placedPod', at: 'start', plus: HANDOVER_MS }),
     ],
   },
 ];

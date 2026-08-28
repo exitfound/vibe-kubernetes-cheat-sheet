@@ -4,7 +4,7 @@
 //
 // WHO USES IT, and why the split is what it is:
 //   ../report/chip-beat.test.mjs  prints all four forms as a queue a person rules on, and fails only
-//                                 on the census. FORM-A (556) and FORM-B (384) are open queues.
+//                                 on the census. FORM-A and FORM-B are open queues.
 //   ../unit/chip-beat-e.test.mjs  turns FORM-E into a verdict: an E record outside E_CARRIED is a
 //                                 red gate, which is what promotion into `npm test` MEANS.
 //
@@ -18,7 +18,7 @@
 //
 // WHY HERE AND NOT INSIDE ./spec.mjs. That file answers questions about ONE step or ONE scene, holds
 // no opinion about any card, and knows nothing of the catalogue: every function in it takes a spec
-// and returns a reading of it. This one walks all 108 cards and returns a JUDGEMENT (four named
+// and returns a reading of it. This one walks the whole catalogue and returns a JUDGEMENT (four named
 // populations, one of them a failure class). Those are two layers, and the reason to keep them apart
 // is practical rather than tidy: ./spec.mjs is imported by four mandatory checks that have nothing to
 // do with P-03, and a walk of the whole catalogue does not belong in their import graph.
@@ -58,7 +58,7 @@ const LEAD_CUT_MS = 1500;
 
 // -------------------------------------------------------------------------------------------
 // FORM-E entries a human has READ and decided to carry, keyed `<card id> <step id> <chip key>`,
-// with the reason on each. Nine entries, nine findings, nothing unread: that is the state that let
+// with the reason on each. Nineteen entries, nineteen findings, nothing unread: that is the state that let
 // FORM-E out of the report and into `npm test`, and every entry below is the measurement that put
 // one finding there. Same shape and same discipline as R2_STEP_CARRIED in ../report/arrival.test.mjs:
 // an entry here is a decision with a measurement behind it, never a way to quiet the queue.
@@ -70,6 +70,20 @@ const LEAD_CUT_MS = 1500;
 // is asserted by ../unit/chip-beat-e.test.mjs, where a broken table has to be able to go red.
 // -------------------------------------------------------------------------------------------
 export const E_CARRIED = new Map([
+  ['cluster-pod-priority-preemption delete focusChip',
+    '`standard DELETE · PDB best effort` names what this step DOES, and it is true the moment the '
+    + 'Scheduler forms the request: no arrival on this step produces it. Its two neighbours wait for '
+    + 'a beat because both are Pod-object state the DELETE produces, nominatedNodeName at the API '
+    + 'and Terminating on the Node. The focus chip is NOT uniformly at entry on this card, and the '
+    + 'split is the point: on the bind step it IS deferred, because `nominatedNodeName cleared` is '
+    + 'an outcome the API writes when the binding lands rather than a name for the step. Binding '
+    + 'this one to an arrival would leave the delete step nameless for its first 700ms.'],
+  ['cluster-pod-priority-preemption bind victimChip',
+    'Pod A left during the terminationGracePeriodSeconds the PREVIOUS step narrates, so `Pod A · gone` '
+    + 'is true when this step opens and the `pod1: 0` opacity pin beside it draws the same fact. No '
+    + 'ball of this step produces it: the bind travels to Node-1 and places Pod NEW. Its two '
+    + 'neighbours wait because the API writes both on the binding itself. Winding this one back would '
+    + 'redraw a Pod the card has already said exited.'],
   ['cluster-node-pressure-eviction relieve memChip',
     'memory.available is a cAdvisor reading of the Node, and the one ball of this step is the PATCH ' +
     'carrying MemoryPressure=False to the API, which does not produce it: the memory freed first and ' +
@@ -82,18 +96,48 @@ export const E_CARRIED = new Map([
     'The rewind next door is right for terminationChip because that is what the Kubelet KNOWS, and ' +
     'wrong here for the same reason: it would say memory frees when the Kubelet is told. Entry is ' +
     'the earliest honest beat this step has.'],
+  ['cluster-leader-election renew v1',
+    'The role suffix reports what mgr-1 is DOING, and the reconciling is what SENDS the first ball ' +
+    'of the step, the CAS-PUT carrying a fresh renewTime. It is on screen before anything departs ' +
+    'rather than after anything lands, the same shape as `cluster-static-pods edit-file fileChip`. ' +
+    'What the arrival earns is renewChip, which is the Lease RECORD and moves when the write lands, ' +
+    'and that is the one chip this step holds back.'],
+  ['cluster-leader-election renew v2',
+    'See `renew v1`: polling is what sends the standby GET, so the suffix stands before the ball ' +
+    'leaves. Binding it to the answer would say a standby starts polling because its own poll ' +
+    'came back.'],
+  ['cluster-leader-election renew v3',
+    'See `renew v2`: the second standby runs the identical poll and its chip moves with it, or ' +
+    'P-04 splits one fact across two chips.'],
   ['cluster-static-pods edit-file fileChip',
     'fileChip is the manifest file on disk, and the file is the SOURCE of the first ball here, ' +
     'the spec segment running from fileBox to the Kubelet. The edit therefore has to be on screen ' +
     'before the ball leaves, not after it lands. Step 1 is the same shape and reads correctly: the ' +
     'chip takes the new filename at entry and the segment leaves REVEAL_MS later.'],
+  ['cluster-taints-tolerations prefer taintsChip',
+    'The rewrite of spec.taints is the PREMISE of the step and its opening sentence, true before the '
+    + 'Scheduler forms the binding this step sends: no arrival here produces it, and the ball that '
+    + 'does arrive carries Pod web-2 to Node-1. The frame header spells the same taint at entry on '
+    + 'the same beat, so binding the chip alone would leave it reading NoSchedule under a header '
+    + 'already reading PreferNoSchedule. Step 1 is the same shape and is read the same way, both '
+    + 'taint chips light at entry there. What the arrival earns is web2Chip, the chip this step defers.'],
+  ['cluster-taints-tolerations prefer effectChip',
+    'See `prefer taintsChip`: effect in force reports that same rewrite one field narrower, and the '
+    + 'two move together or P-04 splits one fact across two chips.'],
+  ['cluster-taints-tolerations noexecute taintsChip',
+    'The second taint is what SENDS the first ball of the step, the DELETE the taint-eviction-controller '
+    + 'issues, so it is on screen before anything departs rather than after anything lands. Binding it '
+    + 'to that arrival would say the taint appears because the controller acted. web2Chip is what the '
+    + 'arrival earns and it is the one chip this step holds back.'],
+  ['cluster-taints-tolerations noexecute effectChip',
+    'See `noexecute taintsChip`: effect in force reports the same added taint and moves with it.'],
   ['workloads-daemonset place focusChip',
     'focusChip is named `focus` and every one of the five steps writes it as a caption of what that ' +
     'step is about, not as object state. Here it states the controller RULE the narration states ' +
     'in words, one Pod per matching Node, which is true before any create is issued. What the three ' +
     'creates actually earn is currentChip and readyChip, and those are exactly the two the step ' +
     'already steps up one arrival at a time.'],
-  // The five below were PROMOTED into E by repairing their neighbours, which is a mechanical
+  // The entries below were PROMOTED into E by repairing their neighbours, which is a mechanical
   // consequence of the form: E is "one chip on this step waits for a beat and this one does not",
   // so binding the earned chip on a step makes every unearned chip beside it eligible. A rise in E
   // after a P-03 repair is therefore not a regression, and "E must not rise" cannot be an

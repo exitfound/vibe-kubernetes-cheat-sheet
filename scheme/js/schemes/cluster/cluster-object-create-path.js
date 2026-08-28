@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, midX } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-object-create-path
+// Design notes for this card: ./CARDS/cluster-object-create-path.md
 
 // One grid with cluster-architecture, minus the cloud-controller-manager. The client is the only
 // block outside the frame, so its lanes address the FRAME rather than a block.
@@ -11,7 +11,7 @@ const CX = midX(FRAME_X, FRAME_R);                       // 600
 const BOX_W = 220, BOX_H = 80;                           // architecture's block, catalog standard
 
 // Columns and rows are shared with cluster-architecture, so the two read as one family in both
-// axes. Why the stack sits this low is in ./CARDS.md.
+// axes. Why the stack sits this low is in ./CARDS/cluster-object-create-path.md.
 const CP_Y = 90, CP_H = 350, CP_CY = midX(CP_Y, CP_Y + CP_H);    // 90..440, wall midpoint 265
 const NODE_Y = 475, NODE_H = 153;                        // 475..628, 12 of canvas floor under it
 

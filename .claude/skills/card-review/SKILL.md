@@ -59,7 +59,8 @@ In this order. Skipping this phase is what turns a review into an opinion.
    a finished review can say how many of them it walked.
 2. `scheme/CLAUDE.md`. The sub-app contract: kits, the spec layer, the test suite, the tools.
 3. `scheme/js/schemes/<category>/CLAUDE.md`. The category rules (`CLU.*`, `WL.*`, `NET.*`, `STO.*`).
-4. `scheme/js/schemes/<category>/CARDS.md`, the `## <card-id>` section. This is the design record:
+4. The card's record, the `## <card-id>` section: `scheme/js/schemes/<category>/CARDS.md`, or
+   `scheme/js/schemes/<category>/CARDS/<card-id>.md` where the category has split it. This is the design record:
    what was measured, what was rejected and why, what must not be "fixed". Read the neighbouring
    sections it names too.
 5. The card source, in full, including every comment. Comments carry the reasons.
@@ -75,7 +76,7 @@ In this order. Skipping this phase is what turns a review into an opinion.
 ## 2. The machine pass
 
 Two loops, and using the wrong one is what turns a review into an afternoon. Measured on 4 cores:
-the full gate is about 70 seconds because every render file walks the whole
+the full gate runs for minutes because every render file walks the whole
 catalog, and the card you are reviewing is about a second of that.
 
 **The review loop, about 7 seconds, run it as often as you like:**
@@ -89,6 +90,24 @@ OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs    # the panel rows fo
 node ../../.claude/skills/card-review/tools/statics.mjs <card-id>
 ```
 
+**The REPORTS, and this is the step a review is lost without.** `npm test` is `unit/**` and
+`render/**` ONLY: everything under `report/` runs on its own command, fails on nothing, and is
+where the findings a human has to rule on are already written down, per card, by name. A card
+review that skips it re-derives by eye what the repository has been printing all along.
+
+```bash
+cd scheme/test
+npm run report > /tmp/report.txt 2>&1        # about 60s, the whole catalog, never fails
+grep -n '<card-id>' /tmp/report.txt          # every row that names this card
+grep -nE 'queue to work|left to work|finding\(s\)' /tmp/report.txt   # the axes with an open queue
+```
+
+Read the rows AND the queue lines. `report/arrival.test.mjs` splits its R2 axis into findings
+CARRIED with a written reason and findings "left to work", so a card sitting in the second list is
+an open defect that nobody has ruled on, not noise. `report/geometry-soft.test.mjs` does the same
+for CENTRE, CENTRE-LOW and OCCLUDED. `SCHEME_IDS` is NOT the filter for these files (it makes their
+census assertions fail on the short walk); `OVERLAY_IDS` filters the overlay report alone.
+
 **The gate, run it once at the end and before any commit:**
 
 ```bash
@@ -98,7 +117,7 @@ cd scheme/test && npm test > /tmp/gate.txt 2>&1; grep -E '^# (tests|pass|fail)|^
 Notes that have cost time before:
 
 - `SCHEME_IDS` is NOT the gate and says so on stdout: it prints a `SUBSET` banner and turns every
-  catalog floor and census OFF, because a floor is a statement about a full walk. Eight tests skip
+  catalog floor and census OFF, because a floor is a statement about a full walk. Nine tests skip
   themselves under it (the catalog-wide censuses and the two finding registries). A filtered green
   run proves this card is clean, never that the catalog is.
 - Reviewing several cards? `SCHEME_IDS=a,b,c` takes a list, and a batch amortises the one full gate
@@ -183,6 +202,8 @@ Then the paths the frames cannot show:
 ```bash
 cd scheme/test
 node ../../.claude/skills/card-review/tools/timing.mjs <card-id>
+node ../../.claude/skills/card-review/tools/deadair.mjs <card-id>
+node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
 node ../../.claude/skills/card-review/tools/extents.mjs <card-id> [--step=N] [--viewport=1100x800]
 OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs
 ```
@@ -190,6 +211,20 @@ OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs
 - `timing.mjs`: span against duration (`M-19`), the real hold, characters of narration, ms per
   character, and where that pace ranks in the catalog. Reading time has NO machine: a step in the
   top few percent of the catalog ranking is a step nobody can read, and the gate will call it green.
+- `deadair.mjs`: the OTHER side of `M-19`, and the one the reviewer watching the card sees first.
+  A step holds for `duration` and animates for `span`, so it stands STILL for the difference:
+  `M-19` bounds that below and NOTHING bounds it above, so a ball can land a third of the way in and
+  leave the viewer at a picture that has stopped changing. `timing.mjs` prints both numbers and
+  never subtracts them, which is how a full review reported a card healthy while its author was
+  watching the dead air. Read the two rankings TOGETHER: still time is the price a long narration
+  charges a short motion, so a high `rank(ms)` alone is the ordinary case. The finding is a step
+  high on stillness AND ordinary on `ms/char`, because then the hold is not buying reading either,
+  and the fix is the MOTION or the narration, never `duration` alone (`M-19a`).
+- `pace.mjs`: what a ball's LENGTH does to its SPEED. Nothing else in the tree divides one by the
+  other, so a lane short enough for `routeDur` to clamp to the 700ms floor (`M-13`) crawls at a
+  fraction of `PKT_SPEED` with every check green, and MOVING a lane closer silently slows the ball
+  on it. **Read its siblings column before filing anything**: a length other cards also run is the
+  house reading and the fix, if there is one, is catalog-wide.
 - `extents.mjs`: every drawn string measured in viewBox units, with the panel rectangle, and a flag
   on any text whose box intersects the panel. Character arithmetic (about 6.89 units per mono
   character) is an estimate that has been off by 5 units on a string that then sat 1.8 from a box
@@ -239,7 +274,7 @@ source and finds more than half of everything.
 
 The one contradiction axis that is NOT a fact check, so it stays here:
 
-- the `## <card-id>` section of `CARDS.md` against the code it describes: an `OPEN` entry closed
+- the `## <card-id>` section of the record against the code it describes: an `OPEN` entry closed
   months ago, a `DO NOT` guarding something that no longer exists, a number taken before the thing
   it measured moved, an anchor whose line was reworded
 - the record against `CANON.md` and the category `CLAUDE.md`: a rule restated in two homes drifts,
@@ -286,7 +321,11 @@ The gate already reads every drawn string for apostrophes, semicolons and dashes
   motion. Read what the card actually RUNS with `motion.mjs`, decide per target, and write the
   decision into the record whichever way it goes.
 - Reading load against the hold: `timing.mjs` ranks the pace against the catalog, and nothing else
-  in the repository does.
+  in the repository does. A ball's SPEED is the same shape of hole one layer down: `pace.mjs`.
+- **How long the step stands STILL once the motion is over** (`M-19a`, `deadair.mjs`). This is the
+  one axis a viewer notices before any other and the only one with no machine on either side of it.
+  The usual cause is not the duration: it is an exchange the narration promises and the picture
+  never draws, so the step spends its hold on one hop where its siblings spend it on three.
 
 ### F. State: opacity, lit, reset
 
@@ -295,6 +334,13 @@ The gate already reads every drawn string for apostrophes, semicolons and dashes
   writes?
 - Is a dim treatment a WEIGHT rather than a state? Dim on a role-carrying lane is deliberate in this
   catalog and must not be "fixed".
+- **Does every chip whose VALUE changed carry a cue (`P-05`), and does no chip carry one for a
+  change that did not happen (`P-09a`)?** `P-01` is machine-checked and answers a different
+  question, whether every step STATES every chip. Whether a CHANGED value is cued is
+  `report/arrival.test.mjs`, axis R2-STEP, which the gate does not run: its "left to work" list is
+  the live queue and its "carried" list is the settled one. Doing this to one chip and not its
+  neighbour is worse than doing it to neither (`P-04`), and it costs most on a step that registers
+  no animation at all, where the cue is the whole beat.
 - Step 0 is a pure reset, draws nothing, carries no narration (`S-09`).
 
 ### G. Wire labels
@@ -320,7 +366,7 @@ The gate already reads every drawn string for apostrophes, semicolons and dashes
   is `card-facts`, their presence and shape are here.
 - Counts in `scheme/CLAUDE.md` against `data.js`, and the root `README.md` counts, which nothing
   links to and nothing checks.
-- `CARDS.md` anchors still occur in the card verbatim (`unit/docs.test.mjs` group A checks this).
+- record anchors still occur in the card verbatim (`unit/docs.test.mjs` group A checks this).
 
 ### J. The poster: detect only, then hand over
 
@@ -363,7 +409,7 @@ and it is where a deliberate asymmetry belongs so nobody "fixes" it later.
 
 - One finding at a time, smallest diff that closes it. Do not recolor, re-trim or restructure
   anything nobody mentioned.
-- Prefer a card-local mechanism over changing a primitive 108 cards share. `tune(el, refs)` on a
+- Prefer a card-local mechanism over changing a primitive every card shares. `tune(el, refs)` on a
   part is the sanctioned escape for nudging one attribute.
 - Re-verify after every change: the module still parses, the full gate, and the FRAMES for every
   step you touched, opened and looked at. Not a sample of them.
@@ -380,7 +426,8 @@ and it is where a deliberate asymmetry belongs so nobody "fixes" it later.
 
 Every markdown file that describes the card gets brought back into line, in this order:
 
-1. **`scheme/js/schemes/<category>/CARDS.md`, the `## <card-id>` section.** The one that always
+1. **The card's record, the `## <card-id>` section** (`CARDS.md`, or `CARDS/<card-id>.md` where
+   the category has split it)**.** The one that always
    needs work. **Its `CONTENT` block belongs to `card-facts`**: if the fact check ran on this card,
    leave that block to it and edit the rest. Two procedures rewriting one block is how a settled
    wording gets quietly reworded.
@@ -419,6 +466,34 @@ Then prove the records still parse:
 cd scheme/test && npm run test:unit          # docs.test.mjs: anchors, sections, index, citations
 ```
 
+### The last step of every review: sweep the numbers, do not judge them
+
+**A count in a markdown file is a claim about the tree, and any card edit can falsify one in a file
+you never opened.** `S-49` machine-checks the guarded ones; the rest are yours, and the failure mode
+is deciding by eye that a document "looks unaffected". Sweep instead, in this order, and only stop
+when every line below has been answered with a NUMBER:
+
+```bash
+cd scheme/test
+npm test                                     # S-49 CENSUS fails on a guarded count that drifted
+npm run report                               # then read the L-02 / L-04 / L-05a verdict lines
+grep -rn "<the old wording you replaced>" --include=*.md .    # who quotes the string you rewrote
+```
+
+- **Guarded counts**: `npm test` is the whole answer. A green CENSUS means every count the registry
+  in `test/unit/docs-census.test.mjs` covers still matches the tree.
+- **Canon-cited MEASUREMENTS** (`L-02`, `L-04`, `L-05a`, and the `T-28` shape split): the report
+  prints a `verdict` line per axis. Diff it against the run you took in phase 2: **identical blocks
+  mean you moved nothing**, and a changed one tells you which canon line to re-measure. An
+  attribution that already differed before your edit is not yours to fix.
+- **Unguarded counts**, the ones that bite: a number stated in a SIBLING card's record, in a folder
+  `CLAUDE.md`, or **in these skill files**. Editing a test's skip behaviour, a hook count or a
+  catalog total falsifies a sentence in a file no card review ever opens. Re-measure it, do not
+  reason about it: a per-category median or a catalog median moves only if you compute it both ways
+  and see two different numbers.
+- Report each one as **updated**, **re-measured and still exact**, or **already stale before this
+  review**, with the number behind the verdict. The third is a finding, not a chore to absorb.
+
 ---
 
 ## 9. Deliverable
@@ -429,7 +504,9 @@ Close with, in the user's language:
   opened and at which viewports)
 - findings, ranked, with evidence
 - what was fixed and what was verified after the fix
-- which markdown files were updated and what changed in each
+- the markdown sweep from the end of phase 8, as a table: every file touched or checked, each marked
+  **updated**, **re-measured and still exact**, or **already stale before this review**, with the
+  number behind the verdict. "Nothing else needed changing" without a number is not an answer
 - what stays open, with the reason it stays open
 - the tree state (uncommitted unless the user asked)
 
@@ -442,6 +519,15 @@ canon wins. Assume nothing in this list is covered by a test, because none of it
 
 - whether a sentence is TRUE, or whether the picture says the same thing as the sentence
 - whether a step is long enough to READ (only `span <= duration` has a machine)
+- **how long a step stands STILL after its motion ends** (`M-19a`). `M-19` bounds `duration - span`
+  from below and nothing bounds it from above, so a step whose ball lands at 700ms and whose hold is
+  3800 is green everywhere and reads on screen as a card that froze. `deadair.mjs` is the only
+  reader, and `timing.mjs` has both numbers without ever subtracting them
+- how FAST a ball moves. `M-19` and `M-12` are both satisfied by a 56 unit lane crawling for 700ms
+  at 0.080 units per ms against the 0.45 canon, because `routeDur` clamps to a floor and nothing
+  prints the quotient. Moving a lane CLOSER is a pacing change with no check at all
+- a chip whose value CHANGED and which nothing cues. `report/arrival.test.mjs` prints it and
+  `npm test` does not run that file, so it is invisible to a review that stops at the gate
 - a text under the narration panel, or a dashed lane drawn through a string
 - a node frame label covered by anything, since the occlusion rule excludes node frames
 - a step's `id`, its `duration` and the ORDER of its keys: none of the three reaches the DOM or WAAPI
@@ -472,7 +558,11 @@ canon wins. Assume nothing in this list is covered by a test, because none of it
 - **The rule read instead of the picture**: a reviewer greps the source, matches it to a canon row,
   and files it under "checked and correct" without ever looking at what it does on screen. Two canon
   rows disagreeing is what makes this cheap to do and expensive to miss.
-- The stale record: an `OPEN` entry closed in code and still open in `CARDS.md`.
+- **The frozen tail**: the motion ends a third of the way into the step and the picture then stands
+  still for seconds. Every check is green, because the only rule on that difference bounds it from
+  the wrong side. It is almost never a duration that is too long: it is a narrated exchange the
+  picture never draws, so one hop is carrying a hold sized for three.
+- The stale record: an `OPEN` entry closed in code and still open in the record.
 - The number that was never re-measured after the thing it measured moved.
 
 ## Appendix C: tools
@@ -482,11 +572,14 @@ canon wins. Assume nothing in this list is covered by a test, because none of it
 | `.claude/skills/card-review/tools/frames.mjs` | every step, every viewport, as PNGs to open. Diff `-0` against `-50` per step before reading one |
 | `.claude/skills/card-review/tools/motion.mjs` | what MOVES: every animation the card really runs, per step, real time, CSS transitions live. The only probe here that is not a state reader |
 | `.claude/skills/card-review/tools/timing.mjs` | span vs duration vs reading load, ranked against the catalog |
+| `.claude/skills/card-review/tools/deadair.mjs` | how long each step stands STILL after its motion ends, ranked against the catalog, beside its reading pace. The only reader of `M-19a` |
+| `.claude/skills/card-review/tools/pace.mjs` | how fast each ball actually moves: length vs duration vs `PKT_SPEED`, with the cards running the same length |
 | `.claude/skills/card-review/tools/extents.mjs` | measured text boxes and the panel rectangle |
 | `.claude/skills/card-review/tools/statics.mjs` | dead constants, unread keys, blank wires, dead paths, prose mechanics, catalog wiring |
 | `scheme/test/tools/settled-dump.mjs` | a REAL playthrough, the only reader of turnovers |
 | `scheme/test/tools/buildframe.mjs` | the frame that stands before any step is entered |
 | `scheme/js/lib/inspector.js` (`?inspect=1`) | grid and bbox overlay in the browser, `window.__schemeCtl` |
-| `npm test` / `npm run report` in `scheme/test` | the gate, and the report-only rows per card |
+| `npm test` in `scheme/test` | the gate: `unit/**` and `render/**` only |
+| `npm run report` in `scheme/test` | `report/**`, which the gate does NOT run: the arrival cues, the soft geometry, the panel extent, the chip beats, link liveness. Grep it for the card id AND for its "left to work" queues |
 | the `card-facts` skill | the technical truth of every drawn string, and whether the animation says what the text says |
 | the `card-poster` skill | the grid still: its concept, its composition, and the record note behind it |

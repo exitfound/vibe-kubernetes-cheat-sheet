@@ -5,8 +5,8 @@
 // made of is about the BEAT: "this value is already on screen, and the arrival that earns it has not
 // happened yet". A card can satisfy R2 perfectly, with the changed chip lit at entry, and still show
 // the answer a second and a half before the ball that carries it arrives. That is the class a manual
-// read of all 108 cards found about 25 times in all four categories, and it is the class this file
-// counts.
+// read of the whole catalogue found about 25 times in all four categories, and it is the class this
+// file counts.
 //
 // It needs no browser. A route's flight time is geometry (routeDur over its points) and a step's
 // chip values are fields, so both halves of the question are in the spec.
@@ -42,19 +42,17 @@
 //   FORM-A       step i > 0, the flow carries a packet, the chip's ENTRY value (chips + chipsCued
 //                + rewind) differs from the previous step's SETTLED value, and no F.set with a
 //                positive delay turns that key over in this step. The naive form.
-//                                                                    578 rec / 289 steps / 96 cards
 //   FORM-B       FORM-A, and the step names that chip in `lit`, so the CARD ITSELF declares the
 //                value to be the news of this step. Printed in full, ranked by lead.
-//                                                                    400 rec / 190 steps / 67 cards
-//                lead bands: 227 in 700-1000ms, 16 in 1000-1500, 146 in 1500-2200, 11 above 2200.
-//                Worst: network-headless-service `stable-name` at 2971ms, workloads-rolling-update
-//                `probe-and-drain` and `third-cycle` at 2860ms.
-//   FORM-B-LEAD  FORM-B with a first arrival at or past 1500ms.    157 rec /  69 steps / 39 cards
+//   FORM-B-LEAD  FORM-B with a first arrival at or past LEAD_CUT_MS.
 //   FORM-E       FORM-B, and ANOTHER chip on the SAME step IS turned over on a beat (an F.set with
 //                a delay). The card knows the technique and applies it to a neighbour, so this is
 //                the strongest reading the data can give: both sides of the comparison stand on one
 //                step of one card. P-04 names exactly this shape and calls it worse than doing
-//                neither. Printed as its own queue.       6 rec /   5 steps /  5 cards
+//                neither. Printed as its own queue.
+//
+// Every population above is COUNTED ON EVERY RUN and printed in section 1, with the FORM-B lead
+// bands in section 2: no size is typed here, because a repair is supposed to move all four.
 //
 // The ~25 findings a human read lie between FORM-E and FORM-B-LEAD, and no form reproduces them
 // exactly. That is expected rather than a defect of the forms: what the human was reading is
@@ -65,20 +63,20 @@
 // ===========================================================================================
 // The cycle is written in ../report/arrival.test.mjs and this project has now run it three times:
 // report-only, then a human triage of the queue, then promotion into the mandatory set. FORM-E
-// reached the end of it. Its queue was read card by card, nine findings, nine carried with a written
+// reached the end of it. Its queue was read card by card, every finding carried with a written
 // reason, none left to work, and on that day it left this file for ../unit/chip-beat-e.test.mjs,
 // where a new one goes red. This file still COUNTS it and still prints the carried table, because
 // the queue is the record of that triage and the reasons are the only place the argument for each
 // one is written down.
 //
-// The other three stay here, and the numbers are the argument: FORM-A is 556 records and FORM-B is
-// 384 on two thirds of the catalogue, so either of them promoted would redden the gate against work
-// nobody has scheduled, and the gate would stop being usable. Section 4's path divergence is 15 open
-// findings on 7 cards and is the same case.
+// The other three stay here, and their size is the argument: FORM-A and FORM-B run to hundreds of
+// records over most of the catalogue, so either of them promoted would redden the gate against work
+// nobody has scheduled, and the gate would stop being usable. Section 4's path divergence is open
+// beside them and is the same case. Section 1 prints all three live.
 //
 // WHAT FAILS HERE: the census, and nothing else. A report that walked less than the catalog prints
-// few findings and looks exactly like a clean catalog: a walk that reaches 649 steps of 650 drops
-// the 650th silently and nothing in the output looks wrong, which is why the floor below is
+// few findings and looks exactly like a clean catalog: a walk one step short drops that step
+// silently and nothing in the output looks wrong, which is why the floor below is
 // asserted rather than printed. Fewer than the recorded cards or steps is an assertion failure,
 // not a note. The SHAPE of the carried
 // table (a reason on every entry, three fields in every key) is asserted in the gate file,
@@ -100,8 +98,7 @@
 // animated path ends on the new one. NOTHING in the harness sees that. render/reduced.test.mjs
 // compares four axes, OPACITY-OWN, OPACITY-INHERITED, WIRE-TEXT and HIGHLIGHT, and a chip's VALUE
 // TEXT is on none of them: its text list is wire labels only (`WIRE_SEL = '.scheme-label'`, line
-// 113 of that file). The count today is printed in section 4 below: 15 step/chip pairs on 7 cards
-// already end the two paths on different text.
+// 113 of that file). The count today is printed in section 4 below, and only there.
 //
 // So: FIXING A FINDING FROM THIS QUEUE WITH AN F.set ALONE CLOSES P-03 AND OPENS THAT ONE. Either
 // use the rewind form, which is invisible to it, or write the end value into `chips` as well and
@@ -114,7 +111,7 @@
 //     DATA: a packet in the flow, a value that moved, a `lit` naming the chip. Whether that packet
 //     is the thing that produces that number is a reading of the picture. This is why FORM-B is a
 //     queue and not a finding list.
-//   - `enter(s, ctx)`. 42 of the 650 steps carry one and their bodies are functions, not data. A
+//   - `enter(s, ctx)`. 42 of the 665 steps carry one and their bodies are functions, not data. A
 //     chip an escape writes reads here as whatever the fields said, so a step can be reported for a
 //     value it does not actually show, or stay silent about one it does.
 //   - THE ARITHMETIC IS COMPUTED FROM `flow`, NOT MEASURED OFF A FRAME. It is ../fixtures/spec.mjs
@@ -150,17 +147,6 @@ const EXPECTED_STEPS = await stepTotal();
 // population starts at 700ms because that is the shortest flight in the catalog.
 const LEAD_BANDS = [[0, 700], [700, 1000], [1000, 1500], [1500, 2200], [2200, Infinity]];
 
-// What the four forms measured the day this file was written, as records / steps / cards. Printed
-// beside the live numbers, never asserted: a card repaired in phase F is SUPPOSED to move them, and
-// an assertion here would make a repair look like a regression. What the drift line is for is the
-// other direction, a walk that goes quiet without anyone repairing anything.
-const RECORDED = {
-  'FORM-A': [578, 289, 96],
-  'FORM-B': [400, 190, 67],
-  'FORM-B-LEAD': [157, 69, 39],
-  'FORM-E': [6, 5, 5],
-};
-
 // The walk itself, and every number this file prints, come from the fixture. See the header.
 const FORMS = await chipBeat();
 
@@ -188,11 +174,8 @@ test('P-03, a chip that runs ahead of the ball (report only, census is the asser
   }
 
   out.push('');
-  out.push('1. THE FOUR FORMS, live against what was recorded when this file was written');
-  for (const form of Object.keys(RECORDED)) {
-    const same = live[form].every((n, j) => n === RECORDED[form][j]);
-    out.push(`   ${form.padEnd(11)} ${fmt(live[form])}${same ? '' : `   (recorded ${fmt(RECORDED[form])})`}`);
-  }
+  out.push('1. THE FOUR FORMS, counted live on this walk');
+  for (const form of Object.keys(live)) out.push(`   ${form.padEnd(11)} ${fmt(live[form])}`);
   out.push('   FORM-A is the naive form and is counted only: P-06 puts a chip turning over at step');
   out.push('   ENTRY inside the rules, so most of FORM-A is the ordinary case and printing all of it');
   out.push('   would bury FORM-B.');

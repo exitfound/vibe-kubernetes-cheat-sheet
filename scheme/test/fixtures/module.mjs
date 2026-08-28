@@ -1,9 +1,9 @@
 // module.mjs: import a card's module, its kit, or a lib module in bare Node. No browser, no shim.
 //
 // This works because lib/motion.js guards its window.matchMedia probe with `typeof window`. Before
-// that guard every one of the 108 cards threw `ReferenceError: window is not defined` at module
+// that guard every card threw `ReferenceError: window is not defined` at module
 // load, through scheme-kit.js -> motion.js, and only data.js, posters.js, tokens.js, svg.js and
-// primitives.js imported cleanly. Verified again here: all 108 import, nothing is stubbed.
+// primitives.js imported cleanly. Verified again here: every card imports, nothing is stubbed.
 //
 // ===========================================================================================
 // WHAT YOU CAN GET FROM A CARD MODULE, and it depends on which of two forms the card is in
@@ -92,7 +92,7 @@ export const importLib = (name) => importAt('js', 'lib', name);
 // The catalog's step count, summed off the declared specs, for every walk that judges itself
 // against a step total. It lives HERE rather than beside `CATALOG_BASELINE` in catalog.mjs because
 // counting steps means importing every card, and catalog.mjs is the layer that must not: it is
-// imported by fixtures/render.mjs, which has no use for 108 module namespaces.
+// imported by fixtures/render.mjs, which has no use for a module namespace per card.
 //
 // Memoised, and deliberately a FUNCTION rather than a top-level constant, so a file that imports
 // this module for `importLib` alone does not pay for the whole catalog.

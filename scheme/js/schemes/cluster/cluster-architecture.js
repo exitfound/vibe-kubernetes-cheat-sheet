@@ -1,7 +1,7 @@
 import { P, F, defineCard, laneY, midX, shade, OPACITY } from './cluster-kit.js';
 
 // Two dashed frames of the same width, a control plane over Node-1, each holding its own tiers.
-// Design notes for this card: ./CARDS.md#cluster-architecture
+// Design notes for this card: ./CARDS/cluster-architecture.md
 const BOX_W = 220, BOX_H = 80;
 const CX = 600;
 
@@ -57,7 +57,7 @@ const API_TO_KPROXY  = [[API_R, API_CY], [R_CORR, API_CY], [R_CORR, BAND_Y], [KP
 const KUBELET_TO_RUNTIME = [[KUBE_X, T3_CY], [RT_X + BOX_W, T3_CY]];
 
 // The two ETCD labels share one centre line in the 190 unit gap between the API and the cylinder:
-// the write above its lane, the read below its own. The gap is the BUDGET: see ./CARDS.md.
+// the write above its lane, the read below its own. The gap is the BUDGET: see ./CARDS/cluster-architecture.md.
 const ETCD_LABEL_X = midX(API_R, ETCD_X);                // 805, and 27 characters is the ceiling
 
 const lane = (key, points) => P.lane({ key, points, dim: true, dashed: true });
@@ -69,7 +69,7 @@ export const SCENE = {
   parts: [
     P.defs(),
     // Both frame labels sit on the LEFT top corner node() gives them, CONTROL PLANE at (162, 108)
-    // and NODE-1 at (162, 493). What the first one costs is in ./CARDS.md.
+    // and NODE-1 at (162, 493). What the first one costs is in ./CARDS/cluster-architecture.md.
     P.node({ key: 'cpEl', x: FRAME_X, y: CP_Y, w: FRAME_W, h: CP_H, label: 'Control plane' }),
     P.node({ key: 'nodeEl', x: FRAME_X, y: NODE_Y, w: FRAME_W, h: NODE_H, label: 'Node-1' }),
     // Tier 1: API (centre) + ETCD (top-right). All component boxes use the

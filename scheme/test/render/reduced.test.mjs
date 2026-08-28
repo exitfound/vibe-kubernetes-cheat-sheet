@@ -73,8 +73,8 @@ import {
 
 // The catalog as it stands. Asserted, not printed: a walk that sees fewer cards or fewer steps
 // reports fewer findings and passes, which is the failure mode this whole suite is built against.
-// 650 counts EVERY step including each card's
-// step 0; the comparison itself starts at 1, so 650 - 108 = 542 steps are actually diffed.
+// The step total counts EVERY step including each card's
+// step 0; the comparison itself starts at 1, so 665 - 110 = 555 steps are actually diffed.
 const CARD_TOTAL = CATALOG_BASELINE.cards;
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
@@ -283,7 +283,7 @@ const ids = await discoverIds(page, DEFAULT_BASE);
 const totals = new Map(AXES.map(a => [a, 0]));
 const samples = new Map(AXES.map(a => [a, []]));
 let cardsWalked = 0;
-let stepsSeen = 0;      // every step, step 0 included: this is the 650 the baseline counted
+let stepsSeen = 0;      // every step, step 0 included: this is the step total the baseline counted
 let stepsDiffed = 0;    // the steps actually compared, which starts at 1 per card
 let keyCollisions = 0;  // how often the key had to fall back on document order, see the summary
 

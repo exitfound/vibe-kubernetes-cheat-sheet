@@ -36,7 +36,7 @@
 //   - WIRE LABELS are not measured, here or anywhere in the gate (L-19). A caption on a lane can
 //     overrun its neighbour and nothing will notice.
 //   - a chip whose two strings are STACKED (a heading over a sub-line, as in the event slots of
-//     cluster-api-structure) is not a name/value pair and cannot collide horizontally, so pairs
+//     cluster-list-watch-informers) is not a name/value pair and cannot collide horizontally, so pairs
 //     whose vertical centres differ by more than STACK_TOL are excluded.
 //   - ladder rows (.scheme-chain) carry ONE string per chip, so they are excluded outright.
 //   - only the FIRST and LAST text of a chip are compared, as the original did. A chip with three
@@ -71,8 +71,8 @@ const STACK_TOL = 4;
 const CHIP_FACES = [FACE_MONO];
 
 // ---------------------------------------------------------------------------------------------
-// Control numbers, taken off a green run of the whole catalog (stage 0.2a: every chip fits its name
-// and its longest value). FLOORS, not equalities: a run that measures fewer cards, steps or chips
+// Control numbers, taken off a green run of the whole catalog, where every chip fits its name
+// and its longest value. FLOORS, not equalities: a run that measures fewer cards, steps or chips
 // than this has scanned a subset, and a subset reporting zero collisions looks exactly like a clean
 // catalog. The card count is additionally pinned to data.js exactly, through census().
 // ---------------------------------------------------------------------------------------------
@@ -80,8 +80,8 @@ const CHIP_FACES = [FACE_MONO];
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = floor((await cards()).length);
 const EXPECTED_STEPS = floor(await stepTotal());
-// Cards that DECLARE a chip, counted off the specs: 104 of the 108, the four without one being
-// cluster-object-create-path, cluster-architecture, cluster-delete-flow and network-service-types. This is
+// Cards that DECLARE a chip, counted off the specs: 106 today, the four without one being
+// cluster-object-create-path, cluster-architecture, cluster-cascading-deletion and network-service-types. This is
 // the guard the pair floor below was being asked to be and could not: it is immune to what a card
 // SAYS and falls only when the selector stops matching chips, which is the failure being guarded.
 const EXPECTED_CHIP_CARDS = floor(104);

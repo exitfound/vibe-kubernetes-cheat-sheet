@@ -33,7 +33,10 @@ jobs:
           cp index.html favicon.svg robots.txt sitemap.xml CNAME _site/
           cp -r images cli scheme _site/
           rm -rf _site/scheme/tools _site/scheme/test
-          find _site \( -name CLAUDE.md -o -name CARDS.md -o -name INTERNALS.md -o -name CANON.md \) -delete
+          # Two shapes of design record: the per-category CARDS.md and the per-card CARDS/ folder
+          # beside it. Exclusion is by NAME, so a directory needs its own clause or every note in
+          # it ships. -depth so the files go before the folder they sit in.
+          find _site -depth \( -name CLAUDE.md -o -name CARDS.md -o -name INTERNALS.md -o -name CANON.md -o -name CARDS -type d \) -exec rm -rf {} +
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

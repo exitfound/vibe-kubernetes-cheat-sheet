@@ -1,7 +1,7 @@
-import { P, F, defineCard, laneY, ladder, strip, midX, setVal, CLU, LAYOUT, FADE, OPACITY } from './cluster-kit.js';
+import { P, F, defineCard, laneY, ladder, strip, midX, CLU, LAYOUT, FADE, OPACITY } from './cluster-kit.js';
 import { rect } from '../../lib/svg.js';
 
-// Design notes for this card: ./CARDS.md#cluster-cpu-throttling
+// Design notes for this card: ./CARDS/cluster-cpu-throttling.md
 
 // Layout C, the twin of cluster-oom-kill with the sibling ladder replaced by the time scale.
 // Panel x<=397, bottom 280 worst case; frame top 380 leaves ~550 characters. Re-measure after prose.
@@ -13,7 +13,7 @@ const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
 const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
 const SPINE_X = CX;                                      // 600, the Node frame midpoint
 const KUBE_X = SPINE_X - BOX_W / 2;                      // 484..716
-const KUBE_R = KUBE_X + BOX_W;                           // 716, the face both top hops leave from
+const KUBE_R = KUBE_X + BOX_W;                           // 716, the request leaves it, the counter returns to it
 const KERN_X = CONTENT_R - BOX_W;                        // 908..1140, flush with the content edge
 const KERN_CX = midX(KERN_X, CONTENT_R);                 // 1024
 const LANE_DY = CLU.LANE_DY, TOP_CY = midX(TOP_Y, TOP_BOTTOM);   // 12 / 80
@@ -23,15 +23,22 @@ const WIRE_Y = TOP_Y - 14;                               // 26, above the row
 
 // Three equal bars, one 100ms CFS period each, stacked so successive periods read as one clock
 // rather than as three containers. Takes the right column, so it clears the panel by construction.
-const SCALE_X = LAYOUT.C.ladder.x, SCALE_W = LAYOUT.C.ladder.w;   // 480, 660..1140
-const SCALE_CX = midX(SCALE_X, CONTENT_R);               // 900
-const BAR_H = 44, BAR_GAP = 16, BAR_N = 3;
-const SCALE_Y = 176;
-const BAR_Y = ladder({ y: SCALE_Y, rowH: BAR_H, gap: BAR_GAP });  // 176 / 236 / 296, the stack ends on 340
-const CAP_Y = SCALE_Y - 10;                              // 166, the axis caption baseline
+const FRAME_X = LAYOUT.C.ladder.x, FRAME_W = LAYOUT.C.ladder.w;   // 660 / 480, the right column
+const FRAME_R = FRAME_X + FRAME_W;                       // 1140, flush with the content edge
+// The stack sits INSIDE a frame of the Node family, on the Node's own padding: 34 under the corner
+// label, 12 under the last row. The bars inset 24 from the side walls so they read as contents.
+const FRAME_Y = 160, FRAME_PAD = 24;
+const BAR_H = 40, BAR_GAP = 14, BAR_N = 3;
+const FRAME_H = CLU.NODE.POD_DY + BAR_H * BAR_N + BAR_GAP * (BAR_N - 1) + 12;   // 194, ends on 354
+const SCALE_X = FRAME_X + FRAME_PAD, SCALE_W = FRAME_W - FRAME_PAD * 2;         // 684 / 432
+const SCALE_R = SCALE_X + SCALE_W;                       // 1116
+const SCALE_CX = midX(SCALE_X, SCALE_R);                 // 900
+const SCALE_Y = FRAME_Y + CLU.NODE.POD_DY;               // 194
+const BAR_Y = ladder({ y: SCALE_Y, rowH: BAR_H, gap: BAR_GAP });  // 194 / 248 / 302, the stack ends on 342
+const CAP_Y = FRAME_Y + 18;                              // 178, the frame label baseline
 // Half the bar: limits.cpu 500m against the default 100ms period is 50ms of run time in every 100.
 // The bar is wall clock, and one busy thread on one CPU makes the run portion equal the quota.
-const RUN_W = SCALE_W / 2;                               // 240
+const RUN_W = SCALE_W / 2;                               // 216
 
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
 const NODE_Y = 380, NODE_H = CLU.NODE.H;                 // 380..532, the family frame
@@ -54,8 +61,8 @@ const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 // Two RELATIONSHIP lines: no step names anything travelling either way. The scale hangs off the
 // KERNEL, and lives inside the scale group so it cannot outlive what it points at.
 const NODE_RELATION = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
-const JOG_Y = midX(TOP_BOTTOM, SCALE_Y);                 // 148
-const SCALE_RELATION = [[KERN_CX, TOP_BOTTOM], [KERN_CX, JOG_Y], [SCALE_CX, JOG_Y], [SCALE_CX, SCALE_Y]];
+const JOG_Y = midX(TOP_BOTTOM, FRAME_Y);                 // 140
+const SCALE_RELATION = [[KERN_CX, TOP_BOTTOM], [KERN_CX, JOG_Y], [SCALE_CX, JOG_Y], [SCALE_CX, FRAME_Y]];
 
 // Presentation shades, not lifecycle phases: a spent budget is not a phase. Channel list is the
 // cluster tint (125, 134, 255), copied because a presentation attribute cannot resolve a token.
@@ -92,7 +99,7 @@ const period = (i) => [
   }),
   // A standing caption, NOT a wire: refs.wires is the card's per-step label bucket and a frozen
   // probe reads it by key, so putting three bar captions in it would change what the card declares.
-  P.tag({ key: CAP_KEYS[i], cls: 'scheme-box-sublabel', x: CONTENT_R - 12, y: BAR_Y(i) + BAR_H / 2 + 4, anchor: 'end' }),
+  P.tag({ key: CAP_KEYS[i], cls: 'scheme-box-sublabel', x: SCALE_R - 12, y: BAR_Y(i) + BAR_H / 2 + 4, anchor: 'end' }),
 ];
 
 // container state never moves on this card. It is the answer to the question the description asks,
@@ -112,7 +119,7 @@ const SPEC_LINE = 'requests.cpu 250m · limits.cpu 500m';
 // The list order IS the append order, so it is the z-order: the time scale, the Node frame and its Pod
 // sit above the packet layer, and the top-row blocks go last.
 export const SCENE = {
-  'aria-label': 'CPU throttling and the CFS quota: a CPU request becomes a cgroup cpu.weight that only binds under contention, a CPU limit becomes a cpu.max quota of 50ms inside every 100ms period, the kernel stops scheduling the cgroup once that budget is spent, and the only record is cpu.stat',
+  'aria-label': 'CPU throttling and the CFS quota: a CPU request becomes a cgroup cpu.weight that only binds under contention, a CPU limit becomes a cpu.max quota of 50ms inside every 100ms period, the kernel stops scheduling the cgroup once that budget is spent, and the only record is cpu.stat, a kernel counter rather than a field on any Kubernetes object',
   parts: [
     P.defs(),
     // The pair of lanes between the two blocks: the request goes up on 68, the counter comes back
@@ -132,8 +139,10 @@ export const SCENE = {
       key: 'scaleG', id: 'timeScale', opacity: OPACITY.pending,
       parts: [
         P.relation({ points: SCALE_RELATION }),
-        P.tag({ cls: 'scheme-box-sublabel', x: SCALE_X, y: CAP_Y, anchor: 'start', text: 'one CFS period per bar' }),
-        P.tag({ cls: 'scheme-box-sublabel', x: CONTENT_R, y: CAP_Y, anchor: 'end', text: '100ms' }),
+        // The frame is what makes three loose rows read as one instrument, and its corner label is
+        // the axis caption: node() prints it at (x+12, y+18), where a standing tag used to sit.
+        P.node({ x: FRAME_X, y: FRAME_Y, w: FRAME_W, h: FRAME_H, label: 'CFS periods' }),
+        P.tag({ cls: 'scheme-box-sublabel', x: FRAME_R - 12, y: CAP_Y, anchor: 'end', text: '100ms' }),
         ...BAR_I.flatMap(period),
       ],
     }),
@@ -169,12 +178,9 @@ const NO_CAPS = [' ', ' ', ' '];
 const SPENT_CAPS = [SPENT, ' ', ' '];
 const FIRST_CAPS = [THROTTLED, ' ', ' '];
 const ALL_CAPS = [THROTTLED, THROTTLED, THROTTLED];
-// A period closing and the counter it moves are ONE beat, so they are one at(): two flow entries
-// here would be two rows in the motion record.
-const closePeriod = (i) => (s) => {
-  s.refs[CAP_KEYS[i]].textContent = THROTTLED;
-  setVal(s.refs.statChip, THR(i + 1));
-};
+// The CAPTION half of a period closing, which no flow verb writes. The counter half is the F.set
+// beside it at the same delay, so a reader of the FIELDS can see where the animated path ends.
+const closeCaption = (i) => (s) => { s.refs[CAP_KEYS[i]].textContent = THROTTLED; };
 
 const FILL_MS = 700;
 const FILL_FRAMES = [{ width: '0px' }, { width: `${RUN_W}px` }];
@@ -192,7 +198,7 @@ export const STEPS_SPEC = [
   {
     id: 'request',
     duration: 2400,
-    narration: 'The Kubelet sends the CPU request down the CRI and it lands as a cgroup v2 cpu.weight. A weight is not a reservation. It only decides how the runnable cgroups on this Node divide the CPUs when they all want to run at once, so on a quiet Node this container may use far more than its 250m.',
+    narration: 'The Kubelet sends the CPU request down the CRI and it lands as a cgroup v2 cpu.weight. A weight is not a reservation. It only decides how the runnable cgroups on this Node divide the CPUs when they all want to run at once, so on a quiet Node this container may run past its 250m, and what caps it is the limit rather than the request.',
     chips: { weightChip: WEIGHT_SET, maxChip: MAX_UNSET, statChip: STAT_IDLE, stateChip: STATE },
     wires: { kernel: 'requests.cpu 250m · cgroup cpu.weight' },
     sublabels: { containerBox: SPEC_LINE },
@@ -248,7 +254,7 @@ export const STEPS_SPEC = [
   {
     id: 'throttle',
     duration: 3400,
-    narration: 'With the budget gone the kernel takes the cgroup off the run queues until the period timer refills it, so for 50ms of every 100ms the container is runnable and not running. Threads share one budget, so four busy threads would empty it 12.5ms in and stall for the remaining 87.5ms.',
+    narration: 'With the budget gone the kernel takes the cgroup off the run queues until the period timer refills it, so for 50ms of every 100ms the container is runnable and not running. Threads share one budget, so four busy threads on four CPUs would empty it 12.5ms in and stall for the remaining 87.5ms.',
     chips: { weightChip: WEIGHT_SET, maxChip: MAX_SET, statChip: THR(BAR_N), stateChip: STATE },
     wires: { kernel: 'quota spent · dequeued until the next period' },
     sublabels: { containerBox: 'throttled · waiting for the next period' },
@@ -260,18 +266,19 @@ export const STEPS_SPEC = [
     flow: [
       F.run({ fn: bars([RUN_W, 0, 0], FIRST_CAPS) }),
       F.pulse({ pod: 'podGroup' }),
-      // Two and three fill on the same rhythm, so the repetition is what the eye reads. The counter
-      // turns over as each period closes, so fill and turnover ALTERNATE: written out, never sorted.
+      // Two and three fill on the same rhythm, so the repetition is what the eye reads. Each period
+      // closes on TWO entries at one delay, the caption and the counter: written out, never sorted.
       ...[1, 2].flatMap(i => [
         F.anim({ target: RUN_KEYS[i], keyframes: FILL_FRAMES, options: FILL_TIMING, delay: i * FILL_MS }),
-        F.run({ delay: (i + 1) * FILL_MS, fn: closePeriod(i) }),
+        F.run({ delay: (i + 1) * FILL_MS, fn: closeCaption(i) }),
+        F.set({ delay: (i + 1) * FILL_MS, chips: { statChip: THR(i + 1) } }),
       ]),
     ],
   },
   {
     id: 'observe',
     duration: 3000,
-    narration: 'Nothing died. The Pod stays Running, restartCount stays 0, and kubectl describe shows no event and no condition, because throttling is not a state any Kubernetes object carries. The kernel counts it in cpu.stat, which cAdvisor inside the Kubelet exports as container_cpu_cfs_throttled_seconds_total. Here that is 5 seconds of stall in the last 10, and all the workload lost was latency.',
+    narration: 'Nothing died. The Pod stays Running, restartCount stays 0, and kubectl describe shows no event and no condition, because throttling is not a state any Kubernetes object carries. The kernel counts it in cpu.stat, which cAdvisor inside the Kubelet exports as container_cpu_cfs_throttled_seconds_total. Here that is 5 seconds of stall in the last 10. The quota kills nothing, but the latency it costs can fail a liveness probe, and that restarts the container.',
     // 100 periods x 50ms of stall is throttled_usec 5000000, the 5 seconds the metric reports.
     // It is the kernel's counter and it climbed already: reading it does not move it.
     chips: { weightChip: WEIGHT_SET, maxChip: MAX_SET, statChip: THR(100), stateChip: STATE },

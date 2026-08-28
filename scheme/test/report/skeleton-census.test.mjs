@@ -8,7 +8,7 @@
 // ===========================================================================================
 // A card is generated from data, so the hand-written skeleton has no home in the tree: `class Scene`,
 // `constructor(host)`, `reset() { this.build(); }`, the `makeInit` export, `function resetStep(s)`
-// and `function clearHL(s)` all read 0 over 108 cards. Section 1 runs those six patterns anyway, and
+// and `function clearHL(s)` all read 0 over every card. Section 1 runs those six patterns anyway, and
 // the zero is what they are FOR: they are a LEGACY-FORM TRIPWIRE, and any non-zero is a card that
 // has gone back to writing its own skeleton by hand. Section 2 prints the same measure per category,
 // so the tripwire names the category it fired in. Nothing below fails on a finding.
@@ -16,7 +16,7 @@
 // A PATTERN WITH A BRACE IN IT CANNOT COUNT A STEP, and the `enter() bodies` row is the standing
 // demonstration. A step is an object in an array, so nothing looking for `enter(s) {` reaches one:
 // that row reads 17, and those 17 are the `step.enter` escapes written in method shorthand rather
-// than any count of steps. The catalog holds 650 steps and section 3 reads them off the data.
+// than any count of steps. Section 3 reads the real step count off the data.
 //
 // WHAT FEEDS THE ONE ASSERTION, because it is NOT those six patterns. The cross-check at the bottom
 // takes specMigrated off the EXPORT SURFACE (cardForm over the module namespace) and sourceMigrated
@@ -32,26 +32,22 @@
 //     COUNTS AS CREATING A REF, and an escape-created name counts: reading part keys alone files 12
 //     escape-created refs on four cards as findings, and every one of them is false. A queue made
 //     of false findings stops being read, and a real typo drowns in it.
-// Q2  S-11 says the prologue runs the card's extras BEFORE clearWires. makeResetStep runs
-//     reset.extra AFTER it. Invisible today: the one extra in the catalog is
-//     cluster-api-structure's resetWatchArrow, which writes strokeDasharray on an arrow and touches
-//     no wire, so the order it runs in cannot show. Recorded, not repaired:
-//     the repair is a change to js/lib/ and would need its own diff.
+// Q2  CLOSED, and the slot is kept so Q3 to Q5 keep their numbers. The rule and the code agree:
+//     S-11 puts reset.extra LAST and makeResetStep (js/lib/scene-spec.js) runs packetLayer,
+//     clearHighlights, clearWires, extra in that order. The one extra in the catalog is
+//     network-pod-ip-and-veth's, which writes style.strokeOpacity on a lane and owns no wire label,
+//     so the clear that would wipe it never reaches what it writes. No cluster card declares one.
 // Q3  S-12 ("no card declares clearHL(s)") has NO successor as a statement about data, and none is
 //     invented in the unit file. A migrated card writes no prologue, so there is nothing to fold;
 //     `clearHL` is on no kit, so no card could import one. The only remaining form of the rule is the
-//     source count printed below, and it is 0 over all 108.
+//     source count printed below, and it is 0 over every card.
 // Q4  D-14's `posterFirst: true` is an ARGUMENT to defineCard, so it lives inside a closure and is
 //     unreadable from the module namespace: no reading of the export surface can reach it. Counted
-//     here from source, 108 of 108, because that is the only place it is visible without a browser.
-// Q5  A recorded claim, "18 of 21 cards needed zero escape hatches, and the three justified cases
-//     are api-structure, node-allocatable and pod-sandbox-cri", against what section 4 measures.
-//     TWO POPULATIONS, and the printed line names both: the claim is about the 21 CLUSTER cards,
-//     while section 4 counts the escape set {reset.extra, part.tune, part.raw, step.enter,
-//     step.motion, F.run fn} over the whole catalog and prints `clean of 108`. In cluster the set is
-//     carried by 7 cards, so 14 of 21 are clean rather than 18: the four the claim does not name are
-//     cpu-throttling, resource-quota, scheduler-decision and server-side-apply, and all four are
-//     `tune` or `raw`. No card is at fault, and the two verbs are the whole of the difference.
+//     here from source, on every card, because that is the only place it is visible without a browser.
+// Q5  Section 4 counts the escape set {reset.extra, part.tune, part.raw, step.enter, step.motion,
+//     F.run fn} over the whole catalog and prints how many cards are clean of all six. Read it
+//     against the per-category hook tables in the four folder contracts: `tune` and `raw` are
+//     escapes too, and a reading that counts only the obvious ones calls more cards clean than are.
 //
 // ===========================================================================================
 // WHAT COUNTS AS CREATING A REF, which is the whole of what Q1 stands on
@@ -92,7 +88,7 @@
 //   - What an escape builds beyond a ref. A P.raw make(refs) and a tune(el, refs) draw elements;
 //     those elements are counted nowhere, only the names they are filed under.
 //   - A card written in any form but data. Sections 3 to 5 read SCENE and STEPS_SPEC, so such a
-//     card would be counted nowhere. The catalog is 108 migrated and 0 legacy, which is what puts
+//     card would be counted nowhere. Every card in the catalog is migrated and none is legacy, which is what puts
 //     the whole tree in reach, and the cross-check at the bottom is what keeps that claim honest.
 //   - Whether any of this draws correctly. Every number here is about declarations.
 //
@@ -217,7 +213,7 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
   lines.push(`   ${pad(prologues)}  of those opening with resetStep(s)   LEGACY FORM, 0 is the resting value`);
   lines.push(`   ${pad(posterFirst)}  cards passing { posterFirst: true } (D-14, Q4: unreadable from the namespace)`);
   lines.push('   A PATTERN WITH A BRACE IN IT CANNOT COUNT A STEP: a step is an object in an array. The row');
-  lines.push(`   above reads ${enters} escape bodies where the catalog holds 650 steps, and section 3 reads`);
+  lines.push(`   above reads ${enters} escape bodies rather than steps, and section 3 reads`);
   lines.push('   those off the data.');
 
   // -------------------------------------------------------------------------------------------
@@ -336,7 +332,7 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
   lines.push(`   ${pad(specMigrated)}  migrated cards, ${specLegacy} legacy, ${specMigrated + specLegacy} of ${CARD_COUNT} accounted for`);
   lines.push(`   ${pad(topParts)}  top-level parts, ${allParts} with groups flattened, ${nullParts} conditional null entries appendParts skips`);
   lines.push(`   ${pad(keyedParts)}  parts carrying a key, so reachable as a ref`);
-  lines.push(`   ${pad(specSteps)}  steps declared as data, out of 650 in the catalog`);
+  lines.push(`   ${pad(specSteps)}  steps declared as data`);
   lines.push(`   part kinds:   ${histLine(kinds)}`);
   lines.push(`   step fields:  ${histLine(stepFields)}`);
   lines.push(`   flow verbs:   ${histLine(verbs)}`);
@@ -352,8 +348,6 @@ test('skeleton census: the declared spec form, with the legacy skeleton as a tri
   for (const [id, set] of [...hookCards.entries()].sort()) lines.push(`         ${id}  [${[...set].sort().join(', ')}]`);
   lines.push('   Not escapes, listed because they are the fields most easily mistaken for one:');
   for (const [k, n] of softFields) lines.push(`   ${pad(n)}  ${k}  (declarative data, not a function)`);
-  lines.push(`   Q5: the recorded claim is 18 of the 21 CLUSTER cards clean, naming 3. Measured over the whole`);
-  lines.push(`   catalog: ${cleanCards} of ${specMigrated} clean, and in cluster 14 of 21, because tune and raw are escapes too.`);
 
   const escapeRefTotal = [...escapeRefs.values()].reduce((a, b) => a + b, 0);
   lines.push('');

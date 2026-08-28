@@ -7,9 +7,9 @@
 // ===========================================================================================
 // WHY THIS FILE EXISTS
 // ===========================================================================================
-// The contract and the four folder files are written in ABSOLUTES: "429 steps carry `chips` and 191
-// carry `chipsCued`", "134 hooks in all", "45 OPEN findings", "76 of the 108 cards are fully
-// declarative". Every one of them was true when it was typed and every one is a hand count. Before
+// The contract and the four folder files are written in ABSOLUTES: so many steps carry `chips` and
+// so many carry `chipsCued`, so many hooks in all, so many OPEN findings, so many cards fully
+// declarative. Every one of them was true when it was typed and every one is a hand count. Before
 // this file existed, `report/skeleton-census.test.mjs` already COMPUTED most of them and printed
 // them, and nothing compared the two: the printer and the prose could disagree for months with the
 // suite green, because printing is not asserting.
@@ -35,8 +35,8 @@
 //   - Any number no claim below names. This is a registry, not a scan: a new absolute typed into a
 //     document is unguarded until someone adds a row. `unit/docs.test.mjs` group E has the same
 //     shape and the same limit.
-//   - Anything needing a browser. The soft geometry population (`scheme/CLAUDE.md` says 8: CENTRE 2,
-//     CENTRE-LOW 4, OCCLUDED 2) is measured by `report/geometry-soft.test.mjs` against a rendered
+//   - Anything needing a browser. The soft geometry population (`scheme/CLAUDE.md` says 10: CENTRE 3,
+//     CENTRE-LOW 5, OCCLUDED 2) is measured by `report/geometry-soft.test.mjs` against a rendered
 //     frame, so it cannot be computed here and no claim below names it.
 //   - Whether a number is the RIGHT thing to state. A claim can be accurate and pointless.
 //   - Prose that states a count in words with no digits at all, unless the pattern spells the word
@@ -46,7 +46,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, cards, categories } from '../fixtures/catalog.mjs';
+import { ROOT, cards, categories, recordFiles } from '../fixtures/catalog.mjs';
 import { cardForm, importAll } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
@@ -129,8 +129,10 @@ function census() {
   const open = new Map(CATS.map(c => [c, 0]));
   const anchors = new Map(CATS.map(c => [c, 0]));
   const anchorSections = new Map();          // anchor text -> the `<cat>/<card id>` sections holding it
+  // A record is one document or many (`recordFiles`), and both shapes are counted the same way:
+  // the split is a storage decision and a census that saw fewer notes because of it would be lying.
   for (const c of CATS) {
-    const md = readDoc(join('js', 'schemes', c, 'CARDS.md'));
+    const md = recordFiles(c).map(f => readDoc(f.rel)).join('\n');
     open.set(c, (md.match(/^OPEN\b/gm) || []).length);
     let section = null;
     for (const line of md.split('\n')) {
@@ -213,7 +215,7 @@ const CLAIMS = [
 
   {
     doc: 'CANON.md', label: 'S-38: note anchors, total and per record',
-    re: /\*\*(\d+) anchors today\*\*, all four `CARDS\.md` \(cluster (\d+), workloads (\d+), network (\d+), storage (\d+)\)/,
+    re: /\*\*(\d+) anchors today\*\*, all four records \(cluster (\d+), workloads (\d+), network (\d+), storage (\d+)\)/,
     want: () => [CATS.reduce((n, c) => n + CENSUS.anchors.get(c), 0), CENSUS.anchors.get('cluster'),
       CENSUS.anchors.get('workloads'), CENSUS.anchors.get('network'), CENSUS.anchors.get('storage')],
   },
@@ -335,8 +337,8 @@ const CLAIMS = [
   ? { ...c, want: () => [cat(c.cat).kindCards.get(c.kind).size, cat(c.cat).sites.get(c.kind)] }
   : c));
 
-// A claim's floor: a registry that stops holding claims is a check that stops checking. Measured
-// 2026-08-19: 29 claims over 6 documents. A FLOOR, because the registry is meant to grow.
+// A claim's floor: a registry that stops holding claims is a check that stops checking. A FLOOR,
+// because the registry is meant to grow, and the live count is in the assertion message below.
 const CLAIM_FLOOR = 25;
 
 const DOCS = new Map();

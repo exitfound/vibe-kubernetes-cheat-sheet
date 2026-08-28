@@ -11,7 +11,7 @@
 //
 // No browser here on purpose: the unit tests must not pull in playwright.
 
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -27,10 +27,9 @@ const importFromRoot = (...seg) => import(pathToFileURL(join(ROOT, ...seg)).href
 // THE CATALOG BASELINE: the two numbers the harness is calibrated against, TYPED EXACTLY ONCE.
 //
 // Every other file derives its own baseline from what it actually reads: a card count from
-// `(await cards()).length`, a step count from `stepTotal()` in ./module.mjs. Sixteen files used to
-// type `108` and `650` themselves, eight of them as the only guard they had, and a floor written
-// as a literal weakens the moment the catalog grows past it: with 109 cards a walk that silently
-// skips one still clears `>= 108` and reports a clean catalog. `S-49` says a count a DOCUMENT
+// `(await cards()).length`, a step count from `stepTotal()` in ./module.mjs. A floor written
+// as a literal weakens the moment the catalog grows past it: with 110 cards a walk that silently
+// skips one still clears `>= 109` and reports a clean catalog. `S-49` says a count a DOCUMENT
 // states is measured rather than typed, and the harness owes itself the same.
 //
 // So what is left here is a baseline rather than a floor, and it has one job: notice that the
@@ -42,12 +41,12 @@ const importFromRoot = (...seg) => import(pathToFileURL(join(ROOT, ...seg)).href
 // Changing a number here is how a card being added or removed is acknowledged on purpose. If you
 // are about to edit one of these to make a run go green, read what the run is telling you first.
 // ---------------------------------------------------------------------------------------------
-export const CATALOG_BASELINE = Object.freeze({ cards: 108, steps: 650 });
+export const CATALOG_BASELINE = Object.freeze({ cards: 116, steps: 704 });
 
 // ---------------------------------------------------------------------------------------------
 // SCHEME_IDS=a,b restricts the BROWSER walks to those cards, the way OVERLAY_IDS already restricts
 // the panel report. It exists for one workflow: reviewing a single card, where the render suite
-// spends 70 seconds walking 108 cards to reach a second of work on the one being reviewed.
+// spends 70 seconds walking the whole catalog to reach a second of work on the one being reviewed.
 //
 // IT MUST NOT BE ABLE TO FAKE A GREEN GATE. Two things enforce that. `census()` below refuses to
 // compare a subset against the catalog and returns instead of passing quietly, and `floor()`
@@ -153,6 +152,42 @@ export function manifest(category) {
 // and nobody lists, sitting next to the cards, is exactly the thing worth a red run. Adding a name
 // here is a deliberate widening of the folder contract.
 export const folderModules = (category) => new Set([`${category}-kit.js`, 'cards.js', 'posters.js']);
+
+// THE TWO SHAPES OF A CARD RECORD, read off the tree rather than off a list of category names.
+//
+//   monolith  js/schemes/<cat>/CARDS.md          every `## <card id>` section in one file
+//   split     js/schemes/<cat>/CARDS/<id>.md     one file per card, CARDS.md keeping the preamble
+//
+// A category is in the split shape when the directory exists, so a fifth category picking either
+// one is covered the day it does, and no reader carries a list of which category is in which shape.
+// The preamble file is ALWAYS in the returned list, both shapes: it holds no `## ` heading of its
+// own, so including it costs a walk nothing and catches a section left behind after a split.
+//
+// A directory that exists and reads empty is a FAILURE, not a shorter walk. That is the whole of
+// S-46 applied here: 28 files leaving the run silently would take every anchor with them.
+export function recordFiles(category) {
+  const dir = join(ROOT, 'js', 'schemes', category, 'CARDS');
+  const one = (rel) => ({ rel, path: join(ROOT, rel) });
+  const out = [one(join('js', 'schemes', category, 'CARDS.md'))];
+  if (!existsSync(dir)) return out;
+  const md = readdirSync(dir).filter(n => n.endsWith('.md')).sort();
+  if (!md.length) {
+    throw new Error(`RECORD WALK FAILED: js/schemes/${category}/CARDS/ exists and holds no .md file.\n` +
+      '  A check that scans nothing reports nothing. Refusing to pass.');
+  }
+  for (const n of md) out.push(one(join('js', 'schemes', category, 'CARDS', n)));
+  return out;
+}
+
+// The ONE canonical S-36 pointer for a card, which depends on the shape its category is in. Derived
+// here rather than typed in the check, so the pointer a card carries and the file a walk opens can
+// never drift apart: both come off `recordFiles`.
+export function recordPointer(card) {
+  const split = recordFiles(card.category).length > 1;
+  return split
+    ? `// Design notes for this card: ./CARDS/${card.id}.md`
+    : `// Design notes for this card: ./CARDS.md#${card.id}`;
+}
 
 // The .js files actually on disk in a category folder. The one place a test is allowed to read the
 // filesystem for card modules, and only to compare it against the catalog.

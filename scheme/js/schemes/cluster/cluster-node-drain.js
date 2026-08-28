@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, ladder, strip, spread, midX, shade, CLU, LAYOUT, OPACITY } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-node-drain
+// Design notes for this card: ./CARDS/cluster-node-drain.md
 
 // Layout C, ladder right, Node frame under the panel. Panel x<=397 y<=304, frame top 380: NO
 // NARRATION MAY PASS 528 CHARACTERS, and that ceiling belongs to the frame, not to the current text.
@@ -10,17 +10,15 @@ const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas cent
 
 const BOX_W = CLU.BOX_W, BOX_H = CLU.BOX_H;              // 232 / 80
 const TOP_Y = CLU.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;     // 40 / 120
-// The API is centred on the Node frame so the eviction lane is one straight drop, and the whole top
-// row moved left by the same 268 units to keep the pair rigid.
-const TOP_GAP = 56;
-const API_X = CX - BOX_W / 2;                            // 484..716, centred on the Node frame
-const KUBECTL_X = API_X - TOP_GAP - BOX_W;               // 196..428
-const KUBECTL_R = KUBECTL_X + BOX_W;                     // 428, the face every top hop leaves from
+// The API is centred on the Node frame so the eviction lane is one straight drop, and the requester
+// is right-aligned to the content edge rather than left of the API. Why that side: ./CARDS/cluster-node-drain.md.
+const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 484..716, centred on the Node frame
+const KUBECTL_X = CONTENT_R - BOX_W;                     // 908..1140, the face every top hop leaves from
 const LANE_DY = CLU.LANE_DY, TOP_CY = midX(TOP_Y, TOP_BOTTOM);   // 12 / 80
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, LANE_DY);     // 68 / 92
-// Over the API, NOT over the 56 unit gap: the longest label runs 365 units and gap-centred would
-// reach x=273, inside the panel. Centred on the API it spans 417..783 and clears it outright.
-const WIRE_X = CX;                                       // 600
+// Centred on the 192 unit gap the mirror opens, which is what lets a wire label carry the whole
+// call rather than a shorthand of it. Measured clearances: ./CARDS/cluster-node-drain.md.
+const WIRE_X = midX(API_R, KUBECTL_X);                   // 812, the gap midpoint
 const WIRE_Y = TOP_Y - 14;                               // 26, above the row: the spine owns below it
 
 const LADDER_X = LAYOUT.C.ladder.x, LADDER_W = LAYOUT.C.ladder.w;   // 660..1140, right of the spine
@@ -47,7 +45,7 @@ const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 
 // ONE eviction lane, addressed to the Node rather than a Pod inside it: a single vertical drop,
 // both endpoints on face midpoints. It leaves the API, not kubectl, because the API is what acts.
-const API_CX = midX(API_X, API_X + BOX_W);               // 600
+const API_CX = midX(API_X, API_R);                       // 600
 const EVICT_ROUTE = [[API_CX, TOP_BOTTOM], [API_CX, NODE_Y]];
 
 // Bottom: Node-1 with 3 Pods: web-1, web-2 (Deployment), fluentd (DaemonSet).
@@ -57,12 +55,13 @@ const POD_OWNER = ['Deployment', 'Deployment', 'DaemonSet'];
 // The list order IS the append order, so it is the z-order: the two top lanes and the wire label,
 // the four chips, the eviction lane, the packet layer, the ladder, the Node frame and its Pods.
 export const SCENE = {
-  'aria-label': 'Node drain: cordon, list-and-skip, eviction API with PDB gating',
+  'aria-label': 'Node drain: cordon, list-and-skip, eviction through the API with PDB gating, a 429 and a retry, and the DaemonSet Pod left standing',
   parts: [
     P.defs(),
-    // Top-row lanes, one per direction, straddling the row centre line by LANE_DY.
-    P.arrow({ x1: KUBECTL_R, y1: REQ_Y, x2: API_X, y2: REQ_Y, dim: true, dashed: true }),
-    P.arrow({ x1: API_X, y1: RESP_Y, x2: KUBECTL_R, y2: RESP_Y, dim: true, dashed: true }),
+    // Top-row lanes, one per direction, straddling the row centre line by LANE_DY. The request runs
+    // right to left because the panel owns everything left of the API on this family.
+    P.arrow({ x1: KUBECTL_X, y1: REQ_Y, x2: API_R, y2: REQ_Y, dim: true, dashed: true }),
+    P.arrow({ x1: API_R, y1: RESP_Y, x2: KUBECTL_X, y2: RESP_Y, dim: true, dashed: true }),
     P.wire({ key: 'req', x: WIRE_X, y: WIRE_Y }),
     // State chips, one bottom strip across the content width.
     P.chip({ key: 'cordonChip',  x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'spec.unschedulable',     value: 'false' }),
@@ -126,27 +125,43 @@ export const STEPS_SPEC = [
   },
   {
     id: 'cordon',
-    duration: 2000,
+    duration: 3800,
     narration: 'The drain command PATCHes Node-1 with spec.unschedulable=true. The Scheduler stops placing new Pods on this Node unless they tolerate the node.kubernetes.io/unschedulable taint the way DaemonSet Pods do, and the status shows SchedulingDisabled. Already-running Pods stay put for now. Cordon is also exposed as a separate verb (kubectl cordon Node-1), drain just bundles it with the eviction loop.',
     chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '2 of 2', lastChip: 'none' },
-    wires: { req: 'PATCH /api/v1/nodes/Node-1 · spec.unschedulable=true' },
+    wires: { req: 'PATCH Node-1 · spec.unschedulable=true' },
+    // S-13: the static block states the END. The PATCH is what sets the field, so the animated
+    // path opens on the old value and turns it over when the answer lands back.
+    rewind: { chips: { cordonChip: 'false' } },
     opacity: LIVE,
     lit: ['kubectl', 'cordonChip'],
     chain: 0,
     // kubectl, apiserver and cordonChip are newly highlighted here and only LIGHT: block
     // auto-pulse is off catalog-wide (autoPulse: false). The PATCH rides the top hop.
-    flow: [F.top({ from: KUBECTL_R, to: API_X, y: REQ_Y, lights: ['apiserver'] })],
+    flow: [
+      F.top({ from: KUBECTL_X, to: API_R, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
+      // The status the sentence promises rides the answer lane home, the lane the list, the 200 OK
+      // and the 429 already use. What one hop under this hold cost: ./CARDS/cluster-node-drain.md.
+      F.top({ from: API_R, to: KUBECTL_X, y: RESP_Y, after: 'req', name: 'acked' }),
+      // What kubectl KNOWS: the field reads SchedulingDisabled when the answer is back on kubectl,
+      // not while the PATCH is still on the wire. Same rule as `last eviction` on both evict steps.
+      F.set({ at: 'acked', chips: { cordonChip: CORDONED } }),
+    ],
   },
   {
     id: 'list',
-    duration: 1900,
-    narration: 'The drain command lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. A drain never evicts DaemonSet Pods. Mirror Pods (the API record of static Pods) are skipped because Kubelet would recreate them. Pods with emptyDir volumes and bare Pods with no owner abort the drain until the matching flag is passed. Two Deployment-backed Pods are left for the Eviction API.',
+    duration: 3800,
+    narration: 'The drain command lists Pods on Node-1 via fieldSelector=spec.nodeName=Node-1 and buckets each one. A drain never evicts DaemonSet Pods and will not proceed without --ignore-daemonsets. Mirror Pods (the API record of static Pods) are skipped because Kubelet would recreate them. Pods with emptyDir volumes and bare Pods with no owner abort the drain until the matching flag is passed. Two Deployment-backed Pods are left for the Eviction API.',
     chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '2 of 2', lastChip: 'none' },
     wires: { req: 'GET /api/v1/pods · fieldSelector=spec.nodeName=Node-1' },
     opacity: LIVE,
     lit: ['kubectl'],
     chain: 1,
-    flow: [F.top({ from: KUBECTL_R, to: API_X, y: REQ_Y, lights: ['apiserver'] })],
+    // The bucketing this step describes is done on what comes BACK, so the list rides the answer
+    // lane home rather than the step ending on a call with no reply.
+    flow: [
+      F.top({ from: KUBECTL_X, to: API_R, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
+      F.top({ from: API_R, to: KUBECTL_X, y: RESP_Y, after: 'req', name: 'listed' }),
+    ],
   },
   {
     id: 'evict-A',
@@ -155,7 +170,7 @@ export const STEPS_SPEC = [
     duration: 2800,
     narration: 'The drain command POSTs an eviction for web-1. The API reads the matching PDB, whose status the disruption controller keeps at disruptionsAllowed=1. The eviction is granted with 200 OK, disruptionsAllowed decrements to 0 under optimistic concurrency, and the Pod is deleted with its grace period. The owning ReplicaSet replaces it elsewhere, covered in the Deployment rolling update card.',
     chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '1 of 2', lastChip: 'web-1 · 200 OK' },
-    wires: { req: 'POST .../pods/web-1/eviction · 200 OK' },
+    wires: { req: 'POST .../pods/web-1/eviction' },
     // S-13: the static block states the END, so prev lands on a count that agrees with the
     // terminated shade below. The API READS 2 and the eviction takes it to 1, hence the rewind.
     rewind: { chips: { healthyChip: '2 of 2', lastChip: 'none' } },
@@ -167,10 +182,10 @@ export const STEPS_SPEC = [
     // Top packet: kubectl → apiserver (POST eviction), then the delete flows
     // down the connector. The Pod reacts only when the ball reaches the node.
     flow: [
-      F.top({ from: KUBECTL_R, to: API_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
+      F.top({ from: KUBECTL_X, to: API_R, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
       // The 200 OK rides the answer lane home, the same lane the retry step uses for its 429. A
       // return the narration promises and the motion never delivers is a defect family here.
-      F.top({ from: API_X, to: KUBECTL_R, y: RESP_Y, after: 'req', name: 'granted' }),
+      F.top({ from: API_R, to: KUBECTL_X, y: RESP_Y, after: 'req', name: 'granted' }),
       // What kubectl KNOWS, so it cannot read 200 OK while the POST is still on the wire: it turns
       // over when the answer lands back, the count when the eviction takes effect on the Pod.
       F.set({ at: 'granted', chips: { lastChip: 'web-1 · 200 OK' } }),
@@ -188,7 +203,7 @@ export const STEPS_SPEC = [
     duration: 4400,
     narration: 'The drain command POSTs eviction for web-2 next. With the web-1 replacement still spinning up, currentHealthy=1 equals minAvailable, so disruptionsAllowed is 0 and the API returns 429 Too Many Requests. The drain command retries every 5 seconds. Once the replacement turns Ready elsewhere, currentHealthy is back to 2 and the next retry returns 200 OK, evicting web-2.',
     chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '1 of 2 → 2 of 2', lastChip: 'web-2 · 429 → 200 OK' },
-    wires: { req: 'POST .../pods/web-2/eviction · 429 → retry → 200' },
+    wires: { req: 'POST .../pods/web-2/eviction' },
     // Both pinned values are TRANSITIONS and both chips START from what evict-A left: announcing
     // them at entry would give away the 429 and the retry that clears it before either is drawn.
     rewind: { chips: { healthyChip: '1 of 2', lastChip: 'web-1 · 200 OK' } },
@@ -200,12 +215,12 @@ export const STEPS_SPEC = [
     // First attempt: blocked. Top packet out, 429 response back, no connector follow-up. kubectl
     // is the source and lit from entry, the apiserver lights when the eviction reaches it.
     flow: [
-      F.top({ from: KUBECTL_R, to: API_X, y: REQ_Y, name: 'attempt', lights: ['apiserver'] }),
-      F.top({ from: API_X, to: KUBECTL_R, y: RESP_Y, after: 'attempt', name: 'denied' }),
+      F.top({ from: KUBECTL_X, to: API_R, y: REQ_Y, name: 'attempt', lights: ['apiserver'] }),
+      F.top({ from: API_R, to: KUBECTL_X, y: RESP_Y, after: 'attempt', name: 'denied' }),
       F.set({ at: 'denied', chips: { lastChip: 'web-2 · 429' } }),
       // Retry: kubectl → apiserver → connector → the Pod reacts on arrival. The count bumps as the
       // retry leaves, because the narration has the replacement turning Ready BEFORE it is granted.
-      F.top({ from: KUBECTL_R, to: API_X, y: REQ_Y, after: 'denied', name: 'retry' }),
+      F.top({ from: KUBECTL_X, to: API_R, y: REQ_Y, after: 'denied', name: 'retry' }),
       F.set({ after: 'denied', chips: { healthyChip: '1 of 2 → 2 of 2' } }),
       F.route({ points: EVICT_ROUTE, after: 'retry', name: 'evict' }),
       F.set({ at: 'evict', chips: { lastChip: 'web-2 · 429 → 200 OK' } }),
@@ -220,7 +235,7 @@ export const STEPS_SPEC = [
     // A chip means what its name says: this holds the LAST eviction, not a tally. The summary is
     // carried by ladder row 5 and the wire label.
     chips: { cordonChip: CORDONED, pdbChip: '1', healthyChip: '2 of 2', lastChip: 'web-2 · 200 OK' },
-    wires: { req: 'drain complete · Node safe for maintenance' },
+    wires: { req: 'drain complete · DaemonSet Pod stays' },
     // Pin final state. Both evicted Pods stay on screen at the terminated shade.
     opacity: { ...LIVE, pod1: GONE, pod2: GONE },
     // The climb happened on the retry (`1 of 2 -> 2 of 2`); here the chip settles to the plain

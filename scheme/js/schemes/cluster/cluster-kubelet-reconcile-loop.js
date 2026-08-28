@@ -1,6 +1,6 @@
-import { P, F, defineCard, laneY, ladder, midX } from './cluster-kit.js';
+import { P, F, defineCard, LAYOUT, laneY, ladder, midX } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-kubelet-sync-loop
+// Design notes for this card: ./CARDS/cluster-kubelet-reconcile-loop.md
 
 // Laid out on the L. Panel x<=397 y<=255 (269 at 1024x768) against the API box at y=300, so the
 // CEILING is 360 characters per narration: 362 costs one more line and lands 1024x768 on 296.
@@ -24,17 +24,17 @@ const { out: API_OUT_Y, back: API_BACK_Y } = laneY(API_CY, LANE_DY);   // 325 / 
 const API_TO_KUBE = [[API_R, API_OUT_Y], [RISER_OUT_X, API_OUT_Y], [RISER_OUT_X, OUT_Y], [KUBE_X, OUT_Y]];
 const KUBE_TO_API = [[KUBE_X, BACK_Y], [RISER_BACK_X, BACK_Y], [RISER_BACK_X, API_BACK_Y], [API_R, API_BACK_Y]];
 
-const LADDER_X = 640, LADDER_W = CONTENT_R - LADDER_X;   // 500, 640..1140
+const LADDER_X = LAYOUT.B.ladder.x, LADDER_W = LAYOUT.B.ladder.w;   // 660..1140
 const LADDER_Y = 190, ROW_H = 32, ROW_GAP = 10;          // 5 rows -> 190..390
 
 // The Kubelet owns EVERY ladder row, so the tie is a RELATIONSHIP: no ball, no arrowhead. Face
 // midpoint to face midpoint, turn halfway between, and the whole band stays free for it.
 const KUBE_CX = midX(KUBE_X, KUBE_R);                    // 670
-const LADDER_CX = midX(LADDER_X, CONTENT_R);             // 890
+const LADDER_CX = midX(LADDER_X, CONTENT_R);             // 900
 const TIE_JOG_Y = midX(TOP_BOTTOM, LADDER_Y);            // 155
 const KUBE_TO_CHAIN = [[KUBE_CX, TOP_BOTTOM], [KUBE_CX, TIE_JOG_Y], [LADDER_CX, TIE_JOG_Y], [LADDER_CX, LADDER_Y]];
 
-const CHIP_X = CONTENT_L, CHIP_W = 480;                  // 60..540, the category column width
+const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;         // 60..540
 const CHIP_H = 34, CHIP_GAP = 8;
 const CHIP_Y = ladder({ y: 430, rowH: CHIP_H, gap: CHIP_GAP });   // 430 / 472 / 514 / 556
 
@@ -58,7 +58,7 @@ export const SCENE = {
         // Wire labels between top row and pipeline, right-anchored left of the out riser: the longest
         // string is 193 units against a 112 unit gap, so a centred label runs through both risers.
         P.wire({ key: 'api', x: RISER_OUT_X - 8, y: API_Y - 12, anchor: 'end' }),
-        // ABOVE the top row, not below it: the band below belongs to the Kubelet-to-ladder tie now.
+        // ABOVE the top row, not below it: the band below belongs to the Kubelet-to-ladder tie.
         // TOP_Y - 14 is where cluster-node-drain, cluster-oom-kill and cluster-node-failure put theirs.
         P.wire({ key: 'rt', x: midX(KUBE_R, RT_X), y: TOP_Y - 14 }),
         // State chips column on the right.
@@ -75,7 +75,7 @@ export const SCENE = {
             '1. watch     ·  pod specs from API',
             '2. PLEG      ·  observe containers via ListContainers',
             '3. SyncPod   ·  reconcile desired vs observed',
-            '4. CRI       ·  Pull/Create/Start container gRPC',
+            '4. CRI       ·  RunPodSandbox/Pull/Create/Start gRPC',
             '5. status    ·  PATCH Pod containerStatuses',
           ],
         }),
@@ -121,7 +121,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'pleg',
-    duration: 2200,
+    duration: 3400,
     narration: 'PLEG (Pod Lifecycle Event Generator) wakes on its 1s timer, calls ListContainers on the runtime, and sees no containers for the new Pod. The empty observed state is recorded for SyncPod. The EventedPLEG feature gate (alpha, off by default) has the runtime push lifecycle events over CRI, so the Kubelet relists at a reduced rate rather than on its 1s timer.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '0 containers', lastOpChip: 'ListContainers' },
     wires: { rt: 'ListContainers' },
@@ -139,26 +139,26 @@ export const STEPS_SPEC = [
   },
   {
     id: 'syncpod',
-    duration: 1900,
-    narration: 'SyncPod runs for the new Pod, comparing desired state (1 container in spec) against observed state (0 containers). The diff is a single action: create and start the missing container. The per-Pod worker goroutine drives that sequence directly, with no separate action queue involved.',
+    duration: 2700,
+    narration: 'SyncPod runs for the new Pod, comparing desired state (1 container in spec) against observed state (0 containers). The diff is a single action: create and start the missing container. The sync loop queues that work for the Pod worker goroutine, which drives the sequence directly.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '0 containers', lastOpChip: 'ListContainers' },
     lit: ['kubelet', 'desiredChip', 'observedChip'],
     chain: 2,
   },
   {
     id: 'cri',
-    // Four calls, four packets: 3660ms. PullImage cost the step 800 (a 120 unit hop sits on the
-    // PKT_DUR_MIN floor of 700, plus BEAT.afterHop), so duration follows it up from 3000.
+    // Four calls, four packets on the top-row lane: each hop is HOP_MS 700 plus BEAT.afterHop 100,
+    // so the fourth leaves at 2400 and its ripple closes the span at 3660.
     duration: 3800,
-    narration: 'Kubelet issues CRI gRPC calls in sequence: RunPodSandbox creates the pause container with shared namespaces, PullImage fetches the image unless it is already on the Node, then CreateContainer and StartContainer launch each container in the spec. Details of the sandbox setup are covered in the Pod Sandbox via CRI card.',
+    narration: 'Kubelet issues CRI gRPC calls in sequence: RunPodSandbox creates the pause container with shared namespaces, PullImage fetches the image, which imagePullPolicy can skip when it is already on the Node, then CreateContainer and StartContainer launch each container in the spec. Details of the sandbox setup are covered in the Pod Sandbox via CRI card.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '0 containers', lastOpChip: 'StartContainer' },
     wires: { rt: 'RunPodSandbox · Pull · Create · Start' },
     lit: ['kubelet', 'lastOpChip'],
     chain: 3,
     rewind: { chips: { lastOpChip: 'ListContainers' } },
     flow: CALLS.flatMap((name, i) => [
-      F.segment({
-        from: [KUBE_R, OUT_Y], to: [RT_X, OUT_Y], name: 'cri' + i,
+      F.top({
+        from: KUBE_R, to: RT_X, y: OUT_Y, name: 'cri' + i,
         after: i === 0 ? undefined : 'cri' + (i - 1),
         lights: i === 0 ? ['runtime'] : undefined,
       }),
@@ -170,9 +170,9 @@ export const STEPS_SPEC = [
     // Motion: the PLEG round trip to the runtime (700 out, 700 back with a beat between), then
     // the PATCH down the riser to the API, ending at 3316.
     duration: 3600,
-    narration: 'Next PLEG cycle observes the running container, observed state catches up to desired state, and SyncPod issues no new CRI calls. Kubelet PATCHes Pod status (containerStatuses) back to the API. The loop is ready for the next change.',
+    narration: 'Next PLEG cycle observes the running container, observed state catches up to desired state, and SyncPod finds nothing left to create or start. Kubelet PATCHes Pod status (containerStatuses) back to the API. The loop is ready for the next change.',
     chips: { podChip: POD_NAME, desiredChip: SPEC, observedChip: '1 container running', lastOpChip: 'ListContainers' },
-    wires: { api: 'PATCH .../pods/{name}/status' },
+    wires: { rt: 'ListContainers', api: 'PATCH .../pods/{name}/status' },
     lit: ['lastOpChip', 'kubelet', 'observedChip'],
     chain: 4,
     // The sentence OPENS with the next PLEG cycle observing the container and only THEN PATCHes,

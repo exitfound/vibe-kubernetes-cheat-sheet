@@ -1,9 +1,9 @@
 import { P, F, defineCard, laneY, strip, midX } from './cluster-kit.js';
 
-// Design notes for this card: ./CARDS.md#cluster-admission-webhooks
+// Design notes for this card: ./CARDS/cluster-admission-chain.md
 
 // Laid out on the L. Panel x<=397 y<=230, kubectl at KCTL_Y 300: 70 units of clearance. The depth
-// is a LINE count, not a character count, so measure it: ./CARDS.md BUDGET says with what.
+// is a LINE count, not a character count, so measure it: ./CARDS/cluster-admission-chain.md BUDGET says with what.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 // Reserved narration corner: 400 x 230. Nothing on this card derives from it, and the measured
@@ -32,7 +32,7 @@ const { out: OUT_Y, back: BACK_Y } = laneY(TOP_CY, LANE_DY);   // 85 / 115
 const ETCD_MID = midX(API_R, ETCD_X);                    // 888
 
 // Both lanes leave the kubectl TOP face, one right angle each, out left of back at both ends so they
-// never cross. 78% and 61% of the two runs sit behind the panel: an accepted cost, see ./CARDS.md.
+// never cross. 78% and 61% of the two runs sit behind the panel: an accepted cost, see ./CARDS/cluster-admission-chain.md.
 const { out: KCTL_OUT_X, back: KCTL_BACK_X } = laneY(KCTL_CX, LANE_DY);   // 205 / 235
 const KCTL_TO_API = [[KCTL_OUT_X, KCTL_Y], [KCTL_OUT_X, OUT_Y], [API_X, OUT_Y]];
 const API_TO_KCTL = [[API_X, BACK_Y], [KCTL_BACK_X, BACK_Y], [KCTL_BACK_X, KCTL_Y]];
@@ -150,7 +150,7 @@ export const STEPS_SPEC = [
     narration: 'Pluggable plus built-in. LimitRanger is back to check min and max, ValidatingAdmissionPolicy runs in process, validating webhooks call out over HTTPS, and ResourceQuota runs after all of them. None may mutate, and any deny aborts the request. See the ResourceQuota and LimitRange card.',
     chips: MUTATED,
     // Lit, never flashed or pulsed (M-26, M-01): the policy chip, the Api, and objChip for the
-    // reason the schema step lights it, this stage checks that same object. Why: ./CARDS.md
+    // reason the schema step lights it, this stage checks that same object. Why: ./CARDS/cluster-admission-chain.md
     lit: ['objChip', 'failurePolicy', 'api'],
     chain: [3],
   },

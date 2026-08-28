@@ -40,7 +40,7 @@ if (!positional[0] && !flags.all) {
   process.exit(1);
 }
 if (flags.all && !outDir) {
-  console.error('--all needs --out=DIR (108 dumps do not belong on stdout).');
+  console.error('--all needs --out=DIR (a dump per card does not belong on stdout).');
   process.exit(1);
 }
 

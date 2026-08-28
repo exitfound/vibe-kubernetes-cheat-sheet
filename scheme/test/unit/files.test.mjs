@@ -4,7 +4,7 @@
 //
 // Every rule here stands at ZERO findings, which is what makes it assertable and exactly when a
 // check is cheap: holding zero costs the parse below, recovering it after the next rename costs a
-// pass over 108 cards. That is the same argument unit/docs.test.mjs C4 makes for the Source column,
+// pass over the whole catalog. That is the same argument unit/docs.test.mjs C4 makes for the Source column,
 // and it is why these sit in the mandatory set with no report/ queue in front of them.
 //
 // ===========================================================================================
@@ -46,7 +46,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, cards, census } from '../fixtures/catalog.mjs';
+import { ROOT, cards, census, recordPointer } from '../fixtures/catalog.mjs';
 import { importAll } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
@@ -148,7 +148,7 @@ describe('a card as source text', () => {
     census('files S-34', walked, CARD_COUNT);
     assert.equal(walked, CARD_COUNT, `walked ${walked} cards, the catalog lists ${CARD_COUNT}`);
     assert.ok(walked >= CATALOG_FLOOR, `walked ${walked} cards, floor is ${CATALOG_FLOOR}: a walk over a subset finds fewer defects and passes`);
-    assert.ok(comments > 0, 'not one comment was found in 108 cards, so the scanner has gone quiet');
+    assert.ok(comments > 0, 'not one comment was found in any card, so the scanner has gone quiet');
     assert.deepEqual(findings, [], `${findings.length} over-long comment(s):\n  ${listing(findings)}`);
     t.diagnostic(`${comments} comment run(s) over ${lines} lines on ${walked} cards, longest ${longest} line(s) at ${longestAt}`);
   });
@@ -162,13 +162,16 @@ describe('a card as source text', () => {
     for (const c of catalogued) {
       walked++;
       const s = SCANS.get(c.id);
-      const want = `// Design notes for this card: ./CARDS.md#${c.id}`;
+      // Two shapes of record, one pointer each, and the shape is read off the tree by
+      // `recordPointer`: `./CARDS.md#<id>` while a category keeps one file, `./CARDS/<id>.md` once
+      // it splits. The WORDING up to the path is fixed either way, which is what a reader greps.
+      const want = recordPointer(c);
       const hits = s.srcLines.map((l, i) => ({ text: l.trim(), line: i + 1 })).filter(o => o.text === want);
       // A near miss is the defect this test was written for: cluster-leader-election carried
       // "// Design notes, including what this costs vertically: ./CARDS.md#..." and the anchor
       // resolved, so nothing anywhere could see it.
       const near = s.srcLines.map((l, i) => ({ text: l.trim(), line: i + 1 }))
-        .filter(o => o.text !== want && /^\/\/.*Design notes.*CARDS\.md#/.test(o.text));
+        .filter(o => o.text !== want && /^\/\/.*Design notes.*CARDS(\.md#|\/)/.test(o.text));
       if (hits.length !== 1) {
         findings.push(`${c.rel}  carries ${hits.length} pointer(s) of the canonical form. Expected exactly one: ${want}`);
       }
@@ -294,6 +297,11 @@ const RELEASE = readFileSync(join(REPO, '.github', 'workflows', 'release.yml'), 
 
 // `**/CANON.md` -> CANON.md, and `scheme/test` -> a path. A bare `README.md` is root-only and is
 // not in the comparison, by the argument above.
+//
+// A tree-wide DIRECTORY is a name too, not a path: `**/CARDS/` excludes the per-card record folder
+// wherever a category grows one, exactly the way `**/CARDS.md` excludes the monolith. Filing it as
+// a path would compare it against `scheme/test`, which is one fixed place, and the two lists would
+// then disagree for a reason that is only about syntax.
 function dockerignoreLists() {
   const names = new Set(), paths = new Set(), rootOnly = [];
   for (const raw of DOCKERIGNORE.split('\n')) {
@@ -301,15 +309,23 @@ function dockerignoreLists() {
     if (!line || line.startsWith('#')) continue;
     const wide = /^\*\*\/(.+\.md)$/.exec(line);
     if (wide) { names.add(wide[1]); continue; }
+    const wideDir = /^\*\*\/([\w.-]+)\/$/.exec(line);
+    if (wideDir) { names.add(wideDir[1]); continue; }
     if (/\.md$/.test(line)) { rootOnly.push(line); continue; }
     if (line.includes('/')) paths.add(line.replace(/\/$/, ''));
   }
   return { names, paths, rootOnly };
 }
 
-// `find _site \( -name CLAUDE.md -o ... \) -delete` and `rm -rf _site/scheme/tools _site/scheme/test`.
+// `find _site \( -name CLAUDE.md -o ... -o -name CARDS -type d \) -exec rm -rf {} +` and
+// `rm -rf _site/scheme/tools _site/scheme/test`.
+//
+// The find TAIL is matched loosely on purpose. It was `-delete` while every entry was a file, and a
+// directory cannot be `-delete`d with children in it, so the day the record folder arrived the tail
+// became `-exec rm -rf {} +`. A parser pinned to one tail goes quiet on that edit and reports an
+// empty list, which is the failure the census below exists to make loud rather than green.
 function deployLists() {
-  const find = /find\s+_site[^\n]*-delete/.exec(DEPLOY);
+  const find = /find\s+_site\s[^\n]*\)\s*-(?:delete|exec)[^\n]*/.exec(DEPLOY);
   const rm = /rm -rf([^\n]*)/.exec(DEPLOY);
   return {
     names: new Set([...(find ? find[0].matchAll(/-name\s+([\w.-]+)/g) : [])].map(m => m[1])),
@@ -317,13 +333,16 @@ function deployLists() {
   };
 }
 
-// `-x "scheme/tools/*" "scheme/test/*" "*CLAUDE.md" ...`
+// `-x "scheme/tools/*" "scheme/test/*" "*CLAUDE.md" ... "*/CARDS/*"`
 function releaseLists() {
   const x = /-x ([^\n]*)/.exec(RELEASE);
   const names = new Set(), paths = new Set();
   for (const m of (x ? x[1].matchAll(/"([^"]+)"/g) : [])) {
     const name = /^\*([\w.-]+\.md)$/.exec(m[1]);
     if (name) { names.add(name[1]); continue; }
+    // `*/CARDS/*` is the zip spelling of a tree-wide directory, the same entry `**/CARDS/` is.
+    const wideDir = /^\*\/([\w.-]+)\/\*$/.exec(m[1]);
+    if (wideDir) { names.add(wideDir[1]); continue; }
     const path = /^([\w./-]+?)\/\*$/.exec(m[1]);
     if (path) paths.add(path[1]);
   }
@@ -346,7 +365,7 @@ describe('what never ships', () => {
     }
     // The live three, so the comparison is anchored to what the rule is actually about and cannot be
     // satisfied by three lists that agree on the wrong thing.
-    for (const name of ['CLAUDE.md', 'CARDS.md', 'CANON.md']) {
+    for (const name of ['CLAUDE.md', 'CARDS.md', 'CANON.md', 'CARDS']) {
       for (const [where, got] of [['.dockerignore', dock.names], ['deploy.yml', deploy.names], ['release.yml', release.names]]) {
         assert.ok(got.has(name), `${where} does not exclude ${name}, which is an internal document that must never ship`);
       }

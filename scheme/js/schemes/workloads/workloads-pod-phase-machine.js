@@ -112,7 +112,7 @@ export const STEPS_SPEC = [
   {
     id: 'schedule',
     duration: 2000,
-    narration: 'The scheduler has bound the Pod to Node-1, so spec.nodeName is set and Kubelet picks the Pod up via its watch. Kubelet pulls images, creates the Pod sandbox and the container is in Waiting with reason ContainerCreating. The status.phase field stays Pending while any container is still waiting.',
+    narration: 'The Scheduler has bound the Pod to Node-1, so spec.nodeName is set and Kubelet picks the Pod up via its watch. Kubelet pulls images, creates the Pod sandbox and the container is in Waiting with reason ContainerCreating. The status.phase field stays Pending while any container is still waiting.',
     chips: phaseState('Pending', 'Waiting · ContainerCreating', '0'),
     sublabels: { containerBox: 'Waiting · ContainerCreating' },
     wires: { req: 'spec.nodeName=Node-1 · SyncPod · Image pull + sandbox' },

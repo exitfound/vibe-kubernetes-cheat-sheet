@@ -5,7 +5,7 @@
 // reach: packets and ripples exist only on the played path and were therefore never sampled by it,
 // and a lit or dimmed state that only some step produces was seen only if that step happened to be
 // the one showing at open. render/palette.test.mjs reproduces that behaviour exactly, numbers
-// included. This file walks all 650 steps and measures what the extra sampling adds.
+// included. This file walks every step and measures what the extra sampling adds.
 //
 // WHY THIS IS REPORT-LEVEL AND NOT IN THE GATE. It is an EXTENSION of coverage, not a
 // reimplementation. Anything it finds is a finding about a CARD, and the project already runs the
@@ -35,7 +35,7 @@ import {
 
 // The numbers render/palette.test.mjs asserts, restated here so the delta is readable without
 // running the other file. If these two ever disagree, the mandatory test is the truth.
-const OPEN_ELEMENTS = 1897;
+const OPEN_ELEMENTS = 2047;
 const OPEN_COMBINATIONS = 29;
 
 // One accumulator per sampling scope, plus a union. `where` is card + sampling point, which is what

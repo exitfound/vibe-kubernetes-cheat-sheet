@@ -54,7 +54,7 @@ const lane = (key, points, opacity) => P.lane({ key, points, dashed: true, dim: 
 // The list order IS the append order, which is the z-order: frames, blocks and disks, then the Pod
 // above its own frame, then the lanes and their captions, then the chip strip, then the packets.
 export const SCENE = {
-  'aria-label': 'CSI storage capacity tracking: without it the scheduler can pick a Node whose local storage pool is already full, provisioning of the volume fails there, and because binding waits on provisioning the Pod never schedules and stays Pending forever, while CSIStorageCapacity objects, one per topology segment, report the free space and let the scheduler filter out Nodes that cannot fit the claim before committing',
+  'aria-label': 'CSI storage capacity tracking: without it the Scheduler can pick a Node whose local storage pool is already full, provisioning of the volume fails there, and because binding waits on provisioning the Pod never schedules and stays Pending forever, while CSIStorageCapacity objects, one per topology segment, report the free space and let the Scheduler filter out Nodes that cannot fit the claim before committing',
   parts: [
     P.defs(),
     P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
@@ -136,7 +136,7 @@ export const STEPS_SPEC = [
   {
     id: 'blind-schedule',
     duration: 4300,
-    narration: 'Without capacity tracking the scheduler scores the Nodes on cpu, memory and affinity only, and Node-1 wins on those. Node-1 is written down as the chosen one, with no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
+    narration: 'Without capacity tracking the Scheduler scores the Nodes on cpu, memory and affinity only, and Node-1 wins on those. Node-1 is written down as the chosen one, with no idea that the local pool there is nearly empty. On paper this was a perfectly good choice.',
     chipsCued: chips('node-1 selected', 'needs 20Gi', 'no', 'scheduling'),
     opacity: stage({ lanes: ['wDecide', 'bind1'] }),
     // The scheduler is where the ball departs from, so it is lit at step entry: a ball must never
@@ -155,7 +155,7 @@ export const STEPS_SPEC = [
   {
     id: 'blind-fail',
     duration: 3600,
-    narration: 'Provisioning is now triggered on Node-1, where the pool has 5Gi against a 20Gi request. There is no room, so the volume is never created and the claim stays unbound. The Pod cannot bind until its volume does, so it never schedules and sits Pending, and with no capacity signal the Node choice is reset and the scheduler keeps landing back on Node-1.',
+    narration: 'Provisioning is now triggered on Node-1, where the pool has 5Gi against a 20Gi request. There is no room, so the volume is never created and the claim stays unbound. The Pod cannot bind until its volume does, so it never schedules and sits Pending, and with no capacity signal the Node choice is reset and the Scheduler keeps landing back on Node-1.',
     chipsCued: chips('Pending', 'needs 20Gi', 'no', 'provision fails'),
     wires: { n1: '5Gi against 20Gi' },
     opacity: stage({ lanes: ['prov1'] }),
@@ -172,7 +172,7 @@ export const STEPS_SPEC = [
   {
     id: 'publish',
     duration: 3600,
-    narration: 'Turn on capacity tracking, which means storageCapacity true on the CSIDriver, and a CSIStorageCapacity object appears for each Node, reporting the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the scheduler can consult.',
+    narration: 'Turn on capacity tracking, which means storageCapacity true on the CSIDriver, and a CSIStorageCapacity object appears for each Node, reporting the free space in its pool. Node-1 advertises 5Gi, Node-2 advertises 50Gi. These objects are readable cluster state the Scheduler can consult.',
     chipsCued: chips('Pending', 'needs 20Gi', 'yes', 'rescheduling'),
     opacity: stage({ caps: [1, 1], lanes: ['pub1', 'pub2'] }),
     // The pools are where the balls depart from, so both are lit at step entry.
@@ -195,7 +195,7 @@ export const STEPS_SPEC = [
   {
     id: 'filter',
     duration: 3800,
-    narration: 'This time the scheduler reads both capacity objects during its filter phase, which it does for a claim whose class binds on WaitForFirstConsumer. Node-1 cannot fit 20Gi in 5Gi, so it is filtered out before scoring even begins. Node-2 has ample room and survives the filter, so it becomes the only candidate.',
+    narration: 'This time the Scheduler reads both capacity objects during its filter phase, which it does for a claim whose class binds on WaitForFirstConsumer. Node-1 cannot fit 20Gi in 5Gi, so it is filtered out before scoring even begins. Node-2 has ample room and survives the filter, so it becomes the only candidate.',
     chipsCued: chips('Pending', 'needs 20Gi', 'yes', 'node-1 filtered out'),
     wires: { n1: 'too small', n2: 'fits 20Gi' },
     // node-1 is filtered out, so its WHOLE subtree (frame, pool, capacity object) ends dimmed and
@@ -221,7 +221,7 @@ export const STEPS_SPEC = [
   {
     id: 'success',
     duration: 5500,
-    narration: 'The scheduler selects Node-2, where the pool has room. Provisioning succeeds there, so the Pod is bound to the Node, the volume is mounted, and the Pod starts. Capacity tracking turned blind retries into a clean placement, simply by letting the scheduler look before it leaped.',
+    narration: 'The Scheduler selects Node-2, where the pool has room. Provisioning succeeds there, so the Pod is bound to the Node, the volume is mounted, and the Pod starts. Capacity tracking turned blind retries into a clean placement, simply by letting the Scheduler look before it leaped.',
     chipsCued: chips('Running on node-2', 'needs 20Gi', 'yes', 'scheduled and mounted'),
     wires: { n2: 'provisioned' },
     opacity: stage({ caps: [OPACITY.notready, 1], nodes: [OPACITY.notready, 1], pools: [OPACITY.notready, 1], lanes: ['wDecide', 'bind2', 'prov2'], pod: 1 }),

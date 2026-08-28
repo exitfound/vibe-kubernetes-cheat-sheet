@@ -293,7 +293,7 @@ export const CARDS = [
     title: 'Node Volume Attach Limits',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'Why does a Pod stay Pending on max volume count while every Node has spare CPU and memory? Because a Node has a second, invisible capacity: how many volumes one CSI driver may have attached at once. The node plugin reports it, Kubelet writes it into CSINode, and the scheduler rejects any Node at its ceiling. A slot frees when the detach completes, not when the Pod dies, turning a rollout near the ceiling into a race.',
+    desc: 'Why does a Pod stay Pending on max volume count while every Node has spare CPU and memory? Because a Node has a second, invisible capacity: how many volumes one CSI driver may have attached at once. The node plugin reports it, Kubelet writes it into CSINode, and the Scheduler rejects any Node at its ceiling. A slot frees when the detach completes, not when the Pod dies, turning a rollout near the ceiling into a race.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -357,7 +357,7 @@ export const CARDS = [
     title: 'WaitForFirstConsumer',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'Why can a Pod hang forever in a multi-zone cluster with a healthy disk sitting right there? With volumeBindingMode Immediate the volume is provisioned the instant the claim exists, in whatever zone the provisioner picks, and the Pod is stuck if no Node then both fits it and lies in that zone. WaitForFirstConsumer inverts the order so the scheduler chooses the Node first. That failure is the commonest multi-zone bug, and this is its one-line fix.',
+    desc: 'Why can a Pod hang forever in a multi-zone cluster with a healthy disk sitting right there? With volumeBindingMode Immediate the volume is provisioned the instant the claim exists, in whatever zone the provisioner picks, and the Pod is stuck if no Node then both fits it and lies in that zone. WaitForFirstConsumer inverts the order so the Scheduler chooses the Node first. That failure is the commonest multi-zone bug, and this is its one-line fix.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -370,7 +370,7 @@ export const CARDS = [
     title: 'CSI Storage Capacity',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'Why does a Pod get stuck Pending when the local storage pool on its chosen Node is full? Without capacity information the scheduler picks that Node on cpu and memory alone, provisioning fails there, and the Node choice is reset so the Pod is placed blind again on the next pass. CSIStorageCapacity objects from a driver that opts in let the scheduler see free space per Node and filter first, on classes that bind WaitForFirstConsumer.',
+    desc: 'Why does a Pod get stuck Pending when the local storage pool on its chosen Node is full? Without capacity information the Scheduler picks that Node on cpu and memory alone, provisioning fails there, and the Node choice is reset so the Pod is placed blind again on the next pass. CSIStorageCapacity objects from a driver that opts in let the Scheduler see free space per Node and filter first, on classes that bind WaitForFirstConsumer.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

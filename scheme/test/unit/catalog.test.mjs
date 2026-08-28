@@ -27,9 +27,9 @@ import { sentences } from '../fixtures/prose.mjs';
 // The typed half, and its one assertion is below: this is where a card added to or removed from
 // data.js has to be acknowledged on purpose. Every other file derives its own total.
 const CARD_TOTAL = CATALOG_BASELINE.cards;
-const PER_CATEGORY = { cluster: 21, workloads: 19, network: 37, storage: 31 };
+const PER_CATEGORY = { cluster: 28, workloads: 20, network: 37, storage: 31 };
 const SUBCATEGORY_TOTAL = 15;   // 3 + 3 + 5 + 4, unique across the four categories (D-07)
-const ALIAS_TOTAL = 30;         // SCHEME_ALIASES in js/app.js
+const ALIAS_TOTAL = 37;         // SCHEME_ALIASES in js/app.js
 
 // The desc bands D-04 and D-05 state: 400 to 470 characters hard (410 to 460 target) and 2 to 4
 // sentences. A tighter ceiling pushes qualifying conditions out of the desc and leaves true
@@ -199,7 +199,7 @@ test(`D-03 each category folder holds its cards plus ${folderModules('cluster').
 // ---- D-06: R-poster, an exact bijection ----
 
 // Nothing else covers it end to end: renderPoster falls back to FALLBACK_POSTER, so a dropped key
-// still renders 108 tiles, smoke still passes, and every render test looks inside the dialog.
+// still renders a full grid of tiles, smoke still passes, and every render test looks inside the dialog.
 test(`D-06 card and poster are a bijection (${Object.keys(POSTERS).length} of ${CARD_TOTAL})`, () => {
   const posterKeys = Object.keys(POSTERS);
   const orphanCards = SCHEMES.filter(s => !(s.id in POSTERS)).map(s => s.id);
@@ -269,9 +269,9 @@ test('R-srclabel one href carries one label across the whole catalog', () => {
       byHref.get(src.href).set(src.label, s.id);
     }
   }
-  // 149 distinct hrefs behind 213 source rows at the baseline. This caught
-  // pod-lifecycle/#pod-termination spelled three ways, one of them naming the page while pointing
-  // into a section.
+  // The floor below is a collapse guard, not the census: report/sources.test.mjs is where the
+  // distinct-href and source-row counts execute. This caught pod-lifecycle/#pod-termination spelled
+  // three ways, one of them naming the page while pointing into a section.
   assert.ok(byHref.size >= 100, `only ${byHref.size} distinct hrefs: the walk collapsed`);
   const bad = [...byHref]
     .filter(([, labels]) => labels.size > 1)

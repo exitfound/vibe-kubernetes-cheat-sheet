@@ -126,11 +126,13 @@ for (const id of ids) {
     if (cover < 0.22) say('R-06', `the drawing covers ${(cover * 100).toFixed(0)}% of the canvas (median is 51%): x ${bx[0]}..${bx[1]}, y ${by[0]}..${by[1]}, and dead air reads as a mistake`);
   }
 
-  // R-12: the note that explains the choice.
-  const md = join(SCHEMES, cat, 'CARDS.md');
+  // R-12: the note that explains the choice. Two shapes of record, the per-card file first.
+  const perCard = join(SCHEMES, cat, 'CARDS', `${id}.md`);
+  const md = existsSync(perCard) ? perCard : join(SCHEMES, cat, 'CARDS.md');
   if (existsSync(md)) {
-    const section = (readFileSync(md, 'utf8').split(`\n## ${id}\n`)[1] || '').split('\n## ')[0];
-    if (!section) say('R-12', `no "## ${id}" section in ${cat}/CARDS.md`);
+    const rel = existsSync(perCard) ? `${cat}/CARDS/${id}.md` : `${cat}/CARDS.md`;
+    const section = (readFileSync(md, 'utf8').split(`## ${id}\n`)[1] || '').split('\n## ')[0];
+    if (!section) say('R-12', `no "## ${id}" section in ${rel}`);
     else if (!section.includes('### poster')) say('R-12', 'the record has no "### poster" subsection explaining the choice');
   }
 

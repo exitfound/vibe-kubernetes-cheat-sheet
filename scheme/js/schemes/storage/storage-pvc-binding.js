@@ -140,7 +140,7 @@ export const STEPS_SPEC = [
   {
     id: 'claim',
     duration: 2000,
-    narration: 'A PersistentVolumeClaim is a request, not storage. It states only what the workload needs: at least 5Gi, ReadWriteOnce access, and the local-ssd StorageClass. The scheduler will not place the Pod while the claim it references is still unbound.',
+    narration: 'A PersistentVolumeClaim is a request, not storage. It states only what the workload needs: at least 5Gi, ReadWriteOnce access, and the local-ssd StorageClass. The Scheduler will not place the Pod while the claim it references is still unbound.',
     chipsCued: chips('Pending', 'Available', 'none', 'none'),
     opacity: { appPod: OPACITY.pending, ...CLAIM2_OFF, ...SHELF_UP },
     // Deliberately motionless. The claim is a statement of need, nothing acts: the Pod is the

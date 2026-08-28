@@ -4,7 +4,7 @@
 //
 // The played pass is the point. Stepping only through gotoStep runs every enter() with
 // ctx.reduced, which never executes a single line below `if (ctx.reduced) return;`, so the packets,
-// pulses, riding labels and arrival highlights of all 650 steps would go unrun. Timeline swallows a
+// pulses, riding labels and arrival highlights of every step would go unrun. Timeline swallows a
 // throw into console.error, which the collector turns into a failure.
 //
 // It says nothing about whether the picture is RIGHT. A green smoke is not a looked-at card.

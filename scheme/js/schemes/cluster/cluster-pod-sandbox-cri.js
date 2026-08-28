@@ -2,16 +2,16 @@ import { P, F, defineCard, laneY, ladder, midX, CLU, POD_VIOLET, FADE, OPACITY }
 import { g } from '../../lib/svg.js';
 import { box } from '../../lib/primitives.js';
 
-// Design notes for this card: ./CARDS.md#cluster-pod-sandbox-cri
+// Design notes for this card: ./CARDS/cluster-pod-sandbox-cri.md
 
-// Laid out on the L. Panel x<=397 y<=213, and the two do NOT peak together: widest where shallow,
-// deepest where narrow. The right edge caps the top row at 404, the bottom clears the columns at 235.
+// Laid out on the L. Panel 396.55 wide and 229.82 deep, both at 1100x800: the two peak on ONE
+// viewport. The right edge caps the top row at 404, the bottom clears the columns at 245.
 const M = CLU.M;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140
 const CX = midX(CONTENT_L, CONTENT_R);                   // 600, the canvas centre by construction
 
 // Anchored on its RIGHT edge and built leftwards, with 404 a HARD left stop. The room for the lanes
-// comes out of the BOXES, not out of that stop: see ./CARDS.md.
+// comes out of the BOXES, not out of that stop: see ./CARDS/cluster-pod-sandbox-cri.md.
 const TOP_Y = CLU.TOP_Y, BOX_H = CLU.BOX_H, TOP_BOTTOM = TOP_Y + BOX_H;   // 40 / 120
 const KUBE_W = 180, RT_W = 210, CNI_W = 180, TOP_GAP = 83;
 const CNI_X = CONTENT_R - CNI_W;  // 960..1140
@@ -25,11 +25,15 @@ const WIRE_RC_X = midX(RT_R, CNI_X);                     // 918.5
 
 // The left band opens below the panel.
 const LADDER_X = CONTENT_L, LADDER_W = 430;              // 60..490, clear of the spine
-const LADDER_Y = 235, ROW_H = CLU.ROW_H, ROW_GAP = CLU.ROW_GAP;   // 5 rows -> 235..435
+// 245 balances the two walls: 15.2 under the deepest panel, 17 over the Node frame.
+const LADDER_Y = 245, ROW_H = CLU.ROW_H, ROW_GAP = CLU.ROW_GAP, LADDER_ROWS = 5;
+const COL_BOTTOM = LADDER_Y + LADDER_ROWS * ROW_H + (LADDER_ROWS - 1) * ROW_GAP;  // 445, both columns
 
 const CHIP_X = 620, CHIP_W = CONTENT_R - CHIP_X;         // 520, 620..1140
-const CHIP_H = CLU.CHIP_H, CHIP_GAP = 22;
-const CHIP_Y = ladder({ y: LADDER_Y, rowH: CHIP_H, gap: CHIP_GAP });  // 235 / 291 / 347 / 403, bottom 437
+// Bottom-aligned on the ladder floor and on the ladder gap, so the two columns read as one band.
+const CHIP_H = CLU.CHIP_H, CHIP_GAP = ROW_GAP, CHIP_COUNT = 4;
+const CHIPS_Y = COL_BOTTOM - (CHIP_COUNT * CHIP_H + (CHIP_COUNT - 1) * CHIP_GAP);  // 279
+const CHIP_Y = ladder({ y: CHIPS_Y, rowH: CHIP_H, gap: CHIP_GAP });  // 279 / 323 / 367 / 411, bottom 445
 
 const NODE_X = CONTENT_L, NODE_W = CONTENT_R - CONTENT_L;// 60..1140
 const NODE_Y = 462, NODE_H = 158;                        // 462..620
@@ -46,7 +50,7 @@ const APP_X = POD_X + POD_W - INNER_DX - INNER_W;        // 618..808
 const SPINE_X = midX(RT_X, RT_R);                        // 772
 // A centred zigzag into the NODE, not the Pod inside it. THE TURN GOES ABOVE BOTH COLUMNS, or the
 // vertical leg drops straight through all four chips, which THROUGH cannot see.
-const JOG_Y = midX(TOP_BOTTOM, LADDER_Y);                // 177.5, clear of the wire labels at y=144
+const JOG_Y = midX(TOP_BOTTOM, LADDER_Y);                // 182.5, clear of the wire labels at y=144
 const SANDBOX_CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, JOG_Y], [CX, JOG_Y], [CX, NODE_Y]];
 
 // The list order IS the append order, so it is the z-order: the ladder and the Node frame holding the
@@ -62,7 +66,7 @@ export const SCENE = {
     P.arrow({ x1: CNI_X, y1: BACK_Y, x2: RT_R, y2: BACK_Y, dim: true, dashed: true }),
     P.wire({ key: 'kr', x: WIRE_KR_X, y: WIRE_Y }),
     P.wire({ key: 'rc', x: WIRE_RC_X, y: WIRE_Y }),
-    // State chips in the right column, on the ladder rhythm with a wider gap.
+    // State chips in the right column, on the ladder rhythm and floor.
     P.chip({ key: 'sandboxChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: CHIP_H, name: 'sandbox id', value: 'none' }),
     P.chip({ key: 'ipChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: CHIP_H, name: 'Pod IP', value: 'none' }),
     P.chip({ key: 'statusChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: CHIP_H, name: 'status', value: 'none' }),
@@ -75,8 +79,8 @@ export const SCENE = {
       items: [
         '1. RunPodSandbox   ·  pause container, shared namespaces',
         '2. CNI ADD         ·  veth pair, IPAM, route',
-        '3. PullImage       ·  fetch image (skipped if cached)',
-        '4. CreateContainer ·  cgroups, mounts, env',
+        '3. PullImage       ·  fetch image (policy can skip)',
+        '4. CreateContainer ·  OCI spec, rootfs, mounts',
         '5. StartContainer  ·  fork ENTRYPOINT inside sandbox',
       ],
     }),
@@ -127,7 +131,7 @@ export const STEPS_SPEC = [
   {
     id: 'sandbox',
     duration: 3100,
-    narration: 'Kubelet calls RunPodSandbox with the Pod namespace, labels, and resource hints. The runtime creates a pause container that holds the network, IPC, and UTS namespaces every workload container will share by default. The PID namespace is shared only when spec.shareProcessNamespace is set.',
+    narration: 'Kubelet calls RunPodSandbox with the Pod metadata, labels, and resource hints. The runtime creates a pause container that holds the network, IPC, and UTS namespaces every workload container will share by default. The PID namespace is shared only when spec.shareProcessNamespace or spec.hostPID is set.',
     chips: { sandboxChip: SANDBOX_ID, ipChip: 'none', statusChip: 'sandbox ready', lastOpChip: 'RunPodSandbox' },
     wires: { kr: 'RunPodSandbox' },
     podSublabels: { shellEl: 'sandbox ready' },
@@ -157,7 +161,7 @@ export const STEPS_SPEC = [
       // Runtime execs CNI (right arrow), then the netns config lands on the sandbox.
       F.top({ from: RT_R, to: CNI_X, y: CALL_Y, name: 'exec' }),
       // The narration promises a returned result and the return lane is drawn, so a packet must ride
-      // it. The result comes back to the runtime before the sandbox is configured below.
+      // it. It leaves WITH `conf`: the plugin configures the sandbox and reports back on one beat.
       F.top({ from: CNI_X, to: RT_R, y: BACK_Y, after: 'exec' }),
       // The CNI cue is its own entry rather than `lights` on the exec hop: it is emitted AFTER the
       // return packet, and getAnimations() hands them back in emission order.
@@ -168,10 +172,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'image',
-    duration: 1900,
-    narration: 'Kubelet calls PullImage for each container in the Pod, respecting imagePullPolicy and imagePullSecrets. The runtime fetches the image from the registry into the Node image store, or reuses a cached layer set if it is already local. No container exists yet.',
-    // `pulled`, not `cached`: this step draws the PullImage call, and under IfNotPresent a cached
-    // image is one Kubelet never calls for. The ladder row keeps the cached case in its parenthesis.
+    duration: 2600,
+    narration: 'Kubelet calls PullImage for each container in the Pod, respecting imagePullPolicy and imagePullSecrets. The runtime fetches the image from the registry into the Node image store, and under IfNotPresent Kubelet skips the call when the image is already there. No workload container exists yet.',
+    // `pulled`, not `cached`: this step draws the PullImage call, and the skip belongs to the
+    // POLICY, which is what the ladder row parenthesis and the sync-loop sibling both say.
     chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'image pulled', lastOpChip: 'PullImage' },
     wires: { kr: 'PullImage · nginx:1.27' },
     podSublabels: { shellEl: 'IP 10.244.1.5' },
@@ -184,7 +188,7 @@ export const STEPS_SPEC = [
   {
     id: 'create',
     duration: 3100,
-    narration: 'Kubelet calls CreateContainer with the sandbox id, container config (command, env, mounts), and resource limits. The runtime sets up cgroups, prepares the mounts, and returns a container id. The container now exists in the sandbox but is not yet running.',
+    narration: 'Kubelet calls CreateContainer with the sandbox id, container config (command, env, mounts), and resource limits. The runtime prepares the rootfs and the mounts and writes those limits into the OCI spec, then returns a container id. The container now exists but is not yet running, and its cgroup is created when it starts.',
     chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'created · not started', lastOpChip: 'CreateContainer' },
     wires: { kr: 'CreateContainer' },
     sublabels: { appBox: 'created · not started' },
@@ -206,7 +210,7 @@ export const STEPS_SPEC = [
   {
     id: 'start',
     duration: 3100,
-    narration: 'Kubelet calls StartContainer with the container id. The runtime forks the container ENTRYPOINT process inside the shared namespaces of the sandbox. The Pod workload is now running and the Pod reports Ready once its probes pass.',
+    narration: 'Kubelet calls StartContainer with the container id. The runtime forks the container ENTRYPOINT process inside the shared namespaces of the sandbox. The Pod workload is now running and the Pod reports Ready once all of its containers are ready, which for a container with a readiness probe means once that probe passes.',
     chips: { sandboxChip: SANDBOX_ID, ipChip: POD_IP, statusChip: 'running', lastOpChip: 'StartContainer' },
     wires: { kr: 'StartContainer' },
     sublabels: { appBox: 'running' },

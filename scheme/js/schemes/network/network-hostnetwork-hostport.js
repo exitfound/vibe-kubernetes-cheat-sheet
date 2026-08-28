@@ -198,7 +198,7 @@ export const STEPS_SPEC = [
   {
     id: 'tradeoff',
     duration: 2600,
-    narration: 'Both fields spend the same scarce thing, a port on the Node, so the scheduler counts a hostPort as a Node resource and only one replica of that Pod can land here. The difference is what you give up: hostNetwork hands the Node namespace to the container and suits the agents that must see it, while hostPort keeps the Pod isolated and punches a single port through to it. Everything else belongs behind a Service.',
+    narration: 'Both fields spend the same scarce thing, a port on the Node, so the Scheduler counts a hostPort as a Node resource and only one replica of that Pod can land here. The difference is what you give up: hostNetwork hands the Node namespace to the container and suits the agents that must see it, while hostPort keeps the Pod isolated and punches a single port through to it. Everything else belongs behind a Service.',
     chips: { nsChip: 'own or the Node one', ipChip: 'Pod IP or Node IP', vethChip: 'yes or none', portChip: 'one per Node either way' },
     wires: { veth: 'veth pair' },
     sublabels: { portmap: PM_MAPPED },
