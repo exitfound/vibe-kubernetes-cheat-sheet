@@ -1,4 +1,3 @@
-/* Design notes: scheme/INTERNALS.md#schemecssstylescss */
 @import url('tokens.css');
 @import url('diagrams.css');
 
@@ -787,11 +786,19 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="workloads"] { border-top: 3px solid var(--workloads-color); }
 .scheme-dialog[data-cat="cluster"]   { border-top: 3px solid var(--cluster-color); }
 
-/* A category declares only what is its own: the 3-stop ramp (deep / base / bright), the
-   canvas it draws on, and the three hand-mixed surface fills. Every shade WITH an alpha
-   is derived from those four in the shared block below, so a category cannot disagree
-   with itself. The ramp stops are channel lists rather than hex because rgba() cannot
-   take a hex through a var(), which is what made an earlier attempt at this invalid. */
+/* ===== TINTED DIALOG =====
+   The whole modal collapses onto one category's colour ramp. A category declares only what is its
+   own: the 3-stop ramp (deep / base / bright), the canvas it draws on, and the three hand-mixed
+   surface fills. Every shade WITH an alpha is derived from those four in the shared block below,
+   so a category cannot disagree with itself. The ramp stops are channel lists rather than hex
+   because rgba() cannot take a hex through a var(): `rgba(var(--tint-base), 0.15)` is invalid, and
+   that invalidity is what made an earlier attempt at deriving these fall back to hand-copied
+   literals. `color-mix` would say the same in one step and is deliberately unused, so resolution
+   stays fully deterministic.
+   THE LITERALS WERE THE BUG, NOT THE FIX: restating each alpha shade per category by hand let two
+   categories disagree with themselves, and a --tint-glow that did not match its own --tint-base put
+   a duller fill inside .scheme-pod-container than the stroke drawn around it. ADDING A SHADE IS ONE
+   LINE IN THE GENERIC BLOCK, NEVER FOUR. */
 .scheme-dialog[data-tinted="true"][data-cat="workloads"] {
   --tint-deep-rgb:    63, 93, 138;
   --tint-base-rgb:    91, 184, 255;
@@ -875,19 +882,23 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-tinted="true"] .dialog-header {
   border-bottom-color: var(--tint-border);
 }
+/* Player-chrome gradation, so the modal reads as a three-step ramp instead of one flat tone: the
+   canvas darkest, the controls bar the mid tone, the header and step-dots strip lightest. */
 .scheme-dialog[data-tinted="true"] .dialog-controls {
   background: var(--tint-chrome, var(--tint-fill-node));
   border-top-color: var(--tint-border);
 }
 /* --tint-panel is the canvas at 86%, so only the border and the accent edge draw the box.
-   NO border-left-color here. It carried `var(--tint-bright)` and was DEAD: the four
-   `.scheme-dialog[data-cat="..."] .narration-overlay` rules further down have the identical
-   specificity (0,3,0) and come later, so source order hands them the win. Measured on
-   cluster-node-drain, the left edge computes to rgb(125, 134, 255), which is --tint-base, not the
-   --tint-bright rgb(171, 176, 245) this line asked for. Every card is tinted, so those four rules
-   resolve their --<cat>-color to --tint-base and the edge is the base tone catalog-wide.
+   NO border-left-color here: the four `.scheme-dialog[data-cat="..."] .narration-overlay` rules
+   further down have the identical specificity (0,3,0) and come later, so source order hands them
+   the win. Measured on cluster-node-drain, the left edge computes to rgb(125, 134, 255), which is
+   --tint-base, not the --tint-bright rgb(171, 176, 245) a declaration here would ask for. Every
+   card is tinted, so those four rules resolve their --<cat>-color to --tint-base and the edge is
+   the base tone catalog-wide.
    Restoring the brighter edge is a VISUAL change to all 107 cards, not a cleanup: it means moving
-   this block below those four rules. Left as it renders. */
+   this block below those four rules. Left as it renders.
+   DO NOT add a per-category `.narration-overlay` background rule back: retint a category by
+   changing its --tint-canvas-rgb and the panel follows. */
 .scheme-dialog[data-tinted="true"] .narration-overlay {
   background: var(--tint-panel);
   border-color: var(--tint-border);
@@ -988,6 +999,26 @@ body.sidebar-collapsed .side-expand { display: grid; }
   flex-direction: column;
   gap: 4px;
 }
+/* The panel has a width and NO height constraint, so it is sized by its text. Two consequences that
+   look like one problem and are not:
+   1. It changes height BETWEEN STEPS of one card: on 209 of 216 card+viewport pairs the panel moves
+      as the card plays, so the diagram area under it moves too.
+   2. It changes height BETWEEN VIEWPORTS by up to 186 viewBox units (workloads-pod-phase-machine
+      reaches 503 at 1100x800 and 317 at 1600x1000), so the band every card reserves for its 1100
+      worst case reads as a hole at 1600. Five card records leave a finding OPEN on this.
+   DO NOT pin min-height to the card's tallest narration. It fixes (1) completely (0 of 216 pairs
+   move) and does nothing for (2), because (2) is not a height problem:
+   what varies is the fixed-pixel FONT, so a wider viewport wraps the same text into fewer lines and
+   divides by a larger scale. The panel's WIDTH in viewBox units is BOUNDED, not constant, and the
+   distinction matters to anyone measuring on one viewport: x<=397 holds everywhere, but the right
+   edge still travels 105.78 units across the standard set (cluster-architecture, 290.77 at
+   1600x1000 against 396.55 at 1100x800), so the bound is reached only at the narrowest one. Closing
+   (2) means typography that scales with the diagram, a design decision and not a cleanup.
+   WHY NOT the clamp: its cost is visible. Pinned to its tallest narration, a card with a wide
+   spread of narration lengths shows about 100px of empty strip inside a drawn border, and an empty
+   strip inside a border reads as a fault where empty canvas reads as space. Geometry is unaffected
+   either way. If (1) is worth solving alone, the direction is a transition on the height rather
+   than a clamp, which keeps the panel snug and removes the jump. */
 /* Initial hidden state while the card module loads, so the box never flashes empty.
    updateNarration removes it the instant the first step's text is set (no fade, 0ms). */
 .narration-overlay.is-poster {
@@ -1080,6 +1111,9 @@ body.sidebar-collapsed .side-expand { display: grid; }
 .scheme-dialog[data-cat="storage"]   .step-dot.passed,
 .scheme-dialog[data-cat="cluster"]   .step-dot.passed { opacity: 0.5; }
 
+/* The bright end of the ramp: highlighted elements, moving packets and the player progress lift to
+   --tint-bright so the foreground reads lighter than the base-tone blocks. These rules sit AFTER
+   the per-category ones so they win the equal-specificity tie. */
 .scheme-dialog[data-tinted="true"] .scheme-box.highlight .scheme-box-rect,
 .scheme-dialog[data-tinted="true"] .scheme-chip.highlight .scheme-chip-rect,
 .scheme-dialog[data-tinted="true"] .scheme-pod.highlight .scheme-pod-rect,
@@ -1091,6 +1125,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
   fill: var(--tint-bright);
   filter: drop-shadow(0 0 6px var(--tint-bright));
 }
+/* Network --tint-bright is a pale cyan that washes the ball out, so packet and ripple are pinned to
+   the saturated network cyan for network dialogs only, at higher specificity than the generic rule. */
 .scheme-dialog[data-cat="network"][data-tinted="true"] .scheme-packet {
   fill: #4fe5ff;
   filter: drop-shadow(0 0 6px #4fe5ff);
@@ -1109,6 +1145,9 @@ body.sidebar-collapsed .side-expand { display: grid; }
   fill: var(--tint-glow);
 }
 
+/* Player chrome with a wide gap between the two states: an idle control blends into the panel, and
+   the active Play, pressed Loop, hovered button and selected speed take a lit --tint-active fill
+   with a bright border and icon. */
 .scheme-dialog[data-tinted="true"] .ctl-btn,
 .scheme-dialog[data-tinted="true"] .ctl-speed {
   border-color: var(--tint-edge);
@@ -1123,6 +1162,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
   background: var(--tint-active);
   color: var(--tint-bright);
 }
+/* A disabled control keeps the full chip so it stays uniform with its neighbours and only the icon
+   dims. The base rule's blunt `opacity: 0.4` made the whole button look broken. */
 .scheme-dialog[data-tinted="true"] .ctl-btn:disabled {
   opacity: 1;
   color: var(--tint-deep);
@@ -1131,6 +1172,8 @@ body.sidebar-collapsed .side-expand { display: grid; }
   background: var(--tint-active);
   color: var(--tint-bright);
 }
+/* Progress fill and the active and passed step dots drop from the bright tone to the base tone.
+   The track and the idle dots keep the faint glow. */
 .scheme-dialog[data-tinted="true"] .dialog-progress { background: var(--tint-glow); }
 .scheme-dialog[data-tinted="true"] .step-dot { background: var(--tint-glow); }
 .scheme-dialog[data-tinted="true"] .dialog-progress-fill,

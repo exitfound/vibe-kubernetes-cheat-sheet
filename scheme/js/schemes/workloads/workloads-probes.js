@@ -1,20 +1,24 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, node, box, chainList, setChainActive, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, pulsePod, pulsePodDim, setConnectorDir, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
+import { P, F, defineCard, ladder, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
-// Layout A on the Workloads canon (WL in the kit): ladder left, chip column right, Node frame
-// full width at the bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).
+// Design notes for this card: ./CARDS.md#workloads-probes
+
+// Layout A and THE WORKLOADS EXEMPLAR: ladder left, chip column right, Node frame full width at the
+// bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).
 const PANEL_B = 255, PANEL_GAP = 21;
-const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX
+const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX (WL.L-07)
 
 // Both columns start on the same line, one panel gap below the panel bottom.
 const BAND_Y = PANEL_B + PANEL_GAP;                      // 276
-const LAD_X = WL.LADDER_X, LAD_W = WL.LADDER_W;          // 60..540, the pipeline
-const LAD_Y = BAND_Y;                                    // 5 rows -> 276..476
+// LAYOUT.A of the kit, which this card is the exemplar of: ladder in the left column, state chips
+// in the right, both 480 wide. WL.L-06 picks A / B / C against THIS card's measured panel bottom.
+const LAD_X = LAYOUT.A.ladder.x, LAD_W = LAYOUT.A.ladder.w;    // 60..540, the pipeline
+const LAD_Y = BAND_Y;                                    // 5 rows of ROW_H + ROW_GAP -> 276..476
+const CHIP_X = LAYOUT.A.chips.x, CHIP_W = LAYOUT.A.chips.w;    // 660..1140
 
-// Chips stack in the right column, clear of the panel by construction.
+// The chip column keeps the ladder's formula on its own row height and gap, so the two columns
+// start on one line and drift apart by design rather than by accident.
 const CHIP_VGAP = 8;
-const CHIP_Y = i => BAND_Y + i * (WL.CHIP_H + CHIP_VGAP);
+const CHIP_Y = ladder({ y: BAND_Y, rowH: WL.CHIP_H, gap: CHIP_VGAP });
 
 const NODE_Y = 496, NODE_H = 128;                        // 496..624
 const POD_W = 460, POD_H = 96, POD_X = WL.CX - POD_W / 2;
@@ -26,37 +30,28 @@ const CONT_Y = POD_Y + 30;                               // 548..600
 const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];
 const SPINE_UP = [...SPINE].reverse();
 
-// Design notes for this card: ./CARDS.md#workloads-probes
-
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Container probes: startupProbe gates liveness and readiness, liveness restarts the container, readiness toggles the EndpointSlice' });
-    root.appendChild(arrowDefs());
-
-    const kubelet = box({ x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'prober + probeManager', role: 'cluster' });
-
-    const connectorDown = pathArrow({
-      points: SPINE,
-      dim: true, dashed: true, role: 'cluster',
-    });
-    const connectorUp = pathArrow({
-      points: SPINE_UP,
-      dim: true, dashed: true, role: 'cluster',
-    });
-    connectorUp.style.opacity = '0';
-    root.appendChild(connectorDown);
-    root.appendChild(connectorUp);
-
-    const wireReq = text({ class: 'scheme-label code dim', x: WL.CX, y: WL.TOP_Y - 12, 'text-anchor': 'middle' }, [' ']);
-    root.appendChild(wireReq);
-
-    const chain = chainList({
-      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
+// The list order IS the append order, so it is the z-order: the two corridors and the wire label
+// first, then the chip column, the packet layer, and chain / Node / Pod / Kubelet above the ball.
+export const SCENE = {
+  'aria-label': 'Container probes: startupProbe gates liveness and readiness, liveness restarts the container, readiness toggles the EndpointSlice',
+  parts: [
+    P.defs(),
+    // One corridor drawn twice, down for a probe and up for the report. Exactly one is visible per
+    // step, which is what the `corridor()` pair in every `opacity` block below says.
+    P.lane({ key: 'connectorDown', points: SPINE, dim: true, dashed: true, role: 'cluster' }),
+    P.lane({ key: 'connectorUp', points: SPINE_UP, dim: true, dashed: true, role: 'cluster', opacity: 0 }),
+    // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
+    P.wire({ key: 'req', x: WL.CX, y: WL.TOP_Y - 12 }),
+    // State chips in the right column: the three probes, then the two things a failure moves.
+    P.chip({ key: 'startupChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'startupProbe', value: 'pending' }),
+    P.chip({ key: 'livenessChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'livenessProbe', value: 'not running' }),
+    P.chip({ key: 'readinessChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'readinessProbe', value: 'not running' }),
+    P.chip({ key: 'restartChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'restartCount', value: '0' }),
+    P.chip({ key: 'endpointChip', x: CHIP_X, y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'EndpointSlice', value: 'empty' }),
+    P.packets(),
+    // Everything below is appended AFTER the packet layer, so the ball runs under it.
+    P.chain({
+      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
         '1. startup   ·  container boots, startupProbe gates the rest',
         '2. released  ·  startup passes, liveness + readiness run',
@@ -64,203 +59,120 @@ class Scene {
         '4. liveness  ·  failure restarts container, ready=false',
         '5. recovery  ·  fresh container starts, readiness rejoins',
       ],
-      role: 'cluster',
-    });
+    }),
+    P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
+    P.pod({
+      key: 'podGroup', id: 'podGroup',
+      x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
+      // No build-time opacity: every step pins the Pod's own, and the poster frame is `idle`.
+      inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container' },
+    }),
+    P.box({ key: 'kubelet', x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'prober + probeManager', role: 'cluster' }),
+  ],
+  reset: {
+    keys: ['kubelet', 'startupChip', 'livenessChip', 'readinessChip', 'restartChip', 'endpointChip'],
+    pods: ['podGroup'],
+  },
+};
 
-    // State chips column on the right.
-    const startupChip   = valChip({ x: WL.CHIP_X, y: CHIP_Y(0), w: WL.CHIP_W, h: WL.CHIP_H, name: 'startupProbe',   value: 'pending', role: 'workloads' });
-    const livenessChip  = valChip({ x: WL.CHIP_X, y: CHIP_Y(1), w: WL.CHIP_W, h: WL.CHIP_H, name: 'livenessProbe',  value: 'not running', role: 'workloads' });
-    const readinessChip = valChip({ x: WL.CHIP_X, y: CHIP_Y(2), w: WL.CHIP_W, h: WL.CHIP_H, name: 'readinessProbe', value: 'not running', role: 'workloads' });
-    const restartChip   = valChip({ x: WL.CHIP_X, y: CHIP_Y(3), w: WL.CHIP_W, h: WL.CHIP_H, name: 'restartCount',   value: '0', role: 'workloads' });
-    const endpointChip  = valChip({ x: WL.CHIP_X, y: CHIP_Y(4), w: WL.CHIP_W, h: WL.CHIP_H, name: 'EndpointSlice',  value: 'empty', role: 'workloads' });
-    [startupChip, livenessChip, readinessChip, restartChip, endpointChip].forEach(c => root.appendChild(c));
+// Chip values that recur, named once so a five-key `chips` block stays one readable line.
+const RETIRED = 'passed (retired)', NOT_RUNNING = 'not running', EP_READY = '10.244.1.5 ready=true';
 
-    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
+// setConnectorDir as FIELDS: the pair is written in one place, so no step can leave both corridors
+// on or neither. Key order is the order the helper wrote them in.
+const corridor = (dir) => ({ connectorDown: dir === 'up' ? 0 : 1, connectorUp: dir === 'up' ? 1 : 0 });
 
-    const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0, role: 'workloads' });
-
-    const containerBox = box({ x: CONT_X, y: CONT_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container', role: 'workloads' });
-
-    const podGroup = g({ id: 'podGroup' });
-    podGroup.appendChild(shell);
-    podGroup.appendChild(containerBox);
-
-    // Packet layer.
-    const packetLayer = g({ id: 'packetLayer' });
-    root.appendChild(packetLayer);
-
-    root.appendChild(chain);
-    root.appendChild(nodeEl);
-    root.appendChild(podGroup);
-    root.appendChild(kubelet);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      kubelet, chain, nodeEl, podGroup, connectorDown, connectorUp,
-      startupChip, livenessChip, readinessChip, restartChip, endpointChip,
-      packetLayer,
-      wires: { req: wireReq },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { startup, liveness, readiness, restart, endpoint }) {
-  setVal(s.refs.startupChip, startup);
-  setVal(s.refs.livenessChip, liveness);
-  setVal(s.refs.readinessChip, readiness);
-  setVal(s.refs.restartChip, restart);
-  setVal(s.refs.endpointChip, endpoint);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s,
-    ['kubelet','startupChip','livenessChip','readinessChip','restartChip','endpointChip'],
-    [s.refs.podGroup]);
-  clearWires(s);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setVal(s.refs.startupChip, 'pending');
-      setVal(s.refs.livenessChip, 'not running');
-      setVal(s.refs.readinessChip, 'not running');
-      setVal(s.refs.restartChip, '0');
-      setVal(s.refs.endpointChip, 'empty');
-      // Booting, not Ready: the Pod sits dim. The poster carries the startup row,
-      // so chain row 0 is lit on the rest frame to match the booting state.
-      s.refs.podGroup.style.opacity = String(OPACITY.pending);
-      setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 0);
-    },
+    chips: { startupChip: 'pending', livenessChip: NOT_RUNNING, readinessChip: NOT_RUNNING, restartChip: '0', endpointChip: 'empty' },
+    // Booting, not Ready: the Pod sits dim. The poster carries the startup row, so chain row 0 is
+    // lit on the rest frame to match the booting state.
+    opacity: { podGroup: OPACITY.pending, ...corridor('down') },
+    chain: 0,
   },
   {
     id: 'startup-running',
     duration: 2300,
     narration: 'Kubelet runs startupProbe every periodSeconds against the container handler, which can be httpGet, tcpSocket, grpc or exec. A slow app gets failureThreshold attempts before Kubelet gives up and restarts the container. The livenessProbe and readinessProbe do not run yet, so a long boot is never mistaken for a failure.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { startup: 'probing 4/30', liveness: 'not running', readiness: 'not running', restart: '0', endpoint: 'empty' });
-      setWire(s, 'req', 'httpGet /healthz/start');
-      s.refs.startupChip.classList.add('highlight');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.podGroup.style.opacity = String(OPACITY.pending);
-      setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 0);
-      if (ctx.reduced) return;
-      const probe = routePacket(s, ctx, SPINE, { role: 'workloads' });
+    chips: { startupChip: 'probing 4/30', livenessChip: NOT_RUNNING, readinessChip: NOT_RUNNING, restartChip: '0', endpointChip: 'empty' },
+    wires: { req: 'httpGet /healthz/start' },
+    opacity: { podGroup: OPACITY.pending, ...corridor('down') },
+    lit: ['startupChip', 'kubelet'],
+    chain: 0,
+    flow: [
+      F.route({ points: SPINE, name: 'probe' }),
       // Pod is still booting (dim), so flash its opacity on probe arrival so the blink shows.
-      pulsePodDim(s.refs.podGroup, ctx, probe.arrivalMs);
-    },
+      F.pulse({ pod: 'podGroup', dim: true, at: 'probe' }),
+    ],
   },
   {
     id: 'startup-success',
     duration: 2600,
     narration: 'The startupProbe passes once. Kubelet retires it permanently for the lifetime of this container instance and never runs it again. The livenessProbe and readinessProbe are released and now execute on their own periodSeconds.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { startup: 'passed (retired)', liveness: 'running', readiness: 'running', restart: '0', endpoint: 'empty' });
-      setWire(s, 'req', '200 OK · Startup done');
-      s.refs.startupChip.classList.add('highlight');
-      s.refs.livenessChip.classList.add('highlight');
-      s.refs.readinessChip.classList.add('highlight');
-      s.refs.podGroup.style.opacity = String(OPACITY.pending);
-      setConnectorDir(s, 'up');
-      setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
-      pulsePodDim(s.refs.podGroup, ctx, 0);
-      const pkt = routePacket(s, ctx, SPINE_UP, { delay: BEAT.afterPulse, role: 'workloads' });
-      lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
-    },
+    chips: { startupChip: RETIRED, livenessChip: 'running', readinessChip: 'running', restartChip: '0', endpointChip: 'empty' },
+    wires: { req: '200 OK · Startup done' },
+    opacity: { podGroup: OPACITY.pending, ...corridor('up') },
+    lit: ['startupChip', 'livenessChip', 'readinessChip'],
+    chain: 1,
+    flow: [
+      F.pulse({ pod: 'podGroup', dim: true }),
+      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
+    ],
   },
   {
     id: 'ready',
     duration: 2600,
     narration: 'The readinessProbe passes successThreshold consecutive times. Kubelet flips the Pod Ready condition to True, and the EndpointSlice controller adds the Pod IP to the Service EndpointSlice. The Pod now receives traffic.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { startup: 'passed (retired)', liveness: 'passing', readiness: 'passing', restart: '0', endpoint: '10.244.1.5 Ready' });
-      s.refs.livenessChip.classList.add('highlight');
-      setWire(s, 'req', '200 OK · Ready=True');
-      s.refs.readinessChip.classList.add('highlight');
-      s.refs.endpointChip.classList.add('highlight');
-      // readiness passed: the Pod becomes Ready and lifts to full opacity.
-      s.refs.podGroup.style.opacity = '1';
-      setConnectorDir(s, 'up');
-      setChainActive(s.refs.chain, 2);
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
-      pulsePod(s.refs.podGroup, ctx, 0);
+    chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'passing', restartChip: '0', endpointChip: EP_READY },
+    wires: { req: '200 OK · Ready=True' },
+    // readiness passed: the Pod becomes Ready and lifts to full opacity.
+    opacity: { podGroup: 1, ...corridor('up') },
+    lit: ['livenessChip', 'readinessChip', 'endpointChip'],
+    chain: 2,
+    flow: [
       // Pod lights up to Ready first (the visible blink), then reports up to Kubelet.
-      ctx.register(s.refs.podGroup.animate(
-        [{ opacity: OPACITY.pending }, { opacity: 1 }],
-        { duration: FADE.in, delay: 0, fill: 'both', easing: 'ease-out' }
-      ));
-      const pkt = routePacket(s, ctx, SPINE_UP, { delay: BEAT.afterPulse, role: 'workloads' });
-      lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
-    },
+      F.pulse({ pod: 'podGroup' }),
+      F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, fill: 'both', easing: 'ease-out' }),
+      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
+    ],
   },
   {
     id: 'liveness-fail',
     duration: 2600,
     narration: 'The livenessProbe fails failureThreshold consecutive times. Kubelet kills the container and restarts it per restartPolicy, so restartCount becomes 1. readinessProbe fails too, so the EndpointSlice marks that endpoint ready=false at once rather than removing it, and kube-proxy stops sending new connections.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { startup: 'reset', liveness: 'failed 3/3', readiness: 'failed 3/3', restart: '1', endpoint: '10.244.1.5 ready=false' });
-      s.refs.startupChip.classList.add('highlight');
-      setWire(s, 'req', '503 · Liveness failed');
-      s.refs.livenessChip.classList.add('highlight');
-      s.refs.readinessChip.classList.add('highlight');
-      s.refs.restartChip.classList.add('highlight');
-      s.refs.endpointChip.classList.add('highlight');
-      // Container killed: the Pod drops to its dimmest state.
-      s.refs.podGroup.style.opacity = String(OPACITY.notready);
-      setConnectorDir(s, 'up');
-      setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) { s.refs.kubelet.classList.add('highlight'); return; }
+    chips: { startupChip: 'reset', livenessChip: 'failed 3/3', readinessChip: 'failed 3/3', restartChip: '1', endpointChip: '10.244.1.5 ready=false' },
+    wires: { req: '503 · Liveness failed' },
+    // Container killed: the Pod drops to its dimmest state.
+    opacity: { podGroup: OPACITY.notready, ...corridor('up') },
+    lit: ['startupChip', 'livenessChip', 'readinessChip', 'restartChip', 'endpointChip'],
+    chain: 3,
+    flow: [
       // Pod is still bright here, so the pulse blink reads clearly. Ball leaves
       // after the blink, then the container is killed and the Pod dims.
-      pulsePod(s.refs.podGroup, ctx, 0);
-      const pkt = routePacket(s, ctx, SPINE_UP, { delay: BEAT.afterPulse, role: 'workloads' });
-      lightBoxAt(s.refs.kubelet, ctx, pkt.arrivalMs);
-      ctx.register(s.refs.podGroup.animate(
-        [{ opacity: 1 }, { opacity: OPACITY.notready }],
-        { duration: FADE.out, delay: BEAT.afterPulse + BEAT.afterHop, fill: 'both', easing: 'ease-in' }
-      ));
-    },
+      F.pulse({ pod: 'podGroup' }),
+      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
+      // A literal delay, not `after:` the hop: the kill hangs off the PULSE, one beat later.
+      F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, delay: BEAT.afterPulse + BEAT.afterHop, fill: 'both', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'recovery',
     duration: 2300,
     narration: 'Kubelet probes the fresh container with startupProbe again. Once it passes, livenessProbe and readinessProbe are released, readinessProbe quickly succeeds, and the EndpointSlice controller rejoins the Pod IP. Traffic resumes while restartCount stays at 1.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { startup: 'passed (retired)', liveness: 'passing', readiness: 'passing', restart: '1', endpoint: '10.244.1.5 Ready' });
-      setWire(s, 'req', 'httpGet /healthz/start');
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.startupChip.classList.add('highlight');
-      s.refs.livenessChip.classList.add('highlight');
-      s.refs.readinessChip.classList.add('highlight');
-      s.refs.endpointChip.classList.add('highlight');
-      // Replacement container is Ready: the Pod returns to full opacity.
-      s.refs.podGroup.style.opacity = '1';
-      setConnectorDir(s, 'down');
-      setChainActive(s.refs.chain, 4);
-      if (ctx.reduced) return;
-      const probe = routePacket(s, ctx, SPINE, { role: 'workloads' });
-      ctx.register(s.refs.podGroup.animate(
-        [{ opacity: OPACITY.notready }, { opacity: 1 }],
-        { duration: FADE.in, delay: probe.arrivalMs, fill: 'both', easing: 'ease-out' }
-      ));
-      pulsePod(s.refs.podGroup, ctx, probe.arrivalMs);
-    },
+    chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'passing', restartChip: '1', endpointChip: EP_READY },
+    wires: { req: 'httpGet /healthz/start' },
+    // Replacement container is Ready: the Pod returns to full opacity.
+    opacity: { podGroup: 1, ...corridor('down') },
+    lit: ['kubelet', 'startupChip', 'livenessChip', 'readinessChip', 'endpointChip'],
+    chain: 4,
+    flow: [
+      F.route({ points: SPINE, name: 'probe' }),
+      F.fade({ target: 'podGroup', from: OPACITY.notready, to: 1, dur: FADE.in, at: 'probe', fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'podGroup', at: 'probe' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

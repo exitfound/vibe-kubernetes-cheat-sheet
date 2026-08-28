@@ -1,7 +1,8 @@
 // The workloads catalogue: every workloads card and the subcategories they sort into.
 // Adding a card means one entry here, one file beside it, one poster, one note.
 
-// Design notes: scheme/INTERNALS.md#schemejsdatajs
+// The SUBCATEGORIES list below is an ORDER, not a set: the sequence is an editorial argument
+// about what a reader has to know first, never alphabetical and never a merge artefact.
 
 export const SUBCATEGORIES = [
     { key: 'pods-bootstrap', label: 'Pods Bootstrap' },
@@ -27,7 +28,7 @@ export const CARDS = [
     title: 'Deployment Rollback and Revision History',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'A rollout went bad, so how do you get back to the version that worked? A Deployment keeps its old ReplicaSets as numbered revisions, so a rollback sends the broken one to zero and brings the previous one back to full, which a stuck rollout never left. That history undoes a bad change in one command, and revisionHistoryLimit, 10 by default, caps it: a pruned ReplicaSet takes its revision with it. A rollback creates a new revision rather than erasing the bad one.',
+    desc: 'A rollout went bad, so how do you get back to the version that worked? A Deployment keeps its old ReplicaSets as numbered revisions, so a rollback sends the broken one to zero while the previous one, never scaled down, keeps serving. That history undoes a bad change in one command, and revisionHistoryLimit, 10 by default, caps it: a pruned ReplicaSet takes its revision with it. A rollback creates a new revision rather than erasing the bad one.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -141,7 +142,7 @@ export const CARDS = [
     title: 'CronJob Schedule and Concurrency',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates one Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down if startingDeadlineSeconds allows, or if under 100 ticks were missed. A CronJob never runs a Pod itself, it only creates Jobs.',
+    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates one Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down, bounded both by startingDeadlineSeconds and by a ceiling of 100 missed ticks. A CronJob never runs a Pod itself, it only creates Jobs.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -162,11 +163,26 @@ export const CARDS = [
     ],
   },
   {
+    id: 'workloads-pod-resize',
+    title: 'In-place Pod Resize',
+    category: 'workloads',
+    subcategory: 'pods-lifecycle',
+    desc: 'A running Pod is short on CPU, so does it have to be replaced to get more? Since 1.35 you can patch spec.containers[].resources through the resize subresource, and the Kubelet applies the new numbers to the container that is already running, in place or by restarting it, as resizePolicy says per resource. It answers PodResizePending when the Node cannot take the change, and the QoS class the Pod was created with never moves.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Resize Container Resources', href: 'https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/' },
+      { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
+      { label: 'Pod v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/core/pod-v1/' },
+      { label: 'CRI Spec', href: 'https://github.com/kubernetes/cri-api/blob/master/pkg/apis/runtime/v1/api.proto' },
+    ],
+  },
+  {
     id: 'workloads-restart-policy',
     title: 'Pod restartPolicy: Always, OnFailure, Never',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'When a container in a Pod exits, what should happen next? The restartPolicy field is the Pod-level answer Kubernetes follows: Always brings the container back whatever the exit code, OnFailure retries only a non-zero exit, and Never leaves it alone. That choice separates a Pod that runs forever from one that retries and one that finishes. The Job controller relies on OnFailure and Never for exactly this, and every restart still waits out the same backoff.',
+    desc: 'When a container in a Pod exits, what should happen next? The restartPolicy field is the Pod-level answer Kubernetes follows: Always brings the container back whatever the exit code, OnFailure retries only a non-zero exit, and Never leaves it alone. That choice separates a Pod that runs forever from one that retries and one that finishes. The Job controller relies on OnFailure and Never for exactly this, and the shared backoff only starts after the first restart.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -190,7 +206,7 @@ export const CARDS = [
     title: 'Startup, Liveness and Readiness Probes',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'How does the Kubelet tell a slow boot from a hung container? Three probes answer that on their own periodSeconds: startupProbe gates the other two until the app is up, livenessProbe restarts the container after failureThreshold consecutive failures, and readinessProbe flips that endpoint to ready=false in the EndpointSlice without removing it or restarting anything. A probe never restarts a Pod, only the container that failed it.',
+    desc: 'How does the Kubelet tell a slow boot from a hung container? Three probes answer that on their own periodSeconds: startupProbe gates the other two until the app is up, livenessProbe restarts the container after failureThreshold consecutive failures, and readinessProbe flips the Pod endpoint to ready=false in the EndpointSlice without removing it or restarting anything. A probe never restarts a Pod, only the container that failed it.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

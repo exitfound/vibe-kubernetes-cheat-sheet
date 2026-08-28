@@ -1,6 +1,5 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, node, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-nodeport-loadbalancer
 
 
@@ -35,161 +34,136 @@ const TO_N3 = [[CX, LB_BOTTOM], [CX, FAN_BUS_Y], [NODE_CX[2], FAN_BUS_Y], [NODE_
 // The nodePort rule DNATs down into the local backend Pod on Node-1.
 const NP_TO_POD = [[NODE_CX[0], NP_BOTTOM], [NODE_CX[0], POD_Y]];
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+// The tag that rides a ball on this card: emergeMode floats the node port address out of the balancer
+// block once the ball is on its way, and hold 0 clears each address as its hop lands.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
-function podBlock({ x, y, w, h, label, ip }) {
-  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
+const tag = (p) => F.tag({ fn: ridingLabel, ...p });
+// The client floor at 100 cuts the VIP tag on the short drop to the balancer. -4 is the only offset
+// clear on three viewports, and it halves the cut on 900x650, where no offset in +-80 is clean.
+const VIP_TAG_DY = -4;
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'NodePort and LoadBalancer: a NodePort opens the same port on every Node and DNATs to a backing Pod, while a LoadBalancer has the cloud-controller-manager provision an external load balancer targeting those Node ports' });
-    root.appendChild(arrowDefs());
-
-    const client = box({ x: CX - CLIENT_W / 2, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External client', sublabel: '', role: 'network' });
-    const lb     = box({ x: CX - LB_W / 2, y: LB_Y, w: LB_W, h: LB_H, label: 'Cloud LoadBalancer', sublabel: 'VIP 203.0.113.7', role: 'network' });
-    const ccm    = box({ x: CCM_X, y: CCM_Y, w: CCM_W, h: CCM_H, label: 'cloud-controller-manager', sublabel: 'provisions the LB', role: 'network' });
-
-    const cWire = arrow({ x1: C_TO_LB[0][0], y1: C_TO_LB[0][1], x2: C_TO_LB[1][0], y2: C_TO_LB[1][1], dashed: true, dim: true, role: 'network' });
-    const provWire = arrow({ x1: PROVISION[0][0], y1: PROVISION[0][1], x2: PROVISION[1][0], y2: PROVISION[1][1], dashed: true, dim: true, role: 'network' });
-    const fan1 = pathArrow({ points: TO_N1, dashed: true, dim: true, role: 'network' });
-    const fan2 = pathArrow({ points: TO_N2, dashed: true, dim: true, role: 'network' });
-    const fan3 = pathArrow({ points: TO_N3, dashed: true, dim: true, role: 'network' });
-    const dnatWire = arrow({ x1: NP_TO_POD[0][0], y1: NP_TO_POD[0][1], x2: NP_TO_POD[1][0], y2: NP_TO_POD[1][1], dashed: true, dim: true, role: 'network' });
-    const cWireLabel = text({ class: 'scheme-label code dim', x: CX + 60, y: LB_Y - 12, 'text-anchor': 'middle' }, [' ']);
-
-    const node1 = node({ x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' });
-    const node2 = node({ x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' });
-    const node3 = node({ x: NODE_X[2], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3' });
-
-    const np1 = valChip({ x: NODE_CX[0] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000', role: 'network' });
-    const np2 = valChip({ x: NODE_CX[1] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000', role: 'network' });
-    const np3 = valChip({ x: NODE_CX[2] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: ':31000', role: 'network' });
-
+// The list order IS the append order, which is the z-order: Node frames, their nodePort chips and the
+// backend Pods in back, then the upper tier, then the wires, then the bottom strip and the packets.
+export const SCENE = {
+  'aria-label': 'NodePort and LoadBalancer: a NodePort opens the same port on every Node and DNATs to a backing Pod, while a LoadBalancer has the cloud-controller-manager provision an external load balancer targeting those Node ports',
+  parts: [
+    P.defs(),
+    P.node({ key: 'node1', x: NODE_X[0], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
+    P.node({ key: 'node2', x: NODE_X[1], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-2' }),
+    P.node({ key: 'node3', x: NODE_X[2], y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-3' }),
+    P.chip({ key: 'np1', x: NODE_CX[0] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
+    P.chip({ key: 'np2', x: NODE_CX[1] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
+    P.chip({ key: 'np3', x: NODE_CX[2] - NP_W / 2, y: NP_Y, w: NP_W, h: NP_H, name: 'nodePort', value: 'none' }),
     // Backends sit on the two outer Nodes, so the middle Node is the one that opens the port with no
     // Pod behind it, which is what the nodePort step narrates.
-    const p1 = podBlock({ x: NODE_CX[0] - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.1.5' });
-    const p2 = podBlock({ x: NODE_CX[2] - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.3.9' });
-
-    // Written out rather than built by a factory: prose.mjs seeds on a literal valChip call, so a
-    // factory hides every value these three put on the canvas from check-inline and check-labels.
-    const rangeChip = valChip({ x: NODE_CX[0] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'port range', value: '30000-32767', role: 'network' });
-    const vipChip   = valChip({ x: NODE_CX[1] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'status.loadBalancer', value: 'pending', role: 'network' });
-    const chainChip = valChip({ x: NODE_CX[2] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'chain', value: 'KUBE-NODEPORTS', role: 'network' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    root.appendChild(node1);
-    root.appendChild(node2);
-    root.appendChild(node3);
-    [np1, np2, np3].forEach(c => root.appendChild(c));
-    root.appendChild(p1.group);
-    root.appendChild(p2.group);
-    root.appendChild(client);
-    root.appendChild(lb);
-    root.appendChild(ccm);
-    [cWire, provWire, fan1, fan2, fan3, dnatWire, cWireLabel].forEach(el => root.appendChild(el));
-    [rangeChip, vipChip, chainChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, client, lb, ccm, node1, node2, node3,
-      np1, np2, np3, pod1: p1.group, pod1Box: p1.innerBox, pod2: p2.group, pod2Box: p2.innerBox,
-      rangeChip, vipChip, chainChip,
-      packetLayer, wires: { c: cWireLabel },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
+    P.pod({
+      key: 'pod1', innerKey: 'pod1Box', x: NODE_CX[0] - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H,
+      label: 'Pod web', sublabel: '10.244.1.5',
+      inner: { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' },
+    }),
+    P.pod({
+      key: 'pod2', innerKey: 'pod2Box', x: NODE_CX[2] - POD_W / 2, y: POD_Y, w: POD_W, h: POD_H,
+      label: 'Pod web', sublabel: '10.244.3.9',
+      inner: { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' },
+    }),
+    P.box({ key: 'client', x: CX - CLIENT_W / 2, y: CLIENT_Y, w: CLIENT_W, h: CLIENT_H, label: 'External client', sublabel: '' }),
+    P.box({ key: 'lb', x: CX - LB_W / 2, y: LB_Y, w: LB_W, h: LB_H, label: 'Cloud LoadBalancer', sublabel: 'VIP 203.0.113.7' }),
+    P.box({ key: 'ccm', x: CCM_X, y: CCM_Y, w: CCM_W, h: CCM_H, label: 'cloud-controller-manager', sublabel: 'provisions the LB' }),
+    P.arrow({ from: C_TO_LB[0], to: C_TO_LB[1], dashed: true, dim: true }),
+    P.arrow({ from: PROVISION[0], to: PROVISION[1], dashed: true, dim: true }),
+    // All three fan legs are drawn even though a step rides one: a NodePort opens the same port on
+    // every Node, so the reader has to see the alternatives the balancer chose among (NET.A-03).
+    P.lane({ points: TO_N1, dashed: true, dim: true }),
+    P.lane({ points: TO_N2, dashed: true, dim: true }),
+    P.lane({ points: TO_N3, dashed: true, dim: true }),
+    P.arrow({ from: NP_TO_POD[0], to: NP_TO_POD[1], dashed: true, dim: true }),
+    // The bottom strip, one chip per Node column.
+    P.chip({ key: 'rangeChip', x: NODE_CX[0] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'port range', value: '30000-32767' }),
+    P.chip({ key: 'vipChip', x: NODE_CX[1] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'status.loadBalancer', value: 'pending' }),
+    P.chip({ key: 'chainChip', x: NODE_CX[2] - CHIP_W / 2, y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'chain', value: 'none' }),
+    P.packets(),
+  ],
   // pod1Box is a key, not a pod group: the pod-group list only resets inline pulse strokes, so the
   // .highlight the client-hit step puts on the container never came off.
-  clearHighlights(s, ['client', 'lb', 'ccm', 'np1', 'np2', 'np3', 'pod1Box', 'rangeChip', 'vipChip', 'chainChip'], [s.refs.pod1, s.refs.pod2]);
-  clearWires(s);
-}
+  reset: {
+    keys: ['client', 'lb', 'ccm', 'np1', 'np2', 'np3', 'pod1Box', 'rangeChip', 'vipChip', 'chainChip'],
+    pods: ['pod1', 'pod2'],
+  },
+};
 
-const STEPS = [
+const PORT = ':31000', CHAIN = 'KUBE-NODEPORTS', NONE = 'none';
+// The API server service-node-port-range, true before any Service exists: a constant of the
+// diagram, stated by every step and turned over by none.
+const RANGE = '30000-32767';
+// The same port on every Node plus the kube-proxy chain that catches it: one reservation, said in
+// four places, so all four read none until the nodeport step opens them together.
+const reserved = (open) => ({
+  np1: open ? PORT : NONE, np2: open ? PORT : NONE, np3: open ? PORT : NONE,
+  chainChip: open ? CHAIN : NONE, rangeChip: RANGE,
+});
+
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setVal(s.refs.vipChip, 'pending');
-    },
+    chips: { vipChip: 'pending', ...reserved(false) },
   },
   {
     id: 'nodeport',
     duration: 2300,
     narration: 'A NodePort Service reserves the same high port, here 31000 out of the 30000 to 32767 range, on every Node in the cluster. The kube-proxy adds a KUBE-NODEPORTS rule so a packet arriving on that port at any Node is treated as Service traffic, even on Nodes that run no backend Pod.',
-    enter(s, ctx) {
-      resetStep(s);
-      setVal(s.refs.vipChip, 'pending');
-      s.refs.np1.classList.add('highlight');
-      s.refs.np2.classList.add('highlight');
-      s.refs.np3.classList.add('highlight');
-      s.refs.chainChip.classList.add('highlight');
-      // The same port opens on every Node; the chips just light, they never flash.
-    },
+    chips: { vipChip: 'pending', ...reserved(true) },
+    // The reservation lands with the step, and the highlight is the beat of a packet-less step.
+    lit: ['np1', 'np2', 'np3', 'chainChip'],
   },
   {
     id: 'lb-provision',
     duration: 2400,
     narration: 'Asking for type LoadBalancer makes the cloud-controller-manager provision an external load balancer in the cloud, with its backends set to every Node on the nodePort. When the balancer is ready its address is written back into status.loadBalancer.ingress, giving clients one stable VIP.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.ccm.classList.add('highlight');
-      s.refs.vipChip.classList.add('highlight');
-      setVal(s.refs.vipChip, '203.0.113.7');
-      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); return; }
-      // ccm provisions the LB: one clean hop, the LB lights on arrival.
-      const prov = segmentPacket(s, ctx, { from: PROVISION[0], to: PROVISION[1], role: 'network' });
-      lightBoxAt(s.refs.lb, ctx, prov.arrivalMs);
-    },
+    chips: { vipChip: '203.0.113.7', ...reserved(true) },
+    lit: ['ccm', 'vipChip'],
+    // status.loadBalancer is written back only once the balancer exists, so the chip stays pending
+    // until the provisioning hop lands at 700, the routeDur floor and the shortest lead on the card.
+    rewind: { chips: { vipChip: 'pending' } },
+    // ccm provisions the LB: one clean hop, the LB lights on arrival.
+    flow: [
+      F.segment({ from: PROVISION[0], to: PROVISION[1], lights: ['lb'], name: 'prov' }),
+      F.set({ at: 'prov', chips: { vipChip: '203.0.113.7' } }),
+    ],
   },
   {
     id: 'client-hit',
     duration: 2400,
     narration: 'An external client connects to the load balancer VIP. The balancer forwards the connection to one of its Node targets on port 31000, spreading load across the Nodes without knowing or caring which of them actually hosts a backend Pod.',
-    enter(s, ctx) {
-      resetStep(s);
-      setVal(s.refs.vipChip, '203.0.113.7');
-      s.refs.client.classList.add('highlight');
-      // The client dials, so only the client is lit at entry. The balancer and the nodePort each
-      // light as the connection reaches them, which is what makes the two hops read as one path.
-      if (ctx.reduced) { s.refs.lb.classList.add('highlight'); s.refs.np1.classList.add('highlight'); return; }
-      const toLb = segmentPacket(s, ctx, { from: C_TO_LB[0], to: C_TO_LB[1], role: 'network' });
-      ridingLabel(s, ctx, 'to 203.0.113.7', C_TO_LB, { easing: 'linear' });
-      lightBoxAt(s.refs.lb, ctx, toLb.arrivalMs);
-      const fanDelay = toLb.arrivalMs + BEAT.afterHop;
-      const toNode = routePacket(s, ctx, TO_N1, { delay: fanDelay, role: 'network' });
-      ridingLabel(s, ctx, 'to node-1:31000', TO_N1, { delay: fanDelay, emerge: 150 });
-      lightBoxAt(s.refs.np1, ctx, toNode.arrivalMs);
-    },
+    chips: { vipChip: '203.0.113.7', ...reserved(true) },
+    // The client dials, so only the client is lit at entry. The balancer and the nodePort each
+    // light as the connection reaches them, which is what makes the two hops read as one path.
+    lit: ['client'],
+    // Each cue is its own entry because the tag rides between the packet and the box it lights, and
+    // the emission order is observable.
+    flow: [
+      F.segment({ from: C_TO_LB[0], to: C_TO_LB[1], name: 'toLb' }),
+      tag({ text: 'to 203.0.113.7', points: C_TO_LB, easing: 'linear', dy: VIP_TAG_DY }),
+      F.light({ targets: ['lb'], at: 'toLb' }),
+      F.route({ points: TO_N1, after: 'toLb', name: 'toNode' }),
+      tag({ text: 'to node-1:31000', points: TO_N1, after: 'toLb', emerge: 150 }),
+      F.light({ targets: ['np1'], at: 'toNode' }),
+    ],
   },
   {
     id: 'dnat',
     duration: 2400,
     narration: 'On the Node that received it, the nodePort rule DNATs the packet to a backend Pod IP. That Pod can sit on this same Node, as here, or on another Node reached across the cluster network, since kube-proxy load-balances across every backend. A single external address has now reached a private Pod.',
-    enter(s, ctx) {
-      resetStep(s);
-      setVal(s.refs.vipChip, '203.0.113.7');
-      s.refs.np1.classList.add('highlight');
-      if (ctx.reduced) { s.refs.pod1Box.classList.add('highlight'); return; }
-      // nodePort DNATs to the local backend Pod (one hop), which pulses on arrival.
-      const toPod = segmentPacket(s, ctx, { from: NP_TO_POD[0], to: NP_TO_POD[1], role: 'network' });
-      pulsePod(s.refs.pod1, ctx, toPod.arrivalMs);
-    },
+    chips: { vipChip: '203.0.113.7', ...reserved(true) },
+    lit: ['np1'],
+    // The animated path says the Pod was served by PULSING it, which no lights list can name.
+    reducedLit: ['pod1Box'],
+    // nodePort DNATs to the local backend Pod (one hop), which pulses on arrival.
+    flow: [
+      F.segment({ from: NP_TO_POD[0], to: NP_TO_POD[1], name: 'toPod' }),
+      F.pulse({ pod: 'pod1', at: 'toPod' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

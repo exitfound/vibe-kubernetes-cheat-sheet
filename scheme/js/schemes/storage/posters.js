@@ -1,5 +1,4 @@
-// Design notes: scheme/INTERNALS.md#schemejspostersjs (the pair), and ./CARDS.md
-// under each card id as a "### poster" subsection.
+// Design notes: ./CARDS.md, under each card id as a "### poster" subsection.
 // The storage posters, keyed by card id: the still frame each card shows on the grid.
 
 export const POSTERS = {

@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, cylinder, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setChip, setBoxSublabel, setPodSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, FADE, lightBoxAt, makeRidingLabel, laneOf, OPACITY, revealAt, wrapPod, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, STO, chipStrip, laneOf, setPodSublabel, BEAT, FADE, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volumeclaimtemplates
 
 
@@ -9,9 +7,9 @@ const CX = 600;
 const SRC_W = 340, SRC_H = 64, SRC_X = CX - SRC_W / 2, SRC_Y = 52;   // 430..770
 const SRC_BOTTOM = SRC_Y + SRC_H;                                   // 116
 
-// The three ordinal rows. Row centres are the y midline of every block in the row, so mount and bind
-// lanes run dead level and the mint spine segments sit in the gaps between the stacked claims.
-const ROW_CY = [245, 385, 525];
+// The three ordinal rows, each centre the y midline of every block in its row, so mount and bind lanes
+// run level. Row 0 is set by the panel (its Pod label clears 205 at 1100x800), row 2 holds, pitch 134.
+const ROW_CY = [261, 395, 529];
 
 const POD_W = 150, POD_H = 100;
 const PVC_W = 200, PVC_H = 56;
@@ -25,281 +23,238 @@ const PVC_X = CX - PVC_W / 2, PVC_RIGHT = PVC_X + PVC_W;            // 500 / 700
 const PV_X = PV_CX - PV_W / 2, PV_RIGHT = PV_X + PV_W;              // 820 / 970
 
 const CHIPS_Y = 600;
+// Family CHIP_W 232 at the family gap, four across, centred on CX: 112..1088.
+const CHIPS = chipStrip();
 
-// Straight axis runs. Every array is shared by the static pathArrow and its ball, and the arrowheads
-// point at the RECEIVER: the mint into the claim top, the disk into the claim, the claim into the Pod.
-const trunkSeg = i => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [CX, ROW_CY[i] - PVC_H / 2]];
-const bindPts = i => [[PV_X, ROW_CY[i]], [PVC_RIGHT, ROW_CY[i]]];     // pv -> PVC (into claim right edge)
-const mountPts = i => [[PVC_X, ROW_CY[i]], [POD_RIGHT, ROW_CY[i]]];   // PVC -> Pod (into Pod right edge)
+// Straight axis runs, ONE array per row built once so the lane and the ball that rides it are the
+// same array (A-02). Arrowheads land on the RECEIVER: the claim top, the claim, then the Pod.
+const TRUNK = ROW_CY.map((cy, i) => [[CX, i === 0 ? SRC_BOTTOM : ROW_CY[i - 1] + PVC_H / 2], [CX, cy - PVC_H / 2]]);
+const BIND = ROW_CY.map(cy => [[PV_X, cy], [PVC_RIGHT, cy]]);     // pv -> PVC (into claim right edge)
+const MOUNT = ROW_CY.map(cy => [[PVC_X, cy], [POD_RIGHT, cy]]);   // PVC -> Pod (into Pod right edge)
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage', dy: -16 });
+// One lane per row in each of the three families, held under its own ordinal key, which is what the
+// `opacity` field and the flow address.
+const trunkLane = i => P.lane({ key: `trunk${i}`, points: TRUNK[i], dashed: true, dim: true, opacity: 0 });
+const bindLane = i => P.lane({ key: `bind${i}`, points: BIND[i], dashed: true, dim: true });
+const mountLane = i => P.lane({ key: `mount${i}`, points: MOUNT[i], dashed: true, dim: true });
 
-function podBlock({ cy, label }) {
-  const y = cy - POD_H / 2;
-  const shell = podShell({ x: POD_X, y, w: POD_W, h: POD_H, label, sublabel: 'mounts /data', containers: 0, role: 'storage' });
-  // The container box sits on the Pod centre line (h/2), balanced between the name on top and the
-  // mount-path sublabel at the bottom, rather than pushed down against the sublabel.
-  const innerBox = box({ x: POD_X + 16, y: cy - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'read/write', role: 'storage' });
-  return wrapPod(shell, innerBox);
-}
+// The container box sits on the Pod centre line (h/2), balanced between the name on top and the
+// mount-path sublabel at the bottom, rather than pushed down against the sublabel.
+const podBlock = i => P.pod({
+  key: `p${i}`, innerKey: `b${i}`, x: POD_X, y: ROW_CY[i] - POD_H / 2, w: POD_W, h: POD_H,
+  label: `web-${i}`, sublabel: 'mounts /data', containers: 0,
+  inner: { dx: 16, dy: POD_H / 2 - 21, w: POD_W - 32, h: 42, label: 'app', sublabel: 'read/write' },
+});
 
-const lane = points => pathArrow({ points, dashed: true, dim: true, role: 'storage' });
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'StatefulSet volumeClaimTemplates: unlike a Deployment which hands every replica the one shared claim, a StatefulSet mints one PersistentVolumeClaim per ordinal with a deterministic name derived from the Pod identity, so a Pod that is deleted and recreated rebinds the very same disk, the claims are retained when a Pod is removed, and scaling down leaves them behind' });
-    root.appendChild(arrowDefs());
-
-    const src = box({
-      x: SRC_X, y: SRC_Y, w: SRC_W, h: SRC_H,
-      label: 'StatefulSet web', sublabel: 'replicas: 3, volumeClaimTemplates: data', role: 'storage',
-    });
-
-    const pods = ROW_CY.map((cy, i) => podBlock({ cy, label: `web-${i}` }));
-    const pvcs = ROW_CY.map((cy, i) => {
-      const b = box({ x: PVC_X, y: cy - PVC_H / 2, w: PVC_W, h: PVC_H, label: `PVC data-web-${i}`, sublabel: 'not created yet', role: 'storage' });
-      b.style.opacity = String(OPACITY.pending);   // a placeholder until the template mints it, never a hole
-      return b;
-    });
-    const pvs = ROW_CY.map((cy, i) => {
-      const c = cylinder({ x: PV_X, y: cy - PV_H / 2, w: PV_W, h: PV_H, label: `pv-web-${i}`, role: 'storage' });
-      // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
-      // is not part of the visible front face. Re-centre on the face, derived from the height.
-      const l = c.querySelector('.scheme-cylinder-label');
-      if (l) l.setAttribute('y', PV_H / 2 + 10);
-      return c;
-    });
-
-    const trunkW = ROW_CY.map((_, i) => lane(trunkSeg(i)));
-    trunkW.forEach(w => { w.style.opacity = '0'; });
-    const bindW = ROW_CY.map((_, i) => lane(bindPts(i)));
-    const mountW = ROW_CY.map((_, i) => lane(mountPts(i)));
-
+// Z-order (bottom -> top): blocks, then the lanes and mint spine and captions above them, then the
+// chip strip, then the packet layer so every ball rides above everything.
+export const SCENE = {
+  'aria-label': 'StatefulSet volumeClaimTemplates: unlike a Deployment which hands every replica the one shared claim, a StatefulSet mints one PersistentVolumeClaim per ordinal with a deterministic name derived from the Pod identity, so a Pod that is deleted and recreated rebinds the very same disk, the claims are retained when a Pod is removed, and scaling down leaves them behind',
+  parts: [
+    P.defs(),
+    P.box({ key: 'src', x: SRC_X, y: SRC_Y, w: SRC_W, h: SRC_H, label: 'StatefulSet web', sublabel: 'replicas: 3, volumeClaimTemplates: data' }),
+    // The primitive centres the label on the raw bbox, which reads high because the top cap ellipse
+    // is not part of the visible front face. Re-centre on the face, derived from the height.
+    ...ROW_CY.map((cy, i) => P.cylinder({ key: `d${i}`, x: PV_X, y: cy - PV_H / 2, w: PV_W, h: PV_H, label: `PV web-${i}`, labelY: PV_H / 2 + 10 })),
+    // A placeholder until the template mints it, never a hole.
+    ...ROW_CY.map((cy, i) => P.box({ key: `v${i}`, x: PVC_X, y: cy - PVC_H / 2, w: PVC_W, h: PVC_H, label: `PVC data-web-${i}`, sublabel: 'not created yet', opacity: OPACITY.pending })),
+    ...ROW_CY.map((_, i) => podBlock(i)),
+    ...ROW_CY.map((_, i) => trunkLane(i)),
+    ...ROW_CY.map((_, i) => bindLane(i)),
+    ...ROW_CY.map((_, i) => mountLane(i)),
     // Per-row annotation, parked in the free space to the right of the disk (the L-shaped safe zone),
     // filled only on the rebind and scale steps.
-    const nameLbls = ROW_CY.map(cy => text({ class: 'scheme-label code dim', x: PV_RIGHT + 20, y: cy + 5, 'text-anchor': 'start' }, [' ']));
-
-    const CHIP_W = 232, CHIP_GAP = 16;
-    const CHIPS_W = CHIP_W * 4 + CHIP_GAP * 3;                  // 976
-    const CHIPS_X = CX - CHIPS_W / 2;                           // 112, so the strip centres on CX
-    const chipX = i => CHIPS_X + i * (CHIP_W + CHIP_GAP);
-    const replChip = valChip({ x: chipX(0), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'replicas',  value: '3',          role: 'storage' });
-    const pvcChip  = valChip({ x: chipX(1), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'PVCs',      value: 'none yet',   role: 'storage' });
-    const nameChip = valChip({ x: chipX(2), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'naming',    value: 'data-web-N', role: 'storage' });
-    const retChip  = valChip({ x: chipX(3), y: CHIPS_Y, w: CHIP_W, h: 34, name: 'on delete', value: 'retained',   role: 'storage' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order (bottom -> top): blocks, then the lanes and mint spine and captions above them, then the
-    // chip strip, then the packet layer so every ball rides above everything.
-    [src, ...pvs, ...pvcs, ...pods.map(p => p.group)].forEach(el => root.appendChild(el));
-    [...trunkW, ...bindW, ...mountW, ...nameLbls].forEach(el => root.appendChild(el));
-    [replChip, pvcChip, nameChip, retChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, src,
-      p0: pods[0].group, p1: pods[1].group, p2: pods[2].group,
-      b0: pods[0].innerBox, b1: pods[1].innerBox, b2: pods[2].innerBox,
-      v0: pvcs[0], v1: pvcs[1], v2: pvcs[2],
-      d0: pvs[0], d1: pvs[1], d2: pvs[2],
-      trunkW, bindW, mountW,
-      replChip, pvcChip, nameChip, retChip,
-      wires: { n0: nameLbls[0], n1: nameLbls[1], n2: nameLbls[2] },
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
+    ...ROW_CY.map((cy, i) => P.wire({ key: `n${i}`, x: PV_RIGHT + 20, y: cy + 5, anchor: 'start' })),
+    P.chip({ key: 'replChip', x: CHIPS.x(0), y: CHIPS_Y, w: CHIPS.w, h: STO.CHIP_H, name: 'replicas', value: '3' }),
+    P.chip({ key: 'pvcChip', x: CHIPS.x(1), y: CHIPS_Y, w: CHIPS.w, h: STO.CHIP_H, name: 'PVCs', value: 'none yet' }),
+    P.chip({ key: 'nameChip', x: CHIPS.x(2), y: CHIPS_Y, w: CHIPS.w, h: STO.CHIP_H, name: 'naming', value: 'data-web-N' }),
+    P.chip({ key: 'retChip', x: CHIPS.x(3), y: CHIPS_Y, w: CHIPS.w, h: STO.CHIP_H, name: 'on delete', value: 'retained' }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['src', 'v0', 'v1', 'v2', 'd0', 'd1', 'd2', 'b0', 'b1', 'b2', 'replChip', 'pvcChip', 'nameChip', 'retChip'],
+    pods: ['p0', 'p1', 'p2'],
+  },
+};
 
 // Every step writes EVERY chip. A chip left unset keeps the previous step's value, which is how a
 // card comes to report a stale claim count on the step that just changed it.
-function setChips(s, { repl, pvcs, naming, ret }) {
-  setChip(s.refs.replChip, repl);
-  setChip(s.refs.pvcChip, pvcs);
-  setChip(s.refs.nameChip, naming);
-  setChip(s.refs.retChip, ret);
-}
+const chips = (repl, pvcs, naming, ret) => ({ replChip: repl, pvcChip: pvcs, nameChip: naming, retChip: ret });
 
-// A lane is only as present as its fainter end, so it is pinned in the same helper as the blocks:
-// a bind lane follows its claim, a mount lane takes the MIN, or a mount arrow lands on a ghost Pod.
+const PEND = OPACITY.pending;
 
-function setStage(s, { pods = [1, 1, 1], claims = [OPACITY.pending, OPACITY.pending, OPACITY.pending], mint = false } = {}) {
-  [s.refs.p0, s.refs.p1, s.refs.p2].forEach((p, i) => { p.style.opacity = String(pods[i]); });
-  [s.refs.v0, s.refs.v1, s.refs.v2].forEach((v, i) => { v.style.opacity = String(claims[i]); });
-  s.refs.bindW.forEach((w, i) => { w.style.opacity = String(claims[i]); });
-  s.refs.mountW.forEach((w, i) => { w.style.opacity = laneOf(claims[i], pods[i]); });
-  s.refs.trunkW.forEach(w => { w.style.opacity = mint ? '1' : '0'; });
-}
+// STO.S-01 as a field: every claim, every Pod and every lane is pinned on EVERY step. A lane is only
+// as present as its fainter end, so a bind lane follows its claim and a mount lane takes the MIN.
+const stage = ({ pods = [1, 1, 1], claims = [PEND, PEND, PEND], mint = false } = {}) => ({
+  p0: pods[0], p1: pods[1], p2: pods[2],
+  v0: claims[0], v1: claims[1], v2: claims[2],
+  bind0: claims[0], bind1: claims[1], bind2: claims[2],
+  mount0: laneOf(claims[0], pods[0]), mount1: laneOf(claims[1], pods[1]), mount2: laneOf(claims[2], pods[2]),
+  trunk0: mint ? 1 : 0, trunk1: mint ? 1 : 0, trunk2: mint ? 1 : 0,
+});
 
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['src', 'v0', 'v1', 'v2', 'd0', 'd1', 'd2', 'b0', 'b1', 'b2',
-    'replChip', 'pvcChip', 'nameChip', 'retChip'], [s.refs.p0, s.refs.p1, s.refs.p2]);
-  // Reset every Pod sublabel to its resting mount path so the rebind step's 'deleted' / 'recreated'
-  // text cannot leak into a later step (forward steps mutate one scene, they do not rebuild).
-  [s.refs.p0, s.refs.p1, s.refs.p2].forEach(p => setPodSublabel(p, 'mounts /data'));
-  clearWires(s);
-}
+// The Pod sublabel is its resting mount path everywhere except the rebind, so it is stated on every
+// step: forward steps mutate one scene, so the rebind text would otherwise leak into a later step.
+const MOUNTED = { p0: 'mounts /data', p1: 'mounts /data', p2: 'mounts /data' };
+const claimLabels = labels => ({ v0: labels[0], v1: labels[1], v2: labels[2] });
+const BOUND = ['Bound', 'Bound', 'Bound'];
 
-function mountRow(s, ctx, i, { delay = 0, tag = null } = {}) {
-  const low = routePacket(s, ctx, bindPts(i), { delay, role: 'storage' });
-  const high = routePacket(s, ctx, mountPts(i), { delay: low.arrivalMs + BEAT.afterHop, role: 'storage' });
-  if (tag) ridingLabel(s, ctx, tag, mountPts(i), { delay: low.arrivalMs + BEAT.afterHop });
-  lightBoxAt(s.refs[`v${i}`], ctx, low.arrivalMs);
-  // The Pod is already present at full opacity, so the mount only pulses it and lights its container
-  // when the ball lands. No opacity ramp, which is what used to make the Pods flicker step to step.
-  pulsePod(s.refs[`p${i}`], ctx, high.arrivalMs);
-  lightBoxAt(s.refs[`b${i}`], ctx, high.arrivalMs);
-  return high.arrivalMs;
-}
+// The riding tag sits ABOVE the row, not on it: both row hops are 120 long against a tag of up to
+// 128, so on the row midline a claim or Pod face prints through the glyphs at both ends.
+const TAG_DY = -(POD_H / 2) - 6;      // -56: 3 clear of the Pod top, the tallest block of a row
 
-const STEPS = [
+// The mint tag rides clear of the vertical spine it follows.
+const MINT_DY = -22, MINT_DX = 44;
+
+// A row mounts in two hops: the ball crosses the bind lane from disk into claim, then the mount lane
+// up into the Pod. The Pod is already at full opacity, so it is pulsed and lit, never ramped.
+const mountRow = (i, { delay, tag = null }) => [
+  F.route({ points: BIND[i], delay, name: `lo${i}` }),
+  F.route({ points: MOUNT[i], after: `lo${i}`, name: `hi${i}` }),
+  ...(tag ? [F.tag({ text: tag, points: MOUNT[i], after: `lo${i}`, dy: TAG_DY })] : []),
+  F.light({ targets: [`v${i}`], at: `lo${i}` }),
+  F.pulse({ pod: `p${i}`, at: `hi${i}` }),
+  F.light({ targets: [`b${i}`], at: `hi${i}` }),
+];
+
+// The rebind is deliberately slower than the FADE tokens, with a real HOLD at the ghost, so the
+// delete and the recreate read as two distinct beats rather than one quick blink.
+const GONE = OPACITY.terminated, OUT = 850, HOLD = 550, IN = 800;
+const REBORN = OUT + HOLD;
+
+// The recreate beat is a fade whose COMPLETION renames the Pod sublabel, and `unlight` is the only
+// onfinish F.fade carries, so it goes through F.run at delay 0, which runs its body inline.
+const recreate = F.run({
+  fn: (s, ctx) => {
+    const a = s.refs.p1.animate([{ opacity: GONE }, { opacity: 1 }], { duration: IN, delay: REBORN, fill: 'forwards', easing: 'ease-out' });
+    a.onfinish = () => setPodSublabel(s.refs.p1, 'recreated');
+    ctx.register(a);
+  },
+});
+
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { repl: '3', pvcs: 'none yet', naming: 'data-web-N', ret: 'retained' });
-      setStage(s);
-      [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'not created yet'));
-    },
+    chipsCued: chips('3', 'none yet', 'data-web-N', 'retained'),
+    sublabels: claimLabels(['not created yet', 'not created yet', 'not created yet']),
+    podSublabels: MOUNTED,
+    opacity: stage(),
   },
   {
     id: 'mint',
     duration: 3900,
     narration: 'For each ordinal the template stamps out one claim, and the name is not random. It is the template name joined to the Pod name: data-web-0, data-web-1, data-web-2. Three separate PVC objects now exist, each asking for its own 1Gi of gp3.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { repl: '3', pvcs: '3 minted', naming: 'data-web-N', ret: 'retained' });
-      setStage(s, { claims: [1, 1, 1], mint: true });
-      [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Pending'));
-      // The source box is where every mint departs from, so it is lit at step entry. The claims are
-      // receivers and earn their highlight on arrival.
-      s.refs.src.classList.add('highlight');
-      if (ctx.reduced) {
-        [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => v.classList.add('highlight'));
-        return;
-      }
-      setStage(s, { mint: true });
-      // The name relays straight down the spine, materialising each claim in turn: data-web-0, then
-      // -1, then -2, exactly as the narration lists them. Each hop starts once the one above lands.
-      let at = BEAT.lead;
-      ROW_CY.forEach((_, i) => {
-        const mint = routePacket(s, ctx, trunkSeg(i), { delay: at, role: 'storage' });
-        ridingLabel(s, ctx, `data-web-${i}`, trunkSeg(i), { delay: at, dy: -22, dx: 44 });
-        // The claim comes up WITH its two lanes: both have it at one end, so they are exactly as
-        // present as it is, before the mint lands and after.
-        [s.refs[`v${i}`], s.refs.bindW[i], s.refs.mountW[i]]
-          .forEach(el => revealAt(el, ctx, mint.arrivalMs, OPACITY.pending));
-        lightBoxAt(s.refs[`v${i}`], ctx, mint.arrivalMs);
-        at = mint.arrivalMs + BEAT.afterHop;
-      });
+    chipsCued: chips('3', '3 minted', 'data-web-N', 'retained'),
+    sublabels: claimLabels(['Pending', 'Pending', 'Pending']),
+    podSublabels: MOUNTED,
+    opacity: stage({ claims: [1, 1, 1], mint: true }),
+    // The source box is where every mint departs from, so it is lit at step entry. The claims are
+    // receivers and earn their highlight on arrival.
+    lit: ['src'],
+    // The claims are minted DURING the step, so the animated path winds them back to the placeholder
+    // shade, the counter and the three phase lines with them: nothing minted yet (P-03, P-04).
+    rewind: {
+      opacity: stage({ mint: true }),
+      chips: { pvcChip: 'none yet' },
+      sublabels: claimLabels(['not created yet', 'not created yet', 'not created yet']),
     },
+    // The name relays down the spine, materialising each claim in turn once the hop above lands. Each
+    // claim comes up WITH its two lanes: both have it at one end, so they are as present as it is.
+    flow: ROW_CY.flatMap((_, i) => [
+      F.route({ points: TRUNK[i], ...(i === 0 ? { delay: BEAT.lead } : { after: `m${i - 1}` }), name: `m${i}` }),
+      F.tag({ text: `data-web-${i}`, points: TRUNK[i], ...(i === 0 ? { delay: BEAT.lead } : { after: `m${i - 1}` }), dy: MINT_DY, dx: MINT_DX }),
+      F.reveal({ target: `v${i}`, at: `m${i}`, from: PEND }),
+      F.reveal({ target: `bind${i}`, at: `m${i}`, from: PEND }),
+      F.reveal({ target: `mount${i}`, at: `m${i}`, from: PEND }),
+      F.light({ targets: [`v${i}`], at: `m${i}` }),
+      // The counter steps one per arrival (1500, 2300, 3100) rather than reading 3 minted over two
+      // claims that are still placeholders, and each claim takes its Pending line as it appears.
+      F.set({ at: `m${i}`, chipsCued: { pvcChip: `${i + 1} minted` }, sublabels: { [`v${i}`]: 'Pending' } }),
+    ]),
   },
   {
     id: 'bind',
     duration: 2800,
-    narration: 'Each claim is bound to its own PersistentVolume, so ordinal 0 gets pv-web-0 and never touches ordinal 1. The claim is the durable name the workload holds, and the disk behind it is what stores the bytes. Nothing is shared between the ordinals.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { repl: '3', pvcs: '3 bound', naming: 'data-web-N', ret: 'retained' });
-      setStage(s, { claims: [1, 1, 1] });
-      [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Bound'));
-      // The disks are where the bind ball departs, so they light at entry. Each claim is the receiver,
-      // so it lights only once its ball lands (below), not at step entry.
-      [s.refs.d0, s.refs.d1, s.refs.d2].forEach(d => d.classList.add('highlight'));
-      if (ctx.reduced) { [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => v.classList.add('highlight')); return; }
-      // Each disk binds to its claim, straight along the bind lane. The three binds are independent
-      // and simultaneous, so they leave together on one beat rather than a stagger.
-      ROW_CY.forEach((_, i) => {
-        const b = routePacket(s, ctx, bindPts(i), { delay: BEAT.lead, role: 'storage' });
-        ridingLabel(s, ctx, 'bound', bindPts(i), { delay: BEAT.lead });
-        lightBoxAt(s.refs[`v${i}`], ctx, b.arrivalMs);
-      });
-    },
+    narration: 'Each claim is bound to its own PersistentVolume, so ordinal 0 gets PV web-0 and never touches ordinal 1. The claim is the durable name the workload holds, and the disk behind it is what stores the bytes. Nothing is shared between the ordinals.',
+    chipsCued: chips('3', '3 bound', 'data-web-N', 'retained'),
+    sublabels: claimLabels(BOUND),
+    podSublabels: MOUNTED,
+    opacity: stage({ claims: [1, 1, 1] }),
+    // The disks are where the bind ball departs, so they light at entry. Each claim is the receiver,
+    // so it lights only once its ball lands, not at step entry.
+    lit: ['d0', 'd1', 'd2'],
+    // Each disk binds to its claim, straight along the bind lane. The three binds are independent
+    // and simultaneous, so they leave together on one beat rather than a stagger.
+    flow: ROW_CY.flatMap((_, i) => [
+      F.route({ points: BIND[i], delay: BEAT.lead, name: `b${i}` }),
+      F.tag({ text: 'bound', points: BIND[i], delay: BEAT.lead, dy: TAG_DY }),
+      F.light({ targets: [`v${i}`], at: `b${i}` }),
+    ]),
   },
   {
     id: 'mount',
     duration: 3800,
     narration: 'Now each Pod starts and mounts the volume behind its own claim. Replica web-0 reads and writes data-web-0 alone, web-1 reads data-web-1, and so on. The bind is exclusive, so no two Pods ever land on the same disk.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { repl: '3', pvcs: '3 in use', naming: 'data-web-N', ret: 'retained' });
-      setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1] });
-      [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Bound'));
-      // The disks are the source of the read, so they light at entry. Each claim and container light
-      // only as the mount ball reaches them (mountRow uses lightBoxAt on arrival).
-      [s.refs.d0, s.refs.d1, s.refs.d2].forEach(d => d.classList.add('highlight'));
-      if (ctx.reduced) {
-        [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => v.classList.add('highlight'));
-        [s.refs.b0, s.refs.b1, s.refs.b2].forEach(b => b.classList.add('highlight'));
-        return;
-      }
-      ROW_CY.forEach((_, i) => mountRow(s, ctx, i, { delay: BEAT.lead }));
-    },
+    chipsCued: chips('3', '3 in use', 'data-web-N', 'retained'),
+    sublabels: claimLabels(BOUND),
+    podSublabels: MOUNTED,
+    opacity: stage({ claims: [1, 1, 1] }),
+    // The disks are the source of the read, so they light at entry. Each claim and container light
+    // only as the mount ball reaches them.
+    lit: ['d0', 'd1', 'd2'],
+    flow: ROW_CY.flatMap((_, i) => mountRow(i, { delay: BEAT.lead })),
   },
   {
     id: 'rebind',
     duration: 4900,
-    narration: 'Delete web-1 and the StatefulSet recreates it, perhaps on another Node. The claim data-web-1 is not deleted with the Pod, it stays Bound to pv-web-1. Because the new Pod derives the exact same claim name from its ordinal, it rebinds the very same disk and sees the very same data.',
-    enter(s, ctx) {
-      resetStep(s);
-      // The naming chip holds the PATTERN, which does not change here. Retention is already on the
-      // `on delete` chip: a chip must not answer a question it was not asked.
-      setChips(s, { repl: '3', pvcs: '3 in use', naming: 'data-web-N', ret: 'retained' });
-      setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1] });
-      [s.refs.v0, s.refs.v1, s.refs.v2].forEach(v => setBoxSublabel(v, 'Bound'));
-      [s.refs.d0, s.refs.d1, s.refs.d2].forEach(d => d.classList.add('highlight'));
-      setWire(s, 'n1', 'same name, same disk');
-      // The Pod keeps its ordinal name web-1 (that is the whole point: same name rebinds the same
-      // disk), so the lifecycle is narrated in the SUBLABEL instead. Final resting state: recreated.
-      setPodSublabel(s.refs.p1, 'recreated');
-      if (ctx.reduced) { s.refs.v1.classList.add('highlight'); s.refs.b1.classList.add('highlight'); return; }
-      const GONE = OPACITY.terminated, OUT = 850, HOLD = 550, IN = 800;
-      setPodSublabel(s.refs.p1, 'deleted');
-      ctx.register(s.refs.p1.animate([{ opacity: 1 }, { opacity: GONE }], { duration: OUT, fill: 'forwards', easing: 'ease-in' }));
-      const reborn = OUT + HOLD;
-      const fadeIn = s.refs.p1.animate([{ opacity: GONE }, { opacity: 1 }], { duration: IN, delay: reborn, fill: 'forwards', easing: 'ease-out' });
-      fadeIn.onfinish = () => setPodSublabel(s.refs.p1, 'recreated');
-      ctx.register(fadeIn);
-      mountRow(s, ctx, 1, { delay: reborn + IN, tag: 'data-web-1 rebound' });
-    },
+    narration: 'Delete web-1 and the StatefulSet recreates it, perhaps on another Node. The claim data-web-1 is not deleted with the Pod, it stays Bound to PV web-1. Because the new Pod derives the exact same claim name from its ordinal, it rebinds the very same disk and sees the very same data.',
+    // The naming chip holds the PATTERN, which does not change here. Retention is already on the
+    // `on delete` chip: a chip must not answer a question it was not asked.
+    chipsCued: chips('3', '3 in use', 'data-web-N', 'retained'),
+    sublabels: claimLabels(BOUND),
+    // The Pod keeps its ordinal name web-1 (that is the whole point: same name rebinds the same
+    // disk), so the lifecycle is narrated in the SUBLABEL instead. Final resting state: recreated.
+    podSublabels: { ...MOUNTED, p1: 'recreated' },
+    opacity: stage({ claims: [1, 1, 1] }),
+    wires: { n1: 'same name, same disk' },
+    lit: ['d0', 'd1', 'd2'],
+    // The animated path opens on the Pod about to be deleted, and the recreate above winds it back.
+    rewind: { podSublabels: { p1: 'deleted' } },
+    flow: [
+      F.fade({ target: 'p1', from: 1, to: GONE, dur: OUT, fill: 'forwards', easing: 'ease-in' }),
+      // The mount lane is as present as its fainter end (A-13), so it goes down with the Pod and comes
+      // back with it rather than standing over the 550ms ghost hold at full strength.
+      F.fade({ target: 'mount1', from: 1, to: GONE, dur: OUT, fill: 'forwards', easing: 'ease-in' }),
+      recreate,
+      F.fade({ target: 'mount1', from: GONE, to: 1, dur: IN, delay: REBORN, fill: 'forwards', easing: 'ease-out' }),
+      ...mountRow(1, { delay: REBORN + IN, tag: 'data-web-1 rebound' }),
+    ],
   },
   {
     id: 'scale',
     duration: 3000,
     narration: 'Scale web down to two and Pod web-2 is removed, but claim data-web-2 is left behind on purpose. The default retention keeps it, so its disk is not reclaimed and its data is safe. Scale back up and web-2 reattaches the same claim, which is also why a forgotten scale-down silently leaks disks.',
-    enter(s, ctx) {
-      resetStep(s);
-      // `on delete` holds the POLICY, and the policy has not changed: it is still the default retain.
-      // The leak this step is about is carried by the PVC count and by the idle claim sublabel.
-      setChips(s, { repl: '2', pvcs: '3 (1 idle)', naming: 'data-web-N', ret: 'retained' });
-      setStage(s, { pods: [1, 1, 1], claims: [1, 1, 1] });
-      setBoxSublabel(s.refs.v0, 'Bound');
-      setBoxSublabel(s.refs.v1, 'Bound');
-      setBoxSublabel(s.refs.v2, 'kept, no Pod');
-      s.refs.d0.classList.add('highlight');
-      s.refs.d1.classList.add('highlight');
-      s.refs.v2.classList.add('highlight');
-      s.refs.d2.classList.add('highlight');
-      setWire(s, 'n2', 'retained');
-      // web-2 leaves, but data-web-2 and pv-web-2 stay put: the claim is the thing that persists. The
-      // ghost opacity is pinned statically so a mid-step cancel and reduced motion land on it too.
-      s.refs.p2.style.opacity = String(OPACITY.terminated);
-      if (ctx.reduced) return;
-      s.refs.p2.style.opacity = '1';
-      ctx.register(s.refs.p2.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: BEAT.afterHop, fill: 'forwards', easing: 'ease-in' }));
-    },
+    // `on delete` holds the POLICY, and the policy has not changed: it is still the default retain.
+    // The leak this step is about is carried by the PVC count and by the idle claim sublabel.
+    chipsCued: chips('2', '3 (1 idle)', 'data-web-N', 'retained'),
+    sublabels: claimLabels(['Bound', 'Bound', 'kept, no Pod']),
+    podSublabels: MOUNTED,
+    // web-2 leaves, but data-web-2 and PV web-2 stay put: the claim is the thing that persists. The
+    // ghost goes THROUGH stage(), so mount2 takes the MIN of the pair and dims with its Pod (A-13).
+    opacity: stage({ claims: [1, 1, 1], pods: [1, 1, GONE] }),
+    wires: { n2: 'retained' },
+    lit: ['d0', 'd1', 'v2', 'd2'],
+    rewind: { opacity: { p2: 1, mount2: 1 } },
+    // The removed Pod blinks at full first and goes at afterPulse, so the blink is over before the
+    // shade moves and the two are not one event (M-08). Its mount lane leaves with it (A-13).
+    flow: [
+      F.pulse({ pod: 'p2' }),
+      ...['p2', 'mount2'].map(target => F.fade({
+        target, from: 1, to: GONE, dur: FADE.out, delay: BEAT.afterPulse, fill: 'forwards', easing: 'ease-in',
+      })),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

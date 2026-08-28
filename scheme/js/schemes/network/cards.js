@@ -1,7 +1,8 @@
 // The network catalogue: every network card and the subcategories they sort into.
 // Adding a card means one entry here, one file beside it, one poster, one note.
 
-// Design notes: scheme/INTERNALS.md#schemejsdatajs
+// The SUBCATEGORIES list below is an ORDER, not a set: the sequence is an editorial argument
+// about what a reader has to know first, never alphabetical and never a merge artefact.
 
 export const SUBCATEGORIES = [
     { key: 'network-foundations',        label: 'Network Foundations'    },
@@ -69,7 +70,7 @@ export const CARDS = [
     title: 'kube-proxy: iptables vs IPVS',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'How does kube-proxy pick a backend, and why does the mode matter at scale? In iptables mode a packet to a ClusterIP walks KUBE-SERVICES into a per-Service chain that picks an endpoint by probability, then a per-endpoint chain DNATs it to the Pod. IPVS mode makes the same choice with an in-kernel hash table, trading the rule walk for constant-time lookup, though v1.35 deprecates it in favour of nftables. Either way conntrack pins the flow to the chosen backend.',
+    desc: 'How does kube-proxy pick a backend, and why does the mode matter at scale? In iptables mode a packet to a ClusterIP walks KUBE-SERVICES into a per-Service chain that picks an endpoint by probability, then a per-endpoint chain DNATs it to the Pod. IPVS mode makes the same choice with an in-kernel hash table, trading the rule walk for constant-time lookup, though v1.35 deprecates it in favour of nftables. Either mode turns the ClusterIP into one chosen backend.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -121,7 +122,7 @@ export const CARDS = [
     title: 'Containers Share Localhost',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'Why can an app and its sidecar reach each other over 127.0.0.1 with no network in between? Every container in a Pod joins the same network namespace, so they share one loopback, one eth0 and one Pod IP. Calls between them cross the loopback with no veth hop, and because the port space is shared too, two of them cannot bind the same port. From outside the Pod is one host, however many containers run inside, and every one of them answers on that single IP.',
+    desc: 'Why can an app and its sidecar reach each other over 127.0.0.1 with no network in between? Every container in a Pod joins the same network namespace, so they share one loopback, one eth0 and one Pod IP. Calls between them cross the loopback with no veth hop, and because the port space is shared too, two of them cannot bind the same port. From outside the Pod is one host, however many run inside, and the container on the target port answers at that IP.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -134,7 +135,7 @@ export const CARDS = [
     title: 'hostNetwork and hostPort',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'What are the two sanctioned ways to reach a Pod on the Node address itself? With hostNetwork true the Pod gets no network namespace of its own, no veth and no Pod IP, and binds the Node interfaces directly, which is how kube-proxy and a CNI agent run. A hostPort gives up nothing: the Pod keeps its namespace, its IP and its veth, and the portmap plugin only adds a DNAT rule. Both spend a Node port, so the scheduler fits only one such replica per Node.',
+    desc: 'What are the two sanctioned ways to reach a Pod on the Node address itself? With hostNetwork true the Pod gets no network namespace of its own, no veth and no Pod IP, and binds the Node interfaces directly, which is how kube-proxy and a CNI agent run. A hostPort gives up far less: the Pod keeps its namespace, its IP and its veth, and the portmap plugin only adds a DNAT rule. Both spend a Node port, so the Scheduler fits only one such replica per Node.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -267,7 +268,7 @@ export const CARDS = [
     k8sVersion: '1.35',
     tinted: true,
     sources: [
-      { label: 'Topology Aware Routing', href: 'https://kubernetes.io/docs/concepts/services-networking/topology-aware-routing/' },
+      { label: 'Traffic Distribution Control', href: 'https://kubernetes.io/docs/concepts/services-networking/service/#traffic-distribution' },
       { label: 'Service Session Affinity', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/#session-affinity' },
     ],
   },
@@ -302,7 +303,7 @@ export const CARDS = [
     title: 'Terminating Endpoints and Draining',
     category: 'network',
     subcategory: 'services-endpoints',
-    desc: 'When a rolling update deletes a backing Pod, why do requests keep flowing instead of failing? The Pod enters Terminating and its endpoint flips to notReady while serving and terminating stay true, so kube-proxy stops sending new connections but keeps draining the in-flight ones. Only after the grace period does the endpoint leave the slice, so a clean rollout drops nothing. The window is the grace period, no more.',
+    desc: 'When a rolling update deletes a backing Pod, why do requests keep flowing instead of failing? The Pod enters Terminating and its endpoint flips to notReady while serving and terminating stay true, so kube-proxy stops sending it new connections while the flows already established on it finish on their conntrack entries. Only after the grace period does the endpoint leave the slice, so a clean rollout drops nothing. The window is the grace period, no more.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -353,7 +354,7 @@ export const CARDS = [
     title: 'Search Domains and ndots',
     category: 'network',
     subcategory: 'dns-service-discovery',
-    desc: 'Why can one name that does not exist cost eight DNS queries? A name with fewer dots than ndots counts as relative, so the resolver appends each search domain in turn and tries the name as written only once the list runs out. A name that exists is answered on the first candidate, one that does not walks all four of them, and since the resolver asks for IPv4 and IPv6 in parallel the miss doubles again. A trailing dot skips the walk.',
+    desc: 'Why can one name that does not exist cost eight DNS queries? A name with fewer dots than ndots counts as relative, so the resolver appends each search domain in turn and tries the name as written only once the list runs out. A name in the local namespace is answered on the first candidate, one that exists nowhere walks all four of them, and since the resolver asks for IPv4 and IPv6 in parallel the miss doubles again. A trailing dot skips the walk.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

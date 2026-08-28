@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, node, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, OPACITY, WL, diagramRoot } from './workloads-kit.js';
+import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-force-deletion
 
@@ -11,18 +9,20 @@ const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
-const REQ_Y = TOP_CY - WL.LANE_DY, RESP_Y = TOP_CY + WL.LANE_DY;
-const WIRE_X = (TOP1_X + TOP1_W + TOP2_X) / 2;
+const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
+const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
 const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row, off the spine
 
-const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+// LAYOUT.B of the kit, which this card is on: chips in the LEFT column, pipeline in the RIGHT.
+// WL.L-06 picks A / B / C against THIS card's measured panel bottom, and B is the one that fits.
+const LAD_X = LAYOUT.B.ladder.x, LAD_W = LAYOUT.B.ladder.w;    // 660..1140, the pipeline
 const LAD_Y = 160;                                       // 5 rows -> 160..360
 
 // Chips as a column in the left band, which only opens below the panel.
 const CHIP_GAP = 8;
 const CHIPS_TOP = PANEL_B + 20;                          // 300
-const CHIP_X = WL.LADDER_X, CHIP_W = WL.LADDER_W;        // 60..540
-const CHIP_Y = i => CHIPS_TOP + i * (WL.CHIP_H + CHIP_GAP);   // 300..460
+const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;    // 60..540
+const CHIP_Y = ladder({ y: CHIPS_TOP, rowH: WL.CHIP_H, gap: CHIP_GAP });   // 300..460
 
 const NODE_H = 134, CANVAS_B = 624;
 const NODE_Y = CANVAS_B - NODE_H;                        // 490..624, the frames rest on the floor
@@ -47,46 +47,28 @@ const TRUNK = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [WL.SPINE_X, JOG_Y], 
 const NODE1_LANE = [...TRUNK, [P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
 const NODE2_LANE = [...TRUNK, [P_B_CX, BUS_Y], [P_B_CX, POD_Y]];
 
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Force deletion and stuck Terminating Pods: an unreachable Node leaves a Pod stuck, force delete risks two live instances' });
-    root.appendChild(arrowDefs());
-
-    const kubectl = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'kubectl', sublabel: 'delete pod pod-a', role: 'cluster' });
-    const api     = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'deletionTimestamp + etcd', role: 'cluster' });
-
-    root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
-
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
-    root.appendChild(wireReq);
-
-    const connector = pathArrow({
-      points: NODE1_LANE,
-      dim: true, dashed: true, role: 'cluster',
-    });
-    root.appendChild(connector);
-
-    const connectorRight = pathArrow({
-      points: NODE2_LANE,
-      dim: true, dashed: true, role: 'cluster',
-    });
-    root.appendChild(connectorRight);
-
+// Z-order: the two top arrows, the wire label and the two lanes, then the chip column and the
+// packet layer, then chain / Nodes / Pods / actor row above the ball.
+export const SCENE = {
+  'aria-label': 'Force deletion and stuck Terminating Pods: an unreachable Node leaves a Pod stuck, force delete risks two live instances',
+  parts: [
+    P.defs(),
+    P.arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
+    P.arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }),
+    // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
+    P.wire({ key: 'req', x: WIRE_X, y: WIRE_Y }),
+    // Both balls ride the lane that is actually drawn under them: same points array, no second copy.
+    P.lane({ key: 'connector', points: NODE1_LANE, dim: true, dashed: true, role: 'cluster' }),
+    P.lane({ key: 'connectorRight', points: NODE2_LANE, dim: true, dashed: true, role: 'cluster' }),
     // State chips in the left band.
-    const nodeChip    = valChip({ x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'node-1',      value: 'Ready', role: 'workloads' });
-    const podChip     = valChip({ x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'Pod A',       value: 'Running', role: 'workloads' });
-    const replicaChip = valChip({ x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'StatefulSet', value: 'replicas 1/1', role: 'workloads' });
-    const focusChip   = valChip({ x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'focus',       value: 'none', role: 'workloads' });
-    [nodeChip, podChip, replicaChip, focusChip].forEach(c => root.appendChild(c));
-
-    const chain = chainList({
-      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
+    P.chip({ key: 'nodeChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'Node-1', value: 'Ready' }),
+    P.chip({ key: 'podChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'Pod A', value: 'Running' }),
+    P.chip({ key: 'replicaChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'StatefulSet', value: 'replicas 1/1' }),
+    P.chip({ key: 'focusChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'focus', value: 'none' }),
+    P.packets(),
+    // Everything below is appended AFTER the packet layer, so the ball runs under it.
+    P.chain({
+      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
         '1. node lost   ·  Kubelet heartbeats stop, Node NotReady',
         '2. terminating ·  deletionTimestamp set, Kubelet cannot ack',
@@ -94,202 +76,131 @@ class Scene {
         '4. force       ·  --grace-period=0 --force drops it from etcd',
         '5. risk        ·  partitioned node may still run the old one',
       ],
-      role: 'cluster',
-    });
+    }),
+    P.node({ key: 'node1', x: N_A_X, y: NODE_Y, w: N_W, h: NODE_H, label: 'Node-1' }),
+    P.node({ key: 'node2', x: N_B_X, y: NODE_Y, w: N_W, h: NODE_H, label: 'Node-2' }),
+    P.pod({
+      key: 'podOld', id: 'podOld', innerKey: 'podOldBox',
+      x: P_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod A', sublabel: '', containers: 0,
+      // No build-time opacity: every step pins Pod A's own, and the poster frame is `idle`.
+      inner: { dx: POD_INNER.dx, dy: POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'StatefulSet Pod' },
+    }),
+    P.pod({
+      key: 'podNew', id: 'podNew', innerKey: 'podNewBox',
+      x: P_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod B', sublabel: '', containers: 0,
+      // Born invisible: the replacement does not exist until the identity is freed.
+      opacity: 0,
+      inner: { dx: POD_INNER.dx, dy: POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'recreated replica' },
+    }),
+    P.box({ key: 'kubectl', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'kubectl', sublabel: 'delete pod pod-a', role: 'cluster' }),
+    P.box({ key: 'api', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'deletionTimestamp + etcd', role: 'cluster' }),
+  ],
+  reset: {
+    keys: ['kubectl', 'api', 'nodeChip', 'podChip', 'replicaChip', 'focusChip', 'podOldBox', 'podNewBox'],
+    pods: ['podOld', 'podNew'],
+  },
+};
 
-    const node1 = node({ x: N_A_X, y: NODE_Y, w: N_W, h: NODE_H, label: 'Node-1' });
-    const node2 = node({ x: N_B_X, y: NODE_Y, w: N_W, h: NODE_H, label: 'Node-2' });
+// Each lane is pinned together with the Pod it lands on, so no lane outlives its Pod and keeps a
+// full-opacity arrowhead on something that has already dimmed away.
+const podPair = (oldV, newV) => ({ podOld: oldV, connector: oldV, podNew: newV, connectorRight: newV });
 
-    const podOldShell = podShell({ x: P_A_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod A', sublabel: '', containers: 0, role: 'workloads' });
-
-    const podOldBox = box({ x: P_A_X + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'StatefulSet Pod', role: 'workloads' });
-
-    const podOld = g({ id: 'podOld' });
-    podOld.appendChild(podOldShell);
-    podOld.appendChild(podOldBox);
-
-    const podNewShell = podShell({ x: P_B_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod B', sublabel: '', containers: 0, role: 'workloads' });
-
-    const podNewBox = box({ x: P_B_X + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'recreated replica', role: 'workloads' });
-
-    const podNew = g({ id: 'podNew' });
-    podNew.style.opacity = '0';
-    podNew.appendChild(podNewShell);
-    podNew.appendChild(podNewBox);
-
-    const packetLayer = g({ id: 'packetLayer' });
-    root.appendChild(packetLayer);
-
-    root.appendChild(chain);
-    root.appendChild(node1);
-    root.appendChild(node2);
-    root.appendChild(podOld);
-    root.appendChild(podNew);
-    root.appendChild(kubectl);
-    root.appendChild(api);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      kubectl, api, connector, connectorRight, chain, node1, node2,
-      nodeChip, podChip, replicaChip, focusChip,
-      podOld, podNew, podOldBox, podNewBox,
-      packetLayer,
-      wires: { req: wireReq },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s,
-    ['kubectl','api','nodeChip','podChip','replicaChip','focusChip','podOldBox','podNewBox'],
-    [s.refs.podOld, s.refs.podNew]);
-  clearWires(s);
-}
-
-// Both balls ride the lane that is actually drawn under them: same points array, no second copy.
-function recreationPacket(s, ctx, { delay = 0 } = {}) {
-  return routePacket(s, ctx, NODE2_LANE, { delay, fadeIn: true, role: 'workloads' });
-}
-function node1Packet(s, ctx, { delay = 0 } = {}) {
-  return routePacket(s, ctx, NODE1_LANE, { delay, fadeIn: true, role: 'workloads' });
-}
-// Each lane is pinned together with the Pod it lands on. Only the right-hand pair was ever set, so
-// the Node-1 lane kept a full-opacity arrowhead on a Pod that had already dimmed away.
-function setPods(s, oldV, newV) {
-  s.refs.podOld.style.opacity = String(oldV);
-  s.refs.connector.style.opacity = String(oldV);
-  s.refs.podNew.style.opacity = String(newV);
-  s.refs.connectorRight.style.opacity = String(newV);
-}
-
-function setChips(s, { node, pod, replica, focus }) {
-  setVal(s.refs.nodeChip, node);
-  setVal(s.refs.podChip, pod);
-  setVal(s.refs.replicaChip, replica);
-  setVal(s.refs.focusChip, focus);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { node: 'Ready', pod: 'Running', replica: 'replicas 1/1', focus: 'none' });
-      setPods(s, 1, 0);
-      setChainActive(s.refs.chain, -1);
-    },
+    chips: { nodeChip: 'Ready', podChip: 'Running', replicaChip: 'replicas 1/1', focusChip: 'none' },
+    opacity: podPair(1, 0),
+    chain: -1,
   },
   {
     id: 'node-lost',
     duration: 3000,
     narration: 'Node-1 stops posting Kubelet heartbeats, from a kernel panic, a power loss or a network partition. After node-monitor-grace-period, 50s by default, the node controller sets the Node Ready condition to Unknown and marks Node-1 NotReady. The control plane can no longer observe what Pod A is actually doing.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { node: 'NotReady (Unknown)', pod: 'Running (last seen)', replica: 'replicas 1/1', focus: 'heartbeat lost' });
-      s.refs.podChip.classList.add('highlight');
-      s.refs.focusChip.classList.add('highlight');
-      setWire(s, 'req', 'Node controller: Ready → Unknown');
-      s.refs.api.classList.add('highlight');
-      s.refs.nodeChip.classList.add('highlight');
-      // Node-1 is now unobservable: the Pod is alive but nothing observes it.
-      setPods(s, OPACITY.notready, 0);
-      setChainActive(s.refs.chain, 0);
-      if (ctx.reduced) return;
+    chips: { nodeChip: 'NotReady (Unknown)', podChip: 'Running (last seen)', replicaChip: 'replicas 1/1', focusChip: 'heartbeat lost' },
+    wires: { req: 'Node controller: Ready → Unknown' },
+    // Node-1 is now unobservable: the Pod is alive but nothing observes it.
+    opacity: podPair(OPACITY.notready, 0),
+    lit: ['podChip', 'focusChip', 'api', 'nodeChip'],
+    chain: 0,
+    flow: [
       // The node controller reaches toward Node-1 over the connector. When the
       // packet arrives the Pod pulses and dims to its unobservable shade.
-      const probe = node1Packet(s, ctx);
-      pulsePod(s.refs.podOld, ctx, probe.arrivalMs);
-      ctx.register(s.refs.podOld.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: FADE.out, delay: probe.arrivalMs, fill: 'both', easing: 'ease-in' }));
+      F.route({ points: NODE1_LANE, fadeIn: true, name: 'probe' }),
+      F.pulse({ pod: 'podOld', at: 'probe' }),
+      F.fade({ target: 'podOld', from: 1, to: OPACITY.notready, dur: FADE.out, at: 'probe', fill: 'both', easing: 'ease-in' }),
       // The lane dims on the same beat, held at full through the delay window by fill:'both' so the
       // probe is never riding a wire fainter than itself.
-      ctx.register(s.refs.connector.animate([{ opacity: 1 }, { opacity: OPACITY.notready }], { duration: FADE.out, delay: probe.arrivalMs, fill: 'both', easing: 'ease-in' }));
-    },
+      F.fade({ target: 'connector', from: 1, to: OPACITY.notready, dur: FADE.out, at: 'probe', fill: 'both', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'terminating',
     duration: 2200,
     narration: 'A delete is issued for Pod A, by you or by the node controller clearing Pods off the lost Node. The API stamps metadata.deletionTimestamp, so the Pod reads as Terminating. Normally the Kubelet would stop the container and let the API remove the object, but Node-1 Kubelet is unreachable and nothing acknowledges the delete.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { node: 'NotReady (Unknown)', pod: 'Terminating', replica: 'replicas 1/1', focus: 'deletionTimestamp set' });
-      s.refs.focusChip.classList.add('highlight');
-      setWire(s, 'req', 'DELETE .../pods/pod-a · deletionTimestamp');
-      s.refs.kubectl.classList.add('highlight');
-      s.refs.podChip.classList.add('highlight');
-      setPods(s, OPACITY.terminating, 0);
-      setChainActive(s.refs.chain, 1);
-      if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
-      const pkt = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
-      lightBoxAt(s.refs.api, ctx, pkt.arrivalMs);
-    },
+    chips: { nodeChip: 'NotReady (Unknown)', podChip: 'Terminating', replicaChip: 'replicas 1/1', focusChip: 'deletionTimestamp set' },
+    wires: { req: 'DELETE .../pods/pod-a · deletionTimestamp' },
+    opacity: podPair(OPACITY.terminating, 0),
+    lit: ['focusChip', 'kubectl', 'podChip'],
+    chain: 1,
+    flow: [
+      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, lights: ['api'] }),
+    ],
   },
   {
     id: 'stuck',
     duration: 2300,
     narration: 'Pod A is stuck in Terminating with no time limit, while status.phase stays Running. The StatefulSet will not create a replacement, because the sticky identity and its RWO volume are still held by the undeleted Pod A. A leftover metadata.finalizers entry causes the same stuck Terminating, cleared by removing the finalizer rather than by force.',
-    enter(s) {
-      resetStep(s);
-      setChips(s, { node: 'NotReady (Unknown)', pod: 'Terminating (stuck)', replica: 'replacement blocked', focus: 'identity still held by Pod A' });
-      s.refs.focusChip.classList.add('highlight');
-      s.refs.podChip.classList.add('highlight');
-      s.refs.replicaChip.classList.add('highlight');
-      setPods(s, OPACITY.terminating, 0);
-      setChainActive(s.refs.chain, 2);
-      // Nothing travels while the identity is held and the Pod is untouched: the blocked
-      // state shows via the static highlight only (no chip pulse).
-    },
+    chips: { nodeChip: 'NotReady (Unknown)', podChip: 'Terminating (stuck)', replicaChip: 'replacement blocked', focusChip: 'identity still held by Pod A' },
+    opacity: podPair(OPACITY.terminating, 0),
+    // Nothing travels while the identity is held and the Pod is untouched: the blocked
+    // state shows via the static highlight only (no chip pulse).
+    lit: ['focusChip', 'podChip', 'replicaChip'],
+    chain: 2,
   },
   {
     id: 'force',
     duration: 2200,
     narration: 'Running kubectl delete pod pod-a --grace-period=0 --force tells the API to drop the Pod object from ETCD at once, with no wait for any Kubelet acknowledgement. The API now reports the Pod as gone, and the StatefulSet identity is free again.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { node: 'NotReady (Unknown)', pod: 'force-deleted', replica: 'identity freed', focus: 'object dropped from etcd' });
-      s.refs.replicaChip.classList.add('highlight');
-      s.refs.focusChip.classList.add('highlight');
-      setWire(s, 'req', 'DELETE pod-a · --grace-period=0 --force');
-      s.refs.kubectl.classList.add('highlight');
-      s.refs.podChip.classList.add('highlight');
-      setPods(s, OPACITY.terminated, 0);
-      setChainActive(s.refs.chain, 3);
-      if (ctx.reduced) { s.refs.api.classList.add('highlight'); return; }
-      const pkt = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
-      lightBoxAt(s.refs.api, ctx, pkt.arrivalMs);
+    chips: { nodeChip: 'NotReady (Unknown)', podChip: 'force-deleted', replicaChip: 'identity freed', focusChip: 'object dropped from etcd' },
+    wires: { req: 'DELETE pod-a · --grace-period=0 --force' },
+    opacity: podPair(OPACITY.terminated, 0),
+    lit: ['replicaChip', 'focusChip', 'kubectl', 'podChip'],
+    chain: 3,
+    flow: [
+      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['api'] }),
       // The answer comes straight back, which IS --force: the API reports the object gone without
       // waiting for any Kubelet. kubectl sources the round trip, so it does not light again.
-      topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: pkt.arrivalMs + BEAT.afterHop, role: 'workloads' });
-    },
+      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, after: 'req' }),
+    ],
   },
   {
     id: 'risk',
     duration: 3500,
     narration: 'The StatefulSet immediately recreates the replica, here as Pod B on Node-2. The danger: if Node-1 was only network-partitioned, its Kubelet is alive and the original Pod A still runs there. Pod A and Pod B now share one StatefulSet identity and the same volume, which corrupts data. Force-delete only after the Node is confirmed dead, or delete the Node object so its Pods are garbage-collected cleanly.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { node: 'partitioned, still live', pod: 'maybe still running', replica: 'identity live twice', focus: 'split-brain hazard' });
-      s.refs.nodeChip.classList.add('highlight');
-      s.refs.podChip.classList.add('highlight');
-      setWire(s, 'req', 'StatefulSet recreates pod-b on Node-2');
-      s.refs.replicaChip.classList.add('highlight');
-      s.refs.focusChip.classList.add('highlight');
-      // Each lane appears and dims with the Pod it ends on. Pod A comes UP from terminated to
-      // notready here, and that rise IS the step: the API believes it gone, the chips do not.
-      setPods(s, OPACITY.notready, 1);
-      setChainActive(s.refs.chain, 4);
-      // podNew appears on arrival, so pulse it then. Lighting podNewBox in enter() would
-      // auto-pulse it at delay 0 while the Pod is still invisible (and double with pulsePod).
-      if (ctx.reduced) { s.refs.podNewBox.classList.add('highlight'); return; }
-      const recreate = recreationPacket(s, ctx);
-      ctx.register(s.refs.podNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: recreate.arrivalMs, fill: 'both', easing: 'ease-out' }));
-      pulsePod(s.refs.podNew, ctx, recreate.arrivalMs);
-    },
+    chips: { nodeChip: 'partitioned, still live', podChip: 'maybe still running', replicaChip: 'identity live twice', focusChip: 'split-brain hazard' },
+    wires: { req: 'StatefulSet recreates pod-b on Node-2' },
+    // Each lane appears and dims with the Pod it ends on. Pod A comes UP from terminated to
+    // notready here, and that rise IS the step: the API believes it gone, the chips do not.
+    opacity: podPair(OPACITY.notready, 1),
+    lit: ['nodeChip', 'podChip', 'replicaChip', 'focusChip'],
+    // podNew appears on arrival, so the animated path pulses it there. As a static `lit` it would
+    // auto-pulse at delay 0 on a still-invisible Pod and double the pulse, hence reducedLit.
+    reducedLit: ['podNewBox'],
+    chain: 4,
+    // The narration recreates Pod B first and only then says Pod A may still be running, so Pod A
+    // and its lane are wound back to the shade the previous step left and RISE after Pod B lands.
+    rewind: { opacity: { podOld: OPACITY.terminated, connector: OPACITY.terminated } },
+    flow: [
+      F.route({ points: NODE2_LANE, fadeIn: true, name: 'recreate' }),
+      F.fade({ target: 'podNew', from: 0, to: 1, dur: FADE.in, at: 'recreate', fill: 'both', easing: 'ease-out' }),
+      F.pulse({ pod: 'podNew', at: 'recreate' }),
+      // Pod B is fully on screen before Pod A comes back up, so the two sentences read in order
+      // rather than as one event: `plus: FADE.in` is the end of the fade above, not a guess.
+      F.fade({ target: 'podOld', from: OPACITY.terminated, to: OPACITY.notready, dur: FADE.in, at: 'recreate', plus: FADE.in, fill: 'both', easing: 'ease-out' }),
+      F.fade({ target: 'connector', from: OPACITY.terminated, to: OPACITY.notready, dur: FADE.in, at: 'recreate', plus: FADE.in, fill: 'both', easing: 'ease-out' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

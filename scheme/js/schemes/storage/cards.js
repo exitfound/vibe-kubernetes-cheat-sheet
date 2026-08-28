@@ -1,7 +1,8 @@
 // The storage catalogue: every storage card and the subcategories they sort into.
 // Adding a card means one entry here, one file beside it, one poster, one note.
 
-// Design notes: scheme/INTERNALS.md#schemejsdatajs
+// The SUBCATEGORIES list below is an ORDER, not a set: the sequence is an editorial argument
+// about what a reader has to know first, never alphabetical and never a merge artefact.
 
 export const SUBCATEGORIES = [
     { key: 'volume-foundations',   label: 'Volume Foundations' },
@@ -16,7 +17,7 @@ export const CARDS = [
     title: 'Pod Volume Model',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'What does it mean for a Pod to have a volume, and who does it belong to? It is declared once at the Pod level under spec.volumes and mounted into each container at volumeMounts, possibly at a different path. Because it belongs to the Pod, not to any container, two containers that mount it share every write and data outlives a crash. Delete the Pod and an ephemeral volume goes too, the gap persistent storage closes.',
+    desc: 'What does it mean for a Pod to have a volume, and who does it belong to? It is declared once at the Pod level under spec.volumes and mounted into each container at volumeMounts, possibly at a different path. Because it belongs to the Pod, not to any container, two containers that mount it share every write and data outlives a crash. Delete the Pod and an ephemeral volume goes too, which is the gap persistent storage closes.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -29,7 +30,7 @@ export const CARDS = [
     title: 'Container Filesystem Layers',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'Why does a file written inside a container vanish on restart, but a file on a volume does not? A container root filesystem is a stack of read-only image layers with one thin writable layer on top, merged by overlayfs, and that writable layer is thrown away when the container is removed. A mounted volume is a hole punched straight through the overlay to real storage. Editing a file from an image copies it up first, which is why a volume outlives the container.',
+    desc: 'Why does a file written inside a container vanish on restart, but a file on a volume does not? A container root filesystem is a stack of read-only image layers with one thin writable layer on top, merged by overlayfs, and that writable layer is thrown away when the container is removed. A mounted volume is a hole punched straight through the overlay to real storage. Editing a file from an image copies it up first, and the copy dies with the writable layer.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -55,7 +56,7 @@ export const CARDS = [
     title: 'hostPath Volumes',
     category: 'storage',
     subcategory: 'volume-foundations',
-    desc: 'Why does a hostPath look like persistent storage and quietly is not? It mounts a path on the Node itself, and type Directory demands that it already exist while only DirectoryOrCreate makes one, so the data stays behind on that one Node when the Pod is gone. Pointed at the runtime socket it hands over the whole Node, which is why the Baseline and Restricted Pod Security Standards forbid it outright. It is a Node-agent tool, never an application one.',
+    desc: 'Why does a hostPath look like persistent storage and quietly is not? It mounts a path on the Node itself, so the data stays behind on that one Node when the Pod is gone, and type Directory demands that the path already exist while only DirectoryOrCreate makes one. Pointed at the runtime socket it hands over the whole Node, which is why the Baseline and Restricted Pod Security Standards forbid it outright. It is a Node-agent tool, never an application one.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -120,7 +121,7 @@ export const CARDS = [
     title: 'PVC to PV Binding',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'A PersistentVolumeClaim is a request, not storage, so who turns it into a real disk? The binding controller scans the volumes that are Available, throws out the ones too small, of the wrong class or short on access mode, and pairs the claim with one that satisfies all three by writing the link on both objects at once. That pairing is exclusive and permanent, so a second claim for the same volume waits until a volume it can have appears.',
+    desc: 'A PersistentVolumeClaim is a request, not storage, so who turns it into a real disk? The binding controller scans the volumes that are Available, throws out the ones too small, of the wrong class or short on access mode, and pairs the claim with one that satisfies all three by writing the link on both objects at once. That pairing is exclusive and permanent, so a second claim for the same volume stays Pending until an administrator creates another one.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -172,7 +173,7 @@ export const CARDS = [
     title: 'Online Volume Expansion',
     category: 'storage',
     subcategory: 'volumes-claims',
-    desc: 'Bumping a PVC to a bigger size grows nothing on its own, so what makes a Pod see more space? The API accepts the edit only if allowVolumeExpansion is true on the StorageClass, then runs two phases: the external-resizer grows the disk, and Kubelet grows the filesystem, a phase a raw block volume skips entirely. Where that filesystem grows online the room appears with no restart. Shrinking is refused, there being no safe way to shrink a live filesystem.',
+    desc: 'Bumping a PVC to a bigger size grows nothing on its own, so what makes a Pod see more space? The API accepts the edit only if allowVolumeExpansion is true on the StorageClass, then runs one or two phases: the external-resizer grows the disk, and Kubelet grows the filesystem, a step a driver may skip on a raw block volume. Where that filesystem grows online the room appears with no restart. Shrinking is refused, there being no safe way to shrink a live filesystem.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -224,7 +225,7 @@ export const CARDS = [
     title: 'CSI Architecture',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'Kubernetes core has no code for any storage vendor, so how does an EBS or Ceph disk get mounted? A CSI driver ships in two halves: the controller plugin runs as a Deployment or StatefulSet whose sidecars each watch one kind of object and turn it into one gRPC call, and the node plugin is a DaemonSet that registers with Kubelet. Only the node plugin ever mounts the volume on the Node. The sidecars bridge a vendor core never knew.',
+    desc: 'Kubernetes core has no code for any storage vendor, so how does an EBS or Ceph disk get mounted? A CSI driver ships in two halves: the controller plugin runs as a Deployment or StatefulSet whose sidecars each watch one kind of object and turn it into one gRPC call, and the node plugin is a DaemonSet that registers with Kubelet. Only the node plugin ever mounts the volume on the Node. The sidecars bridge those objects to a vendor that core never knew.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -279,7 +280,7 @@ export const CARDS = [
     title: 'fsGroup and Volume Ownership',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'A freshly mounted volume is owned by root, so why can a non-root container not write to it? The securityContext.fsGroup field names a GID, and Kubelet chowns the whole volume tree to that group before the container starts. That walk is cheap on a small volume but adds minutes on one with millions of files, which is what fsGroupChangePolicy OnRootMismatch exists to skip. The default walks the whole tree every start.',
+    desc: 'A freshly mounted volume is owned by root, so why can a non-root container not write to it? The securityContext.fsGroup field names a GID, and Kubelet chowns the whole volume tree to that group before the container starts, unless a CSI driver does it instead. That walk is cheap on a small volume but adds minutes on one with millions of files, which is what fsGroupChangePolicy OnRootMismatch exists to skip. The default walks the whole tree every start.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -292,7 +293,7 @@ export const CARDS = [
     title: 'Node Volume Attach Limits',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'Why does a Pod stay Pending on max volume count while every Node has spare CPU and memory? Because a Node has a second, invisible capacity: how many volumes one CSI driver may have attached at once. The node plugin reports it, Kubelet writes it into CSINode, and the scheduler rejects any Node at its ceiling. A slot frees when the detach completes, not when the Pod dies, turning a rollout near the ceiling into a race.',
+    desc: 'Why does a Pod stay Pending on max volume count while every Node has spare CPU and memory? Because a Node has a second, invisible capacity: how many volumes one CSI driver may have attached at once. The node plugin reports it, Kubelet writes it into CSINode, and the Scheduler rejects any Node at its ceiling. A slot frees when the detach completes, not when the Pod dies, turning a rollout near the ceiling into a race.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -318,7 +319,7 @@ export const CARDS = [
     title: 'Detach on Node Failure',
     category: 'storage',
     subcategory: 'csi-mount-path',
-    desc: 'When a Node goes NotReady, why does its volume not move to a healthy Node right away? Nothing is contending for it, so the wait is on doubt rather than on a rival claim: the old Pod cannot be confirmed dead, and detaching a disk it might still be writing to risks corruption. Kubernetes rides out the eviction timeout and then a force-detach, which is a safety property. The real outage is both clocks, and the out-of-service taint skips them.',
+    desc: 'When a Node goes NotReady, why does its volume not move to a healthy Node right away? Nothing is contending for it, so the wait is on doubt rather than on a rival claim: the old Pod cannot be confirmed dead, and detaching a disk it might still be writing to risks corruption. Kubernetes rides out the eviction timeout and then the force-detach timeout, which is a safety property. Those two clocks are the outage, and the out-of-service taint skips them.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -356,7 +357,7 @@ export const CARDS = [
     title: 'WaitForFirstConsumer',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'Why can a Pod hang forever in a multi-zone cluster with a healthy disk sitting right there? With volumeBindingMode Immediate the volume is provisioned the instant the claim exists, in whatever zone the provisioner picks, and no Node then both fits the Pod and lies in that zone. WaitForFirstConsumer inverts the order so the scheduler chooses the Node first. It is the commonest multi-zone bug and its one-line fix.',
+    desc: 'Why can a Pod hang forever in a multi-zone cluster with a healthy disk sitting right there? With volumeBindingMode Immediate the volume is provisioned the instant the claim exists, in whatever zone the provisioner picks, and the Pod is stuck if no Node then both fits it and lies in that zone. WaitForFirstConsumer inverts the order so the Scheduler chooses the Node first. That failure is the commonest multi-zone bug, and this is its one-line fix.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -369,7 +370,7 @@ export const CARDS = [
     title: 'CSI Storage Capacity',
     category: 'storage',
     subcategory: 'stateful-data',
-    desc: 'Why does a Pod get stuck Pending when the local storage pool on its chosen Node is full? Without capacity information the scheduler picks that Node on cpu and memory alone, provisioning fails there, and the Node choice is reset so the Pod is placed blind again on the next pass. CSIStorageCapacity objects from a driver that opts in let the scheduler see free space per Node and filter first, on classes that bind WaitForFirstConsumer.',
+    desc: 'Why does a Pod get stuck Pending when the local storage pool on its chosen Node is full? Without capacity information the Scheduler picks that Node on cpu and memory alone, provisioning fails there, and the Node choice is reset so the Pod is placed blind again on the next pass. CSIStorageCapacity objects from a driver that opts in let the Scheduler see free space per Node and filter first, on classes that bind WaitForFirstConsumer.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

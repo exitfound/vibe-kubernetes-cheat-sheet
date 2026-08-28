@@ -1,6 +1,5 @@
-import { g } from '../../lib/svg.js';
-import { arrowDefs, box, node, arrow, podShell } from '../../lib/primitives.js';
-import { pulsePod, segmentPacket, makeInit, clearHighlights, clearWires, lightBoxAt, makeRidingLabel, wrapPod, diagramRoot } from './network-kit.js';
+import { P, F, defineCard } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-service-types
 
 
@@ -26,165 +25,127 @@ const POD_GAP = 22;
 const POD_TOP_Y = NODE_Y + (NODE_H - (2 * POD_H + POD_GAP)) / 2;      // 194
 const POD_BOT_Y = POD_TOP_Y + POD_H + POD_GAP;                       // 320
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'network' });
+// Every row is one straight horizontal hop from the type edge to the target edge, and the wire and
+// the ball that rides it share this points array.
+const HOP = (y) => [[TYPE_EDGE, cy(y)], [TGT_X, cy(y)]];
+const HOP_CI = HOP(Y_CI), HOP_NP = HOP(Y_NP), HOP_LB = HOP(Y_LB);
+const HOP_EN = HOP(Y_EN), HOP_HL = HOP(Y_HL);
 
 // Core-networking pod build: a shell plus an inner app/eth0 box, grouped so pulsePod animates both
 // (identical shape to network-model / network-service-clusterip).
-function podBlock({ x, y, label, ip }) {
-  const shell = podShell({ x, y, w: POD_W, h: POD_H, label, sublabel: ip, containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 18, y: y + 34, w: POD_W - 36, h: 50, label: 'app', sublabel: 'eth0', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
+const POD_INNER = { dx: 18, dy: 34, w: POD_W - 36, h: 50, label: 'app', sublabel: 'eth0' };
+const backend = (key, y, ip) => P.pod({
+  key, innerKey: `${key}Box`, x: POD_X, y, w: POD_W, h: POD_H, label: 'Pod web', sublabel: ip,
+  inner: POD_INNER,
+});
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Kubernetes Service types at a glance: ClusterIP is the internal base, NodePort and LoadBalancer build on it to expose backends externally, while ExternalName and Headless skip the proxy and work purely through DNS' });
-    root.appendChild(arrowDefs());
-
-    const ci = box({ x: TYPE_X, y: Y_CI, w: TYPE_W, h: ROW_H, label: 'ClusterIP', sublabel: '10.96.0.20 · in-cluster VIP', role: 'network' });
-    const np = box({ x: TYPE_X, y: Y_NP, w: TYPE_W, h: ROW_H, label: 'NodePort', sublabel: ':31000 on every Node', role: 'network' });
-    const lb = box({ x: TYPE_X, y: Y_LB, w: TYPE_W, h: ROW_H, label: 'LoadBalancer', sublabel: '203.0.113.7 · cloud VIP', role: 'network' });
-    const en = box({ x: TYPE_X, y: Y_EN, w: TYPE_W, h: ROW_H, label: 'ExternalName', sublabel: 'CNAME, no selector', role: 'network' });
-    const hl = box({ x: TYPE_X, y: Y_HL, w: TYPE_W, h: ROW_H, label: 'Headless', sublabel: 'clusterIP: None', role: 'network' });
-
+// The list order IS the append order, which is the z-order: the shared backend node in back, then
+// the type boxes + targets + Pods, then the arrows ABOVE them, then the packet layer on top.
+export const SCENE = {
+  'aria-label': 'Kubernetes Service types at a glance: ClusterIP is the internal base, NodePort and LoadBalancer build on it to expose backends externally, while ExternalName and the headless variant skip the proxy and work purely through DNS',
+  parts: [
+    P.defs(),
     // Shared backend node for the three proxy types, spanning their three rows. Two Pods inside,
     // centred and symmetric about the node centre.
-    const backends = node({ x: TGT_X, y: NODE_Y, w: TGT_W, h: NODE_H, label: '' });
-    const podTop = podBlock({ x: POD_X, y: POD_TOP_Y, label: 'Pod web', ip: '10.244.2.7' });
-    const podBot = podBlock({ x: POD_X, y: POD_BOT_Y, label: 'Pod web', ip: '10.244.3.9' });
-
+    P.node({ key: 'backends', x: TGT_X, y: NODE_Y, w: TGT_W, h: NODE_H, label: '' }),
+    P.box({ key: 'ci', x: TYPE_X, y: Y_CI, w: TYPE_W, h: ROW_H, label: 'ClusterIP', sublabel: '10.96.0.20 · in-cluster VIP' }),
+    P.box({ key: 'np', x: TYPE_X, y: Y_NP, w: TYPE_W, h: ROW_H, label: 'NodePort', sublabel: ':31000 on every Node' }),
+    P.box({ key: 'lb', x: TYPE_X, y: Y_LB, w: TYPE_W, h: ROW_H, label: 'LoadBalancer', sublabel: '203.0.113.7 · cloud VIP' }),
+    P.box({ key: 'en', x: TYPE_X, y: Y_EN, w: TYPE_W, h: ROW_H, label: 'ExternalName', sublabel: 'CNAME, no selector' }),
+    P.box({ key: 'hl', x: TYPE_X, y: Y_HL, w: TYPE_W, h: ROW_H, label: 'Headless', sublabel: 'clusterIP: None' }),
+    backend('podTop', POD_TOP_Y, '10.244.2.7'),
+    backend('podBot', POD_BOT_Y, '10.244.3.9'),
     // The two non-proxy targets, each centred on its own row.
-    const extHost = box({ x: TGT_X, y: Y_EN, w: TGT_W, h: ROW_H, label: 'api.example.com', sublabel: 'external host', role: 'network' });
-    const podIps = box({ x: TGT_X, y: Y_HL, w: TGT_W, h: ROW_H, label: 'Pod IPs', sublabel: 'direct, no proxy', role: 'network' });
+    P.box({ key: 'extHost', x: TGT_X, y: Y_EN, w: TGT_W, h: ROW_H, label: 'api.example.com', sublabel: 'external host' }),
+    P.box({ key: 'podIps', x: TGT_X, y: Y_HL, w: TGT_W, h: ROW_H, label: 'Pod IPs', sublabel: 'direct, no proxy' }),
+    P.arrow({ from: HOP_CI[0], to: HOP_CI[1], dashed: true, dim: true }),
+    P.arrow({ from: HOP_NP[0], to: HOP_NP[1], dashed: true, dim: true }),
+    P.arrow({ from: HOP_LB[0], to: HOP_LB[1], dashed: true, dim: true }),
+    P.arrow({ from: HOP_EN[0], to: HOP_EN[1], dashed: true, dim: true }),
+    P.arrow({ from: HOP_HL[0], to: HOP_HL[1], dashed: true, dim: true }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['ci', 'np', 'lb', 'en', 'hl', 'backends', 'extHost', 'podIps', 'podTopBox', 'podBotBox'],
+    pods: ['podTop', 'podBot'],
+  },
+};
 
-    const aCI = arrow({ x1: TYPE_EDGE, y1: cy(Y_CI), x2: TGT_X, y2: cy(Y_CI), dashed: true, dim: true, role: 'network' });
-    const aNP = arrow({ x1: TYPE_EDGE, y1: cy(Y_NP), x2: TGT_X, y2: cy(Y_NP), dashed: true, dim: true, role: 'network' });
-    const aLB = arrow({ x1: TYPE_EDGE, y1: cy(Y_LB), x2: TGT_X, y2: cy(Y_LB), dashed: true, dim: true, role: 'network' });
-    const aEN = arrow({ x1: TYPE_EDGE, y1: cy(Y_EN), x2: TGT_X, y2: cy(Y_EN), dashed: true, dim: true, role: 'network' });
-    const aHL = arrow({ x1: TYPE_EDGE, y1: cy(Y_HL), x2: TGT_X, y2: cy(Y_HL), dashed: true, dim: true, role: 'network' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order: backend node, then type boxes + targets + pods, then arrows ABOVE, then packets on top.
-    root.appendChild(backends);
-    [ci, np, lb, en, hl, podTop.group, podBot.group, extHost, podIps].forEach(el => root.appendChild(el));
-    [aCI, aNP, aLB, aEN, aHL].forEach(el => root.appendChild(el));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, ci, np, lb, en, hl, backends, extHost, podIps,
-      podTop: podTop.group, podTopBox: podTop.innerBox,
-      podBot: podBot.group, podBotBox: podBot.innerBox,
-      packetLayer, wires: {},
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['ci', 'np', 'lb', 'en', 'hl', 'backends', 'extHost', 'podIps', 'podTopBox', 'podBotBox'],
-    [s.refs.podTop, s.refs.podBot]);
-  clearWires(s);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-    },
   },
   {
     id: 'clusterip',
     duration: 2300,
     narration: 'ClusterIP is the base. It hands the Service a stable virtual IP that only works inside the cluster, and kube-proxy load-balances it across the backend Pods. Every other proxy type is built on top of this one.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.ci.classList.add('highlight');
-      if (ctx.reduced) { s.refs.backends.classList.add('highlight'); s.refs.podTopBox.classList.add('highlight'); return; }
-      // Down-arrow: the Service forwards to a backend, so the packet goes first, the backend node
-      // lights and a Pod pulses on arrival. The tag names the mechanism (kube-proxy).
-      const from = [TYPE_EDGE, cy(Y_CI)], to = [TGT_X, cy(Y_CI)];
-      const hop = segmentPacket(s, ctx, { from, to, role: 'network' });
-      ridingLabel(s, ctx, 'via kube-proxy', [from, to], { easing: 'linear' });
-      lightBoxAt(s.refs.backends, ctx, hop.arrivalMs);
-      pulsePod(s.refs.podTop, ctx, hop.arrivalMs);
-    },
+    lit: ['ci'],
+    // The animated path says a backend Pod was served by PULSING it, which no lights list names.
+    reducedLit: ['podTopBox'],
+    // Down-arrow: the Service forwards to a backend, so the packet goes first, the backend node
+    // lights and a Pod pulses on arrival. The tag names the mechanism (kube-proxy).
+    flow: [
+      F.segment({ from: HOP_CI[0], to: HOP_CI[1], name: 'hop' }),
+      F.tag({ text: 'via kube-proxy', points: HOP_CI, easing: 'linear' }),
+      F.light({ targets: ['backends'], at: 'hop' }),
+      F.pulse({ pod: 'podTop', at: 'hop' }),
+    ],
   },
   {
     id: 'nodeport',
     duration: 2400,
     narration: 'NodePort builds straight on ClusterIP. It keeps that internal VIP and also opens the same high port on every Node, so a client outside the cluster can hit any Node on that port and still land on a backing Pod.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.np.classList.add('highlight');
-      s.refs.ci.classList.add('highlight');   // it still contains a ClusterIP
-      if (ctx.reduced) { s.refs.backends.classList.add('highlight'); s.refs.podTopBox.classList.add('highlight'); return; }
-      const from = [TYPE_EDGE, cy(Y_NP)], to = [TGT_X, cy(Y_NP)];
-      const hop = segmentPacket(s, ctx, { from, to, role: 'network' });
-      ridingLabel(s, ctx, 'via kube-proxy', [from, to], { easing: 'linear' });
-      lightBoxAt(s.refs.backends, ctx, hop.arrivalMs);
-      pulsePod(s.refs.podTop, ctx, hop.arrivalMs);
-    },
+    // np first, then ci: a NodePort still contains a ClusterIP.
+    lit: ['np', 'ci'],
+    reducedLit: ['podTopBox'],
+    flow: [
+      F.segment({ from: HOP_NP[0], to: HOP_NP[1], name: 'hop' }),
+      F.tag({ text: 'via kube-proxy', points: HOP_NP, easing: 'linear' }),
+      F.light({ targets: ['backends'], at: 'hop' }),
+      F.pulse({ pod: 'podTop', at: 'hop' }),
+    ],
   },
   {
     id: 'loadbalancer',
     duration: 2400,
     narration: 'LoadBalancer builds on NodePort. It gets an external load balancer provisioned by the cloud-controller-manager, with those Node ports as its targets, so clients get one stable public address instead of a list of Nodes. It is ClusterIP plus NodePort plus a cloud VIP.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.lb.classList.add('highlight');
-      s.refs.np.classList.add('highlight');   // the whole stack underneath
-      s.refs.ci.classList.add('highlight');
-      if (ctx.reduced) { s.refs.backends.classList.add('highlight'); s.refs.podBotBox.classList.add('highlight'); return; }
-      const from = [TYPE_EDGE, cy(Y_LB)], to = [TGT_X, cy(Y_LB)];
-      const hop = segmentPacket(s, ctx, { from, to, role: 'network' });
-      ridingLabel(s, ctx, 'via kube-proxy', [from, to], { easing: 'linear' });
-      lightBoxAt(s.refs.backends, ctx, hop.arrivalMs);
-      pulsePod(s.refs.podBot, ctx, hop.arrivalMs);
-    },
+    // The whole stack underneath lights with it.
+    lit: ['lb', 'np', 'ci'],
+    reducedLit: ['podBotBox'],
+    flow: [
+      F.segment({ from: HOP_LB[0], to: HOP_LB[1], name: 'hop' }),
+      F.tag({ text: 'via kube-proxy', points: HOP_LB, easing: 'linear' }),
+      F.light({ targets: ['backends'], at: 'hop' }),
+      F.pulse({ pod: 'podBot', at: 'hop' }),
+    ],
   },
   {
     id: 'externalname',
     duration: 2300,
     narration: 'ExternalName is the odd one out. It has no selector, no Pods and no proxy. A lookup of the Service name simply returns a CNAME that points at an external host, so the Service is just a stable in-cluster alias for something living outside.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.en.classList.add('highlight');
-      if (ctx.reduced) { s.refs.extHost.classList.add('highlight'); return; }
-      // A packet rides the CNAME alias out to the external host. No Pod, so no pulse: the arrival
-      // ripple plus the external host lighting are the only motion at the target.
-      const from = [TYPE_EDGE, cy(Y_EN)], to = [TGT_X, cy(Y_EN)];
-      const hop = segmentPacket(s, ctx, { from, to, role: 'network' });
-      ridingLabel(s, ctx, 'CNAME', [from, to], { easing: 'linear' });
-      lightBoxAt(s.refs.extHost, ctx, hop.arrivalMs);
-    },
+    lit: ['en'],
+    // A packet rides the CNAME alias out to the external host. No Pod, so no pulse: the arrival
+    // ripple plus the external host lighting are the only motion at the target.
+    flow: [
+      F.segment({ from: HOP_EN[0], to: HOP_EN[1], name: 'hop' }),
+      F.tag({ text: 'CNAME', points: HOP_EN, easing: 'linear' }),
+      F.light({ targets: ['extHost'], at: 'hop' }),
+    ],
   },
   {
     id: 'headless',
     duration: 2400,
     narration: 'Headless is set with clusterIP None. There is no virtual IP and kube-proxy does nothing, instead DNS returns the Pod IPs directly and the client connects to a Pod itself. This is how a StatefulSet gives each Pod a stable, individually addressable name.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.hl.classList.add('highlight');
-      if (ctx.reduced) { s.refs.podIps.classList.add('highlight'); return; }
-      // DNS returns the Pod IPs directly, so the client goes straight to a Pod with no proxy. The
-      // target here is a box of IPs, not a Pod, so no pulse: ripple plus the box lighting only.
-      const from = [TYPE_EDGE, cy(Y_HL)], to = [TGT_X, cy(Y_HL)];
-      const hop = segmentPacket(s, ctx, { from, to, role: 'network' });
-      ridingLabel(s, ctx, 'Pod IP direct', [from, to], { easing: 'linear' });
-      lightBoxAt(s.refs.podIps, ctx, hop.arrivalMs);
-    },
+    lit: ['hl'],
+    // DNS returns the Pod IPs directly, so the client goes straight to a Pod with no proxy. The
+    // target here is a box of IPs, not a Pod, so no pulse: ripple plus the box lighting only.
+    flow: [
+      F.segment({ from: HOP_HL[0], to: HOP_HL[1], name: 'hop' }),
+      F.tag({ text: 'Pod IP direct', points: HOP_HL, easing: 'linear' }),
+      F.light({ targets: ['podIps'], at: 'hop' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

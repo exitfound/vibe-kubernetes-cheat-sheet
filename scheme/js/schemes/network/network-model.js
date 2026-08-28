@@ -1,6 +1,6 @@
+import { P, F, defineCard, makeRidingLabel, relationPath, routeDur, shade, BEAT, OPACITY } from './network-kit.js';
 import { g, rect, text, line } from '../../lib/svg.js';
-import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setBoxSublabel, setPodSublabel, pulsePod, routePacket, routeDur, makeInit, clearHighlights, clearWires, relationPath, BEAT, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-model
 
 
@@ -52,264 +52,225 @@ const CNI_BOTTOM = CNI_Y + CNI_H;
 // one line inside the band. It stops on the rail rather than on a border, like the Pod wires do.
 const CNI_CONNECTOR = [[CNI_X, CNI_BOTTOM], [CNI_X, BUS_Y]];
 
-function podBlock({ x, label, ip }) {
-  const shell = podShell({ x, y: POD_TOP, w: POD_W, h: 120, label, sublabel: ip, containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 18, y: POD_TOP + 34, w: POD_W - 36, h: 50, label: 'app', sublabel: 'eth0', role: 'network' });
-  return wrapPod(shell, innerBox);
+// The dashed bus inside the band, in band-local coordinates: one spine plus a tooth turning down
+// toward each Pod, and a spine extension that reaches the band edge only on the CNI step.
+const POD_LOCAL_X = [AX, BX, CX, DX].map(x => x - BAND_X);
+const RAIL_LAST_X = POD_LOCAL_X[POD_LOCAL_X.length - 1];
+const RAIL_SPINE = `M ${POD_LOCAL_X[0]} ${RAIL_LOCAL_Y} L ${RAIL_LAST_X} ${RAIL_LOCAL_Y}`;
+const RAIL_TEETH = POD_LOCAL_X.map(px => `M ${px} ${RAIL_LOCAL_Y} L ${px} ${BAND_H}`).join(' ');
+const RAIL_D = `${RAIL_SPINE} ${RAIL_TEETH}`;
+const RAIL_EXT = [[RAIL_LAST_X, RAIL_LOCAL_Y], [BAND_W, RAIL_LOCAL_Y]];
+
+const BUS_SUBLABEL = 'one cluster-wide address space';
+
+// Flat-network band built by hand so a dashed rail can sit inside it, below the centred label and
+// above the sublabel. No part kind carries a data-role plus six ordered children, so this is P.raw.
+function busBand(refs) {
+  const bus = g({ class: 'scheme-box', 'data-role': 'network', transform: `translate(${BAND_X},${BAND_Y})` });
+  bus.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: BAND_W, height: BAND_H, rx: 6, ry: 6 }));
+  bus.appendChild(text({ class: 'scheme-box-label', x: BAND_W / 2, y: LABEL_LOCAL_Y, 'text-anchor': 'middle' }, ['Flat Pod Network']));
+  refs.busRail = relationPath({ d: RAIL_D });
+  bus.appendChild(refs.busRail);
+  refs.busRailExt = relationPath({ points: RAIL_EXT });
+  refs.busRailExt.style.opacity = '0';
+  bus.appendChild(refs.busRailExt);
+  bus.appendChild(text({ class: 'scheme-box-sublabel', x: BAND_W / 2, y: SUBLABEL_LOCAL_Y, 'text-anchor': 'middle' }, [BUS_SUBLABEL]));
+  return bus;
 }
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+// Pod wires are bidirectional: traffic flows both ways between a Pod and the flat space, so each is
+// a double-headed dashed <line>, which pathArrow cannot draw, hence four more P.raw parts.
+const podWire = (x) => line({
+  class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim',
+  x1: x, y1: BAND_BOTTOM, x2: x, y2: POD_TOP,
+  'marker-start': 'url(#arrowhead-dim)', 'marker-end': 'url(#arrowhead-dim)',
+});
 
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'The Kubernetes network model: every Pod attaches to one flat cluster-wide address space, any Pod reaches any other Pod on any Node with no NAT, the Node agent reaches its local Pods, and a CNI plugin is what implements the model' });
-    root.appendChild(arrowDefs());
+// The IP line fades in on the address step, so each Pod hands its sublabel child up as a ref: an
+// animation target no part kind keys. The tune assigns a LITERAL key (unit/spec-steps.test.mjs).
+const podPart = ({ key, innerKey, tune, x, label }) => P.pod({
+  key, innerKey, tune, x: x - POD_W / 2, y: POD_TOP, w: POD_W, h: 120, label, sublabel: IP_PENDING,
+  inner: { dx: 18, dy: 34, w: POD_W - 36, h: 50, label: 'app', sublabel: 'eth0' },
+});
+const SUB = '.scheme-pod-sublabel';
 
-    // Flat-network band built by hand so a dashed rail can sit inside it, below the centred
-    // label and above the sublabel. setBoxSublabel still finds the .scheme-box-sublabel child.
-    const bus = g({ class: 'scheme-box', 'data-role': 'network', transform: `translate(${BAND_X},${BAND_Y})` });
-    bus.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: BAND_W, height: BAND_H, rx: 6, ry: 6 }));
-    bus.appendChild(text({ class: 'scheme-box-label', x: BAND_W / 2, y: LABEL_LOCAL_Y, 'text-anchor': 'middle' }, ['Flat Pod Network']));
-    const podLocalX = [AX, BX, CX, DX].map(x => x - BAND_X);
-    const spine = `M ${podLocalX[0]} ${RAIL_LOCAL_Y} L ${podLocalX[podLocalX.length - 1]} ${RAIL_LOCAL_Y}`;
-    const teeth = podLocalX.map(px => `M ${px} ${RAIL_LOCAL_Y} L ${px} ${BAND_H}`).join(' ');
-    const busRail = relationPath({ d: `${spine} ${teeth}` });
-    bus.appendChild(busRail);
-    // Spine extension to the band's right edge, hidden until the CNI step, where it reaches out to
-    // meet the incoming CNI arrow.
-    const busRailExt = relationPath({ points: [[podLocalX[podLocalX.length - 1], RAIL_LOCAL_Y], [BAND_W, RAIL_LOCAL_Y]] });
-    busRailExt.style.opacity = '0';
-    bus.appendChild(busRailExt);
-    bus.appendChild(text({ class: 'scheme-box-sublabel', x: BAND_W / 2, y: SUBLABEL_LOCAL_Y, 'text-anchor': 'middle' }, ['one cluster-wide address space']));
-
-    const kubelet = box({ x: KUBELET_X - KUBELET_W / 2, y: KUBELET_Y, w: KUBELET_W, h: KUBELET_H, label: 'Kubelet', sublabel: 'Node agent on Node-2', role: 'network' });
-
+// Z-order: band + kubelet + cni + pods, then the dim wires ABOVE them, then chips, then packets.
+export const SCENE = {
+  'aria-label': 'The Kubernetes network model: every Pod attaches to one flat cluster-wide address space, any Pod reaches any other Pod on any Node with no NAT, the Node agent reaches its local Pods, and a CNI plugin is what implements the model',
+  parts: [
+    P.defs(),
+    P.raw({ key: 'bus', make: busBand }),
+    P.box({ key: 'kubelet', x: KUBELET_X - KUBELET_W / 2, y: KUBELET_Y, w: KUBELET_W, h: KUBELET_H, label: 'Kubelet', sublabel: 'Node agent on Node-2' }),
     // CNI plugin badge + its wire into the band. Hidden until the last step, where it is revealed
     // as the thing that implements the flat space.
-    const cni = box({ x: CNI_X - CNI_W / 2, y: CNI_Y, w: CNI_W, h: CNI_H, label: 'CNI plugin', sublabel: 'Calico . Cilium . Flannel', role: 'network' });
-    const cniWire = pathArrow({ points: CNI_CONNECTOR, dashed: true, dim: true });
-    cni.style.opacity = '0';
-    cniWire.style.opacity = '0';
-
-    const a = podBlock({ x: AX - POD_W / 2, label: 'Pod . Node-1', ip: IP_PENDING });
-    const b = podBlock({ x: BX - POD_W / 2, label: 'Pod . Node-1', ip: IP_PENDING });
-    const c = podBlock({ x: CX - POD_W / 2, label: 'Pod . Node-2', ip: IP_PENDING });
-    const d = podBlock({ x: DX - POD_W / 2, label: 'Pod . Node-3', ip: IP_PENDING });
-
-    // Pod wires are bidirectional: traffic flows both ways between a Pod and the flat space, so
-    // each is a double-headed dashed arrow that abuts the bus tooth at the band edge.
-    const podWire = (x) => line({
-      class: 'scheme-arrow scheme-arrow-dashed scheme-arrow-dim',
-      x1: x, y1: BAND_BOTTOM, x2: x, y2: POD_TOP,
-      'marker-start': 'url(#arrowhead-dim)', 'marker-end': 'url(#arrowhead-dim)',
-    });
-    const wA = podWire(AX), wB = podWire(BX), wC = podWire(CX), wD = podWire(DX);
-    // kubelet down to the band stays a single directional reach.
-    const wK = arrow({ x1: KUBELET_X, y1: KUBELET_BOTTOM, x2: KUBELET_X, y2: BAND_Y, dashed: true, dim: true });
-
+    P.box({ key: 'cni', x: CNI_X - CNI_W / 2, y: CNI_Y, w: CNI_W, h: CNI_H, label: 'CNI plugin', sublabel: 'Calico . Cilium . Flannel', opacity: 0 }),
+    podPart({ key: 'podA', innerKey: 'podABox', tune: (el, refs) => { refs.podASub = el.querySelector(SUB); }, x: AX, label: 'Pod . Node-1' }),
+    podPart({ key: 'podB', innerKey: 'podBBox', tune: (el, refs) => { refs.podBSub = el.querySelector(SUB); }, x: BX, label: 'Pod . Node-1' }),
+    podPart({ key: 'podC', innerKey: 'podCBox', tune: (el, refs) => { refs.podCSub = el.querySelector(SUB); }, x: CX, label: 'Pod . Node-2' }),
+    podPart({ key: 'podD', innerKey: 'podDBox', tune: (el, refs) => { refs.podDSub = el.querySelector(SUB); }, x: DX, label: 'Pod . Node-3' }),
+    P.raw({ key: 'wireA', make: () => podWire(AX) }),
+    P.raw({ key: 'wireB', make: () => podWire(BX) }),
+    P.raw({ key: 'wireC', make: () => podWire(CX) }),
+    P.raw({ key: 'wireD', make: () => podWire(DX) }),
+    // kubelet down to the band stays a single directional reach. It and the CNI wire predate the kit
+    // binding and carry NO role, so `role: ''` keeps the neutral dim arrowhead.
+    P.arrow({ from: [KUBELET_X, KUBELET_BOTTOM], to: [KUBELET_X, BAND_Y], dashed: true, dim: true, role: '' }),
+    P.lane({ key: 'cniWire', points: CNI_CONNECTOR, dashed: true, dim: true, role: '', opacity: 0 }),
     // Info chips stretched evenly across the whole composition: left edge on the band left,
     // right edge on the CNI badge right, so the strip spans SCHEME_L..SCHEME_R and centres on 600.
-    const ipChip    = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'Pod IP', value: 'one per Pod', role: 'network' });
-    const natChip   = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'NAT', value: 'none', role: 'network' });
-    const reachChip = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'reachability', value: 'any to any', role: 'network' });
+    P.chip({ key: 'ipChip', x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'Pod IP', value: 'one per Pod' }),
+    P.chip({ key: 'natChip', x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'NAT', value: 'none' }),
+    P.chip({ key: 'reachChip', x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'reachability', value: 'any to any' }),
+    P.packets(),
+  ],
+  reset: {
+    // The four container boxes are keys, not pod groups: the pod-group list only resets inline pulse
+    // strokes, so a .highlight put on a container stayed on for the rest of the card.
+    keys: ['bus', 'kubelet', 'cni', 'podABox', 'podBBox', 'podCBox', 'podDBox', 'ipChip', 'natChip', 'reachChip'],
+    pods: ['podA', 'podB', 'podC', 'podD'],
+  },
+};
 
-    const packetLayer = g({ id: 'packetLayer' });
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: hold 260
+// leaves the source IP standing after the ball lands, which is how a step shows it arrived unchanged.
+const ridingLabel = makeRidingLabel({ role: 'network', dy: -46, inMs: 160, outMs: 200, hold: 260 });
+const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
-    // Z-order: band + kubelet + cni + pods, then the dim wires ABOVE them, then chips, then packets.
-    root.appendChild(bus);
-    root.appendChild(kubelet);
-    root.appendChild(cni);
-    [a, b, c, d].forEach(p => root.appendChild(p.group));
-    [wA, wB, wC, wD, wK, cniWire].forEach(w => root.appendChild(w));
-    [ipChip, natChip, reachChip].forEach(ch => root.appendChild(ch));
-    root.appendChild(packetLayer);
+// Pods return to full opacity (the node-agent step dims out-of-scope ones), and the CNI badge with
+// the spine extension stay hidden until the CNI step reveals them.
+const REST = { podA: 1, podB: 1, podC: 1, podD: 1, cni: 0, cniWire: 0, busRailExt: 0 };
+const PENDING_IPS = { podA: IP_PENDING, podB: IP_PENDING, podC: IP_PENDING, podD: IP_PENDING };
+const REAL_IPS = { podA: POD_IPS[0], podB: POD_IPS[1], podC: POD_IPS[2], podD: POD_IPS[3] };
 
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, bus, busRail, busRailExt, kubelet, cni, cniWire,
-      podA: a.group, podABox: a.innerBox, podB: b.group, podBBox: b.innerBox,
-      podC: c.group, podCBox: c.innerBox, podD: d.group, podDBox: d.innerBox,
-      podWires: [wA, wB, wC, wD],
-      ipChip, natChip, reachChip,
-      packetLayer, wires: {},
-    };
-  }
+// The address line fading in as it appears, one per Pod, in Pod order.
+const IP_FADE = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 320, fill: 'forwards', easing: 'ease-out' } };
+// A block coming into view on the CNI step, and the marching dashes that read as current flowing
+// along a dim wire without touching its dash pattern.
+const CNI_FADE = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 300, fill: 'forwards', easing: 'ease-out' } };
+const MARCH = { keyframes: [{ strokeDashoffset: 0 }, { strokeDashoffset: -20 }], options: { duration: 700, iterations: Infinity, easing: 'linear' } };
 
-  reset() { this.build(); }
-}
-
-function setChips(s, { ipChip, nat, reach }) {
-  setVal(s.refs.ipChip, ipChip);
-  setVal(s.refs.natChip, nat);
-  setVal(s.refs.reachChip, reach);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  // The four container boxes are keys, not pod groups: the pod-group list only resets inline pulse
-  // strokes, so a .highlight put on a container stayed on for the rest of the card.
-  clearHighlights(s, ['bus', 'kubelet', 'cni', 'podABox', 'podBBox', 'podCBox', 'podDBox',
-    'ipChip', 'natChip', 'reachChip'],
-    [s.refs.podA, s.refs.podB, s.refs.podC, s.refs.podD]);
-  setBoxSublabel(s.refs.bus, 'one cluster-wide address space');
-  // Pods return to full opacity (the node-agent step dims out-of-scope ones).
-  [s.refs.podA, s.refs.podB, s.refs.podC, s.refs.podD].forEach(p => { p.style.opacity = '1'; });
-  // The CNI badge and the spine extension stay hidden until the CNI step reveals them.
-  s.refs.cni.style.opacity = '0';
-  s.refs.cniWire.style.opacity = '0';
-  s.refs.busRailExt.style.opacity = '0';
-  clearWires(s);
-}
-
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
-
-// Marching dashes along a dim wire, without touching its dash pattern, so it reads as current
-// flowing. Used on the CNI step to energize the whole fabric.
-function marchWire(s, ctx, el, delay = 0) {
-  if (ctx.reduced || !el) return;
-  ctx.register(el.animate(
-    [{ strokeDashoffset: 0 }, { strokeDashoffset: -20 }],
-    { duration: 700, delay, iterations: Infinity, easing: 'linear' }
-  ));
-}
-
-const POD_KEYS = ['podA', 'podB', 'podC', 'podD'];
-// Idle: no address yet. Rule one is where the IP appears.
-function pendingIps(s) {
-  POD_KEYS.forEach(k => setPodSublabel(s.refs[k], IP_PENDING));
-}
-// Rule one: each Pod gets its real IP. Reveal the text (always) and fade it in when animating.
-function revealIps(s, ctx) {
-  POD_KEYS.forEach((k, i) => {
-    setPodSublabel(s.refs[k], POD_IPS[i]);
-    if (ctx.reduced) return;
-    const sub = s.refs[k].querySelector('.scheme-pod-sublabel');
-    if (sub) ctx.register(sub.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, fill: 'forwards', easing: 'ease-out' }));
-  });
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      pendingIps(s);
-      setChips(s, { ipChip: 'one per Pod', nat: 'none', reach: 'any to any' });
-    },
+    chips: { ipChip: 'one per Pod', natChip: 'none', reachChip: 'any to any' },
+    sublabels: { bus: BUS_SUBLABEL },
+    podSublabels: PENDING_IPS,
+    opacity: REST,
   },
   {
     id: 'pod-ip',
     duration: 2200,
     narration: 'Rule one: every Pod gets its own IP, unique across the entire cluster. A Pod sees that same address as the one other Pods use to reach it, so there is no port mapping and no rewriting to reason about.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.ipChip.classList.add('highlight');
-      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none', reach: 'any to any' });
-      // The address appears here: x.x.x.x at idle becomes the real Pod IP on this step.
-      revealIps(s, ctx);
-      if (ctx.reduced) {
-        [s.refs.podABox, s.refs.podBBox, s.refs.podCBox, s.refs.podDBox].forEach(b => b.classList.add('highlight'));
-        return;
-      }
-      // Every Pod owns an address: all four pulse together to read as one address space.
-      pulsePod(s.refs.podA, ctx, 0);
-      pulsePod(s.refs.podB, ctx, 0);
-      pulsePod(s.refs.podC, ctx, 0);
-      pulsePod(s.refs.podD, ctx, 0);
-    },
+    chips: { ipChip: 'unique, cluster-wide', natChip: 'none', reachChip: 'any to any' },
+    sublabels: { bus: BUS_SUBLABEL },
+    // The address appears here: x.x.x.x at idle becomes the real Pod IP on this step.
+    podSublabels: REAL_IPS,
+    opacity: REST,
+    lit: ['ipChip'],
+    // The animated path says every Pod owns an address by PULSING all four, which no lights list names.
+    reducedLit: ['podABox', 'podBBox', 'podCBox', 'podDBox'],
+    // The IP text fades in Pod by Pod, then all four pulse together to read as one address space.
+    flow: [
+      F.anim({ target: 'podASub', ...IP_FADE }),
+      F.anim({ target: 'podBSub', ...IP_FADE }),
+      F.anim({ target: 'podCSub', ...IP_FADE }),
+      F.anim({ target: 'podDSub', ...IP_FADE }),
+      F.pulse({ pod: 'podA' }),
+      F.pulse({ pod: 'podB' }),
+      F.pulse({ pod: 'podC' }),
+      F.pulse({ pod: 'podD' }),
+    ],
   },
   {
     id: 'no-nat',
     duration: 3300,
     narration: 'Rule two: any Pod can reach any other Pod on any Node directly, with no NAT on the way. The source address that arrives is the real Pod IP, here 10.244.1.5, even when the packet crosses to another Node.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.natChip.classList.add('highlight');
-      s.refs.reachChip.classList.add('highlight');
-      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none, src 10.244.1.5', reach: 'cross-Node direct' });
-      if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); return; }
-      pulsePod(s.refs.podA, ctx, 0);
-      // routePacket omits dur (canon: routeDur normalizes by length). The label uses the same
-      // routeDur so it stays locked to the packet.
-      const dur = routeDur(A_TO_C);
-      const hop = routePacket(s, ctx, A_TO_C, { delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'src 10.244.1.5', A_TO_C, { delay: BEAT.afterPulse, dur });
-      pulsePod(s.refs.podC, ctx, hop.arrivalMs);
-    },
+    chips: { ipChip: 'unique, cluster-wide', natChip: 'none, src 10.244.1.5', reachChip: 'cross-Node direct' },
+    sublabels: { bus: BUS_SUBLABEL },
+    podSublabels: REAL_IPS,
+    opacity: REST,
+    lit: ['natChip', 'reachChip'],
+    // The animated path says the far Pod was reached by PULSING it, which no lights list can name.
+    reducedLit: ['podCBox'],
+    // Up-arrow: the sender pulses first. The route omits `dur` (canon: routeDur normalizes by
+    // length) and the tag uses the same routeDur so it stays locked to the packet.
+    flow: [
+      F.pulse({ pod: 'podA' }),
+      F.route({ points: A_TO_C, delay: BEAT.afterPulse, name: 'hop' }),
+      tag({ text: 'src 10.244.1.5', points: A_TO_C, delay: BEAT.afterPulse, dur: routeDur(A_TO_C) }),
+      F.pulse({ pod: 'podC', at: 'hop' }),
+    ],
   },
   {
     id: 'same-node',
     duration: 2800,
     narration: 'Same address space on one Node too. Pod 10.244.1.5 reaches its neighbour 10.244.1.6, both on Node-1, with the same flat addressing and no NAT. The traffic never leaves the Node, but to the Pods it is the very same model, no special case to reason about.',
-    enter(s, ctx) {
-      resetStep(s);
-      // NAT still applies on the same-Node path: the src arrives unchanged, so the chip stays
-      // highlighted and current, not dropped while its neighbour stays lit.
-      s.refs.natChip.classList.add('highlight');
-      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none, src 10.244.1.5', reach: 'same-Node direct' });
-      s.refs.reachChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.podBBox.classList.add('highlight'); return; }
-      // Same mechanism as cross-Node, just a shorter ride: A pulses, packet rides A -> B, B pulses.
-      // The same src-IP tag rides along and arrives unchanged, no NAT on the local path either.
-      pulsePod(s.refs.podA, ctx, 0);
-      const dur = routeDur(A_TO_B);
-      const hop = routePacket(s, ctx, A_TO_B, { delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'src 10.244.1.5', A_TO_B, { delay: BEAT.afterPulse, dur });
-      pulsePod(s.refs.podB, ctx, hop.arrivalMs);
-    },
+    // NAT still applies on the same-Node path: the src arrives unchanged, so the chip stays
+    // highlighted and current, not dropped while its neighbour stays lit.
+    chips: { ipChip: 'unique, cluster-wide', natChip: 'none, src 10.244.1.5', reachChip: 'same-Node direct' },
+    sublabels: { bus: BUS_SUBLABEL },
+    podSublabels: REAL_IPS,
+    opacity: REST,
+    lit: ['natChip', 'reachChip'],
+    // The animated path says the neighbour was reached by PULSING it, which no lights list can name.
+    reducedLit: ['podBBox'],
+    // Same mechanism as cross-Node, just a shorter ride: A pulses, packet rides A -> B, B pulses.
+    // The same src-IP tag rides along and arrives unchanged, no NAT on the local path either.
+    flow: [
+      F.pulse({ pod: 'podA' }),
+      F.route({ points: A_TO_B, delay: BEAT.afterPulse, name: 'hop' }),
+      tag({ text: 'src 10.244.1.5', points: A_TO_B, delay: BEAT.afterPulse, dur: routeDur(A_TO_B) }),
+      F.pulse({ pod: 'podB', at: 'hop' }),
+    ],
   },
   {
     id: 'node-agent',
     duration: 2400,
     narration: 'Rule three is narrower: the Node agent, the Kubelet, reaches only the Pods on its own Node. The Kubelet on Node-2 talks to Pod 10.244.2.7, its local Pod, to run the HTTP and TCP probes that decide whether it is live and ready. Pods on other Nodes are out of this guarantee.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.kubelet.classList.add('highlight');
-      s.refs.reachChip.classList.add('highlight');
-      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none', reach: 'agent to local Pod' });
-      s.refs.natChip.classList.add('highlight');
-      // Local scope: the kubelet on Node-2 reaches only its Node-2 Pod (C). Fade the other Nodes
-      // out so the guarantee reads as local-only, not the any-to-any of rule two.
-      s.refs.podA.style.opacity = String(OPACITY.notready);
-      s.refs.podB.style.opacity = String(OPACITY.notready);
-      s.refs.podD.style.opacity = String(OPACITY.notready);
-      if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); return; }
-      // Down-arrow: infrastructure reaches a Pod, so the packet goes first and the Pod pulses on
-      // arrival.
-      const hop = routePacket(s, ctx, KUBELET_TO_C, { role: 'network' });
-      pulsePod(s.refs.podC, ctx, hop.arrivalMs);
-    },
+    chips: { ipChip: 'unique, cluster-wide', natChip: 'none', reachChip: 'agent to local Pod' },
+    sublabels: { bus: BUS_SUBLABEL },
+    podSublabels: REAL_IPS,
+    // Local scope: the kubelet on Node-2 reaches only its Node-2 Pod (C). Fade the other Nodes
+    // out so the guarantee reads as local-only, not the any-to-any of rule two.
+    opacity: { ...REST, ...shade(['podA', 'podB', 'podD'], OPACITY.notready) },
+    lit: ['kubelet', 'reachChip', 'natChip'],
+    // The animated path says the local Pod was reached by PULSING it, which no lights list can name.
+    reducedLit: ['podCBox'],
+    // Down-arrow: infrastructure reaches a Pod, so the packet goes first and the Pod pulses on
+    // arrival.
+    flow: [
+      F.route({ points: KUBELET_TO_C, name: 'hop' }),
+      F.pulse({ pod: 'podC', at: 'hop' }),
+    ],
   },
   {
     id: 'cni',
     duration: 2600,
     narration: 'None of this is hard-wired into the core. A CNI plugin, such as Calico, Cilium or Flannel, is what attaches every Pod to the flat space and upholds all of these rules. Here it lights up the whole fabric. Swap the plugin and the model stays the same.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ipChip: 'unique, cluster-wide', nat: 'none', reach: 'agent to local Pod' });
-      s.refs.bus.classList.add('highlight');
-      setBoxSublabel(s.refs.bus, 'implemented by your CNI plugin');
-      // Reveal the CNI badge and let it energize the fabric: the bus spine and every Pod wire
-      // get marching dashes, as if the plugin is wiring the whole flat space at once.
-      s.refs.cni.classList.add('highlight');
-      s.refs.cni.style.opacity = '1';
-      s.refs.cniWire.style.opacity = '1';
-      // Only here does the spine reach the band's right edge, to meet the CNI arrow.
-      s.refs.busRailExt.style.opacity = '1';
-      if (ctx.reduced) return;
-      ctx.register(s.refs.cni.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(s.refs.cniWire.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: 'forwards', easing: 'ease-out' }));
-      ctx.register(s.refs.busRailExt.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: 'forwards', easing: 'ease-out' }));
-      marchWire(s, ctx, s.refs.cniWire, 0);
-      marchWire(s, ctx, s.refs.busRail, 120);
-      marchWire(s, ctx, s.refs.busRailExt, 120);
-      s.refs.podWires.forEach((w, i) => marchWire(s, ctx, w, 240 + i * 90));
-    },
+    chips: { ipChip: 'unique, cluster-wide', natChip: 'none', reachChip: 'any to any' },
+    sublabels: { bus: 'implemented by your CNI plugin' },
+    podSublabels: REAL_IPS,
+    // The badge, its wire, and the spine reaching the band's right edge to meet that wire, all of
+    // which the animated path fades in on top of this resting state.
+    opacity: { podA: 1, podB: 1, podC: 1, podD: 1, cni: 1, cniWire: 1, busRailExt: 1 },
+    // reachability returns to any to any here, so the chip that carries it lights with the fabric.
+    lit: ['bus', 'cni', 'reachChip'],
+    // The badge appears and energizes the fabric: the bus spine and every Pod wire get marching
+    // dashes, as if the plugin is wiring the whole flat space at once.
+    flow: [
+      F.anim({ target: 'cni', ...CNI_FADE }),
+      F.anim({ target: 'cniWire', ...CNI_FADE }),
+      F.anim({ target: 'busRailExt', ...CNI_FADE }),
+      F.anim({ target: 'cniWire', ...MARCH }),
+      F.anim({ target: 'busRail', ...MARCH, delay: 120 }),
+      F.anim({ target: 'busRailExt', ...MARCH, delay: 120 }),
+      F.anim({ target: 'wireA', ...MARCH, delay: 240 }),
+      F.anim({ target: 'wireB', ...MARCH, delay: 330 }),
+      F.anim({ target: 'wireC', ...MARCH, delay: 420 }),
+      F.anim({ target: 'wireD', ...MARCH, delay: 510 }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

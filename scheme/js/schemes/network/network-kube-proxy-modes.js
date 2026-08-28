@@ -1,6 +1,6 @@
+import { P, F, defineCard, laneY, midX, spread, shade, BEAT, OPACITY } from './network-kit.js';
 import { g, rect, text } from '../../lib/svg.js';
-import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, OPACITY, lightBoxAt, wrapPod, diagramRoot } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-kube-proxy-modes
 
 
@@ -10,18 +10,18 @@ const SCHEME_L = 40, SCHEME_R = 1160;  // content edges, mirrored about the canv
 // enough that the Client Pod shell clears it.
 const AXIS = 352;
 const LANE_DY = 144;             // chain lane above the axis, hash lane the same distance below
-const TOP_Y = AXIS - LANE_DY;    // 208: iptables chain lane
-const BOT_Y = AXIS + LANE_DY;    // 496: IPVS hash lane
+// 208: iptables chain lane. 496: IPVS hash lane.
+const { out: TOP_Y, back: BOT_Y } = laneY(AXIS, LANE_DY);
 const ROW_H = 56;                // chain box height, centred on its lane
 const IPVS_H = 88;               // hash box height, centred on its lane
 const POD_DY = LANE_DY / 2;      // 72
-const PODA_Y = AXIS - POD_DY;    // 280: upper backend, reached from above (chain comes down)
-const PODB_Y = AXIS + POD_DY;    // 424: lower backend, reached from below (IPVS comes up)
+// 280: upper backend, reached from above (chain comes down). 424: lower backend, reached from below.
+const { out: PODA_Y, back: PODB_Y } = laneY(AXIS, POD_DY);
 
 const CLIENT_W = 196, CLIENT_H = 128;
-const CLIENT_R = SCHEME_L + CLIENT_W;  // 248: right edge, where both entry lanes leave
+const CLIENT_R = SCHEME_L + CLIENT_W;  // 236: right edge, where both entry lanes leave
 const POD_W = 200, POD_H = 104;
-const POD_X = SCHEME_R - POD_W;        // 948: backend column left edge
+const POD_X = SCHEME_R - POD_W;        // 960: backend column left edge
 
 // Engine row: the iptables chain and the equally wide hash box. It starts at 420 because the chain
 // boxes sit ABOVE the narration panel bottom, so they have to clear its right edge (x <= 397).
@@ -32,13 +32,13 @@ const SVC = { x: ENGINE_L + 150 + ENGINE_GAP, w: 150 };          // 594..744
 const SEP = { x: ENGINE_L + 324 + ENGINE_GAP, w: ENGINE_R - (ENGINE_L + 348) }; // 768..912
 const IPVS = { x: ENGINE_L, w: ENGINE_W };
 
-const ENTRY_X = (CLIENT_R + ENGINE_L) / 2;   // 301: entry bend, centred in the client-to-engines gap
-const TURN_X = (ENGINE_R + POD_X) / 2;       // 897: delivery turn, centred in the engines-to-Pod gap
+const ENTRY_X = midX(CLIENT_R, ENGINE_L);   // 328: entry bend, centred in the client-to-engines gap
+const TURN_X = midX(ENGINE_R, POD_X);       // 936: delivery turn, centred in the engines-to-Pod gap
 const PAUSE = 240;          // dwell inside each chain box, so the walk reads as sequential
 
+// Three chips of a fixed width spanning the whole content band, so the strip centres on 600.
 const CHIP_Y = 590, CHIP_H = 34, CHIP_W = 350;
-const CHIP_GAP = (SCHEME_R - SCHEME_L - 3 * CHIP_W) / 2;   // 35
-const chipX = (i) => SCHEME_L + i * (CHIP_W + CHIP_GAP);
+const CHIPS = spread({ from: SCHEME_L, to: SCHEME_R, count: 3, w: CHIP_W });   // gap 35
 
 // iptables hops: client -> KS (one zigzag), the two gaps, then SEP -> centred turn -> upper Pod.
 const IPT_H1 = [[CLIENT_R, AXIS], [ENTRY_X, AXIS], [ENTRY_X, TOP_Y], [KS.x, TOP_Y]];
@@ -49,20 +49,10 @@ const IPT_H4 = [[ENGINE_R, TOP_Y], [TURN_X, TOP_Y], [TURN_X, PODA_Y], [POD_X, PO
 const IPVS_H1 = [[CLIENT_R, AXIS], [ENTRY_X, AXIS], [ENTRY_X, BOT_Y], [IPVS.x, BOT_Y]];
 const IPVS_H2 = [[ENGINE_R, BOT_Y], [TURN_X, BOT_Y], [TURN_X, PODB_Y], [POD_X, PODB_Y]];
 
-function podBlock({ x, y, w, h, label, ip }) {
-  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 18, y: y + 28, w: w - 36, h: 42, label: 'app', sublabel: 'eth0', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
-
-function clientBlock({ x, y, w, h }) {
-  const shell = podShell({ x, y, w, h, label: 'Client Pod', sublabel: '10.244.1.5', containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 18, y: y + 36, w: w - 36, h: 50, label: 'Socket', sublabel: 'dst 10.96.0.20', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
+const POD_INNER = { dx: 18, dy: 28, w: POD_W - 36, h: 42, label: 'app', sublabel: 'eth0' };
 
 // IPVS engine: a wide box whose body is a bucket grid, so it reads as one indexed hash table that
-// does the work of the whole chain above it.
+// does the work of the whole chain above it. No part kind draws a rect row, hence P.raw.
 function ipvsEngine({ x, y, w, h }) {
   const grp = g({ class: 'scheme-box', 'data-role': 'network', transform: `translate(${x},${y})` });
   grp.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: w, height: h, rx: 6 }));
@@ -78,177 +68,131 @@ function ipvsEngine({ x, y, w, h }) {
   return grp;
 }
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'kube-proxy backend selection as two routes: the iptables route walks a chain KUBE-SERVICES to KUBE-SVC to KUBE-SEP box by box that grows O(n) with Services, while the IPVS route resolves a backend in one O(1) in-kernel hash lookup' });
-    root.appendChild(arrowDefs());
-
-    const client = clientBlock({ x: SCHEME_L, y: AXIS - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H });
-
+// Z-order: client + pods, then the two lanes, then the tags, then chips, then packets on top.
+export const SCENE = {
+  'aria-label': 'kube-proxy backend selection as two routes: the iptables route walks a chain KUBE-SERVICES to KUBE-SVC to KUBE-SEP box by box that grows O(n) with Services, while the IPVS route resolves a backend in one O(1) in-kernel hash lookup',
+  parts: [
+    P.defs(),
+    P.pod({
+      key: 'client', innerKey: 'clientBox', x: SCHEME_L, y: AXIS - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H,
+      label: 'Client Pod', sublabel: '10.244.1.5',
+      inner: { dx: 18, dy: 36, w: CLIENT_W - 36, h: 50, label: 'Socket', sublabel: 'dst 10.96.0.20' },
+    }),
+    P.pod({
+      key: 'podA', innerKey: 'podABox', x: POD_X, y: PODA_Y - POD_H / 2, w: POD_W, h: POD_H,
+      label: 'Pod web', sublabel: '10.244.2.7:8080', inner: POD_INNER,
+    }),
+    P.pod({
+      key: 'podB', innerKey: 'podBBox', x: POD_X, y: PODB_Y - POD_H / 2, w: POD_W, h: POD_H,
+      label: 'Pod web', sublabel: '10.244.3.9:8080', inner: POD_INNER,
+    }),
     // iptables lane: chain boxes + a single zigzag entry, two gap arrows and one centred delivery
     // arrow down to the upper Pod, grouped so the lane dims as one. Every wire rides a gap.
-    const ks  = box({ x: KS.x,  y: TOP_Y - ROW_H / 2, w: KS.w,  h: ROW_H, label: 'KUBE-SERVICES', sublabel: 'match dst :80', role: 'network' });
-    const svc = box({ x: SVC.x, y: TOP_Y - ROW_H / 2, w: SVC.w, h: ROW_H, label: 'KUBE-SVC', sublabel: 'statistic random', role: 'network' });
-    const sep = box({ x: SEP.x, y: TOP_Y - ROW_H / 2, w: SEP.w, h: ROW_H, label: 'KUBE-SEP', sublabel: 'DNAT .2.7', role: 'network' });
-    const iEntry = pathArrow({ points: IPT_H1, dashed: true, dim: true, role: 'network' });
-    const iGap1 = arrow({ x1: KS.x + KS.w, y1: TOP_Y, x2: SVC.x, y2: TOP_Y, dashed: true, dim: true, role: 'network' });
-    const iGap2 = arrow({ x1: SVC.x + SVC.w, y1: TOP_Y, x2: SEP.x, y2: TOP_Y, dashed: true, dim: true, role: 'network' });
-    const iDeliver = pathArrow({ points: IPT_H4, dashed: true, dim: true, role: 'network' });
-    const iptLane = g({});
-    [ks, svc, sep, iEntry, iGap1, iGap2, iDeliver].forEach(el => iptLane.appendChild(el));
+    P.group({
+      key: 'iptLane',
+      parts: [
+        P.box({ key: 'ks', x: KS.x, y: TOP_Y - ROW_H / 2, w: KS.w, h: ROW_H, label: 'KUBE-SERVICES', sublabel: 'match dst :80' }),
+        P.box({ key: 'svc', x: SVC.x, y: TOP_Y - ROW_H / 2, w: SVC.w, h: ROW_H, label: 'KUBE-SVC', sublabel: 'statistic random' }),
+        P.box({ key: 'sep', x: SEP.x, y: TOP_Y - ROW_H / 2, w: SEP.w, h: ROW_H, label: 'KUBE-SEP', sublabel: 'DNAT .2.7' }),
+        P.lane({ points: IPT_H1, dashed: true, dim: true }),
+        P.arrow({ from: IPT_H2[0], to: IPT_H2[1], dashed: true, dim: true }),
+        P.arrow({ from: IPT_H3[0], to: IPT_H3[1], dashed: true, dim: true }),
+        P.lane({ points: IPT_H4, dashed: true, dim: true }),
+      ],
+    }),
+    P.group({
+      key: 'ipvsLane',
+      parts: [
+        P.raw({ key: 'ipvs', make: () => ipvsEngine({ x: IPVS.x, y: BOT_Y - IPVS_H / 2, w: IPVS.w, h: IPVS_H }) }),
+        P.lane({ points: IPVS_H1, dashed: true, dim: true }),
+        P.lane({ points: IPVS_H2, dashed: true, dim: true }),
+      ],
+    }),
+    // Each lane carries one per-step tag. The tune hands the same <text> up under a second name,
+    // because refs.wires is the setWire bucket and F.anim reaches for refs by key.
+    P.wire({ key: 'ipt', x: ENGINE_L + ENGINE_W / 2, y: TOP_Y + ROW_H, tune: (el, refs) => { refs.iptTag = el; } }),
+    P.wire({ key: 'ipvs', x: ENGINE_L + ENGINE_W / 2, y: BOT_Y - IPVS_H / 2 - 14, tune: (el, refs) => { refs.ipvsTag = el; } }),
+    P.chip({ key: 'iptChip', x: CHIPS.x(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'iptables', value: 'rule walk O(n)' }),
+    P.chip({ key: 'pickChip', x: CHIPS.x(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'selection', value: 'one backend' }),
+    P.chip({ key: 'ipvsChip', x: CHIPS.x(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'IPVS', value: 'hash O(1)' }),
+    P.packets(),
+  ],
+  reset: {
+    keys: ['ks', 'svc', 'sep', 'ipvs', 'iptChip', 'pickChip', 'ipvsChip', 'clientBox', 'podABox', 'podBBox'],
+    pods: ['client', 'podA', 'podB'],
+  },
+};
 
-    const ipvs = ipvsEngine({ x: IPVS.x, y: BOT_Y - IPVS_H / 2, w: IPVS.w, h: IPVS_H });
-    const vEntry = pathArrow({ points: IPVS_H1, dashed: true, dim: true, role: 'network' });
-    const vDeliver = pathArrow({ points: IPVS_H2, dashed: true, dim: true, role: 'network' });
-    const ipvsLane = g({});
-    [ipvs, vEntry, vDeliver].forEach(el => ipvsLane.appendChild(el));
+// Both lanes and both backends at rest, so each mode step states which half it dims.
+const ALL_UP = { iptLane: 1, ipvsLane: 1, podA: 1, podB: 1 };
+// The complexity pair the two mode steps never move: only the scale step turns it over.
+const BASE_COST = { iptChip: 'rule walk O(n)', ipvsChip: 'hash O(1)' };
+const TAG_FADE = { keyframes: [{ opacity: 0 }, { opacity: 1 }], options: { duration: 440, fill: 'forwards', easing: 'ease-out' } };
 
-    const podA = podBlock({ x: POD_X, y: PODA_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.2.7:8080' });
-    const podB = podBlock({ x: POD_X, y: PODB_Y - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web', ip: '10.244.3.9:8080' });
-
-    const iptTag  = text({ class: 'scheme-label code dim', x: ENGINE_L + ENGINE_W / 2, y: TOP_Y + ROW_H, 'text-anchor': 'middle' }, [' ']);
-    const ipvsTag = text({ class: 'scheme-label code dim', x: ENGINE_L + ENGINE_W / 2, y: BOT_Y - IPVS_H / 2 - 14, 'text-anchor': 'middle' }, [' ']);
-
-    const iptChip  = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'iptables', value: 'rule walk O(n)', role: 'network' });
-    const pickChip = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'selection', value: 'one backend', role: 'network' });
-    const ipvsChip = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_W, h: CHIP_H, name: 'IPVS', value: 'hash O(1)', role: 'network' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order: client + pods + lanes, then tags, then chips, then packets on top.
-    root.appendChild(client.group);
-    root.appendChild(podA.group);
-    root.appendChild(podB.group);
-    root.appendChild(iptLane);
-    root.appendChild(ipvsLane);
-    [iptTag, ipvsTag].forEach(el => root.appendChild(el));
-    [iptChip, pickChip, ipvsChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, client: client.group, clientBox: client.innerBox,
-      ks, svc, sep, ipvs, iptLane, ipvsLane,
-      podA: podA.group, podABox: podA.innerBox, podB: podB.group, podBBox: podB.innerBox,
-      iptChip, pickChip, ipvsChip, packetLayer,
-      wires: { ipt: iptTag, ipvs: ipvsTag },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { pick, ipt, ipvs }) {
-  setVal(s.refs.pickChip, pick);
-  setVal(s.refs.iptChip, ipt);
-  setVal(s.refs.ipvsChip, ipvs);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['ks', 'svc', 'sep', 'ipvs', 'iptChip', 'pickChip', 'ipvsChip', 'clientBox', 'podABox', 'podBBox'],
-    [s.refs.client, s.refs.podA, s.refs.podB]);
-  s.refs.iptLane.style.opacity = '1';
-  s.refs.ipvsLane.style.opacity = '1';
-  s.refs.podA.style.opacity = '1';
-  s.refs.podB.style.opacity = '1';
-  clearWires(s);
-}
-
-function baseComplexity(s) {
-  setVal(s.refs.iptChip, 'rule walk O(n)');
-  setVal(s.refs.ipvsChip, 'hash O(1)');
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      baseComplexity(s);
-      setChips(s, { pick: 'one backend', ipt: 'rule walk O(n)', ipvs: 'hash O(1)' });
-    },
+    chips: { ...BASE_COST, pickChip: 'one backend' },
+    opacity: ALL_UP,
   },
   {
     id: 'iptables',
     duration: 5400,
     narration: 'In iptables mode the packet walks a chain box by box. It enters KUBE-SERVICES, jumps to the per-Service KUBE-SVC chain that picks an endpoint by statistic random, then a KUBE-SEP chain DNATs it to that Pod, here 10.244.2.7. The kernel walks these rules in sequence, so the chain grows O(n) with the number of Services.',
-    enter(s, ctx) {
-      resetStep(s);
-      baseComplexity(s);
-      s.refs.iptChip.classList.add('highlight');
-      s.refs.pickChip.classList.add('highlight');
-      setChips(s, { pick: 'statistic random', ipt: 'rule walk O(n)', ipvs: 'hash O(1)' });
-      setWire(s, 'ipt', 'stops at every rule');
-      s.refs.ipvsLane.style.opacity = String(OPACITY.notready);
-      s.refs.podB.style.opacity = String(OPACITY.notready);
-      if (ctx.reduced) {
-        [s.refs.ks, s.refs.svc, s.refs.sep].forEach(b => b.classList.add('highlight'));
-        s.refs.podABox.classList.add('highlight');
-        return;
-      }
-      pulsePod(s.refs.client, ctx, 0);
-      const a1 = routePacket(s, ctx, IPT_H1, { delay: BEAT.afterPulse, role: 'network' });
-      lightBoxAt(s.refs.ks, ctx, a1.arrivalMs);
-      const a2 = routePacket(s, ctx, IPT_H2, { delay: a1.arrivalMs + PAUSE, role: 'network' });
-      lightBoxAt(s.refs.svc, ctx, a2.arrivalMs);
-      const a3 = routePacket(s, ctx, IPT_H3, { delay: a2.arrivalMs + PAUSE, role: 'network' });
-      lightBoxAt(s.refs.sep, ctx, a3.arrivalMs);
-      const a4 = routePacket(s, ctx, IPT_H4, { delay: a3.arrivalMs + PAUSE, role: 'network' });
-      pulsePod(s.refs.podA, ctx, a4.arrivalMs);
-    },
+    chips: { ...BASE_COST, pickChip: 'statistic random' },
+    wires: { ipt: 'stops at every rule' },
+    opacity: { ...ALL_UP, ...shade(['ipvsLane', 'podB'], OPACITY.notready) },
+    lit: ['iptChip', 'pickChip'],
+    // The animated path says the upper backend was served by PULSING it, which no lights list names.
+    reducedLit: ['podABox'],
+    // Up-arrow: the client blinks first, then the ball stops at each chain box for a dwell before
+    // the next hop, and the box lights as the ball lands on it.
+    flow: [
+      F.pulse({ pod: 'client' }),
+      F.route({ points: IPT_H1, delay: BEAT.afterPulse, name: 'h1', lights: ['ks'] }),
+      F.route({ points: IPT_H2, at: 'h1', plus: PAUSE, name: 'h2', lights: ['svc'] }),
+      F.route({ points: IPT_H3, at: 'h2', plus: PAUSE, name: 'h3', lights: ['sep'] }),
+      F.route({ points: IPT_H4, at: 'h3', plus: PAUSE, name: 'h4' }),
+      F.pulse({ pod: 'podA', at: 'h4' }),
+    ],
   },
   {
     id: 'ipvs',
     duration: 3500,
     narration: 'In IPVS mode the same kind of connection skips the walk. The Service is a virtual server and its endpoints are real servers in an in-kernel hash table, so a backend is found in one constant-time lookup no matter how many Services exist, here 10.244.3.9, scheduled with real algorithms like round-robin and least-connection.',
-    enter(s, ctx) {
-      resetStep(s);
-      baseComplexity(s);
-      s.refs.ipvsChip.classList.add('highlight');
-      s.refs.pickChip.classList.add('highlight');
-      setChips(s, { pick: 'scheduler rr / lc', ipt: 'rule walk O(n)', ipvs: 'hash O(1)' });
-      setWire(s, 'ipvs', 'one hash lookup, any scale');
-      s.refs.iptLane.style.opacity = String(OPACITY.notready);
-      s.refs.podA.style.opacity = String(OPACITY.notready);
-      // The hash table is where the connection LANDS, so it lights on arrival below and only the
-      // reduced path sets it here. It was lit at entry as well, which hid its own arrival.
-      if (ctx.reduced) { s.refs.ipvs.classList.add('highlight'); s.refs.podBBox.classList.add('highlight'); return; }
-      pulsePod(s.refs.client, ctx, 0);
-      const b1 = routePacket(s, ctx, IPVS_H1, { delay: BEAT.afterPulse, role: 'network' });
-      lightBoxAt(s.refs.ipvs, ctx, b1.arrivalMs);
-      const b2 = routePacket(s, ctx, IPVS_H2, { delay: b1.arrivalMs + PAUSE, role: 'network' });
-      pulsePod(s.refs.podB, ctx, b2.arrivalMs);
-    },
+    chips: { ...BASE_COST, pickChip: 'scheduler rr / lc' },
+    wires: { ipvs: 'one hash lookup, any scale' },
+    opacity: { ...ALL_UP, ...shade(['iptLane', 'podA'], OPACITY.notready) },
+    lit: ['ipvsChip', 'pickChip'],
+    // The hash table is where the connection LANDS, so it lights on arrival through the flow and
+    // never at entry: lighting it here would hide its own arrival. The Pod pulse has no static twin.
+    reducedLit: ['podBBox'],
+    flow: [
+      F.pulse({ pod: 'client' }),
+      F.route({ points: IPVS_H1, delay: BEAT.afterPulse, name: 'v1', lights: ['ipvs'] }),
+      F.route({ points: IPVS_H2, at: 'v1', plus: PAUSE, name: 'v2' }),
+      F.pulse({ pod: 'podB', at: 'v2' }),
+    ],
   },
   {
     id: 'scale',
     duration: 2600,
-    narration: 'Either mode turns the ClusterIP into a ready backend, so the only real difference is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new Service slows the walk, while the IPVS hash stays one step. That constant-time behaviour is why large clusters long preferred IPVS, though Kubernetes deprecated the IPVS mode in v1.35 in favour of the newer nftables mode.',
-    enter(s, ctx) {
-      resetStep(s);
-      [s.refs.ks, s.refs.svc, s.refs.sep].forEach(b => b.classList.add('highlight'));
-      s.refs.ipvs.classList.add('highlight');
-      s.refs.iptChip.classList.add('highlight');
-      s.refs.ipvsChip.classList.add('highlight');
-      setChips(s, { pick: 'unchanged by scale', ipt: 'thousands of rules', ipvs: 'still one lookup' });
-      // What is true HERE is that selection is what scale does NOT touch. It must not say the two
-      // modes select the same way: two earlier steps establish that they do not.
-      s.refs.pickChip.classList.add('highlight');
-      setWire(s, 'ipt', 'grows with every Service');
-      setWire(s, 'ipvs', 'constant time');
-      if (ctx.reduced) return;
-      [s.refs.wires.ipt, s.refs.wires.ipvs].forEach((t, i) => {
-        t.style.opacity = '0';
-        ctx.register(t.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 440, delay: 220 + i * 240, fill: 'forwards', easing: 'ease-out' }));
-      });
-    },
+    narration: 'Either mode turns the ClusterIP into a ready backend, and the difference scale exposes is the lookup. With thousands of Services the iptables chain is thousands of rules long and every new Service slows the walk, while the IPVS hash stays one step. That constant-time behaviour is why large clusters long preferred IPVS, though Kubernetes deprecated the IPVS mode in v1.35 in favour of the newer nftables mode.',
+    chips: { iptChip: 'thousands of rules', pickChip: 'unchanged by scale', ipvsChip: 'still one lookup' },
+    wires: { ipt: 'grows with every Service', ipvs: 'constant time' },
+    opacity: ALL_UP,
+    // What is true HERE is that selection is what scale does NOT touch. It must not say the two
+    // modes select the same way: two earlier steps establish that they do not.
+    lit: ['ks', 'svc', 'sep', 'ipvs', 'iptChip', 'ipvsChip', 'pickChip'],
+    // Both verdicts are already written above, so the animated path hides them and fades them back
+    // in one after the other. The reduced path shows them standing, which is why this is a rewind.
+    rewind: { opacity: { iptTag: 0, ipvsTag: 0 } },
+    flow: [
+      F.anim({ target: 'iptTag', ...TAG_FADE, delay: 220 }),
+      F.anim({ target: 'ipvsTag', ...TAG_FADE, delay: 460 }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

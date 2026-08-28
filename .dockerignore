@@ -2,12 +2,15 @@
 .github
 .claude
 .gitignore
+.dockerignore
 README.md
 LICENSE
 **/CLAUDE.md
 **/CARDS.md
+**/CARDS/
 **/INTERNALS.md
 **/CANON.md
+.playwright-mcp
 Dockerfile
-images/og-image.svg
+scheme/test
 scheme/tools

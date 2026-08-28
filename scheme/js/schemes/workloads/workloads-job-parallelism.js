@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, node, box, chainList, setChainActive, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { routePacket, valChip, setVal, setBoxSublabel, pulsePod, topPacket, makeInit, clearHighlights, clearWires, setWire, FADE, BEAT, lightBoxAt, at, OPACITY, WL, diagramRoot } from './workloads-kit.js';
+import { P, F, defineCard, laneY, midX, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-job-parallelism
 
@@ -10,11 +8,13 @@ const TOP1_X = 420, TOP1_W = 220;
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = 220;
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
-const REQ_Y = TOP_CY - WL.LANE_DY, RESP_Y = TOP_CY + WL.LANE_DY;
-const WIRE_X = (TOP1_X + TOP1_W + TOP2_X) / 2;
+const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
+const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
 const WIRE_Y = WL.TOP_Y - 12;                            // above the actor row, off the spine
 
-const LAD_X = WL.CHIP_X, LAD_W = WL.CHIP_W;              // 660..1140, the pipeline
+// LAYOUT.C of the kit, which this card is on: neither column fits under the panel, so the pipeline
+// takes the RIGHT band and the chips become a bottom strip. WL.L-06 picks A / B / C per card.
+const LAD_X = LAYOUT.C.ladder.x, LAD_W = LAYOUT.C.ladder.w;   // 660..1140, the pipeline
 const LAD_Y = 150;                                       // 5 rows -> 150..350
 
 const NODE_Y = 386, NODE_H = 142;                        // 386..528, below the ladder and the panel
@@ -24,6 +24,7 @@ const POD_PAD = 24;
 const POD_INNER = { dx: 30, w: POD_W - 60, dy: 28, h: 52 };
 const POD_XS = [0, 1, 2].map(i => WL.L + POD_PAD + i * ((WL.W - POD_PAD * 2 - POD_W) / 2));
 const POD_CX = i => POD_XS[i] + POD_W / 2;               // 234 / 600 / 966
+const POD_NAMES = ['worker-1', 'worker-2', 'worker-3'];
 
 // Chips as a full-width bottom strip, three per row so name and value never collide. Five chips
 // means a row of three and a row of two, the short row centred on CX.
@@ -45,256 +46,167 @@ const TOP1_CX = TOP1_X + TOP1_W / 2;                     // 530
 const JOG_Y = WL.TOP_BOTTOM + 20;                        // 140, below the boxes, above the ladder
 const BUS_Y = NODE_Y - 12;                               // 374, between the ladder and the frame
 const TRUNK = [[TOP1_CX, WL.TOP_BOTTOM], [TOP1_CX, JOG_Y], [WL.SPINE_X, JOG_Y], [WL.SPINE_X, BUS_Y]];
-const LANE = i => (POD_CX(i) === WL.SPINE_X
+// Built ONCE per worker: the drawn lane and every ball addressed to it read one array, so the two
+// cannot drift apart on a geometry edit.
+const LANES = [0, 1, 2].map(i => (POD_CX(i) === WL.SPINE_X
   ? [...TRUNK, [WL.SPINE_X, POD_Y]]
-  : [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]);
+  : [...TRUNK, [POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]]));
 
-
-// valChip / setVal / setBoxSublabel are imported from ./workloads-kit.js
-
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Job parallelism and completions: at most parallelism workers run concurrently, until completions successful runs are recorded' });
-    root.appendChild(arrowDefs());
-
-    const controller = box({ x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Job', sublabel: 'spawn + count', role: 'cluster' });
-    const apiserver  = box({ x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'create Pod · watch exit', role: 'cluster' });
-
-    root.appendChild(arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }));
-    root.appendChild(arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }));
-
-    const wireReq = text({ class: 'scheme-label code dim', x: WIRE_X, y: WIRE_Y, 'text-anchor': 'middle' }, [' ']);
-    root.appendChild(wireReq);
-
-    const parChip       = valChip({ x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'parallelism',  value: '3', role: 'workloads' });
-    const compChip      = valChip({ x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'completions', value: '6', role: 'workloads' });
-    const succChip      = valChip({ x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'succeeded',   value: '0', role: 'workloads' });
-    const failChip      = valChip({ x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'failed',      value: '0', role: 'workloads' });
-    [parChip, compChip, succChip, failChip].forEach(c => root.appendChild(c));
-
-    const chain = chainList({
-      x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP,
+// Z-order: the two top arrows, the wire label and the five strip chips, then the three lanes and
+// the packet layer, then chain / Node / Pods / actor row above the ball.
+export const SCENE = {
+  'aria-label': 'Job parallelism and completions: at most parallelism workers run concurrently, until completions successful runs are recorded',
+  parts: [
+    P.defs(),
+    P.arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
+    P.arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }),
+    // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
+    P.wire({ key: 'req', x: WIRE_X, y: WIRE_Y }),
+    P.chip({ key: 'parChip', x: CHIP_X(0), y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'parallelism', value: '3' }),
+    P.chip({ key: 'compChip', x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'completions', value: '5' }),
+    P.chip({ key: 'succChip', x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'succeeded', value: '0' }),
+    P.chip({ key: 'failChip', x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'failed', value: '0' }),
+    // State chip for the Job status: last chip of the strip.
+    P.chip({ key: 'phaseChip', x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'job status', value: '0 active' }),
+    // One drawn lane per worker. They share the trunk and the bus, so the three paths coincide
+    // there and read as a single wiring tree with three arrowheads.
+    ...[0, 1, 2].map(i => P.lane({ key: `lane${i}`, points: LANES[i], dim: true, dashed: true, role: 'cluster' })),
+    P.packets(),
+    // Everything below is appended AFTER the packet layer, so the ball runs under it.
+    P.chain({
+      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
-        '1. spec     ·  parallelism=3, completions=6',
+        '1. spec     ·  parallelism=3, completions=5',
         '2. spawn    ·  controller creates Pods up to parallelism',
         '3. progress ·  exit 0 → succeeded++ · then start next',
         '4. retry    ·  exit != 0 → failed++ · respawn (backoffLimit)',
         '5. complete ·  succeeded == completions · Complete=True',
       ],
-      role: 'cluster',
-    });
+    }),
+    P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
+    // Born invisible: every step pins all three workers, and step 2 is the one that creates them.
+    ...[0, 1, 2].map(i => P.pod({
+      key: `pod${i + 1}`, id: `pod${i + 1}`, innerKey: `pod${i + 1}Box`,
+      x: POD_XS[i], y: POD_Y, w: POD_W, h: POD_H, label: POD_NAMES[i], sublabel: '', containers: 0,
+      opacity: 0,
+      inner: { ...POD_INNER, label: 'app', sublabel: 'idle' },
+    })),
+    P.box({ key: 'apiserver', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'create Pod · watch exit', role: 'cluster' }),
+    P.box({ key: 'controller', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Job', sublabel: 'spawn + count', role: 'cluster' }),
+  ],
+  reset: {
+    keys: ['controller', 'apiserver', 'parChip', 'compChip', 'succChip', 'failChip', 'phaseChip', 'pod1Box', 'pod2Box', 'pod3Box'],
+    pods: ['pod1', 'pod2', 'pod3'],
+  },
+};
 
-    // State chip for the Job status: last chip of the strip.
-    const phaseChip = valChip({ x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'job status', value: '0 active', role: 'workloads' });
-    root.appendChild(phaseChip);
-
-    const nodeEl = node({ x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' });
-
-    const POD_NAMES = ['worker-1', 'worker-2', 'worker-3'];
-    const podBoxes = [];
-    const podWrappers = POD_XS.map((px, i) => {
-      const shell = podShell({ x: px, y: POD_Y, w: POD_W, h: POD_H, label: POD_NAMES[i], sublabel: '', containers: 0, role: 'workloads' });
-
-      const innerBox = box({ x: px + POD_INNER.dx, y: POD_Y + POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: 'idle', role: 'workloads' });
-
-      const wrap = g({ id: `pod${i + 1}` });
-      wrap.style.opacity = '0';
-      wrap.appendChild(shell);
-      wrap.appendChild(innerBox);
-      podBoxes.push(innerBox);
-      return wrap;
-    });
-    const [pod1, pod2, pod3] = podWrappers;
-    const [pod1Box, pod2Box, pod3Box] = podBoxes;
-
-    // One drawn lane per worker. They share the trunk and the bus, so the three paths coincide
-    // there and read as a single wiring tree with three arrowheads.
-    const lanes = [0, 1, 2].map(i => pathArrow({ points: LANE(i), dim: true, dashed: true, role: 'cluster' }));
-    lanes.forEach(l => root.appendChild(l));
-
-    const packetLayer = g({ id: 'packetLayer' });
-    root.appendChild(packetLayer);
-
-    root.appendChild(chain);
-    root.appendChild(nodeEl);
-    [pod1, pod2, pod3].forEach(p => root.appendChild(p));
-    root.appendChild(apiserver);
-    root.appendChild(controller);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root,
-      controller, apiserver, chain, nodeEl, lanes,
-      parChip, compChip, succChip, failChip, phaseChip,
-      pod1, pod2, pod3, pod1Box, pod2Box, pod3Box,
-      packetLayer,
-      wires: { req: wireReq },
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { par, comp, succ, fail, phase }) {
-  setVal(s.refs.parChip, par);
-  setVal(s.refs.compChip, comp);
-  setVal(s.refs.succChip, succ);
-  setVal(s.refs.failChip, fail);
-  setVal(s.refs.phaseChip, phase);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s,
-    ['controller','apiserver','parChip','compChip','succChip','failChip','phaseChip','pod1Box','pod2Box','pod3Box'],
-    [s.refs.pod1, s.refs.pod2, s.refs.pod3]);
-  clearWires(s);
-}
-// One ball per worker, all leaving together: every Pod that pulses has a ball that reached it.
-function fanOut(s, ctx, delay = 0) {
-  return [s.refs.pod1, s.refs.pod2, s.refs.pod3].map((p, i) => {
-    const pkt = routePacket(s, ctx, LANE(i), { delay, role: 'workloads' });
-    pulsePod(p, ctx, pkt.arrivalMs);
-    return pkt;
-  });
-}
-
-// A worker slot and its own lane are pinned by one helper: a tap that outlives its Pod lands an
+// A worker slot and its own lane are pinned by ONE helper: a tap that outlives its Pod lands an
 // arrowhead in an empty Node frame, and on this card the idle frame is the first thing a reader sees.
-function setPods(s, ...vals) {
-  vals.forEach((v, i) => {
-    s.refs['pod' + (i + 1)].style.opacity = String(v);
-    s.refs.lanes[i].style.opacity = String(v);
-  });
-}
+const row = (a, b, c) => ({ pod1: a, lane0: a, pod2: b, lane1: b, pod3: c, lane2: c });
 
-function setUnits(s, a, b, c) {
-  setBoxSublabel(s.refs.pod1Box, a);
-  setBoxSublabel(s.refs.pod2Box, b);
-  setBoxSublabel(s.refs.pod3Box, c);
-}
+// One ball per worker, all leaving together, so every Pod that pulses has a ball that reached it.
+// `routeDur` is length-based, so taps 0 and 2 tie for last and the counting chip hangs off create0.
+const fan = (i) => [
+  F.route({ points: LANES[i], after: 'req', name: `create${i}` }),
+  F.pulse({ pod: `pod${i + 1}`, at: `create${i}` }),
+];
+const born = (i) => F.fade({ target: `pod${i + 1}`, from: 0, to: 1, dur: FADE.in, at: `create${i}`, fill: 'both', easing: 'ease-out' });
 
-const STEPS = [
+// Every worker reports its OWN exit, so all three pulse together and nothing rides down. `fan` is
+// the CREATE helper and cannot stand in: its lane runs controller-down and would draw three creates.
+const EXITS = ['pod1', 'pod2', 'pod3'].map(pod => F.pulse({ pod }));
+
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setUnits(s, 'idle', 'idle', 'idle');
-      setChips(s, { par: '3', comp: '6', succ: '0', fail: '0', phase: '0 active' });
-      setPods(s, 0, 0, 0);
-      setChainActive(s.refs.chain, 0);
-    },
+    chips: { parChip: '3', compChip: '5', succChip: '0', failChip: '0', phaseChip: '0 active' },
+    sublabels: { pod1Box: 'idle', pod2Box: 'idle', pod3Box: 'idle' },
+    opacity: row(0, 0, 0),
+    chain: 0,
   },
   {
     id: 'spawn',
     duration: 3500,
     narration: 'Job controller observes 0 live Pods against a parallelism of 3, so it creates 3 Pods to fill the cap. They all run the same Pod template. How they divide work is up to the app (pull from an external queue, or, with completionMode=Indexed, read JOB_COMPLETION_INDEX from the env). With three Pods now running, .status.active becomes 3.',
-    enter(s, ctx) {
-      resetStep(s);
-      setUnits(s, 'running · unit-1', 'running · unit-2', 'running · unit-3');
-      setChips(s, { par: '3', comp: '6', succ: '0', fail: '0', phase: '0 active' });
-      setWire(s, 'req', 'create 3 Pods (parallelism cap)');
-      s.refs.controller.classList.add('highlight');
-      s.refs.phaseChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 1);
-      // Pin final opacities inline so a step change (which cancels the fade-in
-      // animations) leaves the Pods visible instead of reverting to the built 0.
-      setPods(s, 1, 1, 1);
-      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      // The step STARTS from the observation its own narration opens with, zero live Pods, and the
-      // chip only turns over once the three creates have landed.
-      // Create travels controller -> Api -> Node. The 3 Pods materialize and pulse
-      // together when the create reaches the node (parallelism=3 starts them simultaneously).
-      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
-      lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
-      const create = fanOut(s, ctx, req.arrivalMs + BEAT.afterHop);
-      [s.refs.pod1, s.refs.pod2, s.refs.pod3].forEach((p, i) => {
-        ctx.register(p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE.in, delay: create[i].arrivalMs, fill: 'both', easing: 'ease-out' }));
-      });
-      at(s, ctx, Math.max(...create.map(c => c.arrivalMs)), () => setVal(s.refs.phaseChip, 'Running · 3 active'));
-    },
+    chips: { parChip: '3', compChip: '5', succChip: '0', failChip: '0', phaseChip: 'Running · 3 active' },
+    wires: { req: 'create 3 Pods (parallelism cap)' },
+    sublabels: { pod1Box: 'running · unit-1', pod2Box: 'running · unit-2', pod3Box: 'running · unit-3' },
+    // Pin final opacities so a step change (which cancels the fade-in animations) leaves the Pods
+    // visible instead of reverting to the built 0.
+    opacity: row(1, 1, 1),
+    lit: ['controller', 'phaseChip'],
+    chain: 1,
+    // The step STARTS from zero live Pods, the observation its narration opens with, and turns the
+    // chip over once the creates land: parallelism=3 starts the three Pods simultaneously.
+    rewind: { chips: { phaseChip: '0 active' } },
+    flow: [
+      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
+      ...fan(0), ...fan(1), ...fan(2),
+      born(0), born(1), born(2),
+      F.set({ at: 'create0', chips: { phaseChip: 'Running · 3 active' } }),
+    ],
   },
   {
     id: 'partial',
     // Motion: the three workers pulse their exits (to 900), then the watch event leaves at 800 and
     // lands on the controller at 1500, its ripple closing the step at 2060.
     duration: 2600,
-    narration: 'Both worker-1 and worker-2 exit 0, so .status.succeeded increments to 2. worker-3 exits with code 1, .status.failed becomes 1. The failed Pod is retained in Failed phase as a tombstone (visible in kubectl get pods until the Job is garbage-collected), so the post-mortem stays inspectable. A replacement still needs to run to reach completions=6.',
-    enter(s, ctx) {
-      resetStep(s);
-      setUnits(s, 'unit-1 done · exit 0', 'unit-2 done · exit 0', 'unit-3 FAILED · exit 1');
-      setChips(s, { par: '3', comp: '6', succ: '2', fail: '1', phase: 'Running · 1 failed' });
-      setWire(s, 'req', 'watch Pod exits · 2 exit 0 · 1 exit 1');
-      // The API is the source of the watch and is lit from entry. The controller RECEIVES it, so it
-      // stays dark until the event lands.
-      s.refs.apiserver.classList.add('highlight');
-      s.refs.succChip.classList.add('highlight');
-      s.refs.failChip.classList.add('highlight');
-      s.refs.phaseChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 2);
-      // Pin final opacities inline (worker-3 exited 1 and settles to the terminated shade) so a
-      // cancel does not drop worker-1 and worker-2 back to the built 0.
-      setPods(s, 1, 1, OPACITY.terminated);
-      if (ctx.reduced) { s.refs.controller.classList.add('highlight'); return; }
-      // Up-arrow: the workers act and the controller receives. The three exits happen first, then
-      // the watch event carries the counts up. Nothing is created on this step, so nothing rides down.
-      [s.refs.pod1, s.refs.pod2, s.refs.pod3].forEach(p => pulsePod(p, ctx, 0));
-      const watch = topPacket(s, ctx, { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: BEAT.afterPulse, role: 'workloads' });
-      lightBoxAt(s.refs.controller, ctx, watch.arrivalMs);
+    narration: 'Both worker-1 and worker-2 exit 0, so .status.succeeded increments to 2. worker-3 exits with code 1, .status.failed becomes 1. The failed Pod is retained in Failed phase as a tombstone (visible in kubectl get pods until the Job is garbage-collected), so the post-mortem stays inspectable. A replacement still needs to run to reach completions=5.',
+    chips: { parChip: '3', compChip: '5', succChip: '2', failChip: '1', phaseChip: 'Running · 1 failed' },
+    wires: { req: 'watch Pod exits · 2 exit 0 · 1 exit 1' },
+    sublabels: { pod1Box: 'unit-1 done · exit 0', pod2Box: 'unit-2 done · exit 0', pod3Box: 'unit-3 FAILED · exit 1' },
+    // Pin final opacities (worker-3 exited 1 and settles to the terminated shade) so a cancel does
+    // not drop worker-1 and worker-2 back to the built 0.
+    opacity: row(1, 1, OPACITY.terminated),
+    // The API is the source of the watch and is lit from entry. The controller RECEIVES it, so it
+    // stays dark until the event lands.
+    lit: ['apiserver', 'succChip', 'failChip', 'phaseChip'],
+    chain: 2,
+    // Up-arrow: the workers act and the controller receives. The three exits happen first, then the
+    // watch event carries the counts up. Nothing is created here, so nothing rides down.
+    flow: [
+      ...EXITS,
+      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: BEAT.afterPulse, lights: ['controller'] }),
       // Worker-3 exited 1, so it and the lane that feeds it settle to the tombstone shade on the beat
       // its own exit pulse hands over. fill:'both' holds both at full through the delay window.
-      ctx.register(s.refs.pod3.animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }));
-      ctx.register(s.refs.lanes[2].animate([{ opacity: 1 }, { opacity: OPACITY.terminated }], { duration: FADE.out, delay: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }));
-    },
+      F.fade({ target: 'pod3', from: 1, to: OPACITY.terminated, dur: FADE.out, delay: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'lane2', from: 1, to: OPACITY.terminated, dur: FADE.out, delay: BEAT.afterPulse, fill: 'both', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'retry',
     duration: 3500,
     narration: 'Per spec.backoffLimit (default 6, total failures across the Job), the controller respawns a replacement Pod for the failed unit, gated by an exponential backoff that starts at 10s. Meanwhile worker-1 and worker-2 have finished, so fresh Pods take their slots for units 4 and 5 (each completion is its own Pod run, Pods are never reused). Three Pods active again, the parallelism cap respected.',
-    enter(s, ctx) {
-      resetStep(s);
-      setUnits(s, 'running · unit-4', 'running · unit-5', 'running · unit-3 (retry)');
-      setChips(s, { par: '3', comp: '6', succ: '2', fail: '1', phase: 'Running · 3 active' });
-      setWire(s, 'req', 'create Pods · units 4, 5 + unit-3 retry');
-      s.refs.controller.classList.add('highlight');
-      s.refs.phaseChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 3);
-      // Pin final opacities inline (worker-3 replacement back to 1) so a cancel
-      // does not drop the three live Pods back to the built 0.
-      setPods(s, 1, 1, 1);
-      if (ctx.reduced) { s.refs.apiserver.classList.add('highlight'); return; }
-      const req = topPacket(s, ctx, { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, role: 'workloads' });
-      lightBoxAt(s.refs.apiserver, ctx, req.arrivalMs);
-      fanOut(s, ctx, req.arrivalMs + BEAT.afterHop);
-    },
+    chips: { parChip: '3', compChip: '5', succChip: '2', failChip: '1', phaseChip: 'Running · 3 active' },
+    wires: { req: 'create Pods · units 4, 5 + unit-3 retry' },
+    sublabels: { pod1Box: 'running · unit-4', pod2Box: 'running · unit-5', pod3Box: 'running · unit-3 (retry)' },
+    // Pin final opacities (worker-3 replacement back to 1) so a cancel does not drop the three live
+    // Pods back to the built 0.
+    opacity: row(1, 1, 1),
+    lit: ['controller', 'phaseChip'],
+    chain: 3,
+    flow: [
+      F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
+      ...fan(0), ...fan(1), ...fan(2),
+    ],
   },
   {
     id: 'complete',
     // Motion: the three workers pulse their final exits and nothing else, so the step closes at 900.
     duration: 2200,
-    narration: 'Between them the three workers have completed all 6 units, the last one (unit-6) just finishing on worker-1. .status.succeeded now equals .spec.completions (6), so the controller sets condition Complete=True and stops creating Pods. The earlier single failure stays counted in .status.failed, and the terminated Pods are retained until ttlSecondsAfterFinished elapses (Job auto-cleanup) or until kubectl delete job is issued.',
-    enter(s, ctx) {
-      resetStep(s);
-      setUnits(s, 'unit-6 done · exit 0', 'unit-5 done · exit 0', 'unit-3 done · exit 0');
-      setChips(s, { par: '3', comp: '6', succ: '6', fail: '1', phase: 'Complete · 6/6 succeeded' });
-      setWire(s, 'req', 'watch final exit · succeeded == completions');
-      s.refs.controller.classList.add('highlight');
-      s.refs.phaseChip.classList.add('highlight');
-      s.refs.succChip.classList.add('highlight');
-      setChainActive(s.refs.chain, 4);
-      // Pin final opacities inline so the three Pods stay visible after a cancel.
-      setPods(s, 1, 1, 1);
-      if (ctx.reduced) return;
-      // Complete=True is a state the controller REACHES, not traffic it sends: the sentence ends with
-      // the controller no longer creating Pods, so the only motion here is the workers reporting done.
-      [s.refs.pod1, s.refs.pod2, s.refs.pod3].forEach(p => pulsePod(p, ctx, 0));
-    },
+    narration: 'The last three runs each exit 0: the unit-3 retry alongside units 4 and 5. .status.succeeded now equals .spec.completions (5), so the controller sets condition Complete=True and stops creating Pods. The earlier single failure stays counted in .status.failed, and the terminated Pods are retained until ttlSecondsAfterFinished elapses (Job auto-cleanup) or until kubectl delete job is issued.',
+    chips: { parChip: '3', compChip: '5', succChip: '5', failChip: '1', phaseChip: 'Complete · 5/5 succeeded' },
+    wires: { req: 'watch final exit · succeeded == completions' },
+    sublabels: { pod1Box: 'unit-4 done · exit 0', pod2Box: 'unit-5 done · exit 0', pod3Box: 'unit-3 done · exit 0' },
+    // Pin final opacities so the three Pods stay visible after a cancel.
+    opacity: row(1, 1, 1),
+    lit: ['controller', 'phaseChip', 'succChip'],
+    chain: 4,
+    // Complete=True is a state the controller REACHES, not traffic it sends: the sentence ends with
+    // the controller no longer creating Pods, so the only motion is the workers reporting done.
+    flow: [...EXITS],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

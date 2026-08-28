@@ -1,6 +1,5 @@
-import { g } from '../../lib/svg.js';
-import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, BEAT, lightBoxAt, makeRidingLabel, relationPath, wrapPod, diagramRoot } from './network-kit.js';
+import { P, F, defineCard, BEAT } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-externalname
 
 
@@ -34,159 +33,115 @@ const A_HOP3 = [                                                                
 const B_HOP1 = [[B_CLIENT_EDGE, ROW_B], [B_PROXY_LEFT, ROW_B]]; // client -> kube-proxy (ClusterIP dst)
 const B_HOP2 = [[B_PROXY_RIGHT, ROW_B], [B_EP_LEFT, ROW_B]];    // kube-proxy -> EndpointSlice (DNAT dst)
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'network' });
+const POD_INNER = { dx: 18, dy: 30, h: 48 };
 
-function podBlock({ x, y, w, h, label, ip }) {
-  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 18, y: y + 30, w: w - 36, h: 48, label: 'curl', sublabel: 'eth0', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
+// The connect lane leaves a Pod floor and lands on a box floor, so its tag rides BELOW the ball: at
+// the default -14 it prints over the Pod sublabel and then over `external host`. Clear from 12.
+const CONNECT_TAG_DY = 14;
+// Row B is 60 tall against a 118 unit address, so on the lane the box faces cut the DNAT tag. -40
+// clears all four viewports and leaves the string 7 above the row.
+const DNAT_TAG_DY = -40;
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+const clientPod = (key, cy, ip) => P.pod({
+  key, innerKey: `${key}Box`, x: CLIENT_X, y: cy - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H,
+  label: 'Client Pod', sublabel: ip,
+  inner: { dx: POD_INNER.dx, dy: POD_INNER.dy, w: CLIENT_W - POD_INNER.dx * 2, h: POD_INNER.h, label: 'curl', sublabel: 'eth0' },
+});
 
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'ExternalName and Services without selectors: a type ExternalName Service is a pure DNS alias where CoreDNS returns a CNAME to an external host with no ClusterIP and no kube-proxy, while a ClusterIP Service with no selector gets a hand-attached EndpointSlice listing an external IP that kube-proxy then DNATs to like any other Service' });
-    root.appendChild(arrowDefs());
-
-    const clientA = podBlock({ x: CLIENT_X, y: ROW_A - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: 'svc lookup' });
-    const dns = box({ x: A_DNS_LEFT, y: ROW_A - BOX_H / 2, w: A_DNS_RIGHT - A_DNS_LEFT, h: BOX_H, label: 'CoreDNS', sublabel: 'returns CNAME', role: 'network' });
-    const host = box({ x: A_HOST_LEFT, y: ROW_A - BOX_H / 2, w: TARGET_W, h: BOX_H, label: 'db.example.com', sublabel: 'external host', role: 'network' });
-
-    const clientB = podBlock({ x: CLIENT_X, y: ROW_B - CLIENT_H / 2, w: CLIENT_W, h: CLIENT_H, label: 'Client Pod', ip: 'svc:5432' });
-    const proxy = box({ x: B_PROXY_LEFT, y: ROW_B - BOX_H / 2, w: B_PROXY_RIGHT - B_PROXY_LEFT, h: BOX_H, label: 'kube-proxy', sublabel: 'ClusterIP 10.96.0.7', role: 'network' });
-    const ep = box({ x: B_EP_LEFT, y: ROW_B - BOX_H / 2, w: TARGET_W, h: BOX_H, label: 'EndpointSlice', sublabel: 'manual · 203.0.113.5', role: 'network' });
-
-    const aWire1 = arrow({ x1: A_HOP1[0][0], y1: A_HOP1[0][1], x2: A_HOP1[1][0], y2: A_HOP1[1][1], dashed: true, dim: true, role: 'network' });
-    const aWire2 = arrow({ x1: A_HOP2[0][0], y1: A_HOP2[0][1], x2: A_HOP2[1][0], y2: A_HOP2[1][1], dashed: true, dim: true, role: 'network' });
-    const aWire3 = pathArrow({ points: A_HOP3, dashed: true, dim: true, role: 'network' });
+// The list order IS the append order, which is the z-order: clients + infra boxes, then wires above,
+// then chips, then the packet layer (ball + riding label) on top. No static wire text labels.
+export const SCENE = {
+  'aria-label': 'ExternalName and Services without selectors: a type ExternalName Service is a pure DNS alias where CoreDNS returns a CNAME to an external host with no ClusterIP and no kube-proxy, while a ClusterIP Service with no selector gets a hand-attached EndpointSlice listing an external IP that kube-proxy then DNATs to like any other Service',
+  parts: [
+    P.defs(),
+    P.box({ key: 'dns', x: A_DNS_LEFT, y: ROW_A - BOX_H / 2, w: A_DNS_RIGHT - A_DNS_LEFT, h: BOX_H, label: 'CoreDNS', sublabel: 'returns CNAME' }),
+    P.box({ key: 'host', x: A_HOST_LEFT, y: ROW_A - BOX_H / 2, w: TARGET_W, h: BOX_H, label: 'db.example.com', sublabel: 'external host' }),
+    P.box({ key: 'proxy', x: B_PROXY_LEFT, y: ROW_B - BOX_H / 2, w: B_PROXY_RIGHT - B_PROXY_LEFT, h: BOX_H, label: 'kube-proxy', sublabel: 'ClusterIP 10.96.0.7' }),
+    P.box({ key: 'ep', x: B_EP_LEFT, y: ROW_B - BOX_H / 2, w: TARGET_W, h: BOX_H, label: 'EndpointSlice', sublabel: 'manual · 203.0.113.5' }),
+    clientPod('clientA', ROW_A, 'svc lookup'),
+    clientPod('clientB', ROW_B, 'svc:5432'),
     // CoreDNS to the external host is a RELATIONSHIP, not a route: the CNAME names that host, and
     // nothing on this card ever travels it. An ExternalName Service never proxies.
-    const aRel = relationPath({ points: [[A_DNS_RIGHT, ROW_A], [A_HOST_LEFT, ROW_A]], role: 'network' });
-    const bWire1 = arrow({ x1: B_CLIENT_EDGE, y1: ROW_B, x2: B_PROXY_LEFT, y2: ROW_B, dashed: true, dim: true, role: 'network' });
-    const bWire2 = arrow({ x1: B_PROXY_RIGHT, y1: ROW_B, x2: B_EP_LEFT, y2: ROW_B, dashed: true, dim: true, role: 'network' });
-
+    P.relation({ points: [[A_DNS_RIGHT, ROW_A], [A_HOST_LEFT, ROW_A]] }),
+    P.arrow({ x1: A_HOP1[0][0], y1: A_HOP1[0][1], x2: A_HOP1[1][0], y2: A_HOP1[1][1], dashed: true, dim: true }),
+    P.arrow({ x1: A_HOP2[0][0], y1: A_HOP2[0][1], x2: A_HOP2[1][0], y2: A_HOP2[1][1], dashed: true, dim: true }),
+    P.lane({ points: A_HOP3, dashed: true, dim: true }),
+    P.arrow({ x1: B_CLIENT_EDGE, y1: ROW_B, x2: B_PROXY_LEFT, y2: ROW_B, dashed: true, dim: true }),
+    P.arrow({ x1: B_PROXY_RIGHT, y1: ROW_B, x2: B_EP_LEFT, y2: ROW_B, dashed: true, dim: true }),
     // Chip strip spans the block width 1:1: leftmost edge under the Client Pods (115), rightmost edge
     // under the external-target boxes (1085), with even 20px gaps. typeChip is widest for its long value.
-    const typeChip  = valChip({ x: 115, y: 566, w: 270, h: 34, name: 'type', value: 'idle', role: 'network' });
-    const vipChip   = valChip({ x: 405, y: 566, w: 200, h: 34, name: 'clusterIP', value: 'none', role: 'network' });
-    const epChip    = valChip({ x: 625, y: 566, w: 220, h: 34, name: 'endpoints', value: 'none', role: 'network' });
-    const proxyChip = valChip({ x: 865, y: 566, w: 220, h: 34, name: 'kube-proxy', value: 'none', role: 'network' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order: clients + infra boxes, then wires above, then chips, then the packet layer (ball +
-    // riding label) on top. All hop values ride on the ball, so there are no static wire text labels.
-    [dns, host, proxy, ep].forEach(el => root.appendChild(el));
-    root.appendChild(clientA.group);
-    root.appendChild(clientB.group);
-    [aRel, aWire1, aWire2, aWire3, bWire1, bWire2].forEach(el => root.appendChild(el));
-    [typeChip, vipChip, epChip, proxyChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, clientA: clientA.group, clientABox: clientA.innerBox, dns, host,
-      clientB: clientB.group, clientBBox: clientB.innerBox, proxy, ep,
-      typeChip, vipChip, epChip, proxyChip,
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { type, vip, ep, proxy }) {
-  setVal(s.refs.typeChip, type);
-  setVal(s.refs.vipChip, vip);
-  setVal(s.refs.epChip, ep);
-  setVal(s.refs.proxyChip, proxy);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
+    P.chip({ key: 'typeChip', x: 115, y: 566, w: 270, h: 34, name: 'type', value: 'idle' }),
+    P.chip({ key: 'vipChip', x: 405, y: 566, w: 200, h: 34, name: 'clusterIP', value: 'none' }),
+    P.chip({ key: 'epChip', x: 625, y: 566, w: 220, h: 34, name: 'endpoints', value: 'none' }),
+    P.chip({ key: 'proxyChip', x: 865, y: 566, w: 220, h: 34, name: 'kube-proxy', value: 'none' }),
+    P.packets(),
+  ],
   // clientABox/clientBBox are listed so a highlight set in a reduced-replay branch is cleared every
   // step and does not leak forward (reduced replay never runs the forward path that would re-clear it).
-  clearHighlights(s, ['dns', 'host', 'proxy', 'ep', 'clientABox', 'clientBBox', 'typeChip', 'vipChip', 'epChip', 'proxyChip'], [s.refs.clientA, s.refs.clientB]);
-  clearWires(s);
-}
+  reset: {
+    keys: ['dns', 'host', 'proxy', 'ep', 'clientABox', 'clientBBox', 'typeChip', 'vipChip', 'epChip', 'proxyChip'],
+    pods: ['clientA', 'clientB'],
+  },
+};
 
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { type: 'idle', vip: 'none', ep: 'none', proxy: 'none' });
-    },
+    chips: { typeChip: 'idle', vipChip: 'none', epChip: 'none', proxyChip: 'none' },
   },
   {
     id: 'externalname',
     duration: 5700,
     narration: 'A type ExternalName Service has no ClusterIP at all. When a client looks it up, CoreDNS simply returns a CNAME to an external name such as db.example.com, and the client connects straight there. The kube-proxy is never involved, the Service is purely a name pointing at another name.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.typeChip.classList.add('highlight');
-      s.refs.vipChip.classList.add('highlight');
-      setChips(s, { type: 'ExternalName', vip: 'none', ep: 'none', proxy: 'not involved' });
-      s.refs.proxyChip.classList.add('highlight');
-      if (ctx.reduced) { s.refs.clientABox.classList.add('highlight'); s.refs.dns.classList.add('highlight'); s.refs.host.classList.add('highlight'); return; }
-      pulsePod(s.refs.clientA, ctx, 0);
-      const q = segmentPacket(s, ctx, { from: A_HOP1[0], to: A_HOP1[1], delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'db.default.svc', A_HOP1, { delay: BEAT.afterPulse, easing: 'linear' });
-      lightBoxAt(s.refs.dns, ctx, q.arrivalMs);
-      // The answer comes back to the CLIENT. CoreDNS hands over a name and stops there.
-      const ans = segmentPacket(s, ctx, { from: A_HOP2[0], to: A_HOP2[1], delay: q.arrivalMs + BEAT.afterHop, role: 'network' });
-      ridingLabel(s, ctx, 'CNAME -> db.example.com', A_HOP2, { delay: q.arrivalMs + BEAT.afterHop, easing: 'linear' });
-      pulsePod(s.refs.clientA, ctx, ans.arrivalMs);
+    chips: { typeChip: 'ExternalName', vipChip: 'none', epChip: 'none', proxyChip: 'not involved' },
+    lit: ['typeChip', 'vipChip', 'proxyChip'],
+    // The animated path says the client asked and then connected by PULSING it, which no lights list names.
+    reducedLit: ['clientABox'],
+    // Up-arrow: the client pulses, the query leaves at BEAT.afterPulse and lights CoreDNS on arrival.
+    // The answer comes back to the CLIENT. CoreDNS hands over a name and stops there.
+    flow: [
+      F.pulse({ pod: 'clientA' }),
+      F.segment({ from: A_HOP1[0], to: A_HOP1[1], delay: BEAT.afterPulse, name: 'q' }),
+      F.tag({ text: 'db.default.svc', points: A_HOP1, delay: BEAT.afterPulse, easing: 'linear' }),
+      F.light({ targets: ['dns'], at: 'q' }),
+      F.segment({ from: A_HOP2[0], to: A_HOP2[1], after: 'q', name: 'ans' }),
+      F.tag({ text: 'CNAME -> db.example.com', points: A_HOP2, after: 'q', easing: 'linear' }),
+      F.pulse({ pod: 'clientA', at: 'ans' }),
       // Holding the name, the client connects to the external host itself, on a lane that never
       // touches CoreDNS. Eased route, so the tag rides it on the wrapper default easing.
-      const conn = routePacket(s, ctx, A_HOP3, { delay: ans.arrivalMs + BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'connect db.example.com', A_HOP3, { delay: ans.arrivalMs + BEAT.afterPulse });
-      lightBoxAt(s.refs.host, ctx, conn.arrivalMs);
-    },
+      F.route({ points: A_HOP3, at: 'ans', plus: BEAT.afterPulse, name: 'conn' }),
+      F.tag({ text: 'connect db.example.com', points: A_HOP3, at: 'ans', plus: BEAT.afterPulse, dy: CONNECT_TAG_DY }),
+      F.light({ targets: ['host'], at: 'conn' }),
+    ],
   },
   {
     id: 'noselector',
     duration: 3000,
     narration: 'The other case keeps a real ClusterIP but defines no selector, so Kubernetes creates no endpoints automatically. You attach an EndpointSlice yourself, listing the external IP. The kube-proxy then DNATs the ClusterIP to that address exactly as it would to a Pod, so a fixed external server looks like an in-cluster Service.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.typeChip.classList.add('highlight');
-      s.refs.vipChip.classList.add('highlight');
-      s.refs.epChip.classList.add('highlight');
-      s.refs.proxyChip.classList.add('highlight');
-      setChips(s, { type: 'ClusterIP · no selector', vip: '10.96.0.7', ep: 'manual', proxy: 'DNAT' });
-      if (ctx.reduced) { s.refs.clientBBox.classList.add('highlight'); s.refs.proxy.classList.add('highlight'); s.refs.ep.classList.add('highlight'); return; }
-      pulsePod(s.refs.clientB, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: B_HOP1[0], to: B_HOP1[1], delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'dst 10.96.0.7', B_HOP1, { delay: BEAT.afterPulse, easing: 'linear' });
-      lightBoxAt(s.refs.proxy, ctx, send.arrivalMs);
-      const fwd = segmentPacket(s, ctx, { from: B_HOP2[0], to: B_HOP2[1], delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
-      ridingLabel(s, ctx, 'DNAT -> 203.0.113.5', B_HOP2, { delay: send.arrivalMs + BEAT.afterHop, easing: 'linear' });
-      lightBoxAt(s.refs.ep, ctx, fwd.arrivalMs);
-    },
+    chips: { typeChip: 'ClusterIP · no selector', vipChip: '10.96.0.7', epChip: 'manual', proxyChip: 'DNAT' },
+    lit: ['typeChip', 'vipChip', 'epChip', 'proxyChip'],
+    // The animated path says the client sent by PULSING it, which no lights list can name.
+    reducedLit: ['clientBBox'],
+    flow: [
+      F.pulse({ pod: 'clientB' }),
+      F.segment({ from: B_HOP1[0], to: B_HOP1[1], delay: BEAT.afterPulse, name: 'send' }),
+      F.tag({ text: 'dst 10.96.0.7', points: B_HOP1, delay: BEAT.afterPulse, easing: 'linear' }),
+      F.light({ targets: ['proxy'], at: 'send' }),
+      F.segment({ from: B_HOP2[0], to: B_HOP2[1], after: 'send', name: 'fwd' }),
+      F.tag({ text: 'DNAT -> 203.0.113.5', points: B_HOP2, after: 'send', easing: 'linear', dy: DNAT_TAG_DY }),
+      F.light({ targets: ['ep'], at: 'fwd' }),
+    ],
   },
   {
     id: 'recap',
     duration: 2400,
     narration: 'So ExternalName is resolution only, a CNAME with no proxy and no virtual IP, and it breaks if the client expects to talk TLS to the original name. The no-selector ClusterIP is a real proxied Service whose backends you curate by hand. Same Service object, two very different jobs.',
-    enter(s) {
-      resetStep(s);
-      s.refs.dns.classList.add('highlight');
-      s.refs.proxy.classList.add('highlight');
-      s.refs.typeChip.classList.add('highlight');
-      setChips(s, { type: 'two modes', vip: 'none / real', ep: 'none / manual', proxy: 'no / yes' });
-      s.refs.vipChip.classList.add('highlight');
-      s.refs.epChip.classList.add('highlight');
-      s.refs.proxyChip.classList.add('highlight');
-      // Packet-less, pod-less recap: the two middle boxes light via .highlight to distinguish the
-      // modes. Blocks light, they never blink. Only Pods pulse.
-    },
+    chips: { typeChip: 'two modes', vipChip: 'none / real', epChip: 'none / manual', proxyChip: 'no / yes' },
+    // Packet-less, pod-less recap: the two middle boxes light via .highlight to distinguish the
+    // modes. Blocks light, they never blink. Only Pods pulse.
+    lit: ['dns', 'proxy', 'typeChip', 'vipChip', 'epChip', 'proxyChip'],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

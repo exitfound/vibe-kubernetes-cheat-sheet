@@ -53,7 +53,7 @@ jobs:
             Dockerfile \
             configs/ \
             .dockerignore \
-            -x "scheme/tools/*" "*CLAUDE.md" "*CARDS.md" "*INTERNALS.md" "*CANON.md"
+            -x "scheme/tools/*" "scheme/test/*" "*CLAUDE.md" "*CARDS.md" "*INTERNALS.md" "*CANON.md" "*/CARDS/*"
 
       - name: Create Release on Github
         uses: softprops/action-gh-release@v2

@@ -16,7 +16,7 @@ Each sub-app has its own nested `CLAUDE.md` with the full detail; Claude Code au
 
 `README.md` at the repo root is the USER-facing description: what the site is, the command and diagram counts, the stack. It reaches nobody through the site (neither shipping mechanism copies it, and `.dockerignore` excludes it) and everybody through GitHub. No `CLAUDE.md` links to it, so it is the one document that goes stale without anything noticing: re-read its counts whenever a card or a command block is added or removed. `R-dash` does scan it.
 
-No framework, no bundler, no npm at runtime. Everything is plain HTML/CSS and ES modules loaded directly by the browser via `<script type="module">`. The only external dependency is Google Fonts (Space Grotesk + JetBrains Mono), loaded by `preconnect` + `preload` in all three page heads. There is no `@font-face` anywhere: if you ever self-host, remember a new top-level directory is invisible to both shipping mechanisms (`deploy.yml` copies `images cli scheme` by name, `release.yml` zips a named list), so it would reach the container via the blanket `COPY . .` and 404 in production. `scheme/tools/` has its own Node `package.json`, but that is a dev-only test harness, never shipped.
+No framework, no bundler, no npm at runtime. Everything is plain HTML/CSS and ES modules loaded directly by the browser via `<script type="module">`. The only external dependency is Google Fonts (Space Grotesk + JetBrains Mono), loaded by `preconnect` + `preload` in all three page heads. There is no `@font-face` anywhere: if you ever self-host, remember a new top-level directory is invisible to both shipping mechanisms (`deploy.yml` copies `images cli scheme` by name, `release.yml` zips a named list), so it would reach the container via the blanket `COPY . .` and 404 in production. `scheme/test/` has its own Node `package.json`, but that is a dev-only test harness, never shipped.
 
 The earlier `scheme.kube.how` subdomain plan was abandoned: everything is one origin under path prefixes.
 
@@ -38,10 +38,10 @@ Rebuild after edits: `docker rm -f kube-cheatsheet && docker build -t kube-cheat
 ## Deployment
 
 Two GitHub Actions run on every push to `main`:
-- **`deploy.yml`** stages `index.html`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, plus the `images/`, `cli/`, and `scheme/` directories, then strips `scheme/tools/` and every `CLAUDE.md`, `CARDS.md`, `INTERNALS.md` and `CANON.md` before publishing to GitHub Pages. `configs/`, `Dockerfile`, and `.dockerignore` are intentionally excluded (Docker-only).
-- **`release.yml`** zips the shippable tree (`index.html`, `cli/`, `scheme/`, `images/`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, `Dockerfile`, `configs/`, `.dockerignore`, minus `scheme/tools/` and the same four internal filenames) into a tagged Release `vYYYY.MM.DD-<sha>`. Its `paths:` trigger matches that artifact list so any shippable change cuts a release while docs-only commits are skipped.
+- **`deploy.yml`** stages `index.html`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, plus the `images/`, `cli/`, and `scheme/` directories, then strips `scheme/test/` and every `CLAUDE.md`, `CARDS.md` and `CANON.md` before publishing to GitHub Pages. `configs/`, `Dockerfile`, and `.dockerignore` are intentionally excluded (Docker-only).
+- **`release.yml`** zips the shippable tree (`index.html`, `cli/`, `scheme/`, `images/`, `favicon.svg`, `robots.txt`, `sitemap.xml`, `CNAME`, `Dockerfile`, `configs/`, `.dockerignore`, minus `scheme/test/` and the same three internal filenames) into a tagged Release `vYYYY.MM.DD-<sha>`. Its `paths:` trigger matches that artifact list so any shippable change cuts a release while docs-only commits are skipped.
 
-Internal docs never reach production. They are four filenames (`CLAUDE.md`, `CARDS.md`, `INTERNALS.md`, `CANON.md`, anywhere in the tree) plus `scheme/tools/`. The design record lives in the folder it describes rather than in a `docs/` directory, so exclusion is by NAME, not by path.
+Internal docs never reach production. They are three filenames (`CLAUDE.md`, `CARDS.md`, `CANON.md`, anywhere in the tree) plus `scheme/test/`, which carries the whole `node:test` harness and the two text probes in its `tools/`. The design record lives in the folder it describes rather than in a `docs/` directory, so exclusion is by NAME, not by path. All three mechanisms also carry a retired filename and a retired directory whose subjects were deleted during the declarative refactor: those entries are kept deliberately, cost nothing, and guard the paths if anyone recreates them.
 
 **Three mechanisms have to agree, and they are not symmetric.** `deploy.yml` (GitHub Pages) and `release.yml` (the zip) work off ALLOWLISTS, so a new internal file at the repo root is excluded by default there and only `.dockerignore` has to learn about it. Anything inside an already-copied directory (`scheme/`, `cli/`, `images/`) must be named in all three. The local container is the cheapest place to catch a miss, because `Dockerfile` is a blanket `COPY . .`: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/<path>` must return 404.
 
@@ -59,7 +59,7 @@ Any push to `main` ships immediately; there is no staging environment. Hosting i
 
 **Project-wide writing rules.** No em-dashes anywhere (rephrase, use colons/parentheses instead). No semicolons or apostrophes in `scheme/` narration/wire strings (they are single-quoted JS; an apostrophe breaks module load). These apply to all user-visible text.
 
-**A write hook can hard-fail your edit.** `.claude/hooks/check-js.sh` is a PostToolUse hook: after any Edit or Write to a `scheme/js/**/*.js` file it runs `node --check` on it and **exits 2** if the file no longer parses, which is almost always an apostrophe or a semicolon that landed inside a single-quoted narration string. The message comes back as tool feedback, not as a test failure. Nothing else in the repo has a hook.
+**A write hook can hard-fail your edit.** `.claude/hooks/check-js.sh` is a PostToolUse hook: after any Edit or Write to a `scheme/js/**/*.js` file it parses it AS AN ES MODULE (`node --input-type=module --check`, file on stdin) and **exits 2** if it no longer parses, which is almost always an apostrophe that landed inside a single-quoted narration string. The plain `node --check <file>` form does NOT work here and was the hook's original bug: on a file that opens with `import` it returns 0 over a genuine syntax error. A semicolon in narration is valid JavaScript and is caught by the prose test, not here. The message comes back as tool feedback, not as a test failure. Nothing else in the repo has a hook.
 
 ## Working discipline (cross-cutting)
 
@@ -69,7 +69,7 @@ These encode recurring friction from past sessions. They apply to all three sub-
 
 **File safety.** Never overwrite or delete an untracked or user-authored file (helper `*.mjs` scripts, scratch files). Before `Write`-ing to a path that may already exist, check `git status` / read it first: an untracked file has no recovery path once overwritten.
 
-**Verify before claiming done, and a green check is not a looked-at page.** For any visual/animation change, confirm the specific issue is actually gone via a browser render or `anim-dump`, not by assumption, before reporting success. Measure DOM only after fonts have loaded. "I fixed the flicker" is only true after you have looked. See `scheme/CLAUDE.md` for the gate and the motion tools.
+**Verify before claiming done, and a green check is not a looked-at page.** For any visual/animation change, confirm the specific issue is actually gone by opening the rendered frame, not by assumption, before reporting success. Measure DOM only after fonts have loaded. "I fixed the flicker" is only true after you have looked. See `scheme/CLAUDE.md` for the test suite and the two probes beside it.
 
 The stronger version of this rule was paid for twice in one week. A pass relaid 35 diagrams to zero findings in the geometry lint and reported them done having opened six rendered frames out of thirty five; the author returned all three defects it had introduced, none of which any rule could see. The repair then introduced a fourth of the same family, again invisible to every check, again found only by opening the frames. **A rule can be satisfied and the picture ruined, and that is the ordinary case rather than the rare one.** Look at every item you touched, not a sample. When a rule can only be satisfied by making the artefact worse, leave the finding open and write down why.
 
@@ -81,9 +81,9 @@ The stronger version of this rule was paid for twice in one week. A pass relaid 
 
 **Docs sync.** After adding or removing cards, update the `SCHEMES` count and category counts in `scheme/CLAUDE.md` to match `scheme/js/data.js` exactly, and verify they align. Only sync docs on an explicit request or at the end of a completed unit of work, not mid-refactor.
 
-The number of checks `npm run gate` chains used to be restated in three places and was wrong in all three. It is now stated only in `scheme/tools/package.json`, where it executes: do not copy it anywhere. The per-card design notes in `js/schemes/<category>/CARDS.md` anchor themselves to a line of code and would rot silently when that line moves, which `check-notes` machine-checks in the gate.
+A count that has one executing home is stated only there. The number of checks the old harness chained used to be restated in three documents and was wrong in all three; today the suite is read out of `scheme/test/package.json`, where it runs, and no document repeats it. The per-card design notes in `js/schemes/<category>/CARDS.md` anchor themselves to a line of code and would rot silently when that line moves, which `test/unit/docs.test.mjs` machine-checks on every run.
 
-**Commit cadence.** Long sessions with no commit leave hard-won work exposed (an over-reaching edit or an accidental overwrite then has no cheap revert). After each approved, gate-green card or refactor, offer to stage and commit it with a concise conventional-commit message. Do not commit without the user's go-ahead.
+**Commit cadence.** Long sessions with no commit leave hard-won work exposed (an over-reaching edit or an accidental overwrite then has no cheap revert). After each approved, green-suite card or refactor, offer to stage and commit it with a concise conventional-commit message. Do not commit without the user's go-ahead.
 
 ---
 

@@ -18,10 +18,5 @@ Thumbs.db
 .playwright-mcp/
 smoke-*.png
 
-# Scheme dev tools (Node deps + captured outputs)
-scheme/tools/node_modules/
-scheme/tools/output/
-scheme/tools/baselines/
-
-# Source-page cache for scheme/tools/check-sources.mjs (fetched docs, regenerable)
-scheme/tools/.cache/
+# Scheme test harness: the one playwright install the whole sub-app shares.
+scheme/test/node_modules/

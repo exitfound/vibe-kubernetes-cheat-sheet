@@ -1,7 +1,8 @@
 // The cluster catalogue: every cluster card and the subcategories they sort into.
 // Adding a card means one entry here, one file beside it, one poster, one note.
 
-// Design notes: scheme/INTERNALS.md#schemejsdatajs
+// The SUBCATEGORIES list below is an ORDER, not a set: the sequence is an editorial argument
+// about what a reader has to know first, never alphabetical and never a merge artefact.
 
 export const SUBCATEGORIES = [
     { key: 'control-plane',  label: 'Control Plane'  },
@@ -15,20 +16,20 @@ export const CARDS = [
     title: 'Cluster Architecture',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'What are the moving parts of a Kubernetes cluster, and how do they talk to each other? One contract runs under all of it: desired state lives in ETCD behind the API, the single front door, and the controllers and scheduler compare it against observed state and loop until the gap closes. A Kubelet on every worker Node reconciles the same way and brings Pods to life, so nothing outside the control plane reaches ETCD, and kube-proxy programs Service rules beside it.',
+    desc: 'What are the moving parts of a Kubernetes cluster, and how do they talk? One contract runs under all of it: desired state lives in ETCD behind the API, the single front door, and the controllers and Scheduler compare it against observed state and loop until the gap closes. A Kubelet on every worker Node reconciles the same way and brings Pods to life, and kube-proxy programs Service rules beside it, while in a standard cluster only the API talks to ETCD.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
-      { label: 'Components', href: 'https://kubernetes.io/docs/concepts/overview/components/' },
       { label: 'Architecture', href: 'https://kubernetes.io/docs/concepts/architecture/' },
+      { label: 'Components', href: 'https://kubernetes.io/docs/concepts/overview/components/' },
     ],
   },
   {
-    id: 'cluster-apply-flow',
+    id: 'cluster-object-create-path',
     title: 'Object Create Path',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'What actually happens between kubectl apply and a running Pod? The manifest travels to the API and lands in ETCD, and then a chain of watchers takes over: the Deployment controller creates a ReplicaSet, the ReplicaSet controller creates a Pod, the Scheduler assigns that Pod a Node, and the Kubelet there starts the container. Every handoff after the write is one component reacting to a change on its own watch rather than a call from the component before it.',
+    desc: 'What happens between kubectl apply and a running Pod? The manifest travels to the API and lands in ETCD, and then a chain of watchers takes over: the Deployment controller creates a ReplicaSet, the ReplicaSet controller creates a Pod, the Scheduler assigns that Pod a Node, and the Kubelet there starts it. Every handoff after the write is one component reacting to a change on its own watch rather than a call, until the Kubelet drives the Runtime over CRI.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -37,7 +38,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'cluster-admission-webhooks',
+    id: 'cluster-admission-chain',
     title: 'Admission Chain',
     category: 'cluster',
     subcategory: 'control-plane',
@@ -47,6 +48,7 @@ export const CARDS = [
     sources: [
       { label: 'Admission Controllers', href: 'https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/' },
       { label: 'Dynamic Admission Control', href: 'https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/' },
+      { label: 'Authorization', href: 'https://kubernetes.io/docs/reference/access-authn-authz/authorization/' },
     ],
   },
   {
@@ -64,11 +66,24 @@ export const CARDS = [
     ],
   },
   {
+    id: 'cluster-list-watch-informers',
+    title: 'List-Watch and Informers',
+    category: 'cluster',
+    subcategory: 'control-plane',
+    desc: 'How does a controller keep an up-to-date picture of the cluster without hammering the API? It lists the objects it cares about once, then opens a watch that streams every later change to them. An informer turns that stream into a local cache, so the controller reconciles against memory and re-lists only when its watch falls too far behind, which the API signals with a 410 Gone. Since 1.35 client-go folds that first list into the watch itself by default.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'API Concepts', href: 'https://kubernetes.io/docs/reference/using-api/api-concepts/' },
+      { label: 'Kubernetes API', href: 'https://kubernetes.io/docs/concepts/overview/kubernetes-api/' },
+    ],
+  },
+  {
     id: 'cluster-server-side-apply',
     title: 'Server-side Apply and Field Ownership',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'Two controllers write the same Deployment, so who wins and how does the API even know? Server-side apply records a field manager for every field an actor sets, keeping that ledger in managedFields on the object, and an apply that stops sending a field it used to own is what removes that field. A second manager setting the same field to a different value raises a conflict the API refuses until it is forced, which is what replaces the client-side three-way merge.',
+    desc: 'Two field managers write the same Deployment, so who wins and how does the API know? Server-side apply records a field manager for every field an actor sets, keeping that ledger in managedFields, and an apply that stops sending a field it owns removes it unless another manager owns it too. A second manager setting the same field to a different value raises a conflict the API refuses until forced, and that record replaces the client-side three-way merge.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -78,24 +93,11 @@ export const CARDS = [
     ],
   },
   {
-    id: 'cluster-api-structure',
-    title: 'List-Watch and Informers',
-    category: 'cluster',
-    subcategory: 'control-plane',
-    desc: 'How does a controller keep an up-to-date picture of the cluster without hammering the API? It lists the objects it cares about once, then opens a watch that streams every later change to them. An informer turns that stream into a local cache, so the controller reconciles against memory and only re-lists when its watch has fallen too far behind to catch up, which the API signals with a 410 Gone. Every controller is built on that one list-watch pattern.',
-    k8sVersion: '1.35',
-    tinted: true,
-    sources: [
-      { label: 'API Concepts', href: 'https://kubernetes.io/docs/reference/using-api/api-concepts/' },
-      { label: 'Kubernetes API', href: 'https://kubernetes.io/docs/concepts/overview/kubernetes-api/' },
-    ],
-  },
-  {
     id: 'cluster-scheduler-decision',
     title: 'Scheduler Decision Cycle',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'A new Pod has no Node yet, so how does Kubernetes decide where it runs? The scheduler pulls the Pod off its queue, filters out the Nodes that cannot fit it, scores the survivors to find the best home, and writes that choice back as a binding object. From there the Kubelet on the chosen Node picks the Pod up on its own watch and starts the containers. That one write is the whole of its placement decision, and the scheduler itself never starts anything.',
+    desc: 'A new Pod has no Node yet, so how does Kubernetes decide where it runs? The Scheduler pulls the Pod off its queue, filters out the Nodes that cannot fit it, scores the survivors to find the best home, and writes that choice back as a binding object. From there the Kubelet on the chosen Node picks the Pod up on its own watch and starts the containers. That one write is the whole of its placement decision, and the Scheduler itself never starts anything.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -104,11 +106,26 @@ export const CARDS = [
     ],
   },
   {
+    id: 'cluster-taints-tolerations',
+    title: 'Taints and Tolerations',
+    category: 'cluster',
+    subcategory: 'control-plane',
+    desc: 'Why does a Node refuse one Pod and happily run another? A taint on the Node is a key, an optional value and an effect, and what it does to a Pod with no toleration for that key and that effect is decided by the effect alone. NoSchedule and PreferNoSchedule are gates on the way in, one a veto and one a score penalty, so neither disturbs a Pod already running, and only NoExecute reaches inside and evicts, after tolerationSeconds when the toleration sets one.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Taints and Tolerations', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/' },
+      { label: 'Scheduler Configuration', href: 'https://kubernetes.io/docs/reference/scheduling/config/#scheduling-plugins' },
+      { label: 'Node v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/core/node-v1/' },
+      { label: 'Pod v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/core/pod-v1/' },
+    ],
+  },
+  {
     id: 'cluster-pod-priority-preemption',
     title: 'Pod Priority and Preemption',
     category: 'cluster',
     subcategory: 'control-plane',
-    desc: 'What happens when an important Pod has nowhere to fit on a full cluster? Its PriorityClass resolves to a numeric priority, and when every Node fails on capacity the scheduler preempts, unless that class sets preemptionPolicy Never. It picks the smallest set of lower-priority Pods whose removal makes room and deletes them with a plain DELETE, bypassing the PodDisruptionBudgets normal eviction respects. The Pod is then bound in their place.',
+    desc: 'What happens when an important Pod has nowhere to fit on a full cluster? Its PriorityClass resolves to a numeric priority, and when every Node fails on capacity the Scheduler preempts, unless that class sets preemptionPolicy Never. It picks the smallest set of lower-priority Pods whose removal makes room and deletes them with a plain DELETE, not an eviction, so a PodDisruptionBudget is honoured best effort, not enforced. The Pod is then bound in their place.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -117,7 +134,7 @@ export const CARDS = [
     ],
   },
   {
-    id: 'cluster-delete-flow',
+    id: 'cluster-cascading-deletion',
     title: 'Cascading Deletion and Finalizers',
     category: 'cluster',
     subcategory: 'control-plane',
@@ -141,6 +158,7 @@ export const CARDS = [
     sources: [
       { label: 'Raft Algorithm', href: 'https://raft.github.io/' },
       { label: 'Raft Paper', href: 'https://raft.github.io/raft.pdf' },
+      { label: 'etcd API guarantees', href: 'https://etcd.io/docs/v3.7/learning/api_guarantees/' },
       { label: 'Operating etcd clusters for Kubernetes', href: 'https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/' },
     ],
   },
@@ -155,10 +173,12 @@ export const CARDS = [
     sources: [
       { label: 'Leases', href: 'https://kubernetes.io/docs/concepts/architecture/leases/' },
       { label: 'Lease v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/coordination/lease-v1/' },
+      { label: 'Coordinated Leader Election', href: 'https://kubernetes.io/docs/concepts/cluster-administration/coordinated-leader-election/' },
+      { label: 'kube-controller-manager', href: 'https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/' },
     ],
   },
   {
-    id: 'cluster-kubelet-sync-loop',
+    id: 'cluster-kubelet-reconcile-loop',
     title: 'Kubelet Reconcile Loop',
     category: 'cluster',
     subcategory: 'node-runtime',
@@ -166,8 +186,9 @@ export const CARDS = [
     k8sVersion: '1.35',
     tinted: true,
     sources: [
+      { label: 'Kubelet sync loop', href: 'https://kubernetes.io/docs/reference/node/kubelet-sync-loop/' },
       { label: 'Kubelet', href: 'https://kubernetes.io/docs/concepts/overview/components/#node-components' },
-      { label: 'Kubelet PLEG', href: 'https://developers.redhat.com/blog/2019/11/13/pod-lifecycle-event-generator-understanding-the-pleg-is-not-healthy-issue-in-kubernetes' },
+      { label: 'Evented PLEG', href: 'https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/3386-kubelet-evented-pleg' },
     ],
   },
   {
@@ -181,6 +202,8 @@ export const CARDS = [
     sources: [
       { label: 'CRI Spec', href: 'https://github.com/kubernetes/cri-api/blob/master/pkg/apis/runtime/v1/api.proto' },
       { label: 'Container Runtimes', href: 'https://kubernetes.io/docs/setup/production-environment/container-runtimes/' },
+      { label: 'Network Plugins', href: 'https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/' },
+      { label: 'Images', href: 'https://kubernetes.io/docs/concepts/containers/images/' },
     ],
   },
   {
@@ -194,6 +217,7 @@ export const CARDS = [
     sources: [
       { label: 'Static Pods', href: 'https://kubernetes.io/docs/concepts/workloads/pods/static-pods/' },
       { label: 'Create static Pods', href: 'https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/' },
+      { label: 'kubeadm HA topology', href: 'https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/' },
     ],
   },
   {
@@ -201,13 +225,28 @@ export const CARDS = [
     title: 'Node Allocatable',
     category: 'cluster',
     subcategory: 'node-runtime',
-    desc: 'Your Node reports 16Gi of memory, so why does the Scheduler refuse a 15Gi Pod? Capacity is what the machine has, and Allocatable is what survives after kube-reserved, system-reserved and the hard eviction threshold are carved out of it, which is the only number the Scheduler ever sums Pod requests against. Everything above Allocatable belongs to the Kubelet, the runtime and the OS, so a Node that looks half empty can still be full.',
+    desc: 'Your Node reports 16Gi of memory, so why does the Scheduler refuse a 15Gi Pod? Capacity is what the machine has, and Allocatable is what survives after kubeReserved, systemReserved and the hard eviction threshold are carved out of it, which is the only number the Scheduler ever sums Pod requests against. Everything above Allocatable is spoken for, by the Kubelet, the runtime and the OS or by the eviction margin, so a half empty Node can still be full.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'Reserve Compute Resources', href: 'https://kubernetes.io/docs/tasks/administer-cluster/reserve-compute-resources/' },
-      { label: 'Node Status', href: 'https://kubernetes.io/docs/concepts/architecture/nodes/#node-status' },
+      { label: 'Node Status', href: 'https://kubernetes.io/docs/reference/node/node-status/#capacity' },
       { label: 'Resource Management', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/' },
+    ],
+  },
+  {
+    id: 'cluster-pod-cgroup-hierarchy',
+    title: 'Pod cgroup Hierarchy',
+    category: 'cluster',
+    subcategory: 'node-runtime',
+    desc: 'Where do the CPU and memory limits on a Pod actually land? The Kubelet builds one cgroup v2 tree on every Node: kubepods.slice holds all end-user Pods, a QoS slice groups the Burstable and the BestEffort ones, and every Pod gets a slice of its own. The container runtime creates the last level, one leaf per container, and writes cpu.max, memory.max and cpu.weight there, which is where a limit stops being a number on an object.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'cgroup v2', href: 'https://kubernetes.io/docs/concepts/architecture/cgroups/' },
+      { label: 'Reserve Compute Resources', href: 'https://kubernetes.io/docs/tasks/administer-cluster/reserve-compute-resources/' },
+      { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
+      { label: 'Tiered Memory Protection with Memory QoS', href: 'https://kubernetes.io/blog/2026/04/29/kubernetes-v1-36-memory-qos-tiered-protection/' },
     ],
   },
   {
@@ -215,12 +254,13 @@ export const CARDS = [
     title: 'CPU Throttling and CFS Quota',
     category: 'cluster',
     subcategory: 'node-runtime',
-    desc: 'A container over its memory limit is killed, so why is one over its CPU limit still alive? A CPU limit becomes a CFS quota, a budget of run time the cgroup may spend inside every 100ms period, and once it is spent the kernel stops scheduling those threads until the next period opens. Nothing dies and nothing is recorded as an error, the latency just grows, which is why throttling shows up in container_cpu_cfs_throttled_seconds_total and not in kubectl describe.',
+    desc: 'A container over its memory limit is killed, so why is one over its CPU limit still alive? A CPU limit becomes a CFS quota, a budget of run time the cgroup may spend inside every 100ms period, and once it is spent the kernel stops scheduling those threads until the next period opens. The quota kills nothing, the latency just grows, which is why throttling shows up in container_cpu_cfs_throttled_seconds_total and not in kubectl describe.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'Resource Management', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/' },
       { label: 'cgroup v2', href: 'https://kubernetes.io/docs/concepts/architecture/cgroups/' },
+      { label: 'cgroup v2 CPU files', href: 'https://docs.kernel.org/admin-guide/cgroup-v2.html#cpu-interface-files' },
     ],
   },
   {
@@ -228,12 +268,85 @@ export const CARDS = [
     title: 'Container OOMKill',
     category: 'cluster',
     subcategory: 'node-runtime',
-    desc: 'A container blows past its memory limit, so what kills it and what gets recorded? The limit is enforced by the kernel cgroup, and once usage reaches the cap and reclaim cannot free enough, the cgroup out-of-memory killer SIGKILLs every process in that container at once, and it exits 137. The Kubelet only witnesses this. It records the OOMKilled reason in the container status, then restarts the container according to the Pod restart policy.',
+    desc: 'A container blows past its memory limit, so what kills it and what gets recorded? The limit is enforced by the kernel cgroup, and once usage reaches the cap and reclaim cannot free enough, the cgroup out-of-memory killer SIGKILLs every process in that container at once under cgroup v2, and it exits 137. The Kubelet only witnesses this. It records the OOMKilled reason in the container status, then restarts the container according to the Pod restart policy.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'Resource Management', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/' },
       { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
+      { label: 'Node-pressure Eviction', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/' },
+    ],
+  },
+  {
+    id: 'cluster-image-container-gc',
+    title: 'Image and Container GC',
+    category: 'cluster',
+    subcategory: 'node-runtime',
+    desc: 'Your Nodes keep filling their own disks, so what does the Kubelet throw away first? It sweeps the image store once usage passes HighThresholdPercent, deleting images in the order they were last used and stopping the moment usage is back at LowThresholdPercent, and imageMaximumGCAge takes one nothing has touched for long enough whatever the disk reads. Dead containers are a separate budget, held to MinAge, MaxPerPodContainer and MaxContainers.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Garbage Collection', href: 'https://kubernetes.io/docs/concepts/architecture/garbage-collection/' },
+      { label: 'Kubelet Configuration', href: 'https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/' },
+      { label: 'Node-pressure Eviction', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/' },
+    ],
+  },
+  {
+    id: 'cluster-node-registration',
+    title: 'Node Registration',
+    category: 'cluster',
+    subcategory: 'node-lifecycle',
+    desc: 'How does a machine turn into a Node that can take Pods? With --register-node at its default the Kubelet creates the Node object itself and fills in the addresses, capacity and nodeInfo it reads off the machine. The object existing is not the same as the Node being usable: Ready stays False and the not-ready taint keeps ordinary Pods off until the runtime is up, and a Lease renewed every 10 seconds is what says the machine is still alive.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Nodes', href: 'https://kubernetes.io/docs/concepts/architecture/nodes/' },
+      { label: 'Node Status', href: 'https://kubernetes.io/docs/reference/node/node-status/' },
+      { label: 'Node Labels', href: 'https://kubernetes.io/docs/reference/node/node-labels/' },
+      { label: 'Admission Controllers', href: 'https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/' },
+    ],
+  },
+  {
+    id: 'cluster-node-conditions',
+    title: 'Node Conditions',
+    category: 'cluster',
+    subcategory: 'node-lifecycle',
+    desc: 'Five conditions come back from kubectl describe node, so which of them keep a new Pod out and which one throws a running Pod off? Only Ready reaches a Pod that is already there: False becomes the not-ready taint and Unknown becomes unreachable, and both carry NoExecute. MemoryPressure, DiskPressure, PIDPressure and NetworkUnavailable each become a NoSchedule taint instead, which shuts the door on new Pods and leaves the running ones alone.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Node Status', href: 'https://kubernetes.io/docs/reference/node/node-status/#condition' },
+      { label: 'Taint Nodes by Condition', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/#taint-nodes-by-condition' },
+      { label: 'Taint-Based Evictions', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/#taint-based-evictions' },
+      { label: 'DaemonSet', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/' },
+    ],
+  },
+  {
+    id: 'cluster-node-drain',
+    title: 'Node Drain',
+    category: 'cluster',
+    subcategory: 'node-lifecycle',
+    desc: 'How do you take a Node out of service without dropping your apps? The drain cordons it first, so the Scheduler skips it unless a Pod tolerates the unschedulable taint, then evicts the Pods through the Eviction API rather than deleting them. A PodDisruptionBudget holds an eviction back with a 429 until a replacement is Ready elsewhere. A drain never evicts DaemonSet Pods, and kubectl refuses to start one while any are present unless you pass --ignore-daemonsets.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Safely Drain a Node', href: 'https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/' },
+      { label: 'Eviction API', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/api-eviction/' },
+      { label: 'PodDisruptionBudget', href: 'https://kubernetes.io/docs/concepts/workloads/pods/disruptions/' },
+      { label: 'kubectl drain', href: 'https://kubernetes.io/docs/reference/kubectl/generated/kubectl_drain/' },
+    ],
+  },
+  {
+    id: 'cluster-graceful-node-shutdown',
+    title: 'Graceful Node Shutdown',
+    category: 'cluster',
+    subcategory: 'node-lifecycle',
+    desc: 'When a Node is told to power off, can its Pods still shut down cleanly first? With graceful Node shutdown enabled, the Kubelet catches the shutdown signal from systemd while already holding an inhibitor lock that delays the power-off, and it terminates Pods in priority order, spending the front of that one budget on ordinary workloads and the tail on the critical ones. Only then does it release the lock and let the operating system finish powering down.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Graceful Node Shutdown', href: 'https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/' },
+      { label: 'KEP-2000: Graceful Node Shutdown', href: 'https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/2000-graceful-node-shutdown' },
     ],
   },
   {
@@ -250,43 +363,46 @@ export const CARDS = [
     ],
   },
   {
-    id: 'cluster-node-drain',
-    title: 'Node Drain',
+    id: 'cluster-node-restart',
+    title: 'Node Restart and Reboot',
     category: 'cluster',
     subcategory: 'node-lifecycle',
-    desc: 'How do you take a Node out of service without dropping your apps? The drain command first cordons the Node so nothing new lands on it, then evicts the running Pods through the Eviction API rather than deleting them outright. A PodDisruptionBudget can hold an eviction back with a 429 until a replacement is Ready elsewhere. A drain never evicts DaemonSet Pods at all, and kubectl refuses to start one while any are present unless you pass --ignore-daemonsets.',
+    desc: 'A Node reboots, so what comes back and what does not? A Kubelet restart leaves the already running containers in place and a container runtime restart usually does too, while a reboot stops every one of them first and the Node reports NotReady until the Kubelet, the runtime and the network are ready. The Kubelet then recreates the containers of the Pods still bound to it, but a Pod deleted while the Node was away returns only if a controller owns it.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
-      { label: 'Safely Drain a Node', href: 'https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/' },
-      { label: 'Eviction API', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/api-eviction/' },
-      { label: 'PodDisruptionBudget', href: 'https://kubernetes.io/docs/concepts/workloads/pods/disruptions/' },
-    ],
-  },
-  {
-    id: 'cluster-graceful-node-shutdown',
-    title: 'Graceful Node Shutdown',
-    category: 'cluster',
-    subcategory: 'node-lifecycle',
-    desc: 'When a Node is told to power off, can its Pods still shut down cleanly first? With graceful Node shutdown enabled, the Kubelet catches the shutdown signal from systemd and holds an inhibitor lock that delays the power-off while it terminates Pods in priority order, giving ordinary workloads one grace window and the critical ones a second window of their own. Only then does it release the lock and let the operating system finish powering down.',
-    k8sVersion: '1.35',
-    tinted: true,
-    sources: [
-      { label: 'Graceful Node Shutdown', href: 'https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/' },
-      { label: 'KEP-2000: Graceful Node Shutdown', href: 'https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/2000-graceful-node-shutdown' },
+      { label: 'What Happens After A Node Restart', href: 'https://kubernetes.io/docs/reference/node/what-happens-on-restart/' },
+      { label: 'Nodes', href: 'https://kubernetes.io/docs/concepts/architecture/nodes/' },
+      { label: 'Static Pods', href: 'https://kubernetes.io/docs/concepts/workloads/pods/static-pods/' },
+      { label: 'Node Taints', href: 'https://kubernetes.io/docs/reference/labels-annotations-taints/#node-kubernetes-io-not-ready' },
     ],
   },
   {
     id: 'cluster-node-failure',
-    title: 'Node Failure and Eviction',
+    title: 'Node Failure and Pod Recovery',
     category: 'cluster',
     subcategory: 'node-lifecycle',
     desc: 'A Node goes silent, so how long until its Pods come back elsewhere? The cluster notices when the heartbeat Lease stops renewing, flips the Node to an unknown state, and taints it so that the Pods are eventually evicted and rescheduled somewhere healthy. The grace period plus the default toleration mean recovery takes a few minutes by design, trading raw speed for not overreacting to a network blip.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
-      { label: 'Node Status', href: 'https://kubernetes.io/docs/concepts/architecture/nodes/#node-status' },
+      { label: 'Node Status', href: 'https://kubernetes.io/docs/reference/node/node-status/#heartbeats' },
       { label: 'Node Taints', href: 'https://kubernetes.io/docs/reference/labels-annotations-taints/#node-kubernetes-io-unreachable' },
+      { label: 'Taint-Based Evictions', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/#taint-based-evictions' },
+      { label: 'Force Delete StatefulSet Pods', href: 'https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/' },
+    ],
+  },
+  {
+    id: 'cluster-node-eviction-rate',
+    title: 'Eviction Rate and Unhealthy Zones',
+    category: 'cluster',
+    subcategory: 'node-lifecycle',
+    desc: 'Half a rack goes NotReady at once, so does Kubernetes evict every Pod on all of them? The node controller limits its own rate: --node-eviction-rate 0.1 per second is one Node tainted per 10 seconds, and once the unhealthy share of a zone reaches --unhealthy-zone-threshold 0.55 it drops to --secondary-node-eviction-rate 0.01, or to zero in a zone of --large-cluster-size-threshold 50 Nodes or fewer. Only while every zone is fully down does it evict nothing at all.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Rate Limits on Eviction', href: 'https://kubernetes.io/docs/concepts/architecture/nodes/#rate-limits-on-eviction' },
+      { label: 'kube-controller-manager', href: 'https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/' },
       { label: 'Taint-Based Evictions', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/#taint-based-evictions' },
     ],
   },

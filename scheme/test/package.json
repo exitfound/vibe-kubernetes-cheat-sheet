@@ -1,0 +1,16 @@
+{
+  "name": "scheme-test",
+  "private": true,
+  "type": "module",
+  "description": "Tests for the scheme/ sub-app. Never shipped. Render tests need a server at http://localhost:8888 (python3 -m http.server 8888 from the repo root); BASE= overrides it. SCHEME_IDS=<id>[,<id>] narrows every render walk to those cards for a single-card review (seconds against minutes) and turns the catalog floors and censuses OFF, announcing itself as a SUBSET: the gate is the unfiltered run.",
+  "//": "Globs, not directories. On Node 22.15.1 `node --test unit/ render/` tries to LOAD each directory as a module and fails with MODULE_NOT_FOUND before running anything, and a glob that matches nothing exits 0, which is what keeps unit/ and report/ green while they are still empty.",
+  "scripts": {
+    "test": "node --test 'unit/**/*.test.mjs' 'render/**/*.test.mjs'",
+    "test:unit": "node --test 'unit/**/*.test.mjs'",
+    "test:render": "node --test 'render/**/*.test.mjs'",
+    "report": "node --test 'report/**/*.test.mjs'"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  }
+}

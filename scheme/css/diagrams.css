@@ -1,4 +1,3 @@
-/* Design notes: scheme/INTERNALS.md#schemecssdiagramscss */
 /* ===== DIAGRAM PRIMITIVES ===== */
 
 svg.diagram {
@@ -138,6 +137,14 @@ svg.diagram {
   stroke-width: 1.6;
   fill: none;
 }
+/* .scheme-arrow-dim sits ABOVE the three role rules at equal specificity, so the ROLE wins the
+   stroke and dim survives only as stroke-width 1.4. 315 of the catalog's 358 `dim: true` calls pass
+   a role, so dim looks like a no-op almost everywhere. IT IS NOT A BUG: dim here is a stroke WEIGHT,
+   not a lifecycle state, and a wire a ball rides is normally drawn dim. Measured: 601 dim lanes
+   carry a packet across 511 steps. DO NOT make dim outrank role: it greys out most route wires and
+   breaks the per-category colour identity. Measured: 94 of 103 rendered cards change, and the
+   networking exemplar's kube-proxy fan goes cyan to grey.
+   What actually needed separating was a RELATIONSHIP line from a resting ROUTE wire, below. */
 .scheme-arrow-dim { stroke: var(--diag-arrow-dim); stroke-width: 1.4; }
 .scheme-arrow-dashed { stroke-dasharray: 5 5; }
 .scheme-arrow-network { stroke: var(--network-color); }
@@ -160,10 +167,14 @@ svg.diagram {
   fill: var(--storage-color);
   filter: drop-shadow(0 0 6px var(--storage-color));
 }
+/* Brighter than the base --cluster-color so the ball reads as vividly as a tinted packet does:
+   same indigo hue, lighter, the cluster-family bright stop. Tinted dialogs override it. */
 .scheme-packet[data-role="cluster"] {
   fill: #abb0f5;
   filter: drop-shadow(0 0 6px #abb0f5);
 }
+/* A tinted dialog maps --network-color to the pale tint stop, which washes the ball out, so the
+   packet is pinned to the saturated network cyan and pops against the paler pod-pulse tint. */
 .scheme-packet[data-role="network"] {
   fill: #4fe5ff;
   filter: drop-shadow(0 0 6px #4fe5ff);

@@ -1,6 +1,5 @@
-import { g } from '../../lib/svg.js';
-import { arrowDefs, box, arrow, pathArrow, podShell } from '../../lib/primitives.js';
-import { valChip, setVal, setPodSublabel, pulsePod, segmentPacket, routePacket, makeInit, clearHighlights, clearWires, lightBoxAt, BEAT, FADE, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './network-kit.js';
+import { P, F, defineCard, makeRidingLabel, BEAT, FADE, OPACITY } from './network-kit.js';
+
 // Design notes for this card: ./CARDS.md#network-service-terminating-endpoints
 
 
@@ -14,206 +13,192 @@ const PODA_CY = 168, PODC_CY = 484;
 const BUS_X = 770;                       // shared vertical bus: the fans turn here so each one enters
                                          // its Pod horizontally, a right-angle approach not a diagonal
 const PULSE_MS = 900;                    // PULSE_POD.ms: web-c fades only after its pulse completes
+const CONN_GAP = 540;                    // gap between two connections off one client, the stagger
+                                         // `network-traffic-distribution` uses for the same sentence
 const LANE  = [[CLIENT_EDGE, FLOW_Y], [KP_LEFT, FLOW_Y]];                                              // client -> kube-proxy
 const FAN_A = [[KP_RIGHT, FLOW_Y - 14], [BUS_X, FLOW_Y - 14], [BUS_X, PODA_CY], [POD_LEFT, PODA_CY]];  // kube-proxy -> web-a
 const FAN_C = [[KP_RIGHT, FLOW_Y + 14], [BUS_X, FLOW_Y + 14], [BUS_X, PODC_CY], [POD_LEFT, PODC_CY]];  // kube-proxy -> web-c
 
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
+// The tag that rides a ball on this card, built once here and handed to every F.tag as `fn`: linear by
+// default because the lane tags ride segment balls, and each fan tag overrides back to ease-in-out.
 const ridingLabel = makeRidingLabel({ role: 'network', easing: 'linear' });
+const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
-function podBlock({ x, y, w, h, label, ip }) {
-  const shell = podShell({ x, y, w, h, label, sublabel: ip, containers: 0, role: 'network' });
-  const innerBox = box({ x: x + 20, y: y + 30, w: w - 40, h: 48, label: 'app', sublabel: 'eth0', role: 'network' });
-  return wrapPod(shell, innerBox);
-}
+const BACKEND_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' };
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
-
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Terminating endpoints and connection draining: when a backing Pod is deleted its endpoint is flagged terminating so kube-proxy stops sending new connections to it while in-flight connections keep draining through the grace period, then the endpoint is removed' });
-    root.appendChild(arrowDefs());
-
-    const client = podBlock({ x: 70, y: 270, w: 185, h: 112, label: 'Client Pod', ip: '10.244.1.5' });
-    const kproxy = box({ x: KP_LEFT, y: 286, w: KP_RIGHT - KP_LEFT, h: 80, label: 'kube-proxy', sublabel: 'routes new connections', role: 'network' });
-    const podA = podBlock({ x: POD_LEFT, y: PODA_CY - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web-a', ip: '10.244.2.7 · ready' });
-    const podC = podBlock({ x: POD_LEFT, y: PODC_CY - POD_H / 2, w: POD_W, h: POD_H, label: 'Pod web-c', ip: '10.244.3.9 · ready' });
-
-    const laneWire = arrow({ x1: LANE[0][0], y1: LANE[0][1], x2: LANE[1][0], y2: LANE[1][1], dashed: true, dim: true, role: 'network' });
-    const fanAWire = pathArrow({ points: FAN_A, dashed: true, dim: true, role: 'network' });
-    const fanCWire = pathArrow({ points: FAN_C, dashed: true, dim: true, role: 'network' });
-
+// The list order IS the append order, which is the z-order: boxes and Pods, then wires ABOVE them,
+// then chips, then the packet layer on top.
+export const SCENE = {
+  'aria-label': 'Terminating endpoints and connection draining: when a backing Pod is deleted its endpoint is flagged terminating so kube-proxy stops sending new connections to it while in-flight connections keep draining through the grace period, then the endpoint is removed',
+  parts: [
+    P.defs(),
+    P.box({ key: 'kproxy', x: KP_LEFT, y: 286, w: KP_RIGHT - KP_LEFT, h: 80, label: 'kube-proxy', sublabel: 'routes new connections' }),
+    P.pod({
+      key: 'client', innerKey: 'clientBox', x: 70, y: 270, w: 185, h: 112,
+      label: 'Client Pod', sublabel: '10.244.1.5',
+      inner: { dx: 20, dy: 30, w: 145, h: 48, label: 'app', sublabel: 'eth0' },
+    }),
+    P.pod({
+      key: 'podA', innerKey: 'podABox', x: POD_LEFT, y: PODA_CY - POD_H / 2, w: POD_W, h: POD_H,
+      label: 'Pod web-a', sublabel: '10.244.2.7 · ready', inner: BACKEND_INNER,
+    }),
+    P.pod({
+      key: 'podC', innerKey: 'podCBox', x: POD_LEFT, y: PODC_CY - POD_H / 2, w: POD_W, h: POD_H,
+      label: 'Pod web-c', sublabel: '10.244.3.9 · ready', inner: BACKEND_INNER,
+    }),
+    P.arrow({ from: LANE[0], to: LANE[1], dashed: true, dim: true }),
+    P.lane({ points: FAN_A, dashed: true, dim: true }),
+    P.lane({ points: FAN_C, dashed: true, dim: true }),
     // The three chips span the block width: web-c endpoint conditions (the state that drives routing),
     // where new connections may land, and the grace-period window.
-    const condChip  = valChip({ x: 70,  y: 566, w: 340, h: 34, name: 'endpoint web-c', value: 'ready · serving', role: 'network' });
-    const newChip   = valChip({ x: 430, y: 566, w: 290, h: 34, name: 'new conns', value: 'web-a and web-c', role: 'network' });
-    const graceChip = valChip({ x: 740, y: 566, w: 390, h: 34, name: 'grace period', value: 'not draining', role: 'network' });
-
-    const packetLayer = g({ id: 'packetLayer' });
-
-    // Z-order: boxes/pods, then wires ABOVE them, then chips, then the packet layer on top.
-    root.appendChild(kproxy);
-    root.appendChild(client.group);
-    root.appendChild(podA.group);
-    root.appendChild(podC.group);
-    [laneWire, fanAWire, fanCWire].forEach(el => root.appendChild(el));
-    [condChip, newChip, graceChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, kproxy, client: client.group, clientBox: client.innerBox,
-      podA: podA.group, podABox: podA.innerBox, podC: podC.group, podCBox: podC.innerBox,
-      condChip, newChip, graceChip,
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { cond, newConns, grace }) {
-  setVal(s.refs.condChip, cond);
-  setVal(s.refs.newChip, newConns);
-  setVal(s.refs.graceChip, grace);
-}
-
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
+    P.chip({ key: 'condChip', x: 70, y: 566, w: 340, h: 34, name: 'endpoint web-c', value: 'ready · serving' }),
+    P.chip({ key: 'newChip', x: 430, y: 566, w: 290, h: 34, name: 'new conns', value: 'web-a and web-c' }),
+    P.chip({ key: 'graceChip', x: 740, y: 566, w: 390, h: 34, name: 'grace period', value: 'not draining' }),
+    P.packets(),
+  ],
   // Inner app boxes are listed so a .highlight set in a reduced-replay block does not leak into later
-  // steps. Both backend opacities reset to 1 so a dim set by an earlier step does not persist.
-  clearHighlights(s, ['kproxy', 'condChip', 'newChip', 'graceChip', 'clientBox', 'podABox', 'podCBox'], [s.refs.client, s.refs.podA, s.refs.podC]);
-  s.refs.podA.style.opacity = '1';
-  s.refs.podC.style.opacity = '1';
-  clearWires(s);
-}
+  // steps (NET.S-02).
+  reset: {
+    keys: ['kproxy', 'condChip', 'newChip', 'graceChip', 'clientBox', 'podABox', 'podCBox'],
+    pods: ['client', 'podA', 'podC'],
+  },
+};
 
-const STEPS = [
+// Both backend opacities are stated on EVERY step, so a dim set by an earlier step cannot persist
+// into a replay of a later one. web-a never leaves full.
+const BOTH_UP = { podA: 1, podC: 1 };
+const C_TERMINATING = { podA: 1, podC: OPACITY.terminating };
+const C_TERMINATED = { podA: 1, podC: OPACITY.terminated };
+
+const GRACE_30S = 'terminationGracePeriod 30s';
+const C_TERMINATING_SUB = '10.244.3.9 · terminating';
+
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setVal(s.refs.condChip, 'ready · serving');
-      setVal(s.refs.newChip, 'web-a and web-c');
-      setVal(s.refs.graceChip, 'not draining');
-      setPodSublabel(s.refs.podC, '10.244.3.9 · ready');
-    },
+    chips: { condChip: 'ready · serving', newChip: 'web-a and web-c', graceChip: 'not draining' },
+    podSublabels: { podC: '10.244.3.9 · ready' },
+    opacity: BOTH_UP,
   },
   {
     id: 'steady',
-    duration: 3500,
+    // Motion: client pulse, the first connection lands on web-a at 2409, the second leaves 540 later
+    // and lands on web-c at 2949, whose pulse ends at 3849.
+    duration: 4000,
     narration: 'Both Pods are Ready endpoints in the slice, so kube-proxy spreads new connections across the two of them. This is the normal state, before anything starts to change.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { cond: 'ready · serving', newConns: 'web-a and web-c', grace: 'not draining' });
-      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.podCBox.classList.add('highlight'); return; }
-      // Up-arrow: the client pulses, one packet runs the lane to kube-proxy, then both fans fire so the
-      // two backends light together and the balancing across both endpoints reads clearly.
-      pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.kproxy, ctx, send.arrivalMs);
-      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
-      const giveC = routePacket(s, ctx, FAN_C, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
-      pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
-      pulsePod(s.refs.podC, ctx, giveC.arrivalMs);
-    },
+    chips: { condChip: 'ready · serving', newChip: 'web-a and web-c', graceChip: 'not draining' },
+    podSublabels: { podC: '10.244.3.9 · ready' },
+    opacity: BOTH_UP,
+    // The animated path says the client sent and both backends were served by PULSING them, and no
+    // cue names those three inner boxes.
+    reducedLit: ['clientBox', 'podABox', 'podCBox'],
+    // Up-arrow: the client pulses, then TWO connections leave it in turn, one per backend, so the
+    // spread across both endpoints is two rides rather than one ball splitting in two.
+    flow: [
+      F.pulse({ pod: 'client' }),
+      F.segment({ from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, name: 'send' }),
+      tag({ text: 'new conn', points: LANE, delay: BEAT.afterPulse }),
+      F.light({ targets: ['kproxy'], at: 'send' }),
+      F.route({ points: FAN_A, after: 'send', name: 'giveA' }),
+      F.pulse({ pod: 'podA', at: 'giveA' }),
+      // The second connection, staggered by CONN_GAP. It carries no tag of its own: a second `new conn`
+      // on the same 185 unit lane would still be up while the first one fades.
+      F.segment({ from: LANE[0], to: LANE[1], delay: BEAT.afterPulse + CONN_GAP, name: 'send2' }),
+      F.route({ points: FAN_C, after: 'send2', name: 'giveC' }),
+      F.pulse({ pod: 'podC', at: 'giveC' }),
+    ],
   },
   {
     id: 'terminate',
     duration: 2400,
     narration: 'The rollout deletes Pod web-c. Its preStop hook runs first and SIGTERM follows from the Kubelet, but the container does not vanish at once. It enters Terminating and keeps serving whatever it is already handling.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { cond: 'terminating · serving', newConns: 'web-a and web-c', grace: 'terminationGracePeriod 30s' });
-      s.refs.condChip.classList.add('highlight');
-      s.refs.graceChip.classList.add('highlight');
-      setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
-      // Static end-state: web-c has taken the signal and dimmed out of the normal set.
-      s.refs.podC.style.opacity = String(OPACITY.terminating);
-      if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); return; }
-      // web-c starts calm at full opacity, pulses as it receives SIGTERM, THEN fades out to the dimmed
-      // end-state (pulse first, dim after, never the reverse). No packet on this step.
-      s.refs.podC.style.opacity = '1';
-      pulsePod(s.refs.podC, ctx, 0);
-      ctx.register(s.refs.podC.animate([{ opacity: 1 }, { opacity: OPACITY.terminating }], { duration: FADE.out, delay: PULSE_MS, fill: 'forwards', easing: 'ease-in' }));
-    },
+    // NOT `ready · serving`: ready is a shortcut for serving AND NOT terminating, so it is already
+    // false the moment this Pod takes a deletionTimestamp. The two slots carry what just became true.
+    chips: { condChip: 'terminating · serving', newChip: 'web-a and web-c', graceChip: GRACE_30S },
+    podSublabels: { podC: C_TERMINATING_SUB },
+    // Static end-state: web-c has taken the signal and dimmed out of the normal set.
+    opacity: C_TERMINATING,
+    lit: ['condChip', 'graceChip'],
+    // The animated path says web-c took the signal by PULSING it, and no cue names its inner box.
+    reducedLit: ['podCBox'],
+    // web-c starts calm at full opacity, pulses as it receives SIGTERM, THEN fades out to the dimmed
+    // end-state (pulse first, dim after, never the reverse). No packet on this step.
+    rewind: { opacity: { podC: 1 } },
+    flow: [
+      F.pulse({ pod: 'podC' }),
+      F.fade({ target: 'podC', from: 1, to: OPACITY.terminating, dur: FADE.out, delay: PULSE_MS, fill: 'forwards', easing: 'ease-in' }),
+    ],
   },
   {
     id: 'condition',
     duration: 3500,
     narration: 'Almost at once that endpoint flips in the slice: ready becomes false while serving and terminating stay true. The kube-proxy reads the change and stops handing NEW connections to web-c, so fresh traffic now goes to web-a only.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { cond: 'notReady · serving', newConns: 'web-a only', grace: 'terminationGracePeriod 30s' });
-      s.refs.condChip.classList.add('highlight');
-      s.refs.newChip.classList.add('highlight');
-      setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
-      // web-c is out of the new-connection set: keep it dim at the shared DIM level.
-      s.refs.podC.style.opacity = String(OPACITY.terminating);
-      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
-      // A new connection now lands on web-a only: client pulses, packet runs the lane then the web-a
-      // fan, and web-a pulses on arrival. No ball goes to web-c, which is the whole point.
-      pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.kproxy, ctx, send.arrivalMs);
-      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
-      ridingLabel(s, ctx, 'to web-a', FAN_A, { delay: send.arrivalMs + BEAT.afterHop, easing: 'ease-in-out' });
-      pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
-    },
+    chips: { condChip: 'notReady · serving', newChip: 'web-a only', graceChip: GRACE_30S },
+    podSublabels: { podC: C_TERMINATING_SUB },
+    // web-c is out of the new-connection set: keep it dim at the shared DIM level.
+    opacity: C_TERMINATING,
+    lit: ['condChip', 'newChip'],
+    // The client and web-a only pulse here, so the static path has to say so itself.
+    reducedLit: ['clientBox', 'podABox'],
+    // A new connection now lands on web-a only: client pulses, packet runs the lane then the web-a
+    // fan, and web-a pulses on arrival. No ball goes to web-c, which is the whole point.
+    flow: [
+      F.pulse({ pod: 'client' }),
+      F.segment({ from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, name: 'send' }),
+      tag({ text: 'new conn', points: LANE, delay: BEAT.afterPulse }),
+      F.light({ targets: ['kproxy'], at: 'send' }),
+      F.route({ points: FAN_A, after: 'send', name: 'giveA' }),
+      tag({ text: 'to web-a', points: FAN_A, after: 'send', easing: 'ease-in-out' }),
+      F.pulse({ pod: 'podA', at: 'giveA' }),
+    ],
   },
   {
     id: 'drain',
     duration: 4600,
-    narration: 'The connection already established on web-c is not cut. With terminating endpoints kube-proxy keeps forwarding that in-flight flow to web-c for the grace window, while every new connection lands on web-a. That overlap is what lets a rollout finish without dropped requests.',
-    enter(s, ctx) {
-      resetStep(s);
-      s.refs.kproxy.classList.add('highlight');
-      setChips(s, { cond: 'notReady · draining', newConns: 'web-a only', grace: 'draining in grace window' });
-      s.refs.condChip.classList.add('highlight');
-      s.refs.graceChip.classList.add('highlight');
-      setPodSublabel(s.refs.podC, '10.244.3.9 · terminating');
-      s.refs.podC.style.opacity = String(OPACITY.terminating);
-      if (ctx.reduced) { s.refs.podCBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); return; }
-      const drain = routePacket(s, ctx, FAN_C, { delay: 0, role: 'network' });
-      ridingLabel(s, ctx, 'in-flight', FAN_C, { delay: 0, easing: 'ease-in-out' });
-      pulsePod(s.refs.podC, ctx, drain.arrivalMs);
-      const startNew = drain.arrivalMs + BEAT.afterHop;
-      pulsePod(s.refs.client, ctx, startNew);
-      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: startNew + BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'new conn', LANE, { delay: startNew + BEAT.afterPulse });
-      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
-      ridingLabel(s, ctx, 'to web-a', FAN_A, { delay: send.arrivalMs + BEAT.afterHop, easing: 'ease-in-out' });
-      pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
-    },
+    narration: 'The connection already established on web-c is not cut. Its conntrack entry already maps that flow to web-c, so kube-proxy never picks a backend for it again and web-c finishes the request it holds, while every new connection lands on web-a. That overlap lets a rollout finish without dropped requests.',
+    chips: { condChip: 'notReady · serving', newChip: 'web-a only', graceChip: 'draining in grace window' },
+    podSublabels: { podC: C_TERMINATING_SUB },
+    opacity: C_TERMINATING,
+    lit: ['kproxy', 'condChip', 'graceChip'],
+    // All three Pods pulse on this step and nothing cues their inner boxes, so the static path
+    // names them itself.
+    reducedLit: ['podCBox', 'podABox', 'clientBox'],
+    // Two flows at once: the in-flight connection drains to web-c, and as it lands a fresh connection
+    // starts from the client, runs the lane and the web-a fan.
+    flow: [
+      F.route({ points: FAN_C, name: 'drain' }),
+      tag({ text: 'in-flight', points: FAN_C, easing: 'ease-in-out' }),
+      F.pulse({ pod: 'podC', at: 'drain' }),
+      F.pulse({ pod: 'client', after: 'drain' }),
+      F.segment({ from: LANE[0], to: LANE[1], after: 'drain', plus: BEAT.afterPulse, name: 'send' }),
+      tag({ text: 'new conn', points: LANE, after: 'drain', plus: BEAT.afterPulse }),
+      F.route({ points: FAN_A, after: 'send', name: 'giveA' }),
+      tag({ text: 'to web-a', points: FAN_A, after: 'send', easing: 'ease-in-out' }),
+      F.pulse({ pod: 'podA', at: 'giveA' }),
+    ],
   },
   {
     id: 'gone',
     duration: 3500,
-    narration: 'When the grace period ends web-c exits and its endpoint leaves the slice. Its replacement is already Ready elsewhere in the ReplicaSet, so the Service never dropped below its backend count. Traffic carried on throughout, and no client saw a reset.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { cond: 'removed', newConns: 'web-a + replica', grace: 'grace elapsed' });
-      s.refs.condChip.classList.add('highlight');
-      s.refs.newChip.classList.add('highlight');
-      s.refs.graceChip.classList.add('highlight');
-      setPodSublabel(s.refs.podC, '10.244.3.9 · terminated');
-      // web-c is gone, so it drops from the terminating shade to the terminated one.
-      s.refs.podC.style.opacity = String(OPACITY.terminated);
-      if (ctx.reduced) { s.refs.kproxy.classList.add('highlight'); s.refs.clientBox.classList.add('highlight'); s.refs.podABox.classList.add('highlight'); return; }
-      // Service carries on: a new connection lands on web-a and it pulses on arrival.
-      pulsePod(s.refs.client, ctx, 0);
-      const send = segmentPacket(s, ctx, { from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, role: 'network' });
-      ridingLabel(s, ctx, 'new conn', LANE, { delay: BEAT.afterPulse });
-      lightBoxAt(s.refs.kproxy, ctx, send.arrivalMs);
-      const giveA = routePacket(s, ctx, FAN_A, { delay: send.arrivalMs + BEAT.afterHop, role: 'network' });
-      pulsePod(s.refs.podA, ctx, giveA.arrivalMs);
-    },
+    narration: 'When the grace period ends web-c exits and its endpoint leaves the slice. Its replacement is already Ready in the new ReplicaSet, so the Service never dropped below its backend count. Traffic carried on throughout, and no client saw a reset.',
+    chips: { condChip: 'removed', newChip: 'web-a + replica', graceChip: 'grace elapsed' },
+    podSublabels: { podC: '10.244.3.9 · terminated' },
+    // web-c is gone, so it drops from the terminating shade to the terminated one.
+    opacity: C_TERMINATED,
+    lit: ['condChip', 'newChip', 'graceChip'],
+    // The client and web-a only pulse here, so the static path has to say so itself.
+    reducedLit: ['clientBox', 'podABox'],
+    // Service carries on: a new connection lands on web-a and it pulses on arrival.
+    flow: [
+      F.pulse({ pod: 'client' }),
+      F.segment({ from: LANE[0], to: LANE[1], delay: BEAT.afterPulse, name: 'send' }),
+      tag({ text: 'new conn', points: LANE, delay: BEAT.afterPulse }),
+      F.light({ targets: ['kproxy'], at: 'send' }),
+      F.route({ points: FAN_A, after: 'send', name: 'giveA' }),
+      F.pulse({ pod: 'podA', at: 'giveA' }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

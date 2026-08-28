@@ -1,6 +1,4 @@
-import { g, text } from '../../lib/svg.js';
-import { arrowDefs, box, podShell, cylinder, pathArrow } from '../../lib/primitives.js';
-import { valChip, setChip, setBoxSublabel, pulsePod, routePacket, makeInit, clearHighlights, clearWires, setWire, BEAT, lightBoxAt, makeRidingLabel, OPACITY, wrapPod, diagramRoot } from './storage-kit.js';
+import { P, F, defineCard, BEAT, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pvc-protection
 
 
@@ -31,6 +29,11 @@ const VERDICT_LBL_X = PVC_X - 16, VERDICT_LBL_Y = PVC_BOTTOM + 20;  // 464 / 324
 const SPEC_Y = DISK_Y + DISK_H / 2 + 5 + 14;                   // 451
 const CHIP_Y = 545, CHIP_H = 34;                               // strip ends at 579
 
+// Four chips over the card's own width, and NOT one width: the first carries both the longest
+// name and the longest value, and at a shared 252 the two strings meet with one unit to spare.
+const CHIP_GAP = 24, CHIP_WS = [312, 232, 244, 220];   // 1008 + 3 gaps = the full 60..1140 strip
+const chipX = i => 60 + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);   // 60 / 396 / 652 / 920
+
 
 // Each lane and its ball share one points array, so the two cannot drift apart, and every endpoint
 // sits on a block edge so no ball ever travels underneath a box.
@@ -44,288 +47,214 @@ const W_DEL_POD = [[ACT_R_CX, KUBECTL_Y], [ACT_R_CX, POD_MID], [POD_RIGHT, POD_M
 // are never drawn on the same run of canvas.
 const W_RM_FINAL = [[ACT_L_CX, CTRL_Y], [ACT_L_CX, PVC_MID], [PVC_X, PVC_MID]];
 
-// Fades an object out of existence when the delete that removes it lands, and takes its lit stroke
-// with it: a block that has gone dark must not keep glowing, or it reads as deleted-but-still-live.
-function removeAt(el, ctx, delay = 0, to = OPACITY.terminated) {
-  if (!el) return;
-  if (ctx.reduced || delay <= 0) { el.style.opacity = String(to); el.classList.remove('highlight'); return; }
-  const a = el.animate([{ opacity: 1 }, { opacity: to }], { duration: 500, delay, fill: 'forwards', easing: 'ease-in' });
-  a.onfinish = () => el.classList.remove('highlight');
-  ctx.register(a);
-}
-
-// The tag that rides a ball on this card. Constants preserved from its hand-rolled copy.
-const ridingLabel = makeRidingLabel({ role: 'storage' });
-
-// A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
-// matches descendants only, so pulsing a bare pod() would fire at half strength.
-function podBlock() {
-  const shell = podShell({ x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: data-claim', containers: 0, role: 'storage' });
-  const innerBox = box({ x: POD_X + 20, y: POD_Y + (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'app', sublabel: 'writes to /data', role: 'storage' });
-  return wrapPod(shell, innerBox);
-}
+// Both requests end on the claim at PVC_MID, half a box height below its top, so at the default -14
+// the tag rides inside the boxes it passes. -40 and -38 are the least that clear all four viewports.
+const DEL_TAG_DY = -40, RM_TAG_DY = -38;
+// The mount ascent ends on the Pod floor, where the default -14 parks the tag on the volumes:
+// data-claim sublabel for 500 ms. At 12 BELOW the ball it stops short of the floor instead.
+const MOUNT_TAG_DY = 12;
 
 // Every lane in this card is a ROUTE: something travels all of them, so they are all dashed, all
 // carry a head, and all are built from the same points array as their ball.
-function lane(points) {
-  return pathArrow({ points, dashed: true, dim: true, role: 'storage' });
-}
+const lane = (key, points, opacity) => P.lane({ key, points, dashed: true, dim: true, opacity });
 
-class Scene {
-  constructor(host) { this.host = host; this.refs = {}; this.build(); }
+// Z-order: the blocks and the disk, then the lanes and their captions, then the Pod above its own
+// half of the axis, then the disk caption, then the chip strip, then the packet layer.
+export const SCENE = {
+  'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The pvc-protection finalizer on PVC data-claim means a delete only writes a deletionTimestamp, so the object stays and Pod web-0 keeps its mount, while the status phase reads Bound the whole time and only kubectl prints the word Terminating. Once the last consuming Pod is gone the controller removes the finalizer, and only then does the API server take the object out of ETCD.',
+  parts: [
+    P.defs(),
+    P.box({ key: 'pvc', x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'phase Bound' }),
+    // Both actors appear only on the steps they act on, so the card is never crossed by a lane
+    // belonging to somebody who is not on stage.
+    P.box({ key: 'kubectl', x: ACT_R_X, y: KUBECTL_Y, w: ACT_W, h: ACT_H, label: 'kubectl delete', sublabel: 'issues the request', opacity: 0 }),
+    P.box({ key: 'ctrl', x: ACT_L_X, y: CTRL_Y, w: ACT_W, h: ACT_H, label: 'PVC protection', sublabel: 'the controller', opacity: 0 }),
+    P.cylinder({ key: 'disk', x: CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'PV data-vol' }),
+    lane('lMountLow', W_MOUNT_LOW),
+    lane('lMountHigh', W_MOUNT_HIGH),
+    // A lane is never on stage without the block on the end of it (STO.S-02).
+    lane('lDelPvc', W_DEL_PVC, 0),
+    lane('lDelPod', W_DEL_POD, 0),
+    lane('lRmFinal', W_RM_FINAL, 0),
+    P.wire({ key: 'mount', x: MOUNT_LBL_X, y: MOUNT_LBL_Y, anchor: 'start' }),
+    P.wire({ key: 'verdict', x: VERDICT_LBL_X, y: VERDICT_LBL_Y, anchor: 'end' }),
+    // A Pod is a shell plus an inner box, wrapped in a g so pulsePod reaches BOTH. querySelectorAll
+    // matches descendants only, so pulsing a bare shell would fire at half strength.
+    P.pod({
+      key: 'web', x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'volumes: data-claim', containers: 0,
+      inner: { dx: 20, dy: (POD_H - 52) / 2, w: POD_W - 40, h: 52, label: 'app', sublabel: 'writes to /data' }, innerKey: 'app',
+    }),
+    P.tag({ x: CX, y: SPEC_Y, text: 'the backing disk' }),
+    P.chip({ key: 'tsChip', x: chipX(0), y: CHIP_Y, w: CHIP_WS[0], h: CHIP_H, name: 'deletionTimestamp', value: 'none' }),
+    P.chip({ key: 'shownChip', x: chipX(1), y: CHIP_Y, w: CHIP_WS[1], h: CHIP_H, name: 'kubectl shows', value: 'Bound' }),
+    P.chip({ key: 'finalChip', x: chipX(2), y: CHIP_Y, w: CHIP_WS[2], h: CHIP_H, name: 'finalizers', value: 'pvc-protection' }),
+    P.chip({ key: 'usersChip', x: chipX(3), y: CHIP_Y, w: CHIP_WS[3], h: CHIP_H, name: 'consumers', value: '1 Pod' }),
+    P.packets(),
+  ],
+  // app is listed so its .highlight is cleared every step: without it a highlight set during a
+  // reduced replay would leak forward, since replay never runs the motion path that would re-clear it.
+  reset: {
+    keys: ['pvc', 'kubectl', 'ctrl', 'disk', 'app',
+      'tsChip', 'shownChip', 'finalChip', 'usersChip'],
+    pods: ['web'],
+  },
+};
 
-  build() {
-    this.host.replaceChildren();
-    this.refs = {};
-    const root = diagramRoot({ 'aria-label': 'Why a deleted PersistentVolumeClaim sits in Terminating. The StorageObjectInUseProtection admission plugin puts the kubernetes.io slash pvc-protection finalizer on every claim when it is created. Deleting the claim only sets a deletionTimestamp on it, and because the finalizers list is not empty the API server will not complete the delete, so the object stays and the Pod keeps its mount. Its status phase is still Bound the whole time and only kubectl prints the word Terminating. Once the last consuming Pod is gone the controller removes the finalizer, the list empties, and only then does the API server take the object out of ETCD.' });
-    root.appendChild(arrowDefs());
+// All four chips go through setChip, so all four are chipsCued.
+const chips = (ts, shown, finalizers, users) =>
+  ({ tsChip: ts, shownChip: shown, finalChip: finalizers, usersChip: users });
 
-    const web = podBlock();
-    const pvc = box({ x: PVC_X, y: PVC_Y, w: PVC_W, h: PVC_H, label: 'PVC data-claim', sublabel: 'phase Bound', role: 'storage' });
-    const kubectl = box({ x: ACT_R_X, y: KUBECTL_Y, w: ACT_W, h: ACT_H, label: 'kubectl delete', sublabel: 'issues the request', role: 'storage' });
-    const ctrl = box({ x: ACT_L_X, y: CTRL_Y, w: ACT_W, h: ACT_H, label: 'PVC protection', sublabel: 'the controller', role: 'storage' });
-    const disk = cylinder({ x: CX - DISK_W / 2, y: DISK_Y, w: DISK_W, h: DISK_H, label: 'PV data-vol', role: 'storage' });
-    kubectl.style.opacity = '0';
-    ctrl.style.opacity = '0';
+// STO.S-01 as a field: every step pins EVERY opacity that any step can change, so a step can never
+// inherit a stale one and a cancel mid-flight always lands on this step's own end state.
+const stage = ({ web, pvc, kubectl, ctrl, mountLow, mountHigh, delPvc, delPod, rmFinal }) => ({
+  web, pvc, kubectl, ctrl,
+  lMountLow: mountLow, lMountHigh: mountHigh, lDelPvc: delPvc, lDelPod: delPod, lRmFinal: rmFinal,
+});
 
-    const lMountLow = lane(W_MOUNT_LOW);
-    const lMountHigh = lane(W_MOUNT_HIGH);
-    const lDelPvc = lane(W_DEL_PVC);
-    const lDelPod = lane(W_DEL_POD);
-    const lRmFinal = lane(W_RM_FINAL);
-    lDelPvc.style.opacity = '0';
-    lDelPod.style.opacity = '0';
-    lRmFinal.style.opacity = '0';
+// The claim standing whole with the disk under it and the Pod on top: every step before the delete
+// lands, plus the two that watch the delete fail to land.
+const STACK = stage({ web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
 
-    const mountLbl = text({ class: 'scheme-label code dim', x: MOUNT_LBL_X, y: MOUNT_LBL_Y, 'text-anchor': 'start' }, [' ']);
-    const verdictLbl = text({ class: 'scheme-label code dim', x: VERDICT_LBL_X, y: VERDICT_LBL_Y, 'text-anchor': 'end' }, [' ']);
+const PROT = 'pvc-protection', TERMINATING = 'Terminating', DELETING = 'phase Bound, deleting';
 
-    // Four chips over the card's own width, and NOT one width: the first carries both the longest
-    // name and the longest value, and at a shared 252 the two strings meet with one unit to spare.
-    const CHIP_GAP = 24, CHIP_WS = [312, 232, 244, 220];   // 1008 + 3 gaps = the full 60..1140 strip
-    const chipX = i => 60 + CHIP_WS.slice(0, i).reduce((a, w) => a + w + CHIP_GAP, 0);   // 60 / 396 / 652 / 920
-    const tsChip = valChip({ x: chipX(0), y: CHIP_Y, w: CHIP_WS[0], h: CHIP_H, name: 'deletionTimestamp', value: 'none', role: 'storage' });
-    const shownChip = valChip({ x: chipX(1), y: CHIP_Y, w: CHIP_WS[1], h: CHIP_H, name: 'kubectl shows', value: 'Bound', role: 'storage' });
-    const finalChip = valChip({ x: chipX(2), y: CHIP_Y, w: CHIP_WS[2], h: CHIP_H, name: 'finalizers', value: 'pvc-protection', role: 'storage' });
-    const usersChip = valChip({ x: chipX(3), y: CHIP_Y, w: CHIP_WS[3], h: CHIP_H, name: 'consumers', value: '1 Pod', role: 'storage' });
+// Fades an object out of existence when the delete that removes it lands. The `unlight` is
+// defensive: none of the four is lit on the step that removes it, and see ./CARDS.md for why.
+const removeAt = (target, to, when) => F.fade({ target, to, dur: 500, fill: 'forwards', unlight: [target], ...when });
 
-    const packetLayer = g({ id: 'packetLayer' });
-
-    [pvc, kubectl, ctrl, disk].forEach(el => root.appendChild(el));
-    [lMountLow, lMountHigh, lDelPvc, lDelPod, lRmFinal].forEach(el => root.appendChild(el));
-    [mountLbl, verdictLbl].forEach(el => root.appendChild(el));
-    root.appendChild(web.group);
-    root.appendChild(text({ class: 'scheme-label code dim', x: CX, y: SPEC_Y, 'text-anchor': 'middle' }, ['the backing disk']));
-    [tsChip, shownChip, finalChip, usersChip].forEach(c => root.appendChild(c));
-    root.appendChild(packetLayer);
-
-    this.host.appendChild(root);
-    this.refs = {
-      svg: root, web: web.group, app: web.innerBox,
-      pvc, kubectl, ctrl, disk,
-      lMountLow, lMountHigh, lDelPvc, lDelPod, lRmFinal,
-      tsChip, shownChip, finalChip, usersChip,
-      wires: { mount: mountLbl, verdict: verdictLbl },
-      packetLayer,
-    };
-  }
-
-  reset() { this.build(); }
-}
-
-function setChips(s, { ts, shown, finalizers, users }) {
-  setChip(s.refs.tsChip, ts);
-  setChip(s.refs.shownChip, shown);
-  setChip(s.refs.finalChip, finalizers);
-  setChip(s.refs.usersChip, users);
-}
-
-// Every step pins EVERY opacity that any step can change, so a step can never inherit a stale one and
-// a cancel mid-flight always lands on this step's own end state.
-function setStage(s, { web, pvc, kubectl, ctrl, mountLow, mountHigh, delPvc, delPod, rmFinal }) {
-  s.refs.web.style.opacity = String(web);
-  s.refs.pvc.style.opacity = String(pvc);
-  s.refs.kubectl.style.opacity = String(kubectl);
-  s.refs.ctrl.style.opacity = String(ctrl);
-  s.refs.lMountLow.style.opacity = String(mountLow);
-  s.refs.lMountHigh.style.opacity = String(mountHigh);
-  s.refs.lDelPvc.style.opacity = String(delPvc);
-  s.refs.lDelPod.style.opacity = String(delPod);
-  s.refs.lRmFinal.style.opacity = String(rmFinal);
-}
-
-// app is listed so its .highlight is cleared every step: without it a highlight set during a reduced
-// replay would leak forward, since replay never runs the motion path that would re-clear it.
-function resetStep(s) {
-  s.refs.packetLayer.replaceChildren();
-  clearHighlights(s, ['pvc', 'kubectl', 'ctrl', 'disk', 'app',
-    'tsChip', 'shownChip', 'finalChip', 'usersChip'], [s.refs.web]);
-  clearWires(s);
-}
-
-const STEPS = [
+export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    enter(s) {
-      resetStep(s);
-      setChips(s, { ts: 'none', shown: 'Bound', finalizers: 'pvc-protection', users: '1 Pod' });
-      setBoxSublabel(s.refs.pvc, 'phase Bound');
-      setStage(s, { web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
-    },
+    chipsCued: chips('none', 'Bound', PROT, '1 Pod'),
+    sublabels: { pvc: 'phase Bound' },
+    opacity: STACK,
   },
   {
     id: 'in-use',
     duration: 3400,
     narration: 'The claim is a handle, and the volume behind it is what stores the bytes. Kubelet resolved data-claim to data-vol and mounted it at slash data, so the app writes through the claim into the disk. That live mount is the thing the finalizer is guarding.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ts: 'none', shown: 'Bound', finalizers: 'pvc-protection', users: '1 Pod' });
-      setBoxSublabel(s.refs.pvc, 'phase Bound');
-      setStage(s, { web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
-      setWire(s, 'mount', 'mounted at /data');
-      setWire(s, 'verdict', 'Bound to data-vol');
-      // Static end state: the whole chain is live by the end of the ascent.
-      s.refs.disk.classList.add('highlight');
-      s.refs.pvc.classList.add('highlight');
-      s.refs.app.classList.add('highlight');
-      if (ctx.reduced) return;
-      // Only the disk is lit to begin with, because only the disk sends a ball. The claim and the
-      // container are destinations and each earns its light at its own arrival.
-      s.refs.pvc.classList.remove('highlight');
-      s.refs.app.classList.remove('highlight');
-      const hop1 = routePacket(s, ctx, W_MOUNT_LOW, { role: 'storage' });
-      lightBoxAt(s.refs.pvc, ctx, hop1.arrivalMs);
-      const hop2 = routePacket(s, ctx, W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop, role: 'storage' });
-      ridingLabel(s, ctx, '/data', W_MOUNT_HIGH, { delay: hop1.arrivalMs + BEAT.afterHop });
-      lightBoxAt(s.refs.app, ctx, hop2.arrivalMs);
-      pulsePod(s.refs.web, ctx, hop2.arrivalMs);
-    },
+    chipsCued: chips('none', 'Bound', PROT, '1 Pod'),
+    sublabels: { pvc: 'phase Bound' },
+    wires: { mount: 'mounted at /data', verdict: 'Bound to data-vol' },
+    opacity: STACK,
+    // Only the disk is lit at entry, because only the disk sends a ball. The claim and the container
+    // are destinations and each earns its light at its own arrival, which flowLights derives.
+    lit: ['disk'],
+    flow: [
+      F.route({ points: W_MOUNT_LOW, name: 'hop1', lights: ['pvc'] }),
+      F.route({ points: W_MOUNT_HIGH, after: 'hop1', name: 'hop2' }),
+      F.tag({ text: '/data', points: W_MOUNT_HIGH, after: 'hop1' }),
+      F.light({ targets: ['app'], at: 'hop2' }),
+      F.pulse({ pod: 'web', at: 'hop2' }),
+    ],
   },
   {
     id: 'delete-request',
     duration: 3200,
     narration: 'You run kubectl delete pvc data-claim. The API accepts it and writes a deletionTimestamp onto the object. That is all a delete does when finalizers are present: it is a request, recorded on the object, and nothing has been removed yet.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'pvc-protection', users: '1 Pod' });
-      setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
-      setStage(s, { web: 1, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 1, delPod: 0, rmFinal: 0 });
-      setWire(s, 'mount', 'mount still live');
-      setWire(s, 'verdict', 'marked for deletion');
-      s.refs.kubectl.classList.add('highlight');
-      s.refs.pvc.classList.add('highlight');
-      if (ctx.reduced) return;
-      // kubectl sends the ball, so kubectl alone is lit at entry and the claim waits for it to land.
-      s.refs.pvc.classList.remove('highlight');
-      const del = routePacket(s, ctx, W_DEL_PVC, { role: 'storage' });
-      ridingLabel(s, ctx, 'deletionTimestamp set', W_DEL_PVC);
-      lightBoxAt(s.refs.pvc, ctx, del.arrivalMs);
-    },
+    chipsCued: chips('set', TERMINATING, PROT, '1 Pod'),
+    sublabels: { pvc: DELETING },
+    wires: { mount: 'mount still live', verdict: 'marked for deletion' },
+    opacity: stage({ web: 1, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 1, delPod: 0, rmFinal: 0 }),
+    // kubectl sends the ball, so kubectl alone is lit at entry and the claim waits for it to land.
+    lit: ['kubectl'],
+    flow: [
+      F.route({ points: W_DEL_PVC, name: 'del' }),
+      F.tag({ text: 'deletionTimestamp set', points: W_DEL_PVC, dy: DEL_TAG_DY }),
+      F.light({ targets: ['pvc'], at: 'del' }),
+    ],
   },
   {
     id: 'finalizer-holds',
     duration: 3200,
     narration: 'Now watch what does not happen. The finalizers list is not empty, so the API server refuses to complete the delete and the object stays exactly where it was. The Pod never noticed: the volume is still mounted and the app is still writing to it, straight through a claim you already deleted.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'pvc-protection', users: '1 Pod' });
-      setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
-      setStage(s, { web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
-      setWire(s, 'mount', 'still mounted');
-      setWire(s, 'verdict', 'finalizer blocks removal');
-      s.refs.pvc.classList.add('highlight');
-      s.refs.app.classList.add('highlight');
-      if (ctx.reduced) return;
-      s.refs.app.classList.remove('highlight');
-      const write = routePacket(s, ctx, W_MOUNT_HIGH, { role: 'storage' });
-      ridingLabel(s, ctx, 'writes continue', W_MOUNT_HIGH);
-      lightBoxAt(s.refs.app, ctx, write.arrivalMs);
-      pulsePod(s.refs.web, ctx, write.arrivalMs);
-    },
+    chipsCued: chips('set', TERMINATING, PROT, '1 Pod'),
+    sublabels: { pvc: DELETING },
+    wires: { mount: 'still mounted', verdict: 'finalizer blocks removal' },
+    opacity: STACK,
+    lit: ['pvc'],
+    flow: [
+      F.route({ points: W_MOUNT_HIGH, name: 'write' }),
+      F.tag({ text: 'writes continue', points: W_MOUNT_HIGH, dy: MOUNT_TAG_DY }),
+      F.light({ targets: ['app'], at: 'write' }),
+      F.pulse({ pod: 'web', at: 'write' }),
+    ],
   },
   {
     id: 'why',
     duration: 3000,
     narration: 'The protection is deliberate. Taking the claim away under a running Pod would pull the mount out from beneath it and could lose writes that are still in flight. The same rule works forwards too: a new Pod that asks for a claim with a deletionTimestamp on it is refused and will not start.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'pvc-protection', users: '1 Pod' });
-      setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
-      setStage(s, { web: 1, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 0, rmFinal: 0 });
-      setWire(s, 'mount', 'held open by web-0');
-      setWire(s, 'verdict', 'pinned while in use');
-      s.refs.pvc.classList.add('highlight');
-      s.refs.app.classList.add('highlight');
-      if (ctx.reduced) return;
-      // The Pod IS the reason the claim is pinned, so it is the one thing that moves here.
-      pulsePod(s.refs.web, ctx, 0);
-    },
+    chipsCued: chips('set', TERMINATING, PROT, '1 Pod'),
+    sublabels: { pvc: DELETING },
+    wires: { mount: 'held open by web-0', verdict: 'pinned while in use' },
+    opacity: STACK,
+    lit: ['pvc', 'app'],
+    // The Pod IS the reason the claim is pinned, so it is the one thing that moves here.
+    flow: [
+      F.pulse({ pod: 'web' }),
+    ],
   },
   {
     id: 'pod-gone',
     duration: 3400,
     narration: 'So remove the reason. The Pod is deleted, or it finishes and is cleaned up, and as it goes Kubelet unmounts the volume and the claim loses its last consumer. This is the event the protection controller has been waiting for the whole time.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'pvc-protection', users: '0 Pods' });
-      setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
-      // The Pod and its half of the axis both end this step gone.
-      setStage(s, { web: OPACITY.terminated, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 1, rmFinal: 0 });
-      setWire(s, 'verdict', 'last consumer gone');
-      s.refs.kubectl.classList.add('highlight');
-      if (ctx.reduced) return;
-      // The Pod is alive until the delete lands on it, so the motion path restores it and the fade
-      // carries it back down to the OPACITY.terminated pinned above.
-      setStage(s, { web: 1, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 1, rmFinal: 0 });
-      const del = routePacket(s, ctx, W_DEL_POD, { role: 'storage' });
-      ridingLabel(s, ctx, 'delete pod web-0', W_DEL_POD);
-      pulsePod(s.refs.web, ctx, del.arrivalMs);
-      const goes = del.arrivalMs + BEAT.afterPulse;
-      removeAt(s.refs.web, ctx, goes, OPACITY.terminated);
+    chipsCued: chips('set', TERMINATING, PROT, '0 Pods'),
+    sublabels: { pvc: DELETING },
+    wires: { verdict: 'last consumer gone' },
+    // The Pod and its half of the axis both end this step gone.
+    opacity: stage({ web: OPACITY.terminated, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 1, rmFinal: 0 }),
+    lit: ['kubectl'],
+    // The Pod is alive until the delete lands on it, so the motion path restores it and the fade
+    // carries it back down to the OPACITY.terminated pinned above, the consumer count with it (P-03).
+    rewind: {
+      opacity: stage({ web: 1, pvc: 1, kubectl: 1, ctrl: 0, mountLow: 1, mountHigh: 1, delPvc: 0, delPod: 1, rmFinal: 0 }),
+      chips: { usersChip: '1 Pod' },
+    },
+    flow: [
+      F.route({ points: W_DEL_POD, name: 'del' }),
+      F.tag({ text: 'delete pod web-0', points: W_DEL_POD }),
+      F.pulse({ pod: 'web', at: 'del' }),
+      removeAt('web', OPACITY.terminated, { at: 'del', plus: BEAT.afterPulse, name: 'gone' }),
       // The mount goes with the Pod, so the upper lane leaves on the same beat rather than lingering
       // as an arrow pointing at a ghost.
-      removeAt(s.refs.lMountHigh, ctx, goes, 0);
-    },
+      removeAt('lMountHigh', 0, { at: 'del', plus: BEAT.afterPulse }),
+      // The last consumer is gone when the Pod has finished going (2113), not when the delete lands
+      // on it: for the 500ms of the fade the Pod is still there and still mounting.
+      F.set({ at: 'gone', chipsCued: { usersChip: '0 Pods' } }),
+    ],
   },
   {
     id: 'finalizer-removed',
     duration: 3400,
     narration: 'The pvc-protection controller checks whether any Pod still uses the claim, finds none, and does its one job: it patches the finalizer off the object. The finalizers list is now empty and nothing is holding the outstanding delete back any more.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ts: 'set', shown: 'Terminating', finalizers: 'none', users: '0 Pods' });
-      setBoxSublabel(s.refs.pvc, 'phase Bound, deleting');
-      setStage(s, { web: OPACITY.terminated, pvc: 1, kubectl: 0, ctrl: 1, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 1 });
-      setWire(s, 'verdict', 'nothing holds it now');
-      s.refs.ctrl.classList.add('highlight');
-      s.refs.pvc.classList.add('highlight');
-      if (ctx.reduced) return;
-      // The controller sends the ball, so the claim waits for the patch to land before it lights.
-      s.refs.pvc.classList.remove('highlight');
-      const rm = routePacket(s, ctx, W_RM_FINAL, { role: 'storage' });
-      ridingLabel(s, ctx, 'finalizers: []', W_RM_FINAL);
-      lightBoxAt(s.refs.pvc, ctx, rm.arrivalMs);
-    },
+    chipsCued: chips('set', TERMINATING, 'none', '0 Pods'),
+    sublabels: { pvc: DELETING },
+    wires: { verdict: 'nothing holds it now' },
+    opacity: stage({ web: OPACITY.terminated, pvc: 1, kubectl: 0, ctrl: 1, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 1 }),
+    // The controller sends the ball, so the claim waits for the patch to land before it lights.
+    lit: ['ctrl'],
+    flow: [
+      F.route({ points: W_RM_FINAL, name: 'rm' }),
+      F.tag({ text: 'finalizers: []', points: W_RM_FINAL, dy: RM_TAG_DY }),
+      F.light({ targets: ['pvc'], at: 'rm' }),
+    ],
   },
   {
     id: 'gone',
     duration: 3000,
     narration: 'With a deletionTimestamp set and an empty finalizers list, the API server completes the delete it accepted five steps ago and the record leaves ETCD. The disk itself is a separate question, settled by the reclaim policy on the volume. The lesson of a stuck Terminating claim is short: go and find the Pod that is still mounting it.',
-    enter(s, ctx) {
-      resetStep(s);
-      setChips(s, { ts: 'gone with object', shown: 'not found', finalizers: 'none', users: '0 Pods' });
-      // The claim and the rest of the axis end this step gone. The disk stays: it outlives the claim.
-      setStage(s, { web: OPACITY.terminated, pvc: OPACITY.terminated, kubectl: 0, ctrl: 0, mountLow: 0, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 0 });
-      setWire(s, 'verdict', 'object removed from etcd');
-      if (ctx.reduced) return;
-      // The removal is the motion of this step: the claim fades and takes its half of the axis with
-      // it, so nothing here needs a flash to look alive.
-      setStage(s, { web: OPACITY.terminated, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 0 });
-      removeAt(s.refs.pvc, ctx, 200, OPACITY.terminated);
-      removeAt(s.refs.lMountLow, ctx, 200, 0);
-    },
+    chipsCued: chips('gone with object', 'not found', 'none', '0 Pods'),
+    wires: { verdict: 'object removed from etcd' },
+    // The claim and the rest of the axis end this step gone. The disk stays: it outlives the claim.
+    opacity: stage({ web: OPACITY.terminated, pvc: OPACITY.terminated, kubectl: 0, ctrl: 0, mountLow: 0, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 0 }),
+    // The removal is the motion of this step: the claim fades and takes its half of the axis with
+    // it, so nothing here needs a flash to look alive.
+    rewind: { opacity: stage({ web: OPACITY.terminated, pvc: 1, kubectl: 0, ctrl: 0, mountLow: 1, mountHigh: 0, delPvc: 0, delPod: 0, rmFinal: 0 }) },
+    flow: [
+      removeAt('pvc', OPACITY.terminated, { delay: 200 }),
+      removeAt('lMountLow', 0, { delay: 200 }),
+    ],
   },
 ];
 
-export const init = makeInit(Scene, STEPS, { posterFirst: true });
+export const init = defineCard(SCENE, STEPS_SPEC, { posterFirst: true });

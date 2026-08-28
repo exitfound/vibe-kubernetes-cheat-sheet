@@ -1,6 +1,5 @@
 import { reducedMotion } from './motion.js';
 import { PULSE_BLOCK } from './tokens.js';
-// Design notes: scheme/INTERNALS.md#schemejslibtimelinejs
 
 export class Timeline {
   constructor({ steps, scene, onSceneReset, onChange, onPlayingChange, defaultDuration = 2000, posterFirst = false, autoPulse = true }) {
@@ -20,6 +19,8 @@ export class Timeline {
     // When true, steps[0] is a non-narrated "poster" rest frame: auto-play and loop
     // start at step 1 (the first action), and manual Next wraps the last step back to it.
     this.posterFirst = posterFirst;
+    // Generic block auto-pulse: a brightness flash on every freshly highlighted block or chip.
+    // OFF catalog-wide through the makeInit default, so only Pods pulse (CANON.md M-25).
     this.autoPulse = autoPulse;
     this._destroyed = false;
     queueMicrotask(() => this._notifyChange());
@@ -56,6 +57,8 @@ export class Timeline {
     if (this._timer) { clearTimeout(this._timer); this._timer = null; }
   }
 
+  // Auto-play after the opening poster dwell, owned by the Timeline so any explicit action cancels
+  // it: no playback after the reader has interacted, and no race with a headless step probe.
   autoPlay(ms) {
     this._clearAutoPlay();
     this._autoPlayTimer = setTimeout(() => {
@@ -96,6 +99,8 @@ export class Timeline {
     const svgRoot = this._sceneSvg();
     const prevHighlights = svgRoot ? new Set(svgRoot.querySelectorAll('.highlight')) : new Set();
 
+    // A throw inside enter() is SWALLOWED into console.error, so one broken step cannot take the
+    // dialog down. The cost: a missing import reads as a step that stops after its first packet.
     try { step.enter && step.enter(this.scene, this._ctx(reduced)); }
     catch (e) { console.error('Timeline step enter:', e); }
 
