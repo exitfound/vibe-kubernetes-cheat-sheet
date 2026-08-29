@@ -32,6 +32,77 @@ nothing in `npm test` enforces one (`L-08`).
 
 ---
 
+## workloads-container-env-injection
+
+### layout
+
+```
+WHAT     The three sources a container environment is assembled from, the moment it is handed to
+         PID 1, and why editing the source afterwards moves nothing.
+LAYOUT   B, which WL.L-04 calls the common case.
+         PANEL_B 280, the short column under the panel and the tall one in the free band.
+           chips  left  60..540 (LAYOUT.B.chips), 4 x 34, gap 8 -> 300..460
+           ladder right 660..1140 (LAYOUT.B.ladder), 5 rows -> 150..350
+           node   full width, 496..624, Pod 370..830 at 518..614
+         WL.L-06 picks B because A needs a panel bottom of 262 or less under WL.L-03 and this card
+         measures 279.51: a 5-row ladder in the left band would end on 480 and leave 16 to the
+         Node frame, and the 4-chip column that goes there instead ends on 460 and leaves 36.
+PANEL    The deepest reading is the POSTER frame, which previews step 1 text (D-14), and step 1 is
+         the longest narration on the card. The extent per viewport is printed on demand by
+         `OVERLAY_IDS=workloads-container-env-injection node --test report/overlay.test.mjs`.
+SIZES    The inner container box is 300 x 44 and NOT 52, for the reason workloads-probes does not
+         hit: this card writes the Pod sublabel per step, pod() puts it on the baseline h - 8, and
+         its ink reaches about 595, so a box ending on 600 is struck through.
+LANES    The top row carries the WL.A-01 pair and both halves ride: the Kubelet asks on REQ_Y and
+         the API answers on RESP_Y. The corridor at WL.SPINE_X carries exactly ONE ball on the
+         whole card, the CreateContainer call on `create`, and that scarcity is the argument.
+         It stands in its resting DOWN direction on all six steps. On the last step that is the
+         point: the update arrives at the Kubelet and the empty corridor under it is what the
+         reader is meant to see.
+MOTION   Step 1 has no packet and no Pod, so its beat is a static highlight alone (M-27).
+         Step 2 is the only two-hop step: ask, then answer at BEAT.afterHop.
+         Steps 3 and 5 are self-initiated by the API and wait BEAT.lead.
+         Step 4 is a down-arrow: the ball lands, THEN the Pod blinks and lifts (M-16), which is
+         the single opacity change on the card and the moment the container exists.
+CONTENT  Every claim on this card is a quoted upstream sentence rather than a derivation.
+         The ConfigMap page states that the kubelet uses the data from the ConfigMap when it
+         LAUNCHES the container, and that ConfigMaps consumed as environment variables are not
+         updated automatically and require a Pod restart.
+         The container-environment page states that the Service variables cover the Services that
+         existed WHEN THE CONTAINER WAS CREATED, which is the ordering trap step 3 is about.
+         The downward API page states that metadata.labels and metadata.annotations as a WHOLE are
+         available only as volume files and never as variables, and that after a resize the
+         downwardAPI volume updates while the variables do not unless the container restarts.
+         That last sentence is why step 5 can name a resize without drawing one.
+NAMING   The fourth chip is the OBJECT and the three above it are VARIABLES, which is the whole
+         comparison: on the last step the object chip changes and lights while the three variables
+         are deliberately left unlit, because that they did not move is the sentence.
+SCOPE    Files are not this card. storage-configmap-secret-mount owns the atomic ..data flip and
+         the sync period, and storage-projected-volume owns the assembled mount. The contrast is
+         one clause of step 5 and no volume is drawn.
+         The resize itself is workloads-pod-resize. It is named once, as the second case of the
+         same freeze, and no resize plays.
+         The Secret is read on step 2 and never opened: workloads-pod-image-pull owns registry
+         credentials and no card in this catalogue draws Secret encoding.
+```
+
+### poster
+
+```
+Two blocks side by side and ONE dashed wire between them with a break in the middle. The left block
+is the source and its top value carries the house accent at 0.9, the right block is the copy inside
+the container and all three of its values sit at 0.3. The left half of the wire is 0.75 and the
+right half 0.28, so the ramp carries the direction and no arrowhead is needed (R-08).
+The first draft ran the wire as two dashed segments BELOW the two blocks. At 200px each segment
+paired with the block above it and read as an underline, so the one sentence the poster exists for
+was gone. Moving it to the block midline at y 92, with a 28 unit void between 146 and 174, is what
+makes the break read as a break.
+The two-block form is the closest in this section to workloads-pod-qos-classes, which is three
+blocks over a baseline whose weight ramps. The wire is what separates the two at thumbnail size.
+```
+
+---
+
 ## workloads-container-states
 
 ### layout
@@ -43,12 +114,10 @@ LAYOUT   B (chips left, ladder right). PANEL_B 230.
            chips  60..540, 4 x 34 + 3 x 8 = 160 tall
            ladder 660..1140, 6 rows
            node   full width, NODE_H 140 on the canvas floor 624
+         Layout A does not fit: the six-row ladder is 6*32 + 5*10 = 242 against a left band under
+         the panel of 250..464 = 214, twenty-eight short.
 LANES    One spine at WL.SPINE_X into the Pod's TOP MIDPOINT. The Pod is centred in the frame,
          so the spine reaches it rather than stopping on the frame edge above it.
-WHY NOT  Layout A: the six-row ladder is 6*32 + 5*10 = 242 and the left band under the panel is
-         250..464 = 214. Twenty-eight short.
-NOTE     CENTRE passes without a full-width bottom strip because chainList rows carry
-         .scheme-chip, so the strip the rule measures is chips + ladder = 60..1140.
 ```
 
 ### before `id: 'read',`
@@ -59,11 +128,11 @@ does not move and nothing animates, which is what M-27 asks of a packet-less pod
 actor of all three is a value chip (state, lastState, restartCount), and a value chip is lit rather
 than flashed (M-26). No block on the card is the subject of any of the three sentences.
 
-WHY NOT the Kubelet box. It wrote the record on crash and on restart and does nothing on these
-three, which is why none of them lists it in lit. Flashing it three times running would say it
-acts, on the only steps where it does not.
-WHY NOT podGroup on describe. A brightness flash on the Pod reuses this card's own sign for the
-container changing state (crash and restart both pulse it) on a step where nothing changed.
+None of the three lists the Kubelet box in lit. It wrote the record on crash and on restart and
+does nothing on these three, and flashing it three times running would say it acts, on the only
+steps where it does not. podGroup is out of describe for the neighbouring reason: a brightness
+flash on the Pod reuses this card's own sign for the container changing state (crash and restart
+both pulse it) on a step where nothing changed.
 
 So the three stay separated by the outlined chips and the lit chain row alone. One and the same
 block flashing three times running would not have changed that.
@@ -89,7 +158,12 @@ read as records rather than as two Pods.
 WHAT     Kubelet holding a restart off between attempts, the backoff doubling to its cap.
 LAYOUT   B (chips left, ladder right). panel bottom 205 measured, 225 reserved, deliberately
          conservative.
-LANES    Spine from the top row to POD_Y.
+LANES    Spine from the top row to POD_Y. It does not end on the Node frame's top edge, which
+         sits 22 units above the Pod and reads as a lane pointing at a frame rather than at a
+         container.
+WIRE LABELS
+         The lower label is anchored start at SPINE_X + 14 and hangs off the side. Centred on
+         WL.SPINE_X the lane strikes it through on every step that sets it.
 CONTENT  The FIRST restart is immediate and only the ones after it wait, which the `first-crash`
          narration says ("Kubelet restarts it immediately the first time"), so the `aria-label` says
          it too rather than promising a delay before EACH restart.
@@ -104,30 +178,15 @@ CONTENT  The 300s ceiling is a per-node DEFAULT, not a constant, and `cap` says 
          configuration." The step read "clamped at the 300s ceiling and stays there", which is a
          version-scoped default stated as a property of Kubernetes.
          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
-DO NOT   End the spine on the Node frame's top edge. It sits 22 units above the Pod and reads as
-         a lane pointing at a frame rather than at a container.
-DO NOT   Centre the lower wire label on WL.SPINE_X. The lane strikes it through on every step
-         that sets it. It hangs off the side, anchor start at SPINE_X + 14.
-NOT A DEFECT
-         The `desc` still says "a 5 minute ceiling" flat and rung 5 still says "delay clamped at the
-         300s ceiling". Both were left as they are, deliberately. Neither is FALSE: 300s is the
-         default and the only value a default cluster ever uses. The desc sits at 433 of a hard
-         400..470 band with three sentences already carrying more load than a version-scoped
-         qualifier is worth, and a rung is bounded by its column. The nuance belongs on the one step
-         whose whole subject is the ceiling, and `cap` carries it.
-NOT A DEFECT
+CONTENT  The `desc` says "a 5 minute ceiling" flat and rung 5 says "delay clamped at the 300s
+         ceiling", and both stand as written. Neither is FALSE: 300s is the default and the only
+         value a default cluster ever uses. The desc sits at 433 of a hard 400..470 band with three
+         sentences already carrying more load than a version-scoped qualifier is worth, and a rung
+         is bounded by its column. The nuance belongs on the one step whose whole subject is the
+         ceiling, and `cap` carries it.
          The 10s base, the doubling, the 300s value, the 10 minute reset and the immediate first
-         restart in the `aria-label` were all re-read against the raw doc and are verbatim it. Do
-         not "correct" any of them.
+         restart in the `aria-label` are the raw doc verbatim. Do not "correct" any of them.
          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
-```
-
-### before `id: 'doubling',`
-
-```
-Kubelet only waits between attempts, nothing travels and the Pod is untouched.
-The climbing backoff shows via the ladder filling and the static chip highlight
-(no chip pulse).
 ```
 
 ### before `const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];`
@@ -138,9 +197,9 @@ content: those are the steps where Kubelet is HOLDING THE RESTART OFF, which eac
 in words, and the restart it is holding is exactly what would travel down. The crash goes UP and
 is animated on `first-crash` and `reset`.
 
-DO NOT add a down-ball to close an "arrowhead nobody rides" finding. It would assert the restart
-happened on the step whose subject is that it has not. The other lane in the catalog whose
-emptiness is the lesson is `W_RET_WIPE` on storage-reclaim-policy.
+A down-ball on any of the three would assert the restart happened on the step whose subject is
+that it has not. The other lane in the catalog whose emptiness is the lesson is `W_RET_WIPE` on
+storage-reclaim-policy.
 ```
 
 ### poster
@@ -165,18 +224,20 @@ LAYOUT   C (bottom strip). panel bottom 330.
            ladder 660..1140, 6 rows
            chips  full-width strip, THREE per row at 350.67, two rows 548..624, short row on CX
            ticks  left band under the panel, one chip per 5-minute tick
+         Neither column beside the panel fits: the left band is 350..464 = 114, against a 242
+         ladder and a 202 chip column.
+         Chips two per row, which the WL brief prefers, is three rows (118 tall) and leaves the
+         Node frame 64 units where the Pod alone is 106. Three per row is 350.67, the floor, and
+         the widest value here needs 304.
+         The ticks are not at x=830: there they run straight through the pipeline ladder.
+         POD_PAD is 80, not the family 24. With the frame at 404 a pad of 24 draws the first Job
+         slot over the frame's own NODE-1 label. The row still centres on CX by construction.
 LANES    Trunk from the CronJob box at TOP1_CX straight down (no jog, there is no left column to
          clear) into a bus at NODE_Y-8, tapping only the two Job slots that ever receive a create.
          `LANES` is built ONCE, one array per tapped slot, and the `P.lane` and every `F.route`
          index it, so the wire and the ball are the same array (A-02 SHARED). All 3 routes read it
          and none is carried. Do not rebuild it as a `LANE(i)` factory: a fresh array per call
          leaves the lane and the ball two equal copies, free to drift on the first geometry edit.
-WHY NOT  Either column beside the panel: the left band is 350..464 = 114, against a 242 ladder
-         and a 202 chip column.
-WHY NOT  Chips two per row, which the WL brief prefers: 5 chips is then three rows (118 tall) and
-         leaves the Node frame 64 units where the Pod alone is 106. Three per row is 350.67, the
-         floor, and the widest value here needs 304.
-WHY NOT  Ticks at x=830: they run straight through the pipeline ladder.
 CONTENT  The `create` step says a repeated create for one tick COLLIDES ON THE NAME, not that a tick
          "can only ever produce one Job". The deterministic suffix is what makes the retry idempotent,
          and the `missed` step four rows down says the controller is not exactly-once and may rarely
@@ -210,6 +271,13 @@ CONTENT  The 100-missed-schedules check and startingDeadlineSeconds are NOT alte
          The narrowing itself is deliberately NOT in the card, and that is a PANEL decision recorded
          under BUDGET below rather than an editorial one.
          https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
+CONTENT  "refuses to schedule" past 100 misses stands exactly as written, and the two words are
+         load bearing. kubernetes.io says the controller "does not start the Job and logs the
+         error", and the controller read on six branches from release-1.24 to master emits a
+         TooManyMissedTimes Event and creates the Job anyway. So the DOCS PAGE is the stale party
+         here, and which of the two a card follows is a product decision, not a defect to close.
+         The wording above changes the framing of that clause and not its claim.
+         https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
 BUDGET   Both repaired steps were sized by OPENING THE FRAME at 1100x800. A first `missed` that also
          explained the narrowing ran to 611 characters and covered the `Node-1` label 100%, clipping
          backup-28394400 with it. A first `forbid` that named startingDeadlineSeconds ran to 547 and
@@ -221,55 +289,6 @@ BUDGET   Both repaired steps were sized by OPENING THE FRAME at 1100x800. A firs
          `missed`, and the line boundary is between 486 and 497 characters, measured.
          Nothing in `npm test` or `npm run report` sees a covered caption, so re-open the frame.
          https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
-NOTE     POD_PAD is 80, not the family 24. With the frame at 404 a pad of 24 draws the first Job
-         slot over the frame's own NODE-1 label. The row still centres on CX by construction.
-NOT A DEFECT
-         "refuses to schedule" past 100 misses stays exactly as written, and the two words are load
-         bearing. kubernetes.io says the controller "does not start the Job and logs the error", and
-         the controller read on six branches from release-1.24 to master emits a TooManyMissedTimes
-         Event and creates the Job anyway. So the DOCS PAGE is the stale party here, and which of the
-         two a card follows is a product decision, not a defect to close. The C2 repair above was
-         written so it changes the framing of that clause and not its claim.
-         https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
-```
-
-### before `P.tag({ x: TICK_X + TICK_SPAN / 2, y: TICK_Y - TICK_CAPTION_DY, text: 'schedule ticks · every 5 min' })`
-
-```
-The caption is centred over the tick strip by derivation (TICK_X + TICK_SPAN / 2), never by a
-literal, so it follows if the strip moves.
-```
-
-### before `const ticks = (...lit) => lit.map(i => TICK_KEYS[i]);`
-
-```
-Light the schedule ticks at which a Job actually fired (cumulative). Ticks skipped by
-concurrencyPolicy or missed during downtime stay dark, so the gaps in the ladder are real.
-Newly-lit ticks auto-pulse via the Timeline delta, drawing the eye to the fresh run.
-```
-
-### before `id: 'forbid',`
-
-```
-No connector packet: nothing reaches the node because creation is skipped.
-The tick is skipped in place, nothing travels: the policy consulted and the
-recorded event show via the static highlight only (no chip pulse).
-
-The beat is the static highlight on the CronJob box (M-27): the step registers no animation at all.
-The controller is what reads concurrencyPolicy and decides to skip, so it is the actor of the
-sentence. The policy chip is the value that decision is about and is lit beside it (M-26).
-```
-
-### before `id: 'missed',`
-
-```
-No connector packet: the missed tick produces no Job.
-Nothing is created for the missed tick: the recorded miss shows via the
-static highlight only (no chip pulse).
-
-The beat is the static highlight on the CronJob box: on recovery the controller is the thing
-weighing every missed start against startingDeadlineSeconds. Not the 12:25 rung, which stays dark on
-purpose and would read as the tick firing if it lit, and not the event chip (M-26).
 ```
 
 ### before `id: 'suspend',`
@@ -280,9 +299,9 @@ and the actor that stops creating Jobs. The frame is otherwise all but identical
 it, and the wire label is what separates them.
 The same block as forbid and missed on purpose: all three mute steps are one controller deciding
 not to create, and a different block per step would claim three different actors.
-DO NOT put F.flash back on any of the three. It animates filter brightness 1 to 1.55 to 1 on the
-block group, which M-04 calls a pulse and M-01 forbids on infrastructure, and its 600ms equals the
-whole span of each step, so no still frame can tell it from the highlight it replaced.
+F.flash stays off all three. It animates filter brightness 1 to 1.55 to 1 on the block group,
+which M-04 calls a pulse and M-01 forbids on infrastructure, and its 600ms equals the whole span
+of each step, so no still frame can tell it from the highlight it replaced.
 ```
 
 ### poster
@@ -308,6 +327,9 @@ LAYOUT   B (chips left, ladder right). PANEL_B 230.
            chips  60..540, 4 x 34 + 3 x 8 = 160 tall
            ladder 660..1140, 5 rows = 200
            nodes  four frames on the canvas floor, 484..624
+         Layout A fits on paper and is not used: the five-row ladder is 200 against a 214 band,
+         which leaves about 14 units between the ladder's bottom and the Node row for the bus. The
+         mirror leaves 74.
 LANES    Trunk from TOP1's bottom midpoint, stepping to WL.SPINE_X at y=140, into a bus at
          NODE_Y-24 with ONE TAP PER POD. Each step routes its ball down the tap of the Pod that
          actually reacts, and the create step fires three, one per matching Node. `LANES` is built
@@ -317,20 +339,9 @@ LANES    Trunk from TOP1's bottom midpoint, stepping to WL.SPINE_X at y=140, int
          ball two equal copies, which come apart on the first geometry edit.
          A lane into a Node not in the cluster is pinned to 0: lane 3 until Node-4 joins, lane 1
          once Node-2 leaves.
-WHY NOT  Layout A: the five-row ladder is 200 against a 214 band, which fits, but leaves about 14
-         units between the ladder's bottom and the Node row for the bus. The mirror leaves 74.
-WHY NOT  One lane for the card: it lands on Node-1's top edge on EVERY step, including the step
-         that adds a Pod to Node-4 and the step that deletes the Pod on Node-2.
-WHY NOT  A straight trunk at x=530: it cuts through the chip column 60..540.
-```
-
-### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
-
-```
-One node at a time: the update travels controller -> Api -> Node-1 down the
-dashed connector, and only when it arrives does Node-1 react. pod1 pulses as its
-Pod is recreated on the new version, while the rest keep serving. Mirrors the
-surge step of workloads-rolling-update (ball first, pulse on arrival).
+         ONE lane for the whole card lands on Node-1's top edge on EVERY step, including the step
+         that adds a Pod to Node-4 and the step that deletes the Pod on Node-2, which is what the
+         tap per Pod is for. A straight trunk at x=530 cuts through the chip column 60..540.
 ```
 
 ### poster
@@ -346,7 +357,7 @@ pod-to-node mapping is the DaemonSet signature.
 ```
 Both counters climb PER ARRIVAL, not at step entry. The narration is `creates one Pod on each` and
 the card draws three separate creates, so the count climbing alongside the three Pods appearing IS
-the step. The `chips:` block states `0`, which is the entry state the DO NOT below demands, and the
+the step. The `chips:` block states `0`, which is the entry state the last paragraph demands, and the
 `3` is written by the `F.set` inside each create. `flow` runs on the ANIMATED path only, so a
 reduced replay of this step ends with both counters still reading 0. Chip text is not one of the
 four axes `render/reduced.test.mjs` compares (only WIRE-TEXT is), so nothing in the suite sees it.
@@ -358,7 +369,7 @@ in the instant it is written. In full: 594 units of lane arrive at 1320ms twice 
 The rank each landing writes is a literal, and NOTHING in the suite can see it: swapping two ranks
 leaves every check green. Opening the mid-count frame is the only guard there is.
 
-DO NOT read either counter from step entry. The step says the controller sees three matching Nodes
+Neither counter is read from step entry. The step says the controller sees three matching Nodes
 and ZERO Pods, and the Pods do not fade in until their creates land about 2s later, so a counter
 reading `3` at entry contradicts the narration it accompanies. `numberReady` is the worse half.
 ```
@@ -376,19 +387,18 @@ LAYOUT   B (chips left, ladder right). PANEL_B 230.
            chips  60..540, 160 tall
            ladder 660..1140, 6 rows = 242
            row    FOUR slots, 4 x 234 at centres 201 / 467 / 733 / 999, Pods web-a1..d4
+         Layout A is out: the 242 ladder does not fit the 250..464 band; the 160 chip column
+         does.
+         FOUR slots and not three. Every step pins RS-v1 at 3 / 3 and the wedged step says RS-v1
+         keeps ALL THREE v1.0 Pods serving, so the three v1 Pods must be drawn at once. With three
+         slots the broken v2 stands in one of their places and the row shows two survivors against
+         a chip saying three. The fourth slot carries the whole v2 story alone: it appears on the
+         rollout, crash-loops, wedges, and is DELETED by the undo rather than converted back into
+         a v1, which is what the undo step narrates.
 LANES    ONE lane, because only the surging Pod ever receives a ball: trunk from TOP1's bottom
          midpoint, step to WL.SPINE_X at y=140 to clear the chip column, bus at NODE_Y-24, tap
          into web-d4 at centre 999.
 MOTION   Steps 1, 2 and 4 run 3700 / 2900 / 3700, sized to the four-slot route.
-WHY NOT  Layout A: the 242 ladder does not fit the 250..464 band; the 160 chip column does.
-WHY NOT  Three slots. Every step pins RS-v1 at 3 / 3 and the wedged step says RS-v1 keeps ALL
-         THREE v1.0 Pods serving, so the three v1 Pods must be drawn at once. With three slots the
-         broken v2 stands in one of their places and the row shows two survivors against a chip
-         saying three. The fourth slot carries the whole v2 story alone: it appears on the
-         rollout, crash-loops, wedges, and is DELETED by the undo rather than converted back into
-         a v1, which is what the undo step narrates.
-DO NOT   Draw taps into the other slots. An arrowhead on a lane no ball rides is forbidden by the
-         canon.
 ```
 
 ### poster
@@ -410,19 +420,19 @@ LANES    The one lane ends on web-d4 and on nothing else, so its shade is that s
          six steps, so min(source, sink) IS web-d4. `bad` was the loudest of the six: nothing travels
          on that step at all, so the lane was the only full-strength thing left pointing at a Pod at
          OPACITY.notready.
+         The lane is not held at 1 on `stable` and `restored` to keep the two halves of the picture
+         joined. On both steps the fourth slot is EMPTY, so the lane would end in blank canvas
+         inside the Node frame, which is the case A-14 calls a rendering fault rather than a dim
+         relationship. The frames at 1600x1000 and 1100x800 read better without it: three v1 Pods
+         and no dangling arrowhead, and the trunk arriving with the surge is a beat the card did
+         not have.
+         It IS at 1 for the 2700ms of `rollout` before web-d4 appears, pointing at an empty slot.
+         It is carrying the create ball over that whole window, and A-15 outranks A-14 while a ball
+         is in flight. `workloads-replicaset` step `converge` is the same trade, taken the same way:
+         its rewind brings the bus tail and tap3 back for the flight that deletes the Pod.
 MOTION   `bad` and `undo` fade the lane on the SAME beat as the Pod, same duration and easing (800
          and 2700, FADE.out), and both rewind it so it is on screen for the whole flight (A-15). Both
          spans stay 1500 and 3600 against durations 2900 and 3700, so no duration moved.
-WHY NOT  Keeping the lane at 1 on `stable` and `restored` so the two halves of the picture stay
-         joined. On both steps the fourth slot is EMPTY, so the lane ends in blank canvas inside the
-         Node frame, which is the case A-14 calls a rendering fault rather than a dim relationship.
-         The frames at 1600x1000 and 1100x800 read better without it: three v1 Pods and no dangling
-         arrowhead, and the trunk arriving with the surge is a beat the card did not have.
-NOT A DEFECT
-         The lane IS at 1 for the 2700ms of `rollout` before web-d4 appears, pointing at an empty
-         slot. It is carrying the create ball over that whole window, and A-15 outranks A-14 while a
-         ball is in flight. `workloads-replicaset` step `converge` is the same trade, taken the same
-         way: its rewind brings the bus tail and tap3 back for the flight that deletes the Pod.
 ```
 
 ### before `rewind: { opacity: { pod4: 0 } },`
@@ -452,21 +462,79 @@ lights no actor at all. DO NOT give it a route named `status` whose points array
 byte-identical to the `surge` CREATE route of the step before it: that draws a probe failure the
 step reports UPWARD as the controller sending something DOWN into the Pod (A-03).
 
-WHY NOT a return lane. Mirroring SPINE at the card's lane delta means moving the shared endpoint on
-web-d4's top face to make the pair L-12 allows, which retimes the `rollout` and `undo` routes as
+There is no return lane. Mirroring SPINE at the card's lane delta means moving the shared endpoint
+on web-d4's top face to make the pair L-12 allows, which retimes the `rollout` and `undo` routes as
 well (A-11), and it would draw traffic the step says never leaves.
 ```
 
-### before `'aria-label': 'Deployment rollback and revision history: a bad rollout stalls past progressDeadl`
+---
+
+## workloads-effective-pod-request
+
+### layout
 
 ```
-The aria-label ends on RS-v2 going to zero rather than on RS-v1 coming back up, because RS-v1 is
-never scaled below three on this card: its chip reads `3 / 3` on all six steps, chain row 5 says
-`RS-v2 to 0, RS-v1 kept`, and two steps are spent establishing that maxUnavailable kept the old
-Pods serving.
+WHAT     Four containers with four cpu requests, and the one number the Scheduler and the Kubelet
+         both read off them, which is neither their sum nor the largest of them alone.
+LAYOUT   B, on the four-container Node family workloads-init-containers-and-sidecars solved.
+         PANEL_B 255, the short column under the panel and the tall one in the free band.
+           chips  left  60..540 (LAYOUT.B.chips), 4 x 34, gap 8 -> 275..435
+           ladder right 660..1140 (LAYOUT.B.ladder), 5 rows -> 160..360
+           node   full width, 484..624 at NODE_H 140, Pod 186..1014 at 501..607
+         WL.L-06 picks B and not A because the Node here is 140 and not 128: A would need
+         254.66 + 20 + 200 + 20 + 140 = 634.66 against the 630 ceiling of WL.L-03.
+PANEL    The deepest reading is step 2 at 1100x800, 254.66, and the chip column starts at 275, so
+         20 units stand clear. The extent per viewport is printed on demand by
+         `OVERLAY_IDS=workloads-effective-pod-request node --test report/overlay.test.mjs`.
+SIZES    The four container boxes are derived, not typed: strip() fixes the 16 unit gap across the
+         shell inside a 10 pad, so four of them leave 190 each. The longest sublabel is
+         `always cpu 200m` at 17 characters, about 117 units against that 190.
+LANES    One corridor at WL.SPINE_X and no pair, because nothing on this card ever travels UP from
+         the Pod: the Pod is read, never heard from. It carries a ball on the last step only.
+         The top row carries the WL.A-01 pair and both halves ride on `overhead`.
+         The corridor stands on all six steps. It is the only lane on the card and it points at the
+         Pod the whole time, which is what the card is measuring.
+MOTION   Steps 2 and 3 are the arithmetic and carry no packet and no Pod, so their beat is a
+         static highlight alone (M-27), on the container boxes the operation is taken over plus
+         the chip it lands in. That the lit set CHANGES between them is the whole comparison.
+         The last step is a down-arrow and its pulse is NOT dim: pulsePodDim fills opacity forward
+         to OPACITY.pending and this step ends at full, which reduced.test.mjs reports as five
+         OPACITY-INHERITED mismatches on the Pod and its four boxes.
+CONTENT  The formula is quoted rather than derived. The sidecar-containers page states that the
+         effective init request is the HIGHEST of any resource over all init containers, that a
+         resource with no limit anywhere counts as the highest limit, and that the Pod effective
+         request is the sum of pod overhead and the HIGHER of the non-init sum and that init
+         maximum. It also states that scheduling is done on effective requests, so an init
+         container can reserve what it does not use for the life of the Pod, and that the Linux
+         Pod cgroup is sized from the same number.
+         Pod overhead comes from RuntimeClass.overhead.podFixed and is stable since 1.24.
+         The numbers on the card are chosen so the two branches DISAGREE: max 800 against sum 600,
+         so the init branch wins and the naive 1700 is wrong twice over.
+NAMING   The sidecar box says `always cpu 200m` and not `init cpu 200m`, because its slot is
+         the init array and its accounting is the app side, and that split is step 3.
+SCOPE    The ordering of init containers is workloads-init-containers-and-sidecars, which owns the
+         exit-0 gate and the Started flag. Nothing here plays a start.
+         Allocatable and what is left of the Node is cluster-node-allocatable. This card produces
+         a number and never compares it to a capacity.
+         The cgroup tree and the CFS quota are cluster-pod-cgroup-hierarchy and
+         cluster-cpu-throttling. The Kubelet sizing the Pod cgroup is one clause of step 5.
+         The QoS class is workloads-pod-qos-classes. The effective tier covers init, sidecar and
+         app alike, which is true and is deliberately not drawn: it needs a second comparison.
+         No autoscaler appears anywhere, the same clause workloads-pod-resize carries.
+```
 
-DO NOT write `scales the previous ReplicaSet back up` here. It describes a rollback this card
-deliberately does not draw, and no tool compares an aria-label with the steps underneath it.
+### poster
+
+```
+Two columns on one baseline. The left is four stacked segments at 0.3, heights in the ratio of the
+four cpu requests, and it is the naive sum. The right is a single block carrying the house accent
+at 0.9 and it is shorter, which is the whole sentence: the number reserved is smaller than the
+number added up. The shared baseline is what makes the two heights comparable, and it is the only
+reason no label is needed.
+No arrowhead and no packet dot: the comparison is the composition (R-08, R-09).
+The left stack is the closest form in this section to workloads-pod-image-pull, which is also four
+stacked bars. They differ on proportion and on ground: image-pull is four EQUAL bars 180 wide under
+a cloud, this is four UNEQUAL segments 100 wide standing on a baseline beside a rival column.
 ```
 
 ---
@@ -481,18 +549,17 @@ WHAT     A force-delete drops the Pod object without Kubelet acknowledgement, so
 LAYOUT   B (chips left, ladder right). PANEL_B 280.
            chips  60..540, bottom at 460
            nodes  TWO frames, 60..580 and 620..1140, NODE_H 134, Pods centred on 320 and 880
+         NODE_H is 134 rather than 140 to open the 15 unit corridor between the chip column's
+         bottom at 460 and the frames.
 LANES    ONE trunk serving both frames, which the mirrored Pod centres are what allow: it leaves
          the API box's bottom midpoint (both node-band actions here are control-plane actions
          issued through the API), steps to WL.SPINE_X at y=140, drops to a bus at NODE_Y-15 and
          taps left and right. Both routes use NODE1_LANE / NODE2_LANE, the arrays the wires are
          built from.
-NOTE     NODE_H is 134 rather than 140 to open the 15 unit corridor between the chip column's
-         bottom at 460 and the frames.
-DO NOT   Give a packet its own literal points array. The previous pair followed no drawn wire and
-         one of them left the content band entirely at x=1198.
-DO NOT   Run a lane down x=810: it goes through the pipeline ladder rows.
+         No ball carries a literal points array of its own: such a pair follows no drawn wire, and
+         one of them left the content band entirely at x=1198. A lane down x=810 goes through the
+         pipeline ladder rows.
 CONTENT  Read against the `k8sVersion` the entry carries.
-NOT A DEFECT
          `status.phase stays Running` on the `stuck` step, against the Pod lifecycle page saying
          `If a node dies or is disconnected from the rest of the cluster, Kubernetes applies a
          policy for setting the phase of all Pods on the lost node to Failed`. The two do not meet,
@@ -525,23 +592,8 @@ the narration recreates Pod B first and only then says Pod A may still be runnin
 lane wind back to the shade `force` left and rise at `recreate` + FADE.in, the end of Pod B's own
 fade-in, so Pod B is fully on screen before Pod A comes back.
 
-NOTE `plus: FADE.in` rather than a literal. The beat is the end of the fade above it, not a number.
-The step closes at 3142 against a duration of 3500.
-```
-
-### before `opacity: podPair(OPACITY.notready, 1),`
-
-```
-The risk step holds Pod A at OPACITY.notready, the vocabulary entry for alive but not serving and
-not observed, and the RISE to it is the step: the previous step drew the object dropped from ETCD,
-this one puts the process back on screen next to the replacement that now shares its identity.
-
-This is the only card in the catalog where a Pod comes back UP the vocabulary. Deliberate, not a
-missed fade.
-
-DO NOT lower it to OPACITY.terminated, the shade for gone. Its own chips read 'maybe still running'
-and 'identity live twice', and terminated draws the API server's belief instead of the card's
-subject.
+The delay is `plus: FADE.in` rather than a literal: the beat is the end of the fade above it, not a
+number. The step closes at 3142 against a duration of 3500.
 ```
 
 ### poster
@@ -567,8 +619,17 @@ LAYOUT   C (bottom strip). panel bottom 280.
            ladder 660..1140 at y=140, 6 rows
            chips  full-width strip, THREE per row at 350.67, two rows 548..624, short row centred
            node   394..528, Pod 20 below its top edge
+         A column beside the panel does not fit: the left band is 300..464 = 164 against a 202 chip
+         column.
+         The ladder is not at 412 with NODE_H 116: the frame's top border then runs 5 units above
+         the Pod's, which reads as a rendering slip rather than as a frame.
 LANES    TOP2 (the API) midpoint -> WL.SPINE_X at y=140 -> the Pod's top midpoint. The return lane
          is its reverse.
+         It leaves the API and not TOP1, kubectl: the termination order is what the API sets in
+         motion once it has stamped deletionTimestamp, and on the last step the report climbs back
+         to whichever box `lightBoxAt` lights.
+         The connector does not end at x=320 inside the Node frame, where it points at blank canvas
+         50 units left of the Pod.
 MOTION   Leaving from the API rather than from kubectl costs 311ms per ball; both steps that ride
          it have the headroom.
 CONTENT  SIGTERM and SIGKILL have DIFFERENT targets. `sigkill` must NOT read "the runtime sends
@@ -589,37 +650,26 @@ CONTENT  SIGTERM is the runtime DEFAULT, not a rule. `sigterm` must NOT read "as
          runtime (SIGTERM for both containerd and CRI-O) would be used to kill the container." The
          step reads "the stop signal to PID 1, SIGTERM unless the image defines a different
          STOPSIGNAL". The ACTOR and the ordering are right as they stand.
+         `sigChip` carries the literal value `SIGTERM` and the ladder rung reads "SIGTERM · signal
+         PID 1", and both stay. A chip VALUE is width-bound (`P-07`, measured against the box by
+         `render/chipfit.test.mjs`) and a rung is bounded by its column, so neither can hold the
+         qualifier. SIGTERM is the concrete case this card DRAWS, the narration beside it says it
+         is the default rather than the rule, and that is the right division of labour.
+         https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
+CONTENT  The `desc` says "SIGKILL is the last resort, used only if the container outlives that
+         shared timer", and the doc adds "If the preStop hook is still running after the grace
+         period expires, the kubelet requests a small, one-off grace period extension of 2
+         seconds". The desc stands. "Only if" states a NECESSARY condition, which the extension
+         does not falsify: the container still has to outlive the timer. The extension is
+         preStop-specific and this card's scenario has preStop completing at step 3, so the card
+         never reaches it, and the desc has 27 characters of a hard 470 band to spend on a case it
+         does not draw.
          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
 NAMING   The fourth chip is named `kubectl shows`, not `pod status`. Its values are Running,
          Terminating and deleted, and the `delete` step says in words that deletionTimestamp is what
          makes KUBECTL report Terminating "while status.phase itself stays Running", so a chip named
          for the phase and carrying what kubectl prints contradicted its own step (`P-02`).
          storage-pvc-protection already carries a `kubectl shows` chip for the same split.
-WHY NOT  A column beside the panel: the left band is 300..464 = 164 against a 202 chip column.
-WHY NOT  Leaving from TOP1, kubectl. The termination order is what the API sets in motion once it
-         has stamped deletionTimestamp, and on the last step the report climbs back to whichever
-         box `lightBoxAt` lights.
-WHY NOT  The ladder at 412 with NODE_H 116: the frame's top border then runs 5 units above the
-         Pod's, which reads as a rendering slip rather than as a frame.
-DO NOT   End the connector at x=320 inside the Node frame. It points at blank canvas 50 units
-         left of the Pod.
-NOT A DEFECT
-         `sigChip` still carries the literal value `SIGTERM`, and the ladder rung still reads
-         "SIGTERM · signal PID 1". Both stay. A chip VALUE is width-bound (`P-07`, measured against
-         the box by `render/chipfit.test.mjs`) and a rung is bounded by its column, so neither can
-         hold the qualifier. SIGTERM is the concrete case this card DRAWS, the narration beside it
-         says it is the default rather than the rule, and that is the right division of labour.
-NOT A DEFECT
-         The `desc` says "SIGKILL is the last resort, used only if the container outlives that shared
-         timer", and the doc adds "If the preStop hook is still running after the grace period
-         expires, the kubelet requests a small, one-off grace period extension of 2 seconds". The
-         desc was left alone. "Only if" states a NECESSARY condition, which the extension does not
-         falsify: the container still has to outlive the timer. The extension is preStop-specific and
-         this card's scenario has preStop completing at step 3, so the card never reaches it, and the
-         desc has 27 characters of a hard 470 band to spend on a case it does not draw.
-         https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
-OPEN     Layout C leaves the left band above the Node frame empty at wide viewports. Unavoidable
-         while the narration panel is not clamped in CSS.
 ```
 
 ### poster
@@ -646,10 +696,20 @@ LAYOUT   C (bottom strip), the tightest card in the category. panel bottom 379, 
            ladder 660..1140 at y=140
            chips  full-width strip, THREE per row at 350.67, two rows
            node   394..528, Pod 20 below its top edge
+         Nothing fits beside the panel: the left band is 399..464 = 65.
+         Chips two per row is three rows, leaving the Node frame 64 units where the Pod alone is
+         106. Three per row is 350.67 and the widest value needs 269.
 LANES    Spine from TOP2's bottom midpoint to WL.SPINE_X at y=140, ending on the Pod's top
          midpoint rather than on the frame edge.
          The ExecSync ack runs TOP2_X -> TOP1_X + TOP1_W at RESP_Y, which is the drawn return
          arrow.
+         The spine leaves TOP2 and not TOP1, Kubelet. Kubelet is a CRI CLIENT and never touches a
+         container: the runtime execs the hook and delivers the signal, which all three riding
+         steps say in their own wire label (`CRI ExecSync · postStart · Exit 0`, `CRI ExecSync ·
+         preStop · Sync`, `CRI StopContainer · SIGTERM · ACK`). Cost 311ms per ball, all three
+         have the headroom.
+         The ack does not ride `segmentPacket from [580,95] to [540,95]`: both x values sit INSIDE
+         the Kubelet box (420..640), so the ball slides across the box instead of down the arrow.
 MOTION   Ask, deliver, return, in that order, on all three CRI steps.
 CONTENT  Two absolutes the card's own words cancel, both restored rather than deleted.
          On `created` the postStart chip reads `fires with ENTRYPOINT`, not `declared`: the hook
@@ -658,33 +718,6 @@ CONTENT  Two absolutes the card's own words cancel, both restored rather than de
          `declared` while the ENTRYPOINT is `starting (PID 1)` put an order on the race.
          Rung 6 and the grace chip both carry `if alive`, because the escalation is conditional in
          the narration ("If the process is still alive when it reaches 0").
-WHY NOT  Anything beside the panel: the left band is 399..464 = 65.
-WHY NOT  Chips two per row: three rows, leaving the Node frame 64 units where the Pod alone is
-         106. Three per row is 350.67 and the widest value needs 269.
-WHY NOT  The spine leaving TOP1, Kubelet. Kubelet is a CRI CLIENT and never touches a container:
-         the runtime execs the hook and delivers the signal, which all three riding steps say in
-         their own wire label (`CRI ExecSync · postStart · Exit 0`, `CRI ExecSync · preStop ·
-         Sync`, `CRI StopContainer · SIGTERM · ACK`). Cost 311ms per ball, all three have the
-         headroom.
-DO NOT   Ride the ack on `segmentPacket from [580,95] to [540,95]`. Both x values sit INSIDE the
-         Kubelet box (420..640), so the ball slides across the box instead of down the arrow.
-OPEN     Layout C leaves the left band empty at wide viewports; unavoidable while unclamped.
-```
-
-### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
-
-```
-The ExecSync ask hops to the runtime, then the exec order travels down the
-spine to the Pod, which pulses as the hook starts running inside it. The ack
-hops back to the kubelet last, one beat after that arrival.
-```
-
-### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
-
-```
-The StopContainer ask hops to the runtime, then the SIGTERM travels down the
-spine to the Pod, which pulses and then dims out as the process exits. The ack
-hops back to the kubelet last, one beat after that arrival.
 ```
 
 ### before `const ack = (after) => F.segment({ from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], after });`
@@ -694,11 +727,11 @@ The ack rides at the spine ball's arrival plus a beat, never before it. Span 328
 durations of 3800, 3800 and 4000, measured off `getAnimations()`. Ordering it this way makes the steps
 SHORTER, not longer, because the Pod pulse moves earlier.
 
-DO NOT put the ack second. It reports `ExecSync` complete before the hook has been exec-ed and
-`StopContainer` complete before SIGTERM has reached the process: the answer arrives before the
+The ack never goes second. There it reports `ExecSync` complete before the hook has been exec-ed
+and `StopContainer` complete before SIGTERM has reached the process: the answer arrives before the
 thing it is answering.
 
-DO NOT animate the top row alone on `poststart`. That draws Kubelet asking and the runtime
+The top row never animates alone on `poststart` either. That draws Kubelet asking and the runtime
 answering while nothing reaches the container the handler runs inside. It rides the spine like the
 other two.
 ```
@@ -726,14 +759,13 @@ LAYOUT   B (chips left, ladder right). PANEL_B 255.
            chips  60..540, 4 x 34 + 3 x 8 = 160
            ladder 660..1140, 5 rows = 200
            node   on the floor, one 828-wide Pod centred in it
+         Layout A is out: the 200 ladder against a 275..464 band of 189. Eleven short.
 LANES    Spine stepping to WL.SPINE_X at y=140 (clearing the chip column) and landing on the
          Pod's own top midpoint.
-WHY NOT  Layout A: the 200 ladder against a 275..464 band of 189. Eleven short.
-NOTE     Three steps share one shape: the runtime reports an exit on the answer lane, the Kubelet
-         calls StartContainer back, and the create lands on the node. `migrate-schema` lit
-         `runtime` in the static `lit` list, at t=0, while `sidecar-start` and `main-start` light
-         the same box on the arrival of the same hop, at 1500ms. It now lights on the arrival too,
-         so the three read alike and the box is a receiver on all three (A-06).
+MOTION   Three steps share one shape: the runtime reports an exit on the answer lane, the Kubelet
+         calls StartContainer back, and the create lands on the node. All three light `runtime` on
+         the ARRIVAL of that hop, at 1500ms, and not in the static `lit` list at t=0, so the three
+         read alike and the box is a receiver on all three (A-06).
 ```
 
 ### poster
@@ -759,6 +791,10 @@ LAYOUT   C (bottom strip). panel bottom 280.
            ladder 660..1140 at y=140
            chips  full-width strip, THREE per row at 350.67, two rows 548..624, short row centred
            node   three worker Pods, row starting at x=84
+         A chip column does not fit: 202 tall against a left band of 164. The widest value needs
+         258, so three per row at 350.67 clears it.
+         POD_TOP_PAD is 24. At a smaller pad the frame's own NODE-1 label is drawn inside
+         worker-1's shell.
 LANES    Trunk TOP1 midpoint -> WL.SPINE_X at y=140 -> bus at NODE_Y-12, tapping all three Pods.
          Each step fires one ball per lane through the card-local `fan`. The middle Pod centres
          exactly on WL.SPINE_X, so its lane skips the bus point rather than drawing a zero-length
@@ -774,10 +810,6 @@ MOTION   3500 / 2600 / 3500 / 2200, sized to the routes. The two steps that fire
          The two that carry no down-balls at all are shorter:
          `partial` at 2600 over a span of 2060 (see its own note), `complete` at 2200 over a span
          of 900, which is the three exit pulses and nothing else.
-WHY NOT  A chip column: 202 tall against a left band of 164. The widest value needs 258, so three
-         per row at 350.67 clears it.
-NOTE     POD_TOP_PAD is 24. At a smaller pad the frame's own NODE-1 label is drawn inside
-         worker-1's shell.
 ```
 
 ### before `'1. spec     ·  parallelism=3, completions=5'`
@@ -792,35 +824,12 @@ CONTENT  What the mismatch cost: `succChip` walked 2 to 6 on `complete`, a delta
          THREE sublabels reading `done · exit 0`, and `unit-4` was written once on `retry` and
          never resolved because `pod1Box` then read `unit-6 done`. At 5 the delta is 3, one per
          sublabel, and each slot finishes the unit it started: 4, 5 and the unit-3 retry.
-WHY NOT  Keeping 6 and stepping the count through `complete` (2 -> 5 on the exit pulses, then a
-         create for unit 6, then its exit). It is honest and the narration already described it,
-         but it turns the shortest step on the card into a three-beat sequence: 2200 -> about 4500,
-         and the MOTION note above prices `complete` at a span of 900.
-WHY NOT  Moving the failure into wave 2 so the retry closes at 6. That rewrites `partial`, which is
-         where the tombstone and the mixed exits are taught, to buy the same arithmetic.
+         Keeping 6 and stepping the count through `complete` (2 -> 5 on the exit pulses, then a
+         create for unit 6, then its exit) is honest but turns the shortest step on the card into
+         a three-beat sequence: 2200 -> about 4500, against the span of 900 the MOTION block
+         prices `complete` at.
 NOTE     The poster's six cells are not a count of completions. It draws done-over-running, which
          is the sentence, and R-02 keeps a poster from being a small diagram.
-```
-
-### before `id: 'partial',`
-
-```
-Up-arrow step: the workers act and the controller receives, so the three exits pulse at 0 and the
-report leaves at `BEAT.afterPulse`. Worker-3 and its lane settle to `OPACITY.terminated` on the
-same `BEAT.afterPulse`, so the tombstone shade lands with the exit that earned it.
-
-DO NOT call `fan` here. It is the CREATE helper: its `LANE(i)` is built trunk-first from the
-controller box bottom down to the Pod, so a step whose wire label reads `watch Pod exits` would
-draw three creates. Nothing is created here, so nothing rides down.
-```
-
-### note (anchor dropped: `const req = topPacket(s, ctx);` is not unique in the file)
-
-```
-Replacement create travels controller -> Api -> Node. worker-3 already runs
-its retry here at full opacity (the dim belonged to the previous step), and each
-of the three live Pods pulses as its OWN ball lands (parallelism=3): worker-2 at
-800ms off the bare trunk, workers 1 and 3 at 1613ms.
 ```
 
 ### poster
@@ -845,14 +854,14 @@ LAYOUT   C (bottom strip). panel bottom 379.
            ladder 660..1140 starting at 176
            chips  two across, 532 wide, at y 548 and 590
            actors Kubelet 420..780 centred on CX; Registry narrower at 840..1100
-LANES    From Kubelet's bottom midpoint down the corridor LEFT of the ladder, ending on the Pod at
-         y 430 rather than on the Node frame edge above it.
-WHY NOT  Chips four across: 258 wide, and "container state" runs into
+         Chips four across is 258 wide, and "container state" runs into
          "Waiting · ContainerCreating".
-NOTE     The Registry is the narrow box because the cloud path wraps it. The cloud is one
+         The Registry is the narrow box because the cloud path wraps it. The cloud is one
          hand-drawn path with its own centre at (685, 85), placed by transform at CLOUD_SCALE
          1.05 rather than redrawn. Straddling BOTH actor boxes reads as a rendering fault.
-NOTE     The ladder starts at 176, not 150, because the scaled cloud reaches y 157.
+         The ladder starts at 176, not 150, because the scaled cloud reaches y 157.
+LANES    From Kubelet's bottom midpoint down the corridor LEFT of the ladder, ending on the Pod at
+         y 430 rather than on the Node frame edge above it.
 ```
 
 ### poster
@@ -878,6 +887,11 @@ LAYOUT   C, and the tightest card in the whole catalog: the panel measures 397 x
            ladder 660..1140
            chips  status.phase alone in the left column 60..540 at y 506
            node   546..624; Pod 552..616; container 574..610
+         A pipeline at 420..1140 with status.phase as a full-width strip is out: the lane then runs
+         straight down through six ladder rows AND through the chip.
+         A Node bottom edge at 640 falls on the viewBox edge and does not draw.
+         Pod and container are shorter than the family default deliberately. There is no more
+         room. A longer narration on any step invalidates that measurement: re-measure.
 LANES    Down x = SPINE_X (560), clear of both the ladder and the status chip, ending on the Pod.
 CONTENT  Pending is what a WAITING container forces, and one container starting is not enough to
          leave it. `schedule` must NOT read "The status.phase field is still Pending until at least
@@ -898,70 +912,35 @@ CONTENT  `capped at 300s` on `crashloop` carries `by default`, for the reason re
          because step 5 at 1100x800 IS the catalog's deepest panel, 503.13 against the 90..504 band
          L-04 records. Do not spend step 5.
          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
-WHY NOT  A pipeline at 420..1140 with status.phase as a full-width strip: the lane then runs
-         straight down through six ladder rows AND through the chip.
-WHY NOT  A Node bottom edge at 640: it falls on the viewBox edge and does not draw.
-NOTE     status.phase in the left column is also what keeps CENTRE green. It is the only chip left
-         of CX; without it the strip spans 660..1140 and centres on 900.
-NOTE     Pod and container are shorter than the family default deliberately. There is no more
-         room. A longer narration on any step invalidates that measurement: re-measure.
 ```
 
 ### before `const stage = (podGroup, placed = true) => ({`
 
 ```
-NOTE     `admit` is the one step where the Pod is not placed, so the Node frame AROUND it is pinned
-         to OPACITY.pending with it.
-DO NOT   leave the frame or the lane at 1 there: that step's wire label reads `spec.nodeName not
-         set`, so the drawing says the Pod is on Node-1 while the words say no Node has it.
-NOTE     The frame is the only value `placed` still decides: the lane takes the Pod's own shade on
-         every step, which is the next note.
 LANES    The lane ENDS on the Pod, so it carries the Pod's shade rather than a shade of its own
          (A-13), and `stage()` states the pair once. Measured with `effectiveOpacity` at both ends:
          `schedule` 0.55, `crashloop` 0.40, `terminal` 0.12 and `admit` 0.55, each the shade of the
          Pod it lands on, against the 1 a lane holding its own shade would sit at. Kubelet, the
-         source end, is 1 on all six steps, so min(source, sink) IS the Pod.
-NOTE     The container sublabel on `admit` reads `no node yet · no container`, which is C-14's
+         source end, is 1 on all six steps, so min(source, sink) IS the Pod. The lane takes that
+         shade on every step, so the Node frame is the only value `placed` still decides.
+         `admit` is the one step where the Pod is not placed, so the frame AROUND it is pinned to
+         OPACITY.pending with it. Neither the frame nor the lane stands at 1 there: that step's
+         wire label reads `spec.nodeName not set`, so a full-strength pair says the Pod is on
+         Node-1 while the words say no Node has it.
+         The container sublabel on `admit` reads `no node yet · no container`, which is C-14's
          remedy: a block that does not exist yet dims AND says so. 26 characters at 6.03 units
          each is 157 of the 300 the container box is wide.
-OPEN     The Pod is still drawn INSIDE the Node frame on `admit`, and that cannot be fixed by
-         geometry on this card. The frame is 546..624 and rests on the floor (a bottom edge at 640
-         does not draw), the status.phase chip takes 506..540, and step 5 at 1100x800 puts the
-         panel bottom at 503.13, the deepest in the catalogue. That leaves 121 units between panel
-         and floor, of which the chip (34) and the frame (78) already spend 112. There is no band
-         to draw an unbound Pod in, so the fix is the shading and the sublabel above.
 MOTION   The lane fades WITH the Pod, same delay, same duration, same easing, on all four steps that
-         move the phase, which is what P-04 asked for and why this was not done one step at a time.
-         `phaseFade` returns the pair. `fill: both` holds both at `from` through the 400 delay, so
-         the lane is at 0.39 when the ball lands at 960 on `terminal` and at 0.40 when it lands on
-         `crashloop`: visible for the whole flight (A-15), and never brighter than its own sink.
-WHY NOT  Pinning the lane to the settled shade with no fade. The static block runs at t=0, so the
-         lane would snap to 0.12 while the Pod is still at 1 and a ball is in the air, which inverts
-         the mismatch instead of closing it.
-WHY NOT  Leaving the lane at 1 and citing A-15. That was this card's own note until the lane learned
-         to fade: A-15 asks the lane to be VISIBLE under its ball, not to be full strength, and 0.30
-         at the arrival is visible in the rendered frame at 1600x1000 and at 1100x800.
-```
-
-### before `const phaseFade = (from, to, delay = PHASE_FADE_DELAY) => {`
-
-```
-NOTE     The easing is derived from the direction (`to > from` is a recovery, ease-out) rather than
-         passed, because that reproduces exactly what the four hand-written fades said: ease-out on
-         `running` and `recover`, ease-in on `crashloop` and `terminal`.
-MOTION   The measured beats, unchanged by the pairing: route arrival 960 on every step, fade 400 to
-         1100 on `running`, `recover` and `terminal`, 0 to 700 on `crashloop`, pulse at 960. Spans
-         1520 / 1860 against durations 2300 to 2400, so the pair costs no duration (A-11, M-19).
-```
-
-### before `const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;`
-
-```
-Phase transitions cross-fade the Pod opacity between states (OPACITY.pending 0.55, running 1,
-notready 0.4, terminated 0.12). Those four are the only shades this card draws: 0.35 and 0.7 are
-in no token and are drawn nowhere.
-This is a state machine, not a materialize/dissolve, so it keeps its own fade timing
-rather than the FADE tokens. The delay starts the cross-fade a beat into the step.
+         move the phase, which is what P-04 asks for and why the pair is stated once rather than one
+         step at a time. `phaseFade` returns the pair. `fill: both` holds both at `from` through the
+         400 delay, so the lane is at 0.39 when the ball lands at 960 on `terminal` and at 0.40 when
+         it lands on `crashloop`: visible for the whole flight (A-15), and never brighter than its
+         own sink.
+         Pinning the lane to the settled shade with no fade is out. The static block runs at t=0, so
+         the lane would snap to 0.12 while the Pod is still at 1 and a ball is in the air, which
+         inverts the mismatch instead of closing it. Leaving it at 1 and citing A-15 is out too:
+         A-15 asks the lane to be VISIBLE under its ball, not to be full strength, and 0.30 at the
+         arrival is visible in the rendered frame at 1600x1000 and at 1100x800.
 ```
 
 ### poster
@@ -983,80 +962,133 @@ so the pair reads as one taken outcome and one alternative rather than as two ev
 ```
 WHAT     Three Pods classified Guaranteed, Burstable and BestEffort, and which two the Kubelet
          evicts under Node pressure.
-LAYOUT   C (bottom strip). panel bottom 404.
+LAYOUT   C (bottom strip).
            ladder 660..1140
            chips  two across at 548 and 590
-           node   three Pods, row at NODE_Y + 34
-LANES    Trunk down x = CX into the Node frame, bus at NODE_Y + 12 INSIDE the frame, one tap per
-         Pod. One ball per tap, each Pod pulsing on ITS OWN ball landing rather than on a single
-         shared arrival: the outer lanes are longer and the difference is the point.
-NOTE     The bus inside the frame costs no vertical space (Pods start at NODE_Y + 34 instead of
-         +22). Above the frame it costs 40 units this card does not have.
-CONTENT  The uncapped Pods on `cgroups` are BOTH A AND B, so the sentence names both. Pod B is
+           node   404..532, three Pods, row at NODE_Y + 34
+PANEL    The swing between the three viewports is the second widest in the catalog, so a reading
+         taken at 1600x1000 alone is worthless here: every clearance below is against the 1100x800
+         number. All three are printed on demand by
+         `OVERLAY_IDS=workloads-pod-qos-classes node --test report/overlay.test.mjs`.
+SIZES    The bus at 390 is 11.1 clear of the deepest panel (378.90 on `tiers` at 1100x800) and 40
+         clear of the ladder floor. THAT 11.1 IS THE PROSE BUDGET: one more wrapped line on the
+         deepest step is 24.85 units and puts the panel through the bus, so a narration here can
+         only grow if the bus moves first. Moving the bus costs nothing in time: LANE(i) splits the
+         same vertical between trunk and tap, so lengths stay 684 / 318 / 684 at the 0.450 canon.
+LANES    Trunk down x = CX to a bus at NODE_Y - 14 = 390, ABOVE the frame, one tap per Pod
+         crossing the frame border. One ball per tap, each Pod pulsing on ITS OWN ball landing
+         rather than on a single shared arrival: the outer lanes are longer and that is the point.
+         The top row carries ONE lane and not the WL.A-01 pair, recorded at ANSWER_Y below.
+         The bus stands ABOVE the frame. At NODE_Y + 12 = 416 it falls inside the node() label band
+         L-23 measures at NODE_Y+6.8..NODE_Y+21.4: it clears the label horizontally by 117 units
+         and still reads as a second frame border, same dash, same hue, 12 units under the real
+         one. Above the frame costs 40 units of free band, which only a trimmed narration leaves:
+         a panel reaching 403.74 against NODE_Y of 404 is a clearance of 0.26, and the 49.69 units
+         the two trimmed narrations are worth are what open the room.
+         Lowering the bus INSIDE the frame instead does not work. The band is NODE_Y..POD_Y, 34
+         units, and an arrowhead is about 10 to 13 of them, so a bus clear of the label band at 430
+         leaves an 8 unit tap that is all head and no shaft. Growing the Node frame to buy the room
+         does not work either: the free band is 354.05..624 and the frame plus the chip strip
+         already spend 204 of it, with 16 left to the canvas floor at 640.
+CONTENT  Claims read against the k8sVersion in `cards.js`.
+         The uncapped Pods on `cgroups` are BOTH A AND B, so the sentence names both. Pod B is
          Burstable with requests only, which the classify step says in words ("requests only, no
          limits") and its own sublabel repeats (`req only · 500m / 256Mi`), so naming Pod A alone
          made a true sentence read as a property of BestEffort.
-```
-
-### before `P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'cgroups + eviction', role: 'cluster' })`
-
-```
-Kubelet is the node-facing actor (places Pods after binding, writes cgroups, evicts), so it
-sits on the left where the connector to the node is anchored, matching the other controller
-cards (left actor -> node, Api on the right). Every connector packet leaves Kubelet.
+         `tiers` says Pod C is "evicted last, ranked by Priority, if system daemons overrun what
+         the Node reserved for them", and its sublabel reads `Guaranteed · evicted last`.
+         "is reached only by the kernel OOMKiller" and the sublabel `Guaranteed · survives` are
+         both rejected: node-pressure-eviction says "Guaranteed pods and Burstable pods where the
+         usage is less than requests are evicted last, based on their Priority", and that where
+         system processes overrun their reservation "the kubelet must choose to evict one of these
+         pods to preserve node stability ... it will choose to evict pods of lowest Priority
+         first". A Guaranteed Pod under its request IS reachable by the kubelet, last in line.
+         The sublabels now read `evicted 1st` / `evicted 2nd` / `evicted last`, one scale.
+         `schedule` says "The resource fit looks only at requests". "Scheduling looks only at
+         requests" is rejected: scheduling also filters on nodeSelector, affinity, taints and
+         topology spread, so the absolute is false of scheduling and true only of the resource
+         fit, which is the half the step is about.
+         `cgroups` carries "with node-critical Pods on -997 whatever their class". Without it
+         "BestEffort gets 1000" is an absolute with a live counter-case: `pkg/kubelet/qos/policy.go`
+         returns guaranteedOOMScoreAdj for a node-critical Pod before it ever reads the QoS class.
+         The Burstable clamp is `3..999`, not `2..999`: the floor is the literal
+         `1000 + guaranteedOOMScoreAdj` and guaranteedOOMScoreAdj is -997. Secondary write-ups
+         stating a floor of 2 are rejected against that source.
+         `classify` keeps "set once at creation and never changes for the rest of the Pod life".
+         In-place Pod resize is GA at this release and does NOT weaken it: a resize that would
+         land the Pod in a different QoS class is rejected by admission.
+         `spec` states the Guaranteed rule without the docs' "both greater than zero" and without
+         the Pod-level resources variant. Both are real conditions and neither changes which class
+         any of the three drawn Pods gets, and the step is already 322 characters against a wall
+         SIZES puts at zero further lines.
+BUDGET   `cgroups` and `tiers` are the two steps the reading pace binds, and both are sized from
+         BOTH ends, characters out and duration up, which is what puts them at 4000 and 4200. The
+         still time on the pair leaves a duration room here where a sentence has none, and SIZES
+         above is the hard wall on the sentence. Reading pace per step, still time and the rank
+         against the catalog are printed by `card-review/tools/timing.mjs` and `deadair.mjs`.
+NAMING   No drawn string names the Scheduler, because no box is the Scheduler. The chip and the
+         ladder row said "scheduler" while the actor row holds Kubelet and API only, which sent
+         the reader hunting for a third box. The narration keeps the impersonal "Scheduling looks
+         only at requests", which names a process rather than pointing at a block.
+         Drawing the Scheduler as a third actor box to earn the word back does not fit. Kubelet is
+         pinned at 420..780 by WL.L-07 because the trunk leaves its face midpoint, which leaves
+         840..1140 for the rest: split with the house 60 gap that is two boxes of 120, against an
+         API sublabel `admission · qosClass · binding` that measures 184 wide on its own.
 ```
 
 ### before `const ALL_PENDING = { pod1: OPACITY.pending, pod2: OPACITY.pending, pod3: OPACITY.pending, ...wiring(OPACITY.pending) };`
 
 ```
-NOTE     The three Pods rest at OPACITY.pending on `idle`, `spec` and `classify` and only reach 1 on
-         `schedule`, each on the arrival of its OWN fan ball.
-DO NOT   sit them at 1 from the poster on, three frames before the step that places them: `schedule`
-         then fans three balls into an outcome already drawn. C-06 is the shade for declared and not
-         working yet, which is exactly an object with no spec.nodeName.
-NOTE     The wiring (trunk, bus, the three taps) is pinned WITH the Pod row, in `wiring`, because
+LANES    The three Pods rest at OPACITY.pending on `idle`, `spec` and `classify` and only reach 1
+         on `schedule`, each on the arrival of its OWN fan ball. They do not sit at 1 from the
+         poster on, three frames before the step that places them: `schedule` would then fan three
+         balls into an outcome already drawn. C-06 is the shade for declared and not working yet,
+         which is exactly an object with no spec.nodeName.
+         The wiring (trunk, bus, the three taps) is pinned WITH the Pod row, in `wiring`, because
          a tap is as faint as the Pod it points at (A-13). With the Pods dimmed and the taps left
          at 1 the three arrowheads were the brightest thing in the Node band, pointing into
          nothing that had arrived. Measured on the rendered frame at both viewports.
-WHY NOT  Drawing the three Pods OUTSIDE the Node frame until they are bound. There is no band to
-         draw them in: layout C puts the panel bottom at 404, the frame at 404..532 and the chip
-         strip at 548..624, so the free height between panel and floor is 220 and the frame plus
-         strip already spend 204 of it.
-WHY NOT  Born at 0 and revealed on `schedule`. `classify` writes all three qosClass values onto the
+         Drawing the three Pods OUTSIDE the Node frame until they are bound has no band to go in:
+         layout C puts the deepest panel bottom at 354.05, the frame at 404..532 and the chip strip
+         at 548..624, so the free height between panel and floor is 269.95, the frame plus strip
+         spend 204 of it, and the 66 that are left are the bus corridor. Born at 0 and revealed on
+         `schedule` fails on the other side: `classify` writes all three qosClass values onto the
          Pod inner boxes and pulses all three Pods, so hidden Pods leave that step drawing nothing
          at all. C-14 also forbids cutting an absent block, and these are not absent: they are in
          etcd, which is what ladder row 0 says.
-NOTE     `classify` pulses with `dim: true`. A 900ms brightness pulse on a Pod sitting at 0.55 is
+MOTION   `classify` pulses with `dim: true`. A 900ms brightness pulse on a Pod sitting at 0.55 is
          not seen without the opacity lift `pulsePodDim` adds (M-07).
 ```
 
-### before `const EVICTED = { ...ALL_LIVE, pod1: OPACITY.terminating, pod2: OPACITY.terminating };`
+### before `const EVICTED = {`
 
 ```
-QoS eviction: BestEffort and Burstable (A, B) are evicted and dim together by the same
-amount, Guaranteed (C) survives at full opacity. Pin the final state inline for cancel-safety.
-The wiring stays at full here: both taps are still carrying their eviction balls (A-15).
-```
-
-### before `F.route({ points: LANE(0), name: 'evictA' }),`
-
-```
-This step does NOT reuse the shared fan: it sends A, then B a beat behind it, and sends nothing to
-C. C gets no ball because it survives, and the narration says only the kernel OOMKiller reaches
-it. The sequencing costs 627ms of duration (2600 -> 3400).
-
-DO NOT release the three through the shared fan and leave the order to the labels. The fan
-releases all three at once and the lanes are different lengths (684 units to slot 0 against 318 to
-the middle), so Pod B, labelled evicted 2nd, lands a full 800ms BEFORE Pod A, labelled evicted
-1st. A drawing that asserts the opposite of its own labels is worse than one that stays quiet.
+LANES    QoS eviction: BestEffort and Burstable (A, B) are evicted and dim together by the same
+         amount, Guaranteed (C) survives at full opacity. The final state is pinned inline for
+         cancel-safety.
+         tap1 and tap2 sink WITH their Pods, to OPACITY.terminating, because a lane is as faint as
+         the Pod it points at (A-13). Each is pinned at 1 in the static block and only fades at
+         its own ball arrival, so A-15 still holds and the lane is lit for the whole flight.
+         The trunk and the bus stay at 1: they still feed tap3, and C survives.
+         Neither tap is held at 1 to the end of the step. The balls land at 1520 and 2327 and fade
+         200ms later, so the last 1700ms of such a hold draws two full-strength arrowheads into two
+         ghosts at 0.25, which is the same defect the ALL_PENDING note above records for the
+         unplaced Pods.
+MOTION   No chip carries a cue on this step. The three qosClass values are unchanged since
+         `classify`, so lighting one would cue a change that did not happen (P-09a), and lighting
+         Pod A alone while the narration evicts both A and B is worse than lighting neither (P-04).
+         The order is carried by the sublabels and the focus chip.
 ```
 
 ### poster
 
 ```
 Three Pods with a resources bar each: none, one bar, two matched bars, over a baseline whose weight
-ramps dashed to 2px and a dot ramp below that. Two ramps saying the same thing from both ends, which
-is what makes the ORDER unmistakable at 200px.
+ramps dashed to 2px. The bars ARE the R-07 house accent, a currentColor rect inside the block it
+belongs to, and the baseline carries the ranking, so the order is unmistakable at 200px.
+A third ramp, a row of dots under the baseline, was cut: it said what the baseline already said,
+and it pushed the poster to 6 currentColor fills against a lint ceiling of 3 measured over the
+shipped set. With it gone the accent is an accent again and the primitive count drops 12 to 9.
 The class names are not written. The whole idea is that the class is DERIVED from what the Pod asked
 for, so drawing the request and letting the ranking follow is the poster stating the mechanism.
 ```
@@ -1096,6 +1128,12 @@ LAYOUT   Three tiers on one spine at x=600, plus the chip strip. The API is cent
          772..1004 centre on 744. The reversal above is the reason and it is deliberate. The half of
          WL.L-02 that binds is the left edge, and 484 clears the 420 floor by 64. WL.L-07 holds
          exactly: the box the trunk leaves is the API, and it is centred on WL.SPINE_X.
+         A six-row ladder in the 660..1140 middle band, which is what LAYOUT.C puts there, would
+         fit: six narrated steps need six rows, 242 units at WL.ROW_H 32 and WL.ROW_GAP 10, against
+         a band between the top row at 120 and the frame at 394 of 274, so 16 units stand at each
+         end. It is declined because the verdict pair needs the same band and says something the
+         narration cannot: that the Kubelet decision has three outcomes and only one of them
+         continues down the spine.
 SIZES    Node frame 134 / 106 / 20 (NODE_H / POD_H / POD_Y - NODE_Y), taken from
          workloads-graceful-shutdown, which is the only workloads frame built around a 106 tall Pod.
          There is no catalog-wide family (L-23) and the cluster 152 / 106 / 34 the card was born on
@@ -1109,6 +1147,12 @@ SIZES    Node frame 134 / 106 / 20 (NODE_H / POD_H / POD_Y - NODE_Y), taken from
          The verdict pair is 300 x 64 right-aligned on CONTENT_R, level with the right chip column
          and the frame edge. It straddles KUBE_CY at 186..250 and 266..330, which is what lets both
          relations leave one face at the mirrored offsets L-12 reads as a deliberate pair.
+         Four chips across the bottom strip at 258 units each do not hold their values. The longest
+         is `cpu NotRequired · memory RestartContainer`, 41 characters at the 6.89 units per
+         character `.scheme-chip-text` rate, so 282.5 units of value alone against a 258 unit chip.
+         Two across at 532 is LAYOUT.C.strip.two, and CHIPS_Y is the literal 548 that
+         workloads-pod-qos-classes, workloads-restart-policy, workloads-pod-image-pull and
+         workloads-pvc-stickiness all carry, so the second row ends on the 624 canvas floor.
 LANES    Five, and only three of them ever carry a ball. The top pair straddles the row centre by
          LANE_DY, the patch out at y=68 and the answer back at y=92. The spine is two P.lane drops
          on CX, each carrying a ball on the one step that narrates it, and the lower one stops on
@@ -1136,6 +1180,8 @@ WIRE LABELS
          and at the midpoint 346 the glyph box opens 1 unit under that box. It is derived off the
          box instead, INF_Y + BR_H + 24, which leaves 24 units under the verdicts and 40 above the
          frame.
+         The `spec` slot takes no longer string: past about 37 characters it closes that 68.5 unit
+         gap and the two stop reading as separate labels on one row.
 CONTENT  Verified against the resize task page, which carries the whole mechanism. In-place resize
          is `FEATURE STATE: Kubernetes v1.35 [stable] (enabled by default)`, which is the k8sVersion
          this catalogue is dated to, so the card states it as stable rather than as a gate.
@@ -1178,9 +1224,18 @@ CONTENT  The QoS clause is the pod-qos page verbatim: `The QoS class is determin
 CONTENT  UNVERIFIED, and nothing on the card asserts it: the HTTP status and error shape an
          admission refusal of a QoS-changing resize returns. The pages say `rejected by admission`
          and stop, so the wire label says `resize refused at admission` and names no code.
-BUDGET   Panel x<=396.55 by y<=279.51 at 1100x800, on `apply` at 353 characters, against a frame top
-         at 394, so 114.49 units stand clear. Measured range over the three viewports is
-         142.56..279.51.
+CONTENT  `allocatedResources` stays off the chips. The page marks
+         `status.containerStatuses[*].allocatedResources` Advanced and says to focus on
+         `status.containerStatuses[*].resources` for monitoring and validation, and a fifth chip
+         would need a third strip row, which ends at 666 on a 640 canvas.
+         The `resources` field is not "fixed" to read immutable on the strength of the Pod v1
+         reference saying `Compute Resources required by this container. Cannot be updated.` That
+         line is stale against the resize subresource, and the task page is the authority the card
+         follows: the same reference documents `resizePolicy` and the two conditions on the same
+         page.
+BUDGET   The panel reaches y<=279.51 at 1100x800, on `apply` at 353 characters, against a frame top
+         at 394, so 114.49 units stand clear. The extent per viewport is printed on demand by
+         `OVERLAY_IDS=workloads-pod-resize node --test report/overlay.test.mjs`.
          The bottom is QUANTIZED by the line height, so it steps rather than slides: 353 characters
          reads 279.51 while 352 read 254.66, one whole line for one character. Budget in lines, not
          in characters, and re-measure after ANY prose edit. The ceiling is roughly 490 characters,
@@ -1193,6 +1248,11 @@ NAMING   The two resource chips carry their FULL field paths, `spec.containers[]
          breaks the symmetry that lets the pair be read against each other in one glance, and both
          fit: the longer name measures 248 units against a 532 unit chip whose longest value is
          141.1.
+         The `admit` step shows PodResizePending while `apply` two steps later resizes the container
+         successfully. That is a counterfactual on the canvas, and T-35 is why the `branch` slot
+         carries `if the Kubelet cannot allocate it now` above the pair: the caption is what signs
+         the alternative, and `apply` opens with `Once the Kubelet allocates it` so the two steps
+         join rather than contradict.
 SCOPE    Six things this card names and deliberately leaves to a sibling.
          The QoS CLASS is a constraint here and one line of it, never a derivation:
          `workloads-pod-qos-classes` owns which requests and limits produce which class.
@@ -1214,40 +1274,6 @@ SCOPE    Six things this card names and deliberately leaves to a sibling.
 SCOPE    No autoscaler appears anywhere on this card. This catalogue covers upstream core and has no
          VPA, HPA, Cluster Autoscaler or KEDA card, so a resize here is something a human or a
          controller outside the picture asked for, and the card never says who.
-WHY NOT  A six-row ladder in the 660..1140 middle band, which is what LAYOUT.C puts there.
-         Six narrated steps need six rows, 242 units at WL.ROW_H 32 and WL.ROW_GAP 10, and the band
-         between the top row at 120 and the frame at 394 is 274, so it fits with 16 units at each
-         end. It is declined because the verdict pair needs the same band and says something the
-         narration cannot: that the Kubelet decision has three outcomes and only one of them
-         continues down the spine.
-WHY NOT  Four chips across the bottom strip at 258 units each. The longest value is
-         `cpu NotRequired · memory RestartContainer`, 41 characters at the 6.89 units per character
-         `.scheme-chip-text` rate, so 282.5 units of value alone against a 258 unit chip. Two across
-         at 532 is LAYOUT.C.strip.two, and CHIPS_Y is the literal 548 that
-         workloads-pod-qos-classes, workloads-restart-policy, workloads-pod-image-pull and
-         workloads-pvc-stickiness all carry, so the second row ends on the 624 canvas floor.
-WHY NOT  Drawing the desired and the actual as two Pod shells, one inside the API and one on the
-         Node, the way cluster-static-pods draws its mirror. Two shells on one card read as two
-         Pods, and the whole point here is that there is ONE Pod whose spec and status disagree for
-         a moment. The disagreement is carried by the two chips instead, which sit side by side in
-         the strip and can be read against each other in one glance.
-DO NOT   Do not put `allocatedResources` on a chip. The page marks
-         `status.containerStatuses[*].allocatedResources` Advanced and says to focus on
-         `status.containerStatuses[*].resources` for monitoring and validation, and a fifth chip
-         would need a third strip row, which ends at 666 on a 640 canvas.
-DO NOT   Do not "fix" the `resources` field to read immutable because the Pod v1 reference says
-         `Compute Resources required by this container. Cannot be updated.` That line is stale
-         against the resize subresource, and the task page is the authority the card follows: the
-         same reference documents `resizePolicy` and the two conditions on the same page.
-DO NOT   Do not give the `spec` wire slot a longer string. It is anchored start at 612 and the
-         `branch` caption starts at 840, so a `spec` label past about 37 characters closes the 68.5
-         unit gap that keeps the two readable as separate labels on one row.
-NOT A DEFECT
-         The `admit` step shows PodResizePending while `apply` two steps later resizes the container
-         successfully. That is a counterfactual on the canvas, and T-35 is why the `branch` slot
-         carries `if the Kubelet cannot allocate it now` above the pair: the caption is what signs
-         the alternative, and `apply` opens with `Once the Kubelet allocates it` so the two steps
-         join rather than contradict.
 ```
 
 ### poster
@@ -1290,6 +1316,221 @@ is not that a number grew but that no second Pod was needed to grow it.
 
 ---
 
+## workloads-pod-startup-conditions
+
+### layout
+
+```
+WHAT     The five lifecycle conditions a Pod climbs before it is Ready, who writes each one, and
+         what status.phase does while they climb.
+LAYOUT   Instrument panel, and NOT the A / B / C column preset this category defaults to. The
+         subject is one readout that climbs, so the canvas is four stacked bands read top to
+         bottom rather than two columns read left to right:
+           actors     40..120, Kubelet 420..780 centred on CX, API 840..1140
+           readings   160..236, two chips in the RIGHT column 660..1140 only
+           Node       300..900 by 270..428, Pod 370..830 at 302..410
+           staircase  440..572, five treads of 216 x 44 stepping 216 right and 22 up
+           phase rail 592..626 full width, split once at 708
+         THE BAND ORDER IS FORCED and not chosen. The corridor from the Kubelet has to reach the
+         Pod down the 540..660 column (WL.L-07) and the staircase spans the full width, so a
+         staircase above the Pod would be crossed by that lane (L-10). The Node band is therefore
+         the first thing under the panel and the instrument is on the floor, which is the reverse
+         of the other six cards in this section.
+         TWO chips and not four. status.phase is the rail and the next condition still False is the
+         position on the staircase, so both left the chip column: a value drawn as an instrument
+         and restated in a chip is two elements saying one thing. What is left is the two readings
+         no instrument carries, and they sit under the API box that owns them.
+         Their band is the only use L-03 allows for the height above the panel bottom: the full
+         height is free right of x=420, the corridor owns 540..660, so a block there is either the
+         right column or nothing. 160..236 centres the pair in the 120..270 gap.
+         The Node frame is 600 wide and NOT the WL.L-02 full width. It holds one Pod and no second
+         object, so the full width drew 310 units of empty band either side of it; 70 either side
+         of the Pod is the padding the frame actually needs. The cost is a CENTRE reading of 720
+         against the 600 +-40 band, taken with the staircase and the rail dropped as chips (L-17).
+         Its top midpoint is 600, which is what lets the corridor land on the frame face (L-11).
+         The treads TOUCH at their vertical edges and rise half their own height, so the profile
+         is a stair. Gaps would make it a row of five boxes at five different heights.
+         The rail splits at 708, which is TREAD_X(3) and not a number of its own, so the boundary
+         between Pending and Running stands under the tread whose container start moves it.
+         The A / B / C preset is out. As five conditions in a P.chain in the left column, four
+         chips in the right and the Node on the floor it measures green on every rule and shares
+         its composition SIGNATURE with four of the seven cards in this section (box2 pod1 node1
+         chip4 chain1 raw0, bands 40/496/518), so a reader with the narration covered cannot tell
+         it from workloads-container-env-injection. Two things it cannot say either: setChainActive
+         lights ONE row, so the climb never accumulates on screen, and status.phase is one chip
+         among four rather than the second track the whole card is about.
+         A `spec.readinessGates` block feeding the last tread as a visible second input has nowhere
+         to stand. Every place it fits is inside the Node frame or under the rail, and a lane to it
+         from the API crosses the whole Node band. The conjunction is that tread's second line.
+SIZES    A tread is 216 x 44, and 216 is WL.W / 5, so the staircase spans L..R exactly and the
+         content bbox centres on CX by construction.
+         Measured at 1100x800: the longest first line is 153.4 (PodReadyToStartContainers) and the
+         longest second line 177.9 (kube-scheduler · nodeName set, and kubelet · AND
+         readinessGates), so the tightest cell keeps 19 units either side.
+         The two baselines are box()'s own optical centres, h/2 - 3.22 and h/2 + 12.78: a two-line
+         cell has the problem box() already measured over every height from 38.75 to 81.38.
+         The chips are the category column 660..1140 at WL.CHIP_H, 34 with an 8 gap, so the pair
+         stands 40 clear of the actor row and 34 clear of the Node frame.
+         The Pod is 108 tall because pod() fixes BOTH its text baselines: the label at 16 and the
+         sublabel at h - 8, so the only way to buy air around the inner box is the shell height.
+         Measured at 1100x800 with the inner box 300 x 48 at 332..380: the label ink is
+         305.7..321.7 and the sublabel ink 392.2..404.5, so the box stands 10.3 under the label
+         and 12.2 over the sublabel. At POD_H 96 those two gaps were 10.3 and 4.2.
+         The 3.7 over the label ink and the 5.5 under the sublabel ink are pod() itself and are
+         the same on every card in the catalog.
+PANEL    The deepest reading is step 0 at 1100x800, x<=396.55 by y<=254.66. The Node frame starts
+         at 270, so 15.34 units stand clear of it, and 396.55 ties the catalog-wide L-02 worst and
+         stands 0.45 off the 397 ceiling. So any prose edit on this card is re-measured rather than
+         reasoned about, and what prints the extent per viewport is
+         `OVERLAY_IDS=workloads-pod-startup-conditions node --test report/overlay.test.mjs`.
+LANES    Down the corridor at WL.SPINE_X from the Kubelet bottom midpoint to the NODE frame top
+         midpoint at 270. SPINE_UP is its reverse, so the Kubelet action and the Pod report cannot
+         drift apart. Length 150, which is UNDER the PKT_DUR_MIN floor, so a route costs 700ms
+         rather than the 333 its length alone would buy.
+         A lane between the actor row and the Node band ends on the FRAME face, in both
+         directions, never on the Pod inside it: the endpoint on POD_Y that 20 workloads cards
+         still carry is the retired form. It is also why the frame is centred on WL.SPINE_X, since
+         a face midpoint is what L-11 asks for.
+         Top row: REQ_Y carries the status PATCH out to the API, RESP_Y carries the watch event
+         back to the Kubelet (WL.A-01). Both ride, so both are arrows and neither is a relation.
+         Nothing rides into the staircase or the rail. They are a readout of what the top row
+         wrote, and a lane into either would claim the Kubelet talks to its own instrument.
+         The last step carries the corridor in its resting DOWN direction and no ball rides it,
+         because the only traffic that step names is the top-row PATCH. Pointing it up would aim
+         an arrowhead at the Kubelet on the one step nothing travels to the Kubelet.
+MOTION   Step 1 is the only self-initiated send from the API and waits BEAT.lead.
+         Step 2 is a down-arrow: the ball lands, THEN the Pod blinks and lifts (M-16).
+         Steps 3 and 4 are up-arrows: the Pod blinks first and the report leaves at
+         BEAT.afterPulse (M-15), and step 4 hangs its fade one beat behind the blink (M-08).
+         Two opacity lifts and both are events: notready to pending when the sandbox exists,
+         pending to full when every container is ready.
+         The staircase fills as a PREFIX and never as one lit rung: climb(n) holds every tread
+         already taken at full weight and the rest at OPACITY.notready, so a reader landing on
+         step 3 can see two rungs behind it and two ahead. Only the tread this step flips is lit.
+         The rail is lit on step 4 ALONE, the one step of the climb that moves status.phase. A
+         segment lit on every step would say the opposite of the card.
+         `dim: true` is declared on step 3 ALONE, which is the one pulse with no F.fade beside
+         it. A fade carrying `fill: both` composites over the whole delay window and is created
+         after the pulse, so on steps 2 and 4 the opacity half of pulsePodDim never renders: the
+         brightness half still fires, so the blink survives, and the exemplar reserves `dim` the
+         same way (workloads-probes: dim on its two fade-free steps, plain pulse on its three).
+         Spans measure 2060 / 2060 / 2860 / 2860 / 2400 against durations 2400 / 2600 / 3100 /
+         3200 / 3000. The corridor is 150 units and every route on it sits on the PKT_DUR_MIN
+         floor, so moving it again changes no span until it passes 315 units.
+         The Pod pulse on the last step hangs off the PATCH arrival, which lands on the API at
+         the top of the canvas while the Pod sits on the floor. The beat is the Pod's own state
+         change and not an arrival at the Pod, so the only ring on screen is the API's.
+CONTENT  PodReadyToStartContainersCondition is Alpha 1.28, Beta and on by default 1.29 through
+         1.36, Stable 1.37, read off the feature-gates reference. The card is pinned at 1.35, so
+         the narration says beta and on by default and names 1.37 as the lock, never stable now.
+         The order PodScheduled, PodReadyToStartContainers, Initialized, ContainersReady, Ready is
+         the page order, and the page states two facts the card turns on: the Kubelet starts
+         pulling images only after PodReadyToStartContainers is True, and Initialized is True
+         BEFORE sandbox creation on a Pod that declares no init container.
+NAMING   A tread's second line is a READING and not a field: it names who writes that condition
+         and what makes it flip, so P-02 holds without it claiming to be API. The writer is the
+         identifier form (`kubelet`, `kube-scheduler`) because System A calls a sublabel body text
+         (T-09). The last tread states a rule rather than an event, because Ready is a conjunction.
+SCOPE    The container runtime and the CNI plugin are named by the sandbox step and drawn by
+         neither it nor any other, which breaks T-21 on purpose. The CRI stack is
+         cluster-pod-sandbox-cri and the plumbing is network-cni-invocation, and both draw it in
+         full. The room argument is NOT the binding one and is not made here: the actor row has
+         no third slot under WL.L-02 and WL.L-07, and since the frame narrowed to 600 the bands
+         either side of the Pod are 70 wide, which fits nothing. The cession is what decides it
+         and the room argument no longer even contradicts it.
+         The Scheduler is named by the first step and drawn as the sender of the watch event
+         rather than as an actor of its own, which nine other workloads cards also do.
+         status.phase is one rail and one line here, never a derivation:
+         workloads-pod-phase-machine owns the phase machine and already states that phase is
+         deliberately coarse. This card is the detail that sentence promises.
+         The EndpointSlice mechanism is network-endpointslice-reconcile. The Pod IP joining is one
+         chip value on the last step and no controller is drawn.
+         Probe semantics are workloads-probes. readinessProbe is named once, as the thing that
+         makes a container ready, and no probe period or threshold appears.
+```
+
+### poster
+
+```
+Five treads climbing left to right, the first four filled on a ramp and each carrying the house
+accent bar, the fifth drawn dashed and empty. The rise plus the ramp carry the direction, so there
+is no arrowhead (R-08), and the one tread that differs in FORM rather than in brightness is the
+sentence: the climb has a position and the last rung is not taken.
+The three siblings in this section are already a three-block comparison (qos), a stack of four
+horizontal layer bars (image-pull) and a row of four boxes (init-containers), so a five-row list
+would collide with the second of them. It would also be a literal copy of this card's own left
+column, which R-10 refuses.
+The brightest accent sits on tread FOUR and not on tread five, because five is about the absence
+of a fill and giving it the winner bar would say the opposite of the poster.
+```
+
+---
+
+## workloads-pod-startup-failures
+
+### layout
+
+```
+WHAT     The five values the STATUS column takes before Running, and which component is still
+         holding the Pod at each of them.
+LAYOUT   B. PANEL_B 255, the short column under the panel and the tall one in the free band.
+           chips  left  60..540 (LAYOUT.B.chips), 4 x 34, gap 8 -> 275..435
+           ladder right 660..1140 (LAYOUT.B.ladder), 5 rows -> 150..350
+           node   full width, 496..624, Pod 370..830 at 518..614
+PANEL    The deepest reading is step 5 at 1100x800, 254.66, and the chip column starts at 275, so
+         20 units stand clear. The extent per viewport is printed on demand by
+         `OVERLAY_IDS=workloads-pod-startup-failures node --test report/overlay.test.mjs`.
+LANES    A-10, and it is the reason this card has two lanes rather than one. TWO actors reach the
+         same Pod, so both are drawn over a SHARED DROP at WL.SPINE_X rather than one of them
+         being chosen: the Scheduler drops straight from its bottom midpoint, and the Kubelet
+         jogs left along DROP_Y 140 and joins the same column. Below 140 the two coincide, which
+         is what the rule intends and is not a duplicate lane.
+         DROP_Y is 140 and the ladder starts at 150, so the jog clears the first rung by 10.
+         The top row is a RELATION and not the WL.A-01 pair: the Scheduler and the Kubelet never
+         talk to each other on this card, and nothing rides it, so it carries no arrowhead (A-05).
+MOTION   Step 1 has no packet and no Pod, so its beat is a static highlight alone (M-27): the
+         Scheduler lights because it is the answer to the step, not because anything arrives.
+         Steps 2, 4 and 5 are down-arrows on the Kubelet lane, step 3 is the one up-arrow, the
+         Pod reporting a failure, and it blinks first at BEAT.afterPulse (M-15).
+         Step 5 pulses WITHOUT dim, because pulsePodDim fills opacity forward to OPACITY.pending
+         and that step ends at full.
+         Step 3 measured a 3111ms span against a 3000ms duration, so the duration is 3300 and the
+         motion is untouched (M-19).
+CONTENT  Every value on this card is taken from the status table on the debug-init-containers
+         page: Init:N/M is M init containers with N completed, Init:Error is one that failed to
+         execute, Init:CrashLoopBackOff is one that failed repeatedly, Pending is a Pod that has
+         not begun executing init containers, and PodInitializing is one that has finished them.
+         Three values that a first draft carried were CUT because no upstream page owns them:
+         InvalidImageName, ErrImageNeverPull and CreateContainerConfigError. The images page does
+         not name the first two and nothing names the third, and a card built on recalled strings
+         is exactly what T-26 refuses.
+NAMING   The fourth chip is `who is holding it` and it is the thesis: the other three chips are
+         the literal kubectl row, and this one is what the row is FOR.
+SCOPE    ImagePullBackOff is workloads-pod-image-pull and is deliberately not a rung here, even
+         though it belongs to the same column: that card owns the pull and its backoff.
+         The restart backoff itself is workloads-crashloopbackoff. Step 3 names it in one clause
+         and plays no doubling.
+         The readiness half is workloads-pod-startup-conditions, and the last step hands off to it
+         by name rather than teaching it: READY at 0/1 against a finished STATUS is that card.
+         Pod phase is workloads-pod-phase-machine. This card reads the kubectl STATUS column,
+         which is not status.phase, and the two differ on exactly the Init: values.
+```
+
+### poster
+
+```
+Two frames of one size, the left EMPTY and dim at 0.5, the right holding one token, and no wire
+between them. The token is a small rounded block with the house accent inside it at 0.9, so the
+brightest thing on the poster is the Pod being held rather than either frame.
+It shares the two-frame composition with workloads-container-env-injection in this same section,
+which was known when the form was chosen. Three things separate them at 200px: that poster fills
+BOTH frames with three value bars each, this one leaves the left frame empty; that one is joined
+by a dashed wire with a break, this one has no connector at all; that one compares two copies of
+the same thing, this one shows one object in one of two places.
+```
+
+---
+
 ## workloads-probes
 
 ### layout
@@ -1302,23 +1543,13 @@ LAYOUT   A, and THE WORKLOADS EXEMPLAR. New workloads cards copy this shape.
            ladder left  60..540 (LAYOUT.A.ladder)
            chips  right 660..1140 (LAYOUT.A.chips), 5 x 34, gap 8
            node   full width, 496..624
+         The ladder is not in the RIGHT column with the chips as a five-across bottom strip: at
+         205 wide three chip names overlap their values ("EndpointSlice" against
+         "10.244.1.5 ready=false" by 60 units), and the whole left band under the panel is left
+         empty.
 LANES    Down the corridor between the two columns at WL.SPINE_X, ending on the Pod top midpoint
          at y 518, not on the Node frame edge. SPINE_UP is its reverse, so the report hop and the
          probe hop cannot drift apart.
-WHY NOT  Ladder in the RIGHT column with the chips as a five-across bottom strip: at 205 wide three chip
-         names overlap their values ("EndpointSlice" against "10.244.1.5 ready=false" by 60
-         units), and the whole left band under the panel is left empty.
-OPEN     The gap between the actor row and BAND_Y is visible at wide viewports, where the panel is
-         shorter than its 1100 worst case. That is the unclamped-panel question deferred by the
-         author, not a layout defect.
-```
-
-### before `F.pulse({ pod: 'podGroup', dim: true }),`
-
-```
-Startup passed but readiness has not, so the Pod is not Ready yet: it blinks
-to its partial (not full) opacity and settles back to dim. Full opacity is
-reserved for the ready step. Only after the blink does the packet leave.
 ```
 
 ### poster
@@ -1345,90 +1576,42 @@ LAYOUT   C (bottom strip), and the card with the worst chip damage in the catalo
            chips  two across at 548 and 590
            nodes  TWO frames narrowed to 440 each, 60..500 and 700..1140
            PV     in the GAP BETWEEN THE FRAMES, centred on CX at 530..670 x 412..512
+         The PV is not in the top row, where it overlaps the Api box outright (850..990 against
+         700..920). Between the frames it is also what the card is about, one disk moving between
+         Nodes.
 LANES    Control: one trunk from TOP2_CX with a jog into the corridor at y=140, a bus SPLIT into a
          left and a right half so each can be hidden with its own tap, and one tap per Node
          landing on that Node's Pod.
          Storage: PV_LANE from the PV's right face to web-0 on Node-2, and PV_MOUNT_A mirroring it
          on the left as the mount web-0 already holds on Node-1. No ball rides PV_MOUNT_A, so it
          carries no arrowhead.
-MOTION   `evict` 2700, `bind` 3200, sized for the trunk leaving TOP2.
-WHY NOT  The PV in the top row: it overlaps the Api box outright (850..990 against 700..920).
-         Between the frames it is also what the card is about, one disk moving between Nodes.
-WHY NOT  The trunk leaving TOP1_CX. Both the eviction and the binding are API writes taking effect
-         on a Node, and the StatefulSet only ever POSTs to the API on the top row.
-WHY NOT  The storage lane as NODE2_LANE reversed: that is a control route wearing the storage
-         colour.
-DO NOT   Give a ball a literal points array. One of the previous pair ran out to x=1198, off the
-         content band entirely, matching no wire on the card.
-NOTE     The `lanes` helper pins each lane to 0 while the Pod it addresses is not on that Node,
+         The trunk leaves TOP2_CX and not TOP1_CX: both the eviction and the binding are API writes
+         taking effect on a Node, and the StatefulSet only ever POSTs to the API on the top row.
+         The storage lane is its own array and not NODE2_LANE reversed, which would be a control
+         route wearing the storage colour.
+         No ball carries a literal points array: one such pair ran out to x=1198, off the content
+         band entirely, matching no wire on the card.
+         The `lanes` helper pins each lane to 0 while the Pod it addresses is not on that Node,
          per the project rule that an absent block dims but its lanes disappear. Without it the
          CSI lane claims the volume is attached to Node-2 on the idle step, contradicting the
          narration.
+MOTION   `evict` 2700, `bind` 3200, sized for the trunk leaving TOP2.
 ```
 
 ### before `const lanes = (toA, toB, alive = false) => ({`
 
 ```
-NOTE     `nodeA` is pinned here, not per step, because it CHANGES: Node-1 is at 1 on the idle frame
+LANES    `nodeA` is pinned here, not per step, because it CHANGES: Node-1 is at 1 on the idle frame
          and at OPACITY.notready from `evict` on. It has to appear in all five opacity maps: absent
          from them it never leaves full strength, while `pvChip` reads `on lost Node-1` on three
          steps and `reattach` calls that Node unreachable. The card's own POSTER draws the left Node
          at 0.5, dashed, with an X across its Pod, so a Node at full strength contradicts it.
-NOTE     `alive` defaults to FALSE, which is the reading that keeps this file honest: the Node is
+         `alive` defaults to FALSE, which is the reading that keeps this file honest: the Node is
          lost on four of the five steps, so the exception is the idle frame and only it passes the
          flag. It is also what keeps `evict`s opacity line byte-identical to the anchor below it.
-WHY NOT  OPACITY.terminating for Node-1. The Node object is not deleted on any step of this card,
-         and `reattach` says the volume is force-detached BECAUSE the Node is unreachable, which is
-         notready: alive but not serving and not observed (C-07).
-```
-
-### before `F.fade({ target: 'nodeA', from: 1, to: OPACITY.notready, dur: FADE.out, delay: 0, fill: 'both', easing: 'ease-in' }),`
-
-```
-The first sentence of `evict` is Node-1 going NotReady, so the frame dims at delay 0 and the
-eviction ball follows it. No delay is needed to put the two in that order: the fade ends at 700 and
-the ball is still 1858ms out, so the reader sees the Node go dark and only then the delete land.
-
-WHY NOT delaying the route by FADE.out + BEAT.afterHop, which is how `replicaset` self-heal
-sequences the same shape. The trunk here is 2558ms long, so the step would run to 4058 and need
-its duration raised 2700 -> 4200 to buy an ordering the frame already reads correctly.
-```
-
-### before `F.route({ points: NODE1_LANE, fadeIn: true, name: 'del' }),`
-
-```
-The delete reaches Node-1 over the left connector. podA is pinned to OPACITY.terminating
-above, the animation back-fills 1 during the delay, then sinks web-0 to that shade on
-arrival: the chip says 'Terminating, then removed', so the Pod is marked on this step and
-leaves its slot on the next one, not here. The PVC, PV and data chips stay lit (retained).
-```
-
-### before `F.route({ points: NODE2_LANE, fadeIn: true, name: 'bind' }),`
-
-```
-The binding is delivered to Node-2 over the right connector (the scheduler posts it
-to the Api, no separate scheduler block is drawn). podB is pinned to 1 above,
-the animation back-fills 0 during the delay so web-0 materializes and pulses on
-arrival, keeping the same sticky identity.
-```
-
-### before `F.route({ points: PV_LANE, role: 'storage', fadeIn: true, name: 'mount' }),`
-
-```
-CSI reattaches the same PV to Node-2. The volume packet crosses from the PV into
-web-0 on Node-2, and web-0 pulses once on arrival then settles back (mounted, data
-preserved). No persist, so the pulse fades instead of pinning the outline bright.
-```
-
-### before `opacity: { podB: 0, ...lanes(true, false), podA: OPACITY.terminating },`
-
-```
-The evict step sinks web-0 to OPACITY.terminating, the state its chip names FIRST
-('web-0 · Terminating, then removed'). The recreate step is where it leaves the slot: that is the
-step whose narration has the object finally gone and a new one created under the same name.
-
-DO NOT draw it out to 0 here. A chip naming two states over a drawing showing only the second is
-the defect.
+         The shade is notready and not OPACITY.terminating. The Node object is not deleted on any
+         step of this card, and `reattach` says the volume is force-detached BECAUSE the Node is
+         unreachable, which is notready: alive but not serving and not observed (C-07).
 ```
 
 ### before `chain: 0,`
@@ -1443,16 +1626,6 @@ Both conventions exist in this category and neither is wrong on its own. Eight c
 `chain: 0` (their step 0 IS the first state) and nine open on `chain: -1` (their step 1 takes row
 0). What is not allowed is mixing them. S-09 is untouched either way:
 its machine half asserts step 0 carries no narration, no flow, no motion and no rewind.
-```
-
-### before `const TAP_A = [[P_A_CX, BUS_Y], [P_A_CX, POD_Y]];`
-
-```
-`TAP_A` and `TAP_B` are both ridden, and a grep for the constant name will say otherwise:
-`NODE1_LANE` and `NODE2_LANE` are `[...TRUNK, ...tap]`, so a ball on either covers its tap exactly.
-
-DO NOT report them as lanes nobody rides. Same silhouette as the false finding on
-cluster-architecture.
 ```
 
 ### poster
@@ -1478,20 +1651,12 @@ LAYOUT   B (chips left, ladder right), the columns SWAPPED because the panel rea
            chips  left  60..540 from y 325, 4 values
            ladder right 660..1140 from y 150, 6 rows
            node   full width, 500..624, FOUR slots
+         Pods are 78 high rather than the family 106. The six-row ladder and the chip column both
+         have to clear the panel, and 78 is what is left.
 LANES    Trunk from the ReplicaSet box's bottom midpoint (420..780, centred on CX) down between
          the columns, a bus at NODE_Y + 12, and one tap per slot. Four slots means four different
          addressees across the story: self-heal targets web-b2, adopt / converge / orphan all
          target web-d4, and the ownership step addresses all three live Pods with one ball each.
-NOTE     Pods are 78 high rather than the family 106. The six-row ladder and the chip column both
-         have to clear the panel, and 78 is what is left.
-```
-
-### before `F.route({ points: LANE(3), after: 'patch', name: 'join' }),`
-
-```
-The RS claims the orphan (ownerReference PATCH on the top arrow), then a packet runs
-down the connector and the adopted Pod RISES on arrival, showing the fourth replica joining the
-managed set. The rise is out of OPACITY.notready, not out of nothing: see below.
 ```
 
 ### before `F.fade({ target: 'pod4', from: 0, to: OPACITY.notready, dur: FADE.in, delay: 0, fill: 'both', easing: 'ease-out' }),`
@@ -1508,12 +1673,12 @@ The rewind winds pod4 back to 0 and its sublabel back to `owner: none`, and the 
 for byte the grammar `self-heal` uses for a genuine CREATE, over a narration whose third sentence
 reads `The Pod was already running, adoption only restamps its owner`.
 
-NOTE The PATCH waits FADE.in + BEAT.afterHop, the same idiom `self-heal` uses to put a node-band
+The PATCH waits FADE.in + BEAT.afterHop, the same idiom `self-heal` uses to put a node-band
 event before the control-plane reaction it causes. The RS cannot match a selector against a Pod
-that is not on screen yet. That two-beat shape is what took the duration 3700 -> 4400: the orphan
-appears at 600, the PATCH lands at 1400, the ball at 3322 and its pulse closes at 4222.
+that is not on screen yet. That two-beat shape is what puts the duration at 4400 rather than 3700:
+the orphan appears at 600, the PATCH lands at 1400, the ball at 3322 and its pulse closes at 4222.
 
-DO NOT wind the bus tail and tap3 back with the Pod. LANE(3) runs along both, so the ball would
+The bus tail and tap3 do not wind back with the Pod. LANE(3) runs along both, so the ball would
 fly its last two legs over blank canvas.
 ```
 
@@ -1538,6 +1703,12 @@ LAYOUT   C (bottom strip). panel bottom 355.
            ladder 660..1140
            chips  two across at 548 and 590
            actors Kubelet FIRST at 420..780 centred on CX, Api second
+         Kubelet comes first because it is the node-facing actor and the line down to the Node has
+         to leave a box midpoint inside the corridor. With the two swapped, `bounce()` would send
+         its first hop OUT of the Api while its own comment has Kubelet watching the Api and the
+         spec hopping back.
+         Chips four across is 258 wide, and five strings collide, including "Pod B · OnFailure"
+         against "Waiting (backoff)".
 LANES    None down to the Node. restartPolicy is enforced in place and every packet is a top-row
          hop, so the vertical line is a RELATIONSHIP: it lands on the Node frame's top midpoint
          and carries NO ARROWHEAD, per the rule that a wire with no ball must not wear one.
@@ -1590,12 +1761,6 @@ BUDGET   Folding it in rather than adding a sixth sentence is a PANEL decision, 
          SIGN and on the one line of difference, which is what the decision turned on. Prefer
          `npm run report` for a recorded number, and the opened frame for a verdict.
          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
-WHY NOT  Chips four across: 258 wide, and five strings collide, including "Pod B · OnFailure"
-         against "Waiting (backoff)".
-WHY NOT  Api first. Kubelet is the node-facing actor and the line down to the Node has to leave a
-         box midpoint inside the corridor. With the two swapped, `bounce()` would send its first
-         hop OUT of the Api while its own comment has Kubelet watching the Api and the spec
-         hopping back.
 ```
 
 ### poster
@@ -1623,19 +1788,20 @@ LAYOUT   A. PANEL_B 205, the shallowest in the category, so both columns fit und
            chips  right 660..1140 from the same line
            node   full width, 490..624, FOUR slots at 4 x 234, centres 201 / 467 / 733 / 999
            actor  Deployment 420..780, centred on CX
+         FOUR slots and not three. maxSurge=1 means the rollout is transiently one Pod ABOVE
+         .spec.replicas, which the surge step says in words and counts in its chip as "4 Pods
+         alive", so three slots make the drawing contradict the card's own subject.
+         The fourth slot is where the surge lands; each drain then frees a slot the next v2 takes,
+         and the row ends with its LEFTMOST slot empty because the surge capacity is given back.
 LANES    Trunk leaving the API at 990 and stepping into the corridor. No slot centre lands on CX,
          so EVERY tap is a jog and none collapses to a straight drop.
 MOTION   A cycle is TWO events, a surge and a drain, which is what takes second-cycle to 6200 and
          third-cycle to 6800.
-WHY NOT  Three slots. maxSurge=1 means the rollout is transiently one Pod ABOVE .spec.replicas,
-         which the surge step says in words and counts in its chip as "4 Pods alive". Three slots
-         make the drawing contradict the card's own subject.
-NOTE     The fourth slot is where the surge lands; each drain then frees a slot the next v2 takes,
-         and the row ends with its LEFTMOST slot empty because the surge capacity is given back.
-NOTE     Pods are named web-a1..web-d4 rather than by ordinal. An ordinal implies an age order the
+WIRE LABELS
+         The wire label sits above the actor row. At TOP_BOTTOM + 26, below it, it overlaps the
+         first ladder row.
+NAMING   Pods are named web-a1..web-d4 rather than by ordinal. An ordinal implies an age order the
          drawing never establishes, while the narration says the controller picks the oldest.
-DO NOT   Put the wire label below the actor row. At TOP_BOTTOM + 26 it overlaps the first ladder
-         row.
 ```
 
 
@@ -1647,26 +1813,16 @@ MOTION   `surge` drew the fourth Pod in the static block at t=0 and landed its c
          at 3400, so the create stood 3400ms ahead of its own motion. The Pod now winds back to 0 and
          rises over FADE.in on the arrival, pulse on the same beat. Span stays 4300 of 4500, so no
          duration moved (A-11, M-19).
-NOTE     Two chips had to move with it, and only for the reason the sibling card records as NOT
-         needed: `progressChip` reads `surged +1 · 4 Pods alive`, which is false while three Pods are
+         Two chips move with it, and only for the reason the sibling card records as NOT needed:
+         `progressChip` reads `surged +1 · 4 Pods alive`, which is false while three Pods are
          drawn, and `v2Chip` goes `0 / 0` to `0 / 1`. They take DIFFERENT beats, because they are
          different facts: RS-v2 wants one replica when the scale PATCH lands (700, which is what the
          wire label of this step says), and four Pods are alive when the fourth is on screen (3400).
-DO NOT   Bind one of them and leave the other. Both are named in `lit`, so binding one promotes its
-         neighbour into FORM-E of the chip-beat rule (P-04) and `unit/chip-beat-e.test.mjs` goes red.
-         That is the same trap the three counters of `probe-and-drain` were bound against.
-NOTE     The `slots()` sublabel needed no beat. `pod4Box` reads `v2.0 · starting` from t=0, but it is
+         Both are bound, never one of them: both are named in `lit`, so binding one promotes its
+         neighbour into FORM-E of the chip-beat rule (P-04) and `unit/chip-beat-e.test.mjs` goes
+         red. That is the same trap the three counters of `probe-and-drain` are bound against.
+         The `slots()` sublabel needs no beat. `pod4Box` reads `v2.0 · starting` from t=0, but it is
          INSIDE the Pod group, so it is invisible for exactly as long as the Pod is.
-OPEN     `tap3` sits at 1 while slot 4 is empty on `idle` and `spec`, and `tap0` does the same over
-         the emptied slot 1 on `converged`: an arrowhead into blank canvas, which is A-14. Measured
-         with `effectiveOpacity`: tap3 1.000 against pod4 0.000 on both steps, tap0 1.000 against
-         pod1 0.000 on `converged`. It predates this pass and is NOT closed by it, because the taps
-         alone are not the fix: `bus` spans slot centres 201..999, so pinning tap3 out leaves the
-         bus running 733..999 to a tap that is gone. The fix is the `workloads-replicaset` shape, the
-         bus SPLIT at the slot boundaries with each segment pinned to the Pod it feeds, which adds
-         three keys to all seven opacity maps (A-16) on a card whose three counters were bound to
-         beats the same week. It costs no timing: the drawn bus and the LANE(i) the ball rides are
-         separate arrays.
 ```
 
 ### before `chain: [2, 3],`
@@ -1699,22 +1855,9 @@ the beats that earn them:
                    back to three on the DRAIN arrival, so the surge is on screen exactly while it
                    is true.
 
-DO NOT bind one of the three and leave the others. `v2Chip` is named in `lit` on all three steps, so
+All three are bound and never a subset of them. `v2Chip` is named in `lit` on all three steps, so
 binding its neighbours alone promotes it into FORM-E of the chip-beat rule (P-04), which
-`unit/chip-beat-e.test.mjs` fails on. All three are bound, and the gate is green.
-```
-
-### before `reducedLit: ['pod2Box', 'pod3Box', 'pod4Box'],`
-
-```
-The three live v2 Pods sit in slots 2, 3 and 4, not 1, 2 and 3: the surge capacity is released
-from the LEFTMOST slot, so `slots(null, V2, V2, V2)` empties slot 1 on this step. Both the
-played pulse list and the reduced highlight list follow the slot map, and both must be revisited
-if the slot count or the released slot ever changes.
-
-DO NOT carry a pulse list across a slot-count change. A stale list fires one pulse on an invisible
-Pod while `pod4`, a Ready v2 Pod, never acknowledges the narration that calls it Ready, and
-`render/reduced.test.mjs` still passes, because the played and the reduced path are wrong IDENTICALLY.
+`unit/chip-beat-e.test.mjs` fails on. With all three bound the gate is green.
 ```
 
 ### poster
@@ -1743,24 +1886,13 @@ LAYOUT   A. PANEL_B 255.
            actors StatefulSet 420..780 centred on CX; headless Service hanging UNDER the Api at
                   840..1140 x 152..232, joined by a vertical arrow between the face midpoints,
                   its wire label below it
+         The Service is not in the actor row: at 840..1060 against an Api at 700..920 the two
+         boxes overlap by 80 units, and so do their wire labels.
 LANES    Trunk, a bus at NODE_Y + 12, one tap per ordinal. `ordinals` pins each tap to the SAME
          opacity as the Pod it lands on and splits the bus at the centre slot (busL with ordinal
          0, busR with ordinal 2), so no lane points into a slot whose Pod does not exist yet: on
          idle all three ordinals are 0 and the Node frame is empty. A step turns its own tap on at
          entry, and the ball that rides it is what materializes that Pod.
-WHY NOT  The Service in the actor row: at 840..1060 against an Api at 700..920 the two boxes
-         overlap by 80 units, and so do their wire labels.
-```
-### before `const SVC_LANE = [[SVC_CX, WL.TOP_BOTTOM], [SVC_CX, SVC_Y]];`
-
-```
-A ball rides this wire, one beat after the Pod pulses Ready, because registration follows
-readiness. The wire is a `pathArrow` off this array so the ball and the lane cannot drift apart.
-The Service is a receiver, so it lights on arrival rather than at step entry. Durations 4800 /
-4000 / 4800.
-
-DO NOT draw it with an arrowhead and no ball. The card names the registration three times in
-narration and labels this wire for it three times through the step field `wires: { svc: ... }`.
 ```
 
 ### poster

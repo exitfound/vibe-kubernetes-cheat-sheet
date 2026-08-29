@@ -12,12 +12,28 @@ LAYOUT   404 IS A HARD STOP, not taste: the panel measures x<=397 at 1100 width 
          BOXES. Widths are 180/210/180 against measured widest inner labels of 60.3, 90.4 and 66.3,
          which is the padding those labels need and no more, and the remainder buys TOP_GAP 83 for
          each call and return pair.
-PANEL    x<=290.77, bottom 125.11..160.00 at 1600x1000. x<=377.76, bottom 150.17..192.67 at
-         1280x860. x<=396.55, bottom 180.12..229.82 at 1100x800. FOUR of the six steps sit on that
-         229.82 floor, the poster and `sandbox` and `create` and `start`, so the worst case is the
-         ordinary case here rather than one outlier: only `cni` at 180.12 and `image` at 205.00 sit
-         above it. Width and depth BOTH peak at 1100x800, so one viewport is the whole worst case.
-         That right edge TIES the catalog worst case L-02 records.
+         The two columns are ONE band: the chips run on the ladder gap of 10 rather than a wider
+         gap of their own, and they are built UPWARDS off the shared floor COL_BOTTOM 445 rather
+         than downwards off LADDER_Y, so the chip rhythm reads as the ladder rhythm and the two
+         columns end on one line. Chips 279 / 323 / 367 / 411 against ladder rows 245 / 287 / 329 /
+         371 / 413: the counts differ, 4 chips of 34 against 5 rows of 32, so the rows do NOT pair
+         up and were never meant to. The floor is what pairs. The chip column top therefore floats
+         with the chip COUNT and is not a panel clearance: at 279 it clears the deepest panel
+         (229.82 at 1100x800) by 49.18, and only the ladder at 245 is on the 15.18 wall.
+         The chip column top is NOT re-aligned onto LADDER_Y. That reopens the 22 unit gap the four
+         chips need to fill the same 200 units the five ladder rows do, and the two columns then
+         run at visibly different rhythms and miss each other at the bottom by 2.
+         Moving LADDER_Y is free of TIMING, which is not obvious and is why it is the lever. JOG_Y
+         is `midX(TOP_BOTTOM, LADDER_Y)`, so the jog falls by half of whatever the ladder falls by
+         and the connector trades the same length between its first and last vertical legs. At 235
+         and at 245 the route measures 514 units either way, so `routeDur` and every span on the
+         card are untouched (M-20, A-11).
+PANEL    Right edge and bottom per viewport:
+         `OVERLAY_IDS=cluster-pod-sandbox-cri node --test report/overlay.test.mjs`.
+         FOUR of the six steps sit on the 1100x800 floor, the poster and `sandbox` and `create` and
+         `start`, so the worst case is the ordinary case here rather than one outlier: only `cni`
+         and `image` sit above it. Width and depth BOTH peak at 1100x800, so one viewport is the
+         whole worst case. That right edge TIES the catalog worst case L-02 records.
 SIZES    The Node frame is 158/116/22 and NOT the CLU.L-01 family of 152/106/34, and the reason is
          the Pod SUBLABEL. Frame 462..620, Pod 484..600, inner row 514..568, so the band under the
          inner boxes is 32 and the frame floor is 20. The family band is 26 (POD_H 106 over an
@@ -29,7 +45,8 @@ SIZES    The Node frame is 158/116/22 and NOT the CLU.L-01 family of 152/106/34,
          sits at 620 rather than the 624 L-24 names.
 LANES    The turn has to go ABOVE both columns, because 120..245 is the only horizontal
          band on this card free of them, and the long leg then falls through the 490..620 gutter.
-DO NOT   Turn at BUS_Y = NODE_Y - 16 and end on the Pod sandbox top midpoint. containerd centres on
+         The lane does NOT turn at BUS_Y = NODE_Y - 16 to end on the Pod sandbox top midpoint.
+         containerd centres on
          x=772, INSIDE the chip column (620..1140, y 279..445), so the 326 unit vertical leg goes
          straight through all four value chips on every one of the four steps that ride it. Nothing
          catches it: THROUGH scores blocks, and a value chip is not a block. WHERE A
@@ -44,10 +61,37 @@ MOTION   On `cni` the CNI return and the `conf` route down to the sandbox BOTH l
          thing carrying the reading. The catalog median and this step's rank against it are NOT
          restated here: both move with every card added anywhere in the tree, and their executing
          home is `card-review/tools/timing.mjs`, which prints them on demand.
-DO NOT   Chain `conf` after the CNI return to make the causality literal. `after: 'ret'` puts the
+         `conf` is NOT chained after the CNI return to make the causality literal. `after: 'ret'`
+         puts the
          route at 1600, its arrival at 2742 and the pulse tail at 3642, so `duration` has to go
          3100 -> 3700 (M-19) and the step reads at 15.5 ms per character, slower than any other
          step on the card, to buy a beat the arrival order already tells.
+         `status` changes SUBJECT across the card: sandbox on `sandbox` and `cni`, the image on
+         `image`, the container on `create` and `start`. It reports the newest bring-up milestone
+         and P-02 holds because nothing is lost when it moves on: the sandbox state stays legible
+         on the Pod shell sublabel (`IP 10.244.1.5`) for every step after `cni`.
+         `image` names the registry and the Node image store and neither is drawn (T-21). The card
+         is the CRI boundary, Kubelet on one side and containerd on the other, and a registry block
+         would be the only element on the canvas outside the Node. `cluster-kubelet-reconcile-loop` does
+         not draw one either.
+         `sandbox` writes `sandbox id pause-7f3a` with no ball on the drawn return lane, while
+         `create` rides that lane for its container id. The split is A-06: `create` NAMES the
+         return (`returns a container id`), `sandbox` does not, and P-06 puts a value chip outside
+         the arrival rule so it owes no ball. Adding the clause to `sandbox` costs a panel line,
+         and 229.82 is already the card worst case against a ladder at 245.
+         `render/motion.test.mjs` reports PULSE-TOGETHER (`M-03`) twice here, on `create` and on
+         `start`: the app container blinks and the Pod holding it does not. Both are deliberate and
+         this is the only card in the catalogue that does it, which is why the check carries an
+         explicit ceiling of 2 for this id rather than staying silent.
+         The card draws TWO groups inside one shell. `sandboxGroup` is the Pod (shell plus the pause
+         container) and it pulses on its own beats, `run` and `conf`. `appGroup` is a second inner
+         box the `tune` hook adds INSIDE that shell so the workload container can fade and blink on a
+         beat of its own, which is what those last two steps are about: CreateContainer materialises
+         it at `pending`, StartContainer takes it to full. The sandbox does not change on either step.
+         `sandboxGroup` is NOT pulsed on those two steps. The whole Pod would blink for an
+         event that happens to ONE container inside it, at the exact moment the eye is meant to be on
+         that container coming up out of nothing, and the card would then say the sandbox is
+         re-created per container, which is the misreading the pause container exists to prevent.
 CONTENT  The card stands on 32 claims. 28 carry a quote from one of 14 fetched documents, 1 is
          UNVERIFIED and named below, 3 need no network because they are internal consistency. The
          claims were read against k8s 1.35, which is what `k8sVersion` states and what dates them.
@@ -129,65 +173,6 @@ BUDGET   The panel is what sets LADDER_Y, and the two walls are balanced rather 
          and move LADDER_Y, never the prose. The characters holding the deep steps are the
          `spec.hostPID` counter-case, the readiness-probe qualifier and the cgroup correction on
          `create`, and cutting any of the three is the T-20 trap.
-NOTE     The two columns are ONE band: the chips run on the ladder gap of 10 rather than a wider
-         gap of their own, and they are built UPWARDS off the shared floor COL_BOTTOM 445 rather
-         than downwards off LADDER_Y, so the chip rhythm reads as the ladder rhythm and the two
-         columns end on one line. Chips 279 / 323 / 367 / 411 against ladder rows 245 / 287 / 329 /
-         371 / 413: the counts differ, 4 chips of 34 against 5 rows of 32, so the rows do NOT pair
-         up and were never meant to. The floor is what pairs. The chip column top therefore floats
-         with the chip COUNT and is not a panel clearance: at 279 it clears the deepest panel
-         (229.82 at 1100x800) by 49.18, and only the ladder at 245 is on the 15.18 wall.
-DO NOT   Re-align the chip column top back onto LADDER_Y. It reopens the 22 unit gap the four
-         chips need to fill the same 200 units the five ladder rows do, and the two columns then
-         run at visibly different rhythms and miss each other at the bottom by 2.
-NOTE     Moving LADDER_Y is free of TIMING, which is not obvious and is why it is the lever. JOG_Y
-         is `midX(TOP_BOTTOM, LADDER_Y)`, so the jog falls by half of whatever the ladder falls by
-         and the connector trades the same length between its first and last vertical legs. At 235
-         and at 245 the route measures 514 units either way, so `routeDur` and every span on the
-         card are untouched (M-20, A-11).
-NOT A DEFECT
-         `status` changes SUBJECT across the card: sandbox on `sandbox` and `cni`, the image on
-         `image`, the container on `create` and `start`. It reports the newest bring-up milestone
-         and P-02 holds because nothing is lost when it moves on: the sandbox state stays legible
-         on the Pod shell sublabel (`IP 10.244.1.5`) for every step after `cni`.
-         `image` names the registry and the Node image store and neither is drawn (T-21). The card
-         is the CRI boundary, Kubelet on one side and containerd on the other, and a registry block
-         would be the only element on the canvas outside the Node. `cluster-kubelet-reconcile-loop` does
-         not draw one either.
-         `sandbox` writes `sandbox id pause-7f3a` with no ball on the drawn return lane, while
-         `create` rides that lane for its container id. The split is A-06: `create` NAMES the
-         return (`returns a container id`), `sandbox` does not, and P-06 puts a value chip outside
-         the arrival rule so it owes no ball. Adding the clause to `sandbox` costs a panel line,
-         and 229.82 is already the card worst case against a ladder at 245.
-         `render/motion.test.mjs` reports PULSE-TOGETHER (`M-03`) twice here, on `create` and on
-         `start`: the app container blinks and the Pod holding it does not. Both are deliberate and
-         this is the only card in the catalogue that does it, which is why the check carries an
-         explicit ceiling of 2 for this id rather than staying silent.
-         The card draws TWO groups inside one shell. `sandboxGroup` is the Pod (shell plus the pause
-         container) and it pulses on its own beats, `run` and `conf`. `appGroup` is a second inner
-         box the `tune` hook adds INSIDE that shell so the workload container can fade and blink on a
-         beat of its own, which is what those last two steps are about: CreateContainer materialises
-         it at `pending`, StartContainer takes it to full. The sandbox does not change on either step.
-DO NOT   "Fix" it by pulsing `sandboxGroup` on those two steps. The whole Pod would blink for an
-         event that happens to ONE container inside it, at the exact moment the eye is meant to be on
-         that container coming up out of nothing, and the card would then say the sandbox is
-         re-created per container, which is the misreading the pause container exists to prevent.
-```
-
-### before `      key: 'sandboxGroup', id: 'sandboxGroup', shellKey: 'shellEl', innerKey: 'pauseBox',`
-
-```
-The Pod sandbox: shell holds the pause container (created at RunPodSandbox)
-and the workload container (created at CreateContainer, started at StartContainer).
-Centred on CX, under the point where the zigzag enters the Node frame.
-```
-
-### before `    P.packets(),`
-
-```
-Z-order canon: packetLayer rides above the static wires but below the
-blocks, so the ball reads on its connector and arrival is told by the pulse
-(matches every other node card; the center connector travels in open space).
 ```
 
 ### poster
@@ -212,9 +197,6 @@ holding rectangles with bars, next to `cluster-kubelet-reconcile-loop` (five suc
 ends on a sentence no poster in the category was saying, `one network identity that outlives any
 container restarting inside it`. The break is what no neighbour has.
 
-WHY NOT the pause container propping the frame open, a narrow full height post at the left carrying an
-upright accent with the workload blocks beside it. It is the same first-half sentence the old poster
-told, and the post is a shape the catalogue does not use for a container.
 
 DO NOT drop the header rule and leave the accent bar floating in the top band. Rendered without it the
 bar reads as the label of a block that is missing, and the top third of the frame reads as dead air,
@@ -233,6 +215,4 @@ WHY NOT a two stage chain, the same frame drawn twice, first holding pause alone
 both. Two frames fit in about 130 units each, which drops the inner blocks under the 76 to 80 band
 R-06 sets, and half the canvas goes to repeating a frame that does not change.
 
-DO NOT move the accent into either inner block. The subject is the thing that survives, and an accent
-on the live container says the poster is about that container rather than about what outlasts it.
 ```

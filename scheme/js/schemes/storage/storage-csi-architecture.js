@@ -3,6 +3,8 @@ import { rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-csi-architecture
 
 
+// One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it and the canvas centre is
+// construction rather than a typed 600. Changing M re-solves every tier.
 const M = 60;                                    // one margin, both sides
 const CONTENT_L = M, CONTENT_R = 1200 - M;       // 60 / 1140
 const CX = (CONTENT_L + CONTENT_R) / 2;          // 600, the canvas centre by construction

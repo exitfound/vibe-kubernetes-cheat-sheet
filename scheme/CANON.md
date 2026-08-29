@@ -66,7 +66,7 @@ strings, and the file list `dashTargets` names.
 
 ## The numbers this file is written against
 
-116 cards: cluster 28, workloads 20, network 37, storage 31. 704 steps. Re-measure before trusting
+117 cards: cluster 28, workloads 21, network 37, storage 31. 710 steps. Re-measure before trusting
 any figure below that carries a date-free absolute, and if you change one, change it here.
 
 ---
@@ -300,7 +300,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | review | this file |
 | R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | root `CLAUDE.md` |
 | R-11 | `FALLBACK_POSTER` in `js/app.js` breaks R-08 and R-09 on purpose. Do not "fix" it into canon and do not delete it: it is the failure mode made visible | test:catalog/D-06 | `js/app.js` |
-| R-12 | Poster notes go to that category's record under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 116 of 116**, so a missing one is now a regression | review | the four `CARDS.md` |
+| R-12 | Poster notes go to that category's record under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 117 of 117**, so a missing one is now a regression | review | the four `CARDS.md` |
 
 ## S: module structure
 
@@ -345,14 +345,14 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | S-31 | A card module must pass `node --check` the moment it is written. The hook exits 2 and hard-fails the edit | hook | `.claude/hooks/check-js.sh` |
 | S-32 | Every step is walked twice by the smoke, statically and really PLAYED, with zero console or page errors | test:smoke | `test/render/smoke.test.mjs` |
 | S-33 | A missing import in a card throws a `ReferenceError` that `Timeline` swallows into `console.error`, so the step plays its first packet and silently stops. **Run `render/smoke.test.mjs` after touching any card's imports** | test:smoke | `lib/timeline.js` |
-| S-34 | **A comment in a card is at most TWO lines.** It says WHAT the line beside it does or where a number came from. It carries no date, no past defect, no account of an earlier version | test:files/S-34 | `scheme/CLAUDE.md`, where the record lives |
-| S-35 | Anything longer than S-34 is not a comment, and each length has one home | review | `scheme/CLAUDE.md` |
+| S-34 | **A comment in a card is at most SIX lines.** It says WHAT the line beside it does and WHY the value is what it is: the bound above it and the bound below it. It carries no date, no past defect, no account of an earlier version | test:files/S-34 | `scheme/CLAUDE.md`, where the record lives |
+| S-35 | Anything longer than S-34 is not a comment, and each length has one home. **A reason for one constant is a comment ON that constant**, never a note in the record pointing at it | review | `scheme/CLAUDE.md` |
 | S-36 | Each card carries exactly ONE pointer comment under its imports, in the shape its category's record is in: `./CARDS.md#<id>` for one file per category, `./CARDS/<id>.md` for one file per card | test:files/S-36 | `test/unit/docs.test.mjs` |
 | S-37 | Notes on anything that is NOT one card go to the JSDoc BESIDE THE CODE they describe: `lib/*`, the four kits, `app.js`, `data.js`, and a comment block in the CSS for a rule about a CSS rule | review | `scheme/CLAUDE.md`, where the record lives |
 | S-48 | **A comment and a record state what IS, never what CHANGED.** No date on an edit, no `used to`, no `renamed on`, no `this block carried`: a reader needs the constraint and the number behind it, and the repository is not a diary | review | `scheme/CLAUDE.md`, the "Where the record lives" table, which already sends history to the bin |
 | S-49 | **A count a document states is MEASURED, not typed**, and a sentence reworded past its pattern fails as loudly as a wrong number | test:docs-census/CENSUS, report:baselines/BASELINES | `test/unit/docs-census.test.mjs`, `test/report/baselines.test.mjs` |
 | S-50 | **A card skill CITES a rule and never restates it.** The skills under `.claude/skills/` are the fifth reader of this file and the only one outside `scheme/` | test:docs/D1 | `.claude/skills/card-review/SKILL.md` |
-| S-38 | **A note anchor is DATA: never reword one.** MOVING a note to another card needs a NEW anchor taken off the destination card, because the old text will resolve there against the wrong code or vanish with no finding | test:docs/A2 | `test/unit/docs.test.mjs`, counted 2026-08-07 |
+| S-38 | **A note anchor is DATA: never reword one.** An anchor is OPTIONAL and nothing counts them. MOVING a note to another card needs a NEW anchor off the destination card, or the old text resolves against the wrong code | test:docs/A2 | `test/unit/docs.test.mjs` |
 | S-39 | When a card is renamed, rename its record heading too, and the record FILE with it where the category is split | test:docs/A4 | `test/unit/docs.test.mjs` |
 | S-40 | A test file under `scheme/test/` keeps its knowledge in its OWN HEADER rather than moving it to a record, and the two-line cap on a card comment does not apply there | review | `scheme/test/`, and every test file header |
 | S-41 | **Internal markdown never ships.** Three filenames (`CLAUDE.md`, `CARDS.md`, `CANON.md`), the `CARDS/` record folder, plus `scheme/test/`, excluded BY NAME in three places that must agree: `deploy.yml`, `release.yml`, `.dockerignore` | test:files/S-41 | root `CLAUDE.md` |
@@ -442,6 +442,7 @@ wrong file.
 | `WL.L-07` | the trunk corridor |
 | `WL.A-01` | the top-row lane pair |
 | `WL.A-02` | where the top-row wire label sits |
+| `WL.A-03` | where a lane into the Node band ends, and why the frame is centred |
 | `WL.S-01` | the per-card `SPINE` array, and why there is no shared connector helper |
 | `WL.D-01` | the subcategory split |
 
@@ -507,7 +508,7 @@ Not defects. Each is a rule broken on purpose, with the reason and the number th
 | No module constant declares a number nothing reads. **Zero, catalog-wide** | A dangling name is worse than a dead line: a constant and the comment naming it always move together. An axis is stated as the literal 600, a pitch as a two-line comment on the block it spaces |
 | Header chrome duplicated three ways (`cli/js/app.js`, `scheme/js/app.js`, inline in the root `index.html`): `renderHeaderActions` at 86 lines, plus `fallbackCopy`, `closeAllDropdowns` and the icons, about 240 lines | Deliberate. Each path prefix stays self-contained, which is the reason the duplication exists |
 | `cli/css/styles.css` (227 rules) and `scheme/css/styles.css` (217 rules) share 63 selectors with a byte-identical body | 22 more share a SELECTOR with a DIFFERENT body (`html`, `body`, `.card`, `.footer`, `.cat-btn`, `.logo`, `.section-header` and others), so cascade order decides. Merging is a real visual risk. Measured 2026-08-06 |
-| 54 `OPEN` findings across the four records, against 10 findings in the soft geometry report | L-16, and the two counts are not one count. Each `OPEN` entry carries its own measurement and the reason the rule can only be satisfied by making the picture worse |
+| 30 `OPEN` findings across the four records, against 11 findings in the soft geometry report | L-16, and the two counts are not one count. Each `OPEN` entry carries its own measurement and the reason the rule can only be satisfied by making the picture worse. The cluster and workloads records carry no `OPEN` at all |
 | 11 ambiguous label pairs | T-14 |
 
 ---
@@ -1198,14 +1199,26 @@ records still carry a copy. The cluster record is the worked example.
 
 ### S-50
 
-They name 55 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
+They name 115 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
 short and what stops it drifting from the rulebook it drives.
 
 ### S-38
 
-`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **205 anchors
-today**, all four records (cluster 19, workloads 41, network 80, storage 65). **The walk fails on a
-record it cannot read instead of running shorter** (`S-46`).
+`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **75 anchors
+today**, all four records (cluster 6, workloads 19, network 35, storage 15), and that is a count of
+what is there rather than a quota to hold. **The walk fails on a record it cannot read instead of
+running shorter** (`S-46`).
+
+**An anchor is OPTIONAL, and nothing counts them.** It watches one line for a note that spans
+several lines of code. It is the WRONG tool for the reason a single constant holds its value, and
+that is what it was mostly used for: the note describes the geometry AROUND the line, so moving the
+row the note measures against leaves the anchored text untouched and the note quietly false, while
+reformatting the line breaks the anchor without the reasoning changing at all. It fires on the wrong
+event in both directions. A reason for one line is a comment ON that line (`S-34`, `S-35`), where it
+cannot desync, and a number a tool prints on demand is not stored at all: `report/overlay.test.mjs`
+for a panel extent, `pace.mjs` for a lane speed, `extents.mjs` for a string width, `timing.mjs` and
+`deadair.mjs` for a hold. A floor on anchors was a floor on documentation and it made deleting a
+stale note cost more than keeping it, so there is none.
 
 **A RECORD HAS TWO SHAPES and the walk reads both.** One `CARDS.md` holding every `## <card id>`
 section, or a `CARDS/<card-id>.md` per card with `CARDS.md` keeping the preamble and the index.
@@ -1214,9 +1227,10 @@ choosing either is covered without a reader knowing its name, and a `CARDS/` tha
 empty is a failure rather than a shorter walk. Cluster is split, the other three are not.
 
 **An anchor is unique only WITHIN its `## <card id>` section, never across a record.** The resolver
-looks the line up in that card alone, so duplicates are legal where they sit: 13 anchor texts are
-duplicated today (network 5, storage 8), worst ``const CX = 600;`` in 12 sections catalog-wide and
-``const LEFT_X = 400;`` in 7.
+looks the line up in that card alone, so a duplicate is legal where it sits: 0 anchor texts are
+duplicated today (network 0, storage 0), worst ``const CX = 600;`` in 0 sections catalog-wide and
+``const LEFT_X = 400;`` in 0. Every duplicate the catalog carried was a shared geometry constant
+whose reason is now a comment on that constant, which is where a duplicate stops being one.
 
 ### S-40
 
@@ -1225,9 +1239,9 @@ only copy.
 
 ### S-41
 
-All three also still exclude the two deleted paths, the old harness directory and the old record, and
-those entries STAY: an exclusion whose target is gone costs nothing and covers anyone who recreates
-the path.
+All three name the SAME set and nothing beyond it. An exclusion whose target no longer exists is
+carried by one list and not the others sooner or later, and then the three disagree: `S-41` is what
+catches that, so a path leaves all three together or stays in all three.
 
 **The container has two files of its own that no allowlist has an opinion about**, because neither
 workflow copies them and only the blanket `COPY . .` does. Found by opening the running container

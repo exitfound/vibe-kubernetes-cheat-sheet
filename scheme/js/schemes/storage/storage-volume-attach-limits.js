@@ -2,6 +2,9 @@ import { P, F, defineCard, BEAT, FADE, chipStrip, routeDur, setBoxLabel, makeRid
 import { rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-volume-attach-limits
 
+// The panel wall. CONTENT_W 400 then puts CONTENT_CX exactly on 600, forced by the chip strip, which
+// at 976 units is far wider than any tier above it and therefore sets the visual centre. The node row
+// is the one tier allowed outside CONTENT_W, because it sits below the panel floor.
 const LEFT_X = 400;
 const CONTENT_W = 400;
 const CONTENT_CX = LEFT_X + CONTENT_W / 2;               // 600
@@ -51,6 +54,7 @@ const SLOT_X0 = (NODE_W - SLOT_ROW_W) / 2;               // 43
 const SLOT_Y0 = 38;                                      // two rows, 38..64 and 74..100
 const CNT_X = 24, CNT_Y = 110, CNT_W = NODE_W - 48, CNT_H = 30;        // 172 wide, bottom 140, 10 clear
 
+// Sized against allocatable.count + `8 per node` at 186, leaving ~22 units between the halves.
 const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;
 // Fix the width and the gap, derive the 976 unit span, centre it on CONTENT_CX: 112..1088.
 const CHIPS = chipStrip({ cx: CONTENT_CX, w: CHIP_W, gap: CHIP_GAP, count: CHIP_COUNT });

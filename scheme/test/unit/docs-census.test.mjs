@@ -1,8 +1,14 @@
 // docs-census.test.mjs: is every COUNT a document states still the count the tree holds?
 //
-// What it reads: the numeric claims in `scheme/CANON.md`, `scheme/CLAUDE.md` and the four
-// `js/schemes/<cat>/CLAUDE.md`, against a census computed here off the imported specs and off the
-// four `CARDS.md`. `S-49` is the rule, and this file is the whole of the machine behind it.
+// What it reads: the numeric claims in `scheme/CANON.md`, `scheme/CLAUDE.md`, the four
+// `js/schemes/<cat>/CLAUDE.md` and the card skills at `<repo root>/.claude/skills/`, against a
+// census computed here off the imported specs and off the four `CARDS.md`. `S-49` is the rule, and
+// this file is the whole of the machine behind it.
+//
+// The skill block is the only part reaching OUTSIDE `scheme/`, and it is there because a skill is
+// the least guarded prose in the repository: nothing under `scheme/` opens one, so a count typed
+// into a skill has no reader at all. It is deliberately short. A skill states a count only where
+// the count is the substance, and names the tool that prints it everywhere else.
 //
 // ===========================================================================================
 // WHY THIS FILE EXISTS
@@ -46,11 +52,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, cards, categories, recordFiles } from '../fixtures/catalog.mjs';
+import { ROOT, cards, categories, recordFiles, subcategories } from '../fixtures/catalog.mjs';
 import { cardForm, importAll } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
 const CATS = await categories();
+const SUBS = await subcategories();
 const CATALOGUE = await cards();
 const MODULES = await importAll();
 
@@ -167,6 +174,40 @@ function census() {
   assert.ok(existsSync(skillsDir), `MISSING ${skillsDir}: refusing to count zero citations and call it green`);
   walkSkills(skillsDir);
 
+  // The quantities the SKILL documents state about the tree. They are the least guarded prose in
+  // the repository: nothing under `scheme/` opens a skill, so a count typed into one drifts with no
+  // reader at all, which is how a skill came to send a reviewer after six `SCOPE` blocks in a tree
+  // holding nineteen. A skill states a count only where the count is the substance; everywhere else
+  // it names the tool that prints it, which is `S-49` read one directory out.
+  const podless = CATALOGUE.filter((c) => {
+    const ns = MODULES.get(c.id);
+    if (cardForm(ns) !== 'migrated') return false;
+    let pods = 0;
+    walkParts(ns.SCENE.parts, (part) => { if (part && part.kind === 'pod') pods++; });
+    return pods === 0;
+  }).length;
+  // The anchors of the depth rubric: one backticked card id per cell of its L1..L5 table.
+  const depthDoc = readFileSync(join(skillsDir, 'section-review', 'reference', 'depth-scale.md'), 'utf8');
+  const depthAnchors = new Set();
+  for (const line of depthDoc.split('\n')) {
+    if (!/^\| L[1-5] \|/.test(line)) continue;
+    for (const m of line.matchAll(/`((?:cluster|workloads|network|storage)-[a-z0-9-]+)`/g)) depthAnchors.add(m[1]);
+  }
+  // The tests that skip themselves under SCHEME_IDS: a census needs the full walk, so each one
+  // carries FULL_ONLY as its test option. Counted where they execute, in the two gated directories.
+  let fullOnly = 0;
+  for (const dir of ['unit', 'render']) {
+    const d = join(ROOT, 'test', dir);
+    for (const f of readdirSync(d)) {
+      if (!f.endsWith('.test.mjs')) continue;
+      for (const line of readFileSync(join(d, f), 'utf8').split('\n')) {
+        // Anchored, or this very line counts itself: a scan for its own pattern is the oldest way
+        // to be off by exactly one.
+        if (/^test\(/.test(line) && line.includes('FULL_ONLY')) fullOnly++;
+      }
+    }
+  }
+
   const total = (m) => [...m.values()].reduce((a, b) => a + b, 0);
   return {
     cards: CATALOGUE.length, steps, migrated, legacy, chips, chipsCued,
@@ -174,6 +215,8 @@ function census() {
     runDelay0, runDelayed, runTotal: runDelay0 + runDelayed,
     perCat, open, openTotal: total(open), anchors, dupAnchors, dupWidth,
     skillCitations: skillIds.size,
+    podless, depthAnchors: depthAnchors.size, fullOnly,
+    sections: CATS.reduce((n, c) => n + (SUBS[c] || []).length, 0),
   };
 }
 
@@ -231,6 +274,29 @@ const CLAIMS = [
   {
     doc: 'CANON.md', label: 'S-50: the distinct rule ids the card skills cite',
     re: /[Tt]hey name (\d+) distinct ids between them/, want: () => [CENSUS.skillCitations],
+  },
+
+  // -- the card skills at <repo root>/.claude/skills/ ----------------------------------------
+  // The fifth reader of the rulebook, and until these rows the only one whose COUNTS nobody read.
+  // `readDoc` joins against `scheme/`, so a skill document is named from there and the coverage
+  // test below resolves the same path. A skill states a count only where the count is the
+  // substance: everywhere else it names the tool that prints it, which is why this block is short
+  // and is meant to stay short.
+  {
+    doc: '../.claude/skills/section-review/SKILL.md', label: 'section-review: the section keys section.mjs lists',
+    re: /`--list` for the (\d+) keys/, want: () => [CENSUS.sections],
+  },
+  {
+    doc: '../.claude/skills/section-review/SKILL.md', label: 'section-review: the depth anchors the rubric names',
+    re: /calibrated against ([a-z]+) named shipped cards/, want: () => [CENSUS.depthAnchors],
+  },
+  {
+    doc: '../.claude/skills/_shared/card-verify.md', label: 'card-verify: the tests that skip themselves under SCHEME_IDS',
+    re: /([A-Za-z]+) tests skip themselves under it/, want: () => [CENSUS.fullOnly],
+  },
+  {
+    doc: '../.claude/skills/card-new/reference/compositions.md', label: 'card-new: the cards drawing no Pod',
+    re: /(\d+) cards in the catalog carry no Pod at all/, want: () => [CENSUS.podless],
   },
 
   // -- scheme/CLAUDE.md ----------------------------------------------------------------------

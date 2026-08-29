@@ -48,6 +48,8 @@ const BUS_Y = NODE_Y - 20;                               // 372
 const TRUNK = [[TOP2_CX, WL.TOP_BOTTOM], [TOP2_CX, JOG_Y], [TOP1_CX, JOG_Y], [TOP1_CX, BUS_Y]];
 const BUS_L = [[P_A_CX, BUS_Y], [TOP1_CX, BUS_Y]];
 const BUS_R = [[TOP1_CX, BUS_Y], [P_B_CX, BUS_Y]];
+// TAP_A and TAP_B are both ridden, and a grep for the constant name will say otherwise: NODE1_LANE
+// and NODE2_LANE are [...TRUNK, ...tap], so a ball on either covers its tap exactly.
 const TAP_A = [[P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
 const TAP_B = [[P_B_CX, BUS_Y], [P_B_CX, POD_Y]];
 const NODE1_LANE = [...TRUNK, [P_A_CX, BUS_Y], [P_A_CX, POD_Y]];
@@ -152,8 +154,11 @@ export const STEPS_SPEC = [
     narration: 'Node-1 goes NotReady (kernel panic, power loss, network partition). After the toleration on node.kubernetes.io/unreachable expires, taint-based eviction deletes the Pod, which sits in Terminating until the Node returns or an operator clears it, and only then is the object gone. Critically, the PVC data-web-0 is NOT deleted, the StatefulSet retains it for the ordinal under the default PVC retention policy. The PV cloud-vol-x stays Bound, the cloud disk is intact, rev=1234 persists.',
     chips: { podChip: 'web-0 · Terminating, then removed', pvcChip: 'data-web-0 · Bound (retained)', pvChip: 'cloud-vol-x · on lost Node-1', dataChip: 'rev=1234 · preserved' },
     wires: { req: 'DELETE Pod web-0 · Keep PVC data-web-0' },
-    // Pin final opacity inline so a cancel between steps does not flash it back. The chip says
-    // Terminating on this step, so web-0 sinks to that shade rather than leaving its slot.
+    // Pin final opacity inline so a cancel between steps does not flash it back. The chip names
+    // Terminating FIRST, so web-0 sinks to that shade here rather than leaving its slot: `recreate`
+    // is the step whose narration has the object finally gone and a new one created under the same
+    // name. It is not drawn out to 0 here, because a chip naming two states over a drawing showing
+    // only the second is the defect.
     opacity: { podB: 0, ...lanes(true, false), podA: OPACITY.terminating },
     lit: ['controller', 'apiserver', 'podChip', 'pvcChip', 'pvChip', 'dataChip'],
     chain: 1,
@@ -161,9 +166,15 @@ export const STEPS_SPEC = [
     // sentence, so the frame is wound back and dims where the words say it goes NotReady.
     rewind: { opacity: { nodeA: 1 } },
     flow: [
-      // The Node goes first and the eviction follows it: the ball is still 1858ms out when the
-      // frame has finished dimming, so no delay is needed to put the two in the right order.
+      // The Node goes first and the eviction follows it: the fade ends at 700 and the ball is still
+      // 1858ms out, so no delay is needed to put the two in the right order. It is not delayed by
+      // FADE.out + BEAT.afterHop, the way `replicaset` self-heal sequences the same shape: the
+      // trunk here is 2558ms long, so the step would run to 4058 and need its duration raised
+      // 2700 -> 4200 to buy an ordering the frame already reads correctly.
       F.fade({ target: 'nodeA', from: 1, to: OPACITY.notready, dur: FADE.out, delay: 0, fill: 'both', easing: 'ease-in' }),
+      // The delete reaches Node-1 over the left connector. podA is pinned to terminating above, the
+      // animation back-fills 1 through the delay and then sinks web-0 to that shade on arrival. The
+      // PVC, PV and data chips stay lit, because they are retained.
       F.route({ points: NODE1_LANE, fadeIn: true, name: 'del' }),
       F.fade({ target: 'podA', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'del', fill: 'both', easing: 'ease-in' }),
     ],
@@ -199,6 +210,10 @@ export const STEPS_SPEC = [
     // ball that names Node-2 lands. The end value is above, this is where the step starts from.
     rewind: { chips: { podChip: 'web-0 · Pending (created again)', pvChip: 'cloud-vol-x · on lost Node-1' } },
     flow: [
+      // The binding is delivered to Node-2 over the right connector: the scheduler posts it to the
+      // Api and no separate scheduler block is drawn. podB is pinned to 1 above and the animation
+      // back-fills 0 through the delay, so web-0 materializes and pulses on arrival under the same
+      // sticky identity.
       F.route({ points: NODE2_LANE, fadeIn: true, name: 'bind' }),
       // Both chips are wound back to what the previous step left and turn over when the binding
       // LANDS: at entry they would read as placed and attaching while the slot on Node-2 is empty.
@@ -217,6 +232,9 @@ export const STEPS_SPEC = [
     lit: ['pv', 'podChip', 'pvcChip', 'pvChip', 'dataChip'],
     chain: 4,
     flow: [
+      // CSI reattaches the same PV to Node-2: the volume packet crosses from the PV into web-0 on
+      // Node-2, which pulses once on arrival and settles back, mounted with the data preserved. No
+      // persist, so the pulse fades instead of pinning the outline bright.
       F.route({ points: PV_LANE, role: 'storage', fadeIn: true, name: 'mount' }),
       F.pulse({ pod: 'podB', at: 'mount' }),
     ],

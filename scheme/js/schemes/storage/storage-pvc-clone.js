@@ -2,6 +2,9 @@ import { P, F, defineCard, chipStrip, BEAT, FADE, OPACITY, REVEAL_MS } from './s
 // Design notes for this card: ./CARDS.md#storage-pvc-clone
 
 
+// The mirror axis: CLAIM_CX is CX -/+ SPREAD and the disks hang on the same two centre lines, so the
+// reflection holds on every tier. The provisioner sits alone on CX because it belongs to neither
+// side.
 const CX = 600;
 
 const PROV_X = 420, PROV_Y = 36, PROV_W = 360, PROV_H = 68;
@@ -36,6 +39,7 @@ const RULE_Y = [0, 1, 2, 3].map(i => RULE_Y0 + i * RULE_PITCH);         // 320 /
 const CAPTION_Y = DISK_BOTTOM + 24;               // 552, leaving 18 to the frame floor
 const CHIPS_Y = 588;                              // 18 below the frame, and 18 above the canvas floor
 
+// Family width. Worst case here is `dataSource` + `kind: PVC` at 155 against the 232 available.
 const CHIP_W = 232, CHIP_GAP = 16;
 const STRIP = chipStrip({ w: CHIP_W, gap: CHIP_GAP });   // 976 wide, x0 112, so the strip centres on CX
 

@@ -2,6 +2,9 @@ import { P, F, defineCard, BEAT, OPACITY, makeRidingLabel } from './storage-kit.
 // Design notes for this card: ./CARDS.md#storage-volumeattachment
 
 
+// One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it. LEFT_X is a separate wall at
+// 400 that only the TOP band obeys: the usable area is an L and the disk lives in its free
+// bottom-left corner.
 const M = 60;
 const CONTENT_L = M, CONTENT_R = 1200 - M;               // 60 / 1140, midpoint 600
 

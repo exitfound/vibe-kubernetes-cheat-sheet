@@ -16,14 +16,16 @@ LAYOUT   One actor in the top row and two lanes leaving it, on two different FAC
          SHAPE. NoExecute leaves the bottom face at 600 and drops 220 units onto the Node frame's
          own top face, where the taint is actually written. NoSchedule leaves the RIGHT face at
          (750, 80), runs 216 right and drops 110 into web-2, so it turns aside before the Node.
-PANEL    Measured with `extents.mjs`, all three viewports, over all six steps:
-         1600x1000  right 290.77, bottom 160.00..194.94
-         1280x860   right 377.76, bottom 192.67..235.20
-         1100x800   right 396.55, bottom 229.80..279.51
-         Deepest 279.51 at 1100x800, on `pressure`, whose 383 character narration is the longest on
-         the card. The frame label `Node-1` sits at y 347.0..361.7 there and clears it by 67.5. The
+         The two summary blocks `NoExecute taints` and `NoSchedule taints` are NOT in the top row.
+         Between them and the chip values and the wire captions, each taint key was stated THREE
+         times while the thing that makes a taint, a condition going True, was drawn nowhere.
+PANEL    Right edge and bottom per viewport, over all six steps:
+         `OVERLAY_IDS=cluster-node-conditions node --test report/overlay.test.mjs`, with
+         `extents.mjs` for the drawn strings.
+         Deepest at 1100x800 on `pressure`, whose 383 character narration is the longest on the
+         card. The frame label `Node-1` sits at y 347.0..361.7 there and clears it by 67.5. The
          two steps that draw the `wNE` caption, `not-ready` and `unreachable`, both sit at the
-         229.80 shallow end, which is what leaves that caption its 44.2.
+         shallow end, which is what leaves that caption its 44.2.
          Zero drawn strings intersect the panel at any of the three viewports. The leftmost thing
          on the canvas above the chips is the `wNE` caption at x 342.6..588, y 274..288.7 at
          1100x800, which is 44.2 below the panel bottom those steps carry.
@@ -47,6 +49,9 @@ SIZES    THE FRAME IS THE CLU.L-01 FAMILY UNTOUCHED, 152/106/34, the first card 
          value does not fit the 350.67 a three across column gives.
          The four worst pairs at 1600x1000, all on the `unreachable` step: NetworkUnavailable 129
          apart, `effect on Pods` 142.8, MemoryPressure 184.1, PIDPressure 225.5.
+         THE CHIP VALUES CARRY THE TAINT KEY WITHOUT ITS `node.kubernetes.io/` PREFIX, and the two
+         wire captions and the narrations carry it in full. With the prefix the longest value is
+         55 units past the 532 column, and the prefix is the same nineteen characters on all six.
 LANES    TWO LANES, ONE SOURCE, TWO DESTINATIONS, and all four endpoints are exact face midpoints.
          `neLane` is one segment, [600,120] to [600,340]: the actor's BOTTOM face and the NODE
          FRAME's top face. It stops on the frame and enters nothing, which is what a taint is: a
@@ -56,6 +61,23 @@ LANES    TWO LANES, ONE SOURCE, TWO DESTINATIONS, and all four endpoints are exa
          `neLane` IS SHADED OFF THE FRAME IT LANDS ON (`A-13`), through one `stage()` factory that
          states the blocks and their lanes together (`A-16`), so it stands at 1 until the Node goes
          quiet on `unreachable` and then follows it to `OPACITY.notready`.
+         `nsLane` STANDS AT FULL WHILE ITS SINK RESTS AT 0.55. `A-13` reads a lane as
+         `min(source, sink)` and this is the deviation: `A-15` says a lane carrying a ball must be
+         visible for the WHOLE flight, and web-2's 0.55 is `OPACITY.pending`, a statement about
+         that Pod's phase rather than about the lane. `M-24` is the same reading from the other
+         side, a lane pointing AT an object that rests dim. Drawn at 0.55 the lane read as the
+         secondary of the two and the ball crossed it at the same weight as the canvas.
+         The NoExecute lane does NOT land INSIDE a Pod. Ending on web-0's top face at [600,374] is
+         34 units past the frame edge, and it is wrong twice over: a taint is a field on the Node
+         and is never written on a Pod, and `NET.A-02` states the drawing rule the whole catalogue
+         reads, that a ball stops on the Node frame edge and the Pod inside reacts. Nothing in the
+         suite sees it, because `render/geometry.test.mjs` excludes `.scheme-node` from THROUGH by
+         construction: 73 such crossings stand on 38 cards and a green gate says nothing here.
+         The NoSchedule lane does NOT land on the Node frame too. Two arrowheads on one face would
+         say the
+         two effects are the same event, and the 66 unit gap between two Pods, which is where that
+         lane used to stop, gives the eye nothing to land on: it read as a rendering fault. Its
+         receiver has to be an object, and the only honest object is the Pod that is refused.
 MOTION   Three balls, all self-initiated at `BEAT.lead` (`M-18`): nothing precedes a taint here.
          The NoSchedule lane is 326 units and runs at the canon 0.450 units per ms, the NoExecute
          lane is 220 and is floor-bound at 700ms, 0.314 (`M-13`). Two cards run that same 220,
@@ -70,6 +92,32 @@ MOTION   Three balls, all self-initiated at `BEAT.lead` (`M-18`): nothing preced
          both at `OPACITY.notready` and the animated path fades them from 1 on the arrival, so the
          ball flies over a lit lane and the Node goes quiet behind it. `not-ready` fades NEITHER,
          because the frame the lane lands on is still fully present on that step.
+         `conditions` HOLDS STILL FOR 73 PERCENT OF ITS 3000, well over the median share. It is the same
+         shape as `cluster-node-eviction-rate`'s `monitor` and it is deliberate for the same
+         reason: the step reads a table that is already on screen, so nothing travels and no chip
+         MOVES (`P-09a`), and its only beat is the five condition rows lighting at `BEAT.lead`. The
+         other half of `M-19a` clears it on the numbers: at 8.38 ms per character it reads FASTER
+         than the catalogue median, which means the hold is spent on reading rather than standing
+         idle. 3000 is the duration `monitor` carries for a narration of the same length.
+         THE FIVE CHIPS `conditions` LIGHTS HAVE NOT CHANGED. `P-05` cues a changed value and this
+         is not that: it is the step's beat, on the five rows its sentence is about, and the sixth
+         chip is left dark because `effect on Pods` is not a condition. The distinction the last
+         clause of that narration draws, Ready reading True where the other four read False, is
+         only visible if the eye is sent to the column.
+         THE REFUSED POD IS ON SCREEN FROM THE POSTER, before any taint exists. `M-24` is why: a
+         lane already points at it, and hiding it outright aims an arrowhead at blank canvas for
+         the whole first flight. It rests at `OPACITY.pending`, which is the vocabulary entry for
+         declared and not working yet (`C-06`, `C-14`), and its sublabel says what it is waiting
+         for rather than why.
+         `daemonset` CUES NO CHIP AND LIGHTS NOTHING. `effect on Pods` reads the same string it
+         read on the two steps before, because the effect has not changed: what changed is WHICH
+         Pod it reaches, and the Pod that never faded is what says it (`P-09a`). Its beat is that
+         Pod's pulse, which `M-27` does not reach because the step is not pod-less.
+         `P.packets()` does not move up the parts list to sit under the Pods, which is where four
+         sibling
+         cards keep it. The NoSchedule ball lands at [966,190] on web-2's top face and its ripple
+         opens there at scale 3, so both would run behind that Pod's fill and the one arrival this
+         card draws onto an object would be the one arrival nobody sees.
 WIRE LABELS
          TWO REGISTERS, ONE PER LANE, and they never show at the same time. THEY NAME DIFFERENT
          KINDS OF THING, and that asymmetry is the whole point (`T-22`): a label may only name what
@@ -92,6 +140,13 @@ WIRE LABELS
          actor it leaves, and clear of its own drop, whose 80..190 run starts 10.6 below the glyph
          box. 762 IS THE ONLY x THAT WORKS: anchored END at 954 the string reaches back to 712.8
          and prints inside the actor, which spans 450..750 through the whole 40..120 band.
+         `wNE` is not drawn on the `pressure` step. That step carries the longest narration on the
+         card
+         and its panel reaches 279.51 at 1100x800, while `wNE` sits at y 274..288.7: the two would
+         overlap by 5.5. The caption clears the panel only because `pressure` never writes it.
+         The taint key is NOT on `wNS`. A caption reading `node.kubernetes.io/memory-pressure:NoSchedule`
+         sits over a lane that ends on a Pod, and a taint is never written on a Pod, so the label
+         names traffic that does not ride that lane, which is exactly what `T-22` forbids.
 CONTENT  Read against the `k8sVersion` the entry carries, off the two cited pages.
          THE FIVE CONDITION MEANINGS ARE THE `node-status` TABLE, reworded because the upstream
          cells carry an em-dash `T-04` forbids: Ready is `True if the node is healthy and ready to
@@ -170,75 +225,16 @@ CONTENT  Read against the `k8sVersion` the entry carries, off the two cited page
          Without the sublabel the sentence would be false for the ordinary case.
          THE 50 SECONDS IS NAMED ONCE, as the definition of Unknown, and
          `--node-monitor-grace-period` is the flag the `node-status` table itself names.
-BUDGET   Measured with `timing.mjs` and `deadair.mjs`, this card's own five steps:
-         conditions   358 chars, 3000,  8.38 ms/char, still 2199 of 3000
-         pressure     383 chars, 3300,  8.62 ms/char, still  876 of 3300
-         not-ready    312 chars, 3400, 10.90 ms/char, still 1000 of 3400
-         unreachable  304 chars, 3300, 10.86 ms/char, still 1100 of 3300
-         daemonset    296 chars, 3000, 10.14 ms/char, still 1300 of 3000
+         The four pressure conditions get NO setter box. No page cited here says who reports them,
+         and inventing one is the class of claim `card-facts` exists to catch. The `Control plane`
+         block is not that box: it writes taints, which the cited page attributes to it by name.
+BUDGET   Characters, duration, pace and still time per step are what `timing.mjs` and `deadair.mjs`
+         print for this card.
          The two steps that carry a qualifier a fact pass added, `conditions` and `pressure`, are
          also the two fastest here, 8.38 and 8.62 against a catalogue median of 10.04: the holds
          they already had absorb the extra characters and no duration moved. The
          population, the median pace and the median still time are printed by
          `report/baselines.test.mjs` and by `deadair.mjs`, and are not copied here.
-NOT A DEFECT
-         `conditions` HOLDS STILL FOR 73 PERCENT OF ITS 3000, well over the median share. It is the same
-         shape as `cluster-node-eviction-rate`'s `monitor` and it is deliberate for the same
-         reason: the step reads a table that is already on screen, so nothing travels and no chip
-         MOVES (`P-09a`), and its only beat is the five condition rows lighting at `BEAT.lead`. The
-         other half of `M-19a` clears it on the numbers: at 8.38 ms per character it reads FASTER
-         than the catalogue median, which means the hold is spent on reading rather than standing
-         idle. 3000 is the duration `monitor` carries for a narration of the same length.
-NOT A DEFECT
-         THE FIVE CHIPS `conditions` LIGHTS HAVE NOT CHANGED. `P-05` cues a changed value and this
-         is not that: it is the step's beat, on the five rows its sentence is about, and the sixth
-         chip is left dark because `effect on Pods` is not a condition. The distinction the last
-         clause of that narration draws, Ready reading True where the other four read False, is
-         only visible if the eye is sent to the column.
-NOT A DEFECT
-         `nsLane` STANDS AT FULL WHILE ITS SINK RESTS AT 0.55. `A-13` reads a lane as
-         `min(source, sink)` and this is the deviation: `A-15` says a lane carrying a ball must be
-         visible for the WHOLE flight, and web-2's 0.55 is `OPACITY.pending`, a statement about
-         that Pod's phase rather than about the lane. `M-24` is the same reading from the other
-         side, a lane pointing AT an object that rests dim. Drawn at 0.55 the lane read as the
-         secondary of the two and the ball crossed it at the same weight as the canvas.
-NOT A DEFECT
-         THE REFUSED POD IS ON SCREEN FROM THE POSTER, before any taint exists. `M-24` is why: a
-         lane already points at it, and hiding it outright aims an arrowhead at blank canvas for
-         the whole first flight. It rests at `OPACITY.pending`, which is the vocabulary entry for
-         declared and not working yet (`C-06`, `C-14`), and its sublabel says what it is waiting
-         for rather than why.
-NOT A DEFECT
-         `daemonset` CUES NO CHIP AND LIGHTS NOTHING. `effect on Pods` reads the same string it
-         read on the two steps before, because the effect has not changed: what changed is WHICH
-         Pod it reaches, and the Pod that never faded is what says it (`P-09a`). Its beat is that
-         Pod's pulse, which `M-27` does not reach because the step is not pod-less.
-DO NOT   Land the NoExecute lane INSIDE a Pod. It was drawn ending on web-0's top face at [600,374],
-         34 units past the frame edge, and it is wrong twice over: a taint is a field on the Node
-         and is never written on a Pod, and `NET.A-02` states the drawing rule the whole catalogue
-         reads, that a ball stops on the Node frame edge and the Pod inside reacts. Nothing in the
-         suite sees it, because `render/geometry.test.mjs` excludes `.scheme-node` from THROUGH by
-         construction: 73 such crossings stand on 38 cards and a green gate says nothing here.
-DO NOT   Land the NoSchedule lane on the Node frame TOO. Two arrowheads on one face would say the
-         two effects are the same event, and the 66 unit gap between two Pods, which is where that
-         lane used to stop, gives the eye nothing to land on: it read as a rendering fault. Its
-         receiver has to be an object, and the only honest object is the Pod that is refused.
-DO NOT   Let `wNE` draw on the `pressure` step. That step carries the longest narration on the card
-         and its panel reaches 279.51 at 1100x800, while `wNE` sits at y 274..288.7: the two would
-         overlap by 5.5. The caption clears the panel only because `pressure` never writes it.
-DO NOT   Put the taint key back on `wNS`. It read `node.kubernetes.io/memory-pressure:NoSchedule`
-         while the lane under it ends on a Pod, and a taint is never written on a Pod: the label
-         named traffic that does not ride that lane, which is exactly what `T-22` forbids.
-DO NOT   Move `P.packets()` up the parts list to sit under the Pods, which is where four sibling
-         cards keep it. The NoSchedule ball lands at [966,190] on web-2's top face and its ripple
-         opens there at scale 3, so both would run behind that Pod's fill and the one arrival this
-         card draws onto an object would be the one arrival nobody sees.
-DO NOT   Give the four pressure conditions a setter box. No page cited here says who reports them,
-         and inventing one is the class of claim `card-facts` exists to catch. The `Control plane`
-         block is not that box: it writes taints, which the cited page attributes to it by name.
-DO NOT   Restore the two summary blocks `NoExecute taints` and `NoSchedule taints` to the top row.
-         Between them and the chip values and the wire captions, each taint key was stated THREE
-         times while the thing that makes a taint, a condition going True, was drawn nowhere.
 NAMING   THE ACTOR IS `Control Plane` WITH BOTH WORDS CAPITALISED, which `T-10` would ordinarily
          not give it: Plane is not an API object, an acronym or an identifier. It is the spelling
          the category already uses for the same thing in its own subcategory label, and the three
@@ -246,10 +242,7 @@ NAMING   THE ACTOR IS `Control Plane` WITH BOTH WORDS CAPITALISED, which `T-10` 
          `.scheme-node-label` is uppercased by CSS (`T-12`) and renders CONTROL PLANE whatever is
          typed. This card is the only one that draws the phrase as a `P.box` label, so it is the
          only place the casing is visible, and it matches the chip a reader saw on the way in.
-NOTE     THE CHIP VALUES CARRY THE TAINT KEY WITHOUT ITS `node.kubernetes.io/` PREFIX, and the two
-         wire captions and the narrations carry it in full. With the prefix the longest value is
-         55 units past the 532 column, and the prefix is the same nineteen characters on all six.
-NOTE     READY IS THE ODD ONE AND THE CHIP COLUMN SHOWS IT. Ready reads `True · no taint` while
+         READY IS THE ODD ONE AND THE CHIP COLUMN SHOWS IT. Ready reads `True · no taint` while
          the other four read `False · no taint`, so the inversion a junior trips over is visible
          in the resting frame before any step plays, and the `conditions` narration says it out
          loud in its last clause.
@@ -278,7 +271,7 @@ SCOPE    This card is the SECOND card of the section and the on-ramp to it: ever
          conditions.
          `storage-ephemeral-storage-eviction` already touches DiskPressure from the storage side.
          Here DiskPressure is one row of a table and one NoSchedule taint.
-NOTE     `kubectl describe node` IS NAMED WITH NO kubectl BLOCK ON THE CANVAS, unlike
+         `kubectl describe node` IS NAMED WITH NO kubectl BLOCK ON THE CANVAS, unlike
          `cluster-node-drain`, which draws one. It is the reader's own command and the frame the
          card is built around rather than an actor inside the mechanism, so `T-21` is not engaged:
          no step has it doing anything.
@@ -340,14 +333,4 @@ Overlapping sets, four bars in the door-shut set and the accent in the overlap w
 evicts, was rejected too: the right lobe stands empty because nothing evicts without also blocking,
 and an empty lobe is a shape that has to be explained.
 
-DO NOT give the dashed leg an arrowhead to say it is refused (`R-08`). The dash plus the block it
-lands in says it, and the poster then has two things competing with the accent.
 ```
-
-### before `const GHOST_X = POD_X(2), GHOST_Y = 190;`
-
-190 puts the refused Pod 70 under the actor's bottom face and 44 over the frame, and both gaps are
-spent. Above 190 the 110 unit drop the NoSchedule lane needs would fall under the 24 unit clamp
-`routeDur` reads as a length; below 296 the Pod would touch the frame it is drawn OUTSIDE of, which
-is the one thing its position has to say. The x comes off `POD_X(2)` and not from a literal, so the
-refused Pod moves with the Pod row it stands over.

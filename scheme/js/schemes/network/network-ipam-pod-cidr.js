@@ -3,8 +3,10 @@ import { P, F, defineCard } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-ipam-pod-cidr
 
 
-// Geometry. Panel measured 2026-07-27: right <= 397, bottom <= 255. The three Node frames span
-// 80..1120 and are centred on the canvas, the control-plane column stands on their common centre.
+// Geometry. Panel right <= 397, bottom <= 255, and NODE_Y 312 is what clears that bottom. The three
+// Node frames span 80..1120 and are centred on the canvas, the control-plane column stands on their
+// common centre, and every x is derived from NODE_X / NODE_CX, so the Node columns, their slice
+// chips, their Pods and the allocation bus cannot drift apart.
 const NODE_Y = 312, NODE_W = 300, NODE_H = 290;
 const NODE_X = [80, 450, 820];
 const NODE_CX = NODE_X.map(x => x + NODE_W / 2);            // 230, 600, 970
@@ -32,8 +34,9 @@ const CFG_DROP = [[SPINE_X, CFG_Y + CFG_H], [SPINE_X, KCM_Y]];     // the pool t
 const IPAM1 = [[NODE_CX[0], SLICE_BOTTOM], [NODE_CX[0], POD_Y]];   // Node-1 IPAM -> its Pod
 const IPAM2 = [[SPINE_X, SLICE_BOTTOM], [SPINE_X, POD_Y]];         // Node-2 IPAM -> its Pod
 
-// The three allocation balls share ONE travel time so they land together: routeDur is length-based
-// and would land the short centre path first.
+// The three allocation balls share ONE travel time so they land together: the kcm carves every slice
+// in one reconcile pass, and routeDur is length-based, which would land the short centre path first.
+// The card is registered for that in the `PACING` map of `render/motion.test.mjs`.
 const dur = 1100;
 
 // The six wires predate the kit binding and carry NO role, so the arrowhead stays the neutral dim

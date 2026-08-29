@@ -27,7 +27,7 @@ import { sentences } from '../fixtures/prose.mjs';
 // The typed half, and its one assertion is below: this is where a card added to or removed from
 // data.js has to be acknowledged on purpose. Every other file derives its own total.
 const CARD_TOTAL = CATALOG_BASELINE.cards;
-const PER_CATEGORY = { cluster: 28, workloads: 20, network: 37, storage: 31 };
+const PER_CATEGORY = { cluster: 28, workloads: 21, network: 37, storage: 31 };
 const SUBCATEGORY_TOTAL = 15;   // 3 + 3 + 5 + 4, unique across the four categories (D-07)
 const ALIAS_TOTAL = 37;         // SCHEME_ALIASES in js/app.js
 

@@ -101,7 +101,12 @@ function describeSpread(spread) {
 // ledger box, two standing captions and three Pods.
 // 2047: cluster-node-conditions trades its two taint boxes for one actor box and gains a fourth
 // Pod (+1), a Pod being a shell plus its inner box where a box is one painted element.
-const EXPECTED_PAINTED = 2047;
+// 2064: workloads-pod-startup-conditions joins the catalog (+17): two actor boxes, four chips,
+// the five chain rows, two corridor lanes and two top-row arrows, and one Pod as a shell plus
+// its inner box. The Node frame and the wire label carry no role.
+// 2063: workloads-pod-qos-classes drops the arrowless Kubelet -> API relation (-1). No step of it
+// named traffic that way, and the write it stood for is the Scheduler's, which the card never draws.
+const EXPECTED_PAINTED = 2063;
 const EXPECTED_COMBINATIONS = 29;
 
 const catalogued = await cards();

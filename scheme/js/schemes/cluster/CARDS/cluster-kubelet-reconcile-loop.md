@@ -8,9 +8,44 @@ LAYOUT   LAYOUT.B of the kit, both columns read off it rather than typed: chips 
          the five stage rows right at 660..1140. The widest row is row 2 at 323.9 units against the
          480 the column gives, so a longer stage caption has 156 units of slack and never needs a
          column of its own.
-PANEL    x<=397 catalog-wide (`L-02`). Bottom 254.66 at 1100x800 step 2, shallowest 125.11 at
-         1600x1000 step 0, a swing of 77.22 units. The API box at y 300 clears the deepest bottom by
-         45.34, and that clearance is what the character ceiling in BUDGET is derived from.
+PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport, from `scheme/test`:
+         `OVERLAY_IDS=cluster-kubelet-reconcile-loop node --test report/overlay.test.mjs`.
+         Deepest on step 2 at 1100x800, shallowest on step 0 at 1600x1000, a swing of 77.22 units.
+         The API box at y 300 clears the deepest bottom by 45.34, and that clearance is what the
+         character ceiling in BUDGET is derived from.
+MOTION   Every chip waits for the packet that earns it, the end value pinned above the ctx.reduced
+         guard and turned over through a local 1ms at():
+           watch   Pod, desired    the spec ARRIVES (~1160ms). podManager cannot hold a spec the
+                                   Node has not been handed
+           pleg    last CRI op     the call REACHES the runtime
+           pleg    observed        the ANSWER comes home. The Kubelet learns the container list from
+                                   the reply, not from having asked
+           cri     last CRI op     four turnovers, one per call as its ball lands
+           status  observed        the answer comes home, and only then does the PATCH leave
+         Verified by real-time sampling, not by frames: a SEEKED probe never fires onfinish, so
+         every at() turnover is invisible to one. `render/reduced.test.mjs` passing is the proof
+         the end state still lands.
+         Every ball on the Kubelet-to-runtime lane is F.top, on all three steps that ride it: the
+         lane is the top row, so M-11 gives it topPacket. A hop drawn with F.segment on the same
+         from/to/y runs linear against its neighbours eased and fades in 100ms against their 200,
+         which is one wire animated two ways and no check anywhere sees it.
+         Reading pace. `pleg` holds 3400ms for 357 characters and `syncpod` 2700ms for 280, which
+         is 9.52 and 9.64 ms per character, next to the card's own `watch` at 9.64 and under the
+         catalog median. Nothing in the suite measures reading load, so a duration that
+         merely outlasts the span is not the number to pick: at 2200 and 1900 these two would read
+         6.16 and 6.79, inside the most hurried tenth the timing probe ranks,
+         with every check green. The card's own `watch` is the rate to hold them to.
+         `syncpod` lights `desired` and `observed` while neither value changes. It is a packet-less,
+         pod-less step, so `.highlight` alone is its whole beat (M-27), and the two chips it lights
+         are the two the sentence compares.
+WIRE LABELS
+         Two slots, one per exchange, and a step riding both lanes fills both: `status` sends the
+         PLEG relist down the runtime lane and the PATCH down the riser, so it writes `rt` and
+         `api` together. A ball on a lane whose slot stays blank leaves the frame silent about what
+         rode, and nothing in the suite reads a wire label at all (L-19).
+         The `api` slot is right-anchored at 404, 8 left of the out riser: its longest string
+         measures 192.9 units at 1600x1000 against the 112 unit gap between the API box and that
+         riser, so a centred label would run through both risers.
 CONTENT  There is no `source dispatcher` in the Kubelet. The three spec sources (apiserver, file,
          http) are merged by PodConfig into ONE update channel, syncLoop reads it, and
          HandlePodAdditions puts the Pod into podManager. This card names real internals everywhere
@@ -52,37 +87,9 @@ CONTENT  There is no `source dispatcher` in the Kubelet. The three spec sources 
          a 2019 Red Hat article is not among these three: of the 172 unique hrefs, every
          non-kubernetes.io one is a spec, a KEP, an upstream project doc or the Raft paper, and the
          KEP backs each sentence the article was carrying.
-MOTION   Every chip waits for the packet that earns it, the end value pinned above the ctx.reduced
-         guard and turned over through a local 1ms at():
-           watch   Pod, desired    the spec ARRIVES (~1160ms). podManager cannot hold a spec the
-                                   Node has not been handed
-           pleg    last CRI op     the call REACHES the runtime
-           pleg    observed        the ANSWER comes home. The Kubelet learns the container list from
-                                   the reply, not from having asked
-           cri     last CRI op     four turnovers, one per call as its ball lands
-           status  observed        the answer comes home, and only then does the PATCH leave
-         Verified by real-time sampling, not by frames: a SEEKED probe never fires onfinish, so
-         every at() turnover is invisible to one. `render/reduced.test.mjs` passing is the proof
-         the end state still lands.
-         Every ball on the Kubelet-to-runtime lane is F.top, on all three steps that ride it: the
-         lane is the top row, so M-11 gives it topPacket. A hop drawn with F.segment on the same
-         from/to/y runs linear against its neighbours eased and fades in 100ms against their 200,
-         which is one wire animated two ways and no check anywhere sees it.
-WIRE LABELS
-         Two slots, one per exchange, and a step riding both lanes fills both: `status` sends the
-         PLEG relist down the runtime lane and the PATCH down the riser, so it writes `rt` and
-         `api` together. A ball on a lane whose slot stays blank leaves the frame silent about what
-         rode, and nothing in the suite reads a wire label at all (L-19).
-         The `api` slot is right-anchored at 404, 8 left of the out riser: its longest string
-         measures 192.9 units at 1600x1000 against the 112 unit gap between the API box and that
-         riser, so a centred label would run through both risers.
-BUDGET   Panel x<=397, bottom 177 / 214 / 255 over 1600x1000 / 1280x860 / 1100x800, and 269 at
-         1024x768. Re-measured with
-         `OVERLAY_IDS=cluster-kubelet-reconcile-loop node --test report/overlay.test.mjs` from
-         `scheme/test`, which reads 254.66 on the `pleg` step at 1100x800, the card's longest
-         narration at 357 characters: the card header's 255 is that same measurement.
-         TWO steps hold that deepest reading, `pleg` at 357 characters and `cri` at 349, and both
-         measure 254.66 at 1100x800.
+BUDGET   Panel x<=397 over the standard set, and 269 at 1024x768, which that set does not reach.
+         Re-measure with the command PANEL names: the deepest reading is at 1100x800, and TWO steps
+         hold it, `pleg` at 357 characters, the card's longest narration, and `cri` at 349.
          What the bottom has to clear DEPENDS ON THE STEP. On `pleg` and `cri` the next thing down
          is the API box at y=300, so 45 units of headroom at the rule worst case. On `watch` and
          `status`, the two steps that draw the `api` wire label, the obstacle is that label
@@ -90,19 +97,6 @@ BUDGET   Panel x<=397, bottom 177 / 214 / 255 over 1600x1000 / 1280x860 / 1100x8
          and 120 the box alone would promise. `pleg` swings 77 units across the three viewports, so
          a reading taken at 1600x1000 is wrong by that much in the flattering direction. Grow a
          narration here and re-measure.
-NOTE     Reading pace. `pleg` holds 3400ms for 357 characters and `syncpod` 2700ms for 280, which
-         is 9.52 and 9.64 ms per character, next to the card's own `watch` at 9.64 and under the
-         catalog median. Nothing in the suite measures reading load, so a duration that
-         merely outlasts the span is not the number to pick: at 2200 and 1900 these two would read
-         6.16 and 6.79, inside the most hurried tenth the timing probe ranks,
-         with every check green. The card's own `watch` is the rate to hold them to.
-NOT A DEFECT
-         `report/arrival.test.mjs` R2 reports three findings here, all the tool artefact: it samples at t=0 and
-         compares against t=0 of the previous step, so a mid-step turnover is attributed to the NEXT
-         step, where the chip is not highlighted because that step is not about it.
-         `syncpod` lights `desired` and `observed` while neither value changes. It is a
-         packet-less, pod-less step, so `.highlight` alone is its whole beat (M-27), and the two
-         chips it lights are the two the sentence compares.
 NAMING   The id carries the TITLE, `D-02` keeps the category prefix, and `control-kubelet-sync-loop`
          and `cluster-kubelet-sync-loop` resolve through `SCHEME_ALIASES` (`D-11`).
 ```

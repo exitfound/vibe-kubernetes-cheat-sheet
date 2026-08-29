@@ -12,14 +12,26 @@ LAYOUT   Layout C on the L, the node-drain skeleton to the unit. Top row 40..120
          crosses nothing. The Node frame is 60..1140 over 380..532 on the CLU.L-01 family
          152/106/34, read out of CLU.NODE rather than typed, and the six chips are a bottom strip
          three across over 548..624.
-PANEL    Measured over the standard set: 290.8 wide and 142.6..160.0 deep at 1600x1000, 377.8 and
-         171.4..192.7 at 1280x860, 396.5 and 205.0..229.8 at 1100x800. The deepest reading belongs
-         to `three-events` and `replaced`, the two 319 and 321 character steps, and it leaves 150.2
-         units over the Node frame at 380, which is what the budget answers to. The two wire
-         registers sit at y 368, centred in the 348..380 band between the ladder and the frame.
+         There are FIVE ladder rows and not six, one per narrated step, which is what the three
+         siblings in this
+         subcategory carry. Six rows measure 242 and the column would run 148..390, leaving the
+         frame at 404..556 and the second chip row ending on 646, off the 640 canvas. Five rows
+         measure 200 and land the whole stack on the node-drain skeleton with 32 units of daylight
+         above the frame, so steps 5 and 6 share row 5, the row that states both fates.
+PANEL    Right edge and bottom per viewport:
+         `OVERLAY_IDS=cluster-node-restart node --test report/overlay.test.mjs`.
+         The deepest reading belongs to `three-events` and `replaced`, the two 319 and 321
+         character steps, and it leaves 150.2 units over the Node frame at 380, which is what the
+         budget answers to. The two wire registers sit at y 368, centred in the 348..380 band
+         between the ladder and the frame.
 SIZES    Chips are LAYOUT.C.strip.three, 350.67. The widest pair is `runtime restart` with
          `containers usually stay up`, 41 characters at the 6.89 units of `.scheme-chip-text` plus
          the 24 of padding, so 306 against 350.67 and the pair never meets.
+         THE LADDER ROWS ARE NOT PADDED, unlike the four sibling ladders in this subcategory, and
+         that is measured rather than careless: SVG collapses a run of whitespace, so a row padded
+         to the longest stage name renders exactly as one with single spaces. Row 1 measures 399.7
+         at 1600x1000 for 58 visible characters and row 2 measures 351.4 for 51, both at 6.89 per
+         character, with no trace of the six spaces the padded form would have carried.
 LANES    ONE lane, addressed to the Node FRAME and not to a Pod inside it, exactly as
          `cluster-graceful-node-shutdown` addresses its SIGTERM: which Pods the Kubelet brings back
          is carried by the three pulses, not by a fan of taps into the Pod row. It runs
@@ -45,6 +57,42 @@ MOTION   ONE ball on the whole card, on `recreate`, and it is a down-arrow: the 
           Measured with `deadair.mjs`: the still tail is 53 and 50 percent of the step,
          a little over the median share, on a reading pace of 9.97 and 10.03, which is the median
          pace itself, so neither is an outlier on both readings at once (M-19a).
+         STEPS 5 AND 6 SHOW A LATE RETURN, not the outage itself, and the `branch` caption is what
+         signs it (T-35, the same `P.wire` grammar the three cards that carry a counterfactual use).
+         The machine is up on both, the chips read Ready and no taint, and what differs from step 4
+         is the Pod roster: the eviction happened while the Node was away, so each narration puts
+         the rule in the present and what the frame shows in the past.
+         WHY NOT play the outage instead, which is what this card drew first: the whole Node side
+         back to `notready` over a 300ms handover and `web-0` alone at `terminated`. Opened at
+         1600x1000 the deleted Pod is then 0.12 against two neighbours at 0.40 inside an already
+         dim picture, and the one thing the step is about is the least visible change in it. At
+         full strength either side of it the same 0.12 reads at once, which is the contrast
+         `cluster-node-failure` gets for free from the healthy Node beside the failing one.
+         THE NODE FRAME NEVER FADES. It is the machine, and the machine is still there while it is
+         off: what stops is the software above it and the containers inside it. Fading the frame as
+         well takes the whole lower half of the picture to one shade and reads as the card dimming
+         rather than as a state, since `cluster-node-failure`'s frame fade only reads because the
+         second Node beside it stays at full.
+         The first three chips never change value on any step. They are the card's thesis rather
+         than state, and step 1 lights all three as the beat of a packet-less, Pod-less step (M-27).
+         Reading that highlight as a cue for a changed value is the one misreading available here.
+         A deleted Pod never fades to 0. An absent block leaves a Pod-sized hole in the frame and
+         reads as
+         a rendering fault. Both deletions land on OPACITY.terminated, the shade for gone, which is
+         the conversion the other four node-lifecycle cards already took.
+         The reboot Pods do NOT move to OPACITY.terminated. They are `notready`, and the distinction
+         is the
+         card: on `reboot` the Pod OBJECTS are untouched and still bound, which is precisely why the
+         Kubelet has something to recreate two steps later, and 0.12 would say they were gone from
+         the API before anything had deleted them.
+         THE NETWORK is named in step 3 and in ladder row 3 and stands nowhere on the canvas. It is
+         a readiness condition the Kubelet reports, not an actor that acts (T-21), and the reference
+         names all three in one clause. A block for it would put networking subject matter on a
+         cluster card for a word that never moves.
+         Step 1 registers no animation at all, which M-27 allows and 78 steps in the catalogue do.
+         Its beat is the two actors and the three thesis chips lighting together. `deadair.mjs`
+         ranks it 582 of 590 on still time and 305 on reading pace, which is the catalog median:
+         high on one reading only, which is what M-19a calls not a finding.
 WIRE LABELS
          TWO registers on ONE line at y 368, one on each side of the drop: `act` anchored start at
          614 for the traffic the lane carries, `branch` anchored end at 586 for the counterfactual
@@ -157,67 +205,14 @@ SCOPE    This card deliberately re-teaches nothing that a named sibling owns.
          LOCAL STORAGE is left out entirely, though the reference carries it: the writable layer
          discarded on recreate, a memory-backed emptyDir always lost and a disk-backed one
          surviving. That is `storage-emptydir`'s subject and it needs a volume on the canvas.
-NOTE     STEPS 5 AND 6 SHOW A LATE RETURN, not the outage itself, and the `branch` caption is what
-         signs it (T-35, the same `P.wire` grammar the three cards that carry a counterfactual use).
-         The machine is up on both, the chips read Ready and no taint, and what differs from step 4
-         is the Pod roster: the eviction happened while the Node was away, so each narration puts
-         the rule in the present and what the frame shows in the past.
-         WHY NOT play the outage instead, which is what this card drew first: the whole Node side
-         back to `notready` over a 300ms handover and `web-0` alone at `terminated`. Opened at
-         1600x1000 the deleted Pod is then 0.12 against two neighbours at 0.40 inside an already
-         dim picture, and the one thing the step is about is the least visible change in it. At
-         full strength either side of it the same 0.12 reads at once, which is the contrast
-         `cluster-node-failure` gets for free from the healthy Node beside the failing one.
-NOTE     THE NODE FRAME NEVER FADES. It is the machine, and the machine is still there while it is
-         off: what stops is the software above it and the containers inside it. Fading the frame as
-         well takes the whole lower half of the picture to one shade and reads as the card dimming
-         rather than as a state, since `cluster-node-failure`'s frame fade only reads because the
-         second Node beside it stays at full.
-NOTE     The first three chips never change value on any step. They are the card's thesis rather
-         than state, and step 1 lights all three as the beat of a packet-less, Pod-less step (M-27).
-         Reading that highlight as a cue for a changed value is the one misreading available here.
-WHY NOT  A ball on step 5 or step 6. The DELETE comes from the control plane, and putting an API or
+         NO ball rides step 5 or step 6. The DELETE comes from the control plane, and putting an API
+         or
          a controller-manager block on this card to source it draws exactly the eviction path
          `cluster-node-failure` owns, one card earlier in the same subcategory.
-WHY NOT  A second Node frame for the replacement to land on. `cluster-node-failure` already draws
+         There is no SECOND Node frame for the replacement to land on. `cluster-node-failure`
+         already draws
          that picture, Node-1 to Node-2 with a reschedule lane, and step 5 says `may put it on a
          different Node` in words instead. Drawing it here would make the two cards one card.
-WHY NOT  Six ladder rows, one per narrated step, which is what the three siblings in this
-         subcategory carry. Six rows measure 242 and the column would run 148..390, leaving the
-         frame at 404..556 and the second chip row ending on 646, off the 640 canvas. Five rows
-         measure 200 and land the whole stack on the node-drain skeleton with 32 units of daylight
-         above the frame, so steps 5 and 6 share row 5, the row that states both fates.
-DO NOT   Fade a deleted Pod to 0. An absent block leaves a Pod-sized hole in the frame and reads as
-         a rendering fault. Both deletions land on OPACITY.terminated, the shade for gone, which is
-         the conversion the other four node-lifecycle cards already took.
-DO NOT   Move the reboot Pods to OPACITY.terminated. They are `notready`, and the distinction is the
-         card: on `reboot` the Pod OBJECTS are untouched and still bound, which is precisely why the
-         Kubelet has something to recreate two steps later, and 0.12 would say they were gone from
-         the API before anything had deleted them.
-NOTE     THE LADDER ROWS ARE NOT PADDED, unlike the four sibling ladders in this subcategory, and
-         that is measured rather than careless: SVG collapses a run of whitespace, so a row padded
-         to the longest stage name renders exactly as one with single spaces. Row 1 measures 399.7
-         at 1600x1000 for 58 visible characters and row 2 measures 351.4 for 51, both at 6.89 per
-         character, with no trace of the six spaces the padded form would have carried.
-NOT A DEFECT
-         `statics.mjs` reports `podAgentBox` as addressed and undeclared, and files `podAgent`
-         under the kinds it cannot address by key. Both are the same artefact: the three Pods are
-         built from the `PODS` array, so the keys are `p.key` and a template literal and a source
-         sweep can resolve neither. The real-time dump of the last step lists `podAgentBox` in its
-         highlight set and every step lists `podAgent` among its opacities.
-         THE NETWORK is named in step 3 and in ladder row 3 and stands nowhere on the canvas. It is
-         a readiness condition the Kubelet reports, not an actor that acts (T-21), and the reference
-         names all three in one clause. A block for it would put networking subject matter on a
-         cluster card for a word that never moves.
-         Step 1 registers no animation at all, which M-27 allows and 78 steps in the catalogue do.
-         Its beat is the two actors and the three thesis chips lighting together. `deadair.mjs`
-         ranks it 582 of 590 on still time and 305 on reading pace, which is the catalog median:
-         high on one reading only, which is what M-19a calls not a finding.
-OPEN     A node() frame cannot take a cue. Step 2 is the reboot of Node-1 and the frame is the one
-         thing on screen that cannot react to it, the same finding
-         `cluster-graceful-node-shutdown` carries for its own step 2: diagrams.css has no
-         `.scheme-node.highlight` rule, and closing it means a catalog-wide rule reaching all 69
-         frames on 53 cards.
 ```
 
 ### poster
@@ -264,11 +259,4 @@ The offset was meant to BE the reboot, a rule that does not line up with itself.
 size it does not: 12 units on a 320 canvas is under 8px on the grid, so the jog reads as a plain
 divider, which is the one thing the composition could not afford. It also spent six blocks saying
 what three say.
-WHY NOT the X over the lost slot. The X vocabulary is spent two cards away in the same grid on
-`cluster-image-container-gc`, and at 200px the two would have rhymed.
-WHY NOT a three-column gauge of how much each of the three events stops, which is the card's OTHER
-half and is the one family this category has left unused. It says the thesis of step 1 rather than
-the question the desc opens with, and the card is only allowed one sentence (`R-02`).
-WHY NOT the missing bay at an END. A gap at the end reads as a shorter row, which is why the middle
-keeps it, and the middle is also where the accent gains the canvas centre.
 ```

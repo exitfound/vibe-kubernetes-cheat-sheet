@@ -4,10 +4,31 @@
 
 ```
 WHAT     Three replicas racing for one Lease, and the renewals and failover that follow.
-PANEL    x<=397 catalog-wide (`L-02`). Bottom 130.43 at 1100x800 step 0, shallowest 90.23 at
-         1600x1000 step 2, which is the SHALLOWEST panel in the catalogue (`L-04`) and the reason
-         this card is the one that reaches the floor of the band. Replica row 1 at y 145 clears the
-         deepest bottom by 14.57.
+LAYOUT   The replica row does NOT run 420..1140 while the Lease and its chips span 60..1140: the
+         bottom then reads as a different object from the top, and the drawing centres on 780.
+         The replica row clears the PANEL, not the canvas centre. `REP_Y` is 145 against a measured
+         panel bottom of 130.43 at 1100x800, a clearance of 14.57, so the band is 145..575 and its
+         centre 360 against the canvas centre of 320. The four-line narrations under BUDGET are what
+         buy that top: at five lines the panel measures 155.28 and `REP_Y` can only be 170.
+         Raising it further on its own is not available. `REP_Y` is panel bottom + 15 and the row is
+         centred, so its
+         left third stands in the panel column (right edge 396.55). A band centred on the canvas
+         needs its top at 105, which is under the panel on EVERY viewport: this card's shallowest
+         measured panel is 90.23 at 1600x1000 and 130.43 at 1100x800. Strictly centred and
+         horizontally centred cannot both hold with a band this deep.
+         Clearing the panel column instead, `STACK_L` 240 to 400 with `REP_Y` 105, is the one
+         arrangement that reaches the canvas centre exactly, and it pays with the horizontal one: the
+         drawing then spans 400..1120, 340 of margin on the left against 20 on the right, and the
+         bottom left is a 340 x 430 void. The numbers are off a render of that arrangement.
+         Buying it back by shrinking the Lease bar from `LEASE_H` 80 to 60 recovers 20 of the 74
+         the longer lane spends and moves the centre 360 to 350, and it costs the card its anchor: the
+         Lease is what the drawing is about and would become the one block shorter than the three
+         replicas it serves.
+PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport:
+         `OVERLAY_IDS=cluster-leader-election node --test report/overlay.test.mjs`.
+         Deepest on step 0 at 1100x800, shallowest on step 2 at 1600x1000, which is the SHALLOWEST
+         panel in the catalogue (`L-04`) and the reason this card is the one that reaches the floor
+         of the band. Replica row 1 at y 145 clears the deepest bottom by 14.57.
 LANES    One request lane and one answer lane per replica, on that replica's own axis. `PUT` and
          `ACK` are built ONCE, one array per replica, and the `P.lane` and the `F.route` both index
          them, so the drawn wire and the ball it carries are the same array (A-02 SHARED). All 16
@@ -16,24 +37,69 @@ LANES    One request lane and one answer lane per replica, on that replica's own
          the single factory for the whole `opacity` field, blocks and lanes together (A-16), and it
          gives replica 1 its pair through `laneOf(r1, 1)` (A-13). Without the keys nothing can address
          a lane at all, and an unreachable replica keeps two full-strength arrows into the Lease.
-DO NOT   Turn them back into `f(cx)` factories that build the points at the call site. The lane and
-         the route are then two equal copies, and the first geometry edit moves one of them: that is
-         exactly the defect the DO NOT below names, one level further up.
+         The lanes and the routes are NOT `f(cx)` factories building the points at the call site.
+         The lane and the route are then two equal copies, and the first geometry edit moves one of
+         them: that is exactly the defect the next paragraph names, one level further up.
+         A packet never gets a centre of its own. The lane pair sits at `cx - 10` and `cx + 10`, so
+         a ball built
+         on `REP_CXS[i]` flies 10 units beside BOTH of its own dashed lanes and no check in the tree
+         sees it. `PUT` and `ACK` are the only source of a route's points, and `exchange(i, name)` is
+         the only thing that builds one.
+         There is NO shared horizontal corridor for all six CAS routes. Every PUT then lies on top
+         of its own answer and it is unreadable which answer belongs to which replica.
+         There is no dog-leg route per replica lengthening the path without moving the Lease. `L-09`
+         allows horizontal and vertical segments only, so the extra length is a horizontal jog on
+         each axis,
+         which is the shared-corridor defect the WHY NOT above names, one lane at a time.
 MOTION   On `expire` the dead leader and its two lanes fade on ONE timing, `FADE.out` at delay 0, so
          the three read as a single event. Pinning the lanes statically while the box fades snaps them
          dim 700ms before it and reads as two separate failures.
-MOTION   `LANE_RUN` 130 is a PACING number, not a spacing one. All 16 balls run 130 units at 0.186
+         `LANE_RUN` 130 is a PACING number, not a spacing one. All 16 balls run 130 units at 0.186
          units per ms, under the catalogue's median ball, which `pace.mjs` prints and ranks. The run is
          still under `routeDur`'s 315 unit floor (`M-13`), so every ball takes the 700ms minimum and
          no span moves with the geometry (`M-20`): 2060 / 2060 / 700 / 2060 against durations
          2700 / 2700 / 2200 / 2700.
-MOTION   Every Lease field the winning write produces turns over ON that write landing, at the same
+         `LANE_RUN` 150 takes the band to 145..595 and the balls to 0.214 units per ms, still
+         under the catalogue median ball. It buys 0.028 units per ms for 10 more units of centre
+         drift, 360 to 370, and leaves 45 units under the band where 130 leaves 65.
+         Every Lease field the winning write produces turns over ON that write landing, at the same
          `wins` arrival that lights the box. `rewind` holds the record the step opens on and one
          `F.set` settles the lot together: `holderIdentity`, `renewTime age`, `leaseTransitions`,
          the role chip of each survivor and the winner sublabel. On `renew` the one field the PUT
          produces is `renewTime age`, at `renewal`. The cue is separate from the turnover and lands
          at entry through `lit`, because `flowLights` derives only a `lights` list and a deferred
          cue would light nothing on the reduced, prev and reset paths.
+         The Lease box is drawn at idle although the object does not exist yet, deliberately. Dimming
+         it and its four field chips for one step a reader never sees on its own (the poster occupies
+         that position) would cost the card its anchor: the Lease is what the drawing is about. The
+         create is said in words instead.
+         A replica role chip and `holderIdentity` are ONE fact seen from two sides, so the winning
+         arrival turns both over on the same beat instead of standing one of them at entry: `P-04`
+         calls doing this to one and not its neighbour worse than doing it to neither. The winner
+         sublabel is that same fact a third time, in the box 12 units over its own role chip, so it
+         travels with the pair. MEASURED: the winning write lands at 700 on `acquire` and on
+         `failover`, every ball here sitting on the `routeDur` floor, so a split anywhere in that
+         group holds two readings of one fact on screen for 700ms.
+         Settling the Lease fields alone on `wins` and leaving the three role chips and the winner
+         sublabel at entry. MEASURED off the specs: the card then carries 6 FORM-E records instead
+         of 3, and the 3 it gains are unread, which is what `unit/chip-beat-e.test.mjs` fails on and
+         prints as `3 FORM-E finding(s), P-03 and P-04`. Catalogue-wide it reads FORM-A 495 against
+         492, FORM-B 333 against 330 and FORM-E 22 against 19, which is also the number of entries
+         `E_CARRIED` holds. Quarantining the three new records there buys the green run back and
+         buys nothing on the canvas: for the 700ms of the winning write the role chip under the
+         winner reads `leader` over a `holderIdentity` still reading `none` on `acquire` and
+         `Controller-mgr-1` on `failover`. Splitting the group the other way, the sublabel
+         at entry with the role chip on the beat, reads `control loops starting` in the box over a
+         role chip that still reads `standby`.
+         `holderChip` is cued on `expire` while `holderIdentity` does not change at all: it reads
+         `Controller-mgr-1` before the step and after it. The cue is not a change marker here, it is the
+         READ SET. `expire` runs no packet and no Pod, so its five `.highlight` targets are the entire
+         beat the step has (M-27), and the whole statement of the step is the pair `holderIdentity`
+         still naming a replica that is gone over a `renewTime age` past `leaseDurationSeconds`.
+         `durChip` and `transChip` are unchanged too and are NOT lit, so the set reads as what the step
+         is about rather than as what moved, which is the reading `P-04` asks for consistency in.
+         Do not strip the cue to make the set mean "changed": the step then lights `renewChip` alone and
+         the holder half of the sentence goes unmarked.
 WIRE LABELS
          One slot per replica at mid-run, and it serves BOTH lanes of that pair, so what it carries is
          whatever the exchange RESOLVED to. That is deliberately not one grammar: on `acquire` and
@@ -46,66 +112,6 @@ WIRE LABELS
          `resourceVersion` mismatch on an UPDATE. A bare `409` in both slots draws one error twice.
          MEASURED at 1100x800: `POST 409 AlreadyExists` inks 135 units, `w2` running 622..757 and `w3`
          872..1007 against a content edge of 1140 and the mgr-3 lane pair at 840 and 860.
-WHY NOT  One shared horizontal corridor for all six CAS routes. Every PUT then lies on top of its own
-         answer and it is unreadable which answer belongs to which replica.
-WHY NOT  A replica row at 420..1140 while the Lease and its chips span 60..1140: the bottom then reads
-         as a different object from the top, and the drawing centres on 780.
-WHY NOT  Moving the three Lease field chips into the free bottom-left as a column: it destroys
-         "fields grouped directly under their object", which is the entire bottom half of the card.
-NOTE     The replica row clears the PANEL, not the canvas centre. `REP_Y` is 145 against a measured
-         panel bottom of 130.43 at 1100x800, a clearance of 14.57, so the band is 145..575 and its
-         centre 360 against the canvas centre of 320. The four-line narrations under BUDGET are what
-         buy that top: at five lines the panel measures 155.28 and `REP_Y` can only be 170.
-WHY NOT  Raising it further on its own. `REP_Y` is panel bottom + 15 and the row is centred, so its
-         left third stands in the panel column (right edge 396.55). A band centred on the canvas
-         needs its top at 105, which is under the panel on EVERY viewport: this card's shallowest
-         measured panel is 90.23 at 1600x1000 and 130.43 at 1100x800. Strictly centred and
-         horizontally centred cannot both hold with a band this deep.
-WHY NOT  Clearing the panel column instead, `STACK_L` 240 to 400 with `REP_Y` 105. It is the one
-         arrangement that reaches the canvas centre exactly, and it pays with the horizontal one: the
-         drawing then spans 400..1120, 340 of margin on the left against 20 on the right, and the
-         bottom left is a 340 x 430 void. The numbers are off a render of that arrangement.
-WHY NOT  Buying it back by shrinking the Lease bar from `LEASE_H` 80 to 60. It recovers 20 of the 74
-         the longer lane spends and moves the centre 360 to 350, and it costs the card its anchor: the
-         Lease is what the drawing is about and would become the one block shorter than the three
-         replicas it serves.
-WHY NOT  `LANE_RUN` 150, which takes the band to 145..595 and the balls to 0.214 units per ms, still
-         under the catalogue median ball. It buys 0.028 units per ms for 10 more units of centre
-         drift, 360 to 370, and leaves 45 units under the band where 130 leaves 65.
-WHY NOT  A dog-leg route per replica, lengthening the path without moving the Lease. `L-09` allows
-         horizontal and vertical segments only, so the extra length is a horizontal jog on each axis,
-         which is the shared-corridor defect the WHY NOT above names, one lane at a time.
-BUDGET   THE VERTICAL IS A TRADE WITH THE NARRATION, and the arithmetic is the point. With the column
-         centred the row sits under the panel, so the band top is panel bottom + 15 and every
-         narration line costs 25 units of viewBox at 1100x800. The band is a fixed 430 deep below that
-         top (80 box, 12, 34 role chip, 130 lane, 80 Lease, 16, 34 holder chip, 10, 34 field row), so
-         it TRANSLATES and its centre is `REP_Y + 215`, one line being worth a full 25:
-           7 lines  panel 205  REP_Y 220  band 220..650  centre 435, off the canvas
-           6 lines  panel 180  REP_Y 195  band 195..625  centre 410, 90 low
-           5 lines  panel 155  REP_Y 170  band 170..600  centre 385, 65 low
-           4 lines  panel 130  REP_Y 145  band 145..575  centre 360, 40 low   <- shipped
-         All four narrations are written to hold four lines (150 to 165 characters), and the LINE COUNT
-         is the limit while the character count only tracks it: see the panel entry under CONTENT, where
-         a 205 character clause took step 3 onto a sixth line. Three lines is NOT taken. Getting from
-         five to four spent what the DRAWING already carries: the two 409 answers on `w2` and `w3`, the
-         loop list in the `r1` sublabel, and the `holderIdentity` and `leaseTransitions` turnovers,
-         both of them chips with a cue. Nothing redundant is left, so the next line comes out of a
-         qualifier, which is the failure this project has already paid for once, and it buys 25 units
-         of centre.
-         40 low is the price of the lane length under MOTION and it is inside the house reading.
-         Measured over every card scene as the min and the max of every part `y` and `y + h`, the
-         content bottoms sit near 620 and the vertical centres near 330, so a band
-         ending at 575 with 65 clear and a centre of 360 sits just above the one and just below the
-         other. Both are catalog-wide walks and both move with the catalog, so re-measure rather
-         than trust the two figures here. State the METHOD beside any number taken this way, because
-         a walk that also counts node frames and lane endpoints reads the extremes differently.
-DO NOT   Let a narration grow past four lines. It silently pushes the panel onto the replica row, and
-         nothing in the gate checks it: OCCLUDED would report the overlap but is not in the gate
-         profile. At `REP_Y` 145 a fifth line takes the panel to 155.28, 10 units INTO the row.
-DO NOT   Give a packet its own centre. The lane pair sits at `cx - 10` and `cx + 10`, so a ball built
-         on `REP_CXS[i]` flies 10 units beside BOTH of its own dashed lanes and no check in the tree
-         sees it. `PUT` and `ACK` are the only source of a route's points, and `exchange(i, name)` is
-         the only thing that builds one.
 CONTENT  The first acquisition is a CREATE, not a PUT. client-go Gets the lock and on NotFound
          CREATEs it, so the winner takes a 201 and the losers an AlreadyExists 409.
          Compare-and-swap on resourceVersion is the UPDATE path, which every renewal and the failover
@@ -200,62 +206,45 @@ CONTENT  The first acquisition is a CREATE, not a PUT. client-go Gets the lock a
          component name. The kube-controller-manager reference page truncates before its flag table on
          a plain fetch, so the values are read off the kube-scheduler page, which carries the identical
          component-base flags and defaults, and the component name there is `kube-scheduler`.
-NOTE     The Lease box is drawn at idle although the object does not exist yet, deliberately. Dimming
-         it and its four field chips for one step a reader never sees on its own (the poster occupies
-         that position) would cost the card its anchor: the Lease is what the drawing is about. The
-         create is said in words instead.
-NOTE     A replica role chip and `holderIdentity` are ONE fact seen from two sides, so the winning
-         arrival turns both over on the same beat instead of standing one of them at entry: `P-04`
-         calls doing this to one and not its neighbour worse than doing it to neither. The winner
-         sublabel is that same fact a third time, in the box 12 units over its own role chip, so it
-         travels with the pair. MEASURED: the winning write lands at 700 on `acquire` and on
-         `failover`, every ball here sitting on the `routeDur` floor, so a split anywhere in that
-         group holds two readings of one fact on screen for 700ms.
+BUDGET   THE VERTICAL IS A TRADE WITH THE NARRATION, and the arithmetic is the point. With the column
+         centred the row sits under the panel, so the band top is panel bottom + 15 and every
+         narration line costs 25 units of viewBox at 1100x800. The band is a fixed 430 deep below that
+         top (80 box, 12, 34 role chip, 130 lane, 80 Lease, 16, 34 holder chip, 10, 34 field row), so
+         it TRANSLATES and its centre is `REP_Y + 215`, one line being worth a full 25:
+           7 lines  panel 205  REP_Y 220  band 220..650  centre 435, off the canvas
+           6 lines  panel 180  REP_Y 195  band 195..625  centre 410, 90 low
+           5 lines  panel 155  REP_Y 170  band 170..600  centre 385, 65 low
+           4 lines  panel 130  REP_Y 145  band 145..575  centre 360, 40 low   <- shipped
+         All four narrations are written to hold four lines (150 to 165 characters), and the LINE COUNT
+         is the limit while the character count only tracks it: see the panel entry under CONTENT, where
+         a 205 character clause took step 3 onto a sixth line. Three lines is NOT taken. Getting from
+         five to four spent what the DRAWING already carries: the two 409 answers on `w2` and `w3`, the
+         loop list in the `r1` sublabel, and the `holderIdentity` and `leaseTransitions` turnovers,
+         both of them chips with a cue. Nothing redundant is left, so the next line comes out of a
+         qualifier, which is the failure this project has already paid for once, and it buys 25 units
+         of centre.
+         40 low is the price of the lane length under MOTION and it is inside the house reading.
+         Measured over every card scene as the min and the max of every part `y` and `y + h`, the
+         content bottoms sit near 620 and the vertical centres near 330, so a band
+         ending at 575 with 65 clear and a centre of 360 sits just above the one and just below the
+         other. Both are catalog-wide walks and both move with the catalog, so re-measure rather
+         than trust the two figures here. State the METHOD beside any number taken this way, because
+         a walk that also counts node frames and lane endpoints reads the extremes differently.
+         No narration grows past four lines. It silently pushes the panel onto the replica row, and
+         nothing in the gate checks it: OCCLUDED would report the overlap but is not in the gate
+         profile. At `REP_Y` 145 a fifth line takes the panel to 155.28, 10 units INTO the row.
 NAMING   The lane helper is not called `casPut` or `leaseWrite`. WHICH call rides it varies by step:
          acquire is a create (201, or AlreadyExists 409 for the losers), renew and failover are
          compare-and-swap on resourceVersion (200, or Conflict 409), and the standby poll is a plain
          GET. Each of those names excludes at least one of the three.
-WHY NOT  `Deployment · ReplicaSet · Job` on the `failover` winner, so the card ends on a replica visibly
+         `Deployment · ReplicaSet · Job` is NOT on the `failover` winner, so the card does not end
+         on a replica visibly
          working. It disagrees with three things the same card already draws: the `leader` role chip 12
          units under that box, which is this card's not-yet-reconciling reading, the narration giving the
          loops about a lease duration to come back, and `acquire`, where the identical event reads
          `control loops starting`. The running state is not lost by declining it, `renew` holds it for a
          full 2700ms. The two strings also measure differently in the 220 box, 135 against 177.9 at
          1100x800, so the starting reading is the one with room to spare.
-WHY NOT  Settling the Lease fields alone on `wins` and leaving the three role chips and the winner
-         sublabel at entry. MEASURED off the specs: the card then carries 6 FORM-E records instead
-         of 3, and the 3 it gains are unread, which is what `unit/chip-beat-e.test.mjs` fails on and
-         prints as `3 FORM-E finding(s), P-03 and P-04`. Catalogue-wide it reads FORM-A 495 against
-         492, FORM-B 333 against 330 and FORM-E 22 against 19, which is also the number of entries
-         `E_CARRIED` holds. Quarantining the three new records there buys the green run back and
-         buys nothing on the canvas: for the 700ms of the winning write the role chip under the
-         winner reads `leader` over a `holderIdentity` still reading `none` on `acquire` and
-         `Controller-mgr-1` on `failover`. Splitting the group the other way, the sublabel
-         at entry with the role chip on the beat, reads `control loops starting` in the box over a
-         role chip that still reads `standby`.
-NOT A DEFECT
-         `holderChip` is cued on `expire` while `holderIdentity` does not change at all: it reads
-         `Controller-mgr-1` before the step and after it. The cue is not a change marker here, it is the
-         READ SET. `expire` runs no packet and no Pod, so its five `.highlight` targets are the entire
-         beat the step has (M-27), and the whole statement of the step is the pair `holderIdentity`
-         still naming a replica that is gone over a `renewTime age` past `leaseDurationSeconds`.
-         `durChip` and `transChip` are unchanged too and are NOT lit, so the set reads as what the step
-         is about rather than as what moved, which is the reading `P-04` asks for consistency in.
-         Do not strip the cue to make the set mean "changed": the step then lights `renewChip` alone and
-         the holder half of the sentence goes unmarked.
-NOT A DEFECT
-         `renew` states all three role chips at entry while `renewChip` waits for the PUT to land, which
-         is the split `report/chip-beat.test.mjs` prints as FORM-E and `unit/chip-beat-e.test.mjs`
-         gates. All three are carried in `E_CARRIED` with the reason, which lives there and not here:
-         the reconciling and the polling are what SEND the balls of the step, so they stand before
-         anything departs, and the Lease record is what an arrival produces.
-NOT A DEFECT
-         `report/arrival.test.mjs` prints one R2-ENTRY row for this card, `holderIdentity` changing at
-         `renew` with no highlight. It is the artefact that file documents in its own comment: the axis
-         compares two frames frozen at t=0, so a value turned over MID-step is first seen at the step
-         AFTER it, where the cue has legitimately already been shown and cleared. `cluster-etcd-raft` and
-         `cluster-server-side-apply` carry the identical row for the identical idiom. R2-STEP, the axis
-         that answers the canon question, holds 7 findings and none of them is here.
 ```
 
 ### poster

@@ -2,6 +2,9 @@ import { P, F, defineCard, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pvc-binding
 
 
+// The identity column Pod -> PVC -> PV shares this one line, because binding is what fuses the three
+// into one chain. It is the only vertical the tops of the Pod and the centre cylinder touch, so a
+// second line beside it turns the centre into a crowded pair.
 const CX = 600;                                     // canvas + identity-spine center
 
 const POD_W = 240, POD_H = 104, POD_X = CX - POD_W / 2, POD_Y = 56;

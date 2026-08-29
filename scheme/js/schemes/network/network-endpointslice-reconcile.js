@@ -3,6 +3,9 @@ import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.
 // Design notes for this card: ./CARDS.md#network-endpointslice-reconcile
 
 
+// The controller writes UP into the slice at SLICE_BOTTOM, and WRITE_PATH is built from both, so the
+// lane re-solves when either tier moves. Service, slice rows and controller all centre on x600, well
+// right of the panel.
 const CTLR_TOP = 350;                       // top edge of the controller box
 const SLICE_BOTTOM = 290;                   // bottom edge of the lowest endpoint row
 const WRITE_PATH = [[600, CTLR_TOP], [600, SLICE_BOTTOM]];   // controller -> slice, straight up

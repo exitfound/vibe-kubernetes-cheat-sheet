@@ -2,6 +2,8 @@ import { P, F, defineCard, STO, chipStrip, laneOf, BEAT, FADE, OPACITY } from '.
 // Design notes for this card: ./CARDS.md#storage-pvc-retention-policy
 
 
+// The same spine grammar as storage-volumeclaimtemplates: three ordinal rows, claim in the centre,
+// Pod and disk mirrored about it. The policy box above is centred on CX too.
 const CX = 600;
 
 const SRC_W = 340, SRC_H = 64, SRC_X = CX - SRC_W / 2, SRC_Y = 52;   // 430..770
@@ -105,8 +107,8 @@ const FULL = stage();
 const claimLabels = labels => ({ v0: labels[0], v1: labels[1], v2: labels[2] });
 const BOUND = ['Bound', 'Bound', 'Bound'];
 
-// The reclaim lane runs into the claim at its own mid height, so at -16 the tag is cut by the claim
-// and Pod edges for 600 ms. -32 is the least that clears them on all four viewports.
+// The reclaim lane enters the claim at its own mid height, so at -16 the tag is cut by the claim and
+// the ghost Pod for 600ms. -32 is the least that clears them on all four viewports.
 const TAG_DY = -32;
 
 // A Pod being removed pulses once to mark it, then fades to a ghost. Its ownership lane fades on the

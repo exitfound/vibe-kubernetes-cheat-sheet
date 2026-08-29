@@ -1,4 +1,4 @@
-import { P, F, defineCard, ladder, strip, laneY, midX, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
+import { P, F, defineCard, ladder, strip, midX, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS.md#workloads-pod-qos-classes
 
@@ -11,7 +11,13 @@ const TOP1_X = 420, TOP1_W = 2 * (WL.CX - 420);          // 420..780, centred on
 const TOP_GAP = 60;
 const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = WL.R - (TOP1_X + TOP1_W + TOP_GAP);
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
-const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
+// One lane, not the WL.A-01 pair: no step names anything going Kubelet -> API, since the only such
+// write the card narrates is the binding POST, which the Scheduler makes and this card does not
+// draw. So a single dim dashed answer lane rides the face midline rather than sitting 12 below it
+// with nothing above. No arrowless relation stands in for the missing half either: a relation for
+// an exchange two boxes never make, on behalf of an actor the diagram does not contain, is the
+// arrow-into-nothing family with an extra step (A-06).
+const ANSWER_Y = TOP_CY;
 const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
 
 // LAYOUT.C of the kit: the ladder takes the RIGHT column, because C has no free column at all.
@@ -36,7 +42,7 @@ const POD_CX = i => POD_XS[i] + POD_W / 2;               // 234 / 600 / 966
 
 // Every step that travels writes to all three Pods at once, so the lane drops to a bus above the
 // Pod row and taps down into each. One ball per tap, wire and ball from the same points.
-const BUS_Y = NODE_Y + 12;
+const BUS_Y = NODE_Y - 14;                               // 390, above the frame: see the record
 const TRUNK = [[WL.CX, WL.TOP_BOTTOM], [WL.CX, BUS_Y]];
 const BUS = [[POD_CX(0), BUS_Y], [POD_CX(POD_XS.length - 1), BUS_Y]];
 const TAP = i => [[POD_CX(i), BUS_Y], [POD_CX(i), POD_Y]];
@@ -52,15 +58,12 @@ const POD_NAMES = ['Pod A', 'Pod B', 'Pod C'];
 const POD_SUBS = ['no requests · no limits', 'req only · 500m / 256Mi', 'req == limits · 1 / 1Gi'];
 
 // The list order IS the append order, so it is the z-order: the Node frame is a 70% opaque fill,
-// so the bus inside it and the balls that ride it follow it, and ladder / Pods / actors sit above.
+// so the taps crossing it and the balls that ride them follow it, and ladder / Pods sit above.
 export const SCENE = {
-  'aria-label': 'Pod QoS classes: API derives qosClass from requests vs limits at admission, Kubelet applies cgroup config and oom_score_adj by tier',
+  'aria-label': 'Pod QoS classes: API derives qosClass from requests vs limits at admission, Kubelet applies cgroup config and oom_score_adj by tier, and under memory pressure evicts the Pods that are over their requests first',
   parts: [
     P.defs(),
-    // A RELATIONSHIP: the only write this card narrates Kubelet -> API is the binding POST, which
-    // the Scheduler makes and this card does not draw. Nothing can ride it, so no arrowhead.
-    P.relation({ points: [[TOP1_X + TOP1_W, REQ_Y], [TOP2_X, REQ_Y]], role: 'cluster' }),
-    P.arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }),
+    P.arrow({ x1: TOP2_X, y1: ANSWER_Y, x2: TOP1_X + TOP1_W, y2: ANSWER_Y, dim: true, dashed: true, role: 'cluster' }),
     // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
     P.wire({ key: 'req', x: WIRE_X, y: WL.TOP_Y - 12 }),
     P.chip({ key: 'pod1Chip', x: CHIP_X(0), y: CHIP_Y(0), w: CHIPS.w, h: WL.CHIP_H, name: 'Pod A · qosClass', value: 'pending' }),
@@ -76,9 +79,9 @@ export const SCENE = {
     P.chain({
       key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
       items: [
-        '1. spec      ·  3 Pods, different resource shapes',
+        '1. rule      ·  requests vs limits decides the class',
         '2. classify  ·  API derives qosClass at admission',
-        '3. schedule  ·  scheduler bins by requests only',
+        '3. schedule  ·  bins by requests, not by class',
         '4. cgroups   ·  Kubelet sets memory.max + oom_score_adj',
         '5. evict     ·  over request first, then Priority',
       ],
@@ -89,6 +92,9 @@ export const SCENE = {
       // No build-time opacity: every step pins all three Pods, and the poster frame is `idle`.
       inner: { dx: POD_INNER.dx, dy: POD_INNER.dy, w: POD_INNER.w, h: POD_INNER.h, label: 'app', sublabel: POD_SUBS[i] },
     })),
+    // Kubelet is the node-facing actor (it places Pods after binding, writes cgroups and evicts),
+    // so it sits on the left where the connector to the Node is anchored, matching the other
+    // controller cards: left actor -> node, Api on the right. Every connector packet leaves it.
     P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'cgroups + eviction', role: 'cluster' }),
     P.box({ key: 'apiserver', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'admission · qosClass · binding', role: 'cluster' }),
   ],
@@ -109,8 +115,13 @@ const ALL_LIVE = { pod1: 1, pod2: 1, pod3: 1, ...wiring(1) };
 // Declared but not placed: the qosClass is written on an object no Node holds yet, so the three
 // Pods and their taps rest at OPACITY.pending until `schedule` binds them (C-06, C-14).
 const ALL_PENDING = { pod1: OPACITY.pending, pod2: OPACITY.pending, pod3: OPACITY.pending, ...wiring(OPACITY.pending) };
-// The eviction sinks A and B but the taps keep carrying their balls, so the wiring stays at full.
-const EVICTED = { ...ALL_LIVE, pod1: OPACITY.terminating, pod2: OPACITY.terminating };
+// The eviction sinks A and B, and a tap is as faint as the Pod it points at (A-13), so tap1 and
+// tap2 sink with them. The trunk and the bus stay full: they still feed tap3, and C survives.
+const EVICTED = {
+  ...ALL_LIVE,
+  pod1: OPACITY.terminating, pod2: OPACITY.terminating,
+  tap1: OPACITY.terminating, tap2: OPACITY.terminating,
+};
 // One ball per tap. The outer lanes are longer, so each Pod pulses on its own ball landing.
 const fanToPods = (when = {}) => [0, 1, 2].flatMap(i => [
   F.route({ points: LANE(i), ...when, name: `fan${i}` }),
@@ -128,10 +139,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'spec',
-    duration: 1700,
+    duration: 2400,
     narration: 'The classification rule has three outcomes. BestEffort: no container has any requests or limits at all. Guaranteed: every container has CPU and memory requests and limits set, with requests equal to limits. Burstable: anything in between (at least one resource declared, but the Pod does not match the Guaranteed pattern).',
     chips: { pod1Chip: 'pending', pod2Chip: 'pending', pod3Chip: 'pending', focusChip: '3 shapes inspected' },
-    wires: { req: 'rule: empty → BestEffort · req==lim → Guaranteed · Else Burstable' },
+    wires: { req: 'rule: empty → BestEffort · req==lim → Guaranteed · else Burstable' },
     sublabels: shapes(...POD_SUBS),
     opacity: { ...ALL_PENDING },
     // The rule is read inside the Api, nothing travels: the focus chip takes the
@@ -160,8 +171,8 @@ export const STEPS_SPEC = [
   {
     id: 'schedule',
     duration: 3400,
-    narration: 'Each Pod is now placed on a Node. Scheduling looks only at requests, ignoring both limits and the QoS class. Pod A asks for nothing and fits anywhere. Pod B competes for 500m CPU and 256Mi memory. Pod C competes for 1 CPU and 1Gi memory. Once a Node passes the checks, the Pod is bound to it via POST .../pods/{name}/binding.',
-    chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'scheduler · requests only' },
+    narration: 'Each Pod is now placed on a Node. The resource fit looks only at requests, ignoring both limits and the QoS class. Pod A asks for nothing and fits anywhere. Pod B competes for 500m CPU and 256Mi memory. Pod C competes for 1 CPU and 1Gi memory. Once a Node passes the checks, the Pod is bound to it via POST .../pods/{name}/binding.',
+    chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'requests only, not the class' },
     wires: { req: 'POST .../pods/{name}/binding · requests only, not limits' },
     sublabels: shapes('BestEffort', 'Burstable', 'Guaranteed'),
     opacity: { ...ALL_LIVE },
@@ -173,7 +184,7 @@ export const STEPS_SPEC = [
     flow: [
       // Api writes the binding, the Kubelet observes it and places each Pod. The Kubelet lights when
       // the binding REACHES it, since placing the Pods is its answer to it.
-      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, name: 'bind', lights: ['kubelet'] }),
+      F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: ANSWER_Y, name: 'bind', lights: ['kubelet'] }),
       ...fanToPods({ after: 'bind' }),
       // The placement is what raises each Pod out of pending, so it rides its OWN tap: the outer
       // lanes are 813ms longer, and the difference is the point (M-24, the lane already points at it).
@@ -182,8 +193,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'cgroups',
-    duration: 2600,
-    narration: 'Kubelet on the chosen Node writes the Linux cgroup config for each Pod. The container memory cap (memory.max) and CPU cap (cpu.max) come from limits. Neither Pod A nor Pod B sets any, so neither gets a cap at all. Kubelet also writes oom_score_adj for each container process, a number the kernel uses to choose which process to kill first under memory pressure. BestEffort gets 1000 (kernel picks it first). Guaranteed gets -997 (almost never picked). Burstable sits in between, scaled by its memory request via 1000 - 1000*(request/capacity), clamped to range 3..999.',
+    duration: 4000,
+    narration: 'Kubelet on the chosen Node writes the Linux cgroup config for each Pod. The container memory cap (memory.max) and CPU cap (cpu.max) come from limits. Neither Pod A nor Pod B sets any, so neither gets a cap at all. Kubelet also writes oom_score_adj per container process, the kernel ranking for which one to kill first under memory pressure. BestEffort gets 1000 and Guaranteed gets -997, with node-critical Pods on -997 whatever their class, and Burstable in between, scaled by its memory request via 1000 - 1000*(request/capacity) and clamped to 3..999.',
     chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'memory.max · oom_score_adj' },
     wires: { req: 'cgroup v2 · memory.max + cpu.max + oom_score_adj' },
     sublabels: shapes('BestEffort · oom_score=1000', 'Burstable · oom_score~scaled', 'Guaranteed · oom_score=-997'),
@@ -197,25 +208,33 @@ export const STEPS_SPEC = [
     id: 'tiers',
     // Motion: Pod A is reached at 1520, Pod B a beat later at 2327, and the second fade ends at
     // 3227. Sequencing the two evictions costs 627ms over a simultaneous fan, and buys the order.
-    duration: 3400,
-    narration: 'When the Node runs low on memory, Kubelet ranks Pods by whether each is using more than it requested, then by Pod Priority, then by how far over the request it sits. Pod A declared no request at all, so it is over the moment it allocates anything and goes first. Pod B is over its own request and goes next. Pod C requests exactly what it is allowed to use, so it never exceeds its request and is reached only by the kernel OOMKiller in extreme cases. QoS class does not decide this order, it only predicts it, and this is a separate mechanism from priority-based preemption (which is covered in its own card).',
+    duration: 4200,
+    narration: 'When the Node runs low on memory, Kubelet ranks Pods by whether each is using more than it requested, then by Pod Priority, then by how far over the request it sits. Pod A declared no request at all, so it is over the moment it allocates anything and goes first. Pod B is over its own request and goes next. Pod C requests exactly what it is allowed to use, so it never exceeds its request and is evicted last, ranked by Priority, if system daemons overrun what the Node reserved for them. QoS class does not decide this order, it only predicts it, and it is separate from priority-based preemption.',
     chips: { pod1Chip: 'BestEffort', pod2Chip: 'Burstable', pod3Chip: 'Guaranteed', focusChip: 'over request, then Priority' },
     wires: { req: 'evicted first: over its request, then by Priority' },
-    sublabels: shapes('BestEffort · evicted 1st', 'Burstable · evicted 2nd', 'Guaranteed · survives'),
+    sublabels: shapes('BestEffort · evicted 1st', 'Burstable · evicted 2nd', 'Guaranteed · evicted last'),
     // A and B are evicted and dim together, C survives at full opacity. The final state is pinned
     // on the static path too, so a cancelled step cannot leave a Pod half faded.
     opacity: { ...EVICTED },
-    lit: ['kubelet', 'pod1Chip', 'focusChip'],
+    // No chip cue: the three qosClass values are unchanged since `classify`, and the eviction
+    // order is carried by the sublabels and the focus chip (P-04, P-09a).
+    lit: ['kubelet', 'focusChip'],
     chain: 4,
     flow: [
       // The ORDER is the content here, so explicit delays rather than the shared fan: the lanes are
-      // 684 and 318 units, so sending together lands `evicted 2nd` 800ms before `evicted 1st`.
+      // 684 and 318 units, so sending together lands `evicted 2nd` 800ms before `evicted 1st`, and
+      // a drawing that asserts the opposite of its own labels is worse than one that stays quiet.
+      // C gets no ball because it survives. Span 3227 against the 2600 a shared fan would take.
       F.route({ points: LANE(0), name: 'evictA' }),
       F.pulse({ pod: 'pod1', at: 'evictA' }),
       F.fade({ target: 'pod1', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'evictA', fill: 'both', easing: 'ease-in' }),
+      // The tap is pinned full above the reduced guard and only sinks AFTER its ball lands (A-15),
+      // so the lane is lit for the whole flight and dark once there is nothing left to point at.
+      F.fade({ target: 'tap1', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'evictA', fill: 'both', easing: 'ease-in' }),
       F.route({ points: LANE(1), after: 'evictA', name: 'evictB' }),
       F.pulse({ pod: 'pod2', at: 'evictB' }),
       F.fade({ target: 'pod2', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'evictB', fill: 'both', easing: 'ease-in' }),
+      F.fade({ target: 'tap2', from: 1, to: OPACITY.terminating, dur: FADE.out, at: 'evictB', fill: 'both', easing: 'ease-in' }),
     ],
   },
 ];

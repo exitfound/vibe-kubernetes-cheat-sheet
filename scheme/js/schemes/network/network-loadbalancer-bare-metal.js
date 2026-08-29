@@ -3,6 +3,8 @@ import { P, F, defineCard, makeRidingLabel, shade, OPACITY } from './network-kit
 // Design notes for this card: ./CARDS.md#network-loadbalancer-bare-metal
 
 
+// The three Nodes are mirrored about MID_X and every tier above them is centred on it, so the scheme
+// spans 50..1150 by construction. The chip strip takes that same extent 1:1.
 const MID_X = 600;
 
 const CLIENT_W = 240, CLIENT_H = 58, CLIENT_Y = 40;

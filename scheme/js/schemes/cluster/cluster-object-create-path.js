@@ -25,8 +25,11 @@ const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 490..710
 const FLANK_W = 130;
 const ETCD_X = IN_R - FLANK_W;  // 900..1030, architecture's own slot
 const ETCD_OVER = 30;                                    // cylinder overhang, architecture's
-// The client stands in the 150 unit band the frame leaves on the right, centred on that wall, 10
-// clear of each side. 130 is the band minus the margins and is also ETCD's width.
+// The client is the only block outside a frame. It stands in the 150 unit band the frame leaves
+// on the right, centred on that wall, 10 clear of each side. 130 is the band minus the margins
+// and is also ETCD's width, so the two blocks flanking the frame read at one scale. KCTL_Y comes
+// off CP_CY, so the block centres on the wall its lanes address. DO NOT hardcode a position
+// here: a literal would survive the next frame move.
 const KCTL_W = 130, KCTL_X = FRAME_R + 10;  // 1060..1190
 const KCTL_Y = CP_CY - BOX_H / 2;                        // 225..305, centred on the wall
 const KCTL_CX = midX(KCTL_X, KCTL_X + KCTL_W);           // 1125

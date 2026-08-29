@@ -3,6 +3,8 @@ import { P, F, defineCard, laneY, BEAT } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-to-pod-same-node
 
 
+// The two veth lanes are POD_MID -/+ LANE, so the forward and reply directions are a symmetric pair
+// about the block centre. Both Pods and the bridge sit on POD_MID.
 const POD_MID = 380;          // vertical centre of the pod / cni0 blocks
 const LANE = 12;              // half-gap between the two veth lanes
 const { out: TOP_Y, back: BOT_Y } = laneY(POD_MID, LANE);   // 368 forward (A -> B), 392 return (B -> A)

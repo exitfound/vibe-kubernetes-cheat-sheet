@@ -35,8 +35,11 @@ const B_HOP2 = [[B_PROXY_RIGHT, ROW_B], [B_EP_LEFT, ROW_B]];    // kube-proxy ->
 
 const POD_INNER = { dx: 18, dy: 30, h: 48 };
 
-// The connect lane leaves a Pod floor and lands on a box floor, so its tag rides BELOW the ball: at
-// the default -14 it prints over the Pod sublabel and then over `external host`. Clear from 12.
+// The connect lane leaves a Pod floor and lands on a box floor, so both ends are a block face and the
+// default -14 puts the tag INSIDE a block at each end: over the `svc lookup` sublabel for 200ms (ink
+// 60.0 x 8.7) and over `external host` for 400ms (78.0 x 5.8). Riding 14 BELOW the ball is the mirror
+// of the default and clears both, 3.7 under the Pod floor and 3.7 under the host box floor. Measured
+// clear from +12 to +32 on all four viewports.
 const CONNECT_TAG_DY = 14;
 // Row B is 60 tall against a 118 unit address, so on the lane the box faces cut the DNAT tag. -40
 // clears all four viewports and leaves the string 7 above the row.

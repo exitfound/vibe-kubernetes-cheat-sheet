@@ -44,7 +44,10 @@ const CHIP_X = i => CHIP_COL.x(i % CHIP_COLS);
 const CHIP_Y = i => CHIP_ROW(Math.floor(i / CHIP_COLS));
 
 // The one lane, shared by the static pathArrow and the packet route: Kubelet bottom face midpoint to
-// Node frame top face midpoint, both on the spine. Addressed to the NODE, not the Pod inside it.
+// Node frame top face midpoint, both on the spine. Addressed to the NODE, not the Pod inside it,
+// and it stops on the FRAME rather than on the Pod shell. 268 units on the spine, and routeDur is
+// length-based, so moving either end retimes the ball and every step span has to be re-read
+// (A-11, M-20).
 const NODE_CONNECTOR = [[SPINE_X, TOP_BOTTOM], [SPINE_X, NODE_Y]];
 
 // NO tie from a top-row block to the ladder: that line is only true when ONE block owns every row,
@@ -179,6 +182,9 @@ export const STEPS_SPEC = [
     // `container state` is what the Kubelet KNOWS, so it holds what oomkill left until the relist
     // result lands, which is the whole point of this step.
     rewind: { chips: { terminationChip: 'Running · not yet observed' } },
+    // The lower lane of the top pair, this card's answer direction: the relist result travels
+    // kernel to Kubelet, the Kubelet lights on its arrival rather than at step entry, and the
+    // F.set beside it hangs the container-state turnover off that same arrival.
     flow: [
       F.top({ from: KERN_X, to: KUBE_R, y: DOWN_Y, name: 'relist', lights: ['kubelet'] }),
       F.set({ at: 'relist', chips: { terminationChip: DEAD_STATE } }),

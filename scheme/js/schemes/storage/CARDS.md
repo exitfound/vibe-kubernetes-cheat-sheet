@@ -116,21 +116,6 @@ DO NOT   Dim the not-yet-mounted Pods. Dim means the access mode REFUSES this Po
          volume is carried by the ball, the lit disk and the sharing chip instead.
 ```
 
-### before `const LEFT_X = 400;`
-
-```
-The panel wall, with about 2 units of slack, and the ONLY thing pinning the node row. The row centre
-is LEFT_X + (3*POD_W + 110)/2, so LEFT_X and POD_W together decide how far off canvas centre that
-tier sits. It cannot move left at any window size.
-```
-
-### before `const CHIP_W = 232;`
-
-```
-ONE width for all four chips, sized against the accessModes + ReadWriteOncePod pair at 186, neither
-of which can shorten. Below ~190 the name and the value touch.
-```
-
 ### before `const DENY_LEAD = 450, MOUNT_LEAD = 520;`
 
 ```
@@ -196,40 +181,6 @@ MOTION   Kubelet is the case that pins the source-versus-receiver rule: lit at e
          ends, and `rewind` puts the pre-flip stage back for the animated path alone.
 ```
 
-### before `const POD_X = 330, POD_Y = 56, POD_W = 540, POD_H = 120;`
-
-```
-The Pod spans 330..870, centred on 600 with the volume and source rows below it. It starts at x=330,
-clear of the panel measured on the family cards at (300, 163); on narrow windows the panel may brush
-its corner, the accepted family trade.
-```
-
-### before `const READ_TAG_DY = 10;`
-
-```
-The spine ends on the Pod floor at 176, where -14 parks the tag on the `mounts /etc/config` sublabel:
-66.3 x 9.0 units of ink for 400ms, baseline gap 0.24. Below the ball only 10 and 12 clear all four
-viewports, and 10 is taken: at 12 the tag starts inside the volume frame and grazes the
-`Volume /etc/config` title by 1.0 unit at the sync step, where the ball waits 900ms before departing.
-```
-
-### before `const SYNC_TAG_DX = -20;`
-
-```
-Only the sync step writes the `clock` caption, anchored start at x 618, which took 15.2 units of the
-tag as it climbed past, for 100ms. The tag runs 66 to 69 units wide over the four viewports, so -20
-is what its widest half needs. The other steps on this lane leave the caption blank and stay centred.
-```
-
-### before `const SRC_TAG_DY = -36;`
-
-```
-The two source lanes run through the middle of 64 tall boxes, so at -14 the tag is cut by the
-ConfigMap or Secret side face for 600ms. -36 is the least that clears their tops on all four
-viewports. `app.conf` on the keys step cannot take the same number: `write v1` rides the neighbouring
-lane at the same height there, and the pair only parts at -58.
-```
-
 ### poster
 
 ```
@@ -263,13 +214,6 @@ NOTE     The writable layer is not on screen at build time, so the root-fs chip 
          read-only image layers exist until the writable step adds the RW top. The same holds on the
          way out: the discard step throws the layer away, so the chip returns to the read-only value
          and never claims an RW top the picture does not have.
-```
-
-### before `const POD_X = 440, POD_Y = 48, POD_W = 320, POD_H = 140;`
-
-```
-POD_CX falls out at 600 and the overlay stack plus the disk are centred under it, so the whole column
-is symmetric on one axis. The chip strip (3x320 + 2x20 = 1000) is centred on the same 600.
 ```
 
 ### poster
@@ -376,13 +320,6 @@ DO NOT   write `Kubelet calls direct` there, true though it is (the registrar do
 NOTE     The last step is a static highlight only, with no motion at all. The usual argument for a
          flash on a packet-less step does not apply to the LAST step, which is supposed to come to
          rest: lighting the whole chain at once IS the summary, and it wants to be read.
-```
-
-### before `const M = 60;`
-
-```
-One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it and the canvas centre is
-construction rather than a typed 600. Changing M re-solves every tier.
 ```
 
 ### before `id: 'core',`
@@ -530,13 +467,6 @@ NOTE     Z-order puts the LADDER last of all: it is the reader's index into the 
          rung must stay crisp even when a ball is passing.
 ```
 
-### before `const M = 60, GUTTER = 48;`
-
-```
-COL_W is solved from the margin and the gutter (516), so the two columns and the ladder inside the
-left one re-size together. The chips are solved the same way: 4*CHIP_W + 3*16 = 1080.
-```
-
 ### poster
 
 ```
@@ -594,21 +524,6 @@ BUDGET   The three explicit durs (see the `DECIDE_DUR` note below) are why the c
          route does not explain. The number there is a CEILING: a new deviation turns it red.
          Family CHIP_W 232: worst case is `result` + `scheduled and mounted` at 27 characters, so
          27 * 6.89 + 24 of padding is 210 against the 232 available.
-```
-
-### before `const CX = 600;`
-
-```
-The two node frames are mirrored about CX and the scheduler and Pod stack on it, so the picture is
-symmetric and neither node reads as the important one. NODE_CX is derived from the node width and
-gap rather than typed.
-```
-
-### before `const DECIDE_DUR = 850, BIND_DUR = 1000, READ_DUR = 1000;`
-
-```
-Three explicit durs, deliberately slower than routeDur would pick, so the decision beat reads: ball
-in, full Pod pulse, then the bind ball. Registered in `PACING`, `render/motion.test.mjs`.
 ```
 
 ### before `const PROV_TAG_DY = -40;`
@@ -695,15 +610,6 @@ NAMING   The backend sublabel names the CSI driver because the narration says Cr
          not have.
 ```
 
-### before `const LEFT_X = 400;`
-
-```
-The panel wall, measured at 380 worst case over 1920 down to 1100. The two columns therefore centre on
-630 and stay there: sliding the drawing left to reach 600 drags the claim under the panel, which is
-what LEFT_X exists to prevent. CANVAS_CX is separate on purpose, because the chip strip alone has the
-full width.
-```
-
 ### before `const CHIP_W = [210, 250, 240, 230];`
 
 ```
@@ -766,14 +672,6 @@ MOTION   FADES exist for exactly one meaning: an object CEASING TO EXIST. The di
 NOTE     The cylinder is visible from idle, deliberately, and the Pod is already on the node, so the
          truthful idle state is an existing empty directory. The create step then narrates how it came
          to be, flipping the chip to created empty.
-```
-
-### before `const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;`
-
-```
-The Node frame is the outer extent and the chip strip spans exactly its width. NODE_Y 170 sits flush
-under the panel measured at (300, 163) on a 1600px viewport, so a longer narration invalidates the
-placement. storage-hostpath copies these numbers verbatim so the pair aligns.
 ```
 
 ### poster
@@ -853,14 +751,6 @@ OPEN     Four chip values still stand at step entry ahead of the ball that earns
          not move, so this stays open on the beat argument rather than on the cost.
 ```
 
-### before `const COL_CX = 620;`
-
-```
-Not the node's own 600, and the 20 unit offset is the whole story: this narration is the longest in
-the storage set, so the panel reaches x<=397 down to y=355 and covers both the Pod and contributor
-tiers. 620 is as far LEFT as the stack can go and still clear it.
-```
-
 ### poster
 
 ```
@@ -912,22 +802,6 @@ MOTION   All three volumes are attached from the start of the remount step, so t
 NOTE     The directory comes back 250 after the Pod, the exact mirror of the delete step, where it was
          wiped 250 AFTER the Pod went. A fresh emptyDir is made for the Pod on the node it lands on, so
          the Pod leads in both directions.
-```
-
-### before `const SPINE_X = 600;`
-
-```
-The Pod straddles this spine and each volume hangs an equal distance either side of it, so the halves
-are a true mirror. The divider between them starts from POD_BOTTOM rather than a typed y, so it can
-never poke into the Pod when the Pod moves.
-```
-
-### before `const MOUNT_TAG_DY = 12;`
-
-```
-Both remounts end on the Pod floor, and at -14 each tag spends 100ms cut by it and 400ms inside the
-Pod. 12 below the ball is the ONLY offset that clears on all four viewports: at 14 and beyond the tag
-meets the emptyDir cap and the PVC top, which sit 100 units under the Pod.
 ```
 
 ### poster
@@ -1078,21 +952,6 @@ NOTE     The last step draws the full-length lane underneath on purpose while th
          come to rest.
 ```
 
-### before `const CONTENT_CX = 600;`
-
-```
-Both columns are centred on this line, and POD_W / KUBE_H are the storage-category standards taken
-from storage-csi-attach-mount and storage-csi-architecture, so the card sizes with its siblings
-rather than on its own numbers.
-```
-
-### before `const CHIP_W = 300, CHIP_GAP = 16, CHIP_COUNT = 3;`
-
-```
-The family EXCEPTION: fsGroupChangePolicy + `Always (default)` measures 265, so 232 would collide and
-300 clears it by 35.
-```
-
 ### before `const WRITE_TAG_DX = 26;`
 
 ```
@@ -1182,14 +1041,6 @@ BUDGET   Family CHIP_W 232: worst case is `backing` + `mounted at /scratch` at 2
          26 * 6.89 + 24 of padding is 203 against the 232 available.
 ```
 
-### before `const CX = 600;`
-
-```
-Pod, PVC and PV all sit on this axis and the two machinery blocks flank it symmetrically. Every one
-of the four column lanes runs on CX itself, which is what lets each arrowhead land dead centre on the
-face it enters.
-```
-
 ### poster
 
 ```
@@ -1238,14 +1089,6 @@ NOT A DEFECT
          (it is the only narrated step that does; `idle` carries no narration at all). Left as
          written, under the category-wide ruling recorded on storage-ephemeral-storage-eviction. Do
          not file it again.
-```
-
-### before `const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;`
-
-```
-Geometry is storage-emptydir's VERBATIM, so the two node-local cards align tier for tier and the only
-differences a reader sees are the two deliberate ones: no ownership spine, and the directory
-surviving the Pod.
 ```
 
 ### poster
@@ -1334,19 +1177,6 @@ NOTE     The card-local `stage()` builds the whole `opacity` field, and EVERY st
          stranded at the opacity some earlier animation was driving it toward (`STO.S-01`). Mount and
          write are one exclusive pair inside it rather than two independent flags, which is the whole
          point: `rewind` then restages that pair from the end state for the animated path alone.
-```
-
-### before `const LEFT_X = 400;`
-
-```
-The panel wall. CONTENT_W is COL_W * 2 + COL_GAP rather than typed, so the two columns re-solve
-together and the corridor between them stays centred.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;`
-
-```
-Sized against `bind mounts` + `Pod A and Pod B` at 178.9, ~29 units of air at 6.88 u/char.
 ```
 
 ### poster
@@ -1514,21 +1344,6 @@ WHY NOT  The controller alone in the bottom LEFT corner at x=60 with the nodes a
          a large dead region through the middle, and content under the panel.
 ```
 
-### before `const LEFT_X = 400;`
-
-```
-The panel wall, read as an L: above y=344 nothing may sit left of it, below that the full width is
-free. The two upper tiers obey it, the VolumeAttachment row at y=359 does not have to.
-```
-
-### before `const G_NODE_BAND = 56, G_BAND_VA = 56, G_VA_DK = 48, G_DK_CHIPS = 22;`
-
-```
-Heights and gaps are declared once, summed, and the leftover split evenly, so the whole card
-re-centres by changing one number. Typing each tier y is what left the node row 30 units of air
-while the three lower tiers were packed at 52.
-```
-
 ### before `const WRITE_TAG_DX = 32;`
 
 ```
@@ -1616,22 +1431,6 @@ NOT A DEFECT
          hide the real ones, so the finding is left reported. The downward step on this same card is
          the opposite case and R3 binds there: `srcDown` lights `at: 'meta'`, on the arrival, because
          downwardAPI is a genuine mid-chain receiver.
-```
-
-### before `const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;`
-
-```
-The Pod sits over the DIRECTORY column only. Running it flush over both columns puts the source
-column under it, as though the ConfigMap and the Secret lived inside the Pod, and drags the content
-bbox to 650.
-```
-
-### before `const READ_TAG_DY = 14;`
-
-```
-The read lane ends on the Pod floor, where -14 puts the tag under the shell edge, 100ms of cut and
-400ms inside the Pod. Below the ball only 12 and 14 clear all four viewports, and 14 is taken so the
-ball does not print on the top of the line.
 ```
 
 ### poster
@@ -1771,13 +1570,6 @@ WIRE LABELS
          which holds because this card's panel right edge is driven by the viewport and not by the text.
 ```
 
-### before `const PITCH = 224;`
-
-```
-One pitch drives the whole phase row: ST_W and GAP fall out of it and each phase centre is the
-previous one plus PITCH. Re-typing a centre is what breaks the even rhythm the row depends on.
-```
-
 ### poster
 
 ```
@@ -1864,14 +1656,6 @@ CONTENT  The `binding` chip turns over on the probe arrival, not at t=0. It name
          and the volume plus the `binding` pair turn over on the claimRef arrival (`toVolume`,
          1933ms), which is the moment the pairing exists on both objects. All three were stated at
          t=0, up to 1.9s before the write that earns them.
-```
-
-### before `const CX = 600;`
-
-```
-The identity column Pod -> PVC -> PV shares this one line, because binding is what fuses the three
-into one chain. It is the only vertical the tops of the Pod and the centre cylinder touch, so a
-second line beside it turns the centre into a crowded pair.
 ```
 
 ### before `const WATCH_TAG_DY = -28;`
@@ -1984,19 +1768,6 @@ NAMING   External-provisioner, capitalised like every other CSI sidecar block in
          19 * 6.89 + 24 of padding is 155 against the 232 available.
 ```
 
-### before `const CX = 600;`
-
-```
-The mirror axis: CLAIM_CX is CX -/+ SPREAD and the disks hang on the same two centre lines, so the
-reflection holds on every tier. The provisioner sits alone on CX because it belongs to neither side.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16;`
-
-```
-Family width. Worst case here is `dataSource` + `kind: PVC` at 155 against the 232 available.
-```
-
 ### poster
 
 ```
@@ -2106,22 +1877,6 @@ NAMING   The lowercase pvc-protection in the finalizers chip and the narration i
          spelled as the API spells it.
 ```
 
-### before `const CX = 600;`
-
-```
-The identity spine, and TIER is the one vertical pitch on the card. storage-volume-expansion reuses
-both numbers so the two cards in this subcategory read as one family.
-```
-
-### before `const DEL_TAG_DY = -40, RM_TAG_DY = -38;`
-
-```
-Both requests travel at PVC_MID, half a box height below the claim top, so at -14 each tag rides
-inside the boxes at its ends: 800ms for the delete, 400ms for the finalizer patch. -40 and -38 are
-the least that clear on all four viewports, and they differ only because the two strings differ in
-width. They are large because the boxes are 68 and 72 tall and the lane is at their middle.
-```
-
 ### before `const MOUNT_TAG_DY = 12;`
 
 ```
@@ -2200,20 +1955,6 @@ DO NOT   Touch the spine inside a reclaim: it only exists on the policy step, so
          wherever the shade is pinned rather than animated.
 BUDGET   Family CHIP_W 232: worst case is `disks` + `3 kept, 1 leaks` at 20 characters, so
          20 * 6.89 + 24 of padding is 162 against the 232 available.
-```
-
-### before `const CX = 600;`
-
-```
-The same spine grammar as storage-volumeclaimtemplates: three ordinal rows, claim in the centre, Pod
-and disk mirrored about it. The policy box above is centred on CX too.
-```
-
-### before `const TAG_DY = -32;`
-
-```
-The reclaim lane enters the claim at its own mid height, so at -16 the tag is cut by the claim and
-the ghost Pod for 600ms. -32 is the least that clears them on all four viewports.
 ```
 
 ### poster
@@ -2316,13 +2057,6 @@ OPEN     CENTRE is open here on purpose. Content spans 400..1010, centre 705 aga
          stays red and the picture stays honest.
 ```
 
-### before `const PVC_Y = 30, PVC_H = 68, PVC_BOTTOM = PVC_Y + PVC_H;`
-
-```
-Every tier declares its own bottom alongside its top, so the lanes between tiers are built from those
-edges rather than from typed y values and re-solve when a tier moves.
-```
-
 ### poster
 
 ```
@@ -2412,20 +2146,6 @@ BUDGET   The WaitForFirstConsumer step is 5800, not 4400: it provisions, materia
          the mount off before the Pod ever blinks, so the card under-shows exactly what it narrates.
          Family CHIP_W 232: worst case is `mode` + `WaitForFirstConsumer` at 24 characters, so
          24 * 6.89 + 24 of padding is 189 against the 232 available.
-```
-
-### before `const CX = 600;`
-
-```
-NODE_CX is CX -/+ SPREAD, derived from the node width and the gap rather than typed, so the two zones
-stay mirrored. The StorageClass and the claim stack on CX because the card is about ONE claim
-resolving into ONE of two zones.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16;`
-
-```
-Family width. Worst case `mode` + `WaitForFirstConsumer` at 189 against 232.
 ```
 
 ### before `const MOUNT_TAG_EMERGE = 300;`
@@ -2590,20 +2310,6 @@ OPEN     A read lane PAIR is declined and the finding stays open. The finding is
          axis.
 ```
 
-### before `const LEFT_X = 400;`
-
-```
-The panel wall. CONTENT_W 400 then puts CONTENT_CX exactly on 600, forced by the chip strip, which
-at 976 units is far wider than any tier above it and therefore sets the visual centre. The node row
-is the one tier allowed outside CONTENT_W, because it sits below the panel floor.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;`
-
-```
-Sized against allocatable.count + `8 per node` at 186, leaving ~22 units between the halves.
-```
-
 ### before `const CAP_TAG_DX = [-16, 0, 16];`
 
 ```
@@ -2695,8 +2401,9 @@ PANEL    Worst step (evict, 483 characters, the longest narration on the card), 
            1920x1080 -> 203 / 209    1440x900 -> 319 / 262    1280x800 -> 358 / 305
            1100x800  -> 397 / 329     900x650 -> 398 / 498
          x<=398 and y<=498. LEFT_X 400 has about 2 units of slack against a measured 398.29 and
-         cannot move left at all. The row above is the EVICT step, the deepest on the card. The
-         161 / 203 / 236 / 255 / 436 are the ESCAPE step, which is only the second deepest: LAD_Y 448 clears escape's 436.29 by 11.7 at
+         cannot move left at all. The row above is the EVICT step, the deepest on the card. The ESCAPE
+         step is only the second deepest, and its own rectangle per viewport comes back from
+         `extents.mjs --viewport=<W>x<H>`: LAD_Y 448 clears escape's 436.29 by 11.7 at
          900x650, and against evict it clears every sampled width but not 900x650, which is the OPEN
          below. DO NOT re-derive either number from a single wide-window screenshot, and note that a
          longer narration invalidates both.
@@ -2783,22 +2490,6 @@ NOT A DEFECT
 NOTE     node() puts its own label RELATIVE to the frame group. Use the primitive: hand-rolling these
          out of box() and appending an absolutely positioned caption renders `node-1` at 874, on top
          of the other column's App box, and `node-2` at 1614, past the viewBox edge.
-```
-
-### before `const LEFT_X = 400;`
-
-```
-The panel wall, ~2 units of slack against a measured 398.29. LAD_Y 448 clears the deepest SAMPLED
-bottom of 329.20 by 119, and does not clear the 497.86 the evict step reaches at 900x650, so the
-bottom band is the tier a longer narration takes out first.
-```
-
-### before `const NODE_W = 192, NODE_GAP = 16, NODE_PAD = 12;`
-
-```
-2*192 + 16 = 400 puts CONTENT_CX exactly on 600, and NODE_W then sets POD_W. The two columns must
-stay IDENTICAL in width: anything that differed between them would read as a difference the card is
-not about.
 ```
 
 ### poster
@@ -2959,21 +2650,6 @@ OPEN     BELOW THE STANDARD SET THIS CARD DOES NOT HOLD, and the cost is per ele
          8.3 units.
 ```
 
-### before `const CX = 600;`
-
-```
-Pod, claim and disk all sit on this axis, and the 162 pitch above it is the same as
-storage-pvc-protection, which is what makes the pair read as one family. The four actors are placed so no lane needs more
-than a single turn.
-```
-
-### before `const CHIP_W = 252, CHIP_GAP = 24;`
-
-```
-Four chips, derived rather than hand-placed. They hold the same number at the start and change ONE
-AT A TIME, so the staggered highlight walking left to right IS the two-phase story.
-```
-
 ### before `const GAUGE_X = DISK_LEFT, GAUGE_W = DISK_W;`
 
 ```
@@ -3081,20 +2757,6 @@ NOT A DEFECT
          `W_RET_WIPE`: `drawn, never travelled`.
 ```
 
-### before `const LEFT_X = 400;`
-
-```
-The panel wall, ~2 units of slack, and the left edge of the node. NODE_W is then the only lever on
-CONTENT_CX and is solved so it lands on 600. Every tier hangs off that centre, so widening the node
-slides the chip strip off the canvas centre while each tier still looks internally symmetric.
-```
-
-### before `const CHIP_W = 232;`
-
-```
-One width for all four chips, sized against `node does` + `no mkfs, no mount` at 179.
-```
-
 ### before `const STAGE_TAG_DX = -46;`
 
 ```
@@ -3187,14 +2849,6 @@ MOTION   HIGHLIGHTS ARE STEP-STATIC: every block a step uses lights at step entr
          lanes, spine, ownership label) settles to a ghost so the picture matches the words. Ghost
          opacities are pinned statically so reduced motion and a mid-step cancel land on the dimmed
          state, and the fade below only eases into it.
-```
-
-### before `const SPINE_X = 600;`
-
-```
-The ownership spine, and the axis both mount lanes are symmetric about. The Pod is stretched to 600
-wide so the two containers sit OUTSIDE the cylinder span, which is what makes the lanes L-shaped and
-lets them enter the cylinder through its side.
 ```
 
 ### poster
@@ -3305,20 +2959,6 @@ NOTE     An object a lane already points AT but which has not been created yet i
          objects that live INSIDE a structure default to OPACITY.pending (the content in the middle
          row, the two disks in the frame). The restore claim is the exception and stays at 0, because
          the top band holds nothing else on that side, so its absence leaves no hole to explain.
-```
-
-### before `const CX = 600;`
-
-```
-The request, the snapshot object and the restore claim all sit on or beside this axis, and the
-backend frame below is centred on it. The rhythm from the frame down is shared with
-storage-pvc-clone, since the two cards sit in one row.
-```
-
-### before `const CHIP_W = 232, CHIP_GAP = 16;`
-
-```
-Family width. Worst case `snapshotHandle` + `snap-0c41` at 183 against 232.
 ```
 
 ### poster
@@ -3491,14 +3131,6 @@ NOT A DEFECT
          at a missing box. Do not file these again.
 ```
 
-### before `const M = 60;`
-
-```
-One margin both sides, so CONTENT_L / CONTENT_R and CX fall out of it. LEFT_X is a separate wall at
-400 that only the TOP band obeys: the usable area is an L and the disk lives in its free bottom-left
-corner.
-```
-
 ### before `const DRIVER_TAG_DY = 22;`
 
 ```
@@ -3626,13 +3258,6 @@ OPEN     THE `rebind` DELETE IS THE ONE POD FADE HERE WITH NO PULSE IN FRONT OF 
          has to rise with it. That is a pacing change to the longest step here in exchange for a cue
          the shape already carries, since a Pod dissolving over 850ms with a 550ms hold at the ghost is
          two readable beats on its own.
-```
-
-### before `const CX = 600;`
-
-```
-The claim is the subject, so it sits in the CENTRE of every ordinal row on this spine, with its Pod
-and its disk mirrored about it at CX -/+ FLANK. The mint spine drops straight down the same line.
 ```
 
 ### poster

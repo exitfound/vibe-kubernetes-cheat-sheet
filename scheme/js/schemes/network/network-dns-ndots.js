@@ -31,6 +31,9 @@ const QUERY = [[POD_EDGE, FWD_Y], [DNS_LEFT, FWD_Y]];
 const ANSWER = [[DNS_LEFT, RET_Y], [POD_EDGE, RET_Y]];
 const LANE_CX = midX(POD_EDGE, DNS_LEFT);    // 600, where both lane labels sit
 
+// Four candidates, so four round trips per address family, and the walk step budget of 10400 is
+// sized off exactly this list on the 380 unit lane. A fifth candidate lengthens the walk past the
+// budget and the auto-advance clips it.
 const CANDIDATES = ['api.ns.svc.cluster.local', 'api.svc.cluster.local', 'api.cluster.local', 'api'];
 
 // The absolute form and the answer a hit gets, both said twice per step: once as the state the step

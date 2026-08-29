@@ -243,9 +243,12 @@ and the meaning broken (`T-31`).
 
 ## 8. Update the records
 
-Whatever you edited here, the LAST step is the markdown sweep in `card-review`'s phase 8, "sweep the
-numbers, do not judge them". A reworded `desc` or narration moves a character count, and a count is
-a claim about the tree that can go stale in a file you never opened. Run it and report its verdicts.
+Whatever you edited here, the LAST step is the count sweep in
+`.claude/skills/_shared/card-verify.md` section 4, "sweep the counts, do not judge them". A reworded
+`desc` or narration moves a character count, and a count is a claim about the tree that can go stale
+in a file you never opened. Run it and report its verdicts. When the edit lands on a card that
+already exists, `_shared/card-edit.md` is read BEFORE the first rewording: it carries the ruling
+check and the blast radius a prose change sets off.
 
 The fact check owns two places, and it is not finished until both are true:
 

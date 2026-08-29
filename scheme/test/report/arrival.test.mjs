@@ -17,6 +17,13 @@
 // lights at step entry WITH its text change (setChip does both in one call), while boxes, pods and
 // cylinders light on arrival. Two different cues for two different kinds of object.
 //
+// ALL THREE AXES CARRY RULINGS, and none of them hides one. A finding somebody has read and decided
+// to keep is filed in ../fixtures/carried.mjs against its axis, and this file then prints it marked
+// CARRIED with the reason attached and counts it apart from the rows still to work. Two guards come
+// with that store and both print here: a ruling with no reason or naming no catalogued card is
+// reported as BROKEN, and a ruling that matches no finding on this walk is reported as stale,
+// because a rule that stopped firing means the card moved under the ruling.
+//
 // WHY THIS FILE NEVER FAILS ON A FINDING. Both rules find things today, and every one of them is a
 // statement about a CARD, not about the harness. The project already runs the cycle "report-only,
 // then triage, then promote into the mandatory set" (the ENFORCED sets in check-canon.mjs:78 and
@@ -54,9 +61,10 @@
 //                is checkable, and each finding is additionally labelled with whether a cue lands
 //                later in that same step.
 //      R2-STEP   settled against settled, which is what the rule actually asks. This is the queue,
-//                and R2_STEP_CARRIED below holds the findings a human has read and kept, with the
-//                reason on each. All seven carried today are one class: the chip's TEXT changed
-//                while the FACT it reports did not. Anything outside that table is work.
+//                and the rulings a human has read and kept live in ../fixtures/carried.mjs, keyed
+//                `<card id> <step index> <chip name>`, with the reason on each. All seven carried
+//                today are one class: the chip's TEXT changed while the FACT it reports did not.
+//                Anything outside that table is work.
 //    They disagree, and the disagreement is the point: a rule can be reported faithfully and still
 //    be reading the wrong frame.
 //
@@ -76,6 +84,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { carriedBlock, carriedMap, carryKey, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
 import {
   DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, launch, initPage, discoverIds, openCard, stepCount,
@@ -173,23 +182,18 @@ const near = (b, p, tol) =>
 
 const catalogued = await cards();
 
-// R2-STEP entries a human has READ and decided to carry, with the reason, keyed `<id> <step> <chip>`.
-// All seven are ONE class: the chip's TEXT changed while the FACT it reports did not, so a cue would
-// announce a change that did not happen. Anything outside this table is the queue to work, and an
-// entry here that stops being reported is a stale carry: the count below prints both halves.
-const R2_STEP_CARRIED = new Map([
-  ['cluster-list-watch-informers 6 resourceVersion',
-    'the 410 aside is over and the three chips go BACK to the steady state step 4 left (843, open streaming, 4). A cue would say they moved on'],
-  ['cluster-list-watch-informers 6 watch', 'same restoration'],
-  ['cluster-list-watch-informers 6 cache size', 'same restoration'],
-  ['cluster-static-pods 5 mirror Pod',
-    'the mirror was deleted and recreated INSIDE the previous step (present, gone, back), so this reading is the steady name returning. The news of this step is the Pod restarting, and that chip is lit'],
-  ['cluster-oom-kill 3 container state',
-    'containerStatuses[].state is STILL Running: the suffix `not yet observed` explains an unchanged fact, and the turnover the reader must catch is on the observe step, where the chip IS lit'],
-  ['network-client-ip-preservation 5 X-Forwarded-For',
-    'raw TCP carries no headers, so the header panel empties because this mode has none. The news is the mode, the reader and the recovered address, all three lit'],
-  ['network-client-ip-preservation 5 Forwarded', 'same, the other header of the pair'],
-]);
+// The three axes of this file that carry rulings, keyed `<card id> <step index> <chip name>` for the
+// two R2 axes and `<card id> <step index> <block label>` for R3. THE ENTRIES LIVE IN
+// ../fixtures/carried.mjs, the one store for a report finding somebody has ruled on and kept, and
+// these are its axis views. `R2_STEP_CARRIED` keeps its name because CANON.md P-09a cites it.
+//
+// All seven R2-STEP rulings are ONE class: the chip TEXT changed while the FACT it reports did not,
+// so a cue would announce a change that did not happen. R2-ENTRY is a different class, almost
+// entirely the frozen-sampling artefact this file documents in its own header. Anything outside
+// either table is the queue to work.
+const R2_STEP_CARRIED = carriedMap('R2-STEP');
+const R2_ENTRY_CARRIED = carriedMap('R2-ENTRY');
+const R3_CARRIED = carriedMap('R3');
 
 test('arrival grammar across every step (report only, census is the one assertion)', async (t) => {
   const r3 = [], r2entry = [], r2step = [], notes = [];
@@ -253,11 +257,14 @@ test('arrival grammar across every step (report only, census is the one assertio
                 if (!b.hl) continue;             // dark at entry, lights on arrival: correct
                 const key = `${id}|${i}|${b.label}|${b.x.toFixed(0)},${b.y.toFixed(0)}`;
                 if (r3.some(l => l.key === key)) continue;
+                // The CARRY key drops the coordinates the de-dup key needs: a ruling must survive a
+                // block moving a few units, and the label plus the step already pin one row.
+                const carry = carryKey(id, [String(i), b.label]);
                 r3.push({
-                  key, id,
+                  key, id, carryKey: carry, why: R3_CARRIED.get(carry),
                   line: `${id} step ${i}  "${b.label}" (${b.kind}) is lit when the step opens and receives a packet at ${pkt.arrivalMs}ms`,
                 });
-                r3ByCard.set(id, (r3ByCard.get(id) || 0) + 1);
+                if (!R3_CARRIED.has(carry)) r3ByCard.set(id, (r3ByCard.get(id) || 0) + 1);
               }
             }
           }
@@ -275,12 +282,14 @@ test('arrival grammar across every step (report only, census is the one assertio
               const late = settled && settled.find(p => p.key === c.key);
               const deferred = !!(late && late.hl);
               if (deferred) deferredCue++;
+              const carry = carryKey(id, [String(i), c.name]);
+              const why = R2_ENTRY_CARRIED.get(carry);
               r2entry.push({
-                id, deferred,
+                id, deferred, carryKey: carry, why,
                 line: `${id} step ${i}  [${deferred ? 'CUE LANDS LATER' : 'NO CUE IN STEP '}] chip "${c.name}" changed ` +
                   `${JSON.stringify(was.value)} to ${JSON.stringify(c.value)} with no .highlight at entry`,
               });
-              entryByCard.set(id, (entryByCard.get(id) || 0) + 1);
+              if (!why) entryByCard.set(id, (entryByCard.get(id) || 0) + 1);
             }
           }
 
@@ -298,7 +307,7 @@ test('arrival grammar across every step (report only, census is the one assertio
               if (was.value === c.value) continue;
               stepChanged++;
               if (c.hl) continue;
-              const key = `${id} ${i} ${c.name}`;
+              const key = carryKey(id, [String(i), c.name]);
               const why = R2_STEP_CARRIED.get(key);
               r2step.push({
                 id,
@@ -334,21 +343,32 @@ test('arrival grammar across every step (report only, census is the one assertio
     out.push(`  REPORT INCOMPLETE: expected at least ${EXPECTED_CARDS} cards and ${EXPECTED_STEPS} steps, ` +
       'every number below undercounts');
   }
+  // Every axis below prints the same two-tier shape: the rows still to work, then the rows a person
+  // read and kept, marked CARRIED with the reason. The two counts are never added together.
   out.push('');
-  out.push(`R3  lit before the ball lands: ${r3.length} finding(s) on ${r3ByCard.size} card(s)`);
-  for (const f of r3) out.push('  ' + f.line);
+  const r3open = r3.filter(f => !f.why), r3held = r3.filter(f => f.why);
+  out.push(`R3  lit before the ball lands: ${r3.length} finding(s), ` +
+    `${r3held.length} carried with a reason, ${r3open.length} left to work on ${r3ByCard.size} card(s)`);
+  for (const f of r3open) out.push('  ' + f.line);
   if (r3ByCard.size) {
     out.push('  by card:');
     for (const [id, c] of [...r3ByCard.entries()].sort((a, b) => b[1] - a[1])) out.push(`    ${String(c).padStart(3)}  ${id}`);
   }
+  for (const l of carriedBlock('R3', r3held.map(f => ({ key: f.carryKey, why: f.why })),
+    staleKeys('R3', r3.map(f => f.carryKey)), '  ')) out.push(l);
+
   out.push('');
-  out.push(`R2-ENTRY  the tool's own reading, both samples frozen at t=0: ${r2entry.length} finding(s) on ${entryByCard.size} card(s)`);
+  const entryOpen = r2entry.filter(f => !f.why), entryHeld = r2entry.filter(f => f.why);
+  out.push(`R2-ENTRY  the tool's own reading, both samples frozen at t=0: ${r2entry.length} finding(s), ` +
+    `${entryHeld.length} carried with a reason, ${entryOpen.length} left to work on ${entryByCard.size} card(s)`);
   out.push(`    of those, ${deferredCue} have a cue that lands later in the same step and ${r2entry.length - deferredCue} have none in that step`);
-  for (const f of r2entry) out.push('  ' + f.line);
+  for (const f of entryOpen) out.push('  ' + f.line);
   if (entryByCard.size) {
     out.push('  by card:');
     for (const [id, c] of [...entryByCard.entries()].sort((a, b) => b[1] - a[1])) out.push(`    ${String(c).padStart(3)}  ${id}`);
   }
+  for (const l of carriedBlock('R2-ENTRY', entryHeld.map(f => ({ key: f.carryKey, why: f.why })),
+    staleKeys('R2-ENTRY', r2entry.map(f => f.carryKey)), '  ')) out.push(l);
   out.push('');
   const open = r2step.filter(f => !f.why), held = r2step.filter(f => f.why);
   out.push(`R2-STEP   the same rule off the SETTLED step: ${r2step.length} finding(s), ` +
@@ -359,12 +379,19 @@ test('arrival grammar across every step (report only, census is the one assertio
     out.push('  by card:');
     for (const [id, c] of [...stepByCard.entries()].sort((a, b) => b[1] - a[1])) out.push(`    ${String(c).padStart(3)}  ${id}`);
   }
-  if (held.length) {
-    out.push('  carried, text changed and the fact did not:');
-    for (const f of held) out.push(`    ${f.line}\n      WHY ${f.why}`);
+  if (held.length) out.push('  carried, text changed and the fact did not:');
+  for (const l of carriedBlock('R2-STEP', held.map(f => ({ key: f.key, why: f.why, line: f.line })),
+    staleKeys('R2-STEP', r2step.map(f => f.key)), '    ')) out.push(l);
+
+  // The store's own shape, printed rather than asserted: a suppression with no reason or naming no
+  // catalogued card is a broken RULING, and this file fails on the census alone.
+  const ids = new Set(catalogued.map(c => c.id));
+  const broken = ['R3', 'R2-ENTRY', 'R2-STEP'].flatMap(a => shapeProblems(a, ids));
+  if (broken.length) {
+    out.push('');
+    out.push(`BROKEN RULINGS in fixtures/carried.mjs: ${broken.length}`);
+    for (const b of broken) out.push('  ' + b);
   }
-  const stale = [...R2_STEP_CARRIED.keys()].filter(k => !r2step.some(f => f.key === k));
-  if (stale.length) out.push(`  carried entries no longer reported (stale, remove them): ${stale.join(' | ')}`);
   if (notes.length) {
     out.push('');
     out.push(`steps or cards that could not be read: ${notes.length}`);
@@ -382,6 +409,8 @@ test('arrival grammar across every step (report only, census is the one assertio
     `sampled ${sampled} step(s), expected at least ${EXPECTED_STEPS}. A step nobody entered is a ` +
     'step whose arrival cue was never read, and this file would still print a number.');
 
-  t.diagnostic(`arrival: ${walked} cards, ${sampled} steps, R3 ${r3.length}, ` +
-    `R2-ENTRY ${r2entry.length}, R2-STEP ${r2step.length} (${r2step.filter(f => !f.why).length} unexplained)`);
+  t.diagnostic(`arrival: ${walked} cards, ${sampled} steps, ` +
+    `R3 ${r3.length} (${r3.filter(f => !f.why).length} unexplained), ` +
+    `R2-ENTRY ${r2entry.length} (${r2entry.filter(f => !f.why).length} unexplained), ` +
+    `R2-STEP ${r2step.length} (${r2step.filter(f => !f.why).length} unexplained)`);
 });

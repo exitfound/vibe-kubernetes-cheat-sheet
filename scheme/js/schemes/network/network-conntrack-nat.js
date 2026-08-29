@@ -5,6 +5,8 @@ import { P, F, defineCard, laneY, midX, BEAT } from './network-kit.js';
 
 // Panel right <= 397, bottom <= 255. The flow row starts at 252, so the top 3 units of the Client Pod
 // DO overlap the panel corner: measured and left, not a clearance. A longer narration invalidates it.
+// The row spans 70..1130 to centre on 600, which is why the server Pod ends on 1130 and not 1110, and
+// the two lanes are stacked about that baseline so every ball has a matching arrow.
 const POD_Y = 252, POD_H = 120;                    // both Pod shells stand on one baseline
 const CLIENT_X = 70, CLIENT_W = 190;
 const CLIENT_EDGE = CLIENT_X + CLIENT_W;           // 260

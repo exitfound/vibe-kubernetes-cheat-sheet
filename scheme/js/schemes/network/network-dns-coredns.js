@@ -5,7 +5,9 @@ import { P, F, defineCard, laneY, midX, BEAT } from './network-kit.js';
 
 
 // Panel right <= 397, bottom <= 305, one of the deepest in the catalog, so the client column hangs
-// entirely below it and the CoreDNS Pod holds the right edge: the two together centre on 600.
+// entirely below it and the CoreDNS Pod holds the right edge: the two together centre on 600. Pull
+// the Pod in and the card decentres, since the ladder and the chips are not blocks and CENTRE cannot
+// see them.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 400;                 // shared centre of the client and the CoreDNS Pod
 const LANE_DY = 12;                 // half-gap between the two lanes

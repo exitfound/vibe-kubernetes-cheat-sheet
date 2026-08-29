@@ -2,6 +2,8 @@ import { P, F, defineCard, BEAT } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-csi-attach-mount
 
 
+// COL_W is solved from the margin and the gutter (516), so the two columns and the ladder inside the
+// left one re-size together. The chips are solved the same way: 4*CHIP_W + 3*16 = 1080.
 const M = 60, GUTTER = 48;
 const COL_W = (1200 - 2 * M - GUTTER) / 2;               // 516: solved, see above
 

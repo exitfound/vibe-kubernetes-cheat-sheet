@@ -5,6 +5,8 @@ import { podShell } from '../../lib/primitives.js';
 // Design notes for this card: ./CARDS.md#network-namespaces
 
 
+// POD_CY is derived from POD_TOP and POD_H and the host block centres on it, so the two columns stay
+// level when either moves. Re-typing the host y is what breaks the pairing.
 const POD_TOP = 160;      // Pod netns shell top
 const POD_H = 304;        // Pod netns shell height
 const POD_CY = POD_TOP + POD_H / 2;   // 312: Pod netns vertical center, the host block centers on this

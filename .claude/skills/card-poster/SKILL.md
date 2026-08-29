@@ -177,9 +177,10 @@ its `CONTENT` block belongs to `card-facts`.
 cd scheme/test && npm run test:unit        # D-06 bijection card <-> poster, and the record parses
 ```
 
-Then the LAST step, the markdown sweep in `card-review`'s phase 8, "sweep the numbers, do not judge
-them". Adding or redrawing a poster moves a coverage count (`R-12` claims every card), which is a
-claim about the tree stated in files this skill never opens. Run it and report its verdicts.
+Then the LAST step, the count sweep in `.claude/skills/_shared/card-verify.md` section 4, "sweep the
+counts, do not judge them". Adding or redrawing a poster moves a coverage count (`R-12` claims every
+card), which is a claim about the tree stated in files this skill never opens. Run it and report its
+verdicts.
 
 Then rebuild the local container, because a poster is served content:
 

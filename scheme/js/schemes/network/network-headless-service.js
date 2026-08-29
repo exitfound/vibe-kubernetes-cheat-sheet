@@ -3,6 +3,9 @@ import { P, F, defineCard, laneY, midX, BEAT } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-headless-service
 
 
+// Everything is symmetric about this line: web-1 sits ON it, web-0 and web-2 mirror about it, and
+// CoreDNS is centred on it so its fan to the three Pods is symmetric. Move CY and the fan stops
+// being a mirror.
 const CY = 320;                      // canvas centre line: Pods column + CoreDNS are centred on it
 const W0 = 168, W1 = CY, W2 = 472;   // backend Pod centre rows (W0/W2 mirror about CY)
 const POD_X = 880, POD_W = 240, POD_H = 116;   // backend Pods

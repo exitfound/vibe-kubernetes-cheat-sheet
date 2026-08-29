@@ -3,6 +3,8 @@ import { P, F, defineCard } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-cni-invocation
 
 
+// Lifts every tier together rather than one at a time. The sandbox height is then tuned so its block
+// centre lands exactly on PAUSE_Y, which is what keeps the result and join arrows straight.
 const RAISE = 64;                           // lift the whole diagram up ~10% of the viewBox height
 const ROW_Y = 352 - RAISE;                  // 288: Kubelet / CRI / bridge-tap row (straight ADD)
 

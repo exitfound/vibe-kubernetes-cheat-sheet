@@ -3,6 +3,8 @@ import { P, F, defineCard, makeRidingLabel, BEAT, FADE, OPACITY } from './networ
 // Design notes for this card: ./CARDS.md#network-service-terminating-endpoints
 
 
+// The client and kube-proxy are centred on this line and both backend fans leave it, so the two
+// right-angle routes are mirror images. The Pods are the only blocks off it.
 const FLOW_Y = 326;                     // center line: client and kube-proxy are centred on it
 const CLIENT_EDGE = 255;                // right edge of the client Pod shell
 const KP_LEFT = 440, KP_RIGHT = 660;    // kube-proxy box left / right edges

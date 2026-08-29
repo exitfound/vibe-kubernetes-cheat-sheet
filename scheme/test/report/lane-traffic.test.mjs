@@ -103,6 +103,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { carriedBlock, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { walkParts } from '../fixtures/spec.mjs';
 
@@ -329,9 +330,10 @@ test('A-05, a drawn lane nothing rides (report only, census is the assertion)', 
       (r.on ? `   (${r.on} of ${r.of} segments do carry something)` : '') +
       (r.raws || r.tunes ? `   [${r.raws} raw, ${r.tunes} tune on this card]` : ''));
   }
-  for (const r of held) out.push(`   CARRIED  ${r.carryKey}\n      WHY ${r.why}`);
-  const stale = [...A05_CARRIED.keys()].filter(k => ![...traversed, ...dead].some(r => r.carryKey === k));
-  if (stale.length) out.push(`   carried entries no longer reported (stale, remove them): ${stale.join(' | ')}`);
+  // One shape for a carried row across every report file: ../fixtures/carried.mjs owns it.
+  const stale = staleKeys('A-05', [...traversed, ...dead].map(r => r.carryKey));
+  for (const l of carriedBlock('A-05', held.map(r => ({ key: r.carryKey, why: r.why })), stale)) out.push(l);
+  for (const b of shapeProblems('A-05', new Set(catalogued.map(c => c.id)))) out.push(`   BROKEN RULING  ${b}`);
   out.push('   A-05 is about the ARROWHEAD: the repair it names is relationPath, not deleting the line.');
   out.push('   NET.A-03 says a fan leg nothing rides is correct, so most of the carried table is that.');
 

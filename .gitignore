@@ -20,3 +20,9 @@ smoke-*.png
 
 # Scheme test harness: the one playwright install the whole sub-app shares.
 scheme/test/node_modules/
+
+# CodeGraph: the local code-intelligence index, one per machine.
+.codegraph/
+
+# CodeGraph: the MCP server registration is per-machine, like the index.
+.mcp.json

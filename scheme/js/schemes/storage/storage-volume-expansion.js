@@ -3,6 +3,8 @@ import { g, rect } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-volume-expansion
 
 
+// Pod, claim and disk all sit on this axis, and the four actors are placed so no lane needs more than
+// a single turn.
 const CX = 600;
 
 // Three tiers on ONE 162 pitch, measured between block MIDPOINTS: 108, 270, 432. Same pitch and
@@ -31,6 +33,8 @@ const VERDICT_LBL_X = PVC_X - 16, VERDICT_LBL_Y = PVC_MID + 4; // 464 / 274, anc
 const CAP_LBL_Y = DISK_Y + DISK_H / 2 + 5 + 14;                // 451
 const CHIP_Y = 545, CHIP_H = 34;                               // strip ends at 579
 
+// Four chips, derived rather than hand-placed. They hold the same number at the start and change ONE
+// AT A TIME, so the staggered highlight walking left to right IS the two-phase story.
 const CHIP_W = 252, CHIP_GAP = 24;
 const STRIP = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });  // 60 / 336 / 612 / 888
 

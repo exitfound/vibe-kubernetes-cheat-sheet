@@ -207,6 +207,7 @@ export const STEPS_SPEC = [
       // only THEN does the ReplicaSet see a selector match and PATCH the ownerReference.
       F.fade({ target: 'pod4', from: 0, to: OPACITY.notready, dur: FADE.in, delay: 0, fill: 'both', easing: 'ease-out' }),
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: FADE.in + BEAT.afterHop, name: 'patch', lights: ['api'] }),
+      // The claim runs down the connector, and the fourth replica joins the managed set on arrival.
       F.route({ points: LANE(3), after: 'patch', name: 'join' }),
       // Adoption is a change of OWNER, not a birth: the Pod rises out of unmanaged and its sublabel
       // turns over on the same beat, so the ball lands on a Pod that was already running.

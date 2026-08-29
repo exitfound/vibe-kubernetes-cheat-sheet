@@ -4,7 +4,9 @@ import { P, F, defineCard, laneY, BEAT } from './network-kit.js';
 
 
 // Panel right <= 397, bottom <= 330, so the query row and the FQDN band both hang below it and only
-// the record ladder, far right of 397, sits beside the panel.
+// the record ladder, far right of 397, sits beside the panel. Content and chip strip both span this
+// band, which is what centres the bbox on 600, and the FQDN band is the only block that reaches
+// CONTENT_R, so narrowing it moves the measured centre while every other tier stays put.
 const CONTENT_L = 80, CONTENT_R = 1120;
 
 const FLOW_Y = 400;                       // client + CoreDNS centre line

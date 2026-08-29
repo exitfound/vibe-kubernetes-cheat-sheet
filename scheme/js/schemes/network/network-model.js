@@ -4,7 +4,10 @@ import { g, rect, text, line } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#network-model
 
 
-const RAISE = 64;                        // band/Pods/chips: net +10% up (lowered 5% from the old 96)
+// Band, Pods and chips all move with RAISE, a net 10% lift, while the kubelet keeps its own higher
+// KUBELET_RAISE, so the gap between it and the band is deliberate rather than left over. Pod centres
+// are spread with equal end-margins inside SCHEME_L..SCHEME_R.
+const RAISE = 64;
 const KUBELET_RAISE = 96;                // kubelet stays one notch higher than the rest
 const SCHEME_L = 120, SCHEME_R = 1080;   // content edges, mirrored about x=600
 const BAND_X = SCHEME_L, BAND_W = SCHEME_R - SCHEME_L;   // flat-network band: 120..1080 (width is optimal, kept)

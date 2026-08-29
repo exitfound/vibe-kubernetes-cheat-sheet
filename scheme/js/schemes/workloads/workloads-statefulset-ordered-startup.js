@@ -16,7 +16,12 @@ const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
 const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
 const SVC_X = TOP2_X, SVC_W = TOP2_W, SVC_Y = 152, SVC_H = WL.BOX_H;
 const SVC_CX = SVC_X + SVC_W / 2;
-// The registration lane, API down into the headless Service. Wire and ball share these points.
+// The registration lane, API down into the headless Service. It is a `pathArrow` off this array, so
+// wire and ball share the points and cannot drift apart. A ball rides it one beat after the Pod
+// pulses Ready, because registration follows readiness, and the Service is a receiver, so it lights
+// on arrival rather than at step entry. It is never drawn with an arrowhead and no ball: the card
+// names the registration three times in narration and labels the wire for it three times through
+// the step field `wires: { svc: ... }`.
 const SVC_LANE = [[SVC_CX, WL.TOP_BOTTOM], [SVC_CX, SVC_Y]];
 
 const BAND_Y = PANEL_B + PANEL_GAP;                      // 276, both columns start here

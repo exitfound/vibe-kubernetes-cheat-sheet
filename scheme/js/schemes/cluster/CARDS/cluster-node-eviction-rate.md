@@ -11,11 +11,17 @@ LAYOUT   Layout C, ladder right at 660..1140, chips as a two across bottom strip
          TWO ZONE FRAMES SIDE BY SIDE, 530 each on the derived spread, 60..590 and 610..1140. Stacked
          full width was measured and fails: two 126 frames plus a 20 gap is 272, and with the ladder
          ending at 336 and the chip strip starting at 548 the band left is 212.
-PANEL    Measured, all three viewports, over all six steps:
-         1600x1000  right 290.77, bottom 160.00..194.89
-         1280x860   right 377.76, bottom 192.67..235.17
-         1100x800   right 396.55, bottom 229.82..279.51
-         Deepest 279.51 at 1100x800 on `zone-unhealthy`, the longest narration on the card at 407
+         The two zones are NOT drawn as a roster of individual Nodes. A zone here is 60 Nodes and
+         the picture
+         holds four boxes: they are the HEAD OF THE QUEUE, which is what the slot state lines say
+         (`next in queue`, `waiting`, `queued`) and what the state chip beside them counts. Drawing 6
+         Nodes per zone would make the cluster 12, which is at or under
+         `--large-cluster-size-threshold` 50, and the card would then have to say evictions STOP
+         where its own chips say 0.01 per second: a contradiction with the flag reference, invisible
+         to every check, created by a change that only looks like adding detail.
+PANEL    Right edge and bottom per viewport, over all six steps:
+         `OVERLAY_IDS=cluster-node-eviction-rate node --test report/overlay.test.mjs`.
+         Deepest at 1100x800 on `zone-unhealthy`, the longest narration on the card at 407
          characters. WHAT THE PANEL REACHES FIRST IS THE `branch` CAPTION, not the lane: its box top
          is 339, so the clearance is 59.5, where JOG_Y 366 has 86.5 and the frame tops at 406 have
          126.5. That 59.5 is the card's real budget and it is about three panel lines at this
@@ -66,6 +72,51 @@ MOTION   THE BALL RUNS AT THE CANON SPEED, not on the clamp. 537 units at `PKT_S
          `monitor` LIGHTS ITS FOUR SLOTS AT `BEAT.lead` rather than at entry. The chips are the
          controller's own tally and land at entry (`P-06`), the slots are boxes and light on the beat
          the read reaches them (`P-05a`), and without that beat the step animated nothing at all.
+         `zone-unhealthy` REGISTERS NO ANIMATION AT ALL AND STANDS STILL FOR ITS WHOLE 3600, which
+         puts it at the far end of the still ranking. It is the shape `M-19a` names and it is
+         deliberate here for a reason no other still step in the catalogue has: the step's own narration ends `The picture stands
+         still because the next taint there is 100 seconds away`, so the stillness IS the rate the
+         step is about. The other half of `M-19a` clears it on the numbers too, exactly as
+         `cluster-node-failure` argues for its own still step: the rule wants a step still AND
+         ORDINARY on pace, and 8.85 ms per character is well under the catalogue median,
+         which is fast rather than ordinary. The hold is already spent on the text.
+         It is NOT closed by putting a ball on `zone-unhealthy`. At 0.01 per second the next taint
+         is 100
+         seconds out, so a ball there would draw the reduced rate as identical to the normal one,
+         which is the single thing this card exists to tell apart. The two lanes look the same on
+         `normal-rate` and `resumed` already, and the captions are all that separate them.
+         THE LAST TWO STEPS WIND EVERYTHING THE BEAT PRODUCES BACK (`P-03`). The static
+         block states the end, so without the rewind `all-zones` opens with `60 of 60 NotReady` and
+         two `stopped` rates standing over two slots that still read `Ready` at full strength, for
+         the whole 800 of `BEAT.lead`, and `resumed` stood 1993ms ahead of its own first ball, which
+         is where `report/chip-beat.test.mjs` ranked it sixth of 332 on the FORM-B queue. The first
+         was visible on the rendered entry frame and invisible to every check.
+         WHICH BEAT EACH ONE TAKES IS THE POINT, not that they take one. On `all-zones` the chips
+         land with the fade at `BEAT.lead`, because losing contact with zone B is what produces
+         them. On `resumed` they land on the RECOVERY, `at: 'recover'` off the Node-41 fade at 600,
+         and NOT on either ball at 1993: what re-decides the two rates is the zone answering again,
+         and the taints that follow are the consequence. The card leaves the FORM-B queue entirely,
+         332 records down to 329.
+         `resumed` WINDS BACK ITS TWO LANE CAPTIONS AND NODE-41'S STATE LINE TOO, and the chips
+         alone were not enough. With only the chips wound back, the entry frame drew
+         `NoExecute taint · 1 Node per 100s` and `NoExecute taint · 1 Node per 10s` over two rate
+         chips reading `stopped · every zone fully down`: two rates running and stopped at once, for
+         the 600 until the recovery lands. Node-41 read `Ready` at the same time, at
+         `OPACITY.notready` 0.40, which the shade block below defines as not serving. Both were
+         visible on the rendered entry frame at all three viewports and invisible to the whole
+         gate, the same class the paragraph above records for `all-zones`. The fix is one
+         `rewind` and one `F.set`: the captions and the state line ride `at: 'recover'` with the
+         chips, so nothing on the canvas contradicts a chip beside it.
+         `monitor` CUES NO CHIP AND THAT IS `P-09a`. The two share chips carry the same values on the
+         poster and on this step, because the poster is the state the controller is about to read
+         and not a state before it: nothing MOVES, so nothing is cued, and the beat is the four
+         slots lighting at `BEAT.lead`. Every other narrated step cues exactly the chips whose value
+         changed, and none of the ones that did not.
+         THE SLOT SHADES ARE THE PHASE VOCABULARY AND NOTHING ELSE. A Ready Node is 1.00, a NotReady
+         one is `OPACITY.notready` 0.40, which is `alive but not serving, not observed` to the word.
+         A TAINTED Node keeps 0.40: the taint starts the eviction of its Pods, it does not delete the
+         Node, so nothing on this card ever reaches `terminating` or `terminated`. What marks the
+         arrival is the state line turning over plus the light, not a change of shade.
 WIRE LABELS
          THREE REGISTERS, all three ABOVE the frames rather than inside one. `wA` and `wB` sit
          BELOW the leg each names, the catalog offset, at y=384, and are CENTRED on that leg
@@ -194,69 +245,10 @@ CONTENT  Read against the `k8sVersion` the entry carries.
          this block, with the sublabel naming the one controller inside it that this card is about.
          `node-lifecycle-controller` as the label would break that agreement for a card that never
          leaves the one component.
-BUDGET   Measured with `timing.mjs` and `deadair.mjs`, which rank each of these rows against the
-         catalogue and print the medians they are ranked against:
-         monitor        349 chars, 3000, 8.60 ms/char, still 2199 of 3000
-         normal-rate    385 chars, 3300, 8.57 ms/char, still  747 of 3300
-         zone-unhealthy 407 chars, 3600, 8.85 ms/char, still 3600 of 3600
-         all-zones      329 chars, 3100, 9.42 ms/char, still 1600 of 3100
-         resumed        382 chars, 3300, 8.64 ms/char, still  747 of 3300
+BUDGET   Characters, duration, pace and still time per step are what `timing.mjs` and `deadair.mjs`
+         print, ranked against the catalogue and against the medians they print with them.
          Every pace here sits under the catalogue median, which is the reading the next block turns
          on.
-NOT A DEFECT
-         `zone-unhealthy` REGISTERS NO ANIMATION AT ALL AND STANDS STILL FOR ITS WHOLE 3600, which
-         puts it at the far end of the still ranking. It is the shape `M-19a` names and it is
-         deliberate here for a reason no other still step in the catalogue has: the step's own narration ends `The picture stands
-         still because the next taint there is 100 seconds away`, so the stillness IS the rate the
-         step is about. The other half of `M-19a` clears it on the numbers too, exactly as
-         `cluster-node-failure` argues for its own still step: the rule wants a step still AND
-         ORDINARY on pace, and 8.85 ms per character is well under the catalogue median,
-         which is fast rather than ordinary. The hold is already spent on the text.
-DO NOT   Close it by putting a ball on `zone-unhealthy`. At 0.01 per second the next taint is 100
-         seconds out, so a ball there would draw the reduced rate as identical to the normal one,
-         which is the single thing this card exists to tell apart. The two lanes look the same on
-         `normal-rate` and `resumed` already, and the captions are all that separate them.
-DO NOT   Draw the two zones as a roster of individual Nodes. A zone here is 60 Nodes and the picture
-         holds four boxes: they are the HEAD OF THE QUEUE, which is what the slot state lines say
-         (`next in queue`, `waiting`, `queued`) and what the state chip beside them counts. Drawing 6
-         Nodes per zone would make the cluster 12, which is at or under
-         `--large-cluster-size-threshold` 50, and the card would then have to say evictions STOP
-         where its own chips say 0.01 per second: a contradiction with the flag reference, invisible
-         to every check, created by a change that only looks like adding detail.
-NOTE     THE LAST TWO STEPS WIND EVERYTHING THE BEAT PRODUCES BACK (`P-03`). The static
-         block states the end, so without the rewind `all-zones` opens with `60 of 60 NotReady` and
-         two `stopped` rates standing over two slots that still read `Ready` at full strength, for
-         the whole 800 of `BEAT.lead`, and `resumed` stood 1993ms ahead of its own first ball, which
-         is where `report/chip-beat.test.mjs` ranked it sixth of 332 on the FORM-B queue. The first
-         was visible on the rendered entry frame and invisible to every check.
-         WHICH BEAT EACH ONE TAKES IS THE POINT, not that they take one. On `all-zones` the chips
-         land with the fade at `BEAT.lead`, because losing contact with zone B is what produces
-         them. On `resumed` they land on the RECOVERY, `at: 'recover'` off the Node-41 fade at 600,
-         and NOT on either ball at 1993: what re-decides the two rates is the zone answering again,
-         and the taints that follow are the consequence. The card leaves the FORM-B queue entirely,
-         332 records down to 329.
-         `resumed` WINDS BACK ITS TWO LANE CAPTIONS AND NODE-41'S STATE LINE TOO, and the chips
-         alone were not enough. With only the chips wound back, the entry frame drew
-         `NoExecute taint · 1 Node per 100s` and `NoExecute taint · 1 Node per 10s` over two rate
-         chips reading `stopped · every zone fully down`: two rates running and stopped at once, for
-         the 600 until the recovery lands. Node-41 read `Ready` at the same time, at
-         `OPACITY.notready` 0.40, which the shade block below defines as not serving. Both were
-         visible on the rendered entry frame at all three viewports and invisible to the whole
-         gate, the same class the paragraph above records for `all-zones`. The fix is one
-         `rewind` and one `F.set`: the captions and the state line ride `at: 'recover'` with the
-         chips, so nothing on the canvas contradicts a chip beside it.
-NOTE     `monitor` CUES NO CHIP AND THAT IS `P-09a`. The two share chips carry the same values on the
-         poster and on this step, because the poster is the state the controller is about to read
-         and not a state before it: nothing MOVES, so nothing is cued, and the beat is the four
-         slots lighting at `BEAT.lead`. Every other narrated step cues exactly the chips whose value
-         changed, and none of the ones that did not.
-NOTE     THE SLOT SHADES ARE THE PHASE VOCABULARY AND NOTHING ELSE. A Ready Node is 1.00, a NotReady
-         one is `OPACITY.notready` 0.40, which is `alive but not serving, not observed` to the word.
-         A TAINTED Node keeps 0.40: the taint starts the eviction of its Pods, it does not delete the
-         Node, so nothing on this card ever reaches `terminating` or `terminated`. What marks the
-         arrival is the state line turning over plus the light, not a change of shade.
-NOTE     NO POD IS DRAWN, and that is the scope line rather than an omission. The Pods leaving a
-         tainted Node are `cluster-node-failure`, one card left in the same subcategory.
 SCOPE    Two siblings own what this card deliberately leaves alone, and none of it is reopened here.
          `cluster-node-failure` owns the 50 second grace period, the flip to Unknown, the 300 second
          default toleration and the DELETE that finally takes a Pod off ONE Node. This card starts
@@ -265,6 +257,8 @@ SCOPE    Two siblings own what this card deliberately leaves alone, and none of 
          appears on the canvas.
          `cluster-node-pressure-eviction` owns the Kubelet killing Pods locally to reclaim a
          resource. Every actor on this card is control plane.
+         NO POD IS DRAWN, and that is the scope line rather than an omission. The Pods leaving a
+         tainted Node are `cluster-node-failure`, one card left in the same subcategory.
 ```
 
 ### poster

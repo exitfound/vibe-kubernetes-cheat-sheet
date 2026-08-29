@@ -18,9 +18,11 @@ walk and neither is a special case.
 
 Each `./CARDS/<card-id>.md` opens with `## <card-id>` and keeps the heading levels the monolith
 uses, because the parser is the same one. `### layout` describes the whole card in labelled blocks,
-`### poster` describes the grid thumbnail, and each ``### before `<line>` `` holds the note for one
-line of code. `unit/docs.test.mjs` verifies every anchor still occurs in its card, so **an anchor is
-DATA: never reword one** (`S-38`).
+`### poster` describes the grid thumbnail, and each ``### before `<line>` `` holds a note that spans
+several lines of code, or one that describes how parts stand against each other. The reason ONE
+constant holds its value is a comment ON that constant instead (`S-34`, `S-35`), where it cannot
+desync from the line it is about. `unit/docs.test.mjs` verifies every anchor that is here still
+occurs in its card, so **an anchor is DATA: never reword one** (`S-38`), and nothing counts them.
 
 A new card takes a new file in `./CARDS/` and a row in the index below, in the place `cards.js`
 gives it. **The index is in CATALOG ORDER**, which is the order `cards.js` lists them and the order
@@ -28,25 +30,26 @@ the grid shows them: an editorial argument about what a reader meets first (`D-1
 alphabet.
 
 Two things are on every card here and the rest are used where they apply. `### poster` opens with a
-one-line `Sentence:`, the poster's whole subject in words, and `PANEL` carries this card's measured
-overlay extent per viewport. A card with no `BUDGET` has no character ceiling its geometry imposes,
-and a card with no ``### before `<line>` `` anchor has no single line of code that needs one:
-neither absence is a gap.
+one-line `Sentence:`, the poster's whole subject in words, and `PANEL` says what this card's panel
+binds, what clears it and by how much. A card with no `BUDGET` has no character ceiling its geometry
+imposes, and a card with no ``### before `<line>` `` anchor has no note that needs one: neither
+absence is a gap.
 
 The label vocabulary a `### layout` block uses is ONE list for all four records, in
 `scheme/CANON.md` under "The record vocabulary". Use the labels that apply, in that order, and add
 none of your own.
 
 **A `PANEL` block is MEASURED over the three standard viewports, never over one** (`L-06`), and it
-states this card's own bottom rather than the right edge, which `L-02` fixes catalog-wide. Neither
+is about this card's own bottom rather than the right edge, which `L-02` fixes catalog-wide. Neither
 sentence is repeated in a card file.
 
-Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM varies per card
-and per viewport inside the band `L-04` states, and it moves NON-MONOTONICALLY (`L-02`, `L-04`,
-`L-05`). So a `PANEL_B` in a card is a measurement, not a convention. Re-measure after any
-prose change with `npm run report` from `scheme/test/`, which prints the real extent per card,
-per step, over the three viewports: several cards here carry a hard character ceiling and
-nothing in `npm test` enforces one (`L-08`).
+**The extent itself is NOT stored here.** The right edge is `x<=397` catalog-wide, the BOTTOM varies
+per card and per viewport inside the band `L-04` states, and it moves NON-MONOTONICALLY (`L-02`,
+`L-04`, `L-05`), so a number copied into a record goes stale on the next prose edit with nothing
+red. Each `PANEL` block names the command that prints it instead,
+`OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs` run from `scheme/test/`, and keeps only
+what the reading is FOR: what stands under the panel, and how much clearance is left. Several cards
+here carry a hard character ceiling and nothing in `npm test` enforces one (`L-08`).
 
 ---
 

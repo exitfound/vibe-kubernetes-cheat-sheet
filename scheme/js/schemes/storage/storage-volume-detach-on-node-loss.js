@@ -2,9 +2,15 @@ import { P, F, defineCard, BEAT, FADE, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-volume-detach-on-node-loss
 
 
+// The panel wall, ~2 units of slack against a measured 398.29. LAD_Y 448 clears the deepest SAMPLED
+// bottom of 329.20 by 119, and does not clear the 497.86 the evict step reaches at 900x650, so the
+// bottom band is the tier a longer narration takes out first.
 const LEFT_X = 400;
 
 const NODE_Y = 48, NODE_H = 160;
+// 2*192 + 16 = 400 puts CONTENT_CX exactly on 600, and NODE_W then sets POD_W. The two columns must
+// stay IDENTICAL in width: anything that differed between them would read as a difference the card is
+// not about.
 const NODE_W = 192, NODE_GAP = 16, NODE_PAD = 12;
 const A_X = LEFT_X;                                      // node-1 frame
 const B_X = A_X + NODE_W + NODE_GAP;                     // 608, node-2 frame

@@ -3,6 +3,10 @@ import { line } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-dynamic-provisioning
 
 
+// The panel wall, measured at 380 worst case over 1920 down to 1100. The two columns therefore centre
+// on 630 and stay there: sliding the drawing left to reach 600 drags the claim under the panel, which
+// is what LEFT_X exists to prevent. CANVAS_CX is separate on purpose, because the chip strip alone
+// has the full width.
 const LEFT_X = 400;                                   // leftmost the TOP ROW may go, all viewports
 const CANVAS_CX = 600;                                // where the chip strip sits, always
 

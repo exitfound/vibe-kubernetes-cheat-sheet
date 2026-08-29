@@ -4,6 +4,10 @@ import { g, rect, text } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#network-kube-proxy-modes
 
 
+// The content edges are mirrored about the canvas centre 600, and the three 350-wide chips with even
+// gaps centre the strip on it by construction, so nothing is stretched to make the composition
+// centre. The chain row is the one tier that does NOT centre, since it has to start right of the
+// panel edge.
 const SCHEME_L = 40, SCHEME_R = 1160;  // content edges, mirrored about the canvas centre 600
 
 // Narration panel measured at bottom <= 280 (a longer narration invalidates this): the axis sits low

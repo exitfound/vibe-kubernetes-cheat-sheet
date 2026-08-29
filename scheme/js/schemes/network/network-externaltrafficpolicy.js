@@ -3,6 +3,9 @@ import { P, F, defineCard, makeRidingLabel, OPACITY } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-externaltrafficpolicy
 
 
+// The two Nodes are mirrored about MID_X with NODE_GAP between them, so the scheme spans 180..1020
+// and the chip strip takes that extent 1:1. The vertical margins above the client and below the
+// chips are equal, which is what centres it on the canvas.
 const MID_X = 600;
 
 const CLIENT_W = 240, CLIENT_H = 58, CLIENT_Y = 40;

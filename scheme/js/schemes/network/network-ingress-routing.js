@@ -3,6 +3,9 @@ import { P, F, defineCard, laneY, midX, shade, BEAT, OPACITY } from './network-k
 // Design notes for this card: ./CARDS.md#network-ingress-routing
 
 
+// Derived as (RULE_BOTTOM + CHIP_Y) / 2, so the whole flow re-centres when the rules panel or the
+// chip strip moves, and the two branches at FLOW_Y -/+ ROW_DY carry both fans, both Services and
+// both backend Pods with it.
 const FLOW_Y = 343;                  // (RULE_BOTTOM + CHIP_Y) / 2, the spine of the left-to-right flow
 const ROW_DY = 70;                   // web branch sits this far above FLOW_Y, api the same below
 const { out: WEB_Y, back: API_Y } = laneY(FLOW_Y, ROW_DY);   // 273 web, 413 api

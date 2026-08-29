@@ -2,6 +2,9 @@ import { P, F, defineCard, BEAT, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-ephemeral-vs-persistent
 
 
+// The Pod straddles this spine and each volume hangs an equal distance either side of it, so the
+// halves are a true mirror. The divider between them starts from POD_BOTTOM rather than a typed y,
+// so it can never poke into the Pod when the Pod moves.
 const SPINE_X = 600;
 
 // The Pod tier is the only one inside the narration panel's y band (panel bottom 181 on this card,
@@ -37,8 +40,9 @@ const W_L_MOUNT = [[LEFT_CX + LANE, ED_TOP], [LEFT_CX + LANE, POD_BOTTOM]];     
 const W_R_WRITE = [[RIGHT_CX + LANE, POD_BOTTOM], [RIGHT_CX + LANE, PVC_TOP]];    // Pod -> PVC
 const W_R_MOUNT = [[RIGHT_CX - LANE, PVC_TOP], [RIGHT_CX - LANE, POD_BOTTOM]];    // PVC -> Pod
 
-// Both remounts end on the Pod floor, where the default -14 puts the tag under the shell edge for
-// 100 ms. Riding 12 BELOW the ball is the least that clears all four viewports.
+// Both remounts end on the Pod floor, and at -14 each tag spends 100ms cut by it and 400ms inside the
+// Pod. 12 below the ball is the ONLY offset that clears on all four viewports: at 14 and beyond the
+// tag meets the emptyDir cap and the PVC top, which sit 100 units under the Pod.
 const MOUNT_TAG_DY = 12;
 
 // Raise the Pod sublabel a couple pixels off its default baseline so it sits tighter under the box.

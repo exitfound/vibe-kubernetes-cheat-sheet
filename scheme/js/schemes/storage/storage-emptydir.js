@@ -3,6 +3,9 @@ import { path } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-emptydir
 
 
+// The Node frame is the outer extent and the chip strip spans exactly its width. NODE_Y 170 sits
+// flush under the panel measured at (300, 163) on a 1600px viewport, so a longer narration
+// invalidates the placement. storage-hostpath copies these numbers verbatim so the pair aligns.
 const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550
 
 const POD_X = 300, POD_Y = 186, POD_W = 600, POD_H = 170;       // 300..900, center 600

@@ -106,6 +106,9 @@ export const SCENE = {
     // stands outside the frame, on the midpoint of its right wall.
     P.box({ key: 'client', x: KCTL_X, y: KCTL_Y, w: KCTL_W, h: BOX_H, label: 'kubectl' }),
     P.box({ key: 'apisrv', x: API_X, y: TOP_Y, w: BOX_W, h: BOX_H, label: 'API' }),
+    // FLANK_W 130 is the client's width too, so the two blocks flanking the frame read at one
+    // scale and the label is not lost in a squat cylinder. y 130 and h 110 are byte for byte
+    // cluster-object-create-path's: the cap clears the request register at 158, the base the ack at 208.
     P.cylinder({ key: 'etcd', x: ETCD_X, y: TOP_Y - 10, w: FLANK_W, h: BOX_H + ETCD_OVER, label: 'ETCD' }),
     // Middle row: the controller-manager and the Garbage collector on the same two walls, with
     // architecture's centre column left empty between them.

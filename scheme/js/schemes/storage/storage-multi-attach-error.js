@@ -2,9 +2,14 @@ import { P, F, defineCard, BEAT, FADE, OPACITY, chipStrip, packetArrival } from 
 // Design notes for this card: ./CARDS.md#storage-multi-attach-error
 
 
+// The panel wall, read as an L: above y=344 nothing may sit left of it, below that the full width is
+// free. The two upper tiers obey it, the VolumeAttachment row at y=359 does not have to.
 const LEFT_X = 400;
 
 const NODE_H = 156, BAND_H = 76, VA_H = 76, DK_H = 86, CHIP_H = 34;
+// Heights and gaps are declared once, summed, and the leftover split evenly, so the whole card
+// re-centres by changing one number. Typing each tier y instead leaves the node row 30 units of air
+// while the three lower tiers pack at 52.
 const G_NODE_BAND = 56, G_BAND_VA = 56, G_VA_DK = 48, G_DK_CHIPS = 22;
 
 const STACK_H = NODE_H + G_NODE_BAND + BAND_H + G_BAND_VA + VA_H + G_VA_DK + DK_H + G_DK_CHIPS + CHIP_H;

@@ -87,6 +87,8 @@ export const SCENE = {
     P.chip({ key: 'concChip', x: CHIP_X(1), y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'concurrencyPolicy', value: 'Forbid' }),
     P.chip({ key: 'activeChip', x: CHIP_X(2), y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'active jobs', value: '0' }),
     P.chip({ key: 'lastChip', x: CHIP_X(3), y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'lastScheduleTime', value: 'none' }),
+    // The caption is centred over the tick strip by derivation and never by a literal, so it
+    // follows if the strip moves.
     P.tag({ x: TICK_X + TICK_SPAN / 2, y: TICK_Y - TICK_CAPTION_DY, text: 'schedule ticks · every 5 min' }),
     P.group({ key: 'ladder', cls: 'scheme-ladder', transform: `translate(${TICK_X},${TICK_Y})`, parts: TICK_LABELS.map(tick) }),
     P.chip({ key: 'eventChip', x: CHIP_X(4), y: CHIP_Y(4), w: CHIP_W, h: WL.CHIP_H, name: 'last event', value: 'none' }),
@@ -131,7 +133,10 @@ export const SCENE = {
 const pods = (a, b, c, d) => ({ pod1: a, lane1: a, pod2: b, lane2: b, pod3: c, pod4: d });
 
 // setTicks as FIELDS: the lit set of the ladder is named by tick INDEX, the way every step reads,
-// and comes back as the `lit` keys the ladder rungs answer to.
+// and comes back as the `lit` keys the ladder rungs answer to. It lights the ticks at which a Job
+// actually fired, cumulatively: a tick skipped by concurrencyPolicy or missed during downtime
+// stays dark, so the gaps in the ladder are real. A newly lit tick auto-pulses via the Timeline
+// delta, which draws the eye to the fresh run.
 const ticks = (...lit) => lit.map(i => TICK_KEYS[i]);
 
 export const STEPS_SPEC = [
@@ -176,8 +181,9 @@ export const STEPS_SPEC = [
     wires: { req: 'concurrencyPolicy=Forbid · skip new run' },
     // No Job is created, so the only visible run is the one still going.
     opacity: pods(1, 0, 0, 0),
-    // Nothing reaches the node because creation is SKIPPED, so the beat is the CronJob box lit:
-    // it is what consults the policy, and neither it nor the policy chip flashes (M-26, M-01).
+    // Nothing reaches the node because creation is SKIPPED, so the step registers no animation at
+    // all and the beat is the CronJob box lit (M-27): it is what consults the policy and decides,
+    // so it is the actor of the sentence, and neither it nor the policy chip flashes (M-26, M-01).
     lit: ['cronjob', 'concChip', 'eventChip', ...ticks(0)],
     chain: 1,
   },
@@ -237,7 +243,8 @@ export const STEPS_SPEC = [
     // No run is created for the missed tick, the retained history is unchanged.
     opacity: pods(0, 1, 1, 1),
     // The missed tick produces no Job and the 12:25 rung stays dark, so the CronJob box is lit:
-    // the controller is what weighs the deadline, and nothing on the step flashes (M-26, M-01).
+    // the controller is what weighs every missed start against the deadline, and nothing on the
+    // step flashes (M-26, M-01). Lighting the rung would read as that tick firing.
     lit: ['cronjob', 'eventChip', ...ticks(0, 2, 3, 4)],
     chain: 4,
   },

@@ -3,6 +3,9 @@ import { path } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-volume-model
 
 
+// The ownership spine, and the axis both mount lanes are symmetric about. The Pod is stretched to 600
+// wide so the two containers sit OUTSIDE the cylinder span, which is what makes the lanes L-shaped
+// and lets them enter the cylinder through its side.
 const SPINE_X = 600;
 
 const POD_X = 300, POD_Y = 150, POD_W = 600, POD_H = 170;  // 300..900, center 600

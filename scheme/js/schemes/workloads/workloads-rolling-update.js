@@ -283,7 +283,11 @@ export const STEPS_SPEC = [
     ...slots(null, V2, V2, V2),
     lit: ['v1Chip', 'progressChip'],
     // The three live v2 Pods sit in slots 2, 3 and 4: the surge capacity is released from the
-    // LEFTMOST slot. Light those three, never slot 1, which `slots()` has just emptied.
+    // LEFTMOST slot, so `slots()` empties slot 1 here. The played pulse list and this reduced
+    // highlight list both follow the slot map, and both have to be revisited if the slot count or
+    // the released slot changes. A stale list fires one pulse on an invisible Pod while pod4, a
+    // Ready v2 Pod, never acknowledges the narration that calls it Ready, and reduced.test.mjs
+    // still passes, because the played and the reduced path are then wrong IDENTICALLY.
     reducedLit: ['pod2Box', 'pod3Box', 'pod4Box'],
     chain: 5,
     flow: [

@@ -81,6 +81,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { cards, ROOT } from '../fixtures/catalog.mjs';
+import { carriedBlock, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { importAll, stepTotal } from '../fixtures/module.mjs';
 import { timelineOf } from '../fixtures/spec.mjs';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
@@ -193,9 +194,10 @@ test('how many rings land on one arrival (report only, census is the assertion)'
   for (const r of open) {
     out.push(`   ${r.card} '${r.step}' at [${r.pt}]  ${r.first.src}@${r.first.t}ms + ${r.second.src}@${r.second.t}ms  dt=${r.dt}ms`);
   }
-  for (const r of held) out.push(`   CARRIED  ${r.carryKey}\n      WHY ${r.why}`);
-  const stale = [...RIPPLE_CARRIED.keys()].filter(k => !simultaneous.some(r => r.carryKey === k));
-  if (stale.length) out.push(`   carried entries no longer reported (stale, remove them): ${stale.join(' | ')}`);
+  // One shape for a carried row across every report file: ../fixtures/carried.mjs owns it.
+  const stale = staleKeys('SIMULTANEOUS', simultaneous.map(r => r.carryKey));
+  for (const l of carriedBlock('SIMULTANEOUS', held.map(r => ({ key: r.carryKey, why: r.why })), stale)) out.push(l);
+  for (const b of shapeProblems('SIMULTANEOUS', new Set(catalogued.map(c => c.id)))) out.push(`   BROKEN RULING  ${b}`);
 
   out.push('');
   out.push(`3. STAGGERED, CONTEXT AND NOT A QUEUE: ${staggered.length} pair(s) share a point inside the ` +

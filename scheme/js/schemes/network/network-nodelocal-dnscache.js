@@ -3,6 +3,9 @@ import { P, F, defineCard, laneY, BEAT } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-nodelocal-dnscache
 
 
+// The client Pod, the node-local agent and upstream CoreDNS all centre on this line, so both hops
+// are straight and each carries its own forward and return pair. Content cannot rise above y=200:
+// the Node box starts at x=70, under the panel, whose longest step here reaches 163.
 const FLOW_Y = 300;
 const LANE_DY = 12;
 // 288: query lanes (Pod -> agent, agent -> CoreDNS). 312: answer lanes (agent -> Pod, CoreDNS -> agent)

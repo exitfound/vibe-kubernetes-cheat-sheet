@@ -4,7 +4,8 @@ import { P, F, defineCard, midX } from './network-kit.js';
 
 
 // Panel right <= 397, bottom <= 330 (a long narration here). The Client is the only block left of
-// 397, so the whole request row hangs below that bottom.
+// 397, so the whole request row hangs below that bottom. Raising this row puts the Client top edge,
+// at 344, under the overlay.
 const FLOW_Y = 380;                          // Client + Gateway share this row: a request enters here
 
 const CLIENT_X = 40, CLIENT_W = 260, CLIENT_H = 72;

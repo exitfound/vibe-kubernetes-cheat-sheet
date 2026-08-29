@@ -5,8 +5,9 @@ import { pod } from '../../lib/primitives.js';
 
 const NODE_X = 210, NODE_Y = 45, NODE_W = 780, NODE_H = 485; // 210..990, canvas-centered
 
-// The longest narration in the storage set: the panel reaches x<=397 down to y=355, so both upper
-// tiers live right of it and the column centre is 620 rather than the canvas 600.
+// COL_CX is 620, not the node's own 600, and the 20 unit offset is the whole story: this narration
+// is the longest in the storage set, so the panel reaches x<=397 down to y=355 and covers both the
+// Pod and contributor tiers. 620 is as far LEFT as the stack can go and still clear it.
 const COL_CX = 620;
 
 const POD_X = COL_CX - 145, POD_Y = 85, POD_W = 290, POD_H = 150; // 475..765

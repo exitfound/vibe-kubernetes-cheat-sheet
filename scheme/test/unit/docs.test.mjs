@@ -105,9 +105,13 @@ const REPO = join(ROOT, '..');
 // a floor still catches is the failure that actually happened here twice: a walker that stops
 // finding its input, reports nothing and exits green.
 // --------------------------------------------------------------------------------------------
-const ANCHOR_FLOOR = { cluster: 15, workloads: 24, network: 41, storage: 44 };   // 124 total
+// NO anchor floor. A quota on anchors is a quota on DOCUMENTATION, and it made deleting a note
+// that had gone stale cost more than leaving it: the reason a constant holds its value now lives in
+// a comment ON that constant, where it cannot desync, and an anchor is what is left for a note that
+// genuinely spans several lines of code. What the floor was actually guarding, a walker that stops
+// finding its input and exits green, is guarded below on the RECORDS read, which is the input.
 const CATALOG_RULE_FLOOR = 235;                                                  // the L A M C T P D R S blocks
-const INDEX_ROWS = 40;                                                           // CLU 6, WL 12, NET 9, STO 13
+const INDEX_ROWS = 41;                                                           // CLU 6, WL 13, NET 9, STO 13
 const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 274 rule rows in CANON.md
 const REF_FLOOR = 400;                                                           // measured 469 id-shaped tokens
 const LABEL_MAX_CHARS = 90;                                                      // measured max 73 (NET.C-01)
@@ -133,7 +137,7 @@ const SOURCE_SYMBOL_FLOOR = 38;
 // split is asserted rather than counted loosely, because "declared" and "merely cited" are the
 // distinction this whole group turns on, and a parser that stopped telling them apart would go
 // quiet, not red.
-const DECLARATION_SHAPES = { row: 28, heading: 10, bullet: 2 };
+const DECLARATION_SHAPES = { row: 29, heading: 10, bullet: 2 };
 
 const CATS = await categories();
 const { CATEGORY_LABEL } = await catalog();
@@ -437,19 +441,20 @@ const nameOccurs = (src, name) => {
 // GROUP A: the card records against the code.
 // --------------------------------------------------------------------------------------------
 
-test('A1 every card record is anchored, and no walk collapses to nothing', () => {
+test('A1 the record walk finds its input, and the anchors it finds are counted', (t) => {
   const per = {};
   let total = 0;
   for (const cat of CATS) {
     per[cat] = recordAnchors(cat).length;
     total += per[cat];
-    assert.ok(per[cat] >= ANCHOR_FLOOR[cat],
-      `the ${cat} record holds ${per[cat]} anchor(s) over ${CARDS_MD.get(cat).length} document(s), ` +
-      `floor is ${ANCHOR_FLOOR[cat]}. ` +
-      'An anchor is a measurement someone took with a browser: losing one is losing that.');
+    // The walk integrity check, and the only assertion here: a category that reads ZERO record
+    // documents is a broken reader reporting nothing and exiting green, which has happened twice.
+    // How many anchors those documents carry is not asserted, by design.
+    assert.ok(CARDS_MD.get(cat).length > 0,
+      `the ${cat} record walk read 0 document(s). A walker that stops finding its input reports ` +
+      'no finding and passes, which is the failure this line exists for');
   }
-  const floor = Object.values(ANCHOR_FLOOR).reduce((a, b) => a + b, 0);
-  assert.ok(total >= floor, `${total} anchors catalog-wide, floor is ${floor}: ${JSON.stringify(per)}`);
+  t.diagnostic(`ANCHORS: ${total} catalog-wide, ${JSON.stringify(per)}`);
 });
 
 test('A2 every anchor still occurs in the card it was taken from (an anchor is DATA, never reworded)', (t) => {
@@ -478,7 +483,8 @@ test('A2 every anchor still occurs in the card it was taken from (an anchor is D
   for (const [code, at] of dup) {
     t.diagnostic(`  ${String(at.length).padStart(2)}x  ${code.slice(0, 60).padEnd(60)}  ${at.slice(0, 4).join(', ')}${at.length > 4 ? ' ...' : ''}`);
   }
-  assert.ok(checked >= 124, `only ${checked} anchor(s) were resolved against a card source, expected at least 124`);
+  // No floor on `checked`: see the note beside A1. An anchor that EXISTS still has to resolve, and
+  // that is the assertion below. How many exist is the author's call, card by card.
   assert.deepEqual(stale, [], `${stale.length} of ${checked} anchor(s) point at a line that is gone:\n  ${stale.join('\n  ')}`);
 });
 

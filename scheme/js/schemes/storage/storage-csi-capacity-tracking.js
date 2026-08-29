@@ -2,6 +2,9 @@ import { P, F, defineCard, BEAT, FADE, OPACITY, STO, chipStrip } from './storage
 // Design notes for this card: ./CARDS.md#storage-csi-capacity-tracking
 
 
+// The two node frames are mirrored about CX and the scheduler and Pod stack on it, so the picture is
+// symmetric and neither node reads as the important one. NODE_CX is derived from the node width and
+// gap rather than typed.
 const CX = 600;
 
 const SCHED_X = 400, SCHED_Y = 36, SCHED_W = 400, SCHED_H = 68;
@@ -100,6 +103,8 @@ export const SCENE = {
 // comes to claim it is capacity-aware on the step that is still explaining the blind path.
 const chips = (pod, need, aware, res) => ({ podChip: pod, needChip: need, awareChip: aware, resChip: res });
 
+// Three explicit durs, deliberately slower than routeDur would pick, so the decision beat reads: ball
+// in, full Pod pulse, then the bind ball. Registered in `PACING`, `render/motion.test.mjs`.
 const DECIDE_DUR = 850, BIND_DUR = 1000, READ_DUR = 1000;
 
 // A provisioning tag enters through the node frame TOP edge, which cuts its glyphs at the default

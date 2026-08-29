@@ -3,6 +3,9 @@ import { P, F, defineCard, BEAT } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-to-pod-cross-node
 
 
+// The veth links and the short packets on them share this y, so both Nodes read as one row. The
+// underlay leg hangs at UNDERLAY_Y below the frames and starts and ends on the cni0 bottom EDGES,
+// which is what keeps the ball out from under a box.
 const VETH_Y = 338;       // veth links inside each node + the short packets on them
 const CNI_BOTTOM = 370;   // bottom edge of each cni0 box, where the underlay path drops/rises
 const UNDERLAY_Y = 495;   // physical underlay segment between the two Node IPs

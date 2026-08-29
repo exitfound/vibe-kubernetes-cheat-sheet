@@ -3,6 +3,8 @@ import { P, F, defineCard } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-types
 
 
+// The type and target columns sit symmetric about x600 (210..990). TYPE_X is LEFT of the panel right
+// edge on purpose: the rows clear the overlay by HEIGHT instead, which is what ROW0 186 pays for.
 const TYPE_X = 210, TYPE_W = 280;          // type column: left edge + width (right edge 490)
 const TGT_X = 690, TGT_W = 300;            // target column: left edge + width (right edge 990)
 const TYPE_EDGE = TYPE_X + TYPE_W;         // 490: where every arrow leaves the type box

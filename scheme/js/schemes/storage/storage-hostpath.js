@@ -2,6 +2,9 @@ import { P, F, defineCard, setCylinderLabel, BEAT, FADE, OPACITY } from './stora
 // Design notes for this card: ./CARDS.md#storage-hostpath
 
 
+// Geometry is storage-emptydir's VERBATIM, so the two node-local cards align tier for tier and the
+// only differences a reader sees are the two deliberate ones: no ownership spine, and the directory
+// surviving the Pod.
 const NODE_X = 180, NODE_Y = 170, NODE_W = 840, NODE_H = 380;   // 180..1020, center 600, bottom 550
 
 const POD_X = 300, POD_Y = 186, POD_W = 600, POD_H = 170;       // 300..900, center 600

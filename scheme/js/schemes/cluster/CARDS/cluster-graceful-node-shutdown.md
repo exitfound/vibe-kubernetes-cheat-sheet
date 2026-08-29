@@ -16,16 +16,32 @@ LAYOUT   Three tiers on the L. The top row is the systemd/Kubelet exchange at y 
          The lane corridor is 540..620, between the ladder edge and the chip column, so the drop
          from the Kubelet to the Node crosses nothing. That corridor is what pins CHIP_X to this
          card's own 620 instead of LAYOUT.A.chips at 660.
-PANEL    Measured over the standard set: 290.8 wide and 142.6..177.4 deep at 1600x1000, 377.8 and
-         171.4..213.9 at 1280x860, 396.5 and 205.0..229.8 at 1100x800. The deepest reading belongs
-         to the condition and terminate-critical steps, whose narrations are the longest, and it
-         leaves 20.2 units over LADDER_Y.
+         systemd right-aligns on CONTENT_R, the same construction and the same argument
+         `cluster-oom-kill` writes for its kernel block: a fixed 56 from the Kubelet puts it at
+         772..1004, 136 short of the content edge and flush with nothing, while 908..1140 lands it
+         on the chip column, the ladder and the Node frame at once. `cluster-node-drain` made the
+         identical move for the identical reason and its record calls it a pacing GAIN, which it is
+         here too: the hop went 0.080 to 0.274 u/ms with no `dur` written anywhere, because `F.top`
+         runs at the fixed HOP_MS 700 whatever the distance.
+         The Pod row is not at NODE_Y + 22. node() draws its label at NODE_Y + 18, so the row prints
+         NODE-1
+         four units above the first Pod and overlapping it. 34 + 106 + 12 is the family 152.
+PANEL    Right edge and bottom per viewport:
+         `OVERLAY_IDS=cluster-graceful-node-shutdown node --test report/overlay.test.mjs`.
+         The deepest reading belongs to the condition and terminate-critical steps, whose narrations
+         are the longest, and it leaves 20.2 units over LADDER_Y.
 SIZES    Four chips of CLU.CHIP_H 34 on the cluster house vertical gap of 8, so the column measures
          160 and is hung off LADDER_BOTTOM 450 instead of off LADDER_Y 250. The ladder runs 32 on
          10 over five rows, so the two columns cannot both start at 250 and end at 450: one edge
          has to give, and the shared one is the BOTTOM, where the eye reads the two as a pair.
          CHIP_GAP was 21, a number picked only to make four chips fill 250..450, and at that
          spacing the chips read as four separate strips rather than as one column.
+         The chip column is NOT top-aligned on LADDER_Y at 250, which is what CHIP_GAP 21 bought.
+         Four chips of 34 cannot fill 250..450 on the house gap of 8, so holding both edges means
+         inventing a
+         spacing, and 21 is what that invention looked like: two columns that start together, end
+         together, and read as two different rhythms in between. The bottom is the edge worth
+         sharing because it is the one the Node frame below answers to.
 LANES    Two top-row lanes of 192, one per direction, straddling the row centre by LANE_DY: SIG_Y
          68 for the signal in, REL_Y 92 for the release out. SIG_LANE is ONE 352 unit drop
          addressed to the Node frame, and both SIGTERM phases ride it.
@@ -36,8 +52,8 @@ MOTION   Both terminate steps are down-arrow, so ball first and pulse on arrival
          balls `pace.mjs` ranks. 192 is a house length six cards run, cluster-node-drain,
          cluster-oom-kill and cluster-cpu-throttling among them, so the floor here is M-13 catalog
          wide rather than this card's own.
-         Reading load sets the durations, not the motion: 8.81, 8.85, 10.11, 10.13 and 10.03 ms per
-         character over the five narrated steps. The yardstick here is NOT the catalog median but
+         Reading load sets the durations, not the motion, and `timing.mjs` prints the pace of each
+         of the five narrated steps. The yardstick here is NOT the catalog median but
          the cohort of narrations 290 characters or more, whose own median is lower because a long
          narration is read faster per character. `report/baselines.test.mjs` section 2 prints that
          cohort's size, median and p75, and the two lowest steps here sit on its median rather than
@@ -47,6 +63,21 @@ MOTION   Both terminate steps are down-arrow, so ball first and pulse on arrival
          A prose edit therefore moves a duration: growing the two terminate steps to 262 and 316
          characters drops them to 9.16 and 7.59, well under that cohort, until the durations
          follow.
+         terminate-normal sends ONE ball and both non-critical Pods react to it, which is a better
+         reading of `in parallel` than two balls whose arrivals differed anyway, because the two taps
+         were different lengths.
+         All four chips wait for the packet that earns them. systemd is not free to proceed until the
+         release actually arrives, so showing `released` at step entry is the lock being dropped a
+         second before the ball that drops it.
+         Every value that hands over on a beat is a constant, so the static END of the step and the
+         `rewind` of that same step cannot drift apart: the six phase strings plus LOCK_HELD and
+         LOCK_FREE, the two readings of the lock chip.
+         No stand-in highlight to take back here: neither terminate step has ever set one. If a
+         stand-in is ever added, it has to be dropped on BOTH paths, because the Pod now ends dim
+         rather than absent.
+         A shut-down Pod never fades to 0. An absent block reads as a rendering fault rather than as
+         an absence. Both the pins and the fade land on OPACITY.terminated, the shade for gone. Same
+         conversion cluster-node-drain and cluster-node-pressure-eviction took.
 WIRE LABELS
          ONE P.wire at 812, centred in the 192 unit gap and 26 under the top row, serves both
          top-row lanes: only one of them carries traffic on any given step, and the narration names
@@ -124,62 +155,10 @@ NAMING   The systemd box sublabel is `logind`, which is the subsystem step 1 nam
          field on `storage-pv-lifecycle-phases`, where the values really are PersistentVolume
          phases, and none of the six values here is a phase from any API. Its three neighbours are
          literal KubeletConfiguration field names, so a bare `phase` reads as a fourth one.
-SCOPE    Only the two-field configuration is drawn. `shutdownGracePeriodByPodPriority` replaces the
-         whole split with an arbitrary priority table, and this card leaves it to the doc.
-NOTE     systemd right-aligns on CONTENT_R, the same construction and the same argument
-         `cluster-oom-kill` writes for its kernel block: a fixed 56 from the Kubelet puts it at
-         772..1004, 136 short of the content edge and flush with nothing, while 908..1140 lands it
-         on the chip column, the ladder and the Node frame at once. `cluster-node-drain` made the
-         identical move for the identical reason and its record calls it a pacing GAIN, which it is
-         here too: the hop went 0.080 to 0.274 u/ms with no `dur` written anywhere, because `F.top`
-         runs at the fixed HOP_MS 700 whatever the distance.
-NOTE     terminate-normal sends ONE ball and both non-critical Pods react to it, which is a better
-         reading of `in parallel` than two balls whose arrivals differed anyway, because the two taps
-         were different lengths.
-NOTE     All four chips wait for the packet that earns them. systemd is not free to proceed until the
-         release actually arrives, so showing `released` at step entry is the lock being dropped a
-         second before the ball that drops it.
-NOTE     Every value that hands over on a beat is a constant, so the static END of the step and the
-         `rewind` of that same step cannot drift apart: the six phase strings plus LOCK_HELD and
-         LOCK_FREE, the two readings of the lock chip.
-NOTE     No stand-in highlight to take back here: neither terminate step has ever set one. If a
-         stand-in is ever added, it has to be dropped on BOTH paths, because the Pod now ends dim
-         rather than absent.
-WHY NOT  A chip column top-aligned on LADDER_Y at 250, which is what CHIP_GAP 21 bought. Four chips
-         of 34 cannot fill 250..450 on the house gap of 8, so holding both edges means inventing a
-         spacing, and 21 is what that invention looked like: two columns that start together, end
-         together, and read as two different rhythms in between. The bottom is the edge worth
-         sharing because it is the one the Node frame below answers to.
-WHY NOT  A Pod row at NODE_Y + 22. node() draws its label at NODE_Y + 18, so the row prints NODE-1
-         four units above the first Pod and overlapping it. 34 + 106 + 12 is the family 152.
-WHY NOT  A bus at NODE_Y - 14 with one tap per Pod. Two lanes crossing the frame and splitting over
-         the Pod row read as plumbing rather than as a shutdown. WHICH Pod reacts is carried by the
-         pulse.
-DO NOT   Fade a shut-down Pod to 0. An absent block reads as a rendering fault rather than as an
-         absence. Both the pins and the fade land on OPACITY.terminated, the shade for gone. Same
-         conversion cluster-node-drain and cluster-node-pressure-eviction took.
-NOT A DEFECT
          `priority: 2e9` is the catalog spelling for this cutoff, shared with
          `cluster-pod-priority-preemption`. Do not expand it to 2000000000 on one card alone.
-OPEN     Step 1 states that the delay inhibitor lock makes systemd pause the shutdown, and does not
-         say what sets the length of that pause. logind caps a delay lock at InhibitDelayMaxSec,
-         5s by default against the 60s this card draws, and `managerImpl.start` reads
-         `CurrentInhibitDelay`, then writes /etc/systemd/logind.conf.d/kubelet.conf through
-         `OverrideInhibitDelay`, SIGHUPs logind and polls on an exponential backoff until the new
-         value takes. `min(InhibitDelayMaxSec, shutdownGracePeriod)` is REJECTED as the description:
-         the manager does not degrade to the smaller number, it FAILS TO START and returns
-         "node shutdown manager was timed out ... waiting for logind InhibitDelayMaxSec to update".
-         There is no room for the clause. It runs about 140 characters, four more lines at 1100x800
-         against 20.2 units of headroom, which is not even one line (BUDGET). Moving LADDER_Y to 280
-         runs the rows to 480 against a Node frame at 472, and trimming a qualifier to fit the band
-         is what T-20 forbids.
-OPEN     A node() frame cannot take a cue. Step 2 narrates the Kubelet setting NotReady ON THE NODE
-         and is the one step here that registers no animation at all, so the actor whose state
-         changes is the only thing on screen that does not react. `lit: [nodeEl]` does not close it:
-         diagrams.css carries no `.scheme-node.highlight` rule, and a frame rendered with the key
-         added differs from one without it only by glyph antialiasing. Closing it means a new
-         catalog-wide CSS rule reaching all 69 node frames on 53 cards, which is outside one card's
-         scope. cluster-taints-tolerations lights nodeEl on the same belief.
+SCOPE    Only the two-field configuration is drawn. `shutdownGracePeriodByPodPriority` replaces the
+         whole split with an arbitrary priority table, and this card leaves it to the doc.
 ```
 
 ### poster

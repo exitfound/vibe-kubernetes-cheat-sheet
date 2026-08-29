@@ -10,6 +10,8 @@
 // RIPPLE_MS IS A SECOND COPY OF A NUMBER THE KIT DOES NOT EXPORT, and that is deliberate and
 // asserted: a stale window would silently stop catching pairs. See the report file's header.
 
+import { carriedMap } from './carried.mjs';
+
 export const RIPPLE_MS = 560;
 
 // topPacket's own defaults, for the one verb whose path is not written out in the entry.
@@ -20,12 +22,15 @@ export const TOP_DEFAULT = { to: 580, y: 65 };
 const RECORDED = { rings: 718, 'F.ripple': 4, SIMULTANEOUS: 4, STAGGERED: 7, NEAR: 0 };
 
 // -------------------------------------------------------------------------------------------
-// Findings a human has READ and decided to carry, keyed `<card id> <step id> <x>,<y>`, with the
-// reason on each. EMPTY ON PURPOSE, and that is the statement this table makes: not one of the four
-// has been read by a person yet, so everything outside the table is work by definition. Same shape
-// and same discipline as R2_STEP_CARRIED in ./arrival.test.mjs.
+// Findings a human has READ and decided to carry, keyed `<card id> <step id> <x>,<y>`.
+// THE ENTRIES THEMSELVES LIVE IN ./carried.mjs, the one store for a report finding somebody has
+// ruled on and kept: this is the axis view of it, under the name the two readers already import.
+// Add a ruling THERE, as `{ axis: 'SIMULTANEOUS', card, where: [stepId, at(pt)], why }`.
+// EMPTY, and that is the statement it makes rather than an omission: the SIMULTANEOUS queue reached
+// zero, which is what promoted the rule into `npm test`, so nothing is reported and nothing is
+// carried. ../unit/ripple-single.test.mjs still names this file, and this is where the export is.
 // -------------------------------------------------------------------------------------------
-export const RIPPLE_CARRIED = new Map([]);
+export const RIPPLE_CARRIED = carriedMap('SIMULTANEOUS');
 
 
 const pad = (n) => String(n).padStart(4);

@@ -4,6 +4,9 @@ import { P, F, defineCard, makeRidingLabel, midX, routeDur, BEAT } from './netwo
 // Design notes for this card: ./CARDS.md#network-pod-localhost
 
 
+// The shell spans the two rightmost chips exactly and the client Pod is centred over the leftmost
+// one. Both share the vertical centre SHELL_CY, which is what makes the external lane one straight
+// centred hop.
 const SHELL_X = 620, SHELL_Y = 174, SHELL_W = 500, SHELL_H = 320;  // [620..1120] spans the bind + Pod IP chips
 const SHELL_CY = SHELL_Y + SHELL_H / 2;                            // 334
 const CLIENT_W = 180, CLIENT_H = 124;

@@ -15,9 +15,15 @@
 // already walk, the step count off `stepTotal()` in ./module.mjs. See CATALOG_BASELINE in
 // ./catalog.mjs for why a literal floor weakens as the catalog grows.
 
-// Rulings a human has READ and decided to carry, keyed `<card id> <chip key>`. Empty today, and that
-// reads correctly: nothing is reported, so nothing is carried.
-export const CHIP_CARRIED = new Map([]);
+// Rulings a human has READ and decided to carry, keyed `<card id> <chip key>`.
+// THE ENTRIES THEMSELVES LIVE IN ./carried.mjs, the one store for a report finding somebody has
+// ruled on and kept: this is the axis view of it, under the name the two readers already import.
+// Add a ruling THERE, as `{ axis: 'LIT-NOT-WRITTEN', card, where: [chipKey], why }`. Empty today,
+// and that reads correctly: nothing is reported, so nothing is carried.
+// ../unit/chip-written.test.mjs still names this file, and this is where the export is.
+import { carriedMap } from './carried.mjs';
+
+export const CHIP_CARRIED = carriedMap('LIT-NOT-WRITTEN');
 
 export function writtenKeys(spec) {
   const out = new Set();

@@ -163,8 +163,11 @@ export const STEPS_SPEC = [
     // stays dark until the event lands.
     lit: ['apiserver', 'succChip', 'failChip', 'phaseChip'],
     chain: 2,
-    // Up-arrow: the workers act and the controller receives. The three exits happen first, then the
-    // watch event carries the counts up. Nothing is created here, so nothing rides down.
+    // Up-arrow: the workers act and the controller receives. The three exits pulse at 0, then the
+    // watch event carries the counts up at BEAT.afterPulse. `fan` is not called here: it is the
+    // CREATE helper, and its LANE(i) is built trunk-first from the controller box down to the Pod,
+    // so a step whose wire label reads `watch Pod exits` would draw three creates. Nothing is
+    // created here, so nothing rides down.
     flow: [
       ...EXITS,
       F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, delay: BEAT.afterPulse, lights: ['controller'] }),
@@ -186,6 +189,9 @@ export const STEPS_SPEC = [
     opacity: row(1, 1, 1),
     lit: ['controller', 'phaseChip'],
     chain: 3,
+    // The replacement create travels controller -> Api -> Node. worker-3 already runs its retry
+    // here at full opacity, since the dim belonged to the step before, and each of the three live
+    // Pods pulses as its OWN ball lands (parallelism=3), the two outer taps behind the middle one.
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
       ...fan(0), ...fan(1), ...fan(2),

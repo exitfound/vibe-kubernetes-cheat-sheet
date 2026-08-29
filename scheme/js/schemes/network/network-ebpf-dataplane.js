@@ -4,7 +4,9 @@ import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.
 
 
 // The composition spans CONTENT_L..CONTENT_R so it centres on 600. Panel right <= 397, bottom <= 205,
-// and every block sits clear of it.
+// and every block sits clear of it. The client Pod holds the left margin and the backend column the
+// right, so the three chips are one even row across the span. Stopping the backend at 1030 instead
+// leaves the whole card 50 units left of centre.
 const CONTENT_L = 70, CONTENT_R = 1130;
 const FLOW_Y = 312;                    // client <-> eBPF program lane
 const CLIENT_X = CONTENT_L, CLIENT_W = 200;

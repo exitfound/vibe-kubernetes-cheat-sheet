@@ -96,8 +96,10 @@ const DECLARED = 'declared', EXIT0 = 'completed (exit 0)';
 // arrival. The ack hangs off whatever landed last, which is the spine ball on the riding steps.
 const ask = () => F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['runtime'] });
 const ack = (after) => F.segment({ from: [TOP2_X, RESP_Y], to: [TOP1_X + TOP1_W, RESP_Y], after });
-// The handler runs INSIDE the container, which is what the wire label says, so the ball reaches the
-// Pod and it pulses on arrival: the ack cannot precede the exec that produced it.
+// The handler runs INSIDE the container, which is what the wire label says: the ask hops to the
+// runtime, the exec order travels down the spine, and the Pod pulses on arrival as the hook starts
+// running inside it. The ack hops back to the kubelet last, one beat after that arrival, so it
+// cannot precede the exec that produced it.
 const deliver = (name) => [
   F.route({ points: SPINE, after: 'req', name }),
   F.pulse({ pod: 'podGroup', at: name }),
@@ -183,6 +185,9 @@ export const STEPS_SPEC = [
     opacity: { podGroup: OPACITY.terminating },
     lit: ['preStopChip', 'entrypointChip', 'kubelet', 'stateChip', 'graceChip'],
     chain: 5,
+    // The StopContainer ask hops to the runtime, then the SIGTERM travels down the spine to the
+    // Pod, which pulses and then dims out as the process exits. The ack hops back to the kubelet
+    // last, one beat after that arrival.
     flow: [
       ask(),
       ...deliver('stop'),

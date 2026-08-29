@@ -3,6 +3,8 @@ import { line } from '../../lib/svg.js';
 // Design notes for this card: ./CARDS.md#storage-reclaim-policy
 
 
+// Every tier declares its own bottom alongside its top, so the lanes between tiers are built from
+// those edges rather than from typed y values and re-solve when a tier moves.
 const PVC_Y = 30, PVC_H = 68, PVC_BOTTOM = PVC_Y + PVC_H;      // 98
 const PV_Y = 152, PV_H = 72, PV_TOP = PV_Y, PV_BOTTOM = PV_Y + PV_H;  // 152 / 224
 const BAND_Y = 278, BAND_H = 58, BAND_TOP = BAND_Y, BAND_BOTTOM = BAND_Y + BAND_H;  // 278 / 336

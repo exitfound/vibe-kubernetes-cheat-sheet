@@ -5,27 +5,55 @@
 ```
 WHAT     How a controller sees the cluster: discovery, an initial LIST served from the API's watch
          cache, then a watch stream filling an informer and its indexer.
+LAYOUT   The chip column does not move left. The chip strip pools value chips AND chainList rows AND
+         the event slots, and it centres on 600 precisely BECAUSE the ladder holds 60 while the
+         chips hold 1140. Nothing else can hold 60: the event slots start at 290 and widening them
+         moves the timeline off the spine.
 PANEL    291/125, 319/143, 378/150, 397/180 over 1600 / 1440 / 1280 / 1100. 180 is the floor, and
          what it is a floor UNDER is the `gvr` register at `GVR_Y - 12`, so 205, NOT the ladder at
          217. Steps 1 and 6 are the two that write that register, and on them the real clearance is
          24.88 rather than the 37 the ladder suggests. A narration sized against 217 covers the
          label, which no check reports because OCCLUDED scores blocks and a wire label is a text.
-WHY NOT  Dropping the ETCD lanes at ETCD_CX +/- 12 from the top row: both risers then run straight
-         down through all three state chips.
-WHY NOT  Moving the chip column left. The chip strip pools value chips AND chainList rows AND the
-         event slots, and it centres on 600 precisely BECAUSE the ladder holds 60 while the chips
-         hold 1140. Nothing else can hold 60: the event slots start at 290 and widening them moves
-         the timeline off the spine.
-WHY NOT  A second, upward Informer-to-API lane so the LIST gets a lane of its own. WATCH_LANE is the
-         single vertical on the spine at x=600 and the `watch` caption anchors `end` on 580 beside it,
-         so a pair would have to split the spine into two risers, move that caption, and move the
-         F.segment endpoints four steps share. It would also stand unridden on five of the seven steps
-         even after the LIST and the re-LIST were animated on it, where the register costs nothing.
-NOTE     Both ETCD wire registers sit on the BOTTOM legs, not up on the row: the lanes turn down at
-         764 and 740, so a label centred on 890 floats in blank canvas 120 units right of anything it
-         could be labelling. The LIST label sits BESIDE the riser, not in the 112 unit gap under it,
-         because the string is 140 wide and overran the Client on one side and was cut by the riser
-         on the other.
+SIZES    The Indexer is a BOX with an `in-memory cache` sublabel and never a cylinder. In this
+         catalog that glyph means a DURABLE STORE and ETCD is a cylinder 400 units to its right on
+         the same card, so a cylinder here makes the informer cache and the cluster datastore the
+         same object in one frame, on a card whose list step exists to say the controller reconciles
+         from local memory.
+         ETCD is the only cylinder here. Height 80, not 110, so it shares its row with the Client and
+         the low band reads as three peers of which one wears the store glyph. Nothing derives from
+         IDX_H: FEED_LANE lands on IDX_Y, so no route length and no packet timing moved.
+LANES    The ETCD lanes do not drop at ETCD_CX +/- 12 from the top row: both risers then run
+         straight down through all three state chips.
+         There is no second, upward Informer-to-API lane giving the LIST one of its own. WATCH_LANE
+         is the single vertical on the spine at x=600 and the `watch` caption anchors `end` on 580
+         beside it, so a pair has to split the spine into two risers, move that caption, and move
+         the `F.segment` endpoints four steps share. A second lane also stands unridden on five of
+         the seven steps even with the LIST and the re-LIST animated on it, where the register costs
+         nothing.
+MOTION   The list step draws FOUR balls in TWO INDEPENDENT chains. Answer chain: Api -> Informer
+         (straight down the watch lane), then Informer -> Indexer. Gated on nothing, leaves at 0.
+         Background chain: Api -> ETCD and back, the Api keeping its own watch cache current.
+         DO NOT gate the answer on the ETCD return: it makes the reader watch a ball cross to ETCD
+         and come back before the Informer is answered, under a panel saying no quorum read happened.
+         The Api is lit at ENTRY because it is the SOURCE of both outbound balls rather than a relay,
+         which is what the R3 sender-lit rule wants. Motion ends at 3460 against a duration of 5400,
+         and that gap is deliberate: 5400 is reading time for the longest narration, not motion time.
+         Slot 0 carries no real step. With `discovery` in it the poster position draws a request
+         ball, lights Client and Api and sets two wire labels UNDER the panel text of the step AFTER
+         it, and its routePacket never runs at all because the poster position enters reduced.
+         The 410 step is a conditional aside (its sentence opens with If), so the coda puts the
+         informer back into the steady state `event` left it in. Without that the coda runs under
+         `410 Gone . re-listing`, the previous step leaking into a summary about CRDs.
+         Three event slots standing under `cache size 4` for 2993 of the `event` step's 3800 ms. The
+         `list` step teaches the reader a mapping it never promised, three ADDED slots beside a cache
+         of 3, so the fourth slot arriving late reads as an arithmetic error. It is not one: the slots
+         are captioned `watch event stream`, which is the wire and not the cache, and the fourth
+         appears on `toCache`, the arrival that earns it. The repair would be binding cacheChip to
+         that same arrival, and it is DECLINED twice over. `P-04` forbids doing it to one chip of a
+         trio, so rvChip and watchChip would have to move with it, and all three lighting at entry is
+         the catalogue's ordinary shape rather than this card's habit, which the FORM-A queue in
+         `report/chip-beat.test.mjs` counts in the hundreds. Rebinding three chips here buys a deviation and
+         closes nothing a rule can see.
 WIRE LABELS
          Four registers carry a string, and the `watch` one has a HARD CEILING nothing checks.
          It anchors `end` on 580 and the Client riser is a vertical at x=412 running y=100..430, so
@@ -40,32 +68,36 @@ WIRE LABELS
          riser), `new Pod . rv=843` 110.3 on 814.9..925.1 over y 458.8..473.4 (74.9 clear of the
          ETCD left face at 1000), `GET /api . GET /apis` 137.8 on 422..559.8 anchored `start`, which
          puts it on the far side of the riser. `L-19` is why none of this has a machine.
-WHY NOT  A register for FEED_LANE, the Informer to Indexer feed, which carries a ball on the `list`
-         and `event` steps and is the one ridden lane with no caption. A centred label on CX would
-         span about 550..650 in the only band available, and `req` on the `list` step measures
-         422..580.3 over y 337.3..351.1, so the two overlap by 30.3. What makes it affordable to
+         Both ETCD wire registers sit on the BOTTOM legs, not up on the row: the lanes turn down at
+         764 and 740, so a label centred on 890 floats in blank canvas 120 units right of anything
+         it could be labelling. The LIST label sits BESIDE the riser, not in the 112 unit gap under
+         it,
+         because the string is 140 wide and overran the Client on one side and was cut by the riser
+         on the other.
+         FEED_LANE, the Informer to Indexer feed, carries NO register. It takes a ball on the `list`
+         and `event` steps and is the one ridden lane with no caption. A centred label on CX spans
+         about 550..650 in the only band available, and `req` on the `list` step measures 422..580.3
+         over y 337.3..351.1, so the two overlap by 30.3. What makes it affordable to
          leave silent is that both ends already say it: `Informer / shared list-watch` feeds
          `Indexer / in-memory cache`, and neither block needs a string to explain the other. The
          ETCD leg did need one, because a ball leaving a cylinder with no caption is the reader's
          only clue about what came out of the store.
-DO NOT   Draw the Indexer as a cylinder. In this catalog that glyph means a DURABLE STORE and ETCD is
-         a cylinder 400 units to its right on the same card, so the informer cache and the cluster
-         datastore would be the same object in one frame, on a card whose list step exists to say the
-         controller reconciles from local memory. It is a box with an `in-memory cache` sublabel, and
-         ETCD is the only cylinder here. Height 80, not 110, so it shares its row with the Client and
-         the low band reads as three peers of which one wears the store glyph. Nothing derives from
-         IDX_H: FEED_LANE lands on IDX_Y, so no route length and no packet timing moved.
-DO NOT   Put a real step in slot 0. `discovery` sat there, so at the poster position the card drew a
-         request ball, lit Client and Api and set two wire labels UNDER the panel text of the step
-         AFTER it, and its routePacket never ran at all because the poster position enters reduced.
-MOTION   The list step draws FOUR balls in TWO INDEPENDENT chains. Answer chain: Api -> Informer
-         (straight down the watch lane), then Informer -> Indexer. Gated on nothing, leaves at 0.
-         Background chain: Api -> ETCD and back, the Api keeping its own watch cache current.
-         DO NOT gate the answer on the ETCD return: it makes the reader watch a ball cross to ETCD
-         and come back before the Informer is answered, under a panel saying no quorum read happened.
-         The Api is lit at ENTRY because it is the SOURCE of both outbound balls rather than a relay,
-         which is what the R3 sender-lit rule wants. Motion ends at 3460 against a duration of 5400,
-         and that gap is deliberate: 5400 is reading time for the longest narration, not motion time.
+         The `req` register names a LIST and a re-LIST on two steps that put no ball on the Client
+         lane. `T-22` asks whether a caption names traffic that RIDES that lane, and it does: the
+         lane through RISER_X is the process's one outbound HTTP channel to the API, and client-go's
+         reflector issues both the LIST and the re-LIST over the same clientset the informer factory
+         was built with, so all three strings the register carries are requests leaving on it. What
+         those two steps lack is a BALL, and a ball per step is not the thing T-22 measures: `list`
+         animates the ANSWER only, on purpose, because gating it upstream draws the quorum read the
+         panel denies, and the `CONTENT` block below already states that the register carries rv=0
+         out
+         while rv=842 comes back. Measured on `list` at 1600x1000: the register spans 422..587.4 on
+         337.3..351.9, which is 10 right of the riser at x=412 and vertically inside the 100..430 run
+         of it, so it is pinned to that lane and to no other thing on the card.
+         What a reader can still get wrong is WHO issues it, since the panel credits the informer and
+         the caption stands beside the Client. That is the missing process boundary rather than a
+         second finding: with Client, Informer and Indexer drawn as three unrelated blocks, every
+         string on the shared channel reads as the Client's.
 CONTENT  The initial LIST is NOT read through to ETCD. A reflector lists at resourceVersion 0, which
          the reference says is "always served from watch cache", while unset is "served from etcd via
          a quorum read". Verified in apiserver/pkg/storage/cacher/delegator: ShouldDelegateList with
@@ -124,71 +156,6 @@ CONTENT  The initial LIST is NOT read through to ETCD. A reflector lists at reso
          starting the watch from the resourceVersion that was returned`, and the clearing half is
          what the `re-syncing` and `reset` chips carry. Both `sources` fetched live, 0 dead.
          The two ETCD lanes are the watch cache being filled, and they are labelled as such.
-NOTE     The 410 step is a conditional aside (its sentence opens with If), so the coda puts the
-         informer back into the steady state `event` left it in. Without that the coda runs under
-         `410 Gone . re-listing`, the previous step leaking into a summary about CRDs.
-NOT A DEFECT
-         `render/chipfit.test.mjs` is silent on `eventSlot`, which draws two STACKED texts rather than a
-         name/value pair. The tool skips chips whose two texts sit on different baselines.
-NOT A DEFECT
-         Three event slots standing under `cache size 4` for 2993 of the `event` step's 3800 ms. The
-         `list` step teaches the reader a mapping it never promised, three ADDED slots beside a cache
-         of 3, so the fourth slot arriving late reads as an arithmetic error. It is not one: the slots
-         are captioned `watch event stream`, which is the wire and not the cache, and the fourth
-         appears on `toCache`, the arrival that earns it. The repair would be binding cacheChip to
-         that same arrival, and it is DECLINED twice over. `P-04` forbids doing it to one chip of a
-         trio, so rvChip and watchChip would have to move with it, and all three lighting at entry is
-         the catalogue's ordinary shape rather than this card's habit, which the FORM-A queue in
-         `report/chip-beat.test.mjs` counts in the hundreds. Rebinding three chips here buys a deviation and
-         closes nothing a rule can see.
-NOT A DEFECT
-         The `req` register naming a LIST and a re-LIST on two steps that put no ball on the Client
-         lane. `T-22` asks whether a caption names traffic that RIDES that lane, and it does: the lane
-         through RISER_X is the process's one outbound HTTP channel to the API, and client-go's
-         reflector issues both the LIST and the re-LIST over the same clientset the informer factory
-         was built with, so all three strings the register carries are requests leaving on it. What
-         those two steps lack is a BALL, and a ball per step is not the thing T-22 measures: `list`
-         animates the ANSWER only, on purpose, because gating it upstream draws the quorum read the
-         panel denies, and the CONTENT block above already states that the register carries rv=0 out
-         while rv=842 comes back. Measured on `list` at 1600x1000: the register spans 422..587.4 on
-         337.3..351.9, which is 10 right of the riser at x=412 and vertically inside the 100..430 run
-         of it, so it is pinned to that lane and to no other thing on the card.
-         What a reader can still get wrong is WHO issues it, since the panel credits the informer and
-         the caption stands beside the Client. That is the missing process boundary, which is the OPEN
-         finding below rather than a second finding: with Client, Informer and Indexer drawn as three
-         unrelated blocks, every string on the shared channel reads as the Client's.
-OPEN     THE PROCESS FRAME. Client, Informer and Indexer are ONE process drawn as three independent
-         blocks with no boundary, so the Client reads as an actor talking to an informer it contains.
-         One dashed frame around the three is the fix and it is NOT done, because every placement
-         that passes `report/geometry-soft.test.mjs` costs more than the finding does. All three
-         were measured:
-           1. Ladder out of the left column (GVR_X 60 -> 840): CENTRE then reports the chip strip
-              spanning 290..1140, centre 715 against a want of 600.
-           2. Ladder above the frame: best case it runs 190..336, the frame top is 356, node() spends
-              34 on its label, Informer 72 and Indexer 80, so the frame bottom lands at 584 or lower
-              against a stream caption at 536 and a slot row at 548..592. It does not fit with every
-              gap at zero.
-           3. Ladder below the frame: the frame bottom cannot be above 482, so the ladder runs
-              502..648 on a 640 canvas and crosses the slot row at 290..910. Narrowing it to clear
-              the slots is unavailable: the longest row string measures 234.3 and chainList draws it
-              at x=10.
-         A notched outline (a hexagon with a bite where the ladder sits) is geometrically free and is
-         DECLINED: a Tetris-shaped process boundary asserts a shape the mechanism does not have. What
-         a future attempt has to buy is not the frame but a home for the discovery catalogue that
-         keeps a chip on x=60, keeps the spine straight on CX, and does not push the timeline off it.
-         The general reason the three placements above all fail: the Informer (235..307) shares its
-         horizontal band with the ladder rows (217..330), and the Client is at 60..300 against a
-         centre column at 510..690. So ANY frame holding the Informer and reaching left to the
-         Client crosses the ladder, and any frame clearing the ladder loses the Informer. Restacking
-         the Client into the column instead needs about 100 more units and the slot row starts at
-         548. The finding stays open until the catalogue moves.
-NOT A DEFECT
-         `report/arrival.test.mjs` carries three R2-STEP findings here, all on the `crd` step:
-         `resourceVersion`, `watch` and `cache size` change text and take no highlight. The 410 step
-         is a conditional ASIDE, so the coda puts the three back to the steady state `event` left
-         (843, open streaming, 4). A cue there would announce a change forward, and what happened is
-         a return. DO NOT light them, and DO NOT drop the three writes either: without them the coda
-         runs under `410 Gone . re-listing`, which is the state the card just left.
 NAMING   The id carries the TITLE, `D-02` keeps the category prefix, and `control-api-structure` and
          `cluster-api-structure` resolve through `SCHEME_ALIASES` (`D-11`).
 ```
@@ -217,9 +184,8 @@ The previous version is closed, not reworked away from: three hollow 160 x 22 ro
 radius 2 to 2.5. It carried NO accent at all, poster-lint read six elements at fill=currentColor and
 called it no accent, the dots were near-invisible at the 200px the grid renders, and the drawing lay
 in a horizontal strip with the left third, the top 48 and the bottom 46 units empty. The block now
-spans x 24..148 and y 26..154, so all three dead bands are occupied. The other half of the old OPEN,
-that the silhouette matched cluster-server-side-apply, went stale when that poster was redrawn as
-two overlapping claim sets.
+spans x 24..148 and y 26..154, so all three dead bands are occupied. The silhouette does not collide
+with `cluster-server-side-apply`, whose poster is two overlapping claim sets.
 
 DEVIATION, deliberate: 19 primitives, well over the catalog median that `poster-lint.mjs` prints
 beside every count. Twelve slivers is what it
@@ -234,6 +200,4 @@ NOTE     NOTHING sits on the leg own line at y=90, and the band y 86..96 is empt
          simply continuing. The nearest one is at 207,74, ten above the line and seventeen right of
          the leg end, so the leg opens into the field instead of terminating on anything.
 
-DO NOT   Rebuild it as the pipe version: an API block, a cache block and one long horizontal channel
-         carrying four event cells. It was declined before this rework and stays declined.
 ```

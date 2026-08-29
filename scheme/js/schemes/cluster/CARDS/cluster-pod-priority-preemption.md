@@ -33,10 +33,12 @@ LAYOUT   Layout C on cluster-node-drain's shape. The API is centred on the Node 
          midpoint and the lane needs a jog. The jog is what this layout exists to avoid.
          Chips two across, 532 wide: four across was 258 and six of the eight strings collided,
          including `Pod NEW · pri` against `2e9 (system-cluster-critical)`.
-PANEL    x<=396.55 at 1100x800 step 0, bottom 279.51 at 1100x800 step 4, shallowest 177.44 at
-         1600x1000 step 0. Frame top 380 clears the deepest bottom by 100.49. The `delete` step is
-         ONE LINE deeper than every other step at the two WIDER viewports: 194.89 at 1600x1000 and
-         235.17 at 1280x860, against 177.44 and 213.92 on the rest. Two characters did it, the
+PANEL    Right edge and bottom per viewport:
+         `OVERLAY_IDS=cluster-pod-priority-preemption node --test report/overlay.test.mjs`.
+         Deepest on step 4 at 1100x800, shallowest on step 0 at 1600x1000. Frame top 380 clears the
+         deepest bottom by 100.49. The `delete` step is ONE LINE deeper than every other step at
+         the two WIDER viewports: 194.89 at 1600x1000 and 235.17 at 1280x860, against 177.44 and
+         213.92 on the rest. Two characters did it, the
          `reserved but not guaranteed` rewording taking that narration from 357 to 359 and tipping a
          wrap boundary. At 1100x800 nothing moved, which is why checking the DEEPEST viewport alone
          missed it: a prose edit has to be re-measured on all three. Neither number is near
@@ -75,6 +77,9 @@ LANES    ONE TOP LANE, `SCHED_X -> API_R` on TOP_CY 80, the box centre line, whe
          Pod, which is the qos-classes bus grammar without the three-Pod fan that earns it. The
          reader saw the API's ball merge onto the Scheduler's spine and read the DELETE as the
          Scheduler's write, which is exactly what the sentence above says never happens.
+         Slot 0 is the victim it preempts (Pod A) and the slot Pod NEW is bound into, which is why
+         everything sent down addresses it. Same one-slot-two-identities shape cluster-resource-quota
+         uses for its refused block.
 MOTION   Durations are aligned PER STEP TYPE to the measured cluster averages, which is not the
          same thing as a reading pace. 2400 / 2400 / 2600 / 2800 /
          2800, a band of 6.70 to 7.84 ms per character, at the hurried end of the catalogue.
@@ -114,7 +119,6 @@ MOTION   Durations are aligned PER STEP TYPE to the measured cluster averages, w
          It is structural rather than slack, which is why timing alone cannot close it: `spec` and
          `attempt` both happen INSIDE a box, admission resolving a field and the filter emptying a
          list, so neither has anything to send and M-10 forbids inventing a ball to fill the time.
-         What would close it is not a duration, and it is written up as its own OPEN below.
          WHAT MADE IT VISIBLE, and no rule can see it: frames at 0, half span and 95 percent of
          steps 0, 1 and 2 are IDENTICAL, 0 pixels different, on all three viewports. That was 1500
          + 3600 + 3650 = 8750ms of a completely frozen picture between opening the card and the
@@ -143,7 +147,7 @@ MOTION   Durations are aligned PER STEP TYPE to the measured cluster averages, w
          never reaches, a motion cue of its own.
          WHY NOT keep a ball on that step by routing the scan through the API. Nothing is asked of
          the API during victim selection, so the ball would draw a call that is not made.
-         Ball speeds: the 192 unit top hop runs 0.274 u/ms and the 260 unit drop 0.371, both
+         Ball speeds, which `pace.mjs` prints: the 192 unit top hop and the 260 unit drop are both
          floor-bound on the 700ms PKT_DUR_MIN (M-13). Two cards share the hop length and
          cluster-node-drain shares the drop, so both are the house reading rather than this card.
          CHIP BEATS on the last two steps, `rewind` plus an `F.set` at the arrival, the shape
@@ -162,6 +166,12 @@ MOTION   Durations are aligned PER STEP TYPE to the measured cluster averages, w
          NOTE the frames CANNOT show any of this: a seek never fires the `onfinish` an `F.set`
          hangs on, and `gotoStep` takes the reduced path where `rewind` does not run (M-35, T-30).
          Prev and reset therefore show the settled values, as they do on cluster-node-drain.
+         Pod A is NOT drawn at 0 on the delete step. A Pod inside its terminationGracePeriodSeconds
+         is the most present thing on the diagram, not an absence, and the victim chip on that same
+         step reads `Pod A · Terminating` while the narration spends two sentences on the grace
+         period it is serving. It holds OPACITY.terminating and keeps its slot, and leaves it on the
+         BIND step, where the narration says it has exited and its capacity has returned to the
+         Node.
 CONTENT  Rung 2 reads `2. attempt ·  filter · NoFit on every node` and names no phase the step it
          lights excludes. `2. attempt · Filter + Score · NoFit on every node` is rejected: the
          narration beside it says every Node fails
@@ -169,7 +179,7 @@ CONTENT  Rung 2 reads `2. attempt ·  filter · NoFit on every node` and names n
          is reached at all. The shipped string is 8 characters
          shorter, so nothing about the column width moves. Score is not lost from the canvas: it stays
          on the Scheduler sublabel, which is the plugin ROSTER rather than a claim about this step.
-CONTENT  The `bind` step described NODE-PRESSURE EVICTION, which it names only to disown, and got
+         The `bind` step described NODE-PRESSURE EVICTION, which it names only to disown, and got
          it wrong twice in one clause. It read `where Kubelet evicts over-request Pods first,
          BestEffort leading, and priority only orders the queue`. QoS class is not a comparator in
          that ranking at all: `pkg/kubelet/eviction/helpers.go` sorts with
@@ -184,7 +194,7 @@ CONTENT  The `bind` step described NODE-PRESSURE EVICTION, which it names only t
          does not decide that order, it only estimates it`. A cross-reference that misdescribes the
          card it references is what makes this the most expensive wording on the card.
          https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/
-CONTENT  `nominatedNodeName` is `reserved but not guaranteed`, not `a hint, not a reservation`. The
+         `nominatedNodeName` is `reserved but not guaranteed`, not `a hint, not a reservation`. The
          conclusion never moved and neither did the rest of the sentence: a higher priority Pod can
          still take the Node. What was wrong is that the card denied the word its own cited source
          uses. The reference reads `This field helps the scheduler track resources RESERVED for Pod
@@ -195,7 +205,7 @@ CONTENT  `nominatedNodeName` is `reserved but not guaranteed`, not `a hint, not 
          DO NOT restore the binary. A reader who follows the card's own sources link lands on the
          word `reserved` and concludes the card was wrong about the mechanism.
          https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
-CONTENT  The `preempt` step named the traversal backwards. It read `lowest tried first`, and the
+         The `preempt` step named the traversal backwards. It read `lowest tried first`, and the
          whole sentence is about the scan, so that reads as the scan order.
          `pkg/scheduler/framework/plugins/defaultpreemption/default_preemption.go` removes every
          potential victim and then hands reprieves back: `Sort potentialVictims by descending
@@ -209,6 +219,49 @@ CONTENT  The `preempt` step named the traversal backwards. It read `lowest tried
          `SelectVictimsOnNode finds the minimum set of pods that should be preempted` for the
          smallest victim set, and `We first try to reprieve the PDB violating victims` for
          `victim choice prefers PDB-friendly sets`.
+         Preemption does NOT run without a PDB check. It runs one, twice: once choosing the victim
+         set and once
+         ranking candidate nodes (`pkg/scheduler/framework/preemption/preemption.go` threads `pdbs`
+         into `SelectVictimsOnNode` and scores with `minNumPDBViolatingScoreFunc`). The reference is
+         explicit: "Kubernetes supports PDB when preempting Pods, but respecting PDB is best effort.
+         The scheduler tries to find victims whose PDB are not violated by preemption, but if no such
+         victims are found, preemption will still happen". The ladder rung, the focus chip and the
+         `desc` all read `no PDB check` while the delete narration on this same card already said
+         `victim choice prefers PDB-friendly sets`, and that internal contradiction is what found it.
+         The distinction the card reaches for is real and stays: preemption is a plain DELETE and not
+         the Eviction API, so the budget is honoured BEST EFFORT rather than enforced. Rung 4 and the
+         focus chip both read `standard DELETE · PDB best effort` now, and the `desc` says `not an
+         eviction, so a PodDisruptionBudget is honoured best effort, not enforced`. That desc is 462
+         characters, so there are 8 left before D-04 fails.
+         https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
+         The plugin is NOT the PriorityClass admission plugin, and a raw spec.priority is not
+         refused by VALIDATION. The plugin is named `Priority`
+         (`plugin/pkg/admission/priority/admission.go` sets `PluginName = "Priority"`, and the
+         reference lists "Priority, Type: Mutating and Validating"); `PriorityClass` is the API object
+         it reads. It is that plugin and not API validation that refuses the field, and only when the
+         supplied value DIFFERS from the one it computed: `if pod.Spec.Priority != nil &&
+         *pod.Spec.Priority != priority`. The conclusion the step draws is unaffected, so it stays
+         word for word: PriorityClass is the only route.
+         The WIRE deliberately still reads `PriorityClass admission`, and it is not the same defect:
+         it names the admission stage by the field it acts on and never calls that the plugin name.
+         DO NOT rewrite it to `Priority admission plugin`. It was, and T-09 in
+         `render/inline.test.mjs` went red: a wire is a `scheme-label`, System A wants body text
+         lowercase, and `Priority` alone is neither an identifier by its shape nor a dictionary name,
+         so it scores DOWN. `PriorityClass` passes because `^[A-Z][a-z]+[A-Z]` reads it as an
+         identifier. Lowercasing it to `priority admission plugin` would pass and would print the
+         plugin name wrong, so the wire keeps the field.
+         https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
+         The two off-card actors in `bind` are deliberate. `The controller owning Pod A puts a
+         replacement elsewhere or queues it` and `where Kubelet ranks by over-request first` both
+         describe events explicitly OFF this card: a replacement placed elsewhere, and a mechanism
+         the sentence itself marks as covered separately. Neither points the reader at a box that
+         should be on the diagram. Do not file these again.
+         Nor is `NoFit on all nodes`, the wire `filter all nodes`, the rung `NoFit on every node` or
+         `scans the running Pods on each Node` a defect against the ONE drawn frame. The frame is
+         labelled `Node-1`, a numbered member of a set the way cluster-node-failure draws Node-1 and
+         Node-2, and preemption only starts once no Node fits, so a card that said `NoFit on Node-1`
+         would state the smaller fact that does not produce the behaviour. The card follows the one
+         Node the victim sits on, which is what the aria-label's `on a full Node` says.
 NAMING   The plugin-phase names on the canvas are LOWERCASE, and the Scheduler sublabel was the one
          string out of line, `filter + Score + Preempt` capitalising two of the three words it wrote
          `filter` in. It is `filter + score + preempt`. T-09 is the rule, a block LABEL is a heading
@@ -226,116 +279,18 @@ NAMING   The plugin-phase names on the canvas are LOWERCASE, and the Scheduler s
          found by reading it against its own narration, not by a check. The narration keeps its
          capitals (`Filter plugins drop every Node`), which is prose, outside System A, and what the
          exemplar does too.
-NOTE     Slot 0 is the victim it preempts (Pod A) and the slot Pod NEW is bound into, which is why
-         everything sent down addresses it. Same one-slot-two-identities shape cluster-resource-quota
-         uses for its refused block.
-NOTE     THE CARD LIVES IN CLUSTER AND WAS BUILT IN WORKLOADS, so the old id still resolves through
+         THE CARD LIVES IN CLUSTER AND WAS BUILT IN WORKLOADS, so the old id still resolves through
          SCHEME_ALIASES. The kit import carries CLUSTER_TINT, the chips and packets take role
          'cluster', and the four Pods keep role 'workloads' with the family violet override every
          Cluster card with a Pod carries, so the resting stroke matches the pulse base.
          WL is a Workloads-kit export and does not exist on cluster-kit, so the X grammar reads off
          cluster's own names: the magnitudes from `CLU` and the ladder band from `LAYOUT.C.ladder`,
          which is where LAD_X 660 and LAD_W 480 come from.
-         DO NOT read the Node band as workloads geometry any more. It was NODE_H 128 / POD_H 82 /
-         inner dy 24 h 46, byte-identical to workloads-pod-qos-classes, which is where the whole
-         band was copied from and where its bus grammar came with it. It is the CLU.L-01 family now, the
-         same numbers cluster-node-drain and cluster-static-pods carry.
-DO NOT   Draw Pod A at 0 on the delete step. A Pod inside its terminationGracePeriodSeconds is the
-         most present thing on the diagram, not an absence, and the victim chip on that same step
-         reads `Pod A · Terminating` while the narration spends two sentences on the grace period it
-         is serving. It holds OPACITY.terminating and keeps its slot, and leaves it on the BIND step,
-         where the narration says it has exited and its capacity has returned to the Node.
-DO NOT   Say preemption runs NO PDB CHECK. It runs one, twice: once choosing the victim set and once
-         ranking candidate nodes (`pkg/scheduler/framework/preemption/preemption.go` threads `pdbs`
-         into `SelectVictimsOnNode` and scores with `minNumPDBViolatingScoreFunc`). The reference is
-         explicit: "Kubernetes supports PDB when preempting Pods, but respecting PDB is best effort.
-         The scheduler tries to find victims whose PDB are not violated by preemption, but if no such
-         victims are found, preemption will still happen". The ladder rung, the focus chip and the
-         `desc` all read `no PDB check` while the delete narration on this same card already said
-         `victim choice prefers PDB-friendly sets`, and that internal contradiction is what found it.
-         The distinction the card reaches for is real and stays: preemption is a plain DELETE and not
-         the Eviction API, so the budget is honoured BEST EFFORT rather than enforced. Rung 4 and the
-         focus chip both read `standard DELETE · PDB best effort` now, and the `desc` says `not an
-         eviction, so a PodDisruptionBudget is honoured best effort, not enforced`. That desc is 462
-         characters, so there are 8 left before D-04 fails.
-         https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
-DO NOT   Call it the PriorityClass admission plugin, and do not say a raw spec.priority is refused by
-         VALIDATION. Both were on the spec step. The plugin is named `Priority`
-         (`plugin/pkg/admission/priority/admission.go` sets `PluginName = "Priority"`, and the
-         reference lists "Priority, Type: Mutating and Validating"); `PriorityClass` is the API object
-         it reads. It is that plugin and not API validation that refuses the field, and only when the
-         supplied value DIFFERS from the one it computed: `if pod.Spec.Priority != nil &&
-         *pod.Spec.Priority != priority`. The conclusion the step draws is unaffected, so it stays
-         word for word: PriorityClass is the only route.
-         The WIRE deliberately still reads `PriorityClass admission`, and it is not the same defect:
-         it names the admission stage by the field it acts on and never calls that the plugin name.
-         DO NOT rewrite it to `Priority admission plugin`. It was, and T-09 in
-         `render/inline.test.mjs` went red: a wire is a `scheme-label`, System A wants body text
-         lowercase, and `Priority` alone is neither an identifier by its shape nor a dictionary name,
-         so it scores DOWN. `PriorityClass` passes because `^[A-Z][a-z]+[A-Z]` reads it as an
-         identifier. Lowercasing it to `priority admission plugin` would pass and would print the
-         plugin name wrong, so the wire keeps the field.
-         https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
-NOT A DEFECT
-         The two off-card actors in `bind` are deliberate. `The controller owning Pod A puts a
-         replacement elsewhere or queues it` and `where Kubelet ranks by over-request first` both
-         describe events explicitly OFF this card: a replacement placed elsewhere, and a mechanism
-         the sentence itself marks as covered separately. Neither points the reader at a box that
-         should be on the diagram. Do not file these again.
-         Nor is `NoFit on all nodes`, the wire `filter all nodes`, the rung `NoFit on every node` or
-         `scans the running Pods on each Node` a defect against the ONE drawn frame. The frame is
-         labelled `Node-1`, a numbered member of a set the way cluster-node-failure draws Node-1 and
-         Node-2, and preemption only starts once no Node fits, so a card that said `NoFit on Node-1`
-         would state the smaller fact that does not produce the behaviour. The card follows the one
-         Node the victim sits on, which is what the aria-label's `on a full Node` says.
-OPEN     The band x 60..484 above the frame is empty on every step once the panel clears it, about
-         424 by 200 units at 1600x1000 where the panel bottom measures 177.44.
-         It is the LAYOUT, not this card. Measured over the seven cluster cards that take
-         Layout C and draw a Node frame (`pod-priority-preemption`, `oom-kill`, `cpu-throttling`,
-         `static-pods`, `node-drain`, `node-allocatable`, `node-failure`): every one of them has
-         ZERO drawn parts in the band left of x=660 between y=190 and its own frame top. Closing it
-         here alone would make this card the one member of seven that differs.
-         Layout A, the arrangement that WOULD fill it, does not fit, and the arithmetic is hard.
-         The ladder is five rungs at ROW_H 32 and ROW_GAP 10, so 200 units tall. It has to start
-         below the worst panel bottom, 279.51 at 1100x800, which puts it at roughly 290..490 against
-         a frame top of 380. The frame cannot move down to make room: 380 + 152 leaves 532, the chip
-         strip takes 548..624, and the canvas is 640, so there are 16 units of floor and nothing
-         spare. That is exactly the test L-08a names, pick the first of A / B / C that fits, and C
-         is the first that does.
-         No machine reports the band. CENTRE counts `node()` frames, so the full-width frame carries
-         the content bbox to centre 600 and passes, and CENTRE-LOW excludes frames, so it never
-         judges this card at all (L-17). Closing it means stretching the top row back across the
-         panel column or widening a frame, which is the move L-16 forbids, so it stays open.
-OPEN     The card is motionless for its first 6300ms and no duration can fix it. Poster 1500 plus
-         `spec` 2400 plus `attempt` 2400, none of the three drawing anything that moves, is among
-         the longest in the category behind admission-chain 9084 and resource-quota 7140, and well
-         over what a card ordinarily opens with. The re-pacing lever is spent: `delete` and `bind`
-         already sit at a 400ms tail against a category mean several times that, and their span of
-         2400 is a floor.
-         WHAT WOULD CLOSE IT: a ball on `attempt`, Scheduler to API, along the lane that already
-         carries the DELETE and the bind. It needs no new geometry and no new string, one `F.top`,
-         the same call steps 4 and 5 make. The traffic is already claimed by the card in two places,
-         the narration (`so Pod NEW is recorded Unschedulable`) and the wire (`filter all nodes ·
-         NoFit · Event FailedScheduling`), so it is literal under M-10 rather than decoration.
-         WHY IT IS STILL OPEN: it adds motion the card has never had, and the request it came out of
-         was a timing alignment. It also moves what `attempt` LIGHTS, because a ball landing on the
-         API has to light the API, and today that step lights the Scheduler alone. That is a
-         choreography decision, not a duration, and it needs saying out loud before it is drawn.
-         WHY NOT do the same on `spec`. `Pod NEW arrives at the API` names traffic with no SENDER on
-         this canvas: there is no kubectl and no controller box, and the Scheduler is not who sends
-         it. A ball would have to start from nowhere, which is the arrow-into-nothing family.
+         The Node band is NOT workloads geometry. It is the CLU.L-01 family, the same numbers
+         cluster-node-drain and cluster-static-pods carry, and not the NODE_H 128 / POD_H 82 /
+         inner dy 24 h 46 of workloads-pod-qos-classes, which is where the whole band and its bus
+         grammar were taken from.
 ```
-
-### before `opacity: { ...STANDING, pod1: OPACITY.terminating },`
-
-```
-DO NOT pin Pod A to 0 and animate it 1 -> 0 on the eviction packet arriving. The victim chip on that
-same step reads 'Pod A · Terminating' and the narration spends two sentences on the grace period it
-is serving: a Pod inside its terminationGracePeriodSeconds is the most present thing on the diagram,
-not an absence. It holds OPACITY.terminating and keeps its slot, and leaves the slot on the BIND
-step, where the narration says it has exited and its capacity has returned to the Node.
-```
-
 
 ### poster
 

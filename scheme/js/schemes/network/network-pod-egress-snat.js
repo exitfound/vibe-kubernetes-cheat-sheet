@@ -3,6 +3,9 @@ import { P, F, defineCard, laneY, BEAT } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-pod-egress-snat
 
 
+// Forward and return lanes sit symmetric about this line and BOTH stay inside the box heights, so a
+// ball never travels under a box. The Internet box is levelled with the Node frame rather than
+// lifted, which is what puts the low row on 600.
 const EGRESS_Y = 360;               // vertical center of the Pod and masquerade boxes: both lanes sit symmetric about it
 const LANE_DY = 12;                 // half-gap between the two horizontal lanes
 // 348 forward lane (Pod -> Internet) above center, 372 return lane (Internet -> Pod) below it.

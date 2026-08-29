@@ -117,6 +117,9 @@ export const STEPS_SPEC = [
     lit: ['startupChip', 'livenessChip', 'readinessChip'],
     chain: 1,
     flow: [
+      // Startup passed but readiness has not, so the Pod is not Ready yet: it blinks to its partial
+      // opacity and settles back to dim, and full opacity is reserved for the ready step. Only
+      // after the blink does the packet leave.
       F.pulse({ pod: 'podGroup', dim: true }),
       F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
     ],

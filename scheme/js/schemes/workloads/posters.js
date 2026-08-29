@@ -159,6 +159,19 @@ export const POSTERS = {
     <circle cx="276" cy="90" r="3" fill="currentColor"/>
   `,
 
+  'workloads-pod-startup-conditions': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="18"  y="128" width="52" height="34" rx="4" fill="rgba(255,255,255,0.03)" opacity="0.7"/>
+      <rect x="76"  y="102" width="52" height="34" rx="4" fill="rgba(255,255,255,0.05)" opacity="0.8"/>
+      <rect x="134" y="76"  width="52" height="34" rx="4" fill="rgba(255,255,255,0.07)" opacity="0.9"/>
+      <rect x="192" y="50"  width="52" height="34" rx="4" fill="rgba(255,255,255,0.10)"/>
+      <rect x="250" y="24"  width="52" height="34" rx="4" stroke-dasharray="3 2" opacity="0.5"/>
+    </g>
+    <rect x="28"  y="141" width="32" height="8" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="86"  y="115" width="32" height="8" rx="2" fill="currentColor" opacity="0.45"/>
+    <rect x="144" y="89"  width="32" height="8" rx="2" fill="currentColor" opacity="0.6"/>
+    <rect x="202" y="63"  width="32" height="8" rx="2" fill="currentColor" opacity="0.9"/>
+  `,
   'workloads-pod-qos-classes': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20"  y="36" width="84" height="80" rx="6" fill="rgba(255,255,255,0.03)" stroke-dasharray="3 2" opacity="0.55"/>
@@ -171,11 +184,30 @@ export const POSTERS = {
     <rect x="128" y="66" width="64" height="10" rx="2" fill="currentColor" opacity="0.55"/>
     <rect x="226" y="56" width="64" height="10" rx="2" fill="currentColor" opacity="0.75"/>
     <rect x="226" y="84" width="64" height="10" rx="2" fill="currentColor" opacity="0.75"/>
-    <circle cx="62"  cy="156" r="3"   fill="currentColor" opacity="0.45"/>
-    <circle cx="160" cy="156" r="3.2" fill="currentColor" opacity="0.7"/>
-    <circle cx="258" cy="156" r="3.5" fill="currentColor"/>
   `,
 
+  'workloads-container-env-injection': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="14"  y="40" width="104" height="104" rx="7" fill="rgba(255,255,255,0.06)"/>
+      <rect x="202" y="40" width="104" height="104" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.75"/>
+      <line x1="118" y1="92" x2="146" y2="92" stroke-dasharray="4 3" opacity="0.75"/>
+      <line x1="174" y1="92" x2="202" y2="92" stroke-dasharray="4 3" opacity="0.28"/>
+    </g>
+    <rect x="28"  y="58"  width="76" height="14" rx="2" fill="currentColor" opacity="0.9"/>
+    <rect x="28"  y="85"  width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="28"  y="112" width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="216" y="58"  width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="216" y="85"  width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="216" y="112" width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
+  `,
+  'workloads-pod-startup-failures': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="20"  y="32" width="126" height="116" rx="8" fill="rgba(255,255,255,0.03)" opacity="0.5"/>
+      <rect x="174" y="32" width="126" height="116" rx="8" fill="rgba(255,255,255,0.06)"/>
+      <rect x="198" y="59" width="78"  height="62"  rx="6" fill="rgba(255,255,255,0.08)"/>
+    </g>
+    <rect x="208" y="75" width="58" height="30" rx="3" fill="currentColor" opacity="0.9"/>
+  `,
   'workloads-pod-image-pull': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <path d="M 75 55 Q 65 30, 95 30 Q 105 15, 130 18 Q 145 5, 175 12 Q 200 5, 225 18 Q 250 22, 250 50 Q 260 65, 235 65 Q 215 78, 185 68 Q 165 78, 140 68 Q 115 78, 90 65 Q 65 65, 75 55 Z"
@@ -193,6 +225,17 @@ export const POSTERS = {
     <circle cx="190" cy="153" r="2.5" fill="currentColor" opacity="0.7"/>
   `,
 
+  'workloads-effective-pod-request': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="180" y="82" width="100" height="68" rx="4" fill="rgba(255,255,255,0.06)"/>
+      <line x1="26" y1="154" x2="294" y2="154" opacity="0.4"/>
+    </g>
+    <rect x="40"  y="101"  width="100" height="49"   rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="40"  y="80.5" width="100" height="18.5" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="40"  y="66.5" width="100" height="12"   rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="40"  y="40"   width="100" height="24.5" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="190" y="92"   width="80"  height="48"   rx="2" fill="currentColor" opacity="0.9"/>
+  `,
   'workloads-init-containers-and-sidecars': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="20" y="40" width="280" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>

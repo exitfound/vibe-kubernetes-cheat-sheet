@@ -3,6 +3,9 @@ import { P, F, defineCard, laneY, midX } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-tls-termination
 
 
+// Client, Ingress and backend Pod all sit on this line, with the TLS Secret the only block above it.
+// Decryption happens inside the Ingress box, so the flow stays one straight run for the ball to
+// enter and re-emerge.
 const FLOW_Y = 312;
 const CLIENT_EDGE = 270;
 const ING_LEFT = 470;

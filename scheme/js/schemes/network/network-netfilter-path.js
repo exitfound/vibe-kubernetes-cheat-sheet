@@ -3,6 +3,11 @@ import { P, F, defineCard, makeRidingLabel, BEAT, OPACITY } from './network-kit.
 // Design notes for this card: ./CARDS.md#network-netfilter-path
 
 
+// The chip strip spans this frame 1:1 and they share both verticals. The five chain blocks sit
+// INSIDE it, inset 30 on the left (PREROUTING at 70 against the frame at 40) and 20 on the right
+// (eth0 ending at 1140 against 1160), the margin that keeps them off the frame border while the
+// strip below still reaches it. Changing NODE_W re-solves the chain spacing and the strip together,
+// and changing only one breaks the single-column reading.
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 251;
 // The Node frame is the widest element, so it is what the chip strip spans, edge to edge.
 const SCHEME_LEFT = NODE_X;                    // 40
@@ -37,6 +42,8 @@ const IN_LANE_Y = 336;                         // the lane the client packet tur
 const RETURN_LANE_Y = 360;                     // the reply lane, its own, so it never rides a forward wire
 // Chip strip: four cells with even gaps spanning the Node frame 1:1, each sized for its own values.
 const CHIP_Y = 576, CHIP_H = 34, CHIP_GAP = 20;
+// Four UNEQUAL widths, not a computed row: editing one without re-measuring is what
+// `render/chipfit.test.mjs` catches.
 const CHIP_W = [270, 320, 260, 210];
 const CHIP_X = CHIP_W.reduce((acc, w, i) => (i ? [...acc, acc[i - 1] + CHIP_W[i - 1] + CHIP_GAP] : [SCHEME_LEFT]), []);
 

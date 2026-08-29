@@ -14,8 +14,8 @@ rule. Where an id could name two different rules, the FOLDER keeps it: `WL.L-03`
 
 | File | Owns |
 |---|---|
-| `cards.js` | the 19 `SCHEMES` entries and the `SUBCATEGORIES` list for this category |
-| `posters.js` | the 19 grid thumbnails, keyed by card id |
+| `cards.js` | the 21 `SCHEMES` entries and the `SUBCATEGORIES` list for this category |
+| `posters.js` | the 21 grid thumbnails, keyed by card id |
 | `workloads-kit.js` | the tint, the two pulse wrappers, the `WL` layout constants and the `LAYOUT` A/B/C column presets, plus the `P` / `F` / `defineCard` bindings; everything else is re-exported from `lib/scheme-kit.js` and `lib/layout.js` |
 | `workloads-*.js` | one module per card |
 
@@ -46,7 +46,7 @@ own elements, so every surviving `role:` literal is a deliberate cross-category 
 
 | key | label | cards | what belongs here |
 |---|---|---|---|
-| `pods-bootstrap` | Pods Bootstrap | 3 | what happens before the app container is running: init and sidecar ordering, image pull, the QoS class the Pod is born with |
+| `pods-bootstrap` | Pods Bootstrap | 4 | what happens before the app container is running: the condition ladder the Pod climbs, init and sidecar ordering, image pull, the QoS class the Pod is born with |
 | `pods-lifecycle` | Pods Lifecycle | 9 | one Pod's own state machine: phases, restart policy, hooks, probes, container states, crash loops, in-place resize, shutdown, force deletion |
 | `controllers` | Controllers | 8 | an object that manages Pods rather than being one: Deployment, ReplicaSet, StatefulSet, DaemonSet, Job, CronJob |
 
@@ -74,7 +74,7 @@ shape rather than inventing one:
 
 ### The layout canon (`WL.L-01`)
 
-The X grammar all 19 workloads cards share, exported from `workloads-kit.js`. Y values stay per
+The X grammar all 21 workloads cards share, exported from `workloads-kit.js`. Y values stay per
 card, because each card's panel bottom is its own measurement (`L-04`).
 
 ```js
@@ -89,8 +89,8 @@ LAYOUT = { A: { ladder: WL.COL_L, chips: WL.COL_R },
 ```
 
 **The columns are named by POSITION, and that is the whole reason `LAYOUT` exists.** A role name
-(`LADDER_X`, `CHIP_X`) states the job that column holds in layout A, and B and C dominate: on 16 of
-the 19 cards such a name states the opposite of what it does. Picking a layout is one edit,
+(`LADDER_X`, `CHIP_X`) states the job that column holds in layout A, and B and C dominate: on 17 of
+the 21 cards such a name states the opposite of what it does. Picking a layout is one edit,
 `LAYOUT.A` / `.B` / `.C`, and no role-named column key belongs here.
 
 The shape is an actor row clear of the narration panel, a pipeline ladder and a chip column
@@ -103,19 +103,20 @@ construction.
 | `WL.L-03` | **A** (`LAYOUT.A`) ladder left, chips right, Node on the floor. Needs `PANEL_B + 20 + LADDER_H + 20 + NODE_H <= 630` |
 | `WL.L-04` | **B** (`LAYOUT.B`) the mirror, chips left and ladder right. **This is the common case, not A**: a 4-chip column is 160 tall where a 5-row ladder is 200, and the band left free below a real panel is at most about 214 |
 | `WL.L-05` | **C** (`LAYOUT.C`) tall panel, neither column fits below it: ladder right, Node just under the panel, chips as a full-width bottom strip **two or three per row** (532 or 350.7 wide). Never four or five across: 258 and 205 are narrower than the strings, and that produced 79 chip collisions |
-| `WL.L-06` | The choice itself is `L-08a`, which cluster obeys too. What is workloads alone: the split over these 19 cards, measured A 3, B 7, C 9 |
+| `WL.L-06` | The choice itself is `L-08a`, which cluster obeys too. What is workloads alone: the split over these 21 cards, measured A 4, B 7, C 10 |
 | `WL.L-07` | The trunk has to run in the `540..660` corridor to clear both columns and still leave a face midpoint, so **the actor box it leaves must be centred on `WL.SPINE_X`**. That is why several cards carry a first actor box of `420..780` rather than `420..640` |
-| `WL.A-01` | The top-row lane PAIR: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API and `RESP_Y = TOP_CY + LANE_DY` carries the answer back. 17 cards draw the pair and 6 ride the answer. Whether the answer lane is an arrow or a relation is decided by the step's own words (`A-06`) |
+| `WL.A-01` | The top-row lane PAIR: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API and `RESP_Y = TOP_CY + LANE_DY` carries the answer back. Measured over the 21: **16 draw the pair and 10 of those ride the answer**, and `workloads-pod-qos-classes` is the one card that rides a single answer lane on `TOP_CY` with no pair at all, because no step of it names anything going the other way. Whether the answer lane is an arrow or a relation is decided by the step's own words (`A-06`) |
 | `WL.A-02` | **The top-row wire label goes ABOVE the actor row**, at `WIRE_Y = WL.TOP_Y - 12`, never below it. Below, centred at `WIRE_X` on y=146, it lands on the lane and across the spine's step. Nine cards carry that constant identically |
+| `WL.A-03` | **A lane between the actor row and the Node band ends on the FRAME face midpoint, in both directions**, never on a Pod inside the frame. This is the cluster grammar and it holds here too: an endpoint on `POD_Y` makes the lane pierce the frame it crosses, which draws the Kubelet reaching THROUGH the Node rather than acting on it. The frame's top midpoint therefore has to equal `WL.SPINE_X`, so a frame narrower than the full width is centred on `WL.CX`. Measured 2026-08-29 the catalog is NOT converted: 20 cards here still end on `POD_Y` against 17 cluster cards on `NODE_Y`, and `workloads-pod-startup-conditions` is the first one on the rule. Nothing in the suite can see either shape, because `check-geometry` scores where a lane ENDS and both endpoints are legal to it |
 | `WL.S-01` | Each card owns its own `SPINE` points array, and the same array feeds both the drawn wire and the ball. **There is no shared connector helper, and there must not be one**: a helper holding the ball's points in the kit while the card holds the wire's leaves two independent copies of the same numbers |
 
 `WL.L-05` is the rule that cost the most: stretching the chip strip to straddle 600 closes a
 `CENTRE` finding and produces the 79 collisions, so the rule goes green on a drawing that is
-rejected under `L-16`, and four findings are left open under it.
+rejected under `L-16`.
 
 ## The escape hooks this category still needs
 
-All 20 cards are in the declarative form. **16 are fully declarative**; four carry a hook, and each
+All 21 cards are in the declarative form. **17 are fully declarative**; four carry a hook, and each
 exists for something with no honest general verb. `step.enter`, `step.motion`, `F.run` and
 `reset.extra` are used by NOBODY here, and migrating the category required the DSL to grow zero times.
 
@@ -125,6 +126,7 @@ exists for something with no honest general verb. `step.enter`, `step.motion`, `
 | `workloads-cronjob` | `P.raw`, one factory over six rungs | The identical construct, for the schedule ticks, with keys `tick0..tick5` |
 | `workloads-init-containers-and-sidecars` | `part.tune` on the `P.pod` | The Pod holds FOUR peer container boxes; `buildPod` carries exactly one `inner` and would hand it the Pod's own role, turning four `role: 'cluster'` boxes blue. They must also sit inside the shell group, because `pulsePod` reaches only what the Pod contains |
 | `workloads-pod-image-pull` | `P.raw` | The registry cloud is a bare `<path>`, the only one in the category, and the only card importing `path` from `lib/svg.js` |
+| `workloads-pod-startup-conditions` | `P.raw`, one factory over five treads plus two rail segments | The condition staircase is a two-line cell (`chip()` carries one centred label, `box()` is a component) and the phase rail is two label-only `chip()`s. Keys `rung0..rung4`, `railPending` and `railRunning`, which is what `lit`, `opacity` and `reset.keys` address |
 
 **A `P.raw` factory is the one place a card still writes its own `role:`**, because `P.raw` bypasses
 the kit binding by construction and the primitive has to be handed the role by hand. `cronjob`'s tick

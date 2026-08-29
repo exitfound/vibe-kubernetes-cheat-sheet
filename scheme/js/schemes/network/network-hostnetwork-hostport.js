@@ -3,6 +3,9 @@ import { P, F, defineCard, makeRidingLabel, laneY, midX, shade, OPACITY } from '
 // Design notes for this card: ./CARDS.md#network-hostnetwork-hostport
 
 
+// The Node frame is the outer extent and the three column centres are spaced inside it. NODE_Y 305
+// puts the frame just under the panel, and the client above it sits at x >= 450 only because of
+// that. Raising the frame puts its top-left corner and the portmap box under the overlay.
 const NODE_X = 40, NODE_Y = 305, NODE_W = 1120, NODE_H = 265;
 
 const COL1_CX = 240, COL2_CX = 600, COL3_CX = 960;
@@ -58,8 +61,11 @@ const VETH = [[BR_X, POD_CY], [APP_RIGHT, POD_CY]];                      // brid
 // floats the DNAT-ed address out of the portmap rule, and hold 0 clears each address as its hop lands.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-// The hostNetwork hop leaves the NIC face, which on the lane cuts the address it carries. -40 parks
-// the tag in the band between the Node frame and the NIC row, clear on all four viewports.
+// The hostNetwork hop starts on the NIC right face, so at the default -14 the tag tail sits inside
+// Node eth0 and its border strikes the first character for 100ms. -40 parks it level with the frame
+// caption, between the Node frame top (305) and the NIC row (330): 6.7 under the frame, 5.4 over
+// the row, clear on all four viewports. A dx offset overlaps by 4.4 units at 1600x1000 and 8.4 at
+// 900x650, so the clear dx set starts at +10 there and stops reading as the address of its own ball.
 const AGENT_TAG_DY = -40;
 
 const POD_INNER = { dx: 20, dy: 30, w: POD_W - 40, h: 48, label: 'app', sublabel: 'eth0' };

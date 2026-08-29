@@ -2,6 +2,9 @@ import { P, F, defineCard, chipStrip, BEAT, FADE, OPACITY } from './storage-kit.
 // Design notes for this card: ./CARDS.md#storage-generic-ephemeral-volume
 
 
+// Pod, PVC and PV all sit on this axis and the two machinery blocks flank it symmetrically. Every one
+// of the four column lanes runs on CX itself, which is what lets each arrowhead land dead centre on
+// the face it enters.
 const CX = 600;
 
 // 226 x 110 is the storage family Pod (storage-csi-attach-mount sets it). This card was drawing a

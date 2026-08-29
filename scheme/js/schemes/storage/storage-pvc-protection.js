@@ -2,6 +2,8 @@ import { P, F, defineCard, BEAT, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pvc-protection
 
 
+// The identity spine, and TIER is the one vertical pitch on the card. storage-volume-expansion reuses
+// both numbers so the two cards in this subcategory read as one family.
 const CX = 600;                                                // canvas + identity-spine center
 const TIER = 162;                                              // the one vertical pitch
 
@@ -47,8 +49,10 @@ const W_DEL_POD = [[ACT_R_CX, KUBECTL_Y], [ACT_R_CX, POD_MID], [POD_RIGHT, POD_M
 // are never drawn on the same run of canvas.
 const W_RM_FINAL = [[ACT_L_CX, CTRL_Y], [ACT_L_CX, PVC_MID], [PVC_X, PVC_MID]];
 
-// Both requests end on the claim at PVC_MID, half a box height below its top, so at the default -14
-// the tag rides inside the boxes it passes. -40 and -38 are the least that clear all four viewports.
+// Both requests travel at PVC_MID, half a box height below the claim top, so at -14 each tag rides
+// inside the boxes at its ends: 800ms for the delete, 400ms for the finalizer patch. -40 and -38 are
+// the least that clear on all four viewports, and they differ only because the two strings differ in
+// width. They are large because the boxes are 68 and 72 tall and the lane is at their middle.
 const DEL_TAG_DY = -40, RM_TAG_DY = -38;
 // The mount ascent ends on the Pod floor, where the default -14 parks the tag on the volumes:
 // data-claim sublabel for 500 ms. At 12 BELOW the ball it stops short of the floor instead.

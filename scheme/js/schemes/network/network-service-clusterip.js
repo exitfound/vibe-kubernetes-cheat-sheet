@@ -2,6 +2,10 @@ import { P, F, defineCard, laneY, routeDur, BEAT, OPACITY } from './network-kit.
 
 // Design notes for this card: ./CARDS.md#network-service-clusterip
 
+// The three extents the rest of the category copies. Every block on this card is derived from CX,
+// SCHEME_L and SCHEME_R, so moving one moves the client, the kube-proxy column, the backend column
+// and both fan buses together. The chip strip does NOT follow: its four widths are sized to their
+// own longest values, so re-run `render/chipfit.test.mjs` after any change here.
 const CX = 600;                     // canvas centre: the ClusterIP column and the chip strip sit on it
 const SCHEME_L = 60, SCHEME_R = 1140; // content edges, mirrored about CX
 
@@ -43,6 +47,9 @@ const FAN_RET_X = [[POD_LEFT, PODX_CY + FAN_DY], [FAN_IN_X, PODX_CY + FAN_DY], [
 const FAN_FWD_Y = [[KP_RIGHT, KPY_FWD_Y], [FAN_OUT_X, KPY_FWD_Y], [FAN_OUT_X, PODY_CY + FAN_DY], [POD_LEFT, PODY_CY + FAN_DY]];
 const FAN_RET_Y = [[POD_LEFT, PODY_CY - FAN_DY], [FAN_IN_X, PODY_CY - FAN_DY], [FAN_IN_X, KPY_RET_Y], [KP_RIGHT, KPY_RET_Y]];
 
+// The 10% glide, and the only explicit dur on this card. `render/motion.test.mjs` allows it because
+// the card is named in its `PACING` map, and dropping the constant while leaving the riding labels
+// on slowDur unglues every label from its ball.
 const SLOWMO = 1.1;
 const slowDur = (points) => Math.round(routeDur(points) * SLOWMO);
 

@@ -15,15 +15,19 @@ LAYOUT   Layout C, ladder right at 660..1140, one FULL-WIDTH Node frame at 402..
          cluster has not observed it. Measured at 1600x1000, mean pixel value of the frame label
          and of a 1250x4 strip of its top border: 22.23 / 21.44 dim against 33.43 / 31.63 full, so
          the reveal is a 50 percent lift and reads on screen rather than only in the dump.
-PANEL    x<=396.55, bottom 142.56..177.44 at 1600x1000, 171.42..213.92 at 1280x860 and
-         204.97..254.66 at 1100x800, deepest on `status`. Frame top 402, so the binding
-         clearance is 147.34 units.
-BUDGET   THERE IS NO CHARACTER CEILING FROM THE GEOMETRY, and that is a measurement rather than an
-         omission. The panel is line-quantized: at 1100x800 the deepest step (358 characters,
-         `status`) reaches 254.66 and the shortest sit on 204.97, so 147 units of headroom is
-         roughly 270 more characters and a narration would have to pass 620 before it touched the
-         frame. What binds here is the canon 360, and TWO steps now sit within 11 of it: `status`
-         at 358 and `not-ready` at 349, both because T-20 spent the characters on a clause.
+         There is NO Scheduler box saying what reads the taint. There is nowhere to
+         put one: the API is pinned on CX at 484..716 for the straight drops, the Lease holds
+         820..950, and what is left in the top row is 397..484, 87 units. The narrations are
+         written so that no undrawn actor is ever named, which is what T-21 asks for and is why
+         step 4 reads `scheduling reads taints` rather than naming the component.
+         The Lease is NOT dropped into the free 420..640 column at a second tier, with a straight
+         riser
+         from the frame. It fits and it costs the top row its second block, leaving an API alone
+         over a full-width frame, and it puts a cylinder 23 units off the panel edge at its widest
+         viewport. The 820..950 slot is where the sibling that finishes this story keeps it.
+PANEL    Right edge and bottom per viewport:
+         `OVERLAY_IDS=cluster-node-registration node --test report/overlay.test.mjs`.
+         Deepest on `status` at 1100x800. Frame top 402, so the binding clearance is 147.34 units.
 SIZES    The vertical budget, exact: 40 of top margin, the 80 top row, 28, six ladder rows at the
          folder CLU.ROW_GAP 10 ending on 390, 12, the 126 frame, 14, two chip rows at 34 with an 8
          gap ending on 618, 22 of bottom margin.
@@ -35,7 +39,8 @@ SIZES    The vertical budget, exact: 40 of top margin, the 80 top row, 28, six l
          inner box comes with it, 26/44 rather than 28/52.
          cluster-node-failure met the same 640 wall and paid it out of the paddings, 132 with 16
          of floor. Here the paddings are the family and the CONTENT is what was wrong.
-WHY NOT  Chips two across at 532, which cluster-node-drain uses. Six chips would then need three
+         Chips are three across and NOT two across at 532, which cluster-node-drain uses. Six chips
+         would then need three
          rows at 34 with two 8 gaps, 118 units, so a strip ending on 618 would start at 500
          against a frame bottom of 528, and the 126 frame does not buy that back either. Three
          across at 350.67 fits the widest pair on the card by 23.5 (`Taint` ends 835.8 and
@@ -92,6 +97,12 @@ WIRE LABELS
          status` 666.8..869.2, the two Ready strings 636.1..899.9 and 639.2..896.8, and `PUT lease
          renewTime · every 10s` 672.9..863.1. The nearest any of them comes to the panel is 239.6
          units.
+         The `call` register is written at step ENTRY while its ball is still in flight, unlike the
+         chips beside it, which are wound back and turned over on arrival. A wire label names the
+         payload the lane is CARRYING, which is true for the whole flight, where a chip reports a
+         value the object does not hold until the write lands. That is the catalog form, and the
+         one card that winds a wire back (cluster-image-container-gc) does it because its
+         label holds a reading that has been REPORTED, which is an arrival and not a payload.
 CONTENT  Every claim here is read off the four sources, and the ones a later pass will doubt are
          written out.
          `--register-node left at its default of true` and `how most distributions bring a Node
@@ -148,10 +159,10 @@ CONTENT  Every claim here is read off the four sources, and the ones a later pas
          paid for under T-20, and the counter-case is the reason the section exists at all: a
          DaemonSet Pod is created with a NoExecute toleration for `node.kubernetes.io/not-ready`
          with no tolerationSeconds, which is how a CNI plugin reaches a Node that is not Ready yet.
-DO NOT   Write `holds every Pod off` anywhere on this card. It is a false absolute against the
+         `holds every Pod off` is written nowhere on this card. It is a false absolute against the
          DaemonSet toleration above: the desc reads `keeps ordinary Pods off` and the ladder row
          reads `gates Pods`, and both are load-bearing.
-DO NOT   Write `the status only it can see` either. The card claims nothing about who else may
+         Nor is `the status only it can see`. The card claims nothing about who else may
          write those fields, because with an external cloud provider a cloud-controller-manager
          sets addresses and labels on the same object.
          `the not-ready taint is taken back off the Node` is PASSIVE on purpose. The taint page
@@ -174,6 +185,12 @@ DO NOT   Write `the status only it can see` either. The card claims nothing abou
          of the four cited pages, which name no verb at all. `PATCH .../nodes/node-1/status` is
          the verb the Kubelet really uses and the verb cluster-node-failure already narrates for
          the same write, "PATCHes Node.status every 5 min": the two cards agree by construction.
+BUDGET   THERE IS NO CHARACTER CEILING FROM THE GEOMETRY, and that is a measurement rather than an
+         omission. The panel is line-quantized: at 1100x800 the deepest step (358 characters,
+         `status`) reaches 254.66 and the shortest sit on 204.97, so 147 units of headroom is
+         roughly 270 more characters and a narration would have to pass 620 before it touched the
+         frame. What binds here is the canon 360, and TWO steps now sit within 11 of it: `status`
+         at 358 and `not-ready` at 349, both because T-20 spent the characters on a clause.
 NAMING   `metadata.name` reads `not registered` and not `none`, because `none` on that chip would
          say the object exists with an empty name. Every other chip opens on `none`, which is the
          field being absent from an object that is absent too.
@@ -192,27 +209,6 @@ SCOPE    This card is the ENTRANCE to the section and hands off five subjects by
          Manual Node administration with `--register-node=false` gets no step and no clause. The
          card states the default and says what it means (`rather than waiting for an operator to
          create the object`), which is the whole of what a reader needs to know here.
-WHY NOT  A Scheduler box, so the taint step could say what reads the taint. There is nowhere to
-         put one: the API is pinned on CX at 484..716 for the straight drops, the Lease holds
-         820..950, and what is left in the top row is 397..484, 87 units. The narrations are
-         written so that no undrawn actor is ever named, which is what T-21 asks for and is why
-         step 4 reads `scheduling reads taints` rather than naming the component.
-WHY NOT  The Lease dropped into the free 420..640 column at a second tier, with a straight riser
-         from the frame. It fits and it costs the top row its second block, leaving an API alone
-         over a full-width frame, and it puts a cylinder 23 units off the panel edge at its widest
-         viewport. The 820..950 slot is where the sibling that finishes this story keeps it.
-NOT A DEFECT
-         `regLane`, `bindLane` and `leaseLane` are addressed by nothing that names them: their keys
-         are built inside the `shades()` factory body, which no source scan follows. `chain` is
-         addressed by the `chain:` field, which `step-spec.js` resolves as `s.refs.chain`. The
-         sweep reports none of the four, it lists them as kinds not addressed by key.
-NOT A DEFECT
-         The `call` register is written at step ENTRY while its ball is still in flight, unlike the
-         chips beside it, which are wound back and turned over on arrival. A wire label names the
-         payload the lane is CARRYING, which is true for the whole flight, where a chip reports a
-         value the object does not hold until the write lands. That is the catalog form, and the
-         one card that winds a wire back (cluster-image-container-gc) does it because its
-         label holds a reading that has been REPORTED, which is an arrival and not a payload.
 ```
 
 ### poster

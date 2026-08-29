@@ -19,6 +19,15 @@
 // Read the census line at the top of the output first. A report that scanned nothing also prints
 // no findings, and that is the only way this file can lie.
 //
+// CARRIED FINDINGS. A row somebody has read and decided to keep is filed in ../fixtures/carried.mjs
+// against its rule, and this file then prints it marked CARRIED with the reason attached, counts it
+// apart from the rows left to work, and keeps it out of the per-card list and the by-category
+// tally. Nothing is hidden: the TOTAL still counts every finding these three rules produced. Every
+// entry here belongs to the `L-16` population, where the rule can only be satisfied by making the
+// picture worse, and the reason on each is the measurement that says so. Two guards come with the
+// store and both print: a ruling with no reason is BROKEN, and a ruling that matched no finding on
+// this walk is stale, which means the card moved under it.
+//
 // VIEWPORTS, and which rule uses which. The standard set is L-06: 1600x1000, 1280x860, 1100x800.
 // Only the narration panel moves with the viewport, and it moves NON-MONOTONICALLY (L-05): the
 // panel is HTML at a fraction of the dialog width while the diagram is an SVG that scales with it,
@@ -74,6 +83,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
+import { carriedBlock, carriedMap, carryKey, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
 import {
   DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, DIAGRAM_FACES, launch, initPage, discoverIds,
@@ -216,6 +226,8 @@ const fx = n => Number.isFinite(n) ? n.toFixed(0) : 'n/a';
 
 test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails)', async () => {
   const findings = { CENTRE: [], 'CENTRE-LOW': [], OCCLUDED: [] };
+  // The rulings a person has read and kept, one axis view per rule. See ../fixtures/carried.mjs.
+  const CARRIED = { CENTRE: carriedMap('CENTRE'), 'CENTRE-LOW': carriedMap('CENTRE-LOW'), OCCLUDED: carriedMap('OCCLUDED') };
   const perCard = new Map();
   const lowDelta = [];          // what a worst-of-three panel bottom would add or drop
   const fellBack = new Set();
@@ -223,8 +235,15 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   let browser;
   let sampledCards = 0, steps = 0, extraSteps = 0;
 
-  const record = (rule, id, line) => {
-    findings[rule].push({ id, line });
+  // `where` pins the exact row a ruling in ../fixtures/carried.mjs carries. CENTRE and CENTRE-LOW
+  // fire at most once per card, so their key is the card id alone; OCCLUDED fires once per block,
+  // so it takes the block label. A carried row is kept in `findings` (it still prints, marked
+  // CARRIED) and out of `perCard`, which is the list of what is left to work.
+  const record = (rule, id, line, where = []) => {
+    const carry = carryKey(id, where);
+    const why = CARRIED[rule].get(carry);
+    findings[rule].push({ id, line, carryKey: carry, why });
+    if (why) return;
     if (!perCard.has(id)) perCard.set(id, []);
     perCard.get(id).push(`${rule.padEnd(10)} ${line}`);
   };
@@ -327,7 +346,7 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
               record('OCCLUDED', id,
                 `"${b.label}" [${fx(b.x)}..${fx(b.x + b.w)} x ${fx(b.y)}..${fx(b.y + b.h)}] is ` +
                 `${(100 * worst).toFixed(0)}% under the narration panel at its worst ` +
-                `(x<=${fx(at.right)}, y<=${fx(at.bottom)})`);
+                `(x<=${fx(at.right)}, y<=${fx(at.bottom)})`, [b.label]);
             }
           }
         }
@@ -374,19 +393,37 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
       'a green run of this catalog walks. Every missing step is a composition nobody looked at.');
   }
   out.push('');
-  out.push('  findings by rule');
+  out.push('  findings by rule, and how many of each a person has read and carried');
+  let heldTotal = 0;
   for (const rule of ['CENTRE', 'CENTRE-LOW', 'OCCLUDED']) {
     const rows = findings[rule];
-    const cardsHit = new Set(rows.map(r => r.id));
-    out.push(`    ${rule.padEnd(11)} ${String(rows.length).padStart(3)} finding(s) on ${cardsHit.size} card(s)`);
+    const held = rows.filter(r => r.why);
+    heldTotal += held.length;
+    const cardsHit = new Set(rows.filter(r => !r.why).map(r => r.id));
+    out.push(`    ${rule.padEnd(11)} ${String(rows.length).padStart(3)} finding(s), ` +
+      `${held.length} carried with a reason, ${rows.length - held.length} left to work on ${cardsHit.size} card(s)`);
   }
-  out.push(`    ${'TOTAL'.padEnd(11)} ${String(total).padStart(3)} finding(s) on ${perCard.size} card(s)`);
-  out.push(`    by category: ${[...byCategory.entries()].sort().map(([c, n]) => `${c} ${n}`).join(', ') || 'none'}`);
+  out.push(`    ${'TOTAL'.padEnd(11)} ${String(total).padStart(3)} finding(s), ${heldTotal} carried, ` +
+    `${total - heldTotal} left to work on ${perCard.size} card(s)`);
+  out.push(`    left to work by category: ${[...byCategory.entries()].sort().map(([c, n]) => `${c} ${n}`).join(', ') || 'none'}`);
   out.push('');
 
   for (const [id, lines] of [...perCard.entries()].sort()) {
     out.push(`  ${id}`);
     for (const l of lines) out.push(`    ${l}`);
+  }
+  out.push('');
+
+  // The carried rows, still printed and still counted, one block per rule. `L-16` is the population
+  // they belong to: the rule can only be satisfied by making the picture worse, and the reason on
+  // each is the measurement that says so.
+  for (const rule of ['CENTRE', 'CENTRE-LOW', 'OCCLUDED']) {
+    const rows = findings[rule];
+    const held = rows.filter(r => r.why);
+    const stale = staleKeys(rule, rows.map(r => r.carryKey));
+    if (!held.length && !stale.length) continue;
+    out.push(`  ${rule}, read and carried:`);
+    for (const l of carriedBlock(rule, held.map(r => ({ key: r.carryKey, why: r.why })), stale, '    ')) out.push(l);
   }
   out.push('');
 
@@ -408,6 +445,14 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
     out.push('');
     out.push(`  cards that could not be sampled: ${notes.length}`);
     notes.slice(0, 20).forEach(l => out.push(`    ${l}`));
+  }
+  // The store's own shape, printed rather than asserted: this file fails on nothing at all.
+  const ids = new Set(catalogued.map(c => c.id));
+  const broken = ['CENTRE', 'CENTRE-LOW', 'OCCLUDED'].flatMap(a => shapeProblems(a, ids));
+  if (broken.length) {
+    out.push('');
+    out.push(`  BROKEN RULINGS in fixtures/carried.mjs: ${broken.length}`);
+    for (const b of broken) out.push('    ' + b);
   }
   out.push('===== end of report =====');
 

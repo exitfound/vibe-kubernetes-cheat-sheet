@@ -3,6 +3,9 @@ import { P, F, defineCard, makeRidingLabel } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-nodeport-loadbalancer
 
 
+// The three Node frames are spread symmetrically inside SCHEME_L..SCHEME_R, and NODE_CX then centres
+// the nodePort chip, the backend Pod and the bottom info chip of each column, so one grid drives
+// every tier.
 const CX = 600;                        // canvas centre: the client, the LB and the fan origin sit on it
 const SCHEME_L = 80, SCHEME_R = 1120;  // content edges, mirrored about CX
 
@@ -38,8 +41,11 @@ const NP_TO_POD = [[NODE_CX[0], NP_BOTTOM], [NODE_CX[0], POD_Y]];
 // block once the ball is on its way, and hold 0 clears each address as its hop lands.
 const ridingLabel = makeRidingLabel({ role: 'network', outMs: 170, hold: 0, emergeMode: true });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
-// The client floor at 100 cuts the VIP tag on the short drop to the balancer. -4 is the only offset
-// clear on three viewports, and it halves the cut on 900x650, where no offset in +-80 is clean.
+// C_TO_LB is a 50 unit drop from the client floor, so at the default -14 the tag becomes readable
+// inside the External client block and the block floor at 100 cuts it for 200ms. -4 is the only
+// offset in +-80 that clears every readable sample on 1600x1000, 1280x860 and 1100x800. On 900x650
+// nothing in +-80 is clean: at -4 the glyphs clear on all four and one 100ms sample keeps an em-box
+// graze. The ball ends level with the string rather than under it, the cost of a 50 unit lane.
 const VIP_TAG_DY = -4;
 
 // The list order IS the append order, which is the z-order: Node frames, their nodePort chips and the

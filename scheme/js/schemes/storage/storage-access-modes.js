@@ -2,6 +2,9 @@ import { P, F, defineCard, BEAT, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-access-modes
 
 
+// The panel wall, about 2 units of slack, and the ONLY thing pinning the node row: it cannot move
+// left at any window size. The row centre is LEFT_X + (3*POD_W + 110)/2, so LEFT_X and POD_W
+// together decide how far off canvas centre that tier sits.
 const LEFT_X = 400;                                      // leftmost the NODE ROW may go, all viewports
 
 const POD_Y = 82, POD_W = 128, POD_H = 126;
@@ -44,6 +47,8 @@ const SPEC_Y = PV_Y + PV_H / 2 + 5 + SPEC_GAP;           // 519
 const VERDICT_Y = 566;
 const CHIPS_Y = 585;
 
+// One width for all four chips, sized against the accessModes + ReadWriteOncePod pair at 186,
+// neither of which can shorten. Below ~190 the name and the value touch.
 const CHIP_W = 232;
 const CHIP_GAP = 16;
 const CHIP_COUNT = 4;                  // accessModes / attached to / sharing / enforced by

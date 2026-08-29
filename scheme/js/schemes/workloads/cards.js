@@ -12,6 +12,19 @@ export const SUBCATEGORIES = [
 
 export const CARDS = [
   {
+    id: 'workloads-replicaset',
+    title: 'ReplicaSet Reconcile and Ownership',
+    category: 'workloads',
+    subcategory: 'controllers',
+    desc: 'How does Kubernetes keep exactly the right number of identical Pods alive? A ReplicaSet runs a control loop comparing how many Pods it should have against how many it can see, then creates or deletes until the two match. It owns them through ownerReferences, adopts any matching Pod that no other controller already owns, and releases one whose labels stop matching. Deployments never manage Pods directly, they manage ReplicaSets.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'ReplicaSet', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/' },
+      { label: 'Owners and Dependents', href: 'https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/' },
+    ],
+  },
+  {
     id: 'workloads-rolling-update',
     title: 'Deployment Rolling Update',
     category: 'workloads',
@@ -36,19 +49,6 @@ export const CARDS = [
     ],
   },
   {
-    id: 'workloads-replicaset',
-    title: 'ReplicaSet Reconcile and Ownership',
-    category: 'workloads',
-    subcategory: 'controllers',
-    desc: 'How does Kubernetes keep exactly the right number of identical Pods alive? A ReplicaSet runs a control loop comparing how many Pods it should have against how many it can see, then creates or deletes until the two match. It owns them through ownerReferences, adopts any matching Pod that no other controller already owns, and releases one whose labels stop matching. Deployments never manage Pods directly, they manage ReplicaSets.',
-    k8sVersion: '1.35',
-    tinted: true,
-    sources: [
-      { label: 'ReplicaSet', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/' },
-      { label: 'Owners and Dependents', href: 'https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/' },
-    ],
-  },
-  {
     id: 'workloads-statefulset-ordered-startup',
     title: 'StatefulSet Ordered Rollout',
     category: 'workloads',
@@ -61,15 +61,45 @@ export const CARDS = [
     ],
   },
   {
-    id: 'workloads-init-containers-and-sidecars',
-    title: 'Init Containers and Native Sidecars',
+    id: 'workloads-pod-startup-conditions',
+    title: 'Pod Startup Conditions',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'How does a Pod start its containers when some of them must run before others? Init containers run strictly in order, each exiting 0 before the next begins, and a native sidecar (an initContainer with restartPolicy=Always, GA in 1.33) starts after them and runs for the whole Pod lifetime. The main container is held back until that sidecar reports Started, and on shutdown the termination order reverses. The sidecar still counts in the init list.',
+    desc: 'Which rung is a Pod stuck on when it is not Ready yet? Five conditions climb in a fixed order, PodScheduled then PodReadyToStartContainers then Initialized then ContainersReady then Ready, and each one is written by a different act, while status.phase moves once on that whole climb. The Kubelet begins pulling images only after the second condition flips, and Ready can lag ContainersReady whenever a readinessGate has not agreed.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
-      { label: 'Sidecar Containers', href: 'https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/' },
+      { label: 'Pod Conditions', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-condition/' },
+      { label: 'Pod Lifecycle', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/' },
+      { label: 'Feature Gates', href: 'https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/' },
+    ],
+  },
+  {
+    id: 'workloads-pod-qos-classes',
+    title: 'Pod QoS Classes',
+    category: 'workloads',
+    subcategory: 'pods-bootstrap',
+    desc: 'When a Node runs low on memory, which Pods does Kubernetes sacrifice first? At admission it reads each Pod resources block and assigns a QoS class: Guaranteed when every container sets both CPU and memory with requests equal to limits, BestEffort when nothing is set at all, Burstable in between. The class is fixed for the life of the Pod and drives the cgroup caps and the oom_score_adj, but not the eviction order, which goes by whether a Pod is over its request.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
+      { label: 'Resource Management', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/' },
+      { label: 'Node-pressure Eviction', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/' },
+    ],
+  },
+  {
+    id: 'workloads-container-env-injection',
+    title: 'Config Before PID 1',
+    category: 'workloads',
+    subcategory: 'pods-bootstrap',
+    desc: 'How does a value from a ConfigMap reach the container before its process starts? At launch the Kubelet resolves env, envFrom and the downward API into one set of variables and hands it over in the CreateContainer call, adding a pair for every Service that exists at that instant. That set is a copy taken once, so a later edit moves the object and never the running process, and only a restarted container reads the new value.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'ConfigMaps', href: 'https://kubernetes.io/docs/concepts/configuration/configmap/' },
+      { label: 'Container Environment', href: 'https://kubernetes.io/docs/concepts/containers/container-environment/' },
+      { label: 'Downward API', href: 'https://kubernetes.io/docs/concepts/workloads/pods/downward-api/' },
     ],
   },
   {
@@ -87,17 +117,42 @@ export const CARDS = [
     ],
   },
   {
-    id: 'workloads-pod-qos-classes',
-    title: 'Pod QoS Classes',
+    id: 'workloads-init-containers-and-sidecars',
+    title: 'Init Containers and Native Sidecars',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'When a Node runs low on memory, which Pods does Kubernetes sacrifice first? At admission it reads each Pod resources block and assigns a QoS class: Guaranteed when every container sets both CPU and memory with requests equal to limits, BestEffort when nothing is set at all, Burstable in between. The class is fixed for the life of the Pod and drives the cgroup caps and the oom_score_adj, but not the eviction order, which goes by whether a Pod is over its request.',
+    desc: 'How does a Pod start its containers when some of them must run before others? Init containers run strictly in order, each exiting 0 before the next begins, and a native sidecar (an initContainer with restartPolicy=Always, GA in 1.33) starts after them and runs for the whole Pod lifetime. The main container is held back until that sidecar reports Started, and on shutdown the termination order reverses. The sidecar still counts in the init list.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
-      { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
-      { label: 'Resource Management', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/' },
-      { label: 'Node-pressure Eviction', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/' },
+      { label: 'Sidecar Containers', href: 'https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/' },
+    ],
+  },
+  {
+    id: 'workloads-effective-pod-request',
+    title: 'What the Scheduler Actually Reserves',
+    category: 'workloads',
+    subcategory: 'pods-bootstrap',
+    desc: 'Four containers ask for cpu, so how much does the Node actually set aside? Not their sum: init containers run one at a time so only the highest of them counts, while the app and sidecar containers run together so theirs are added, and the Pod takes the higher of those two plus any RuntimeClass overhead. The Scheduler bins on that number and the Kubelet sizes the Pod cgroup from it, so a short init container holds its share for the whole life of the Pod.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Sidecar Containers', href: 'https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/' },
+      { label: 'Init Containers', href: 'https://kubernetes.io/docs/concepts/workloads/pods/init-containers/' },
+      { label: 'Pod Overhead', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/pod-overhead/' },
+    ],
+  },
+  {
+    id: 'workloads-pod-startup-failures',
+    title: 'Where a Pod Stalls',
+    category: 'workloads',
+    subcategory: 'pods-bootstrap',
+    desc: 'A Pod is not Running yet, so which component is still holding it? The STATUS column answers exactly that: Pending means no Node has been chosen and the Scheduler owns it, an Init:N/M counter or Init:CrashLoopBackOff means the Kubelet is working through the init containers, and PodInitializing means those are done and the app containers are being created. READY stays 0/1 through all of them, because that column asks a different question.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Debug Init Containers', href: 'https://kubernetes.io/docs/tasks/debug/debug-application/debug-init-containers/' },
+      { label: 'Pod phase', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase' },
     ],
   },
   {
@@ -163,21 +218,6 @@ export const CARDS = [
     ],
   },
   {
-    id: 'workloads-pod-resize',
-    title: 'In-place Pod Resize',
-    category: 'workloads',
-    subcategory: 'pods-lifecycle',
-    desc: 'A running Pod is short on CPU, so does it have to be replaced to get more? Since 1.35 you can patch spec.containers[].resources through the resize subresource, and the Kubelet applies the new numbers to the container that is already running, in place or by restarting it, as resizePolicy says per resource. It answers PodResizePending when the Node cannot take the change, and the QoS class the Pod was created with never moves.',
-    k8sVersion: '1.35',
-    tinted: true,
-    sources: [
-      { label: 'Resize Container Resources', href: 'https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/' },
-      { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
-      { label: 'Pod v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/core/pod-v1/' },
-      { label: 'CRI Spec', href: 'https://github.com/kubernetes/cri-api/blob/master/pkg/apis/runtime/v1/api.proto' },
-    ],
-  },
-  {
     id: 'workloads-restart-policy',
     title: 'Pod restartPolicy: Always, OnFailure, Never',
     category: 'workloads',
@@ -187,18 +227,6 @@ export const CARDS = [
     tinted: true,
     sources: [
       { label: 'Restart Policy', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy' },
-    ],
-  },
-  {
-    id: 'workloads-hooks',
-    title: 'Lifecycle Hooks: postStart and preStop',
-    category: 'workloads',
-    subcategory: 'pods-lifecycle',
-    desc: 'How does a container run code exactly when it starts and just before it stops? Lifecycle hooks give it two slots, postStart fired concurrently with the entrypoint and preStop run synchronously ahead of SIGTERM, both executed by the Kubelet rather than by your process. They are how a container announces itself and drains on the way out. The termination grace period bounds preStop, never postStart, and preStop shares it with the SIGTERM stop that follows.',
-    k8sVersion: '1.35',
-    tinted: true,
-    sources: [
-      { label: 'Container Lifecycle Hooks', href: 'https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/' },
     ],
   },
   {
@@ -238,6 +266,18 @@ export const CARDS = [
     ],
   },
   {
+    id: 'workloads-hooks',
+    title: 'Lifecycle Hooks: postStart and preStop',
+    category: 'workloads',
+    subcategory: 'pods-lifecycle',
+    desc: 'How does a container run code exactly when it starts and just before it stops? Lifecycle hooks give it two slots, postStart fired concurrently with the entrypoint and preStop run synchronously ahead of SIGTERM, both executed by the Kubelet rather than by your process. They are how a container announces itself and drains on the way out. The termination grace period bounds preStop, never postStart, and preStop shares it with the SIGTERM stop that follows.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Container Lifecycle Hooks', href: 'https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/' },
+    ],
+  },
+  {
     id: 'workloads-graceful-shutdown',
     title: 'Graceful Pod Shutdown',
     category: 'workloads',
@@ -260,6 +300,21 @@ export const CARDS = [
     sources: [
       { label: 'Force Delete StatefulSet Pods', href: 'https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/' },
       { label: 'Termination of Pods', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination' },
+    ],
+  },
+  {
+    id: 'workloads-pod-resize',
+    title: 'In-place Pod Resize',
+    category: 'workloads',
+    subcategory: 'pods-lifecycle',
+    desc: 'A running Pod is short on CPU, so does it have to be replaced to get more? Since 1.35 you can patch spec.containers[].resources through the resize subresource, and the Kubelet applies the new numbers to the container that is already running, in place or by restarting it, as resizePolicy says per resource. It answers PodResizePending when the Node cannot take the change, and the QoS class the Pod was created with never moves.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Resize Container Resources', href: 'https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/' },
+      { label: 'Pod QoS Classes', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/' },
+      { label: 'Pod v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/core/pod-v1/' },
+      { label: 'CRI Spec', href: 'https://github.com/kubernetes/cri-api/blob/master/pkg/apis/runtime/v1/api.proto' },
     ],
   },
 ];

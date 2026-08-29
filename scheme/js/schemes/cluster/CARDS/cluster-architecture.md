@@ -5,46 +5,50 @@
 ```
 WHAT     The moving parts of a cluster and who talks to whom: control plane over a Node, with every
          controller watching the API and never ETCD.
-NOTE     ETCD right-aligns on 1030, the Scheduler's right edge, rather than centring on the Scheduler
+LAYOUT   ETCD right-aligns on 1030, the Scheduler's right edge, rather than centring on the Scheduler
          axis at 920. The card is three columns whose outer walls are 170 and 1030, and a centred
          cylinder would sit at 855..985, breaking that wall to line up an axis nobody can see. It
          also costs the ETCD write label its home: that string measures 179.2 units and the gap to
          a cylinder starting at 855 is 145.
-NOTE     A frame move under about 25 units is not a visible change: 10 viewBox units is about 12
+         A frame move under about 25 units is not a visible change: 10 viewBox units is about 12
          rendered pixels on a 1600 wide dialog.
-PANEL    bottom 125.11 at 1600x1000 to 254.66 at 1100x800, deepest on the node-side step, measured
-         against the current narration. The nearest thing under the panel corner is the tier-2 row
-         at 328, so 73 units of clearance at the worst. The right edge 396.55 at 1100x800 is the
-         CATALOG worst and the number `L-02` records, and it is geometry rather than prose: it does
-         not move when a narration is rewritten.
-MOTION   The durations are sized off READING LOAD, not off the motion: 2800 / 2300 / 2600 / 2600 /
-         2400 / 2600 / 3400 against narrations of 314 / 246 / 281 / 291 / 294 / 300 / 366 characters
-         as the panel renders them, a band of 8.2 to 9.4 ms per character, under the catalog median
-         (`report/baselines.test.mjs` prints the population and the median). The api step carries NO
-         motion at all, so its duration is the whole
-         hold a reader gets. Only `span <= duration` has a machine (`M-19`), and it passes at 1700
-         on three steps no reader can follow at that speed.
+PANEL    Right edge and bottom per viewport:
+         `OVERLAY_IDS=cluster-architecture node --test report/overlay.test.mjs`.
+         Deepest on the node-side step at 1100x800, against the current narration. The nearest
+         thing under the panel corner is the tier-2 row at 328, so 73 units of clearance at the
+         worst. The right edge is the CATALOG worst and the number `L-02` records, and it is
+         geometry rather than prose: it does not move when a narration is rewritten.
+         Even a ONE line panel reaches x<=291, which still covers x=162 onward, so no narration
+         length pulls the panel off the left corner and there is no prose that fixes it.
 LANES    The two tier-2 levels are DERIVED from BAND_CY, D10 either side, so the pair re-centres
          whenever a row moves. The band is 108 units and a fixed +40 / +60 glues both levels to the
          API and leaves dead air under them.
-NOTE     The two Node-bound lanes end ON their target box (Kubelet top midpoint 600, kube-proxy 920),
+         The two Node-bound lanes end ON their target box (Kubelet top midpoint 600, kube-proxy 920),
          not on the Node frame edge. That is the OPPOSITE call from the four cluster Node cards,
          where a lane stops on the frame because the Pod row changes step to step and the pulse
          carries which Pod reacts. Here there are no Pods and nothing pulses, so a lane stopping on
          the frame would point at three boxes at once.
-NOTE     One lane crossing is accepted: API_TO_KPROXY turns down at x=760 from y=180 and crosses the
+         One lane crossing is accepted: API_TO_KPROXY turns down at x=760 from y=180 and crosses the
          ETCD read lane at (760, 190). Nothing scores a lane against a lane, and the alternative
          takes the kube-proxy lane off the API face midpoint, which OFFEDGE does score.
-LANES    THE TWO GROUPS TAKE DIFFERENT TREATMENTS, and that asymmetry must not be "fixed" into
+         THE TWO GROUPS TAKE DIFFERENT TREATMENTS, and that asymmetry must not be "fixed" into
          symmetry. A control-plane lane out of play DIMS to OPACITY.notready (outside this path) and
          stays on screen, because the control plane is what the card is about and its shape should
          not flicker. A Node-bound lane out of play is NOT DRAWN at all: the card spends six steps
          inside the control plane, and a permanent pair crossing into the Node band reads as traffic
          that is not happening.
-NOT A DEFECT
-         Several lanes carry no ball on a given step, and a grep for a constant name will say they
-         carry none at all. They do: the card shows one half at a time, so a lane idle on the step
-         you are reading is ridden on another one.
+         KUBELET_TO_RUNTIME is a ROUTE, not a relationship, because the last step says the Kubelet
+         CALLS the Runtime over CRI. Two things follow. It runs Kubelet to Runtime WITH the ball: a
+         relationPath the other way carries no arrowhead to contradict it, and a ball on those points
+         travels backwards against the sentence. And the Runtime lights on the CRI ball landing, not
+         at the Kubelet's own arrival, or the picture says the API lit them both while the words say
+         the Kubelet drove one. Nothing in the gate sees either.
+MOTION   The durations are sized off READING LOAD, not off the motion: a band of 8.2 to 9.4 ms per
+         character as the panel renders them, under the catalog median (`timing.mjs` prints the
+         per-step rows and `report/baselines.test.mjs` the population and the median). The api
+         step carries NO motion at all, so its duration is the whole hold a reader gets. Only
+         `span <= duration` has a machine (`M-19`), and it passes at 1700
+         on three steps no reader can follow at that speed.
 WIRE LABELS
          Eight, and none can sit in the band under the API: the two Node-bound lanes run vertical
          corridors at x=440 and x=760 straight through it, and four of them had a dashed lane
@@ -64,20 +68,11 @@ WIRE LABELS
          not a live clearance: the tier-2 labels and the Node corridors are never on screen
          together, because the Node lanes sit at opacity 0 for the six control-plane steps and the
          tier-2 labels are cleared by the prologue on the node-side step.
-DO NOT   Put a label under the API at (CM_CX + 135, 186). That is inside the panel's column, and the
-         panel is widest and DEEPEST on the SMALLEST viewport because a narrower panel wraps into
-         more lines: one line is 25 viewBox units, five lines bottom 155, six 180. A six-line
-         controllers step then renders `watch . reconcile loop` half behind the panel, and OCCLUDED
+         No label sits under the API at (CM_CX + 135, 186). That point is inside the panel's column,
+         and the panel is widest and DEEPEST on the SMALLEST viewport because a narrower panel wraps
+         into more lines: one line is 25 viewBox units, five lines bottom 155, six 180. A six-line
+         controllers step renders `watch . reconcile loop` half behind the panel there, and OCCLUDED
          reports the card clean either way.
-OPEN     The CONTROL PLANE frame label keeps the LEFT top corner at (162, 108), where `node()`
-         prints it and where the rest of the catalog draws a frame label, and the panel covers that
-         corner on EVERY measured viewport (worst x<=397 y<=254.66, best x<=291 y<=125.11). So the
-         string is the one thing on the card that is INVISIBLE rather than dimmed, by author
-         decision, and OCCLUDED cannot report it because the rule excludes node frames.
-         DO NOT move it to the right corner through the `tune` escape: the overlap is to be fixed at
-         the panel and the scale, not by walking the label around the frame.
-WHY NOT  Shortening the narrations to pull the panel off the left corner: even a ONE line panel
-         reaches x<=291, which still covers x=162 onward. There is no prose that fixes it.
 CONTENT  Every claim on this card is checked against the two pages it cites. Components carries the
          `(optional)` marks on cloud-controller-manager and on kube-proxy and the one-line job of
          each component. Architecture carries `kube-apiserver is designed to scale horizontally`,
@@ -128,12 +123,10 @@ SCOPE    The Kubelet status PATCH is narrated here and DRAWN by cluster-kubelet-
          control plane, and the sister card on this exact grid, cluster-object-create-path, is the one that
          draws the client, in the 150 unit band right of the frame at 1060..1190 which this card
          leaves empty on purpose. Filling that slot here moves the subject of the card.
-NOTE     KUBELET_TO_RUNTIME is a ROUTE, not a relationship, because the last step says the Kubelet
-         CALLS the Runtime over CRI. Two things follow. It runs Kubelet to Runtime WITH the ball: a
-         relationPath the other way carries no arrowhead to contradict it, and a ball on those points
-         travels backwards against the sentence. And the Runtime lights on the CRI ball landing, not
-         at the Kubelet's own arrival, or the picture says the API lit them both while the words say
-         the Kubelet drove one. Nothing in the gate sees either.
+NOT A DEFECT
+         Several lanes carry no ball on a given step, and a grep for a constant name will say they
+         carry none at all. They do: the card shows one half at a time, so a lane idle on the step
+         you are reading is ridden on another one.
 ```
 
 ### poster
@@ -145,6 +138,4 @@ Hub and spokes: the API is the accented circle on centre with a filled dot at it
 component blocks around it on the four sides, and a dashed leg from each into the hub. The accent is
 the hub (`R-03`), because the sentence is about what everything reaches rather than about any one
 component, and no leg carries an arrowhead (`R-08`): every one of them runs both ways.
-DO NOT redraw this as a stack of rows. `cluster-list-watch-informers` and `cluster-server-side-apply`
-own that family in this grid, and a third tile in it could not be told from them at grid size.
 ```

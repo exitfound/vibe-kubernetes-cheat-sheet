@@ -3,6 +3,8 @@ import { P, F, defineCard, BEAT } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-ports
 
 
+// One straight left-to-right flow, which is what makes every hop a horizontal segmentPacket. Moving
+// one Pod breaks the symmetry the linear motion depends on.
 const FLOW_Y = 312;                 // shared vertical center of both Pods and the Service box
 const CLIENT_EDGE = 270;            // right edge of the Client Pod shell
 const SVC_LEFT = 470;               // Service centered between the two Pods: equal 200px hops each side

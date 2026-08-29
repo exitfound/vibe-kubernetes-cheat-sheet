@@ -2,6 +2,9 @@ import { P, F, defineCard, OPACITY, chipStrip } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-configmap-secret-mount
 
 
+// The Pod spans 330..870, centred on 600 with the volume and source rows below it. Its left edge is
+// clear of the panel measured on the family cards at (300, 163). On narrow windows the panel may
+// brush its corner, the accepted family trade.
 const POD_X = 330, POD_Y = 56, POD_W = 540, POD_H = 120;        // 330..870, center 600
 const POD_BOTTOM = POD_Y + POD_H;                               // 176
 const APP_BX = 470, APP_BY = 90, APP_BW = 260, APP_BH = 56;     // inner app box, centered in the Pod
@@ -35,14 +38,20 @@ const GAP_MY = (POD_BOTTOM + VOL_Y) / 2;                                 // 222
 const SUB_IN_X = DATA_CX - 60;                                           // 540
 const W_SUBPATH   = [[OLD_CX, DIR_Y], [OLD_CX, GAP_MY], [SUB_IN_X, GAP_MY], [SUB_IN_X, POD_BOTTOM]];
 
-// The spine ends on the Pod floor, where the default -14 prints the tag over the mounts /etc/config
-// sublabel. Riding 10 BELOW the ball parts the two, and clears the volume title under the start.
+// The spine ends on the Pod floor at 176, where the default -14 parks the tag on the `mounts
+// /etc/config` sublabel: 66.3 x 9.0 units of ink for 400ms at a baseline gap of 0.24. Below the ball
+// only 10 and 12 clear all four viewports, and 10 is taken: at 12 the tag starts inside the volume
+// frame and grazes the `Volume /etc/config` title by 1.0 unit at the sync step, where the ball waits
+// 900ms before departing.
 const READ_TAG_DY = 10;
-// Only the sync step carries the clock caption, which starts at x 618 and takes 15 units of the tag
-// as it climbs past: -20 is what its widest measured half needs to clear that caption.
+// Only the sync step writes the `clock` caption, anchored start at x 618, which a centred tag takes
+// 15.2 units of as it climbs past, for 100ms. The tag runs 66 to 69 units wide over the four
+// viewports, so -20 is what its widest half needs. The other steps here leave the caption blank.
 const SYNC_TAG_DX = -20;
-// The source lanes run through the middle of two 64-tall boxes, so a tag riding above the ball has to
-// clear their tops: -36 is the least that does, measured on all four viewports.
+// The two source lanes run through the middle of 64 tall boxes, so at -14 the tag is cut by the
+// ConfigMap or Secret side face for 600ms. -36 is the least that clears their tops on all four
+// viewports. `app.conf` on the keys step cannot take the same number: `write v1` rides the
+// neighbouring lane at the same height there, and the pair only parts at -58.
 const SRC_TAG_DY = -36;
 
 const SYM_OLD = [[DATA_X, SYM_Y], [OLD_CX, SYM_Y], [OLD_CX, DIR_Y]];

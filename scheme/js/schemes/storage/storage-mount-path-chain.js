@@ -2,6 +2,8 @@ import { P, F, defineCard, chipStrip, BEAT, OPACITY } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-mount-path-chain
 
 
+// The panel wall. CONTENT_W is COL_W * 2 + COL_GAP rather than typed, so the two columns re-solve
+// together and the corridor between them stays centred.
 const LEFT_X = 400;
 const COL_W = 180, COL_GAP = 40;
 const CONTENT_W = COL_W * 2 + COL_GAP;                   // 400
@@ -36,6 +38,7 @@ const LBL_BIND_Y = BIND_BOTTOM + 36;                     // 307, corridor 271..3
 const LBL_DISK_Y = DEV_BOTTOM + 20;                      // 563, corridor 543..575
 const CHIPS_Y = DEV_BOTTOM + DISK_LBL_GAP;               // 575
 
+// Sized against `bind mounts` + `Pod A and Pod B` at 178.9, ~29 units of air at 6.88 u/char.
 const CHIP_W = 232, CHIP_GAP = 16, CHIP_COUNT = 4;
 const STRIP = chipStrip({ cx: CONTENT_CX, w: CHIP_W, gap: CHIP_GAP, count: CHIP_COUNT });   // 112 .. 1088
 

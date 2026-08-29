@@ -181,7 +181,11 @@ export const STEPS_SPEC = [
     chips: { nodeChip: 'partitioned, still live', podChip: 'maybe still running', replicaChip: 'identity live twice', focusChip: 'split-brain hazard' },
     wires: { req: 'StatefulSet recreates pod-b on Node-2' },
     // Each lane appears and dims with the Pod it ends on. Pod A comes UP from terminated to
-    // notready here, and that rise IS the step: the API believes it gone, the chips do not.
+    // notready here, and that rise IS the step: the step before drew the object dropped from etcd,
+    // this one puts the process back on screen beside the replacement that shares its identity.
+    // notready is the entry for alive but not serving and not observed, and this is the only Pod
+    // in the catalog that comes back UP the vocabulary. Not terminated, the shade for gone: the
+    // chips read maybe still running and identity live twice, not the API server belief.
     opacity: podPair(OPACITY.notready, 1),
     lit: ['nodeChip', 'podChip', 'replicaChip', 'focusChip'],
     // podNew appears on arrival, so the animated path pulses it there. As a static `lit` it would

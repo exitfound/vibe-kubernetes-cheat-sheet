@@ -73,6 +73,9 @@ export const SCENE = {
     P.chip({ key: 'lastOpChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: CHIP_H, name: 'last op', value: 'none' }),
     // The runtime does the work on the node: connector drops straight into the node top centre.
     P.lane({ key: 'connector', points: SANDBOX_CONNECTOR, dim: true, dashed: true }),
+    // Z-order canon: the packet layer rides above the static wires and below the blocks, so the
+    // ball reads on its connector and its arrival is told by the pulse, as on every other node
+    // card. The centre connector travels in open space.
     P.packets(),
     P.chain({
       key: 'chain', x: LADDER_X, y: LADDER_Y, w: LADDER_W, rowH: ROW_H, gap: ROW_GAP,
@@ -86,7 +89,9 @@ export const SCENE = {
     }),
     // Full content width, so its top face midpoint is CX and the zigzag lands dead centre on it.
     P.node({ key: 'nodeEl', x: NODE_X, y: NODE_Y, w: NODE_W, h: NODE_H, label: 'Node-1' }),
-    // sandboxGroup (shell + pause) appears together at RunPodSandbox; appGroup later.
+    // The Pod sandbox: the shell holds the pause container, created at RunPodSandbox, and the
+    // workload container, created at CreateContainer and started at StartContainer. Centred on
+    // CX, under the point where the zigzag enters the Node frame.
     P.pod({
       key: 'sandboxGroup', id: 'sandboxGroup', shellKey: 'shellEl', innerKey: 'pauseBox',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod sandbox', sublabel: ' ', containers: 0,

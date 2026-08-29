@@ -3,6 +3,9 @@ import { P, F, defineCard, makeRidingLabel, shade, BEAT, OPACITY } from './netwo
 // Design notes for this card: ./CARDS.md#network-internal-traffic-policy
 
 
+// The Node row carries the whole flow on this line and the underlay lane hangs below it. The Service
+// above is the only block in the panel band, so it sits at x >= 450: raising FLOW_Y pulls the Node
+// row into that band and the client and kube-proxy go with it.
 const FLOW_Y = 405;
 
 const SVC_X = 450, SVC_Y = 56, SVC_W = 300, SVC_H = 74;

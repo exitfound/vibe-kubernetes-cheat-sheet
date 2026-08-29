@@ -11,6 +11,8 @@ const POD_W = 420, POD_H = 188, POD_Y = 300;
 const BR_W = 160;                                        // cni0 and the CNI plugin share one column
 const INNER_GAP = 230;                                   // the veth run between the Pod shell and the bridge
 const INNER_W = POD_W + INNER_GAP + BR_W;                // 810
+// The inner row is centred in its frame by DERIVATION (INNER_W, then POD_X from it), so re-typing an
+// x here is what re-creates the 70-against-160 margin CENTRE-LOW reported.
 const POD_X = NODE_X + (NODE_W - INNER_W) / 2;           // 195: the inner row is centred in the Node frame
 const POD_R = POD_X + POD_W;                             // 615: Pod eth0 side, where the veth lands
 const BR_X = POD_R + INNER_GAP;                          // 845

@@ -3,6 +3,9 @@ import { podShell } from '../../lib/primitives.js';
 // Design notes for this card: ./CARDS.md#storage-fsgroup-ownership
 
 
+// Both columns are centred on this line, and POD_W / KUBE_H are the storage-category standards taken
+// from storage-csi-attach-mount and storage-csi-architecture, so the card sizes with its siblings
+// rather than on its own numbers.
 const CONTENT_CX = 600;
 
 const POD_W = 226, POD_H = 126;          // the storage-category Pod standard (storage-csi-attach-mount)
@@ -80,6 +83,8 @@ const W_WALK = [[CONTENT_CX, WALK_Y0], [CONTENT_CX, walkEndY(ROW_COUNT)]];
 const WALK_SPEED = 0.068, WALK_MIN_MS = 420;
 const walkDur = only => Math.max(WALK_MIN_MS, Math.round((walkEndY(only) - WALK_Y0) / WALK_SPEED));
 
+// The family EXCEPTION: fsGroupChangePolicy + `Always (default)` measures 265, so 232 would collide
+// and 300 clears it by 35.
 const CHIP_W = 300, CHIP_GAP = 16, CHIP_COUNT = 3;
 const CHIPS_W = CHIP_W * CHIP_COUNT + CHIP_GAP * (CHIP_COUNT - 1);   // 932
 const CHIP_X = Array.from({ length: CHIP_COUNT }, (_, i) =>

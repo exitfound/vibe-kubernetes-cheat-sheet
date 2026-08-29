@@ -3,6 +3,9 @@ import { P, F, defineCard, makeRidingLabel, laneY, strip, BEAT } from './network
 // Design notes for this card: ./CARDS.md#network-north-south-path
 
 
+// Every block on the path is centred on this spine, which is what lets both lanes, FWD_Y above and
+// RET_Y below, meet every block on its edge. Move one block off FLOW_Y and one of the two lanes
+// stops short of a face.
 const FLOW_Y = 356;                 // spine: client, cloud LB, kube-proxy and the Pod are centred on it
 const LANE_DY = 20;                 // half-gap between the forward and return lanes
 const { out: FWD_Y, back: RET_Y } = laneY(FLOW_Y, LANE_DY);   // 336 request lane above, 376 reply lane below
@@ -56,8 +59,11 @@ const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 // A request-lane tag rides ABOVE the row, clearing the taller of the two blocks its hop joins by 3
 // (-23 / -26 / -36): every gap here is narrower than the address, so on the lane the edge cuts it.
 const fwdTagDy = (h) => FLOW_Y - h / 2 - FWD_Y - 6;
-// The last reply hop passes under the two 74-tall outside blocks, whose floor at 393 runs through the
-// glyph tops at the 24 the other two use. Clear from 28 on all four viewports, taken at 30 for margin.
+// The three reply tags share dy 24, and on the last hop alone that is wrong: the Client and the Cloud
+// LB are 74 tall against the 80 and 100 of the blocks the other two hops join, so their floor at 393
+// lands inside the tag band and the border runs through the glyph tops for the whole 1000ms flight.
+// Measured on the four viewports, dy 28 and up is clear, and 30 is taken so the em box clears the
+// floor by 2.7 rather than 0.7.
 const LAST_HOP_TAG_DY = 30;
 
 // The list order IS the append order, which is the z-order: the two framing regions in back, then

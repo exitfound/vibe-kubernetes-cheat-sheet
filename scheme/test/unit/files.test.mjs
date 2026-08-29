@@ -121,9 +121,13 @@ const SCANS = new Map([...SOURCE].map(([id, src]) => [id, scan(src)]));
 
 // ---------------------------------------------------------------------------------------------
 describe('a card as source text', () => {
-  // S-34. The ceiling is TWO lines, and it is a ceiling on the run, not on the sentence: three
-  // consecutive `//` lines are a paragraph, and S-35 names the four places a paragraph goes instead.
-  test('S-34: no comment in a card runs past two lines', (t) => {
+  // S-34. The ceiling is SIX lines, and it is a ceiling on the run, not on the sentence. It was two
+  // until the reason a constant holds its value moved out of the record and onto the constant: an
+  // anchored note in a record describes a line it cannot see, so it rots when that line moves and
+  // only a string match notices. A comment on the line cannot desync from it at all. Six is the
+  // measured shape of such a note (a value, the bound above it, the bound below it); anything longer
+  // is an essay and S-35 names where it goes instead.
+  test('S-34: no comment in a card runs past six lines', (t) => {
     const findings = [];
     let walked = 0, comments = 0, lines = 0, longest = 0, longestAt = '';
     for (const c of catalogued) {
@@ -138,10 +142,10 @@ describe('a card as source text', () => {
       for (const r of s.runs) {
         comments++; lines += r.lines;
         if (r.lines > longest) { longest = r.lines; longestAt = `${c.id}:${r.line}`; }
-        if (r.lines > 2) {
+        if (r.lines > 6) {
           findings.push(`${c.rel}:${r.line}  a comment of ${r.lines} lines: "${r.text[0].slice(0, 60)}..." ` +
-            'A card comment says WHAT the line beside it does. Anything longer goes to CARDS.md, ' +
-            'the folder CLAUDE.md or the canon (S-35)');
+            'A card comment says WHAT the line beside it does and why the value is what it is. ' +
+            'Anything longer goes to CARDS.md, the folder CLAUDE.md or the canon (S-35)');
         }
       }
     }

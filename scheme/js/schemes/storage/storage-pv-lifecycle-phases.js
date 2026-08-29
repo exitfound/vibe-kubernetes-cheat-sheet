@@ -2,6 +2,8 @@ import { P, F, defineCard, BEAT, chipStrip } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-pv-lifecycle-phases
 
 
+// One pitch drives the whole phase row: ST_W and GAP fall out of it and each phase centre is the
+// previous one plus PITCH. Re-typing a centre is what breaks the even rhythm the row depends on.
 const PITCH = 224;
 const ST_W = 164, GAP = PITCH - ST_W;                          // 164 / 60
 const AVAIL_CX = 264, BOUND_CX = AVAIL_CX + PITCH;             // 264 / 488

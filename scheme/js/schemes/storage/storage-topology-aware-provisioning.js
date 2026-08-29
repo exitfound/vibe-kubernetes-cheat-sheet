@@ -2,6 +2,9 @@ import { P, F, defineCard, chipStrip, makeRidingLabel, BEAT, FADE, OPACITY, REVE
 // Design notes for this card: ./CARDS.md#storage-topology-aware-provisioning
 
 
+// NODE_CX is CX -/+ SPREAD, derived from the node width and the gap rather than typed, so the two
+// zones stay mirrored. The StorageClass and the claim stack on CX because the card is about ONE
+// claim resolving into ONE of two zones.
 const CX = 600;
 
 const SC_X = 400, SC_Y = 36, SC_W = 400, SC_H = 64;
@@ -42,6 +45,7 @@ const W_CROSS = [[NODE_CX[1], NODE_BOTTOM], [NODE_CX[1], CROSS_Y], [NODE_CX[0], 
 const MOUNT_TAG_EMERGE = 300;
 const mountLabel = makeRidingLabel({ role: 'storage', emergeMode: true });
 
+// Family width. Worst case `mode` + `WaitForFirstConsumer` at 189 against 232.
 const CHIP_W = 232, CHIP_GAP = 16;
 const STRIP = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });   // 112 / 360 / 608 / 856, centred on CX
 

@@ -199,6 +199,9 @@ export const STEPS_SPEC = [
     rewind: { opacity: { pod1: 1 } },
     flow: [
       F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req' }),
+      // The update travels controller -> Api -> Node-1 down the dashed connector, and only when it
+      // arrives does Node-1 react: ball first, pulse on arrival, which is the shape the surge step
+      // of workloads-rolling-update takes. pod1 is recreated on the new version, the rest serve on.
       F.route({ points: LANES[0], after: 'req', name: 'update' }),
       F.pulse({ pod: 'pod1', at: 'update' }),
       F.fade({ target: 'pod1', from: 1, to: OPACITY.notready, dur: FADE.out, at: 'update', fill: 'both', easing: 'ease-in' }),

@@ -144,6 +144,8 @@ export const STEPS_SPEC = [
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '5', delayChip: '160s · doubling' },
     wires: { out: 'hold restart, 160s' },
     opacity: { podGroup: OPACITY.notready, ...corridor('down') },
+    // Kubelet only waits between attempts, nothing travels and the Pod is untouched. The climbing
+    // backoff shows via the ladder filling and the static chip highlight (no chip pulse).
     lit: ['kubelet', 'reasonChip', 'restartChip', 'delayChip', ...filled(4)],
     chain: 3,
   },

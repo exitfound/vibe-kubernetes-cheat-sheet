@@ -2,6 +2,9 @@ import { P, F, defineCard, chipStrip, BEAT } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-projected-volume
 
 
+// The Pod sits over the DIRECTORY column only. Running it flush over both columns puts the source
+// column under it, as though the ConfigMap and the Secret lived inside the Pod, and drags the content
+// bbox to 650.
 const POD_X = 330, POD_Y = 56, POD_W = 640, POD_H = 120;  // 330..970, over the projected directory
 const POD_BOTTOM = POD_Y + POD_H;                         // 176
 const POD_CX = POD_X + POD_W / 2;                         // 650
@@ -34,8 +37,9 @@ const POD_LANE = 100;
 const META_ELBOW_Y = 232, READ_ELBOW_Y = 200;   // the metadata elbow clears the panel floor (181)
 const W_POD_META = [[POD_CX - POD_LANE, POD_BOTTOM], [POD_CX - POD_LANE, META_ELBOW_Y], [SRC_CX, META_ELBOW_Y], [SRC_CX, DOWN_Y]];
 const W_READ = [[DIR_CX, DIR_Y], [DIR_CX, READ_ELBOW_Y], [POD_CX + POD_LANE, READ_ELBOW_Y], [POD_CX + POD_LANE, POD_BOTTOM]];
-// The read lane ends on the Pod floor, where the default -14 puts the tag under the shell edge for
-// 100 ms. Below the ball only 12 and 14 clear all four viewports, and 14 keeps the ball off the line.
+// The read lane ends on the Pod floor, where -14 puts the tag under the shell edge, 100ms of cut and
+// 400ms inside the Pod. Below the ball only 12 and 14 clear all four viewports, and 14 is taken so
+// the ball does not print on the top of the line.
 const READ_TAG_DY = 14;
 
 const source = (key, y, label, sublabel) => P.box({ key, x: SRC_X, y, w: SRC_W, h: SRC_H, label, sublabel });

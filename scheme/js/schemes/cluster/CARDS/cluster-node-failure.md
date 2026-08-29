@@ -5,13 +5,11 @@
 ```
 WHAT     A Node going unreachable: the Lease going stale, the NotReady condition, the unreachable
          taint, and the eviction timer that finally moves the Pods.
-PANEL    x<=397 catalog-wide (`L-02`). Bottom 279.51 at 1100x800 step 5, shallowest 107.67 at
-         1600x1000 step 2, a swing of 84.62 units. The heartbeat lane leaves the frame at y 380 and
-         clears the deepest bottom by 100.49, and the Node frame itself at y 406 by 126.49.
-WHY NOT  Five chips across. That leaves 204.8 each, (1080 - 4 x CHIP_GAP 14) / 5, and the taint chip
-         needs 335: the value `node.kubernetes.io/unreachable:NoExecute` measures 275.6 at
-         1600x1000, the name `Taint` 34.5, and the two paddings and the gap between them the rest.
-         Three across gives 350.67 and the pair sits 16.5 apart, the tightest chip on the card.
+PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport:
+         `OVERLAY_IDS=cluster-node-failure node --test report/overlay.test.mjs`.
+         Deepest on step 5 at 1100x800, shallowest on step 2 at 1600x1000, a swing of 84.62 units.
+         The heartbeat lane leaves the frame at y 380 and clears the deepest bottom by 100.49, and
+         the Node frame itself at y 406 by 126.49.
 SIZES    THE NODE FRAME IS 132/106/16, NOT the cluster family 152/106/34 (`CLU.L-01`), and the six
          chips are why. They wrap to TWO rows, `CHIPS_Y = NODE_BOTTOM + 14`, so the second row ends
          at `CHIPS_Y + 2 x CHIP_H + CHIP_VGAP`. At the family height the band would run 406..558,
@@ -21,9 +19,19 @@ SIZES    THE NODE FRAME IS 132/106/16, NOT the cluster family 152/106/34 (`CLU.L
          cut is legal for the reason `oom-kill` states: the frame LABEL clears the Pod horizontally
          rather than below it. `Node-1` measures 72..116.7 and `POD_A_X` is 131, so the label has
          14.3 of daylight and never needed a band of its own under the frame top.
-WHY NOT  Two chip rows of three ABOVE the Node band instead, keeping the family height. Three across
+         Chips are NOT five across. That leaves 204.8 each, (1080 - 4 x CHIP_GAP 14) / 5, and the
+         taint chip
+         needs 335: the value `node.kubernetes.io/unreachable:NoExecute` measures 275.6 at
+         1600x1000, the name `Taint` 34.5, and the two paddings and the gap between them the rest.
+         Three across gives 350.67 and the pair sits 16.5 apart, the tightest chip on the card.
+         Nor are there two chip rows of three ABOVE the Node band, keeping the family height. Three
+         across
          is 1080 wide, so the rows need a FULL-WIDTH band of 72, and the only full-width gaps left
          are 120..152 above the ladder and 394..406 below it, 32 and 12. Neither holds one row.
+         SIX chips, not five: the grid is three wide, so five left a hole. The one worth adding was
+         the THRESHOLD, `grace period`, beside `Lease age`, which is what makes 30s of staleness
+         harmless and 52s fatal. The rows are meaningful now: Ready / Lease age / grace period is
+         "is the Node alive", Taint / Toleration / eviction timer is "what happens to its Pods".
 LANES    BOTH LANES ON NODE-1 END ON THE FRAME TOP FACE, at [293, 406] and [269, 406], a mirrored
          `LANE_DX` pair under L-12. The heartbeat leaves the frame because a Lease is renewed by the
          Kubelet and the Kubelet is the Node. `writeLane` carries the controller's writes DOWN to it
@@ -36,7 +44,8 @@ LANES    BOTH LANES ON NODE-1 END ON THE FRAME TOP FACE, at [293, 406] and [269,
          `cluster-taints-tolerations` runs `patch`, `place` and `evict` over one `NODE_LANE`. The key
          is `writeLane` and not `evictLane`, because a key that
          names one of two things it carries is the staleness this record exists to prevent.
-DO NOT   End the drop on the POD top at [269, 422] instead of the frame. The argument for it is that
+         The drop does NOT end on the POD top at [269, 422] instead of the frame. The argument for
+         it is that
          a DELETE is an API write on the object and that a frame endpoint credits a delivery to
          Node-1 the sentence denies, and what it draws is the finding: the last 16 units cross the
          Node-1 frame border, so the arrowhead sits INSIDE the frame, 16 below its top edge and 0
@@ -51,6 +60,32 @@ DO NOT   End the drop on the POD top at [269, 422] instead of the frame. The arg
          arrival moves 1353 to 1318 at PKT_SPEED 0.45 and the `evict` span 2253 to 2218 of 3800,
          arrival plus the 900 of PULSE_POD. That leaves 1582 clear of the 3800, so nothing in the
          BUDGET block moves.
+         THE PAIR IS NOT MIRRORED, and Node-2 is why. The frame runs 698..1140, so its TOP face
+         midpoint is x=919 and the whole face sits under the ladder band at 660..1140, with the
+         ladder bottom 12 units above it, so that face cannot be reached at all: the reschedule
+         enters the LEFT face midpoint instead. To get there its vertical has to fall inside the
+         corridor, whose centre 600 is also the controller's bottom face midpoint, so the reschedule
+         takes the midpoint outright and the eviction steps aside by twice LANE_DX. OFFEDGE is
+         unbothered: 24 off a 300 unit face is 8%, inside the 18% allowed for a lone endpoint.
+         The reschedule also cannot mirror the eviction and jog along EV_JOG_Y, because that y is
+         inside the ladder with the same 12 units of clearance.
+         The reschedule is not carried on to Pod B's LEFT face at [769, 475] instead of the Node-2
+         frame
+         face. podB is at opacity 0 for the whole flight and materialises on the arrival, so a lane
+         run to its face would end on nothing for all 1000ms of the run and then have something
+         appear under its head. What the ball carries is the BIND, and `Scheduler picks the healthy
+         Node-2 and Kubelet there starts it` puts the Node on the receiving end, which is the face it
+         lands on. The Pod is credited by the pulse, on the same arrival, exactly as the eviction
+         Pod is on Node-1: all three lanes on this card end on a FRAME and all three name their Pod
+         with the pulse.
+         The reschedule crosses the heartbeat's return leg at HB_JOG_Y, structural rather than
+         sloppy: the heartbeat travels left-to-right along the band and the reschedule top-to-bottom
+         through the same corridor. It costs nothing, because no step puts a ball on both.
+         The reschedule lane does NOT run from Pod A's right edge to Pod B's left edge. That draws
+         the dying
+         Pod MIGRATING across to Node-2, on a card whose previous step has just left it Terminating
+         with an orphaned container on an unreachable Node, which is the one thing a Node-failure
+         card must not teach.
 MOTION   THE WHOLE NODE-1 SIDE HOLDS FULL STRENGTH UNTIL THE RESCHEDULE, and goes down there in a
          beat of its OWN. The frame and its two lanes read 1.00 on steps 0 to 5 and 0.40 on
          `reschedule`, where three `F.fade` tracks run them out over `HANDOVER_MS` 300 starting at
@@ -106,7 +141,8 @@ MOTION   THE WHOLE NODE-1 SIDE HOLDS FULL STRENGTH UNTIL THE RESCHEDULE, and goe
          `writeLane` with `delay: BEAT.lead`, so the spec span is 2118 of its 3100 hold and the
          still tail is 982ms, 32% of the step, under the catalogue's median still time and its
          median share of the step, both of which `deadair.mjs` prints.
-DO NOT   Take the ride away and leave the hold. Animating NOTHING over 3100ms is 100% still, at the
+         The ride is not taken away leaving the hold. Animating NOTHING over 3100ms is 100% still,
+         at the
          far end of that ranking, on a reading pace of 9.97 ms per character, which
          is the catalogue median to within a rounding step. Still
          AND ordinary on pace is exactly the shape `M-19a` names, and a hold like that buys neither
@@ -118,7 +154,6 @@ DO NOT   Take the ride away and leave the hold. Animating NOTHING over 3100ms is
          S-13, the rewind: the static block states the END, so `chips` carries the taint, the
          toleration and the 300s, and `rewind` winds those three back to `none` for the animated path
          alone. `F.set({ at: 'patch' })` turns them over on the arrival.
-NOT A DEFECT
          The rewind costs TWO rows on `report/arrival.test.mjs` R2-ENTRY, `Taint` and `Toleration` on
          step 5, and they are the frozen-sampling artefact that axis announces in its own header,
          both samples frozen at t=0. Wound back, the value first APPEARS at a t=0 reading on `evict`,
@@ -135,7 +170,7 @@ NOT A DEFECT
          the frame and paints nothing: the sibling's `lights: ['nodeEl']` is a dead write and copying
          it would have added a second one. The arrival cue here is the three chips turning over, plus
          the ripple `M-14` gives every packet.
-NOTE     The Pod PULSES on `evict`, and with the lane ending on the FRAME that pulse is the only
+         The Pod PULSES on `evict`, and with the lane ending on the FRAME that pulse is the only
          thing that says which object the DELETE names. M-08 wants that order, pulse then fade, and
          both fire on the arrival. BOTH shapes were compared on the rendered frame: the pulse SHIPS. Census over
          the catalogue, off the specs: of the 22 beats where a Pod fades on a ball arrival, 19 carry
@@ -146,7 +181,8 @@ NOTE     The Pod PULSES on `evict`, and with the lane ending on the FRAME that p
          450 into the 900, at both viewports. Without it the only arrival cue is the ripple M-14
          gives every packet, a ring at [269, 406] sitting ON the Node-1 frame edge, so the beat is
          not UNMARKED without the pulse, it is marked on the point instead of on the object.
-WHY NOT  match the sibling and drop it. The argument was that a Pod on a Node the narration calls
+         The sibling is not matched by dropping it. The argument for dropping it is that a Pod on a
+         Node the narration calls
          unreachable cannot acknowledge anything, and what the pulse TARGETS answers it: M-03 pulses
          the whole Pod GROUP, which here draws the Pod OBJECT in the API, and the object is what
          changes, since this step says it gets a deletionTimestamp while the container on Node-1 is
@@ -155,6 +191,17 @@ WHY NOT  match the sibling and drop it. The argument was that a Pod on a Node th
          `reducedLit` needs nothing and `render/reduced.test.mjs` cannot see the choice at all.
          `render/opacity.test.mjs` ORDER cannot either. It skips a fade with no pulse of its own
          (`if (!mine.length) continue`), so M-08 ORDERS a pulse and never requires one.
+         Pod A is never drawn at 0 on the evict and reschedule steps. `OPACITY.terminating` is a
+         shade in this
+         catalogue's own vocabulary and not an absence, and `Terminating` is a kubectl display rather
+         than a Pod phase (CONTENT): an object with a deletionTimestamp nothing has finished deleting
+         is exactly what this card is about, and drawing it as gone deletes the subject of its own
+         sentence. It
+         holds OPACITY.terminating, and it is the ONE thing on the Node-1 side that goes down before
+         the reschedule: the frame and its two lanes hold 1.00 until then, so on
+         `evict` the dying Pod is the only dim object in a lit frame, which is the point. The reschedule step brings only the REPLACEMENT to
+         full, because a Pod carrying a deletionTimestamp no longer counts towards the replica total,
+         which is what lets the controller create it while the old one is still on screen.
 WIRE LABELS
          TWO REGISTERS, because one of the five strings has a lane of its own. `ctrl` sits at
          [785, 26], above the top row and centred on the controller-to-Lease relation, and carries
@@ -172,61 +219,14 @@ WIRE LABELS
          the catalog offset for a caption below a wire, and the panel is 279.51 deep at its worst,
          which is 1100x800 on the `evict` step and not the 194.89 of 1600x1000, so the
          caption clears it by 89 and nothing here is reachable by it.
-WHY NOT  Re-centring `ctrl` on the controller spine at 600 so it reads as the controller's own
+         `ctrl` is NOT re-centred on the controller spine at 600 to read as the controller's own
          caption, which the four remaining strings are. It moves a label on four steps to close a
          finding about a fifth, and the DELETE string measures 323.9, so centred on 600 it would
          hang 162 either side of the spine across both top-row blocks instead of between them.
-WHY NOT  A caption on the controller-to-Lease relation for the `heartbeat` step. The relation is
+         The controller-to-Lease relation carries no caption for the `heartbeat` step. The relation
+         is
          drawn because the flip is COMPUTED from an expired Lease, and no step puts anything on it,
          so a caption there would be a second string naming traffic that does not exist.
-NOTE     THE PAIR IS NOT MIRRORED, and Node-2 is why. The frame runs 698..1140, so its TOP face
-         midpoint is x=919 and the whole face sits under the ladder band at 660..1140, with the
-         ladder bottom 12 units above it, so that face cannot be reached at all: the reschedule
-         enters the LEFT face midpoint instead. To get there its vertical has to fall inside the
-         corridor, whose centre 600 is also the controller's bottom face midpoint, so the reschedule
-         takes the midpoint outright and the eviction steps aside by twice LANE_DX. OFFEDGE is
-         unbothered: 24 off a 300 unit face is 8%, inside the 18% allowed for a lone endpoint.
-         The reschedule also cannot mirror the eviction and jog along EV_JOG_Y, because that y is
-         inside the ladder with the same 12 units of clearance.
-WHY NOT  Carry the reschedule on to Pod B's LEFT face at [769, 475] instead of the Node-2 frame
-         face. podB is at opacity 0 for the whole flight and materialises on the arrival, so a lane
-         run to its face would end on nothing for all 1000ms of the run and then have something
-         appear under its head. What the ball carries is the BIND, and `Scheduler picks the healthy
-         Node-2 and Kubelet there starts it` puts the Node on the receiving end, which is the face it
-         lands on. The Pod is credited by the pulse, on the same arrival, exactly as the eviction
-         Pod is on Node-1: all three lanes on this card end on a FRAME and all three name their Pod
-         with the pulse.
-NOTE     The reschedule crosses the heartbeat's return leg at HB_JOG_Y, structural rather than
-         sloppy: the heartbeat travels left-to-right along the band and the reschedule top-to-bottom
-         through the same corridor. It costs nothing, because no step puts a ball on both.
-DO NOT   Run the reschedule lane from Pod A's right edge to Pod B's left edge. That draws the dying
-         Pod MIGRATING across to Node-2, on a card whose previous step has just left it Terminating
-         with an orphaned container on an unreachable Node, which is the one thing a Node-failure
-         card must not teach.
-DO NOT   Draw Pod A at 0 on the evict and reschedule steps. `OPACITY.terminating` is a shade in this
-         catalogue's own vocabulary and not an absence, and `Terminating` is a kubectl display rather
-         than a Pod phase (CONTENT): an object with a deletionTimestamp nothing has finished deleting
-         is exactly what this card is about, and drawing it as gone deletes the subject of its own
-         sentence. It
-         holds OPACITY.terminating, and it is the ONE thing on the Node-1 side that goes down before
-         the reschedule: the frame and its two lanes hold 1.00 until then, so on
-         `evict` the dying Pod is the only dim object in a lit frame, which is the point. The reschedule step brings only the REPLACEMENT to
-         full, because a Pod carrying a deletionTimestamp no longer counts towards the replica total,
-         which is what lets the controller create it while the old one is still on screen.
-BUDGET   `taint-applied` holds 3100 and `evict` 3800. They are the two longest strings on the card,
-         311 and 402 characters, and they read 9.97 and 9.45 ms per character, which sits either
-         side of the catalogue median. That is the band `cluster-graceful-node-shutdown`, the other
-         card in this subcategory, holds.
-DO NOT   Cut either hold to 2100 or 2400 to shorten the card. The two then read 6.75 and 5.97 ms per
-         character, deep in the hurried tail the timing probe ranks, and `evict` is the worse of the
-         pair twice over: its span is 2218, so 182ms of a 2400 hold would stand after the motion for
-         402 characters. Nor is the prose the place to buy the time: trimming a
-         qualifier off either string is what turns a true sentence into a false absolute (`T-19`),
-         and both of these carry one, the 300s that is added only to a Pod setting none of its own
-         and the DELETE that bypasses PDBs only by contrast with kubectl drain.
-         Nothing else on the card is re-paced. `heartbeat` at 11.21 and `kubelet-stops` at 12.90 are
-         ABOVE the median and `not-ready` at 8.73 is under it, ordinary spread rather than a
-         finding.
 CONTENT  Read against the `k8sVersion` the entry carries.
          THE THREE VERBS ARE THREE DIFFERENT CALLS AND THE CARD DRAWS THEM APART. The status flip on
          `not-ready` is `PUT /api/v1/nodes/node-1/status`, because the node-lifecycle-controller
@@ -308,7 +308,22 @@ CONTENT  Read against the `k8sVersion` the entry carries.
          `tainteviction` and `PodDisruptionBudget` appears nowhere in that file, the 10 second Lease
          interval and the 5 minute status interval are the reference page's own numbers, and
          `node.kubernetes.io/unreachable` corresponds to `Ready` being `Unknown`.
-NOTE     AN API PATH CARRIES THE OBJECT NAME, SO IT IS LOWERCASE. The two `ctrl` captions read
+BUDGET   `taint-applied` holds 3100 and `evict` 3800. They are the two longest strings on the card,
+         311 and 402 characters, and they read 9.97 and 9.45 ms per character, which sits either
+         side of the catalogue median. That is the band `cluster-graceful-node-shutdown`, the other
+         card in this subcategory, holds.
+         Neither hold is cut to 2100 or 2400 to shorten the card. The two then read 6.75 and 5.97 ms
+         per
+         character, deep in the hurried tail the timing probe ranks, and `evict` is the worse of the
+         pair twice over: its span is 2218, so 182ms of a 2400 hold would stand after the motion for
+         402 characters. Nor is the prose the place to buy the time: trimming a
+         qualifier off either string is what turns a true sentence into a false absolute (`T-19`),
+         and both of these carry one, the 300s that is added only to a Pod setting none of its own
+         and the DELETE that bypasses PDBs only by contrast with kubectl drain.
+         Nothing else on the card is re-paced. `heartbeat` at 11.21 and `kubelet-stops` at 12.90 are
+         ABOVE the median and `not-ready` at 8.73 is under it, ordinary spread rather than a
+         finding.
+NAMING   AN API PATH CARRIES THE OBJECT NAME, SO IT IS LOWERCASE. The two `ctrl` captions read
          `PUT /api/v1/nodes/node-1/status` and `PATCH /api/v1/nodes/node-1 · spec.taints`, because
          RFC 1123 allows lowercase alphanumerics and dashes only and a reader who copies a path with
          a capital in it gets a name the API would reject. `cluster-taints-tolerations` was brought
@@ -317,7 +332,8 @@ NOTE     AN API PATH CARRIES THE OBJECT NAME, SO IT IS LOWERCASE. The two `ctrl`
          display name, `T-12` renders it uppercase anyway, and it is the catalogue convention on 50
          cards. The rule the pair now follows is that a name STATED AS AN OBJECT is lowercase and a
          name stated as a caption or a block title is not.
-DO NOT   "fix" `Node-1` in the narration or on the frame to match the paths. Those are the two
+         `Node-1` is NOT "fixed" in the narration or on the frame to match the paths. Those are the
+         two
          registers this card deliberately keeps apart, and making them uniform loses the display
          name the other 49 cards share.
 SCOPE    The general mechanism belongs to cluster-taints-tolerations: the three effects and the line
@@ -332,10 +348,6 @@ SCOPE    The general mechanism belongs to cluster-taints-tolerations: the three 
          minutes. That arithmetic is the answer to this card's own question.
          cluster-taints-tolerations states the 300 once, in one narration, and points back here by
          title rather than drawing either built-in taint.
-NOTE     SIX chips, not five: the grid is three wide, so five left a hole. The one worth adding was
-         the THRESHOLD, `grace period`, beside `Lease age`, which is what makes 30s of staleness
-         harmless and 52s fatal. The rows are meaningful now: Ready / Lease age / grace period is
-         "is the Node alive", Taint / Toleration / eviction timer is "what happens to its Pods".
 ```
 
 ### poster
@@ -357,15 +369,8 @@ stages is the sentence, and a gap would read as two separate objects.
 The trace carries opacity 0.8 so the 0.9 accent bar wins the eye first (`R-03`). Full strength
 spikes at plus or minus 48 out-shout the accent.
 
-WHY NOT a ghost Node frame to a solid Node frame with a dashed leg between.
-cluster-node-drain is that exact composition, in the same node-lifecycle row of
-the contact sheet, down to the accent bar in the right-hand inner block. Neither tile could be told
-from the other without its title, and node-drain keeps the shape because moving work off a Node
-deliberately IS its sentence.
 
 WHY NOT a Pod block after the track, closing the story with the reschedule. It is a fourth element
 the sentence does not need (`R-02`), and the track already ends at 302 of 320.
 
-WHY NOT dashed vertical legs dropping from the trace to a track below it. Trace, two legs and a
-track read as one hollow rectangle with a squiggle beside it rather than as a timeline.
 ```

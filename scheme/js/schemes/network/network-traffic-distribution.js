@@ -3,6 +3,8 @@ import { P, F, defineCard, makeRidingLabel, routeDur, shade, strip, BEAT, OPACIT
 // Design notes for this card: ./CARDS.md#network-traffic-distribution
 
 
+// The two setting chips are a full-width bottom strip across this span, the grammar the rest of the
+// category uses. Narrow it and the strip centres on the client column instead of on 600.
 const SCHEME_L = 60, SCHEME_R = 1140;        // content edges, mirrored about x=600
 const FLOW_Y = 320;                          // central flow line
 
@@ -78,6 +80,11 @@ export const SCENE = {
 const ridingLabel = makeRidingLabel({ role: 'network', dy: -15, inMs: 160, outMs: 200, hold: 260 });
 const tag = (p) => F.tag({ fn: ridingLabel, ...p });
 
+// One shared multiplier on the fan, and the label rides the SAME dur or it unglues (M-30). Speed
+// stays distance-normalized, and the card is registered in ALLOW_EXPLICIT_DUR. It is not the tag
+// that the slow ride buys: the tag is cut by the zone frame and the Pod inside it for every readable
+// sample of every fan leg, so 1.6 times the routeDur is 1.6 times the time the reader spends with a
+// struck-through address.
 const FAN_SLOW = 1.6;
 const fanDur = (points) => Math.round(routeDur(points) * FAN_SLOW);
 

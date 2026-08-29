@@ -16,7 +16,7 @@ One static site made of three path-based sub-apps that share the same visual chr
 |---|---|---|
 | `/` | **Hub** | One-viewport landing page: two entry panels over an aurora background and a canvas packet graph |
 | `/cli/` | **Commands** | Searchable `kubectl` / Helm / Kustomize / K9s cheat sheet, 890 commands, copy + star |
-| `/scheme/` | **Schemes** | Grid of 116 animated SVG diagrams: click a card and a step-by-step animation explains the mechanism |
+| `/scheme/` | **Schemes** | Grid of 117 animated SVG diagrams: click a card and a step-by-step animation explains the mechanism |
 
 ---
 
@@ -47,12 +47,12 @@ One static site made of three path-based sub-apps that share the same visual chr
 
 ## Schemes (`/scheme/`)
 
-116 animated diagrams of how Kubernetes actually works internally. Each card opens a dialog that plays the mechanism step by step, with a narration panel explaining what moves and why.
+117 animated diagrams of how Kubernetes actually works internally. Each card opens a dialog that plays the mechanism step by step, with a narration panel explaining what moves and why.
 
 | Category | Cards | Subcategories |
 |---|---|---|
 | **Cluster** | 28 | Control Plane, Node Runtime, Node Lifecycle |
-| **Workloads** | 20 | Pods Bootstrap, Pods Lifecycle, Controllers |
+| **Workloads** | 21 | Pods Bootstrap, Pods Lifecycle, Controllers |
 | **Networking** | 37 | Network Foundations, Pod Networking, Services & Endpoints, External Traffic, DNS & Service Discovery |
 | **Storage** | 31 | Volume Foundations, Volumes & Claims, CSI & Mount Path, Stateful Data |
 

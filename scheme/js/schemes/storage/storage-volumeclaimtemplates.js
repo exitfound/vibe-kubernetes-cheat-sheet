@@ -2,6 +2,8 @@ import { P, F, defineCard, STO, chipStrip, laneOf, setPodSublabel, BEAT, FADE, O
 // Design notes for this card: ./CARDS.md#storage-volumeclaimtemplates
 
 
+// The claim is the subject, so it sits in the CENTRE of every ordinal row on this spine, with its Pod
+// and its disk mirrored about it at CX -/+ FLANK. The mint spine drops straight down the same line.
 const CX = 600;
 
 const SRC_W = 340, SRC_H = 64, SRC_X = CX - SRC_W / 2, SRC_Y = 52;   // 430..770

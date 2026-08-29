@@ -3,6 +3,8 @@ import { P, F, defineCard, makeRidingLabel, laneY, routeDur, BEAT } from './netw
 // Design notes for this card: ./CARDS.md#network-dualstack
 
 
+// The band spans the Service..Pod half only, which is what keeps it clear of the narration overlay
+// at y=136 and off the client Pod. Widening it leftward is what the overlay forbids, not the geometry.
 const CONFIG_X = 480, CONFIG_W = 600;        // band spans Service..Pod only (480..1080), clear of the client
 const CONFIG_Y = 136, CONFIG_H = 80;
 const CONFIG_BOTTOM = CONFIG_Y + CONFIG_H;   // 216

@@ -108,7 +108,20 @@ for (const id of ids) {
   if (!accents && fillSet.size <= 1 && widthSet.size <= 1 && !opacitySet.size && shapes > 3) {
     say('R-03', 'FLAT: one fill, one stroke-width, no opacity ramp. Nothing is the subject');
   }
-  if (accents > 3) say('R-07', `${accents} elements use fill="currentColor": the accent stops being an accent`);
+  // R-07 is a contract about the SHAPE of the accent set, not about its size: one winner, and the
+  // losers all carrying the same low bar. Counting `fill="currentColor"` elements measured the wrong
+  // thing and said so in the message: of the 8 posters a `> 3` count flagged, four are textbook
+  // R-07 (`kubelet-reconcile-loop`, `container-env-injection` and `effective-pod-request` each run
+  // 0.9 over nothing but 0.3s). What breaks the contract is a RAMP, where the losers climb through
+  // several values and no single bar is the winner. Measured over the shipped catalog: 27 posters
+  // carry two or more accent bars, 18 use two tiers, and only 4 use three or more.
+  const accentTiers = new Set(
+    svg.split('\n').filter(l => l.includes('fill="currentColor"'))
+      .map(l => (l.match(/opacity="([\d.]+)"/) || [, '1'])[1]),
+  );
+  if (accentTiers.size >= 3) {
+    say('R-07', `accent bars run ${accentTiers.size} opacity tiers (${[...accentTiers].join(' ')}): a ramp, not an accent. One winner, the losers on one low bar`);
+  }
 
   // R-02 / R-10: a poster is one sentence, not a small diagram. Measured: the median poster carries
   // 12 primitives and the 90th percentile is 19, so the line sits above the house maximum.

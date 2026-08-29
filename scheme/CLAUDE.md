@@ -108,7 +108,7 @@ tint. The column below is what a kit carries beyond even that.
 | Folder | Cards | Tint | Kit surface beyond the common set |
 |---|---|---|---|
 | `cluster/` | 28 | violet `rgb(192, 176, 255)` | `CLU`, `LAYOUT` |
-| `workloads/` | 20 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
+| `workloads/` | 21 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
 | `network/` | 37 | cyan `rgb(79, 229, 255)` | none |
 | `storage/` | 31 | jade `rgb(94, 202, 148)` | `setCylinderLabel`, `STO`, `chipStrip` |
 
@@ -117,14 +117,14 @@ compared against each other the source of truth, in `unit/module.test.mjs`.
 
 ## Catalog and categories
 
-`js/data.js` exports `SCHEMES` (116 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
+`js/data.js` exports `SCHEMES` (117 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
 are `D-01`, the id-to-folder convention is `D-02`, the key and label constraints are `D-07`, and the
 three `CATEGORY_*` maps are projections of one registry (`D-08`, `D-09`).
 
 | Label | key | color | cards | subcategories (`key` to label) |
 |---|---|---|---|---|
 | Cluster | `cluster` | `#7d86ff` indigo | 28 | `control-plane`, `node-runtime`, `node-lifecycle` |
-| Workloads | `workloads` | `#5bb8ff` sky blue | 20 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
+| Workloads | `workloads` | `#5bb8ff` sky blue | 21 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
 | Networking | `network` | `#4fe5ff` cyan | 37 | `network-foundations`, `pod-networking`, `services-endpoints`, `external-traffic`, `dns-service-discovery` |
 | Storage | `storage` | `#5eca94` jade | 31 | `volume-foundations`, `volumes-claims`, `csi-mount-path`, `stateful-data` |
 
@@ -134,7 +134,7 @@ list is an editorial argument, not a set (`D-10`), and it is recorded beside the
 ## Scheme module contract
 
 Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There is exactly ONE legal
-export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **116 migrated,
+export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **117 migrated,
 0 legacy**. That surface is the declarative form below, and a hand-written one is a regression
 rather than an alternative this contract admits. What NAMES a card slipping back is the DETECTOR
 described below.
@@ -159,7 +159,8 @@ neighbouring category's colour by default, which is the narrow reading of `S-42`
 a hand-written `build()` said by where a line sat, the list says by position. Groups nest, so a
 wrapper is a part like any other and not an escape. The part kinds are `defs group box cylinder node
 chip tag chain arrow lane relation wire packets raw pod`, and `P.pod` builds the whole tinted Pod
-block in the byte order the hand-written copies used.
+block in the byte order the hand-written copies used. What a `node` frame cannot do, and what the
+panel does to its label, are the last section of this file.
 
 `reset.keys`, `reset.pods` and `reset.extra` are written out and never inferred. Inferring pods adds
 a `clearPodHighlight` that wipes inline styles the picture depends on.
@@ -206,7 +207,7 @@ and without a fixed order the picture would depend on the shape of the literal. 
 uses is inherited from the primitive it already called and swapping them is a VISIBLE change
 (`P-09`), so the split runs per CATEGORY rather than per card: cluster, workloads and network are
 `chips` throughout, and storage is the sole `chipsCued` category, with `storage-pvc-binding` the one
-file mixing both. Read off the migrated data: **483 steps carry `chips` and 191 carry `chipsCued`**,
+file mixing both. Read off the migrated data: **489 steps carry `chips` and 191 carry `chipsCued`**,
 because every step states every chip (`P-01`).
 
 `chips` is the state after the STATIC block, which is not the end of the
@@ -217,7 +218,7 @@ value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow ord
 previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
 `render/duration.test.mjs` can see it at all.
 
-**The escapes, and how narrow they are.** **83 of the 116 cards are fully declarative**; 33 carry at
+**The escapes, and how narrow they are.** **84 of the 117 cards are fully declarative**; 33 carry at
 least one hook, **137 hooks in all** (`part.raw` 46, `step.enter` 42, `part.tune` 35, `F.run` 13,
 `reset.extra` 1, `step.motion` 0), and each exists for something with no honest general verb:
 `part.tune` reaches an element the builder already made, to capture a nested ref, write an SVG
@@ -375,12 +376,44 @@ test (if any) would notice it breaking, as `test:<file>/<name>` or `report:<file
 
 ## The findings that are left open
 
-**The `OPEN` findings in the four card records are not to be closed without a reason**: **54** today
-(cluster 19, storage 14, workloads 5, network 16). Each carries its own measurement and an explanation
-of why the rule can only be satisfied by making the picture worse (`L-16`).
+**The `OPEN` findings in the four card records are not to be closed without a reason**: **30** today
+(cluster 0, storage 14, workloads 0, network 16). Each carries its own measurement and an explanation
+of why the rule can only be satisfied by making the picture worse (`L-16`). The cluster and workloads
+records carry none: their design records hold measurements and the reasons behind them, and a parked
+defect is not one of the things they are for.
 
-**That is not the same population as the soft geometry findings, which number 10** (CENTRE 3,
+**That is not the same population as the soft geometry findings, which number 11** (CENTRE 4,
 CENTRE-LOW 6, OCCLUDED 1, printed by `report/geometry-soft.test.mjs`). The `OPEN` entries cover more
 than geometry, and one number was used for both for months. Count them separately. The full list of
 deliberate exceptions, including the ones that are not `OPEN` findings, is the last section of
 `./CANON.md`.
+
+## The constraints a card cannot close
+
+Three facts about the narration panel and about `node()`. Each is a property of the house rather than
+a defect of whichever card met it last, so it is stated once, here, and a record that runs into one
+cites this section instead of re-deriving it.
+
+**The band the panel gives back at a wide viewport cannot be filled.** A card's geometry is pinned to
+its DEEPEST panel, because `L-03` allows a block left of x=420 only below that card's own panel
+bottom and the deepest reading is the narrowest viewport: `cluster-pod-priority-preemption` measures
+279.51 at 1100x800 against 177.44 at 1600x1000. The hundred-odd units the panel vacates as the dialog
+widens therefore stand empty on any card reaching that far left, whatever layout it took, and filling
+them on one card alone makes it the one member of its family that differs. `L-05a` is why the panel
+moves and why clamping its height does not touch this.
+
+**A `node()` frame takes no cue.** `diagrams.css` carries a `.highlight` rule for `.scheme-pod`,
+`.scheme-box`, `.scheme-cylinder` and `.scheme-chip`, and none for `.scheme-node`, so a step
+narrating a Node's own state changing has nothing on screen to react. It fails SILENTLY: five steps
+on three cards in two categories already name a frame in `lit` or in a `lights` list and render no
+difference. Closing it is one catalog-wide CSS rule reaching every frame in the tree, which is not a
+change one card makes.
+
+**A `node()` frame's label sits in the panel column.** `primitives.js` prints it at `x: 12, y: 18`
+inside the frame, so it inks from `NODE_X + 12` against a panel right edge of `x<=397` (`L-02`), and
+a frame starting left of about 385 whose top is above that card's panel bottom loses the label
+outright. Worst case is the Control plane frame at (150, 90) that `cluster-architecture`,
+`cluster-object-create-path` and `cluster-cascading-deletion` share, covered on every measured
+viewport. `OCCLUDED` never reports it, because `report/geometry-soft.test.mjs` skips frames, and
+walking one card's label to the far corner through `tune` is not the fix: it buys one card a position
+every other frame in the catalogue reads from.

@@ -161,10 +161,20 @@ for (const m of body.matchAll(/\bopacity:\s*\{/g)) {
   for (const k of keysOf(objectAt(body, m.index + m[0].length - 1))) addressed.add(k);
 }
 const declared = new Set([...partKeys, ...[...body.matchAll(/(?:shellKey|innerKey|id):\s*'([\w-]+)'/g)].map(m => m[1])]);
+// A key can also be MINTED from a template, which no source sweep resolves to a string:
+// `innerKey: `${p.key}Box`` over a PODS array, or `key: `pod${i + 1}`` over an index. Reading only
+// quoted literals reported every one of them as a step naming a part that does not exist, which is
+// the tool being blind rather than the card being wrong. Each template becomes a shape instead: the
+// literal text around every `${...}`, with the substitutions as wildcards.
+const minted = [...body.matchAll(/(?:shellKey|innerKey|key|id):\s*`([^`]*\$\{[^`]*)`/g)].map((m) => {
+  const shape = m[1].split(/\$\{[^}]*\}/).map(lit => lit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[\\w-]+');
+  return { src: m[1], re: new RegExp(`^${shape}$`) };
+});
 for (const k of addressed) {
-  if (!declared.has(k) && !/^(?:\.\.\.|OPACITY|STANDING)/.test(k) && uses(k) <= 2 && !body.includes(`${k}:`)) {
-    say('NO-SUCH-KEY', `${rel}  a step names '${k}' and no part declares it`);
-  }
+  if (declared.has(k) || /^(?:\.\.\.|OPACITY|STANDING)/.test(k) || uses(k) > 2 || body.includes(`${k}:`)) continue;
+  const by = minted.find(t => t.re.test(k));
+  if (by) { notByKey.push(`'${k}': minted from the template \`${by.src}\`, which no source sweep resolves`); continue; }
+  say('NO-SUCH-KEY', `${rel}  a step names '${k}' and no part declares it`);
 }
 
 // ---- a lane nobody rides, a ball on a path nobody draws ---------------------------------------

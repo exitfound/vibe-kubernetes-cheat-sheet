@@ -89,10 +89,19 @@ const stage = (podGroup, placed = true) => ({
   podGroup, nodeEl: placed ? 1 : OPACITY.pending, connector: podGroup,
 });
 
+// A phase transition cross-fades the Pod opacity between states (OPACITY.pending 0.55, running 1,
+// notready 0.4, terminated 0.12), and those four are the only shades this card draws: 0.35 and 0.7
+// are in no token and are drawn nowhere. This is a state machine and not a materialize/dissolve, so
+// it keeps its own fade timing rather than the FADE tokens, and the delay starts the cross-fade a
+// beat into the step.
 const PHASE_FADE_MS = 700, PHASE_FADE_DELAY = 400;
 
 // A phase move re-shades the Pod AND the lane into it, one event, stated once. `fill: both` holds
-// both at `from` through the delay, which is what keeps the lane lit under its riding ball (A-15).
+// both at `from` through the delay, which keeps the lane lit under its riding ball (A-15). The
+// easing is derived from the direction (`to > from` is a recovery): ease-out on `running` and
+// `recover`, ease-in on `crashloop` and `terminal`. The pairing leaves every beat where it was,
+// route arrival and pulse at 960, fade 400 to 1100 (0 to 700 on `crashloop`), spans 1520 / 1860
+// against durations 2300 to 2400, so the pair costs no duration (A-11, M-19).
 const phaseFade = (from, to, delay = PHASE_FADE_DELAY) => {
   const easing = to > from ? 'ease-out' : 'ease-in';
   return ['podGroup', 'connector'].map(target =>

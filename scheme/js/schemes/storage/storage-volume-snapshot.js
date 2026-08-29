@@ -2,6 +2,9 @@ import { P, F, defineCard, BEAT, FADE, OPACITY, STO, chipStrip, REVEAL_MS } from
 // Design notes for this card: ./CARDS.md#storage-volume-snapshot
 
 
+// The request, the snapshot object and the restore claim all sit on or beside this axis, and the
+// backend frame below is centred on it. The rhythm from the frame down is shared with
+// storage-pvc-clone, since the two cards sit in one row.
 const CX = 600;
 
 const REQ_X = 420, REQ_Y = 36, REQ_W = 360, REQ_H = 68;
@@ -37,6 +40,7 @@ const REQ_CORRIDOR_Y = 157;
 const CAPTION_Y = CYL_Y + CYL_H + 24;             // 552
 const CHIPS_Y = 588;                              // 18 below the frame, and 18 above the canvas floor
 
+// Family width. Worst case `snapshotHandle` + `snap-0c41` at 183 against 232.
 const CHIP_W = 232, CHIP_GAP = 16;
 const CHIPS = chipStrip({ cx: CX, w: CHIP_W, gap: CHIP_GAP });   // 112 / 360 / 608 / 856
 

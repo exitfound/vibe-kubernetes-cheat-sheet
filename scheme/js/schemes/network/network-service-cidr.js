@@ -3,6 +3,9 @@ import { P, F, defineCard } from './network-kit.js';
 // Design notes for this card: ./CARDS.md#network-service-cidr
 
 
+// Services sit on an even 260 / 600 / 940 grid with their edges flush to this band, and SVC_GAP is
+// solved from it rather than typed. The IPAddress chip spans the same band, which is what stops it
+// from being a lone chip centred on 940.
 const SCHEME_L = 120, SCHEME_R = 1080;   // content edges, mirrored about x=600
 
 // Service row: three equal boxes with equal gaps, spanning the composition.

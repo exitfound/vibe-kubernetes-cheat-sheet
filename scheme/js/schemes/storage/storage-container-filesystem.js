@@ -2,6 +2,8 @@ import { P, F, defineCard, BEAT } from './storage-kit.js';
 // Design notes for this card: ./CARDS.md#storage-container-filesystem
 
 
+// POD_CX falls out at 600 and the overlay stack plus the disk are centred under it, so the whole
+// column is symmetric on one axis. The chip strip (3x320 + 2x20 = 1000) is centred on the same 600.
 const POD_X = 440, POD_Y = 48, POD_W = 320, POD_H = 140;
 const POD_BOTTOM = POD_Y + POD_H;                     // 188
 const POD_CX = POD_X + POD_W / 2;                     // 600

@@ -51,6 +51,11 @@ const POD_NAMES = ['web-a1', 'web-b2', 'web-c3', 'web-d4'];
 // Z-order: the top lane pair, the wire label, the chip column and the trunk, then the packet layer,
 // then chain / Node / Pods / actor row above the ball.
 export const SCENE = {
+  // The label ends on RS-v2 going to zero and not on RS-v1 coming back up, because RS-v1 is never
+  // scaled below three here: its chip reads 3 / 3 on all six steps, chain row 5 says RS-v2 to 0,
+  // RS-v1 kept, and two steps establish that maxUnavailable kept the old Pods serving. It must not
+  // say the previous ReplicaSet is scaled back up, which is a rollback this card does not draw,
+  // and no tool compares an aria-label with the steps underneath it.
   'aria-label': 'Deployment rollback and revision history: a bad rollout stalls past progressDeadlineSeconds, rollout undo scales the broken ReplicaSet to zero while the previous one keeps serving',
   parts: [
     P.defs(),

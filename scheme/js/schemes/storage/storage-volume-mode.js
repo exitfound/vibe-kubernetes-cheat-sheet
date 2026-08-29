@@ -2,6 +2,9 @@ import { P, F, defineCard, BEAT, laneY, makeRidingLabel } from './storage-kit.js
 // Design notes for this card: ./CARDS.md#storage-volume-mode
 
 
+// The panel wall, ~2 units of slack, and the left edge of the node. NODE_W is then the only lever on
+// CONTENT_CX and is solved so it lands on 600. Every tier hangs off that centre, so widening the node
+// slides the chip strip off the canvas centre while each tier still looks internally symmetric.
 const LEFT_X = 400;
 
 const NODE_Y = 55, NODE_H = 186;
@@ -28,6 +31,7 @@ const PV_TOP = PV_Y;                                     // 442
 const DISK_LBL_Y = 566;
 const CHIPS_Y = 590;
 
+// One width for all four chips, sized against `node does` + `no mkfs, no mount` at 179.
 const CHIP_W = 232;
 const CHIP_GAP = 16;
 const CHIP_COUNT = 4;                  // volumeMode / node does / container / fsGroup

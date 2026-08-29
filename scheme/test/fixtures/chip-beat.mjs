@@ -35,6 +35,7 @@
 // data, and P-06 is the reason no field in the data says which shape is correct.
 
 import { cards } from './catalog.mjs';
+import { carriedMap, carryKey, staleKeys } from './carried.mjs';
 import { importAll } from './module.mjs';
 import { entryChips, settledChips, staticChips, timelineOf } from './spec.mjs';
 import { routeDur, REVEAL_MS, BEAT } from '../../js/lib/scheme-kit.js';
@@ -57,113 +58,24 @@ const PACKET_VERBS = new Set(['route', 'segment', 'top']);
 const LEAD_CUT_MS = 1500;
 
 // -------------------------------------------------------------------------------------------
-// FORM-E entries a human has READ and decided to carry, keyed `<card id> <step id> <chip key>`,
-// with the reason on each. Nineteen entries, nineteen findings, nothing unread: that is the state that let
-// FORM-E out of the report and into `npm test`, and every entry below is the measurement that put
-// one finding there. Same shape and same discipline as R2_STEP_CARRIED in ../report/arrival.test.mjs:
-// an entry here is a decision with a measurement behind it, never a way to quiet the queue.
+// FORM-E entries a human has READ and decided to carry, keyed `<card id> <step id> <chip key>`.
+// THE ENTRIES THEMSELVES LIVE IN ./carried.mjs, the one store for a report finding somebody has
+// ruled on and kept: this is the axis view of it, under the name the two readers already import.
+// Add a ruling THERE, as `{ axis: 'FORM-E', card, where: [stepId, chipKey], why }`, and it appears
+// here with no other edit. ../unit/chip-beat-e.test.mjs still names this file, and this is where
+// the export is.
 //
-// IT LIVES IN THE FIXTURE BECAUSE BOTH READERS NEED IT AND THEY NEED THE SAME ONE. The report marks
-// a carried record CARRIED and prints its reason; the gate treats the same record as not-a-failure.
+// IT IS AN AXIS VIEW BECAUSE BOTH READERS NEED IT AND THEY NEED THE SAME ONE. The report marks a
+// carried record CARRIED and prints its reason; the gate treats the same record as not-a-failure.
 // Two copies would mean a finding carried in one file and red in the other, which is the worst of
-// the shapes this table can take. Its own shape (a reason on every entry, three fields in every key)
-// is asserted by ../unit/chip-beat-e.test.mjs, where a broken table has to be able to go red.
+// the shapes this table can take. Its own shape (a reason on every entry, three fields in every
+// key) is asserted by ../unit/chip-beat-e.test.mjs, where a broken table has to be able to go red.
 // -------------------------------------------------------------------------------------------
-export const E_CARRIED = new Map([
-  ['cluster-pod-priority-preemption delete focusChip',
-    '`standard DELETE · PDB best effort` names what this step DOES, and it is true the moment the '
-    + 'Scheduler forms the request: no arrival on this step produces it. Its two neighbours wait for '
-    + 'a beat because both are Pod-object state the DELETE produces, nominatedNodeName at the API '
-    + 'and Terminating on the Node. The focus chip is NOT uniformly at entry on this card, and the '
-    + 'split is the point: on the bind step it IS deferred, because `nominatedNodeName cleared` is '
-    + 'an outcome the API writes when the binding lands rather than a name for the step. Binding '
-    + 'this one to an arrival would leave the delete step nameless for its first 700ms.'],
-  ['cluster-pod-priority-preemption bind victimChip',
-    'Pod A left during the terminationGracePeriodSeconds the PREVIOUS step narrates, so `Pod A · gone` '
-    + 'is true when this step opens and the `pod1: 0` opacity pin beside it draws the same fact. No '
-    + 'ball of this step produces it: the bind travels to Node-1 and places Pod NEW. Its two '
-    + 'neighbours wait because the API writes both on the binding itself. Winding this one back would '
-    + 'redraw a Pod the card has already said exited.'],
-  ['cluster-node-pressure-eviction relieve memChip',
-    'memory.available is a cAdvisor reading of the Node, and the one ball of this step is the PATCH ' +
-    'carrying MemoryPressure=False to the API, which does not produce it: the memory freed first and ' +
-    'is WHY the PATCH goes out. The card says so itself on step 1, where the same chip drops 4Gi to ' +
-    '500Mi at entry over a flow that is empty. Binding it to that arrival would claim a local stat ' +
-    'moves when the API is told.'],
-  ['cluster-oom-kill observe memChip',
-    'memory.current is a cgroup file the kernel emptied when it SIGKILLed the processes one step ' +
-    'earlier, and the ball of this step runs the OTHER way, PLEG relist from the kernel to Kubelet. ' +
-    'The rewind next door is right for terminationChip because that is what the Kubelet KNOWS, and ' +
-    'wrong here for the same reason: it would say memory frees when the Kubelet is told. Entry is ' +
-    'the earliest honest beat this step has.'],
-  ['cluster-leader-election renew v1',
-    'The role suffix reports what mgr-1 is DOING, and the reconciling is what SENDS the first ball ' +
-    'of the step, the CAS-PUT carrying a fresh renewTime. It is on screen before anything departs ' +
-    'rather than after anything lands, the same shape as `cluster-static-pods edit-file fileChip`. ' +
-    'What the arrival earns is renewChip, which is the Lease RECORD and moves when the write lands, ' +
-    'and that is the one chip this step holds back.'],
-  ['cluster-leader-election renew v2',
-    'See `renew v1`: polling is what sends the standby GET, so the suffix stands before the ball ' +
-    'leaves. Binding it to the answer would say a standby starts polling because its own poll ' +
-    'came back.'],
-  ['cluster-leader-election renew v3',
-    'See `renew v2`: the second standby runs the identical poll and its chip moves with it, or ' +
-    'P-04 splits one fact across two chips.'],
-  ['cluster-static-pods edit-file fileChip',
-    'fileChip is the manifest file on disk, and the file is the SOURCE of the first ball here, ' +
-    'the spec segment running from fileBox to the Kubelet. The edit therefore has to be on screen ' +
-    'before the ball leaves, not after it lands. Step 1 is the same shape and reads correctly: the ' +
-    'chip takes the new filename at entry and the segment leaves REVEAL_MS later.'],
-  ['cluster-taints-tolerations prefer taintsChip',
-    'The rewrite of spec.taints is the PREMISE of the step and its opening sentence, true before the '
-    + 'Scheduler forms the binding this step sends: no arrival here produces it, and the ball that '
-    + 'does arrive carries Pod web-2 to Node-1. The frame header spells the same taint at entry on '
-    + 'the same beat, so binding the chip alone would leave it reading NoSchedule under a header '
-    + 'already reading PreferNoSchedule. Step 1 is the same shape and is read the same way, both '
-    + 'taint chips light at entry there. What the arrival earns is web2Chip, the chip this step defers.'],
-  ['cluster-taints-tolerations prefer effectChip',
-    'See `prefer taintsChip`: effect in force reports that same rewrite one field narrower, and the '
-    + 'two move together or P-04 splits one fact across two chips.'],
-  ['cluster-taints-tolerations noexecute taintsChip',
-    'The second taint is what SENDS the first ball of the step, the DELETE the taint-eviction-controller '
-    + 'issues, so it is on screen before anything departs rather than after anything lands. Binding it '
-    + 'to that arrival would say the taint appears because the controller acted. web2Chip is what the '
-    + 'arrival earns and it is the one chip this step holds back.'],
-  ['cluster-taints-tolerations noexecute effectChip',
-    'See `noexecute taintsChip`: effect in force reports the same added taint and moves with it.'],
-  ['workloads-daemonset place focusChip',
-    'focusChip is named `focus` and every one of the five steps writes it as a caption of what that ' +
-    'step is about, not as object state. Here it states the controller RULE the narration states ' +
-    'in words, one Pod per matching Node, which is true before any create is issued. What the three ' +
-    'creates actually earn is currentChip and readyChip, and those are exactly the two the step ' +
-    'already steps up one arrival at a time.'],
-  // The entries below were PROMOTED into E by repairing their neighbours, which is a mechanical
-  // consequence of the form: E is "one chip on this step waits for a beat and this one does not",
-  // so binding the earned chip on a step makes every unearned chip beside it eligible. A rise in E
-  // after a P-03 repair is therefore not a regression, and "E must not rise" cannot be an
-  // acceptance criterion for this class unless every chip on the step is bound.
-  ['workloads-daemonset node-join focusChip',
-    'The same argument as `place focusChip` above, on the same card: `focus` is the caption of what ' +
-    'the step is about and not object state. Node-4 joining is the PREMISE of the step, on screen ' +
-    'before anything is watched or created, and what the arrivals earn is the three counters, which ' +
-    'this step now steps up on the watch and on the create.'],
-  ['network-dns-records a-record qChip',
-    'qChip is the QUESTION, which the client holds before it sends anything, so it is the premise ' +
-    'of the step and not a value an arrival produces. The card already says the name a second time ' +
-    'at entry: `asking()` writes the four FQDN segment boxes and LIGHTS them in the static block, ' +
-    'so binding the chip alone would leave it blank while the band beside it spells the same name.'],
-  ['network-dns-records srv-record qChip', 'See `a-record qChip`: the question is the premise, and the FQDN band states it at entry.'],
-  ['network-dns-records headless-record qChip', 'See `a-record qChip`: the question is the premise, and the FQDN band states it at entry.'],
-  ['network-dns-records pod-record qChip', 'See `a-record qChip`: the question is the premise, and the FQDN band states it at entry.'],
-  ['network-internal-traffic-policy local policyChip',
-    'internalTrafficPolicy is a FIELD OF THE SERVICE that the operator set before anything is dialed, ' +
-    'and the card record says so in as many words: the policy is a property of the Service, so it is ' +
-    'true from the start, while the scope, the hop and the result are outcomes of a call. Those three ' +
-    'are exactly what this step now waits on, at kube-proxy (1500) and at the local Pod (2300). The ' +
-    'rest of the entry frame is written from the same premise: the two endpoint notes read in scope ' +
-    'and out of scope and the remote Pod is already dimmed, so binding the chip alone would leave it ' +
-    'reading Cluster over a picture that is already the Local one.'],
-]);
+export const E_CARRIED = carriedMap('FORM-E');
+
+// FORM-B has no gate and its queue runs to hundreds, so a carried row here says a person read a
+// high-ranked row and kept it. Same store, same key shape, no assertion behind it.
+const B_CARRIED = carriedMap('FORM-B');
 
 // -------------------------------------------------------------------------------------------
 // THE WALK. One pass over the catalogue, and the only place the four forms are defined.
@@ -255,11 +167,14 @@ function chipBeatForms(catalogued, modules) {
         };
         A.push(rec);
         if (!lit.has(k)) continue;           // the card does not call this value the news: A only
+        // One key serves both forms, because an E record IS a B record with a neighbour on a beat.
+        rec.carryKey = carryKey(c.id, [s.id, k]);
         B.push(rec);
         if (rec.neighbours.length) {
-          rec.carryKey = `${c.id} ${s.id} ${k}`;
           rec.why = E_CARRIED.get(rec.carryKey);
           E.push(rec);
+        } else {
+          rec.bWhy = B_CARRIED.get(rec.carryKey);
         }
       }
     }
@@ -267,10 +182,14 @@ function chipBeatForms(catalogued, modules) {
 
   const bLead = B.filter(r => r.lead >= LEAD_CUT_MS);
   const eOpen = E.filter(r => !r.why), eHeld = E.filter(r => r.why);
-  const stale = [...E_CARRIED.keys()].filter(k => !E.some(r => r.carryKey === k));
+  const stale = staleKeys('FORM-E', E.map(r => r.carryKey));
+  // A FORM-B row is carried only where it is NOT also FORM-E: E is the narrower reading of the same
+  // record and owns it, so a ruling written on both axes would be printed twice and counted twice.
+  const bOpen = B.filter(r => !r.bWhy), bHeld = B.filter(r => r.bWhy);
+  const bStale = staleKeys('FORM-B', B.filter(r => !r.neighbours.length).map(r => r.carryKey));
 
   return {
-    A, B, bLead, E, eOpen, eHeld, divergent, notes, stale,
+    A, B, bLead, bOpen, bHeld, bStale, E, eOpen, eHeld, divergent, notes, stale,
     walked, steps, candidateSteps, compared, unresolved,
     catalogSize: catalogued.length,
   };
