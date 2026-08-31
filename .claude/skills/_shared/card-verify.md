@@ -20,16 +20,85 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8888/scheme/
 `npm test`, `npm run report` and `node --test` run from `scheme/test/`. Every helper under
 `.claude/skills/*/tools/` resolves its imports relative to itself and runs from anywhere.
 
+### Start the long runs before you read anything
+
+Two of the runs below take minutes and neither needs you while it goes. Started FIRST, in the
+background, they finish under the reading rather than after it, and a card that used to cost six
+minutes of watching a progress line costs none:
+
+```bash
+cd scheme/test
+npm run report > /tmp/report.txt 2>&1 &                                  # about 3 minutes
+node ../../.claude/skills/card-review/tools/frames.mjs <id> --out=/tmp/frames/<id> > /tmp/frames.txt 2>&1 &
+```
+
+Then read (`ctx.mjs`, the record, the source) while they run, and collect them at the phase that
+needs them. The full gate goes the same way at the END of the work, started before the record and
+the count sweep are written rather than after.
+
+**A backgrounded run that nobody read is worse than one that was never started**, because the work
+looks verified and is not. Two rules, and they are not negotiable:
+
+- A card is NOT closed until every run you launched has come back AND been read. Redirect to a file
+  and grep it (section 1 says why `tail` alone lies), never judge it by the fact that it exited.
+- Name each one in the deliverable with its result: `npm test` green at 1131 tests, `report`
+  read, `frames` opened. A run you cannot name a result for did not happen.
+
+**The server is not optional and its absence is silent.** Nine files under `render/` drive a real
+browser against `http://localhost:8888`, so with nothing serving they all fail and a BEFORE list
+taken in that state bakes nine bogus lines into whatever you are about to compare against. Take the
+`curl` above before the gate, not after it.
+
+### You are often not the only writer
+
+Two Claude sessions and a person can hold this tree at once. On 2026-08-30 one of them rewrote
+`scheme/js/schemes/workloads/posters.js` and a sibling record underneath a running agent, and the
+agent noticed only because it re-read the file. Assume it can happen and it costs nothing:
+
+- Never `Write` a whole shared file. `Edit` the smallest unique string, and **re-read the file
+  immediately before every write**.
+- After an edit lands, re-read once more and confirm the parts you did not touch are unchanged.
+- If a file moved underneath you mid-edit, stop and say so rather than forcing the write.
+
+A session listing is not this check. It cannot see a person in an editor or a `git` command, and it
+answers a different question. The signals that work are free: `git status --porcelain`, the mtimes
+of the files you are about to touch, and a diff against the copy you took.
+
+### Back up first, because the recovery you know is banned here
+
+`git checkout -- <path>` restores from the INDEX, so on a partially staged file it destroys the
+unstaged work silently, and this tree is normally dirty with in-flight work that has no other copy.
+It is never the recovery move. Take a copy instead, and take a fresh one after each stage that
+lands, so a bad stage costs one stage rather than the session:
+
+```bash
+D=/tmp/cardwork/$(date +%H%M%S); mkdir -p "$D"
+git status --porcelain | awk '{print $NF}' | tar czf "$D/dirty.tgz" -T -
+```
+
+Restoring one file is `tar xzf "$D/dirty.tgz" <path>` from the repo root, or into a scratch
+directory first when you want to diff before overwriting.
+
 ---
 
 ## 1. Three loops, and running the wrong one is most of the wasted time
 
 | Loop | Cost | What it proves |
 |---|---|---|
-| `npm run test:unit` | 1.7s | the whole catalog, no browser. Run it as often as you like |
-| `SCHEME_IDS=<id> npm run test:render` | about 6s | this card only, floors and censuses OFF |
-| `npm test` | about 2 minutes | THE GATE: `unit/**` and `render/**` over the whole catalog |
-| `npm run report` | about 1 minute | `report/**`, which the gate does NOT run |
+| `npm run test:unit` | 2s | the whole catalog, no browser. Run it as often as you like |
+| `SCHEME_IDS=<id> npm run test:render` | 7s | this card only, floors and censuses OFF |
+| `npm test` | 3m10s | THE GATE: `unit/**` and `render/**` over the whole catalog |
+| `npm run report` | 3m | `report/**`, which the gate does NOT run |
+
+Measured on 2026-08-31 at 121 cards, and both long ones had drifted from what this table used to
+claim: the gate read "about 2 minutes" and the report "about 1 minute", so a plan built on them
+under-priced the run it was about to sit through by six minutes a card. They grow with the catalog.
+Re-time them rather than trusting the column (`{ time npm test; } 2>&1 | tail -3`) whenever a run
+feels longer than it says, and correct the number here when it has moved.
+
+**The two long ones belong in the background** (section 0), and over a BATCH they are paid once for
+the whole batch rather than once per card: `SCHEME_IDS=a,b,c` takes a list, and the report walks the
+catalog anyway. Per card that is seven seconds of machine time, not six minutes.
 
 **Run the full gate ONCE, at the end.** Not after each edit, not again during the sweep. While
 iterating, unit plus the filtered render is the loop, and it is seven seconds:
@@ -40,6 +109,38 @@ npm run test:unit
 SCHEME_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1
 grep -E '^# (tests|pass|fail|skipped)|^not ok' /tmp/r.txt
 ```
+
+### The DETAIL loop, for a change that names its own scope
+
+A change to one coordinate, one string, one chip value, one duration or one opacity used to pay the
+same tail as an audit: `npm test` and `npm run report`, six minutes and ten seconds of waiting
+for a one-line edit. It does not have to, because both of those runs answer questions about the
+CATALOG, and the questions a detail change raises are about one card. Measured per card:
+
+| Owed by | Run | Cost |
+|---|---|---|
+| every change | `npm run test:unit` | 2s |
+| every change | `SCHEME_IDS=<id> npm run test:render` | 7s |
+| geometry: a coordinate, a size, a lane endpoint | `GEOMETRY_IDS=<id> node --test report/geometry-soft.test.mjs` | 5s |
+| prose: a narration, a wire string, a desc | `OVERLAY_IDS=<id> node --test report/overlay.test.mjs` | 5s |
+| motion or state: a duration, an easing, an opacity | `motion.mjs`, then the `-0/-50/-95` frames of the touched steps | 20s |
+| every change | the frames of every step the changed thing appears in | 19s |
+| every change | the record measurement the change falsifies, and the container rebuild (0.85s) | |
+
+**Route by what the change TOUCHED, and read the routing as additive rather than as a menu.** The
+panel is text driven, so `L-02`, `L-04` and `L-05a` move when prose moves and not when a lane does.
+The occlusion rules are per card and per block, so they move when geometry does. A change that is
+both owes both.
+
+**What is deferred is deferred INTO A WRITTEN LIST, never into nothing.** Keep the card ids whose
+full gate is owed, and discharge them with ONE `npm test` plus ONE `npm run report` over the batch,
+before the commit and before the session ends. The rule that makes this safe rather than merely
+faster: **no commit while the debt list is non-empty**, and the deliverable states the list and its
+result. A detail loop that never ends in a gate is not a cheaper procedure, it is an unverified one.
+
+Three things this tier does NOT shrink, because they are where a detail change actually goes wrong:
+the frames of every step the change can be seen in, the card's own record, and the container
+rebuild, which costs under a second on cached layers.
 
 **The REPORTS are not the gate and a review is lost without them.** Everything under `report/` fails
 on nothing and is where the findings a human has to rule on are already written down, per card, by
@@ -64,7 +165,10 @@ Notes that have cost time before:
   themselves under it. A filtered green run proves this card is clean, never that the catalog is.
 - `SCHEME_IDS=a,b,c` takes a list, so a batch amortises the one full gate over the whole batch.
 - `SCHEME_IDS` is NOT the filter for the report files (it makes their census assertions fail on the
-  short walk). `OVERLAY_IDS` filters the overlay report alone.
+  short walk). TWO report files take a filter of their own and turn their census off under it:
+  `OVERLAY_IDS` for the panel report and `GEOMETRY_IDS` for `geometry-soft`, and both also answer
+  `SCHEME_IDS` so a filter set for the gate is not silently ignored. That pair is what makes the
+  detail loop below cost seconds: 4.8s and 4.8s against 3 minutes for the whole report suite.
 - **Never pipe a run through `tail` alone**: a single `not ok` scrolls past and the pipe hands back
   exit code 0, so the run reads green. Redirect to a file and grep it.
 - When the tree already fails, take the BEFORE list and diff against it. Knowing which lines were
@@ -80,10 +184,24 @@ node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=/tmp/fram
 node ../../.claude/skills/card-review/tools/motion.mjs <card-id>
 ```
 
-`frames.mjs` writes three viewports by three freeze points per step, about 63 images on a six step
-card. Rendering them is two minutes of Playwright and costs nothing to read later, so always
+`frames.mjs` writes three viewports by three freeze points per step, so nine images a step and 54
+on a six step card. Rendering them costs 19 seconds and costs nothing to read later, so always
 generate the full set. **Which of them you OPEN is triaged, and the triage is `motion.mjs`**, which
 plays the card for real and lists every animation it actually runs, per step.
+
+**Open the triaged set in ONE message, one Read call per frame, at full resolution.** Six frames
+opened one message at a time is six round trips for a judgement that needs them side by side, and
+side by side is also how a drift between two steps becomes visible at all. This is a batching rule
+and nothing else: the same frames, the same count, the same pixels.
+
+**A contact sheet or a montage is NOT a substitute for the frames, and never becomes one.** It
+downsamples, and everything this phase is looking for lives under the downsample: a label 1.8 units
+from a wall, a caption touching a frame face, two strings whose boxes just overlap. The clearance
+rule is judged at 1100x800 because that is where the panel is deepest, and a tile of it is not that
+viewport. Reading the sheet and calling the frames done is the same shortcut as opening six frames
+out of thirty five, which this project has already paid for twice. A sheet is legitimate for what it
+was built for, which is a POSTER beside its neighbours at true size (`card-poster/tools/montage.mjs`),
+and there it is the whole point.
 
 1. Open the `-0` frame of EVERY step at **1100x800**. The panel is deepest and widest on the
    smallest viewport, because a narrower panel wraps into more lines, so that is the worst case and
@@ -246,6 +364,7 @@ docker rm -f kube-cheatsheet && docker build -t kube-cheatsheet . && docker run 
 
 | Tool | What it answers |
 |---|---|
+| `_shared/tools/ctx.mjs` | the whole read set of ONE card in one run: catalog entry, record (either shape), source, poster fragment, category contract, and every sibling its prose names, with the `... card` phrases it could not resolve listed rather than dropped |
 | `card-review/tools/frames.mjs` | every step, every viewport, as PNGs. Generate all, open the triaged set |
 | `card-review/tools/motion.mjs` | what MOVES: every animation the card really runs, real time, CSS transitions live. The only probe here that is not a state reader, and the triage for the frames |
 | `card-review/tools/timing.mjs` | span vs duration vs reading load, ranked against the catalog |

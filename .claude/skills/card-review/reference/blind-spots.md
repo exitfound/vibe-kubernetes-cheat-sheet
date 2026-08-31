@@ -41,6 +41,13 @@ canon wins. Assume nothing in this list is covered by a test, because none of it
 - a decorative packet on a lane the narration never mentions
 - a stale record, a stale README count, a poster that no longer matches the card
 - a comment that describes code which has moved
+- **a ruling sitting inside a GREEN assertion.** A baseline constant (`EXPECTED_COMBINATIONS`,
+  `EXPECTED_PAINTED`, a carried-finding list) carries its reason in the comment above it, and a
+  passing test prints neither. It is invisible to the gate, to the reports and to a full read of the
+  record and the canon, and it surfaces only when your change breaks it, which is one cycle too
+  late. `cd scheme/test && grep -rn '<card-id>' . --include=*.mjs` before the first edit is the only
+  thing that finds it. It cuts both ways: such a ruling is also unreviewed, so re-measure any number
+  or shade it asserts rather than obeying it on sight
 
 ## Recurring defect families in this repository
 

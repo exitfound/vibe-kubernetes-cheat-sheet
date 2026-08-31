@@ -1,6 +1,6 @@
 ---
 name: card-facts
-description: Fact-check one scheme card against the Kubernetes documentation and the API reference, then check that the animation says the same thing as the text and that every chip, label, sublabel, wire string and aria-label carries a valid value. Builds a claim inventory from the live card, ranks the claims by risk, verifies each against a citable source, reconciles the picture with the narration step by step, and finishes by updating the CONTENT block of the card record and the catalog entry. Use when the user asks to verify the technical content of a card ("проверь техническую часть", "check the facts", "is this card technically correct", "verify against the docs", "проверь текст карточки по докам"), with the card id as the argument. For layout, geometry, motion and dead code use card-review instead.
+description: Fact-check one scheme card against the Kubernetes documentation and the API reference, then check that the animation says the same thing as the text and that every chip, label, sublabel, wire string and aria-label carries a valid value. Builds a claim inventory from the live card, ranks the claims by risk, verifies each against a citable source, reconciles the picture with the narration step by step, and finishes by updating the CONTENT block of the card record and the catalog entry. Use when the user asks to verify the technical content of a card ("проверь техническую часть", "check the facts", "is this card technically correct", "verify against the docs", "проверь текст карточки по докам"), with the card id as the argument. For layout, geometry, motion and dead code use card-review instead. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card facts
@@ -46,13 +46,17 @@ node ../../.claude/skills/card-facts/tools/claims.mjs <card-id> --tokens   # jus
 node tools/settled-dump.mjs <card-id>                                      # the settled state, as data
 ```
 
-Read alongside it:
+Read alongside it, and the first three arrive in ONE run rather than three:
 
-- the card source (`scheme/js/schemes/<category>/<card-id>.js`), for what each step declares
-- the catalog entry in `cards.js`: `title`, `desc`, `k8sVersion`, `sources`
-- the `CONTENT` block of the `## <card-id>` section in that folder's record: it already holds
-  the claims a previous pass checked and the wording those checks forced. Do not re-litigate a
-  settled wording without a source that overturns it.
+```bash
+node .claude/skills/_shared/tools/ctx.mjs <card-id>
+```
+
+- the card source, for what each step declares: `ctx.mjs` section 3, line-numbered and whole.
+- the catalog entry (`title`, `desc`, `k8sVersion`, `sources`): `ctx.mjs` section 1.
+- the record, whose `CONTENT` block already holds the claims a previous pass checked and the
+  wording those checks forced: `ctx.mjs` section 2. Do not re-litigate a settled wording without a
+  source that overturns it.
 - `scheme/CANON.md`, the `T-` group: the terminology and prose rules the fixes must land inside.
   `cd scheme/test && node tools/canon.mjs --block=T` prints it, and `--check=review` narrows it to
   the rows the prose test cannot see.
@@ -197,7 +201,9 @@ Every drawn value is a claim with a narrow definition of correct:
 ## 6. Siblings
 
 Any mechanism this card touches that another card owns: open that card and reconcile them. Quote
-both sentences in the finding. In this project, cross-reading cards that one reviewer had already
+both sentences in the finding. **Which cards those are is already printed**: `ctx.mjs` section 6
+resolves every sibling the desc, the aria-label, a narration or the record names, by id and by
+title, and lists the `... card` phrases it could not resolve for you to read by hand. In this project, cross-reading cards that one reviewer had already
 closed turned up 31 real defects across 87 cards, and most were a card disagreeing with a sibling,
 with its own other steps, or with its own labels.
 
@@ -234,8 +240,9 @@ Apply only what the user approves, and once approved, three project rituals come
 - **Never commit unless the user asks.** Finish, report, and leave the tree uncommitted.
 
 After any prose edit, the fast loop is
-`SCHEME_IDS=<card-id> npm run test:render` (about 6s, this card only, floors off) plus
-`npm run test:unit`, and the full `npm test` once at the end. Re-read
+`SCHEME_IDS=<card-id> npm run test:render` (7s, this card only, floors off) plus
+`npm run test:unit` (2s), and the full `npm test` (3m10s) once at the end, started in the background
+before the record is written rather than watched after it (`_shared/card-verify.md` section 0). Re-read
 the changed sentences in the rendered panel, because a bulk edit over prose leaves the linters green
 and the meaning broken (`T-31`).
 

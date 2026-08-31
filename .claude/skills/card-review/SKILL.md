@@ -1,6 +1,6 @@
 ---
 name: card-review
-description: Work on ONE existing scheme card, in either of two lanes, and leave its records true. REVIEW when nothing is named wrong: runs the machine gate filtered to that card, opens the rendered frames at three viewports, measures text and timing, hunts what no check can see (geometry, motion, state, wire placement, dead code, stale records, the poster), and reports findings ranked. DIRECTED CHANGE when the user names a DETAIL to change: a coordinate, a string, a chip value, a duration, an opacity. Use when the user asks to check, review, audit or re-verify a card ("проверь карточку <id>", "check card <id>", "перепроверь карточку"), and equally when they name a detail to change on one that exists ("сдвинь эту линию", "перепиши шаг", "поменяй значение чипа", "edit this step"), with the card id or title as the argument. A change that moves the COMPOSITION, the cast or the step spine is a design change and belongs to card-new even on an existing card. For a card that does not exist yet use card-new, for the truth of its prose card-facts, and for its grid thumbnail card-poster.
+description: Work on ONE existing scheme card, in either of two lanes, and leave its records true. REVIEW when nothing is named wrong: runs the machine gate filtered to that card, opens the rendered frames at three viewports, measures text and timing, hunts what no check can see (geometry, motion, state, wire placement, dead code, stale records, the poster), and reports findings ranked. DIRECTED CHANGE when the user names a DETAIL to change: a coordinate, a string, a chip value, a duration, an opacity. Use when the user asks to check, review, audit or re-verify a card ("проверь карточку <id>", "check card <id>", "перепроверь карточку"), and equally when they name a detail to change on one that exists ("сдвинь эту линию", "перепиши шаг", "поменяй значение чипа", "edit this step"), with the card id or title as the argument. A change that moves the COMPOSITION, the cast or the step spine is a design change and belongs to card-new even on an existing card. For a card that does not exist yet use card-new, for the truth of its prose card-facts, and for its grid thumbnail card-poster. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card review and change
@@ -15,6 +15,11 @@ findings, each with evidence a human can check, plus updated records.
 
 **Never widen the diff on your own.** Report first, fix on the user's go-ahead.
 
+The one sanctioned exception, so it is not a surprise arriving from outside: an unattended
+`card-cycle` run inverts this and asks for every finding to be FIXED in the run that found it,
+because the user has stood down from the loop for that run. It holds only while the brief says so
+and lapses the moment they are back.
+
 Two files carry what this skill shares with its siblings, and neither is optional:
 
 - **`.claude/skills/_shared/card-edit.md`** before any edit: the ruling check, the blast radius, the
@@ -27,13 +32,16 @@ Two files carry what this skill shares with its siblings, and neither is optiona
 ## 0. Resolve the card
 
 ```bash
-grep -rn "id: '<card-id>'" scheme/js/schemes/*/cards.js       # category + catalog entry
-ls scheme/js/schemes/<category>/<card-id>.js                  # the source
+node .claude/skills/_shared/tools/ctx.mjs <card-id>           # resolves an id OR a title, and prints phase 1
 grep -n "'<card-id>'" scheme/js/app.js                        # old hashes forwarding here
 ```
 
-If that first grep finds nothing, the card does not exist and this is the wrong skill: `card-new`
-builds one. Server and working directories are `_shared/card-verify.md` section 0.
+`ctx.mjs` resolves off the catalog, so a card that does not exist comes back as an error with the
+near misses named, and that is the answer: this is the wrong skill and `card-new` builds one. What
+it prints is phase 1 below, so run it once here and do not run it twice. Server and working
+directories are `_shared/card-verify.md` section 0, and its "start the long runs first" subsection
+applies from this line onward: launch the report and the frames NOW, in the background, so they
+land under the reading instead of after it.
 
 ---
 
@@ -47,7 +55,14 @@ Picking wrong is the difference between ten minutes and an afternoon, in both di
 **Lane B, DIRECTED CHANGE.** A DETAIL is named: a coordinate, a lane endpoint, a size, a narration,
 a wire string, a chip value, a duration, an easing, an opacity, a reset key, a colour. **The request
 is the finding**, so phases 1 to 5 have nothing left to discover. Read
-`_shared/card-edit.md`, edit, then run phases 6 to 8 unchanged.
+`_shared/card-edit.md`, edit, then run phases 6 to 8.
+
+**The verification is ROUTED here, not skipped**: `_shared/card-verify.md` section 1 carries the
+detail loop, which is 35 seconds of machine time chosen by what the change touched (geometry owes
+`GEOMETRY_IDS`, prose owes `OVERLAY_IDS`, motion owes `motion.mjs`), with the full gate and the full
+report deferred into a WRITTEN debt list and discharged once over the batch before any commit. The
+frames of every step the change can be seen in, and the record it falsifies, are not part of what
+is deferred.
 
 **The test that separates a detail from a design change is mechanical**, so run it rather than
 judging:
@@ -77,31 +92,42 @@ and stays here.
 
 ## 1. Read before you look
 
-In this order. Skipping this phase is what turns a review into an opinion.
+Skipping this phase is what turns a review into an opinion. It is TWO commands, and the reason it is
+two rather than ten is that it used to be ten: the category contract, the record, the source, the
+catalog entry, the poster fragment and then every sibling the prose names, each arriving as its own
+round trip, ten turns and about 35k tokens before a single finding on a card whose machine pass
+costs seven seconds. The bytes were never the cost.
 
-1. **The canon, narrowed.** `scheme/CANON.md` holds 247 rules of which 128 already have a machine
-   behind them, and those 128 are what phase 2 just ran. Read the census and the rows no machine
-   covers, not the whole file:
+```bash
+node .claude/skills/_shared/tools/ctx.mjs <card-id>      # already run in phase 0. Read it, do not re-run it
+cd scheme/test && node tools/canon.mjs --check=review    # the rows NO machine covers. This review is FOR these
+```
 
-   ```bash
-   cd scheme/test
-   node tools/canon.mjs                       # 19 lines: rows per block, by check kind
-   node tools/canon.mjs --check=review        # the 94 rows NO machine covers. This review is FOR these
-   node tools/canon.mjs --check=review --block=L,A --ids   # a checklist for the geometry pass
-   ```
+`ctx.mjs` prints, in one run: the catalog entry (title, desc, subcategory, k8sVersion, sources), the
+design record in whichever shape the category is in, the card source line-numbered and whole with
+every comment, the poster fragment, the category contract (`CLU.*`, `WL.*`, `NET.*`, `STO.*`), and
+**every sibling the desc, the aria-label, a narration or the record names**, with the siblings named
+in user-visible prose printed in full and the record-only ones as one line (`--siblings=all`
+promotes them, `--siblings=full` prints their sources).
 
-   A finished review can say how many of the 94 it walked.
-2. `scheme/CLAUDE.md`. The sub-app contract: kits, the spec layer, the test suite, the tools.
-3. `scheme/js/schemes/<category>/CLAUDE.md`. The category rules (`CLU.*`, `WL.*`, `NET.*`, `STO.*`).
-4. The card's record, the `## <card-id>` section of `CARDS.md` or `CARDS/<card-id>.md`. What was
-   measured and what must not be "fixed". Read the neighbouring sections it names.
-5. The card source, in full, including every comment. Comments carry the reasons.
-6. `cards.js` (title, desc, subcategory, k8sVersion, sources), `posters.js`, and `scheme/js/data.js`
-   if the category wiring is in question.
-7. **Every sibling card the narration, the desc or the record names.** Contradiction hunting needs
-   them open, and it is the highest-yield technique in this repository: 87 cards one reviewer had
-   closed yielded 31 real defects when someone else re-read them, and more than half were a card
-   disagreeing with its own other steps, its own labels, its own aria-label or a sibling.
+That last block is step 7 of the old list and the highest-yield technique in this repository: 87
+cards one reviewer had closed yielded 31 real defects when someone else re-read them, and more than
+half were a card disagreeing with its own other steps, its own labels, its own aria-label or a
+sibling. A card is named by TITLE far more often than by id, so `ctx.mjs` matches both, and it
+prints every `... card` phrase it could NOT resolve with a candidate beside it. **Read that list by
+hand.** It is the half no match can close.
+
+`canon.mjs` is the other half: the canon holds rules a machine already ran in phase 2, and the rows
+whose Check column says `review` are what this skill exists for. `--block=L,A --ids` is a checklist
+for the geometry pass, and a finished review can say how many of those rows it walked.
+
+**What neither command reads, and when to read it yourself:**
+
+- `scheme/CLAUDE.md`, the sub-app contract. Once per SESSION, not once per card.
+- `scheme/CANON.md` in full. Query it; it is 1286 lines and phase 2 already ran most of it.
+- the category kit (`<category>-kit.js`), when a finding reaches the grammar rather than the card.
+- `scheme/js/data.js`, when the category wiring itself is in question.
+- the rendered frames, which are phase 3 and which no amount of reading substitutes for.
 
 ---
 
@@ -112,14 +138,18 @@ and the reports here; the full gate waits for the end.
 
 ```bash
 cd scheme/test
-npm run test:unit
-SCHEME_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1
+npm run test:unit                                          # 2s
+SCHEME_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1  # 7s
 grep -E '^# (tests|pass|fail|skipped)|^not ok' /tmp/r.txt
 OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs
-npm run report > /tmp/report.txt 2>&1
+# npm run report was started in phase 0 and takes 3 minutes. Collect it here:
 grep -n '<card-id>' /tmp/report.txt
 grep -nE 'queue to work|left to work|finding\(s\)' /tmp/report.txt
 ```
+
+If the report was not started in the background, start it now and go on to phase 3 rather than
+watching it. **It is still not optional**, and a review that never read it is unfinished: collect it
+before the axes in phase 5, which is where its rows are ruled on.
 
 **The reports are the step a review is lost without.** `npm test` is `unit/**` and `render/**` only.
 A card review that skips `report/` re-derives by eye what the repository has been printing all along.
@@ -216,6 +246,16 @@ The gate already reads every drawn string for apostrophes, semicolons and dashes
   the packet first and the pulse on arrival.
 - A block lights when the ball LANDS, not when its neighbour starts, or the picture credits the
   wrong actor.
+- **Compare the ARRIVALS of one card against each other, not each against the rule.** The same lane
+  onto the same target, cued on one step and silent on two others, is the `P-04` asymmetry and it is
+  what a reader actually sees. It survived a full review here because the silent steps carried a
+  comment explaining themselves and the reviewer matched the comment to a canon row instead of
+  opening the frame at the arrival. `settled-dump.mjs` gives the whole card's highlight sets in one
+  read: put them side by side before believing any per-step reason.
+- **A cue that starts on the same frame as the fade that kills its block is not a cue.** Both the
+  highlight and the removal ran from the arrival here, so the entry was never lit while it was
+  still there. Read the delays out of `motion.mjs`, not out of the source: two entries both saying
+  `at: 'write'` look deliberate and render as nothing.
 - Every ball represents literal traffic the step narrates. A decorative packet on a connector is a
   defect even though it animates beautifully (`M-10`).
 - Only Pods pulse (`M-01`), and value chips never flash (`M-26`). **Do not close this one by reading
@@ -327,6 +367,11 @@ rebuild, the commit rule. Two things belong to this skill rather than to the sha
   quietly reworded.
 - **Counts stated in prose** (how many wire labels, how many lanes, how many steps) are updated in
   the record when the review moved one.
+- **In lane B the sweep is routed the same way the loop is.** A coordinate falsifies a MEASUREMENT
+  written into the record (`LAYOUT`, `SIZES`, `LANES`) and moves no character count; a reworded
+  narration moves character counts and the panel measurements and no coordinate. Re-measure what the
+  change actually touched, and say in the deliverable which of the two it was. `S-49`, the guarded
+  half, rides in the deferred gate: it is discharged with the debt list, not skipped with it.
 
 ---
 

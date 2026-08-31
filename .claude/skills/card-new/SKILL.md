@@ -1,6 +1,6 @@
 ---
 name: card-new
-description: Design ONE scheme card and build it, ending with a green gate and a written record. Places the subject in a category and a section, decides the one sentence and the step spine before any geometry, measures what the neighbouring cards already look like and picks a composition the section has not used, gets the concept signed off in one line, builds the module in the declarative form, wires the catalog, verifies at three viewports, and updates every count a new card falsifies. Use when the user asks for a new card ("сделай новую карточку", "добавь карточку про X", "new card for <topic>", "нарисуй схему про X"), and equally when they want an existing card REDESIGNED rather than adjusted: a different composition, a different cast of blocks, a different step spine ("переделай карточку", "перерисуй композицию", "другой набор шагов"), with the subject or the card id as the argument. A change to a coordinate, a string, a chip value, a duration or an opacity is a detail, not a design, and belongs to card-review. For the truth of a card's prose use card-facts, and for its grid thumbnail card-poster.
+description: Design ONE scheme card and build it, ending with a green gate and a written record. Places the subject in a category and a section, decides the one sentence and the step spine before any geometry, measures what the neighbouring cards already look like and picks a composition the section has not used, gets the concept signed off in one line, builds the module in the declarative form, wires the catalog, verifies at three viewports, and updates every count a new card falsifies. Use when the user asks for a new card ("сделай новую карточку", "добавь карточку про X", "new card for <topic>", "нарисуй схему про X"), and equally when they want an existing card REDESIGNED rather than adjusted: a different composition, a different cast of blocks, a different step spine ("переделай карточку", "перерисуй композицию", "другой набор шагов"), with the subject or the card id as the argument. A change to a coordinate, a string, a chip value, a duration or an opacity is a detail, not a design, and belongs to card-review. For the truth of a card's prose use card-facts, and for its grid thumbnail card-poster. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card new
@@ -64,6 +64,17 @@ already exists.
 5. The record of the two or three siblings closest to your subject. Their `SCOPE` blocks say what
    they left to a neighbour, and one of those sentences may already name the card you are about to
    write.
+
+**Items 3, 4 and 5 are one command per card**, and it prints the category contract with them:
+
+```bash
+node .claude/skills/_shared/tools/ctx.mjs <exemplar-id>       # the exemplar, its record, the contract
+node .claude/skills/_shared/tools/ctx.mjs <nearest-sibling>   # its SCOPE block, and who it names
+```
+
+On a REDESIGN, where the card already exists, run it on that card first: the record says what was
+measured and what must not be "fixed", and section 6 names every sibling whose prose points here,
+which is the list a new composition can falsify.
 
 ---
 

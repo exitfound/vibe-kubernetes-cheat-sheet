@@ -45,9 +45,27 @@ record exists to stop exactly that.
   an `OPEN` carries the measurement saying the rule can only be satisfied by making the picture
   worse (`L-16`).
 
+**The record is not the only place a ruling lives, and the second place is a test.** A baseline
+constant carries its reason in the comment above it, and that comment is a ruling nothing indexes:
+`EXPECTED_COMBINATIONS` in `render/palette.test.mjs` held the argument for one card's two lanes, and
+a review that read the record, the card and the whole canon reported "the record says nothing about
+this" and was wrong. Grep before the first edit, and read what the hits SAY, not just that they
+exist:
+
+```bash
+cd scheme/test && grep -rn '<card-id>' . --include=*.mjs
+```
+
+**A green assertion prints nothing, so a ruling inside one is invisible until you break it.** That
+is the whole failure mode: the gate cannot warn you off a change it will only object to afterwards.
+If the grep returns a card-specific baseline or carried finding, treat it exactly as a record entry.
+
 **A request that lands on one of those is answered with the ruling, not with an edit.** Quote it,
 say what it costs to overrule, and let the user decide. Where the record says nothing about it, say
-so in one line: that is also an answer, and it tells the next reader the ground was checked.
+so in one line AND say the grep was run: that is also an answer, and it tells the next reader the
+ground was checked. **A ruling can also be WRONG.** The palette one asserted a colour its author had
+not measured. Where a ruling states a number or a shade, re-measure it before you either obey or
+overrule it, and report the reading either way.
 
 ---
 

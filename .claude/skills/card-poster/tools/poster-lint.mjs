@@ -23,12 +23,14 @@ const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
 }));
 const wanted = args.filter(a => !a.startsWith('--'));
 
-// The 11 posters whose whole sentence IS a direction, so a chevron is earned rather than tolerated
-// (R-08a). Anything outside this list carrying a triangle is a finding.
+// The ALLOWLIST for R-08a, not a census: a poster here MAY carry a chevron, and anything outside it
+// carrying a triangle is a finding. Only `workloads-pod-startup-conditions` draws one today; the
+// other eleven were registered and then redrawn without it, so the list exempts more than it needs
+// to. It costs nothing and it blocks nothing, and trimming it is a decision about each of them.
 const CHEVRON_OK = new Set([
   'workloads-rolling-update', 'workloads-graceful-shutdown', 'workloads-restart-policy',
-  'workloads-crashloopbackoff', 'workloads-statefulset-ordered-startup', 'workloads-pvc-stickiness',
-  'workloads-deployment-rollback', 'workloads-cronjob',
+  'workloads-crashloopbackoff', 'workloads-statefulset-ordered-rollout', 'workloads-pvc-stickiness',
+  'workloads-deployment-rollback', 'workloads-cronjob', 'workloads-pod-startup-conditions',
   'storage-volume-attach-limits', 'storage-volumeclaimtemplates', 'storage-pvc-retention-policy',
 ]);
 
@@ -111,7 +113,7 @@ for (const id of ids) {
   // R-07 is a contract about the SHAPE of the accent set, not about its size: one winner, and the
   // losers all carrying the same low bar. Counting `fill="currentColor"` elements measured the wrong
   // thing and said so in the message: of the 8 posters a `> 3` count flagged, four are textbook
-  // R-07 (`kubelet-reconcile-loop`, `container-env-injection` and `effective-pod-request` each run
+  // R-07 (`kubelet-reconcile-loop`, `env-before-pid-1` and `effective-pod-requests` each run
   // 0.9 over nothing but 0.3s). What breaks the contract is a RAMP, where the losers climb through
   // several values and no single bar is the winner. Measured over the shipped catalog: 27 posters
   // carry two or more accent bars, 18 use two tiers, and only 4 use three or more.

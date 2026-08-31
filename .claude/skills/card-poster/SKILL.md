@@ -1,6 +1,6 @@
 ---
 name: card-poster
-description: Design, redraw or adjust the poster of one scheme card, the still frame the grid shows. Reads the card to find its one sentence, renders the current poster next to its siblings at true size and at 3x, picks a composition family from the mined pattern library, gets the concept signed off in one line before drawing anything, writes the SVG fragment in posters.js, verifies it with the poster lint and a fresh montage, and records the choice in the card's CARDS.md poster note. Use when the user asks for a poster ("сделай постер", "перерисуй постер", "постер не нравится", "poster for this card", "change the poster"), or when a card review found the poster wrong. For everything else about a card use card-review, and for the truth of its text use card-facts.
+description: Design, redraw or adjust the poster of one scheme card, the still frame the grid shows. Reads the card to find its one sentence, renders the current poster next to its siblings at true size and at 3x, picks a composition family from the mined pattern library, gets the concept signed off in one line before drawing anything, writes the SVG fragment in posters.js, verifies it with the poster lint and a fresh montage, and records the choice in the card's CARDS.md poster note. Use when the user asks for a poster ("сделай постер", "перерисуй постер", "постер не нравится", "poster for this card", "change the poster"), or when a card review found the poster wrong. For everything else about a card use card-review, and for the truth of its text use card-facts. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card poster
@@ -39,16 +39,19 @@ in the montage is a poster nobody can read.
 
 ## 1. Find the sentence
 
-Read, in this order:
+One command prints all three of the reads below, whichever shape the category's record is in:
 
-1. `cards.js`: the card's `title` and `desc`. The desc opens with the question the card answers, and
+```bash
+node .claude/skills/_shared/tools/ctx.mjs <card-id>
+```
+
+1. The card's `title` and `desc` (section 1). The desc opens with the question the card answers, and
    the poster is usually a picture of that question.
-2. The card source: the `WHAT` line of its record, then the narration of step 1 and of the last
-   step. The poster is the still that makes a reader want to press play, so it belongs closer to the
-   question than to the ending.
-3. The `### poster` note in that card's record (`CARDS.md`, or `CARDS/<card-id>.md` where the
-   category has split it). If a note exists, it says what
-   was tried and what was rejected. Do not rediscover it.
+2. The `WHAT` line of its record (section 2), then the narration of step 1 and of the last step
+   (section 3, and the header lists every step with its duration). The poster is the still that
+   makes a reader want to press play, so it belongs closer to the question than to the ending.
+3. The `### poster` note inside that record. If a note exists, it says what was tried and what was
+   rejected. Do not rediscover it. Section 4 prints the poster fragment that is there now.
 
 Then write ONE sentence, in words, in the user's language. Not "the architecture of a cluster", but
 "everything talks to the API and the API alone talks to the store". If your sentence needs "and", it

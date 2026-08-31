@@ -187,7 +187,7 @@ some step. One of the two is the subject: the other is a caption for it.
 **Says:** this is a story about API objects, and no Pod appears in it.
 
 **Build:** boxes for the objects, relationship lines for the references between them, and the state
-of each object in its own sublabel. 22 cards in the catalog carry no Pod at all, so a Pod is not the
+of each object in its own sublabel. 23 cards in the catalog carry no Pod at all, so a Pod is not the
 price of admission: adding one to a card whose subject is a PV and a PVC puts an actor on stage who
 never speaks.
 

@@ -210,12 +210,15 @@ for (const s of strings) {
 if (/[—]/.test(src)) say('PROSE', `${rel} contains an em-dash somewhere in the file`);
 
 // ---- comment runs (S-34) ----------------------------------------------------------------------
+// The ceiling lives in unit/files.test.mjs and in the canon row; this is the third home and the one
+// that drifts, so it is named once here and read twice below.
+const S34_CEILING = 6;
 let run = 0, runStart = 0;
 lines.forEach((l, i) => {
   if (l.trimStart().startsWith('//')) { if (!run) runStart = i + 1; run++; }
-  else { if (run > 2) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is 2`); run = 0; }
+  else { if (run > S34_CEILING) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is ${S34_CEILING}`); run = 0; }
 });
-if (run > 2) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is 2`);
+if (run > S34_CEILING) say('S-34', `${rel}:${runStart}  comment run of ${run} lines, ceiling is ${S34_CEILING}`);
 
 // ---- the catalog wiring around the card --------------------------------------------------------
 const cardsJs = readFileSync(join(SCHEMES, category, 'cards.js'), 'utf8');
