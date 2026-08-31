@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, laneY, midX, spread, WL, LAYOUT, BEAT, FADE, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-deployment-rollback
+// Design notes for this card: ./CARDS/workloads-deployment-rollback.md
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, one tap into the surging Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.

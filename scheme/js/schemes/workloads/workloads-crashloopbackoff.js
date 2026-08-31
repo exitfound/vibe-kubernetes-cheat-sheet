@@ -1,7 +1,7 @@
 import { P, F, defineCard, ladder, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 import { chip } from '../../lib/primitives.js';
 
-// Design notes for this card: ./CARDS.md#workloads-crashloopbackoff
+// Design notes for this card: ./CARDS/workloads-crashloopbackoff.md
 
 // Layout B of the Workloads canon (WL): chips and the backoff ladder left, pipeline right. Panel
 // worst case x<=397, y<=205, 225 reserved as a floor, and a longer narration invalidates that.

@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, strip, laneY, midX, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-pvc-stickiness
+// Design notes for this card: ./CARDS/workloads-pvc-stickiness.md
 
 // Layout C on the Workloads canon (WL): panel x<=397 y<=330, so pipeline right and chips two-across.
 // The PV sits BETWEEN the two Node frames, which is where the story puts it.

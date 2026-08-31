@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, BEAT } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-statefulset-ordered-startup
+// Design notes for this card: ./CARDS/workloads-statefulset-ordered-rollout.md
 
 // Layout A on the Workloads canon (WL in the kit): ladder left, chip column right, Node frame
 // full width at the bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).

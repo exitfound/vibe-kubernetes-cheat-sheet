@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, strip, laneY, midX, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-restart-policy
+// Design notes for this card: ./CARDS/workloads-restart-policy.md
 
 // Layout C on the Workloads canon (WL): panel x<=397 y<=355 leaves no column under it, so the
 // pipeline keeps the right band and the chips form a two-across bottom strip.

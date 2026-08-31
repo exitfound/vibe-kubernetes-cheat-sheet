@@ -36,7 +36,7 @@ prose change: several cards here carry a hard character ceiling and nothing enfo
 Several tables below carry a `900x650` row, a hand sample stricter than anything the harness takes,
 and where the two disagree the card takes the stricter number and says so (`STO.L-04`). Over the
 sampled viewports storage's own deepest panel is 354 (`storage-ephemeral-storage-eviction`); the
-catalog maximum of 503 belongs to `workloads-pod-phase-machine`.
+catalog maximum of 503 belongs to `workloads-pod-lifecycle-phases`.
 
 ---
 
@@ -2700,7 +2700,7 @@ PANEL    Worst step, right / bottom by viewport:
          bottoms out at 304. It is NOT the catalog's deepest panel, and the two are not comparable at
          face value, being taken at different viewports: the preamble gives storage's deepest over the
          sampled set as 354 (`storage-ephemeral-storage-eviction`) and the catalog maximum as 503
-         (`workloads-pod-phase-machine`). LEFT_X 400 has about 2 units of slack and cannot move left
+         (`workloads-pod-lifecycle-phases`). LEFT_X 400 has about 2 units of slack and cannot move left
          at all. The 498 also pins the disk shelf: the left cylinder starts at x=410, which clears
          the panel by only 12 units at 900x650, so PV_W cannot grow leftward either. DO NOT re-derive
          any of this from a single wide-window screenshot.

@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, midX, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-hooks
+// Design notes for this card: ./CARDS/workloads-hooks.md
 
 // Layout C of the Workloads canon (WL): the deepest panel in the category leaves room for no column.
 // Panel worst case x<=397, y<=379; a longer narration invalidates that measurement.

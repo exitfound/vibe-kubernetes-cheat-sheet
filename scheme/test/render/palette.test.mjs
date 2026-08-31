@@ -106,7 +106,19 @@ function describeSpread(spread) {
 // its inner box. The Node frame and the wire label carry no role.
 // 2063: workloads-pod-qos-classes drops the arrowless Kubelet -> API relation (-1). No step of it
 // named traffic that way, and the write it stood for is the Scheduler's, which the card never draws.
-const EXPECTED_PAINTED = 2063;
+// 2113: re-read over 121 cards where 2063 was read over 117, so the move is not one card's.
+// workloads-pod-scheduling-gates contributes 13 of it, counted off its own scene: four boxes,
+// four chips, four lanes and one Pod, which is a bare shell here and therefore one element and
+// not two. The Node frame it does not draw and its one wire label carry no role.
+// 2114: workloads-effective-pod-requests adds one arrowless relation joining its Scheduler and its
+// Kubelet, which read one number and exchange nothing, so it is a relationship and not a lane.
+// It is the only painted element that card gained.
+const EXPECTED_PAINTED = 2114;
+// 29: no card draws a `workloads|scheme-arrow|workloads|` combination, because every lane in that
+// category carries `role: 'cluster'`. A role-less lane does not paint the category blue: there is
+// no `.scheme-arrow-workloads` rule in diagrams.css, so it falls to the generic dim token at
+// rgb(63, 93, 138) against the rgb(91, 184, 255) of the lanes beside it. A 30 here means a lane
+// somewhere lost its role and is now the faintest thing on its own card.
 const EXPECTED_COMBINATIONS = 29;
 
 const catalogued = await cards();

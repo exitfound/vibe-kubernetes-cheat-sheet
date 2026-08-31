@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-container-states
+// Design notes for this card: ./CARDS/workloads-container-states.md
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, spine into the Pod.
 // Panel worst case x<=397, y<=230; a longer narration invalidates that measurement.

@@ -5,6 +5,10 @@
 ```
 WHAT     PostFilter: when filtering leaves no feasible Node, the Scheduler preempts a lower-priority
          victim and binds the pending Pod into its slot.
+         Past the 300 line ceiling (`CLU.S-03`), and the length is measurement: MOTION and
+         CONTENT carry 182 of these lines, the PostFilter sequence timed step by step and every
+         claim checked against the reference, and NAMING spends 53 more on the lowercase
+         plugin-phase strings and the two `render/inline.test.mjs` systems that judge them.
 LAYOUT   Layout C on cluster-node-drain's shape. The API is centred on the Node frame at CX so the
          one lane down is a straight drop, and the Scheduler sits to its RIGHT, RIGHT-ALIGNED to the
          content edge at `CONTENT_R - BOX_W` = 908..1140.

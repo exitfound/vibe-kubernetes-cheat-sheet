@@ -86,7 +86,7 @@ const RECORDED_RIGHT = { value: 396.55, id: 'cluster-architecture', viewport: '1
 const RECORDED_BOTTOM = {
   lo: 90, hi: 504,
   shallowest: { value: 90.23, id: 'cluster-leader-election', viewport: '1600x1000', step: 2 },
-  deepest: { value: 503.13, id: 'workloads-pod-phase-machine', viewport: '1100x800', step: 5 },
+  deepest: { value: 503.13, id: 'workloads-pod-lifecycle-phases', viewport: '1100x800', step: 5 },
 };
 
 // L-05a: the panel shrinks in units by up to 186 across the viewport set.

@@ -1,7 +1,7 @@
 import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE } from './workloads-kit.js';
 import { chip } from '../../lib/primitives.js';
 
-// Design notes for this card: ./CARDS.md#workloads-cronjob
+// Design notes for this card: ./CARDS/workloads-cronjob.md
 
 // Layout C of the Workloads canon (WL): full-width chip strip, ticks in the left band.
 // Panel worst case x<=397, y<=330; a longer narration invalidates that measurement.

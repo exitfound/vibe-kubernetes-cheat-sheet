@@ -7,6 +7,10 @@ WHAT     The gate and the eviction in one frame: a taint on Node-1, the tolerati
          three Pods it holds, the Scheduler first refusing and then merely scoring down a Pod that
          tolerates nothing, and the taint-eviction-controller deleting the two Pods that carry no
          matching toleration once the taint turns NoExecute.
+         Past the 300 line ceiling (`CLU.S-03`), and the length is measurement: MOTION alone is
+         104 lines, seven steps over three Pods, two effects and two deciding components, with the
+         beat order and the span of each written down, and SCOPE spends 41 more handing four
+         neighbouring subjects to the cards that own them.
 LAYOUT   Layout C with NO ladder. The right column that `LAYOUT.C` reserves is spent on a single
          mid-band block instead, on the LEFT of the spine at 304..536 by 252..332, and the six chips
          take a three-across strip under the frame. Top row is the API centred on the frame at

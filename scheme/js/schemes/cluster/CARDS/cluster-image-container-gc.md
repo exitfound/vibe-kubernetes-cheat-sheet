@@ -226,7 +226,7 @@ SCOPE    This card is the NODE half of the garbage-collection page and nothing e
          a signal crosses its threshold, eviction is what happens after it crosses, and that
          boundary is one line on the last step with no eviction drawn.
          Image PULL, imagePullPolicy, imagePullSecrets, digests and ImagePullBackOff belong to
-         workloads-pod-image-pull. Here an image is a thing already on the Node taking up space.
+         workloads-image-pull-registry-auth. Here an image is a thing already on the Node taking up space.
          The CRI sequence, RunPodSandbox, PullImage, CreateContainer and StartContainer, belongs to
          cluster-pod-sandbox-cri, which is why no runtime box is drawn and no RPC is named.
          lastState, restartCount and CrashLoopBackOff belong to workloads-container-states and

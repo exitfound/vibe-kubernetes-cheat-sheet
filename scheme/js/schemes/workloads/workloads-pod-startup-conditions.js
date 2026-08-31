@@ -1,17 +1,19 @@
-import { P, F, defineCard, ladder, laneY, midX, WL, FADE, BEAT, OPACITY } from './workloads-kit.js';
+import { P, F, defineCard, ladder, laneY, midX, routeDur, WL, FADE, BEAT, OPACITY } from './workloads-kit.js';
 import { chip } from '../../lib/primitives.js';
 import { g, rect, text } from '../../lib/svg.js';
 
-// Design notes for this card: ./CARDS.md#workloads-pod-startup-conditions
+// Design notes for this card: ./CARDS/workloads-pod-startup-conditions.md
 
 // An instrument, not the A / B / C column preset: the argument is in the record.
-// Panel measured at x<=397, y<=255 (worst of 1600/1280/1100).
-const PANEL_B = 255, PANEL_GAP = 21;
 
-// Kubelet leads the row and is centred on CX (WL.L-07), so the spine to the Pod clears both halves.
-const TOP1_X = 420, TOP1_W = 2 * (WL.CX - 420);          // 420..780, centred on CX
-const TOP_GAP = 60;
-const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = WL.R - TOP2_X;   // 840..1140
+// Both actor boxes take the 232 that cluster-node-restart draws its Kubelet and Container runtime
+// at, which is CLU.BOX_W and the width 14 cluster cards share. Workloads declares no box width of
+// its own, so it is a literal here rather than an import past the kit (S-21). The arrangement is
+// that card's too: the left box centred on CX, which WL.L-07 needs for the spine, and the right box
+// right-aligned on WL.R, where the chip column beneath it also ends. extents.mjs at 1100x800 reads
+// `decides four of the five` at 147.2 and `status.conditions` at 104.3, so 232 leaves 42.4 and 63.9.
+const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // 484..716, centred on CX for the spine
+const TOP2_W = 232, TOP2_X = WL.R - TOP2_W;              // 908..1140, right edge on the chip column
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
 const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
@@ -60,7 +62,7 @@ const RUNGS = [
   { name: 'PodScheduled', sub: 'kube-scheduler · nodeName set' },
   { name: 'PodReadyToStartContainers', sub: 'kubelet · sandbox and network' },
   { name: 'Initialized', sub: 'kubelet · init exited 0' },
-  { name: 'ContainersReady', sub: 'kubelet · every probe passes' },
+  { name: 'ContainersReady', sub: 'kubelet · every container ready' },
   { name: 'Ready', sub: 'kubelet · AND readinessGates' },
 ];
 const RUNG_KEYS = RUNGS.map((_, i) => 'rung' + i);
@@ -87,7 +89,7 @@ const railSeg = (key, x, w, lbl) => P.raw({
 // The list order IS the append order, so it is the z-order: lanes and the wire label first, then
 // the packet layer, and instrument / Node / Pod / actors above the ball.
 export const SCENE = {
-  'aria-label': 'Pod startup conditions: PodScheduled, PodReadyToStartContainers, Initialized, ContainersReady and Ready flip in that order, the Kubelet writing four of the five to the API, while status.phase moves once',
+  'aria-label': 'Pod startup conditions: PodScheduled, PodReadyToStartContainers, Initialized, ContainersReady and Ready flip roughly in that order, the Kubelet deciding four of the five and writing them to the API, while status.phase moves once',
   parts: [
     P.defs(),
     // One corridor drawn twice, down for a Kubelet action and up for the Pod reporting back.
@@ -114,7 +116,7 @@ export const SCENE = {
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'bound, nothing running', containers: 0,
       inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container' },
     }),
-    P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'sets four of the five', role: 'cluster' }),
+    P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'decides four of the five', role: 'cluster' }),
     P.box({ key: 'apiEl', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'status.conditions', role: 'cluster' }),
   ],
   reset: {
@@ -124,7 +126,7 @@ export const SCENE = {
 };
 
 // Values that recur, named once so a two-key chips block stays one readable line.
-const EMPTY = 'empty', SERVING = '10.244.1.5 ready=true';
+const EMPTY = 'empty', NOTREADY = '10.244.1.5 ready=false', SERVING = '10.244.1.5 ready=true';
 
 // The staircase as a PREFIX and never a single lit rung: `n` is the rung this step flips, and every
 // rung already climbed stays at full weight while the ones ahead hold the notready shade.
@@ -137,8 +139,12 @@ const phase = (which) => ({
 // The corridor pair as FIELDS, so no step can leave both directions on or neither.
 const corridor = (dir) => ({ connectorDown: dir === 'up' ? 0 : 1, connectorUp: dir === 'up' ? 1 : 0 });
 // The top-row hops, stated once: the watch comes back on RESP_Y, the status PATCH goes out on REQ_Y.
-const WATCH = { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y };
-const PATCH = { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y };
+// Both take their OWN route time rather than topPacket's fixed HOP_MS. That default is the floor
+// routeDur clamps to, and it only matches under about 315 units: this gap is 352, so a fixed 700
+// would fly the ball faster than every other ball in the catalog (M-12).
+const TOP_DUR = routeDur([[TOP1_X + TOP1_W, REQ_Y], [TOP2_X, REQ_Y]]);
+const WATCH = { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, dur: TOP_DUR };
+const PATCH = { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, dur: TOP_DUR };
 
 export const STEPS_SPEC = [
   {
@@ -152,7 +158,7 @@ export const STEPS_SPEC = [
   {
     id: 'scheduled',
     duration: 2400,
-    narration: 'The Scheduler picks Node-1, writes it to spec.nodeName and adds PodScheduled=True to status.conditions. The Kubelet on that Node sees the bound Pod arrive on its watch and admits it. Nothing is running yet and status.phase is still Pending, which is exactly why the phase field cannot tell you where a slow start is stuck.',
+    narration: 'The Scheduler picks Node-1 and posts a Binding, so the API writes spec.nodeName and adds PodScheduled=True to status.conditions. The Kubelet on that Node sees the bound Pod arrive on its watch and admits it. Nothing is running yet and status.phase is still Pending, which is why the phase field cannot tell you where a slow start is stuck.',
     chips: { timeChip: '12:00:03', epChip: EMPTY },
     wires: { req: 'watch · spec.nodeName=Node-1 · PodScheduled=True' },
     opacity: { podGroup: OPACITY.notready, ...climb(0), ...phase('pending'), ...corridor('down') },
@@ -167,7 +173,7 @@ export const STEPS_SPEC = [
     id: 'sandbox',
     duration: 2600,
     narration: 'The Kubelet has the container runtime create the Pod sandbox and the CNI plugin configure its network. Once both are done it sets PodReadyToStartContainers, and only after that flips True does it start pulling images and creating containers. The condition has been beta and on by default since 1.29 and it goes stable in 1.37.',
-    chips: { timeChip: '12:00:09', epChip: EMPTY },
+    chips: { timeChip: '12:00:09', epChip: NOTREADY },
     wires: { req: 'PATCH status · PodReadyToStartContainers=True' },
     opacity: { podGroup: OPACITY.pending, ...climb(1), ...phase('pending'), ...corridor('down') },
     podSublabels: { podGroup: 'sandbox up, network configured' },
@@ -183,8 +189,8 @@ export const STEPS_SPEC = [
   {
     id: 'initialized',
     duration: 3100,
-    narration: 'The init containers run in order and exit 0, so the Kubelet sets Initialized to True. On a Pod that declares no init container at all this rung is True before the sandbox even exists, which is why the five conditions are an order rather than a clock. Even so, status.phase stays Pending until the app container is created and starts.',
-    chips: { timeChip: '12:00:22', epChip: EMPTY },
+    narration: 'The init containers run in order and exit 0, so the Kubelet sets Initialized to True. On a Pod that declares no init container at all this rung is True before the sandbox even exists, so the climb is a rough order and not a fixed sequence. Even so, status.phase stays Pending until the app container is created and starts.',
+    chips: { timeChip: '12:00:22', epChip: NOTREADY },
     wires: { req: 'PATCH status · Initialized=True' },
     opacity: { podGroup: OPACITY.pending, ...climb(2), ...phase('pending'), ...corridor('up') },
     podSublabels: { podGroup: 'init containers exited 0' },
@@ -200,7 +206,7 @@ export const STEPS_SPEC = [
     id: 'containers-ready',
     duration: 3200,
     narration: 'The app container starts, and that start alone is what moves status.phase to Running, its single transition on the whole climb. Its readinessProbe then passes, so every container is ready and the Kubelet sets ContainersReady. A container that starts and never passes that probe leaves the Pod Running with ContainersReady still False.',
-    chips: { timeChip: '12:00:26', epChip: EMPTY },
+    chips: { timeChip: '12:00:26', epChip: NOTREADY },
     wires: { req: 'PATCH status · ContainersReady=True' },
     opacity: { podGroup: 1, ...climb(3), ...phase('running'), ...corridor('up') },
     podSublabels: { podGroup: 'every container ready' },
@@ -217,7 +223,7 @@ export const STEPS_SPEC = [
   {
     id: 'ready',
     duration: 3000,
-    narration: 'Ready is not a copy of ContainersReady. The Kubelet computes it as ContainersReady AND every condition named in spec.readinessGates, so a gate nobody has set yet holds Ready at False while all the containers are already serving. Once Ready flips, the Pod IP joins the EndpointSlice of every matching Service.',
+    narration: 'Ready is not a copy of ContainersReady. The Kubelet computes it as ContainersReady AND every condition named in spec.readinessGates, so a gate nobody has set yet holds Ready at False while all the containers are serving. The Pod IP already sits in the EndpointSlice of every matching Service, and Ready flipping is what turns that endpoint ready=true.',
     chips: { timeChip: '12:00:31', epChip: SERVING },
     wires: { req: 'PATCH status · Ready=True' },
     // The only traffic this step names rides the top row, so the corridor returns to its resting

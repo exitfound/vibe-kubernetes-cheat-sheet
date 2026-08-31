@@ -436,6 +436,12 @@ function renderPoster(scheme) {
   `;
 }
 
+// A card renamed TWICE keeps BOTH of its old ids, and both have to name the CURRENT card: the
+// resolve below is a single lookup, so an alias pointing at the intermediate name resolves to
+// nothing. The target is a const so the next rename edits one line instead of hunting for every
+// row that repeats the string.
+const ENV_BEFORE_PID_1 = 'workloads-env-before-pid-1';
+
 // Old scheme ids still resolve, so deep links, bookmarks and indexed sitemap URLs keep opening the
 // right card. A rename is cheap only because this map exists: add the entry WITH it, never later.
 const SCHEME_ALIASES = {
@@ -464,7 +470,7 @@ const SCHEME_ALIASES = {
   'cluster-kubelet-sync-loop': 'cluster-kubelet-reconcile-loop',
   'cluster-pod-cgroup-tree': 'cluster-pod-cgroup-hierarchy',
   'lifecycle-node-drain': 'cluster-node-drain',
-  'lifecycle-pod-phase-machine': 'workloads-pod-phase-machine',
+  'lifecycle-pod-phase-machine': 'workloads-pod-lifecycle-phases',
   'lifecycle-restart-policy': 'workloads-restart-policy',
   'lifecycle-hooks': 'workloads-hooks',
   'lifecycle-probes': 'workloads-probes',
@@ -480,6 +486,18 @@ const SCHEME_ALIASES = {
   'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',
   'service-cluster-ip': 'network-service-clusterip',
   'network-kube-proxy-iptables': 'network-kube-proxy-modes',
+  // Seven Workloads ids renamed to the name the card actually carries, the same move Cluster
+  // made above. Every old id still resolves.
+  'workloads-statefulset-ordered-startup': 'workloads-statefulset-ordered-rollout',
+  'workloads-container-env-injection': ENV_BEFORE_PID_1,
+  'workloads-config-before-pid-1': ENV_BEFORE_PID_1,
+  'workloads-pod-image-pull': 'workloads-image-pull-registry-auth',
+  'workloads-effective-pod-request': 'workloads-effective-pod-requests',
+  'workloads-pod-startup-failures': 'workloads-pod-pending-init-states',
+  'workloads-pod-phase-machine': 'workloads-pod-lifecycle-phases',
+  // Two more renamed to the title the card carries, so the id reads in a file search.
+  'workloads-pod-stalls': 'workloads-pod-pending-init-states',
+  'workloads-scheduler-reserves': 'workloads-effective-pod-requests',
 };
 
 // The dialog lifecycle, and why a card module is lazy-imported: 108 modules are never all in

@@ -27,9 +27,9 @@ import { sentences } from '../fixtures/prose.mjs';
 // The typed half, and its one assertion is below: this is where a card added to or removed from
 // data.js has to be acknowledged on purpose. Every other file derives its own total.
 const CARD_TOTAL = CATALOG_BASELINE.cards;
-const PER_CATEGORY = { cluster: 28, workloads: 21, network: 37, storage: 31 };
+const PER_CATEGORY = { cluster: 28, workloads: 25, network: 37, storage: 31 };
 const SUBCATEGORY_TOTAL = 15;   // 3 + 3 + 5 + 4, unique across the four categories (D-07)
-const ALIAS_TOTAL = 37;         // SCHEME_ALIASES in js/app.js
+const ALIAS_TOTAL = 46;         // SCHEME_ALIASES in js/app.js
 
 // The desc bands D-04 and D-05 state: 400 to 470 characters hard (410 to 460 target) and 2 to 4
 // sentences. A tighter ceiling pushes qualifying conditions out of the desc and leaves true
@@ -68,6 +68,11 @@ const ids = new Set(SCHEMES.map(s => s.id));
 // object literal it is, brace-matched from the declaration. A regex over `'old': 'new',` pairs would
 // skip an entry wrapped across two lines and report the smaller map as clean, which is the exact
 // failure mode this file exists to refuse.
+//
+// A VALUE MAY BE AN IDENTIFIER rather than a literal: a card that has been renamed twice names its
+// current id once, in a const above the map, and both of its old ids point at that const. So every
+// upper-case string const declared ahead of the map is carried into the evaluation. Without them the
+// slice throws ReferenceError, and the map that most needs checking is the one that cannot be read.
 async function schemeAliases() {
   const src = await readFile(join(ROOT, 'js', 'app.js'), 'utf8');
   const at = src.indexOf('const SCHEME_ALIASES');
@@ -80,7 +85,11 @@ async function schemeAliases() {
     else if (src[end] === '}' && --depth === 0) break;
   }
   assert.equal(depth, 0, 'SCHEME_ALIASES has no balanced closing brace in js/app.js');
-  return new Function(`return ${src.slice(open, end + 1)};`)();
+  // Deduped by name: a second `const X` in the same scope is a SyntaxError, not a shadowed binding.
+  const consts = new Map(
+    [...src.slice(0, at).matchAll(/^const ([A-Z][A-Z0-9_]*) = ('[^']*');$/gm)].map(m => [m[1], m[2]]));
+  const preamble = [...consts].map(([name, lit]) => `const ${name} = ${lit};`).join('\n');
+  return new Function(`${preamble}\nreturn ${src.slice(open, end + 1)};`)();
 }
 
 // sitemap.xml lives at the REPO root, one level above scheme/. Parsed per <url> block so a stray

@@ -9,11 +9,14 @@ LAYOUT   The chip column does not move left. The chip strip pools value chips AN
          the event slots, and it centres on 600 precisely BECAUSE the ladder holds 60 while the
          chips hold 1140. Nothing else can hold 60: the event slots start at 290 and widening them
          moves the timeline off the spine.
-PANEL    291/125, 319/143, 378/150, 397/180 over 1600 / 1440 / 1280 / 1100. 180 is the floor, and
-         what it is a floor UNDER is the `gvr` register at `GVR_Y - 12`, so 205, NOT the ladder at
-         217. Steps 1 and 6 are the two that write that register, and on them the real clearance is
-         24.88 rather than the 37 the ladder suggests. A narration sized against 217 covers the
-         label, which no check reports because OCCLUDED scores blocks and a wire label is a text.
+PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport, from `scheme/test`:
+         `OVERLAY_IDS=cluster-list-watch-informers node --test report/overlay.test.mjs`.
+         Deepest on step 2 at 1100x800, shallowest on step 0 at 1600x1000, a swing of 72.45 units.
+         What the deepest bottom is a floor UNDER is the `gvr` register at `GVR_Y - 12`, so 205, and
+         NOT the ladder at 217. Steps 1 and 6 are the two that write that register, and on them the
+         real clearance is 24.88 rather than the 37 the ladder suggests. A narration sized against
+         217 covers the label, which no check reports because OCCLUDED scores blocks and a wire
+         label is a text.
 SIZES    The Indexer is a BOX with an `in-memory cache` sublabel and never a cylinder. In this
          catalog that glyph means a DURABLE STORE and ETCD is a cylinder 400 units to its right on
          the same card, so a cylinder here makes the informer cache and the cluster datastore the

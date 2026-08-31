@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, laneY, midX, strip, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-daemonset
+// Design notes for this card: ./CARDS/workloads-daemonset.md
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, a bus tapping every Pod.
 // Panel x<=397 y<=230; a longer narration invalidates that measurement.

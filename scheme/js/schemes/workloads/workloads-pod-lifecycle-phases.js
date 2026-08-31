@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, WL, LAYOUT, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-pod-phase-machine
+// Design notes for this card: ./CARDS/workloads-pod-lifecycle-phases.md
 
 // Layout C, the TIGHTEST card in the catalog: panel 397 x 504, three quarters of the canvas height,
 // so only the phase chip and the Node frame fit below it. Re-measure after any prose edit.

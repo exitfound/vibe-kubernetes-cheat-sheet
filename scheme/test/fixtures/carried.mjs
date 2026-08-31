@@ -66,6 +66,11 @@
 // are load bearing beyond the report, because a key that cannot match is a finding the gate lets
 // through. An axis with no `gate` is report-only and a bad key there only fails to suppress.
 export const AXES = {
+  'FRAME-FACE': {
+    file: 'report/frame-face.test.mjs',
+    where: '<lane ref key> <node frame ref key>',
+    note: 'a lane from the actor row that crosses the Node frame face and ends on a Pod inside it',
+  },
   'R2-ENTRY': {
     file: 'report/arrival.test.mjs',
     where: '<step index> <chip name as drawn>',
@@ -244,6 +249,73 @@ const ENTRIES = [
     why: 'the second half of the pair `3 static Pod` carries: the value written on arrival during '
       + '`edit-file` is first seen frozen on `drain`. DO NOT light the chip on `drain`, where '
       + 'nothing happens to the container.' },
+
+  { axis: 'R2-ENTRY', card: 'workloads-env-before-pid-1', where: ['4', 'DB_HOST'],
+    why: 'the three variables are ONE set and the card draws them as one: they sit in a `P.group` '
+      + 'whose opacity lifts from OPACITY.notready to 1 on the arrival of the single ball that '
+      + 'crosses the CreateContainer line, so the change is cued and the cue is the whole strip '
+      + 'lifting at once. A per-chip .highlight would say three things arrived separately, which '
+      + 'is the opposite of the mechanism the step narrates, and P-09 binds workloads to `chips` '
+      + 'rather than `chipsCued`.' },
+  { axis: 'R2-ENTRY', card: 'workloads-env-before-pid-1', where: ['4', 'MY_POD_IP'],
+    why: 'the three variables are ONE set and the card draws them as one: they sit in a `P.group` '
+      + 'whose opacity lifts from OPACITY.notready to 1 on the arrival of the single ball that '
+      + 'crosses the CreateContainer line, so the change is cued and the cue is the whole strip '
+      + 'lifting at once. A per-chip .highlight would say three things arrived separately, which '
+      + 'is the opposite of the mechanism the step narrates, and P-09 binds workloads to `chips` '
+      + 'rather than `chipsCued`.' },
+  { axis: 'R2-ENTRY', card: 'workloads-env-before-pid-1', where: ['4', 'WEB_SERVICE_HOST'],
+    why: 'the three variables are ONE set and the card draws them as one: they sit in a `P.group` '
+      + 'whose opacity lifts from OPACITY.notready to 1 on the arrival of the single ball that '
+      + 'crosses the CreateContainer line, so the change is cued and the cue is the whole strip '
+      + 'lifting at once. A per-chip .highlight would say three things arrived separately, which '
+      + 'is the opposite of the mechanism the step narrates, and P-09 binds workloads to `chips` '
+      + 'rather than `chipsCued`.' },
+  { axis: 'R2-STEP', card: 'workloads-env-before-pid-1', where: ['4', 'DB_HOST'],
+    why: 'the three variables are ONE set and the card draws them as one: they sit in a `P.group` '
+      + 'whose opacity lifts from OPACITY.notready to 1 on the arrival of the single ball that '
+      + 'crosses the CreateContainer line, so the change is cued and the cue is the whole strip '
+      + 'lifting at once. A per-chip .highlight would say three things arrived separately, which '
+      + 'is the opposite of the mechanism the step narrates, and P-09 binds workloads to `chips` '
+      + 'rather than `chipsCued`.' },
+  { axis: 'R2-STEP', card: 'workloads-env-before-pid-1', where: ['4', 'MY_POD_IP'],
+    why: 'the three variables are ONE set and the card draws them as one: they sit in a `P.group` '
+      + 'whose opacity lifts from OPACITY.notready to 1 on the arrival of the single ball that '
+      + 'crosses the CreateContainer line, so the change is cued and the cue is the whole strip '
+      + 'lifting at once. A per-chip .highlight would say three things arrived separately, which '
+      + 'is the opposite of the mechanism the step narrates, and P-09 binds workloads to `chips` '
+      + 'rather than `chipsCued`.' },
+  { axis: 'R2-STEP', card: 'workloads-env-before-pid-1', where: ['4', 'WEB_SERVICE_HOST'],
+    why: 'the three variables are ONE set and the card draws them as one: they sit in a `P.group` '
+      + 'whose opacity lifts from OPACITY.notready to 1 on the arrival of the single ball that '
+      + 'crosses the CreateContainer line, so the change is cued and the cue is the whole strip '
+      + 'lifting at once. A per-chip .highlight would say three things arrived separately, which '
+      + 'is the opposite of the mechanism the step narrates, and P-09 binds workloads to `chips` '
+      + 'rather than `chipsCued`.' },
+
+  { axis: 'R2-STEP', card: 'workloads-pod-pending-init-states', where: ['2', 'AGE'],
+    why: 'AGE is a CLOCK, not an event. It moves on every step because time passes, which is the '
+      + 'one thing this card needs it for: the jump from 50s to 4m10s is what separates a normal '
+      + 'Init:0/2 from a stalled one. It is lit on step 3 alone, the only step whose narration is '
+      + 'about it. Lighting it on 2, 4 and 5 as well would put a highlight on four of the five '
+      + 'steps and say AGE is what changed, when what changed is STATUS and the component holding '
+      + 'the Pod. The other route, freezing the value so it only ever changes where it is cued, '
+      + 'was considered and refused: it draws a stopped clock across three steps in which the Pod '
+      + 'visibly progresses, which is a worse picture bought with a greener report.' },
+  { axis: 'R2-STEP', card: 'workloads-pod-pending-init-states', where: ['4', 'AGE'],
+    why: 'same clock' },
+  { axis: 'R2-STEP', card: 'workloads-pod-pending-init-states', where: ['5', 'AGE'],
+    why: 'same clock' },
+
+  { axis: 'R2-ENTRY', card: 'workloads-pod-pending-init-states', where: ['2', 'AGE'],
+    why: 'the same clock the R2-STEP row above rules on, read at the frozen sample. AGE ticks '
+      + 'because time passes and it is lit on step 3 alone, the one step whose narration is about '
+      + 'it. DO NOT close this by lighting AGE on 2, 4 and 5, which puts a cue on four of the five '
+      + 'steps and points the eye at the one cell those steps are not about.' },
+  { axis: 'R2-ENTRY', card: 'workloads-pod-pending-init-states', where: ['4', 'AGE'],
+    why: 'same clock' },
+  { axis: 'R2-ENTRY', card: 'workloads-pod-pending-init-states', where: ['5', 'AGE'],
+    why: 'same clock' },
 
   // ---------------------------------------------------------------------------------------
   // R3. One entry. A block that receives a ball must be dark when the step opens, and the

@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, ladder, strip, midX, shade, WL, FADE, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-pod-resize
+// Design notes for this card: ./CARDS/workloads-pod-resize.md
 
 // Three tiers on one spine. Panel worst case x<=396.55 y<=279.51 at 1100x800, and the Node frame at
 // 394 is what it clears, so no narration may pass roughly 490 characters.

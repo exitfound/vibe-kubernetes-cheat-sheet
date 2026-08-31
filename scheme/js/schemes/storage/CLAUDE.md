@@ -157,4 +157,4 @@ centered on a spine:
 | `STO.L-04` | Several cards carry a measured table pinning their own panel floor, and some of those tables include a `900x650` row that is narrower than any of the three standard viewports `report/geometry-soft.test.mjs` samples. Where the two disagree the card takes the stricter number and says so (`L-06`) |
 
 Storage's deepest panel is 354 units (`storage-ephemeral-storage-eviction`), not the catalog
-maximum: that is 503 on `workloads-pod-phase-machine` (`L-04`).
+maximum: that is 503 on `workloads-pod-lifecycle-phases` (`L-04`).

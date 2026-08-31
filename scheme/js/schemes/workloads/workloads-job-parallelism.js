@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, midX, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-job-parallelism
+// Design notes for this card: ./CARDS/workloads-job-parallelism.md
 
 // Layout C of the Workloads canon (WL): full-width chip strip, a bus tapping all three workers.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.

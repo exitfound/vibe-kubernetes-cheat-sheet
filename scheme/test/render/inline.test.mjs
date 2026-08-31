@@ -60,8 +60,16 @@ const ARIA_TOTAL = (await cards()).length;
 // 3613 / 3520: `cluster-leader-election` draws its `holderIdentity` as the bare replica name on
 // every step that has one, so `expire` and `renew` share one string where a `(stale)` marker on the
 // expire reading would be a second. A chip named for a field states what the FIELD holds (-1).
-const DRAWN_FLOOR = floor(3613);
-const CASE_ELIGIBLE_FLOOR = floor(3520);   // the same set minus the node frame labels, see T-12 below
+// 4014 / 3913: re-read over 121 cards where 3613 / 3520 were read over 117, so these are a fresh
+// walk of a bigger catalog rather than one card's arithmetic.
+// 4012 / 3911: workloads-pod-scheduling-gates stops drawing `Pending` and a bare `False` (-2 each).
+// Its last step turns over neither reading: the PodScheduled condition is written once at Pod
+// creation and the STATUS column follows that condition, so removing the last scheduling gate
+// leaves both saying SchedulingGated until the Scheduler finishes an attempt. The two strings the
+// card used to draw there were the values of a LATER beat, and both already exist on its other
+// steps, so the pair leaves the catalog rather than moving. Re-measured off a full walk.
+const DRAWN_FLOOR = floor(4012);
+const CASE_ELIGIBLE_FLOOR = floor(3911);   // the same set minus the node frame labels, see T-12 below
 
 // Strings a diagram BLOCK owns: its own label and sublabel texts, nested frames excluded. This is
 // the input to the two figure rules. tools/check-figures.mjs anchored a string to the nearest
@@ -70,7 +78,8 @@ const CASE_ELIGIBLE_FLOOR = floor(3520);   // the same set minus the node frame 
 // A step earns a line here only for a string no other step of its card draws, so the count moves
 // with what a step SAYS and not with how many steps a card has.
 // 1638: the same one string, and the kubectl block is what owns it (+1).
-const ANCHORED_FLOOR = floor(1638);
+// 1818: re-read over 121 cards, on the same walk the two floors above were re-read on.
+const ANCHORED_FLOOR = floor(1818);
 
 // Every class a drawn string can carry. Asserted as a closed set, and this is the real successor
 // of COVERAGE FLOOR: a new primitive that draws text under a class nobody listed would fall

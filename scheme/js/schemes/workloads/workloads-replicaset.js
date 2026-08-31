@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-replicaset
+// Design notes for this card: ./CARDS/workloads-replicaset.md
 
 // Layout B on the Workloads canon (WL): panel x<=397 y<=305 leaves room for the chip column but not
 // the six-row pipeline, so the columns SWAP: chips left, ladder right, Node frame full width.

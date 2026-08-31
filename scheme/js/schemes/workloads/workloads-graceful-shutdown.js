@@ -1,6 +1,6 @@
 import { P, F, defineCard, laneY, midX, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-graceful-shutdown
+// Design notes for this card: ./CARDS/workloads-graceful-shutdown.md
 
 // Layout C of the Workloads canon (WL): full-width chip strip, three per row.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.

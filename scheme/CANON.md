@@ -66,7 +66,7 @@ strings, and the file list `dashTargets` names.
 
 ## The numbers this file is written against
 
-117 cards: cluster 28, workloads 21, network 37, storage 31. 710 steps. Re-measure before trusting
+121 cards: cluster 28, workloads 25, network 37, storage 31. 736 steps. Re-measure before trusting
 any figure below that carries a date-free absolute, and if you change one, change it here.
 
 ---
@@ -78,7 +78,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | L-01 | The safe-zone is an L, not a forbidden box: the overlay covers the top-left quadrant only, so the usable area is the full width below its bottom PLUS the full height right of its right edge | review | this file |
 | L-02 | The narration panel's RIGHT edge is `x<=397` on every card, on every viewport. Measured: worst 396.55, `cluster-architecture` at 1100x800 | report:overlay/L-02 | `test/report/overlay.test.mjs` |
 | L-03 | Nothing starts left of x=420 unless it also sits below that card's own panel bottom | review | L-02 |
-| L-04 | The panel BOTTOM is per card and ranges 90 to 504 over the standard viewport set. Deepest 503.13 (`workloads-pod-phase-machine`, 1100x800, step 5). The shallow end is a CLUSTER many cards share, not one card | report:overlay/L-04 | measured over all 110 cards |
+| L-04 | The panel BOTTOM is per card and ranges 90 to 504 over the standard viewport set. Deepest 503.13 (`workloads-pod-lifecycle-phases`, 1100x800, step 5). The shallow end is a CLUSTER many cards share, not one card | report:overlay/L-04 | measured over all 110 cards |
 | L-05 | The panel moves NON-MONOTONICALLY against the PICTURE and one way only against the VIEWPORT, so it is never measured on one viewport | report:overlay/L-05 | `test/report/overlay.test.mjs` |
 | L-05a | **It is a TYPOGRAPHY problem, not a height problem**: clamping the height does not touch it, and closing it needs type that scales with the diagram | report:overlay/L-05a | measured 2026-08-07, `scheme/css/styles.css` under `.narration-overlay` |
 | L-05b | The panel ALSO changes height between the STEPS of one card, so the diagram area under it moves while the card plays. Pinning `min-height` to the tallest narration is DECLINED | review | measured 2026-08-06, `scheme/css/styles.css` under `.narration-overlay` |
@@ -126,6 +126,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | A-17 | `arrow()` and `pathArrow()` take `role` explicitly. Arrows carry `data-role` and are colour-checked | test:palette/SPREAD | `lib/primitives.js` |
 | A-18 | `dim` on an arrow is a stroke WEIGHT, not a lifecycle state: the role wins the stroke and `dim` survives as `stroke-width: 1.4` | review | `scheme/css/diagrams.css`, the `dim` decision note |
 | A-19 | A ball never travels under or over a block: every endpoint sits on an EDGE, so a rewrite INSIDE a box (DNAT, SNAT, port remap, conntrack) is drawn as a fade at one edge and a re-emergence at the far edge | review | `js/schemes/network/CLAUDE.md` (`NET.A-01`) |
+| A-21 | A lane from the actor row into a Node band ends on the FRAME FACE, never on a Pod inside the frame: an endpoint on the Pod pierces the frame and draws the actor reaching THROUGH the Node rather than acting on it | report:frame-face/WL.A-03 | `js/schemes/workloads/CLAUDE.md` (`WL.A-03`), and `test/report/frame-face.test.mjs` for the queue |
 | A-20 | **`relationPath` defaults NEITHER `role` NOR `dash`**, so a call that omits one renders without it: no role suffix drops the stroke to the generic fallback instead of the category hue, and no `dash` draws a solid relation | review | `lib/scheme-kit.js`, `relationPath` |
 
 ## M: motion
@@ -296,11 +297,11 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | R-06 | Siblings are 76 to 80 unit blocks with fills between 0.03 and 0.10. Specks at 200px, a track dimmed below its siblings and a quarter of the canvas left as empty air are all invisible on the file and obvious on the montage | review | this file |
 | R-07 | House idiom one: the accent is a `rect` with `fill="currentColor"` at `opacity="0.9"` INSIDE the block it belongs to, with the losers carrying the same bar at 0.3. Never a bright fill on a whole shape | review | this file |
 | R-08 | House idiom two: **a poster carries no arrowhead by default.** Direction comes from the composition being closed, or from a dashed leg, or from a fill ramp. 99 of 110 have none | review | measured 2026-08-23 |
-| R-08a | The exception, and it is earned rather than tolerated: **11 posters carry one light chevron or filled triangle, on the ones whose whole sentence IS a direction** that composition cannot say | review | measured 2026-08-06 |
+| R-08a | The exception, and it is earned rather than tolerated: **ONE poster carries a chevron today**, and the registry in `poster-lint.mjs` names who is allowed one: the sentence has to BE a direction that composition cannot say | review | measured 2026-08-06 |
 | R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | review | this file |
 | R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | root `CLAUDE.md` |
 | R-11 | `FALLBACK_POSTER` in `js/app.js` breaks R-08 and R-09 on purpose. Do not "fix" it into canon and do not delete it: it is the failure mode made visible | test:catalog/D-06 | `js/app.js` |
-| R-12 | Poster notes go to that category's record under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 117 of 117**, so a missing one is now a regression | review | the four `CARDS.md` |
+| R-12 | Poster notes go to that category's record under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 121 of 121**, so a missing one is now a regression | review | the four `CARDS.md` |
 
 ## S: module structure
 
@@ -444,6 +445,8 @@ wrong file.
 | `WL.A-02` | where the top-row wire label sits |
 | `WL.A-03` | where a lane into the Node band ends, and why the frame is centred |
 | `WL.S-01` | the per-card `SPINE` array, and why there is no shared connector helper |
+| `WL.S-02` | the exemplar, and the deviation a copy must not take |
+| `WL.S-03` | what a record carries, and the order its labels run in |
 | `WL.D-01` | the subcategory split |
 
 ### `NET.*` networking, `js/schemes/network/CLAUDE.md`
@@ -533,7 +536,7 @@ not exist, or two for one rule, is a failure and not a stray paragraph.
 **The two ends of this range are not the same kind of number, and treating them alike is what makes
 the shallow one look stale every time somebody edits a narration.**
 
-The deep end is a card. 503.13 belongs to `workloads-pod-phase-machine` at 1100x800 on step 5,
+The deep end is a card. 503.13 belongs to `workloads-pod-lifecycle-phases` at 1100x800 on step 5,
 because that step has the longest narration in the catalog and the narrowest viewport wraps it into
 the most lines. Move that prose and the number moves with it, which is what the report's attribution
 line is for.
@@ -573,7 +576,7 @@ resizes every narration on every card, which is why it stands.
 Measured on 209 of 216 card+viewport pairs, so it is the ordinary case rather than a few cards.
 
 The `min-height` pin fixes it completely and is still declined: it leaves a visible empty strip
-inside a drawn border, about 100px on `workloads-pod-phase-machine`, and an empty strip inside a
+inside a drawn border, about 100px on `workloads-pod-lifecycle-phases`, and an empty strip inside a
 border reads as a fault where empty canvas reads as space.
 
 ### L-08
@@ -985,7 +988,7 @@ the rest of the row is a human's.
 ### R-08a
 
 8 workloads (`rolling-update`, `graceful-shutdown`, `restart-policy`, `crashloopbackoff`,
-`statefulset-ordered-startup`, `pvc-stickiness`, `deployment-rollback`, `cronjob`) and 3 storage
+`statefulset-ordered-rollout`, `pvc-stickiness`, `deployment-rollback`, `cronjob`) and 3 storage
 (`volume-attach-limits`, `volumeclaimtemplates`, `pvc-retention-policy`).
 
 A broken loop, a mirrored ramp and a follow-the-Pod are the three shapes that need it.
@@ -1175,7 +1178,7 @@ is a changelog and is not (`renamed 2026-08-19`, `the 153 this block carried unt
 Where a rejected attempt still has to bind, it binds as a `DO NOT` or a `WHY NOT` carrying the number
 that kills it, with no story around it.
 
-`S-34` says this for a card comment and caps it at two lines. This row says it for EVERY comment in
+`S-34` says this for a card comment and caps it at six lines. This row says it for EVERY comment in
 the tree and EVERY block of a record.
 
 ### S-49

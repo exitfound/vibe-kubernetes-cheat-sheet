@@ -5,6 +5,10 @@
 ```
 WHAT     The node controller throttling ITSELF: a per zone queue of NotReady Nodes tainted one at a
          time, at the normal rate, at the reduced secondary rate, and at no rate at all.
+         Past the 300 line ceiling (`CLU.S-03`), and the length is measurement: CONTENT and
+         MOTION carry 187 of these lines, four rate regimes each with its own flag, threshold and
+         beat order, and SCOPE spends 37 more drawing the boundary against `cluster-node-failure`
+         and `cluster-node-pressure-eviction`.
 LAYOUT   Layout C, ladder right at 660..1140, chips as a two across bottom strip. The left column is
          the panel and nothing else, which is why this card carries no second top-row block: the one
          actor is centred on CX 600 so both zone drops leave its bottom face as a mirrored pair.

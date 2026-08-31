@@ -1,4 +1,4 @@
-// Design notes: ./CARDS.md, under each card id as a "### poster" subsection.
+// Design notes: ./CARDS/<card-id>.md, under that card id as a "### poster" subsection.
 // The workloads posters, keyed by card id: the still frame each card shows on the grid.
 
 export const POSTERS = {
@@ -21,7 +21,7 @@ export const POSTERS = {
     <rect x="220" y="122" width="48" height="6" rx="1" fill="currentColor"/>
   `,
 
-  'workloads-pod-phase-machine': `
+  'workloads-pod-lifecycle-phases': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <rect x="10"  y="18" width="90" height="22" rx="11" fill="rgba(255,255,255,0.04)"/>
       <rect x="115" y="18" width="90" height="22" rx="11" fill="rgba(255,255,255,0.20)"/>
@@ -159,18 +159,22 @@ export const POSTERS = {
     <circle cx="276" cy="90" r="3" fill="currentColor"/>
   `,
 
+  // The break: one run cut into four written slots, a gap, then the fifth dashed and empty.
+  // Accent on the bar in the fourth slot, the front of the climb, with the other three at 0.3.
   'workloads-pod-startup-conditions': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="18"  y="128" width="52" height="34" rx="4" fill="rgba(255,255,255,0.03)" opacity="0.7"/>
-      <rect x="76"  y="102" width="52" height="34" rx="4" fill="rgba(255,255,255,0.05)" opacity="0.8"/>
-      <rect x="134" y="76"  width="52" height="34" rx="4" fill="rgba(255,255,255,0.07)" opacity="0.9"/>
-      <rect x="192" y="50"  width="52" height="34" rx="4" fill="rgba(255,255,255,0.10)"/>
-      <rect x="250" y="24"  width="52" height="34" rx="4" stroke-dasharray="3 2" opacity="0.5"/>
+      <rect x="35" y="52" width="250" height="76" rx="6" fill="rgba(255,255,255,0.08)" stroke-width="2"/>
+      <line x1="85"  y1="52" x2="85"  y2="128" opacity="0.5"/>
+      <line x1="135" y1="52" x2="135" y2="128" opacity="0.5"/>
+      <line x1="185" y1="52" x2="185" y2="128" opacity="0.5"/>
+      <line x1="235" y1="52" x2="235" y2="128" opacity="0.5"/>
     </g>
-    <rect x="28"  y="141" width="32" height="8" rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="86"  y="115" width="32" height="8" rx="2" fill="currentColor" opacity="0.45"/>
-    <rect x="144" y="89"  width="32" height="8" rx="2" fill="currentColor" opacity="0.6"/>
-    <rect x="202" y="63"  width="32" height="8" rx="2" fill="currentColor" opacity="0.9"/>
+    <rect x="92"  y="84" width="36" height="12" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="142" y="84" width="36" height="12" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="192" y="84" width="36" height="12" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="242" y="84" width="36" height="12" rx="2" fill="currentColor" opacity="0.9"/>
+    <line x1="35" y1="146" x2="275" y2="146" stroke="currentColor" stroke-width="1.6" opacity="0.75"/>
+    <polygon points="274,140 285,146 274,152" fill="currentColor" opacity="0.9"/>
   `,
   'workloads-pod-qos-classes': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
@@ -186,29 +190,71 @@ export const POSTERS = {
     <rect x="226" y="84" width="64" height="10" rx="2" fill="currentColor" opacity="0.75"/>
   `,
 
-  'workloads-container-env-injection': `
+  // Fan, three kinds of place converging on one assembled set. The sources differ by their INSIDES
+  // (a key list, a nested object, one value) and the dashed third is the one nobody asked for.
+  // Legs are orthogonal: the middle drops onto the top face, the outer two elbow into the sides.
+  'workloads-env-before-pid-1': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="14"  y="40" width="104" height="104" rx="7" fill="rgba(255,255,255,0.06)"/>
-      <rect x="202" y="40" width="104" height="104" rx="7" fill="rgba(255,255,255,0.03)" opacity="0.75"/>
-      <line x1="118" y1="92" x2="146" y2="92" stroke-dasharray="4 3" opacity="0.75"/>
-      <line x1="174" y1="92" x2="202" y2="92" stroke-dasharray="4 3" opacity="0.28"/>
+      <rect x="30"  y="22" width="76" height="42" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="122" y="22" width="76" height="42" rx="6" fill="rgba(255,255,255,0.05)"/>
+      <rect x="214" y="22" width="76" height="42" rx="6" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3"/>
+      <rect x="134" y="30" width="52" height="26" rx="4" fill="rgba(255,255,255,0.08)"/>
+      <polyline points="68,64 68,137 100,137"   stroke-dasharray="4 3" opacity="0.55"/>
+      <line x1="160" y1="64" x2="160" y2="114"    stroke-dasharray="4 3" opacity="0.55"/>
+      <polyline points="252,64 252,137 220,137" stroke-dasharray="4 3" opacity="0.55"/>
+      <rect x="100" y="114" width="120" height="46" rx="6" fill="rgba(255,255,255,0.08)" stroke-width="2"/>
     </g>
-    <rect x="28"  y="58"  width="76" height="14" rx="2" fill="currentColor" opacity="0.9"/>
-    <rect x="28"  y="85"  width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="28"  y="112" width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="216" y="58"  width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="216" y="85"  width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="216" y="112" width="76" height="14" rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="42"  y="32"  width="52" height="8"  rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="42"  y="46"  width="52" height="8"  rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="145" y="39"  width="30" height="8"  rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="235" y="39"  width="34" height="8"  rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="114" y="129" width="92" height="16" rx="2" fill="currentColor" opacity="0.9"/>
   `,
-  'workloads-pod-startup-failures': `
+  // The empty destination. A wide dashed frame holding a Pod-shaped slot that is EMPTY, and the
+  // real Pod standing outside it below, solid at stroke 2. The gap is the sentence, so there is no
+  // leg and no arrow. Accent: the live Pod's own top bar, the only 0.9 on the canvas.
+  'workloads-pod-pending-init-states': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="20"  y="32" width="126" height="116" rx="8" fill="rgba(255,255,255,0.03)" opacity="0.5"/>
-      <rect x="174" y="32" width="126" height="116" rx="8" fill="rgba(255,255,255,0.06)"/>
-      <rect x="198" y="59" width="78"  height="62"  rx="6" fill="rgba(255,255,255,0.08)"/>
+      <rect x="28" y="12" width="264" height="96" rx="8" fill="rgba(255,255,255,0.02)" stroke-dasharray="4 3"/>
+      <g opacity="0.45">
+        <rect x="120" y="40" width="80" height="40" rx="5" fill="rgba(255,255,255,0.03)" stroke-dasharray="4 3"/>
+      </g>
+      <rect x="120" y="128" width="80" height="40" rx="5" fill="rgba(255,255,255,0.10)" stroke-width="2"/>
     </g>
-    <rect x="208" y="75" width="58" height="30" rx="3" fill="currentColor" opacity="0.9"/>
+    <g opacity="0.45">
+      <rect x="132" y="50"  width="56" height="8" rx="2" fill="currentColor" opacity="0.3"/>
+      <rect x="132" y="63"  width="36" height="8" rx="2" fill="currentColor" opacity="0.3"/>
+    </g>
+    <rect x="132" y="138" width="56" height="8" rx="2" fill="currentColor" opacity="0.9"/>
+    <rect x="132" y="151" width="36" height="8" rx="2" fill="currentColor" opacity="0.3"/>
   `,
-  'workloads-pod-image-pull': `
+  // A chain of stages: ONE gate list in three moments, the live entries ramping 2 / 1 / 0 while the
+  // slots they left stay behind as dashed ghosts, because a removal is one-way. Accent: the Pod,
+  // which stands past the empty list and is the only thing on the canvas that is not the list.
+  'workloads-pod-scheduling-gates': `
+    <g stroke="currentColor" fill="none" stroke-width="1.4">
+      <rect x="16"  y="36" width="58" height="108" rx="9" fill="rgba(255,255,255,0.04)"/>
+      <rect x="92"  y="36" width="58" height="108" rx="9" fill="rgba(255,255,255,0.04)"/>
+      <rect x="168" y="36" width="58" height="108" rx="9" fill="rgba(255,255,255,0.04)"/>
+      <rect x="25"  y="54"  width="40" height="24" rx="4" fill="rgba(255,255,255,0.10)"/>
+      <rect x="25"  y="102" width="40" height="24" rx="4" fill="rgba(255,255,255,0.10)"/>
+      <rect x="101" y="54"  width="40" height="24" rx="4" fill="rgba(255,255,255,0.10)"/>
+      <rect x="101" y="102" width="40" height="24" rx="4" fill="rgba(255,255,255,0.03)" opacity="0.45" stroke-dasharray="4 3"/>
+      <rect x="177" y="54"  width="40" height="24" rx="4" fill="rgba(255,255,255,0.03)" opacity="0.45" stroke-dasharray="4 3"/>
+      <rect x="177" y="102" width="40" height="24" rx="4" fill="rgba(255,255,255,0.03)" opacity="0.45" stroke-dasharray="4 3"/>
+      <line x1="74"  y1="90" x2="92"  y2="90" stroke-dasharray="4 3"/>
+      <line x1="150" y1="90" x2="168" y2="90" stroke-dasharray="4 3"/>
+      <line x1="226" y1="90" x2="248" y2="90" stroke-dasharray="4 3"/>
+      <rect x="248" y="54" width="56" height="72" rx="9" fill="rgba(255,255,255,0.10)" stroke-width="2"/>
+    </g>
+    <g fill="currentColor" stroke="none">
+      <rect x="259" y="85"  width="34" height="10" rx="2" opacity="0.9"/>
+      <rect x="33"  y="62"  width="24" height="7"  rx="1" opacity="0.3"/>
+      <rect x="33"  y="110" width="24" height="7"  rx="1" opacity="0.3"/>
+      <rect x="109" y="62"  width="24" height="7"  rx="1" opacity="0.3"/>
+    </g>
+  `,
+  'workloads-image-pull-registry-auth': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <path d="M 75 55 Q 65 30, 95 30 Q 105 15, 130 18 Q 145 5, 175 12 Q 200 5, 225 18 Q 250 22, 250 50 Q 260 65, 235 65 Q 215 78, 185 68 Q 165 78, 140 68 Q 115 78, 90 65 Q 65 65, 75 55 Z"
             fill="rgba(255,255,255,0.04)" stroke-linejoin="round"/>
@@ -225,31 +271,56 @@ export const POSTERS = {
     <circle cx="190" cy="153" r="2.5" fill="currentColor" opacity="0.7"/>
   `,
 
-  'workloads-effective-pod-request': `
+  // A symmetric fan, two into one: both readings of the same spec feed the one block the Node sets
+  // aside, and the leg of the reading that WON is solid where the loser's is dashed. Left frame,
+  // init bodies side by side, so the group is a maximum. Right frame, app on sidecar, so it is a
+  // sum. Accent: the bar inside the top block. Body heights are 0.075 units per milli, exactly.
+  'workloads-effective-pod-requests': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="180" y="82" width="100" height="68" rx="4" fill="rgba(255,255,255,0.06)"/>
-      <line x1="26" y1="154" x2="294" y2="154" opacity="0.4"/>
+      <rect x="108" y="18" width="104" height="44" rx="8" fill="rgba(255,255,255,0.10)" stroke-width="2"/>
+      <path d="M 132 62 V 75 H 84 V 88" stroke-linejoin="round"/>
+      <path d="M 188 62 V 75 H 236 V 88" stroke-linejoin="round" stroke-dasharray="4 3" opacity="0.55"/>
+      <rect x="20"  y="88" width="128" height="82" rx="9" fill="rgba(255,255,255,0.04)"/>
+      <rect x="172" y="88" width="128" height="82" rx="9" fill="rgba(255,255,255,0.04)"/>
+      <line x1="32"  y1="158" x2="136" y2="158" opacity="0.3"/>
+      <line x1="184" y1="158" x2="288" y2="158" opacity="0.3"/>
+      <rect x="38"  y="98"  width="42" height="60" rx="3" fill="rgba(255,255,255,0.09)"/>
+      <rect x="88"  y="136" width="42" height="22" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="215" y="109" width="42" height="34" rx="3" fill="rgba(255,255,255,0.05)"/>
+      <rect x="215" y="143" width="42" height="15" rx="3" fill="rgba(255,255,255,0.05)"/>
     </g>
-    <rect x="40"  y="101"  width="100" height="49"   rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="40"  y="80.5" width="100" height="18.5" rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="40"  y="66.5" width="100" height="12"   rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="40"  y="40"   width="100" height="24.5" rx="2" fill="currentColor" opacity="0.3"/>
-    <rect x="190" y="92"   width="80"  height="48"   rx="2" fill="currentColor" opacity="0.9"/>
+    <g fill="currentColor" stroke="none">
+      <rect x="132" y="35"  width="56" height="10" rx="2" opacity="0.9"/>
+      <rect x="46"  y="124" width="26" height="8" rx="1" opacity="0.3"/>
+      <rect x="96"  y="144" width="26" height="6" rx="1" opacity="0.3"/>
+      <rect x="223" y="123" width="26" height="6" rx="1" opacity="0.3"/>
+      <rect x="223" y="147" width="26" height="5" rx="1" opacity="0.3"/>
+    </g>
   `,
+  // The wall. Left is the init list, three slots on ONE vocabulary ramping in even steps from
+  // spent at the top to live at the bottom. Accent: the upright Started bar standing in the gap.
   'workloads-init-containers-and-sidecars': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
-      <rect x="20" y="40" width="280" height="100" rx="8" fill="rgba(255,255,255,0.03)"/>
-      <rect x="36"  y="62" width="50" height="56" rx="4" fill="rgba(255,255,255,0.08)" opacity="0.4"/>
-      <line x1="86"  y1="90" x2="100" y2="90" opacity="0.5"/>
-      <rect x="100" y="62" width="50" height="56" rx="4" fill="rgba(255,255,255,0.08)" opacity="0.6"/>
-      <line x1="150" y1="90" x2="166" y2="90" opacity="0.7"/>
-      <rect x="166" y="62" width="50" height="56" rx="4" fill="rgba(255,255,255,0.08)" opacity="0.8"/>
-      <line x1="216" y1="90" x2="230" y2="90" opacity="0.9"/>
-      <rect x="230" y="62" width="56" height="56" rx="4" fill="rgba(255,255,255,0.08)" opacity="1"/>
+      <rect x="26" y="30" width="132" height="120" rx="8" fill="rgba(255,255,255,0.06)" stroke-width="2"/>
+      <rect x="204" y="52" width="96" height="76" rx="8" fill="rgba(255,255,255,0.04)"/>
+      <g opacity="0.36">
+        <rect x="40" y="41" width="104" height="26" rx="4" fill="rgba(255,255,255,0.02)"/>
+        <rect x="52" y="49" width="80" height="10" rx="2" fill="currentColor" opacity="0.3" stroke="none"/>
+      </g>
+      <g opacity="0.68">
+        <rect x="40" y="77" width="104" height="26" rx="4" fill="rgba(255,255,255,0.055)"/>
+        <rect x="52" y="85" width="80" height="10" rx="2" fill="currentColor" opacity="0.3" stroke="none"/>
+      </g>
+      <g>
+        <rect x="40" y="113" width="104" height="26" rx="4" fill="rgba(255,255,255,0.09)"/>
+        <rect x="52" y="121" width="80" height="10" rx="2" fill="currentColor" opacity="0.3" stroke="none"/>
+      </g>
     </g>
+    <rect x="218" y="85"  width="68" height="10"  rx="2" fill="currentColor" opacity="0.3"/>
+    <rect x="175" y="16"  width="12" height="148" rx="3" fill="currentColor" opacity="0.9"/>
   `,
 
-  'workloads-statefulset-ordered-startup': `
+  'workloads-statefulset-ordered-rollout': `
     <g stroke="currentColor" fill="none" stroke-width="1.4">
       <g transform="translate(320,0) scale(-1,1)">
       <rect x="20"  y="32" width="84" height="60" rx="6" fill="rgba(255,255,255,0.10)"/>

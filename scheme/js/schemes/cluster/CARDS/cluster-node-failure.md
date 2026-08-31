@@ -5,6 +5,10 @@
 ```
 WHAT     A Node going unreachable: the Lease going stale, the NotReady condition, the unreachable
          taint, and the eviction timer that finally moves the Pods.
+         The longest record in the catalogue and past the 300 line ceiling (`CLU.S-03`), and the
+         length is measurement: MOTION is 141 lines because seven steps run two clocks against
+         each other, CONTENT 81 because every interval on the canvas is an upstream default, and
+         LANES 54 because three lanes meet one Node frame.
 PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport:
          `OVERLAY_IDS=cluster-node-failure node --test report/overlay.test.mjs`.
          Deepest on step 5 at 1100x800, shallowest on step 2 at 1600x1000, a swing of 84.62 units.

@@ -1,179 +1,223 @@
-import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
+import { P, F, defineCard, spread, strip, midX, WL, FADE, BEAT, OPACITY } from './workloads-kit.js';
+import { g, rect, text } from '../../lib/svg.js';
 
-// Design notes for this card: ./CARDS.md#workloads-container-env-injection
+// Design notes for this card: ./CARDS/workloads-env-before-pid-1.md
 
-// Layout B on the Workloads canon (WL): chips left, ladder right, Node frame full width on the
-// floor. Panel measured at x<=397, y<=279.51 (worst of 1600/1280/1100).
-const PANEL_B = 280, PANEL_GAP = 20;
+// An instrument, not the A / B / C column preset (WL.L-06): this card carries no ladder and no
+// flanking chip column, and the argument for the arrangement is in the record. Panel measured at
+// x<=396.55, y<=279.51 (worst of 1600/1280/1100, on the poster frame). The source row starts LEFT
+// of that, a deliberate L-03 deviation, and the OPEN finding in the record has its cost per view.
 
-// Kubelet leads the row and is centred on CX (WL.L-07), so the spine to the Pod clears both bands.
-const TOP1_X = 420, TOP1_W = 2 * (WL.CX - 420);          // 420..780, centred on CX
-const TOP_GAP = 60;
-const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = WL.R - TOP2_X;   // 840..1140
-const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
-const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
-const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
+// Band 1: the three sources, one per KIND of place a variable comes from. Three equal peers on an
+// even pitch, so none of them reads as the ordinary case and the other two as exceptions. The row
+// starts at 254 so its own midpoint IS WL.CX, and the spine of every lane hangs off that.
+// 220 is set by the ENV STRIP, not by these six strings: every band takes this row's span, and 3
+// chips across it hold 179.2 of name plus value. At 200 the strip is 201.33 and the widest pair
+// overflows by 1.87, at 220 it is 221.33 and clears by 18.13. Padding is in the record.
+const ROW_L = 254;                                       // WL.CX - (3 * SRC_W + 2 * SRC_GAP) / 2
+const SRC_W = 220, SRC_GAP = 16, SRC_BOTTOM = WL.TOP_Y + WL.BOX_H;   // 120
+const SRC_R = ROW_L + 3 * SRC_W + 2 * SRC_GAP;           // 946
+const SRC = spread({ from: ROW_L, to: SRC_R, count: 3, w: SRC_W });  // 254 / 490 / 726
+const SRC_CX = (i) => SRC.x(i) + SRC_W / 2;              // 364 / 600 / 836
 
-// LAYOUT.B of the kit: A needs a panel bottom of 262 or less and this card measures 279.51, so
-// the short column takes the band under the panel and the ladder the free right one (WL.L-06).
-const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;    // 60..540, four rows
-const CHIP_VGAP = 8;
-const CHIP_Y = ladder({ y: PANEL_B + PANEL_GAP, rowH: WL.CHIP_H, gap: CHIP_VGAP });   // 300..460
-const LAD_X = LAYOUT.B.ladder.x, LAD_W = LAYOUT.B.ladder.w;    // 660..1140, the five stages
-const LAD_Y = 150;                                       // 5 rows -> 150..350, clear of the top row
+// The spine is the source row midpoint and it LANDS ON WL.SPINE_X, which is what starting the row
+// at 254 buys: a leg dropping straight out of its own source lands 364 / 600 / 836, a midpoint
+// plus an L-12 mirrored pair about 600 alone, and every band under it centres on WL.CX with no
+// turn anywhere. WL.L-07 pins the trunk to the 540..660 corridor and 600 sits inside it, which a
+// row starting at 420 could not deliver.
+const SPINE_X = midX(ROW_L, SRC_R);                      // 600, the row midpoint and WL.CX
 
-const NODE_Y = 496, NODE_H = 128;                        // 496..624
-const POD_W = 460, POD_H = 96, POD_X = WL.CX - POD_W / 2;
-const POD_Y = NODE_Y + 22;                               // 518..614
-// 44 and not 52: pod() puts the Pod sublabel on the baseline h - 8, whose ink runs to about 595,
-// so a container box ending on 600 is struck through by the sublabel this card writes per step.
-const CONT_W = 300, CONT_H = 44, CONT_X = WL.CX - CONT_W / 2;
-const CONT_Y = POD_Y + 30;                               // 548..592
+// Band 2: the merge, the width of the source row and no wider.
+const BAR_X = ROW_L, BAR_W = SRC_R - BAR_X;              // 254..946
+const BAR_Y = 302, BAR_H = 62;                           // 302..364, 22.5 under the deepest panel
+// Three straight drops onto the bar top face at -236 / 0 / +236 of its midpoint, no turn in any leg.
+const LEG = [0, 1, 2].map(i => [[SRC_CX(i), SRC_BOTTOM], [SRC_CX(i), BAR_Y]]);
 
-// One corridor between the two columns, drawn down and up, ending on the Pod top midpoint.
-const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];
-const SPINE_UP = [...SPINE].reverse();
+// Bands 3 and 4 share ONE span and it is the MERGE BOX span, so every band of the card ends on the
+// same two x. That also makes the spine the midpoint of the rule, so its two halves are equal at
+// 316, and the span centres on WL.CX so L-13 is met by construction. The rule is a chip height
+// rather than a hairline, so the sentence it carries sits INSIDE it, split by the doorway.
+const LOW_L = BAR_X, LOW_R = SRC_R;                      // 254..946
+const WALL_Y = 388, WALL_H = 34, DOOR = 60;              // 388..422, 24 clear of the bar and the Pod
+const WALL_L_W = SPINE_X - DOOR / 2 - LOW_L;             // 254..570
+const WALL_R_X = SPINE_X + DOOR / 2;                     // 630..946
+// 409, the baseline formula the phase rail of workloads-pod-startup-conditions puts its own on.
+const WALL_TEXT_Y = WALL_Y + WALL_H / 2 + 4;
+const WALL_CX = (x, w) => x + w / 2;                     // 412 and 788, each half its own centre
+
+// Band 4: the container the set is handed to, and under it the set itself.
+const POD_W = 480, POD_X = SPINE_X - POD_W / 2, POD_Y = 446, POD_H = 132;  // 360..840, 446..578
+const CONT_W = 360, CONT_X = SPINE_X - CONT_W / 2, CONT_H = 68;
+const CONT_Y = POD_Y + 34;                               // 480..548
+// pod() puts the Pod sublabel on the baseline h - 8, whose ink runs to about 575, so the strip
+// starts at 594 rather than tight under the shell. It shares the rule band, because the line the
+// set crossed and the set itself are the two things that span everything.
+const ENV_Y = 594;
+// 221.33 each, which is not a LAYOUT.C.strip width because this strip takes the merge box span
+// rather than L..R. Measured, the widest pair is `WEB_SERVICE_HOST` at 110.3 against `10.96.0.42`
+// at 68.9, so 24 of padding leaves them 18.13 apart against a chipfit MIN_GAP of 4.
+const ENV = strip({ from: LOW_L, to: LOW_R, count: 3, gap: 14 });
+
+// The one crossing, straight down the spine and through the doorway, from the bar bottom midpoint
+// to the Pod top midpoint. No turn anywhere on the card.
+const HANDOVER = [[SPINE_X, BAR_Y + BAR_H], [SPINE_X, POD_Y]];
+const WIRE_X = SPINE_X;                                  // over the middle source
+
+// A wall segment is a hand-built chip, close to the phase rail of workloads-pod-startup-conditions
+// but for one difference: the label has to be addressable per step, so the text is a P.tag laid
+// over the rect rather than the label chip() carries. P.raw bypasses the kit binding, so the role
+// is written by hand.
+const wallSeg = (key, x, w) => P.raw({
+  key,
+  make: () => {
+    const seg = g({ class: 'scheme-box', 'data-role': 'cluster', transform: `translate(${x},${WALL_Y})` });
+    seg.appendChild(rect({ class: 'scheme-box-rect', x: 0, y: 0, width: w, height: WALL_H, rx: 4 }));
+    return seg;
+  },
+});
 
 // The list order IS the append order, so it is the z-order: lanes and the wire label first, then
-// the chip column and the packet layer, and ladder / Node / Pod / actors above the ball.
+// the environment strip and the packet layer, and wall / Pod / Kubelet / sources above the ball.
 export const SCENE = {
-  'aria-label': 'Container environment injection: the Kubelet resolves env, envFrom and the downward API into one set of variables, hands them to the container at creation, and never updates them again',
+  'aria-label': 'Config before PID 1: three different kinds of source feed one environment, the Kubelet merges them at launch, the whole set crosses the CreateContainer line exactly once, and an edit to the source afterwards never reaches the running process',
   parts: [
     P.defs(),
-    // One corridor drawn twice. Only the down direction ever carries a ball on this card, and the
-    // up lane exists so the pair is stated once rather than being special-cased per step.
-    P.lane({ key: 'connectorDown', points: SPINE, dim: true, dashed: true, role: 'cluster' }),
-    P.lane({ key: 'connectorUp', points: SPINE_UP, dim: true, dashed: true, role: 'cluster', opacity: 0 }),
-    // The pair: the Kubelet asks on REQ_Y and the API answers on RESP_Y (WL.A-01).
-    P.arrow({ x1: TOP1_X + TOP1_W, y1: REQ_Y, x2: TOP2_X, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
-    P.arrow({ x1: TOP2_X, y1: RESP_Y, x2: TOP1_X + TOP1_W, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }),
-    // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
+    // Three legs into one bar. Every leg carries a ball on some step, which is what earns it an
+    // arrowhead (A-05), and nothing on this card ever travels upward, so there is no lane pair.
+    ...LEG.map((points, i) => P.lane({ key: 'leg' + i, points, dim: true, dashed: true, role: 'cluster' })),
+    P.lane({ key: 'handover', points: HANDOVER, dim: true, dashed: true, role: 'cluster' }),
+    // WL.A-02: the per-step wire label sits ABOVE the top row, never below it.
     P.wire({ key: 'req', x: WIRE_X, y: WL.TOP_Y - 12 }),
-    // Three variables from three different sources, then the object one of them came from.
-    P.chip({ key: 'cfgVar', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'DB_HOST', value: 'unset' }),
-    P.chip({ key: 'downVar', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'MY_POD_IP', value: 'unset' }),
-    P.chip({ key: 'svcVar', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'WEB_SERVICE_HOST', value: 'unset' }),
-    P.chip({ key: 'cmChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'ConfigMap app-config', value: 'db.prod.svc' }),
-    P.packets(),
-    // Appended AFTER the packet layer, so the ball runs under the ladder, the frame and the actors.
-    P.chain({
-      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
-      items: [
-        '1. spec     ·  env, envFrom and valueFrom',
-        '2. resolve  ·  Kubelet reads the ConfigMap',
-        '3. service  ·  one pair per Service that exists now',
-        '4. create   ·  the whole set is handed to PID 1',
-        '5. frozen   ·  the object moves, the container does not',
+    // The set as ONE group, because it is handed over as one thing and fades in as one thing.
+    P.group({
+      key: 'envSet',
+      parts: [
+        P.chip({ key: 'envDb', x: ENV.x(0), y: ENV_Y, w: ENV.w, h: WL.CHIP_H, name: 'DB_HOST', value: 'unset' }),
+        P.chip({ key: 'envIp', x: ENV.x(1), y: ENV_Y, w: ENV.w, h: WL.CHIP_H, name: 'MY_POD_IP', value: 'unset' }),
+        P.chip({ key: 'envSvc', x: ENV.x(2), y: ENV_Y, w: ENV.w, h: WL.CHIP_H, name: 'WEB_SERVICE_HOST', value: 'unset' }),
       ],
     }),
-    P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
+    P.packets(),
+    // Appended AFTER the packet layer, so the ball runs under the wall, the Pod and the actors.
+    wallSeg('wallL', LOW_L, WALL_L_W),
+    wallSeg('wallR', WALL_R_X, LOW_R - WALL_R_X),
+    // TWO captions, not one sentence halved: each half of the line states a rule of its own and
+    // neither is a fragment of the other, so each is CENTRED in its own half rather than pushed
+    // against the doorway, which is what a half of a broken sentence would need.
+    P.tag({ key: 'wallTagL', x: WALL_CX(LOW_L, WALL_L_W), y: WALL_TEXT_Y, text: 'one call carries the whole set over' }),
+    P.tag({ key: 'wallTagR', x: WALL_CX(WALL_R_X, LOW_R - WALL_R_X), y: WALL_TEXT_Y, text: 'nothing rewrites it short of a restart' }),
     P.pod({
       key: 'podGroup', id: 'podGroup',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'no container yet', containers: 0,
       inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container' },
     }),
-    P.box({ key: 'kubelet', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'assembles the environment', role: 'cluster' }),
-    P.box({ key: 'apiEl', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'API', sublabel: 'ConfigMap · Secret · Service', role: 'cluster' }),
+    P.box({ key: 'barEl', x: BAR_X, y: BAR_Y, w: BAR_W, h: BAR_H, label: 'Kubelet', sublabel: 'waits for the container to start', role: 'cluster' }),
+    P.box({ key: 'cmSrc', x: SRC.x(0), y: WL.TOP_Y, w: SRC_W, h: WL.BOX_H, label: 'ConfigMap app-config', sublabel: 'DB_HOST db.prod.svc', role: 'cluster' }),
+    P.box({ key: 'podSrc', x: SRC.x(1), y: WL.TOP_Y, w: SRC_W, h: WL.BOX_H, label: 'Pod object', sublabel: 'status.podIP 10.244.1.5', role: 'cluster' }),
+    P.box({ key: 'svcSrc', x: SRC.x(2), y: WL.TOP_Y, w: SRC_W, h: WL.BOX_H, label: 'Service web', sublabel: 'clusterIP 10.96.0.42', role: 'cluster' }),
   ],
   reset: {
-    keys: ['kubelet', 'apiEl', 'cfgVar', 'downVar', 'svcVar', 'cmChip'],
+    keys: ['cmSrc', 'podSrc', 'svcSrc', 'barEl', 'wallL', 'wallR', 'envDb', 'envIp', 'envSvc'],
     pods: ['podGroup'],
   },
 };
 
-// Values that recur, named once so a four-key chips block stays one readable line.
+// Values that recur, named once so a three-key chips block stays one readable line.
 const UNSET = 'unset', DB = 'db.prod.svc', POD_IP = '10.244.1.5', SVC_IP = '10.96.0.42';
-
-// The corridor pair as FIELDS, so no step can leave both directions on or neither.
-const corridor = (dir) => ({ connectorDown: dir === 'up' ? 0 : 1, connectorUp: dir === 'up' ? 1 : 0 });
-// The two top-row hops, stated once: the Kubelet asks on REQ_Y, the API answers on RESP_Y.
-const ASK = { from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y };
-const ANSWER = { from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y };
+const EMPTY = { envDb: UNSET, envIp: UNSET, envSvc: UNSET };
+const FILLED = { envDb: DB, envIp: POD_IP, envSvc: SVC_IP };
+// The two sides of the line as FIELDS, so no step can lift one of them and leave the other behind.
+const below = (live) => ({ envSet: live ? 1 : OPACITY.notready, podGroup: live ? 1 : OPACITY.notready });
+const NO_CONTAINER = 'no container yet', RUNNING = 'PID 1 running with the environment';
+// The source sublabel is stated by EVERY step, for the reason a chip value is: nothing in the
+// reset restores it, so a step that leaves it unsaid shows the edited value on the way back.
+const CM_LIVE = 'DB_HOST db.prod.svc', CM_EDITED = 'DB_HOST db.staging.svc';
 
 export const STEPS_SPEC = [
   {
     id: 'idle',
     duration: 1500,
-    chips: { cfgVar: UNSET, downVar: UNSET, svcVar: UNSET, cmChip: DB },
-    // Nothing has been created on the Node yet, so the Pod sits at its dimmest and no rung is lit.
-    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
-    podSublabels: { podGroup: 'no container yet' },
-    chain: -1,
+    chips: EMPTY,
+    opacity: below(false),
+    sublabels: { barEl: 'waits for the container to start', cmSrc: CM_LIVE },
+    podSublabels: { podGroup: NO_CONTAINER },
   },
   {
-    id: 'spec',
+    id: 'declare',
     duration: 3400,
-    narration: 'One container declares its environment three ways at once. A literal env pair is written in the spec, envFrom pulls every key of a ConfigMap in under its own name, and valueFrom with a fieldRef asks the downward API for something only Kubernetes knows, here the Pod IP. None of the three is resolved yet, because a value that does not exist until the Pod is placed cannot be written into a manifest.',
-    chips: { cfgVar: UNSET, downVar: UNSET, svcVar: UNSET, cmChip: DB },
-    wires: { req: ' ' },
-    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
-    podSublabels: { podGroup: 'no container yet' },
-    // Nothing travels and no Pod acts, so the beat is a static highlight and nothing else (M-27).
-    lit: ['kubelet'],
-    chain: 0,
+    narration: 'One container asks for three variables and each comes from a different kind of place. DB_HOST is a key in a ConfigMap that somebody else owns and edits, MY_POD_IP comes off the Pod object itself through the downward API, and WEB_SERVICE_HOST is never asked for at all: the Kubelet adds a pair per Service on its own. None of the three is resolved yet.',
+    chips: EMPTY,
+    wires: { req: 'env, envFrom and valueFrom name only two of the three' },
+    opacity: below(false),
+    sublabels: { barEl: 'nothing assembled yet', cmSrc: CM_LIVE },
+    podSublabels: { podGroup: NO_CONTAINER },
+    lit: ['cmSrc', 'podSrc', 'svcSrc'],
   },
   {
     id: 'resolve',
-    duration: 2800,
-    narration: 'The Kubelet reads the objects the spec named. It uses the data from the ConfigMap at the moment it launches the container, not at the moment the Pod was created, and a Secret is read the same way. DB_HOST takes the value the key holds right now. The downward API needs no read at all, because the Pod IP is already on the Pod the Kubelet is holding.',
-    chips: { cfgVar: DB, downVar: POD_IP, svcVar: UNSET, cmChip: DB },
-    wires: { req: 'GET ConfigMap app-config · GET Secret db-auth' },
-    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
-    podSublabels: { podGroup: 'no container yet' },
-    lit: ['kubelet'],
-    chain: 1,
+    duration: 3200,
+    narration: 'The Kubelet reads the objects the spec named, and it reads them at the moment it launches the container rather than at the moment the Pod was created. DB_HOST takes whatever the key holds at that instant, and a Secret is opened the same way. The Pod IP costs no read at all, because the Kubelet is already holding the Pod object that carries it.',
+    chips: EMPTY,
+    wires: { req: 'GET ConfigMap app-config · status.podIP needs no read' },
+    opacity: below(false),
+    sublabels: { barEl: 'reads the ConfigMap, holds the Pod object', cmSrc: CM_LIVE },
+    podSublabels: { podGroup: NO_CONTAINER },
+    lit: ['cmSrc', 'podSrc'],
     flow: [
-      F.top({ ...ASK, name: 'ask', lights: ['apiEl'] }),
-      F.top({ ...ANSWER, after: 'ask', lights: ['kubelet'] }),
+      F.route({ points: LEG[0], lights: ['barEl'] }),
+      F.route({ points: LEG[1], delay: 300, lights: ['barEl'] }),
     ],
   },
   {
-    id: 'service',
-    duration: 2600,
-    narration: 'The Kubelet adds a pair of variables for every Service that exists in this namespace at this instant, WEB_SERVICE_HOST and WEB_SERVICE_PORT for a Service named web. That list is a snapshot: a Service created one second later is simply absent from this container, and no amount of waiting brings it in. DNS is the way out of that ordering trap.',
-    chips: { cfgVar: DB, downVar: POD_IP, svcVar: SVC_IP, cmChip: DB },
-    wires: { req: 'Service web exists now · WEB_SERVICE_HOST + _PORT' },
-    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
-    podSublabels: { podGroup: 'no container yet' },
-    lit: ['kubelet'],
-    chain: 2,
+    id: 'snapshot',
+    duration: 3400,
+    narration: 'On top of what the spec asked for, and unless enableServiceLinks is false, the Kubelet writes a pair of variables for every Service in this namespace that has a cluster IP right now, WEB_SERVICE_HOST and WEB_SERVICE_PORT for a Service named web. That list is a snapshot, so a Service created one second later is simply absent from this container. DNS is the way out of that ordering trap.',
+    chips: EMPTY,
+    wires: { req: 'Service web exists now · WEB_SERVICE_HOST and _PORT' },
+    opacity: below(false),
+    sublabels: { barEl: 'adds a pair per Service with a cluster IP', cmSrc: CM_LIVE },
+    podSublabels: { podGroup: NO_CONTAINER },
+    lit: ['svcSrc'],
     flow: [
-      F.top({ ...ANSWER, delay: BEAT.lead, lights: ['kubelet'] }),
+      F.route({ points: LEG[2], delay: BEAT.lead, lights: ['barEl'] }),
     ],
   },
   {
-    id: 'create',
-    duration: 3000,
-    narration: 'The assembled set goes to the container in the CreateContainer call, and PID 1 starts with it already in its environment. What the downward API can carry here has a limit worth knowing: a named label or annotation comes through, but the whole metadata.labels map is available only as a file in a downwardAPI volume and never as a variable.',
-    chips: { cfgVar: DB, downVar: POD_IP, svcVar: SVC_IP, cmChip: DB },
-    wires: { req: 'CreateContainer · env baked in · StartContainer' },
-    opacity: { podGroup: 1, ...corridor('down') },
-    podSublabels: { podGroup: 'PID 1 running with the environment' },
-    lit: ['kubelet'],
-    chain: 3,
+    id: 'handover',
+    duration: 3600,
+    narration: 'The whole set crosses in one call. CreateContainer carries it, PID 1 starts with the variables already in its environment, and no second call of that kind is ever made for this container. What the downward API can send across has a limit worth knowing: a named label or annotation comes through, but the whole metadata.labels map is available only as a file in a downwardAPI volume.',
+    chips: FILLED,
+    wires: { req: 'CreateContainer · the set crosses · StartContainer' },
+    opacity: below(true),
+    sublabels: { barEl: 'the set is out of its hands', cmSrc: CM_LIVE },
+    podSublabels: { podGroup: RUNNING },
+    // The bar sends and the wall is the act, so both light at entry. The Pod is the receiver.
+    lit: ['barEl', 'wallL', 'wallR'],
     flow: [
-      F.route({ points: SPINE, name: 'create' }),
+      F.route({ points: HANDOVER, name: 'create', delay: BEAT.lead }),
       // Down-arrow: the ball lands first, then the Pod blinks and lifts out of its dimmest shade.
       F.pulse({ pod: 'podGroup', at: 'create' }),
       F.fade({ target: 'podGroup', from: OPACITY.notready, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
+      // One fade for the whole strip, because the set arrives as one thing and not as three.
+      F.fade({ target: 'envSet', from: OPACITY.notready, to: 1, dur: FADE.in, at: 'create', fill: 'both', easing: 'ease-out' }),
     ],
   },
   {
     id: 'frozen',
-    duration: 3000,
-    narration: 'Somebody edits the ConfigMap. A volume mount would pick the new value up on the next sync, and a downwardAPI volume behaves the same way after a resize, but a variable does nothing at all: it is a copy taken once. The update reaches the Kubelet and stops there, because no call rewrites the environment of a process that is already running, and only a restarted container reads the new value.',
-    chips: { cfgVar: DB, downVar: POD_IP, svcVar: SVC_IP, cmChip: 'edited · now db.staging.svc' },
+    duration: 3400,
+    narration: 'Somebody edits the ConfigMap. The Kubelet sees it, because it watches, and the object above the line now says something the copy below the line does not. A mounted volume would pick the new value up on the next sync and a downwardAPI volume behaves the same way after a resize, but a variable is a copy taken once, and only a restarted container reads it again.',
+    // The three variables are deliberately NOT lit and NOT changed: that they did not move is the
+    // whole sentence of the step, and the source sublabel above the line now disagrees with them.
+    chips: FILLED,
     wires: { req: 'watch · ConfigMap app-config modified' },
-    opacity: { podGroup: 1, ...corridor('down') },
-    podSublabels: { podGroup: 'PID 1 running with the environment' },
-    // Only the ConfigMap chip changed. The three variables are deliberately NOT lit: that they did
-    // not move is the sentence of the step.
-    lit: ['cmChip'],
-    chain: 4,
+    opacity: below(true),
+    sublabels: { barEl: 'holds the new value and cannot deliver it', cmSrc: CM_EDITED },
+    podSublabels: { podGroup: RUNNING },
+    lit: ['cmSrc', 'wallL', 'wallR'],
     flow: [
-      // The update is self-initiated by the API and DIES at the Kubelet: no spine hop follows, and
-      // the empty corridor below is what the step is about.
-      F.top({ ...ANSWER, delay: BEAT.lead, lights: ['kubelet'] }),
+      // The update is self-initiated by the API and DIES at the Kubelet: no crossing follows, and
+      // the empty doorway under it is what the step is about.
+      F.route({ points: LEG[0], delay: BEAT.lead, lights: ['barEl'] }),
     ],
   },
 ];

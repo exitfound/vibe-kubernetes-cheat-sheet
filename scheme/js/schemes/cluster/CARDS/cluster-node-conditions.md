@@ -7,6 +7,10 @@ WHAT     The five conditions kubectl describe node prints, and the ONE of them t
          that is already running: one control plane block writing two kinds of taint, one lane
          landing on the Node the taint is written onto and one turning aside into the Pod it keeps
          out.
+         Past the 300 line ceiling (`CLU.S-03`), and the length is measurement: SCOPE is the
+         longest block at 88 lines, because four sibling cards touch these five conditions and
+         every boundary is drawn, and CONTENT spends 81 more checking all five against the
+         reference.
 LAYOUT   One actor in the top row and two lanes leaving it, on two different FACES. `Control plane`
          at 450..750, 40..120, standing in web-0's column so its NoExecute drop is a straight
          vertical on x 600. The refused Pod at 816..1116, 190..296, standing in web-1's column and

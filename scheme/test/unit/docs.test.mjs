@@ -111,7 +111,7 @@ const REPO = join(ROOT, '..');
 // genuinely spans several lines of code. What the floor was actually guarding, a walker that stops
 // finding its input and exits green, is guarded below on the RECORDS read, which is the input.
 const CATALOG_RULE_FLOOR = 235;                                                  // the L A M C T P D R S blocks
-const INDEX_ROWS = 41;                                                           // CLU 6, WL 13, NET 9, STO 13
+const INDEX_ROWS = 43;                                                           // CLU 6, WL 15, NET 9, STO 13
 const CANON_ROW_FLOOR = CATALOG_RULE_FLOOR + INDEX_ROWS;                         // 274 rule rows in CANON.md
 const REF_FLOOR = 400;                                                           // measured 469 id-shaped tokens
 const LABEL_MAX_CHARS = 90;                                                      // measured max 73 (NET.C-01)
@@ -137,7 +137,7 @@ const SOURCE_SYMBOL_FLOOR = 38;
 // split is asserted rather than counted loosely, because "declared" and "merely cited" are the
 // distinction this whole group turns on, and a parser that stopped telling them apart would go
 // quiet, not red.
-const DECLARATION_SHAPES = { row: 29, heading: 10, bullet: 2 };
+const DECLARATION_SHAPES = { row: 30, heading: 11, bullet: 2 };
 
 const CATS = await categories();
 const { CATEGORY_LABEL } = await catalog();

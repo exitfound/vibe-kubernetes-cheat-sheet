@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-rolling-update
+// Design notes for this card: ./CARDS/workloads-rolling-update.md
 
 // Layout A on the Workloads canon (WL in the kit): ladder left, chips right, Node frame full width.
 // Panel x<=397, y<=205.

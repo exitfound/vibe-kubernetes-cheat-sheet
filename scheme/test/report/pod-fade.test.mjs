@@ -25,7 +25,7 @@
 //                                       terminating. A Pod on a Node the narration calls unreachable
 //                                       cannot acknowledge anything, and a blink reads as
 //                                       acknowledgement. This step is the EXEMPLAR for the shape.
-//   workloads-pod-phase-machine  crashloop, terminal
+//   workloads-pod-lifecycle-phases  crashloop, terminal
 //                                       the Pod's shade IS the phase on this card, so the fade is the
 //                                       subject rather than an event happening to it.
 //   workloads-replicaset  orphan        the Pod loses its owner and keeps running. A blink here reads
@@ -91,9 +91,9 @@ const RULED = new Map([
   ['workloads-pvc-stickiness evict podA',
     'CORRECT. The DELETE lands on the Pod object and it dims to terminating. A Pod on an unreachable ' +
     'Node cannot acknowledge anything, and a blink would read as acknowledgement. The exemplar.'],
-  ['workloads-pod-phase-machine crashloop podGroup',
+  ['workloads-pod-lifecycle-phases crashloop podGroup',
     'CORRECT. On this card the Pod SHADE is the phase, so the fade is the subject of the step.'],
-  ['workloads-pod-phase-machine terminal podGroup',
+  ['workloads-pod-lifecycle-phases terminal podGroup',
     'CORRECT. Same as crashloop: the shade is the phase.'],
   ['workloads-replicaset orphan pod3',
     'CORRECT. The Pod loses its owner and keeps running. A blink reads as a create, which is the ' +

@@ -1,9 +1,10 @@
 import { P, F, defineCard, ladder, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-probes
+// Design notes for this card: ./CARDS/workloads-probes.md
 
-// Layout A and THE WORKLOADS EXEMPLAR: ladder left, chip column right, Node frame full width at the
-// bottom. Panel measured at x<=397, y<=255 (worst of 1600/1440/1280/1100).
+// Layout A and THE WORKLOADS EXEMPLAR (WL.S-02): ladder left, chip column right, Node frame full
+// width at the bottom. Panel measured at x<=397, y<=255, the worst of the three viewports
+// report/overlay.test.mjs walks.
 const PANEL_B = 255, PANEL_GAP = 21;
 const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX (WL.L-07)
 

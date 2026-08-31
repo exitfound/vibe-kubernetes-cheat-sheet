@@ -1,6 +1,6 @@
 import { P, F, defineCard, ladder, laneY, midX, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS.md#workloads-force-deletion
+// Design notes for this card: ./CARDS/workloads-force-deletion.md
 
 // Layout B of the Workloads canon (WL): chips left, pipeline right, one trunk, one tap per Node.
 // Panel worst case x<=397, y<=280; a longer narration invalidates that measurement.

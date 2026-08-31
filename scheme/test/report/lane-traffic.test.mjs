@@ -86,7 +86,7 @@
 //     under it spans it end to end, so a route running down a spine and then out along a tap is
 //     ASSEMBLED even though three different parts drew what it rides. That union is not optional:
 //     reading one drawn segment at a time called four routes UNDRAWN that run down a spine straight
-//     into a tap, on `workloads-pod-qos-classes` and `workloads-statefulset-ordered-startup`, which
+//     into a tap, on `workloads-pod-qos-classes` and `workloads-statefulset-ordered-rollout`, which
 //     is a loud false finding in the tier that matters most.
 //   - OPACITY, AND THEREFORE WHETHER THE WIRE IS ON SCREEN AT ALL. A lane pinned at opacity 0 for
 //     every step counts as drawn here, and a ball riding a lane on a step where that lane is hidden
