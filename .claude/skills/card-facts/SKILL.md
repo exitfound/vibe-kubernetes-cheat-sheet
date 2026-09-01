@@ -239,12 +239,18 @@ Apply only what the user approves, and once approved, three project rituals come
   `docker rm -f kube-cheatsheet && docker build -t kube-cheatsheet . && docker run -d --name kube-cheatsheet -p 8080:80 kube-cheatsheet`
 - **Never commit unless the user asks.** Finish, report, and leave the tree uncommitted.
 
-After any prose edit, the fast loop is
-`SCHEME_IDS=<card-id> npm run test:render` (7s, this card only, floors off) plus
-`npm run test:unit` (2s), and the full `npm test` (3m10s) once at the end, started in the background
-before the record is written rather than watched after it (`_shared/card-verify.md` section 0). Re-read
-the changed sentences in the rendered panel, because a bulk edit over prose leaves the linters green
-and the meaning broken (`T-31`).
+After any prose edit the loop is `npm run test:unit` (1.4s) plus
+`SCHEME_IDS=<card-id> npm run test:render` (7s, this card only, floors off), and it is the WHOLE
+check this skill owes, not a fast approximation of one. What this skill edits is prose: a narration,
+a wire string, a chip label, an aria-label, a `desc`. Every catalog-wide rule over prose lives in
+`unit/**` and runs unfiltered there whatever `SCHEME_IDS` says: the `desc` band and sentence count
+(`D-04`, `D-05`), the term case and reword rules (`T-06`, `T-07`), the apostrophe and semicolon bans
+(`T-01`, `T-03`) and the dash sweep (`T-04`, `T-05`). Everything left that a prose edit can move is
+drawn on THIS card and is what the filtered render walk reads. The three minutes the unfiltered gate
+adds buy verdicts about other people's cards.
+
+Re-read the changed sentences in the rendered panel, because a bulk edit over prose leaves the
+linters green and the meaning broken (`T-31`).
 
 ---
 

@@ -190,11 +190,12 @@ export const STEPS_SPEC = [
   },
   {
     id: 'running',
-    // 364 characters, the longest narration on the card, against the shortest motion. 2000 read at
-    // 5.49 ms per character, rank 15 of the 598 narrated steps in the catalog, so the hold buys the
-    // reading time the three steps above it already take.
-    duration: 3400,
-    narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination the order reverses: regular containers terminate first, then sidecars, so cleanup paths can still talk through the proxy.',
+    // 269 characters over the shortest motion on the card, a 900ms pulse, so 2700 is the catalog
+    // reading pace of 10 ms per character and 1800ms of it is still dead air (M-19a). The three
+    // steps above hold 3400 because their SPAN is 2969 and M-19 gives them no choice, so matching
+    // them here would buy rhythm with 2500ms in which nothing moves and nothing is left to read.
+    duration: 2700,
+    narration: 'Pod is Running. The sidecar handles cross-cutting concerns (proxy, log shipping, credential rotation) alongside main. Kubelet restarts the sidecar independently if it crashes (because restartPolicy=Always on the init slot). On Pod termination that order runs backwards.',
     chips: { waitDbChip: DONE, migrateChip: DONE, sidecarChip: RUNNING, mainChip: RUNNING },
     wires: { req: 'Pod Running · sidecar + main in parallel' },
     lit: ['sidecarChip', 'mainChip', 'containerSidecar', 'containerMain'],

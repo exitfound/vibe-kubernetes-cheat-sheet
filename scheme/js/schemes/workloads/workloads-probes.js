@@ -128,7 +128,7 @@ export const STEPS_SPEC = [
   {
     id: 'ready',
     duration: 2600,
-    narration: 'The readinessProbe passes successThreshold consecutive times. Kubelet flips the Pod Ready condition to True, and the EndpointSlice controller adds the Pod IP to the Service EndpointSlice. The Pod now receives traffic.',
+    narration: 'The readinessProbe passes successThreshold consecutive times. Kubelet flips the Pod Ready condition to True, and the EndpointSlice controller adds the Pod IP to the Service EndpointSlice. The Pod now receives traffic. Every condition named in spec.readinessGates must be True in status.conditions before Ready flips.',
     chips: { startupChip: RETIRED, livenessChip: 'passing', readinessChip: 'passing', restartChip: '0', endpointChip: EP_READY },
     wires: { req: '200 OK · Ready=True' },
     // readiness passed: the Pod becomes Ready and lifts to full opacity.

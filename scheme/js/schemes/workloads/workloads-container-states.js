@@ -110,6 +110,19 @@ export const STEPS_SPEC = [
     ],
   },
   {
+    id: 'message',
+    duration: 2600,
+    narration: 'A container can leave a note. Whatever it writes to terminationMessagePath, default /dev/termination-log, becomes the message field of the Terminated record. The terminationMessagePolicy defaults to File, and FallbackToLogsOnError takes the log tail instead when that file is empty after a failed exit.',
+    chips: { stateChip: 'Terminated', detailChip: 'exitCode 137 · OOMKilled', lastChip: PRIOR, restartChip: '2' },
+    opacity: { podGroup: OPACITY.notready, ...corridor('up') },
+    // The note is part of the record `crash` just wrote, so this step shares chain row 1 with it
+    // rather than adding a seventh rung: the exit and the note the exit left behind are one act.
+    // Nothing new travels and the Pod is already down, so the record being described lights up
+    // through the static highlight alone (M-26, M-27).
+    lit: ['detailChip'],
+    chain: 1,
+  },
+  {
     id: 'restart',
     duration: 2300,
     narration: 'Kubelet restarts the container in the same Pod sandbox. As the fresh instance comes up, state goes back to Running, and the Terminated record just produced is rolled into lastState. The restartCount ticks to 3. The earlier lastState is overwritten, only the most recent termination is kept.',

@@ -85,20 +85,24 @@ directory first when you want to diff before overwriting.
 
 | Loop | Cost | What it proves |
 |---|---|---|
-| `npm run test:unit` | 2s | the whole catalog, no browser. Run it as often as you like |
-| `SCHEME_IDS=<id> npm run test:render` | 7s | this card only, floors and censuses OFF |
-| `npm test` | 3m10s | THE GATE: `unit/**` and `render/**` over the whole catalog |
-| `npm run report` | 3m | `report/**`, which the gate does NOT run |
+| `npm run test:unit` | 1.5s | the whole catalog, no browser. Run it as often as you like |
+| `SCHEME_IDS=<id> npm run test:render` | 6.5s | this card only, floors and censuses OFF |
+| `npm run docs:sync` | 0.5s | writes every guarded count the tree has moved. Section 4 |
+| `npm test` | 100s | THE GATE: `unit/**` and `render/**` over the whole catalog |
+| `npm run report` | 100s | `report/**`, which the gate does NOT run |
+| `npm run all` | 105s | BOTH, over one walk. What to run when you want the gate and the report |
 
-Measured on 2026-08-31 at 121 cards, and both long ones had drifted from what this table used to
-claim: the gate read "about 2 minutes" and the report "about 1 minute", so a plan built on them
-under-priced the run it was about to sit through by six minutes a card. They grow with the catalog.
-Re-time them rather than trusting the column (`{ time npm test; } 2>&1 | tail -3`) whenever a run
-feels longer than it says, and correct the number here when it has moved.
+Measured on 2026-09-01 at 123 cards. The two long ones were 190s and 147s the day before, and what
+changed is not the checks: every browser-driven file now asserts over ONE walk of the catalog
+(`test/tools/walk.mjs`) instead of opening all 123 cards in a Chromium of its own. Twelve files did
+that, so 137 of the old 337 seconds went on re-opening cards another process had open a moment
+earlier. **This is why `npm run all` costs barely more than either half: the walk is the cost, and
+it is paid once.** Re-time rather than trusting the column (`{ time npm run all; } 2>&1 | tail -3`)
+whenever a run feels longer than it says, and correct the number here when it has moved.
 
 **The two long ones belong in the background** (section 0), and over a BATCH they are paid once for
-the whole batch rather than once per card: `SCHEME_IDS=a,b,c` takes a list, and the report walks the
-catalog anyway. Per card that is seven seconds of machine time, not six minutes.
+the whole batch rather than once per card: `SCHEME_IDS=a,b,c` takes a list, and the walk they share
+covers the catalog anyway. Per card that is eight seconds of machine time, not six minutes.
 
 **Run the full gate ONCE, at the end.** Not after each edit, not again during the sweep. While
 iterating, unit plus the filtered render is the loop, and it is seven seconds:
@@ -113,8 +117,8 @@ grep -E '^# (tests|pass|fail|skipped)|^not ok' /tmp/r.txt
 ### The DETAIL loop, for a change that names its own scope
 
 A change to one coordinate, one string, one chip value, one duration or one opacity used to pay the
-same tail as an audit: `npm test` and `npm run report`, six minutes and ten seconds of waiting
-for a one-line edit. It does not have to, because both of those runs answer questions about the
+same tail as an audit: `npm test` and `npm run report`, three and a half minutes of waiting for a
+one-line edit, and six before the walk. It does not have to, because both of those runs answer questions about the
 CATALOG, and the questions a detail change raises are about one card. Measured per card:
 
 | Owed by | Run | Cost |
@@ -133,8 +137,9 @@ The occlusion rules are per card and per block, so they move when geometry does.
 both owes both.
 
 **What is deferred is deferred INTO A WRITTEN LIST, never into nothing.** Keep the card ids whose
-full gate is owed, and discharge them with ONE `npm test` plus ONE `npm run report` over the batch,
-before the commit and before the session ends. The rule that makes this safe rather than merely
+full gate is owed, and discharge them with ONE `npm run all` over the batch, before the commit and
+before the session ends. `all` and not the two separately: both halves assert over one walk of the
+catalog, so together they cost 105 seconds against 196. The rule that makes this safe rather than merely
 faster: **no commit while the debt list is non-empty**, and the deliverable states the list and its
 result. A detail loop that never ends in a gate is not a cheaper procedure, it is an unverified one.
 
@@ -295,15 +300,32 @@ is deciding by eye that a document "looks unaffected".
 
 ```bash
 cd scheme/test
-npm test                                     # S-49 CENSUS fails on a guarded count that drifted
-npm run report                               # then read the L-02 / L-04 / L-05a verdict lines
+npm run docs:sync                            # writes every guarded count the tree has moved
+npm run test:unit                            # S-49 CENSUS then has to be green, and it is the check
+OVERLAY_IDS=<id> node --test report/overlay.test.mjs         # the L-02 / L-04 / L-05a verdicts
+GEOMETRY_IDS=<id> node --test report/geometry-soft.test.mjs  # the soft geometry queue
 grep -rn "<the old wording you replaced>" --include=*.md .
 ```
 
-- **Guarded counts**: `npm test` is the whole answer. A green CENSUS means every count the registry
-  in `test/unit/docs-census.test.mjs` covers still matches the tree. Its failure message names the
-  document, the claim and the number, so answer what it prints rather than reasoning about which
-  files are affected.
+**Read what `docs:sync` printed, one line per number it moved, and put those lines in the sweep
+table.** It rewrites the captured NUMBER of a claim and never a word around it, so it cannot reword a
+sentence, and it deliberately repairs nothing whose pattern stopped matching: an UNMATCHED line means
+somebody reworded the sentence a claim guards, and that is a decision, not arithmetic. Restore the
+shape or update the pattern in `test/fixtures/census.mjs`, on purpose. Running the tool is not the
+check either: `npm run test:unit` is, and a deliverable quotes the test rather than the tool.
+
+**This sweep is 1.4 seconds plus two 5-second files, and it used to be `npm test` plus
+`npm run report`, six minutes.** Neither long run answers anything the sweep asks. Every count the
+registry guards is computed in `unit/docs-census.test.mjs`, which `npm run test:unit` runs in full
+over the whole catalog with no browser: the `render/**` half of the gate has no opinion about a
+number in a document. The two canon-cited measurements come from two report files that both take a
+per-card id. The full gate and the unfiltered report are still owed, once, at the end of the unit of
+work (section 1), and this sweep is not where they are paid.
+
+- **Guarded counts**: `npm run docs:sync` then `npm run test:unit` is the whole answer. A green
+  CENSUS means every count the registry in `test/fixtures/census.mjs` covers still matches the tree.
+  Its failure message names the document, the claim and the number, so answer what it prints rather
+  than reasoning about which files are affected.
 - **Canon-cited MEASUREMENTS** (`L-02`, `L-04`, `L-05a`, the `T-28` shape split): the report prints a
   `verdict` line per axis. Diff it against the run taken before the edit: identical blocks mean you
   moved nothing. An attribution that already differed before your edit is not yours to fix.

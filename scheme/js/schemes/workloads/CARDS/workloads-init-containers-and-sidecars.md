@@ -39,14 +39,21 @@ MOTION   Three steps share one shape: the runtime reports an exit on the answer 
          calls StartContainer back, and the create lands on the node. All three light `runtime` on
          the ARRIVAL of that hop, at 1500ms, and not in the static `lit` list at t=0, so the three
          read alike and the box is a receiver on all three (A-06).
-         Spans 1609 / 2409 / 2409 / 2409 / 900 against durations 2600 / 3400 / 3400 / 3400 / 3400.
-         The last step holds 3400 over a 900 motion and stands still for 74% of itself, high on
-         the deadair.mjs listing. That stillness is BOUGHT and is not a duration to trim back
-         (M-19a): the step carries 364 characters over the shortest motion on the card, and at
-         2000 it read at 5.49 ms per character, near the hurried end of the whole catalog. 3400
-         puts it at 9.34, inside the 8.9 to 10.5 band the other four steps read in, so the hold is
-         reading time and not dead air. Their populations and their medians live in
-         `report/baselines.test.mjs` and `timing.mjs`, which is why none is copied here.
+         Spans 2169 / 2969 / 2969 / 2969 / 900 against durations 2600 / 3400 / 3400 / 3400 / 2700.
+         The last step is the only one of the five whose duration is a CHOICE. The other four sit
+         within 431ms of their own spans, so M-19 sets them and nothing else can; `running` holds
+         a 900ms pulse and everything past it is still air (M-19a).
+         Its hold was bought as reading time for 364 characters and stopped buying it when the
+         step handed the reverse termination order over to workloads-termination-order and kept
+         one pointer clause, 269 characters. At 3400 that read 12.64 ms per character against a
+         catalog median of 10.00 and stood still for 74% of itself. 2700 reads 10.04 and still
+         stands still for 1800ms.
+         THE RHYTHM ARGUMENT WAS WEIGHED AND LOST. The three steps above hold 3400 because their
+         span is 2969 and M-19 forbids anything shorter, so matching them here buys an even tail
+         with 2500ms in which nothing moves and nothing is left to read. main-start sits at 16.75
+         ms per character for the same reason and is NOT a precedent: its 3400 is a floor, not a
+         choice. Populations and medians live in `report/baselines.test.mjs` and `timing.mjs`,
+         which is why none is copied here.
          Nothing pulses but the Pod, and only on the last step, where the Pod is what changed.
          The four container boxes take a `.highlight` on arrival and carry no brightness track.
 CONTENT  Claims read against k8sVersion 1.35.
@@ -72,8 +79,10 @@ CONTENT  Claims read against k8sVersion 1.35.
          the main container, and step 3 says both halves. The page says `the kubelet then starts
          the next init container from the ordered .spec.initContainers list`, so `unblocks the
          main container` alone states a Pod-specific outcome as the mechanism.
-         The termination clause holds: `the kubelet postpones terminating sidecar containers until
-         the main application container has fully stopped`.
+         The termination clause is a POINTER and not an account: workloads-termination-order owns
+         that subject and draws the mechanism. The one sentence left here, that the order runs
+         backwards, holds against `the kubelet postpones terminating sidecar containers until the
+         main application container has fully stopped`.
          The phase clause holds against Running, `all of the containers have been created` plus at
          least one running or starting, which the main container start is what completes.
          workloads-pod-startup-conditions says the same in its own step 4.

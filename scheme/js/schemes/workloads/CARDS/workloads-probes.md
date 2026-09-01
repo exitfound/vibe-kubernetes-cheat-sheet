@@ -22,6 +22,9 @@ PANEL    x<=397 catalog-wide (`L-02`). Bottom per viewport, from `scheme/test`:
          stands under it is BAND_Y, where BOTH columns start: the measured clearance is 21.34, which
          is `PANEL_GAP` and nothing more. There is no head room here to spend, so a longer narration
          on any step is paid for inside that step and never by moving the band.
+         The budget that leaves, in characters at 1100x800: 316 on `ready` reads 229.82 and 318 on
+         `startup-running` reads 254.66, so 255 is the level a step of about 320 characters lands
+         on and the next line down at 279.51 is already inside the band.
 LANES    Down the corridor between the two columns at WL.SPINE_X. SPINE_UP is its reverse, so the
          report hop and the probe hop cannot drift apart.
          THE ONE THING NOT TO COPY FROM THE EXEMPLAR. Both ends land on the Pod top midpoint at
@@ -52,6 +55,18 @@ MOTION   Six steps and two beat shapes, which is why this card is the one to cop
          One corridor is drawn twice, `connectorDown` and `connectorUp`, and exactly one is visible
          per step. The pair is written ONCE in the `corridor(dir)` helper, which returns the two
          opacity fields together, so no step can leave both on or neither.
+CONTENT  The `ready` step carries the readinessGates qualifier, and it is there because the
+         sentence without it is a false absolute. Pod Lifecycle, Pod readiness, feature state
+         Stable since Kubernetes v1.14: a Pod that declares `spec.readinessGates` is evaluated
+         ready only when ALL its containers are ready AND every condition listed there is True,
+         and a listed condition the API cannot find in `status.conditions` defaults to False.
+         While one is outstanding the Kubelet sets ContainersReady and NOT Ready, so `Kubelet
+         flips the Pod Ready condition to True` on a passing probe alone is untrue of any Pod
+         carrying a gate. `workloads-pod-startup-conditions` states the same fact from the
+         condition side and its desc already named readinessGates, so this step was the one
+         place in the pair still claiming the unconditional version.
+         The clause is one sentence and no more: gates are a writer-side subject, and the card
+         teaches neither how to declare one nor how to PATCH the condition.
 ```
 
 ### poster

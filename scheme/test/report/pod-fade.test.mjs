@@ -19,15 +19,12 @@
 // its fade at BEAT.afterPulse is not in this population at all: that is the shape
 // storage-multi-attach-error detach carries, and storage-generic-ephemeral-volume gc and
 // storage-volumeattachment detach carry it too, which is why none of the three is listed below.
-// The six that stand:
+// The five that stand:
 //
 //   workloads-pvc-stickiness  evict     an API DELETE lands on the Pod object and the Pod dims to
 //                                       terminating. A Pod on a Node the narration calls unreachable
 //                                       cannot acknowledge anything, and a blink reads as
 //                                       acknowledgement. This step is the EXEMPLAR for the shape.
-//   workloads-pod-lifecycle-phases  crashloop, terminal
-//                                       the Pod's shade IS the phase on this card, so the fade is the
-//                                       subject rather than an event happening to it.
 //   workloads-replicaset  orphan        the Pod loses its owner and keeps running. A blink here reads
 //                                       as a create, which is the defect the adoption step was
 //                                       repaired for.
@@ -91,10 +88,6 @@ const RULED = new Map([
   ['workloads-pvc-stickiness evict podA',
     'CORRECT. The DELETE lands on the Pod object and it dims to terminating. A Pod on an unreachable ' +
     'Node cannot acknowledge anything, and a blink would read as acknowledgement. The exemplar.'],
-  ['workloads-pod-lifecycle-phases crashloop podGroup',
-    'CORRECT. On this card the Pod SHADE is the phase, so the fade is the subject of the step.'],
-  ['workloads-pod-lifecycle-phases terminal podGroup',
-    'CORRECT. Same as crashloop: the shade is the phase.'],
   ['workloads-replicaset orphan pod3',
     'CORRECT. The Pod loses its owner and keeps running. A blink reads as a create, which is the ' +
     'defect the adoption step on this same card was repaired for.'],

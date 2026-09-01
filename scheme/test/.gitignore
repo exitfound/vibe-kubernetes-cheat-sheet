@@ -2,3 +2,8 @@
 # symlink pointing here, tools/ is gone and this is the real directory now. Anything run from a
 # subdirectory needs none of its own: Node walks up and finds this one.
 node_modules
+
+# The panel/geometry walk `tools/walk.mjs` takes for the report tier. It is a PIPELINE STAGE and not
+# a cache: `npm run report` retakes it every time, nothing keys or reuses it, and no test can read a
+# walk of a tree that has since changed. Ignored because it is generated, not because it is optional.
+.snapshot

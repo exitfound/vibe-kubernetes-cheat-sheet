@@ -18,11 +18,11 @@
 //      this sampling entirely. The step walk is measured in ../report/palette-steps.test.mjs and is
 //      deliberately report-level until its findings have been triaged.
 
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census, floor, SUBSET, FULL_ONLY } from '../fixtures/catalog.mjs';
-import { DEFAULT_BASE, launch, initPage, discoverIds, openCard } from '../fixtures/render.mjs';
-import { PAINTED, ROLES, classify, probePaint } from '../fixtures/palette.mjs';
+import { cards, census, FULL_ONLY } from '../fixtures/catalog.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+import { ROLES, classify } from '../fixtures/palette.mjs';
 
 // Fold one card's rows into the shared tuple map. The JUDGEMENT is ../fixtures/palette.mjs, shared
 // with report/palette-steps.test.mjs, which cannot import this file: importing a test file registers
@@ -113,29 +113,39 @@ function describeSpread(spread) {
 // 2114: workloads-effective-pod-requests adds one arrowless relation joining its Scheduler and its
 // Kubelet, which read one number and exchange nothing, so it is a relationship and not a lane.
 // It is the only painted element that card gained.
-const EXPECTED_PAINTED = 2114;
+// 2130: workloads-ephemeral-containers adds sixteen, counted off its own scene: two actor boxes,
+// four chips, five contract rows, one arrow, one lane, and a Pod carrying two inner container
+// boxes inside its shell, which is three painted elements and not one.
+// 2145: workloads-termination-order adds fifteen: two actor boxes, six chips, two top-row arrows,
+// one corridor lane, and a Pod whose shell carries three container boxes, which is four.
+// 2147: workloads-pod-lifecycle-phases is rebuilt as a state machine and trades its ladder and its
+// one corridor (14) for sixteen: four state boxes, the CrashLoopBackOff box inside Running, the
+// Kubelet box, three chips, three lanes, two relations, and a Pod as a shell plus its inner box.
+const EXPECTED_PAINTED = 2147;
 // 29: no card draws a `workloads|scheme-arrow|workloads|` combination, because every lane in that
 // category carries `role: 'cluster'`. A role-less lane does not paint the category blue: there is
 // no `.scheme-arrow-workloads` rule in diagrams.css, so it falls to the generic dim token at
-// rgb(63, 93, 138) against the rgb(91, 184, 255) of the lanes beside it. A 30 here means a lane
-// somewhere lost its role and is now the faintest thing on its own card.
+// rgb(63, 93, 138) against the rgb(91, 184, 255) of the lanes beside it. A `workloads|scheme-arrow|
+// workloads|` row APPEARING in the printed list means a lane somewhere lost its role and is now the
+// faintest thing on its own card, which is what to read before moving the number below.
+// This walk samples each card AS IT OPENS, so it sees the POSTER frame and nothing else, and a
+// `scheme-box|<role>|highlight` row therefore means a poster step that lights a block. 120 of the
+// 123 poster steps light nothing (S-09), which is why no workloads box contributes one:
+// workloads-pod-lifecycle-phases held the only such row in this category and gave it up when its
+// poster stopped highlighting `pending`. A `workloads|scheme-box|cluster|highlight` row coming back
+// is a poster that draws a cue, not a colour fault.
 const EXPECTED_COMBINATIONS = 29;
 
 const catalogued = await cards();
 
-const browser = await launch();
-// Registered on the line after the launch, before the page setup below: node:test runs an
-// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
-// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
-// then nobody's to close for the rest of the run.
-after(() => browser.close());
-
-// reducedMotion: a pulse mid-flight repaints the stroke, and sampling one would turn a motion
-// magnitude into a colour finding.
-const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce' });
-const page = await context.newPage();
-await page.addInitScript(initPage, 'expose');
-const ids = await discoverIds(page, DEFAULT_BASE);
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes this reading in its
+// reduced-motion pass, in a context of its own because `reducedMotion` is a CONTEXT option and this
+// file and report/palette-steps are the only two that want it. The reason is this file's own: a
+// pulse mid-flight repaints the stroke, and sampling one would turn a motion magnitude into a
+// colour finding. Same viewport, same probe (fixtures/palette.mjs probePaint), same frame: the one
+// this file read straight after openCard, which the walk stores as `paint.open`.
+const snap = readSnapshot();
+const ids = snap.ids;
 
 const spread = new Map();
 const unknown = [];
@@ -146,7 +156,7 @@ let walked = 0;
 // Two independent answers to "how many cards are there": the rendered grid and data.js. A palette
 // walk over a subset is green by construction, so this has to be the first thing that runs.
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
-  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
+  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
   census('palette grid', ids.length, catalogued.length);
 });
 
@@ -154,8 +164,8 @@ for (const id of ids) {
   test(id, async () => {
     walked++;                       // counted before the assertions, so this stays a census of
                                     // COVERAGE and a broken card is reported once, as itself.
-    await openCard(page, id);
-    const rows = await page.evaluate(probePaint, PAINTED);
+    const card = snap.cards[id];
+    const rows = card.paint && card.paint.open;
     assert.ok(rows, 'no svg.diagram: the dialog never opened');
 
     const unknownBefore = unknown.length;

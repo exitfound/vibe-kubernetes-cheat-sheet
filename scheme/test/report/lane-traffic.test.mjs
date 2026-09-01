@@ -105,7 +105,6 @@ import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
 import { carriedBlock, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { importAll, stepTotal } from '../fixtures/module.mjs';
-import { walkParts } from '../fixtures/spec.mjs';
 
 // The recorded walk. Assertions, not notes: see the header.
 
@@ -142,7 +141,7 @@ const cardsOf = (rows) => new Set(rows.map(r => r.card)).size;
 
 // The walk itself now lives in ../fixtures/lane-traffic.mjs, shared with the gate file that
 // asserts the two tiers whose queues are empty. See that file's header for why.
-import { A05_CARRIED, readCard, tierOf, segTierOf, key, segsOf, covered, TIERS, DRAWN_KINDS, LANE_KIND, EPS } from '../fixtures/lane-traffic.mjs';
+import { A05_CARRIED, readCard, tierOf, segTierOf, key, segsOf, covered, TIERS, DRAWN_KINDS } from '../fixtures/lane-traffic.mjs';
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
 const EXPECTED_CARDS = (await cards()).length;

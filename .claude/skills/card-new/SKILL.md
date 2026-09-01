@@ -33,12 +33,19 @@ entry already and phase 9 moves fewer counts.
 Server, loops and working directories are `.claude/skills/_shared/card-verify.md` section 0.
 
 ```bash
-cd scheme/test && npm test > /tmp/gate-before.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/gate-before.txt
+cd scheme/test && npm run test:unit > /tmp/before.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/before.txt
 ```
 
-**Take the BEFORE gate and keep it.** A card lands in a tree somebody else was working in, and the
-counts a new card falsifies (phase 9) fail loudly. Knowing which lines were already red is the
+**Take the BEFORE reading and keep it.** A card lands in a tree somebody else was working in, and
+the counts a new card falsifies (phase 9) fail loudly. Knowing which lines were already red is the
 difference between fixing your own damage and adopting somebody else's.
+
+It is `test:unit` and not the full gate on purpose, and the reason is what this reading is FOR. Every
+count, document and baseline a new card can falsify is computed in `unit/**`, over the whole catalog,
+in 1.4 seconds. The `render/**` half walks 123 cards in a browser for three minutes to tell you
+about cards you have not written yet: a red line there is somebody else's card and was going to be
+adopted either way, and the full gate at phase 8 will still print it. Paying three minutes twice to
+learn the same thing once is the single biggest waste this skill used to contain.
 
 ---
 
@@ -302,11 +309,14 @@ relabel.
 Then the full gate, once, and the report:
 
 ```bash
-cd scheme/test && npm test > /tmp/gate.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/gate.txt
-npm run report > /tmp/report.txt 2>&1
-grep -n '<card-id>' /tmp/report.txt
-grep -nE 'queue to work|left to work|finding\(s\)' /tmp/report.txt
+cd scheme/test && npm run all > /tmp/all.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/all.txt
+grep -n '<card-id>' /tmp/all.txt
+grep -nE 'queue to work|left to work|finding\(s\)' /tmp/all.txt
 ```
+
+`npm run all` and not `npm test` then `npm run report`: both halves assert over ONE walk of the
+catalog, so run together they cost 105 seconds against 196 for the two separately. The walk is the
+cost and it is paid once.
 
 A report file cannot fail, and a new card is exactly what its queues are for: an uncued chip whose
 value changed, a soft geometry finding, a panel extent, a link that does not resolve. **A new card
@@ -323,10 +333,10 @@ are affected. A REDESIGN of an existing card moves far fewer: the card count doe
 and only a changed spine moves the step baseline.
 
 ```bash
-cd scheme/test && npm test 2>&1 | grep -A4 'CENSUS'
+cd scheme/test && npm run test:unit 2>&1 | grep -A4 'CENSUS'
 ```
 
-Guarded, so `npm test` is the whole answer: `test/fixtures/catalog.mjs` (`CATALOG_BASELINE`, a
+Guarded, so `npm run test:unit` is the whole answer: `test/fixtures/catalog.mjs` (`CATALOG_BASELINE`, a
 baseline rather than a floor, and changing it is how a new card is acknowledged on purpose),
 `scheme/CANON.md` headline counts, `scheme/CLAUDE.md` catalog size and category tables, and the
 folder `CLAUDE.md` rows.

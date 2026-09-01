@@ -90,6 +90,22 @@ export const POSTERS = {
     </g>
   `,
 
+  // One Pod of three stacked slabs, read upward: the fill ramp brightens toward the bottom slab,
+  // the accent bar names it as the one that goes first, and a dashed comb ties all three in the
+  // order the shutdown takes them.
+  'workloads-termination-order': `
+    <g stroke="currentColor" fill="none" stroke-width="1.5">
+      <rect x="44" y="22" width="232" height="136" rx="12" fill="rgba(255,255,255,0.045)"/>
+      <rect x="64" y="42"  width="156" height="28" rx="5" fill="rgba(255,255,255,0.02)" opacity="0.55"/>
+      <rect x="64" y="76"  width="156" height="28" rx="5" fill="rgba(255,255,255,0.035)" opacity="0.75"/>
+      <rect x="64" y="118" width="156" height="28" rx="5" fill="rgba(255,255,255,0.08)"/>
+      <path d="M 220 132 L 246 132 L 246 56 L 220 56 M 246 90 L 220 90" stroke-dasharray="5 4"/>
+    </g>
+    <rect x="78" y="53"  width="60" height="6" rx="1" fill="currentColor" opacity="0.3"/>
+    <rect x="78" y="87"  width="60" height="6" rx="1" fill="currentColor" opacity="0.3"/>
+    <rect x="78" y="129" width="60" height="6" rx="1" fill="currentColor" opacity="0.9"/>
+  `,
+
   'workloads-restart-policy': `
     <g stroke="currentColor" fill="none" stroke-width="1.5">
       <rect x="20"  y="50" width="80" height="80" rx="10" fill="rgba(255,255,255,0.06)"/>
@@ -130,6 +146,19 @@ export const POSTERS = {
       <line x1="216" y1="121" x2="232" y2="137"/>
       <line x1="232" y1="121" x2="216" y2="137"/>
     </g>
+  `,
+
+  // A closed Pod with one gap in its top edge, and the object coming in through it.
+  'workloads-ephemeral-containers': `
+    <g stroke="currentColor" fill="none" stroke-width="1.5">
+      <rect x="172" y="16" width="76" height="30" rx="6" fill="rgba(255,255,255,0.10)"/>
+      <line x1="210" y1="46" x2="210" y2="74" stroke-dasharray="4 4"/>
+      <path d="M 190 74 L 56 74 A 8 8 0 0 0 48 82 L 48 142 A 8 8 0 0 0 56 150 L 264 150 A 8 8 0 0 0 272 142 L 272 82 A 8 8 0 0 0 264 74 L 230 74"/>
+      <rect x="66" y="96" width="88" height="40" rx="5" fill="rgba(255,255,255,0.04)"/>
+      <rect x="166" y="96" width="88" height="40" rx="5" fill="rgba(255,255,255,0.02)" stroke-dasharray="5 4" opacity="0.55"/>
+    </g>
+    <rect x="186" y="28" width="48" height="6" rx="1" fill="currentColor" opacity="0.9"/>
+    <rect x="80" y="113" width="48" height="6" rx="1" fill="currentColor" opacity="0.3"/>
   `,
 
   // A crashed container (X glyph) caught in a restart loop arrow.

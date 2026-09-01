@@ -90,10 +90,20 @@ The stages carry their own procedure. These five are invisible from inside one s
 
 ## 5. Cost, before you accept the set
 
-Every stage ends in a full gate, a frame generation and a container rebuild, so the run is roughly
-four of each per card. Hoist what you can: the gate and the rebuild are defensible once per CARD
-rather than once per stage. Say the arithmetic to the user before starting on more than two cards,
-and skip a stage a card does not need rather than running it for symmetry.
+A frame generation and a container rebuild end every stage, so the run is roughly four of each per
+card. Hoist what you can: the rebuild is defensible once per CARD rather than once per stage. Say the
+arithmetic to the user before starting on more than two cards, and skip a stage a card does not need
+rather than running it for symmetry.
+
+**The full gate is not four per card and it is not one per card: it is ONE PER RUN, at the end, over
+the whole set.** The stage files no longer carry one each (`card-poster` and `card-facts` carry
+none), and the reason the batch form is not a weaker check is arithmetic rather than tolerance:
+`npm test` is a statement about the CATALOG, and the catalog is in the same state after the last
+card as it would have been checked in after each. What each card owes individually is the filtered
+loop, `npm run test:unit` plus `SCHEME_IDS=<id> npm run test:render`, 8 seconds, and that is run
+after every edit rather than once a stage. The debt rule from `_shared/card-verify.md` section 1
+is what keeps this honest: **no commit while the debt list is non-empty**, and the run report states
+the list and the one gate that discharged it.
 
 **The four hoists that pay for themselves, measured on 2026-08-31 at 121 cards.** None of them
 removes a check, and each one is a real answer to where the minutes actually went:
@@ -102,7 +112,8 @@ removes a check, and each one is a real answer to where the minutes actually wen
 |---|---|---|
 | `_shared/tools/ctx.mjs <id>` once per card, instead of the read set arriving file by file | one run, one turn | the same bytes. It reads the catalog entry, the record in either shape, the source, the poster fragment, the category contract and the siblings the prose names |
 | the report and the frames started in the BACKGROUND at the top of a card (`_shared/card-verify.md` section 0) | zero waiting | they are read before the card is closed, and the deliverable names the result of each |
-| the full gate ONCE per card, at the end, and `SCHEME_IDS=a,b,c` for the per-card loop | 3m10s per card, 7s per loop | nine tests skip under `SCHEME_IDS` and all nine are catalog CENSUSES, which are batch statements by construction. The unfiltered gate is what closes the card |
+| the full gate ONCE for the RUN, at the end, and `SCHEME_IDS=<id>` for the per-card loop | 2m10s for the run, 8s per loop | nine tests skip under `SCHEME_IDS` and all nine are catalog CENSUSES, which are batch statements by construction. The unfiltered gate is what closes the RUN |
+| the count sweep on `npm run test:unit` and two per-card report files, never on `npm test` plus `npm run report` | 11s instead of 6 minutes, per sweep | every guarded count is computed in `unit/**` with no browser, and the two canon-cited measurements come from two report files that both take a per-card id (`_shared/card-verify.md` section 4) |
 | the frames of one step opened in ONE message, all of them, full size | one turn per step set | a batching rule and nothing else. **A contact sheet is not a substitute**: it downsamples, and the clearances this run is judged on live under the downsample |
 
 What must NOT be hoisted, because the cycle exists to catch what a green gate does not: the frames

@@ -1274,6 +1274,45 @@ body.sidebar-collapsed .side-expand { display: grid; }
 }
 body.reduced-motion .reduced-notice { display: block; }
 
+/* ===== SCROLL TO TOP ===== */
+/* The same button, the same geometry and the same tokens as cli/css/styles.css: chrome parity is
+   the rule the two stylesheets are held to, so a change here is a change in both. */
+.scroll-top-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 8px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, opacity 0.2s;
+  z-index: 100;
+}
+
+.scroll-top-btn.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.scroll-top-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: rgba(224, 205, 255, 0.07);
+}
+
+.scroll-top-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* ===== FOOTER ===== */
 .footer {
   border-top: 1px solid var(--border-subtle);
@@ -1364,6 +1403,7 @@ body.reduced-motion .reduced-notice { display: block; }
 
 @media (hover: none) {
   .cat-btn { min-height: 40px; }
+  .scroll-top-btn { min-width: 44px; min-height: 44px; }
 }
 
 @media (max-width: 400px) {

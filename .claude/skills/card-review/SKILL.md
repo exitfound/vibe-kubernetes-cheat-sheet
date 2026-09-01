@@ -40,8 +40,10 @@ grep -n "'<card-id>'" scheme/js/app.js                        # old hashes forwa
 near misses named, and that is the answer: this is the wrong skill and `card-new` builds one. What
 it prints is phase 1 below, so run it once here and do not run it twice. Server and working
 directories are `_shared/card-verify.md` section 0, and its "start the long runs first" subsection
-applies from this line onward: launch the report and the frames NOW, in the background, so they
-land under the reading instead of after it.
+applies from this line onward: launch the frames NOW, in the background, so they land under the
+reading instead of after it. The unfiltered report is launched with them in LANE A only. In lane B
+the two report files that answer a detail are taken filtered, by id, where the loop in section 1
+routes them: five seconds each, against three minutes for verdicts about other cards.
 
 ---
 
@@ -381,8 +383,14 @@ In the user's language:
 
 - **which lane ran**, and for lane B the scope, what the record ruled (quoted, or "the record says
   nothing about this"), and every blast-radius row re-checked with the number behind it
-- what was run: the FULL gate result with numbers, not the filtered one, plus how many frames were
-  opened and at which viewports, and how many of the 94 review rows were walked
+- what was run, with numbers, and WHICH runs is decided by the lane rather than by habit. Lane A
+  ends in the FULL gate, once, and its numbers are reported, not the filtered ones: an audit is a
+  statement about the card in the catalog it sits in. Lane B ends in the detail loop that
+  `_shared/card-verify.md` section 1 routes by what the change touched, and reports THOSE runs by
+  name plus the debt list it left and how the debt was discharged. A lane B change that reports a
+  full gate it did not need has not been more careful, it has been slower by two minutes and has
+  said nothing extra. Either way: how many frames were opened and at which viewports, and how many
+  of the 94 review rows were walked
 - findings, ranked, with evidence
 - what was fixed and what was verified after the fix
 - the count sweep as a table: every file touched or checked, marked **updated**, **re-measured and

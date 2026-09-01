@@ -1,6 +1,10 @@
-// render.mjs: the Playwright plumbing every render test shares, so they cannot drift apart into
-// private forks again (launch, id discovery, opening a card, the deterministic-seek trio, the two
-// opacity readings, element identity, the root-space bbox mapping and the narration-panel extent).
+// render.mjs: the Playwright plumbing, so it cannot drift apart into private forks again (launch,
+// id discovery, opening a card, the deterministic-seek trio, the two opacity readings, element
+// identity, the root-space bbox mapping and the narration-panel extent).
+//
+// Its callers are `tools/walk.mjs`, which takes the one walk every file under render/ and report/
+// asserts over, and the card tools under `.claude/skills/`. No test file imports it to drive a page
+// any more: they used to, twelve of them, each with a Chromium and 123 card opens of its own.
 // Carried over from tools/_shared.mjs with three deliberate changes, each marked below with the
 // divergence it closes.
 //
@@ -27,7 +31,7 @@ export const DEFAULT_BASE = (process.env.BASE || 'http://localhost:8888').replac
 // ---------------------------------------------------------------------------------------------
 // DIVERGENCE 2: one selector timeout for the whole suite, and NO settle pause anywhere.
 //
-// ONE NUMBER, for every walk in render/ and report/. Per-walk timings are never chosen, they
+// ONE NUMBER, for the walk and for the card tools. Per-walk timings are never chosen, they
 // accumulate: left alone they become three different timeouts on the SAME element, and nobody can
 // say which one is the rule. It takes the most conservative value any walk needs, because a flake
 // costs a whole re-run and nothing is gained by giving a slow browser 7 seconds less.
@@ -104,9 +108,11 @@ export function initPage(mode) {
 // not data.js: comparing the two with census() is what catches a grid that renders a subset.
 // Navigates the page.
 //
-// SCHEME_IDS narrows the answer here, in ONE place, because all nine render files walk the ids this
-// returns. The announcement is printed once per process so a filtered run cannot be read as a full
-// one. What keeps it honest is in fixtures/catalog.mjs beside `floor()`.
+// SCHEME_IDS narrows the answer here, in ONE place, and since 2026-09-01 that place is narrower
+// still: `tools/walk.mjs` is the only caller that matters, because every browser-driven file now
+// asserts over the walk it takes rather than driving a page of its own. The announcement is printed
+// once per process so a filtered run cannot be read as a full one. What keeps it honest is in
+// fixtures/catalog.mjs beside `floor()`.
 let announced = false;
 export async function discoverIds(page, base = DEFAULT_BASE) {
   await page.goto(`${base}/scheme/`, { waitUntil: 'domcontentloaded' });

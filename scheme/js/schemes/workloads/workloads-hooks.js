@@ -177,8 +177,12 @@ export const STEPS_SPEC = [
   },
   {
     id: 'sigterm',
-    duration: 4000,
-    narration: 'Once preStop returns, Kubelet asks the runtime to stop the container via CRI StopContainer. The runtime delivers SIGTERM to the ENTRYPOINT process inside the Pod. The grace timer keeps counting down from where preStop left off. If the process is still alive when it reaches 0, the runtime escalates to SIGKILL. The container then exits and the Pod object is removed from the API.',
+    // 332 characters against a span of 3280. The catalog pace of 10 ms per character asks for 3320,
+    // which M-19 allows and the picture does not: it leaves 40ms between the ball landing and the
+    // auto-advance, where the two sibling hop steps on the same 3280 span hold 520. 3400 is the
+    // nearest number to the median that still lets the arrival be seen.
+    duration: 3400,
+    narration: 'Once preStop returns, Kubelet asks the runtime to stop the container via CRI StopContainer. The runtime delivers SIGTERM to the ENTRYPOINT process, which stops and reports Terminated. The grace timer runs on from where preStop left it, and Graceful Pod Shutdown follows that window to the SIGKILL if anything is still alive at zero.',
     chips: { postStartChip: EXIT0, entrypointChip: 'received SIGTERM', preStopChip: EXIT0, stateChip: 'Terminated', graceChip: '0s · SIGKILL if alive' },
     wires: { req: 'CRI StopContainer · SIGTERM · ACK' },
     // Final state pinned on the static path too, so cancel between steps does not flash to default.

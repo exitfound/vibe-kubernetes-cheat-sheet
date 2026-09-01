@@ -85,10 +85,18 @@ import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
 import { carriedBlock, carriedMap, carryKey, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, DIAGRAM_FACES, launch, initPage, discoverIds,
-  openCard, stepCount, gotoStep, fallbackFaces, installGeometryHelpers, overlayProbe,
-} from '../fixtures/render.mjs';
+import { DIAGRAM_FACES } from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. Every reading this file asserts over is taken by
+// `tools/walk.mjs`, which opens each card once and hands the same three-viewport walk to this file
+// and to report/overlay.test.mjs. The two used to drive a Chromium each and walk the SAME two extra
+// viewports with the SAME panel probe: 1500 duplicated step probes, 246 duplicated viewport
+// resizes, and 84 of the report tier's 135 seconds. `npm run report` runs the walk first, every
+// time, so nothing here is ever read from a snapshot of a tree that has since changed.
+//
+// What did NOT change: every finding, every threshold, every printed line and the order of all of
+// them. The probe that used to live in this file moved into the walk verbatim.
 
 // Tolerances, carried over from check-geometry.mjs unchanged.
 const TOL = 6;              // chip-strip centre slack, in viewBox units
@@ -113,63 +121,6 @@ const VIEWPORTS = [
 // empty by construction, a lane pair declined), so the two populations OVERLAP and never coincide,
 // and a stale copy in this slot would have a reader comparing the report against a figure nobody
 // recounted. See the closing note the report prints.
-
-// Runs IN THE PAGE. No free variables: page.evaluate serialises it. The root-space mapping it uses
-// is shared with render/geometry.test.mjs and report/arrival.test.mjs (fixtures/render.mjs
-// rootBBox), and reaches the page as window.__toRoot through installGeometryHelpers(). The probe
-// itself stays local: the three files read different halves of one picture.
-const probe = () => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-
-  const toRoot = (el, b) => window.__toRoot(el, svg, b);
-
-  const blocks = [];
-  for (const sel of ['.scheme-box', '.scheme-pod', '.scheme-cylinder', '.scheme-node']) {
-    const isFrame = sel === '.scheme-node';
-    for (const el of svg.querySelectorAll(sel)) {
-      if (el.closest('#packetLayer')) continue;
-      const cs = getComputedStyle(el);
-      if (cs.opacity === '0' || cs.display === 'none') continue;
-      const b = toRoot(el, el.getBBox());
-      const label = (el.querySelector('text') || {}).textContent || sel;
-      blocks.push({ label: label.trim().slice(0, 28), x: b.x, y: b.y, w: b.w, h: b.h, isFrame });
-    }
-  }
-
-  // Content extent, TWICE. `content` is the original's: every block, frames included, which is the
-  // number CENTRE judges. `contentNoFrames` is the same span with frames dropped, the way
-  // CENTRE-LOW counts, and it exists only so the report can show both sides of L-17.
-  let cx0 = Infinity, cx1 = -Infinity, fx0 = Infinity, fx1 = -Infinity;
-  for (const b of blocks) {
-    cx0 = Math.min(cx0, b.x); cx1 = Math.max(cx1, b.x + b.w);
-    if (!b.isFrame) { fx0 = Math.min(fx0, b.x); fx1 = Math.max(fx1, b.x + b.w); }
-  }
-
-  // Chip strip extent. No packet-layer filter and no opacity filter, as in the original: a chip
-  // parked at opacity 0 still holds its slot in the strip.
-  let px0 = Infinity, px1 = -Infinity;
-  for (const el of svg.querySelectorAll('.scheme-chip')) {
-    const b = toRoot(el, el.getBBox());
-    px0 = Math.min(px0, b.x); px1 = Math.max(px1, b.x + b.w);
-  }
-
-  // The panel's REAL extent in viewBox units. The blanket safe-zone (x<=380, y<=300) is a catalog
-  // worst case, so a card is judged against its own panel, mapped through xMidYMid meet.
-  let overlay = null;
-  const ov = document.querySelector('.narration-overlay');
-  if (ov) {
-    const sb = svg.getBoundingClientRect();
-    const ob = ov.getBoundingClientRect();
-    const vb = svg.viewBox.baseVal;
-    const scale = Math.min(sb.width / vb.width, sb.height / vb.height);
-    const offX = sb.left + (sb.width - vb.width * scale) / 2;
-    const offY = sb.top + (sb.height - vb.height * scale) / 2;
-    overlay = { right: (ob.right - offX) / scale + vb.x, bottom: (ob.bottom - offY) / scale + vb.y };
-  }
-
-  return { blocks, content: [cx0, cx1], contentNoFrames: [fx0, fx1], chips: [px0, px1], overlay };
-};
 
 // The extra viewport passes consume ONLY the panel extent (check-geometry.mjs:262-273 pushes
 // nothing else), so they run fixtures/render.mjs overlayProbe instead of the full probe above.
@@ -204,18 +155,6 @@ function centreLow(blockSeen, ovBottom) {
   return { n: low.length, lo, hi, centre: lc };
 }
 
-// One probe, with one retry when the diagram is momentarily absent. Scene.build() empties the host
-// and appends a NEW <svg.diagram>, so a step change has an instant with no diagram in the dialog and
-// a probe landing in it returns null. Measured: without the retry this walk came back one step short
-// of what the mandatory file, doing the same walk, sampled. One unsampled step is one step of a
-// composition nobody looked at, and in a file that never fails it would have gone unnoticed.
-async function probeStep(page) {
-  let data = await page.evaluate(probe);
-  if (data) return data;
-  await page.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS });
-  return page.evaluate(probe);
-}
-
 // The step census of a green run of the whole catalog. Printed, never asserted.
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
 // what say how big a whole walk is (CATALOG_BASELINE in ../fixtures/catalog.mjs).
@@ -248,7 +187,6 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   const lowDelta = [];          // what a worst-of-three panel bottom would add or drop
   const fellBack = new Set();
   const notes = [];
-  let browser;
   let sampledCards = 0, steps = 0, extraSteps = 0;
 
   // `where` pins the exact row a ruling in ../fixtures/carried.mjs carries. CENTRE and CENTRE-LOW
@@ -265,22 +203,19 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
   };
 
   try {
-    browser = await launch();
-    const context = await browser.newContext({ viewport: VIEWPORTS[0] });
-    const page = await context.newPage();
-    await page.addInitScript(initPage, 'expose');
-    await installGeometryHelpers(page);
-    const all = await discoverIds(page, DEFAULT_BASE);
+    const snap = readSnapshot();
+    const all = snap.ids;
     const ids = ONLY.length ? all.filter(i => ONLY.includes(i)) : all;
     for (const want of ONLY) {
       if (!all.includes(want)) notes.push(`${ONLY_VAR} names ${want}, which the grid does not render`);
     }
+    const vp0 = `${VIEWPORTS[0].width}x${VIEWPORTS[0].height}`;
 
     for (const id of ids) {
       try {
-        await openCard(page, id);
-        for (const f of await fallbackFaces(page)) fellBack.add(f);
-        const total = await stepCount(page);
+        const card = snap.cards[id];
+        for (const f of card.fellBack) fellBack.add(f);
+        const total = card.steps;
         if (!total) { notes.push(`${id}: stepCount 0, nothing walked`); continue; }
 
         // Pooled over every step: a block that only appears mid-story still has to sit where it
@@ -291,8 +226,11 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
         let ovRight = 0, ovBottom = 0;
 
         for (let i = 0; i < total; i++) {
-          await gotoStep(page, i);
-          const data = await probeStep(page);
+          const row = card.byVp[vp0][i];
+          // The walk stores the two panel readings apart: `panelSoft` is the two-edge one this file
+          // has always used, under this file's guards. `panel` is the shared four-edge probe
+          // report/overlay.test.mjs reads. Neither consumer's behaviour moved.
+          const data = row.geom && { ...row.geom, overlay: row.panelSoft };
           if (!data) { notes.push(`${id}: step ${i} had no diagram, not sampled`); continue; }
           steps++;
           for (const b of data.blocks) {
@@ -311,16 +249,12 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
           strip[0] = Math.min(strip[0], data.chips[0]); strip[1] = Math.max(strip[1], data.chips[1]);
         }
 
-        // OCCLUDED's extra viewports. Panel only.
+        // OCCLUDED's extra viewports. Panel only, and the same rows report/overlay.test.mjs reads.
         for (const vp of VIEWPORTS.slice(1)) {
-          await page.setViewportSize(vp);
-          for (let i = 0; i < total; i++) {
-            await gotoStep(page, i);
-            const o = await page.evaluate(overlayProbe);
-            if (o) { ovRects.push(o); extraSteps++; }
+          for (const row of card.byVp[`${vp.width}x${vp.height}`]) {
+            if (row.panel) { ovRects.push(row.panel); extraSteps++; }
           }
         }
-        await page.setViewportSize(VIEWPORTS[0]);
 
         // CENTRE. Both readings printed, the original's judged. A card with no chips leaves the
         // strip at [Infinity, -Infinity] and its centre is NaN, so the comparison is false and no
@@ -378,8 +312,6 @@ test('CENTRE / CENTRE-LOW / OCCLUDED across every card (report only, never fails
     }
   } catch (err) {
     notes.push(`harness: ${err.message.split('\n')[0]}`);
-  } finally {
-    if (browser) await browser.close();
   }
 
   const total = findings.CENTRE.length + findings['CENTRE-LOW'].length + findings.OCCLUDED.length;

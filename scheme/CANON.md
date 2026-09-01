@@ -66,7 +66,7 @@ strings, and the file list `dashTargets` names.
 
 ## The numbers this file is written against
 
-121 cards: cluster 28, workloads 25, network 37, storage 31. 736 steps. Re-measure before trusting
+123 cards: cluster 28, workloads 27, network 37, storage 31. 750 steps. Re-measure before trusting
 any figure below that carries a date-free absolute, and if you change one, change it here.
 
 ---
@@ -78,7 +78,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | L-01 | The safe-zone is an L, not a forbidden box: the overlay covers the top-left quadrant only, so the usable area is the full width below its bottom PLUS the full height right of its right edge | review | this file |
 | L-02 | The narration panel's RIGHT edge is `x<=397` on every card, on every viewport. Measured: worst 396.55, `cluster-architecture` at 1100x800 | report:overlay/L-02 | `test/report/overlay.test.mjs` |
 | L-03 | Nothing starts left of x=420 unless it also sits below that card's own panel bottom | review | L-02 |
-| L-04 | The panel BOTTOM is per card and ranges 90 to 504 over the standard viewport set. Deepest 503.13 (`workloads-pod-lifecycle-phases`, 1100x800, step 5). The shallow end is a CLUSTER many cards share, not one card | report:overlay/L-04 | measured over all 110 cards |
+| L-04 | The panel BOTTOM is per card and ranges 90 to 379 over the standard viewport set. Deepest 378.90 (`workloads-pod-qos-classes`, 1100x800, step 4). The shallow end is a CLUSTER many cards share, not one card | report:overlay/L-04 | measured over all 110 cards |
 | L-05 | The panel moves NON-MONOTONICALLY against the PICTURE and one way only against the VIEWPORT, so it is never measured on one viewport | report:overlay/L-05 | `test/report/overlay.test.mjs` |
 | L-05a | **It is a TYPOGRAPHY problem, not a height problem**: clamping the height does not touch it, and closing it needs type that scales with the diagram | report:overlay/L-05a | measured 2026-08-07, `scheme/css/styles.css` under `.narration-overlay` |
 | L-05b | The panel ALSO changes height between the STEPS of one card, so the diagram area under it moves while the card plays. Pinning `min-height` to the tallest narration is DECLINED | review | measured 2026-08-06, `scheme/css/styles.css` under `.narration-overlay` |
@@ -284,6 +284,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | D-13 | Adding a CATEGORY touches twelve places, and the ORDER that makes them land is the checklist in `scheme/CLAUDE.md` | review | `scheme/CLAUDE.md`, new-category checklist |
 | D-14 | The poster-first model applies to every card: idle is a static poster, step 1 auto-plays after about 1s, the poster previews step 1's TEXT immediately, and `Next` from the last step wraps to poster then step 1 | test:skeleton/D-14 | `lib/timeline.js` |
 | D-15 | Search filters `title + desc + category`, debounced 80ms. Inside a dialog: `Space` play/pause, arrows prev/next, `R` reset, `Esc` close | review | `js/app.js` |
+| D-16 | The hash holds the GRID as well as the card: `#at=<key>&q=<search>` is the state the grid is in, and `#scheme=<id>&step=<n>&at=<key>&q=<search>` carries it through an open card. A filter or a search change resets the scroll | test:hash/D-16 | `js/app.js`, root `index.html` |
 
 ## R: posters
 
@@ -301,7 +302,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | review | this file |
 | R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | root `CLAUDE.md` |
 | R-11 | `FALLBACK_POSTER` in `js/app.js` breaks R-08 and R-09 on purpose. Do not "fix" it into canon and do not delete it: it is the failure mode made visible | test:catalog/D-06 | `js/app.js` |
-| R-12 | Poster notes go to that category's record under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 121 of 121**, so a missing one is now a regression | review | the four `CARDS.md` |
+| R-12 | Poster notes go to that category's record under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 123 of 123**, so a missing one is now a regression | review | the four `CARDS.md` |
 
 ## S: module structure
 
@@ -504,9 +505,9 @@ Not defects. Each is a rule broken on purpose, with the reason and the number th
 | `FALLBACK_POSTER` breaks R-08 and R-09 | R-11 |
 | `dim` losing to `role` on an arrow | A-18. Making `dim` outrank `role` reaches almost the whole catalog (101 of 110 cards declare a dim arrow or lane carrying a role) and greys the networking exemplar's fan |
 | `flashChips` exported with no card importing it | S-25. `F.flash` is its one caller |
-| `F.flash` a live flow verb with zero call sites on 665 steps | S-25c, and `M-27` is why the zero is a ban rather than a gap |
+| `F.flash` a live flow verb with zero call sites on 750 steps | S-25c, and `M-27` is why the zero is a ban rather than a gap |
 | 78 of 590 narrated steps register no animation at all, 191.9 seconds | M-27. A packet-less, pod-less step is STILL on purpose: the alternative was a brightness pulse on infrastructure that `M-01` forbids and no still frame can show |
-| `step.motion` a live field with zero uses on 665 steps | S-25a |
+| `step.motion` a live field with zero uses on 750 steps | S-25a |
 | Six `svg.js` exports with no importer | S-29 |
 | No module constant declares a number nothing reads. **Zero, catalog-wide** | A dangling name is worse than a dead line: a constant and the comment naming it always move together. An axis is stated as the literal 600, a pitch as a two-line comment on the block it spaces |
 | Header chrome duplicated three ways (`cli/js/app.js`, `scheme/js/app.js`, inline in the root `index.html`): `renderHeaderActions` at 86 lines, plus `fallbackCopy`, `closeAllDropdowns` and the icons, about 240 lines | Deliberate. Each path prefix stays self-contained, which is the reason the duplication exists |
@@ -558,7 +559,7 @@ The difference between the two is what a reader gets wrong. The panel is HTML at
 dialog width while the diagram scales past it, so a WIDER dialog gives a WIDER panel that wraps into
 FEWER lines and is therefore SHORTER in viewBox units, while every drawn thing around it grows.
 
-Against the viewport the bottom is orderly: **665 of 665 comparable steps** fall as the viewport
+Against the viewport the bottom is orderly: **750 of 750 comparable steps** fall as the viewport
 widens, 0 break that order.
 
 ### L-05a
@@ -568,7 +569,8 @@ edge still travels **105.78 units** across the standard set (`cluster-architectu
 1600x1000 against 396.55 at 1100x800), so the ceiling is reached only at the narrowest viewport.
 
 The font is a fixed pixel size, so a wider viewport wraps the same text into fewer lines AND divides
-by a larger scale: the panel shrinks in units twice over, by up to 186. The fix that would close it
+by a larger scale: the panel shrinks in units twice over, by up to 131.68 (`workloads-pod-qos-classes`,
+step 4). The fix that would close it
 resizes every narration on every card, which is why it stands.
 
 ### L-05b
@@ -985,6 +987,38 @@ The folder, `cards.js`, `posters.js`, `<cat>-kit.js`, `CLAUDE.md`, the record, `
 `posterFirst: true` is an ARGUMENT inside `defineCard`'s closure and is statically unreachable, so
 the rest of the row is a human's.
 
+### D-16
+
+A bare `#<key>` is still READ, so an older or hand-written link resolves and is rewritten to the
+named form. A hash that names neither a card nor a section is cleaned out of the URL rather than left
+looking like state. Every write is a `replaceState`: a filter is a view, not a place, and back should
+leave the page rather than walk the sections.
+
+**The search is state too, and for the same reason.** A query lives in the hash as `q=`, percent-
+encoded so a space, an `&` or a `#` inside it cannot be read back as a second parameter, and it
+carries the RAW typed text rather than the folded one the filter matches on, because it has to go
+back into the search box on a reload. A grid filtered by a query the reader cannot see and cannot
+clear is worse than a grid that forgot it.
+
+**A reload restarts the card.** The `step=` a card hash carries is written by `onStepChange`, so it
+records how far the animation GOT, and restoring it on a reload drops the reader onto a frozen middle
+frame of something they were watching play. On the opening pass after a reload the step is dropped
+and the card opens from the poster exactly as a click on the grid opens it. A link, a bookmark and a
+back are a different intent and keep their step, which `performance.getEntriesByType('navigation')`
+is what tells apart.
+
+**The scroll half is two separate mistakes, both measured.** `window.scrollTo({ behavior: 'auto' })`
+DEFERS to `scroll-behavior: smooth` in the stylesheet rather than overriding it, so a filter change
+glided for about half a second through the length of the old grid: `instant` is the only value that
+overrules the CSS. And `history.scrollRestoration` is left at `auto` at everyone's peril, because the
+offset the browser restores was measured against the UNFILTERED grid, which is a different document
+height and lands nowhere in particular.
+
+**Why the key is named rather than bare, which is how `/cli/` writes its sections.** The root hub
+forwards an incoming `#...` to one sub-app, so the bare namespace belongs to `/cli/` by being the
+default target. Matching on the `#scheme=` and `#at=` prefixes is what keeps a copy of this catalog's
+section keys out of the hub, where nothing would notice it going stale.
+
 ### R-08a
 
 8 workloads (`rolling-update`, `graceful-shutdown`, `restart-policy`, `crashloopbackoff`,
@@ -1202,13 +1236,13 @@ records still carry a copy. The cluster record is the worked example.
 
 ### S-50
 
-They name 115 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
+They name 118 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
 short and what stops it drifting from the rulebook it drives.
 
 ### S-38
 
-`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **75 anchors
-today**, all four records (cluster 6, workloads 19, network 35, storage 15), and that is a count of
+`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **83 anchors
+today**, all four records (cluster 6, workloads 27, network 35, storage 15), and that is a count of
 what is there rather than a quota to hold. **The walk fails on a record it cannot read instead of
 running shorter** (`S-46`).
 
@@ -1227,7 +1261,7 @@ stale note cost more than keeping it, so there is none.
 section, or a `CARDS/<card-id>.md` per card with `CARDS.md` keeping the preamble and the index.
 `recordFiles` in `test/fixtures/catalog.mjs` decides which by looking for the folder, so a category
 choosing either is covered without a reader knowing its name, and a `CARDS/` that exists and reads
-empty is a failure rather than a shorter walk. Cluster is split, the other three are not.
+empty is a failure rather than a shorter walk. Cluster and workloads are split, network and storage are not.
 
 **An anchor is unique only WITHIN its `## <card id>` section, never across a record.** The resolver
 looks the line up in that card alone, so a duplicate is legal where it sits: 0 anchor texts are

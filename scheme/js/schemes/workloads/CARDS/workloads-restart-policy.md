@@ -46,11 +46,11 @@ CONTENT  An init container does not override the Pod value BY BEING an init cont
          regular init container rides the sentence that already says what the Pod value covers
          ("every main and regular init container that does not set its own"), and the sidecar keeps a
          sentence of its own with its own dates.
-CONTENT  `capped at 300s` carries `by default`. KubeletCrashLoopBackOffMax is beta and enabled by
-         default at this card's declared 1.35, which makes the ceiling a per-node default rather
-         than a constant: "you can reconfigure the maximum delay between container start retries
-         from the default of 300s (5 minutes). This configuration is set per node using kubelet
-         configuration." Nothing there was false, so the repair is two words and no more.
+CONTENT  `backoff` keeps `by default` and lost only the RUNGS: it reads "a 10s base to a 5 minute
+         ceiling by default", and the rung by rung walk is workloads-crashloopbackoff's
+         (CANON.md:411). The qualifier stays because KubeletCrashLoopBackOffMax is beta and on by
+         default at the declared 1.35: the 300s maximum is "set per node using kubelet
+         configuration", not a constant.
          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
 BUDGET   Folding it in rather than adding a sixth sentence is a PANEL decision, and it was measured
          by OPENING THE FRAME at 1100x800, not by a rule. A first repair ran this step to 597
@@ -67,6 +67,13 @@ BUDGET   Folding it in rather than adding a sixth sentence is a PANEL decision, 
          SIGN and on the one line of difference, which is what the decision turned on. Prefer
          `npm run report` for a recorded number, and the opened frame for a verdict.
          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
+SCOPE    workloads-crashloopbackoff owns the ladder itself. The `backoff` step names the shape and
+         its two ends, an immediate first restart and a doubling from a 10s base to a 5 minute
+         ceiling by default, and leaves the rung by rung walk to that card: a pointer is not
+         duplication, a paragraph is (CANON.md:411). The rungs written out, 10s, 20s, 40s, 80s,
+         160s and the 300s cap, run this step to 478 characters and a panel bottom of 329.2 at
+         1100x800, where the 419 it carries reads 279.5, two lines higher. Neither is this card's
+         deepest panel, which is the `policy` step the BUDGET block above measures.
 ```
 
 ### poster

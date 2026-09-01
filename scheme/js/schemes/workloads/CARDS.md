@@ -28,7 +28,7 @@ for as long as it existed and no check saw it.
 
 **What a record here carries** is `WL.S-03` in `./CLAUDE.md`, and it is short: open on `WHAT`, use
 the labels below in the order they are listed, and carry a `### poster` block. A `PANEL` block is
-taken where the panel BINDS the geometry, which is 8 of the 25 cards, and is not a form the other 17
+taken where the panel BINDS the geometry, which is 10 of the 27 cards, and is not a form the other 17
 fill in.
 
 A new card takes a new file in `./CARDS/` and a row in the index below, in the place the grid gives
@@ -42,7 +42,7 @@ The label vocabulary a `### layout` block uses is ONE list for all four records,
 `scheme/CANON.md` under "The record vocabulary". Use the labels that apply, IN THAT ORDER, and add
 none of your own. The order is not decoration: a reader looking for what binds a card's geometry
 reads down until `PANEL`, and a record that puts `OPEN` in the middle or `CONTENT` after `SCOPE`
-makes that a hunt. All 25 records here run in order.
+makes that a hunt. All 27 records here run in order.
 
 Panel extent is per card: the right edge is `x<=397` catalog-wide, the BOTTOM varies per card
 and per viewport inside the band `L-04` states, and it moves NON-MONOTONICALLY (`L-02`, `L-04`,
@@ -72,13 +72,15 @@ file carries none, which is what lets the same walk read it alongside `./CARDS/`
 
 - [`workloads-pod-lifecycle-phases`](./CARDS/workloads-pod-lifecycle-phases.md)
 - [`workloads-restart-policy`](./CARDS/workloads-restart-policy.md)
-- [`workloads-probes`](./CARDS/workloads-probes.md)
-- [`workloads-container-states`](./CARDS/workloads-container-states.md)
 - [`workloads-crashloopbackoff`](./CARDS/workloads-crashloopbackoff.md)
+- [`workloads-container-states`](./CARDS/workloads-container-states.md)
+- [`workloads-ephemeral-containers`](./CARDS/workloads-ephemeral-containers.md)
+- [`workloads-probes`](./CARDS/workloads-probes.md)
+- [`workloads-pod-resize`](./CARDS/workloads-pod-resize.md)
 - [`workloads-hooks`](./CARDS/workloads-hooks.md)
 - [`workloads-graceful-shutdown`](./CARDS/workloads-graceful-shutdown.md)
+- [`workloads-termination-order`](./CARDS/workloads-termination-order.md)
 - [`workloads-force-deletion`](./CARDS/workloads-force-deletion.md)
-- [`workloads-pod-resize`](./CARDS/workloads-pod-resize.md)
 
 **Controllers**
 

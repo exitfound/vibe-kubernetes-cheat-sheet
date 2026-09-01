@@ -60,14 +60,12 @@
 //   guard stays here regardless: "no card overflows its rect today" is a fact about the catalog,
 //   not a property of these rules, and the first card that does would silently move a face.
 
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census, floor, SUBSET } from '../fixtures/catalog.mjs';
+import { cards, census, floor } from '../fixtures/catalog.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, DIAGRAM, discoverIds, fallbackFaces, gotoStep, installGeometryHelpers, launch,
-  openCard, SELECTOR_TIMEOUT_MS, initPage, stepCount,
-} from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+import { vpName, VIEWPORTS } from '../tools/walk.mjs';
 
 // ---------------------------------------------------------------------------------------------
 // Control numbers, taken off a green run of the whole catalog, clean on [DIAGONAL, THROUGH, OFFEDGE].
@@ -91,7 +89,8 @@ const AXIS_EPS = 0.01;      // a segment is axis-aligned within this, in viewBox
 const THROUGH_INSET = 3;    // the rect THROUGH tests is shrunk by this on each side
 
 // L-06's first row. See the header for why one viewport answers all three rules.
-const VIEWPORT = { width: 1600, height: 1000 };
+const VIEWPORT = VIEWPORTS[0];
+const VP = vpName(VIEWPORT);
 
 // ---------------------------------------------------------------------------------------------
 // The probe. Runs IN THE PAGE, so it closes over nothing: it is serialised by page.evaluate.
@@ -105,79 +104,6 @@ const VIEWPORT = { width: 1600, height: 1000 };
 // lives in fixtures/render.mjs as rootBBox and reaches the page as window.__toRoot, which
 // installGeometryHelpers() writes before the first navigation.
 // ---------------------------------------------------------------------------------------------
-const probe = () => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-
-  // getBBox() is in the element's own user space and primitives are translated groups, so every
-  // bbox is mapped through the element-to-root matrix. Without it the check compares two
-  // coordinate systems and every number it prints is fiction.
-  const toRoot = (el, b) => window.__toRoot(el, svg, b);
-
-  // The same matrix, kept here for the LANE half further down, which maps a list of path POINTS
-  // rather than a bounding box and so has nothing to hand the shared helper. Neither of the other
-  // two callers of that helper reads lanes, so this is not a fourth copy of anything.
-  const rootCTM = svg.getScreenCTM();
-
-  // Blocks: the shapes a lane must not be drawn across, and the faces an endpoint may sit on.
-  const blocks = [];
-  for (const sel of ['.scheme-box', '.scheme-pod', '.scheme-cylinder', '.scheme-node']) {
-    const isFrame = sel === '.scheme-node';        // container, never an obstacle. See the header.
-    for (const el of svg.querySelectorAll(sel)) {
-      if (el.closest('#packetLayer')) continue;
-      const cs = getComputedStyle(el);
-      if (cs.opacity === '0' || cs.display === 'none') continue;
-      const b = toRoot(el, el.getBBox());
-      const label = (el.querySelector('text') || {}).textContent || sel;
-      blocks.push({ label: label.trim().slice(0, 28), x: b.x, y: b.y, w: b.w, h: b.h, isFrame });
-    }
-  }
-
-  // Lanes: every drawn arrow or relationship path, as one or more polylines.
-  const lanes = [];
-  for (const el of svg.querySelectorAll('.scheme-arrow')) {
-    if (el.closest('#packetLayer')) continue;
-    const cs = getComputedStyle(el);
-    if (cs.opacity === '0' || cs.display === 'none') continue;
-    let subpaths = [];
-    if (el.tagName.toLowerCase() === 'line') {
-      subpaths = [[[+el.getAttribute('x1'), +el.getAttribute('y1')], [+el.getAttribute('x2'), +el.getAttribute('y2')]]];
-    } else {
-      const d = el.getAttribute('d') || '';
-      if (/[QqCcSsTtAa]/.test(d)) continue;        // curved: no straight-segment claim to make
-      const toks = d.match(/[MmLlHhVvZz]|-?\d+(?:\.\d+)?/g) || [];
-      let cmd = null, cur = null, x = 0, y = 0, start = null;
-      for (let i = 0; i < toks.length;) {
-        if (/^[MmLlHhVvZz]$/.test(toks[i])) {
-          cmd = toks[i++];
-          if (/[Zz]/.test(cmd) && cur && start) { cur.push([start[0], start[1]]); }
-          continue;
-        }
-        if (!cmd) break;                           // `d` starting with a number: nothing to claim
-        const rel = cmd === cmd.toLowerCase();
-        if (/[Hh]/.test(cmd))      { x = rel ? x + (+toks[i++]) : +toks[i++]; }
-        else if (/[Vv]/.test(cmd)) { y = rel ? y + (+toks[i++]) : +toks[i++]; }
-        else {
-          const nx = +toks[i++], ny = +toks[i++];
-          x = rel ? x + nx : nx; y = rel ? y + ny : ny;
-        }
-        if (/[Mm]/.test(cmd)) { cur = [[x, y]]; subpaths.push(cur); start = [x, y]; cmd = rel ? 'l' : 'L'; }
-        else if (cur) { cur.push([x, y]); }
-      }
-    }
-    const lm = rootCTM.inverse().multiply(el.getScreenCTM());
-    for (const sp of subpaths) {
-      if (sp.length < 2) continue;
-      lanes.push(sp.map(([px, py]) => {
-        const p = svg.createSVGPoint(); p.x = px; p.y = py;
-        const q = p.matrixTransform(lm);
-        return [Math.round(q.x * 100) / 100, Math.round(q.y * 100) / 100];
-      }));
-    }
-  }
-
-  return { blocks, lanes };
-};
 
 // Does segment (a,b) pass through the INTERIOR of rect r? An endpoint resting on a face does not
 // count, and neither does an endpoint inside the block: a lane terminating on a container inside a
@@ -202,34 +128,17 @@ function crosses(a, b, r, tol) {
   return false;
 }
 
-// One probe, with one retry when the diagram is momentarily absent. Scene.build() empties the host
-// and appends a NEW <svg.diagram>, so a step change has an instant with no diagram in the dialog,
-// and a probe landing in it returns null. That is a harness race, not a card defect, and swallowing
-// it silently would quietly shrink the step census this file asserts a floor on.
-async function probeStep(page) {
-  let data = await page.evaluate(probe);
-  if (data) return data;
-  await page.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS });
-  return page.evaluate(probe);
-}
-
 const catalogued = await cards();
 
-const browser = await launch();
-// Registered on the line after the launch, before the page setup below: node:test runs an
-// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
-// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
-// then nobody's to close for the rest of the run.
-after(() => browser.close());
-
-const context = await browser.newContext({ viewport: VIEWPORT });
-const page = await context.newPage();
-await page.addInitScript(initPage, 'expose');
-await installGeometryHelpers(page);
-const ids = await discoverIds(page, DEFAULT_BASE);
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` opens each card once for the whole
+// suite and takes this reading with the rest. The probe moved into fixtures/probes.mjs as
+// `geometryProbe`, verbatim, and with it went the ONE-RETRY guard and the block extraction that
+// report/geometry-soft.test.mjs held a byte-identical copy of. The walk runs it at VIEWPORT.
+const snap = readSnapshot();
+const ids = snap.ids;
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
-  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
+  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
   census('geometry grid', ids.length, catalogued.length);
 });
 
@@ -240,11 +149,11 @@ for (const id of ids) {
   test(id, async () => {
     walked++;                    // counted before the assertions, so this stays a census of
                                  // COVERAGE and a broken card is reported once, as itself.
-    await openCard(page, id);
+    const card = snap.cards[id];
     // L-21, and it fails the run rather than warning: a missing face is not a card defect, it is a
     // run whose every number is wrong in the same direction, and a quiet 20 percent is exactly the
     // kind of error that gets believed.
-    const fellBack = await fallbackFaces(page);
+    const fellBack = card.fellBack;
     assert.deepEqual(fellBack, [],
       `THE FONTS ARE NOT THE REAL ONES, so this run measures the FALLBACK face:\n  ` +
       `${fellBack.join('\n  ')}\n` +
@@ -252,7 +161,7 @@ for (const id of ids) {
       'every centring and clearance number. This is a finding about the RUN, almost always no ' +
       'network reaching fonts.googleapis.com / fonts.gstatic.com, and NOT about this card. ' +
       'Nothing here is a defect in the diagram: restore the network and run again.');
-    const total = await stepCount(page);
+    const total = card.steps;
     assert.ok(total > 0, `stepCount is ${total}: no steps to walk`);
 
     const seen = new Set();
@@ -263,8 +172,7 @@ for (const id of ids) {
     const faceHits = new Map();
 
     for (let i = 0; i < total; i++) {
-      await gotoStep(page, i);
-      const data = await probeStep(page);
+      const data = card.byVp[VP][i].lanes;
       if (!data) continue;
       sampled++;
       laneCount += data.lanes.length;

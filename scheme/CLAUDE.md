@@ -51,7 +51,7 @@ scheme/
   CANON.md      the card rulebook: every catalog-wide rule, with ids
   css/        tokens.css (category colors), styles.css (layout/dialog), diagrams.css (SVG classes)
   js/
-    app.js    router, grid, modal lifecycle, keyboard, hash routing
+    app.js    router, grid, modal lifecycle, keyboard, hash routing (card AND grid filter, D-16)
     data.js   barrel: CATEGORIES registry + the four manifests as SCHEMES / SUBCATEGORIES
     posters.js  barrel: the four poster maps merged into POSTERS
     lib/      svg, primitives, timeline, motion, sidebar, inspector,
@@ -108,7 +108,7 @@ tint. The column below is what a kit carries beyond even that.
 | Folder | Cards | Tint | Kit surface beyond the common set |
 |---|---|---|---|
 | `cluster/` | 28 | violet `rgb(192, 176, 255)` | `CLU`, `LAYOUT` |
-| `workloads/` | 25 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
+| `workloads/` | 27 | sky blue `rgb(91, 184, 255)` | `WL`, the X layout canon |
 | `network/` | 37 | cyan `rgb(79, 229, 255)` | none |
 | `storage/` | 31 | jade `rgb(94, 202, 148)` | `setCylinderLabel`, `STO`, `chipStrip` |
 
@@ -117,14 +117,14 @@ compared against each other the source of truth, in `unit/module.test.mjs`.
 
 ## Catalog and categories
 
-`js/data.js` exports `SCHEMES` (121 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
+`js/data.js` exports `SCHEMES` (123 entries), `CATEGORIES`, and `SUBCATEGORIES`. An entry's fields
 are `D-01`, the id-to-folder convention is `D-02`, the key and label constraints are `D-07`, and the
 three `CATEGORY_*` maps are projections of one registry (`D-08`, `D-09`).
 
 | Label | key | color | cards | subcategories (`key` to label) |
 |---|---|---|---|---|
 | Cluster | `cluster` | `#7d86ff` indigo | 28 | `control-plane`, `node-runtime`, `node-lifecycle` |
-| Workloads | `workloads` | `#5bb8ff` sky blue | 25 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
+| Workloads | `workloads` | `#5bb8ff` sky blue | 27 | `pods-bootstrap`, `pods-lifecycle`, `controllers` |
 | Networking | `network` | `#4fe5ff` cyan | 37 | `network-foundations`, `pod-networking`, `services-endpoints`, `external-traffic`, `dns-service-discovery` |
 | Storage | `storage` | `#5eca94` jade | 31 | `volume-foundations`, `volumes-claims`, `csi-mount-path`, `stateful-data` |
 
@@ -134,7 +134,7 @@ list is an editorial argument, not a set (`D-10`), and it is recorded beside the
 ## Scheme module contract
 
 Each `js/schemes/<category>/<id>.js` is lazy-imported on dialog open. **There is exactly ONE legal
-export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **121 migrated,
+export surface** (`S-02`), and `unit/module.test.mjs` prints the count on every run: **123 migrated,
 0 legacy**. That surface is the declarative form below, and a hand-written one is a regression
 rather than an alternative this contract admits. What NAMES a card slipping back is the DETECTOR
 described below.
@@ -193,7 +193,7 @@ and `plus: N` adds to whichever of the three was used. An entry earns a name wit
 **The reduced-motion guard is derived.** `flowLights(flow)` collects the ordered union of every
 `lights` list, so a card writes no `if (ctx.reduced)` at all. What it cannot derive is a highlight
 the static path shows INSTEAD of a pulse, because no `lightBoxAt` names it: that is `reducedLit`,
-declared on **111 steps** (network 89, workloads 20, cluster 2, storage 0). It is the ordinary shape
+declared on **114 steps** (network 89, workloads 23, cluster 2, storage 0). It is the ordinary shape
 of the static path wherever a Pod pulses instead of lighting, not an exception. A wrong derivation
 lands on the HIGHLIGHT axis of `render/reduced.test.mjs`, which is enforced along with the other
 three (`S-16`), so `npm test` is what catches it.
@@ -207,7 +207,7 @@ and without a fixed order the picture would depend on the shape of the literal. 
 uses is inherited from the primitive it already called and swapping them is a VISIBLE change
 (`P-09`), so the split runs per CATEGORY rather than per card: cluster, workloads and network are
 `chips` throughout, and storage is the sole `chipsCued` category, with `storage-pvc-binding` the one
-file mixing both. Read off the migrated data: **508 steps carry `chips` and 191 carry `chipsCued`**,
+file mixing both. Read off the migrated data: **522 steps carry `chips` and 191 carry `chipsCued`**,
 because every step states every chip (`P-01`).
 
 `chips` is the state after the STATIC block, which is not the end of the
@@ -218,13 +218,13 @@ value plays `chips`, then `enter`, then `rewind`, then every `F.set` in flow ord
 previous step's values, which `S-13` forbids. `duration` is copied verbatim, and only
 `render/duration.test.mjs` can see it at all.
 
-**The escapes, and how narrow they are.** **84 of the 121 cards are fully declarative**; 37 carry at
-least one hook, **152 hooks in all** (`part.raw` 59, `step.enter` 42, `part.tune` 37, `F.run` 13,
+**The escapes, and how narrow they are.** **83 of the 123 cards are fully declarative**; 40 carry at
+least one hook, **155 hooks in all** (`part.raw` 59, `step.enter` 42, `part.tune` 40, `F.run` 13,
 `reset.extra` 1, `step.motion` 0), and each exists for something with no honest general verb:
 `part.tune` reaches an element the builder already made, to capture a nested ref, write an SVG
 *attribute* or an inline `style.fill` no field reaches, build extra children inside a part (a second
 inner box in a Pod, a row of slot rects), or file a `P.wire` into the main ref bucket as well.
-Three of its 37 sites accumulate an ARRAY ref, and those three are READ, by the seven `enter`
+Three of its 40 sites accumulate an ARRAY ref, and those three are READ, by the seven `enter`
 hooks of `storage-fsgroup-ownership`. An array ref nothing reads does not belong in `tune`: every
 element already carries its own `key:`.
 `part.raw` draws a bare `<rect>` or a free text node, `step.enter` writes text or an attribute no
@@ -257,8 +257,10 @@ going prev calls `scene.reset()` then replays steps 0..target with `ctx.reduced 
 to their final state without animating.
 
 The shape rules for both forms are the `S-` block of `./CANON.md`, and `unit/skeleton.test.mjs`
-reads them off the spec with no browser. The poster-first model is `D-14`, and the search, hash
-routing and in-dialog keys are `D-15`.
+reads them off the spec with no browser. The poster-first model is `D-14`, the search and the
+in-dialog keys are `D-15`, and the hash contract (a filter and a search are both
+state, a scroll reset belongs to each, and the root hub matches on the `#scheme=` / `#at=` prefixes)
+is `D-16`.
 
 ## Adding a card
 

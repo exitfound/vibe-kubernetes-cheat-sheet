@@ -250,6 +250,53 @@ const ENTRIES = [
       + '`edit-file` is first seen frozen on `drain`. DO NOT light the chip on `drain`, where '
       + 'nothing happens to the container.' },
 
+  { axis: 'R2-ENTRY', card: 'workloads-ephemeral-containers', where: ['2', 'spec.ephemeralContainers'],
+    why: 'the value is a static write (`S-13`) and the cue rides the ball, which is what `lights:` '
+      + 'on the route entry does. This axis reads both frames frozen at t=0, before that ball has '
+      + 'landed, so it sees a moved value and no highlight. R2-STEP, settled against settled, is '
+      + 'the reading the canon asks for and this card is not on its queue. DO NOT close it by '
+      + 'lighting the chip at entry: that would say the API had appended the entry before the '
+      + 'PATCH carrying it arrived.' },
+  { axis: 'R2-ENTRY', card: 'workloads-ephemeral-containers', where: ['4', 'ephemeralContainerStatuses'],
+    why: 'the same shape as `2 spec.ephemeralContainers` on this card, one hop lower: the status '
+      + 'is written statically and cued by `lights:` on the spine route, so the frozen t=0 frame '
+      + 'reads the value without the highlight that arrives with the ball.' },
+
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['2', 'web'],
+    why: 'the value is a static write (`S-13`) and the cue rides the ball, which is what `lights:` '
+      + 'on the route entry does. This axis reads both frames frozen at t=0, before that ball has '
+      + 'landed, so it sees a moved value and no highlight. R2-STEP, settled against settled, is '
+      + 'the reading the canon asks for and this row is not on its queue. DO NOT close it by '
+      + 'lighting the chip at entry: that would say the container had taken the stop signal before '
+      + 'the ball carrying it arrived.' },
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['2', 'stop order'],
+    why: 'the same shape as `2 web` on this card: a static write cued by `lights:` on the ball that '
+      + 'carries the signal, read here before that ball has landed.' },
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['4', 'log-agent'],
+    why: 'the same shape as `2 web` on this card: a static write cued by `lights:` on the ball that '
+      + 'carries the signal, read here before that ball has landed.' },
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['4', 'stop order'],
+    why: 'the same shape as `2 web` on this card: a static write cued by `lights:` on the ball that '
+      + 'carries the signal, read here before that ball has landed.' },
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['5', 'mesh-proxy'],
+    why: 'the same shape as `2 web` on this card: a static write cued by `lights:` on the ball that '
+      + 'carries the signal, read here before that ball has landed.' },
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['5', 'stop order'],
+    why: 'the same shape as `2 web` on this card: a static write cued by `lights:` on the ball that '
+      + 'carries the signal, read here before that ball has landed.' },
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['4', 'web'],
+    why: 'the chip reports a container that has EXITED, and this card draws an exit as the box '
+      + 'fading to OPACITY.terminated over FADE.out on the arrival that reports it, never as a '
+      + '`.highlight`. A lit chip beside a box that is fading to a ghost says the two disagree, '
+      + 'and a highlight here means the container the step is ACTING on, which on this step is '
+      + 'log-agent. DO NOT close it by lighting the chip of a container that is already gone.' },
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['5', 'log-agent'],
+    why: 'the same shape as `4 web` on this card: the box fades on the arrival that reports the exit, '
+      + 'and a highlight on the chip of a container that is already gone would fight the fade.' },
+  { axis: 'R2-ENTRY', card: 'workloads-termination-order', where: ['6', 'mesh-proxy'],
+    why: 'the same shape as `4 web` on this card: the box fades on the arrival that reports the exit, '
+      + 'and a highlight on the chip of a container that is already gone would fight the fade.' },
+
   { axis: 'R2-ENTRY', card: 'workloads-env-before-pid-1', where: ['4', 'DB_HOST'],
     why: 'the three variables are ONE set and the card draws them as one: they sit in a `P.group` '
       + 'whose opacity lifts from OPACITY.notready to 1 on the arrival of the single ball that '
@@ -293,6 +340,19 @@ const ENTRIES = [
       + 'is the opposite of the mechanism the step narrates, and P-09 binds workloads to `chips` '
       + 'rather than `chipsCued`.' },
 
+  { axis: 'R2-STEP', card: 'workloads-termination-order', where: ['4', 'web'],
+    why: 'the chip reports a container that has EXITED, and this card draws an exit as the box '
+      + 'fading to OPACITY.terminated over FADE.out on the arrival that reports it, never as a '
+      + '`.highlight`. A lit chip beside a box that has faded to a ghost says the two disagree, '
+      + 'and a highlight here means the container the step is ACTING on, which on this step is '
+      + 'log-agent. DO NOT close it by lighting the chip of a container that is already gone.' },
+  { axis: 'R2-STEP', card: 'workloads-termination-order', where: ['5', 'log-agent'],
+    why: 'the same shape as `4 web` on this card: the box fades on the arrival that reports the exit, '
+      + 'and a highlight on the chip of a container that is already gone would fight the fade.' },
+  { axis: 'R2-STEP', card: 'workloads-termination-order', where: ['6', 'mesh-proxy'],
+    why: 'the same shape as `4 web` on this card: the box fades on the arrival that reports the exit, '
+      + 'and a highlight on the chip of a container that is already gone would fight the fade.' },
+
   { axis: 'R2-STEP', card: 'workloads-pod-pending-init-states', where: ['2', 'AGE'],
     why: 'AGE is a CLOCK, not an event. It moves on every step because time passes, which is the '
       + 'one thing this card needs it for: the jump from 50s to 4m10s is what separates a normal '
@@ -316,6 +376,25 @@ const ENTRIES = [
     why: 'same clock' },
   { axis: 'R2-ENTRY', card: 'workloads-pod-pending-init-states', where: ['5', 'AGE'],
     why: 'same clock' },
+
+  { axis: 'R2-ENTRY', card: 'workloads-pod-lifecycle-phases', where: ['3', 'status.phase'],
+    why: 'the price of the P-03 FORM-B repair, and the trade is the right way round. status.phase '
+      + 'turns over on `running`, step 2, where a `rewind` holds it at Pending and an `F.set` bound '
+      + 'to the ball reaching the Running box writes it at 700ms, with the chip in that step lit '
+      + 'list so the cue is on screen from 0ms and the reader sees the value land under it. This '
+      + 'axis reads both frames frozen at t=0, so it never sees that turnover and attributes the '
+      + 'change to `crashloop`, step 3, where the chip is correctly not lit because the whole point '
+      + 'of that step is that the phase does NOT move. Before the repair the value stood 700ms '
+      + 'ahead of its own ball on the P-03 FORM-B queue. R2-STEP, settled against settled and the '
+      + 'reading the canon asks for, holds this card on neither its queue nor its carried list. '
+      + 'DO NOT close this by lighting status.phase on `crashloop`, which points the eye at the one '
+      + 'chip that step exists to leave alone.' },
+  { axis: 'R2-ENTRY', card: 'workloads-pod-lifecycle-phases', where: ['5', 'restartCount'],
+    why: 'the same repair one register down. restartCount turns over on `recover`, step 4, where a '
+      + '`rewind` holds it at 4 and an `F.set` bound to the Kubelet ball writes 5 at 700ms, with '
+      + 'the chip in that step lit list. Frozen at t=0 the change is first seen on `terminal`, step '
+      + '5, where it is not lit because that step is about the phase reaching Succeeded and the '
+      + 'restart count is settled. DO NOT close it by lighting restartCount on `terminal`.' },
 
   // ---------------------------------------------------------------------------------------
   // R3. One entry. A block that receives a ball must be dark when the step opens, and the

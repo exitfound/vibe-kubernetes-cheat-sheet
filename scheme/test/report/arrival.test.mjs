@@ -83,13 +83,14 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards } from '../fixtures/catalog.mjs';
+import { cards, SUBSET } from '../fixtures/catalog.mjs';
 import { carriedBlock, carriedMap, carryKey, shapeProblems, staleKeys } from '../fixtures/carried.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS, launch, initPage, discoverIds, openCard, stepCount,
-  enterStep, gotoStep, installGeometryHelpers,
-} from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+import { HIT_TOL, vpName, VIEWPORTS } from '../tools/walk.mjs';
+
+// The viewport the walk takes both readings at, named rather than retyped.
+const VP = vpName(VIEWPORTS[0]);
 
 // The recorded walk. Assertions, not notes: see the header.
 // The walk baseline, DERIVED rather than typed: the catalog it walks and the specs it reads are
@@ -100,81 +101,9 @@ const EXPECTED_STEPS = await stepTotal();
 // How far off a block's bbox a route endpoint may land and still count as arriving at it, from
 // check-arrival.mjs:28. Lanes stop on a FACE rather than in the middle of a block, and a lane pair is
 // offset by LANE_DY (12) around the flow line, so a hit test with no tolerance would miss both.
-const HIT_TOL = 16;
+// HIT_TOL is declared in tools/walk.mjs, beside the pass that applies it, and imported above:
+// a tolerance typed in two places is two tolerances.
 
-const probe = ({ tol }) => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-
-  // getBBox() is in the element's own user space and every primitive is a translated group, so each
-  // box is mapped through the element-to-root matrix. It is the reason a hit test can compare a
-  // route endpoint with a block at all. Literally the same mapping the geometry tests use now:
-  // fixtures/render.mjs rootBBox, on the page as window.__toRoot via installGeometryHelpers().
-  const toRoot = (el) => window.__toRoot(el, svg);
-  const label = (el, fallback) => {
-    const t = el.querySelector('text');
-    return (((t && t.textContent) || fallback).trim().slice(0, 28)) || fallback;
-  };
-
-  // The blocks R3 governs. A .scheme-node frame is a CONTAINER, not a receiver: a lane crosses it to
-  // reach what it holds, so a frame at a route end never is the thing that received the ball.
-  const blocks = [];
-  for (const sel of ['.scheme-box', '.scheme-pod', '.scheme-cylinder']) {
-    for (const el of svg.querySelectorAll(sel)) {
-      if (el.closest('#packetLayer')) continue;
-      const cs = getComputedStyle(el);
-      if (cs.opacity === '0' || cs.display === 'none') continue;
-      blocks.push({ kind: sel.slice(8), label: label(el, sel), ...toRoot(el), hl: el.classList.contains('highlight') });
-    }
-  }
-
-  // The value chips R2 governs. Chain-ladder rows are excluded: their highlight tracks the ACTIVE
-  // ROW of a ladder, it is not a value that changed.
-  const chips = [];
-  let ci = 0;
-  for (const el of svg.querySelectorAll('.scheme-chip')) {
-    if (el.closest('#packetLayer') || el.closest('.scheme-chain')) continue;
-    const texts = [...el.querySelectorAll('text')].map(t => (t.textContent || '').trim());
-    chips.push({
-      key: `${ci++}:${texts[0] || ''}`,
-      name: texts[0] || '',
-      value: texts.length > 1 ? texts[texts.length - 1] : null,
-      hl: el.classList.contains('highlight'),
-    });
-  }
-
-  // Packets: the ends of the transform keyframe list, the delay, and the arrivalMs the kit stamped on
-  // the element. Read with everything paused at t=0, so this is the step's PLAN and not its progress.
-  // The delay is read alongside the route because R3 needs to know WHEN a ball departs, not only that
-  // it does: "this block already acted" only excuses being lit if it acted FIRST.
-  const packets = [];
-  for (const el of svg.querySelectorAll('#packetLayer .scheme-packet')) {
-    let frames = null, delay = 0;
-    for (const a of el.getAnimations()) {
-      const kf = a.effect.getKeyframes();
-      if (kf.length && kf.some(k => k.transform && k.transform !== 'none')) {
-        frames = kf;
-        const t = a.effect.getComputedTiming();
-        delay = Number.isFinite(t.delay) ? Math.round(t.delay) : 0;
-        break;
-      }
-    }
-    if (!frames) continue;
-    const xy = (k) => {
-      const m = /translate\(\s*(-?[\d.]+)px[, ]+\s*(-?[\d.]+)px\s*\)/.exec(k.transform || '');
-      return m ? [+m[1], +m[2]] : null;
-    };
-    const from = xy(frames[0]), to = xy(frames[frames.length - 1]);
-    if (!from || !to) continue;
-    packets.push({
-      from, to, delay,
-      arrivalMs: Number.isFinite(el.arrivalMs) ? Math.round(el.arrivalMs) : null,
-      role: el.getAttribute('data-role') || '',
-    });
-  }
-
-  return { blocks, chips, packets, tol };
-};
 
 // Is point p on or inside block b, within tol?
 const near = (b, p, tol) =>
@@ -198,50 +127,38 @@ const R3_CARRIED = carriedMap('R3');
 test('arrival grammar across every step (report only, census is the one assertion)', async (t) => {
   const r3 = [], r2entry = [], r2step = [], notes = [];
   const r3ByCard = new Map(), entryByCard = new Map(), stepByCard = new Map();
-  let browser;
   let walked = 0, sampled = 0, unstamped = 0, judged = 0;
   let entryPairs = 0, entryChanged = 0, stepPairs = 0, stepChanged = 0, deferredCue = 0;
 
   try {
-    browser = await launch();
-    const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
-    await page.addInitScript(initPage, 'expose');
-    await installGeometryHelpers(page);
-    const ids = await discoverIds(page, DEFAULT_BASE);
-
-    // One retry on the diagram selector, then one more probe. See harness limit 2 in the header.
-    const sample = async () => {
-      let d = await page.evaluate(probe, { tol: HIT_TOL });
-      if (d) return d;
-      await page.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS });
-      return page.evaluate(probe, { tol: HIT_TOL });
-    };
+    // THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes both readings of every step at
+    // 1600x1000, the viewport this file set: the PLAYED one at t=0 in its played pass, and the
+    // SETTLED one in its static pass, where gotoStep replays with ctx.reduced so every deferred
+    // branch has already run. The probe moved to fixtures/probes.mjs as `arrivalProbe`, verbatim,
+    // and the one-retry `sample()` is part of both passes.
+    const snap = readSnapshot();
+    const ids = snap.ids;
 
     for (const id of ids) {
       try {
-        await openCard(page, id);
-        const total = await stepCount(page);
+        const card = snap.cards[id];
+        const total = card.steps;
         walked++;
         let prevEntry = null, prevSettled = null;
 
         for (let i = 0; i < total; i++) {
-          const live = await enterStep(page, i);
+          const { live, arrival: data } = card.played[i];
           if (!live && i > 0) {
             notes.push(`${id} step ${i}: no _timeline handle, the play path is not runnable and the step was skipped`);
             continue;
           }
-          const data = await sample();
           if (!data) {
             notes.push(`${id} step ${i}: no svg.diagram after a retry, the step was never read`);
             continue;
           }
           sampled++;
 
-          // The second reading of the same step: the STATIC path, where gotoStep replays with
-          // ctx.reduced so every deferred branch has already run. This is the settled end state, and
-          // it is the only way a frozen harness can see a cue that lands mid-step.
-          await gotoStep(page, i);
-          const settledData = await sample();
+          const settledData = card.byVp[VP][i].arrival;
           const settled = (settledData && settledData.chips) || null;
 
           if (i > 0) {
@@ -329,8 +246,6 @@ test('arrival grammar across every step (report only, census is the one assertio
     }
   } catch (err) {
     notes.push(`harness: ${err.message.split('\n')[0]}`);
-  } finally {
-    if (browser) await browser.close();
   }
 
   const out = [];
@@ -339,7 +254,12 @@ test('arrival grammar across every step (report only, census is the one assertio
   out.push(`  cards walked ${walked} of ${catalogued.length} in the catalog, steps sampled ${sampled}`);
   out.push(`  packets judged by R3 ${judged}, packets with no arrivalMs stamp and therefore invisible to R3 ${unstamped}`);
   out.push(`  chip slots compared at entry ${entryPairs} (${entryChanged} changed), on the settled step ${stepPairs} (${stepChanged} changed)`);
-  if (walked < EXPECTED_CARDS || sampled < EXPECTED_STEPS) {
+  if (SUBSET) {
+    out.push(`  SUBSET: SCHEME_IDS restricted the walk to ${walked} card(s), so the census below is NOT`);
+    out.push('  asked. Every per-card row is as true as on a full run: R3 and the two R2 axes judge a');
+    out.push('  ball against its own step and never against the catalog. The TOTALS and the queue');
+    out.push('  lengths are only the walked cards, and a full run is what says how many the catalog holds.');
+  } else if (walked < EXPECTED_CARDS || sampled < EXPECTED_STEPS) {
     out.push(`  REPORT INCOMPLETE: expected at least ${EXPECTED_CARDS} cards and ${EXPECTED_STEPS} steps, ` +
       'every number below undercounts');
   }
@@ -402,12 +322,21 @@ test('arrival grammar across every step (report only, census is the one assertio
 
   // The one assertion. Everything above is a measurement whose acceptance belongs to a person; a
   // walk that covered less than the catalog is not a measurement at all.
-  assert.ok(walked >= EXPECTED_CARDS,
-    `walked ${walked} card(s), the catalog had ${EXPECTED_CARDS} when this report was written. ` +
-    'A report over a subset prints few findings and looks exactly like a clean catalog.');
-  assert.ok(sampled >= EXPECTED_STEPS,
-    `sampled ${sampled} step(s), expected at least ${EXPECTED_STEPS}. A step nobody entered is a ` +
-    'step whose arrival cue was never read, and this file would still print a number.');
+  //
+  // NOT ASKED under SCHEME_IDS, and skipped rather than failed. The statement it makes is true
+  // either way, and it is the reason the SUBSET banner above exists: a filtered run of this file
+  // proves nothing catalog-wide. But an intentionally narrowed run is not a broken one, and the
+  // rest of the suite says so with `floor()` and `FULL_ONLY` instead of a red line. A red line on
+  // the CHEAP path is worse than useless: it is what sends a reader back to the six-minute run to
+  // find out whether anything is actually wrong.
+  if (!SUBSET) {
+    assert.ok(walked >= EXPECTED_CARDS,
+      `walked ${walked} card(s), the catalog had ${EXPECTED_CARDS} when this report was written. ` +
+      'A report over a subset prints few findings and looks exactly like a clean catalog.');
+    assert.ok(sampled >= EXPECTED_STEPS,
+      `sampled ${sampled} step(s), expected at least ${EXPECTED_STEPS}. A step nobody entered is a ` +
+      'step whose arrival cue was never read, and this file would still print a number.');
+  }
 
   t.diagnostic(`arrival: ${walked} cards, ${sampled} steps, ` +
     `R3 ${r3.length} (${r3.filter(f => !f.why).length} unexplained), ` +

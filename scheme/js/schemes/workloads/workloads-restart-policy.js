@@ -156,7 +156,7 @@ export const STEPS_SPEC = [
   {
     id: 'backoff',
     duration: 2400,
-    narration: 'The first restart is immediate, and every restart after it, whether driven by Always or by OnFailure, waits out the same exponential backoff. The delay starts at 10s and doubles on each subsequent restart (10s, 20s, 40s, 80s, 160s, capped at 300s by default). The container sits in Waiting with reason=CrashLoopBackOff during the wait, and the timer resets after the container has run successfully for 10 minutes. A Never Pod never restarts at all, so it cannot enter this loop.',
+    narration: 'The first restart is immediate, and every restart after it, whether driven by Always or by OnFailure, waits out the same exponential backoff, doubling from a 10s base to a 5 minute ceiling by default. The container sits in Waiting with reason=CrashLoopBackOff during the wait, and the timer resets after the container has run successfully for 10 minutes. A Never Pod never restarts at all, so it cannot enter this loop.',
     chips: { pod1Chip: 'Waiting (backoff)', pod2Chip: 'Waiting (backoff)', pod3Chip: 'never enters backoff', focusChip: 'backoff 10s..300s, shared' },
     wires: { req: 'restart backoff: 10s → 20s → ... → 300s cap' },
     // Pin: A and B sit in backoff (alive, not serving), C runs normally.

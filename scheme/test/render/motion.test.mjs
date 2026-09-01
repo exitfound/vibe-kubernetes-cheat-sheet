@@ -109,14 +109,11 @@
 //         sees a turnover is a real-time playthrough (tools/settled-dump.mjs), which is a probe and
 //         not an assertion, so the rule stays with a person until someone writes the check.
 
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census, floor, SUBSET, FULL_ONLY } from '../fixtures/catalog.mjs';
+import { cards, census, floor, FULL_ONLY } from '../fixtures/catalog.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import {
-  DEFAULT_BASE, DIAGRAM, SELECTOR_TIMEOUT_MS,
-  launch, initPage, discoverIds, openCard, stepCount, enterStep,
-} from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
 import { PULSE_POD, PULSE_BLOCK, BEAT, FADE } from '../../js/lib/tokens.js';
 import { routeDur, routeLength, REVEAL_MS } from '../../js/lib/scheme-kit.js';
 
@@ -199,168 +196,19 @@ const PKT_DUR_MAX = routeDur([[0, 0], [0, 1e7]]);
 // pulsed) is answered here, where the elements exist. Everything that needs a CANON NUMBER is
 // answered on the Node side, where the tokens are imported. Nothing is answered in both places.
 // ---------------------------------------------------------------------------------------------
-const probe = () => {
-  const svg = document.querySelector('dialog.scheme-dialog svg.diagram');
-  if (!svg) return null;
-
-  const label = (el) => {
-    const t = el.querySelector && el.querySelector('text');
-    const own = ((t && t.textContent) || '').trim();
-    if (own) return own.slice(0, 30);
-    const near = el.closest && el.closest('.scheme-box, .scheme-pod, .scheme-cylinder, .scheme-node');
-    const nt = near && near.querySelector('text');
-    return (((nt && nt.textContent) || el.tagName).trim().slice(0, 30)) || el.tagName;
-  };
-  // A translate() out of a keyframe or out of an inline style. Packets and tags are pinned at
-  // cx=0,cy=0 and moved by transform (M-09), so this is where a position lives.
-  const xy = (t) => {
-    const m = /translate\(\s*(-?[\d.]+)px[, ]+\s*(-?[\d.]+)px\s*\)/.exec(t || '');
-    return m ? [+m[1], +m[2]] : null;
-  };
-  const rk = (p) => p.map(q => `${Math.round(q[0])},${Math.round(q[1])}`).join('|');
-
-  const all = [];
-  for (const a of document.getAnimations()) {
-    const tgt = a.effect && a.effect.target;
-    if (!tgt || !svg.contains(tgt)) continue;
-    let kf = [];
-    try { kf = a.effect.getKeyframes(); } catch (_) { continue; }
-    // getComputedTiming for the delay (it is the resolved one), getTiming for duration and easing
-    // (the computed easing of a paused effect is the same string, and the declared one is what the
-    // rule is about).
-    const tm = a.effect.getTiming(), ct = a.effect.getComputedTiming();
-    all.push({ el: tgt, kf, delay: Math.round(ct.delay || 0), dur: Math.round(Number(tm.duration) || 0), easing: tm.easing });
-  }
-
-  const brightA = all.filter(r => r.kf.some(k => k.filter));
-  const strokeA = all.filter(r => r.kf.some(k => k.stroke));
-  const moves = all.map(r => ({ ...r, pts: r.kf.map(k => xy(k.transform)).filter(Boolean) })).filter(r => r.pts.length >= 2);
-  const balls = moves.filter(r => r.el.classList.contains('scheme-packet'));
-
-  const out = { pulses: [], ramps: [], balls: [], labels: [], timers: [], noop: [], cxcy: [], fades: [] };
-
-  for (const b of brightA) {
-    const peaks = b.kf.map(k => parseFloat((/brightness\(([\d.]+)\)/.exec(k.filter || '') || [0, NaN])[1]))
-      .filter(Number.isFinite);
-    // inPod: the target is a Pod, or SOME ancestor below the diagram root holds one. The ancestor
-    // walk is what makes a container box legal: storage-emptydir wraps shell and containers in one
-    // group and the boxes sit a level deeper, so a parent-only test would report four correct cards.
-    // coTimed is the stricter half: that Pod must blink on the SAME beat, which is what "a Pod
-    // pulses with everything inside it" actually says.
-    let inPod = b.el.classList.contains('scheme-pod');
-    let coTimed = inPod;
-    for (let p = b.el.parentElement; p && p !== svg && !(inPod && coTimed); p = p.parentElement) {
-      const pods = [...p.querySelectorAll('.scheme-pod')];
-      if (pods.length) inPod = true;
-      if (pods.some(q => brightA.some(x => x.el === q && x.delay === b.delay))) coTimed = true;
-    }
-    // The kit animates stroke on the rects of the same group at the same delay. A hand-rolled
-    // brightness track has no such partner, which is what makes this the render-side R-rawpulse.
-    const rects = [b.el, ...b.el.querySelectorAll('.scheme-pod-rect, .scheme-box-rect')];
-    out.pulses.push({
-      label: label(b.el), cls: b.el.getAttribute('class') || '', delay: b.delay, dur: b.dur, easing: b.easing,
-      first: peaks.length ? peaks[0] : null,
-      last: peaks.length ? peaks[peaks.length - 1] : null,
-      peak: peaks.length ? Math.max(...peaks) : null,
-      kitPaired: strokeA.some(s => s.delay === b.delay && rects.includes(s.el)),
-      inPod, coTimed,
-      // DESCENDANTS, where inPod reads ANCESTORS, and the two answer different questions. A card
-      // names a Pod by the key of its WRAPPER g, which carries no class and sits directly under the
-      // svg, so the ancestor walk never starts and inPod stays false on the very element a card
-      // would hand to F.flash. Measured on network-ebpf-dataplane: parent is the svg, class null,
-      // one .scheme-pod inside. FLASH-BLOCK reads this one.
-      ownsPod: b.el.classList.contains('scheme-pod') || !!b.el.querySelector('.scheme-pod'),
-    });
-  }
-
-  for (const s of strokeA) {
-    const blk = s.el.closest('.scheme-pod, .scheme-box');
-    out.ramps.push({
-      label: label(s.el), cls: s.el.getAttribute('class') || '', delay: s.delay, dur: s.dur,
-      blockPulses: !!blk && brightA.some(x => x.el === blk),
-    });
-  }
-
-  const arrivals = balls.map(b => b.delay + b.dur);
-  for (const b of balls) {
-    const end = b.pts[b.pts.length - 1];
-    const want = b.delay + b.dur;
-    out.balls.push({
-      label: label(b.el), delay: b.delay, dur: b.dur, easing: b.easing, pts: b.pts,
-      // The ripple is stamped at delay + travel on the last point of the route (M-14). 1ms of slack
-      // because both numbers are rounded off the same arithmetic.
-      ripples: all.some(r => r.el.classList.contains('scheme-ripple') && Math.abs(r.delay - want) <= 1 &&
-        r.kf.some(k => { const p = xy(k.transform); return p && Math.abs(p[0] - end[0]) < 1 && Math.abs(p[1] - end[1]) < 1; })),
-      // Every arrival in this step, so the Node side can name which beat this ball's delay came
-      // from against the imported BEAT. A ball's OWN arrival is in the list and cannot explain its
-      // own delay (an arrival is always later than the departure it belongs to), so it is left in
-      // rather than filtered out by a special case.
-      afterArrivals: arrivals,
-    });
-  }
-
-  for (const l of moves) {
-    if (l.el.tagName !== 'text' || !l.el.closest('#packetLayer')) continue;
-    const same = balls.filter(b => rk(b.pts) === rk(l.pts));
-    const pin = xy(l.el.style.transform);
-    out.labels.push({
-      txt: (l.el.textContent || '').slice(0, 24), easing: l.easing, dur: l.dur, delay: l.delay,
-      matches: same.length,
-      ballEasing: same.length ? same[0].easing : null,
-      ballDur: same.length ? same[0].dur : null,
-      // M-31: built pinned at the route start, or the tag sits at the SVG origin under the narration
-      // panel until its delay elapses. Read off the inline style, which makeRidingLabel writes at
-      // build time: it is not deferred, so a frozen probe sees it.
-      pinnedAtStart: !!pin && Math.abs(pin[0] - l.pts[0][0]) <= 1 && Math.abs(pin[1] - l.pts[0][1]) <= 1,
-      pin,
-      start: l.pts[0],
-    });
-  }
-
-  for (const a of all) {
-    if (a.dur === 1) out.timers.push({ label: label(a.el), kf: a.kf.length });
-    const ops = a.kf.map(k => k.opacity).filter(o => o !== undefined && o !== null).map(Number);
-    // M-29's grep, as data: a track that animates opacity from a value to the same value is the
-    // composite-forcing no-op M-28 exists to forbid.
-    if (ops.length >= 2 && ops.every(o => o === ops[0]) && a.kf.every(k => !k.transform && !k.filter && !k.stroke)) {
-      out.noop.push({ label: label(a.el), ops, dur: a.dur });
-    }
-    if (a.kf.some(k => k.cx !== undefined || k.cy !== undefined)) out.cxcy.push({ label: label(a.el) });
-    if (!ops.length || a.el.closest('#packetLayer') || a.kf.some(k => k.filter)) continue;
-    out.fades.push({ dir: ops[ops.length - 1] < ops[0] ? 'out' : ops[ops.length - 1] > ops[0] ? 'in' : 'blink', dur: a.dur });
-  }
-
-  return out;
-};
 
 const catalogued = await cards();
 
-const browser = await launch();
-// Registered on the line after the launch, before the page setup below: node:test runs an
-// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
-// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
-// then nobody's to close for the rest of the run.
-after(() => browser.close());
-
-// 1600x1000, the viewport check-arrival and check-geometry used. Route lengths are in viewBox units
-// so the window size does not move a duration, but keeping one viewport across the render tests is
-// what makes two of their numbers comparable.
-const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
-await page.addInitScript(initPage, 'expose');
-const ids = await discoverIds(page, DEFAULT_BASE);
-
-// One retry on the diagram selector, then one more probe. See harness limit 2 in the header: the
-// scene is torn down and rebuilt on every reset, so a null here is a race and not a broken card.
-async function sample(p) {
-  let r = await p.evaluate(probe);
-  if (r) return r;
-  await p.waitForSelector(DIAGRAM, { timeout: SELECTOR_TIMEOUT_MS });
-  r = await p.evaluate(probe);
-  return r;
-}
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` takes the played pass at 1600x1000,
+// the viewport this file set, and reads the plan at t=0 exactly where this file read it: t=0 rather
+// than the end of the step because every rule here reads the PLAN (delays, durations, keyframes),
+// which is complete the moment the step is entered. The probe moved into fixtures/probes.mjs as
+// `motionProbe`, verbatim, and the one-retry `sample()` this file carried is part of the walk.
+const snap = readSnapshot();
+const ids = snap.ids;
 
 test(`the grid renders the whole catalog (${catalogued.length} cards)`, () => {
-  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
+  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
   census('motion grid', ids.length, catalogued.length);
 });
 
@@ -397,8 +245,8 @@ for (const id of ids) {
   test(id, async () => {
     walked++;                    // counted before the assertions, so this stays a census of
                                  // COVERAGE and a broken card is reported once, as itself.
-    await openCard(page, id);
-    const total = await stepCount(page);
+    const card = snap.cards[id];
+    const total = card.steps;
     assert.ok(total > 0, `stepCount is ${total}: no steps to walk`);
 
     const findings = [];
@@ -410,13 +258,12 @@ for (const id of ids) {
       // the end of the step because every rule here reads the PLAN (delays, durations, keyframes),
       // and the plan is complete the moment the step is entered. Seeking would buy nothing and would
       // put fill-forwards values in front of the pins.
-      const live = await enterStep(page, i);
+      const { live, motion: r } = card.played[i];
       if (!live && i > 0) {
         findings.push(`UNMEASURED step ${i}: no _timeline handle, the step fell back to a static ` +
           'frame and none of its motion was planned');
         continue;
       }
-      const r = await sample(page);
       if (!r) {
         findings.push(`NO DIAGRAM step ${i}: the probe found no svg.diagram after a retry, so this ` +
           "step's motion was never read");

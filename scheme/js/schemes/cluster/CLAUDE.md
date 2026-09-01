@@ -127,7 +127,7 @@ before you touch it: a reset key here can be born in a `tune` and not in a part.
 ## The reduced path
 
 **`reducedLit` is declared on 2 steps here**, `cluster-object-create-path`'s `create-pod` and
-`cluster-node-pressure-eviction`'s `rank`, against 89 in network, 20 in workloads and 0 in storage.
+`cluster-node-pressure-eviction`'s `rank`, against 89 in network, 23 in workloads and 0 in storage.
 That is the lowest non-zero count in the catalogue, and the reason is that cluster's steps name
 their receivers in `lights:`, so `flowLights` derives most of the static path for free.
 
@@ -145,7 +145,7 @@ reading, and add one only where the step's own record says why.
 | ID | Rule |
 |---|---|
 | `CLU.S-01` | A cluster card states only what is true of ITSELF in its `CARDS/<id>.md` record. Unlike networking and storage, this category has no shared contract paragraph: what every card obeys is the canon |
-| `CLU.S-03` | **A record over 300 lines opens its `### layout` by saying what makes this card need one**, as a `WHAT` line naming the measurement that fills it. Length is measured per `## ` section rather than per file, so the split shape and the monolith read the same and a preamble is charged to nobody: 28 sections, 6492 lines, 137 at the shortest and 381 at the longest, median 217, quartiles 177 and 280, 232 lines per card. The sisters run 124 (workloads), 104 (storage) and 61 (network), so this category is roughly two and a half times the rest of the catalogue and the reason is not uniform. It is measurement: a card carrying `PANEL` at three viewports, a `MOTION` block with spans and a `CONTENT` block from a fact pass is long because someone opened a browser for it, and that length is earned. What is NOT earned is a record that grows by restating the canon, by re-deriving a catalog-wide argument a sibling already carries, or by narrating the sequence of edits `S-48` sends to the bin. The ceiling is a prompt to say which of the two a long record is, never a licence to cut a measurement. Every figure in this row is asserted against the tree by `unit/docs-census.test.mjs` |
+| `CLU.S-03` | **A record over 300 lines opens its `### layout` by saying what makes this card need one**, as a `WHAT` line naming the measurement that fills it. Length is measured per `## ` section rather than per file, so the split shape and the monolith read the same and a preamble is charged to nobody. This category's records are the longest in the catalogue by a wide margin, and the reason is not uniform. It is measurement: a card carrying `PANEL` at three viewports, a `MOTION` block with spans and a `CONTENT` block from a fact pass is long because someone opened a browser for it, and that length is earned. What is NOT earned is a record that grows by restating the canon, by re-deriving a catalog-wide argument a sibling already carries, or by narrating the sequence of edits `S-48` sends to the bin. The ceiling is a prompt to say which of the two a long record is, never a licence to cut a measurement. The band this row used to state in eight numbers is gone on purpose: it measured the RECORDS rather than the tree, so every prose edit moved it and no reader ever acted on it. `tools/canon.mjs` prints the lengths when the question is actually asked |
 
 Five records stand past the ceiling today: `node-eviction-rate`, `taints-tolerations`,
 `node-conditions`, `pod-priority-preemption` and `node-failure`, the last of them the longest in the

@@ -33,14 +33,15 @@
 //
 // What this cannot do: judge meaning. A sentence can match its diagram and still be false.
 
-import { test, after } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cards, census, floor, SUBSET, FULL_ONLY, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
+import { cards, census, floor, FULL_ONLY, CATALOG_BASELINE } from '../fixtures/catalog.mjs';
 import { loadTerms, sentences, sentenceStarts, termIssues, termRegex } from '../fixtures/prose.mjs';
-import {
-  collectPageErrors, DEFAULT_BASE, DIAGRAM, discoverIds, gotoStep, launch, openCard,
-  SELECTOR_TIMEOUT_MS, initPage, stepCount, stepMeta,
-} from '../fixtures/render.mjs';
+import { readSnapshot } from '../fixtures/snapshot.mjs';
+import { vpName, VIEWPORTS } from '../tools/walk.mjs';
+
+// The viewport the walk takes this reading at, named rather than retyped.
+const VP = vpName(VIEWPORTS[0]);
 
 // ---------------------------------------------------------------------------------------------
 // The census. Measured 2026-08-24 on a green tree, at 110 cards and 665 steps.
@@ -123,9 +124,9 @@ const KNOWN_DRIFT = [
   // "pod" here is the DNS subdomain under the cluster domain, not the object. terms.json carries a
   // `homographs` list for exactly this, and it has no entry for it. Adding one is a fixture edit,
   // which is out of scope for this file.
-  // x25 since cluster-node-conditions joined. Still the same PAIR, which is what this list
-  // freezes: a new pair is a defect, a higher count is not.
-  'pod: "Pod" x24 vs "pod" x1',
+  // The count is not what this list freezes, the PAIR is: a new pair is a defect, a higher
+  // count is not.
+  'pod: "Pod" x26 vs "pod" x1',
   'podc: "Pod C" x3 vs "pod-c" x1',
 ].sort();
 
@@ -191,22 +192,18 @@ function verdict(text, want) {
 // ---------------------------------------------------------------------------------------------
 const catalogued = await cards();
 
-const browser = await launch();
-// Registered on the line after the launch, before the page setup below: node:test runs an
-// `after` hook whatever happens to the tests, but a throw in the setup itself (a context, an
-// init script, a grid that never renders) happens BEFORE the hook exists, and that browser is
-// then nobody's to close for the rest of the run.
-after(() => browser.close());
-
-// reducedMotion is not set: gotoStep already replays a step the way prev and reset do, which is
-// the deterministic path. The PLAYED path is deliberately not walked here, because it is not
-// reproducible between runs (measured while porting check-palette) and every string it adds is a
-// riding label that a static frame also carries at its destination.
-const context = await browser.newContext();
-const page = await context.newPage();
-await page.addInitScript(initPage, 'expose');
-
-const ids = await discoverIds(page, DEFAULT_BASE);
+// THE BROWSER IS NOT DRIVEN HERE ANY MORE. `tools/walk.mjs` opens each card once for the whole
+// suite; the probe moved into fixtures/probes.mjs as `inlineProbe`, verbatim.
+//
+// reducedMotion is not set there either, and for the same reason this file gave: gotoStep already
+// replays a step the way prev and reset do, which is the deterministic path. The PLAYED path is
+// deliberately not read here, because it is not reproducible between runs (measured while porting
+// check-palette) and every string it adds is a riding label that a static frame also carries at its
+// destination. The one thing that did move is the window size: the walk reads at 1600x1000 where
+// this file used the default. Every string and every frame identity below is DOM and viewBox, not
+// pixels, and the old and new outputs were diffed line for line to say so rather than assume it.
+const snap = readSnapshot();
+const ids = snap.ids;
 
 // card id -> { aria, steps: [{id, narration}], drawn: [{cls, text}], frames: [{key, kind, labels, texts}] }
 const collected = new Map();
@@ -217,49 +214,24 @@ const collected = new Map();
 const broken = [];
 
 for (const id of ids) {
-  const collector = collectPageErrors(page);
-  try {
-    await openCard(page, id, DEFAULT_BASE);
-  } catch (e) {
-    broken.push(`${id}: the diagram never appeared (${String(e.message).split('\n')[0]}). ` +
-      `Page said: ${collector.errors.slice(0, 2).join(' | ') || 'nothing'}`);
-    collector.stop();
+  const card = snap.cards[id];
+  if (card.openError) {
+    broken.push(`${id}: the diagram never appeared (${card.openError}). ` +
+      `Page said: ${card.errors.slice(0, 2).join(' | ') || 'nothing'}`);
     continue;
   }
-  const total = await stepCount(page);
-  const meta = await stepMeta(page);
+  const total = card.steps;
+  const meta = card.meta;
   if (!total || !meta) {
     // stepMeta() returning null means the debug handle is absent, and a caller that treats that as
     // "no findings" has written a check that cannot fail.
     broken.push(`${id}: stepCount ${total}, stepMeta ${meta ? 'present' : 'MISSING'}`);
-    collector.stop();
     continue;
   }
   const drawn = new Map();     // `${cls}\t${text}` -> {cls, text}
   const frames = new Map();    // `${kind}@${transform}` -> {kind, labels:Set, texts:Set}
   for (let i = 0; i < total; i++) {
-    await gotoStep(page, i);
-    const shot = await page.evaluate((sel) => {
-      const svg = document.querySelector(sel);
-      if (!svg) return null;
-      const FRAME = '.scheme-box, .scheme-pod, .scheme-node, .scheme-cylinder';
-      const texts = [...svg.querySelectorAll('text')].map(t => ({
-        cls: (t.getAttribute('class') || '').split(/\s+/)[0],
-        text: t.textContent || '',
-      }));
-      // A frame owns the text elements whose NEAREST enclosing frame is itself, so a Pod does not
-      // inherit the strings of the box drawn inside it. Identity is the frame's POSITION, because
-      // one card draws two distinct Pods under one label and keying on the text would merge them
-      // and hide a shared address.
-      const frames = [...svg.querySelectorAll(FRAME)].map(f => ({
-        kind: (f.getAttribute('class') || '').split(/\s+/)[0],
-        tf: f.getAttribute('transform') || '',
-        own: [...f.querySelectorAll('text')]
-          .filter(t => t.parentElement.closest(FRAME) === f)
-          .map(t => ({ cls: (t.getAttribute('class') || '').split(/\s+/)[0], text: t.textContent || '' })),
-      }));
-      return { texts, frames };
-    }, DIAGRAM);
+    const shot = card.byVp[VP][i].inline;
     if (!shot) { broken.push(`${id}: the diagram vanished at step ${i}`); break; }
     for (const t of shot.texts) drawn.set(`${t.cls}\t${t.text}`, t);
     for (const f of shot.frames) {
@@ -273,8 +245,7 @@ for (const id of ids) {
       }
     }
   }
-  collector.stop();
-  collected.set(id, { aria: await page.$eval(DIAGRAM, s => s.getAttribute('aria-label') || ''), steps: meta, drawn: [...drawn.values()], frames: [...frames.values()] });
+  collected.set(id, { aria: card.aria, steps: meta, drawn: [...drawn.values()], frames: [...frames.values()] });
 }
 
 // ---- the two flat views every rule below reads ----
@@ -300,7 +271,7 @@ const eligible = drawn.filter(d => d.want !== null);
 // ---------------------------------------------------------------------------------------------
 
 test(`the grid renders the whole catalog (${CARD_TOTAL} cards)`, () => {
-  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${DEFAULT_BASE}/scheme/ : posters or grid broken`);
+  assert.ok(ids.length > 0, `NO CARDS RENDERED at ${snap.base}/scheme/ : posters or grid broken`);
   census('inline grid', ids.length, catalogued.length);
   assert.equal(catalogued.length, CARD_TOTAL,
     `data.js lists ${catalogued.length} cards, the baseline is ${CARD_TOTAL}`);

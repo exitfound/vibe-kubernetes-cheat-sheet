@@ -76,8 +76,13 @@ async function importCard(card) {
 // silently walked half the catalog would report half the findings and pass.
 export async function importAll() {
   const list = await cards();
-  const out = new Map();
-  for (const c of list) out.set(c.id, await importCard(c));
+  // Concurrent rather than sequential: ten of the thirteen unit files pay this walk, each in its
+  // own forked process, and the work is I/O against 123 files that do not depend on each other.
+  // The Map is built from the settled list rather than filled inside the loop, so the ORDER is the
+  // catalog's whatever order the imports resolve in: a walker that reported findings in resolution
+  // order would print a different list on every run.
+  const mods = await Promise.all(list.map(c => importCard(c)));
+  const out = new Map(list.map((c, i) => [c.id, mods[i]]));
   census('importAll', out.size, list.length);
   return out;
 }

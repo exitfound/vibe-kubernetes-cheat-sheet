@@ -99,7 +99,7 @@ const KIT = { routeDur, REVEAL_MS, BEAT };
 // Two rings starting further apart than this never share the canvas. The copy is checked, see below.
 // The walk, the window and the carried table live in ../fixtures/ripple-double.mjs, shared with
 // the gate file that asserts the queue. See that file's header for why.
-import { RIPPLE_MS, TOP_DEFAULT, RIPPLE_CARRIED, ringOf, at } from '../fixtures/ripple-double.mjs';
+import { RIPPLE_MS, RIPPLE_CARRIED, ringOf, at } from '../fixtures/ripple-double.mjs';
 
 const catalogued = await cards();
 const modules = await importAll();
