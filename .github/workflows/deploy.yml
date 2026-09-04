@@ -30,7 +30,7 @@ jobs:
       - name: Stage site
         run: |
           mkdir -p _site
-          cp index.html favicon.svg robots.txt sitemap.xml CNAME _site/
+          cp index.html 404.html favicon.svg robots.txt sitemap.xml CNAME _site/
           cp -r images cli scheme _site/
           rm -rf _site/scheme/tools _site/scheme/test
           # Two shapes of design record: the per-category CARDS.md and the per-card CARDS/ folder
