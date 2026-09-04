@@ -19,7 +19,7 @@
     body::before, body::after { position:fixed; z-index:-1; width:56vmax; height:56vmax; border-radius:50%; content:''; opacity:.38; pointer-events:none; }
     body::before { top:-35vmax; left:-20vmax; background:radial-gradient(circle,rgba(79,229,255,.18),transparent 65%); }
     body::after { right:-24vmax; bottom:-38vmax; background:radial-gradient(circle,rgba(196,168,255,.17),transparent 65%); }
-    .header { border-bottom-color:transparent; }
+    .header { flex-shrink:0; border-bottom-color:transparent; }
     .hub-headpad { position:relative; height:5px; flex:0 0 auto; background:rgba(17,15,31,.95); }
     .hub-headpad::after { position:absolute; right:0; bottom:0; left:0; height:2px; background:linear-gradient(to right,rgba(221,202,250,.06),rgba(221,202,250,.32) 50%,rgba(221,202,250,.06)); content:''; pointer-events:none; }
     .hub-ruler { height:0; overflow:hidden; visibility:hidden; }
