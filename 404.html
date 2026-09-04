@@ -14,7 +14,7 @@
   <style>
     :root { --bg:#110f1f; --deep:#0c1022; --card:#1a1538; --border:#2e274e; --text:#ece9ff; --bright:#f9f8ff; --muted:#9b95b8; --accent:#e0cdff; --cyan:#4fe5ff; --blue:#7d86ff; --pink:#ff668c; --gold:#ffd15c; --green:#9afb50; }
     * { box-sizing:border-box; }
-    html { min-height:100%; background:linear-gradient(135deg,var(--deep),var(--bg) 52%,#18091e); }
+    html { min-height:100%; overflow-y:scroll; background:linear-gradient(135deg,var(--deep),var(--bg) 52%,#18091e); }
     body { display:flex; min-height:100vh; flex-direction:column; margin:0; overflow-x:hidden; color:var(--text); font-family:'Space Grotesk',sans-serif; }
     body::before, body::after { position:fixed; z-index:-1; width:56vmax; height:56vmax; border-radius:50%; content:''; opacity:.38; pointer-events:none; }
     body::before { top:-35vmax; left:-20vmax; background:radial-gradient(circle,rgba(79,229,255,.18),transparent 65%); }
