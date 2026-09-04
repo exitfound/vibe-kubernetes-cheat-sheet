@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#110f1f">
+  <title>404 | kube.how</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/cli/css/styles.css">
+  <style>
+    :root { --bg:#110f1f; --deep:#0c1022; --card:#1a1538; --border:#2e274e; --text:#ece9ff; --bright:#f9f8ff; --muted:#9b95b8; --accent:#e0cdff; --cyan:#4fe5ff; --blue:#7d86ff; --pink:#ff668c; --gold:#ffd15c; --green:#9afb50; }
+    * { box-sizing:border-box; }
+    html { min-height:100%; background:linear-gradient(135deg,var(--deep),var(--bg) 52%,#18091e); }
+    body { display:flex; min-height:100vh; flex-direction:column; margin:0; overflow-x:hidden; color:var(--text); font-family:'Space Grotesk',sans-serif; }
+    body::before, body::after { position:fixed; z-index:-1; width:56vmax; height:56vmax; border-radius:50%; content:''; opacity:.38; pointer-events:none; }
+    body::before { top:-35vmax; left:-20vmax; background:radial-gradient(circle,rgba(79,229,255,.18),transparent 65%); }
+    body::after { right:-24vmax; bottom:-38vmax; background:radial-gradient(circle,rgba(196,168,255,.17),transparent 65%); }
+    .hub-headpad { position:relative; height:5px; flex:0 0 auto; background:rgba(17,15,31,.95); }
+    .hub-headpad::after { position:absolute; right:0; bottom:0; left:0; height:2px; background:linear-gradient(to right,rgba(221,202,250,.06),rgba(221,202,250,.32) 50%,rgba(221,202,250,.06)); content:''; pointer-events:none; }
+    main { display:grid; flex:1; min-height:calc(100vh - 146px); grid-template-columns:minmax(280px,360px) minmax(300px,470px); align-content:center; justify-content:center; gap:clamp(42px,7vw,112px); padding:56px 28px 46px; }
+    .game-shell { width:min(100%,360px); }
+    .game-label,.eyebrow,.score-label,.next-label { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; }
+    .game-card { display:flex; gap:14px; padding:13px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(145deg,rgba(32,26,67,.9),rgba(17,15,39,.94)); box-shadow:0 22px 55px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.04); }
+    .board-wrap { position:relative; width:min(100%,250px); flex:1; min-width:0; }
+    #board { display:block; width:100%; height:auto; border:1px solid rgba(125,134,255,.32); background:#12112a; image-rendering:pixelated; }
+    .game-side { display:flex; width:61px; flex-direction:column; gap:14px; padding-top:3px; }
+    .next-label,.score-label { color:var(--muted); font-size:10px; }
+    .next-label { margin:0 0 5px; }
+    #next { display:block; width:58px; height:58px; border:1px solid rgba(224,205,255,.22); background:rgba(11,9,25,.56); image-rendering:pixelated; }
+    .score { margin-top:auto; }
+    .score-value { display:block; margin-top:4px; color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; }
+    .game-over-restart { position:absolute; top:50%; left:50%; z-index:1; min-height:32px; padding:0 10px; border:1px solid rgba(224,205,255,.52); border-radius:6px; background:rgba(26,21,56,.96); color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; cursor:pointer; transform:translate(-50%,18px); }
+    .game-over-restart:hover { border-color:var(--accent); background:rgba(224,205,255,.14); color:var(--bright); }
+    .game-over-restart:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+    .copy { align-self:center; max-width:470px; }
+    .eyebrow { margin:0 0 11px; color:var(--cyan); }
+    h1 { margin:0; color:var(--bright); font-size:clamp(52px,8vw,88px); letter-spacing:-.08em; line-height:.92; }
+    h1 span { color:var(--accent); }
+    .message { max-width:390px; margin:23px 0 0; color:var(--text); font-size:clamp(22px,3vw,30px); font-weight:600; line-height:1.16; }
+    @media (max-width:760px) { main { grid-template-columns:minmax(0,360px); gap:38px; justify-items:center; padding:48px 18px 42px; } .copy { text-align:center; } .message { margin-right:auto; margin-left:auto; } }
+    @media (min-width:1500px) { main { justify-content:start; padding-right:28px; padding-left:calc(50% - 320px); } }
+    @media (max-width:390px) { .game-card { padding:10px; gap:10px; } .game-side { width:55px; } #next { width:52px; height:52px; } .message { font-size:24px; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition-duration:.01ms!important; } }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" aria-label="Site switcher">
+    <a class="side-btn" id="sideHome" data-tooltip="K8s Home" aria-label="K8s Home" href="/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2"/><path d="M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8"/></svg></a>
+    <a class="side-btn" id="sideCli" data-tooltip="K8s Commands" aria-label="K8s Commands" href="/cli/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></a>
+    <a class="side-btn" id="sideScheme" data-tooltip="K8s Schemes" aria-label="K8s Schemes" href="/scheme/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="7" height="6" rx="1.2"/><rect x="15" y="12" width="7" height="6" rx="1.2"/><line x1="9" y1="9" x2="15" y2="15"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg></a>
+    <button class="side-toggle" id="sideToggle" type="button" data-tooltip="Hide sidebar" aria-label="Hide sidebar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+  </aside>
+  <button class="side-expand" id="sideExpand" type="button" data-tooltip="Show sidebar" aria-label="Show sidebar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button>
+
+  <header class="header">
+    <div class="header-inner">
+      <a class="logo" href="/" aria-label="Go to homepage">
+        <div class="logo-icon"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="kube.how logo"><defs><linearGradient id="hubFg" x1="4" y1="6" x2="28" y2="26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4fe5ff"/><stop offset="100%" stop-color="#c4a8ff"/></linearGradient></defs><circle cx="16" cy="16" r="9" fill="none" stroke="url(#hubFg)" stroke-width="1.6"/><circle cx="16" cy="16" r="2.8" fill="none" stroke="url(#hubFg)" stroke-width="1.5"/><g stroke="url(#hubFg)" stroke-width="1.6" stroke-linecap="round"><line x1="16" y1="11.4" x2="16" y2="3.4"/><line x1="19.25" y1="12.75" x2="24.91" y2="7.09"/><line x1="20.6" y1="16" x2="28.6" y2="16"/><line x1="19.25" y1="19.25" x2="24.91" y2="24.91"/><line x1="16" y1="20.6" x2="16" y2="28.6"/><line x1="12.75" y1="19.25" x2="7.09" y2="24.91"/><line x1="11.4" y1="16" x2="3.4" y2="16"/><line x1="12.75" y1="12.75" x2="7.09" y2="7.09"/></g><circle cx="16" cy="16" r="1.2" fill="#4fe5ff"/></svg></div>
+        <div><div class="logo-text">Kubernetes Reference Hub</div><div class="logo-sub">Commands &amp; Schemes</div></div>
+      </a>
+      <div class="header-actions" id="headerActions"></div>
+    </div>
+  </header>
+  <div class="hub-headpad" aria-hidden="true"></div>
+
+  <main>
+    <section class="game-shell" aria-label="Tetris game">
+      <div class="game-card">
+        <div class="board-wrap"><canvas id="board" width="270" height="540" role="img" aria-label="Tetris game board"></canvas><button class="game-over-restart" id="restart" type="button" hidden>Restart</button></div>
+        <aside class="game-side" aria-label="Game status"><div><p class="next-label">Next</p><canvas id="next" width="58" height="58" aria-label="Next Tetris piece"></canvas></div><div class="score"><p class="score-label">Score</p><output class="score-value" id="score" aria-live="polite">0</output></div></aside>
+      </div>
+    </section>
+    <section class="copy" aria-labelledby="page-title">
+      <p class="eyebrow">HTTP status not_found</p>
+      <h1 id="page-title"><span>404</span></h1>
+      <p class="message">Page not found.</p>
+    </section>
+  </main>
+  <footer class="footer"><p class="disclaimer">Not affiliated with the CNCF or the Kubernetes project.</p><p>&copy; <span id="year"></span> <a href="/">kube.how</a></p></footer>
+
+  <script>
+    (() => {
+      const key = 'kube-how:sidebar-collapsed:v1'
+      let collapsed = false
+      try { collapsed = localStorage.getItem(key) === '1' } catch (_) {}
+      if (collapsed) document.body.classList.add('sidebar-collapsed')
+      const persist = value => { try { localStorage.setItem(key, value ? '1' : '0') } catch (_) {} }
+      document.getElementById('sideToggle').addEventListener('click', () => { document.body.classList.add('sidebar-collapsed'); persist(true) })
+      document.getElementById('sideExpand').addEventListener('click', () => { document.body.classList.remove('sidebar-collapsed'); persist(false) })
+      document.getElementById('year').textContent = new Date().getFullYear()
+    })()
+  </script>
+
+  <script type="module">
+
+    const icon = {
+      contacts: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      sponsor: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+    }
+    const actions = document.getElementById('headerActions')
+    try {
+      const { CONTACTS, GITHUB, SPONSOR } = await import('/cli/js/contacts.js')
+      const dropdown = (label, buttonIcon, links) => `<div class="action-wrap"><button class="action-btn" aria-expanded="false" aria-haspopup="true">${buttonIcon}<span class="action-btn-label">${label}</span></button><div class="action-dropdown" role="menu">${links}</div></div>`
+      const links = items => items.map(item => `<a class="dropdown-link" href="${item.href}" target="_blank" rel="noopener" role="menuitem">${item.icon}${item.label}</a>`).join('')
+      actions.innerHTML = `${GITHUB.enabled ? `<a class="action-btn action-btn-link" href="${GITHUB.href}" target="_blank" rel="noopener" aria-label="${GITHUB.label}">${GITHUB.icon}<span class="action-btn-label">${GITHUB.label}</span></a>` : ''}${CONTACTS.enabled ? dropdown('Contacts', icon.contacts, links(CONTACTS.links)) : ''}${SPONSOR.enabled ? dropdown('Sponsor', icon.sponsor, links([SPONSOR.donate])) : ''}`
+      actions.querySelectorAll('.action-wrap').forEach(wrap => wrap.querySelector('.action-btn').addEventListener('click', event => { event.stopPropagation(); const open = wrap.classList.contains('open'); actions.querySelectorAll('.action-wrap').forEach(item => { item.classList.remove('open'); item.querySelector('.action-btn').setAttribute('aria-expanded', 'false') }); if (!open) { wrap.classList.add('open'); wrap.querySelector('.action-btn').setAttribute('aria-expanded', 'true') } }))
+      document.addEventListener('click', () => actions.querySelectorAll('.action-wrap').forEach(item => { item.classList.remove('open'); item.querySelector('.action-btn').setAttribute('aria-expanded', 'false') }))
+    } catch (_) {}
+  </script>
+  <script>
+    (() => {
+      const board=document.getElementById('board'), nextCanvas=document.getElementById('next'), ctx=board.getContext('2d'), nextCtx=nextCanvas.getContext('2d'), scoreEl=document.getElementById('score'), restartButton=document.getElementById('restart')
+      const COLS=10, ROWS=20, CELL=27, COLORS=['#4fe5ff','#7d86ff','#c4a8ff','#ff668c','#ffd15c','#9afb50','#5cb1ff']
+      const PIECES=[[[1,1,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]],[[1,1],[1,1]],[[0,1,1],[1,1,0]],[[0,1,0],[1,1,1]],[[1,1,0],[0,1,1]]]
+      let grid,current,next,score,lastDrop=0,animation,running=true
+      const copyPiece=matrix=>matrix.map(row=>[...row])
+      const makePiece=()=>({matrix:copyPiece(PIECES[Math.floor(Math.random()*PIECES.length)]),color:COLORS[Math.floor(Math.random()*COLORS.length)],x:0,y:0})
+      function reset(){ grid=Array.from({length:ROWS},()=>Array(COLS).fill(null)); current=makePiece(); next=makePiece(); score=0; scoreEl.value=score; scoreEl.textContent=score; spawn(); running=true; restartButton.hidden=true; lastDrop=performance.now(); cancelAnimationFrame(animation); animation=requestAnimationFrame(tick) }
+      function spawn(){ current.x=Math.floor((COLS-current.matrix[0].length)/2); current.y=0; if(collides(current)) running=false }
+      function collides(piece,dx=0,dy=0,matrix=piece.matrix){ return matrix.some((row,y)=>row.some((value,x)=>{ if(!value)return false; const px=piece.x+x+dx,py=piece.y+y+dy; return px<0||px>=COLS||py>=ROWS||(py>=0&&grid[py][px]) })) }
+      function rotate(){ if(!running)return; const rotated=current.matrix[0].map((_,i)=>current.matrix.map(row=>row[i]).reverse()); for(const offset of [0,-1,1,-2,2])if(!collides(current,offset,0,rotated)){ current.matrix=rotated; current.x+=offset; return } }
+      function move(dx){ if(running&&!collides(current,dx,0))current.x+=dx }
+      function drop(){ if(!running)return; if(!collides(current,0,1)){ current.y++; return } lock() }
+      function lock(){ current.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value&&current.y+y>=0)grid[current.y+y][current.x+x]=current.color})); let cleared=0; grid=grid.filter(row=>{if(row.every(Boolean)){cleared++;return false}return true}); while(grid.length<ROWS)grid.unshift(Array(COLS).fill(null)); if(cleared){score+=[0,100,300,500,800][cleared];scoreEl.value=score;scoreEl.textContent=score} current=next;next=makePiece();spawn() }
+      function drawCell(context,x,y,size,color){ context.fillStyle=color;context.fillRect(x*size+1,y*size+1,size-2,size-2);context.fillStyle='rgba(255,255,255,.22)';context.fillRect(x*size+2,y*size+2,size-4,2);context.fillStyle='rgba(0,0,0,.16)';context.fillRect(x*size+2,y*size+size-4,size-4,2) }
+      function draw(){ ctx.fillStyle='#12112a';ctx.fillRect(0,0,board.width,board.height);ctx.strokeStyle='rgba(141,142,150,.13)';ctx.lineWidth=1;for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*CELL+.5,0);ctx.lineTo(x*CELL+.5,ROWS*CELL);ctx.stroke()}for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*CELL+.5);ctx.lineTo(COLS*CELL,y*CELL+.5);ctx.stroke()}grid.forEach((row,y)=>row.forEach((color,x)=>{if(color)drawCell(ctx,x,y,CELL,color)}));if(running)current.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value)drawCell(ctx,current.x+x,current.y+y,CELL,current.color)}));if(!running){ctx.fillStyle='rgba(12,10,28,.78)';ctx.fillRect(0,0,board.width,board.height);ctx.fillStyle='#e0cdff';ctx.font='700 16px JetBrains Mono';ctx.textAlign='center';ctx.fillText('GAME OVER',board.width/2,board.height/2-14);restartButton.hidden=false}else restartButton.hidden=true;drawNext() }
+      function drawNext(){ const size=13,width=next.matrix[0].length*size,height=next.matrix.length*size;nextCtx.fillStyle='#0f0d22';nextCtx.fillRect(0,0,nextCanvas.width,nextCanvas.height);const offsetX=Math.floor((nextCanvas.width-width)/2),offsetY=Math.floor((nextCanvas.height-height)/2);next.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value){nextCtx.fillStyle=next.color;nextCtx.fillRect(offsetX+x*size+1,offsetY+y*size+1,size-2,size-2)}})) }
+      function tick(time){if(running&&time-lastDrop>650){drop();lastDrop=time}draw();animation=requestAnimationFrame(tick)}
+      function handle(action){if(action==='left')move(-1);if(action==='right')move(1);if(action==='down')drop();if(action==='rotate')rotate();draw()}
+      restartButton.addEventListener('click',reset)
+      document.addEventListener('keydown',event=>{const actions={ArrowLeft:'left',ArrowRight:'right',ArrowDown:'down',ArrowUp:'rotate',' ':'rotate'};if(!actions[event.key])return;event.preventDefault();handle(actions[event.key])})
+      document.addEventListener('visibilitychange',()=>{lastDrop=performance.now()})
+      reset()
+    })()
+  </script>
+</body>
+</html>

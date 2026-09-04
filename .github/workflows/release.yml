@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'index.html'
+      - '404.html'
       - 'cli/**'
       - 'scheme/**'
       - 'images/**'
@@ -43,6 +44,7 @@ jobs:
         run: |
           zip -r kube-cheatsheet-${{ steps.version.outputs.VERSION }}.zip \
             index.html \
+            404.html \
             cli/ \
             scheme/ \
             images/ \
