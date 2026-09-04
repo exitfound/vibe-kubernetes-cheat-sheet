@@ -14,13 +14,18 @@
   <style>
     :root { --bg:#110f1f; --deep:#0c1022; --card:#1a1538; --border:#2e274e; --text:#ece9ff; --bright:#f9f8ff; --muted:#9b95b8; --accent:#e0cdff; --cyan:#4fe5ff; --blue:#7d86ff; --pink:#ff668c; --gold:#ffd15c; --green:#9afb50; }
     * { box-sizing:border-box; }
-    html { min-height:100%; background:linear-gradient(135deg,var(--deep),var(--bg) 52%,#18091e); }
+    html { min-height:100%; overflow-y:scroll; background:linear-gradient(135deg,var(--deep),var(--bg) 52%,#18091e); }
     body { display:flex; min-height:100vh; flex-direction:column; margin:0; overflow-x:hidden; color:var(--text); font-family:'Space Grotesk',sans-serif; }
     body::before, body::after { position:fixed; z-index:-1; width:56vmax; height:56vmax; border-radius:50%; content:''; opacity:.38; pointer-events:none; }
     body::before { top:-35vmax; left:-20vmax; background:radial-gradient(circle,rgba(79,229,255,.18),transparent 65%); }
     body::after { right:-24vmax; bottom:-38vmax; background:radial-gradient(circle,rgba(196,168,255,.17),transparent 65%); }
+    .header { flex-shrink:0; border-bottom-color:transparent; }
     .hub-headpad { position:relative; height:5px; flex:0 0 auto; background:rgba(17,15,31,.95); }
     .hub-headpad::after { position:absolute; right:0; bottom:0; left:0; height:2px; background:linear-gradient(to right,rgba(221,202,250,.06),rgba(221,202,250,.32) 50%,rgba(221,202,250,.06)); content:''; pointer-events:none; }
+    .hub-ruler { height:0; overflow:hidden; visibility:hidden; }
+    .hub-ruler .nav { position:static; box-shadow:none; }
+    .footer { position:relative; border-top-color:transparent; }
+    .footer::before { position:absolute; top:0; right:0; left:0; height:2px; background:linear-gradient(to right,rgba(221,202,250,.06),rgba(221,202,250,.32) 50%,rgba(221,202,250,.06)); content:''; pointer-events:none; }
     main { display:grid; flex:1; min-height:calc(100vh - 146px); grid-template-columns:minmax(280px,360px) minmax(300px,470px); align-content:center; justify-content:center; gap:clamp(42px,7vw,112px); padding:56px 28px 46px; }
     .game-shell { width:min(100%,360px); }
     .game-label,.eyebrow,.score-label,.next-label { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; }
@@ -66,11 +71,12 @@
     </div>
   </header>
   <div class="hub-headpad" aria-hidden="true"></div>
+  <div class="hub-ruler" aria-hidden="true"><nav class="nav nav-top"><div class="nav-inner"><button class="nav-btn top-btn" data-group="all" tabindex="-1">All</button></div></nav></div>
 
   <main>
     <section class="game-shell" aria-label="Tetris game">
       <div class="game-card">
-        <div class="board-wrap"><canvas id="board" width="270" height="540" role="img" aria-label="Tetris game board"></canvas><button class="game-over-restart" id="restart" type="button" hidden>Restart</button></div>
+        <div class="board-wrap"><canvas id="board" width="250" height="500" role="img" aria-label="Tetris game board"></canvas><button class="game-over-restart" id="restart" type="button" hidden>Restart</button></div>
         <aside class="game-side" aria-label="Game status"><div><p class="next-label">Next</p><canvas id="next" width="58" height="58" aria-label="Next Tetris piece"></canvas></div><div class="score"><p class="score-label">Score</p><output class="score-value" id="score" aria-live="polite">0</output></div></aside>
       </div>
     </section>
@@ -97,24 +103,53 @@
 
   <script type="module">
 
+    function alignLogo() {
+      const logo = document.querySelector('.logo')
+      if (!logo) return
+      if (window.innerWidth <= 900) { logo.style.marginLeft = '0'; return }
+      const allBtn = document.querySelector('.hub-ruler [data-group="all"]')
+      const logoIcon = document.querySelector('.logo-icon')
+      if (!allBtn || !logoIcon) return
+      const currentMargin = parseFloat(logo.style.marginLeft) || 0
+      const allCenter = allBtn.getBoundingClientRect().left + allBtn.offsetWidth / 2
+      const iconCenter = logoIcon.getBoundingClientRect().left + logoIcon.offsetWidth / 2
+      logo.style.marginLeft = (currentMargin + allCenter - iconCenter) + 'px'
+    }
+    requestAnimationFrame(alignLogo)
+    window.addEventListener('resize', alignLogo)
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(alignLogo))
+
     const icon = {
       contacts: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
       sponsor: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
     }
     const actions = document.getElementById('headerActions')
+    const copyIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+    const checkIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char])
+    let copyTimer
     try {
       const { CONTACTS, GITHUB, SPONSOR } = await import('/cli/js/contacts.js')
       const dropdown = (label, buttonIcon, links) => `<div class="action-wrap"><button class="action-btn" aria-expanded="false" aria-haspopup="true">${buttonIcon}<span class="action-btn-label">${label}</span></button><div class="action-dropdown" role="menu">${links}</div></div>`
       const links = items => items.map(item => `<a class="dropdown-link" href="${item.href}" target="_blank" rel="noopener" role="menuitem">${item.icon}${item.label}</a>`).join('')
-      actions.innerHTML = `${GITHUB.enabled ? `<a class="action-btn action-btn-link" href="${GITHUB.href}" target="_blank" rel="noopener" aria-label="${GITHUB.label}">${GITHUB.icon}<span class="action-btn-label">${GITHUB.label}</span></a>` : ''}${CONTACTS.enabled ? dropdown('Contacts', icon.contacts, links(CONTACTS.links)) : ''}${SPONSOR.enabled ? dropdown('Sponsor', icon.sponsor, links([SPONSOR.donate])) : ''}`
+      const wallets = SPONSOR.wallets.map(wallet => `<div class="dropdown-copy-row"><span class="dropdown-coin">${escapeHtml(wallet.coin)}<span class="dropdown-net">${escapeHtml(wallet.net)}</span></span><span class="dropdown-addr" data-addr="${escapeHtml(wallet.addr)}">${escapeHtml(wallet.addr)}</span><button class="dropdown-copy-btn" type="button" aria-label="Copy ${escapeHtml(wallet.coin)} address">${copyIcon}</button></div>`).join('')
+      const sponsorContent = `${links([SPONSOR.donate])}<div class="dropdown-divider"></div>${wallets}`
+      actions.innerHTML = `${GITHUB.enabled ? `<a class="action-btn action-btn-link" href="${GITHUB.href}" target="_blank" rel="noopener" aria-label="${GITHUB.label}">${GITHUB.icon}<span class="action-btn-label">${GITHUB.label}</span></a>` : ''}${CONTACTS.enabled ? dropdown('Contacts', icon.contacts, links(CONTACTS.links)) : ''}${SPONSOR.enabled ? dropdown('Sponsor', icon.sponsor, sponsorContent) : ''}`
       actions.querySelectorAll('.action-wrap').forEach(wrap => wrap.querySelector('.action-btn').addEventListener('click', event => { event.stopPropagation(); const open = wrap.classList.contains('open'); actions.querySelectorAll('.action-wrap').forEach(item => { item.classList.remove('open'); item.querySelector('.action-btn').setAttribute('aria-expanded', 'false') }); if (!open) { wrap.classList.add('open'); wrap.querySelector('.action-btn').setAttribute('aria-expanded', 'true') } }))
+      actions.querySelectorAll('.dropdown-copy-btn').forEach(button => button.addEventListener('click', event => {
+        event.stopPropagation()
+        const address = button.closest('.dropdown-copy-row').querySelector('.dropdown-addr').dataset.addr
+        const copied = () => { clearTimeout(copyTimer); button.innerHTML = checkIcon; button.classList.add('copied'); copyTimer = setTimeout(() => { button.innerHTML = copyIcon; button.classList.remove('copied') }, 1500) }
+        const fallback = () => { const field = document.createElement('textarea'); field.value = address; field.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0'; document.body.appendChild(field); field.select(); try { document.execCommand('copy'); copied() } catch (_) {} document.body.removeChild(field) }
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(address).then(copied).catch(fallback); else fallback()
+      }))
       document.addEventListener('click', () => actions.querySelectorAll('.action-wrap').forEach(item => { item.classList.remove('open'); item.querySelector('.action-btn').setAttribute('aria-expanded', 'false') }))
     } catch (_) {}
   </script>
   <script>
     (() => {
       const board=document.getElementById('board'), nextCanvas=document.getElementById('next'), ctx=board.getContext('2d'), nextCtx=nextCanvas.getContext('2d'), scoreEl=document.getElementById('score'), restartButton=document.getElementById('restart')
-      const COLS=10, ROWS=20, CELL=27, COLORS=['#4fe5ff','#7d86ff','#c4a8ff','#ff668c','#ffd15c','#9afb50','#5cb1ff']
+      const COLS=10, ROWS=20, BOARD_WIDTH=250, BOARD_HEIGHT=500, NEXT_SIZE=58, COLORS=['#4fe5ff','#7d86ff','#c4a8ff','#ff668c','#ffd15c','#9afb50','#5cb1ff']
       const PIECES=[[[1,1,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]],[[1,1],[1,1]],[[0,1,1],[1,1,0]],[[0,1,0],[1,1,1]],[[1,1,0],[0,1,1]]]
       let grid,current,next,score,lastDrop=0,animation,running=true
       const copyPiece=matrix=>matrix.map(row=>[...row])
@@ -126,9 +161,12 @@
       function move(dx){ if(running&&!collides(current,dx,0))current.x+=dx }
       function drop(){ if(!running)return; if(!collides(current,0,1)){ current.y++; return } lock() }
       function lock(){ current.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value&&current.y+y>=0)grid[current.y+y][current.x+x]=current.color})); let cleared=0; grid=grid.filter(row=>{if(row.every(Boolean)){cleared++;return false}return true}); while(grid.length<ROWS)grid.unshift(Array(COLS).fill(null)); if(cleared){score+=[0,100,300,500,800][cleared];scoreEl.value=score;scoreEl.textContent=score} current=next;next=makePiece();spawn() }
-      function drawCell(context,x,y,size,color){ context.fillStyle=color;context.fillRect(x*size+1,y*size+1,size-2,size-2);context.fillStyle='rgba(255,255,255,.22)';context.fillRect(x*size+2,y*size+2,size-4,2);context.fillStyle='rgba(0,0,0,.16)';context.fillRect(x*size+2,y*size+size-4,size-4,2) }
-      function draw(){ ctx.fillStyle='#12112a';ctx.fillRect(0,0,board.width,board.height);ctx.strokeStyle='rgba(141,142,150,.13)';ctx.lineWidth=1;for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*CELL+.5,0);ctx.lineTo(x*CELL+.5,ROWS*CELL);ctx.stroke()}for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*CELL+.5);ctx.lineTo(COLS*CELL,y*CELL+.5);ctx.stroke()}grid.forEach((row,y)=>row.forEach((color,x)=>{if(color)drawCell(ctx,x,y,CELL,color)}));if(running)current.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value)drawCell(ctx,current.x+x,current.y+y,CELL,current.color)}));if(!running){ctx.fillStyle='rgba(12,10,28,.78)';ctx.fillRect(0,0,board.width,board.height);ctx.fillStyle='#e0cdff';ctx.font='700 16px JetBrains Mono';ctx.textAlign='center';ctx.fillText('GAME OVER',board.width/2,board.height/2-14);restartButton.hidden=false}else restartButton.hidden=true;drawNext() }
-      function drawNext(){ const size=13,width=next.matrix[0].length*size,height=next.matrix.length*size;nextCtx.fillStyle='#0f0d22';nextCtx.fillRect(0,0,nextCanvas.width,nextCanvas.height);const offsetX=Math.floor((nextCanvas.width-width)/2),offsetY=Math.floor((nextCanvas.height-height)/2);next.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value){nextCtx.fillStyle=next.color;nextCtx.fillRect(offsetX+x*size+1,offsetY+y*size+1,size-2,size-2)}})) }
+      function syncCanvasSize(){ const ratio=window.devicePixelRatio||1,boardWidth=Math.round(BOARD_WIDTH*ratio),boardHeight=Math.round(BOARD_HEIGHT*ratio),nextSize=Math.round(NEXT_SIZE*ratio);if(board.width!==boardWidth||board.height!==boardHeight){board.width=boardWidth;board.height=boardHeight}if(nextCanvas.width!==nextSize||nextCanvas.height!==nextSize){nextCanvas.width=nextSize;nextCanvas.height=nextSize}return ratio }
+      function cellBounds(canvas,x,y,cols,rows){return {left:Math.round(x*canvas.width/cols),top:Math.round(y*canvas.height/rows),right:Math.round((x+1)*canvas.width/cols),bottom:Math.round((y+1)*canvas.height/rows)}}
+      function drawCell(context,x,y,color){const box=cellBounds(board,x,y,COLS,ROWS),width=box.right-box.left,height=box.bottom-box.top;context.fillStyle=color;context.fillRect(box.left+1,box.top+1,width-2,height-2);context.fillStyle='rgba(255,255,255,.22)';context.fillRect(box.left+2,box.top+2,width-4,Math.max(1,Math.round(height*.08)));context.fillStyle='rgba(0,0,0,.16)';context.fillRect(box.left+2,box.bottom-Math.max(2,Math.round(height*.12)),width-4,Math.max(1,Math.round(height*.08))) }
+      function drawGrid(){ctx.fillStyle='rgba(141,142,150,.13)';for(let x=0;x<=COLS;x++){const left=Math.min(board.width-1,Math.round(x*board.width/COLS));ctx.fillRect(left,0,1,board.height)}for(let y=0;y<=ROWS;y++){const top=Math.min(board.height-1,Math.round(y*board.height/ROWS));ctx.fillRect(0,top,board.width,1)}}
+      function draw(){const ratio=syncCanvasSize();ctx.fillStyle='#12112a';ctx.fillRect(0,0,board.width,board.height);drawGrid();grid.forEach((row,y)=>row.forEach((color,x)=>{if(color)drawCell(ctx,x,y,color)}));if(running)current.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value)drawCell(ctx,current.x+x,current.y+y,current.color)}));if(!running){ctx.fillStyle='rgba(12,10,28,.78)';ctx.fillRect(0,0,board.width,board.height);ctx.fillStyle='#e0cdff';ctx.font=`700 ${Math.round(16*ratio)}px JetBrains Mono`;ctx.textAlign='center';ctx.fillText('GAME OVER',board.width/2,board.height/2-Math.round(14*ratio));restartButton.hidden=false}else restartButton.hidden=true;drawNext(ratio) }
+      function drawNext(ratio){const size=Math.round(13*ratio),width=next.matrix[0].length*size,height=next.matrix.length*size;nextCtx.fillStyle='#0f0d22';nextCtx.fillRect(0,0,nextCanvas.width,nextCanvas.height);const offsetX=Math.floor((nextCanvas.width-width)/2),offsetY=Math.floor((nextCanvas.height-height)/2);next.matrix.forEach((row,y)=>row.forEach((value,x)=>{if(value){nextCtx.fillStyle=next.color;nextCtx.fillRect(offsetX+x*size+1,offsetY+y*size+1,size-2,size-2)}})) }
       function tick(time){if(running&&time-lastDrop>650){drop();lastDrop=time}draw();animation=requestAnimationFrame(tick)}
       function handle(action){if(action==='left')move(-1);if(action==='right')move(1);if(action==='down')drop();if(action==='rotate')rotate();draw()}
       restartButton.addEventListener('click',reset)
