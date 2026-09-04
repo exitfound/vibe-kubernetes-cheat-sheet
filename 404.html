@@ -19,8 +19,13 @@
     body::before, body::after { position:fixed; z-index:-1; width:56vmax; height:56vmax; border-radius:50%; content:''; opacity:.38; pointer-events:none; }
     body::before { top:-35vmax; left:-20vmax; background:radial-gradient(circle,rgba(79,229,255,.18),transparent 65%); }
     body::after { right:-24vmax; bottom:-38vmax; background:radial-gradient(circle,rgba(196,168,255,.17),transparent 65%); }
+    .header { border-bottom-color:transparent; }
     .hub-headpad { position:relative; height:5px; flex:0 0 auto; background:rgba(17,15,31,.95); }
     .hub-headpad::after { position:absolute; right:0; bottom:0; left:0; height:2px; background:linear-gradient(to right,rgba(221,202,250,.06),rgba(221,202,250,.32) 50%,rgba(221,202,250,.06)); content:''; pointer-events:none; }
+    .hub-ruler { height:0; overflow:hidden; visibility:hidden; }
+    .hub-ruler .nav { position:static; box-shadow:none; }
+    .footer { position:relative; border-top-color:transparent; }
+    .footer::before { position:absolute; top:0; right:0; left:0; height:2px; background:linear-gradient(to right,rgba(221,202,250,.06),rgba(221,202,250,.32) 50%,rgba(221,202,250,.06)); content:''; pointer-events:none; }
     main { display:grid; flex:1; min-height:calc(100vh - 146px); grid-template-columns:minmax(280px,360px) minmax(300px,470px); align-content:center; justify-content:center; gap:clamp(42px,7vw,112px); padding:56px 28px 46px; }
     .game-shell { width:min(100%,360px); }
     .game-label,.eyebrow,.score-label,.next-label { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; }
@@ -66,6 +71,7 @@
     </div>
   </header>
   <div class="hub-headpad" aria-hidden="true"></div>
+  <div class="hub-ruler" aria-hidden="true"><nav class="nav nav-top"><div class="nav-inner"><button class="nav-btn top-btn" data-group="all" tabindex="-1">All</button></div></nav></div>
 
   <main>
     <section class="game-shell" aria-label="Tetris game">
@@ -96,6 +102,22 @@
   </script>
 
   <script type="module">
+
+    function alignLogo() {
+      const logo = document.querySelector('.logo')
+      if (!logo) return
+      if (window.innerWidth <= 900) { logo.style.marginLeft = '0'; return }
+      const allBtn = document.querySelector('.hub-ruler [data-group="all"]')
+      const logoIcon = document.querySelector('.logo-icon')
+      if (!allBtn || !logoIcon) return
+      const currentMargin = parseFloat(logo.style.marginLeft) || 0
+      const allCenter = allBtn.getBoundingClientRect().left + allBtn.offsetWidth / 2
+      const iconCenter = logoIcon.getBoundingClientRect().left + logoIcon.offsetWidth / 2
+      logo.style.marginLeft = (currentMargin + allCenter - iconCenter) + 'px'
+    }
+    requestAnimationFrame(alignLogo)
+    window.addEventListener('resize', alignLogo)
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(alignLogo))
 
     const icon = {
       contacts: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
