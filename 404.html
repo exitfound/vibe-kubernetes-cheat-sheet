@@ -102,12 +102,25 @@
       sponsor: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
     }
     const actions = document.getElementById('headerActions')
+    const copyIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+    const checkIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char])
+    let copyTimer
     try {
       const { CONTACTS, GITHUB, SPONSOR } = await import('/cli/js/contacts.js')
       const dropdown = (label, buttonIcon, links) => `<div class="action-wrap"><button class="action-btn" aria-expanded="false" aria-haspopup="true">${buttonIcon}<span class="action-btn-label">${label}</span></button><div class="action-dropdown" role="menu">${links}</div></div>`
       const links = items => items.map(item => `<a class="dropdown-link" href="${item.href}" target="_blank" rel="noopener" role="menuitem">${item.icon}${item.label}</a>`).join('')
-      actions.innerHTML = `${GITHUB.enabled ? `<a class="action-btn action-btn-link" href="${GITHUB.href}" target="_blank" rel="noopener" aria-label="${GITHUB.label}">${GITHUB.icon}<span class="action-btn-label">${GITHUB.label}</span></a>` : ''}${CONTACTS.enabled ? dropdown('Contacts', icon.contacts, links(CONTACTS.links)) : ''}${SPONSOR.enabled ? dropdown('Sponsor', icon.sponsor, links([SPONSOR.donate])) : ''}`
+      const wallets = SPONSOR.wallets.map(wallet => `<div class="dropdown-copy-row"><span class="dropdown-coin">${escapeHtml(wallet.coin)}<span class="dropdown-net">${escapeHtml(wallet.net)}</span></span><span class="dropdown-addr" data-addr="${escapeHtml(wallet.addr)}">${escapeHtml(wallet.addr)}</span><button class="dropdown-copy-btn" type="button" aria-label="Copy ${escapeHtml(wallet.coin)} address">${copyIcon}</button></div>`).join('')
+      const sponsorContent = `${links([SPONSOR.donate])}<div class="dropdown-divider"></div>${wallets}`
+      actions.innerHTML = `${GITHUB.enabled ? `<a class="action-btn action-btn-link" href="${GITHUB.href}" target="_blank" rel="noopener" aria-label="${GITHUB.label}">${GITHUB.icon}<span class="action-btn-label">${GITHUB.label}</span></a>` : ''}${CONTACTS.enabled ? dropdown('Contacts', icon.contacts, links(CONTACTS.links)) : ''}${SPONSOR.enabled ? dropdown('Sponsor', icon.sponsor, sponsorContent) : ''}`
       actions.querySelectorAll('.action-wrap').forEach(wrap => wrap.querySelector('.action-btn').addEventListener('click', event => { event.stopPropagation(); const open = wrap.classList.contains('open'); actions.querySelectorAll('.action-wrap').forEach(item => { item.classList.remove('open'); item.querySelector('.action-btn').setAttribute('aria-expanded', 'false') }); if (!open) { wrap.classList.add('open'); wrap.querySelector('.action-btn').setAttribute('aria-expanded', 'true') } }))
+      actions.querySelectorAll('.dropdown-copy-btn').forEach(button => button.addEventListener('click', event => {
+        event.stopPropagation()
+        const address = button.closest('.dropdown-copy-row').querySelector('.dropdown-addr').dataset.addr
+        const copied = () => { clearTimeout(copyTimer); button.innerHTML = checkIcon; button.classList.add('copied'); copyTimer = setTimeout(() => { button.innerHTML = copyIcon; button.classList.remove('copied') }, 1500) }
+        const fallback = () => { const field = document.createElement('textarea'); field.value = address; field.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0'; document.body.appendChild(field); field.select(); try { document.execCommand('copy'); copied() } catch (_) {} document.body.removeChild(field) }
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(address).then(copied).catch(fallback); else fallback()
+      }))
       document.addEventListener('click', () => actions.querySelectorAll('.action-wrap').forEach(item => { item.classList.remove('open'); item.querySelector('.action-btn').setAttribute('aria-expanded', 'false') }))
     } catch (_) {}
   </script>
