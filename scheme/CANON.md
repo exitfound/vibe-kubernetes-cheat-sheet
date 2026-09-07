@@ -66,7 +66,7 @@ strings, and the file list `dashTargets` names.
 
 ## The numbers this file is written against
 
-123 cards: cluster 28, workloads 27, network 37, storage 31. 750 steps. Re-measure before trusting
+128 cards: cluster 28, workloads 32, network 37, storage 31. 790 steps. Re-measure before trusting
 any figure below that carries a date-free absolute, and if you change one, change it here.
 
 ---
@@ -127,7 +127,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | A-18 | `dim` on an arrow is a stroke WEIGHT, not a lifecycle state: the role wins the stroke and `dim` survives as `stroke-width: 1.4` | review | `scheme/css/diagrams.css`, the `dim` decision note |
 | A-19 | A ball never travels under or over a block: every endpoint sits on an EDGE, so a rewrite INSIDE a box (DNAT, SNAT, port remap, conntrack) is drawn as a fade at one edge and a re-emergence at the far edge | review | `js/schemes/network/CLAUDE.md` (`NET.A-01`) |
 | A-21 | A lane from the actor row into a Node band ends on the FRAME FACE, never on a Pod inside the frame: an endpoint on the Pod pierces the frame and draws the actor reaching THROUGH the Node rather than acting on it | report:frame-face/WL.A-03 | `js/schemes/workloads/CLAUDE.md` (`WL.A-03`), and `test/report/frame-face.test.mjs` for the queue |
-| A-20 | **`relationPath` defaults NEITHER `role` NOR `dash`**, so a call that omits one renders without it: no role suffix drops the stroke to the generic fallback instead of the category hue, and no `dash` draws a solid relation | review | `lib/scheme-kit.js`, `relationPath` |
+| A-20 | **A relation is DASHED whether it says so or not, and takes a role it never asked for**: `relationPath` classes every one `scheme-arrow-dashed`, so `dash` only OVERRIDES that pattern, and `P.relation` fills `role` from the kit binding | review | `lib/scheme-kit.js` `relationPath`, `lib/scene-spec.js` `roledPart`, `css/diagrams.css` |
 
 ## M: motion
 
@@ -151,6 +151,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | M-16 | **Down-arrow (infra to Pod): packet first, `pulsePod(..., pkt.arrivalMs)` on arrival** | report:motion/BEAT | `lib/tokens.js`, `BEAT` |
 | M-17 | Chained hops: `delay: prevHop.arrivalMs + BEAT.afterHop` (100). **Never hard-code a delay** | report:motion/BEAT | `lib/tokens.js`, `BEAT` |
 | M-18 | A controller that self-initiates with no preceding hop or pulse waits `BEAT.lead` (800), so the lit source registers before the ball leaves | report:motion/BEAT | `lib/tokens.js`, `BEAT` |
+| M-18a | **The SENDER is cued before its ball leaves**, in one of two shapes and no third: a block that ACTS FIRST is named in that step's `lit`, a MID-CHAIN block is named in the `lights` of the hop before it | report:arrival/R4 | `test/report/arrival.test.mjs` |
 | M-19 | A step must OUTLAST its own motion: `span <= duration`. Fix an overrun by raising `duration`, never by shortening motion | test:duration/M-19, test:spec-steps/M-19 | `test/render/duration.test.mjs` |
 | M-19a | The OTHER side of M-19: a step also stands STILL for `duration - span`, and that is not a free variable either | review | `.claude/skills/card-review/tools/deadair.mjs` |
 | M-20 | **Geometry changes are timing changes**, because `routeDur` is length-based. After ANY geometry change re-check the span of EVERY step, not just the one you moved | test:duration/M-20 | `test/render/duration.test.mjs` |
@@ -279,7 +280,7 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | D-08 | `CATEGORY_LABEL`, `CATEGORY_ICONS` and `CATEGORY_TAGLINE` are PROJECTIONS of `CATEGORIES` through one `byKey(field)` helper, so a category is added in one place only | test:catalog/D-08 | `js/data.js` |
 | D-09 | `CATEGORY_TAGLINE` renders nowhere today: both readers are fallbacks for shapes no category currently has. The code stays, do not expect a new tagline to appear | review | `js/data.js` |
 | D-10 | Each category's `SUBCATEGORIES` list is an ORDER, not a set: the sequence is an editorial argument about what a reader has to know first, never alphabetical and never a merge artefact, and it is recorded beside the list it orders | review | `js/data.js`, and the `SUBCATEGORIES` note in each `cards.js` |
-| D-11 | Renaming a card id is fine as long as `SCHEME_ALIASES` in `app.js` keeps the old one resolving | test:catalog/D-11 | `js/app.js` |
+| D-11 | A card id is STABLE. There is NO alias map: `app.js` resolves a hash to a card by exact id, so renaming a shipped id breaks every external link (bookmark, indexed URL) to the old one. Rename an id only while the card has no audience | review | `js/app.js` |
 | D-12 | A deep-linkable card gets a `<url>` in the repo-root `sitemap.xml` | test:catalog/D-12 | `sitemap.xml` |
 | D-13 | Adding a CATEGORY touches twelve places, and the ORDER that makes them land is the checklist in `scheme/CLAUDE.md` | review | `scheme/CLAUDE.md`, new-category checklist |
 | D-14 | The poster-first model applies to every card: idle is a static poster, step 1 auto-plays after about 1s, the poster previews step 1's TEXT immediately, and `Next` from the last step wraps to poster then step 1 | test:skeleton/D-14 | `lib/timeline.js` |
@@ -297,12 +298,12 @@ any figure below that carries a date-free absolute, and if you change one, chang
 | R-05 | **A poster is judged next to its SIBLINGS, not on its own.** Build a montage of the card plus two neighbours at about 260 percent before deciding | review | this file |
 | R-06 | Siblings are 76 to 80 unit blocks with fills between 0.03 and 0.10. Specks at 200px, a track dimmed below its siblings and a quarter of the canvas left as empty air are all invisible on the file and obvious on the montage | review | this file |
 | R-07 | House idiom one: the accent is a `rect` with `fill="currentColor"` at `opacity="0.9"` INSIDE the block it belongs to, with the losers carrying the same bar at 0.3. Never a bright fill on a whole shape | review | this file |
-| R-08 | House idiom two: **a poster carries no arrowhead by default.** Direction comes from the composition being closed, or from a dashed leg, or from a fill ramp. 99 of 110 have none | review | measured 2026-08-23 |
-| R-08a | The exception, and it is earned rather than tolerated: **ONE poster carries a chevron today**, and the registry in `poster-lint.mjs` names who is allowed one: the sentence has to BE a direction that composition cannot say | review | measured 2026-08-06 |
+| R-08 | House idiom two: **a poster carries no arrowhead by default.** Direction comes from the composition being closed, or from a dashed leg, or from a fill ramp. 126 of the 128 have none, and the two that do are the `R-08a` allowlist | review | `.claude/skills/card-poster/tools/poster-lint.mjs` |
+| R-08a | The exception, and it is earned rather than tolerated: **TWO posters carry a chevron, three between them**, and the registry in `poster-lint.mjs` names who is allowed one: the sentence has to BE a direction that composition cannot say | review | measured 2026-09-06 |
 | R-09 | **A poster carries no packet dot**: a ball frozen on a wire reads as a paused animation | review | this file |
 | R-10 | No literal copy of the card diagram, no reused two-box layout, no plain "dumb circles" | review | root `CLAUDE.md` |
 | R-11 | `FALLBACK_POSTER` in `js/app.js` breaks R-08 and R-09 on purpose. Do not "fix" it into canon and do not delete it: it is the failure mode made visible | test:catalog/D-06 | `js/app.js` |
-| R-12 | Poster notes go to that category's record under the card id as a `### poster` subsection, because `POSTERS` is keyed by card id. **Coverage is 123 of 123**, so a missing one is now a regression | review | the four `CARDS.md` |
+| R-12 | A poster is drawn once against the sibling montage and is not revised with the card, so the record carries no note for it. `network/` and `storage/` still hold a `### poster` subsection per card, and `S-51` is what holds the two that do not | test:docs/G1 | `test/unit/docs.test.mjs` |
 
 ## S: module structure
 
@@ -365,7 +366,9 @@ any figure below that carries a date-free absolute, and if you change one, chang
 ## The record vocabulary
 
 One list for all four records, so a label cannot mean one thing in `cluster/` and another
-in `storage/`. A record uses the ones that apply, in this order, and adds none of its own.
+in `storage/`. A record uses the ones that apply, in this order, each at most once, and adds none
+of its own. `S-52` and `S-53` are the rules and `test:docs/G2` and `test:docs/G3` hold them, reading this table as the
+vocabulary rather than carrying a second copy of it.
 
 **Every one of them is written in the present tense** (`S-48`). A block says what the card does and what
 was measured, never what an edit did to it: `WHY NOT` and `DO NOT` are where a rejected alternative lives,
@@ -390,8 +393,8 @@ as a constraint with its number, and not as an account of the day it was rejecte
 | `NOT A DEFECT` | something a lint or a reader reports that is correct as drawn |
 | `OPEN` | known and unresolved, with the measurement and the reason it stays open |
 
-Structural rules for a record file, all of them enforced by `unit/docs.test.mjs`, group A for the
-first four and group E for the last:
+Structural rules for a record file, all of them enforced by `unit/docs.test.mjs`: group A for the
+first four, group E for `S-47` and group G for the FORM the last two state.
 
 | ID | Rule | Check | Source |
 |---|---|---|---|
@@ -400,6 +403,14 @@ first four and group E for the last:
 | S-45 | Every card has a section. A card with no design record is how a measurement gets lost | test:docs/A3 | `test/unit/docs.test.mjs` |
 | S-46 | **A record the walk cannot OPEN is a failure, never a shorter run.** Nothing may be read with a `continue` on absence | test:docs | `test/unit/docs.test.mjs`, `readDoc` |
 | S-47 | **This file has to tell the truth about itself**, or it drifts from the harness the way one number once drifted across six files | test:docs/E1, test:docs/C4, test:docs/C5 | `test/unit/docs.test.mjs`, groups C and E |
+| S-51 | **A record section is ONE `### layout` heading and nothing else**: no poster note, no per-line anchor, no second heading. A note that would have taken an anchor goes under the label it belongs to | test:docs/G1 | `test/unit/docs.test.mjs` |
+| S-52 | **A record's labels come from "The record vocabulary" above, in that order, each at most once, `WHAT` first.** A note that fits none of them fits `NOTE` | test:docs/G2 | `test/unit/docs.test.mjs` |
+| S-53 | **A line in the label column carries a label and no other word.** `S-52` ranks the labels it knows, so a word outside the vocabulary is invisible to it: this is the half that sees one. Prose belongs at the column at 9 | test:docs/G3 | `test/unit/docs.test.mjs` |
+
+`S-51` and `S-52` are held on `cluster/` and `workloads/` and carried as a falling CEILING on
+`network/` and `storage/`, which have not been through the pass that put the other two on this form.
+The target is zero on all four and the two numbers come down as those categories are cleaned. `S-53`
+takes no baseline: every category already stands at zero on it.
 
 ---
 
@@ -664,14 +675,30 @@ That order is deliberate: 601 dim lanes across the catalog carry a packet, and m
 
 ### A-20
 
-Deliberate rather than an oversight, and the spread is inherited: normalising it is an undeclared
+Neither argument does what its absence suggests, and both halves are worth stating in full.
+
+`dash` cannot produce a solid relation. `relationPath` puts `scheme-arrow-dashed` in the class list
+of every relation it builds, `css/diagrams.css` gives that class `stroke-dasharray: 5 5`, and the
+`dash` argument writes an inline `stroke-dasharray` that OVERRIDES it. Omitting it yields `5 5`.
+
+`role` is the half that really defaults, but only at the primitive. `P.relation` is `roledPart`,
+which fills an `undefined` role from the kit binding (`S-42`), so a `P.relation` with no `role` is
+not a role-less relation. Only a raw `relationPath` call, or an explicit `role: ''`, reaches the
+generic dim fallback instead of a category suffix, and `role: ''` is a deliberate idiom on the
+networking cards where a cyan arrowhead would misread.
+
+The spread of dash patterns is inherited rather than chosen, and normalising it is an undeclared
 visual change, not a tidy-up.
 
-Measured 2026-08-08: 41 calls, 6 with no role, 19 with no dash, and of the 22 that pass one, 19 are
-`5 5`, 2 are `4 6` (both on `storage-ephemeral-vs-persistent`) and 1 is `4 4`.
+Measured 2026-09-01 over 70 call sites in `js/schemes/`, 68 of them `P.relation` and 2 raw
+`relationPath` (both on `network-model`, the bus rail): 27 pass a `dash`, of which 24 are `5 5`, 2
+are `4 6` (both on `storage-ephemeral-vs-persistent`) and 1 is `4 4`
+(`storage-ephemeral-storage-eviction`). The other 43 pass none AND STILL RENDER `5 5`, off the
+class, so 24 of the 27 are writing out a value they already have.
 
-A migrated card is outside that population: `P.relation` takes the role its kit binds (`S-42`), so
-only `dash` is still per call.
+`role` is omitted at 50 of the 70 call sites, and on a `P.relation` that is not a role-less
+relation: `roledPart` fills it from the kit binding (`S-42`). The two raw `relationPath` calls are
+the only ones that genuinely reach the generic fallback without asking for it.
 
 ### M-03
 
@@ -703,6 +730,33 @@ arrow would finish in 489ms and read as a dart next to the long glide.
 **`lead` and `afterPulse` are ONE number, so M-15 to M-18 are indistinguishable in the data**:
 nothing can say a given 800 was one rather than the other. `render/motion.test.mjs` therefore prints
 the vocabulary as a CENSUS (it explains 671 of 714 balls) and asserts none of the four.
+
+### M-18a
+
+The mirror of `P-06`, and the rule `M-18` presumes without stating: `M-18` says a self-initiated ball
+waits `BEAT.lead` so the lit source registers, and nothing anywhere said the source had to be lit.
+
+A card cues its RECEIVER because `lights:` is written at the call site, beside the ball. The SENDER is
+written nowhere, so it is the half a card forgets, and the picture is then a ball leaving a dark box
+with the receiver's cue landing on the only lit thing on the row: the reader is told where the traffic
+went and never who sent it.
+
+The two shapes are a reading of the step and not a preference. A block that ACTS FIRST receives nothing
+before it sends, so its cue can only be static: it goes in that step's `lit` and its ball waits
+`BEAT.lead`, which is what buys the 800ms where the lit box stands alone. A MID-CHAIN block receives
+hop one and sends hop two, so it is already cued by the arrival: the hop before it names it in
+`lights` and it sends `after` that arrival, and adding `lit` there would break `R3` instead.
+
+`workloads-poststart-prestop-hooks` is the worked pair, one card carrying both: Kubelet is lit on
+`start` and `delete` where it self-initiates, the Runtime on `settled` and `stop` where it answers,
+and on `stop` the Kubelet takes the second shape in the same step, lighting on the return it
+receives and sending the StopContainer that follows.
+
+The check reads the frame frozen at t=0, so the only cue it can SEE at entry is a static one. A sender
+lit through `F.light` at a delay reads dark and is reported, which is a false positive with a real
+question inside it: a cue landing on the same beat as the departure is not a cue the reader registers
+first. Pods are out of the rule, because a Pod announces itself by pulsing (`M-01`) and no frozen frame
+shows a pulse.
 
 ### M-19a
 
@@ -1021,11 +1075,18 @@ section keys out of the hub, where nothing would notice it going stale.
 
 ### R-08a
 
-8 workloads (`rolling-update`, `graceful-shutdown`, `restart-policy`, `crashloopbackoff`,
-`statefulset-ordered-rollout`, `pvc-stickiness`, `deployment-rollback`, `cronjob`) and 3 storage
-(`volume-attach-limits`, `volumeclaimtemplates`, `pvc-retention-policy`).
+2 workloads and no storage: `pod-restart-policy` (two filled `path` triangles on the two restart
+arcs) and `pod-startup-conditions` (one `polygon`).
 
-A broken loop, a mirrored ramp and a follow-the-Pod are the three shapes that need it.
+A follow-the-Pod is the shape that needs it.
+
+The registry is trimmed to the posters that DRAW one, and a poster redrawn without its chevron
+comes off the list in the same pass: an exemption that cannot be traced back to a picture is one a
+later reader cannot tell from a forgotten one.
+
+A chevron reaches the canvas in three shapes and the check reads all three: a `polygon`, a
+three-point `polyline` whose legs are both short and near-equal, and a `path` that closes on three
+points or fewer and fills with `currentColor`. Testing the tag alone reads only the `polygon`.
 
 ### R-11
 
@@ -1236,14 +1297,16 @@ records still carry a copy. The cluster record is the worked example.
 
 ### S-50
 
-They name 118 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
+They name 122 distinct ids between them and carry no copy of a rule text, which is what keeps a skill
 short and what stops it drifting from the rulebook it drives.
 
 ### S-38
 
-`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **83 anchors
-today**, all four records (cluster 6, workloads 27, network 35, storage 15), and that is a count of
-what is there rather than a quota to hold. **The walk fails on a record it cannot read instead of
+`unit/docs.test.mjs` anchors each note to a line of code with ``### before `<line>` ``. **50 anchors
+today**, all four records (cluster 0, workloads 0, network 35, storage 15), and that is a count of
+what is there rather than a quota to hold. **Cluster and workloads carry none by design**: a record
+there is one `### layout` block of labelled notes and nothing else, and what an anchor used to hold
+sits under the label it belongs to. **The walk fails on a record it cannot read instead of
 running shorter** (`S-46`).
 
 **An anchor is OPTIONAL, and nothing counts them.** It watches one line for a note that spans

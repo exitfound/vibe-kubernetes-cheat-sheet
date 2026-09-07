@@ -14,12 +14,13 @@ const BOX_W = 232, BOX_H = WL.BOX_H;                     // 232 / 80
 // Tier 1. The API sits on CX so the whole write descends one straight spine, which puts kubectl to
 // its RIGHT and reverses the top row: the same trade cluster-static-pods makes, for the same reason.
 const TOP_Y = WL.TOP_Y, TOP_BOTTOM = TOP_Y + BOX_H;      // 40 / 120
-const TOP_GAP = 56;
 const API_X = CX - BOX_W / 2, API_R = API_X + BOX_W;     // 484..716
-const KUBECTL_X = API_R + TOP_GAP;                       // 772..1004
+// kubectl is RIGHT-ALIGNED on CONTENT_R and not set off the API by a gap, so its right edge shares
+// the 1140 rail the verdict pair, the Node frame and the right chip column already stand on.
+const KUBECTL_X = CONTENT_R - BOX_W;                     // 908..1140
 const LANE_DY = WL.LANE_DY, TOP_CY = midX(TOP_Y, TOP_BOTTOM);    // 12 / 80
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, LANE_DY);     // 68 / 92
-const WIRE_TOP_X = midX(API_R, KUBECTL_X);               // 744
+const WIRE_TOP_X = midX(API_R, KUBECTL_X);               // 812
 const WIRE_TOP_Y = TOP_Y - 14;                           // 26, above the row
 
 // Tier 2. The Kubelet on CX under the API, with the two pending verdicts hung off its right face.
@@ -142,7 +143,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'running',
-    duration: 2400,
+    duration: 2800,
     narration: 'One container runs with cpu 700m and memory 200Mi as both its request and its limit, so this Pod is Guaranteed. Changing those numbers once meant deleting the Pod and creating a replacement. In-place Pod resize is stable in 1.35 and moves them on the Pod that is already running.',
     chips: { specChip: OLD, statusChip: OLD, policyChip: POLICY, condChip: 'none' },
     sublabels: { containerBox: CG_OLD },
@@ -153,7 +154,7 @@ export const STEPS_SPEC = [
   },
   {
     id: 'patch',
-    duration: 2600,
+    duration: 2900,
     narration: 'A patch through the resize subresource raises the desired cpu to 800m, and kubectl needs client version v1.32 or later to address that subresource. Only cpu and memory can be resized, and neither can be dropped once it is set. The spec carries the ask, so nothing on Node-1 has moved yet.',
     chips: { specChip: NEW, statusChip: OLD, policyChip: POLICY, condChip: 'none' },
     wires: { top: 'PATCH /api/v1/namespaces/default/pods/web-1/resize' },
@@ -171,8 +172,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'policy',
-    duration: 3000,
-    narration: 'The resizePolicy field answers, per resource, whether the container survives the change. NotRequired is the default and applies the new value to the running container. RestartContainer restarts it, which memory often needs because many applications cannot grow their allocation on the fly. Change both resources at once and the restart wins.',
+    duration: 3700,
+    narration: 'The resizePolicy field answers, per resource, whether the container survives the change. NotRequired is the default and applies the new value to the running container. RestartContainer restarts it, which memory often needs because many applications cannot grow their allocation on the fly. Change two resources whose policies differ and RestartContainer takes precedence.',
     chips: { specChip: NEW, statusChip: OLD, policyChip: POLICY, condChip: 'none' },
     sublabels: { containerBox: CG_OLD },
     opacity: { podGroup: 1, ...branchAt(ASIDE) },
@@ -182,10 +183,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'admit',
-    duration: 2800,
+    duration: 3300,
     narration: 'The Kubelet reads the new spec off its watch and decides. It can allocate the value now, or it raises PodResizePending with reason Deferred when the Node has no room yet and keeps retrying, or Infeasible when this Node can never fit it. Deferred retries go by Priority first, then Guaranteed before Burstable, then longest waiting.',
     chips: { specChip: NEW, statusChip: OLD, policyChip: POLICY, condChip: PENDING },
-    wires: { spec: 'watch · new spec.resources', branch: 'if the Kubelet cannot allocate it now' },
+    wires: { spec: 'spec.containers[].resources', branch: 'if the Kubelet cannot allocate it now' },
     sublabels: { containerBox: CG_OLD },
     opacity: { podGroup: 1, ...branchAt(1) },
     lit: ['deferredBox', 'infeasibleBox', 'condChip'],
@@ -200,8 +201,8 @@ export const STEPS_SPEC = [
   },
   {
     id: 'apply',
-    duration: 3000,
-    narration: 'Once the Kubelet allocates it, PodResizeInProgress stands while the runtime rewrites the limit on the live container and cpu.max follows, then status.containerStatuses[].resources catches up with the spec. The cpu policy is NotRequired, so restartCount stays 0. Lowering a memory limit is best effort and is skipped while usage sits above the new value.',
+    duration: 3700,
+    narration: 'Once the Kubelet allocates it, PodResizeInProgress stands while the runtime rewrites the limit on the live container and cpu.max follows, then status.containerStatuses[].resources catches up with the spec. The cpu policy is NotRequired, so restartCount stays 0. Lowering a memory limit under NotRequired is best effort and is skipped while usage sits above the new value.',
     chips: { specChip: NEW, statusChip: NEW, policyChip: POLICY, condChip: SETTLED },
     wires: { actuate: 'UpdateContainerResources · cpu.max on the live container' },
     sublabels: { containerBox: CG_NEW },
@@ -218,10 +219,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'qos',
-    duration: 2600,
+    duration: 3000,
     narration: 'The QoS class is fixed when the Pod is created and no resize may move it, so on this Guaranteed Pod every request must stay equal to its limit. A patch that would land it in Burstable is refused by admission, before the Kubelet ever sees it. The Pod QoS Classes card covers how the class is derived.',
     chips: { specChip: NEW, statusChip: NEW, policyChip: POLICY, condChip: SETTLED },
-    wires: { top: 'resize refused at admission · the QoS class is fixed' },
+    wires: { top: 'PATCH .../resize · refused at admission' },
     sublabels: { containerBox: CG_NEW },
     opacity: { podGroup: 1, ...branchAt(ASIDE) },
     lit: ['kubectl'],

@@ -3,7 +3,7 @@ import { P, F, defineCard, strip, laneY, WL, FADE, BEAT, OPACITY } from './workl
 // Design notes for this card: ./CARDS/workloads-pod-scheduling-gates.md
 
 // A THRESHOLD, not the A / B / C column preset (WL.L-06): the subject is one line a Pod is on the
-// wrong side of, so the canvas is TWO tiers and everything but the writer stands on one floor.
+// wrong side of, so the canvas is TWO tiers and everything but the actor row stands on one floor.
 // Panel measured at x<=396.55, y<=254.66 (worst of 1600/1280/1100, on the poster frame). It stays
 // in this comment and in no constant, because nothing on this card derives from it (L-07).
 
@@ -21,10 +21,17 @@ const GATE_W = 180, GA_X = POD_X + POD_W + RUN_W;        // 420..600, and the tw
 const GB_X = GA_X + GATE_W;                              // the two gates TOUCH: they are one list
 const SCH_W = 240, SCH_X = GB_X + GATE_W + RUN_W;        // 900..1140, which ends on WL.R
 
-// The one box on the actor row, centred on WL.SPINE_X (WL.L-07). Both writes leave its face as an L-12
-// mirrored pair at +-90, which is the gate half-width, so each drop lands on a gate top midpoint.
+// The API, centred on WL.SPINE_X (WL.L-07). Both writes leave its face as an L-12 mirrored pair at
+// +-90, which is the gate half-width, so each drop lands on a gate top midpoint.
 const API_W = 280, API_X = WL.CX - API_W / 2;            // 460..740
 const DROP = laneY(WL.CX, GATE_W / 2);                   // 510 and 690
+// The controller that owns the gates, on the actor row right of the API and ending on WL.R: every
+// PATCH the narration names leaves HERE, and the API only accepts or refuses it (A-09). The
+// top-row pair is WL.A-01: the request runs leftward on REQ_Y, the refusal comes back on RESP_Y.
+const OWN_W = 280, OWN_X = WL.R - OWN_W;                 // 860..1140, a 120 gap to the API
+const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
+const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);   // 68 and 92
+const API_R = API_X + API_W;                             // 740, the face both top lanes end on
 // Built ONCE each: the drawn lane and every ball on it index the same array (A-02), which a
 // factory called per use cannot do because it makes two arrays that are only equal.
 const drop = (x) => [[x, WL.TOP_BOTTOM], [x, FLOOR_Y]];  // 220 units, no turn
@@ -44,7 +51,7 @@ const CHIP_Y = [500, 542];     // 500..534 and 542..576, 80 under the floor and 
 // The list order IS the append order, so it is the z-order: the four lanes and the wire label
 // first, then the chips and the packet layer, then gates / Pod / queue / API above the ball.
 export const SCENE = {
-  'aria-label': 'Pod scheduling gates: two named entries in spec.schedulingGates stand between a Pod and the scheduling queue, each is removed by the component that owns it and the API accepts removals in any order but never an addition, and the Pod is queued only once the list is empty',
+  'aria-label': 'Pod scheduling gates: two named entries in spec.schedulingGates stand between a Pod and the scheduling queue, a controller that owns them patches each one out and the API accepts removals in any order but never an addition, and the Pod is queued only once the list is empty',
   parts: [
     P.defs(),
     // All four lanes carry the role, as every other lane in this category does. Omitting it on the
@@ -56,6 +63,10 @@ export const SCENE = {
     P.lane({ key: 'laneOut', points: LANE_OUT, dim: true, dashed: true, role: 'cluster' }),
     P.lane({ key: 'dropA', points: DROP_A, dim: true, dashed: true, role: 'cluster' }),
     P.lane({ key: 'dropB', points: DROP_B, dim: true, dashed: true, role: 'cluster' }),
+    // The top-row pair. The request is ridden on four steps and the answer on one, the refusal,
+    // which is the only thing the API ever sends back on this card (A-06).
+    P.arrow({ key: 'reqLane', x1: OWN_X, y1: REQ_Y, x2: API_R, y2: REQ_Y, dim: true, dashed: true, role: 'cluster' }),
+    P.arrow({ key: 'respLane', x1: API_R, y1: RESP_Y, x2: OWN_X, y2: RESP_Y, dim: true, dashed: true, role: 'cluster' }),
     // WL.A-02: the top-row wire label sits ABOVE the actor row, never below it.
     P.wire({ key: 'req', x: WL.CX, y: WL.TOP_Y - 12 }),
     P.chip({ key: 'statusChip', x: CHIP.x(0), y: CHIP_Y[0], w: CHIP.w, h: WL.CHIP_H, name: 'kubectl STATUS', value: 'SchedulingGated' }),
@@ -73,10 +84,11 @@ export const SCENE = {
       x: POD_X, y: FLOOR_Y, w: POD_W, h: FLOOR_H, label: 'Pod test-pod', sublabel: 'no Node assigned', containers: 0,
     }),
     P.box({ key: 'schedEl', x: SCH_X, y: FLOOR_Y, w: SCH_W, h: FLOOR_H, label: 'Scheduler', sublabel: 'active queue', role: 'cluster' }),
-    P.box({ key: 'apiEl', x: API_X, y: WL.TOP_Y, w: API_W, h: WL.BOX_H, label: 'API', sublabel: 'writes the spec', role: 'cluster' }),
+    P.box({ key: 'apiEl', x: API_X, y: WL.TOP_Y, w: API_W, h: WL.BOX_H, label: 'API', sublabel: 'accepts or refuses', role: 'cluster' }),
+    P.box({ key: 'ownerEl', x: OWN_X, y: WL.TOP_Y, w: OWN_W, h: WL.BOX_H, label: 'Controller', sublabel: 'owns the gates', role: 'cluster' }),
   ],
   reset: {
-    keys: ['apiEl', 'schedEl', 'gateA', 'gateB', 'statusChip', 'condChip', 'gatesChip', 'metricChip'],
+    keys: ['apiEl', 'ownerEl', 'schedEl', 'gateA', 'gateB', 'statusChip', 'condChip', 'gatesChip', 'metricChip'],
     pods: ['podGroup'],
   },
 };
@@ -84,6 +96,10 @@ export const SCENE = {
 // Chip values that recur, named once so a four-key `chips` block stays one readable line.
 const GATED = 'SchedulingGated', COND_GATED = 'False · SchedulingGated', Q_GATED = 'queue="gated"';
 const HOLDS = 'holds the Pod', REMOVED = 'removed from the list';
+
+// One request hop, the same on every step that sends one: the controller is the sender and is lit
+// at entry, the API is the receiver and lights on arrival. Named so a drop can chain `after` it.
+const request = (name = 'req') => F.top({ from: OWN_X, to: API_R, y: REQ_Y, name, lights: ['apiEl'] });
 
 // The two route lanes take the shade of the ACTOR at their far end, the Pod and the queue, never
 // of the gate standing in the middle: a gate is what sits ON the route rather than an end of it,
@@ -104,23 +120,24 @@ export const STEPS_SPEC = [
     duration: 1500,
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: '2 entries', metricChip: Q_GATED },
     opacity: { ...route(false), ...gates(2) },
-    sublabels: { gateA: HOLDS, gateB: HOLDS },
+    sublabels: { gateA: HOLDS, gateB: HOLDS, ownerEl: 'owns the gates', apiEl: 'accepts or refuses' },
   },
   {
     id: 'created',
-    duration: 3400,
+    duration: 4200,
     narration: 'A Pod created one minute ago, and the Scheduler has not looked at it once. Its spec carries spec.schedulingGates with two entries, and each entry is an opaque criterion that some other component owns. A gate can only be set while the Pod is being created, by the client that posts it or by an admission plugin that mutates it on the way in.',
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: '2 entries', metricChip: Q_GATED },
     wires: { req: 'POST Pod test-pod · a gate can be set only here' },
     opacity: { ...route(false), ...gates(2) },
-    sublabels: { apiEl: 'writes the gates at admission', schedEl: 'active queue', gateA: HOLDS, gateB: HOLDS },
-    // The API sends, the two gates are receivers and light when their entry lands (A-06). The
-    // second write waits a full BEAT.lead rather than overlapping the first: two entries written
-    // one after the other, and at 300 the step stood still for 71 percent of its own duration.
-    lit: ['apiEl'],
+    sublabels: { apiEl: 'writes the gates at admission', ownerEl: 'POSTs the Pod, two gates on it', schedEl: 'active queue', gateA: HOLDS, gateB: HOLDS },
+    // The controller POSTs, the API lights on arrival and then writes: the two gates are receivers
+    // and light when their entry lands (A-06). The second write waits a full BEAT.lead rather than
+    // overlapping the first, two entries written one after the other.
+    lit: ['ownerEl'],
     flow: [
-      F.route({ points: DROP_A, lights: ['gateA'] }),
-      F.route({ points: DROP_B, delay: BEAT.lead, lights: ['gateB'] }),
+      request(),
+      F.route({ points: DROP_A, after: 'req', lights: ['gateA'] }),
+      F.route({ points: DROP_B, after: 'req', plus: BEAT.lead, lights: ['gateB'] }),
     ],
   },
   {
@@ -130,7 +147,7 @@ export const STEPS_SPEC = [
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: '2 entries', metricChip: Q_GATED },
     wires: { req: 'no enqueue · the Scheduler is never called' },
     opacity: { ...route(false), ...gates(2) },
-    sublabels: { apiEl: 'holds the Pod object', schedEl: 'never enqueued this Pod', gateA: HOLDS, gateB: HOLDS },
+    sublabels: { apiEl: 'holds the Pod object', ownerEl: 'its criteria are not met yet', schedEl: 'never enqueued this Pod', gateA: HOLDS, gateB: HOLDS },
     // The Pod is the sender, so it blinks FIRST and the ball leaves at BEAT.afterPulse (M-15). It
     // reaches the first gate and stops there, which is the whole of the card in one frame.
     flow: [
@@ -140,21 +157,23 @@ export const STEPS_SPEC = [
   },
   {
     id: 'remove-one',
-    duration: 3400,
+    duration: 4200,
     narration: 'The component that owns example.com/bar patches it out of the list. Entries come off in any order, and this one was second, so removing it says nothing about the other. Nothing else moves: STATUS still reads SchedulingGated and PodScheduled is still False, because one entry left in the list is enough to hold the Pod out.',
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: '1 entry', metricChip: Q_GATED },
     wires: { req: 'PATCH · remove example.com/bar' },
     opacity: { ...route(false), ...gates(1) },
-    sublabels: { apiEl: 'accepts the removal', schedEl: 'never enqueued this Pod', gateA: HOLDS, gateB: REMOVED },
+    sublabels: { apiEl: 'accepts the removal', ownerEl: 'done with example.com/bar', schedEl: 'never enqueued this Pod', gateA: HOLDS, gateB: REMOVED },
     // The chip that moved is cued in the same step it moves (P-03): workloads is bound to `chips`
     // and not `chipsCued` (P-09), so the cue is a name in `lit` rather than an automatic one.
-    lit: ['apiEl', 'gatesChip'],
+    lit: ['ownerEl', 'gatesChip'],
     flow: [
-      // The entry the write lands on is cued like any other arrival (A-06), the same way step 1
-      // cues the two it creates, so the reader is told WHICH entry this PATCH names before it goes.
+      // The PATCH leaves the controller and the API lights on arrival, then the write drops. The
+      // entry it lands on is cued like any other arrival (A-06), the same way step 1 cues the two
+      // it creates, so the reader is told WHICH entry this PATCH names before it goes.
       // The cue is an F.set and NOT `lights`: `flowLights` would mirror it onto the static path,
       // where the fade below never runs to take it back, and prev would settle on a marked ghost.
-      F.route({ points: DROP_B, name: 'write' }),
+      request(),
+      F.route({ points: DROP_B, after: 'req', name: 'write' }),
       F.set({ lit: ['gateB'], at: 'write' }),
       // The fade waits a BEAT after the cue instead of starting on the same frame: at `at: 'write'`
       // the highlight arrived and dissolved together, so the entry was never lit while it was
@@ -172,22 +191,28 @@ export const STEPS_SPEC = [
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: '1 entry', metricChip: Q_GATED },
     wires: { req: 'PATCH · an addition is refused, removal only' },
     opacity: { ...route(false), ...gates(1) },
-    sublabels: { apiEl: 'refuses the addition', schedEl: 'never enqueued this Pod', gateA: HOLDS, gateB: REMOVED },
-    // Nothing travels, which is the content of the step and not a gap in it: the beat is carried
-    // by the highlight alone (M-27), on the API that refuses and the one entry still standing.
-    lit: ['apiEl', 'gateA'],
+    sublabels: { apiEl: 'refuses the addition', ownerEl: 'tries to put example.com/bar back', schedEl: 'never enqueued this Pod', gateA: HOLDS, gateB: REMOVED },
+    // The one round trip on the card: the addition goes up and the refusal comes back, and nothing
+    // drops. The controller sources it, so it does not light again on the return (WL.A-01), and
+    // the entry still standing is lit through the step as the only thing the refusal leaves.
+    lit: ['ownerEl', 'gateA'],
+    flow: [
+      request(),
+      F.top({ from: API_R, to: OWN_X, y: RESP_Y, after: 'req' }),
+    ],
   },
   {
     id: 'remove-last',
-    duration: 3200,
+    duration: 4000,
     narration: 'The last entry goes the same way and the list is now empty. Emptying it is the whole trigger: there is no separate signal and nothing else has to happen, so the moment spec.schedulingGates has no entries left the Pod is ready to be considered for scheduling.',
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: 'empty', metricChip: Q_GATED },
     wires: { req: 'PATCH · remove example.com/foo' },
     opacity: { ...route(false), ...gates(0) },
-    sublabels: { apiEl: 'accepts the removal', schedEl: 'never enqueued this Pod', gateA: REMOVED, gateB: REMOVED },
-    lit: ['apiEl', 'gatesChip'],
+    sublabels: { apiEl: 'accepts the removal', ownerEl: 'done with example.com/foo', schedEl: 'never enqueued this Pod', gateA: REMOVED, gateB: REMOVED },
+    lit: ['ownerEl', 'gatesChip'],
     flow: [
-      F.route({ points: DROP_A, name: 'write' }),
+      request(),
+      F.route({ points: DROP_A, after: 'req', name: 'write' }),
       F.set({ lit: ['gateA'], at: 'write' }),
       F.fade({ target: 'gateA', at: 'write', plus: BEAT.lead, to: OPACITY.terminated, dur: FADE.out, unlight: ['gateA'] }),
       F.fade({ target: 'dropA', at: 'write', plus: BEAT.lead, to: OPACITY.terminated, dur: FADE.out }),
@@ -200,7 +225,7 @@ export const STEPS_SPEC = [
     chips: { statusChip: GATED, condChip: COND_GATED, gatesChip: 'empty', metricChip: 'queue="active"' },
     wires: { req: 'enqueue · the Pod joins the active queue' },
     opacity: { ...route(true), ...gates(0) },
-    sublabels: { apiEl: 'the list is empty', schedEl: 'filters and scores from here', gateA: REMOVED, gateB: REMOVED },
+    sublabels: { apiEl: 'the list is empty', ownerEl: 'nothing left to remove', schedEl: 'filters and scores from here', gateA: REMOVED, gateB: REMOVED },
     // ONE reading turns over here and it is the metric: the STATUS column and the condition are
     // both written at creation and neither is rewritten until the Scheduler finishes an attempt.
     lit: ['metricChip'],

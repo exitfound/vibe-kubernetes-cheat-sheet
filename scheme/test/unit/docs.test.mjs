@@ -80,8 +80,8 @@
 // NOTHING HERE SKIPS
 // ===========================================================================================
 // A walk that skips a record it cannot open (`if (!existsSync(md)) continue;`) stops checking that
-// record's anchors at exit 0, with no finding and no error: 61 anchors leaving the run take a
-// printed count from 185 to 124 and say nothing. That is the surviving lesson of S-46, and readDoc
+// record's anchors at exit 0, with no finding and no error: the anchors that leave the run take the
+// printed count down with them and say nothing. That is the surviving lesson of S-46, and readDoc
 // below is where this file obeys it: a record it cannot open is a failure, never a shorter run.
 
 import { test } from 'node:test';
@@ -949,4 +949,243 @@ test('F2 no rule cell outgrows one line', (t) => {
   assert.deepEqual(over, [], `${over.length} rule cell(s) past the ceiling. The row keeps the RULE ` +
     'and the argument moves to a `### <id>` block in "The long form", where F1 will hold it to the ' +
     'rule it belongs to. Do not delete it to fit.\n  ' + over.join('\n  '));
+});
+
+// --------------------------------------------------------------------------------------------
+// GROUP G: the record FORM, where group A reads the record's CONTENT.
+//
+// Group A asks whether a section exists, sits in the right file and names a card that exists, and
+// whether the anchors it carries still resolve. What nothing asked until this group is whether the
+// section is SHAPED the way `scheme/CANON.md` says a record is shaped. That gap was measured rather
+// than guessed: a `### poster` block added to a clean cluster record passed the whole gate, and so
+// did an invented label, a duplicated label and a label out of order. Only a new `### before`
+// anchor failed, and only sideways, through the count `S-38` states in CANON.md and
+// `docs-census.test.mjs` compares against the tree.
+//
+// So the form was carried by four skill documents and two skill TOOLS, `card-poster`'s
+// `poster-lint.mjs` and `card-review`'s `statics.mjs`, and `npm test` runs neither. A rule whose
+// only reader is a tool the gate does not run is a rule a new card can break silently.
+//
+// WHAT A RECORD IS SHAPED LIKE. One `## <card id>` section, one `### layout` heading under it and
+// no other heading, one fenced block inside it, and inside that block a run of LABELS from the
+// vocabulary `CANON.md` states, `WHAT` first, in the canon's order, each used at most once.
+//
+// WHY THE VOCABULARY IS READ OFF CANON.md rather than copied here. It is the list the rulebook
+// prints under "The record vocabulary", in the order it prints them, and the order IS the rule
+// (`S-51`). A second copy in this file would be a second place for the list to be right or wrong,
+// which is the drift `S-47` exists against. The parse is asserted below before anything reads it.
+//
+// WHAT A LABEL IS, AND THE TWO TRAPS. A label sits at column 0 and its prose starts at column 9.
+// That single rule tells apart the two shapes that already cost this repository a pass:
+//   `WIRE LABELS` and `NOT A DEFECT` are longer than the 8 wide column, so they stand ALONE on
+//     their line and the prose starts on the next one. Padding them to column 9 is impossible, and
+//     a matcher that only looked for `<LABEL> + spaces` would miss both.
+//   A sentence inside a block may OPEN on a vocabulary word in capitals. `cluster-node-eviction-rate`
+//     carries `WHAT IS RATE LIMITED IS THE TAINT, NOT THE POD DELETE` inside its CONTENT block, and
+//     a matcher keyed on the first token alone reads that as a second `WHAT` label and reports a
+//     record that is correct. The column-9 test rejects it, because its prose starts at column 5.
+// Verified over all 128 records: the matcher finds `WHAT` exactly 128 times, one per card, and no
+// column-0 line inside a layout fence goes unrecognised.
+//
+// WHY network AND storage ARE A BASELINE AND NOT AN EXEMPTION. Neither category has been through
+// the pass that put cluster and workloads on this form, so every one of their 68 sections still
+// carries a `### poster` block and 29 of each still run their labels out of order. Turning the
+// check on for them today reddens the gate on 68 sections of work nobody has done yet. The baseline
+// below is therefore a CEILING that may only fall: cleaning a section is free, and a NEW card in
+// either category that arrives off the form pushes the count past the ceiling and fails. THE TARGET
+// IS ZERO on all four, and the two numbers come down as those categories are cleaned. Cluster and
+// workloads sit at 0 today, so for them the ceiling and the rule are the same thing.
+//
+// A LABEL OUTSIDE THE VOCABULARY IS THE THIRD AXIS, AND IT IS HARD ON ALL FOUR. G2 reads the
+// ORDER of the labels it recognises, so a line that looks like a label and is in no vocabulary is
+// invisible to it: the remaining labels still run in order and the section passes. That is how
+// `COLOUR`, `QUEUES`, `SPINE` and `BASELINE` reached four workloads records. G3 is the other half,
+// a column-0 line whose prose starts at column 9 and whose word is not in the list. Measured over
+// all 128 records the count is ZERO in every category, network and storage included, so this one
+// needs no baseline and takes none: it is the one axis of the three where the two unconverted
+// categories are already on the form.
+//
+// WHAT THIS GROUP IS BLIND TO. Whether a block says anything true, whether the right label was
+// chosen for a note, and whether the prose under a label is in the present tense (`S-48`). All
+// three read exactly the same to a parser and stay a reader's job.
+// --------------------------------------------------------------------------------------------
+
+// Sections in each category that are NOT yet on the form. A CEILING that may only fall, never a
+// permission: see the header. Measured over the tree, and both numbers are the whole of the
+// category, because neither has been converted.
+const RECORD_SHAPE_CEILING = { cluster: 0, workloads: 0, network: 37, storage: 31 };
+const RECORD_LABEL_CEILING = { cluster: 0, workloads: 0, network: 29, storage: 29 };
+
+// The column a label's prose starts on, which is what tells a label from a sentence in capitals.
+const LABEL_COL = 9;
+
+// The vocabulary, in the order `CANON.md` prints it under "The record vocabulary". The ORDER is the
+// rule, so the parse keeps it and never sorts.
+function recordVocabulary(md) {
+  const at = md.indexOf('\n## The record vocabulary\n');
+  assert.ok(at !== -1, 'CANON.md has no "## The record vocabulary" section: the label list every ' +
+    'record is held to lives there, and a walk that cannot find it checks nothing and passes');
+  const rest = md.slice(at);
+  const end = rest.indexOf('\nStructural rules for a record file');
+  assert.ok(end !== -1, 'CANON.md: "The record vocabulary" runs to the end of the file. The parse ' +
+    'stops at "Structural rules for a record file" and that heading is gone');
+  return [...rest.slice(0, end).matchAll(/^\| `([A-Z][A-Z ]*)` \|/gm)].map(m => m[1]);
+}
+
+const VOCAB = recordVocabulary(CANON);
+const VOCAB_RANK = new Map(VOCAB.map((v, i) => [v, i]));
+
+// A record section, with the body under its `## <id>` heading. Group A's `sections` returns the
+// heading alone, which is all it needs. This group reads what is under it.
+function sectionBodies(md, rel) {
+  const out = [];
+  let cur = null;
+  md.split('\n').forEach((line, i) => {
+    const h2 = /^## (.+)$/.exec(line);
+    if (h2) { if (cur) out.push(cur); cur = { id: h2[1].trim(), rel, line: i + 1, body: [] }; return; }
+    if (cur) cur.body.push(line);
+  });
+  if (cur) out.push(cur);
+  return out;
+}
+
+const recordBodies = (cat) =>
+  CARDS_MD.get(cat).flatMap(d => sectionBodies(d.md, d.rel));
+
+// The label a line carries, or null. The whole of the matcher, and the header says why it is this
+// and not the first token.
+function labelOn(line) {
+  for (const v of VOCAB) {
+    if (line === v) return v;                                // WIRE LABELS, NOT A DEFECT
+    if (!line.startsWith(v) || line[v.length] !== ' ') continue;
+    const prose = line.length - line.slice(v.length).replace(/^ +/, '').length;
+    if (prose === LABEL_COL) return v;
+  }
+  return null;
+}
+
+// The labels of one section's `### layout` block, in the order they are written, AND the column-0
+// lines the matcher did not recognise. Both halves are returned together because dropping the
+// second is what let an invented label through: `.filter(Boolean)` on its own is silent about
+// every line it discards.
+function layoutLabels(body) {
+  const m = /^### layout\n\n```\n([\s\S]*?)\n```/m.exec(body.join('\n'));
+  if (!m) return null;                                       // no layout block at all, G1 reports it
+  const lines = m[1].split('\n');
+  return {
+    labels: lines.map(labelOn).filter(Boolean),
+    strangers: lines.filter(l => l && !l.startsWith(' ') && labelOn(l) === null),
+  };
+}
+
+test('G0 the label vocabulary parses off CANON.md, in the order it is printed in', (t) => {
+  assert.ok(VOCAB.length >= 12,
+    `only ${VOCAB.length} label(s) parsed out of "The record vocabulary". A parse that stops ` +
+    'matching accepts every label as unknown and every order as wrong, which reads as a broken ' +
+    'record rather than as a broken parse');
+  assert.equal(VOCAB[0], 'WHAT', `the vocabulary opens on ${VOCAB[0]}, not WHAT`);
+  assert.equal(new Set(VOCAB).size, VOCAB.length, `the vocabulary lists a label twice: ${VOCAB.join(', ')}`);
+  t.diagnostic(`VOCABULARY: ${VOCAB.length} labels, ${VOCAB.join(' ')}`);
+});
+
+test('G1 a record section is ONE "### layout" heading and nothing else', (t) => {
+  const findings = [];
+  const per = {};
+  for (const cat of CATS) {
+    const bad = [];
+    for (const s of recordBodies(cat)) {
+      const heads = s.body.filter(l => l.startsWith('### ')).map(l => l.trim());
+      const layout = heads.filter(h => h === '### layout').length;
+      const other = heads.filter(h => h !== '### layout');
+      if (layout === 1 && !other.length) continue;
+      const why = layout !== 1
+        ? `${layout} "### layout" heading(s)`
+        : `${other.length} heading(s) that are not "### layout": ${[...new Set(other.map(h => h.split('`')[0].trim()))].join(', ')}`;
+      bad.push(`${s.rel}:${s.line}  ## ${s.id}  ${why}`);
+    }
+    per[cat] = bad.length;
+    if (bad.length > RECORD_SHAPE_CEILING[cat]) findings.push(...bad);
+  }
+  t.diagnostic(`RECORD SHAPE: sections off the form ${JSON.stringify(per)}, ` +
+    `ceiling ${JSON.stringify(RECORD_SHAPE_CEILING)}`);
+
+  const over = CATS.filter(c => per[c] > RECORD_SHAPE_CEILING[c])
+    .map(c => `${c} ${per[c]} against a ceiling of ${RECORD_SHAPE_CEILING[c]}`);
+  assert.deepEqual(over, [],
+    `${over.length} category(ies) past the record-shape ceiling: ${over.join(', ')}.\n  ` +
+    'A record is one "### layout" block: no poster note, no per-line anchor, no heading of its ' +
+    'own. Where a note used to take an anchor it goes under the label it belongs to.\n  ' +
+    findings.join('\n  '));
+
+  // The ceiling may only FALL, so a number that no longer matches the tree is a number to lower.
+  const stale = CATS.filter(c => per[c] < RECORD_SHAPE_CEILING[c])
+    .map(c => `${c} is at ${per[c]} against a recorded ${RECORD_SHAPE_CEILING[c]}`);
+  for (const s of stale) t.diagnostic(`  LOWER THE CEILING: ${s}`);
+});
+
+test('G2 the labels of a record run in the canon order, each once, and open on WHAT', (t) => {
+  const findings = [];
+  const per = {};
+  for (const cat of CATS) {
+    const bad = [];
+    for (const s of recordBodies(cat)) {
+      const read = layoutLabels(s.body);
+      if (read === null) continue;                           // G1 owns a section with no layout block
+      const labs = read.labels;
+      const at = `${s.rel}:${s.line}  ## ${s.id}`;
+      const why = [];
+      if (!labs.length) why.push('no label at all');
+      else if (labs[0] !== 'WHAT') why.push(`opens on ${labs[0]}, not WHAT`);
+      const twice = [...new Set(labs.filter((v, i) => labs.indexOf(v) !== i))];
+      if (twice.length) why.push(`uses ${twice.join(', ')} more than once`);
+      const rank = labs.map(v => VOCAB_RANK.get(v));
+      const jump = rank.findIndex((v, i) => i && v <= rank[i - 1]);
+      if (jump > 0) why.push(`runs ${labs[jump - 1]} before ${labs[jump]}, against the canon order`);
+      if (why.length) bad.push(`${at}  ${why.join('; ')}`);
+    }
+    per[cat] = bad.length;
+    if (bad.length > RECORD_LABEL_CEILING[cat]) findings.push(...bad);
+  }
+  t.diagnostic(`RECORD LABELS: sections off the vocabulary or the order ${JSON.stringify(per)}, ` +
+    `ceiling ${JSON.stringify(RECORD_LABEL_CEILING)}`);
+
+  const over = CATS.filter(c => per[c] > RECORD_LABEL_CEILING[c])
+    .map(c => `${c} ${per[c]} against a ceiling of ${RECORD_LABEL_CEILING[c]}`);
+  assert.deepEqual(over, [],
+    `${over.length} category(ies) past the record-label ceiling: ${over.join(', ')}.\n  ` +
+    `The vocabulary is ${VOCAB.join(' ')}, in that order, each label at most once, WHAT first. ` +
+    'A label outside it is not a label: a note that fits none of them fits NOTE.\n  ' +
+    findings.join('\n  '));
+
+  const stale = CATS.filter(c => per[c] < RECORD_LABEL_CEILING[c])
+    .map(c => `${c} is at ${per[c]} against a recorded ${RECORD_LABEL_CEILING[c]}`);
+  for (const s of stale) t.diagnostic(`  LOWER THE CEILING: ${s}`);
+});
+
+test('G3 a line in the label column carries a label from the vocabulary and no other word', (t) => {
+  const findings = [];
+  const per = {};
+  for (const cat of CATS) {
+    const bad = [];
+    for (const s of recordBodies(cat)) {
+      const read = layoutLabels(s.body);
+      if (read === null) continue;                           // G1 owns a section with no layout block
+      for (const line of read.strangers) {
+        bad.push(`${s.rel}:${s.line}  ## ${s.id}  ${JSON.stringify(line.slice(0, 60))}`);
+      }
+    }
+    per[cat] = bad.length;
+    findings.push(...bad);
+  }
+  t.diagnostic(`RECORD LABEL COLUMN: unrecognised column-0 line(s) ${JSON.stringify(per)}, on a ` +
+    'vocabulary of ' + VOCAB.length);
+
+  // No ceiling and no baseline: the tree stands at zero in all four categories, so an invented
+  // label is a finding wherever it lands. This is the axis `G2` cannot see, because a word it does
+  // not know is a word it does not rank.
+  assert.deepEqual(findings, [],
+    `${findings.length} line(s) sit in the label column carrying no label from the vocabulary.\n  ` +
+    `The vocabulary is ${VOCAB.join(' ')} and nothing else (S-52). A note that fits none of them ` +
+    'fits NOTE. If the line is prose rather than a label, indent it to the column at 9.\n  ' +
+    findings.join('\n  '));
 });

@@ -176,6 +176,22 @@ const PACING = new Map([
   ['network-service-cidr',         { speed: 3, clamp: 1 }],
   ['storage-fsgroup-ownership',    { speed: 3, clamp: 1 }],
   ['network-ebpf-dataplane',       { speed: 1, clamp: 0 }],
+  // The three creation balls share the longest tap's duration so one parallel wave lands on one
+  // beat: the two outer taps ARE their own routeDur, so only the middle one deviates, once per
+  // create step. Justified at the call site on `CREATE_DUR`.
+  ['workloads-job-parallelism',    { speed: 2, clamp: 0 }],
+  // maxUnavailable 2 is drawn as two Pods landing on ONE beat, so the pair shares the longer lane's
+  // duration: the tap into slot 0 IS its own routeDur and only the shorter one into slot 1 deviates,
+  // once, on the one step that fires both. At the canon speed the two lengths put the arrivals 356ms
+  // apart, which draws the one-at-a-time default the field just replaced. Justified at the call site
+  // on `PAIR_DUR`.
+  ['workloads-statefulset-update-strategy', { speed: 1, clamp: 0 }],
+  // One DELETE reaching five owners at once, so the five watch hops share the longest path's
+  // duration and land on ONE beat: the two outer hops ARE their own routeDur and only the middle
+  // three deviate, once, on the one step that fires the fan. At the canon speed the 180-to-618 unit
+  // spread puts the arrivals 673ms apart, which draws the owners learning it in an order. Justified
+  // at the call site on `WATCH_DUR`.
+  ['workloads-pod-replacement-guarantees', { speed: 3, clamp: 0 }],
 ]);
 
 // PULSE-TOGETHER's ceiling (M-03). cluster-pod-sandbox-cri pulses appGroup alone on its last two

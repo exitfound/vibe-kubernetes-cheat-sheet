@@ -13,15 +13,15 @@ LAYOUT   ONE grid for the BUDGET half: three equal 360 columns over the content 
          at the family 232 with the family 56 between them, and the GAP straddles x 600, so each
          block stands 28 + 232 from the canvas centre: 340..572 and 628..860. The `req` and `ack`
          registers land on 600 as a consequence, which is the rail the whole lower half centres on.
-         The LimitRange does NOT take the ReplicaSet's rail any more, it takes the `L-03` floor at
-         420..652. On the actor rail its sublabel `defaultRequest.cpu 500m` inked 385.4..526.6 at
-         1100x800 against a panel reaching 396.5, so 11.1 units of its first character sat behind
-         the panel. At 420 it inks 465.4..606.6 and clears by 68.9.
-         Column 0 is the PANEL'S column above and the first budget slot below. The panel reaches
-         x 396.55 at 1100x800, which ties the catalog worst L-02 records, and bottom 254.66, also at
+         The LimitRange takes the `L-03` floor at 420..652 and NOT the ReplicaSet's rail. On the
+         actor rail its sublabel `defaultRequest.cpu 500m` inks 385.4..526.6 at 1100x800 against a
+         panel reaching 396.5, so 11.1 units of its first character stand behind the panel. At 420 it
+         inks 465.4..606.6 and clears by 68.9.
+         Column 0 is the PANEL'S column above and the first budget slot below. The panel reaches x
+         396.55 at 1100x800, which ties the catalog worst L-02 records, and bottom 254.66, also at
          1100x800 and on step 4 rather than step 3. Nothing may stand in column 0 in the actor band,
          and below y 255 the whole band is free: the same column that is empty above carries web-1
-         below. The void under the panel is that fact drawn, not space left over.
+         below, and that void is the fact drawn rather than space left over.
          Each column carries one desired replica, read top to bottom: the block says what that Pod
          asked for and the cell under it says what it became. That vertical pairing IS the payload,
          and it is what makes the last column legible as one sentence, the request past the ceiling
@@ -50,8 +50,7 @@ LAYOUT   ONE grid for the BUDGET half: three equal 360 columns over the content 
          against the canvas 600, which is 80 of right-lean.
          The band x 60..420, y 255..384, the void the panel leaves under itself, stays empty. The
          ladder fixes the floor of everything above the bar at y 352 and the LimitRange is only as
-         tall as the two rows it feeds. The void under the panel is the panel drawn, not space
-         waiting to be filled.
+         tall as the two rows it feeds.
          A namespace is not drawn with `node()`: the frame class is `.scheme-node` and
          `.scheme-node-label` is uppercase catalog-wide, so it renders NAMESPACE TEAM-A on a frame
          the geometry rules treat as a Node.
@@ -74,36 +73,36 @@ SIZES    The LimitRange is the family 80 tall and centred on the ladder's mid li
          height of 74, `ROW_H * 2 + ROW_GAP`, derives from a block standing against rows 1 and 2
          alone. Centred on all five rows there is no such pairing to derive from, so the number
          comes from the family rather than from a relationship the card does not draw.
-         Bar 60..780 at 64 tall, one column per 500m, so CPU_W is 720 and the refused request is
-         the 360 of column 2. Cells 348 wide at 34 tall, centred on their column: the 12 between
-         them separates OBJECTS, while the slots carving the bar take no gap at all, because they
-         are portions of one length rather than three things.
+         Bar 60..780 at 64 tall, one column per 500m, so CPU_W is 720 and the refused request is the
+         360 of column 2. Cells 348 wide at 34 tall, centred on their column: the 12 between them
+         separates OBJECTS, while the slots carving the bar take no gap at all, because they are
+         portions of one length rather than three things.
          The ladder IS column 2, 780..1140, and not the family 480 or 400. DEVIATION, deliberate:
          its longest row inks 337.7 units at 1600x1000 and the rows start at 790, so 12.3 of
          trailing space where 400 leaves 52. Read at all three viewports: the longest row reads as
-         filling its box rather
-         than as overflowing it. It does not buy the API a shared centre, because the actor pair
-         left the column grid, and the L-shaped tie is what pays for that instead.
+         filling its box rather than as overflowing it. It does not buy the API a shared centre,
+         because the actor pair left the column grid, and the L-shaped tie is what pays for that
+         instead.
          Shrinking the two actors so a centred pair clears the panel does not work either. `RS_X` is
          `572 - BOX_W`, so clearing 396.55 needs BOX_W under 175.45 and clearing the `L-03` 420
          needs 152. At 152 the widest actor string, `admission pipeline` at 108.5, keeps 21.75 a
          side, but the row then stands 80 narrower than the LimitRange under it, which is the same
          family 232.
-LANES    WHERE IT POINTS is the whole reason the LimitRange box left the actor row, and what it now
+LANES    WHERE IT POINTS is the whole reason the LimitRange box is off the actor row, and what it
          points at is a BRACE rather than the ladder's left wall. The brace is a `P.relation` with a
          hand-built `d`: ends at 768, 12 clear of the rows, corner radius 30, so the spine sits at
          738 and the nose at 708, on the ladder's own mid line 252. `geometry.test.mjs` skips any
-         `d` carrying a curve command, so DIAGONAL, THROUGH and OFFEDGE have nothing to say about
-         it by construction rather than by exemption.
+         `d` carrying a curve command, so DIAGONAL, THROUGH and OFFEDGE have nothing to say about it
+         by construction rather than by exemption.
          The stub from the LimitRange is 56 long, the family gap, from its right face midpoint at
-         (652, 252) to the nose. It is not a line into the ladder's side: it terminates on a
-         drawn mark. Block, stub and brace all take their shade from `budget()` rather than from
-         three separate entries, which is what `A-16` asks for even though every step pins them to 1.
-         The API tie is an L, not a drop: out of the API's RIGHT face midpoint at (860, 80), 100
-         units right to the ladder centre, then 72 down onto (960, 152). Once the pair centred on
-         600 the API does not stand over the pipeline, and a drop from its own centre would land
-         at 744, which is 36 LEFT of the ladder entirely. That is why the card has no `API_CX`.
-         No relationPath runs from the ladder down to the bar: the bar's top face midpoint is 420,
+         (652, 252) to the nose. It is not a line into the ladder's side: it terminates on a drawn
+         mark. Block, stub and brace all take their shade from `budget()` rather than from three
+         separate entries, which is what `A-16` asks for even though every step pins them to 1. The
+         API tie is an L, not a drop: out of the API's RIGHT face midpoint at (860, 80), 100 units
+         right to the ladder centre, then 72 down onto (960, 152). Once the pair centred on 600 the
+         API does not stand over the pipeline, and a drop from its own centre would land at 744,
+         which is 36 LEFT of the ladder entirely. That is why the card has no `API_CX`. No
+         relationPath runs from the ladder down to the bar: the bar's top face midpoint is 420,
          exactly the seam between slot0 and slot1, so the lane would land on a join rather than on a
          face.
 MOTION   Nothing on this card stands before the beat that earns it. On the quota step the two chips,
@@ -119,66 +118,74 @@ MOTION   Nothing on this card stands before the beat that earns it. On the quota
          chip wait for that packet to reach the ReplicaSet.
          Every chip whose value CHANGES is named in that step's `lit`, `last admission` on all five
          included. It changes on all five and on three of them it is the only thing that does: the
-         limits and policies steps register no animation at all (`M-27`), so the cue on that chip and
-         the ladder row are the whole beat. `report/arrival.test.mjs` scores the axis: the three
-         steps here were the only unexplained R2-STEP findings in the catalog.
+         limits and policies steps register no animation at all (`M-27`), so the cue on that chip
+         and the ladder row are the whole beat. `report/arrival.test.mjs` scores the axis and the
+         three steps here are what it reports.
          The LimitRange block is lit on the mutating and limits steps and dark on the other three,
          which is not an omission: LimitRanger sits at rows 1 and 2 and nothing later reads a
          LimitRange.
          On the quota step the cue is on screen before the value it announces. `lit` puts
          `.highlight` on the two chips at entry while `rewind` has just set them back to what step 3
          left, so for the first 500ms `status.used` reads `requests.cpu 0` under a highlight, and
-         `last admission` until 2000ms. That is the shape `P-03` asks for (pin the end value, wind it
-         back, turn it over on the ball) meeting a cue that has no beat of its own: an `F.set` can
-         carry `lit`, but `flowLights` derives only a `lights` list, so a deferred cue would light
-         nothing on the reduced, prev and reset paths. `report/arrival.test.mjs` prints it as the one
-         R2-ENTRY row this card still carries.
+         `last admission` until 2000ms. That is the shape `P-03` asks for (pin the end value, wind
+         it back, turn it over on the ball) meeting a cue that has no beat of its own: an `F.set`
+         can carry `lit`, but `flowLights` derives only a `lights` list, so a deferred cue would
+         light nothing on the reduced, prev and reset paths. `report/arrival.test.mjs` prints it as
+         the one R2-ENTRY row this card still carries.
          The gap between the two actors is the family 56, so `A-11` has no duration to raise: 56 at
          PKT_SPEED 0.45 is 124ms, under the 700ms PKT_DUR_MIN floor, and every packet reads at 700.
-         Measured spans: 1260, 0, 0, 2560 and 1760 against durations of 3200, 2600, 2600, 5600, 4200.
-         The ball is SLOW, and the number is the floor rather than this card. 56 units in 700ms
-         is 0.080 units per ms against the PKT_SPEED canon of 0.45, and `cluster-static-pods` and
-         `storage-configmap-secret-mount` run the identical 56 at the identical 0.080.
+         Measured spans: 1260, 0, 0, 2560 and 1760 against durations of 3200, 2600, 2600, 5600,
+         4200. The ball is SLOW, and the number is the floor rather than this card. 56 units in
+         700ms is 0.080 units per ms against the PKT_SPEED canon of 0.45, and `cluster-static-pods`
+         and `storage-configmap-secret-mount` run the identical 56 at the identical 0.080.
          `cluster-node-drain` and `cluster-graceful-node-shutdown` are NOT on that list: both
          right-align their far block on CONTENT_R and their top hops read 192 at 0.274.
          `cluster-leader-election` is not one either, it runs 130 at 0.186. Most of the catalogue's
          balls are floor-bound the same way, and `pace.mjs` prints that share beside the median ball
-         speed. Raising it here alone would make this card faster than the two siblings still on
-         56, and raising `PKT_DUR_MIN` moves every one of them (`M-13`).
-         The ladder is the admission ORDER and the steps walk it, one row per step in turn. The
-         anchored note on the STEPS_SPEC header carries the telling this rejects and where each
-         piece of its payload sits instead.
+         speed. Raising it here alone would make this card faster than the two siblings still on 56,
+         and raising `PKT_DUR_MIN` moves every one of them (`M-13`).
+         The ladder is the admission ORDER and the steps walk it, one row per step in turn.
          The refused block is the only dashed one, because it is a request that never became an
          object, and its position past the bar edge means "did not get into the budget". It lands on
          OPACITY.pending, not 1, which is why it comes up through an `F.fade` from 0 to
          OPACITY.pending over REVEAL_MS rather than through `F.reveal`: `revealAt` always ends at 1
-         by construction, and a thing never created must not.
-CONTENT  The ReplicaSet chip counts what admission PRODUCES, so it reads `N created` and never
-         `N ready`. The reference defines `status.readyReplicas` as "the number of non-terminating
-         pods targeted by this ReplicaSet with a Ready Condition", and a Pod admission has just
-         written is Pending and carries no such condition. What the write produces is
-         `status.replicas`, "the most recently observed number of non-terminating pods", and the
-         chip turns over on the admission beat, so readiness is the one thing it may not claim.
-         The kubectl cells read `Pending` on persist for the SAME reason, and `Running` is what they
-         may not say. Pod Lifecycle defines Running as "the Pod has been bound to a node, and all of
-         the containers have been created", and this card draws no Node, no scheduler and no Kubelet,
-         so the write it does draw cannot produce that state. Pending is the phase that covers it:
-         "the Pod has been accepted by the Kubernetes cluster, but one or more of the containers has
-         not been set up and made ready to run. This includes time a Pod spends waiting to be
-         scheduled." Both words are 7 characters, so the cell geometry is untouched by the choice.
-         `admission itself adds that 500m to used` is the quota step's load-bearing claim and it is
-         the reference's own: Admission Controllers says admission controllers "may sometimes have
-         side effects, that is, mutate related resources as part of request processing. Incrementing
-         quota usage is the canonical example of why this is necessary". The same paragraph is why
-         the card must not say the increment is the whole story, since it continues "any such
-         side-effect needs a corresponding reclamation or reconciliation process": kube-controller-
-         manager runs a resourcequota controller that recalculates usage on its own period. The step
-         states the admission increment and claims no exclusivity, so no clause is owed.
+         by construction, and a thing never created must not. THE STEPS ARE THE LADDER. Five steps
+         walk the five admission rows in the pipeline's own order, so step N lights row N and every
+         row is used: mutating, LimitRanger validating, policies, ResourceQuota, persist.
+         `cluster-admission-chain` is the card this shape is copied from, and it does the same thing
+         with `chain: [0]` through `chain: [4]`. WHERE THE PAYLOAD SITS, because none of it is
+         dropped. The ceiling and the running sum are step 4, which is the row that owns them. Both
+         admissions and the refusal are step 4 as well, because row 4 is where all three verdicts
+         happen: `F.reveal` on slot0, then a packet per Pod, then an `F.fade` to OPACITY.pending on
+         the refused block. Step 5 is persist, and it is what splits ADMISSION from EXISTENCE: the
+         budget is charged at row 4 and the kubectl row only fills at row 5, so the two cells that
+         were written turn Pending there and the third goes to `No Pod object` on the same beat.
+CONTENT  The ReplicaSet chip counts what admission PRODUCES, so it reads `N created` and never `N
+         ready`. The reference defines `status.readyReplicas` as "the number of non-terminating pods
+         targeted by this ReplicaSet with a Ready Condition", and a Pod admission has just written
+         is Pending and carries no such condition. What the write produces is `status.replicas`,
+         "the most recently observed number of non-terminating pods", and the chip turns over on the
+         admission beat, so readiness is the one thing it may not claim. The kubectl cells read
+         `Pending` on persist for the SAME reason, and `Running` is what they may not say. Pod
+         Lifecycle defines Running as "the Pod has been bound to a node, and all of the containers
+         have been created", and this card draws no Node, no scheduler and no Kubelet, so the write
+         it does draw cannot produce that state. Pending is the phase that covers it: "the Pod has
+         been accepted by the Kubernetes cluster, but one or more of the containers has not been set
+         up and made ready to run. This includes time a Pod spends waiting to be scheduled." Both
+         words are 7 characters, so the cell geometry is untouched by the choice. `admission itself
+         adds that 500m to used` is the quota step's load-bearing claim and it is the reference's
+         own: Admission Controllers says admission controllers "may sometimes have side effects,
+         that is, mutate related resources as part of request processing. Incrementing quota usage
+         is the canonical example of why this is necessary". The same paragraph is why the card must
+         not say the increment is the whole story, since it continues "any such side-effect needs a
+         corresponding reclamation or reconciliation process": kube-controller- manager runs a
+         resourcequota controller that recalculates usage on its own period. The step states the
+         admission increment and claims no exclusivity, so no clause is owed.
          The 403 chip and the ack wire QUOTE the API rather than paraphrasing it. `exceeded quota`
          is the apiserver's own `fmt.Errorf("exceeded quota: %s, requested: %s, used: %s, limited:
          %s")`, and Resource Quotas gives the status: "the control plane rejects that request with
-         HTTP status code 403 Forbidden". The other refusal the quota system can answer,
-         `must specify %s` from the Pod quota evaluator, is NOT on this card: it belonged to the
+         HTTP status code 403 Forbidden". The other refusal the quota system can answer, `must
+         specify %s` from the Pod quota evaluator, is NOT on this card: it belonged to the
          missing-request branch, and step 1 carries that argument in prose instead.
          `ResourceQuota runs after every other validating plugin` is true and NO kubernetes.io page
          says so. The order is the apiserver's own `AllOrderedPlugins`, which ends
@@ -190,108 +197,58 @@ CONTENT  The ReplicaSet chip counts what admission PRODUCES, so it reads `N crea
          absolute ships without a qualifier rather than spending a clause naming it. The tail of the
          list is MutatingAdmissionPolicy, MutatingAdmissionWebhook, ValidatingAdmissionPolicy,
          ValidatingAdmissionWebhook, ResourceQuota, AlwaysDeny, and LimitRanger sits sixth from the
-         top, which is what puts ladder row 2 ahead of row 3. `cluster-admission-chain` states
-         the same order in prose and the two cards agree.
+         top, which is what puts ladder row 2 ahead of row 3. `cluster-admission-chain` states the
+         same order in prose and the two cards agree.
          Every drawn value re-checked against the reference. LimitRanger is typed "Mutating and
          Validating" and ResourceQuota "Validating", which is the whole of why one appears on two
-         ladder rows and the other on one. `default`, `defaultRequest`, `max`, `maxLimitRequestRatio`,
-         `min` and `type` are the complete `LimitRangeItem` field set, and `defaultRequest` is
-         defined as "the default resource requirement request value by resource name if resource
-         request is omitted", which is step 1 exactly. The ReplicaSet condition is `ReplicaFailure`
-         with reason `FailedCreate`, both set in `replica_set_utils.go` when a create is refused.
-         `web-2 lands the sum exactly on the ceiling` and is ADMITTED because the quota table reads
-         "the sum of CPU requests cannot exceed this value", so equality passes.
+         ladder rows and the other on one. `default`, `defaultRequest`, `max`,
+         `maxLimitRequestRatio`, `min` and `type` are the complete `LimitRangeItem` field set, and
+         `defaultRequest` is defined as "the default resource requirement request value by resource
+         name if resource request is omitted", which is step 1 exactly. The ReplicaSet condition is
+         `ReplicaFailure` with reason `FailedCreate`, both set in `replica_set_utils.go` when a
+         create is refused. `web-2 lands the sum exactly on the ceiling` and is ADMITTED because the
+         quota table reads "the sum of CPU requests cannot exceed this value", so equality passes.
          Step 1 argues the injection per POD rather than per container, which is the docs' own
          framing: "you and other clients, must specify either requests or limits for that resource,
          for every new Pod you submit. If you don't, the control plane may reject admission for that
          Pod." The card says `cannot count` rather than `is rejected`, which keeps the docs' hedge
          and gives the reason. It is also correctly narrow: the same page says that for resources
          OTHER than cpu and memory a quota simply ignores a Pod that sets neither.
-         The ladder names webhooks only on its validating row and does not draw mutating
-         webhooks at all. The phase column carries the qualifier, and cluster-admission-chain owns
-         the whole chain and agrees word for word: `ResourceQuota runs after all of them`.
-         The `desc` opens on a Deployment no step draws. It is grid and search text that no
-         dialog reader ever sees, and the ReplicaSet on the card is the one a Deployment owns.
-         Why hard is requests.cpu 1 and every Pod asks 500m: the numbers come off the LimitRange
-         page's own worked example, so the injected default IS the arithmetic and step 2 is
-         load-bearing. Two 500m Pods land exactly on the ceiling, which is why admit animates TWO
-         beats. There is no set of equal requests that rejects on the second Pod without leaving the
-         first short of the ceiling.
+         The ladder names webhooks only on its validating row and does not draw mutating webhooks at
+         all. The phase column carries the qualifier, and cluster-admission-chain owns the whole
+         chain and agrees word for word: `ResourceQuota runs after all of them`.
+         The `desc` opens on a Deployment no step draws. It is grid and search text that no dialog
+         reader ever sees, and the ReplicaSet on the card is the one a Deployment owns. Why hard is
+         requests.cpu 1 and every Pod asks 500m: the numbers come off the LimitRange page's own
+         worked example, so the injected default IS the arithmetic and step 2 is load-bearing. Two
+         500m Pods land exactly on the ceiling, which is why admit animates TWO beats. There is no
+         set of equal requests that rejects on the second Pod without leaving the first short of the
+         ceiling.
 NAMING   A cell carries the STATUS alone and never a name: the name is on the block directly above
          it, so no column prints one name twice, and the refused block keeps an identity of its own
          to spend, which is what lets the refused block read as web-3 while the cell under it says
          only that no object exists. Statuses are title case because `.scheme-box-label` is a title
          slot (T-09), and a kubectl STATUS column is capitalised in any case.
-         The `ReplicaSet web` chip reports a COUNT on four steps and a CONDITION on the fifth,
-         `3 desired · 0 created` then `3 desired · 2 created` then `ReplicaFailure · FailedCreate`.
+         The `ReplicaSet web` chip reports a COUNT on four steps and a CONDITION on the fifth, `3
+         desired · 0 created` then `3 desired · 2 created` then `ReplicaFailure · FailedCreate`.
          `P-02` is not broken by it: this chip is named for the OBJECT, not for a field, the way
          `spec.hard` and `last admission` are named for theirs, so both readings are news about that
-         ReplicaSet. What it costs is real and is paid on purpose: the final frame does not show
-         `2 created`. The alternatives both fail on measurement. A fifth chip breaks the 2 x 2 grid,
+         ReplicaSet. What it costs is real and is paid on purpose: the final frame does not show `2
+         created`. The alternatives both fail on measurement. A fifth chip breaks the 2 x 2 grid,
          whose second row already ends on the 624 rail the category shares, and one value carrying
-         both runs `3 desired · 2 created · ReplicaFailure` at 41 characters against a 532 chip whose
-         name already spends 14, which `P-07` will not take.
-```
-
-### before `// Five steps over five ladder rows, in the pipeline's own order: step N lights row N. The card`
-
-```
-THE STEPS ARE THE LADDER. Five steps walk the five admission rows in the pipeline's own order, so
-step N lights row N and every row is used: mutating, LimitRanger validating, policies, ResourceQuota,
-persist. `cluster-admission-chain` is the card this shape is copied from, and it does the same
-thing with `chain: [0]` through `chain: [4]`.
-
-WHY NOT tell a quota STORY over five steps of its own: the quota
-object, the LimitRange, the admit, the reject, and a counterfactual with no LimitRange. Against a
-ladder that is the admission ORDER that story lights row 4 four times, rows 3 and 5 never, and jumps
-back up to rows 1 and 2 in the middle. Two rows are then drawn and dead, and the numbering reads as
-though it counted the card's own steps.
-
-WHERE THE PAYLOAD SITS, because none of it is dropped. The ceiling and the running sum are step 4,
-which is the row that owns them. Both admissions and the refusal are step 4 as well, because row 4 is
-where all three verdicts happen: `F.reveal` on slot0, then a packet per Pod, then an `F.fade` to
-OPACITY.pending on the refused block. Step 5 is persist, and it is what splits ADMISSION from
-EXISTENCE: the budget is charged at row 4 and the kubectl row only fills at row 5, so the two cells
-that were written turn Pending there and the third goes to `No Pod object` on the same beat.
-
-WHAT WAS LOST. The counterfactual step, and with it the card's only `T-35` sign. It played a state
-that never happened (both slots gone, used back to 0, the whole row absent, the LimitRange ghosted)
-to argue that a LimitRange is structural rather than convenient. That argument is now one clause in
-step 1, `once a quota constrains requests.cpu, a Pod naming neither requests nor limits is a Pod the
-quota cannot count`, on the row where LimitRanger actually acts. The card draws no
-counterfactual, so `T-35` has nothing to say about it either way.
-
-WHY NOT a sixth step carrying the counterfactual and lighting row 1 again. It restores the argument
-and costs the property the rebuild was for: five steps against five rows, one to one, with no step
-left over and no row lit twice out of turn.
-```
-
-### poster
-
-```
-Sentence: two requests fill the ceiling exactly, and the one past it is refused. A segmented
-budget bar carries the premise and a break carries the payload. The track spans 20..196 and is
-divided at 108 into the two 500m that land exactly on spec.hard, so it is drawn FULL rather than
-part filled: being full is why the third is refused. The ceiling tick sits on the track's right edge
-and runs 36..144, overshooting the 76 unit track top and bottom so it reads as a ceiling rather than
-as another internal rule. Past it, one dashed block of the same height, crossed by an X.
-
-The two occupied slots carry the house 0.3 bar and the refused block carries no bar at all. The
-accent is the break, which is the family's own way of saying refused, and an empty block is what
-that request produced. One accent, and it is a shape rather than a fill. No arrowheads, no text, no
-actors, no ladder: direction is not part of the sentence, the tick and the X are.
-
-DEVIATION, deliberate. The category draws a break at `opacity="0.55"` and the inherited 1.4, on
-`cluster-pod-priority-preemption` and `cluster-node-pressure-eviction`. This one is 2.4 at full
-strength, because on both of those the X is a supporting mark beside a bright accent bar elsewhere,
-and here it IS the only accent: at 0.55 the two 0.3 slot bars would outweigh it and the poster would
-land on the budget rather than on the refusal. The vocabulary is the same and the weight is not.
-
-WHY NOT a bar over a row of cells, which is what the card itself now draws: that is the literal
-miniature `R-10` forbids, it makes the poster redundant with the card, and a second row of three
-cells is unreadable at 200px. WHY NOT a 0.9 accent bar inside the refused block: it says "this one
-matters most" where the card says "this one never existed", and it leaves the refusal expressed by
-position alone, which the eye reads as "further right" rather than as "denied". WHY NOT 0.14 on the
-occupied slots: measured on the true-size render they disappear, and with no visible occupants there
-is no budget and the ceiling is an arbitrary line.
+         both runs `3 desired · 2 created · ReplicaFailure` at 41 characters against a 532 chip
+         whose name already spends 14, which `P-07` will not take.
+WHY NOT  Tell a quota STORY over five steps of its own: the quota object, the LimitRange, the admit,
+         the reject, and a counterfactual with no LimitRange. Against a ladder that is the admission
+         ORDER that story lights row 4 four times, rows 3 and 5 never, and jumps back up to rows 1
+         and 2 in the middle. Two rows are then drawn and dead, and the numbering reads as though it
+         counted the card's own steps. A sixth step carrying that counterfactual and lighting row 1
+         again. It costs the property the five-row spine is for: five steps against five rows, one
+         to one, with no step left over and no row lit twice out of turn. The counterfactual would
+         play a state that never happens (both slots gone, used back to 0, the whole row absent, the
+         LimitRange ghosted) to argue that a LimitRange is structural rather than convenient. That
+         argument is one clause in step 1 instead, `once a quota constrains requests.cpu, a Pod
+         naming neither requests nor limits is a Pod the quota cannot count`, on the row where
+         LimitRanger acts. The card draws no counterfactual, so `T-35` has nothing to say about it
+         either way.
 ```

@@ -42,6 +42,10 @@
 //   * A page split across several cards. One large upstream page covered by six cards reads
 //     PARTIAL, because no single card is named after the whole of it. That is the commonest false
 //     finding this tool produces and the evidence columns are there to settle it in one look.
+//   * The difference between a card NAMED after a page and one whose name merely CONTAINS its
+//     words. COVERED is a subset test, so `Deployments` reads COVERED off `Deployment Rolling
+//     Update`. That is the one way this tool over-reports COVERAGE and it is OPEN: the guard in
+//     classify() below closes the scenery-word half of it and nothing closes the rest.
 //   * Anything outside kubernetes.io. The map carries etcd.io, raft.github.io and github.com trees
 //     and this tool lists them and does not fetch them: they have no shared index shape to parse.
 //   * Freshness beyond the cache. A cached tree is what upstream looked like when it was written,
@@ -131,6 +135,13 @@ const topicTokens = (text) => {
   const all = raw(text);
   const kept = all.filter(w => !STOP.has(w) && !SCENERY.has(w));
   return [...new Set(kept.length ? kept : all)];
+};
+// TRUE when the fallback above is the only reason this text has tokens at all: every word it holds
+// is scenery or a stop word, so the tokens name no subject. Such a set is still matched for PARTIAL
+// and still listed, and it is refused for COVERED in classify() below. See the note there.
+const sceneryOnly = (text) => {
+  const all = raw(text);
+  return all.length > 0 && all.every(w => STOP.has(w) || SCENERY.has(w));
 };
 const nameTokens = (text) => [...new Set(raw(text).filter(w => !STOP.has(w)))];
 
@@ -357,12 +368,30 @@ const declinedFor = (key, topic, toks) => DECLINED.find((d) => {
 });
 
 function classify(topic, mine, key) {
-  const slugToks = topicTokens(topic.url.replace(/\/$/, '').split('/').pop().replace(/-/g, ' '));
+  const slugText = topic.url.replace(/\/$/, '').split('/').pop().replace(/-/g, ' ');
+  const slugToks = topicTokens(slugText);
   const titleToks = topicTokens(topic.title);
   const toks = [...new Set([...slugToks, ...titleToks])];
+  const slugScenery = sceneryOnly(slugText);
+  const titleScenery = sceneryOnly(topic.title);
   const page = topic.url.replace(/\/$/, '');
 
-  const owns = (c) => subset(slugToks, c.names) || subset(titleToks, c.names);
+  // COVERED is a SUBSET test over the card's name tokens, and a subset test is only as strong as
+  // the smaller side. A topic whose whole token set is scenery (`controllers`, `volumes`) is one
+  // generic word wide, and one generic word is a subset of a great many card names: on 2026-09-04
+  // the `/concepts/workloads/controllers/` index, titled `Workload Management` and slugged
+  // `controllers`, was reported `COVERED  named by workloads-daemonset` because that card is titled
+  // `DaemonSet Controller`. A false COVERED is worse than a false ABSENT, because it deletes the
+  // row from the report instead of over-listing it, so a scenery-only side of the match is refused
+  // here. The topic keeps its tokens everywhere else: it can still reach PARTIAL, and an ABSENT one
+  // still carries its evidence.
+  //
+  // THIS IS A GUARD, NOT A REPAIR OF THE MATCHER. The test stays loose wherever the topic's words
+  // are real ones: a card whose name merely CONTAINS them still reads COVERED, so `Deployments` is
+  // COVERED by `Deployment Rolling Update`, which is named after one section of that page.
+  // Appendix B of SKILL.md carries that one as open.
+  const owns = (c) => (!slugScenery && subset(slugToks, c.names))
+    || (!titleScenery && subset(titleToks, c.names));
   const here = mine.filter(owns).sort((a, b) => a.names.length - b.names.length);
   const citers = mine.filter(c => c.sources.includes(page));
   const firstSource = mine.find(c => c.sources[0] === page);

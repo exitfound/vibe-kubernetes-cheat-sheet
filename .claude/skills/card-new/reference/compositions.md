@@ -47,7 +47,7 @@ free to arrange its blocks the way its subject wants them.
 | Family | The sentence it says | Open these |
 |---|---|---|
 | Actor strip over a Node floor | someone up there acts, and it lands on a Node down here | `cluster-scheduler-decision`, `workloads-probes`, `cluster-node-drain` |
-| Ladder and chip column | a pipeline of named stages, with the state it moves beside it | `workloads-probes`, `cluster-admission-chain`, `workloads-container-states` |
+| Ladder and chip column | a pipeline of named stages, with the state it moves beside it | `cluster-admission-chain`, `workloads-force-deletion` |
 | Mirrored flow line | traffic goes out along one lane and comes back along another | `network-service-clusterip`, `network-conntrack-nat`, `network-service-ports` |
 | Vertical stack on an identity spine | this thing belongs to that thing, and data moves between them | `storage-volume-model`, `storage-hostpath`, `storage-emptydir` |
 | Two zones compared | two regimes, side by side, and they differ | `storage-ephemeral-vs-persistent`, `network-kube-proxy-modes`, `cluster-resource-quota` |
@@ -187,7 +187,7 @@ some step. One of the two is the subject: the other is a caption for it.
 **Says:** this is a story about API objects, and no Pod appears in it.
 
 **Build:** boxes for the objects, relationship lines for the references between them, and the state
-of each object in its own sublabel. 23 cards in the catalog carry no Pod at all, so a Pod is not the
+of each object in its own sublabel. 24 cards in the catalog carry no Pod at all, so a Pod is not the
 price of admission: adding one to a card whose subject is a PV and a PVC puts an actor on stage who
 never speaks.
 

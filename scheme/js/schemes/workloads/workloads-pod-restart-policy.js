@@ -1,15 +1,15 @@
-import { P, F, defineCard, ladder, strip, laneY, midX, WL, LAYOUT, FADE, OPACITY } from './workloads-kit.js';
+import { P, F, defineCard, ladder, strip, laneY, midX, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
 
-// Design notes for this card: ./CARDS/workloads-restart-policy.md
+// Design notes for this card: ./CARDS/workloads-pod-restart-policy.md
 
 // Layout C on the Workloads canon (WL): panel x<=397 y<=355 leaves no column under it, so the
 // pipeline keeps the right band and the chips form a two-across bottom strip.
 
 // Kubelet is the node-facing actor, so it leads the row and is centred on CX: the line down to
-// the Node leaves its bottom midpoint and clears the pipeline column.
-const TOP1_X = 420, TOP1_W = 2 * (WL.CX - 420);          // 420..780, centred on CX
-const TOP_GAP = 60;
-const TOP2_X = TOP1_X + TOP1_W + TOP_GAP, TOP2_W = WL.R - (TOP1_X + TOP1_W + TOP_GAP);
+// the Node leaves its bottom midpoint and clears the pipeline column. Both boxes take the 232 and
+// the placement of workloads-pod-startup-conditions: left centred on CX, right flush on WL.R.
+const TOP1_W = 232, TOP1_X = WL.CX - TOP1_W / 2;         // 484..716, centred on CX
+const TOP2_W = 232, TOP2_X = WL.R - TOP2_W;              // 908..1140, right edge on the ladder column
 const TOP_CY = WL.TOP_Y + WL.BOX_H / 2;
 const { out: REQ_Y, back: RESP_Y } = laneY(TOP_CY, WL.LANE_DY);
 const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
@@ -66,7 +66,7 @@ export const SCENE = {
         '2. exit 0    ·  Always restarts, OnFailure and Never do not',
         '3. exit != 0 ·  Always and OnFailure restart, Never does not',
         '4. backoff   ·  Always and OnFailure share the restart backoff',
-        '5. fit       ·  Always for services, OnFailure / Never for Jobs',
+        '5. fit       ·  Always for long-running apps, OnFailure / Never for Jobs',
       ],
     }),
     ...POD_XS.map((px, i) => P.pod({
@@ -84,24 +84,34 @@ export const SCENE = {
   },
 };
 
-// Kubelet watches the Api, then the spec hops back down the return lane. The Api RECEIVES that
-// first hop, so it lights on arrival, and `lights` is what the static path shows in place of it.
+// The policy step only: Kubelet watches the Api, then the spec hops back down the return lane.
+// The Api RECEIVES that first hop, so it lights on arrival, and `lights` is what the static path
+// shows in place of it.
 const bounce = () => [
   F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, name: 'req', lights: ['apiserver'] }),
   F.top({ from: TOP2_X, to: TOP1_X + TOP1_W, y: RESP_Y, after: 'req' }),
 ];
 
-// The container exit is an in-place event with no packet to anchor to: the Pods
-// react this many ms into the step (pulse, plus a fade for the ones that stop).
+// The container exit is an in-place event with no packet to anchor to: the Pods react this many ms
+// into the step. The blink is seen at full weight before a stopping Pod fades, and the status
+// report leaves Kubelet a pod blink later (up-arrow order: the Pod first, then the packet).
 const REACT_MS = 400;
+const FADE_MS = REACT_MS + 300;
+const REPORT_MS = REACT_MS + BEAT.afterPulse;
 
-// The Pods react together: every one that stops fades first, then all three pulse. Written as one
-// helper so no step can fade a Pod and forget to pulse it.
+// The Pods react together: all three pulse, then every one that stops fades. Written as one helper
+// so no step can fade a Pod and forget to pulse it.
 const react = (fades) => [
-  ...fades.map(([target, to]) => F.fade({ target, from: 1, to, dur: FADE.out, delay: REACT_MS, fill: 'both', easing: 'ease-in' })),
   F.pulse({ pod: 'pod1', delay: REACT_MS }),
   F.pulse({ pod: 'pod2', delay: REACT_MS }),
   F.pulse({ pod: 'pod3', delay: REACT_MS }),
+  ...fades.map(([target, to]) => F.fade({ target, from: 1, to, dur: FADE.out, delay: FADE_MS, fill: 'both', easing: 'ease-in' })),
+];
+
+// What the exit steps send: the decision is taken on the Node, and the ONE thing that travels is
+// the status Kubelet PATCHes afterwards. Nothing comes back, so the return lane stays idle here.
+const report = () => [
+  F.top({ from: TOP1_X + TOP1_W, to: TOP2_X, y: REQ_Y, delay: REPORT_MS, lights: ['apiserver'] }),
 ];
 
 export const STEPS_SPEC = [
@@ -114,10 +124,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'policy',
-    duration: 2200,
+    duration: 3800,
     narration: 'The restartPolicy is a Pod-level field. The Pod-level value is immutable once the Pod is created and covers every main and regular init container that does not set its own. Since 1.35 the ContainerRestartRules feature gate is beta and enabled by default, so an individual container may carry a restartPolicy that overrides the Pod one. The Pod-level default is Always. A sidecar (an initContainer with restartPolicy Always, on by default since 1.29 and GA in 1.33) ignores it. Kubelet reads the field from the Pod spec and applies it each time a container terminates.',
     chips: { pod1Chip: 'Running', pod2Chip: 'Running', pod3Chip: 'Running', focusChip: 'Pod-level, default Always' },
-    wires: { req: 'watch · spec.restartPolicy delivered · Status reported back' },
+    wires: { req: 'watch · spec.restartPolicy delivered' },
     opacity: { pod1: 1, pod2: 1, pod3: 1 },
     lit: ['kubelet', 'focusChip'],
     chain: 0,
@@ -125,60 +135,60 @@ export const STEPS_SPEC = [
   },
   {
     id: 'exit-zero',
-    duration: 2400,
+    duration: 3200,
     narration: 'Scenario: a container exits 0, a clean success. Pod A (Always) restarts the container and stays Running. Pod B (OnFailure) does not restart a successful exit, so once the container is done the Pod phase becomes Succeeded. Pod C (Never) does not restart anything either and likewise ends Succeeded.',
     chips: { pod1Chip: 'Running (restarted)', pod2Chip: 'Succeeded', pod3Chip: 'Succeeded', focusChip: 'exit 0: only Always restarts' },
-    wires: { req: 'container exit 0 · Restart only if Always' },
+    wires: { req: 'exit 0 · Always restarted · status PATCH: B and C Succeeded' },
     // Pin final opacities: A is back to Running, B and C are terminal.
     opacity: { pod1: 1, pod2: OPACITY.terminated, pod3: OPACITY.terminated },
     lit: ['focusChip', 'kubelet', 'pod1Chip', 'pod2Chip', 'pod3Chip'],
     chain: 1,
     flow: [
-      ...bounce(),
       ...react([['pod2', OPACITY.terminated], ['pod3', OPACITY.terminated]]),
+      ...report(),
     ],
   },
   {
     id: 'exit-nonzero',
-    duration: 2400,
+    duration: 3000,
     narration: 'Scenario: a container exits with a non-zero code, a failure. Pod A (Always) restarts it. Pod B (OnFailure) restarts it too, that is exactly what OnFailure means. Pod C (Never) restarts nothing, so a single failure drives the Pod phase to Failed.',
     chips: { pod1Chip: 'Running (restarted)', pod2Chip: 'Running (restarted)', pod3Chip: 'Failed', focusChip: 'exit != 0: only Never does not restart' },
-    wires: { req: 'exit != 0 · Restart if Always or OnFailure' },
+    wires: { req: 'exit != 0 · Always and OnFailure restarted · status PATCH: C Failed' },
     // Pin: A and B are restarted back to Running, C is terminal Failed.
     opacity: { pod1: 1, pod2: 1, pod3: OPACITY.terminated },
     lit: ['focusChip', 'kubelet', 'pod1Chip', 'pod2Chip', 'pod3Chip'],
     chain: 2,
     flow: [
-      ...bounce(),
       ...react([['pod3', OPACITY.terminated]]),
+      ...report(),
     ],
   },
   {
     id: 'backoff',
-    duration: 2400,
-    narration: 'The first restart is immediate, and every restart after it, whether driven by Always or by OnFailure, waits out the same exponential backoff, doubling from a 10s base to a 5 minute ceiling by default. The container sits in Waiting with reason=CrashLoopBackOff during the wait, and the timer resets after the container has run successfully for 10 minutes. A Never Pod never restarts at all, so it cannot enter this loop.',
+    duration: 3600,
+    narration: 'The first restart is immediate, and every restart after it, whether driven by Always or by OnFailure, waits out the same exponential backoff, doubling from a 10s base to a 5 minute ceiling by default. The container sits in Waiting with reason=CrashLoopBackOff during the wait, and the timer resets after the container has run successfully for 10 minutes. A Never Pod whose containers set no policy of their own never restarts, so it never enters this loop.',
     chips: { pod1Chip: 'Waiting (backoff)', pod2Chip: 'Waiting (backoff)', pod3Chip: 'never enters backoff', focusChip: 'backoff 10s..300s, shared' },
-    wires: { req: 'restart backoff: 10s → 20s → ... → 300s cap' },
+    wires: { req: 'status PATCH: Waiting, reason=CrashLoopBackOff · backoff 10s → 300s cap' },
     // Pin: A and B sit in backoff (alive, not serving), C runs normally.
     opacity: { pod1: OPACITY.notready, pod2: OPACITY.notready, pod3: 1 },
     lit: ['pod3Chip', 'kubelet', 'pod1Chip', 'pod2Chip', 'focusChip'],
     chain: 3,
     flow: [
-      ...bounce(),
       ...react([['pod1', OPACITY.notready], ['pod2', OPACITY.notready]]),
+      ...report(),
     ],
   },
   {
     id: 'fit',
     duration: 2200,
-    narration: 'Long-running controllers (Deployment, ReplicaSet, DaemonSet, StatefulSet) only allow restartPolicy=Always, so their Pods always restart. Job uses OnFailure or Never to let its Pods reach a terminal Succeeded or Failed phase instead of looping forever.',
-    chips: { pod1Chip: 'long-running services', pod2Chip: 'Job (OnFailure)', pod3Chip: 'Job (Never)', focusChip: 'long-running vs run-to-completion' },
+    narration: 'Long-running controllers (Deployment, ReplicaSet, DaemonSet, StatefulSet) only allow restartPolicy=Always, so their containers restart unless one carries its own policy. Job uses OnFailure or Never to let its Pods reach a terminal Succeeded or Failed phase instead of looping forever.',
+    chips: { pod1Chip: 'long-running apps', pod2Chip: 'Job (OnFailure)', pod3Chip: 'Job (Never)', focusChip: 'long-running vs run-to-completion' },
     wires: { req: 'Always: long-running · OnFailure / Never: Jobs' },
-    opacity: { pod1: 1, pod2: OPACITY.notready, pod3: OPACITY.notready },
+    opacity: { pod1: 1, pod2: 1, pod3: 1 },
     lit: ['focusChip', 'pod1Chip', 'pod2Chip', 'pod3Chip'],
     chain: 4,
-    // Nothing travels on this step: the fit is a property of the controller, not a message.
-    flow: react([['pod2', OPACITY.notready], ['pod3', OPACITY.notready]]),
+    // Nothing travels and nothing happens to a Pod on this step: the fit is a property of the
+    // controller, not a message, so no flow at all (M-27).
   },
 ];
 

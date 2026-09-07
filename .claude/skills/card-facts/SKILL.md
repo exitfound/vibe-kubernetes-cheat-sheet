@@ -40,7 +40,7 @@ root. `node --test` and `npm run` need `scheme/test/`.
 
 ```bash
 python3 -m http.server 8888 --bind 0.0.0.0      # from the repo root, if nothing is serving
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 node ../../.claude/skills/card-facts/tools/claims.mjs <card-id>            # the inventory
 node ../../.claude/skills/card-facts/tools/claims.mjs <card-id> --tokens   # just the token table
 node tools/settled-dump.mjs <card-id>                                      # the settled state, as data
@@ -294,7 +294,7 @@ terminology RULE changed, in which case it is a rulebook edit and belongs to a s
 Then:
 
 ```bash
-cd scheme/test && npm run test:unit      # docs.test.mjs: the record still parses and its anchors hold
+cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit      # docs.test.mjs: the record still parses and its anchors hold
 ```
 
 ---

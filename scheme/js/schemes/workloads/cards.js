@@ -12,6 +12,19 @@ export const SUBCATEGORIES = [
 
 export const CARDS = [
   {
+    id: 'workloads-controller-kinds',
+    title: 'Workload Controller Kinds',
+    category: 'workloads',
+    subcategory: 'controllers',
+    desc: 'Six built-in kinds manage Pods for you, so which one does a workload want? Three questions separate them: whether a replica needs a stable identity, which is the StatefulSet, whether the count follows the matching Node set rather than a number you set, which is the DaemonSet, and whether the work ends, which is the Job. A Deployment reaches its Pods through a ReplicaSet and a CronJob through a Job, and Deployment replaces the legacy ReplicationController.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Workload Management', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/' },
+      { label: 'ReplicationController', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/' },
+    ],
+  },
+  {
     id: 'workloads-replicaset',
     title: 'ReplicaSet Reconcile and Ownership',
     category: 'workloads',
@@ -29,7 +42,7 @@ export const CARDS = [
     title: 'Deployment Rolling Update',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you move every Pod to a new version without taking the app offline? A Deployment rolls the change out gradually, bringing up Pods on the new version a few at a time and retiring old ones as the replacements report Ready, so the Service always keeps enough backends. The maxSurge and maxUnavailable dials, 25% each by default, set how wide that window is, and only at maxUnavailable 0 is an old Pod guaranteed to stay until its replacement serves.',
+    desc: 'How do you move every Pod to a new version without taking the app offline? A Deployment rolls the change out gradually, bringing up new-version Pods within its surge budget and retiring old ones as replacements report Ready, so the Service stays backed. The maxSurge and maxUnavailable dials both default to 25%, which at 3 replicas rounds up to a surge of 1 and down to 0 unavailable, and only at maxUnavailable 0 does an old Pod stay until its replacement serves.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -37,15 +50,29 @@ export const CARDS = [
     ],
   },
   {
+    id: 'workloads-deployment-strategy',
+    title: 'RollingUpdate or Recreate',
+    category: 'workloads',
+    subcategory: 'controllers',
+    desc: 'Should a Deployment replace its Pods alongside the old ones or after them? The field .spec.strategy.type takes two values, and RollingUpdate, the default, surges to create the replacement and wait for it to report Ready before the old Pod is removed, so the two are briefly alive together. Recreate inverts that order, terminating every old Pod before the replacement is created, which buys one version running at a time and pays with a window where nothing serves.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Deployment Strategy', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy' },
+      { label: 'Recreate Deployment', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#recreate-deployment' },
+    ],
+  },
+  {
     id: 'workloads-deployment-rollback',
     title: 'Deployment Rollback and Revision History',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'A rollout went bad, so how do you get back to the version that worked? A Deployment keeps its old ReplicaSets as numbered revisions, so a rollback sends the broken one to zero while the previous one, never scaled down, keeps serving. That history undoes a bad change in one command, and revisionHistoryLimit, 10 by default, caps it: a pruned ReplicaSet takes its revision with it. A rollback creates a new revision rather than erasing the bad one.',
+    desc: 'A rollout went bad, so how do you get back to what worked? A revision is not a snapshot the Deployment stores, it is a ReplicaSet with a revision annotation, kept at zero once it is old, so a rollback copies that template back and the matching ReplicaSet is scaled up and renumbered forward rather than a fifth being created. A pruned ReplicaSet takes its revision with it, so revisionHistoryLimit, 2 on this Deployment and 10 by default, caps how far back you can go.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'Rolling Back a Deployment', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-back-a-deployment' },
+      { label: 'Clean up Policy', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy' },
     ],
   },
   {
@@ -53,11 +80,25 @@ export const CARDS = [
     title: 'StatefulSet Ordered Rollout',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'Why does a StatefulSet start its Pods strictly one at a time? Under the default podManagementPolicy of OrderedReady, ordinal 0 has to be Ready before ordinal 1 is even created, which is what lets a clustered system elect a primary before any follower appears. Each Pod also keeps a stable name and its own claim across restarts, and under that same policy a scale-down reverses the order, newest ordinal first, so ordinal 0 is the last to go.',
+    desc: 'Why does a StatefulSet start its Pods strictly one at a time? Under the default podManagementPolicy of OrderedReady, ordinal 0 has to be Running and Ready before ordinal 1 is even created, which is what lets a clustered system elect a primary before any follower appears. Each Pod also keeps a stable name and its own claim across restarts, and under that same policy a scale-down reverses the order, highest ordinal first, so ordinal 0 is the last to go.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'OrderedReady Pod Management', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#orderedready-pod-management' },
+      { label: 'PVC Retention Policy', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention' },
+    ],
+  },
+  {
+    id: 'workloads-statefulset-update-strategy',
+    title: 'StatefulSet Update Strategy',
+    category: 'workloads',
+    subcategory: 'controllers',
+    desc: 'How does a change to the Pod template reach a StatefulSet that is already running? RollingUpdate deletes and recreates the Pods one at a time from the largest ordinal down, waiting for each to be Running and Ready before it touches the predecessor. A partition freezes every ordinal below it so you can stage a canary, maxUnavailable widens the window past the default of one, and OnDelete hands the trigger back to you.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Update Strategies', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies' },
+      { label: 'Partitioned Rolling Updates', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions' },
     ],
   },
   {
@@ -156,7 +197,7 @@ export const CARDS = [
     title: 'Effective Pod Resource Requests',
     category: 'workloads',
     subcategory: 'pods-bootstrap',
-    desc: 'Four containers ask for cpu, so how much does the Node actually set aside? Not their sum: regular init containers run one at a time so only the highest of them counts, while the app and sidecar containers run together so theirs are added, and the Pod takes the higher of those two plus any RuntimeClass overhead. The Scheduler bins on that number and the Kubelet sizes the Pod cgroup from it, so a short init container holds its share for the whole life of the Pod.',
+    desc: 'Four containers ask for cpu, so how much does the Scheduler reserve? Not their sum: regular init containers run one at a time so the tallest counts, plus any sidecar declared before it, while the app and the sidecar run together so theirs are added, and the Pod takes the higher of those two plus any RuntimeClass overhead. The Scheduler bins on it and the Kubelet sizes the Pod cgroup from it, so a short init container holds its share for the whole Pod life.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -178,29 +219,18 @@ export const CARDS = [
       { label: 'Resource Management', href: 'https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/' },
       { label: 'Node-pressure Eviction', href: 'https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/' },
     ],
-  },  {
-    id: 'workloads-pvc-stickiness',
-    title: 'StatefulSet PVC Stickiness',
-    category: 'workloads',
-    subcategory: 'controllers',
-    desc: 'When a StatefulSet Pod moves to another Node, does its data move with it? The volume is bound to the Pod identity rather than to the Pod object, so it outlives the deletion and simply waits. When the replacement with the same ordinal starts, possibly on a different Node, it reattaches that same disk and sees exactly the bytes left behind. The disk follows the ordinal, never the Pod object or the Node, and the default retention policy keeps the claim.',
-    k8sVersion: '1.35',
-    tinted: true,
-    sources: [
-      { label: 'Stable Storage', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage' },
-      { label: 'StatefulSet Basics', href: 'https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/' },
-    ],
   },
   {
     id: 'workloads-daemonset',
     title: 'DaemonSet Controller',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you run one copy of a Pod on every eligible Node, and exactly one? A DaemonSet watches the Node set instead of a replica count, adding a Pod when an eligible Node joins and removing it when a Node leaves, so the fleet tracks the cluster rather than a fixed number. Its Pods also carry tolerations that let them land where ordinary workloads cannot. Scaling a DaemonSet means adding or removing Nodes.',
+    desc: 'How does a DaemonSet decide how many Pods to run, when there is no replicas field to set? With no nodeSelector or affinity it runs one Pod on every eligible Node, and with a selector it matches each Node against it, so desiredNumberScheduled is computed from the cluster, not declared by you. Labelling a Node adds a Pod, removing the Node takes its Pod and nothing is rescheduled, and updateStrategy picks RollingUpdate with maxUnavailable or OnDelete.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'DaemonSet', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/' },
+      { label: 'Perform a Rolling Update on a DaemonSet', href: 'https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/' },
     ],
   },
   {
@@ -208,11 +238,26 @@ export const CARDS = [
     title: 'Job Parallelism and Completions',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How does a Job run a batch of work to completion instead of serving forever? You give it completions, the number of successful runs you need, and parallelism, how many Pods may run at once, and it keeps launching Pods and retrying failures until that target is met. Once enough runs succeed it stops on its own and marks the batch complete. A failed Pod counts against backoffLimit, 6 by default, and reaching that limit fails the Job instead.',
+    desc: 'How does a Job run a batch of work to completion instead of serving forever? You give it completions, the number of successful runs you need, and parallelism, how many Pods may run at once, and it keeps launching Pods and retrying failures until that target is met. Once enough runs succeed it stops on its own and marks the batch complete. A failed Pod counts against backoffLimit, 6 by default, and exceeding that limit fails the Job instead.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'Parallel execution for Jobs', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/job/#parallel-jobs' },
+      { label: 'Job v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/batch/job-v1/' },
+    ],
+  },
+  {
+    id: 'workloads-finished-job-cleanup',
+    title: 'Automatic Cleanup for Finished Jobs',
+    category: 'workloads',
+    subcategory: 'controllers',
+    desc: 'Who deletes a Job once it has finished? A Complete or Failed Job and its Pods stay in the API so the run is still inspectable, and .spec.ttlSecondsAfterFinished starts a clock when the Job finishes rather than when it was created. Once that many seconds pass the ttl-after-finished controller deletes the Job cascadingly, so the Pods go with it, while an unset field means this controller never touches the Job and 0 makes it eligible the moment it finishes.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Automatic Cleanup for Finished Jobs', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/' },
+      { label: 'TTL mechanism for finished Jobs', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/job/#ttl-mechanism-for-finished-jobs' },
+      { label: 'kube-controller-manager', href: 'https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/' },
     ],
   },
   {
@@ -220,7 +265,7 @@ export const CARDS = [
     title: 'CronJob Schedule and Concurrency',
     category: 'workloads',
     subcategory: 'controllers',
-    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates one Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down, bounded both by startingDeadlineSeconds and by a ceiling of 100 missed ticks. A CronJob never runs a Pod itself, it only creates Jobs.',
+    desc: 'How do you run a Job on a repeating schedule instead of on demand? A CronJob holds a cron expression and, each time the clock matches, creates a Job from its template, which runs a Pod. It also decides what happens when a run is still going at the next tick, prunes finished Jobs, and starts a run missed while it was down, bounded both by startingDeadlineSeconds and by a ceiling of 100 missed ticks. A CronJob never runs a Pod itself, it only creates Jobs.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -229,23 +274,39 @@ export const CARDS = [
     ],
   },
   {
+    id: 'workloads-pod-replacement-guarantees',
+    title: 'Pod Replacement Guarantees',
+    category: 'workloads',
+    subcategory: 'controllers',
+    desc: 'What actually comes back when a Pod that a controller owns disappears? A ReplicaSet and a Job both create a replacement with a new name, the ReplicaSet at once and the Job after a back-off delay that also counts against backoffLimit. A StatefulSet returns the identical ordinal with the claim it already had, a DaemonSet a fresh name on the Node it lost one on, and a CronJob nothing at all, because it owns Jobs rather than Pods.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'PVC Retention Policy', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention' },
+      { label: 'Handling Pod and Container Failures', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/job/#handling-pod-and-container-failures' },
+      { label: 'DaemonSet', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/' },
+      { label: 'CronJob', href: 'https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/' },
+    ],
+  },
+  {
     id: 'workloads-pod-lifecycle-phases',
     title: 'Pod Lifecycle Phases',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'What single field tells you where a Pod is in its life? The status.phase field moves through Pending while the Pod is placed and its images pulled, Running once every container exists and one has started, and then Succeeded or Failed when they all exit. It is deliberately coarse, so a container crash-looping inside a Running Pod never changes it. Phase is a summary of placement, not a statement about health.',
+    desc: 'What single field tells you where a Pod is in its life? The status.phase field moves through Pending while the Pod is placed and its images pulled, Running once every container exists and one has started, and then Succeeded or Failed once they have all exited and none will be restarted. It is deliberately coarse, so a container crash-looping inside a Running Pod never changes it. Phase is a summary of placement, not a statement about health.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'Pod phase', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase' },
+      { label: 'PodStatus', href: 'https://kubernetes.io/docs/reference/kubernetes-api/core/pod-v1/#PodStatus' },
     ],
   },
   {
-    id: 'workloads-restart-policy',
-    title: 'Pod restartPolicy: Always, OnFailure, Never',
+    id: 'workloads-pod-restart-policy',
+    title: 'Pod Restart Policy',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'When a container in a Pod exits, what should happen next? The restartPolicy field is the Pod-level answer Kubernetes follows: Always brings the container back whatever the exit code, OnFailure retries only a non-zero exit, and Never leaves it alone. That choice separates a Pod that runs forever from one that retries and one that finishes. The Job controller relies on OnFailure and Never for exactly this, and the shared backoff only starts after the first restart.',
+    desc: 'When a container in a Pod exits, what should happen next? The restartPolicy field is the Pod-level default a container can override: Always brings the container back whatever the exit code, OnFailure retries only a non-zero exit, and Never leaves it alone. It separates a Pod that runs forever from one that retries and one that finishes. The Job controller relies on OnFailure and Never for exactly this, and the shared backoff only starts after the first restart.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -257,7 +318,7 @@ export const CARDS = [
     title: 'CrashLoopBackOff and Restart Backoff',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'Why does a broken container restart slower and slower? The Kubelet backs off exponentially, doubling the wait from 10s up to a 5 minute ceiling, so a crashing process cannot hot-loop and saturate the Node. During each wait the container reports Waiting with reason CrashLoopBackOff while the Pod phase stays Running, and only a clean run of 10 minutes resets the delay to the 10s base. CrashLoopBackOff is a symptom, never the cause.',
+    desc: 'Why does a broken container restart slower and slower? The Kubelet backs off exponentially, doubling the wait from 10s up to a 5 minute ceiling, so a crashing process cannot hot-loop and saturate the Node. During each wait the container reports Waiting with reason CrashLoopBackOff while the Pod phase stays Running, and a clean 10 minutes resets the backoff, so a new crash counts as a first one, restarted at once. CrashLoopBackOff is a symptom, never the cause.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -276,6 +337,7 @@ export const CARDS = [
       { label: 'Container States', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-states' },
       { label: 'Determine the Reason for Pod Failure', href: 'https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/' },
       { label: 'Pod v1', href: 'https://kubernetes.io/docs/reference/kubernetes-api/core/pod-v1/' },
+      { label: 'Garbage Collection', href: 'https://kubernetes.io/docs/concepts/architecture/garbage-collection/' },
     ],
   },
   {
@@ -283,7 +345,7 @@ export const CARDS = [
     title: 'Ephemeral Debug Containers',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'A container is running but its image is distroless, so how do you get a look inside without replacing the Pod? An ephemeral container is added to the live Pod through the ephemeralcontainers subresource, the only writer of that list, and it arrives with no ports, no probes, no resources and no restart guarantee. The kubectl debug command builds it, targetContainerName runs it in the namespaces of the container you name, and it can never be removed.',
+    desc: 'A container is running but its image is distroless, so how do you get a look inside without replacing the Pod? An ephemeral container is added to the live Pod through the ephemeralcontainers subresource, the only writer of that list, and it arrives with no ports, no probes and no resources, and is never restarted. The kubectl debug command builds it, targetContainerName runs it in the namespaces of the container you name, and it can never be removed.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -298,7 +360,7 @@ export const CARDS = [
     title: 'Startup, Liveness and Readiness Probes',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'How does the Kubelet tell a slow boot from a hung container? Three probes answer that on their own periodSeconds: startupProbe gates the other two until the app is up, livenessProbe restarts the container after failureThreshold consecutive failures, and readinessProbe flips the Pod endpoint to ready=false in the EndpointSlice without removing it or restarting anything. A probe never restarts a Pod, only the container that failed it.',
+    desc: 'How does the Kubelet tell a slow boot from a hung container? Three probes answer that on their own periodSeconds: startupProbe gates the other two until the app is up, livenessProbe restarts the container per restartPolicy after failureThreshold consecutive failures, and readinessProbe flips the Pod endpoint to ready=false in the EndpointSlice without removing it or restarting anything. A probe never restarts a Pod, only the container that failed it.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -311,7 +373,7 @@ export const CARDS = [
     title: 'In-place Pod Resize',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'A running Pod is short on CPU, so does it have to be replaced to get more? Since 1.35 you can patch spec.containers[].resources through the resize subresource, and the Kubelet applies the new numbers to the container that is already running, in place or by restarting it, as resizePolicy says per resource. It answers PodResizePending when the Node cannot take the change, and the QoS class the Pod was created with never moves.',
+    desc: 'A running Pod is short on CPU, so does it have to be replaced to get more? In-place resize is stable in 1.35: you patch spec.containers[].resources through the resize subresource, and the Kubelet applies the new numbers to the container that is already running, in place or by restarting it, as resizePolicy says per resource. It answers PodResizePending when the Node cannot take the change, and the QoS class the Pod was created with never moves.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -322,15 +384,16 @@ export const CARDS = [
     ],
   },
   {
-    id: 'workloads-hooks',
-    title: 'Lifecycle Hooks: postStart and preStop',
+    id: 'workloads-poststart-prestop-hooks',
+    title: 'postStart and preStop Hooks',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'How does a container run code exactly when it starts and just before it stops? Lifecycle hooks give it two slots, postStart fired concurrently with the entrypoint and preStop run synchronously ahead of SIGTERM, both executed by the Kubelet rather than by your process. They are how a container announces itself and drains on the way out. The termination grace period bounds preStop, never postStart, and preStop shares it with the SIGTERM stop that follows.',
+    desc: 'Where do postStart and preStop actually sit in a container life, and why do they behave so differently? Drawn on one timeline, postStart opens on the same tick as the ENTRYPOINT with no ordering guarantee between them, while preStop is run to completion before any signal and shares the termination grace window with the SIGTERM drain that follows it. Kubelet owns both slots, and it is the runtime that runs an exec handler inside the container.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'Container Lifecycle Hooks', href: 'https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/' },
+      { label: 'Pod Lifecycle', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/' },
     ],
   },
   {
@@ -338,11 +401,13 @@ export const CARDS = [
     title: 'Graceful Pod Shutdown',
     category: 'workloads',
     subcategory: 'pods-lifecycle',
-    desc: 'When a Pod is deleted, why does it not die on the spot? The terminationGracePeriodSeconds budget, 30 by default, starts counting at the delete and is spent in two parts: the preStop hook, then the SIGTERM drain in which the app finishes in-flight work, closes its connections and exits on its own. SIGKILL is the last resort, used only if the container outlives that shared timer. Nothing in that path holds if the Node itself is already gone.',
+    desc: 'Why does a deleted Pod still take traffic for a moment, and why does it not die on the spot? One DELETE stamps deletionTimestamp on the stored object and two tracks start: the control plane marks the endpoint terminating so kube-proxy stops choosing it while others stay ready, and the Kubelet runs preStop, has the runtime send the stop signal and spends the same 30s window. Neither waits for the other, preStop lines them up, and SIGKILL at 0s is the last resort.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
       { label: 'Termination of Pods', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination' },
+      { label: 'EndpointSlices', href: 'https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/' },
+      { label: 'Traffic to terminating endpoints', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/#traffic-to-terminating-endpoints' },
     ],
   },
   {
@@ -369,6 +434,20 @@ export const CARDS = [
     sources: [
       { label: 'Force Delete StatefulSet Pods', href: 'https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/' },
       { label: 'Termination of Pods', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination' },
+    ],
+  },
+  {
+    id: 'workloads-pod-garbage-collection',
+    title: 'Pod Garbage Collection',
+    category: 'workloads',
+    subcategory: 'pods-lifecycle',
+    desc: 'Who deletes a Pod once it has finished? The object outlives the containers: a Succeeded or Failed Pod stays in the API until something removes it, and that something is PodGC in kube-controller-manager. It deletes terminated Pods oldest first once their number passes terminated-pod-gc-threshold, which defaults to 12500, and three further rules ignore the count and take orphans, unscheduled terminating Pods, and ones on a Node tainted out-of-service.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Garbage Collection of Pods', href: 'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-garbage-collection' },
+      { label: 'kube-controller-manager', href: 'https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/' },
+      { label: 'Pod Disruption Conditions', href: 'https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-conditions' },
     ],
   },
 ];

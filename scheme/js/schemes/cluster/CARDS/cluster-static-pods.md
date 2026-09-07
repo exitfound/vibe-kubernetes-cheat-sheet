@@ -12,8 +12,8 @@ LAYOUT   THREE tiers, not the Node family's two, because the card draws the API 
          face midpoints, which leaves only 64 units (420..484) for a 232 wide box on the left. The
          cost is a top row reading right to left, carried by an arrowhead per direction and a wire
          label over the gap at x=744.
-PANEL    Right edge and bottom per viewport:
-         `OVERLAY_IDS=cluster-static-pods node --test report/overlay.test.mjs`.
+PANEL    Right edge and bottom per viewport: `OVERLAY_IDS=cluster-static-pods node --test
+         report/overlay.test.mjs`.
          The deepest bottom is a TIE rather than one step: kubelet-starts, edit-file and drain all
          reach it on all three viewports. Naming one of them is how a prose edit to another moves
          the number with nothing pointing at it, which is what L-08 is for.
@@ -45,11 +45,11 @@ MOTION   Three blocks are born on three different beats and their lanes with the
          kubectl at 1500, and 4700 would still hold the longer version, so the duration is not what
          decides it.
 WIRE LABELS
-         TWO slots. `top` is centred at x=744 over the API and kubectl gap and sits at y=26, ABOVE
-         the row rather than between the two lanes, because 24 units of lane separation cannot hold
-         a line of text. `mirror` is at x=612 y=365, anchored start so it runs right of the drop,
-         inside the 84 unit band between the mirror Pod bottom at 296 and the Node frame top at 380:
-         its string measures 612..860 at 1600x1000 and clears both edges.
+         TWO slots. `top` is centred at x=744 over the API and kubectl gap and sits at y=26,
+         ABOVE the row rather than between the two lanes, because 24 units of lane separation cannot
+         hold a line of text. `mirror` is at x=612 y=365, anchored start so it runs right of the
+         drop, inside the 84 unit band between the mirror Pod bottom at 296 and the Node frame top
+         at 380: its string measures 612..860 at 1600x1000 and clears both edges.
          The fileLane and the podLane carry a ball on two steps each and take NO label. Each is 100
          units of gap, which holds about 14 mono characters at the measured 6.89 units apiece,
          against the 36 the mirror lane's own string needs. What rides is named by the two boxes the
@@ -62,33 +62,33 @@ CONTENT  The kubeadm sentence names ETCD under a CONDITION, `and so does ETCD in
          separate hosts`). `the API server, the controller-manager, the Scheduler and ETCD all run
          as static Pods` is REJECTED: it states a default as the mechanism, which is the T-19 shape.
          The card cites that page so a reader can reach the other topology.
-         https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/
-         The mirror comes back on the Kubelet POD SYNC, not on a directory rescan, so the delete
-         step reads `the Kubelet puts the mirror back on its next sync loop pass`. `its next scan
+         https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/ The
+         mirror comes back on the Kubelet POD SYNC, not on a directory rescan, so the delete step
+         reads `the Kubelet puts the mirror back on its next sync loop pass`. `its next scan
          recreates the mirror` is REJECTED: nothing about the FILE changed on that step, so a scan
-         has nothing to notice, and the same word does real work on steps 1 and 5 where the file
-         did change. `tryReconcileMirrorPods` is called from `syncPod` under the comment `Create
-         Mirror Pod for Static Pod if it doesn't already exist`, and the sync loop reaches it off
-         PLEG, the periodic resync and the probes, never off the manifest source. The reference is
-         silent on the mechanism, and its own task page shows the difference rather than stating it:
-         the file-move example needs `sleep 20` for a rescan, while the mirror delete comes back at
-         `AGE 4s` with no wait at all. `cluster-kubelet-reconcile-loop` owns that loop and the wording
+         has nothing to notice, and the same word does real work on steps 1 and 5 where the file did
+         change. `tryReconcileMirrorPods` is called from `syncPod` under the comment `Create Mirror
+         Pod for Static Pod if it doesn't already exist`, and the sync loop reaches it off PLEG, the
+         periodic resync and the probes, never off the manifest source. The reference is silent on
+         the mechanism, and its own task page shows the difference rather than stating it: the
+         file-move example needs `sleep 20` for a rescan, while the mirror delete comes back at `AGE
+         4s` with no wait at all. `cluster-kubelet-reconcile-loop` owns that loop and the wording
          borrows its term.
-         https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/
-         Step 3 says the Kubelet `creates` the mirror Pod where the reference says it `automatically
-         tries to create` one. The hedge is deliberately NOT carried. What it guards is an RBAC
-         failure (`Make sure the kubelet has permission to create the mirror Pod in the API server.
-         If not, the creation request is rejected by the API server`), and this card draws the
-         mirror arriving on that step, so a sentence saying it might not would contradict its own
-         picture. DO NOT add `tries to` without also drawing the refusal.
+         https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/ Step 3 says the
+         Kubelet `creates` the mirror Pod where the reference says it `automatically tries to
+         create` one. The hedge is deliberately NOT carried. What it guards is an RBAC failure
+         (`Make sure the kubelet has permission to create the mirror Pod in the API server. If not,
+         the creation request is rejected by the API server`), and this card draws the mirror
+         arriving on that step, so a sentence saying it might not would contradict its own picture.
+         DO NOT add `tries to` without also drawing the refusal.
          Read against the k8sVersion the card claims, every remaining claim resolves to a cited page
          verbatim: `staticPodPath` in the kubelet configuration file and `the kubelet will ignore
          files starting with dots` (step 1), `the kubelet watches each static Pod and restarts it if
          it fails` (step 2), `The Pod names will be suffixed with the node hostname`, the
          `kubernetes.io/config.mirror` annotation and `The kubelet propagates labels from the static
-         Pod to the mirror Pod` (step 3), `the kubelet does not remove the static Pod` (step 4),
-         the `mv` example emptying `crictl ps` (step 5), and `drain evicts or deletes all pods
-         except mirror pods` with the DaemonSet clause beside it (step 6).
+         Pod to the mirror Pod` (step 3), `the kubelet does not remove the static Pod` (step 4), the
+         `mv` example emptying `crictl ps` (step 5), and `drain evicts or deletes all pods except
+         mirror pods` with the DaemonSet clause beside it (step 6).
          The mirror Pod is `static-web-Node-1`. Upstream suffixes with the node hostname and this
          catalog's Node is `Node-1`, so the suffix is visibly the Node name, which is the point of
          the sentence. `static-web-node-1` would put a bare lowercase `node` into narration prose,
@@ -101,8 +101,8 @@ CONTENT  The kubeadm sentence names ETCD under a CONDITION, `and so does ETCD in
          straight back), and the real documented limitation is the reference RULE rather than its
          three examples: `The spec of a static Pod cannot refer to other API objects, such as
          ServiceAccount, ConfigMap, or Secret`. The narration carries `other API objects such as a
-         ConfigMap, a Secret or a ServiceAccount`, so the three names stay illustrations. Naming
-         the three alone is REJECTED: it reads as the whole set, and a reader concludes a
+         ConfigMap, a Secret or a ServiceAccount`, so the three names stay illustrations. Naming the
+         three alone is REJECTED: it reads as the whole set, and a reader concludes a
          PersistentVolumeClaim is allowed.
 BUDGET   390 characters per narration. Nothing in tiers 1 and 2 starts left of 450, so what has to
          be cleared is the Node frame at 380, not the blocks.
@@ -111,41 +111,4 @@ BUDGET   390 characters per narration. Nothing in tiers 1 and 2 starts left of 4
          bottom, so 51 characters of the budget are still unspent at that depth.
          The catalog desc is 466 characters against the D-04 hard ceiling of 470, so an accuracy
          edit there has 4 characters and has to buy the rest back inside the same sentence.
-```
-
-### poster
-
-```
-Sentence: this Pod takes a route that skips the whole control plane.
-
-Ghost zone to solid, redrawn 2026-08-28. Above a 0.3 rule at y 78 two 78 x 36 blocks stand dashed
-4 3 at fill 0.02 and opacity 0.55, EMPTY and touched by no leg at all: the Scheduler and the
-controller the desc says are not involved. Under the rule the live route, and it is the only thing on
-the canvas that connects: the manifest file at stroke 2 and fill 0.06, folded corner, two thin rules
-and the single 56 x 8 accent at 0.9 between them, joined by one SOLID leg at 0.55 on the bar midline
-y 122 to the Pod at 80 x 52 and fill 0.10 carrying the same bar at 0.3. So the eye lands on the file,
-which is the source of truth, and the emptiness above the line is the sentence.
-
-The leg is solid where the house idiom would reach for a dash. The dash carries not real yet, leaving
-or optional (R-06 vocabulary), and this leg is the one real causal link on the card: the Kubelet reads
-the file and starts the container off it. The dashes are spent on the two blocks that do nothing, and
-spending them twice would say the live route is provisional too.
-
-WHY the sentence moved. The poster this replaced said what runs is the file on disk and what the API
-holds is only its reflection, drawn as two zones split by an API line with a dashed mirror of the Pod
-above it. It was true and it was quiet: the mirror is the SECOND half of the desc, and the reader who
-has not opened the card yet cannot know that a dashed block on the same footprint means a reflection
-rather than a Pod that is not there yet. The route that skips the control plane is the FIRST half,
-the question the desc opens with, and R-02 puts the poster closer to the question.
-
-
-REJECTED, and it is what the reflection poster replaced: a dashed Node band holding both blocks with
-a dim empty block above it. The band, the leg and the ghost were all dashed, which is the failure
-mode nested containment names, and it made the card the palest tile in the category. The mirror block
-was EMPTY, so nothing about it said mirror, and a dashed zone with rows in it plus one dashed leg is
-the picture `cluster-node-drain` draws one tile away.
-
-The API server is still NOT drawn as a block: the rule IS the API surface. The library row in the
-skill reference points this card at Nested containment, which was already stale before this redraw
-and is now stale twice over: the family is Ghost zone to solid.
 ```

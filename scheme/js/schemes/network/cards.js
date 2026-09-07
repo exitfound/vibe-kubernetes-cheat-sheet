@@ -27,16 +27,16 @@ export const CARDS = [
     ],
   },
   {
-    id: 'network-namespaces',
-    title: 'Network Namespaces',
+    id: 'network-ipam-pod-cidr',
+    title: 'IPAM and Pod CIDR Allocation',
     category: 'network',
     subcategory: 'network-foundations',
-    desc: 'What makes a Pod IP feel like a separate machine? A network namespace is a private copy of the Linux network stack, with its own interfaces, routing table, iptables rules and port space. The pause container holds one that every container in the Pod shares, so they reach each other over loopback, while a single veth pair is the only link to the host. Deleting the Pod releases the veth and the IP together, so nothing of that stack outlives it on the Node.',
+    desc: 'How does every Pod in the cluster end up with a unique IP and no clashes? The cluster starts from one large pod CIDR, and the controller-manager, whenever it is started with --allocate-node-cidrs, carves a smaller non-overlapping slice out of it for each Node into node.spec.podCIDR. The CNI IPAM on that Node then hands out addresses only from its own slice, which keeps every Pod IP unique cluster-wide and keeps routing down to a single route per Node.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
+      { label: 'kube-controller-manager', href: 'https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/' },
       { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
-      { label: 'CNI Specification', href: 'https://github.com/containernetworking/cni/blob/main/SPEC.md' },
     ],
   },
   {
@@ -66,6 +66,19 @@ export const CARDS = [
     ],
   },
   {
+    id: 'network-namespaces',
+    title: 'Network Namespaces',
+    category: 'network',
+    subcategory: 'network-foundations',
+    desc: 'What makes a Pod IP feel like a separate machine? A network namespace is a private copy of the Linux network stack, with its own interfaces, routing table, iptables rules and port space, all invisible to the host and to every other Pod. The pause container opens one and holds it for the life of the Pod, and a single veth pair is the only door out of it. A deleted Pod takes the namespace with it, so nothing of that stack outlives it on the Node.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
+      { label: 'CNI Specification', href: 'https://github.com/containernetworking/cni/blob/main/SPEC.md' },
+    ],
+  },
+  {
     id: 'network-kube-proxy-modes',
     title: 'kube-proxy: iptables vs IPVS',
     category: 'network',
@@ -75,6 +88,19 @@ export const CARDS = [
     tinted: true,
     sources: [
       { label: 'Virtual IPs and Service Proxies', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/' },
+    ],
+  },
+  {
+    id: 'network-conntrack-nat',
+    title: 'Connection Tracking and NAT',
+    category: 'network',
+    subcategory: 'network-foundations',
+    desc: 'A connection is more than one packet, so how does NAT remember the backend it picked? The first packet of a new flow creates a conntrack entry recording the original and translated tuples, and is DNAT-ed to a backend chosen once. Every later packet matches that stored entry instead of walking rules again, and the returning reply is what flips it to ESTABLISHED. That is why a flow sticks to one backend, and why a busy Node can exhaust the conntrack table.',
+    k8sVersion: '1.35',
+    tinted: true,
+    sources: [
+      { label: 'Virtual IPs and Service Proxies', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/' },
+      { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
     ],
   },
   {
@@ -105,24 +131,11 @@ export const CARDS = [
     ],
   },
   {
-    id: 'network-conntrack-nat',
-    title: 'Connection Tracking and NAT',
-    category: 'network',
-    subcategory: 'network-foundations',
-    desc: 'A connection is more than one packet, so how does NAT remember the backend it picked? The first packet of a new flow creates a conntrack entry recording the original and translated tuples, and is DNAT-ed to a backend chosen once. Every later packet matches that stored entry instead of walking rules again, and the returning reply is what flips it to ESTABLISHED. That is why a flow sticks to one backend, and why a busy Node can exhaust the conntrack table.',
-    k8sVersion: '1.35',
-    tinted: true,
-    sources: [
-      { label: 'Virtual IPs and Service Proxies', href: 'https://kubernetes.io/docs/reference/networking/virtual-ips/' },
-      { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
-    ],
-  },
-  {
     id: 'network-pod-localhost',
     title: 'Containers Share Localhost',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'Why can an app and its sidecar reach each other over 127.0.0.1 with no network in between? Every container in a Pod joins the same network namespace, so they share one loopback, one eth0 and one Pod IP. Calls between them cross the loopback with no veth hop, and because the port space is shared too, two of them cannot bind the same port. From outside the Pod is one host, however many run inside, and the container on the target port answers at that IP.',
+    desc: 'Why can an app and its sidecar reach each other over 127.0.0.1 with no network in between? Every container in a Pod joins the same network namespace, so they share one loopback, one eth0 and one Pod IP. Calls between them cross the loopback with no veth hop, and because the port space is shared too, they divide the ports between them. From outside the Pod is one host, however many run inside, and the container on the target port answers at that IP.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [
@@ -145,19 +158,6 @@ export const CARDS = [
     ],
   },
   {
-    id: 'network-ipam-pod-cidr',
-    title: 'IPAM and Pod CIDR Allocation',
-    category: 'network',
-    subcategory: 'pod-networking',
-    desc: 'How does every Pod in the cluster end up with a unique IP and no clashes? The cluster starts from one large pod CIDR, and the controller-manager, whenever it is started with --allocate-node-cidrs, carves a smaller non-overlapping slice out of it for each Node into node.spec.podCIDR. The CNI IPAM on that Node then hands out addresses only from its own slice, which keeps every Pod IP unique cluster-wide and keeps routing down to a single route per Node.',
-    k8sVersion: '1.35',
-    tinted: true,
-    sources: [
-      { label: 'kube-controller-manager', href: 'https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/' },
-      { label: 'Cluster Networking', href: 'https://kubernetes.io/docs/concepts/cluster-administration/networking/' },
-    ],
-  },
-  {
     id: 'network-cni-invocation',
     title: 'Wiring a Pod via CNI',
     category: 'network',
@@ -175,7 +175,7 @@ export const CARDS = [
     title: 'Pod IP and the veth Pair',
     category: 'network',
     subcategory: 'pod-networking',
-    desc: 'Where does a Pod get its IP, and how is it wired to the Node? The pause container opens one network namespace that every container in the Pod is joined into, so they share a single address and reach each other over localhost. When the sandbox starts the CNI plugin draws one Pod IP from its IPAM and builds a veth pair, moving one end into the namespace as eth0 and attaching the peer to the cni0 host bridge. That pair is the only way out.',
+    desc: 'Where does a Pod get its IP, and how is it wired to the Node? Nothing can be allocated until the sandbox exists, so the runtime starts pause first and hands the CNI plugin the path to its namespace. One CNI ADD then does all of it: an address drawn from the IPAM pool for this Node, a veth pair built, one end moved in as eth0 and the peer attached to the cni0 bridge on the host. The address belongs to the Pod, not to any container in it.',
     k8sVersion: '1.35',
     tinted: true,
     sources: [

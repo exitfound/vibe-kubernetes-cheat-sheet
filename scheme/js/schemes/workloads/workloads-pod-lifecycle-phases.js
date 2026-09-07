@@ -2,36 +2,44 @@ import { P, F, defineCard, WL, OPACITY, BEAT } from './workloads-kit.js';
 
 // Design notes for this card: ./CARDS/workloads-pod-lifecycle-phases.md
 
-// NO ladder, NO Node frame, and no actor row on TOP_Y: the phase machine is DRAWN as a machine in
-// the free zone right of the panel, and the container register sits alone in the band below it.
+// NO ladder, NO Node frame, and no actor row on TOP_Y: the phase machine is DRAWN as a machine over
+// the container register, and both bands are measured off ONE strip so they line up by construction.
 // Panel measured at x<=397, y<=279.51, the worst of the three viewports report/overlay.test.mjs
-// walks: the machine clears it on X and the register band clears it on Y, so neither is pinned to it.
-const PANEL_R = 420;                                     // L-03, the machine starts on it
+// walks: the register band clears it on Y. The machine does NOT clear it on X (the record says why).
 
-// ---- the phase machine: Pending -> Running -> a terminal Succeeded or Failed ----
-const ST_H = 58;                                         // every state box but Running
-const ROW_CY = 205;                                      // the machine centre line, its one datum
-
-const PEND_X = PANEL_R, PEND_W = 160;                    // 420..580
-const PEND_Y = ROW_CY - ST_H / 2;                        // 176..234
-
-// Running is tall because CrashLoopBackOff lives INSIDE it, which is the whole card.
-const RUN_X = 680, RUN_W = 220;                          // 680..900
-const RUN_Y = 130, RUN_H = 150;                          // 130..280
-const CLBO_X = 705, CLBO_W = 170;                        // 705..875, inset 25 inside Running
-const CLBO_Y = 198, CLBO_H = 62;                         // 198..260, 20 clear of the Running floor
-
-const END_X = 955, END_W = 165;                          // 955..1120
-const SUCC_Y = 100, FAIL_Y = 252;                        // 100..158 / 252..310
-const SUCC_CY = SUCC_Y + ST_H / 2, FAIL_CY = FAIL_Y + ST_H / 2;   // 129 / 281
-const FORK_X = 927;                                      // the trunk both terminal edges leave from
-
-// ---- the container register, below the panel ----
-// The strip is the DATUM the whole register is measured off: geometry-soft holds a chip strip on
-// CX to +-6, and Kubelet, the Pod and the chips all live inside it, so the band centres on CX.
+// The strip is the DATUM of the whole card: geometry-soft holds a chip strip on CX to +-6, and the
+// Kubelet, the Pod, the chips and the machine all live inside it, so everything centres on CX.
 const STRIP_W = 888, STRIP_X = WL.CX - STRIP_W / 2;      // 156..1044
 const STRIP_R = STRIP_X + STRIP_W;
 
+// ---- the phase machine: Pending -> Running -> a terminal Succeeded or Failed ----
+// It spans the strip minus 20 a side, so it reads as one board sitting INSIDE the Kubelet..Pod
+// width rather than pushed to the right of it. Every x below is a share of that span.
+const MACH_INSET = 20;
+const MACH_L = STRIP_X + MACH_INSET, MACH_R = STRIP_R - MACH_INSET;   // 176..1024
+const ST_H = 58;                                         // every state box but Running
+const ROW_CY = 205;                                      // the machine centre line, its one datum
+
+const PEND_X = MACH_L, PEND_W = 190;                     // 176..366
+const PEND_Y = ROW_CY - ST_H / 2;                        // 176..234
+const EDGE_RUN_GAP = 100;                                // the one drawn edge with a ball on this row
+
+// Running is tall because CrashLoopBackOff lives INSIDE it, which is the whole card.
+const RUN_X = PEND_X + PEND_W + EDGE_RUN_GAP, RUN_W = 260;   // 466..726
+const RUN_Y = 130, RUN_H = 150;                          // 130..280
+const CLBO_INSET = 25;
+const CLBO_X = RUN_X + CLBO_INSET, CLBO_W = RUN_W - 2 * CLBO_INSET;   // 491..701
+const CLBO_Y = 198, CLBO_H = 62;                         // 198..260, 20 clear of the Running floor
+
+// 50 and not the 35 it started at: Running sits 100 from Pending AND 100 from the terminal pair,
+// so the two gaps of the row read as one measure and the board is equidistant, not pushed right.
+const FORK_GAP = 50;                                     // Running wall to trunk, trunk to terminal wall
+const FORK_X = RUN_X + RUN_W + FORK_GAP;                 // 776, the trunk both terminal edges leave from
+const END_X = FORK_X + FORK_GAP, END_W = MACH_R - END_X; // 826..1024
+const SUCC_Y = 100, FAIL_Y = 252;                        // 100..158 / 252..310
+const SUCC_CY = SUCC_Y + ST_H / 2, FAIL_CY = FAIL_Y + ST_H / 2;   // 129 / 281
+
+// ---- the container register, below the panel, on the same strip ----
 const KUBE_X = STRIP_X, KUBE_W = 232;                    // 156..388, the pair width of the section
 const KUBE_Y = 435, KUBE_H = WL.BOX_H;                   // 435..515
 
@@ -64,17 +72,17 @@ const EDGE_FAIL = [[RUN_X + RUN_W, ROW_CY], [FORK_X, ROW_CY], [FORK_X, FAIL_CY],
 // both: what Kubelet did to the container, and whether the phase moved at all. Every label here
 // sits directly over the thing it names: the record's WIRE LABELS block carries the clearances.
 const CWIRE_X = (KUBE_X + KUBE_W + POD_X) / 2, CWIRE_Y = POD_CY - 20;   // 516 / 455, over the lane
-const PWIRE_X = RUN_X + RUN_W / 2, PWIRE_Y = RUN_Y - 16;                // 790 / 114, over Running
+const PWIRE_X = RUN_X + RUN_W / 2, PWIRE_Y = RUN_Y - 16;                // 596 / 114, over Running
 
 // Z-order: edges first so the state boxes sit on their endpoints, then the packet layer, then
 // everything a ball must run under.
 export const SCENE = {
-  'aria-label': 'Pod lifecycle phases: status.phase is a state machine, Pending to Running to a terminal Succeeded or Failed, and CrashLoopBackOff sits inside Running as a container waiting reason that never moves the phase',
+  'aria-label': 'Pod lifecycle phases: status.phase drawn as a coarse state machine, Pending to Running to a terminal Succeeded or Failed, and CrashLoopBackOff sits inside Running as a container waiting reason that never moves the phase',
   parts: [
     P.defs(),
     // The Failed leg is drawn and never taken on this card, so it carries no arrowhead (A-05).
     P.relation({ key: 'edgeFail', points: EDGE_FAIL, role: 'cluster' }),
-    P.relation({ key: 'edgeEnter', points: ENTER, dash: '5 5', role: 'cluster' }),
+    P.relation({ key: 'edgeEnter', points: ENTER, role: 'cluster' }),
     P.lane({ key: 'edgeRun', points: EDGE_RUN, dim: true, dashed: true, role: 'cluster' }),
     P.lane({ key: 'edgeSucc', points: EDGE_SUCC, dim: true, dashed: true, role: 'cluster' }),
     P.lane({ key: 'syncLane', points: SYNC, dim: true, dashed: true, role: 'cluster' }),
@@ -113,10 +121,10 @@ export const SCENE = {
 };
 
 // The three status chips as FIELDS, in one place, so no step can move the phase and leave the
-// container state carrying the previous step's value. The two long container states are named,
-// because the rewind form below states each of them twice.
+// container state carrying the previous step's value. Each container state that the chip and the
+// box BOTH draw is named, because the rewind form below states every one of them twice.
 const CREATING = 'Waiting · ContainerCreating', BACKOFF = 'Waiting · CrashLoopBackOff';
-const TERMINATED = 'Terminated · exit 0';
+const TERMINATED = 'Terminated · Completed';
 const fields = (phase, cstate, restart) => ({ phaseChip: phase, stateChip: cstate, restartChip: restart });
 
 // A state a step is not in is DRAWN and dim (C-14), never absent: the reader has to see the values
@@ -126,8 +134,8 @@ const OFF = OPACITY.pending;
 // The whole machine in ONE place, and it states the SETTLED shade of every part: which state the
 // field is in when the step is over. What MOVES between two of these is animated on the arrival that
 // moves it, never pinned at t=0. `failed` is OFF on every step: this Pod exits 0, and the leg it did
-// not take is the counterfactual the last narration names. `reg` is the container REGISTER, both its
-// lanes and the pointer's caption, and it is the card's one A-13 deviation (record, LANES).
+// not take is the counterfactual the last narration names. Every lane and the `fieldTag` caption
+// stand at 1 on every step, which is the card's one A-13 deviation (record, LANES).
 const machine = ({ pending = OFF, running = OFF, succeeded = OFF, pod }) => ({
   pending, running, succeeded, failed: OFF,
   // NESTING: CrashLoopBackOff is drawn INSIDE Running, so it is not a part with a shade of its own.
@@ -167,25 +175,28 @@ export const STEPS_SPEC = [
   },
   {
     id: 'schedule',
-    duration: 2200,
-    narration: 'The Pod is bound to a Node, so Kubelet picks it up, pulls the images and creates the sandbox, and the container sits in Waiting with reason ContainerCreating. The status.phase field stays Pending while any container is still waiting. The machine does not move at all on this step.',
+    // 2300 and not the 2200 of `recover`: 299 characters, and 2300 is what holds it in the card's
+    // 7.42 to 7.87ms per character band.
+    duration: 2300,
+    narration: 'The Pod is bound to a Node, so Kubelet picks it up, creates the sandbox and pulls the image, and the container sits in Waiting with reason ContainerCreating. The status.phase field stays Pending while any container is still waiting for its first start. The machine does not move at all on this step.',
     chips: fields('Pending', CREATING, '0'),
     sublabels: { containerBox: CREATING },
     podSublabels: { podGroup: 'restartPolicy: OnFailure' },
-    wires: { cwire: 'SyncPod · image pull · sandbox', pwire: 'phase stays Pending' },
+    wires: { cwire: 'SyncPod · sandbox · image pull', pwire: 'phase stays Pending' },
     opacity: machine({ pending: 1, pod: OPACITY.pending }),
     lit: ['kubelet', 'stateChip'],
     // P-03 FORM-B: `chips` above is the settled end state the static path needs (S-13), and the
     // rewind puts the container back where the previous step left it so the value turns over under
-    // its own cue when the SyncPod ball lands, rather than standing 700ms ahead of it.
+    // its own cue when the SyncPod ball lands, rather than standing 700ms ahead of it. The
+    // `container state` chip and the container BOX sublabel report one fact, so both ride it.
     // The pulse is the WHOLE cue for the Pod and its container box, so the static path needs
     // the one thing it cannot show. `containerBox` and not the shell: the catalog's shape.
     reducedLit: ['containerBox'],
-    rewind: { chips: { stateChip: 'none' } },
+    rewind: { chips: { stateChip: 'none' }, sublabels: { containerBox: 'no container yet' } },
     flow: [
       F.route({ points: SYNC, fadeIn: true, name: 'sync' }),
       F.pulse({ pod: 'podGroup', at: 'sync', dim: true }),
-      F.set({ at: 'sync', chips: { stateChip: CREATING } }),
+      F.set({ at: 'sync', chips: { stateChip: CREATING }, sublabels: { containerBox: CREATING } }),
     ],
   },
   {
@@ -200,7 +211,7 @@ export const STEPS_SPEC = [
     // SENDER: the state box the edge leaves is lit before the ball goes, and KEEPS the cue as it
     // dims, so both ends of the transition end the step lit and the edge taken is what reads.
     lit: ['pending', 'phaseChip', 'stateChip'],
-    rewind: { chips: { phaseChip: 'Pending', stateChip: CREATING } },
+    rewind: { chips: { phaseChip: 'Pending', stateChip: CREATING }, sublabels: { containerBox: CREATING } },
     flow: [
       // UP. The container coming up is the cause, so the Pod is fully alive before the edge fires.
       fadeTo('podGroup', OPACITY.pending, 1, { delay: 0 }),
@@ -210,12 +221,14 @@ export const STEPS_SPEC = [
       fadeTo('pending', 1, OFF, { at: 'edge' }),
       fadeTo('running', OFF, 1, { at: 'edge' }),
       fadeTo('clbo', OFF, 1, { at: 'edge' }),
-      F.set({ at: 'edge', chips: { phaseChip: 'Running', stateChip: 'Running' } }),
+      F.set({ at: 'edge', chips: { phaseChip: 'Running', stateChip: 'Running' }, sublabels: { containerBox: 'Running · serving' } }),
     ],
   },
   {
     id: 'crashloop',
-    duration: 2400,
+    // 2800 and not the 2400 of its siblings: this is the longest narration on the card at 370
+    // characters, and 2800 is what holds it in the card's 7.42 to 7.87ms per character band.
+    duration: 2800,
     narration: 'The container exits with a non-zero code, Kubelet restarts it inside the same sandbox, and repeated fast failures push it into Waiting with reason CrashLoopBackOff while a backoff timer ticks. CrashLoopBackOff is a container-level waiting reason and never a phase of its own, so it is drawn inside Running. The machine has not moved and status.phase still reads Running.',
     chips: fields('Running', BACKOFF, '4'),
     sublabels: { containerBox: BACKOFF },
@@ -225,13 +238,13 @@ export const STEPS_SPEC = [
     lit: ['kubelet', 'stateChip', 'restartChip'],
     // The backoff and the restart count are what the ball carries, so neither stands before it.
     reducedLit: ['containerBox'],
-    rewind: { chips: { stateChip: 'Running', restartChip: '0' } },
+    rewind: { chips: { stateChip: 'Running', restartChip: '0' }, sublabels: { containerBox: 'Running · serving' } },
     flow: [
       // Nothing in the MACHINE is cued here and that is the step: the phase does not move, so the
       // news is drawn where it happens, in the container box, the two chips and the cwire.
       F.route({ points: SYNC, fadeIn: true, name: 'sync' }),
       F.pulse({ pod: 'podGroup', at: 'sync' }),
-      F.set({ at: 'sync', chips: { stateChip: BACKOFF, restartChip: '4' } }),
+      F.set({ at: 'sync', chips: { stateChip: BACKOFF, restartChip: '4' }, sublabels: { containerBox: BACKOFF } }),
       fadeTo('podGroup', 1, OPACITY.notready, { at: 'sync', plus: HOP }),
     ],
   },
@@ -246,14 +259,14 @@ export const STEPS_SPEC = [
     opacity: machine({ running: 1, pod: 1 }),
     lit: ['kubelet', 'stateChip', 'restartChip'],
     reducedLit: ['containerBox'],
-    rewind: { chips: { stateChip: BACKOFF, restartChip: '4' } },
+    rewind: { chips: { stateChip: BACKOFF, restartChip: '4' }, sublabels: { containerBox: BACKOFF } },
     flow: [
       F.route({ points: SYNC, fadeIn: true, name: 'sync' }),
       // The Pod pulses wherever its container box lights, so the pair is never cued apart. The
       // full pulse and not the dim one: `pulsePodDim` animates the same opacity this fade does.
       F.pulse({ pod: 'podGroup', at: 'sync' }),
       fadeTo('podGroup', OPACITY.notready, 1, { at: 'sync' }),
-      F.set({ at: 'sync', chips: { stateChip: 'Running', restartChip: '5' } }),
+      F.set({ at: 'sync', chips: { stateChip: 'Running', restartChip: '5' }, sublabels: { containerBox: 'Running · restarted' } }),
     ],
   },
   {
@@ -263,13 +276,13 @@ export const STEPS_SPEC = [
     duration: 2900,
     narration: 'The container finally exits 0, and restartPolicy OnFailure does not restart a success, so every container is Terminated and status.phase becomes Succeeded. Under restartPolicy Never a non-zero exit is not restarted either, and the machine takes the other edge to Failed instead. Both are terminal and absorbing, the Pod will not run again, and the fifth value Unknown was deprecated in 1.22.',
     chips: fields('Succeeded', TERMINATED, '5'),
-    sublabels: { containerBox: 'Terminated · Completed' },
+    sublabels: { containerBox: TERMINATED },
     podSublabels: { podGroup: 'restartPolicy: OnFailure' },
     wires: { cwire: 'exit 0 · not restarted', pwire: 'Running → Succeeded' },
     opacity: machine({ succeeded: 1, pod: OPACITY.terminated }),
     // SENDER, and NESTING takes `clbo` with it: neither is ever cued without the other.
     lit: ['running', 'clbo', 'phaseChip', 'stateChip'],
-    rewind: { chips: { phaseChip: 'Running', stateChip: 'Running' } },
+    rewind: { chips: { phaseChip: 'Running', stateChip: 'Running' }, sublabels: { containerBox: 'Running · restarted' } },
     flow: [
       // UP, and the only step where the Pod both blinks and dies: the exit 0 is the last thing it
       // reports, so it blinks at full strength FIRST and everything else follows a beat later.
@@ -280,7 +293,7 @@ export const STEPS_SPEC = [
       fadeTo('clbo', 1, OFF, { at: 'edge' }),
       fadeTo('succeeded', OFF, 1, { at: 'edge' }),
       fadeTo('terminalTag', OFF, 1, { at: 'edge' }),
-      F.set({ at: 'edge', chips: { phaseChip: 'Succeeded', stateChip: TERMINATED } }),
+      F.set({ at: 'edge', chips: { phaseChip: 'Succeeded', stateChip: TERMINATED }, sublabels: { containerBox: TERMINATED } }),
     ],
   },
 ];

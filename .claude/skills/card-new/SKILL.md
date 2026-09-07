@@ -33,7 +33,7 @@ entry already and phase 9 moves fewer counts.
 Server, loops and working directories are `.claude/skills/_shared/card-verify.md` section 0.
 
 ```bash
-cd scheme/test && npm run test:unit > /tmp/before.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/before.txt
+cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit > /tmp/before.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/before.txt
 ```
 
 **Take the BEFORE reading and keep it.** A card lands in a tree somebody else was working in, and
@@ -42,7 +42,7 @@ difference between fixing your own damage and adopting somebody else's.
 
 It is `test:unit` and not the full gate on purpose, and the reason is what this reading is FOR. Every
 count, document and baseline a new card can falsify is computed in `unit/**`, over the whole catalog,
-in 1.4 seconds. The `render/**` half walks 123 cards in a browser for three minutes to tell you
+in 1.4 seconds. The `render/**` half walks 126 cards in a browser for three minutes to tell you
 about cards you have not written yet: a red line there is somebody else's card and was going to be
 adopted either way, and the full gate at phase 8 will still print it. Paying three minutes twice to
 learn the same thing once is the single biggest waste this skill used to contain.
@@ -56,7 +56,7 @@ already exists.
 
 1. The canon, narrowed to the half that is about design:
    ```bash
-   cd scheme/test
+   cd "$(git rev-parse --show-toplevel)"/scheme/test
    node tools/canon.mjs --block=L,A          # layout and lanes, what geometry is allowed to do
    node tools/canon.mjs --block=S            # the module shape a new card has to be born in
    node tools/canon.mjs --check=review       # the rows no machine covers, which is most of design
@@ -254,6 +254,10 @@ What a first card gets wrong, in the order it gets caught:
 - **`duration` shorter than the motion** (`M-19`). Raise the duration, never shorten the motion.
 - **a lane with an arrowhead that nothing rides** (`A-05`), and its mirror, a ball on a lane no step
   narrates (`M-10`).
+- **a ball leaving a block that is DARK** (`M-18a`). The receiver is cued at the call site, in
+  `lights:`, and the sender is written nowhere, so it is the half a card forgets. Per step, name the
+  block that ACTS FIRST in `lit` and give its ball `BEAT.lead`, or let the hop before it light it
+  through `lights` and send `after` that arrival. `report:arrival/R4` is the queue.
 - **a missing import**, which throws a `ReferenceError` the Timeline swallows: the step plays its
   first packet and stops silently (`S-33`). Only the browser smoke sees it.
 
@@ -309,7 +313,7 @@ relabel.
 Then the full gate, once, and the report:
 
 ```bash
-cd scheme/test && npm run all > /tmp/all.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/all.txt
+cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run all > /tmp/all.txt 2>&1; grep -E '^# (tests|pass|fail)|^not ok' /tmp/all.txt
 grep -n '<card-id>' /tmp/all.txt
 grep -nE 'queue to work|left to work|finding\(s\)' /tmp/all.txt
 ```
@@ -333,7 +337,7 @@ are affected. A REDESIGN of an existing card moves far fewer: the card count doe
 and only a changed spine moves the step baseline.
 
 ```bash
-cd scheme/test && npm run test:unit 2>&1 | grep -A4 'CENSUS'
+cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit 2>&1 | grep -A4 'CENSUS'
 ```
 
 Guarded, so `npm run test:unit` is the whole answer: `test/fixtures/catalog.mjs` (`CATALOG_BASELINE`, a
@@ -363,7 +367,12 @@ What a NEW card owes beyond what a review would add:
 - `PANEL`: the measured extent per viewport, and what it pins
 - `SIZES`, `LANES`, `MOTION`: the numbers that were measured rather than chosen
 - `SCOPE`: what this card leaves to a named sibling, from phase 2
-- `### poster`: written by `card-poster` (`R-12`)
+
+In `cluster/` and `workloads/` that is the whole record: one `### layout` section, one fenced block,
+every label used at most once and in the canon's order, and no other heading. That is `S-51` and
+`S-52`, and `npm test` holds it through `unit/docs.test.mjs` G1, G2 and G3, so a record off the form
+fails the gate rather than a review. In `network/` and `storage/` the section also carries a
+`### poster` subsection, written by `card-poster` (`R-12`).
 
 ---
 

@@ -3,7 +3,7 @@
 // asks for. `M-19` (span <= duration) has a machine; reading time has none, and a card whose text
 // grew after its duration was set passes the gate while nobody can read it.
 //
-//   cd scheme/test && node ../../.claude/skills/card-review/tools/timing.mjs <card-id> [--base=URL]
+//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/timing.mjs <card-id> [--base=URL]
 //
 // Prints per step: span (latest delay + active + endDelay over the diagram animations), declared
 // duration, hold (what the Timeline really waits: max(duration, span + 60)), narration characters,

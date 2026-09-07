@@ -1,4 +1,5 @@
 import { P, F, defineCard, ladder, strip, midX, WL, FADE, BEAT, OPACITY } from './workloads-kit.js';
+import { box } from '../../lib/primitives.js';
 
 // Design notes for this card: ./CARDS/workloads-pod-pending-init-states.md
 
@@ -42,8 +43,11 @@ const WIRE_X = midX(TOP1_X + TOP1_W, TOP2_X);
 const POD_W = 460, POD_H = 96, POD_X = WL.CX - POD_W / 2;
 const POD_Y = NODE_Y + 22;                               // 338..434
 // 44 and not 52: the Pod sublabel is written per step and its ink runs 415.7 to 428.6 (measured),
-// so the inner box has to stop at 412 and the Pod floor at 434 clears the text by 5.4.
-const CONT_W = 300, CONT_H = 44, CONT_X = WL.CX - CONT_W / 2;
+// so the container boxes have to stop at 412 and the Pod floor at 434 clears the text by 5.4.
+// THREE boxes and not one: the STATUS counter counts init containers, so the two it counts and
+// the app it holds back stand inside the Pod, and each step says which one the Kubelet is on.
+const C_PAD = 10, C_GAP = 12, CONT_H = 44;
+const CONT = strip({ from: POD_X + C_PAD, to: POD_X + POD_W - C_PAD, count: 3, gap: C_GAP });   // 138.67 each
 const CONT_Y = POD_Y + 30;                               // 368..412
 
 // The kubectl get pods -o wide row, on the floor, THREE cells across and wrapped onto two rows
@@ -96,13 +100,21 @@ export const SCENE = {
     P.pod({
       key: 'podGroup', id: 'podGroup',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod web-0', sublabel: 'not on a Node yet', containers: 0,
-      inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'container' },
+      // buildPod carries ONE inner box, and this Pod holds three peers: the two init containers
+      // the counter counts and the app they gate. They sit inside the shell so pulsePod reaches
+      // them, and box() defaults its role to the empty string, so the kit binding is written out.
+      tune: (el, refs) => {
+        refs.initA  = box({ x: CONT.x(0), y: CONT_Y, w: CONT.w, h: CONT_H, label: 'init-1', sublabel: 'init container', role: 'workloads' });
+        refs.initB  = box({ x: CONT.x(1), y: CONT_Y, w: CONT.w, h: CONT_H, label: 'init-2', sublabel: 'init container', role: 'workloads' });
+        refs.appBox = box({ x: CONT.x(2), y: CONT_Y, w: CONT.w, h: CONT_H, label: 'app',    sublabel: 'app container',  role: 'workloads' });
+        for (const k of ['initA', 'initB', 'appBox']) el.appendChild(refs[k]);
+      },
     }),
     P.box({ key: 'scheduler', x: TOP1_X, y: WL.TOP_Y, w: TOP1_W, h: WL.BOX_H, label: 'Scheduler', sublabel: 'holds it while Pending', role: 'cluster' }),
     P.box({ key: 'kubelet', x: TOP2_X, y: WL.TOP_Y, w: TOP2_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'holds it after that', role: 'cluster' }),
   ],
   reset: {
-    keys: ['scheduler', 'kubelet', 'readyChip', 'statusChip', 'restartChip', 'ageChip', 'nodeChip', 'holdChip'],
+    keys: ['scheduler', 'kubelet', 'initA', 'initB', 'appBox', 'readyChip', 'statusChip', 'restartChip', 'ageChip', 'nodeChip', 'holdChip'],
     pods: ['podGroup'],
   },
 };
@@ -117,6 +129,14 @@ const ON_NODE = 'Node-1';
 // backoff step shows is gone by PodInitializing (kubectl printPod, printers.go).
 const NO_RESTARTS = '0';
 
+// The three container sublabels are the container STATE the Kubelet reports, in the words kubectl
+// prints for it. `PodInitializing` is what every container not yet started reads while the Pod has
+// init containers (kubelet_pods.go), which is why both the second init and the app carry it.
+const NO_STATUS = 'no status yet', WAITING = 'PodInitializing', DONE = 'Completed';
+const crew = (a, b, app) => ({ initA: a, initB: b, appBox: app });
+// The corridor takes the shade of the Node it lands on (A-13): dim while NODE reads <none>.
+const corridor = (bound) => ({ laneKubeDown: bound ? 1 : OPACITY.notready, laneKubeUp: bound ? 1 : OPACITY.notready });
+
 
 export const STEPS_SPEC = [
   {
@@ -124,10 +144,11 @@ export const STEPS_SPEC = [
     duration: 1500,
     chips: {
       readyChip: NOT_READY, statusChip: 'Pending', restartChip: NO_RESTARTS,
-      ageChip: '15s', nodeChip: NO_NODE, holdChip: 'nothing yet',
+      ageChip: '15s', nodeChip: NO_NODE, holdChip: 'the Scheduler, no Node fits',
     },
-    opacity: { podGroup: OPACITY.notready, nodeEl: OPACITY.notready },
+    opacity: { podGroup: OPACITY.notready, nodeEl: OPACITY.notready, ...corridor(false) },
     podSublabels: { podGroup: 'not on a Node yet' },
+    sublabels: crew(NO_STATUS, NO_STATUS, NO_STATUS),
   },
   {
     id: 'pending',
@@ -138,8 +159,9 @@ export const STEPS_SPEC = [
       ageChip: '15s', nodeChip: NO_NODE, holdChip: 'the Scheduler, no Node fits',
     },
     wires: { req: 'STATUS names the component, not the symptom' },
-    opacity: { podGroup: OPACITY.notready, nodeEl: OPACITY.notready },
+    opacity: { podGroup: OPACITY.notready, nodeEl: OPACITY.notready, ...corridor(false) },
     podSublabels: { podGroup: 'not on a Node yet' },
+    sublabels: crew(NO_STATUS, NO_STATUS, NO_STATUS),
     // No packet and no Pod act here, so the beat is a static highlight alone (M-27).
     lit: ['scheduler', 'statusChip', 'nodeChip', 'holdChip'],
   },
@@ -152,11 +174,16 @@ export const STEPS_SPEC = [
       ageChip: '50s', nodeChip: ON_NODE, holdChip: 'the Kubelet, running init 1',
     },
     wires: { req: 'Init:N/M · N of M init containers completed' },
-    opacity: { podGroup: OPACITY.pending, nodeEl: 1 },
+    opacity: { podGroup: OPACITY.pending, nodeEl: 1, ...corridor(true) },
     podSublabels: { podGroup: 'init container 1 of 2 running' },
-    lit: ['statusChip', 'nodeChip', 'holdChip'],
+    sublabels: crew('Running', WAITING, WAITING),
+    lit: ['kubelet', 'statusChip', 'nodeChip', 'holdChip'],
+    // The Kubelet is what writes containerStatuses, so the three readings and the cue on init-1
+    // land with its ball (A-06): until then the Pod still reads what step 1 left.
+    rewind: { sublabels: crew(NO_STATUS, NO_STATUS, NO_STATUS) },
     flow: [
-      F.route({ points: LANE_DOWN, name: 'take' }),
+      F.route({ points: LANE_DOWN, name: 'take', lights: ['initA'] }),
+      F.set({ at: 'take', sublabels: crew('Running', WAITING, WAITING) }),
       F.pulse({ pod: 'podGroup', dim: true, at: 'take' }),
       F.fade({ target: 'podGroup', from: OPACITY.notready, to: OPACITY.pending, dur: FADE.in, at: 'take', fill: 'both', easing: 'ease-out' }),
     ],
@@ -170,9 +197,10 @@ export const STEPS_SPEC = [
       ageChip: '4m10s', nodeChip: ON_NODE, holdChip: 'the Kubelet, backoff timer',
     },
     wires: { req: 'init 1 exited non-zero · init 2 has not started' },
-    opacity: { podGroup: OPACITY.pending, nodeEl: 1 },
+    opacity: { podGroup: OPACITY.pending, nodeEl: 1, ...corridor(true) },
     podSublabels: { podGroup: 'init container 1 keeps exiting 1' },
-    lit: ['statusChip', 'restartChip', 'ageChip', 'holdChip'],
+    sublabels: crew('CrashLoopBackOff', WAITING, WAITING),
+    lit: ['statusChip', 'restartChip', 'ageChip', 'holdChip', 'initA'],
     flow: [
       // Up-arrow: the Pod blinks first and the report leaves at BEAT.afterPulse (M-15).
       F.pulse({ pod: 'podGroup', dim: true }),
@@ -190,11 +218,15 @@ export const STEPS_SPEC = [
     // The caption and not the narration: the panel is a character budget on this card (L-08) and
     // the head room over the frame is 61.34 units, so the mechanism goes where it costs nothing.
     wires: { req: 'regular init containers done · RESTARTS drops their count' },
-    opacity: { podGroup: OPACITY.pending, nodeEl: 1 },
+    opacity: { podGroup: OPACITY.pending, nodeEl: 1, ...corridor(true) },
     podSublabels: { podGroup: 'app container being created' },
-    lit: ['statusChip', 'restartChip', 'holdChip'],
+    sublabels: crew(DONE, DONE, WAITING),
+    lit: ['kubelet', 'statusChip', 'restartChip', 'holdChip'],
+    // Same shape as step 2: the two Completed readings and the cue on the app land with the ball.
+    rewind: { sublabels: crew('CrashLoopBackOff', WAITING, WAITING) },
     flow: [
-      F.route({ points: LANE_DOWN, name: 'create' }),
+      F.route({ points: LANE_DOWN, name: 'create', lights: ['appBox'] }),
+      F.set({ at: 'create', sublabels: crew(DONE, DONE, WAITING) }),
       F.pulse({ pod: 'podGroup', dim: true, at: 'create' }),
     ],
   },
@@ -207,11 +239,17 @@ export const STEPS_SPEC = [
       ageChip: '5m10s', nodeChip: ON_NODE, holdChip: 'the app, readiness is next',
     },
     wires: { req: 'Running · STATUS is done, READY is not' },
-    opacity: { podGroup: 1, nodeEl: 1 },
+    opacity: { podGroup: 1, nodeEl: 1, ...corridor(true) },
     podSublabels: { podGroup: 'started, not ready' },
-    lit: ['statusChip', 'readyChip', 'holdChip'],
+    sublabels: crew(DONE, DONE, 'Running'),
+    lit: ['kubelet', 'statusChip', 'readyChip', 'holdChip'],
+    // The app box is the RECEIVER of this step: the ball is the runtime reporting the container
+    // started, so its cue and its `Running` land with the ball (A-06) and not at entry. The static
+    // block above still writes the end state; rewind holds the text back until the arrival.
+    rewind: { sublabels: { appBox: WAITING } },
     flow: [
-      F.route({ points: LANE_DOWN, name: 'start' }),
+      F.route({ points: LANE_DOWN, name: 'start', lights: ['appBox'] }),
+      F.set({ at: 'start', sublabels: { appBox: 'Running' } }),
       // NOT dim: pulsePodDim fills opacity forward to OPACITY.pending and this step ends at full.
       F.pulse({ pod: 'podGroup', at: 'start' }),
       F.fade({ target: 'podGroup', from: OPACITY.pending, to: 1, dur: FADE.in, at: 'start', fill: 'both', easing: 'ease-out' }),

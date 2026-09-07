@@ -3,7 +3,7 @@
 // rectangle beside it. Character-count arithmetic (6.89 units per mono character) is an estimate
 // and has been wrong by 5 units on a string that then sat 1.8 from a box wall: measure instead.
 //
-//   cd scheme/test && node ../../.claude/skills/card-review/tools/extents.mjs <card-id>
+//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/extents.mjs <card-id>
 //     [--step=N]  one step only, default every step
 //     [--viewport=1600x1000]
 //     [--base=http://localhost:8888]

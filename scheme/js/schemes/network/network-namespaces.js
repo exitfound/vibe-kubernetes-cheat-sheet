@@ -112,7 +112,7 @@ export const STEPS_SPEC = [
   {
     id: 'veth',
     duration: 2400,
-    narration: 'CNI then adds a veth pair: one end becomes eth0 inside the Pod namespace with the Pod IP, the peer stays in the host namespace, plugged straight into the host stack. That single cable is the only path between the two stacks, so all Pod traffic to the Node and beyond crosses it.',
+    narration: 'The CNI plugin then joins the namespace to the outside with a veth pair, whose in-Pod end appears here as eth0. Two stacks that could not see each other now have exactly one link between them, and every packet the Pod sends to the Node or beyond crosses that one cable. Nothing else reaches in or out.',
     chips: { scopeChip: 'pod', ifaceChip: 'lo + eth0', portChip: 'shared', reachChip: 'node + beyond' },
     wires: { veth: 'veth pair' },
     opacity: { vethWire: 1 },
@@ -128,7 +128,7 @@ export const STEPS_SPEC = [
   {
     id: 'shared',
     duration: 2600,
-    narration: 'Every container in the Pod joins this same namespace, so app and sidecar share one eth0 and one set of ports. They reach each other over 127.0.0.1 with no network hop, which is why two containers in a Pod cannot both bind the same port.',
+    narration: 'The namespace is joined rather than duplicated. A second container in the Pod enters the very same stack instead of getting one of its own, which is why a second eth0 and a second set of ports never appear, and why lo is the interface that serves them.',
     chips: { scopeChip: 'pod', ifaceChip: 'lo + eth0', portChip: 'shared', reachChip: 'node + beyond' },
     wires: { local: 'localhost' },
     opacity: { vethWire: 1 },

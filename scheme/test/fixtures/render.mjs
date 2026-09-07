@@ -245,9 +245,13 @@ export function seekStep(page, t) {
   }, { tt: t, sel: DIAGRAM });
 }
 
-// The Cloudflare RUM analytics beacon fails CORS on localhost. Pre-existing and unrelated to the JS
-// under test.
-const IGNORED_NOISE = /cloudflareinsights|cdn-cgi\/rum|ERR_FAILED/;
+// The Cloudflare RUM analytics beacon fails on localhost (CORS, or a net:: code such as
+// ERR_NETWORK_CHANGED) and is unrelated to the JS under test. The CORS form names the beacon in its
+// TEXT; the "Failed to load resource" form names only the net:: code there and puts the beacon URL
+// in the message LOCATION, so both are read. No bare error code is matched: a card module that
+// fails to load prints the same "Failed to load resource" line and must stay visible.
+const IGNORED_NOISE = /cloudflareinsights|cdn-cgi\/rum/;
+const isNoise = m => IGNORED_NOISE.test(m.text()) || IGNORED_NOISE.test(m.location()?.url || '');
 
 // Collect console errors and uncaught page exceptions until stop(). Attach BEFORE navigating: a
 // throw during module load of the card is exactly the failure worth catching, and it happens
@@ -255,7 +259,7 @@ const IGNORED_NOISE = /cloudflareinsights|cdn-cgi\/rum|ERR_FAILED/;
 export function collectPageErrors(page) {
   const errors = [];
   const onConsole = m => {
-    if (m.type() === 'error' && !IGNORED_NOISE.test(m.text())) errors.push(`console: ${m.text()}`);
+    if (m.type() === 'error' && !isNoise(m)) errors.push(`console: ${m.text()}`);
   };
   const onPageErr = e => errors.push(`pageerror: ${e.message}`);
   page.on('console', onConsole);

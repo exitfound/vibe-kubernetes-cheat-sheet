@@ -152,9 +152,9 @@ const TRANSIENT = '#packetLayer';
 
 // Replayed in END-TIME order, which is the only order that reproduces a real playback: two handlers
 // writing the SAME value are a last-writer-wins race, and getAnimations() hands them back in
-// composite order, which for timers on one element is CREATION order. workloads-daemonset step 1
-// is the demonstration: three creates raise one count, tap 0 has the longest lane (1933ms against
-// 1320) and lands the final 3, and replaying as captured ended on tap 2 and its 2. The sort is
+// composite order, which for timers on one element is CREATION order. workloads-daemonset step 2
+// is the demonstration: three creates raise one count, tap 0 has the longest lane (2196ms against
+// 1582) and lands the final 3, and replaying as captured ended on tap 2 and its 2. The sort is
 // stable, so handlers that genuinely finish together keep the order the browser would fire them in.
 
 // -------------------------------------------------------------------------------------------

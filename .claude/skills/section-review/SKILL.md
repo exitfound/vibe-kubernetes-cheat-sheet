@@ -187,11 +187,23 @@ block of this section already cedes. Those dropped rows are still findings of a 
 do not promote, say which of those it is, in one line. An absence list with no dispositions is a
 list of homework.
 
-**Where the tool is wrong, it is wrong in one direction.** `COVERED` is decided from card names, so
-a large upstream page taught here by six cards under six other names reads `PARTIAL`, and a topic
-taught here under a different word reads `ABSENT`. It over-reports absence and never over-reports
-coverage, so every promotion is checked against the evidence column and never taken on the verdict
-alone.
+**Where the tool is wrong, it is USUALLY wrong in one direction, and there is one exception.**
+`COVERED` is decided from card names, so a large upstream page taught here by six cards under six
+other names reads `PARTIAL`, and a topic taught here under a different word reads `ABSENT`. Both of
+those over-report absence, which is the harmless direction: the row stays in the report with its
+evidence beside it.
+
+**It can also over-report coverage, and that direction is not harmless**, because a false `COVERED`
+deletes the topic from the report instead of over-listing it. The match is a SUBSET test over the
+card's name tokens, so a card whose name merely CONTAINS the topic's words reads `COVERED`:
+`Deployments` reads `COVERED` off `Deployment Rolling Update`, which is named after a section of
+that page and not after the page. The scenery-word case of this (`/concepts/workloads/controllers/`
+reading `COVERED  named by workloads-daemonset`, on the single word `Controller`) is guarded in
+`gaps.mjs` as of 2026-09-04. The general case is open, and the guard does not close it.
+
+So read the evidence column on `COVERED` rows too, not only on the absences. A `COVERED` row whose
+`named by` list is three cards, none of which has that page as its subject, is this failure and the
+topic is really `PARTIAL`.
 
 ## G4. Rank what is left
 
@@ -350,8 +362,9 @@ In the user's language. The lane line, the thesis, three tables and a costing pa
 Then **the costing**, which is what keeps the report honest:
 
 > **A move inside a category is one `subcategory:` string. A move ACROSS categories is not.**
-> `D-02` derives the module path from the id, so a cross-category move is a new id, a
-> `SCHEME_ALIASES` entry (`D-11`), a file move, a `posters.js` key move, a record section move
+> `D-02` derives the module path from the id, so a cross-category move is a new id (which
+> breaks every deep link to the old one, since there is no alias map, `D-11`), a file move, a
+> `posters.js` key move, a record section move
 > (`S-44`), and a count update in three places: the folder's `cards.js` header, `scheme/CLAUDE.md`,
 > and `PER_CATEGORY` in `test/unit/catalog.test.mjs`.
 
@@ -432,13 +445,31 @@ evidence.
 because coverage is decided from card names. Every promotion is checked against the evidence
 column, and every absence not promoted is dispositioned in one line.
 
+**Trusting a `COVERED` row without reading its evidence, which is the expensive half of the same
+habit.** `COVERED` is a SUBSET test: the topic's words have to appear in a card's name, and nothing
+requires them to be the WHOLE of it. `Deployments` therefore reads `COVERED` off
+`Deployment Rolling Update`. **OPEN, not fixed**, because closing it means reworking the matcher and
+every section's output moves with it. The scenery-word half was closed on 2026-09-04, after
+`workloads/controllers` reported the `/concepts/workloads/controllers/` index as
+`COVERED  named by workloads-daemonset` on the single word `Controller`: a topic whose tokens are
+all scenery can no longer decide `COVERED`. A false `COVERED` is worse than a false `ABSENT`, since
+it removes the row from the report instead of adding one, so it is the one verdict worth spending a
+second look on even though it is the quiet one.
+
+**Mapping a parent tree when the section's citations live in a subtree.** `gaps.mjs` enumerates
+only the pages an index lists as ITS OWN children. `workloads/controllers` was mapped to
+`/concepts/workloads` while every one of its citations landed in `/concepts/workloads/controllers`,
+so the eight topics the section is actually made of were never enumerated at all and two real
+absences were found by a hand fetch instead. Map the tree the tally in `reference/upstream.md`
+concentrates in, at whatever depth that is.
+
 **Proposing a topic that left upstream, or never arrived.** Alpha, beta and deprecated are read off
 the fetched page, never recalled. `not stated` on a page is not the same as stable and is never
 reported as stable. This is the one failure in the list that costs a whole card before anyone
 notices.
 
 **Pricing a cross-category move as a field edit.** See A5. `D-02` makes the id carry the category,
-so moving a card between categories renames it, and a rename without a `SCHEME_ALIASES` entry
+so moving a card between categories renames it, and there is no alias map (`D-11`), so the rename
 breaks every deep link that ever pointed at it.
 
 **Letting the flavour move a rating.** `deeper` promotes deep gaps. It does not make an existing

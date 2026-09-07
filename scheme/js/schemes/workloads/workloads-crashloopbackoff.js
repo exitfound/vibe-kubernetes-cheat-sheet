@@ -1,102 +1,148 @@
-import { P, F, defineCard, ladder, WL, LAYOUT, FADE, BEAT, OPACITY } from './workloads-kit.js';
-import { chip } from '../../lib/primitives.js';
+import { P, F, defineCard, ladder, laneY, midX, WL, FADE, BEAT, OPACITY } from './workloads-kit.js';
+import { rect } from '../../lib/svg.js';
 
 // Design notes for this card: ./CARDS/workloads-crashloopbackoff.md
 
-// Layout B of the Workloads canon (WL): chips and the backoff ladder left, pipeline right. Panel
-// worst case x<=397, y<=205, 225 reserved as a floor, and a longer narration invalidates that.
-const TOP_W = 280, TOP_X = WL.CX - TOP_W / 2;            // 460..740, centred on CX
-const WIRE_OUT_Y = 28, WIRE_IN_Y = 146, WIRE_IN_DX = 14; // 28 is the WL.A-02 line, WL.TOP_Y - 12
+// An INSTRUMENT over a Node floor, not a ladder beside a chip column: the delay before each restart
+// is drawn as a bar whose height doubles, and the 300s ceiling as the line the last bars flatten
+// against. Panel worst case x<=397, y<=205, 225 reserved as a floor, and a longer narration
+// invalidates that. Kubelet sits INSIDE the Node, because the backoff and its cap are per-node
+// kubelet state, so there is no actor row and no vertical corridor on this card.
 
-// LAYOUT.B of the kit, which this card is on: chips in the LEFT column, pipeline in the RIGHT.
-// WL.L-06 picks A / B / C against THIS card's measured panel bottom, and B is the one that fits.
-const LAD_X = LAYOUT.B.ladder.x, LAD_W = LAYOUT.B.ladder.w;    // 660..1140, the pipeline
-const LAD_Y = 160;                                       // 6 rows -> 160..402
+// The frame is NOT the full WL width: nine bars on one pitch are 506 wide, and a full-width frame
+// would either open a gap before the ghost bar or widen the chip column past its strings. The
+// frame is sized off the instrument instead and centred on WL.CX, so the content centre holds by
+// construction, the chip column stands on the frame's left edge and the axis on its right.
+const BAR_W = 42, BAR_PITCH = 58, BAR_N = 9;
+const AXIS_IN = 16;                                      // the first bar clears the axis rule
+const CHART_W = AXIS_IN + (BAR_N - 1) * BAR_PITCH + BAR_W;   // 522
+const CHIP_W = 442, COL_GAP = 40;                        // the chip column, and its gap to the axis
+const FR_W = CHIP_W + COL_GAP + CHART_W;                 // 1004
+const FR_L = WL.CX - FR_W / 2, FR_R = FR_L + FR_W;       // 98..1102
 
 // State chips as a column in the left band, which only opens below the panel.
 const CHIP_GAP = 8;
 const CHIPS_TOP = 240;                                   // measured, clear of the 225 floor
-const CHIP_X = LAYOUT.B.chips.x, CHIP_W = LAYOUT.B.chips.w;    // 60..540, below the panel
+const CHIP_X = FR_L;                                     // 98..540, below the panel
 const CHIP_Y = ladder({ y: CHIPS_TOP, rowH: WL.CHIP_H, gap: CHIP_GAP });   // 240 / 282 / 324 / 366
 
-// The backoff ladder is a row, and it shares the left column with the chips stacked above it.
-const BACKOFF_X = CHIP_X, BACKOFF_Y = 410, BACKOFF_W = 51, BACKOFF_H = 28, BACKOFF_GAP = 8;
+// The chart takes the right band: its right edge is the frame's own, so the axis, the last bar and
+// the frame stand on one vertical, and its baseline is the chip column's bottom edge.
+const CH_R = FR_R, CH_L = CH_R - CHART_W;                // 580..1102
+const BASE_Y = CHIP_Y(3) + WL.CHIP_H;                    // 400, cpu zero of the instrument
+// 0.8 units per second: 300s stands 240 tall and 10s stands 8, and that ratio IS the lesson. The
+// ceiling then sits at 160, which is 45 below the shallowest panel bottom and right of its wall.
+const SCALE = 0.8;
+const SEC = (s) => s * SCALE;
+const CAP_S = 300;
+const CAP_Y = BASE_Y - SEC(CAP_S);                       // 160, the ceiling line
+// One bar per restart: the immediate first one, six doublings, one more at the cap, then the one
+// that has not happened, after the healthy run, on the same pitch as the rest.
+const DELAYS = [0, 10, 20, 40, 80, 160, 300, 300, 10];
+const BAR_X = (i) => CH_L + AXIS_IN + i * BAR_PITCH;     // 596 .. 1060, ends 1102
+const BAR_CX = (i) => BAR_X(i) + BAR_W / 2;
+const BAR_KEYS = DELAYS.map((_, i) => 'bar' + i);
+const GHOST = 8;                                         // the bar of the crash that has not come
+// A bar of 0s is a mark on the baseline, the graduation weight, or the first restart is invisible.
+const MARK_H = 3.5;
+const LBL_DY = 8;                                        // bar label baseline above the bar top
+const AXIS_CAP_Y = BASE_Y + 18;                          // 418, the two captions under the axis
 
-const NODE_Y = 470, NODE_H = 140;                        // 470..610
-const POD_W = 460, POD_H = 110, POD_X = WL.CX - POD_W / 2;   // 370..830
-const POD_Y = NODE_Y + 22;                               // 492..602
-const CONT_W = 300, CONT_X = WL.CX - CONT_W / 2, CONT_H = 64;
-const CONT_Y = POD_Y + 30;                               // 522..586
+const NODE_Y = 440, NODE_H = 160;                        // 440..600
+const IN = 40;                                           // the inset of both blocks from the frame walls
+const KUBE_W = 240, KUBE_X = FR_L + IN;                  // 138..378, inside the frame
+const KUBE_Y = NODE_Y + (NODE_H - WL.BOX_H) / 2;         // 480..560, centred in the frame
+const KUBE_R = KUBE_X + KUBE_W;                          // 378, the face the lanes leave and land on
+const POD_X = 640, POD_R = FR_R - IN, POD_W = POD_R - POD_X, POD_H = 116;   // 640..1062
+const POD_Y = NODE_Y + 22;                               // 462..578
+const CONT_W = 300, CONT_X = POD_X + (POD_W - CONT_W) / 2, CONT_H = 64;   // 701..1001
+const CONT_Y = POD_Y + 30;                               // 492..556
+// The pair: the restart order rides right on the upper lane, the exit report rides left on the
+// lower one, mirrored around the face centre so neither endpoint stands alone (A-03).
+const LANE_CY = midX(KUBE_Y, KUBE_Y + WL.BOX_H);         // 520
+const { out: RESTART_Y, back: EXIT_Y } = laneY(LANE_CY, WL.LANE_DY);   // 508 / 532
+const LANE_RESTART = { from: [KUBE_R, RESTART_Y], to: [POD_X, RESTART_Y] };
+const LANE_EXIT = { from: [POD_X, EXIT_Y], to: [KUBE_R, EXIT_Y] };
+const WIRE_X = midX(KUBE_R, POD_X);                      // 509
+const WIRE_OUT_Y = RESTART_Y - 12, WIRE_IN_Y = EXIT_Y + 18;   // 496 / 550
 
-// The spine reaches the Pod it addresses, not the frame edge above it.
-const SPINE = [[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, POD_Y]];
-const SPINE_UP = [...SPINE].reverse();
-
-// The exponential ladder: six rungs, and the per-rung ref keys `lit` and `reset.keys` address.
-const RUNGS = ['10s', '20s', '40s', '80s', '160s', '300s'];
-const RUNG_KEYS = RUNGS.map((_, i) => 'rung' + i);
-// The ladder fills as a PREFIX, never a single rung: a step names how far the doubling has climbed.
-const filled = (idx) => RUNG_KEYS.slice(0, idx + 1);
-
-// A rung is a chip() from primitives, not a valChip: one centred label and no value, which no part
-// kind builds. The attributes are the primitive's own, so the serialised order is untouched (R3).
-const rung = (lbl, i) => P.raw({
-  key: RUNG_KEYS[i],
-  make: () => chip({ x: i * (BACKOFF_W + BACKOFF_GAP), y: 0, w: BACKOFF_W, h: BACKOFF_H, label: lbl, role: 'cluster' }),
+// Presentation shades for the instrument, not lifecycle phases: an axis has no phase. The bar takes
+// the dialog's own tint tokens, which a bare rect inherits, so nothing is hand-copied here.
+const RULE = Object.freeze({
+  axis: 'rgba(255, 255, 255, 0.16)',
+  cap: 'rgba(255, 255, 255, 0.35)',
 });
 
-// Z-order: the two corridors and the chip column, then the packet layer, then chain / ladder /
-// Node / Pod / Kubelet above the ball, and the two wire labels last.
+// A restart that has not happened yet DIMS rather than vanishing (C-14), so the staircase reads as
+// a scale from the poster frame on, and each step raises the bars it names to 1.
+const AHEAD = OPACITY.terminating;
+// A bar is a naked rect: box() would be scored as a block by the geometry probe and as a body by
+// CENTRE, and a bar 8 units tall is neither. Every bar is built at its final height and shown by
+// opacity, so a step states the whole history in one field and nothing is animated unpinned.
+const barH = (s) => (s === 0 ? MARK_H : SEC(s));
+const barRect = (s, i) => {
+  const r = rect({ class: 'scheme-box-rect', x: BAR_X(i), y: BASE_Y - barH(s), width: BAR_W, height: barH(s), rx: s === 0 ? 0 : 3, ry: s === 0 ? 0 : 3 });
+  r.style.fill = i === GHOST ? 'none' : 'var(--tint-fill)';
+  r.style.stroke = 'rgb(var(--tint-base-rgb))';
+  if (i === GHOST) r.style.strokeDasharray = '4 3';
+  return r;
+};
+// The bar and its own value above it, grouped so the pair shows and hides as one.
+const barGroup = (s, i) => P.group({ key: BAR_KEYS[i], opacity: AHEAD, parts: [
+  P.raw({ make: () => barRect(s, i) }),
+  P.tag({ x: BAR_CX(i), y: BASE_Y - barH(s) - LBL_DY, text: `${s}s` }),
+] });
+
+// The ladder fills as a PREFIX, never a single bar: a step names how far the doubling has climbed.
+// Every step pins all nine, and the ninth is the ghost that only the reset step raises.
+const shown = (upTo, ghost = AHEAD) => Object.fromEntries(BAR_KEYS.map((k, i) => [k, i === GHOST ? ghost : i <= upTo ? 1 : AHEAD]));
+
+// Z-order: the chip column and the instrument, then the Node frame, then the lane pair and the
+// packet layer ABOVE the frame (its translucent fill would otherwise grey both the lanes and the
+// ball, since the pair runs inside it), then Pod / Kubelet above the ball, and the wire labels last.
 export const SCENE = {
   'aria-label': 'CrashLoopBackOff: the first restart is immediate, then Kubelet inserts an exponentially growing delay before each later restart, doubling to a 300s cap',
   parts: [
     P.defs(),
-    // One corridor drawn twice, down for the restart order and up for the exit report. Exactly one
-    // is visible per step, which is what the `corridor()` pair in every `opacity` block below says.
-    P.lane({ key: 'connectorDown', points: SPINE, dim: true, dashed: true, role: 'cluster' }),
-    P.lane({ key: 'connectorUp', points: SPINE_UP, dim: true, dashed: true, role: 'cluster', opacity: 0 }),
     P.chip({ key: 'stateChip', x: CHIP_X, y: CHIP_Y(0), w: CHIP_W, h: WL.CHIP_H, name: 'container state', value: 'Running' }),
     P.chip({ key: 'reasonChip', x: CHIP_X, y: CHIP_Y(1), w: CHIP_W, h: WL.CHIP_H, name: 'reason', value: 'none' }),
     P.chip({ key: 'restartChip', x: CHIP_X, y: CHIP_Y(2), w: CHIP_W, h: WL.CHIP_H, name: 'restartCount', value: '0' }),
     P.chip({ key: 'delayChip', x: CHIP_X, y: CHIP_Y(3), w: CHIP_W, h: WL.CHIP_H, name: 'current backoff', value: '0s' }),
+    // The instrument: a baseline, a ceiling, the nine bars and two standing captions.
+    P.raw({ make: () => { const r = rect({ x: CH_L, y: BASE_Y, width: CH_R - CH_L, height: 1.5 }); r.style.fill = RULE.axis; return r; } }),
+    P.raw({ make: () => { const r = rect({ x: CH_L, y: CAP_Y, width: CH_R - CH_L, height: 1.5 }); r.style.fill = RULE.cap; return r; } }),
+    P.tag({ x: CH_L, y: CAP_Y - LBL_DY, anchor: 'start', text: '300s cap · per-node default' }),
+    ...DELAYS.map(barGroup),
+    P.tag({ x: CH_L, y: AXIS_CAP_Y, anchor: 'start', text: 'delay before each restart' }),
+    // The counterfactual caption of the reset step (T-35), under the axis because every place
+    // above the ghost bar is inside the two capped bars.
+    P.wire({ key: 'next', x: CH_R, y: AXIS_CAP_Y, anchor: 'end' }),
+    P.node({ key: 'nodeEl', x: FR_L, y: NODE_Y, w: FR_W, h: NODE_H, label: 'Node-1' }),
+    P.arrow({ ...LANE_RESTART, dim: true, dashed: true, role: 'cluster' }),
+    P.arrow({ ...LANE_EXIT, dim: true, dashed: true, role: 'cluster' }),
     P.packets(),
     // Everything below is appended AFTER the packet layer, so the ball runs under it.
-    P.chain({
-      key: 'chain', x: LAD_X, y: LAD_Y, w: LAD_W, rowH: WL.ROW_H, gap: WL.ROW_GAP, role: 'cluster',
-      items: [
-        '1. running    ·  container healthy, no backoff active',
-        '2. exit       ·  process exits non-zero, Kubelet sees it',
-        '3. waiting    ·  state Waiting, reason CrashLoopBackOff',
-        '4. backoff    ·  delay doubles each crash, 40s 80s 160s',
-        '5. cap        ·  delay clamped at the 300s ceiling',
-        '6. reset      ·  healthy run resets backoff to 10s base',
-      ],
-    }),
-    P.group({ key: 'ladder', cls: 'scheme-ladder', transform: `translate(${BACKOFF_X},${BACKOFF_Y})`, parts: RUNGS.map(rung) }),
-    P.node({ key: 'nodeEl', x: WL.L, y: NODE_Y, w: WL.W, h: NODE_H, label: 'Node-1' }),
     P.pod({
       key: 'podGroup', id: 'podGroup',
       x: POD_X, y: POD_Y, w: POD_W, h: POD_H, label: 'Pod', sublabel: '', containers: 0,
       // No build-time opacity: every step pins the Pod's own, and the poster frame is `idle`.
       inner: { dx: CONT_X - POD_X, dy: CONT_Y - POD_Y, w: CONT_W, h: CONT_H, label: 'app', sublabel: 'restartPolicy: Always' },
     }),
-    // Top row: Kubelet, the restart manager, centred on CX and clear of the narration panel.
-    P.box({ key: 'kubelet', x: TOP_X, y: WL.TOP_Y, w: TOP_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'restart manager + backoff', role: 'cluster' }),
-    // Wire labels above and below the Kubelet block, set per step by `wires`. The lower one hangs
-    // off the SIDE of the spine, because a centred one sits on the lane and is struck out.
-    P.wire({ key: 'out', x: WL.CX, y: WIRE_OUT_Y }),
-    P.wire({ key: 'in', x: WL.SPINE_X + WIRE_IN_DX, y: WIRE_IN_Y, anchor: 'start' }),
+    P.box({ key: 'kubelet', x: KUBE_X, y: KUBE_Y, w: KUBE_W, h: WL.BOX_H, label: 'Kubelet', sublabel: 'restart manager + backoff', role: 'cluster' }),
+    P.wire({ key: 'out', x: WIRE_X, y: WIRE_OUT_Y }),
+    P.wire({ key: 'in', x: WIRE_X, y: WIRE_IN_Y }),
   ],
   reset: {
-    // The five the prologue always took back, plus the six rungs the ladder loop cleared by hand.
-    keys: ['kubelet', 'stateChip', 'reasonChip', 'restartChip', 'delayChip', ...RUNG_KEYS],
+    keys: ['kubelet', 'stateChip', 'reasonChip', 'restartChip', 'delayChip'],
     pods: ['podGroup'],
   },
 };
 
-// setConnectorDir as FIELDS: the pair is written in one place, so no step can leave both corridors
-// on or neither. Key order is the order the helper wrote them in.
-const corridor = (dir) => ({ connectorDown: dir === 'up' ? 0 : 1, connectorUp: dir === 'up' ? 1 : 0 });
+// The exit report and the restart order, the two hops every travelling step is built from.
+const exitReport = (p = {}) => F.segment({ ...LANE_EXIT, name: 'exit', lights: ['kubelet'], ...p });
+// A bar comes up on the beat the narration reaches it: revealAt from AHEAD to 1, pinned above.
+const grow = (i, p) => F.reveal({ target: BAR_KEYS[i], from: AHEAD, ...p });
+const STAGGER = 400;
 
 export const STEPS_SPEC = [
   {
@@ -104,79 +150,90 @@ export const STEPS_SPEC = [
     duration: 1500,
     // Every step pins the whole record, so the four chips are always stated together.
     chips: { stateChip: 'Running', reasonChip: 'none', restartChip: '0', delayChip: '0s' },
-    opacity: { podGroup: 1, ...corridor('down') },
-    chain: 0,
+    opacity: { podGroup: 1, ...shown(-1) },
   },
   {
     id: 'first-crash',
-    duration: 2600,
+    duration: 3600,
     narration: 'The container process exits with a non-zero code and Kubelet observes the termination. With restartPolicy Always, Kubelet restarts it immediately the first time and arms a 10s base delay for the next one. Once the new container starts, restartCount becomes 1.',
     chips: { stateChip: 'Running (restarted)', reasonChip: 'none', restartChip: '1', delayChip: '10s · base' },
     wires: { in: 'container exited, code 1', out: 'restart now, next wait 10s' },
-    opacity: { podGroup: 1, ...corridor('up') },
-    lit: ['stateChip', 'restartChip', 'delayChip', ...filled(0)],
-    chain: 1,
+    opacity: { podGroup: 1, ...shown(0) },
+    lit: ['stateChip', 'restartChip', 'delayChip'],
     flow: [
-      // Pod blinks first (the container just crashed), then the Node reports the
-      // exit up the connector to Kubelet.
+      // Pod blinks first (the container just crashed), the exit goes to Kubelet, and the restart
+      // comes straight back: the immediate one, the 0s mark on the chart.
       F.pulse({ pod: 'podGroup' }),
-      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
+      exitReport({ delay: BEAT.afterPulse }),
+      F.segment({ ...LANE_RESTART, after: 'exit', name: 'restart' }),
+      F.pulse({ pod: 'podGroup', at: 'restart' }),
+      grow(0, { at: 'restart' }),
     ],
   },
   {
     id: 'backoff-named',
-    duration: 2200,
+    duration: 3000,
     narration: 'The fresh container crashes again almost immediately. This restart is the one that waits, and each further crash doubles the delay, so 10s becomes 20s. While Kubelet holds off the restart the container state is Waiting with reason CrashLoopBackOff, which surfaces in kubectl get pods.',
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '2', delayChip: '20s · doubled' },
-    wires: { out: 'hold restart, 20s' },
-    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
-    lit: ['restartChip', 'kubelet', 'stateChip', 'reasonChip', 'delayChip', ...filled(1)],
-    chain: 2,
+    wires: { in: 'container exited again', out: 'hold restart, 20s' },
+    opacity: { podGroup: OPACITY.notready, ...shown(2) },
+    lit: ['restartChip', 'stateChip', 'reasonChip', 'delayChip'],
     flow: [
       F.pulse({ pod: 'podGroup' }),
       F.fade({ target: 'podGroup', from: 1, to: OPACITY.notready, dur: FADE.out, fill: 'both', easing: 'ease-in' }),
+      exitReport({ delay: BEAT.afterPulse }),
+      grow(1, { at: 'exit' }),
+      grow(2, { at: 'exit', plus: STAGGER }),
     ],
   },
   {
     id: 'doubling',
-    duration: 2300,
+    duration: 2600,
     narration: 'The crashes keep coming and the backoff delay doubles with each failure, climbing 40s then 80s then 160s. The restartCount keeps incrementing on every attempt. The exponential growth is per container, so a hot-looping process cannot saturate the Node.',
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '5', delayChip: '160s · doubling' },
     wires: { out: 'hold restart, 160s' },
-    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
-    // Kubelet only waits between attempts, nothing travels and the Pod is untouched. The climbing
-    // backoff shows via the ladder filling and the static chip highlight (no chip pulse).
-    lit: ['kubelet', 'reasonChip', 'restartChip', 'delayChip', ...filled(4)],
-    chain: 3,
+    opacity: { podGroup: OPACITY.notready, ...shown(5) },
+    // Kubelet only waits between attempts, nothing travels and the Pod is untouched: the climb
+    // is the three bars growing in, one beat apart.
+    lit: ['kubelet', 'reasonChip', 'restartChip', 'delayChip'],
+    flow: [
+      grow(3, { delay: BEAT.lead }),
+      grow(4, { delay: BEAT.lead + STAGGER }),
+      grow(5, { delay: BEAT.lead + STAGGER * 2 }),
+    ],
   },
   {
     id: 'cap',
-    duration: 2200,
+    duration: 2600,
     narration: 'The next doubling would exceed 300s, so the delay is clamped at the 300s ceiling, a per-node default since 1.35, and stays there. Kubelet now retries the container at most once every 5 minutes for as long as it keeps failing. The restartCount continues to climb at this slow cadence.',
     chips: { stateChip: 'Waiting', reasonChip: 'CrashLoopBackOff', restartChip: '7', delayChip: '300s · capped' },
     wires: { out: 'retry every 5 min' },
-    opacity: { podGroup: OPACITY.notready, ...corridor('down') },
-    // The cap holds: the clamped 300s ceiling shows via the full ladder and the
-    // static chip highlight (no chip pulse).
-    lit: ['restartChip', 'kubelet', 'delayChip', 'reasonChip', ...filled(5)],
-    chain: 4,
+    opacity: { podGroup: OPACITY.notready, ...shown(7) },
+    // The cap holds: two bars reach the ceiling line and stop there, and nothing travels.
+    lit: ['restartChip', 'kubelet', 'delayChip', 'reasonChip'],
+    flow: [
+      grow(6, { delay: BEAT.lead }),
+      grow(7, { delay: BEAT.lead + STAGGER }),
+    ],
   },
   {
     id: 'reset',
-    duration: 2600,
-    narration: 'The bug is fixed and the new container runs stably. After a sustained healthy run Kubelet resets the backoff counter, so the next crash would start over from the 10s base rather than the 300s cap. The container state returns to Running and the CrashLoopBackOff reason clears.',
+    duration: 3000,
+    narration: 'The bug is fixed and the new container runs stably. After 10 minutes healthy Kubelet resets the backoff: a new crash counts as a first one, restarted at once, and the ladder starts over from 10s, not 300s. The container state returns to Running and the CrashLoopBackOff reason clears.',
     chips: { stateChip: 'Running', reasonChip: 'none', restartChip: '8', delayChip: '0s · reset to base' },
-    wires: { in: 'healthy run, backoff reset' },
-    // Pin final state inline so cancel between steps does not flash to default.
-    opacity: { podGroup: 1, ...corridor('up') },
-    lit: ['reasonChip', 'stateChip', 'restartChip', 'delayChip', ...filled(0)],
-    chain: 5,
+    wires: { in: 'healthy run, backoff reset', next: 'if it crashes again: starts over at 10s' },
+    // Pin final state inline so cancel between steps does not flash to default. The ghost bar is
+    // the crash that has not come, so it rests at pending rather than at 1.
+    opacity: { podGroup: 1, ...shown(7, OPACITY.pending) },
+    lit: ['reasonChip', 'stateChip', 'restartChip', 'delayChip'],
     flow: [
-      // Pod recovers to full opacity first (the visible blink of a healthy run),
-      // then reports the healthy status up to Kubelet which resets the backoff.
+      // Pod recovers to full opacity first (the visible blink of a healthy run), then reports the
+      // healthy status to Kubelet, which resets the backoff: the ghost bar is what the next crash
+      // would now cost.
       F.pulse({ pod: 'podGroup' }),
       F.fade({ target: 'podGroup', from: OPACITY.notready, to: 1, dur: FADE.in, fill: 'both', easing: 'ease-out' }),
-      F.route({ points: SPINE_UP, delay: BEAT.afterPulse, lights: ['kubelet'] }),
+      exitReport({ delay: BEAT.afterPulse }),
+      F.fade({ target: BAR_KEYS[GHOST], from: AHEAD, to: OPACITY.pending, dur: FADE.in, fill: 'both', easing: 'ease-out', at: 'exit' }),
     ],
   },
 ];

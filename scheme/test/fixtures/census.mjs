@@ -58,9 +58,12 @@
 //   - Any number no claim below names. This is a registry, not a scan: a new absolute typed into a
 //     document is unguarded until someone adds a row. `unit/docs.test.mjs` group E has the same
 //     shape and the same limit.
-//   - Anything needing a browser. The soft geometry population (`scheme/CLAUDE.md` says 10: CENTRE 3,
-//     CENTRE-LOW 5, OCCLUDED 2) is measured by `report/geometry-soft.test.mjs` against a rendered
-//     frame, so it cannot be computed here and no claim below names it.
+//   - Anything needing a browser. The soft geometry population is measured by
+//     `report/geometry-soft.test.mjs` against a rendered frame, so it cannot be computed here and no
+//     claim below names it: the number `scheme/CLAUDE.md` states for it is held together by a reader
+//     rather than by a check. The figures are deliberately NOT repeated here. A third copy of a
+//     count with one executing home is how the second copy went stale, which is what this line used
+//     to demonstrate by carrying a population two revisions behind the document it quoted.
 //   - Whether a number is the RIGHT thing to state. A claim can be accurate and pointless.
 //   - Prose that states a count in words with no digits at all, unless the pattern spells the word
 //     out. `NUMWORD` below covers one to twenty, which is every word-number the documents use.
@@ -241,10 +244,9 @@ function census() {
   // and it stays a literal here rather than an import because the two ask different questions of it:
   // A2 resolves an anchor against a card, this only counts them.
   const open = new Map(CATS.map(c => [c, 0]));
-  // A `PANEL` block is a measurement someone took with a browser, and a `### poster` block is the
-  // one thing every record in the tree carries. Counted because two folder contracts state both.
+  // A `PANEL` block is a measurement someone took with a browser. Counted because two folder
+  // contracts state how many records carry one.
   const panelBlocks = new Map(CATS.map(c => [c, 0]));
-  const posterBlocks = new Map(CATS.map(c => [c, 0]));
   const anchors = new Map(CATS.map(c => [c, 0]));
   const anchorSections = new Map();          // anchor text -> the `<cat>/<card id>` sections holding it
   // A record's LENGTH, measured per `## <id>` SECTION rather than per file, so the two record
@@ -265,7 +267,6 @@ function census() {
       const md = readDoc(f.rel);
       open.set(c, open.get(c) + (md.match(/^OPEN\b/gm) || []).length);
       panelBlocks.set(c, panelBlocks.get(c) + (md.match(/^PANEL /gm) || []).length);
-      posterBlocks.set(c, posterBlocks.get(c) + (md.match(/^### poster/gm) || []).length);
       for (const line of md.split('\n')) {
         const h2 = /^## (.+)$/.exec(line);
         // The heading opens its own section and counts as its first line, so the increment below
@@ -368,7 +369,7 @@ function census() {
     perCat, open, openTotal: total(open), anchors, dupAnchors, dupWidth,
     skillCitations: skillIds.size,
     podless, depthAnchors: depthAnchors.size, fullOnly, bands,
-    subCards, presets, frames, pulses, imports, cardLines, panelBlocks, posterBlocks,
+    subCards, presets, frames, pulses, imports, cardLines, panelBlocks,
     sections: CATS.reduce((n, c) => n + (SUBS[c] || []).length, 0),
   };
 }
@@ -619,7 +620,7 @@ const CLAIMS = [
   },
   {
     doc: folder('cluster'), label: 'cluster: records standing past the CLU.S-03 ceiling',
-    re: /([A-Za-z]+|\d+) records stand past the ceiling today/,
+    re: /([A-Za-z]+|\d+) records? stands? past the ceiling today/,
     want: () => [CENSUS.bands.get('cluster').over300],
   },
   {
@@ -643,21 +644,13 @@ const CLAIMS = [
   },
   {
     doc: folder('workloads'), label: 'WL.S-02: the exemplar, by length',
-    re: /`workloads-probes\.js`, (\d+) lines/,
-    want: () => [CENSUS.cardLines.get('workloads-probes')],
+    re: /`workloads-pod-startup-conditions\.js`, (\d+) lines/,
+    want: () => [CENSUS.cardLines.get('workloads-pod-startup-conditions')],
   },
   {
-    doc: folder('workloads'), label: 'WL.S-03: PANEL blocks, and the records without one',
-    re: /(\d+) of the (\d+) carry one, .*?The other (\d+) are instruments/,
-    want: () => {
-      const p = CENSUS.panelBlocks.get('workloads'), n = cat('workloads').cards;
-      return [p, n, n - p];
-    },
-  },
-  {
-    doc: folder('workloads'), label: 'WL.S-03: every record carries a poster block',
-    re: /a `### poster` block, (\d+) of (\d+)/,
-    want: () => [CENSUS.posterBlocks.get('workloads'), cat('workloads').cards],
+    doc: folder('workloads'), label: 'WL.S-03: every record carries a PANEL block',
+    re: /a `PANEL` block, (\d+) of (\d+)/,
+    want: () => [CENSUS.panelBlocks.get('workloads'), cat('workloads').cards],
   },
   {
     doc: folder('network'), label: 'network: reducedLit cards and steps',

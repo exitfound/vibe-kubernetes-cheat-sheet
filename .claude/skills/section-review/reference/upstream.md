@@ -9,6 +9,14 @@ about where a section ought to look. The count beside a path is how many of that
 citations land in that tree. A path cited once is kept, because a lone citation is often the most
 interesting one in a section, and the tool ranks by that count rather than dropping the tail.
 
+**A path is written at the depth the citations actually land**, which is not always two segments.
+`gaps.mjs` enumerates only the pages an index lists as ITS OWN children, so a section whose cards
+all cite `/concepts/workloads/controllers/<page>` and is mapped to `/concepts/workloads` gets the
+children of the parent (`pods`, `controllers`, `autoscaling`) and never sees the eight sibling
+topics it is actually made of. That was the state of `workloads/controllers` until 2026-09-04, and
+it hid two absences a hand fetch found in a minute. When the tally below concentrates in one
+subtree, map the subtree.
+
 Everything under `/docs/` is `https://kubernetes.io/docs/`. Other hosts are written in full.
 `gaps.mjs` fetches the `/docs/` paths and lists the rest without fetching them: a tree index is
 parsed by the shape kubernetes.io renders, and no other host shares it.
@@ -82,24 +90,25 @@ quiet rather than loud, which is the worst way for a reader to find out.
 ### workloads/controllers
 
 ```
-8   /concepts/workloads
-1   /concepts/overview, /tutorials/stateful-application, /tasks/job
+13  /concepts/workloads/controllers
+1   /concepts/overview, /reference/command-line-tools-reference, /tasks/job
 ```
 
 ### network/network-foundations
 
 ```
-4   /concepts/cluster-administration, /concepts/services-networking, /reference/networking
-1   /tasks/network, github.com/containernetworking, wiki.nftables.org, ebpf.io
+5   /concepts/cluster-administration
+4   /concepts/services-networking, /reference/networking
+1   /reference/command-line-tools-reference, /tasks/network,
+    github.com/containernetworking, wiki.nftables.org, ebpf.io
 ```
 
 ### network/pod-networking
 
 ```
-6   /concepts/cluster-administration
+5   /concepts/cluster-administration
 2   /concepts/workloads, github.com/containernetworking
-1   /concepts/extend-kubernetes, /reference/command-line-tools-reference,
-    /reference/networking, kubernetes.io/blog, cni.dev/plugins
+1   /concepts/extend-kubernetes, /reference/networking, kubernetes.io/blog, cni.dev/plugins
 ```
 
 ### network/services-endpoints
@@ -191,10 +200,18 @@ tool already attaches the first two: a topic a card elsewhere owns by name is an
 Both drop out of the `ABSENT WITH NO DISPOSITION` shortlist. The third disposition, not worth a
 diagram, is the reader's, and it is written in one line for every absence not promoted.
 
-**Where the tool is wrong, and it is wrong in one direction.** `COVERED` is decided from card
-names, so a large upstream page taught by six cards under six other names reads `PARTIAL`, and a
-topic taught here under a different word reads `ABSENT`. Both errors point the same way: the tool
-over-reports absence and never over-reports coverage. Read the evidence column before promoting.
+**Where the tool is wrong, and the one place it is wrong the OTHER way.** `COVERED` is decided from
+card names, so a large upstream page taught by six cards under six other names reads `PARTIAL`, and
+a topic taught here under a different word reads `ABSENT`. Both of those over-report absence, which
+is the harmless direction, and the evidence column settles them.
+
+The exception is the match itself, which is a SUBSET test: the topic's words have to appear in a
+card's name and nothing requires them to be all of it, so `Deployments` reads `COVERED` off
+`Deployment Rolling Update`. That over-reports COVERAGE, which is worse, because the row leaves the
+report rather than joining it. The scenery-word half was closed in `gaps.mjs` on 2026-09-04 (a
+topic whose tokens are all scenery, like the `controllers` index, can no longer decide `COVERED`).
+The general case is open. Read the evidence column on `COVERED` rows as well as before promoting an
+absence.
 
 ---
 

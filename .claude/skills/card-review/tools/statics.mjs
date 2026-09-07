@@ -241,15 +241,17 @@ const recordMd = existsSync(perCard)
 if (!recordMd.includes(`## ${id}\n`)) say('RECORD', `${recordRel} has no "## ${id}" section`);
 else {
   const section = recordMd.split(`## ${id}\n`)[1].split('\n## ')[0];
+  // Two record SHAPES. `cluster/` and `workloads/` are one `### layout` block of labelled notes, so
+  // any second heading there is itself the finding. `network/` and `storage/` still carry poster
+  // notes and per-line anchors, and there an anchor has to resolve against the source verbatim.
+  const oneBlock = category === 'cluster' || category === 'workloads';
   for (const a of section.matchAll(/^### before `(.+)`$/gm)) {
-    if (!src.includes(a[1])) say('ANCHOR', `${recordRel} anchor no longer occurs in the card: ${a[1].slice(0, 70)}`);
+    if (oneBlock) say('RECORD', `${recordRel} carries an anchor, and a ${category} record is one "### layout" block: ${a[1].slice(0, 70)}`);
+    else if (!src.includes(a[1])) say('ANCHOR', `${recordRel} anchor no longer occurs in the card: ${a[1].slice(0, 70)}`);
   }
+  if (oneBlock && section.includes('### poster')) say('RECORD', `${recordRel} carries a "### poster" note, which a ${category} record does not (R-12)`);
   for (const label of ['WHAT']) if (!section.includes(label)) say('RECORD', `the ${id} record has no ${label} block`);
 }
-const appJs = readFileSync(join(ROOT, 'scheme/js/app.js'), 'utf8');
-const aliases = [...appJs.matchAll(/'([\w-]+)':\s*'([\w-]+)'/g)].filter(m => m[2] === id).map(m => m[1]);
-if (aliases.length) say('ALIASES', `old hashes forwarding here: ${aliases.join(', ')} (keep them, and check they still resolve)`);
-
 console.log(out.length ? out.join('\n') : 'nothing found by the static sweep.');
 if (notByKey.length) {
   console.log(`\nnot reported, these kinds are not addressed by key:\n  ${notByKey.join('\n  ')}`);

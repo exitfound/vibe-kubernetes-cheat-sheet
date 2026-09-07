@@ -1,5 +1,5 @@
 import { pod } from '../../lib/primitives.js';
-import { P, F, defineCard } from './network-kit.js';
+import { P, F, defineCard, OPACITY } from './network-kit.js';
 
 // Design notes for this card: ./CARDS.md#network-pod-ip-and-veth
 
@@ -61,7 +61,7 @@ export const SCENE = {
     }),
     // veth pair: cni0 peer to the Pod eth0 (right edge of the shell). The CNI configures the
     // IP and link into the Pod, so the arrow points cni0 -> Pod and the packet rides with it.
-    P.arrow({ from: VETH[0], to: VETH[1], dashed: true, dim: true }),
+    P.arrow({ key: 'vethWire', from: VETH[0], to: VETH[1], dashed: true, dim: true }),
     // CNI plugin exec wire down to the bridge.
     P.arrow({ from: CNI_EXEC[0], to: CNI_EXEC[1], dashed: true, dim: true }),
     // localhost loopback inside the shared namespace: a plain dashed link (no direction),
@@ -90,13 +90,17 @@ export const STEPS_SPEC = [
     duration: 1500,
     chips: { nsChip: 'not ready', ipChip: 'none', vethChip: 'none', reachChip: 'none' },
     podSublabels: { podShell: 'netns: not ready' },
+    opacity: { vethWire: 1 },
   },
   {
     id: 'sandbox',
     duration: 2100,
-    narration: 'The pause container is started first by the runtime, and it holds the Pod network namespace open. Because pause owns that namespace, every other container in the Pod is later joined into it rather than getting its own, which is what makes them one network endpoint.',
+    narration: 'The runtime starts the pause container first, because the namespace has to exist before anything can be put into it. Nothing is allocated yet. Pause is there so the address and the cable have somewhere to land.',
     chips: { nsChip: 'shared · owned by pause', ipChip: 'none', vethChip: 'none', reachChip: 'none' },
     podSublabels: { podShell: 'netns: open' },
+    // The veth pair does not exist until the CNI ADD creates it next step, so the cable is drawn
+    // dim (C-14): at full strength it is the loudest line on a frame whose veth chip reads none.
+    opacity: { vethWire: OPACITY.notready },
     // The pause box and the namespace chip keep a static highlight border for the whole
     // step (no pulse, no flash, no fade back) since they show the settled shared-netns state.
     lit: ['pauseBox', 'nsChip'],
@@ -108,6 +112,7 @@ export const STEPS_SPEC = [
     chips: { nsChip: 'shared · owned by pause', ipChip: '10.244.1.5', vethChip: 'eth0 <-> veth', reachChip: 'none' },
     wires: { veth: 'eth0 <-> veth' },
     podSublabels: { podShell: 'IP 10.244.1.5' },
+    opacity: { vethWire: 1 },
     lit: ['cniPlugin', 'ipChip', 'vethChip'],
     // The address, the link, its wire label and the Pod sublabel are one result of one CNI ADD, so
     // all four wait for the config to reach the Pod at 1500, where the Pod pulses.
@@ -129,10 +134,11 @@ export const STEPS_SPEC = [
   {
     id: 'shared',
     duration: 2200,
-    narration: 'With the namespace in place, the app container is joined into it instead of getting its own. Every container in the Pod now shares one IP, one routing table and one loopback, so they reach each other over localhost. To the rest of the cluster the whole Pod is a single endpoint at 10.244.1.5.',
+    narration: 'The app container is joined into the namespace that pause opened, so the single address the CNI plugin drew already covers it. The hop it makes to reach pause never leaves the Pod, and no second address is drawn for it.',
     chips: { nsChip: 'shared · owned by pause', ipChip: '10.244.1.5', vethChip: 'eth0 <-> veth', reachChip: 'localhost' },
     wires: { lo: '127.0.0.1' },
     podSublabels: { podShell: 'IP 10.244.1.5' },
+    opacity: { vethWire: 1 },
     lit: ['appBox', 'reachChip'],
     // stroke-opacity is the one thing no field writes: the loopback carries the ball on this step,
     // so it is raised from its recessed rest here and put back by reset.extra.

@@ -550,74 +550,9 @@ function renderPoster(scheme) {
   `;
 }
 
-// A card renamed TWICE keeps BOTH of its old ids, and both have to name the CURRENT card: the
-// resolve below is a single lookup, so an alias pointing at the intermediate name resolves to
-// nothing. The target is a const so the next rename edits one line instead of hunting for every
-// row that repeats the string.
-const ENV_BEFORE_PID_1 = 'workloads-env-before-pid-1';
-
-// Old scheme ids still resolve, so deep links, bookmarks and indexed sitemap URLs keep opening the
-// right card. A rename is cheap only because this map exists: add the entry WITH it, never later.
-const SCHEME_ALIASES = {
-  // Old Cluster ids were keyed `control`. Every one still resolves.
-  'control-plane-architecture': 'cluster-architecture',
-  'control-plane-apply-flow': 'cluster-object-create-path',
-  'cluster-apply-flow': 'cluster-object-create-path',
-  'control-plane-delete-flow': 'cluster-cascading-deletion',
-  'control-etcd-raft': 'cluster-etcd-raft',
-  'control-leader-election': 'cluster-leader-election',
-  'control-scheduler-decision': 'cluster-scheduler-decision',
-  'control-admission-webhooks': 'cluster-admission-chain',
-  'control-api-structure': 'cluster-list-watch-informers',
-  'control-node-drain': 'cluster-node-drain',
-  'control-kubelet-sync-loop': 'cluster-kubelet-reconcile-loop',
-  'control-node-pressure-eviction': 'cluster-node-pressure-eviction',
-  'control-graceful-node-shutdown': 'cluster-graceful-node-shutdown',
-  'control-node-failure': 'cluster-node-failure',
-  'control-pod-sandbox-cri': 'cluster-pod-sandbox-cri',
-  'control-oom-kill': 'cluster-oom-kill',
-  // Six Cluster ids renamed to the name the card actually carries. Every old id still resolves.
-  'cluster-api-structure': 'cluster-list-watch-informers',
-  'cluster-admission-webhooks': 'cluster-admission-chain',
-  'cluster-node-garbage-collection': 'cluster-image-container-gc',
-  'cluster-delete-flow': 'cluster-cascading-deletion',
-  'cluster-kubelet-sync-loop': 'cluster-kubelet-reconcile-loop',
-  'cluster-pod-cgroup-tree': 'cluster-pod-cgroup-hierarchy',
-  'lifecycle-node-drain': 'cluster-node-drain',
-  'lifecycle-pod-phase-machine': 'workloads-pod-lifecycle-phases',
-  'lifecycle-restart-policy': 'workloads-restart-policy',
-  'lifecycle-hooks': 'workloads-hooks',
-  'lifecycle-probes': 'workloads-probes',
-  'lifecycle-container-states': 'workloads-container-states',
-  'lifecycle-crashloopbackoff': 'workloads-crashloopbackoff',
-  'lifecycle-graceful-shutdown': 'workloads-graceful-shutdown',
-  'lifecycle-force-deletion': 'workloads-force-deletion',
-  // Preemption is the PostFilter stage of the scheduler, so the card lives in Cluster.
-  'workloads-pod-priority-preemption': 'cluster-pod-priority-preemption',
-  // A resize never leaves the one Pod it counts, so the card lives in Workloads.
-  'cluster-pod-resize': 'workloads-pod-resize',
-  'deployment-rolling-update': 'workloads-rolling-update',
-  'storage-statefulset-pvc-stickiness': 'workloads-pvc-stickiness',
-  'service-cluster-ip': 'network-service-clusterip',
-  'network-kube-proxy-iptables': 'network-kube-proxy-modes',
-  // Seven Workloads ids renamed to the name the card actually carries, the same move Cluster
-  // made above. Every old id still resolves.
-  'workloads-statefulset-ordered-startup': 'workloads-statefulset-ordered-rollout',
-  'workloads-container-env-injection': ENV_BEFORE_PID_1,
-  'workloads-config-before-pid-1': ENV_BEFORE_PID_1,
-  'workloads-pod-image-pull': 'workloads-image-pull-registry-auth',
-  'workloads-effective-pod-request': 'workloads-effective-pod-requests',
-  'workloads-pod-startup-failures': 'workloads-pod-pending-init-states',
-  'workloads-pod-phase-machine': 'workloads-pod-lifecycle-phases',
-  // Two more renamed to the title the card carries, so the id reads in a file search.
-  'workloads-pod-stalls': 'workloads-pod-pending-init-states',
-  'workloads-scheduler-reserves': 'workloads-effective-pod-requests',
-};
-
 // The dialog lifecycle, and why a card module is lazy-imported: 108 modules are never all in
 // memory. A live controller is torn down first, or its animations land on the next dialog's canvas.
 async function openScheme(id, initialStep = null) {
-  id = SCHEME_ALIASES[id] || id;
   const scheme = SCHEMES.find(s => s.id === id);
   if (!scheme) return;
   if (activeController || activeDialogScheme || document.querySelector('dialog.scheme-dialog')) {

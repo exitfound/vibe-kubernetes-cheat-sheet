@@ -10,6 +10,12 @@
 //       Blocks that ACT FIRST are exempt: the origin of a round trip sends at delay 0 and its answer
 //       comes home later, so it is legitimately lit before the ball it receives. A MID-CHAIN block is
 //       the opposite shape: it receives hop one and only then sends hop two, so it must open dark.
+//   R4  THE MIRROR OF R3, and the rule R3 alone let through for a year: a block a ball DEPARTS
+//       from has to be cued before it departs, or the ball leaves a dark box and the step has no
+//       sender. Two cues satisfy it and no third: `lit` at step entry, which is the shape for a
+//       block that acts first, or an EARLIER arrival in the same step that lit it as a receiver,
+//       which is the shape for a mid-chain block. R3 and R4 are one grammar read from both ends,
+//       and a block can satisfy both at once: it opens dark, lights on hop one, and sends hop two.
 //   R2  a value chip whose value CHANGED since the previous step must carry .highlight this step.
 //       Otherwise the number turns over with nothing pointing at it, on the one step that is about it.
 //
@@ -17,14 +23,14 @@
 // lights at step entry WITH its text change (setChip does both in one call), while boxes, pods and
 // cylinders light on arrival. Two different cues for two different kinds of object.
 //
-// ALL THREE AXES CARRY RULINGS, and none of them hides one. A finding somebody has read and decided
+// ALL FOUR AXES CARRY RULINGS, and none of them hides one. A finding somebody has read and decided
 // to keep is filed in ../fixtures/carried.mjs against its axis, and this file then prints it marked
 // CARRIED with the reason attached and counts it apart from the rows still to work. Two guards come
 // with that store and both print here: a ruling with no reason or naming no catalogued card is
 // reported as BROKEN, and a ruling that matches no finding on this walk is reported as stale,
 // because a rule that stopped firing means the card moved under the ruling.
 //
-// WHY THIS FILE NEVER FAILS ON A FINDING. Both rules find things today, and every one of them is a
+// WHY THIS FILE NEVER FAILS ON A FINDING. Every rule here finds things today, and every one of them is a
 // statement about a CARD, not about the harness. The project already runs the cycle "report-only,
 // then triage, then promote into the mandatory set" (the ENFORCED sets in check-canon.mjs:78 and
 // check-reduced.mjs:25 are the same idea). Promoting either rule before its findings have been read
@@ -77,6 +83,17 @@
 // WHAT THE RULES ARE BLIND TO, both inherited:
 //   - a packet the kit never stamped with arrivalMs has no arrival to defer to, so R3 cannot judge it
 //     either way. The count is printed: it is the size of the rule's remaining blind spot.
+//   - R4 READS THE SAME FROZEN FRAME, so the only cue it can SEE at entry is a static one. A card
+//     that lights its sender through `F.light` at a delay, rather than through `lit` or through an
+//     arrival, reads as dark here and is reported. That is a false positive with a real question
+//     inside it, because a cue landing at the same beat as the departure is not a cue the reader
+//     gets to register first (M-18 is the same argument in the time domain), so the row is worth
+//     printing and worth a ruling rather than a filter.
+//   - R4 JUDGES BOXES AND CYLINDERS, NEVER PODS. A Pod announces itself by pulsing (M-01) and a
+//     pulse is invisible in a frame frozen at t=0, so every Pod sending a ball would report. The
+//     count of balls skipped for it is printed.
+//   - a ball whose start point sits on no block at all (it leaves a chip, a raw rect or open
+//     canvas) has no sender to judge. Counted and printed, never reported.
 //   - R2 compares chips POSITIONALLY, by index and name. A step that adds or removes a chip shifts
 //     every key after it and the comparison silently pairs different chips. The same positional
 //     weakness stage 2.3c records for reduced.test.mjs, and the same fix will serve both.
@@ -123,11 +140,13 @@ const catalogued = await cards();
 const R2_STEP_CARRIED = carriedMap('R2-STEP');
 const R2_ENTRY_CARRIED = carriedMap('R2-ENTRY');
 const R3_CARRIED = carriedMap('R3');
+const R4_CARRIED = carriedMap('R4');
 
 test('arrival grammar across every step (report only, census is the one assertion)', async (t) => {
-  const r3 = [], r2entry = [], r2step = [], notes = [];
-  const r3ByCard = new Map(), entryByCard = new Map(), stepByCard = new Map();
+  const r3 = [], r4 = [], r2entry = [], r2step = [], notes = [];
+  const r3ByCard = new Map(), r4ByCard = new Map(), entryByCard = new Map(), stepByCard = new Map();
   let walked = 0, sampled = 0, unstamped = 0, judged = 0;
+  let senders = 0, senderless = 0, podSenders = 0;
   let entryPairs = 0, entryChanged = 0, stepPairs = 0, stepChanged = 0, deferredCue = 0;
 
   try {
@@ -183,6 +202,28 @@ test('arrival grammar across every step (report only, census is the one assertio
                 });
                 if (!R3_CARRIED.has(carry)) r3ByCard.set(id, (r3ByCard.get(id) || 0) + 1);
               }
+
+              // R4, the same ball read from its other end. `lit` at entry is `b.hl` here, and an
+              // earlier arrival is a ball of THIS step that landed on b no later than this one
+              // left: that is the mid-chain shape, where the box lit as a receiver and sends on.
+              const litEarlier = (b) => data.packets.some(q =>
+                near(b, q.to, HIT_TOL) && q.arrivalMs != null && q.arrivalMs <= pkt.delay);
+              for (const b of data.blocks) {
+                if (!near(b, pkt.from, HIT_TOL)) continue;
+                if (b.kind === 'pod') { podSenders++; continue; }
+                senders++;
+                if (b.hl || litEarlier(b)) continue;
+                const key4 = `${id}|${i}|${b.label}|${b.x.toFixed(0)},${b.y.toFixed(0)}`;
+                if (r4.some(l => l.key === key4)) continue;
+                const carry4 = carryKey(id, [String(i), b.label]);
+                r4.push({
+                  key: key4, id, carryKey: carry4, why: R4_CARRIED.get(carry4),
+                  line: `${id} step ${i}  "${b.label}" (${b.kind}) sends a packet at ${pkt.delay}ms ` +
+                    'and is dark when the step opens, with no earlier arrival to light it',
+                });
+                if (!R4_CARRIED.has(carry4)) r4ByCard.set(id, (r4ByCard.get(id) || 0) + 1);
+              }
+              if (!data.blocks.some(b => near(b, pkt.from, HIT_TOL))) senderless++;
             }
           }
 
@@ -253,11 +294,13 @@ test('arrival grammar across every step (report only, census is the one assertio
   out.push('===== arrival grammar, REPORT ONLY =====');
   out.push(`  cards walked ${walked} of ${catalogued.length} in the catalog, steps sampled ${sampled}`);
   out.push(`  packets judged by R3 ${judged}, packets with no arrivalMs stamp and therefore invisible to R3 ${unstamped}`);
+  out.push(`  senders judged by R4 ${senders}, balls leaving a Pod and left to the pulse ${podSenders}, ` +
+    `balls leaving no block at all ${senderless}`);
   out.push(`  chip slots compared at entry ${entryPairs} (${entryChanged} changed), on the settled step ${stepPairs} (${stepChanged} changed)`);
   if (SUBSET) {
     out.push(`  SUBSET: SCHEME_IDS restricted the walk to ${walked} card(s), so the census below is NOT`);
-    out.push('  asked. Every per-card row is as true as on a full run: R3 and the two R2 axes judge a');
-    out.push('  ball against its own step and never against the catalog. The TOTALS and the queue');
+    out.push('  asked. Every per-card row is as true as on a full run: R3, R4 and the two R2 axes judge');
+    out.push('  a ball against its own step and never against the catalog. The TOTALS and the queue');
     out.push('  lengths are only the walked cards, and a full run is what says how many the catalog holds.');
   } else if (walked < EXPECTED_CARDS || sampled < EXPECTED_STEPS) {
     out.push(`  REPORT INCOMPLETE: expected at least ${EXPECTED_CARDS} cards and ${EXPECTED_STEPS} steps, ` +
@@ -276,6 +319,21 @@ test('arrival grammar across every step (report only, census is the one assertio
   }
   for (const l of carriedBlock('R3', r3held.map(f => ({ key: f.carryKey, why: f.why })),
     staleKeys('R3', r3.map(f => f.carryKey)), '  ')) out.push(l);
+
+  out.push('');
+  const r4open = r4.filter(f => !f.why), r4held = r4.filter(f => f.why);
+  out.push(`R4  dark when the ball leaves it: ${r4.length} finding(s), ` +
+    `${r4held.length} carried with a reason, ${r4open.length} left to work on ${r4ByCard.size} card(s)`);
+  out.push('  THE FIX IS ONE OF TWO, and which one is a reading of the step rather than a preference:');
+  out.push('  the block ACTS FIRST, so it goes in that step\'s `lit` and its ball waits BEAT.lead (M-18),');
+  out.push('  or it is MID-CHAIN, so the hop before it names it in `lights` and it sends `after` that.');
+  for (const f of r4open) out.push('  ' + f.line);
+  if (r4ByCard.size) {
+    out.push('  by card:');
+    for (const [id, c] of [...r4ByCard.entries()].sort((a, b) => b[1] - a[1])) out.push(`    ${String(c).padStart(3)}  ${id}`);
+  }
+  for (const l of carriedBlock('R4', r4held.map(f => ({ key: f.carryKey, why: f.why })),
+    staleKeys('R4', r4.map(f => f.carryKey)), '  ')) out.push(l);
 
   out.push('');
   const entryOpen = r2entry.filter(f => !f.why), entryHeld = r2entry.filter(f => f.why);
@@ -306,7 +364,7 @@ test('arrival grammar across every step (report only, census is the one assertio
   // The store's own shape, printed rather than asserted: a suppression with no reason or naming no
   // catalogued card is a broken RULING, and this file fails on the census alone.
   const ids = new Set(catalogued.map(c => c.id));
-  const broken = ['R3', 'R2-ENTRY', 'R2-STEP'].flatMap(a => shapeProblems(a, ids));
+  const broken = ['R3', 'R4', 'R2-ENTRY', 'R2-STEP'].flatMap(a => shapeProblems(a, ids));
   if (broken.length) {
     out.push('');
     out.push(`BROKEN RULINGS in fixtures/carried.mjs: ${broken.length}`);
@@ -340,6 +398,7 @@ test('arrival grammar across every step (report only, census is the one assertio
 
   t.diagnostic(`arrival: ${walked} cards, ${sampled} steps, ` +
     `R3 ${r3.length} (${r3.filter(f => !f.why).length} unexplained), ` +
+    `R4 ${r4.length} (${r4.filter(f => !f.why).length} unexplained), ` +
     `R2-ENTRY ${r2entry.length} (${r2entry.filter(f => !f.why).length} unexplained), ` +
     `R2-STEP ${r2step.length} (${r2step.filter(f => !f.why).length} unexplained)`);
 });

@@ -1,6 +1,6 @@
 ---
 name: card-poster
-description: Design, redraw or adjust the poster of one scheme card, the still frame the grid shows. Reads the card to find its one sentence, renders the current poster next to its siblings at true size and at 3x, picks a composition family from the mined pattern library, gets the concept signed off in one line before drawing anything, writes the SVG fragment in posters.js, verifies it with the poster lint and a fresh montage, and records the choice in the card's CARDS.md poster note. Use when the user asks for a poster ("сделай постер", "перерисуй постер", "постер не нравится", "poster for this card", "change the poster"), or when a card review found the poster wrong. For everything else about a card use card-review, and for the truth of its text use card-facts. For all four skills run end to end over a SET of cards unattended, use card-cycle.
+description: Design, redraw or adjust the poster of one scheme card, the still frame the grid shows. Reads the card to find its one sentence, renders the current poster next to its siblings at true size and at 3x, picks a composition family from the mined pattern library, gets the concept signed off in one line before drawing anything, writes the SVG fragment in posters.js, verifies it with the poster lint and a fresh montage, and records the choice in the card's CARDS.md poster note where the category still carries one. Use when the user asks for a poster ("сделай постер", "перерисуй постер", "постер не нравится", "poster for this card", "change the poster"), or when a card review found the poster wrong. For everything else about a card use card-review, and for the truth of its text use card-facts. For all four skills run end to end over a SET of cards unattended, use card-cycle.
 ---
 
 # Card poster
@@ -10,9 +10,13 @@ The poster is the still frame the grid paints for a card, about 200px wide, held
 biggest source of rework in this project, and the reason is always the same: someone drew before
 deciding what the picture had to say.
 
-**What this skill owns:** `posters.js` and the `### poster` subsection of the card's record. Nothing
-else. Geometry of the card itself, motion, dead code and the other records are `card-review`; the
-truth of any text is `card-facts`. If the poster work turns up a defect in the card, hand it over
+**What this skill owns:** `posters.js`, and in `network/` and `storage/` the `### poster` subsection
+of the card's record. Nothing else. `cluster/` and `workloads/` records carry no poster note: a
+poster is drawn once and is not revised with the card, so nothing there is written back, and
+`S-51` is held on those two by `unit/docs.test.mjs` G1, which fails the gate on a poster block
+written into one. Geometry of
+the card itself, motion, dead code and the other records are `card-review`; the truth of any text is
+`card-facts`. If the poster work turns up a defect in the card, hand it over
 rather than fixing it here.
 
 **The rules are `R-01` to `R-12` in `scheme/CANON.md` and they win over anything below.** This file
@@ -50,8 +54,9 @@ node .claude/skills/_shared/tools/ctx.mjs <card-id>
 2. The `WHAT` line of its record (section 2), then the narration of step 1 and of the last step
    (section 3, and the header lists every step with its duration). The poster is the still that
    makes a reader want to press play, so it belongs closer to the question than to the ending.
-3. The `### poster` note inside that record. If a note exists, it says what was tried and what was
-   rejected. Do not rediscover it. Section 4 prints the poster fragment that is there now.
+3. In `network/` and `storage/`, the `### poster` note inside that record: if one exists it says
+   what was tried and what was rejected, so do not rediscover it. `cluster/` and `workloads/` carry
+   none. Section 4 prints the poster fragment that is there now either way.
 
 Then write ONE sentence, in words, in the user's language. Not "the architecture of a cluster", but
 "everything talks to the API and the API alone talks to the store". If your sentence needs "and", it
@@ -160,14 +165,17 @@ how you catch a family used three times in a row.
 
 ## 7. Record the choice
 
-In that card's record, under `## <card-id>`, the `### poster` subsection
-(`R-12`, coverage is every card so a missing one is a regression). Three or four lines, in the
-record's own voice:
+Only in `network/` and `storage/`, and only where the record already carries a `### poster`
+subsection under `## <card-id>` (`R-12`). Three or four lines, in the record's own voice:
 
 - the sentence the poster says
 - the family and why that one
 - what was rejected, with the reason, so nobody rebuilds it to find out
 - any deliberate deviation from the house idiom, named as deliberate
+
+**In `cluster/` and `workloads/` this step is skipped and nothing is written to the record.** Those
+records are one `### layout` block of labelled notes, and a poster note is not one of the things
+they are for.
 
 Do not touch any other part of the record: the rest of that section belongs to `card-review`, and
 its `CONTENT` block belongs to `card-facts`.
@@ -177,13 +185,12 @@ its `CONTENT` block belongs to `card-facts`.
 ## 8. Ship checks
 
 ```bash
-cd scheme/test && npm run test:unit        # D-06 bijection card <-> poster, and the record parses
+cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit        # D-06 bijection card <-> poster, and the record parses
 ```
 
 Then the LAST step, the count sweep in `.claude/skills/_shared/card-verify.md` section 4, "sweep the
-counts, do not judge them". Adding or redrawing a poster moves a coverage count (`R-12` claims every
-card), which is a claim about the tree stated in files this skill never opens. Run it and report its
-verdicts.
+counts, do not judge them". Adding a poster moves the `D-06` bijection, which is a claim about the
+tree stated in files this skill never opens. Run it and report its verdicts.
 
 Then rebuild the local container, because a poster is served content:
 

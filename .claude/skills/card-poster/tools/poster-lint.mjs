@@ -24,15 +24,56 @@ const flags = Object.fromEntries(args.filter(a => a.startsWith('--')).map(a => {
 const wanted = args.filter(a => !a.startsWith('--'));
 
 // The ALLOWLIST for R-08a, not a census: a poster here MAY carry a chevron, and anything outside it
-// carrying a triangle is a finding. Only `workloads-pod-startup-conditions` draws one today; the
-// other eleven were registered and then redrawn without it, so the list exempts more than it needs
-// to. It costs nothing and it blocks nothing, and trimming it is a decision about each of them.
+// carrying one is a finding. These two are the posters that draw one, three chevrons between
+// them, and the list is trimmed to exactly them: an entry granting a permission no drawing uses
+// cannot be traced back to a picture, so a later reader cannot tell an earned exemption from a
+// forgotten one.
 const CHEVRON_OK = new Set([
-  'workloads-rolling-update', 'workloads-graceful-shutdown', 'workloads-restart-policy',
-  'workloads-crashloopbackoff', 'workloads-statefulset-ordered-rollout', 'workloads-pvc-stickiness',
-  'workloads-deployment-rollback', 'workloads-cronjob', 'workloads-pod-startup-conditions',
-  'storage-volume-attach-limits', 'storage-volumeclaimtemplates', 'storage-pvc-retention-policy',
+  'workloads-pod-restart-policy',            // two filled path triangles, on the two restart arcs
+  'workloads-pod-startup-conditions',        // one polygon
 ]);
+
+// A chevron reaches the canvas in THREE shapes and R-08a used to see one of them. It tested
+// `<polygon>` only, so a `<polyline>` V and a closed `<path>` triangle both walked past it: on
+// 2026-09-05 that was five of the six chevrons in the catalog, and the comment above this list
+// asserted "only one poster draws one" because of it. What separates a chevron from an honest
+// drawing is SIZE and SYMMETRY, not the tag:
+//   - a polyline of exactly three points whose two legs are both short and near-equal. The elbow
+//     connectors in storage and network run 30 to 73 units on a leg, and the three tick marks on
+//     `workloads-job-parallelism` are 9.9 against 21.9, so neither shape reaches this.
+//   - a path that closes (`Z`) on three points or fewer and fills with `currentColor`. The
+//     cylinders and brackets elsewhere close too, but they fill with a literal `rgba()` and carry
+//     arcs, so the fill is what separates them.
+const CHEV_LEG = 15;      // units. The longest real chevron leg in the catalog is 6.4
+const CHEV_RATIO = 1.3;   // a chevron is symmetric. A short elbow is not
+
+const pointsOf = s => {
+  const n = s.trim().split(/[\s,]+/).map(Number);
+  const p = [];
+  for (let i = 0; i < n.length; i += 2) p.push([n[i], n[i + 1]]);
+  return p;
+};
+const legsOf = p => p.slice(1).map((q, i) => Math.hypot(q[0] - p[i][0], q[1] - p[i][1]));
+
+function chevrons(svg) {
+  const found = [];
+  for (const m of svg.matchAll(/<polygon\b[^>]*>/g)) found.push('polygon');
+  for (const m of svg.matchAll(/<polyline\b[^>]*\spoints="([^"]+)"[^>]*>/g)) {
+    const p = pointsOf(m[1]);
+    if (p.length !== 3) continue;
+    const [a, b] = legsOf(p);
+    if (a <= CHEV_LEG && b <= CHEV_LEG && Math.max(a, b) / Math.min(a, b) <= CHEV_RATIO) {
+      found.push('polyline chevron');
+    }
+  }
+  for (const m of svg.matchAll(/<path\b[^>]*>/g)) {
+    if (!/fill="currentColor"/.test(m[0])) continue;
+    const d = (m[0].match(/\sd="([^"]+)"/) || [])[1] || '';
+    if (!/[Zz]\s*$/.test(d.trim())) continue;
+    if ((d.match(/-?[\d.]+/g) || []).length / 2 <= 3) found.push('filled path triangle');
+  }
+  return found;
+}
 
 const posters = new Map();      // id -> { cat, svg }
 for (const cat of readdirSync(SCHEMES)) {
@@ -90,8 +131,8 @@ for (const id of ids) {
 
   // R-08 / R-08a: direction by composition, not by arrowhead.
   if (/marker-(end|start)=/.test(svg)) say('R-08', 'carries an arrow marker: direction comes from the composition, not from an arrowhead');
-  const tri = (svg.match(/<polygon\b/g) || []).length;
-  if (tri && !CHEVRON_OK.has(id)) say('R-08a', `carries ${tri} polygon(s): a chevron is earned only when the whole sentence IS a direction`);
+  const tri = chevrons(svg);
+  if (tri.length && !CHEVRON_OK.has(id)) say('R-08a', `carries ${tri.length} chevron(s) (${[...new Set(tri)].join(', ')}): a chevron is earned only when the whole sentence IS a direction`);
 
   // R-09: a filled dot sitting ON a wire reads as a paused animation.
   for (const c of circles) {
@@ -141,14 +182,18 @@ for (const id of ids) {
     if (cover < 0.22) say('R-06', `the drawing covers ${(cover * 100).toFixed(0)}% of the canvas (median is 51%): x ${bx[0]}..${bx[1]}, y ${by[0]}..${by[1]}, and dead air reads as a mistake`);
   }
 
-  // R-12: the note that explains the choice. Two shapes of record, the per-card file first.
-  const perCard = join(SCHEMES, cat, 'CARDS', `${id}.md`);
-  const md = existsSync(perCard) ? perCard : join(SCHEMES, cat, 'CARDS.md');
-  if (existsSync(md)) {
-    const rel = existsSync(perCard) ? `${cat}/CARDS/${id}.md` : `${cat}/CARDS.md`;
-    const section = (readFileSync(md, 'utf8').split(`## ${id}\n`)[1] || '').split('\n## ')[0];
-    if (!section) say('R-12', `no "## ${id}" section in ${rel}`);
-    else if (!section.includes('### poster')) say('R-12', 'the record has no "### poster" subsection explaining the choice');
+  // R-12: the note that explains the choice, in the two categories that still carry one. `cluster/`
+  // and `workloads/` records are a single `### layout` block and hold no poster note by design, so
+  // asking them for one is a finding on every card rather than a check.
+  if (cat === 'network' || cat === 'storage') {
+    const perCard = join(SCHEMES, cat, 'CARDS', `${id}.md`);
+    const md = existsSync(perCard) ? perCard : join(SCHEMES, cat, 'CARDS.md');
+    if (existsSync(md)) {
+      const rel = existsSync(perCard) ? `${cat}/CARDS/${id}.md` : `${cat}/CARDS.md`;
+      const section = (readFileSync(md, 'utf8').split(`## ${id}\n`)[1] || '').split('\n## ')[0];
+      if (!section) say('R-12', `no "## ${id}" section in ${rel}`);
+      else if (!section.includes('### poster')) say('R-12', 'the record has no "### poster" subsection explaining the choice');
+    }
   }
 
   if (out.length) {

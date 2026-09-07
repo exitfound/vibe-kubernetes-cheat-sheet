@@ -473,12 +473,13 @@ const CROSS_ROLE = {
   // Workloads cards draw the control plane that acts ON the Pod: Kubelet, the corridor it probes
   // down, and the pipeline ladder narrating Kubelet's work. Those belong to cluster, and painting
   // them workloads blue would claim the Pod admits and restarts itself.
-  // `storage` appears on ONE card, workloads-pvc-stickiness: a StatefulSet Pod keeps its PVC, so the
-  // volume, its two lanes and its three chips are storage's and are painted jade, not workloads blue.
+  // `cylinder -> cluster` is ETCD on workloads-graceful-shutdown: the store the API stamps the Pod
+  // object in belongs to the control plane, and a blue disk beside a violet API would claim the
+  // Pod keeps its own record.
   workloads: {
     box: ['cluster'], chain: ['cluster'], arrow: ['cluster'],
-    lane: ['cluster', 'storage'], relation: ['cluster', 'storage'],
-    chip: ['storage'], cylinder: ['storage'],
+    lane: ['cluster'], relation: ['cluster'],
+    cylinder: ['cluster'],
   },
 };
 

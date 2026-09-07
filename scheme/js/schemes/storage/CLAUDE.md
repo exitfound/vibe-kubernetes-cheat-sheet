@@ -84,7 +84,7 @@ is first-wins. `render/reduced.test.mjs` cannot see that rename at all: it keys 
 classes minus `highlight`, `data-role`, `data-idx`) and never reads a ref name. A wire that animates
 needs `F.run` at delay 0.
 
-**`reducedLit` is declared on ZERO steps here**, against 89 in network, 20 in workloads and 2 in
+**`reducedLit` is declared on ZERO steps here**, against 89 in network, 26 in workloads and 2 in
 cluster, and that is a measurement rather than an omission: of the 205 steps, **165 light something**,
 so `lights` names the receiver and `flowLights` derives the whole static path. The 6 that pulse and
 light nothing leave nothing behind on the animated path either, so there is nothing to mirror.

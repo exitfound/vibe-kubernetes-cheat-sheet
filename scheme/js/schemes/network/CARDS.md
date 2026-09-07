@@ -1084,6 +1084,10 @@ LANES    Every allocation arrow is DIM dashed with no colour override so the bri
          IPAM hand-out is revealed only on the final step, so its arrow starts hidden.
 MOTION   On the final step Node-1's Pod keeps its settled IP with no highlight and the action is on
          Node-2: a second Pod with a non-overlapping IP out of its own slice is what proves uniqueness.
+SCOPE    The POD address space only: the cluster CIDR, the per-Node podCIDR slice cut out of it and
+         the Pod IP the CNI IPAM draws from that slice. The Service range, its static and dynamic
+         bands and the ClusterIP an allocator picks out of them belong to `network-service-cidr`,
+         which reuses this composition for an address space that is never sliced per Node.
 NOT A DEFECT
          CENTRE-LOW is OPEN here. The four blocks below the overlay span 130..700, centre 415. The rule
          cannot see Node frames, so what it measures is the two Pods, and those sit in Node-1 and
@@ -1311,6 +1315,12 @@ NOTE     The veth path is `M 410 312 L 600 312`, 190 units long under a `5 5` da
 MOTION   The localhost hop is ONE ball that drops down the app tap, crosses the rail and climbs the
          sidecar tap, so a single motion traces both joins and the hop itself, and lo, the loopback
          that serves it, lights on arrival.
+SCOPE    This card draws the NAMESPACE. How the veth pair is built, where the Pod IP comes from and
+         what the host-side peer attaches to belong to `network-pod-ip-and-veth`, so the cable
+         appears here only as the one door the namespace has. The call between two containers over
+         127.0.0.1, the bind conflict and which container answers belong to `network-pod-localhost`,
+         so this card draws the JOIN and not the call. The localhost hop on `shared` is drawn here as
+         evidence that the two containers sit on one stack, not as a lesson about localhost.
 NOTE     `portChip` is DECLARED `shared`, the value four of the five steps write. It was declared
          `private`, a string no step ever wrote: `app.js` calls `gotoStep(0)` the moment the dialog
          opens, so step 0 statics overwrite the declared value before the first frame, and a settled
@@ -1366,8 +1376,8 @@ about the Pod centre.
 ### layout
 
 ```
-WHAT     The missing floor under every other Network Foundations card. Those name an OPERATION on a
-         packet (kube-proxy DNATs, conntrack pins the flow, egress MASQUERADEs) without saying WHERE
+WHAT     The missing floor under every other packet-path card in Network. Those name an OPERATION on
+         a packet (kube-proxy DNATs, conntrack pins the flow, egress MASQUERADEs) without saying WHERE
          in the kernel it runs. This is the hooks, in order, with the packet walking them:
          PREROUTING, the routing decision, FORWARD, POSTROUTING, the wire.
 LAYOUT   The order is the lesson, so the whole composition is one left-to-right chain and the packet
@@ -1711,11 +1721,44 @@ Pod, masq and internet share one centre row.
 WHAT     Where a Pod IP comes from and what the veth pair actually is.
 LAYOUT   The Node and everything inside it sit in the y228..528 band, with a gap to the chip strip at
          y560, so the CNI plugin stays inside the Node box and nothing touches the panel.
+LANES    Three connectors, and exactly ONE of them changes weight. The veth cable sits at
+         `OPACITY.notready` on `sandbox` and at 1 on the other three steps. The pair is created by the
+         CNI ADD on the NEXT step, so on `sandbox` the cable does not exist, the narration names it as
+         one of the two things that are not there yet (`Pause is there so the address and the cable
+         have somewhere to land`) and `veth pair` reads `none` in the strip directly under it. Drawn
+         at 1 it is the longest and loudest line on the frame while that sentence is on screen.
+         `notready` 0.40 rather than 0, because C-14 wants an absent thing DIM and not cut out: a hole
+         where a cable joins two drawn blocks reads as a rendering fault.
+         MEASURED, composite stroke alpha (the computed `stroke` alpha times `stroke-opacity` times the
+         `effectiveOpacity` chain), identical at 1600x1000 and at 1100x800:
+           veth cable on `sandbox`       0.40   painted rgb(79,229,255)
+           veth cable on the other 3     1.0    painted rgb(79,229,255)
+           loopback relation at rest     0.45   painted rgb(79,229,255)
+         The dim therefore lands one notch under the faintest interior line rather than below it, and
+         every dash plus the arrowhead still reads at all three viewports.
+         ALL FOUR steps state `vethWire`, because the `opacity` field writes an inline `style.opacity`
+         that would otherwise carry 0.40 forward into `cni-add`. Under `reducedMotion`, stepping
+         forward, stepping back and resetting all land on the value the step being entered states.
+         THE RESIDUE, and it is deliberate. The CNI exec lane from the plugin down to `cni0` keeps full
+         weight. It is the standing call path to a bridge that predates the Pod rather than something
+         the CNI ADD creates, and `cni-add` opens by sending its first ball along it, so dimming it
+         would deny the call on the frame before the one that makes it. The loopback between `app` and
+         `pause` keeps its 0.45 rest shade, raised only on `shared`: it is not a line drawn at ordinary
+         strength, and taking it lower is the hole C-14 forbids. The poster keeps the cable at 1, since
+         step 0 draws the cast at rest and the sentence on it previews step 1 rather than making a
+         claim of its own.
 WHY NOT  The row at 150..960 inside a frame spanning 80..1120: that is 70 of margin on the left
          against 160 on the right, which CENTRE-LOW reports as a bbox centred on 555.
 MOTION   No pulses on this sequence, just persistent highlight borders like the workloads cards: the
          app block lights first and stays lit, then the loopback ball travels, then the pause block
          lights on arrival.
+SCOPE    This card owns the CNI ADD and the allocation: what one call produces, where the address is
+         drawn from, what the host end attaches to, and that the unit of allocation is the Pod. The
+         namespace as a private stack, its single door and its lifetime belong to
+         `network-namespaces`, and the call over 127.0.0.1, the shared port space, the bind conflict
+         and which container answers on the Pod IP belong to `network-pod-localhost`. The loopback
+         hop on `shared` is drawn here as evidence that one address covers both containers, not as a
+         lesson about localhost.
 ```
 
 ### before `rewind: { chips: { ipChip: 'none', vethChip: 'none' }, wires: { veth: '' }, podSublabels: { podShell: 'netns: open' } },`
@@ -1759,6 +1802,24 @@ LANES    The localhost lane never leaves the Pod and is served by lo. The destin
          external lane rides ON the ball, so there is no static inline label to collide with anything.
 MOTION   The shared eth0 lights with the answering app on arrival, because the point of the card is
          that both containers are served by that one interface.
+CONTENT  A bind is to an (address, port) PAIR and not to a port. `man 7 ip` states that only one IP
+         socket may be bound to any given local (address, port) pair, and `man 2 bind` reports
+         EADDRINUSE as an ADDRESS already in use. So the ports step closes on `A bind claims an
+         address and a port together, so the two containers divide the ports between them`, which
+         asserts no impossibility and describes what the frame already draws: app :8080 beside
+         sidecar proxy :15001, two ports divided between two containers. The `desc` carries the
+         same non-absolute form for the same reason. SO_REUSEPORT (`man 7 socket`, Linux 3.9)
+         permits several sockets on an identical address and is the second counter-case,
+         deliberately NOT named: it is a socket option that behaves the same for two processes in
+         one container and on a bare host, so it says nothing about the shared namespace, and it
+         cannot be stated correctly in one clause because it also requires every binding process
+         to hold the same effective UID, which two containers with different runAsUser do not. A
+         rewrite that restores `cannot both listen on the same port` re-opens both counter-cases.
+SCOPE    This card owns THE CALL: 127.0.0.1, the one port space the two containers share, the bind
+         conflict that follows from it, and which of them answers on the Pod IP. The namespace as a
+         private stack, its single door and its lifetime belong to `network-namespaces`, and the CNI
+         ADD, the IPAM draw, the veth pair and its cni0 attachment belong to `network-pod-ip-and-veth`.
+         eth0 appears here only as the interface the outside call lands on.
 ```
 
 ### poster
@@ -1847,6 +1908,9 @@ LANES    One horizontal DISTRIBUTION RAIL per fork, mirroring ipam-pod-cidr, wit
          than as a stray top-right box.
 MOTION   There are no Pods on this card, so nothing pulses: motion is packets plus a box highlight
          plus the arrival ripple.
+SCOPE    The SERVICE address space only: one cluster-wide range, its static and dynamic bands and
+         the ClusterIP that comes out of them. Nothing here is cut per Node, and the per-Node podCIDR
+         slice with the Pod IP the CNI IPAM draws from it belongs to `network-ipam-pod-cidr`.
 NOTE     The IPAddress chip is a FULL-WIDTH bottom strip (SCHEME_L..SCHEME_R). A lone 280-wide chip at
          800..1080 is a chip strip centred on 940, and its value (10.96.137.42 . default/web) did not
          fit beside its own name in 280: the one chipfit collision the catalog carried. The binding to

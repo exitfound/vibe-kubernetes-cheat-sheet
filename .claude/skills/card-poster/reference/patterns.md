@@ -126,6 +126,19 @@ card is about.
 **Fails when:** the two sides are drawn with different vocabularies. The reader then compares
 drawings instead of behaviours.
 
+**The split can run along Y instead of X**, two zones stacked on one x and fed from a shared source
+on the left. Take the stacked reading when the card's own diagram already splits left and right, or
+when a grid neighbour does: side by side, the two would read as cousins at 200px. Stacked, the
+reader compares straight DOWN one x rather than tracing which column is which, which is also what
+makes it survive a comparison of more than two things later. `workloads-deployment-strategy` is the
+first stacked one and the family's first user outside storage and cluster.
+
+**One zone may hold nothing, and that is the hardest half to draw.** An empty zone must be a
+POSITIVE mark: the same frame at the same weight with dashed hollows where the other zone has filled
+cells. Do not carry the void on a dashed FRAME while the full zone gets a solid one, because a dash
+is the first thing 200px eats and the reader is then left with one drawn zone and one that looks
+unrendered. Ink against no ink inside two identical frames survives any downsample.
+
 ## Ghost zone to solid zone
 
 **Says:** it leaves there and arrives here, or it fails there and survives here.
@@ -149,8 +162,8 @@ other at the sibling fill. No arrowheads: the fork reads from the geometry.
 
 **Build:** four or five stations on a circle of radius 55 to 70 centred at (160, 90), joined by arcs
 that leave a visible gap at the station. The accent goes on the station the card is about, not on
-the arc. `R-08a` allows ONE chevron here when the whole sentence is the direction of travel, and 11
-posters in the catalog have earned that.
+the arc. `R-08a` allows ONE chevron here when the whole sentence is the direction of travel, and the
+registry in `poster-lint.mjs` names the two posters that have earned it.
 
 **Fails when:** the ring closes into a solid circle. A perfect annulus reads as a shape, not a loop.
 
@@ -201,6 +214,25 @@ height disappears.
 **Not to be confused with Rank ladder**, which uses column geometry for an ORDERING rather than a
 fraction: there the whole column height is the value and there is no inner fill at all.
 
+## Stepped counts
+
+**Says:** a quantity moves between two states, and the two states are a COUNT of discrete things
+rather than a proportion.
+
+**Build:** two stacks of unit cells on one baseline, the cells identical and separated by a real
+gap, crossed by a single horizontal rule at the reference value. One stack sits at the rule and the
+other stands one cell above it. Accent at 0.9 on the single cell that breaks the rule, every other
+cell carrying the same bar at 0.3.
+
+**Not to be confused with Gauge columns**, where the value is a fill height inside a column, or with
+Rank ladder, where height is an ordering. Here the value is how many cells you can COUNT, so the
+cells have to separate at true size: `workloads-rolling-update` measured 17.5px cells on 7.5px gaps.
+
+**Fails when:** there are three stacks instead of two. Three equal-based stacks of near-equal height
+read as a GRID with something floating above it, and the counts become a table rather than three
+quantities. That was a real failure on the first draw of `workloads-rolling-update` and the fix was
+to drop to the two states that differ, never to shrink the cells until three fit.
+
 ## Fan
 
 **Says:** one source reaches many, or many sources land in one place.
@@ -226,6 +258,27 @@ outranks, and the loser at the bottom of the ladder takes a break glyph instead 
 against it: the subject standing outside its container, and the gap between the subject and the
 tallest of the ranked staying wide. Close that gap to parity and the sentence goes. Do not order the
 ranked ones non-monotonically to shorten a leg: the ladder is the whole argument.
+
+## Stepped rank
+
+**Says:** one object moved from one rank to another, and it is the same object.
+
+**Build:** three EQUAL blocks at the house size, no shared baseline and no inner fill, each one
+higher than the last so position alone carries the rank. One rung is a dashed empty outline where a
+block used to be, and a solid leg runs from that vacancy to the block that now holds the higher
+rank. Accent at 0.9 inside the block on the top rung.
+
+**Not to be confused with Rank ladder**, which is columns on ONE baseline where HEIGHT is the value.
+Here the blocks are identical and only their POSITION moves, which is what lets the drawing say the
+object did not change while its rank did. Calling this one a rank ladder falsifies that entry and
+invites a later reader to "correct" the blocks into columns.
+
+**Fails when:** the vacancy and the leg are drawn at the same weight as each other and as the
+blocks. They then read as one run of plumbing under the drawing rather than as one object's move,
+which is what happened on the first draw of `workloads-deployment-rollback`. The blocks' own rise
+states the rank, so a stepped profile line under them is redundant and it is what to delete. Also
+fails at more than three rungs: five blocks at the house size need a NEGATIVE gap on a 320 canvas,
+so the rung count gives way, never the block size.
 
 ## Held object
 

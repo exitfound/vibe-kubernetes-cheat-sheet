@@ -14,19 +14,24 @@ rule. Where an id could name two different rules, the FOLDER keeps it: `WL.L-03`
 
 | File | Owns |
 |---|---|
-| `cards.js` | the 27 `SCHEMES` entries and the `SUBCATEGORIES` list for this category |
-| `posters.js` | the 27 grid thumbnails, keyed by card id |
+| `cards.js` | the 32 `SCHEMES` entries and the `SUBCATEGORIES` list for this category |
+| `posters.js` | the 32 grid thumbnails, keyed by card id |
 | `workloads-kit.js` | the tint, the two pulse wrappers, the `WL` layout constants and the `LAYOUT` A/B/C column presets, plus the `P` / `F` / `defineCard` bindings; everything else is re-exported from `lib/scheme-kit.js` and `lib/layout.js` |
 | `workloads-*.js` | one module per card |
 | `CARDS.md` | the record's preamble and its index, and no `## ` heading of its own |
-| `CARDS/<id>.md` | the design record for ONE card. This category and `cluster/` are the two in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` is what reads the shape off the tree |
+| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. This category and `cluster/` are the two in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` is what reads the shape off the tree |
 
-A card reaches `./workloads-kit.js` and no further (`S-21`): all 27 import the kit, 4 also import
+A card reaches `./workloads-kit.js` and no further (`S-21`): all 32 import the kit, 14 also import
 `lib/svg.js` and 6 `lib/primitives.js`. Those are element constructors no part kind builds, and they
-are on the cards that draw raw SVG: `rect` and `path` from `lib/svg.js` on `effective-pod-requests`,
-`env-before-pid-1`, `image-pull-registry-auth` and `pod-startup-conditions`, and `chip` or `box`
-from `lib/primitives.js` on `crashloopbackoff`, `cronjob`, `ephemeral-containers`,
-`init-containers-and-sidecars`, `pod-startup-conditions` and `termination-order`. Nothing else may live here (`S-20`).
+are on the cards that draw raw SVG: `g`, `rect`, `path` and `text` from `lib/svg.js` on
+`crashloopbackoff`, `cronjob`, `deployment-strategy`, `effective-pod-requests`, `env-before-pid-1`,
+`ephemeral-containers`, `force-deletion`, `image-pull-registry-auth`, `pod-startup-conditions`,
+`job-parallelism`, `poststart-prestop-hooks`, `replicaset`, `rolling-update` and
+`termination-order`, in a mix per
+card: `rect` reaches 11 of the fourteen, `g` 9, `text` 8 and `path` 3,
+and `chip` or `box` from `lib/primitives.js` on `container-states`, `ephemeral-containers`,
+`init-containers-and-sidecars`, `pod-pending-init-states`, `pod-startup-conditions` and
+`termination-order`. Nothing else may live here (`S-20`).
 
 ## Tint (`WL.C-01`)
 
@@ -53,8 +58,8 @@ own elements, so every surviving `role:` literal is a deliberate cross-category 
 | key | label | cards | what belongs here |
 |---|---|---|---|
 | `pods-bootstrap` | Pods Bootstrap | 8 | anything that has to be settled before the app container is running: what is holding a Pod that is not Running yet, the gates and the conditions it clears before a Node is chosen, what the Scheduler reserves for it, image pull, init and sidecar ordering, the environment assembled at launch, and the QoS class it is born with. A subject is admitted only if it finishes at or before the first app container process starts |
-| `pods-lifecycle` | Pods Lifecycle | 11 | one Pod's own state machine: phases, restart policy, hooks, probes, container states, crash loops, in-place resize, shutdown, force deletion |
-| `controllers` | Controllers | 8 | an object that manages Pods rather than being one: Deployment, ReplicaSet, StatefulSet, DaemonSet, Job, CronJob |
+| `pods-lifecycle` | Pods Lifecycle | 12 | one Pod's own state machine: phases, restart policy, hooks, probes, container states, crash loops, in-place resize, shutdown, force deletion, and what removes the object once the Pod is done |
+| `controllers` | Controllers | 10 | an object that manages Pods rather than being one: Deployment, ReplicaSet, StatefulSet, DaemonSet, Job, CronJob |
 
 The line between the first two is whether the app container has started.
 
@@ -64,34 +69,42 @@ The line between the first two is whether the app container has started.
 of this folder, the deviation is named HERE and in its own record, beside the shape a copy takes
 instead.** Naming it is not a licence to leave it: it is what stops the next card inheriting it.
 
-`workloads-probes.js`, 182 lines and fully declarative. **New cards go in this form.** Copy its
-shape rather than inventing one:
+`workloads-pod-startup-conditions.js`, 242 lines and fully declarative. **New cards go in this
+form.** Copy its shape rather than inventing one:
 
-- One import line from `./workloads-kit.js`, the `S-36` pointer comment, the geometry header,
-  `SCENE`, step-local constants, `STEPS_SPEC`, then `init` last.
+- One import line from `./workloads-kit.js`, plus `lib/svg.js` and `lib/primitives.js` where a `raw`
+  factory needs them, the `S-36` pointer comment, the geometry header, `SCENE`, step-local
+  constants, `STEPS_SPEC`, then `init` last.
 - The header keeps its MEASURED numbers as literals with their comments (`L-07`) and derives the
-  rest through the kit's formulas. Columns come from `LAYOUT.A`, never from a raw x.
+  rest through the kit's formulas, and it is written in BANDS: each band opens with a comment saying
+  what it is and why it sits where it does.
 - `SCENE.parts` is an ordered list and the order IS the z-order, so it reproduces what a
   hand-written `build()` said by where a line sat. `reset.keys` and `reset.pods` are written out.
-- The vertical down/up connector is a PAIR of lanes, one of them built at `opacity: 0`, and the step
-  field `opacity: { connectorDown, connectorUp }` picks which is visible. The card states that pair
-  once, in a `corridor(dir)` helper that RETURNS an object of fields: that shape (IV.7) is how every
-  imperative writer in this category was replaced, and it keeps `A-16` in one place.
-- Its four `role: 'cluster'` overrides are what a workloads card looks like when it draws the
-  control plane acting ON the Pod.
+- Its corridor is `[[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X, NODE_Y]]`, ending on the Node FRAME
+  face and never on the Pod inside it, which is `WL.A-03` done right. This is the reason the
+  exemplar is this card.
+- The actor row is a PAIR at 232 wide, the left box centred on `WL.CX` because `WL.L-07` needs the
+  spine to leave a face midpoint, the right box right-aligned on `WL.R` where the chip column below
+  it also ends.
+- It takes NO `LAYOUT` preset and says so in its record: A / B / C choose which column holds the
+  ladder and which the chips, and a card carrying neither has nothing for them to choose. Copying
+  the exemplar is copying its SHAPE, never its arrangement.
 
-**The one thing not to copy.** Its corridor ends on the Pod top midpoint at y 518 rather than on the
-Node frame face at 496, so the exemplar is one of the 12 cards `WL.A-03` puts in the queue. A new
-card takes the same corridor to the frame instead, `[[WL.SPINE_X, WL.TOP_BOTTOM], [WL.SPINE_X,
-NODE_Y]]`: the frame there is already full width, so its top midpoint is `WL.SPINE_X` and no block
-moves. It is a TIMING change, because `routeDur` is length-based (`A-11`), so the spans are re-read
-after it. `workloads-pod-startup-conditions` is the card to read for the corridor done that way.
+**The one thing not to copy.** Its `P.raw` staircase is five treads plus two rail segments built by
+one factory, and a factory bypasses the kit binding, so every one of those calls writes its own
+`role:` by hand. That is the price of a raw instrument and not a pattern: a card whose blocks are
+blocks takes `P.box` and writes no role at all.
+
+**`workloads-probes` was the exemplar until its redesign** and is no longer one. It now carries
+seven lanes and a three-lane fan that no other card in this category has, which is a composition
+answering its own subject rather than a shape to copy, and copying it would converge the section on
+a fan. Its corridor pair idiom survives the move and is described above.
 
 ## Rules of this category only (`WL.*`)
 
 ### The layout canon (`WL.L-01`)
 
-The X grammar all 27 workloads cards share, exported from `workloads-kit.js`. Y values stay per
+The X grammar all 32 workloads cards share, exported from `workloads-kit.js`. Y values stay per
 card, because each card's panel bottom is its own measurement (`L-04`).
 
 ```js
@@ -106,8 +119,8 @@ LAYOUT = { A: { ladder: WL.COL_L, chips: WL.COL_R },
 ```
 
 **The columns are named by POSITION, and that is the whole reason `LAYOUT` exists.** A role name
-(`LADDER_X`, `CHIP_X`) states the job that column holds in layout A, and B and C dominate: on 16 of
-the 20 cards that take a preset at all, such a name states the opposite of what it does. Picking a
+(`LADDER_X`, `CHIP_X`) states the job that column holds in layout A, and B and C dominate: on 15 of
+the 17 cards that take a preset at all, such a name states the opposite of what it does. Picking a
 layout is one edit, `LAYOUT.A` / `.B` / `.C`, and no role-named column key belongs here.
 
 The shape is an actor row clear of the narration panel, a pipeline ladder and a chip column
@@ -120,12 +133,12 @@ construction.
 | `WL.L-03` | **A** (`LAYOUT.A`) ladder left, chips right, Node on the floor. Needs `PANEL_B + 20 + LADDER_H + 20 + NODE_H <= 630` |
 | `WL.L-04` | **B** (`LAYOUT.B`) the mirror, chips left and ladder right. **This is the common case, not A**: a 4-chip column is 160 tall where a 5-row ladder is 200, and the band left free below a real panel is at most about 214 |
 | `WL.L-05` | **C** (`LAYOUT.C`) tall panel, neither column fits below it: ladder right, Node just under the panel, chips as a full-width bottom strip **two or three per row** (532 or 350.7 wide). Never four or five across: 258 and 205 are narrower than the strings, and that produced 79 chip collisions |
-| `WL.L-06` | The choice itself is `L-08a`, which cluster obeys too. What is workloads alone: the split over these 27 cards, measured A 4, B 7, C 9, and 7 that read no preset at all and state their own geometry, because a card carrying neither a ladder nor a flanking chip column has no columns for A / B / C to choose between |
+| `WL.L-06` | The choice itself is `L-08a`, which cluster obeys too. What is workloads alone: the split over these 32 cards, measured off the CODE with comments stripped, A 0, B 2, C 8, and 22 that read no preset at all and state their own geometry, because a card carrying neither a ladder nor a flanking chip column has no columns for A / B / C to choose between. Comments are stripped because five cards name a preset only in one (`workloads-deployment-strategy`, `workloads-env-before-pid-1`, `workloads-pod-pending-init-states`, `workloads-pod-resize` and `workloads-pod-scheduling-gates`), and a mention is not a read. TWO of the eight C readers, `workloads-finished-job-cleanup` and `workloads-deployment-rollback`, take only `LAYOUT.C.strip.two` and no column at all: neither carries a ladder or a flanking column, and each reads C purely for the WL.L-05 two-across chip width. Nothing in `test/fixtures/census.mjs` guards this split the way it guards cluster's, so it is re-measured by hand |
 | `WL.L-07` | The trunk has to run in the `540..660` corridor to clear both columns and still leave a face midpoint, so **the actor box it leaves must be centred on `WL.SPINE_X`**. That is why several cards carry a first actor box of `420..780` rather than `420..640` |
-| `WL.A-01` | The top-row lane PAIR: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API and `RESP_Y = TOP_CY + LANE_DY` carries the answer back. Measured over the 27: **17 draw the pair and 12 of those ride the answer**, and `workloads-pod-qos-classes` is the one card that rides a single answer lane on `TOP_CY` with no pair at all, because no step of it names anything going the other way. Whether the answer lane is an arrow or a relation is decided by the step's own words (`A-06`) |
+| `WL.A-01` | The top-row lane PAIR: `REQ_Y = TOP_CY - LANE_DY` carries the request to the API and `RESP_Y = TOP_CY + LANE_DY` carries the answer back. Measured over the 32: **17 draw the pair and 13 of those ride the answer**, and `workloads-pod-qos-classes` is the one card that rides a single answer lane on `TOP_CY` with no pair at all, because no step of it names anything going the other way. Whether the answer lane is an arrow or a relation is decided by the step's own words (`A-06`) |
 | `WL.A-02` | **The top-row wire label goes ABOVE the actor row**, at `WIRE_Y = WL.TOP_Y - 12`, never below it. Below, centred at `WIRE_X` on y=146, it lands on the lane and across the spine's step. Nine cards carry that constant identically |
-| `WL.A-03` | **A lane between the actor row and the Node band ends on the FRAME face midpoint, in both directions**, never on a Pod inside the frame. This is the cluster grammar and it holds here too: an endpoint on `POD_Y` makes the lane pierce the frame it crosses, which draws the Kubelet reaching THROUGH the Node rather than acting on it. The frame's top midpoint therefore has to equal `WL.SPINE_X`, so a frame narrower than the full width is centred on `WL.CX`. The catalog is NOT converted, and `report/frame-face.test.mjs` prints the queue: 11 cards here still end on `POD_Y`, against 8 already on the rule (`workloads-ephemeral-containers`, `workloads-image-pull-registry-auth`, `workloads-init-containers-and-sidecars`, `workloads-pod-qos-classes`, `workloads-pod-resize`, `workloads-pod-pending-init-states`, `workloads-pod-startup-conditions`, `workloads-termination-order`), 4 whose every frame lane runs on the ground and is out of the rule's reach, and 4 that draw no `node()` frame at all, so nothing on them can meet it. Nothing in the suite can see either shape, because `check-geometry` scores where a lane ENDS and both endpoints are legal to it |
-| `WL.S-03` | **A record opens on `WHAT`, uses the canon's labels in the canon's ORDER, and puts every `###` heading at the start of its own line.** All three were broken here and none is now: three records ran their labels out of order, and one `### poster` was glued to the closing fence of its `### layout`, which made it invisible to every `^### ` reader in the tree including the record walk itself. These records sit at about half the length of cluster's and twice network's. **A `PANEL` block is NOT mandatory here, and that is the difference from cluster**: 12 of the 27 carry one, because a panel reading is taken where the panel BINDS the geometry and the number is load-bearing. The other 15 are instruments, tables and staircases whose band is set by their own content, and a measured extent on one of those would be a form filled in rather than a note taken. What every record does carry is a `### poster` block, 27 of 27 |
+| `WL.A-03` | **A lane between the actor row and the Node band ends on the FRAME face midpoint, in both directions**, never on a Pod inside the frame. This is the cluster grammar and it holds here too: an endpoint on `POD_Y` makes the lane pierce the frame it crosses, which draws the Kubelet reaching THROUGH the Node rather than acting on it. The frame's top midpoint therefore has to equal `WL.SPINE_X`, so a frame narrower than the full width is centred on `WL.CX`. The catalog is NOT converted, and `report/frame-face.test.mjs` prints the queue: NO card here still ends on `POD_Y`, against 12 already on the rule (`workloads-daemonset`, `workloads-ephemeral-containers`, `workloads-finished-job-cleanup`, `workloads-force-deletion`, `workloads-graceful-shutdown`, `workloads-image-pull-registry-auth`, `workloads-init-containers-and-sidecars`, `workloads-pod-qos-classes`, `workloads-pod-resize`, `workloads-pod-pending-init-states`, `workloads-pod-startup-conditions`, `workloads-termination-order`), 4 whose every frame lane runs on the ground and is out of the rule's reach (`workloads-crashloopbackoff` among them: its Kubelet sits inside the frame), 1 whose only lane across the frame edge leaves the interior UPWARD, the Kubelet inside it reporting out (`workloads-container-states`, which the report prints apart as interior), and 15 that draw no `node()` frame at all, so nothing on them can meet it (`workloads-pod-replacement-guarantees` is the newest of them: its five columns are five unrelated owners, so a frame anywhere on it would say two of those five Pods share a Node, which nothing about five separate controllers promises, and the one Node it names is named in words. `workloads-statefulset-update-strategy`: its two Pod slots are the maxUnavailable BUDGET drawn as places, so a frame around the pair would say the two unavailable Pods share a Node, which nothing about an update promises. `workloads-cronjob`: its seven slots are the seven TICKS of a schedule rather than seven places, so one frame around the row would say the runs share a Node, which a CronJob does not promise, and the card was the last member of the queue above until its redesign took the frame out. `workloads-job-parallelism` is an instrument panel whose three worker slots are the `parallelism` cap drawn as a length, so a frame around all three would say a Job promises they share a Node, which it does not. `workloads-statefulset-ordered-rollout` carries the same argument, three ordinal columns whose subject is the ORDER they are created in and not where they run, so one frame around all three would say they share a Node, which a StatefulSet does not promise. `workloads-deployment-rollback` is an object board whose whole cast is a Deployment and four ReplicaSets, and `workloads-replicaset` states the argument they share: the subject is which ReplicaSet owns how many Pods and not where they run, so a frame there is a block no step narrates, and on `rolling-update` one frame spanning both owner columns would say the split is by Node). Nothing in the suite can see either shape, because `check-geometry` scores where a lane ENDS and both endpoints are legal to it |
+| `WL.S-03` | **A record opens on `WHAT`, uses the canon's labels in the canon's ORDER, uses each at most once, and carries no heading but `### layout`.** That half is `S-51` and `S-52` catalog-wide, held on all 32 of these by `test:docs/G1` and `test:docs/G2`. What stays workloads-only is the panel reading below. A heading written onto the end of the closing fence above it is swallowed by that fence and is invisible to every `^### ` reader in the tree, the record walk included. Every record here carries a `PANEL` block, 32 of 32, naming the command that prints the extent rather than storing a number that goes stale with the next prose edit. These records are the longest in the catalogue after cluster's |
 | `WL.S-01` | Each card owns its own `SPINE` points array, and the same array feeds both the drawn wire and the ball. **There is no shared connector helper, and there must not be one**: a helper holding the ball's points in the kit while the card holds the wire's leaves two independent copies of the same numbers |
 
 `WL.L-05` is the rule that cost the most: stretching the chip strip to straddle 600 closes a
@@ -134,39 +147,58 @@ rejected under `L-16`.
 
 ## The escape hooks this category still needs
 
-All 27 cards are in the declarative form. **16 are fully declarative**; eleven carry a hook, and each
+All 32 cards are in the declarative form. **8 are fully declarative**; 24 carry a hook, and each
 exists for something with no honest general verb. `step.enter`, `step.motion`, `F.run` and
 `reset.extra` are used by NOBODY here, and migrating the category required the DSL to grow zero times.
 
 | Card | Hook | What it wraps, and why no field expresses it |
 |---|---|---|
-| `workloads-crashloopbackoff` | `P.raw`, one factory over six rungs | The backoff ladder is built from `chip()` in `primitives.js`, a label-only chip no part kind builds. The six rungs carry their own keys (`rung0..rung5`), which is what `lit` and `reset.keys` address. No array ref is collected: nothing would read it |
-| `workloads-cronjob` | `P.raw`, one factory over six rungs | The identical construct, for the schedule ticks, with keys `tick0..tick5` |
+| `workloads-crashloopbackoff` | `P.raw`, one factory over nine bars plus the axis and the ceiling rule | The backoff instrument is naked rects: a `box()` would be scored as a block by the geometry probe and as a body by `CENTRE`, and a bar 8 units tall is neither. Each bar sits in a keyed `P.group` (`bar0..bar8`) with its own `P.tag`, which is what `opacity` addresses per step |
+| `workloads-cronjob` | `P.raw`, one factory over the time axis, a second over the seven slot cells and a third over the four verdict marks | The axis is a 2 unit rule with seven graduations and their tick labels, and a slot cell is a fill-less outline the size of a Job: a `box()` would be scored as a block by the geometry probe and as a body by `CENTRE`, and neither a graduation nor an empty cell is one. Axis and cells are unkeyed because they are true on every step and nothing addresses them, and the cells are also what every tap LANDS on, so no arrowhead points at blank canvas while a create is in flight. A verdict mark is a word plus its cause, keyed `mark0`, `mark1`, `mark5` and `mark6`, which is what `opacity` and `F.reveal` address per step: a word with no second line cannot tell four of them apart, so the pair reveals as one group. Like `workloads-effective-pod-requests` all three factories write no `role:` and carry no painted class, so `probePaint` never walks them. It takes no `part.tune`: its four lanes are whole arrays per tapped slot, so every one of them ENDS on a slot and keeps the arrowhead `pathArrow` attaches |
 | `workloads-init-containers-and-sidecars` | `part.tune` on the `P.pod` | The Pod holds FOUR peer container boxes; `buildPod` carries exactly one `inner` and would hand it the Pod's own role, turning four `role: 'cluster'` boxes blue. They must also sit inside the shell group, because `pulsePod` reaches only what the Pod contains |
-| `workloads-ephemeral-containers` | `part.tune` on the `P.pod` | The Pod holds TWO peer container boxes and `buildPod` carries exactly one `inner`. The second one sits inside the shell group, because `pulsePod` reaches only what the Pod contains and the step that starts it blinks the Pod with the new box already in it. `box()` defaults its role to the empty string, so the kit binding is written out by hand |
-| `workloads-termination-order` | `part.tune` on the `P.pod` | The Pod holds THREE peer container boxes stacked in spec order and `buildPod` carries exactly one `inner`. All three sit inside the shell group, because `pulsePod` reaches only what the Pod contains and the step that marks the Pod terminating blinks every container with it. `box()` defaults its role to the empty string, so the kit binding is written out by hand three times |
-| `workloads-image-pull-registry-auth` | `P.raw` | The registry cloud is a bare `<path>`, the only one in the category, and the only card importing `path` from `lib/svg.js` |
+| `workloads-container-states` | `part.tune` on the `P.pod` | The Pod holds TWO peer container boxes, the live instance and the previous one, and `buildPod` carries exactly one `inner`. The second sits inside the shell group, because `pulsePod` reaches only what the Pod contains and the crash blinks the Pod with both instances in it. `box()` defaults its role to the empty string, so the kit binding is written out by hand |
+| `workloads-pod-pending-init-states` | `part.tune` on the `P.pod` | The Pod holds THREE peer container boxes, the two init containers the STATUS counter counts and the app they gate, and `buildPod` carries exactly one `inner`. All three sit inside the shell group, because `pulsePod` reaches only what the Pod contains and every Kubelet arrival blinks the Pod with them in it. `box()` defaults its role to the empty string, so the kit binding is written out by hand three times |
+| `workloads-ephemeral-containers` | `part.tune` on the `P.pod`, and on the trunk and the bus | The Pod holds TWO peer container boxes inside a dashed namespace region and `buildPod` carries exactly one `inner`. The second box and the region sit inside the shell group, because `pulsePod` reaches only what the Pod contains and the step that starts it blinks the Pod with the new box already in it. The region is a naked `rect` plus a caption, grouped so it fades as one, built inside the same `tune` rather than as a `P.raw` because it has to sit UNDER the app box the builder already made. `box()` defaults its role to the empty string, so the kit binding is written out by hand. The trunk and the bus carry every fan ball, and `tune` drops their marker the way `workloads-pod-qos-classes` does |
+| `workloads-termination-order` | `part.tune` on the `P.pod` | The Pod holds FIVE peer container boxes in two zones, a caption over each zone and the gate rule between them, and `buildPod` carries exactly one `inner`. All eight sit inside the shell group, because `pulsePod` reaches only what the Pod contains and the step that marks the Pod terminating blinks the whole assembly with it. `box()` defaults its role to the empty string, so the kit binding is written out by hand in the one `container` factory the five boxes share |
+| `workloads-poststart-prestop-hooks` | `P.raw`, one factory over seven bars, a second over four ticks, plus the axis | The container-lifetime rail is naked rects: a `box()` would be scored as a block by the geometry probe and as a body by `CENTRE`, and an 18 unit tread is neither. A tick is its rule AND its word in one keyed `g`, because a mark with no label is a decoration and the two have to reveal together. Every bar and tick carries its own key, which is what `opacity` and `F.reveal` address per step |
+| `workloads-image-pull-registry-auth` | `P.raw` | The registry cloud is a bare `<path>`, the only CLOSED outline drawn that way here: the other two `path` importers, `workloads-force-deletion` and `workloads-termination-order`, draw open segments, a cross and a rail |
+| `workloads-replicaset` | `P.raw`, one factory over the two ownership bands and one over the count mark, plus `part.tune` on the trunk and both bus segments | A band is a fill-less dashed boundary with a caption, which no part kind builds, and a `node()` there would draw a Node the card is not about. The mark is a 2 unit bar: a `box()` would be scored as a block by the geometry probe and as a body by `CENTRE`, and a graduation is neither. `P.raw` bypasses the kit binding, so the paint is written by hand. The three `tune` sites are the `workloads-pod-qos-classes` reason: trunk and bus carry every ball, so they are lanes rather than relations, and `tune` drops the head that belongs on the tap |
 | `workloads-pod-startup-conditions` | `P.raw`, one factory over five treads plus two rail segments | The condition staircase is a two-line cell (`chip()` carries one centred label, `box()` is a component) and the phase rail is two label-only `chip()`s. Keys `rung0..rung4`, `railPending` and `railRunning`, which is what `lit`, `opacity` and `reset.keys` address |
 | `workloads-pod-lifecycle-phases` | `part.tune` on the `Running` state box | The phase machine draws CrashLoopBackOff INSIDE Running, so that state box is 150 tall against the 58 of the other three. `box()` optically centres its label, which puts the word Running on the inner box. `tune` moves the label attribute `y` to the top of the rect, and no field reaches an SVG attribute |
+| `workloads-deployment-rollback` | `part.tune` on the trunk and the bus | Same reason as `workloads-pod-qos-classes`, at the two sites one `busPath` factory covers: both carry every ball on the card, so both are lanes that `pathArrow` would give a head, and the four heads belong on the taps that reach the four ReplicaSet slots |
+| `workloads-rolling-update` | `P.raw` on the two owner regions, plus `part.tune` on the trunk and all six bus segments | An owner region is a fill-less dashed rect, which no part kind builds, and a `node()` there would draw a Node: where these Pods run is not this card's subject and a frame around a column would say the split is by Node. `P.raw` bypasses the kit binding, so the paint is written by hand and carries no role, the way the bands of `workloads-replicaset` do. The seven `tune` sites are the `workloads-pod-qos-classes` reason: the trunk and the bus carry every ball, so all seven are lanes that `pathArrow` would give a head, and the heads belong on the six drops. The bus is split at the trunk and at every slot centre so each segment can die with the last Pod it still serves |
 | `workloads-pod-qos-classes` | `part.tune` on the trunk and the bus | Both carry every fan ball, so they are lanes and not relations, and a lane always takes the arrowhead `pathArrow` attaches. `tune` drops the marker, because one head per run belongs on the tap that reaches the Node |
+| `workloads-statefulset-ordered-rollout` | `part.tune` on the trunk and both bus halves | The `workloads-pod-qos-classes` reason at three sites: all three carry every ball, so all three are lanes that `pathArrow` would give a head, and the heads belong on the three taps that land on a Pod. The three ownership spines and the two gates take no hook: nothing rides them, so they are plain relations and keep the A-08 wash, the way `workloads-pod-lifecycle-phases` draws its state edges |
+| `workloads-pod-garbage-collection` | `part.tune` on the trunk and on all four bus segments | Same reason as `workloads-pod-qos-classes`, at five sites rather than two: the bus is SPLIT at every Pod centre and at the trunk so each segment can die with the Pods it still serves, and every one of the five carries fan balls, so every one is a lane that `pathArrow` would give a head. The heads belong on the four taps |
 | `workloads-env-before-pid-1` | `P.raw`, one factory over the two wall segments | The wall is a bare rect pair, because its two captions are `P.tag`s addressable per step and `chip()` carries its label as its own child. Each caption is centred in its own 316 half: they are two rules of one line, not one sentence halved. `P.raw` bypasses the kit binding, so the role is written by hand |
+| `workloads-force-deletion` | `P.raw`, one `<path>` drawing a cross | The break ON the dead acknowledgement channel is a bare two-segment `path`, and no part kind emits one: an `arrow()` would attach a marker and read as traffic on a channel whose whole point is that nothing travels it. It carries the label class rather than an arrow class, so it is a MARK over a lane and `L-09` does not reach it. It is born at `opacity: 0` and fades in on the step that severs the channel |
+| `workloads-deployment-strategy` | `P.raw`, one factory over the void mark, plus `part.tune` on the trunk and all four bus segments | The outage the Recreate window holds is a drawn thing and not a missing one, and what draws it is a fill-less dashed rect the size of the one Pod slot it stands in for, with its caption inside the same keyed `g`: a mark with no word is a decoration and the two have to reveal together. A `box()` there would be scored as a block by the geometry probe and as a body by `CENTRE`, and an empty slot is neither. Like `workloads-effective-pod-requests` it writes no `role:` and carries no painted class, so `probePaint` never walks it, and `gapMark` is the key `opacity` and the two `F.fade`s address, one raising it and one dropping it. The five `tune` sites are the `workloads-pod-qos-classes` reason at the sites one `busPath` factory covers: the trunk and both buses carry every ball, so all five are lanes that `pathArrow` would give a head, and the heads belong on the four taps. Each bus is SPLIT at track A so a segment can die with the tap it feeds |
+| `workloads-job-parallelism` | `P.raw`, one factory over the three meter frames plus one per fill mark | Two meters and a slot row: five completion slots, six failure ticks, three worker slots, and one born-invisible mark inside each slot the card can fill. A `box()` would be scored as a block by the geometry probe and as a body by `CENTRE`, and an empty graduation is neither, so the whole card carries no value chip and every number it owns is a length instead. The frames are unkeyed because nothing addresses them, and each mark carries its own key (`fill0..fill4`, `spent0`), which is what `opacity` and `F.reveal` address per step. Like `workloads-effective-pod-requests` the factory writes no `role:` and carries no painted class, so `probePaint` never walks it |
+| `workloads-pod-replacement-guarantees` | `part.tune` on the trunk and both bus halves | The `workloads-pod-qos-classes` reason at the three sites one `trunkPath` factory covers: all three carry every watch ball, so all three are lanes that `pathArrow` would give a head, and the five heads belong on the five taps that land on an owner. The four ownership spines keep their heads, because a replacement really does ride each of them, and the fifth is a plain relation rather than a tuned lane: a CronJob never creates a Pod, so nothing rides it at all |
+| `workloads-statefulset-update-strategy` | `part.tune` on the trunk and the bus, and on the worklist chain | The `workloads-pod-qos-classes` reason at the first two sites: both carry every ball on the card, so both are lanes that `pathArrow` would give a head, and the heads belong on the two taps that land on a Pod slot. The third site is the SPLIT worklist: `chainList` lays every row on one pitch, and the gap the partition rule falls in has to be wider than the other two, so `tune` pushes the two rows below the rule down by the difference. A second chain instead would take a second key, and a step addresses a chain by row INDEX. The partition rule itself takes no hook: nothing rides a boundary, so it is a plain relation and keeps the A-08 wash |
 | `workloads-effective-pod-requests` | `P.raw`, four naked rects | The instrument is a time axis, two graduations and the idle band. A `box()` would be scored as a block by the geometry probe and as a body by `CENTRE`, and a 3.5 unit rule is neither. They are the one raw factory here writing no `role:` at all: with no role and no painted class, `probePaint` never walks them, which is what a graduation wants |
 
 **A `P.raw` factory and a `part.tune` calling a primitive directly are where a card still writes its
 own `role:`**, because both bypass the kit binding by construction and the primitive has to be
-handed the role by hand. `cronjob`'s tick
-rung is one of the five `role: 'workloads'` literals in the category for exactly that reason, the
-debug container box `workloads-ephemeral-containers` appends through `part.tune` is a second, and
-the three container boxes `workloads-termination-order` appends the same way are the rest: `tune`
-calls the primitive directly and bypasses the binding.
+handed the role by hand. Six `role: 'workloads'` literals survive in the category for exactly that
+reason, and every one of them is a `part.tune` calling the primitive directly: the
+debug container box `workloads-ephemeral-containers` appends, the
+previous-instance box `workloads-container-states` appends, the one
+`container` factory the five boxes of `workloads-termination-order` share, and the three
+container boxes of `workloads-pod-pending-init-states`
+append the same way. A `P.raw` factory drawing a naked instrument writes no role at all, which is
+what `workloads-cronjob`, `workloads-effective-pod-requests`, `workloads-job-parallelism`,
+`workloads-deployment-strategy` and `workloads-rolling-update` do.
 
-`reducedLit` is declared on **8 cards over 23 steps** (`rolling-update` 5, `deployment-rollback`,
-`daemonset`, `replicaset`, `statefulset-ordered-rollout`, `pod-lifecycle-phases` 3 each, `cronjob` 2,
-`force-deletion` 1),
-against 2 steps in the whole of cluster. The shape is always the same: the animated path says "this
+`reducedLit` is declared on **10 cards over 34 steps** (`cronjob` 5, `rolling-update` 5,
+`statefulset-update-strategy` 5, `force-deletion` 4, `daemonset`, `replicaset`,
+`statefulset-ordered-rollout` and `pod-lifecycle-phases` 3 each, `pod-replacement-guarantees` 2,
+`pod-garbage-collection` 1),
+against 2 steps in the whole of cluster. The shape is usually the same: the animated path says "this
 Pod is here now" by PULSING the wrapper, and no `lightBoxAt` names the inner box, so `flowLights`
-cannot derive it. A wrong derivation lands on the HIGHLIGHT axis of `render/reduced.test.mjs`,
-which is enforced, so `npm test` is what catches it.
+cannot derive it. `force-deletion` is the second shape, a chip turned over inside an `F.set` at an
+arrival, which carries no `lights` list either. A wrong derivation lands on the HIGHLIGHT axis of
+`render/reduced.test.mjs`, which is enforced, so `npm test` is what catches it.
 
 ## Four catalog-wide lane rules the canon sources here
 

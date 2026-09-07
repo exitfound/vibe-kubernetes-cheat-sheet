@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // pace.mjs: how FAST every ball on a card actually moves, ranked against the catalog.
 //
-//   cd scheme/test && node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
+//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
 //
 // WHY THIS EXISTS. Nothing else in the tree converts a path LENGTH into a SPEED. `timing.mjs`
 // measures span against duration and reading load, `render/duration.test.mjs` enforces

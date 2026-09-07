@@ -102,7 +102,7 @@ costs seven seconds. The bytes were never the cost.
 
 ```bash
 node .claude/skills/_shared/tools/ctx.mjs <card-id>      # already run in phase 0. Read it, do not re-run it
-cd scheme/test && node tools/canon.mjs --check=review    # the rows NO machine covers. This review is FOR these
+cd "$(git rev-parse --show-toplevel)"/scheme/test && node tools/canon.mjs --check=review    # the rows NO machine covers. This review is FOR these
 ```
 
 `ctx.mjs` prints, in one run: the catalog entry (title, desc, subcategory, k8sVersion, sources), the
@@ -139,7 +139,7 @@ The loops, the reports and their traps are `_shared/card-verify.md` section 1. R
 and the reports here; the full gate waits for the end.
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 npm run test:unit                                          # 2s
 SCHEME_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1  # 7s
 grep -E '^# (tests|pass|fail|skipped)|^not ok' /tmp/r.txt
@@ -218,8 +218,8 @@ source and finds more than half of everything.
   reworded
 - the record against `CANON.md` and the category `CLAUDE.md`: a rule restated in two homes drifts,
   and the record is only allowed to hold DEVIATIONS and measurements
-- the catalog wiring: `cards.js` fields present, `posters.js` carrying an entry, an alias in
-  `app.js` still resolving, counts in `scheme/CLAUDE.md` and `README.md` when the catalog changed
+- the catalog wiring: `cards.js` fields present, `posters.js` carrying an entry, the id resolving
+  in `app.js` (there is no alias map, `D-11`), counts in `scheme/CLAUDE.md` and `README.md` when the catalog changed
 
 ### C. Prose mechanics
 
@@ -248,6 +248,12 @@ The gate already reads every drawn string for apostrophes, semicolons and dashes
   the packet first and the pulse on arrival.
 - A block lights when the ball LANDS, not when its neighbour starts, or the picture credits the
   wrong actor.
+- **And the block it LEAVES is lit before it leaves** (`M-18a`), which is the half a review misses
+  because the receiver's cue is right there in `lights:` and the sender's is nowhere. Two shapes and
+  no third: the block ACTS FIRST, so it is in that step's `lit` and its ball waits `BEAT.lead`, or it
+  is MID-CHAIN, so the hop before it names it in `lights` and it sends `after` that arrival. Read it
+  off the frozen `-0` frame of every step that moves a ball: a dark box with a ball leaving it is the
+  finding, and `report:arrival/R4` prints the same queue catalog-wide.
 - **Compare the ARRIVALS of one card against each other, not each against the rule.** The same lane
   onto the same target, cued on one step and silent on two others, is the `P-04` asymmetry and it is
   what a reader actually sees. It survived a full review here because the silent steps carried a
@@ -298,7 +304,6 @@ The gate already reads every drawn string for apostrophes, semicolons and dashes
 - a constant that survived a refactor with nothing reading it (canon: zero, catalog-wide)
 - a part key nothing addresses, a wire nothing writes, a lane nothing rides
 - a comment describing code that moved, or one past the two-line ceiling (`S-34`)
-- an alias in `app.js` pointing at a renamed card
 - a helper kept for one call site that no longer exists
 
 ### I. Catalog and records
@@ -307,12 +312,17 @@ The gate already reads every drawn string for apostrophes, semicolons and dashes
   is `card-facts`, their presence and shape are here.
 - Counts in `scheme/CLAUDE.md` against `data.js`, and the root `README.md` counts, which nothing
   links to and nothing checks.
-- Record anchors still occur in the card verbatim (`unit/docs.test.mjs` group A checks this).
+- Record anchors still occur in the card verbatim, in `network/` and `storage/`
+  (`unit/docs.test.mjs` group A checks this). `cluster/` and `workloads/` carry none: a record there
+  is one `### layout` block (`S-51`), and `unit/docs.test.mjs` G1 fails on an anchor or a poster note
+  appearing in one, with G2 holding the label order (`S-52`) and G3 the vocabulary itself
+  (`S-53`). All three are in
+  `npm test`, so this is a detection to report and not a finding to hunt.
 
 ### J. The poster: detect only, then hand over
 
-Look at it, do not redraw it. `card-poster` owns `posters.js` and the `### poster` note, and drawing
-one starts with a concept signed off in one line (`R-01`).
+Look at it, do not redraw it. `card-poster` owns `posters.js`, and drawing one starts with a concept
+signed off in one line (`R-01`).
 
 ```bash
 node .claude/skills/card-poster/tools/montage.mjs <card-id> --out=/tmp/card-poster
@@ -390,7 +400,8 @@ In the user's language:
   name plus the debt list it left and how the debt was discharged. A lane B change that reports a
   full gate it did not need has not been more careful, it has been slower by two minutes and has
   said nothing extra. Either way: how many frames were opened and at which viewports, and how many
-  of the 94 review rows were walked
+  of the review rows were walked, against the count `tools/canon.mjs --check=review` prints, which
+  is where that number executes and therefore the only place it is stated
 - findings, ranked, with evidence
 - what was fixed and what was verified after the fix
 - the count sweep as a table: every file touched or checked, marked **updated**, **re-measured and

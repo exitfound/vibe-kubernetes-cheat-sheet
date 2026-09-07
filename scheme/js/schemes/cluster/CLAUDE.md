@@ -33,7 +33,7 @@ sentence read better: re-measure, or the assertion goes red.
 | `cluster-kit.js` | the tint, the two pulse wrappers, the `CLU` grammar and the `LAYOUT` presets. Everything else is re-exported from `lib/scheme-kit.js` |
 | `cluster-*.js` | one module per card, 28 of them |
 | `CARDS.md` | the record preamble and its index, and no `## ` heading of its own |
-| `CARDS/<id>.md` | the design record for ONE card. This category and `workloads/` are the two in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` reads that shape off the tree rather than off a list of category names |
+| `CARDS/<id>.md` | the design record for ONE card, a single `### layout` block of labelled notes and no other heading, which `S-51` states and `test:docs/G1` holds. This category and `workloads/` are the two in the split shape, and `recordFiles` in `test/fixtures/catalog.mjs` reads that shape off the tree rather than off a list of category names |
 
 Nothing else may live here (`S-20`). A card reaches `./cluster-kit.js` and no further (`S-21`): all
 28 import the kit, 4 also import `lib/svg.js` and 1 `lib/primitives.js`. Those are element
@@ -127,7 +127,7 @@ before you touch it: a reset key here can be born in a `tune` and not in a part.
 ## The reduced path
 
 **`reducedLit` is declared on 2 steps here**, `cluster-object-create-path`'s `create-pod` and
-`cluster-node-pressure-eviction`'s `rank`, against 89 in network, 23 in workloads and 0 in storage.
+`cluster-node-pressure-eviction`'s `rank`, against 89 in network, 34 in workloads and 0 in storage.
 That is the lowest non-zero count in the catalogue, and the reason is that cluster's steps name
 their receivers in `lights:`, so `flowLights` derives most of the static path for free.
 
@@ -145,23 +145,26 @@ reading, and add one only where the step's own record says why.
 | ID | Rule |
 |---|---|
 | `CLU.S-01` | A cluster card states only what is true of ITSELF in its `CARDS/<id>.md` record. Unlike networking and storage, this category has no shared contract paragraph: what every card obeys is the canon |
-| `CLU.S-03` | **A record over 300 lines opens its `### layout` by saying what makes this card need one**, as a `WHAT` line naming the measurement that fills it. Length is measured per `## ` section rather than per file, so the split shape and the monolith read the same and a preamble is charged to nobody. This category's records are the longest in the catalogue by a wide margin, and the reason is not uniform. It is measurement: a card carrying `PANEL` at three viewports, a `MOTION` block with spans and a `CONTENT` block from a fact pass is long because someone opened a browser for it, and that length is earned. What is NOT earned is a record that grows by restating the canon, by re-deriving a catalog-wide argument a sibling already carries, or by narrating the sequence of edits `S-48` sends to the bin. The ceiling is a prompt to say which of the two a long record is, never a licence to cut a measurement. The band this row used to state in eight numbers is gone on purpose: it measured the RECORDS rather than the tree, so every prose edit moved it and no reader ever acted on it. `tools/canon.mjs` prints the lengths when the question is actually asked |
+| `CLU.S-03` | **A record over 300 lines opens its `### layout` by saying what makes this card need one**, as a `WHAT` line naming the measurement that fills it. Length is measured per `## ` section rather than per file, so the split shape and the monolith read the same and a preamble is charged to nobody. Length here is earned by measurement: a card carrying `PANEL` at three viewports, a `MOTION` block with spans and a `CONTENT` block from a fact pass is long because someone opened a browser for it. What is NOT earned is a record that grows by restating the canon, by re-deriving a catalog-wide argument a sibling already carries, or by narrating the sequence of edits `S-48` sends to the bin. The ceiling is a prompt to say which of the two a long record is, never a licence to cut a measurement. No band of record lengths is stated here: it would measure the RECORDS rather than the tree, so every prose edit would move it. `tools/canon.mjs` prints the lengths when the question is actually asked |
 
-Five records stand past the ceiling today: `node-eviction-rate`, `taints-tolerations`,
-`node-conditions`, `pod-priority-preemption` and `node-failure`, the last of them the longest in the
-catalogue. All five are frames-and-timings records whose length is measurement rather than bloat,
-each opens with the `WHAT` line the rule asks for, and none is a target for trimming.
+One record stands past the ceiling today, `cluster-node-failure`, the longest in the catalogue. It
+is a frames-and-timings record whose length is measurement rather than bloat, it opens with the
+`WHAT` line the rule asks for, and it is not a target for trimming. Which records reach the ceiling
+moves with any prose edit, so the count is the only thing stated: `tools/canon.mjs` prints the
+lengths.
 
 The block labels a record may use are ONE list for all four categories, in `scheme/CANON.md` under
-"The record vocabulary". Every record here carries `WHAT`, `PANEL`, `MOTION` and `CONTENT`, and a
-one-line `Sentence:` under `### poster`. A `PANEL` block states the reading, not the extent: the
-right edge is `x<=397` catalog-wide (`L-02`), and the bottom moves non-monotonically per card and
-per viewport (`L-04`, `L-06`), so each block names the command that prints it,
-`OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs` from `scheme/test/`, and keeps only what
-stands under the panel and how much clearance is left. All 28 name the command. `LAYOUT` is not on
-that list of four: `node-failure` carries none, and its frame arithmetic sits under `SIZES` beside
-the chip widths that force it, which is where a reader of that card looks. Nothing in `npm test`
-enforces the character ceilings a `BUDGET` block states (`L-08`).
+"The record vocabulary", each used at most once and in that order. That is `S-52`, and `test:docs/G2`
+reads the vocabulary off the canon and holds all 28 records here to it, so a label outside the list,
+a duplicate or a run out of order fails the gate rather than a review. Every record here carries
+`WHAT`, `PANEL`, `MOTION` and `CONTENT`. A `PANEL` block states the reading, not the extent: the right edge
+is `x<=397` catalog-wide (`L-02`), and the bottom moves non-monotonically per card and per viewport
+(`L-04`, `L-06`), so each block names the command that prints it,
+`OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs` from `scheme/test/`, and keeps only
+which step is deepest, what stands under the panel and how much clearance is left. All 28 name the
+command. `LAYOUT` is not on that list of four: `node-failure` carries none, and its frame arithmetic
+sits under `SIZES` beside the chip widths that force it, which is where a reader of that card looks.
+Nothing in `npm test` enforces the character ceilings a `BUDGET` block states (`L-08`).
 
 ## Exemplar (`CLU.S-02`)
 

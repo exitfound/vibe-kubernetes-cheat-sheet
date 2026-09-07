@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // motion.mjs: every animation a card really runs, per step, as DATA.
 //
-//   cd scheme/test && node ../../.claude/skills/card-review/tools/motion.mjs <card-id>
+//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/motion.mjs <card-id>
 //     [--viewport=1600x1000] [--base=http://localhost:8888] [--all]   --all: chrome animations too
 //
 // WHY THIS EXISTS, and it is the hole that shipped a defect. The other three probes all read a

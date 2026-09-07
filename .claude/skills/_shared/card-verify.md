@@ -20,6 +20,13 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8888/scheme/
 `npm test`, `npm run report` and `node --test` run from `scheme/test/`. Every helper under
 `.claude/skills/*/tools/` resolves its imports relative to itself and runs from anywhere.
 
+**Every block anchors itself, because the working directory does not.** The Bash tool keeps its
+working directory BETWEEN calls, so a second `cd scheme/test` resolves to `scheme/test/scheme/test`
+and the call dies with `No such file or directory`, taking the rest of the phase with it. That is
+why every block here opens with `cd "$(git rev-parse --show-toplevel)"/scheme/test`, which is right
+from anywhere and right twice. The lines AFTER that first one still assume `scheme/test`: run a
+block as ONE call, or re-anchor the piece you split off.
+
 ### Start the long runs before you read anything
 
 Two of the runs below take minutes and neither needs you while it goes. Started FIRST, in the
@@ -27,13 +34,16 @@ background, they finish under the reading rather than after it, and a card that 
 minutes of watching a progress line costs none:
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 npm run report > /tmp/report.txt 2>&1 &                                  # about 3 minutes
 node ../../.claude/skills/card-review/tools/frames.mjs <id> --out=/tmp/frames/<id> > /tmp/frames.txt 2>&1 &
 ```
 
 Then read (`ctx.mjs`, the record, the source) while they run, and collect them at the phase that
-needs them. The full gate goes the same way at the END of the work, started before the record and
+needs them. **Except the two filtered report files**: `OVERLAY_IDS` and `GEOMETRY_IDS` read the walk
+SNAPSHOT that `npm run report` rewrites as it runs, so taken while the background report is still
+going they sample zero cards and say the grid does not render the id. Collect those two after it
+has exited. The full gate goes the same way at the END of the work, started before the record and
 the count sweep are written rather than after.
 
 **A backgrounded run that nobody read is worse than one that was never started**, because the work
@@ -108,7 +118,7 @@ covers the catalog anyway. Per card that is eight seconds of machine time, not s
 iterating, unit plus the filtered render is the loop, and it is seven seconds:
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 npm run test:unit
 SCHEME_IDS=<card-id> npm run test:render > /tmp/r.txt 2>&1
 grep -E '^# (tests|pass|fail|skipped)|^not ok' /tmp/r.txt
@@ -152,7 +162,7 @@ on nothing and is where the findings a human has to rule on are already written 
 name:
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 npm run report > /tmp/report.txt 2>&1
 grep -n '<card-id>' /tmp/report.txt
 grep -nE 'queue to work|left to work|finding\(s\)' /tmp/report.txt
@@ -184,7 +194,7 @@ Notes that have cost time before:
 ## 2. Frames: generate all of them, read the ones that carry something
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=/tmp/frames/<card-id>
 node ../../.claude/skills/card-review/tools/motion.mjs <card-id>
 ```
@@ -252,7 +262,7 @@ Then the three states a frame cannot show:
 ## 3. Measure, never estimate
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 node ../../.claude/skills/card-review/tools/timing.mjs <card-id>
 node ../../.claude/skills/card-review/tools/deadair.mjs <card-id>
 node ../../.claude/skills/card-review/tools/pace.mjs <card-id>
@@ -299,7 +309,7 @@ you never opened.** `S-49` machine-checks the guarded ones; the rest are yours, 
 is deciding by eye that a document "looks unaffected".
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 npm run docs:sync                            # writes every guarded count the tree has moved
 npm run test:unit                            # S-49 CENSUS then has to be green, and it is the check
 OVERLAY_IDS=<id> node --test report/overlay.test.mjs         # the L-02 / L-04 / L-05a verdicts
@@ -342,8 +352,9 @@ with the number behind the verdict. The third is a finding, not a chore to absor
 ## 5. The record
 
 Whichever skill is running owns a different part of the `## <card-id>` section, and the split is not
-negotiable: `card-facts` owns `CONTENT`, `card-poster` owns `### poster`, everything else is
-`card-review`'s, and `card-new` writes the whole thing once. Two procedures rewriting one block is
+negotiable: `card-facts` owns `CONTENT`, `card-poster` owns the `### poster` subsection where the
+category still has one, everything else is `card-review`'s, and `card-new` writes the whole thing
+once. Two procedures rewriting one block is
 how a settled wording gets quietly reworded.
 
 House rules for writing any of it:
@@ -355,16 +366,25 @@ House rules for writing any of it:
   lives in the canon or the folder contract.
 - Numbers are MEASURED and fresh. A number carried over from before the change is a lie with a
   decimal point in it.
-- An anchor (``### before `<line of code>` ``) is DATA copied off the source verbatim (`S-38`).
-  Never reword one. If the anchored line itself changed, replace the anchor with the new line
-  verbatim, and never leave an anchor with an empty body.
+- **The record shape is per category, and a machine holds it.** `cluster/` and `workloads/` records
+  are ONE `### layout` section holding one fenced block: no `### poster` note, no
+  ``### before `<line>` `` anchors, no label used twice, and no word in the label column that is
+  not a label (`S-51`, `S-52`, `S-53`, held by
+  `unit/docs.test.mjs` groups G1, G2 and G3, which are in `npm test`). A note that would have taken an
+  anchor goes under the label it belongs to, and a reason that belongs to one constant is a comment
+  ON that constant (`S-34`, `S-35`). The two labels wider than the 8 column, `WIRE LABELS` and
+  `NOT A DEFECT`, stand alone on their line with the prose at column 9 under them: G2 reads the
+  column and rejects a label padded any other way.
+- `network/` and `storage/` still carry both. There an anchor (``### before `<line of code>` ``) is
+  DATA copied off the source verbatim (`S-38`): never reword one, replace it with the new line
+  verbatim if the anchored line changes, and never leave an anchor with an empty body.
 - No em-dashes, no semicolons in user-visible prose, and a code comment stays inside the two-line
   ceiling with anything longer moving into the record (`S-34`, `S-35`).
 
 Then prove the records still parse:
 
 ```bash
-cd scheme/test && npm run test:unit          # docs.test.mjs: anchors, sections, index, citations
+cd "$(git rev-parse --show-toplevel)"/scheme/test && npm run test:unit          # docs.test.mjs: anchors, sections, index, citations
 ```
 
 ---

@@ -98,7 +98,7 @@ export const STEPS_SPEC = [
   {
     id: 'ports',
     duration: 2400,
-    narration: 'Sharing the namespace also means sharing the port space. The sidecar already holds :15001, and if the app tried to bind that same port the kernel would reject it with address already in use. Two containers in one Pod cannot both listen on the same port.',
+    narration: 'Sharing the namespace also means sharing the port space. The sidecar already holds :15001, and if the app tried to bind that same port the kernel would reject it with address already in use. A bind claims an address and a port together, so the two containers divide the ports between them.',
     chips: { pathChip: 'loopback via lo', portChip: 'one space', bindChip: ':15001 in use', ipChip: POD_IP },
     // The sidecar owns :15001, so it stays lit as the holder alongside the app that is refused
     // the same port. This is a static conflict state, no motion (nothing pulses).

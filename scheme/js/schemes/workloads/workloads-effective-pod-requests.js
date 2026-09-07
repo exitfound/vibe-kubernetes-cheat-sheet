@@ -6,8 +6,8 @@ import { rect } from '../../lib/svg.js';
 // An INSTRUMENT, not an actor row over a Node floor: cpu up the page against one Pod life across
 // it, so max and sum are one operation read over two differently shaped windows. The chart is a
 // MOSAIC with no notch in it: every cell under the reserve level is either a container or the room
-// the reservation holds idle. Panel measured at x<=396.55, y<=229.82 (worst of 1600/1280/1100), and
-// every drawn string sits right of x=420 or below y=305, so the deepest panel stands 75 clear.
+// the reservation holds idle. Panel measured at x<=396.55, y<=254.66 (worst of 1600/1280/1100), and
+// every drawn string sits right of x=420 or below y=305, so the deepest panel stands 50 clear.
 
 // The chart takes 900 of the 1080 the category gives it, centred on WL.CX, and the reader row is
 // right-aligned to the same edge: at full width the four cells are 80 percent empty ink.
@@ -89,7 +89,7 @@ const LANE_KUBELET = { from: [KUBELET_CX, RESERVE_Y], to: [KUBELET_CX, WL.TOP_BO
 // the bars and the instrument over them, then the labels and the packet layer, and the two readers
 // absolutely last so a ball passes behind them rather than over their labels.
 export const SCENE = {
-  'aria-label': 'Effective Pod request drawn as cpu over one Pod lifetime: regular init containers run one at a time so the init phase counts only its tallest single container, the sidecar and the app run together so theirs are summed, and the Pod is reserved the higher of the two standing on its RuntimeClass overhead, for the whole life',
+  'aria-label': 'Effective Pod request drawn as cpu over one Pod lifetime: regular init containers run one at a time so the init phase counts its tallest single container plus any sidecar declared before it, the sidecar and the app run together so theirs are summed, and the Pod is reserved the higher of the two standing on its RuntimeClass overhead, for the whole life',
   parts: [
     P.defs(),
     // Both carry the reservation up to a reader on the last step, which is what earns the
@@ -201,7 +201,9 @@ export const STEPS_SPEC = [
   },
   {
     id: 'overhead',
-    duration: 2600,
+    // 318 characters at 3000 is 9.43 ms per character, beside the catalog median of 10.04: at 2600
+    // it read at 8.18, rank 97 of 618, the most hurried step of this card by a margin.
+    duration: 3000,
     narration: 'Everything the containers ask for stands on a floor. A Pod that names a RuntimeClass declaring overhead.podFixed carries that fixed amount for itself, 250m of cpu here for a sandboxed runtime. It pays for the sandbox rather than for anything a container asked for, and a Pod on the default runtime has no floor at all.',
     wires: { readout: READ.overhead, heldLbl: READ.none },
     opacity: stage(HIDDEN),
@@ -209,8 +211,9 @@ export const STEPS_SPEC = [
   },
   {
     id: 'init-max',
-    duration: 2600,
-    narration: 'Regular init containers run strictly one at a time, so at no instant do two of them hold cpu together. The effective init request is therefore the highest single one, 800m, and not the 1100m the two of them add up to. A resource with no limit on any init container counts as the highest limit.',
+    // 311 characters at 3000 is 9.65 ms per character.
+    duration: 3000,
+    narration: 'Regular init containers run strictly one at a time, so at no instant do two of them hold cpu together. The effective init request is therefore the highest single one, 800m, not the 1100m they add up to, and the phase holds that 800m whichever of the two is running, which is why init-b stands as tall as init-a.',
     wires: { readout: READ.init, heldLbl: READ.none },
     opacity: stage(INIT_READ),
     // The pair lights first and the level lands on top of it, so the rule reads as the answer to the
@@ -222,10 +225,10 @@ export const STEPS_SPEC = [
   },
   {
     id: 'run-sum',
-    // The one step with no motion at all, so the whole hold is reading time: 299 characters at the
-    // catalog median of 9.97 ms per character, where 2600 read tight at 8.70.
-    duration: 3000,
-    narration: 'The sidecar and the app overlap for the whole rest of the Pod, so their requests are added rather than compared, 200m plus 450m is 650m. The catch: the sidecar is an init container with restartPolicy=Always, so its 200m counts with the app containers and is weighed in the init maximum too, where 800m wins.',
+    // The one step with no packet and no reveal, so the whole hold is reading time: 335 characters
+    // at 3200 is 9.55 ms per character, beside the catalog median of 10.04.
+    duration: 3200,
+    narration: 'The sidecar and the app overlap for the rest of the Pod, so their requests add up: 200m plus 450m is 650m. Being an init container with restartPolicy=Always, the sidecar is weighed in the init maximum too, where 800m wins. Declared before init-a it would run beside it and lift that maximum to 1000m: array order is part of the number.',
     wires: { readout: READ.run, heldLbl: READ.none },
     // Identical to the step before it: this beat adds no element, it only reads two that are drawn.
     opacity: stage(INIT_READ),
@@ -236,8 +239,9 @@ export const STEPS_SPEC = [
   },
   {
     id: 'reserve',
-    duration: 2800,
-    narration: 'A Pod is charged for the tallest instant of its life, so the higher of the two envelopes wins and that is the 800m init phase, not the 650m run phase. Standing on the 250m floor it comes to 1050m, and the line runs the whole width because the reservation lasts the whole life.',
+    // 312 characters at 3000 is 9.62 ms per character.
+    duration: 3000,
+    narration: 'A Pod is charged for the tallest instant of its life, so the higher of the two envelopes wins and that is the 800m init phase, not the 650m run phase. Standing on the 250m floor it comes to 1050m, and the line runs the whole width because the reservation lasts the whole life. Limits follow the same max and sum.',
     wires: { readout: READ.reserved, heldLbl: READ.none },
     opacity: stage(RESERVED_ST),
     // The init envelope carries across the run window, and only then are the two readers wired to
@@ -252,7 +256,7 @@ export const STEPS_SPEC = [
   {
     id: 'held',
     duration: 3600,
-    narration: 'The Scheduler bins the Pod on 1050m and the Kubelet sizes the Linux Pod cgroup from the same number. By the start of the run phase init-a is finished, and for that whole phase 150m of what was reserved is asked for by nothing that is still running.',
+    narration: 'The Scheduler bins the Pod on 1050m and the Kubelet sizes the Linux Pod cgroup from the same number. By the start of the run phase init-a is finished, and for that whole phase 150m of what was reserved is asked for by nothing that is still running. Memory is counted the same way, and a Pod that sets pod-level spec.resources replaces this number with its own.',
     wires: { readout: READ.held, heldLbl: HELD_TEXT },
     opacity: stage(HELD_ST),
     // The caption names a band that is still 2.4s away, so the animated path blanks it and the

@@ -53,7 +53,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cards } from '../fixtures/catalog.mjs';
 import { stepTotal } from '../fixtures/module.mjs';
-import { DIAGRAM_FACES } from '../fixtures/render.mjs';
+import { DIAGRAM_FACES, DEFAULT_BASE } from '../fixtures/render.mjs';
 import { readSnapshot } from '../fixtures/snapshot.mjs';
 
 // THE BROWSER IS NOT DRIVEN HERE ANY MORE. The three-viewport panel walk is taken once by

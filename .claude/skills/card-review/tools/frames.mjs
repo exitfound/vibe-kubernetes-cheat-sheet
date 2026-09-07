@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // frames.mjs: one PNG per step per viewport, so a reviewer can LOOK at every frame of a card.
 //
-//   cd scheme/test && node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=DIR
+//   cd "$(git rev-parse --show-toplevel)"/scheme/test && node ../../.claude/skills/card-review/tools/frames.mjs <card-id> --out=DIR
 //     [--viewports=1600x1000,1280x860,1100x800]   the set the render tests measure on
 //     [--at=0,0.5,0.95]                           fractions of each step span to freeze at
 //     [--base=http://localhost:8888]

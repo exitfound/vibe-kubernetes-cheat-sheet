@@ -65,7 +65,7 @@ repair on `network-model`.
 inside a `make()`: `RAW_SHAPED_AS` in `unit/spec-scene.test.mjs` carries `network-model.bus` as a box
 and `network-pod-ip-and-veth.podShell` as a podShell. Growing that table is the coordinator's job.
 
-`reducedLit` is declared on **33 of the 37 cards over 89 steps**, against 20 steps in workloads and 2
+`reducedLit` is declared on **33 of the 37 cards over 89 steps**, against 26 steps in workloads and 2
 in the whole of cluster. The shape is always the same, and four cards show its limit case: they carry
 no `lightBoxAt` at all, so `flowLights` returns `[]` on every step and the entire static path rests on
 `reducedLit`. A wrong derivation lands on the HIGHLIGHT axis of `render/reduced.test.mjs`, which is
@@ -75,8 +75,8 @@ enforced, so `npm test` is what catches it: on these four it is the ONLY thing t
 
 | key | label | cards | what belongs here |
 |---|---|---|---|
-| `network-foundations` | Network Foundations | 8 | the model and the machinery under every other card: the flat address promise, namespaces, CIDRs, the proxy and dataplane implementations |
-| `pod-networking` | Pod Networking | 8 | one packet's path at Pod level: how an interface comes to exist and how a frame gets from one Pod to another |
+| `network-foundations` | Network Foundations | 9 | the model and the machinery under every other card: the flat address promise, namespaces, CIDRs, the proxy and dataplane implementations |
+| `pod-networking` | Pod Networking | 7 | one packet's path at Pod level: how an interface comes to exist and how a frame gets from one Pod to another |
 | `services-endpoints` | Services & Endpoints | 8 | the Service abstraction and what backs it: VIP resolution, EndpointSlice reconciliation, port mapping, selection policies |
 | `external-traffic` | External Traffic | 8 | traffic that starts outside the cluster: NodePort, LoadBalancer, Ingress, Gateway, TLS, and what happens to the source IP |
 | `dns-service-discovery` | DNS & Service Discovery | 5 | name resolution: CoreDNS, record shapes, resolver behaviour, caching |

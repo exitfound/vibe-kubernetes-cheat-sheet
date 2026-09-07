@@ -19,7 +19,7 @@ Then read only what the scope names: the card source in full, the card's `## <ca
 section, and the canon block the change lands in. Not the whole rulebook:
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 node tools/canon.mjs                    # 19 lines: rows per block, by check kind
 node tools/canon.mjs --block=L,A        # geometry     (--block=M motion, T prose, P chips)
 ```
@@ -53,7 +53,7 @@ this" and was wrong. Grep before the first edit, and read what the hits SAY, not
 exist:
 
 ```bash
-cd scheme/test && grep -rn '<card-id>' . --include=*.mjs
+cd "$(git rev-parse --show-toplevel)"/scheme/test && grep -rn '<card-id>' . --include=*.mjs
 ```
 
 **A green assertion prints nothing, so a ruling inside one is invisible until you break it.** That
@@ -91,7 +91,7 @@ queue, a panel extent or a pace ranking read only AFTER the edit cannot tell you
 what was already there:
 
 ```bash
-cd scheme/test
+cd "$(git rev-parse --show-toplevel)"/scheme/test
 npm run report > /tmp/before.txt 2>&1; grep -n '<card-id>' /tmp/before.txt   # only if a row names a report
 OVERLAY_IDS=<card-id> node --test report/overlay.test.mjs                    # only if prose or a block moved
 node ../../.claude/skills/card-review/tools/pace.mjs <card-id>               # only if geometry moved

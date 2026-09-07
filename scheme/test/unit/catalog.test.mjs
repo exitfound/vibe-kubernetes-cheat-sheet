@@ -3,9 +3,8 @@
 // strings the catalog itself renders.
 //
 // Everything here reads DATA, through fixtures/catalog.mjs, which imports js/data.js. No regex over
-// a card source. The two inputs that are not JS (sitemap.xml, and SCHEME_ALIASES inside app.js,
-// which imports document and cannot be imported here) are read as text and then parsed into the
-// object they declare, never matched pair by pair.
+// a card source. The one input that is not JS (sitemap.xml) is read as text and then parsed into the
+// object it declares, never matched pair by pair.
 //
 // Every walk that filters ends in census(): a check that scans nothing reports nothing, and one bad
 // directory filter is enough to turn a whole file into a green run over an empty set. The counts
@@ -27,9 +26,8 @@ import { sentences } from '../fixtures/prose.mjs';
 // The typed half, and its one assertion is below: this is where a card added to or removed from
 // data.js has to be acknowledged on purpose. Every other file derives its own total.
 const CARD_TOTAL = CATALOG_BASELINE.cards;
-const PER_CATEGORY = { cluster: 28, workloads: 27, network: 37, storage: 31 };
+const PER_CATEGORY = { cluster: 28, workloads: 32, network: 37, storage: 31 };
 const SUBCATEGORY_TOTAL = 15;   // 3 + 3 + 5 + 4, unique across the four categories (D-07)
-const ALIAS_TOTAL = 46;         // SCHEME_ALIASES in js/app.js
 
 // The desc bands D-04 and D-05 state: 400 to 470 characters hard (410 to 460 target) and 2 to 4
 // sentences. A tighter ceiling pushes qualifying conditions out of the desc and leaves true
@@ -63,34 +61,6 @@ const REGISTRY = await categoryRegistry();
 const { CATEGORY_LABEL, CATEGORY_ICONS, CATEGORY_TAGLINE } = await catalog();
 
 const ids = new Set(SCHEMES.map(s => s.id));
-
-// app.js touches document at import time, so its alias map is read as text and evaluated as the
-// object literal it is, brace-matched from the declaration. A regex over `'old': 'new',` pairs would
-// skip an entry wrapped across two lines and report the smaller map as clean, which is the exact
-// failure mode this file exists to refuse.
-//
-// A VALUE MAY BE AN IDENTIFIER rather than a literal: a card that has been renamed twice names its
-// current id once, in a const above the map, and both of its old ids point at that const. So every
-// upper-case string const declared ahead of the map is carried into the evaluation. Without them the
-// slice throws ReferenceError, and the map that most needs checking is the one that cannot be read.
-async function schemeAliases() {
-  const src = await readFile(join(ROOT, 'js', 'app.js'), 'utf8');
-  const at = src.indexOf('const SCHEME_ALIASES');
-  assert.ok(at >= 0, 'js/app.js no longer declares SCHEME_ALIASES: every published link to a renamed card is dead');
-  const open = src.indexOf('{', at);
-  let depth = 0;
-  let end = open;
-  for (; end < src.length; end++) {
-    if (src[end] === '{') depth++;
-    else if (src[end] === '}' && --depth === 0) break;
-  }
-  assert.equal(depth, 0, 'SCHEME_ALIASES has no balanced closing brace in js/app.js');
-  // Deduped by name: a second `const X` in the same scope is a SyntaxError, not a shadowed binding.
-  const consts = new Map(
-    [...src.slice(0, at).matchAll(/^const ([A-Z][A-Z0-9_]*) = ('[^']*');$/gm)].map(m => [m[1], m[2]]));
-  const preamble = [...consts].map(([name, lit]) => `const ${name} = ${lit};`).join('\n');
-  return new Function(`${preamble}\nreturn ${src.slice(open, end + 1)};`)();
-}
 
 // sitemap.xml lives at the REPO root, one level above scheme/. Parsed per <url> block so a stray
 // second <loc> inside one block is a finding rather than an extra entry nobody notices.
@@ -366,25 +336,6 @@ test(`D-08 CATEGORY_LABEL, _ICONS and _TAGLINE are projections of CATEGORIES (${
   for (const cat of CATS) assert.equal(manifest(cat).rel, join('js', 'schemes', cat, 'cards.js'));
 });
 
-// ---- D-11: the alias map ----
-
-test(`D-11 all ${ALIAS_TOTAL} SCHEME_ALIASES resolve to a live card`, async () => {
-  const aliases = await schemeAliases();
-  const entries = Object.entries(aliases);
-  // Equality both ways on purpose. A dropped alias silently breaks a link published under the old
-  // id, and a new one belongs to a rename that should be read alongside it.
-  assert.equal(entries.length, ALIAS_TOTAL);
-  const dead = entries.filter(([, to]) => !ids.has(to)).map(([from, to]) => `${from} -> ${to}`);
-  assert.deepEqual(dead, [], `${dead.length} alias(es) point at a card that no longer exists, so the dialog never opens`);
-  // openScheme() resolves once, not in a loop, so an alias whose target is itself an alias key
-  // would resolve to nothing.
-  const chained = entries.filter(([, to]) => to in aliases).map(([from, to]) => `${from} -> ${to} -> ...`);
-  assert.deepEqual(chained, [], `${chained.length} alias chain(s): SCHEME_ALIASES is applied once`);
-  // A live id used as an alias key would be rewritten before find() ever saw it.
-  const shadowed = entries.filter(([from]) => ids.has(from)).map(([from]) => from);
-  assert.deepEqual(shadowed, [], `${shadowed.length} alias key(s) shadow a live card id`);
-});
-
 // ---- D-12: the sitemap ----
 
 test('D-12 sitemap.xml lists the three page roots and no unresolvable deep link', async () => {
@@ -396,15 +347,13 @@ test('D-12 sitemap.xml lists the three page roots and no unresolvable deep link'
   const missing = SITE_ROOTS.filter(r => !locs.includes(r));
   assert.deepEqual(missing, [], `${missing.length} page root(s) missing from the sitemap`);
   // Today the sitemap carries 0 card deep links: the grid is one page and every card is a hash on
-  // it. Any that appear must resolve, through the catalog or through SCHEME_ALIASES.
-  const aliases = await schemeAliases();
+  // it. Any that appear must resolve against the catalog.
   const bad = [];
   for (const loc of locs) {
     if (SITE_ROOTS.includes(loc)) continue;
     const m = DEEP_LINK.exec(loc);
     if (!m) { bad.push(`${loc} is neither a page root nor a #scheme= deep link`); continue; }
-    const id = aliases[m[1]] || m[1];
-    if (!ids.has(id)) bad.push(`${loc} points at a card that does not exist`);
+    if (!ids.has(m[1])) bad.push(`${loc} points at a card that does not exist`);
   }
   assert.deepEqual(bad, [], `${bad.length} sitemap entry(ies) resolve to nothing`);
 });
